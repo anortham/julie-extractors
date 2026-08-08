@@ -268,6 +268,7 @@ fn manifest_crash_worker() {
         .unwrap();
     let entry = ManifestEntry::indexed(
         "src/lib.rs",
+        "rust",
         written.version_id,
         "blake3:crash",
         "2026-08-08T00:00:00Z",

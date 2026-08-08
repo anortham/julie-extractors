@@ -9,7 +9,7 @@ use sha2::{Digest, Sha256};
 
 use super::{StoreLog, StoreLogEntry, StoreLogError};
 
-const MANIFEST_HASH_DOMAIN: &[u8] = b"julie-store-manifest-v1";
+const MANIFEST_HASH_DOMAIN: &[u8] = b"julie-store-manifest-v2";
 
 /// Hash algorithm used by the manifest canonical encoding.
 pub const MANIFEST_HASH_ALGORITHM: &str = "sha256";
@@ -39,6 +39,7 @@ impl ManifestEntryStatus {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ManifestEntry {
     pub path: String,
+    pub language: String,
     pub version_id: Option<i64>,
     pub status: ManifestEntryStatus,
     pub observed_content_hash: String,
@@ -50,12 +51,14 @@ pub struct ManifestEntry {
 impl ManifestEntry {
     pub fn indexed(
         path: impl Into<String>,
+        language: impl Into<String>,
         version_id: i64,
         observed_content_hash: impl Into<String>,
         indexed_at: impl Into<String>,
     ) -> Self {
         Self {
             path: path.into(),
+            language: language.into(),
             version_id: Some(version_id),
             status: ManifestEntryStatus::Indexed,
             observed_content_hash: observed_content_hash.into(),
@@ -67,6 +70,7 @@ impl ManifestEntry {
 
     pub fn failed_preserved(
         path: impl Into<String>,
+        language: impl Into<String>,
         version_id: i64,
         observed_content_hash: impl Into<String>,
         indexed_at: impl Into<String>,
@@ -75,6 +79,7 @@ impl ManifestEntry {
     ) -> Self {
         Self {
             path: path.into(),
+            language: language.into(),
             version_id: Some(version_id),
             status: ManifestEntryStatus::FailedPreserved,
             observed_content_hash: observed_content_hash.into(),
@@ -86,6 +91,7 @@ impl ManifestEntry {
 
     pub fn failed(
         path: impl Into<String>,
+        language: impl Into<String>,
         observed_content_hash: impl Into<String>,
         indexed_at: impl Into<String>,
         error_class: impl Into<String>,
@@ -93,6 +99,7 @@ impl ManifestEntry {
     ) -> Self {
         Self {
             path: path.into(),
+            language: language.into(),
             version_id: None,
             status: ManifestEntryStatus::Failed,
             observed_content_hash: observed_content_hash.into(),
@@ -176,6 +183,11 @@ pub enum ManifestStoreError {
         path: String,
         version_path: String,
     },
+    VersionLanguageMismatch {
+        path: String,
+        language: String,
+        version_language: String,
+    },
     ObservedHashMismatch {
         path: String,
     },
@@ -214,6 +226,7 @@ impl ManifestStoreError {
             Self::VersionNotFound { .. } => "file_version_not_found",
             Self::VersionIncomplete { .. } => "file_version_incomplete",
             Self::VersionPathMismatch { .. } => "file_version_path_mismatch",
+            Self::VersionLanguageMismatch { .. } => "file_version_language_mismatch",
             Self::ObservedHashMismatch { .. } => "observed_content_hash_mismatch",
             Self::ViewNotFound { .. } => "view_not_found",
             Self::ViewRootMismatch { .. } => "view_root_mismatch",
@@ -245,6 +258,14 @@ impl fmt::Display for ManifestStoreError {
             Self::VersionPathMismatch { path, version_path } => write!(
                 formatter,
                 "manifest path {path:?} does not match file-version path {version_path:?}"
+            ),
+            Self::VersionLanguageMismatch {
+                path,
+                language,
+                version_language,
+            } => write!(
+                formatter,
+                "manifest path {path:?} language {language:?} does not match file-version language {version_language:?}"
             ),
             Self::ObservedHashMismatch { path } => write!(
                 formatter,
@@ -594,6 +615,7 @@ impl ManifestDelta {
 
 fn semantic_entry_eq(left: &ManifestEntry, right: &ManifestEntry) -> bool {
     left.path == right.path
+        && left.language == right.language
         && left.version_id == right.version_id
         && left.status == right.status
         && left.observed_content_hash == right.observed_content_hash
@@ -656,13 +678,14 @@ fn publish_transaction(
             for entry in &manifest.entries {
                 transaction.execute(
                     "INSERT INTO manifest_entries
-                     (view_id, generation, path, version_id, status, observed_content_hash,
-                      indexed_at, error_class, error_json)
-                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+                     (view_id, generation, path, language, version_id, status,
+                      observed_content_hash, indexed_at, error_class, error_json)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
                     params![
                         view_id,
                         generation,
                         entry.path,
+                        entry.language,
                         entry.version_id,
                         entry.status.as_str(),
                         entry.observed_content_hash,
@@ -695,6 +718,7 @@ fn publish_transaction(
     )?;
     let generation_sql = sqlite_generation(generation)?;
     let actual_generation_sql = actual_generation.map(sqlite_generation).transpose()?;
+    ManifestStore::invalidate_resolution_binding(transaction, view_id)?;
     let changed = transaction.execute(
         "UPDATE views
          SET current_generation = ?1,
@@ -708,7 +732,6 @@ fn publish_transaction(
             actual: current_generation(transaction, view_id)?,
         });
     }
-    ManifestStore::invalidate_resolution_binding(transaction, view_id)?;
     Ok(ManifestPublishResult {
         generation,
         manifest_hash: manifest.manifest_hash,
@@ -753,7 +776,7 @@ fn load_entries(
         });
     }
     let mut statement = connection.prepare(
-        "SELECT path, version_id, status, observed_content_hash, indexed_at,
+        "SELECT path, language, version_id, status, observed_content_hash, indexed_at,
                 error_class, error_json
          FROM manifest_entries
          WHERE view_id = ?1 AND generation = ?2
@@ -762,21 +785,31 @@ fn load_entries(
     let rows = statement.query_map(params![view_id, generation_sql], |row| {
         Ok((
             row.get::<_, String>(0)?,
-            row.get::<_, Option<i64>>(1)?,
-            row.get::<_, String>(2)?,
+            row.get::<_, String>(1)?,
+            row.get::<_, Option<i64>>(2)?,
             row.get::<_, String>(3)?,
             row.get::<_, String>(4)?,
-            row.get::<_, Option<String>>(5)?,
+            row.get::<_, String>(5)?,
             row.get::<_, Option<String>>(6)?,
+            row.get::<_, Option<String>>(7)?,
         ))
     })?;
     rows.map(|row| {
-        let (path, version_id, status, observed_content_hash, indexed_at, error_class, error_json) =
-            row?;
+        let (
+            path,
+            language,
+            version_id,
+            status,
+            observed_content_hash,
+            indexed_at,
+            error_class,
+            error_json,
+        ) = row?;
         let status = parse_status(&status)
             .ok_or_else(|| ManifestStoreError::InvalidEntry { path: path.clone() })?;
         Ok(ManifestEntry {
             path,
+            language,
             version_id,
             status,
             observed_content_hash,
@@ -790,6 +823,7 @@ fn load_entries(
 
 struct VersionIdentity {
     path: String,
+    language: String,
     content_hash: String,
     extraction_epoch: u32,
 }
@@ -819,6 +853,7 @@ fn build_manifest(
     canonical.extend_from_slice(&(entries.len() as u64).to_be_bytes());
     for entry in &entries {
         encode_text(&mut canonical, &entry.path);
+        encode_text(&mut canonical, &entry.language);
         encode_text(&mut canonical, entry.status.as_str());
         encode_text(&mut canonical, &entry.observed_content_hash);
         match entry.version_id {
@@ -830,6 +865,13 @@ fn build_manifest(
                     return Err(ManifestStoreError::VersionPathMismatch {
                         path: entry.path.clone(),
                         version_path,
+                    });
+                }
+                if entry.language != identity.language {
+                    return Err(ManifestStoreError::VersionLanguageMismatch {
+                        path: entry.path.clone(),
+                        language: entry.language.clone(),
+                        version_language: identity.language,
                     });
                 }
                 if entry.status == ManifestEntryStatus::Indexed
@@ -856,7 +898,10 @@ fn build_manifest(
 }
 
 fn validate_entry(entry: &ManifestEntry) -> Result<(), ManifestStoreError> {
-    if entry.observed_content_hash.is_empty() || entry.indexed_at.is_empty() {
+    if entry.language.is_empty()
+        || entry.observed_content_hash.is_empty()
+        || entry.indexed_at.is_empty()
+    {
         return Err(ManifestStoreError::InvalidEntry {
             path: entry.path.clone(),
         });
@@ -916,20 +961,21 @@ fn version_identity(
 ) -> Result<VersionIdentity, ManifestStoreError> {
     let row = connection
         .query_row(
-            "SELECT path, content_hash, extraction_epoch, complete_l1
+            "SELECT path, language, content_hash, extraction_epoch, complete_l1
              FROM file_versions WHERE version_id = ?1",
             [version_id],
             |row| {
                 Ok((
                     row.get::<_, String>(0)?,
                     row.get::<_, String>(1)?,
-                    row.get::<_, u32>(2)?,
-                    row.get::<_, Option<i64>>(3)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, u32>(3)?,
+                    row.get::<_, Option<i64>>(4)?,
                 ))
             },
         )
         .optional()?;
-    let Some((path, content_hash, extraction_epoch, complete_l1)) = row else {
+    let Some((path, language, content_hash, extraction_epoch, complete_l1)) = row else {
         return Err(ManifestStoreError::VersionNotFound { version_id });
     };
     if complete_l1.is_none() {
@@ -937,6 +983,7 @@ fn version_identity(
     }
     Ok(VersionIdentity {
         path,
+        language,
         content_hash,
         extraction_epoch,
     })

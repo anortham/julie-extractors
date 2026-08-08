@@ -159,9 +159,44 @@ fn connection_factory_preserves_unknown_schema_as_a_typed_refusal() {
         StoreConnectionError::Schema(StoreSchemaError::NewerSchema {
             database: "store.db",
             found: 99,
-            supported: 1,
+            supported: 2,
         })
     ));
+}
+
+#[test]
+fn schema_v1_reader_and_writer_refuse_before_metadata_mutation() {
+    let temp = TempStore::new("older-schema");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let connection = Connection::open(layout.store_db()).unwrap();
+    connection.pragma_update(None, "user_version", 1).unwrap();
+    let before = metadata_value(&store_metadata(layout.store_db()), "binary_version").to_string();
+    let factory = StoreConnectionFactory::new(layout.clone(), "family-a", "99.0.0");
+
+    for error in [
+        factory.open_reader().unwrap_err(),
+        factory.open_writer().unwrap_err(),
+    ] {
+        assert!(matches!(
+            error,
+            StoreConnectionError::Schema(StoreSchemaError::OlderSchema {
+                database: "store.db",
+                found: 1,
+                supported: 2,
+            })
+        ));
+    }
+    assert_eq!(
+        metadata_value(&store_metadata(layout.store_db()), "binary_version"),
+        before
+    );
+    assert_eq!(
+        Connection::open(layout.store_db())
+            .unwrap()
+            .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+            .unwrap(),
+        1
+    );
 }
 
 #[test]

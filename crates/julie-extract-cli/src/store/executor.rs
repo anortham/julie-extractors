@@ -106,6 +106,15 @@ impl PlannedImportFile {
             root_relative_path: self.root_relative_path.clone(),
         }
     }
+
+    fn language(&self) -> String {
+        std::path::Path::new(&self.root_relative_path)
+            .extension()
+            .and_then(|value| value.to_str())
+            .and_then(detect_language_from_extension)
+            .unwrap_or("unknown")
+            .to_string()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -147,6 +156,7 @@ impl Default for ImportScanControls {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct FailureFact {
     path: String,
+    language: String,
     version_id: Option<i64>,
     content_hash: String,
     indexed_at: String,
@@ -157,6 +167,7 @@ impl FailureFact {
     fn from_entry(entry: &ManifestEntry) -> Self {
         Self {
             path: entry.path.clone(),
+            language: entry.language.clone(),
             version_id: entry.version_id,
             content_hash: entry.observed_content_hash.clone(),
             indexed_at: entry.indexed_at.clone(),
@@ -168,6 +179,7 @@ impl FailureFact {
         match self.version_id {
             Some(version_id) => ManifestEntry::failed_preserved(
                 self.path,
+                self.language,
                 version_id,
                 self.content_hash,
                 self.indexed_at,
@@ -176,6 +188,7 @@ impl FailureFact {
             ),
             None => ManifestEntry::failed(
                 self.path,
+                self.language,
                 self.content_hash,
                 self.indexed_at,
                 "extract",
@@ -585,6 +598,7 @@ impl StoreRequestExecutor {
                 })?;
                 Ok(ManifestEntry::indexed(
                     &file.root_relative_path,
+                    file.language(),
                     version.version_id,
                     &file.content_hash,
                     indexed_at,
@@ -668,7 +682,7 @@ impl StoreRequestExecutor {
         };
         let mut statement = transaction
             .prepare(
-                "SELECT path, version_id, status, observed_content_hash, indexed_at,
+                "SELECT path, language, version_id, status, observed_content_hash, indexed_at,
                         error_class, error_json
                  FROM manifest_entries
                  WHERE view_id = ?1 AND generation = ?2 ORDER BY path",
@@ -678,13 +692,13 @@ impl StoreRequestExecutor {
             i64::try_from(generation).map_err(|_| "invalid_manifest_generation")?;
         let entries = statement
             .query_map(rusqlite::params![view_id, generation_sql], |row| {
-                let status = match row.get::<_, String>(2)?.as_str() {
+                let status = match row.get::<_, String>(3)?.as_str() {
                     "indexed" => ManifestEntryStatus::Indexed,
                     "failed_preserved" => ManifestEntryStatus::FailedPreserved,
                     "failed" => ManifestEntryStatus::Failed,
                     value => {
                         return Err(rusqlite::Error::FromSqlConversionFailure(
-                            2,
+                            3,
                             rusqlite::types::Type::Text,
                             format!("invalid manifest status {value}").into(),
                         ));
@@ -692,12 +706,13 @@ impl StoreRequestExecutor {
                 };
                 Ok(ManifestEntry {
                     path: row.get(0)?,
-                    version_id: row.get(1)?,
+                    language: row.get(1)?,
+                    version_id: row.get(2)?,
                     status,
-                    observed_content_hash: row.get(3)?,
-                    indexed_at: row.get(4)?,
-                    error_class: row.get(5)?,
-                    error_json: row.get(6)?,
+                    observed_content_hash: row.get(4)?,
+                    indexed_at: row.get(5)?,
+                    error_class: row.get(6)?,
+                    error_json: row.get(7)?,
                 })
             })
             .map_err(|error| error.to_string())?
@@ -1036,6 +1051,12 @@ impl CoordinatorExecutor for StoreRequestExecutor {
                     .execution_payload(),
             ),
             RequestKind::Delete => return self.execute_delete(transaction, request, context),
+            RequestKind::Resolve | RequestKind::Export | RequestKind::FromArtifact => {
+                return Err(format!(
+                    "unsupported_request_kind:{}",
+                    request.kind.as_str()
+                ));
+            }
         };
         if self
             .watchdog
@@ -1178,6 +1199,7 @@ impl CoordinatorExecutor for StoreRequestExecutor {
                             let failure = match prior_version {
                                 Some(version_id) => ManifestEntry::failed_preserved(
                                     &discovered.root_relative_path,
+                                    discovered.language(),
                                     version_id,
                                     &discovered.content_hash,
                                     &indexed_at,
@@ -1186,6 +1208,7 @@ impl CoordinatorExecutor for StoreRequestExecutor {
                                 ),
                                 None => ManifestEntry::failed(
                                     &discovered.root_relative_path,
+                                    discovered.language(),
                                     &discovered.content_hash,
                                     &indexed_at,
                                     "extract",

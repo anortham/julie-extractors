@@ -29,7 +29,10 @@ pub use manifest::{
     ManifestStore, ManifestStoreError, ViewEnsureDisposition,
 };
 pub use model::{
-    StoreFileVersion, StoreLevel, StoreProjectionError, StoreReferenceSite, StoreRowCounts,
+    ResolutionBaseRecord, ResolutionBaseState, ResolutionDeltaRecord,
+    ResolutionIdentifierDeltaRecord, ResolutionPendingDeltaRecord, ResolutionPendingOperation,
+    ResolutionPinOwnerKind, ResolutionPinRecord, StoreFileVersion, StoreLevel,
+    StoreProjectionError, StoreReferenceSite, StoreRowCounts, ViewResolutionState,
 };
 pub use resolution::{
     IdentifierResolutionRow, PendingResolutionRow, RESOLUTION_BASE_FORMAT_VERSION,

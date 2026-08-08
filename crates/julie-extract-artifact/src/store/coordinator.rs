@@ -30,6 +30,9 @@ pub enum RequestKind {
     Import,
     Update,
     Delete,
+    Resolve,
+    Export,
+    FromArtifact,
 }
 
 impl RequestKind {
@@ -38,7 +41,14 @@ impl RequestKind {
             Self::Import => "import",
             Self::Update => "update",
             Self::Delete => "delete",
+            Self::Resolve => "resolve",
+            Self::Export => "export",
+            Self::FromArtifact => "from_artifact",
         }
+    }
+
+    fn is_batch(self) -> bool {
+        matches!(self, Self::Import | Self::FromArtifact)
     }
 
     fn parse(value: &str) -> Result<Self, CoordinatorError> {
@@ -46,6 +56,9 @@ impl RequestKind {
             "import" => Ok(Self::Import),
             "update" => Ok(Self::Update),
             "delete" => Ok(Self::Delete),
+            "resolve" => Ok(Self::Resolve),
+            "export" => Ok(Self::Export),
+            "from_artifact" => Ok(Self::FromArtifact),
             _ => Err(CoordinatorError::CorruptRequest {
                 detail: format!("unknown request kind {value:?}"),
             }),
@@ -848,7 +861,7 @@ impl StoreCoordinator {
                 }
                 break;
             };
-            let is_batch = request.kind == RequestKind::Import;
+            let is_batch = request.kind.is_batch();
             match self.execute_request_quantum(
                 executor,
                 policy,
@@ -1111,7 +1124,7 @@ impl StoreCoordinator {
             if allowed_ids.is_some_and(|ids| !ids.contains(&request.request_id)) {
                 continue;
             }
-            if request.kind == RequestKind::Import {
+            if request.kind.is_batch() {
                 batch.get_or_insert(request);
             } else {
                 interactive.get_or_insert(request);

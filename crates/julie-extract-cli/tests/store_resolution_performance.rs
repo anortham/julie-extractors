@@ -607,8 +607,8 @@ fn build_store_fixture(
             format!("src/file-{index:04}.cs")
         };
         transaction.execute(
-            "INSERT INTO manifest_entries(view_id,generation,path,version_id,status,observed_content_hash,indexed_at)
-             VALUES (?1,1,?2,?3,'indexed',?4,?5)",
+            "INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
+             VALUES (?1,1,?2,'csharp',?3,'indexed',?4,?5)",
             params![VIEW_ID, path, version, format!("hash-{index:04}"), NOW],
         ).unwrap();
         if matches!(index, 1533 | 1534) {
@@ -616,14 +616,14 @@ fn build_store_fixture(
         }
         if index == 1535 {
             transaction.execute(
-                "INSERT INTO manifest_entries(view_id,generation,path,version_id,status,observed_content_hash,indexed_at)
-                 VALUES (?1,2,?2,?3,'indexed','hash-reused',?4)",
+                "INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
+                 VALUES (?1,2,?2,'csharp',?3,'indexed','hash-reused',?4)",
                 params![VIEW_ID, path, reuse_new, NOW],
             ).unwrap();
         } else if index == 1536 {
             transaction.execute(
-                "INSERT INTO manifest_entries(view_id,generation,path,version_id,status,observed_content_hash,indexed_at,error_class,error_json)
-                 VALUES (?1,2,?2,NULL,'failed',?3,?4,'parse','{}')",
+                "INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at,error_class,error_json)
+                 VALUES (?1,2,?2,'csharp',NULL,'failed',?3,?4,'parse','{}')",
                 params![VIEW_ID, path, format!("hash-{index:04}"), NOW],
             ).unwrap();
         } else {
@@ -634,14 +634,14 @@ fn build_store_fixture(
             };
             if status == "failed_preserved" {
                 transaction.execute(
-                    "INSERT INTO manifest_entries(view_id,generation,path,version_id,status,observed_content_hash,indexed_at,error_class,error_json)
-                     VALUES (?1,2,?2,?3,?4,?5,?6,'parse','{}')",
+                    "INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at,error_class,error_json)
+                     VALUES (?1,2,?2,'csharp',?3,?4,?5,?6,'parse','{}')",
                     params![VIEW_ID, path, version, status, format!("hash-{index:04}"), NOW],
                 ).unwrap();
             } else {
                 transaction.execute(
-                    "INSERT INTO manifest_entries(view_id,generation,path,version_id,status,observed_content_hash,indexed_at)
-                     VALUES (?1,2,?2,?3,?4,?5,?6)",
+                    "INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
+                     VALUES (?1,2,?2,'csharp',?3,?4,?5,?6)",
                     params![VIEW_ID, path, version, status, format!("hash-{index:04}"), NOW],
                 ).unwrap();
             }

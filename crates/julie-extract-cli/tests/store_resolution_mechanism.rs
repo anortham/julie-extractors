@@ -81,7 +81,7 @@ fn store_resolution_refuses_symlinked_scratch_parent_without_outside_file() {
         .unwrap();
     let version = insert_version(&connection, "src/lib.rs", "rust", true);
     connection.execute("INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at) VALUES ('view-a',1,'manifest-a','request-a',?1)", [NOW]).unwrap();
-    connection.execute("INSERT INTO manifest_entries(view_id,generation,path,version_id,status,observed_content_hash,indexed_at) VALUES ('view-a',1,'src/lib.rs',?1,'indexed','hash',?2)", params![version, NOW]).unwrap();
+    connection.execute("INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at) VALUES ('view-a',1,'src/lib.rs','rust',?1,'indexed','hash',?2)", params![version, NOW]).unwrap();
     drop(connection);
 
     let outside = temp.path().join("outside");
@@ -131,9 +131,10 @@ fn manifest_windows_scope_versions_and_preserve_failed_path_facts() {
             [NOW],
         )
         .unwrap();
-    for (path, version, status, hash, error) in [
+    for (path, language, version, status, hash, error) in [
         (
             "src/indexed.rs",
+            "rust",
             Some(indexed),
             "indexed",
             "hash-indexed",
@@ -141,6 +142,7 @@ fn manifest_windows_scope_versions_and_preserve_failed_path_facts() {
         ),
         (
             "src/preserved.ts",
+            "typescript",
             Some(preserved),
             "failed_preserved",
             "hash-preserved",
@@ -148,6 +150,7 @@ fn manifest_windows_scope_versions_and_preserve_failed_path_facts() {
         ),
         (
             "src/failed.py",
+            "python",
             None,
             "failed",
             "hash-failed",
@@ -157,9 +160,9 @@ fn manifest_windows_scope_versions_and_preserve_failed_path_facts() {
         connection
             .execute(
                 "INSERT INTO manifest_entries
-                 (view_id,generation,path,version_id,status,observed_content_hash,indexed_at,error_class,error_json)
-                 VALUES ('view-a',1,?1,?2,?3,?4,?5,?6,?7)",
-                params![path, version, status, hash, NOW, error, error.map(|_| "{}")],
+                 (view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at,error_class,error_json)
+                 VALUES ('view-a',1,?1,?2,?3,?4,?5,?6,?7,?8)",
+                params![path, language, version, status, hash, NOW, error, error.map(|_| "{}")],
             )
             .unwrap();
     }
@@ -215,7 +218,7 @@ fn incomplete_l2_refuses_before_creating_exact_output() {
         .unwrap();
     let version = insert_version(&connection, "src/lib.rs", "rust", false);
     connection.execute("INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at) VALUES ('view-a',1,'manifest-a','request-a',?1)", [NOW]).unwrap();
-    connection.execute("INSERT INTO manifest_entries(view_id,generation,path,version_id,status,observed_content_hash,indexed_at) VALUES ('view-a',1,'src/lib.rs',?1,'indexed','hash',?2)", params![version, NOW]).unwrap();
+    connection.execute("INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at) VALUES ('view-a',1,'src/lib.rs','rust',?1,'indexed','hash',?2)", params![version, NOW]).unwrap();
     drop(connection);
 
     let error = StoreScratchResolutionSession::new(
@@ -247,7 +250,7 @@ fn high_collision_store_lookup_matches_legacy_and_caps_ambiguity_evidence() {
         .unwrap();
     let version = insert_version(&connection, "src/lib.rs", "rust", true);
     connection.execute("INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at) VALUES ('view-a',1,'manifest-a','request-a',?1)", [NOW]).unwrap();
-    connection.execute("INSERT INTO manifest_entries(view_id,generation,path,version_id,status,observed_content_hash,indexed_at) VALUES ('view-a',1,'src/lib.rs',?1,'indexed','hash',?2)", params![version, NOW]).unwrap();
+    connection.execute("INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at) VALUES ('view-a',1,'src/lib.rs','rust',?1,'indexed','hash',?2)", params![version, NOW]).unwrap();
     let transaction = connection.transaction().unwrap();
     {
         let mut insert = transaction
@@ -357,7 +360,7 @@ fn third_same_name_receiver_contributes_type_fact_in_legacy_and_store() {
         .unwrap();
     let version = insert_version(&connection, "src/lib.rs", "rust", true);
     connection.execute("INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at) VALUES ('view-a',1,'manifest-a','request-a',?1)", [NOW]).unwrap();
-    connection.execute("INSERT INTO manifest_entries(view_id,generation,path,version_id,status,observed_content_hash,indexed_at) VALUES ('view-a',1,'src/lib.rs',?1,'indexed','hash',?2)", params![version, NOW]).unwrap();
+    connection.execute("INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at) VALUES ('view-a',1,'src/lib.rs','rust',?1,'indexed','hash',?2)", params![version, NOW]).unwrap();
     for (symbol_id, name, kind, parent) in [
         ("alpha", "recv", "variable", None),
         ("mid", "recv", "variable", None),
@@ -466,7 +469,7 @@ fn store_phase_windows_freeze_membership_and_emit_identical_exact_bases() {
         .unwrap();
     let version = insert_version(&connection, "src/lib.rs", "rust", true);
     connection.execute("INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at) VALUES ('view-a',1,'manifest-a','request-a',?1)", [NOW]).unwrap();
-    connection.execute("INSERT INTO manifest_entries(view_id,generation,path,version_id,status,observed_content_hash,indexed_at) VALUES ('view-a',1,'src/lib.rs',?1,'indexed','hash',?2)", params![version, NOW]).unwrap();
+    connection.execute("INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at) VALUES ('view-a',1,'src/lib.rs','rust',?1,'indexed','hash',?2)", params![version, NOW]).unwrap();
     insert_resolution_fixture(&mut connection, version, 23);
     drop(connection);
 
@@ -554,7 +557,7 @@ fn visible_version_roots_commit_once_per_bounded_store_page() {
     for index in 0..5 {
         let path = format!("src/file-{index}.rs");
         let version = insert_version(&connection, &path, "rust", true);
-        connection.execute("INSERT INTO manifest_entries(view_id,generation,path,version_id,status,observed_content_hash,indexed_at) VALUES ('view-a',1,?1,?2,'indexed',?3,?4)", params![path, version, format!("hash-{index}"), NOW]).unwrap();
+        connection.execute("INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at) VALUES ('view-a',1,?1,'rust',?2,'indexed',?3,?4)", params![path, version, format!("hash-{index}"), NOW]).unwrap();
         versions.push(version);
     }
     drop(connection);
@@ -852,7 +855,7 @@ fn store_session_rss_child() {
         .unwrap();
     let version = insert_version(&connection, "src/lib.rs", "rust", true);
     connection.execute("INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at) VALUES ('view-a',1,'manifest-rss','request-rss',?1)", [NOW]).unwrap();
-    connection.execute("INSERT INTO manifest_entries(view_id,generation,path,version_id,status,observed_content_hash,indexed_at) VALUES ('view-a',1,'src/lib.rs',?1,'indexed','hash',?2)", params![version, NOW]).unwrap();
+    connection.execute("INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at) VALUES ('view-a',1,'src/lib.rs','rust',?1,'indexed','hash',?2)", params![version, NOW]).unwrap();
     insert_resolution_fixture(&mut connection, version, count);
     drop(connection);
     let mut session = StoreScratchResolutionSession::new(

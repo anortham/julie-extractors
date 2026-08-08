@@ -536,11 +536,11 @@ No worker edits another worker's files, reverts shared changes, or commits unrel
 
 **Acceptance:**
 
-- [ ] Exact v2 DDL and catalog hashes are frozen and documented.
-- [ ] V1 catalogs refuse cleanly; no migration or partial mutation occurs.
-- [ ] Manifest language is required, hashed, and roundtrips through every producer.
-- [ ] Invalid view/base/delta/pin/request states cannot commit.
-- [ ] Existing import/update/delete behavior remains green on newly created v2 stores.
+- [x] Exact v2 DDL and catalog hashes are frozen and documented.
+- [x] V1 catalogs refuse cleanly; no migration or partial mutation occurs.
+- [x] Manifest language is required, hashed, and roundtrips through every producer.
+- [x] Invalid view/base/delta/pin/request states cannot commit.
+- [x] Existing import/update/delete behavior remains green on newly created v2 stores.
 
 ## Task 7: Implement Immutable Base Publication and Torn-State Recovery
 

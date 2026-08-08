@@ -92,6 +92,61 @@ fn enqueue_deduplicates_by_idempotency_key_and_acquires_lease() {
 }
 
 #[test]
+fn schema_v2_request_kinds_roundtrip_and_only_one_resolve_may_be_claimed() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let mut coordinator = StoreCoordinator::open(&layout).unwrap();
+    for (index, kind, expected) in [
+        (1, RequestKind::Resolve, "resolve"),
+        (2, RequestKind::Export, "export"),
+        (3, RequestKind::FromArtifact, "from_artifact"),
+        (4, RequestKind::Resolve, "resolve"),
+    ] {
+        let request_id = format!("request-{index}");
+        coordinator
+            .enqueue(CoordinatorRequest::new(
+                &request_id,
+                format!("idem-{index}"),
+                kind,
+                "{}",
+                "requester",
+                1_000,
+                index,
+            ))
+            .unwrap();
+        assert_eq!(
+            coordinator.request(&request_id).unwrap().kind.as_str(),
+            expected
+        );
+    }
+
+    let connection = Connection::open(layout.coordinator_db()).unwrap();
+    connection
+        .execute(
+            "UPDATE requests SET state='claimed', claim_owner='owner-a', claim_heartbeat_at=10
+             WHERE request_id='request-1'",
+            [],
+        )
+        .unwrap();
+    assert!(
+        connection
+            .execute(
+                "UPDATE requests SET state='claimed', claim_owner='owner-b', claim_heartbeat_at=10
+                 WHERE request_id='request-4'",
+                [],
+            )
+            .is_err()
+    );
+    connection
+        .execute(
+            "UPDATE requests SET state='claimed', claim_owner='owner-b', claim_heartbeat_at=10
+             WHERE request_id='request-2'",
+            [],
+        )
+        .unwrap();
+}
+
+#[test]
 fn terminal_log_reconciles_a_coord_tear_without_reexecution() {
     let temp = TempDir::new();
     let layout = layout(temp.path());

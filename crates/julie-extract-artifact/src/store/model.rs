@@ -21,6 +21,153 @@ impl StoreLevel {
     }
 }
 
+/// Durable state of one immutable resolution base catalog row.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ResolutionBaseState {
+    Building,
+    Ready,
+}
+
+impl ResolutionBaseState {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Building => "building",
+            Self::Ready => "ready",
+        }
+    }
+}
+
+/// Durable operation stored for one pending-resolution delta row.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ResolutionPendingOperation {
+    Replace,
+    Tombstone,
+}
+
+impl ResolutionPendingOperation {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Replace => "replace",
+            Self::Tombstone => "tombstone",
+        }
+    }
+}
+
+/// Owner class for a bounded resolution catalog pin.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ResolutionPinOwnerKind {
+    Reader,
+    Resolve,
+}
+
+impl ResolutionPinOwnerKind {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Reader => "reader",
+            Self::Resolve => "resolve",
+        }
+    }
+}
+
+/// Coherent resolution binding state stored on a view.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ViewResolutionState {
+    Unbound,
+    Converging,
+    Exact,
+}
+
+impl ViewResolutionState {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Unbound => "unbound",
+            Self::Converging => "converging",
+            Self::Exact => "exact",
+        }
+    }
+}
+
+/// Typed row from `resolution_bases`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResolutionBaseRecord {
+    pub base_id: String,
+    pub manifest_hash: String,
+    pub resolver_output_epoch: i64,
+    pub state: ResolutionBaseState,
+    pub relative_path: String,
+    pub identifier_count: i64,
+    pub pending_count: i64,
+    pub file_bytes: Option<i64>,
+    pub file_sha256: Option<String>,
+    pub request_id: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+/// Typed row from `resolution_deltas`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResolutionDeltaRecord {
+    pub view_id: String,
+    pub delta_generation: i64,
+    pub base_id: String,
+    pub manifest_generation: i64,
+    pub manifest_hash: String,
+    pub resolver_output_epoch: i64,
+    pub identifier_replacements: i64,
+    pub pending_replacements: i64,
+    pub pending_tombstones: i64,
+    pub exact_gap_rows: i64,
+    pub exact_gap_files: i64,
+    pub exact_gap_json: String,
+    pub request_id: String,
+    pub created_at: String,
+}
+
+/// Typed row from `resolution_identifier_deltas`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ResolutionIdentifierDeltaRecord {
+    pub view_id: String,
+    pub delta_generation: i64,
+    pub version_id: i64,
+    pub identifier_id: String,
+    pub target_version_id: Option<i64>,
+    pub target_symbol_id: Option<String>,
+    pub tier: Option<i64>,
+    pub confidence: Option<f64>,
+    pub method: Option<String>,
+    pub outcome: String,
+    pub candidates: Option<i64>,
+}
+
+/// Typed row from `resolution_pending_deltas`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ResolutionPendingDeltaRecord {
+    pub view_id: String,
+    pub delta_generation: i64,
+    pub version_id: i64,
+    pub pending_relationship_id: String,
+    pub operation: ResolutionPendingOperation,
+    pub target_version_id: Option<i64>,
+    pub target_symbol_id: Option<String>,
+    pub tier: Option<i64>,
+    pub confidence: Option<f64>,
+    pub method: Option<String>,
+}
+
+/// Typed row from `resolution_pins`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResolutionPinRecord {
+    pub pin_id: String,
+    pub owner_kind: ResolutionPinOwnerKind,
+    pub owner_id: String,
+    pub view_id: String,
+    pub manifest_generation: i64,
+    pub base_id: String,
+    pub delta_generation: Option<i64>,
+    pub expires_at: String,
+    pub created_at: String,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StoreProjectionError {
     FileNotIndexed(FileStatus),
