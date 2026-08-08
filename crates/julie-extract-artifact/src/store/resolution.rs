@@ -5,10 +5,15 @@ use std::fs::{self, File};
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 
-use rusqlite::{Connection, OpenFlags, TransactionBehavior, params};
+use rusqlite::{
+    Connection, OpenFlags, OptionalExtension, Transaction, TransactionBehavior, params,
+};
 use sha2::{Digest, Sha256};
 
 use super::pragmas::{WriterPragmaProfile, configure_writer_pragmas};
+use super::{
+    ResolutionBaseRecord, ResolutionBaseState, StoreConnectionError, StoreConnectionFactory,
+};
 
 pub const RESOLUTION_BASE_USER_VERSION: i64 = 1;
 pub const RESOLUTION_BASE_FORMAT_VERSION: &str = "1";
@@ -146,6 +151,789 @@ pub struct ResolutionFileIdentity {
     pub file_bytes: u64,
     pub file_sha256: String,
     pub counts: ResolutionSemanticCounts,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResolutionBaseBuild {
+    pub record: ResolutionBaseRecord,
+    pub scratch_path: PathBuf,
+    pub final_path: PathBuf,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ResolutionBaseBegin {
+    Build(ResolutionBaseBuild),
+    Building(ResolutionBaseRecord),
+    Ready(ResolutionBaseRecord),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ResolutionBaseRecovery {
+    Ready(ResolutionBaseRecord),
+    Rebuild(ResolutionBaseBuild),
+    LiveOwner(ResolutionBaseRecord),
+}
+
+#[derive(Debug)]
+pub enum ResolutionBaseCatalogError {
+    InvalidArgument(&'static str),
+    ManifestNotFound { manifest_hash: String },
+    IncompleteVersion { version_id: i64 },
+    BuildOwnerMismatch { expected: String, found: String },
+    ReadyCasLost { base_id: String },
+    FileIdentityMismatch { detail: String },
+    FileProtected { base_id: String },
+    Io(io::Error),
+    Sqlite(rusqlite::Error),
+    Connection(StoreConnectionError),
+    Validation(ResolutionValidationError),
+}
+
+impl fmt::Display for ResolutionBaseCatalogError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidArgument(value) => write!(formatter, "invalid resolution base {value}"),
+            Self::ManifestNotFound { manifest_hash } => {
+                write!(
+                    formatter,
+                    "resolution manifest {manifest_hash:?} was not found"
+                )
+            }
+            Self::IncompleteVersion { version_id } => write!(
+                formatter,
+                "resolution source version {version_id} is not complete through L2"
+            ),
+            Self::BuildOwnerMismatch { expected, found } => write!(
+                formatter,
+                "resolution base build owner {found:?} does not match {expected:?}"
+            ),
+            Self::ReadyCasLost { base_id } => {
+                write!(formatter, "resolution base {base_id:?} ready CAS was lost")
+            }
+            Self::FileIdentityMismatch { detail } => {
+                write!(
+                    formatter,
+                    "resolution base file identity mismatch: {detail}"
+                )
+            }
+            Self::FileProtected { base_id } => {
+                write!(
+                    formatter,
+                    "resolution base {base_id:?} is protected by a pin"
+                )
+            }
+            Self::Io(error) => error.fmt(formatter),
+            Self::Sqlite(error) => error.fmt(formatter),
+            Self::Connection(error) => error.fmt(formatter),
+            Self::Validation(error) => error.fmt(formatter),
+        }
+    }
+}
+
+impl Error for ResolutionBaseCatalogError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Io(error) => Some(error),
+            Self::Sqlite(error) => Some(error),
+            Self::Connection(error) => Some(error),
+            Self::Validation(error) => Some(error),
+            _ => None,
+        }
+    }
+}
+
+impl From<io::Error> for ResolutionBaseCatalogError {
+    fn from(error: io::Error) -> Self {
+        Self::Io(error)
+    }
+}
+
+impl From<rusqlite::Error> for ResolutionBaseCatalogError {
+    fn from(error: rusqlite::Error) -> Self {
+        Self::Sqlite(error)
+    }
+}
+
+impl From<StoreConnectionError> for ResolutionBaseCatalogError {
+    fn from(error: StoreConnectionError) -> Self {
+        Self::Connection(error)
+    }
+}
+
+impl From<ResolutionValidationError> for ResolutionBaseCatalogError {
+    fn from(error: ResolutionValidationError) -> Self {
+        Self::Validation(error)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ResolutionBaseCatalog {
+    factory: StoreConnectionFactory,
+}
+
+impl ResolutionBaseCatalog {
+    pub fn new(factory: StoreConnectionFactory) -> Self {
+        Self { factory }
+    }
+
+    pub fn begin_build(
+        &self,
+        manifest_hash: &str,
+        resolver_output_epoch: i64,
+        request_id: &str,
+        now: &str,
+    ) -> Result<ResolutionBaseBegin, ResolutionBaseCatalogError> {
+        validate_catalog_identity(manifest_hash, resolver_output_epoch, request_id)?;
+        let mut connection = self.factory.open_writer()?;
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        if let Some(record) =
+            base_record_by_identity(&transaction, manifest_hash, resolver_output_epoch)?
+        {
+            transaction.commit()?;
+            return Ok(match record.state {
+                ResolutionBaseState::Ready => ResolutionBaseBegin::Ready(record),
+                ResolutionBaseState::Building => ResolutionBaseBegin::Building(record),
+            });
+        }
+
+        let source_versions = manifest_source_versions(&transaction, manifest_hash)?;
+        for version_id in &source_versions {
+            let complete_l2: Option<i64> = transaction.query_row(
+                "SELECT complete_l2 FROM file_versions WHERE version_id=?1",
+                [version_id],
+                |row| row.get(0),
+            )?;
+            if complete_l2.is_none() {
+                return Err(ResolutionBaseCatalogError::IncompleteVersion {
+                    version_id: *version_id,
+                });
+            }
+        }
+        let base_id = base_id(manifest_hash, resolver_output_epoch);
+        let relative_path = format!("bases/{base_id}.db");
+        transaction.execute(
+            "INSERT INTO resolution_bases
+             (base_id,manifest_hash,resolver_output_epoch,state,relative_path,
+              identifier_count,pending_count,file_bytes,file_sha256,request_id,created_at,updated_at)
+             VALUES (?1,?2,?3,'building',?4,0,0,NULL,NULL,?5,?6,?6)",
+            params![
+                base_id,
+                manifest_hash,
+                resolver_output_epoch,
+                relative_path,
+                request_id,
+                now,
+            ],
+        )?;
+        #[cfg(feature = "test-store-crash")]
+        super::test_hooks::crash_if("resolution_base_after_row_insert");
+        {
+            let mut insert = transaction.prepare(
+                "INSERT INTO resolution_base_versions(base_id,version_id) VALUES (?1,?2)",
+            )?;
+            for version_id in source_versions {
+                insert.execute(params![base_id, version_id])?;
+            }
+        }
+        #[cfg(feature = "test-store-crash")]
+        super::test_hooks::crash_if("resolution_base_after_root_insert");
+        let record = base_record_by_id(&transaction, &base_id)?.ok_or_else(|| {
+            ResolutionBaseCatalogError::ReadyCasLost {
+                base_id: base_id.clone(),
+            }
+        })?;
+        transaction.commit()?;
+        Ok(ResolutionBaseBegin::Build(self.build_from_record(record)?))
+    }
+
+    pub fn publish_scratch(
+        &self,
+        build: &ResolutionBaseBuild,
+    ) -> Result<ResolutionFileIdentity, ResolutionBaseCatalogError> {
+        self.validate_build_paths(build)?;
+        let scratch = ResolutionBaseReader::open(&build.scratch_path)?;
+        self.validate_reader_for_catalog(&scratch, &build.record)?;
+        drop(scratch);
+
+        match fs::hard_link(&build.scratch_path, &build.final_path) {
+            Ok(()) => {
+                sync_directory_path(
+                    build
+                        .final_path
+                        .parent()
+                        .ok_or(ResolutionBaseCatalogError::InvalidArgument("final path"))?,
+                )?;
+            }
+            Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {
+                let final_reader = ResolutionBaseReader::open(&build.final_path)?;
+                self.validate_reader_for_catalog(&final_reader, &build.record)?;
+            }
+            Err(error) => return Err(error.into()),
+        }
+        #[cfg(feature = "test-store-crash")]
+        super::test_hooks::crash_if("resolution_base_after_final_publish");
+        fs::remove_file(&build.scratch_path)?;
+        sync_directory_path(
+            build
+                .scratch_path
+                .parent()
+                .ok_or(ResolutionBaseCatalogError::InvalidArgument("scratch path"))?,
+        )?;
+        Ok(ResolutionBaseReader::open(&build.final_path)?
+            .file_identity()
+            .clone())
+    }
+
+    pub fn mark_ready(
+        &self,
+        build: &ResolutionBaseBuild,
+        now: &str,
+    ) -> Result<ResolutionBaseRecord, ResolutionBaseCatalogError> {
+        self.validate_build_paths(build)?;
+        let reader = ResolutionBaseReader::open(&build.final_path)?;
+        self.validate_reader_for_catalog(&reader, &build.record)?;
+        let identity = reader.file_identity().clone();
+        let file_bytes = i64::try_from(identity.file_bytes).map_err(|_| {
+            ResolutionBaseCatalogError::FileIdentityMismatch {
+                detail: "file length exceeds SQLite INTEGER".to_string(),
+            }
+        })?;
+
+        let mut connection = self.factory.open_writer()?;
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let owner = base_record_by_id(&transaction, &build.record.base_id)?.ok_or_else(|| {
+            ResolutionBaseCatalogError::ReadyCasLost {
+                base_id: build.record.base_id.clone(),
+            }
+        })?;
+        if owner.request_id != build.record.request_id {
+            return Err(ResolutionBaseCatalogError::BuildOwnerMismatch {
+                expected: build.record.request_id.clone(),
+                found: owner.request_id,
+            });
+        }
+        if owner.state == ResolutionBaseState::Ready {
+            transaction.commit()?;
+            return self
+                .find_ready(&owner.manifest_hash, owner.resolver_output_epoch)?
+                .ok_or(ResolutionBaseCatalogError::ReadyCasLost {
+                    base_id: owner.base_id,
+                });
+        }
+        let changed = transaction.execute(
+            "UPDATE resolution_bases
+             SET state='ready',identifier_count=?1,pending_count=?2,file_bytes=?3,
+                 file_sha256=?4,updated_at=?5
+             WHERE base_id=?6 AND state='building' AND request_id=?7",
+            params![
+                i64::try_from(identity.counts.identifiers).map_err(|_| {
+                    ResolutionBaseCatalogError::FileIdentityMismatch {
+                        detail: "identifier count exceeds SQLite INTEGER".to_string(),
+                    }
+                })?,
+                i64::try_from(identity.counts.pending).map_err(|_| {
+                    ResolutionBaseCatalogError::FileIdentityMismatch {
+                        detail: "pending count exceeds SQLite INTEGER".to_string(),
+                    }
+                })?,
+                file_bytes,
+                identity.file_sha256,
+                now,
+                build.record.base_id,
+                build.record.request_id,
+            ],
+        )?;
+        if changed != 1 {
+            return Err(ResolutionBaseCatalogError::ReadyCasLost {
+                base_id: build.record.base_id.clone(),
+            });
+        }
+        #[cfg(feature = "test-store-crash")]
+        super::test_hooks::crash_if("resolution_base_before_ready_commit");
+        let record = base_record_by_id(&transaction, &build.record.base_id)?.ok_or_else(|| {
+            ResolutionBaseCatalogError::ReadyCasLost {
+                base_id: build.record.base_id.clone(),
+            }
+        })?;
+        transaction.commit()?;
+        #[cfg(feature = "test-store-crash")]
+        super::test_hooks::crash_if("resolution_base_after_ready_commit");
+        Ok(record)
+    }
+
+    pub fn find_ready(
+        &self,
+        manifest_hash: &str,
+        resolver_output_epoch: i64,
+    ) -> Result<Option<ResolutionBaseRecord>, ResolutionBaseCatalogError> {
+        let connection = self.factory.open_reader()?;
+        let Some(record) =
+            base_record_by_identity(&connection, manifest_hash, resolver_output_epoch)?
+        else {
+            return Ok(None);
+        };
+        if record.state != ResolutionBaseState::Ready {
+            return Ok(None);
+        }
+        let build = self.build_from_record(record.clone())?;
+        let reader = ResolutionBaseReader::open(&build.final_path)?;
+        self.validate_reader_for_catalog(&reader, &record)?;
+        validate_ready_file_identity(&record, reader.file_identity())?;
+        Ok(Some(record))
+    }
+
+    pub fn recover(
+        &self,
+        manifest_hash: &str,
+        resolver_output_epoch: i64,
+        claimant_request_id: &str,
+        prior_owner_live: bool,
+        now: &str,
+    ) -> Result<ResolutionBaseRecovery, ResolutionBaseCatalogError> {
+        validate_catalog_identity(manifest_hash, resolver_output_epoch, claimant_request_id)?;
+        let connection = self.factory.open_reader()?;
+        let Some(record) =
+            base_record_by_identity(&connection, manifest_hash, resolver_output_epoch)?
+        else {
+            drop(connection);
+            return match self.begin_build(
+                manifest_hash,
+                resolver_output_epoch,
+                claimant_request_id,
+                now,
+            )? {
+                ResolutionBaseBegin::Build(build) => Ok(ResolutionBaseRecovery::Rebuild(build)),
+                ResolutionBaseBegin::Building(record) => {
+                    Ok(ResolutionBaseRecovery::LiveOwner(record))
+                }
+                ResolutionBaseBegin::Ready(record) => Ok(ResolutionBaseRecovery::Ready(record)),
+            };
+        };
+        drop(connection);
+        let build = self.build_from_record(record.clone())?;
+        let same_owner = record.request_id == claimant_request_id;
+        let final_valid = self.valid_final_for_build(&build)?;
+
+        if record.state == ResolutionBaseState::Ready && final_valid {
+            if build.scratch_path.exists() {
+                remove_resolution_file(&build.scratch_path)?;
+            }
+            return Ok(ResolutionBaseRecovery::Ready(
+                self.find_ready(manifest_hash, resolver_output_epoch)?
+                    .ok_or_else(|| ResolutionBaseCatalogError::ReadyCasLost {
+                        base_id: record.base_id.clone(),
+                    })?,
+            ));
+        }
+        if !same_owner && prior_owner_live {
+            return Ok(ResolutionBaseRecovery::LiveOwner(record));
+        }
+        if record.state == ResolutionBaseState::Ready && self.base_is_protected(&record.base_id)? {
+            return Err(ResolutionBaseCatalogError::FileProtected {
+                base_id: record.base_id,
+            });
+        }
+
+        if final_valid {
+            if build.scratch_path.exists() {
+                remove_resolution_file(&build.scratch_path)?;
+            }
+            let reassigned = self.reassign_build_owner(&record, claimant_request_id, false, now)?;
+            let reassigned_build = self.build_from_record(reassigned)?;
+            return Ok(ResolutionBaseRecovery::Ready(
+                self.mark_ready(&reassigned_build, now)?,
+            ));
+        }
+
+        let scratch_valid = if build.scratch_path.exists() {
+            ResolutionBaseReader::open(&build.scratch_path)
+                .is_ok_and(|reader| self.validate_reader_for_catalog(&reader, &record).is_ok())
+        } else {
+            false
+        };
+        if scratch_valid {
+            self.publish_scratch(&build)?;
+            let reassigned = self.reassign_build_owner(
+                &record,
+                claimant_request_id,
+                record.state == ResolutionBaseState::Ready,
+                now,
+            )?;
+            return Ok(ResolutionBaseRecovery::Ready(
+                self.mark_ready(&self.build_from_record(reassigned)?, now)?,
+            ));
+        }
+
+        if build.final_path.exists() {
+            remove_resolution_file(&build.final_path)?;
+        }
+        if build.scratch_path.exists() {
+            let preserve_same_owner_scratch = same_owner
+                && ResolutionBaseReader::open(&build.scratch_path)
+                    .is_ok_and(|reader| validate_reader_for_record(&reader, &record).is_ok());
+            if !preserve_same_owner_scratch {
+                remove_resolution_file(&build.scratch_path)?;
+            }
+        }
+        let reassigned = self.reassign_build_owner(
+            &record,
+            claimant_request_id,
+            record.state == ResolutionBaseState::Ready,
+            now,
+        )?;
+        Ok(ResolutionBaseRecovery::Rebuild(
+            self.build_from_record(reassigned)?,
+        ))
+    }
+
+    fn build_from_record(
+        &self,
+        record: ResolutionBaseRecord,
+    ) -> Result<ResolutionBaseBuild, ResolutionBaseCatalogError> {
+        validate_catalog_identity(
+            &record.manifest_hash,
+            record.resolver_output_epoch,
+            &record.request_id,
+        )?;
+        let expected_base_id = base_id(&record.manifest_hash, record.resolver_output_epoch);
+        let expected_relative_path = format!("bases/{expected_base_id}.db");
+        if record.base_id != expected_base_id || record.relative_path != expected_relative_path {
+            return Err(ResolutionBaseCatalogError::FileIdentityMismatch {
+                detail: "catalog base ID or relative path is not canonical".to_string(),
+            });
+        }
+        let final_path = self
+            .factory
+            .layout()
+            .generation_dir()
+            .join(&record.relative_path);
+        let scratch_path = self.factory.layout().scratch_dir().join(format!(
+            "resolution-{}-{}.partial.db",
+            record.base_id, record.request_id
+        ));
+        let build = ResolutionBaseBuild {
+            record,
+            scratch_path,
+            final_path,
+        };
+        self.validate_build_paths(&build)?;
+        Ok(build)
+    }
+
+    fn validate_build_paths(
+        &self,
+        build: &ResolutionBaseBuild,
+    ) -> Result<(), ResolutionBaseCatalogError> {
+        ensure_contained(self.factory.layout().generation_dir(), &build.final_path)?;
+        ensure_contained(self.factory.layout().scratch_dir(), &build.scratch_path)?;
+        if build.final_path.parent() != Some(self.factory.layout().bases_dir())
+            || build.scratch_path.parent() != Some(self.factory.layout().scratch_dir())
+        {
+            return Err(ResolutionBaseCatalogError::InvalidArgument("catalog path"));
+        }
+        Ok(())
+    }
+
+    fn validate_reader_versions(
+        &self,
+        reader: &ResolutionBaseReader,
+        base_id: &str,
+    ) -> Result<(), ResolutionBaseCatalogError> {
+        let connection = self.factory.open_reader()?;
+        let expected = connection
+            .prepare(
+                "SELECT version_id FROM resolution_base_versions
+                 WHERE base_id=?1 ORDER BY version_id",
+            )?
+            .query_map([base_id], |row| row.get::<_, i64>(0))?
+            .collect::<Result<Vec<_>, _>>()?;
+        let found = reader.source_versions()?;
+        if expected != found {
+            return Err(ResolutionBaseCatalogError::FileIdentityMismatch {
+                detail: format!("source versions {found:?} do not match roots {expected:?}"),
+            });
+        }
+        Ok(())
+    }
+
+    fn validate_reader_for_catalog(
+        &self,
+        reader: &ResolutionBaseReader,
+        record: &ResolutionBaseRecord,
+    ) -> Result<(), ResolutionBaseCatalogError> {
+        validate_reader_for_record(reader, record)?;
+        self.validate_reader_versions(reader, &record.base_id)?;
+        let store = self.factory.open_reader()?;
+        reader.validate_targets_with(|version_id, symbol_id| {
+            Ok(store.query_row(
+                "SELECT EXISTS(
+                   SELECT 1
+                   FROM manifests AS manifest
+                   JOIN manifest_entries AS entry
+                     ON entry.view_id=manifest.view_id
+                    AND entry.generation=manifest.generation
+                   JOIN symbols AS symbol ON symbol.version_id=entry.version_id
+                   WHERE manifest.manifest_hash=?1
+                     AND entry.status IN ('indexed','failed_preserved')
+                     AND symbol.version_id=?2 AND symbol.symbol_id=?3
+                 )",
+                params![record.manifest_hash, version_id, symbol_id],
+                |row| row.get(0),
+            )?)
+        })?;
+        Ok(())
+    }
+
+    fn valid_final_for_build(
+        &self,
+        build: &ResolutionBaseBuild,
+    ) -> Result<bool, ResolutionBaseCatalogError> {
+        if !build.final_path.exists() {
+            return Ok(false);
+        }
+        let reader = match ResolutionBaseReader::open(&build.final_path) {
+            Ok(reader) => reader,
+            Err(_) => return Ok(false),
+        };
+        if self
+            .validate_reader_for_catalog(&reader, &build.record)
+            .is_err()
+        {
+            return Ok(false);
+        }
+        Ok(true)
+    }
+
+    fn base_is_protected(&self, base_id: &str) -> Result<bool, ResolutionBaseCatalogError> {
+        let connection = self.factory.open_reader()?;
+        Ok(connection.query_row(
+            "SELECT EXISTS(SELECT 1 FROM resolution_pins WHERE base_id=?1)
+                 OR EXISTS(SELECT 1 FROM resolution_deltas WHERE base_id=?1)",
+            [base_id],
+            |row| row.get(0),
+        )?)
+    }
+
+    fn reassign_build_owner(
+        &self,
+        record: &ResolutionBaseRecord,
+        claimant_request_id: &str,
+        reset_ready: bool,
+        now: &str,
+    ) -> Result<ResolutionBaseRecord, ResolutionBaseCatalogError> {
+        let mut connection = self.factory.open_writer()?;
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let changed = if reset_ready {
+            transaction.execute(
+                "UPDATE resolution_bases
+                 SET state='building',identifier_count=0,pending_count=0,file_bytes=NULL,
+                     file_sha256=NULL,request_id=?1,updated_at=?2
+                 WHERE base_id=?3 AND state='ready' AND request_id=?4",
+                params![claimant_request_id, now, record.base_id, record.request_id],
+            )?
+        } else {
+            transaction.execute(
+                "UPDATE resolution_bases SET request_id=?1,updated_at=?2
+                 WHERE base_id=?3 AND state='building' AND request_id=?4",
+                params![claimant_request_id, now, record.base_id, record.request_id],
+            )?
+        };
+        if changed != 1 {
+            return Err(ResolutionBaseCatalogError::ReadyCasLost {
+                base_id: record.base_id.clone(),
+            });
+        }
+        let reassigned = base_record_by_id(&transaction, &record.base_id)?.ok_or_else(|| {
+            ResolutionBaseCatalogError::ReadyCasLost {
+                base_id: record.base_id.clone(),
+            }
+        })?;
+        transaction.commit()?;
+        Ok(reassigned)
+    }
+}
+
+fn validate_catalog_identity(
+    manifest_hash: &str,
+    resolver_output_epoch: i64,
+    request_id: &str,
+) -> Result<(), ResolutionBaseCatalogError> {
+    if manifest_hash.len() != 64
+        || !manifest_hash
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+    {
+        return Err(ResolutionBaseCatalogError::InvalidArgument("manifest hash"));
+    }
+    if resolver_output_epoch <= 0 {
+        return Err(ResolutionBaseCatalogError::InvalidArgument(
+            "resolver output epoch",
+        ));
+    }
+    if request_id.is_empty()
+        || request_id.len() > 128
+        || !request_id
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.'))
+    {
+        return Err(ResolutionBaseCatalogError::InvalidArgument("request id"));
+    }
+    Ok(())
+}
+
+fn base_id(manifest_hash: &str, resolver_output_epoch: i64) -> String {
+    format!("base-{manifest_hash}-{resolver_output_epoch}")
+}
+
+fn manifest_source_versions(
+    transaction: &Transaction<'_>,
+    manifest_hash: &str,
+) -> Result<Vec<i64>, ResolutionBaseCatalogError> {
+    let exists: bool = transaction.query_row(
+        "SELECT EXISTS(SELECT 1 FROM manifests WHERE manifest_hash=?1)",
+        [manifest_hash],
+        |row| row.get(0),
+    )?;
+    if !exists {
+        return Err(ResolutionBaseCatalogError::ManifestNotFound {
+            manifest_hash: manifest_hash.to_string(),
+        });
+    }
+    Ok(transaction
+        .prepare(
+            "SELECT DISTINCT entry.version_id
+             FROM manifests AS manifest
+             JOIN manifest_entries AS entry
+               ON entry.view_id=manifest.view_id AND entry.generation=manifest.generation
+             WHERE manifest.manifest_hash=?1 AND entry.version_id IS NOT NULL
+               AND entry.status IN ('indexed','failed_preserved')
+             ORDER BY entry.version_id",
+        )?
+        .query_map([manifest_hash], |row| row.get::<_, i64>(0))?
+        .collect::<Result<Vec<_>, _>>()?)
+}
+
+fn base_record_by_identity(
+    connection: &Connection,
+    manifest_hash: &str,
+    resolver_output_epoch: i64,
+) -> Result<Option<ResolutionBaseRecord>, rusqlite::Error> {
+    connection
+        .query_row(
+            "SELECT base_id,manifest_hash,resolver_output_epoch,state,relative_path,
+                    identifier_count,pending_count,file_bytes,file_sha256,request_id,
+                    created_at,updated_at
+             FROM resolution_bases
+             WHERE manifest_hash=?1 AND resolver_output_epoch=?2",
+            params![manifest_hash, resolver_output_epoch],
+            base_record_from_row,
+        )
+        .optional()
+}
+
+fn base_record_by_id(
+    connection: &Connection,
+    base_id: &str,
+) -> Result<Option<ResolutionBaseRecord>, rusqlite::Error> {
+    connection
+        .query_row(
+            "SELECT base_id,manifest_hash,resolver_output_epoch,state,relative_path,
+                    identifier_count,pending_count,file_bytes,file_sha256,request_id,
+                    created_at,updated_at
+             FROM resolution_bases WHERE base_id=?1",
+            [base_id],
+            base_record_from_row,
+        )
+        .optional()
+}
+
+fn base_record_from_row(row: &rusqlite::Row<'_>) -> Result<ResolutionBaseRecord, rusqlite::Error> {
+    let state = match row.get::<_, String>(3)?.as_str() {
+        "building" => ResolutionBaseState::Building,
+        "ready" => ResolutionBaseState::Ready,
+        value => {
+            return Err(rusqlite::Error::FromSqlConversionFailure(
+                3,
+                rusqlite::types::Type::Text,
+                format!("invalid resolution base state {value:?}").into(),
+            ));
+        }
+    };
+    Ok(ResolutionBaseRecord {
+        base_id: row.get(0)?,
+        manifest_hash: row.get(1)?,
+        resolver_output_epoch: row.get(2)?,
+        state,
+        relative_path: row.get(4)?,
+        identifier_count: row.get(5)?,
+        pending_count: row.get(6)?,
+        file_bytes: row.get(7)?,
+        file_sha256: row.get(8)?,
+        request_id: row.get(9)?,
+        created_at: row.get(10)?,
+        updated_at: row.get(11)?,
+    })
+}
+
+fn validate_reader_for_record(
+    reader: &ResolutionBaseReader,
+    record: &ResolutionBaseRecord,
+) -> Result<(), ResolutionBaseCatalogError> {
+    let identity = reader.file_identity();
+    if identity.manifest_hash != record.manifest_hash
+        || identity.resolver_output_epoch != record.resolver_output_epoch
+    {
+        return Err(ResolutionBaseCatalogError::FileIdentityMismatch {
+            detail: format!(
+                "file ({}, {}) does not match catalog ({}, {})",
+                identity.manifest_hash,
+                identity.resolver_output_epoch,
+                record.manifest_hash,
+                record.resolver_output_epoch
+            ),
+        });
+    }
+    Ok(())
+}
+
+fn validate_ready_file_identity(
+    record: &ResolutionBaseRecord,
+    identity: &ResolutionFileIdentity,
+) -> Result<(), ResolutionBaseCatalogError> {
+    if record.identifier_count != i64::try_from(identity.counts.identifiers).unwrap_or(-1)
+        || record.pending_count != i64::try_from(identity.counts.pending).unwrap_or(-1)
+        || record.file_bytes != i64::try_from(identity.file_bytes).ok()
+        || record.file_sha256.as_deref() != Some(identity.file_sha256.as_str())
+    {
+        return Err(ResolutionBaseCatalogError::FileIdentityMismatch {
+            detail: "catalog counts, bytes, or SHA-256 differ from the file".to_string(),
+        });
+    }
+    Ok(())
+}
+
+fn sync_directory_path(path: &Path) -> Result<(), ResolutionBaseCatalogError> {
+    File::open(path)?.sync_all()?;
+    Ok(())
+}
+
+fn remove_resolution_file(path: &Path) -> Result<(), ResolutionBaseCatalogError> {
+    for suffix in ["", "-wal", "-shm"] {
+        let candidate = if suffix.is_empty() {
+            path.to_path_buf()
+        } else {
+            PathBuf::from(format!("{}{suffix}", path.display()))
+        };
+        match fs::remove_file(&candidate) {
+            Ok(()) => {}
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+            Err(error) => return Err(error.into()),
+        }
+    }
+    if let Some(parent) = path.parent() {
+        sync_directory_path(parent)?;
+    }
+    Ok(())
 }
 
 #[derive(Debug)]
@@ -733,6 +1521,8 @@ impl ResolutionBaseWriter {
         drop(std::mem::replace(&mut self.connection, placeholder));
         sync_path(&self.path)?;
         self.completed = true;
+        #[cfg(feature = "test-store-crash")]
+        super::test_hooks::crash_if("resolution_base_after_scratch_close");
         file_identity(
             &self.path,
             self.manifest_hash.clone(),
@@ -968,6 +1758,35 @@ impl ResolutionBaseReader {
             if !source_versions.contains(&target.0) {
                 return Err(ResolutionValidationError::VersionRootMissing {
                     version_id: target.0,
+                });
+            }
+        }
+        Ok(())
+    }
+
+    pub fn validate_targets_with<F>(
+        &self,
+        mut target_exists: F,
+    ) -> Result<(), ResolutionValidationError>
+    where
+        F: FnMut(i64, &str) -> Result<bool, ResolutionValidationError>,
+    {
+        let mut statement = self.connection.prepare(
+            "SELECT target_version_id,target_symbol_id
+             FROM identifier_resolutions
+             WHERE target_version_id IS NOT NULL
+             UNION
+             SELECT target_version_id,target_symbol_id FROM pending_resolutions
+             ORDER BY target_version_id,target_symbol_id COLLATE BINARY",
+        )?;
+        let mut rows = statement.query([])?;
+        while let Some(row) = rows.next()? {
+            let version_id = row.get::<_, i64>(0)?;
+            let symbol_id = row.get::<_, String>(1)?;
+            if !target_exists(version_id, &symbol_id)? {
+                return Err(ResolutionValidationError::TargetMissing {
+                    version_id,
+                    symbol_id,
                 });
             }
         }

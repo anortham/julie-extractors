@@ -36,10 +36,12 @@ pub use model::{
 };
 pub use resolution::{
     IdentifierResolutionRow, PendingResolutionRow, RESOLUTION_BASE_FORMAT_VERSION,
-    RESOLUTION_BASE_SQL, RESOLUTION_BASE_USER_VERSION, ResolutionBaseBuilder, ResolutionBaseReader,
-    ResolutionBaseWriter, ResolutionFileIdentity, ResolutionIdentifierRow, ResolutionPendingRow,
-    ResolutionSemanticCounts, ResolutionValidationError, create_resolution_scratch_connection,
-    resolution_base_catalog_hash, resolution_base_catalog_hash_for_sql,
+    RESOLUTION_BASE_SQL, RESOLUTION_BASE_USER_VERSION, ResolutionBaseBegin, ResolutionBaseBuild,
+    ResolutionBaseBuilder, ResolutionBaseCatalog, ResolutionBaseCatalogError, ResolutionBaseReader,
+    ResolutionBaseRecovery, ResolutionBaseWriter, ResolutionFileIdentity, ResolutionIdentifierRow,
+    ResolutionPendingRow, ResolutionSemanticCounts, ResolutionValidationError,
+    create_resolution_scratch_connection, resolution_base_catalog_hash,
+    resolution_base_catalog_hash_for_sql,
 };
 pub use resolution_diff::{
     RESOLUTION_SCRATCH_FORMAT_VERSION, RESOLUTION_SCRATCH_SQL, RESOLUTION_SCRATCH_USER_VERSION,

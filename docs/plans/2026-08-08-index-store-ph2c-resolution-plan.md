@@ -572,10 +572,10 @@ No worker edits another worker's files, reverts shared changes, or commits unrel
 
 **Acceptance:**
 
-- [ ] Every torn state converges deterministically without orphaning a live file.
-- [ ] Ready bases always pass identity/hash/count/integrity/target checks.
-- [ ] Version roots exist before off-lease build and protect every source version.
-- [ ] Concurrent identical builders produce one ready identity and safe loser cleanup.
+- [x] Every torn state converges deterministically without orphaning a live file.
+- [x] Ready bases always pass identity/hash/count/integrity/target checks.
+- [x] Version roots exist before off-lease build and protect every source version.
+- [x] Concurrent identical builders produce one ready identity and safe loser cleanup.
 
 ## Task 8: Implement Cumulative Deltas, Exact Bindings, and Pins
 
