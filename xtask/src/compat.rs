@@ -7,8 +7,8 @@ use std::process::{Command, ExitCode, Output};
 use rusqlite::types::ValueRef;
 use rusqlite::{Connection, OpenFlags};
 
-const COMPAT_BASELINE_EXTRACTION_IDENTITY_EPOCH: i64 = 1;
-const CURRENT_EXTRACTION_IDENTITY_EPOCH: i64 = 1;
+const COMPAT_BASELINE_EXTRACTION_IDENTITY_EPOCH: u32 = 1;
+const CURRENT_EXTRACTION_IDENTITY_EPOCH: u32 = 1;
 
 const DEFAULT_FIXTURE: &str = "fixtures/extraction/resolution_contract";
 const LEDGER_PATH: &str = "docs/contracts/extraction-output-changes.md";
@@ -135,8 +135,8 @@ pub struct CompatReport {
     pub outcome: CompatOutcome,
     pub version: String,
     pub previous_binary_version: String,
-    pub previous_extraction_identity_epoch: i64,
-    pub current_extraction_identity_epoch: i64,
+    pub previous_extraction_identity_epoch: u32,
+    pub current_extraction_identity_epoch: u32,
     pub previous_binary: PathBuf,
     pub current_binary: PathBuf,
     pub fixture: PathBuf,
@@ -219,8 +219,8 @@ pub fn verdict(diff: &ArtifactDiff, declaration: Option<&LedgerEntry>) -> Compat
 
 pub fn verdict_for_epochs(
     diff: &ArtifactDiff,
-    previous_epoch: i64,
-    current_epoch: i64,
+    previous_epoch: u32,
+    current_epoch: u32,
     declaration: Option<&LedgerEntry>,
 ) -> CompatOutcome {
     if diff.is_identical() {
