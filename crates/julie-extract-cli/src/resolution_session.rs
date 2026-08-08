@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use julie_extract_artifact::resolution_store::{
     self, IdentifierWorkItem, Outcome, PendingWorkItem, ResolutionCounts, ResolutionReportRow,
-    ResolutionStatus, ResolvedIdentifierWorkItem, ResolvedPendingWorkItem,
+    ResolutionStatus,
 };
 use julie_extract_artifact::writer::ResolutionScopeInput;
 use rusqlite::Transaction;
@@ -26,19 +26,19 @@ impl SessionSourceKey for IdentifierWorkItem {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum SemanticVersionId {
     LegacyFile(String),
     Store(i64),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SemanticIdentifierId {
     pub version: SemanticVersionId,
     pub local_id: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SemanticPendingRelationshipId {
     pub version: SemanticVersionId,
     pub local_id: String,
@@ -48,6 +48,32 @@ pub struct SemanticPendingRelationshipId {
 pub struct SemanticSymbolId {
     pub version: SemanticVersionId,
     pub local_id: String,
+}
+
+impl Ord for SemanticSymbolId {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match (&self.version, &other.version) {
+            (SemanticVersionId::LegacyFile(left), SemanticVersionId::LegacyFile(right)) => self
+                .local_id
+                .cmp(&other.local_id)
+                .then_with(|| left.cmp(right)),
+            (SemanticVersionId::Store(left), SemanticVersionId::Store(right)) => left
+                .cmp(right)
+                .then_with(|| self.local_id.cmp(&other.local_id)),
+            (SemanticVersionId::LegacyFile(_), SemanticVersionId::Store(_)) => {
+                std::cmp::Ordering::Less
+            }
+            (SemanticVersionId::Store(_), SemanticVersionId::LegacyFile(_)) => {
+                std::cmp::Ordering::Greater
+            }
+        }
+    }
+}
+
+impl PartialOrd for SemanticSymbolId {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -115,7 +141,7 @@ pub enum ResolutionPhase {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SessionRelationship {
-    pub target_symbol_id: String,
+    pub target_symbol_id: SemanticSymbolId,
     pub source_version_id: SemanticVersionId,
     pub kind: String,
     pub start_line: i64,
@@ -124,10 +150,30 @@ pub struct SessionRelationship {
     pub confidence: f64,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct SessionResolvedPendingWorkItem {
+    pub pending: PendingWorkItem,
+    pub target_symbol_id: SemanticSymbolId,
+    pub tier: i64,
+    pub confidence: f64,
+    pub method: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct SessionResolvedIdentifierWorkItem {
+    pub identifier: IdentifierWorkItem,
+    pub target_symbol_id: Option<SemanticSymbolId>,
+    pub tier: Option<i64>,
+    pub confidence: Option<f64>,
+    pub method: Option<String>,
+    pub outcome: Outcome,
+    pub candidates: Option<i64>,
+}
+
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct CurrentResolutionOverlay {
-    pub resolved_pending: Vec<ResolvedPendingWorkItem>,
-    pub resolved_identifiers: Vec<ResolvedIdentifierWorkItem>,
+    pub resolved_pending: Vec<SessionResolvedPendingWorkItem>,
+    pub resolved_identifiers: Vec<SessionResolvedIdentifierWorkItem>,
     pub pending: Vec<PendingWorkItem>,
     pub identifiers: Vec<IdentifierWorkItem>,
     pub relationships: Vec<SessionRelationship>,
@@ -355,6 +401,54 @@ impl<'session, 'connection> LegacyResolutionSession<'session, 'connection> {
         }
         Ok(semantic_ids)
     }
+
+    fn semantic_resolved_pending(
+        index: &WorkspaceCandidateIndex,
+        items: Vec<resolution_store::ResolvedPendingWorkItem>,
+    ) -> Result<Vec<SessionResolvedPendingWorkItem>, rusqlite::Error> {
+        items
+            .into_iter()
+            .map(|item| {
+                Ok(SessionResolvedPendingWorkItem {
+                    target_symbol_id: index
+                        .semantic_id_by_local(&item.target_symbol_id)
+                        .ok_or(rusqlite::Error::QueryReturnedNoRows)?,
+                    pending: item.pending,
+                    tier: item.tier,
+                    confidence: item.confidence,
+                    method: item.method,
+                })
+            })
+            .collect()
+    }
+
+    fn semantic_resolved_identifiers(
+        index: &WorkspaceCandidateIndex,
+        items: Vec<resolution_store::ResolvedIdentifierWorkItem>,
+    ) -> Result<Vec<SessionResolvedIdentifierWorkItem>, rusqlite::Error> {
+        items
+            .into_iter()
+            .map(|item| {
+                Ok(SessionResolvedIdentifierWorkItem {
+                    target_symbol_id: item
+                        .target_symbol_id
+                        .as_deref()
+                        .map(|id| {
+                            index
+                                .semantic_id_by_local(id)
+                                .ok_or(rusqlite::Error::QueryReturnedNoRows)
+                        })
+                        .transpose()?,
+                    identifier: item.identifier,
+                    tier: item.tier,
+                    confidence: item.confidence,
+                    method: item.method,
+                    outcome: item.outcome,
+                    candidates: item.candidates,
+                })
+            })
+            .collect()
+    }
 }
 
 impl ResolutionSession for LegacyResolutionSession<'_, '_> {
@@ -512,7 +606,7 @@ impl ResolutionSession for LegacyResolutionSession<'_, '_> {
         let changed_files = Self::legacy_version_refs(&worklists.changed_versions);
         match worklists.phase {
             ResolutionPhase::ResolvedPending => {
-                overlay.resolved_pending = if worklists.effective_full {
+                let items = if worklists.effective_full {
                     resolution_store::worklist_resolved_pending(self.transaction)?
                 } else {
                     resolution::merge_by_key(
@@ -527,6 +621,7 @@ impl ResolutionSession for LegacyResolutionSession<'_, '_> {
                         |item| item.pending.pending_relationship_id.clone(),
                     )
                 };
+                overlay.resolved_pending = Self::semantic_resolved_pending(index, items)?;
             }
             ResolutionPhase::PropagationCovered => {
                 let files = (!worklists.effective_full).then_some(selected_files.as_slice());
@@ -539,7 +634,7 @@ impl ResolutionSession for LegacyResolutionSession<'_, '_> {
                 overlay.identifier_ids = self.semantic_identifier_ids(local_ids)?;
             }
             ResolutionPhase::ResolvedIdentifiers => {
-                overlay.resolved_identifiers = if worklists.effective_full {
+                let items = if worklists.effective_full {
                     resolution_store::worklist_resolved_identifiers(self.transaction)?
                 } else {
                     resolution::merge_by_key(
@@ -554,6 +649,7 @@ impl ResolutionSession for LegacyResolutionSession<'_, '_> {
                         |item| item.identifier.identifier_id.clone(),
                     )
                 };
+                overlay.resolved_identifiers = Self::semantic_resolved_identifiers(index, items)?;
             }
             ResolutionPhase::Pending => {
                 overlay.pending = if worklists.effective_full {
@@ -574,25 +670,18 @@ impl ResolutionSession for LegacyResolutionSession<'_, '_> {
                 overlay.relationships =
                     resolution::load_relationship_rows(self.transaction, files)?
                         .into_iter()
-                        .map(
-                            |(
-                                target_symbol_id,
-                                source_version_id,
-                                kind,
-                                start_line,
-                                start_byte,
-                                end_byte,
-                                confidence,
-                            )| SessionRelationship {
-                                target_symbol_id,
-                                source_version_id: SemanticVersionId::LegacyFile(source_version_id),
-                                kind,
-                                start_line,
-                                start_byte,
-                                end_byte,
-                                confidence,
+                        .map(|row| SessionRelationship {
+                            target_symbol_id: SemanticSymbolId {
+                                version: SemanticVersionId::LegacyFile(row.target_source_key),
+                                local_id: row.target_symbol_id,
                             },
-                        )
+                            source_version_id: SemanticVersionId::LegacyFile(row.source_key),
+                            kind: row.kind,
+                            start_line: row.start_line,
+                            start_byte: row.start_byte,
+                            end_byte: row.end_byte,
+                            confidence: row.confidence,
+                        })
                         .collect();
             }
             ResolutionPhase::Identifiers => {

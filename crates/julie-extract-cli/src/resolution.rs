@@ -276,14 +276,16 @@ impl UnresolvedEdge {
 pub enum TierOutcome {
     /// Resolved at `tier` with `confidence` and a `method` provenance string.
     Resolved {
-        target_symbol_id: String,
+        target_symbol_id: session::SemanticSymbolId,
         tier: u8,
         confidence: f64,
         method: String,
     },
     /// Some tier yielded >= 2 kind-compatible candidates and no tier yielded
     /// exactly one. `candidates` is ordered by `symbol_id` for determinism.
-    Ambiguous { candidates: Vec<String> },
+    Ambiguous {
+        candidates: Vec<session::SemanticSymbolId>,
+    },
     /// Every attempted tier yielded zero candidates.
     Missing,
     /// No tier was applicable to this edge (e.g. identifier `member_access`, which
@@ -354,11 +356,14 @@ pub struct ImportRecord {
 /// rows and precomputes the name/parent/file lookups the tier chain needs.
 pub struct WorkspaceCandidateIndex {
     symbols: Vec<CandidateSymbol>,
-    by_id: HashMap<String, usize>,
+    by_id: HashMap<String, HashMap<String, usize>>,
+    by_semantic_id: HashMap<session::SemanticSymbolId, usize>,
+    semantic_ids_by_source: HashMap<String, HashMap<String, session::SemanticSymbolId>>,
+    semantic_id_by_unique_local: HashMap<String, Option<session::SemanticSymbolId>>,
     by_name: HashMap<String, Vec<usize>>,
-    children_by_parent: HashMap<String, Vec<usize>>,
+    children_by_parent: HashMap<String, HashMap<String, Vec<usize>>>,
     top_level_by_file: HashMap<String, Vec<usize>>,
-    type_facts_by_symbol: HashMap<String, Vec<TypeFact>>,
+    type_facts_by_symbol: HashMap<session::SemanticSymbolId, Vec<TypeFact>>,
     imports_by_file: HashMap<String, Vec<ImportRecord>>,
     /// Importing file -> every workspace path its relative module specifiers could
     /// bind to, whether or not one exists today. The reverse of
@@ -376,23 +381,75 @@ impl WorkspaceCandidateIndex {
     /// `symbol_id` so candidate enumeration is deterministic before the
     /// exactly-one test.
     pub fn build(
-        mut symbols: Vec<CandidateSymbol>,
+        symbols: Vec<CandidateSymbol>,
         type_facts: Vec<TypeFact>,
         imports: Vec<ImportRecord>,
     ) -> Self {
+        let symbols: Vec<_> = symbols
+            .into_iter()
+            .map(|symbol| {
+                (
+                    session::SemanticSymbolId {
+                        version: session::SemanticVersionId::LegacyFile(symbol.file_id.clone()),
+                        local_id: symbol.symbol_id.clone(),
+                    },
+                    symbol,
+                )
+            })
+            .collect();
+        let semantic_ids_by_local: HashMap<_, _> = symbols
+            .iter()
+            .map(|(semantic_id, symbol)| (symbol.symbol_id.clone(), semantic_id.clone()))
+            .collect();
+        let type_facts = type_facts
+            .into_iter()
+            .filter_map(|fact| {
+                semantic_ids_by_local
+                    .get(&fact.symbol_id)
+                    .cloned()
+                    .map(|semantic_id| (semantic_id, fact))
+            })
+            .collect();
+        Self::build_versioned(symbols, type_facts, imports)
+    }
+
+    pub fn build_versioned(
+        mut symbols: Vec<(session::SemanticSymbolId, CandidateSymbol)>,
+        type_facts: Vec<(session::SemanticSymbolId, TypeFact)>,
+        imports: Vec<ImportRecord>,
+    ) -> Self {
         // Sort symbols by id so every derived vector inherits a stable order.
-        symbols.sort_by(|a, b| a.symbol_id.cmp(&b.symbol_id));
+        symbols.sort_by(|(a_id, a), (b_id, b)| {
+            a.symbol_id.cmp(&b.symbol_id).then_with(|| a_id.cmp(b_id))
+        });
 
         let mut by_id = HashMap::new();
+        let mut by_semantic_id = HashMap::new();
+        let mut semantic_ids_by_source = HashMap::new();
+        let mut semantic_id_by_unique_local = HashMap::new();
         let mut by_name: HashMap<String, Vec<usize>> = HashMap::new();
-        let mut children_by_parent: HashMap<String, Vec<usize>> = HashMap::new();
+        let mut children_by_parent: HashMap<String, HashMap<String, Vec<usize>>> = HashMap::new();
         let mut top_level_by_file: HashMap<String, Vec<usize>> = HashMap::new();
 
-        for (idx, sym) in symbols.iter().enumerate() {
-            by_id.insert(sym.symbol_id.clone(), idx);
+        for (idx, (semantic_id, sym)) in symbols.iter().enumerate() {
+            by_id
+                .entry(sym.file_id.clone())
+                .or_insert_with(HashMap::new)
+                .insert(sym.symbol_id.clone(), idx);
+            by_semantic_id.insert(semantic_id.clone(), idx);
+            semantic_ids_by_source
+                .entry(sym.file_id.clone())
+                .or_insert_with(HashMap::new)
+                .insert(sym.symbol_id.clone(), semantic_id.clone());
+            semantic_id_by_unique_local
+                .entry(sym.symbol_id.clone())
+                .and_modify(|identity| *identity = None)
+                .or_insert_with(|| Some(semantic_id.clone()));
             by_name.entry(sym.name.clone()).or_default().push(idx);
             match &sym.parent_symbol_id {
                 Some(parent) => children_by_parent
+                    .entry(sym.file_id.clone())
+                    .or_default()
                     .entry(parent.clone())
                     .or_default()
                     .push(idx),
@@ -403,10 +460,11 @@ impl WorkspaceCandidateIndex {
             }
         }
 
-        let mut type_facts_by_symbol: HashMap<String, Vec<TypeFact>> = HashMap::new();
-        for fact in type_facts {
+        let mut type_facts_by_symbol: HashMap<session::SemanticSymbolId, Vec<TypeFact>> =
+            HashMap::new();
+        for (semantic_id, fact) in type_facts {
             type_facts_by_symbol
-                .entry(fact.symbol_id.clone())
+                .entry(semantic_id)
                 .or_default()
                 .push(fact);
         }
@@ -420,8 +478,11 @@ impl WorkspaceCandidateIndex {
         }
 
         WorkspaceCandidateIndex {
-            symbols,
+            symbols: symbols.into_iter().map(|(_, symbol)| symbol).collect(),
             by_id,
+            by_semantic_id,
+            semantic_ids_by_source,
+            semantic_id_by_unique_local,
             by_name,
             children_by_parent,
             top_level_by_file,
@@ -431,18 +492,34 @@ impl WorkspaceCandidateIndex {
         }
     }
 
-    fn symbol_by_id(&self, id: &str) -> Option<&CandidateSymbol> {
-        self.by_id.get(id).map(|&idx| &self.symbols[idx])
+    fn symbol_by_id(&self, source_key: &str, id: &str) -> Option<&CandidateSymbol> {
+        self.by_id
+            .get(source_key)
+            .and_then(|by_local_id| by_local_id.get(id))
+            .map(|&idx| &self.symbols[idx])
+    }
+
+    fn semantic_id(&self, symbol: &CandidateSymbol) -> &session::SemanticSymbolId {
+        self.semantic_ids_by_source
+            .get(&symbol.file_id)
+            .and_then(|by_local_id| by_local_id.get(&symbol.symbol_id))
+            .expect("candidate identity is indexed")
+    }
+
+    fn symbol_by_semantic_id(&self, id: &session::SemanticSymbolId) -> Option<&CandidateSymbol> {
+        self.by_semantic_id.get(id).map(|&idx| &self.symbols[idx])
+    }
+
+    pub(crate) fn semantic_id_by_local(&self, local_id: &str) -> Option<session::SemanticSymbolId> {
+        self.semantic_id_by_unique_local.get(local_id)?.clone()
     }
 
     /// The name of the symbol with `id`, if present (used by relationship
     /// propagation to find the co-located identifier by name).
-    fn symbol_name(&self, id: &str) -> Option<&str> {
-        self.symbol_by_id(id).map(|symbol| symbol.name.as_str())
-    }
-
-    pub(crate) fn symbol_source_id(&self, id: &str) -> Option<&str> {
-        self.symbol_by_id(id).map(|symbol| symbol.file_id.as_str())
+    fn symbol_name(&self, id: &session::SemanticSymbolId) -> Option<&str> {
+        self.by_semantic_id
+            .get(id)
+            .map(|&idx| self.symbols[idx].name.as_str())
     }
 
     fn by_name(&self, name: &str) -> impl Iterator<Item = &CandidateSymbol> + '_ {
@@ -454,9 +531,15 @@ impl WorkspaceCandidateIndex {
 
     /// Children of `parent_id` named `name`. Returns a `Vec` (eager) so the
     /// borrow is tied only to `self`, not to the caller-supplied `name`.
-    fn children_named(&self, parent_id: &str, name: &str) -> Vec<&CandidateSymbol> {
+    fn children_named(
+        &self,
+        source_key: &str,
+        parent_id: &str,
+        name: &str,
+    ) -> Vec<&CandidateSymbol> {
         self.children_by_parent
-            .get(parent_id)
+            .get(source_key)
+            .and_then(|by_parent| by_parent.get(parent_id))
             .into_iter()
             .flat_map(|idxs| idxs.iter().map(|&idx| &self.symbols[idx]))
             .filter(|sym| sym.name == name)
@@ -473,9 +556,9 @@ impl WorkspaceCandidateIndex {
             .collect()
     }
 
-    fn type_facts(&self, symbol_id: &str) -> &[TypeFact] {
+    fn type_facts(&self, symbol: &CandidateSymbol) -> &[TypeFact] {
         self.type_facts_by_symbol
-            .get(symbol_id)
+            .get(self.semantic_id(symbol))
             .map(Vec::as_slice)
             .unwrap_or(&[])
     }
@@ -545,7 +628,7 @@ impl WorkspaceCandidateIndex {
             if facts
                 .iter()
                 .any(|fact| names.contains(fact.resolved_type.as_str()))
-                && let Some(symbol) = self.symbol_by_id(symbol_id)
+                && let Some(symbol) = self.symbol_by_semantic_id(symbol_id)
             {
                 receivers.insert(symbol.name.clone());
             }
@@ -634,7 +717,7 @@ pub fn resolve_one(edge: &UnresolvedEdge, index: &WorkspaceCandidateIndex) -> Ti
     }
 
     let mut attempted_any = false;
-    let mut first_ambiguous: Option<Vec<String>> = None;
+    let mut first_ambiguous: Option<Vec<session::SemanticSymbolId>> = None;
 
     for tier in tiers {
         // Tier-2 language gate: skipped (not attempted) where no fixture-tested
@@ -677,7 +760,7 @@ pub fn resolve_one(edge: &UnresolvedEdge, index: &WorkspaceCandidateIndex) -> Ti
 /// One kind-compatible candidate produced by a tier, already carrying that tier's
 /// confidence (tier 3 varies it by `is_inferred`).
 struct TierCandidate {
-    symbol_id: String,
+    symbol_id: session::SemanticSymbolId,
     confidence: f64,
 }
 
@@ -780,14 +863,18 @@ fn static_type_candidates(
 
     let member_kinds = tier123_compatible_kinds(edge.kind);
     let cross_file = type_symbol.file_id != edge.file_id;
-    let mut set: BTreeSet<String> = BTreeSet::new();
-    for member in index.children_named(&type_symbol.symbol_id, &edge.terminal_name) {
+    let mut set: BTreeSet<session::SemanticSymbolId> = BTreeSet::new();
+    for member in index.children_named(
+        &type_symbol.file_id,
+        &type_symbol.symbol_id,
+        &edge.terminal_name,
+    ) {
         if member.language == edge.language
             && member_kinds.contains(&member.kind)
             && is_statically_reachable(member)
             && (!cross_file || member_is_cross_file_visible(member))
         {
-            set.insert(member.symbol_id.clone());
+            set.insert(index.semantic_id(member).clone());
         }
     }
     set.into_iter()
@@ -910,13 +997,15 @@ fn namespace_path_qualifier(namespace_json: &str) -> Option<String> {
 fn declared_namespace_path(symbol: &CandidateSymbol, index: &WorkspaceCandidateIndex) -> String {
     let mut segments = Vec::new();
     let mut next = symbol.parent_symbol_id.as_deref();
+    let mut source_key = symbol.file_id.as_str();
     while let Some(parent_id) = next {
-        let Some(parent) = index.symbol_by_id(parent_id) else {
+        let Some(parent) = index.symbol_by_id(source_key, parent_id) else {
             break;
         };
         if matches!(parent.kind, SymbolKind::Namespace | SymbolKind::Module) {
             segments.push(parent.name.clone());
         }
+        source_key = parent.file_id.as_str();
         next = parent.parent_symbol_id.as_deref();
     }
     segments.reverse();
@@ -963,8 +1052,9 @@ fn scope_binds_receiver_name(
     index: &WorkspaceCandidateIndex,
 ) -> bool {
     let mut next = edge.caller_scope_symbol_id.as_deref();
+    let mut source_key = edge.file_id.as_str();
     while let Some(scope_id) = next {
-        let Some(scope) = index.symbol_by_id(scope_id) else {
+        let Some(scope) = index.symbol_by_id(source_key, scope_id) else {
             return false;
         };
         if is_type_like(&scope.kind) {
@@ -972,7 +1062,7 @@ fn scope_binds_receiver_name(
         }
         // Prefer emitted local/parameter symbols (R2+) over signature parsing alone.
         if index
-            .children_named(scope_id, receiver)
+            .children_named(&scope.file_id, scope_id, receiver)
             .into_iter()
             .any(|child| child.kind == SymbolKind::Variable)
         {
@@ -983,6 +1073,7 @@ fn scope_binds_receiver_name(
         {
             return true;
         }
+        source_key = scope.file_id.as_str();
         next = scope.parent_symbol_id.as_deref();
     }
     false
@@ -1055,7 +1146,7 @@ fn static_receiver_is_reachable(
     let nested_in_type = type_symbol
         .parent_symbol_id
         .as_deref()
-        .and_then(|parent| index.symbol_by_id(parent))
+        .and_then(|parent| index.symbol_by_id(&type_symbol.file_id, parent))
         .is_some_and(|parent| is_type_like(&parent.kind));
     if nested_in_type {
         return false;
@@ -1074,24 +1165,27 @@ fn static_receiver_is_reachable(
 fn tier1_candidates(edge: &UnresolvedEdge, index: &WorkspaceCandidateIndex) -> Vec<TierCandidate> {
     let kinds = tier123_compatible_kinds(edge.kind);
     let mut scope = edge.caller_scope_symbol_id.clone();
+    let mut source_key = edge.file_id.as_str();
     while let Some(scope_id) = scope {
         let hits = index
-            .children_named(&scope_id, &edge.terminal_name)
+            .children_named(source_key, &scope_id, &edge.terminal_name)
             .into_iter()
             .filter(|candidate| {
                 candidate.language == edge.language && kinds.contains(&candidate.kind)
             })
             .map(|candidate| TierCandidate {
-                symbol_id: candidate.symbol_id.clone(),
+                symbol_id: index.semantic_id(candidate).clone(),
                 confidence: CONFIDENCE_TIER1,
             })
             .collect::<Vec<_>>();
         if !hits.is_empty() {
             return hits;
         }
-        scope = index
-            .symbol_by_id(&scope_id)
-            .and_then(|symbol| symbol.parent_symbol_id.clone());
+        let Some(symbol) = index.symbol_by_id(source_key, &scope_id) else {
+            break;
+        };
+        source_key = symbol.file_id.as_str();
+        scope = symbol.parent_symbol_id.clone();
     }
 
     index
@@ -1099,7 +1193,7 @@ fn tier1_candidates(edge: &UnresolvedEdge, index: &WorkspaceCandidateIndex) -> V
         .into_iter()
         .filter(|candidate| candidate.language == edge.language && kinds.contains(&candidate.kind))
         .map(|candidate| TierCandidate {
-            symbol_id: candidate.symbol_id.clone(),
+            symbol_id: index.semantic_id(candidate).clone(),
             confidence: CONFIDENCE_TIER1,
         })
         .collect()
@@ -1111,7 +1205,7 @@ fn tier1_candidates(edge: &UnresolvedEdge, index: &WorkspaceCandidateIndex) -> V
 /// a named/default import must not authorize every export in the module.
 fn tier2_candidates(edge: &UnresolvedEdge, index: &WorkspaceCandidateIndex) -> Vec<TierCandidate> {
     let kinds = tier123_compatible_kinds(edge.kind);
-    let mut set: BTreeSet<String> = BTreeSet::new();
+    let mut set: BTreeSet<session::SemanticSymbolId> = BTreeSet::new();
 
     for import in index.imports(&edge.file_id) {
         if import.is_type_only || import.is_namespace {
@@ -1142,7 +1236,7 @@ fn tier2_candidates(edge: &UnresolvedEdge, index: &WorkspaceCandidateIndex) -> V
                 (None, None) => true,
             };
             if cand.language == edge.language && kinds.contains(&cand.kind) && module_ok {
-                set.insert(cand.symbol_id.clone());
+                set.insert(index.semantic_id(cand).clone());
             }
         }
     }
@@ -1175,18 +1269,22 @@ fn tier3_candidates(edge: &UnresolvedEdge, index: &WorkspaceCandidateIndex) -> V
     // symbol_id -> is_inferred; BTreeMap keeps the result ordered by symbol_id.
     // When a member is reachable via both a concrete and an inferred type fact,
     // prefer the concrete (higher) confidence.
-    let mut members: BTreeMap<String, bool> = BTreeMap::new();
+    let mut members: BTreeMap<session::SemanticSymbolId, bool> = BTreeMap::new();
 
     for receiver_symbol in receiver_symbols {
-        for fact in index.type_facts(&receiver_symbol.symbol_id) {
+        for fact in index.type_facts(receiver_symbol) {
             let Some(type_symbol) = unique_type_symbol(index, &fact.resolved_type, &edge.language)
             else {
                 continue;
             };
-            for member in index.children_named(&type_symbol.symbol_id, &edge.terminal_name) {
+            for member in index.children_named(
+                &type_symbol.file_id,
+                &type_symbol.symbol_id,
+                &edge.terminal_name,
+            ) {
                 if member.language == edge.language && member_kinds.contains(&member.kind) {
                     let entry = members
-                        .entry(member.symbol_id.clone())
+                        .entry(index.semantic_id(member).clone())
                         .or_insert(fact.is_inferred);
                     if !fact.is_inferred {
                         *entry = false;
@@ -1223,13 +1321,13 @@ fn tier4_candidates(edge: &UnresolvedEdge, index: &WorkspaceCandidateIndex) -> V
         return Vec::new();
     }
     let same_file_only = es_module_language(&edge.language);
-    let mut set: BTreeSet<String> = BTreeSet::new();
+    let mut set: BTreeSet<session::SemanticSymbolId> = BTreeSet::new();
     for cand in index.by_name(&edge.terminal_name) {
         if cand.language == edge.language
             && kinds.contains(&cand.kind)
             && (!same_file_only || cand.file_id == edge.file_id)
         {
-            set.insert(cand.symbol_id.clone());
+            set.insert(index.semantic_id(cand).clone());
         }
     }
     set.into_iter()
@@ -1250,18 +1348,21 @@ fn resolve_receiver_symbols<'a>(
     receiver: &str,
 ) -> Vec<&'a CandidateSymbol> {
     let mut scope = edge.caller_scope_symbol_id.clone();
+    let mut source_key = edge.file_id.as_str();
     while let Some(scope_id) = scope {
         let hits: Vec<&CandidateSymbol> = index
-            .children_named(&scope_id, receiver)
+            .children_named(source_key, &scope_id, receiver)
             .into_iter()
             .filter(|s| s.language == edge.language)
             .collect();
         if !hits.is_empty() {
             return sorted_by_id(hits);
         }
-        scope = index
-            .symbol_by_id(&scope_id)
-            .and_then(|s| s.parent_symbol_id.clone());
+        let Some(symbol) = index.symbol_by_id(source_key, &scope_id) else {
+            break;
+        };
+        source_key = symbol.file_id.as_str();
+        scope = symbol.parent_symbol_id.clone();
     }
 
     let hits: Vec<&CandidateSymbol> = index
@@ -1507,7 +1608,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use self::session::{
     LegacyResolutionSession, ResolutionPassRequest, ResolutionPhase, ResolutionSession,
     ResolutionWorklists, ResolutionWriteBatch, SemanticIdentifierId, SemanticPendingRelationshipId,
-    SemanticSymbolId, SemanticVersionId, SessionRelationship, SessionSourceKey,
+    SemanticSymbolId, SemanticVersionId, SessionRelationship, SessionResolvedIdentifierWorkItem,
+    SessionResolvedPendingWorkItem, SessionSourceKey,
 };
 use julie_extract_artifact::resolution_store::{
     self, Outcome, ResolutionCounts, ResolutionReportRow, ResolutionStatus,
@@ -1806,17 +1908,6 @@ fn semantic_pending_id<S: ResolutionSession>(
     }
 }
 
-fn semantic_symbol_id<S: ResolutionSession>(
-    session: &S,
-    index: &WorkspaceCandidateIndex,
-    local_id: &str,
-) -> SemanticSymbolId {
-    SemanticSymbolId {
-        version: session.qualify_version(index.symbol_source_id(local_id).unwrap_or_default()),
-        local_id: local_id.to_string(),
-    }
-}
-
 // ---------------------------------------------------------------------------
 // Full / Delta orchestration
 // ---------------------------------------------------------------------------
@@ -2064,7 +2155,7 @@ struct DemotedCoLocation {
 fn recheck_resolved_pending_items<S: ResolutionSession>(
     session: &S,
     buf: &mut ResolutionWriteBatch,
-    items: &[resolution_store::ResolvedPendingWorkItem],
+    items: &[SessionResolvedPendingWorkItem],
     index: &WorkspaceCandidateIndex,
     locator: &IdentifierLocator,
     gated: &mut BTreeSet<String>,
@@ -2125,7 +2216,7 @@ fn recheck_resolved_pending_items<S: ResolutionSession>(
 fn recheck_resolved_identifier_items<S: ResolutionSession>(
     session: &S,
     buf: &mut ResolutionWriteBatch,
-    items: &[resolution_store::ResolvedIdentifierWorkItem],
+    items: &[SessionResolvedIdentifierWorkItem],
     index: &WorkspaceCandidateIndex,
     covered: &HashSet<SemanticIdentifierId>,
     revision: i64,
@@ -2185,7 +2276,7 @@ fn resolve_pending_items<S: ResolutionSession>(
         {
             buf.record_pending_resolution(
                 semantic_pending_id(session, item.source_key(), &item.pending_relationship_id),
-                semantic_symbol_id(session, index, &target_symbol_id),
+                target_symbol_id.clone(),
                 tier,
                 confidence,
                 &method,
@@ -2206,7 +2297,7 @@ fn resolve_pending_items<S: ResolutionSession>(
                 buf.record_identifier_outcome(
                     semantic_identifier_id(session, item.source_key(), &identifier_id),
                     Outcome::Resolved,
-                    Some(semantic_symbol_id(session, index, &target_symbol_id)),
+                    Some(target_symbol_id),
                     Some(tier),
                     Some(confidence),
                     Some(&method),
@@ -2240,40 +2331,6 @@ fn resolve_identifier_items<S: ResolutionSession>(
         }
         record_identifier_edge(session, buf, item, index, revision, counts, gated);
     }
-}
-
-/// Narrow a co-location set down to the identifiers propagation actually resolved.
-///
-/// [`covered_identifiers`] answers "is a pending/relationship edge sitting on this
-/// span", which is not the same question as "did that edge produce a target". When
-/// the covering edge failed, the identifier used to be skipped anyway and no
-/// `identifier_resolutions` row was written at all — so the site showed up as
-/// neither resolved nor missing, and the resolution report understated its own gap.
-///
-/// Run after the pending and propagation phases have flushed, so the overlay
-/// reflects this pass. Identifiers not returned here fall through to the generic
-/// identifier chain, whose kind compatibility differs from the pending chain's and
-/// can therefore still resolve some of them.
-pub(crate) fn propagation_owned_identifiers(
-    conn: &Connection,
-    covered: &HashSet<String>,
-) -> rusqlite::Result<HashSet<String>> {
-    let ids: Vec<&str> = covered.iter().map(String::as_str).collect();
-    let mut owned = HashSet::new();
-    for chunk in ids.chunks(FILE_QUERY_CHUNK) {
-        let sql = format!(
-            "SELECT identifier_id FROM identifier_resolutions \
-             WHERE outcome = 'resolved' AND identifier_id IN ({})",
-            placeholders(chunk.len())
-        );
-        let mut stmt = conn.prepare(&sql)?;
-        let params = rusqlite::params_from_iter(chunk.iter());
-        let rows = stmt.query_map(params, |row| row.get::<_, String>(0))?;
-        for row in rows {
-            owned.insert(row?);
-        }
-    }
-    Ok(owned)
 }
 
 /// Run the reduced identifier chain for one identifier and record its outcome
@@ -2335,9 +2392,7 @@ fn record_identifier_edge<S: ResolutionSession>(
     buf.record_identifier_outcome(
         semantic_identifier_id(session, item.source_key(), &item.identifier_id),
         outcome,
-        target
-            .as_deref()
-            .map(|id| semantic_symbol_id(session, index, id)),
+        target,
         tier,
         confidence,
         method.as_deref(),
@@ -2381,7 +2436,7 @@ fn propagate_relationship_items<S: ResolutionSession>(
                     local_id: identifier_id,
                 },
                 Outcome::Resolved,
-                Some(semantic_symbol_id(session, index, &item.target_symbol_id)),
+                Some(item.target_symbol_id.clone()),
                 Some(1),
                 Some(item.confidence.min(CONFIDENCE_TIER1)),
                 Some(METHOD_TIER1),
@@ -2394,18 +2449,23 @@ fn propagate_relationship_items<S: ResolutionSession>(
 }
 
 pub(crate) fn load_relationship_rows(
-    tx: &Transaction<'_>,
+    conn: &Connection,
     file_filter: Option<&[&str]>,
 ) -> rusqlite::Result<Vec<RelationshipRow>> {
-    let base = "SELECT to_symbol_id, file_id, kind, start_line, start_byte, end_byte, confidence \
-                FROM relationships";
+    let base = "SELECT r.to_symbol_id, target.file_id, r.file_id, r.kind, r.start_line, \
+                       r.start_byte, r.end_byte, r.confidence \
+                FROM relationships r \
+                JOIN symbols target ON target.symbol_id = r.to_symbol_id";
     match file_filter {
         Some(files) => {
             if files.is_empty() {
                 return Ok(Vec::new());
             }
-            let sql = format!("{base} WHERE file_id IN ({})", placeholders(files.len()));
-            let mut stmt = tx.prepare(&sql)?;
+            let sql = format!(
+                "{base} WHERE r.file_id IN ({}) ORDER BY r.relationship_id",
+                placeholders(files.len())
+            );
+            let mut stmt = conn.prepare(&sql)?;
             stmt.query_map(
                 rusqlite::params_from_iter(files.iter()),
                 map_relationship_row,
@@ -2413,7 +2473,7 @@ pub(crate) fn load_relationship_rows(
             .collect::<Result<Vec<_>, _>>()
         }
         None => {
-            let mut stmt = tx.prepare(base)?;
+            let mut stmt = conn.prepare(&format!("{base} ORDER BY r.relationship_id"))?;
             stmt.query_map([], map_relationship_row)?
                 .collect::<Result<Vec<_>, _>>()
         }
@@ -2441,18 +2501,50 @@ fn map_identifier_location(
     ))
 }
 
-pub(crate) type RelationshipRow = (String, String, String, i64, Option<i64>, Option<i64>, f64);
+pub(crate) struct RelationshipRow {
+    pub target_symbol_id: String,
+    pub target_source_key: String,
+    pub source_key: String,
+    pub kind: String,
+    pub start_line: i64,
+    pub start_byte: Option<i64>,
+    pub end_byte: Option<i64>,
+    pub confidence: f64,
+}
 
 fn map_relationship_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RelationshipRow> {
-    Ok((
-        row.get(0)?,
-        row.get(1)?,
-        row.get(2)?,
-        row.get::<_, Option<i64>>(3)?.unwrap_or(-1),
-        row.get(4)?,
-        row.get(5)?,
-        row.get(6)?,
-    ))
+    Ok(RelationshipRow {
+        target_symbol_id: row.get(0)?,
+        target_source_key: row.get(1)?,
+        source_key: row.get(2)?,
+        kind: row.get(3)?,
+        start_line: row.get::<_, Option<i64>>(4)?.unwrap_or(-1),
+        start_byte: row.get(5)?,
+        end_byte: row.get(6)?,
+        confidence: row.get(7)?,
+    })
+}
+
+pub(crate) fn propagation_owned_identifiers(
+    conn: &Connection,
+    covered: &HashSet<String>,
+) -> rusqlite::Result<HashSet<String>> {
+    let ids: Vec<&str> = covered.iter().map(String::as_str).collect();
+    let mut owned = HashSet::new();
+    for chunk in ids.chunks(FILE_QUERY_CHUNK) {
+        let sql = format!(
+            "SELECT identifier_id FROM identifier_resolutions \
+             WHERE outcome = 'resolved' AND identifier_id IN ({})",
+            placeholders(chunk.len())
+        );
+        let mut stmt = conn.prepare(&sql)?;
+        let params = rusqlite::params_from_iter(chunk.iter());
+        let rows = stmt.query_map(params, |row| row.get::<_, String>(0))?;
+        for row in rows {
+            owned.insert(row?);
+        }
+    }
+    Ok(owned)
 }
 
 // ---------------------------------------------------------------------------
@@ -3004,20 +3096,23 @@ pub(crate) fn propagation_covered_identifiers(
         }
     }
 
-    let relationships = query_scoped_rows(
-        conn,
-        "to_symbol_id, file_id, kind, start_line, start_byte, end_byte, confidence",
-        "relationships",
-        files,
-        map_relationship_row,
-    )?;
-    for (to_symbol_id, file_id, kind, start_line, start_byte, end_byte, _) in relationships {
-        if ReferenceKind::from_relationship_kind(&kind).is_none() {
+    for relationship in load_relationship_rows(conn, files)? {
+        if ReferenceKind::from_relationship_kind(&relationship.kind).is_none() {
             continue;
         }
-        if let Some(name) = index.symbol_name(&to_symbol_id) {
+        let target = SemanticSymbolId {
+            version: SemanticVersionId::LegacyFile(relationship.target_source_key),
+            local_id: relationship.target_symbol_id,
+        };
+        if let Some(name) = index.symbol_name(&target) {
             let name = name.to_string();
-            if let Some(id) = locator.locate(&file_id, &name, start_byte, end_byte, start_line) {
+            if let Some(id) = locator.locate(
+                &relationship.source_key,
+                &name,
+                relationship.start_byte,
+                relationship.end_byte,
+                relationship.start_line,
+            ) {
                 covered.insert(id);
             }
         }
@@ -3058,20 +3153,23 @@ pub(crate) fn covered_identifiers(
         }
     }
 
-    let relationships = query_scoped_rows(
-        conn,
-        "to_symbol_id, file_id, kind, start_line, start_byte, end_byte, confidence",
-        "relationships",
-        files,
-        map_relationship_row,
-    )?;
-    for (to_symbol_id, file_id, kind, start_line, start_byte, end_byte, _) in relationships {
-        if ReferenceKind::from_relationship_kind(&kind).is_none() {
+    for relationship in load_relationship_rows(conn, files)? {
+        if ReferenceKind::from_relationship_kind(&relationship.kind).is_none() {
             continue;
         }
-        if let Some(name) = index.symbol_name(&to_symbol_id) {
+        let target = SemanticSymbolId {
+            version: SemanticVersionId::LegacyFile(relationship.target_source_key),
+            local_id: relationship.target_symbol_id,
+        };
+        if let Some(name) = index.symbol_name(&target) {
             let name = name.to_string();
-            if let Some(id) = locator.locate(&file_id, &name, start_byte, end_byte, start_line) {
+            if let Some(id) = locator.locate(
+                &relationship.source_key,
+                &name,
+                relationship.start_byte,
+                relationship.end_byte,
+                relationship.start_line,
+            ) {
                 covered.insert(id);
             }
         }
@@ -3705,7 +3803,7 @@ fn legacy_files_declaring_type_named_for_shadow(
         if facts
             .iter()
             .any(|fact| names.contains(fact.resolved_type.as_str()))
-            && let Some(symbol) = index.symbol_by_id(symbol_id)
+            && let Some(symbol) = index.symbol_by_semantic_id(symbol_id)
         {
             files.insert(symbol.file_id.clone());
         }
@@ -3763,6 +3861,51 @@ mod tests {
             structurally_changed_paths(&conn, 1, &refs)
                 .expect("chunked changed-path query runs")
                 .is_empty()
+        );
+    }
+
+    #[test]
+    fn relationship_rows_are_ordered_by_relationship_id_not_insertion_order() {
+        let conn = Connection::open_in_memory().expect("in-memory artifact opens");
+        conn.execute_batch(
+            "CREATE TABLE symbols (
+                symbol_id TEXT PRIMARY KEY,
+                file_id TEXT NOT NULL
+            );
+            CREATE TABLE relationships (
+                relationship_id TEXT PRIMARY KEY,
+                to_symbol_id TEXT NOT NULL,
+                file_id TEXT NOT NULL,
+                kind TEXT NOT NULL,
+                start_line INTEGER NOT NULL,
+                start_byte INTEGER,
+                end_byte INTEGER,
+                confidence REAL NOT NULL
+            );",
+        )
+        .expect("relationship schema");
+        conn.execute("INSERT INTO symbols VALUES ('a-target', 'a-source')", [])
+            .expect("first target symbol inserted");
+        conn.execute("INSERT INTO symbols VALUES ('z-target', 'z-source')", [])
+            .expect("last target symbol inserted");
+        conn.execute(
+            "INSERT INTO relationships VALUES ('z-last', 'z-target', 'source', 'calls', 2, 0, 1, 1.0)",
+            [],
+        )
+        .expect("later relationship inserted first");
+        conn.execute(
+            "INSERT INTO relationships VALUES ('a-first', 'a-target', 'source', 'calls', 1, 0, 1, 1.0)",
+            [],
+        )
+        .expect("earlier relationship inserted second");
+
+        let tx = conn.unchecked_transaction().expect("transaction opens");
+        let rows = load_relationship_rows(&tx, None).expect("relationships load");
+        assert_eq!(
+            rows.into_iter()
+                .map(|row| (row.target_symbol_id, row.start_line))
+                .collect::<Vec<_>>(),
+            vec![("a-target".to_string(), 1), ("z-target".to_string(), 2)]
         );
     }
 
@@ -3838,7 +3981,12 @@ mod tests {
                 tier,
                 confidence,
                 method,
-            } => (*tier, *confidence, method.clone(), target_symbol_id.clone()),
+            } => (
+                *tier,
+                *confidence,
+                method.clone(),
+                target_symbol_id.local_id.clone(),
+            ),
             other => panic!("expected Resolved, got {other:?}"),
         }
     }
@@ -3906,7 +4054,13 @@ mod tests {
         );
         let edge = pending_edge(ReferenceKind::Call, "rust", "f3", "run");
         match resolve_one(&edge, &index) {
-            TierOutcome::Ambiguous { candidates } => assert_eq!(candidates, vec!["s1", "s2"]),
+            TierOutcome::Ambiguous { candidates } => assert_eq!(
+                candidates
+                    .into_iter()
+                    .map(|candidate| candidate.local_id)
+                    .collect::<Vec<_>>(),
+                vec!["s1", "s2"]
+            ),
             other => panic!("expected Ambiguous, got {other:?}"),
         }
     }
@@ -3925,7 +4079,13 @@ mod tests {
         );
         let edge = pending_edge(ReferenceKind::Instantiates, "csharp", "f3", "Service");
         match resolve_one(&edge, &index) {
-            TierOutcome::Ambiguous { candidates } => assert_eq!(candidates, vec!["s1", "s2"]),
+            TierOutcome::Ambiguous { candidates } => assert_eq!(
+                candidates
+                    .into_iter()
+                    .map(|candidate| candidate.local_id)
+                    .collect::<Vec<_>>(),
+                vec!["s1", "s2"]
+            ),
             other => panic!("expected Ambiguous, got {other:?}"),
         }
     }
@@ -4095,7 +4255,7 @@ mod tests {
                 ..
             } => panic!(
                 "unimported same-module export must not resolve via import Branch B \
-                 (got tier={tier} method={method} target={target_symbol_id})"
+                 (got tier={tier} method={method} target={target_symbol_id:?})"
             ),
             TierOutcome::Missing | TierOutcome::Ambiguous { .. } | TierOutcome::NoContext => {}
         }
@@ -4711,7 +4871,7 @@ mod tests {
         assert_eq!(target, "create");
         assert!(
             index
-                .symbol_by_id("create")
+                .symbol_by_id("modA", "create")
                 .is_some_and(|s| s.is_static.is_none()),
             "signature-only path requires is_static=None"
         );
@@ -4937,7 +5097,13 @@ mod tests {
         )]);
         match resolve_one(&static_call_edge("Fixture", "Create"), &index) {
             TierOutcome::Ambiguous { candidates } => {
-                assert_eq!(candidates, vec!["create", "create2"])
+                assert_eq!(
+                    candidates
+                        .into_iter()
+                        .map(|candidate| candidate.local_id)
+                        .collect::<Vec<_>>(),
+                    vec!["create", "create2"]
+                )
             }
             other => panic!("expected Ambiguous, got {other:?}"),
         }
@@ -5230,7 +5396,13 @@ mod tests {
         let edge = pending_edge(ReferenceKind::TypeUsage, "rust", "f4", "T");
         match resolve_one(&edge, &index) {
             TierOutcome::Ambiguous { candidates } => {
-                assert_eq!(candidates, vec!["alpha", "mid", "zeta"]);
+                assert_eq!(
+                    candidates
+                        .into_iter()
+                        .map(|candidate| candidate.local_id)
+                        .collect::<Vec<_>>(),
+                    vec!["alpha", "mid", "zeta"]
+                );
             }
             other => panic!("expected Ambiguous, got {other:?}"),
         }

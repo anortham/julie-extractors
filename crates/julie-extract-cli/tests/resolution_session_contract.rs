@@ -9,7 +9,7 @@ use julie_extract_cli::resolution_session::{
     CurrentResolutionOverlay, IdentifierLocator, ResolutionCorpusIdentity, ResolutionPassRequest,
     ResolutionPhase, ResolutionSession, ResolutionWorklistScope, ResolutionWorklists,
     ResolutionWrite, ResolutionWriteBatch, SemanticIdentifierId, SemanticSymbolId,
-    SemanticVersionId, SessionResolutionState,
+    SemanticVersionId, SessionRelationship, SessionResolutionState,
 };
 use rusqlite::Connection;
 use serde_json::{Value, json};
@@ -459,18 +459,77 @@ impl ResolutionSession for FakeResolutionSession {
         &mut self,
     ) -> Result<julie_extract_cli::resolution::WorkspaceCandidateIndex, Self::Error> {
         Ok(
-            julie_extract_cli::resolution::WorkspaceCandidateIndex::build(
-                vec![julie_extract_cli::resolution::CandidateSymbol {
-                    symbol_id: "target".to_string(),
-                    file_id: "definitions".to_string(),
-                    language: "rust".to_string(),
-                    name: "launch".to_string(),
-                    kind: julie_extractors::SymbolKind::Function,
-                    parent_symbol_id: None,
-                    visibility: None,
-                    signature: None,
-                    is_static: None,
-                }],
+            julie_extract_cli::resolution::WorkspaceCandidateIndex::build_versioned(
+                vec![
+                    (
+                        SemanticSymbolId {
+                            version: SemanticVersionId::Store(10),
+                            local_id: "scope".to_string(),
+                        },
+                        julie_extract_cli::resolution::CandidateSymbol {
+                            symbol_id: "scope".to_string(),
+                            file_id: "caller".to_string(),
+                            language: "rust".to_string(),
+                            name: "caller_scope".to_string(),
+                            kind: julie_extractors::SymbolKind::Function,
+                            parent_symbol_id: None,
+                            visibility: None,
+                            signature: None,
+                            is_static: None,
+                        },
+                    ),
+                    (
+                        SemanticSymbolId {
+                            version: SemanticVersionId::Store(30),
+                            local_id: "scope".to_string(),
+                        },
+                        julie_extract_cli::resolution::CandidateSymbol {
+                            symbol_id: "scope".to_string(),
+                            file_id: "other-caller".to_string(),
+                            language: "rust".to_string(),
+                            name: "other_scope".to_string(),
+                            kind: julie_extractors::SymbolKind::Function,
+                            parent_symbol_id: None,
+                            visibility: None,
+                            signature: None,
+                            is_static: None,
+                        },
+                    ),
+                    (
+                        SemanticSymbolId {
+                            version: SemanticVersionId::Store(10),
+                            local_id: "target".to_string(),
+                        },
+                        julie_extract_cli::resolution::CandidateSymbol {
+                            symbol_id: "target".to_string(),
+                            file_id: "caller".to_string(),
+                            language: "rust".to_string(),
+                            name: "launch".to_string(),
+                            kind: julie_extractors::SymbolKind::Variable,
+                            parent_symbol_id: Some("scope".to_string()),
+                            visibility: None,
+                            signature: None,
+                            is_static: None,
+                        },
+                    ),
+                    (
+                        SemanticSymbolId {
+                            version: SemanticVersionId::Store(30),
+                            local_id: "target".to_string(),
+                        },
+                        julie_extract_cli::resolution::CandidateSymbol {
+                            symbol_id: "target".to_string(),
+                            file_id: "other-caller".to_string(),
+                            language: "rust".to_string(),
+                            name: "shadow".to_string(),
+                            kind: julie_extractors::SymbolKind::Variable,
+                            parent_symbol_id: Some("scope".to_string()),
+                            visibility: None,
+                            signature: None,
+                            is_static: None,
+                        },
+                    ),
+                ],
                 vec![],
                 vec![],
             ),
@@ -498,7 +557,7 @@ impl ResolutionSession for FakeResolutionSession {
     fn qualify_version(&self, source_key: &str) -> SemanticVersionId {
         match source_key {
             "caller" => SemanticVersionId::Store(10),
-            "definitions" => SemanticVersionId::Store(20),
+            "other-caller" => SemanticVersionId::Store(30),
             _ => panic!("unexpected fake source key: {source_key}"),
         }
     }
@@ -506,13 +565,14 @@ impl ResolutionSession for FakeResolutionSession {
     fn locate_identifier(
         &self,
         _locator: &IdentifierLocator,
-        _version: &SemanticVersionId,
-        _name: &str,
+        version: &SemanticVersionId,
+        name: &str,
         _start_byte: Option<i64>,
         _end_byte: Option<i64>,
         _start_line: i64,
     ) -> Option<String> {
-        None
+        (*version == SemanticVersionId::Store(10) && name == "launch")
+            .then(|| "relationship-site".to_string())
     }
 
     fn load_covered_identifiers(
@@ -544,8 +604,8 @@ impl ResolutionSession for FakeResolutionSession {
                     path: "caller.rs".to_string(),
                     language: "rust".to_string(),
                     name: "launch".to_string(),
-                    kind: "call".to_string(),
-                    containing_symbol_id: None,
+                    kind: "variable_ref".to_string(),
+                    containing_symbol_id: Some("scope".to_string()),
                     start_line: 1,
                     start_byte: 0,
                     end_byte: 6,
@@ -558,8 +618,25 @@ impl ResolutionSession for FakeResolutionSession {
         } else {
             Vec::new()
         };
+        let relationships = if worklists.phase == ResolutionPhase::Relationships {
+            vec![SessionRelationship {
+                target_symbol_id: SemanticSymbolId {
+                    version: SemanticVersionId::Store(10),
+                    local_id: "target".to_string(),
+                },
+                source_version_id: SemanticVersionId::Store(10),
+                kind: "calls".to_string(),
+                start_line: 1,
+                start_byte: Some(0),
+                end_byte: Some(6),
+                confidence: 1.0,
+            }]
+        } else {
+            Vec::new()
+        };
         Ok(CurrentResolutionOverlay {
             identifiers,
+            relationships,
             ..CurrentResolutionOverlay::default()
         })
     }
@@ -592,24 +669,72 @@ fn resolver_policy_executes_through_a_session_without_sqlite() {
             .into_iter()
             .filter(|batch| !batch.writes.is_empty())
             .collect::<Vec<_>>(),
-        vec![ResolutionWriteBatch {
-            writes: vec![ResolutionWrite::Identifier {
-                identifier_id: SemanticIdentifierId {
-                    version: SemanticVersionId::Store(10),
-                    local_id: "call-site".to_string(),
-                },
-                target_symbol_id: Some(SemanticSymbolId {
-                    version: SemanticVersionId::Store(20),
-                    local_id: "target".to_string(),
-                }),
-                outcome: julie_extract_artifact::resolution_store::Outcome::Resolved,
-                tier: Some(4),
-                confidence: Some(0.55),
-                method: Some("tier4_global".to_string()),
-                candidates: None,
-                revision: 1,
-            }],
-        }]
+        vec![
+            ResolutionWriteBatch {
+                writes: vec![ResolutionWrite::Identifier {
+                    identifier_id: SemanticIdentifierId {
+                        version: SemanticVersionId::Store(10),
+                        local_id: "relationship-site".to_string(),
+                    },
+                    target_symbol_id: Some(SemanticSymbolId {
+                        version: SemanticVersionId::Store(10),
+                        local_id: "target".to_string(),
+                    }),
+                    outcome: julie_extract_artifact::resolution_store::Outcome::Resolved,
+                    tier: Some(1),
+                    confidence: Some(0.95),
+                    method: Some("tier1_local".to_string()),
+                    candidates: None,
+                    revision: 1,
+                }],
+            },
+            ResolutionWriteBatch {
+                writes: vec![ResolutionWrite::Identifier {
+                    identifier_id: SemanticIdentifierId {
+                        version: SemanticVersionId::Store(10),
+                        local_id: "call-site".to_string(),
+                    },
+                    target_symbol_id: Some(SemanticSymbolId {
+                        version: SemanticVersionId::Store(10),
+                        local_id: "target".to_string(),
+                    }),
+                    outcome: julie_extract_artifact::resolution_store::Outcome::Resolved,
+                    tier: Some(1),
+                    confidence: Some(0.95),
+                    method: Some("tier1_local".to_string()),
+                    candidates: None,
+                    revision: 1,
+                }],
+            },
+        ]
     );
-    assert_eq!(counts.identifier_resolutions, 1);
+    assert_eq!(counts.identifier_resolutions, 2);
+}
+
+#[test]
+fn generic_resolution_engine_contains_no_physical_storage_access() {
+    let source = include_str!("../src/resolution.rs");
+    let start = source
+        .find("pub fn run_resolution_session")
+        .expect("generic engine starts");
+    let end = source[start..]
+        .find("pub(crate) fn load_relationship_rows")
+        .map(|offset| start + offset)
+        .expect("legacy adapter helpers follow the engine");
+    let engine = &source[start..end];
+
+    for forbidden in [
+        "rusqlite::",
+        "Connection",
+        "Transaction",
+        "\"SELECT ",
+        "\"INSERT ",
+        "\"UPDATE ",
+        "\"DELETE ",
+    ] {
+        assert!(
+            !engine.contains(forbidden),
+            "generic engine contains physical storage access: {forbidden}"
+        );
+    }
 }
