@@ -5,6 +5,8 @@ mod log;
 mod manifest;
 mod model;
 mod pragmas;
+mod resolution;
+mod resolution_diff;
 mod rows;
 mod schema;
 #[cfg(feature = "test-store-crash")]
@@ -28,6 +30,20 @@ pub use manifest::{
 };
 pub use model::{
     StoreFileVersion, StoreLevel, StoreProjectionError, StoreReferenceSite, StoreRowCounts,
+};
+pub use resolution::{
+    IdentifierResolutionRow, PendingResolutionRow, RESOLUTION_BASE_FORMAT_VERSION,
+    RESOLUTION_BASE_SQL, RESOLUTION_BASE_USER_VERSION, ResolutionBaseBuilder, ResolutionBaseReader,
+    ResolutionFileIdentity, ResolutionIdentifierRow, ResolutionPendingRow,
+    ResolutionSemanticCounts, ResolutionValidationError, resolution_base_catalog_hash,
+    resolution_base_catalog_hash_for_sql,
+};
+pub use resolution_diff::{
+    RESOLUTION_SCRATCH_FORMAT_VERSION, RESOLUTION_SCRATCH_SQL, RESOLUTION_SCRATCH_USER_VERSION,
+    ResolutionPendingTombstone, ResolutionScratchCounts, ResolutionScratchDelta,
+    ResolutionScratchDeltaReader, ResolutionScratchReader, resolution_scratch_catalog_hash,
+    resolution_scratch_catalog_hash_for_sql, scratch_identifier_target_set,
+    scratch_resolution_counts, scratch_semantic_counts,
 };
 pub use schema::{
     STORE_FORMAT_EPOCH, STORE_SQLITE_SCHEMA_VERSION, StoreSchemaError, create_coordinator_schema,
