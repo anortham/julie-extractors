@@ -697,13 +697,13 @@ manifest effect is resumable progress, never the terminal idempotency anchor.
 
 **Acceptance:**
 
-- [ ] Cold import produces a readable L1 manifest before any L2/L3 completion event.
-- [ ] Resume reuse equals the number of previously stamped levels at every crash point.
-- [ ] Full import eventually stamps all requested levels without duplicate version rows.
-- [ ] Multi-language fixture has non-empty evidence in every applicable row family.
-- [ ] Full deepening consumes only hash-matching snapshots and cannot mutate the already-stamped
+- [x] Cold import produces a readable L1 manifest before any L2/L3 completion event.
+- [x] Resume reuse equals the number of previously stamped levels at every crash point.
+- [x] Full import eventually stamps all requested levels without duplicate version rows.
+- [x] Multi-language fixture has non-empty evidence in every applicable row family.
+- [x] Full deepening consumes only hash-matching snapshots and cannot mutate the already-stamped
       L1 projection.
-- [ ] `commands.rs` contains one store dispatch arm and no store business logic.
+- [x] `commands.rs` contains one store dispatch arm and no store business logic.
 
 ### Task 8: Implement queued `store update` and `store delete`
 
