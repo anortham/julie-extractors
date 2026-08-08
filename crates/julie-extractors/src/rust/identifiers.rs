@@ -210,27 +210,20 @@ fn extract_identifier_from_node(
             }
         }
 
-        "type_identifier" => {
-            if !is_rust_declaration_type_name(node) {
-                let name = {
-                    let base = extractor.get_base_mut();
-                    base.get_node_text(&node)
-                };
-                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+        "type_identifier" if !is_rust_declaration_type_name(node) => {
+            let name = {
+                let base = extractor.get_base_mut();
+                base.get_node_text(&node)
+            };
+            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
-                let identifier = {
-                    let base = extractor.get_base_mut();
-                    base.create_identifier(
-                        &node,
-                        name,
-                        IdentifierKind::TypeUsage,
-                        containing_symbol_id,
-                    )
-                };
-                // Record type args when this identifier is the base of an outermost
-                // generic: e.g. `Vec` in `Vec<String>` → parent is generic_type
-                record_outermost_rust_type_arguments(extractor, node, &identifier);
-            }
+            let identifier = {
+                let base = extractor.get_base_mut();
+                base.create_identifier(&node, name, IdentifierKind::TypeUsage, containing_symbol_id)
+            };
+            // Record type args when this identifier is the base of an outermost
+            // generic: e.g. `Vec` in `Vec<String>` → parent is generic_type
+            record_outermost_rust_type_arguments(extractor, node, &identifier);
         }
 
         // Macro calls: sqlx `query!`/`query_as!`/`query_scalar!` carry SQL as a
@@ -247,21 +240,19 @@ fn extract_identifier_from_node(
         // distinct grammar kinds, so no name filter is needed (the TypeUsage
         // arms carry none either). See the LOCKED SEMANTIC CONTRACT doc
         // comment in `csharp/identifiers.rs`.
-        "identifier" => {
-            if is_rust_value_read_identifier(node) {
-                let name = {
-                    let base = extractor.get_base_mut();
-                    base.get_node_text(&node)
-                };
-                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+        "identifier" if is_rust_value_read_identifier(node) => {
+            let name = {
                 let base = extractor.get_base_mut();
-                base.create_identifier(
-                    &node,
-                    name,
-                    IdentifierKind::VariableRef,
-                    containing_symbol_id,
-                );
-            }
+                base.get_node_text(&node)
+            };
+            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+            let base = extractor.get_base_mut();
+            base.create_identifier(
+                &node,
+                name,
+                IdentifierKind::VariableRef,
+                containing_symbol_id,
+            );
         }
 
         // Rule 1: a struct-literal field name (`bar` in `Sample { bar: seed }`)

@@ -41,16 +41,15 @@ pub(super) fn infer_types(symbols: &[Symbol]) -> HashMap<String, String> {
 
         use crate::base::SymbolKind;
         match symbol.kind {
-            SymbolKind::Struct => {
+            SymbolKind::Struct
                 if symbol
                     .metadata
                     .as_ref()
                     .and_then(|m| m.get("isErrorType"))
                     .and_then(|v| v.as_bool())
-                    != Some(true)
-                {
-                    types.insert(symbol.id.clone(), "struct".to_string());
-                }
+                    != Some(true) =>
+            {
+                types.insert(symbol.id.clone(), "struct".to_string());
             }
             SymbolKind::Enum => {
                 types.insert(symbol.id.clone(), "enum".to_string());

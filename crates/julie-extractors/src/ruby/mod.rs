@@ -208,11 +208,10 @@ impl RubyExtractor {
                     symbols.push(symbol);
                 }
             }
-            "class_variable" | "instance_variable" | "global_variable" => {
-                // Only create symbol if not part of an assignment (which handles it)
-                if !helpers::is_part_of_assignment(&node) {
-                    symbol_opt = Some(symbols::extract_variable(&mut self.base, node));
-                }
+            "class_variable" | "instance_variable" | "global_variable"
+                if !helpers::is_part_of_assignment(&node) =>
+            {
+                symbol_opt = Some(symbols::extract_variable(&mut self.base, node));
             }
             "constant" => {
                 // Skip constants that are assignment targets (assignment handler creates the symbol)

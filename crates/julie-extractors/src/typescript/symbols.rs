@@ -55,10 +55,8 @@ fn visit_node(
         "method_definition" => {
             symbol = functions::extract_method(extractor, node, parent_id.as_deref());
         }
-        "method_signature" => {
-            if !is_inside_interface(&node) {
-                symbol = functions::extract_method(extractor, node, parent_id.as_deref());
-            }
+        "method_signature" if !is_inside_interface(&node) => {
+            symbol = functions::extract_method(extractor, node, parent_id.as_deref());
         }
 
         // Variable/arrow function assignment
@@ -108,10 +106,8 @@ fn visit_node(
         }
 
         // Properties and fields (skip interface members — already handled by extract_interface)
-        "property_signature" => {
-            if !is_inside_interface(&node) {
-                symbol = interfaces::extract_property(extractor, node, parent_id.as_deref());
-            }
+        "property_signature" if !is_inside_interface(&node) => {
+            symbol = interfaces::extract_property(extractor, node, parent_id.as_deref());
         }
         "public_field_definition" | "property_definition" => {
             symbol = interfaces::extract_property(extractor, node, parent_id.as_deref());

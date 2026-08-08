@@ -143,20 +143,18 @@ impl CppExtractor {
             // member names are `field_identifier`, and `this` is its own node
             // kind. See the LOCKED SEMANTIC CONTRACT doc comment in
             // `csharp/identifiers.rs`.
-            "identifier" => {
-                if is_cpp_value_read_identifier(node) {
-                    let name = self.base.get_node_text(&node);
-                    // Rule 5: reuse the TypeUsage arm's noise filter, plus the
-                    // pre-C++11 NULL macro (parses as a plain identifier).
-                    if !helpers::is_noise_type(&name) && name != "NULL" {
-                        let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
-                        self.base.create_identifier(
-                            &node,
-                            name,
-                            IdentifierKind::VariableRef,
-                            containing_symbol_id,
-                        );
-                    }
+            "identifier" if is_cpp_value_read_identifier(node) => {
+                let name = self.base.get_node_text(&node);
+                // Rule 5: reuse the TypeUsage arm's noise filter, plus the
+                // pre-C++11 NULL macro (parses as a plain identifier).
+                if !helpers::is_noise_type(&name) && name != "NULL" {
+                    let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                    self.base.create_identifier(
+                        &node,
+                        name,
+                        IdentifierKind::VariableRef,
+                        containing_symbol_id,
+                    );
                 }
             }
 
@@ -166,18 +164,16 @@ impl CppExtractor {
             // segments the distinct `namespace_identifier` kind, so they need
             // their own arm; type-context chains (terminal `type_identifier` /
             // `template_type`) stay with the TypeUsage arm.
-            "namespace_identifier" => {
-                if is_cpp_scope_receiver_read(node) {
-                    let name = self.base.get_node_text(&node);
-                    if !helpers::is_noise_type(&name) {
-                        let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
-                        self.base.create_identifier(
-                            &node,
-                            name,
-                            IdentifierKind::VariableRef,
-                            containing_symbol_id,
-                        );
-                    }
+            "namespace_identifier" if is_cpp_scope_receiver_read(node) => {
+                let name = self.base.get_node_text(&node);
+                if !helpers::is_noise_type(&name) {
+                    let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                    self.base.create_identifier(
+                        &node,
+                        name,
+                        IdentifierKind::VariableRef,
+                        containing_symbol_id,
+                    );
                 }
             }
 

@@ -33,14 +33,12 @@ fn traverse_for_relationships(
         "struct_declaration" => {
             extract_struct_relationships(base, node, symbols, relationships);
         }
-        "const_declaration" => {
-            // Check const declarations for struct definitions
+        "const_declaration"
             if base
                 .find_child_by_type(&node, "struct_declaration")
-                .is_some()
-            {
-                extract_struct_relationships(base, node, symbols, relationships);
-            }
+                .is_some() =>
+        {
+            extract_struct_relationships(base, node, symbols, relationships);
         }
         "call_expression" => {
             extract_function_call_relationships(extractor, node, symbols, relationships);

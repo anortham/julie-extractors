@@ -68,13 +68,12 @@ pub(super) fn extract_relationships_internal(
         // `column_definition`. Phase 3.1 needs to catch this shape so that
         // cross-schema FKs (e.g., `REFERENCES other_schema.users(id)`) emit
         // structured pending relationships.
-        "column_definition" => {
+        "column_definition"
             if base
                 .find_child_by_type(&node, "keyword_references")
-                .is_some()
-            {
-                extract_foreign_key_relationship(base, node, symbols, relationships);
-            }
+                .is_some() =>
+        {
+            extract_foreign_key_relationship(base, node, symbols, relationships);
         }
         // Plain SELECT/FROM table references are not emitted as top-level edges.
         // CREATE VIEW handles its own FROM dependencies at the view symbol boundary.
