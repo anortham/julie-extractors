@@ -361,6 +361,20 @@ fn contract_plan() -> TestPlan {
             "-p",
             "julie-extract-cli",
             "--features",
+            "test-store-resolution-contract",
+            "--test",
+            "resolution_session_contract",
+            "--",
+            "--test-threads=1",
+        ],
+    ));
+    commands.push(CommandSpec::new(
+        "cargo",
+        [
+            "test",
+            "-p",
+            "julie-extract-cli",
+            "--features",
             "test-heavy-contracts",
             "--test",
             "deep_recursion_contract",

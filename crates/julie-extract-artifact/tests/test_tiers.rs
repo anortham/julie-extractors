@@ -23,6 +23,13 @@ fn perf_gate_is_feature_gated_out_of_default_suite() {
     );
 }
 
+#[test]
+fn legacy_resolution_feature_is_declared_for_the_cli_contract_tier() {
+    let crate_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let manifest = read(&crate_root.join("Cargo.toml"));
+    assert!(manifest.contains("test-store-resolution = []"));
+}
+
 /// Gating the perf harness is not enough on its own: a wall-clock budget added
 /// to an ungated file is the same leak wearing a different name. `elapsed <
 /// Duration` in the default suite passes on a fast laptop and fails on a shared

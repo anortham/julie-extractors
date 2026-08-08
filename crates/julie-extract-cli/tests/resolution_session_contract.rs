@@ -1,0 +1,424 @@
+#![cfg(feature = "test-store-resolution-contract")]
+
+use std::collections::BTreeSet;
+use std::path::Path;
+
+use julie_extract_artifact::resolution_store::{read_resolution_metadata, resolution_report};
+use rusqlite::Connection;
+use serde_json::{Value, json};
+use tempfile::TempDir;
+
+fn fixture_root() -> std::path::PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/store-resolution/legacy-v3")
+}
+
+fn scan_fixture() -> (TempDir, std::path::PathBuf) {
+    let temp = TempDir::new().expect("temporary fixture root");
+    let root = temp.path().join("repo");
+    copy_dir(&fixture_root(), &root);
+    std::fs::create_dir_all(root.join("failed-preserved")).expect("failed-preserved path exists");
+    std::fs::write(root.join("failed-preserved/broken.rs"), [0xff, 0xfe, 0xfd])
+        .expect("failed-preserved fixture is written");
+
+    let db = temp.path().join("symbols.db");
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
+            "scan",
+            "--root",
+            root.to_str().expect("fixture root is utf8"),
+            "--db",
+            db.to_str().expect("database path is utf8"),
+            "--json",
+        ])
+        .output()
+        .expect("julie-extract starts");
+    assert_eq!(
+        output.status.code(),
+        Some(1),
+        "the fixture intentionally carries one failed-preserved path\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    (temp, db)
+}
+
+fn copy_dir(source: &Path, target: &Path) {
+    std::fs::create_dir_all(target).expect("fixture destination exists");
+    for entry in std::fs::read_dir(source).expect("fixture source exists") {
+        let entry = entry.expect("fixture entry readable");
+        if entry.file_name() == "expected.semantic.json" {
+            continue;
+        }
+        let destination = target.join(entry.file_name());
+        if entry.file_type().expect("fixture entry type").is_dir() {
+            copy_dir(&entry.path(), &destination);
+        } else {
+            std::fs::copy(entry.path(), destination).expect("fixture file copied");
+        }
+    }
+}
+
+#[test]
+fn legacy_resolution_oracle_is_pinned() {
+    let (_first_temp, first_db) = scan_fixture();
+    let (_second_temp, second_db) = scan_fixture();
+    let first = semantic_dump(&first_db);
+    let second = semantic_dump(&second_db);
+    assert_eq!(first, second, "fresh v3 artifacts diverged semantically");
+
+    let value: Value = serde_json::from_str(&first).expect("semantic dump is JSON");
+    assert_vacuous_surfaces_are_populated(&value);
+
+    let expected_path = fixture_root().join("expected.semantic.json");
+    let expected = std::fs::read_to_string(expected_path).expect("pinned oracle exists");
+    assert_eq!(first, expected, "legacy semantic oracle changed");
+}
+
+fn assert_vacuous_surfaces_are_populated(value: &Value) {
+    assert!(
+        value["metadata"].is_object(),
+        "resolution metadata is missing"
+    );
+    assert!(
+        value["report_rows"]
+            .as_array()
+            .is_some_and(|rows| !rows.is_empty()),
+        "aggregate resolution report rows are empty"
+    );
+    assert!(
+        value["pending_resolutions"]
+            .as_array()
+            .is_some_and(|rows| !rows.is_empty()),
+        "pending_resolutions overlay is empty"
+    );
+    assert!(
+        value["identifier_resolutions"]
+            .as_array()
+            .is_some_and(|rows| !rows.is_empty()),
+        "identifier_resolutions overlay is empty"
+    );
+    assert!(
+        value["collisions"]
+            .as_array()
+            .is_some_and(|rows| !rows.is_empty()),
+        "same-name collision surface is empty"
+    );
+    assert!(
+        value["imports"]
+            .as_array()
+            .is_some_and(|rows| !rows.is_empty()),
+        "module-path surface is empty"
+    );
+    let module_paths = value["module_path_existence"]
+        .as_array()
+        .expect("module path rows");
+    assert!(
+        module_paths.iter().any(|row| row["exists"] == true)
+            && module_paths.iter().any(|row| row["exists"] == false),
+        "module path fixture must include existing and failed path lookups"
+    );
+    assert!(
+        value["files"]
+            .as_array()
+            .is_some_and(|rows| { rows.iter().any(|row| row["status"] == "failed_preserved") }),
+        "failed-preserved path surface is empty"
+    );
+
+    let outcomes = value["identifier_resolutions"]
+        .as_array()
+        .expect("identifier resolution rows")
+        .iter()
+        .filter_map(|row| row["outcome"].as_str())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        outcomes,
+        BTreeSet::from(["ambiguous", "missing", "no_context", "resolved"]),
+        "the oracle must cover every identifier outcome"
+    );
+
+    let pending = value["pending_resolutions"]
+        .as_array()
+        .expect("pending resolution rows");
+    assert!(
+        pending.iter().any(|row| row["target"].is_string()),
+        "resolved pending relationship is missing"
+    );
+    assert!(
+        value["pending_relationships"]
+            .as_array()
+            .is_some_and(|rows| rows.iter().any(|row| row["target"].is_null())),
+        "unresolved pending relationship is missing"
+    );
+}
+
+fn semantic_dump(db: &Path) -> String {
+    let connection = Connection::open(db).expect("artifact opens");
+    let metadata = read_resolution_metadata(&connection)
+        .expect("resolution metadata query")
+        .expect("resolution metadata exists");
+    let report = resolution_report(&connection).expect("resolution report query");
+
+    let value = json!({
+        "metadata": {
+            "status": metadata.status.as_str(),
+            "version": metadata.version,
+            "last_full_revision": metadata.last_full_revision,
+        },
+        "files": file_rows(&connection),
+        "imports": import_rows(&connection),
+        "module_path_existence": module_path_rows(&connection),
+        "collisions": collision_rows(&connection),
+        "pending_relationships": pending_relationship_rows(&connection),
+        "pending_resolutions": pending_resolution_rows(&connection),
+        "identifier_resolutions": identifier_resolution_rows(&connection),
+        "report_rows": report.iter().map(|row| json!({
+            "language": row.language,
+            "origin": row.origin,
+            "raw_kind": row.raw_kind,
+            "canonical_kind": row.canonical_kind,
+            "tier": row.tier,
+            "method": row.method,
+            "outcome": row.outcome,
+            "span_present": row.span_present,
+            "count": row.count,
+        })).collect::<Vec<_>>(),
+    });
+    serde_json::to_string_pretty(&value).expect("semantic dump serializes") + "\n"
+}
+
+fn module_path_rows(connection: &Connection) -> Vec<Value> {
+    let file_paths = {
+        let mut statement = connection
+            .prepare("SELECT path FROM files ORDER BY path")
+            .expect("module file paths query prepares");
+        statement
+            .query_map([], |row| row.get::<_, String>(0))
+            .expect("module file paths query runs")
+            .collect::<Result<BTreeSet<_>, _>>()
+            .expect("module file paths decode")
+    };
+    let mut statement = connection
+        .prepare(
+            "SELECT path, json_extract(metadata_json, '$.source') \
+             FROM symbols WHERE kind = 'import' \
+             ORDER BY path, start_byte",
+        )
+        .expect("module path rows query prepares");
+    statement
+        .query_map([], |row| {
+            let source: Option<String> = row.get(1)?;
+            let path: String = row.get(0)?;
+            let exists = source.as_deref().is_some_and(|source| {
+                let base = Path::new(&path).parent().unwrap_or_else(|| Path::new(""));
+                let candidate = base
+                    .join(source.trim_start_matches("./"))
+                    .to_string_lossy()
+                    .replace("\\", "/");
+                file_paths.contains(&candidate)
+                    || [".ts", ".tsx", ".js", ".jsx"]
+                        .iter()
+                        .any(|extension| file_paths.contains(&format!("{candidate}{extension}")))
+            });
+            Ok(json!({
+                "path": path,
+                "source": source,
+                "exists": exists,
+            }))
+        })
+        .expect("module path rows query runs")
+        .collect::<Result<Vec<_>, _>>()
+        .expect("module path rows decode")
+}
+
+fn file_rows(connection: &Connection) -> Vec<Value> {
+    let mut statement = connection
+        .prepare("SELECT path, language, status FROM files ORDER BY path")
+        .expect("file rows query prepares");
+    statement
+        .query_map([], |row| {
+            Ok(json!({
+                "path": row.get::<_, String>(0)?,
+                "language": row.get::<_, String>(1)?,
+                "status": row.get::<_, String>(2)?,
+            }))
+        })
+        .expect("file rows query runs")
+        .collect::<Result<Vec<_>, _>>()
+        .expect("file rows decode")
+}
+
+fn import_rows(connection: &Connection) -> Vec<Value> {
+    let mut statement = connection
+        .prepare(
+            "SELECT path, name, json_extract(metadata_json, '$.source'), \
+                    json_extract(metadata_json, '$.importedName') \
+             FROM symbols WHERE kind = 'import' ORDER BY path, start_byte, name",
+        )
+        .expect("import rows query prepares");
+    statement
+        .query_map([], |row| {
+            Ok(json!({
+                "path": row.get::<_, String>(0)?,
+                "specifier": row.get::<_, String>(1)?,
+                "source": row.get::<_, Option<String>>(2)?,
+                "imported_name": row.get::<_, Option<String>>(3)?,
+            }))
+        })
+        .expect("import rows query runs")
+        .collect::<Result<Vec<_>, _>>()
+        .expect("import rows decode")
+}
+
+fn collision_rows(connection: &Connection) -> Vec<Value> {
+    let mut statement = connection
+        .prepare(
+            "SELECT language, name, path, kind, start_line, start_byte \
+             FROM symbols WHERE (language, name, kind) IN ( \
+               SELECT language, name, kind FROM symbols \
+               GROUP BY language, name, kind HAVING COUNT(*) > 1 \
+             ) ORDER BY language, name, path, start_line, start_byte, kind",
+        )
+        .expect("collision rows query prepares");
+    statement
+        .query_map([], |row| {
+            Ok(json!({
+                "language": row.get::<_, String>(0)?,
+                "name": row.get::<_, String>(1)?,
+                "path": row.get::<_, String>(2)?,
+                "kind": row.get::<_, String>(3)?,
+                "start_line": row.get::<_, i64>(4)?,
+                "start_byte": row.get::<_, i64>(5)?,
+            }))
+        })
+        .expect("collision rows query runs")
+        .collect::<Result<Vec<_>, _>>()
+        .expect("collision rows decode")
+}
+
+fn pending_relationship_rows(connection: &Connection) -> Vec<Value> {
+    let mut statement = connection
+        .prepare(
+            "SELECT f.path, f.language, p.kind, p.target_terminal_name, p.start_line, \
+                    p.target_receiver, p.target_import_context, p.target_namespace_json, \
+                    r.target_symbol_id, ts.path, ts.name, ts.kind, ts.start_line, ts.start_byte \
+             FROM pending_relationships p JOIN files f ON f.file_id = p.file_id \
+             LEFT JOIN pending_resolutions r ON r.pending_relationship_id = p.pending_relationship_id \
+             LEFT JOIN symbols ts ON ts.symbol_id = r.target_symbol_id \
+             ORDER BY f.path, p.start_line, p.target_terminal_name, p.kind",
+        )
+        .expect("pending relationship rows query prepares");
+    statement
+        .query_map([], |row| {
+            Ok(json!({
+                "path": row.get::<_, String>(0)?,
+                "language": row.get::<_, String>(1)?,
+                "kind": row.get::<_, String>(2)?,
+                "target_name": row.get::<_, String>(3)?,
+                "start_line": row.get::<_, i64>(4)?,
+                "receiver": row.get::<_, Option<String>>(5)?,
+                "import_context": row.get::<_, Option<String>>(6)?,
+                "namespace": row.get::<_, String>(7)?,
+                "target": symbol_key(
+                    row.get::<_, Option<String>>(9)?,
+                    row.get::<_, Option<String>>(10)?,
+                    row.get::<_, Option<String>>(11)?,
+                    row.get::<_, Option<i64>>(12)?,
+                    row.get::<_, Option<i64>>(13)?,
+                ),
+            }))
+        })
+        .expect("pending relationship rows query runs")
+        .collect::<Result<Vec<_>, _>>()
+        .expect("pending relationship rows decode")
+}
+
+fn pending_resolution_rows(connection: &Connection) -> Vec<Value> {
+    let mut statement = connection
+        .prepare(
+            "SELECT f.path, f.language, p.kind, p.target_terminal_name, p.start_line, \
+                    r.tier, r.confidence, r.method, ts.path, ts.name, ts.kind, \
+                    ts.start_line, ts.start_byte \
+             FROM pending_resolutions r \
+             JOIN pending_relationships p ON p.pending_relationship_id = r.pending_relationship_id \
+             JOIN files f ON f.file_id = p.file_id JOIN symbols ts ON ts.symbol_id = r.target_symbol_id \
+             ORDER BY f.path, p.start_line, p.target_terminal_name, p.kind",
+        )
+        .expect("pending resolution rows query prepares");
+    statement
+        .query_map([], |row| {
+            Ok(json!({
+                "path": row.get::<_, String>(0)?,
+                "language": row.get::<_, String>(1)?,
+                "kind": row.get::<_, String>(2)?,
+                "target_name": row.get::<_, String>(3)?,
+                "start_line": row.get::<_, i64>(4)?,
+                "tier": row.get::<_, i64>(5)?,
+                "confidence": row.get::<_, f64>(6)?,
+                "method": row.get::<_, String>(7)?,
+                "target": symbol_key(
+                    Some(row.get::<_, String>(8)?),
+                    Some(row.get::<_, String>(9)?),
+                    Some(row.get::<_, String>(10)?),
+                    Some(row.get::<_, i64>(11)?),
+                    Some(row.get::<_, i64>(12)?),
+                ),
+            }))
+        })
+        .expect("pending resolution rows query runs")
+        .collect::<Result<Vec<_>, _>>()
+        .expect("pending resolution rows decode")
+}
+
+fn identifier_resolution_rows(connection: &Connection) -> Vec<Value> {
+    let mut statement = connection
+        .prepare(
+            "SELECT i.path, i.language, i.name, i.kind, i.start_line, i.start_byte, \
+                    json_extract(i.metadata_json, '$.receiver'), r.target_symbol_id, \
+                    r.tier, r.confidence, r.method, r.outcome, r.candidates, \
+                    ts.path, ts.name, ts.kind, ts.start_line, ts.start_byte \
+             FROM identifier_resolutions r JOIN identifiers i ON i.identifier_id = r.identifier_id \
+             LEFT JOIN symbols ts ON ts.symbol_id = r.target_symbol_id \
+             ORDER BY i.path, i.start_byte, i.name, i.kind",
+        )
+        .expect("identifier resolution rows query prepares");
+    statement
+        .query_map([], |row| {
+            Ok(json!({
+                "path": row.get::<_, String>(0)?,
+                "language": row.get::<_, String>(1)?,
+                "name": row.get::<_, String>(2)?,
+                "kind": row.get::<_, String>(3)?,
+                "start_line": row.get::<_, i64>(4)?,
+                "start_byte": row.get::<_, i64>(5)?,
+                "receiver": row.get::<_, Option<String>>(6)?,
+                "target": symbol_key(
+                    row.get::<_, Option<String>>(13)?,
+                    row.get::<_, Option<String>>(14)?,
+                    row.get::<_, Option<String>>(15)?,
+                    row.get::<_, Option<i64>>(16)?,
+                    row.get::<_, Option<i64>>(17)?,
+                ),
+                "tier": row.get::<_, Option<i64>>(8)?,
+                "confidence": row.get::<_, Option<f64>>(9)?,
+                "method": row.get::<_, Option<String>>(10)?,
+                "outcome": row.get::<_, String>(11)?,
+                "candidates": row.get::<_, Option<i64>>(12)?,
+            }))
+        })
+        .expect("identifier resolution rows query runs")
+        .collect::<Result<Vec<_>, _>>()
+        .expect("identifier resolution rows decode")
+}
+
+fn symbol_key(
+    path: Option<String>,
+    name: Option<String>,
+    kind: Option<String>,
+    start_line: Option<i64>,
+    start_byte: Option<i64>,
+) -> Option<String> {
+    Some(format!(
+        "{}|{}|{}|{}|{}",
+        path?, kind?, name?, start_line?, start_byte?
+    ))
+}
