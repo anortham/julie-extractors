@@ -1,4 +1,5 @@
 mod connection;
+mod coordinator;
 mod layout;
 mod log;
 mod manifest;
@@ -9,6 +10,12 @@ mod schema;
 mod writer;
 
 pub use connection::{StoreConnectionError, StoreConnectionFactory};
+pub use coordinator::{
+    CoordinatorError, CoordinatorExecutor, CoordinatorPolicy, CoordinatorRequest, DrainReport,
+    EnqueueResult, ExecutionContext, ExecutionQuantum, LeaseDisposition, LeaseHolder, LeaseRecord,
+    PidLiveness, ReconcileOutcome, RequestKind, RequestState, StoreCoordinator, UnixMillisClock,
+    compare_versions,
+};
 pub use layout::{StoreLayout, StoreLayoutError};
 pub use log::{StoreLog, StoreLogEntry, StoreLogError, StoreLogRecord};
 pub use manifest::{

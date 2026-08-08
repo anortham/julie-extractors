@@ -312,6 +312,10 @@ struct ParsedVersion {
     pre_release: Option<Vec<VersionIdentifier>>,
 }
 
+pub(crate) fn compare_versions(left: &str, right: &str) -> Result<Ordering, StoreConnectionError> {
+    Ok(ParsedVersion::parse("version", left)?.cmp(&ParsedVersion::parse("version", right)?))
+}
+
 impl ParsedVersion {
     fn parse(field: &'static str, value: &str) -> Result<Self, StoreConnectionError> {
         let value_without_prefix = value.strip_prefix('v').unwrap_or(value);
