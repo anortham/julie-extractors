@@ -13,13 +13,17 @@ Contract version:
 
 - CLI contract: `1`
 - Extraction contract: `4`
-- SQLite schema: `5`
+- SQLite schema: `6`
 - JSONL schema: `4`
+- Versioned store contract: `1` (unreleased Ph2b)
+- Versioned store SQLite schema: `1` (unreleased Ph2b)
 
-These values mirror `EXTRACT_CONTRACT_VERSION` / `SQLITE_SCHEMA_VERSION` in
+The legacy values mirror `EXTRACT_CONTRACT_VERSION` / `SQLITE_SCHEMA_VERSION` in
 `crates/julie-extract-artifact/src/schema.rs` and `JSONL_SCHEMA_VERSION` in
-`crates/julie-extract-artifact/src/jsonl.rs`; those constants are the source
-of truth when this table drifts.
+`crates/julie-extract-artifact/src/jsonl.rs`. The store values mirror
+`STORE_SQLITE_SCHEMA_VERSION` and the frozen contract in
+`crates/julie-extract-artifact/src/store/schema.rs`; those constants are the source of truth when
+this table drifts.
 
 ## Invariants
 
@@ -42,7 +46,16 @@ julie-extract info --db <path> [--strict-schema] [--json]
 julie-extract export --db <path> --format jsonl --out <path|-> [--strict-schema] [--json]
 julie-extract languages [--json]
 julie-extract rebind --root <dir> --db <path> [--strict-schema] [--json]
+
+# Unreleased Ph2b store commands
+julie-extract store import --store <family-dir> --family <uuid> --root <dir> --view <id> [--level <l1|full>] [--json]
+julie-extract store update --store <family-dir> [--family <uuid>] --root <dir> --view <id> --file <path> [--level <l1|full>] [--json]
+julie-extract store delete --store <family-dir> [--family <uuid>] --root <dir> --view <id> --file <path>... [--json]
 ```
+
+The nested `store` surface is an unreleased Ph2b implementation slice. Miller does not use it
+yet. Ph2c still owns resolution bases/deltas and exact-generation binding; Ph2d still owns
+retention, garbage collection, and repair.
 
 ## Shared Flags
 
@@ -433,6 +446,37 @@ Outcomes:
 `rebind` is additive: it introduces no new table, column, or JSONL record, so
 the extraction, SQLite, and JSONL versions pinned above are unchanged, and the
 CLI contract version stays `1`.
+
+### `store import`, `store update`, and `store delete` (unreleased Ph2b)
+
+These commands target a family store, not a legacy `--db` artifact. `store import` creates the
+store when absent, creates a missing view, and binds that view to the canonical root. The caller
+must supply the family UUID on creation. `store update` and `store delete` require an existing
+store and view; `--family` is optional for them, but a supplied value must match the stored family.
+
+`store import` discovers the whole declared root. `store update` plans exactly one canonical
+root-relative file and never rediscovers the tree. `store delete` plans exactly the repeatable
+`--file` arguments and does not delete immutable extraction rows. An update whose content hash is
+already current and a delete whose path is already absent are semantic no-ops: neither creates a
+manifest generation nor duplicates a version or terminal effect.
+
+`--level l1` publishes the symbol/relationship core before deep evidence. `--level full` requires
+L1, L2, and L3 completion. A later Full request may deepen immutable versions published by an L1
+request without creating a new manifest generation. Every content-changing Ph2b result reports
+`resolution.state: "unbound"` and `resolution.exact_at_matches: false`.
+
+All three verbs enqueue a durable coordinator request and wait up to
+`--request-timeout-seconds` (default `30`) for acknowledgment. `--request-id` and
+`--idempotency-key` are optional; omitted values are minted by the executor. Reusing an
+idempotency key with the same canonical request replays its terminal report. Reusing it for a
+different request or operation returns `idempotency_conflict`. A requester timeout does not cancel
+a lease holder that is safely draining the request.
+
+Store JSON uses its own `report_schema_version: 1`. Stable fields include `operation`, request
+identity, family/view/root identity, coordinator state, requested/completed levels, manifest
+generation/hash/disposition, row counts, resolution state, failure class, and a nullable error.
+The physical format and recovery invariants are frozen in [store-v1.md](store-v1.md) and
+[sqlite-store-schema-v1.md](sqlite-store-schema-v1.md).
 
 ## Status Values
 

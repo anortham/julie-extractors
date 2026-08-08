@@ -20,6 +20,8 @@ Use `cargo xtask test list` to print the tier names.
 - Release package manifest: `cargo xtask release package-list`
 - Dependency policy: `cargo deny check`
 - Dogfood this repo: `cargo xtask dogfood repo --root . --out-dir target/dogfood/julie-extractors`
+- Unreleased store crash contract: `cargo test -p julie-extract-artifact --features test-store-crash --test store_crash_contract -- --nocapture`
+- Unreleased store equivalence contract: `cargo test -p julie-extract-cli --features test-store-contract --test store_equivalence -- --nocapture`
 
 The default command expands to fast package tests for `julie-extractors`,
 `julie-extract-artifact`, and `julie-extract-cli`. Slow and contract-heavy
@@ -91,6 +93,10 @@ This runs golden fixtures, capability matrix checks, pending-shape checks, and
 the downstream smoke consumer, plus the SQLite schema, JSON report, and JSONL
 contract tests for `julie-extract-artifact` and the CLI contract, path-policy,
 and operations contract tests for `julie-extract-cli`.
+
+The contract tier also registers the feature-gated Ph2b store equivalence and mixed-version
+matrices. The crash matrix remains an explicit artifact feature gate because it self-reexecutes and
+externally kills public CLI processes. Neither feature is enabled by the default tier.
 
 The Python SQLite consumer example is a downstream smoke check for non-Rust
 artifact readers:
@@ -221,6 +227,23 @@ current-schema child-row domains, including `source_regions`,
 `structural_facts`, and `complexity_metrics`, are hard evidence; timing, rows
 per second, and artifact size are report-only metrics. This guard is local
 release-evidence tooling, not part of regular CI or the default/contract tiers.
+
+### Unreleased Ph2b store closeout
+
+The Ph2b branch gate adds two exact feature commands to the regular formatting, xtask, default,
+and contract commands:
+
+```bash
+RUSTUP_TOOLCHAIN=1.97.1 cargo test -p julie-extract-artifact --features test-store-crash --test store_crash_contract -- --nocapture
+RUSTUP_TOOLCHAIN=1.97.1 cargo test -p julie-extract-cli --features test-store-contract --test store_equivalence -- --nocapture
+```
+
+The closeout dogfood uses a release `julie-extract` binary, disposable source archives, one family
+with two views, L1-first Full imports, 20 public updates/deletes, an externally killed batch with
+takeover/reconciliation, and fresh-store visible-row equivalence. Databases, raw reports, timing,
+and WAL observations stay under `target/`; the durable summary is
+[release evidence](release-evidence/2026-08-07-index-store-ph2b/README.md). This is unreleased
+implementation evidence, not a Miller adoption or release claim.
 
 ## CI Policy
 

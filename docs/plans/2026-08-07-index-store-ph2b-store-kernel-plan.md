@@ -791,7 +791,8 @@ resolution overlay/column explicitly.
 
 - Modify: `docs/contracts/cli.md`
 - Modify: `docs/testing-strategy.md`
-- Modify: `docs/README.md`
+- Create: `docs/README.md` (the required base had no documentation map; Task 10 records and closes
+  this plan mismatch rather than dropping the file)
 - Modify: `docs/plans/2026-08-07-index-store-ph2b-store-kernel-plan.md`
 - Create: `docs/release-evidence/2026-08-07-index-store-ph2b/README.md`
 
@@ -801,14 +802,27 @@ batch with takeover, and a final from-scratch equivalence comparison. Record com
 row/version reuse, request counts, manifest generations, WAL peak, L1-visible time, full time,
 and all gate results. Generated databases/logs stay under `target/`.
 
+**Completion evidence (2026-08-08):** the runtime under dogfood was
+`6a61b6e8832ab935830cd8bd0e1a19aa6f57f7a6`; that commit also contains the test-only parallel
+crash-fixture isolation repair found by this task's exact default-parallel feature command. The
+dogfood used Julie Extractors `6a61b6e8832ab935830cd8bd0e1a19aa6f57f7a6` and Miller
+`b7df7db2f775657912c90df5067ceb7fee985db0` through disposable `git archive` roots. It finished
+with 25 committed terminal requests, one honestly failed and replaced Full request, zero
+nonterminal requests, zero duplicate terminal effects/chunks, and zero visible-row mismatches
+across 21 normalized groups in each of two views. Full commands and persisted facts are recorded
+in [the Ph2b release evidence](../release-evidence/2026-08-07-index-store-ph2b/README.md).
+The original file ledger said to modify `docs/README.md`, but that file did not exist at the
+required base. Lead review authorized creating the missing documentation map; no planned file was
+silently omitted.
+
 **Acceptance:**
 
-- [ ] Branch gate and both feature-gated store gates pass from the final commit.
-- [ ] Dogfood records zero duplicate terminal effects and zero equivalence mismatches.
-- [ ] Docs state that Ph2b is an unreleased implementation slice and name Ph2c/Ph2d remaining
+- [x] Branch gate and both feature-gated store gates pass from the final commit.
+- [x] Dogfood records zero duplicate terminal effects and zero equivalence mismatches.
+- [x] Docs state that Ph2b is an unreleased implementation slice and name Ph2c/Ph2d remaining
       work; no README/install claim says Miller uses the store yet.
-- [ ] Worktree state is clean and the plan ledger records actual commits/tests/mismatches.
-- [ ] No version bump, tag, push, release, Miller pin bump, or worktree cleanup occurs without the
+- [x] Worktree state is clean at closeout and the plan ledger records actual commits/tests/mismatches.
+- [x] No version bump, tag, push, release, Miller pin bump, or worktree cleanup occurs without the
       user's separate approval.
 
 ## Plan Review Record
