@@ -82,3 +82,35 @@ A manifest entry's nullable version FK is `ON DELETE RESTRICT`; live and histori
 `store.db` also catalogs immutable resolution bases, rooted source versions, cumulative per-view
 deltas, and bounded reader/resolve pins. Semantic result rows remain in immutable base and delta
 files; they are not copied into general Store tables.
+
+## Resolution publication
+
+- `store resolve` claims through `coord.db` without holding the store-writer lease during semantic
+  computation.
+- The input manifest, resolver-output epoch, ready base, request claim, writer holder PID, and
+  fencing token are revalidated before and inside the final publication transaction.
+- Exact publication inserts one cumulative delta, all replacement/tombstone rows, the view binding,
+  and one `resolution_exact_published` log effect in the same `store.db` transaction.
+- A CAS or fence loser publishes none of those rows. A store-committed/coordinator-uncommitted tear
+  reconciles from the terminal store fact without re-executing semantic work.
+- Only the dedicated resolver may claim `resolve` requests. Generic import/update/delete backlog
+  draining leaves them queued while another resolve is claimed.
+- Request-private exact/base scratch files are not catalog data. A successor that owns the same
+  durable request removes an abandoned private `.work` file before retrying.
+
+## Public compatibility adapters
+
+- `store export --store <family> --view <id> --out <artifact.db>` requires an exact current view,
+  holds a reader pin through validation and atomic rename, and emits the current standalone v3
+  artifact contract. It has no coordinator request controls and never mutates store state.
+- `store import --from-artifact <artifact.db>` is an import mode, not a database copy. It rejects
+  scan/extraction controls, validates the artifact schema/root/hash/epoch/completeness before store
+  creation, enqueues one bounded typed plan, and resumes by request-global chunk index.
+- Both adapters preserve natural extraction and resolution keys. Idempotency replay returns the
+  original request-specific result even when the source or artifact path later disappears.
+
+## Retention boundary
+
+Ph2d may reclaim only objects outside every current/historical manifest, ready-base version root,
+live resolution pin, current base/delta binding, and active request/claim. Ph2c does not implement
+general retention, log pruning, repair, or generation promotion.

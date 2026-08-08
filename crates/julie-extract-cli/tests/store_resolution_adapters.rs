@@ -564,8 +564,10 @@ fn current_v3_artifact_imports_full_rows_and_binds_exact() {
         "{}",
         String::from_utf8_lossy(&export.stdout)
     );
-    let roundtrip_rows = normalized_v3_rows(&roundtrip);
-    let source_rows = normalized_v3_rows(&artifact);
+    let roundtrip_rows = normalized_v3_rows_with_resolution(&roundtrip);
+    let source_rows = normalized_v3_rows_with_resolution(&artifact);
+    assert!(source_rows.contains_key("identifier_resolutions"));
+    assert!(source_rows.contains_key("pending_resolutions"));
     for (table, expected) in source_rows {
         assert_eq!(roundtrip_rows.get(&table), Some(&expected), "{table}");
     }
@@ -1307,6 +1309,63 @@ fn normalized_v3_rows(path: &Path) -> BTreeMap<String, Vec<String>> {
         );
     }
     rows
+}
+
+fn normalized_v3_rows_with_resolution(path: &Path) -> BTreeMap<String, Vec<String>> {
+    let connection = Connection::open(path).unwrap();
+    let mut rows = normalized_v3_rows(path);
+    rows.insert(
+        "identifier_resolutions".to_string(),
+        query_rows(
+            &connection,
+            &format!(
+                "SELECT f.path,{}, {},t.tier,t.confidence,t.method,t.outcome,t.candidates
+                 FROM identifier_resolutions AS t
+                 JOIN identifiers AS owner ON owner.identifier_id=t.identifier_id
+                 JOIN files AS f ON f.file_id=owner.file_id",
+                local_id_projection("identifier_id"),
+                semantic_id_projection("target_symbol_id")
+            ),
+            8,
+        ),
+    );
+    rows.insert(
+        "pending_resolutions".to_string(),
+        query_rows(
+            &connection,
+            &format!(
+                "SELECT f.path,{}, {},t.tier,t.confidence,t.method
+                 FROM pending_resolutions AS t
+                 JOIN pending_relationships AS owner
+                   ON owner.pending_relationship_id=t.pending_relationship_id
+                 JOIN files AS f ON f.file_id=owner.file_id",
+                local_id_projection("pending_relationship_id"),
+                semantic_id_projection("target_symbol_id")
+            ),
+            6,
+        ),
+    );
+    rows
+}
+
+fn local_id_projection(column: &str) -> String {
+    format!(
+        "CASE WHEN substr(t.{column},1,length(f.file_id)+1)=f.file_id||':'
+         THEN substr(t.{column},length(f.file_id)+2) ELSE t.{column} END"
+    )
+}
+
+fn semantic_id_projection(column: &str) -> String {
+    format!(
+        "CASE WHEN t.{column} IS NULL THEN NULL
+         WHEN t.{column} LIKE 'store-version:%:%'
+         THEN substr(substr(t.{column},15),instr(substr(t.{column},15),':')+1)
+         WHEN instr(t.{column},':')>0 AND EXISTS(
+             SELECT 1 FROM files AS target_file
+             WHERE target_file.file_id=substr(t.{column},1,instr(t.{column},':')-1)
+         ) THEN substr(t.{column},instr(t.{column},':')+1)
+         ELSE t.{column} END"
+    )
 }
 
 fn table_columns(connection: &Connection, table: &str) -> Vec<String> {

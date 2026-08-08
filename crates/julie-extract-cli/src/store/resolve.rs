@@ -138,6 +138,7 @@ fn execute_resolve(
         RequestState::Committed | RequestState::Acknowledged
     ) {
         normalize_dead_writer_lease(&layout, &mut coordinator, &holder)?;
+        remove_resolution_request_scratch(&layout, &canonical.request_id)?;
         return report_resolve(&layout, &canonical, &payload);
     }
     let reconciliation = coordinator
@@ -148,9 +149,11 @@ fn execute_resolve(
         let request = coordinator
             .request(&canonical.request_id)
             .map_err(|error| error.to_string())?;
+        remove_resolution_request_scratch(&layout, &canonical.request_id)?;
         return report_resolve(&layout, &request, &payload);
     }
     if canonical.state == RequestState::Failed {
+        remove_resolution_request_scratch(&layout, &canonical.request_id)?;
         return report_resolve(&layout, &canonical, &payload);
     }
 
@@ -184,6 +187,7 @@ fn execute_resolve(
             let request = coordinator
                 .request(&canonical.request_id)
                 .map_err(|error| error.to_string())?;
+            remove_resolution_request_scratch(&layout, &canonical.request_id)?;
             return report_resolve(&layout, &request, &payload);
         }
         if !coordinator
@@ -200,6 +204,7 @@ fn execute_resolve(
         let request = coordinator
             .request(&canonical.request_id)
             .map_err(|error| error.to_string())?;
+        remove_resolution_request_scratch(&layout, &canonical.request_id)?;
         return report_resolve(&layout, &request, &payload);
     }
     coordinator
@@ -328,6 +333,12 @@ fn resolve_claimed(
             .begin_convergence(&convergence)
             .map_err(|error| format!("resolution_failed: {error}"))
     })?;
+    let exact_path = layout
+        .scratch_dir()
+        .join(format!("resolve-exact-{}.db", request.request_id));
+    let delta_path = layout
+        .scratch_dir()
+        .join(format!("resolve-delta-{}.db", request.request_id));
     if binding.state == ViewResolutionState::Exact {
         heartbeat.ensure_current(coordinator, request, holder)?;
         with_writer_lease(coordinator, holder, deadline, |token| {
@@ -340,14 +351,13 @@ fn resolve_claimed(
             let _ = token;
             Ok(())
         })?;
+        remove_sqlite_if_exists(&delta_path)?;
+        remove_sqlite_if_exists(&exact_path)?;
         return Ok(());
     }
 
     heartbeat.ensure_current(coordinator, request, holder)?;
-    let exact_path = layout
-        .scratch_dir()
-        .join(format!("resolve-exact-{}.db", request.request_id));
-    remove_if_exists(&exact_path)?;
+    remove_resolution_scratch_if_exists(&exact_path)?;
     let mut exact_session = StoreScratchResolutionSession::new(
         factory.clone(),
         identity,
@@ -376,10 +386,7 @@ fn resolve_claimed(
         .map_err(|error| format!("resolution_failed: {error}"))?;
     let exact = ResolutionBaseReader::open(&exact_path)
         .map_err(|error| format!("resolution_failed: {error}"))?;
-    let delta_path = layout
-        .scratch_dir()
-        .join(format!("resolve-delta-{}.db", request.request_id));
-    remove_if_exists(&delta_path)?;
+    remove_sqlite_if_exists(&delta_path)?;
     let mut gaps = Vec::<ResolutionGapFact>::new();
     stream_resolution_diff(&base, &exact, &delta_path, RESOLUTION_WINDOW_SIZE, |gap| {
         gaps.push(gap);
@@ -431,8 +438,8 @@ fn resolve_claimed(
     drop(scratch);
     drop(exact);
     drop(base);
-    remove_if_exists(&delta_path)?;
-    remove_if_exists(&exact_path)?;
+    remove_sqlite_if_exists(&delta_path)?;
+    remove_sqlite_if_exists(&exact_path)?;
     Ok(())
 }
 
@@ -834,6 +841,33 @@ fn remove_if_exists(path: &std::path::Path) -> Result<(), String> {
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
         Err(error) => Err(error.to_string()),
     }
+}
+
+fn remove_resolution_scratch_if_exists(exact_path: &std::path::Path) -> Result<(), String> {
+    remove_sqlite_if_exists(exact_path)?;
+    let mut work_path = exact_path.as_os_str().to_os_string();
+    work_path.push(".work");
+    let work_path = std::path::PathBuf::from(work_path);
+    remove_sqlite_if_exists(&work_path)
+}
+
+fn remove_resolution_request_scratch(layout: &StoreLayout, request_id: &str) -> Result<(), String> {
+    let exact_path = layout
+        .scratch_dir()
+        .join(format!("resolve-exact-{request_id}.db"));
+    let delta_path = layout
+        .scratch_dir()
+        .join(format!("resolve-delta-{request_id}.db"));
+    remove_resolution_scratch_if_exists(&exact_path)?;
+    remove_sqlite_if_exists(&delta_path)
+}
+
+fn remove_sqlite_if_exists(path: &std::path::Path) -> Result<(), String> {
+    for suffix in ["-wal", "-shm", ""] {
+        let path = std::path::PathBuf::from(format!("{}{}", path.display(), suffix));
+        remove_if_exists(&path)?;
+    }
+    Ok(())
 }
 
 #[cfg(feature = "test-store-resolution-contract")]

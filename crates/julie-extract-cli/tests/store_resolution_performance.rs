@@ -8,8 +8,10 @@ use std::process::Command;
 use std::time::{Duration, Instant};
 
 use julie_extract_artifact::store::{
-    ManifestStore, ResolutionBaseReader, ResolutionBaseWriter, ResolutionDiffMarker,
-    ResolutionFileIdentity, ResolutionIdentifierRow, ResolutionPendingRow, ResolutionScratchReader,
+    ManifestStore, ResolutionBaseBegin, ResolutionBaseCatalog, ResolutionBaseReader,
+    ResolutionBaseWriter, ResolutionBindingStore, ResolutionDiffMarker, ResolutionExactPublish,
+    ResolutionFileIdentity, ResolutionIdentifierRow, ResolutionPendingRow,
+    ResolutionPublicationFence, ResolutionPublicationMarker, ResolutionScratchReader,
     StoreConnectionFactory, StoreLayout, apply_base_delta, stream_resolution_diff_with_markers,
 };
 use julie_extract_cli::resolution::run_resolution_session;
@@ -88,6 +90,17 @@ impl WriteTimeline {
         assert!(self.intervals > 0);
         assert!(self.elapsed <= total);
         self.elapsed
+    }
+
+    fn mark_publication(&mut self, marker: ResolutionPublicationMarker) {
+        match marker {
+            ResolutionPublicationMarker::StoreTransactionStart => {
+                self.mark(ResolutionDiffMarker::DeltaWriteStart);
+            }
+            ResolutionPublicationMarker::StoreTransactionEnd => {
+                self.mark(ResolutionDiffMarker::DeltaWriteEnd);
+            }
+        }
     }
 }
 
@@ -235,7 +248,7 @@ fn measure_pair(store_root: &Path, pair: &str, run: usize, out_dir: &Path) -> Sa
     assert!(PAIRS.contains(&pair));
     let layout = StoreLayout::open(store_root).unwrap();
     let base_generation = 1;
-    let exact_generation = if pair == "miller-unchanged" { 1 } else { 2 };
+    let exact_generation = if pair == "miller-unchanged" { 3 } else { 2 };
     let base_identity = manifest_identity(&layout, base_generation);
     let exact_identity = manifest_identity(&layout, exact_generation);
     let sample_root = out_dir.join(format!("worker-{pair}-{run}"));
@@ -259,7 +272,7 @@ fn measure_pair(store_root: &Path, pair: &str, run: usize, out_dir: &Path) -> Sa
     let exact = ResolutionBaseReader::open(&exact_path).unwrap();
     let delta_path = sample_root.join("delta.db");
     let mut gaps = Vec::new();
-    let mut timeline = WriteTimeline::default();
+    let mut scratch_timeline = WriteTimeline::default();
     let diff_started = Instant::now();
     let diff = stream_resolution_diff_with_markers(
         &base,
@@ -270,18 +283,19 @@ fn measure_pair(store_root: &Path, pair: &str, run: usize, out_dir: &Path) -> Sa
             gaps.push(gap);
             Ok(())
         },
-        |marker| timeline.mark(marker),
+        |marker| scratch_timeline.mark(marker),
     )
     .unwrap();
     let diff_total = diff_started.elapsed();
-    let write_duration = timeline.finish(diff_total);
-    let merge_duration = diff_total - write_duration;
+    scratch_timeline.finish(diff_total);
     let delta = ResolutionScratchReader::open(&delta_path).unwrap();
+    let write_duration =
+        publish_real_store_delta(&layout, pair, run, exact_generation, &delta, &gaps);
     let applied_path = sample_root.join("applied.db");
     apply_delta(&base, &delta, &exact, &applied_path);
     let applied_differences = base_differences(&applied_path, &exact_path);
     let exact_gap_mismatches = u64::from(diff.gaps != gaps.len() as u64);
-    let diff_ms = elapsed_ms(merge_duration);
+    let diff_ms = elapsed_ms(diff_total);
     let delta_write_ms = elapsed_ms(write_duration);
     let integrity_ms = store_fresh_ms.saturating_sub(resolution_compute_ms);
     let time_to_exact_ms = store_fresh_ms + diff_ms + delta_write_ms;
@@ -307,6 +321,153 @@ fn measure_pair(store_root: &Path, pair: &str, run: usize, out_dir: &Path) -> Sa
         foreground_bind_ms,
         foreground_identifier_work: 0,
         background_pipeline_ms: time_to_exact_ms,
+    }
+}
+
+fn publish_real_store_delta(
+    layout: &StoreLayout,
+    pair: &str,
+    run: usize,
+    source_generation: i64,
+    scratch: &ResolutionScratchReader,
+    gaps: &[julie_extract_artifact::store::ResolutionGapFact],
+) -> Duration {
+    let view_id = format!("perf-{pair}-{run}");
+    let request_id = format!("perf-publish-{pair}-{run}");
+    let factory = StoreConnectionFactory::new(layout.clone(), FAMILY_ID, env!("CARGO_PKG_VERSION"));
+    let manifest_hash = prepare_publication_view(layout, &view_id, source_generation, &request_id);
+    let bindings = ResolutionBindingStore::new(factory);
+    let bound = bindings
+        .bind_base(
+            &view_id,
+            RESOLVER_OUTPUT_EPOCH,
+            &format!("perf-bind-{pair}-{run}"),
+            NOW,
+        )
+        .unwrap();
+    assert_eq!(bound.state.as_str(), "converging");
+    let fence = publication_fence(layout, &request_id);
+    let publication = ResolutionExactPublish {
+        view_id,
+        manifest_generation: 1,
+        manifest_hash,
+        base_id: bound.base_id,
+        previous_delta_generation: bound.delta_generation,
+        resolver_output_epoch: RESOLVER_OUTPUT_EPOCH,
+        request_id,
+        created_at: NOW.to_string(),
+    };
+    let mut timeline = WriteTimeline::default();
+    let total_started = Instant::now();
+    let published = bindings
+        .publish_exact_with_markers(&publication, &fence, scratch, gaps, WINDOW_SIZE, |marker| {
+            timeline.mark_publication(marker)
+        })
+        .unwrap();
+    assert_eq!(published.state.as_str(), "exact");
+    let elapsed = timeline.finish(total_started.elapsed());
+    complete_publication_request(layout, &publication.request_id);
+    elapsed
+}
+
+fn complete_publication_request(layout: &StoreLayout, request_id: &str) {
+    let terminal_sequence = Connection::open(layout.store_db())
+        .unwrap()
+        .query_row(
+            "SELECT sequence FROM store_log
+             WHERE request_id=?1 AND event_kind='resolution_exact_published'",
+            [request_id],
+            |row| row.get::<_, i64>(0),
+        )
+        .unwrap();
+    Connection::open(layout.coordinator_db())
+        .unwrap()
+        .execute(
+            "UPDATE requests
+             SET state='committed',claim_owner=NULL,claim_heartbeat_at=NULL,
+                 terminal_log_sequence=?1,result_json='{}',updated_at=1001
+             WHERE request_id=?2 AND state='claimed'",
+            params![terminal_sequence, request_id],
+        )
+        .unwrap();
+}
+
+fn prepare_publication_view(
+    layout: &StoreLayout,
+    view_id: &str,
+    source_generation: i64,
+    request_id: &str,
+) -> String {
+    let mut connection = Connection::open(layout.store_db()).unwrap();
+    let transaction = connection.transaction().unwrap();
+    let manifest_hash = transaction
+        .query_row(
+            "SELECT manifest_hash FROM manifests WHERE view_id=?1 AND generation=?2",
+            params![VIEW_ID, source_generation],
+            |row| row.get::<_, String>(0),
+        )
+        .unwrap();
+    transaction
+        .execute(
+            "INSERT INTO views(view_id,root,created_at,updated_at) VALUES (?1,?2,?3,?3)",
+            params![view_id, ROOT, NOW],
+        )
+        .unwrap();
+    transaction
+        .execute(
+            "INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+             VALUES (?1,1,?2,?3,?4)",
+            params![view_id, manifest_hash, request_id, NOW],
+        )
+        .unwrap();
+    transaction
+        .execute(
+            "INSERT INTO manifest_entries
+             (view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at,
+              error_class,error_json)
+             SELECT ?1,1,path,language,version_id,status,observed_content_hash,indexed_at,
+                    error_class,error_json
+             FROM manifest_entries WHERE view_id=?2 AND generation=?3",
+            params![view_id, VIEW_ID, source_generation],
+        )
+        .unwrap();
+    transaction
+        .execute(
+            "UPDATE views SET current_generation=1 WHERE view_id=?1",
+            [view_id],
+        )
+        .unwrap();
+    transaction.commit().unwrap();
+    manifest_hash
+}
+
+fn publication_fence(layout: &StoreLayout, request_id: &str) -> ResolutionPublicationFence {
+    let connection = Connection::open(layout.coordinator_db()).unwrap();
+    connection
+        .execute(
+            "INSERT INTO requests
+             (request_id,idempotency_key,kind,payload_json,state,requester_id,
+              requester_deadline,claim_owner,claim_heartbeat_at,terminal_log_sequence,
+              result_json,error_json,created_at,updated_at)
+             VALUES (?1,?2,'resolve','{}','claimed','performance',NULL,'performance-holder',1000,
+                     NULL,NULL,NULL,1000,1000)",
+            params![request_id, format!("key-{request_id}")],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT OR REPLACE INTO writer_lease
+             (resource,holder_id,holder_version,holder_pid,heartbeat_at,expires_at,fencing_token)
+             VALUES ('store-writer','performance-holder',?1,42,1000,2000,7)",
+            [env!("CARGO_PKG_VERSION")],
+        )
+        .unwrap();
+    ResolutionPublicationFence {
+        claim_owner: "performance-holder".to_string(),
+        holder_id: "performance-holder".to_string(),
+        holder_pid: 42,
+        fencing_token: 7,
+        now_ms: 1000,
     }
 }
 
@@ -538,7 +699,7 @@ fn build_store_fixture(
         env!("CARGO_PKG_VERSION"),
     )
     .unwrap();
-    let factory = StoreConnectionFactory::new(layout, FAMILY_ID, env!("CARGO_PKG_VERSION"));
+    let factory = StoreConnectionFactory::new(layout.clone(), FAMILY_ID, env!("CARGO_PKG_VERSION"));
     let mut connection = factory.open_writer().unwrap();
     ManifestStore::new(&mut connection)
         .ensure_view(VIEW_ID, ROOT)
@@ -595,9 +756,10 @@ fn build_store_fixture(
     transaction
         .execute(
             "INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
-         VALUES (?1,1,'manifest-one','request-one',?2),
-                (?1,2,'manifest-two','request-two',?2)",
-            params![VIEW_ID, NOW],
+         VALUES (?1,1,?2,'request-one',?5),
+                (?1,2,?3,'request-two',?5),
+                (?1,3,?4,'request-three',?5)",
+            params![VIEW_ID, "1".repeat(64), "2".repeat(64), "3".repeat(64), NOW],
         )
         .unwrap();
     for (index, version) in versions.iter().copied().enumerate() {
@@ -609,6 +771,11 @@ fn build_store_fixture(
         transaction.execute(
             "INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
              VALUES (?1,1,?2,'csharp',?3,'indexed',?4,?5)",
+            params![VIEW_ID, path, version, format!("hash-{index:04}"), NOW],
+        ).unwrap();
+        transaction.execute(
+            "INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
+             VALUES (?1,3,?2,'csharp',?3,'indexed',?4,?5)",
             params![VIEW_ID, path, version, format!("hash-{index:04}"), NOW],
         ).unwrap();
         if matches!(index, 1533 | 1534) {
@@ -654,6 +821,37 @@ fn build_store_fixture(
         )
         .unwrap();
     transaction.commit().unwrap();
+    ensure_ready_performance_base(&layout);
+}
+
+fn ensure_ready_performance_base(layout: &StoreLayout) {
+    let identity = manifest_identity(layout, 1);
+    let factory = StoreConnectionFactory::new(layout.clone(), FAMILY_ID, env!("CARGO_PKG_VERSION"));
+    let catalog = ResolutionBaseCatalog::new(factory.clone());
+    let build = match catalog
+        .begin_build(
+            &identity.manifest_hash,
+            RESOLVER_OUTPUT_EPOCH,
+            "performance-base",
+            NOW,
+        )
+        .unwrap()
+    {
+        ResolutionBaseBegin::Build(build) => build,
+        other => panic!("expected a new performance base, got {other:?}"),
+    };
+    let mut session = StoreScratchResolutionSession::new(
+        factory,
+        identity,
+        &build.scratch_path,
+        WINDOW_SIZE,
+        RESOLVER_OUTPUT_EPOCH,
+    )
+    .unwrap();
+    run_resolution_session(&mut session, true, true).unwrap();
+    session.finish_exact().unwrap();
+    catalog.publish_scratch(&build).unwrap();
+    catalog.mark_ready(&build, NOW).unwrap();
 }
 
 fn insert_version(transaction: &rusqlite::Transaction<'_>, path: &str, hash: &str) -> i64 {

@@ -10,8 +10,8 @@ use julie_extract_artifact::store::{
     ResolutionBindingError, ResolutionBindingStore, ResolutionExactPublish, ResolutionGapFact,
     ResolutionGapKind, ResolutionGapTable, ResolutionIdentifierRow, ResolutionPendingOperation,
     ResolutionPendingRow, ResolutionPinOwnerKind, ResolutionPublicationFence,
-    ResolutionScratchDelta, ResolutionScratchReader, StoreConnectionFactory, StoreLayout,
-    ViewResolutionState,
+    ResolutionPublicationMarker, ResolutionScratchDelta, ResolutionScratchReader,
+    StoreConnectionFactory, StoreLayout, ViewResolutionState,
 };
 use rusqlite::Connection;
 
@@ -185,9 +185,19 @@ fn exact_publish_is_atomic_and_stale_binding_cas_publishes_nothing() {
     ));
     assert_eq!(publication_counts(&layout), before_failures);
 
+    let mut publication_markers = Vec::new();
     let exact = bindings
-        .publish_exact(&publication, &fence, &scratch, &gaps, 1)
+        .publish_exact_with_markers(&publication, &fence, &scratch, &gaps, 1, |marker| {
+            publication_markers.push(marker);
+        })
         .unwrap();
+    assert_eq!(
+        publication_markers,
+        [
+            ResolutionPublicationMarker::StoreTransactionStart,
+            ResolutionPublicationMarker::StoreTransactionEnd,
+        ]
+    );
     assert_eq!(exact.state, ViewResolutionState::Exact);
     assert_eq!(exact.exact_at, Some(2));
     assert_eq!(exact.delta_generation, converging.delta_generation + 1);

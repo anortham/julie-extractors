@@ -54,6 +54,18 @@ Delta triggers require the recorded manifest hash to match the referenced immuta
 View bindings require that delta's manifest generation to be the current view generation, and a
 base referenced by a delta cannot be downgraded from ready or moved to another resolver epoch.
 
+Exact resolution publication is one `BEGIN IMMEDIATE` store transaction. It inserts the
+`resolution_deltas` row, copies bounded identifier and pending delta windows, validates every
+visible target, advances the view from the expected converging tuple to the exact tuple, and appends
+the `resolution_exact_published` store-log effect before commit. Claim and writer-lease fencing live
+in `coord.db` and are checked immediately before and again during this transaction; there is still
+no cross-database transaction.
+
+Resolution base and scratch files have their own checked schema fingerprints, manifest hash,
+resolver-output epoch, completed stamp, semantic counts, integrity checks, and SHA-256 file identity.
+They contain `identifier_resolutions` and `pending_resolutions`; those tables are intentionally not
+added to `store.db`.
+
 The schema-v2-only explicit indexes are:
 
 ```text
@@ -91,3 +103,5 @@ idempotency, writer-lease, queue, and stale-claim constraints remain unchanged.
 Resolved semantic rows remain in immutable base files and cumulative delta files; `store.db` does
 not add `identifier_resolutions` or `pending_resolutions`. Schema v2 performs no in-place migration,
 general GC, network operation, or cross-database transaction.
+Ph2d retention must treat `resolution_base_versions`, current view bindings, and unexpired
+`resolution_pins` as roots and must not reap request-owned scratch while its claim is live.

@@ -90,8 +90,9 @@ fn create_full_store(temp: &TempDir) -> (PathBuf, PathBuf) {
     ]);
     assert!(
         import.status.success(),
-        "{}",
-        String::from_utf8_lossy(&import.stdout)
+        "stdout={} stderr={}",
+        String::from_utf8_lossy(&import.stdout),
+        String::from_utf8_lossy(&import.stderr)
     );
     (root, store)
 }
@@ -697,6 +698,46 @@ fn claimed_resolve_holds_no_writer_lease_and_a_short_update_completes() {
         "{}",
         String::from_utf8_lossy(&update.stdout)
     );
+    fs::write(root.join("extra.rs"), "pub fn extra() -> i32 { 3 }\n").unwrap();
+    let import = julie_extract(&[
+        "store",
+        "import",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        family,
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--level",
+        "full",
+        "--json",
+    ]);
+    assert!(
+        import.status.success(),
+        "stdout={} stderr={}",
+        String::from_utf8_lossy(&import.stdout),
+        String::from_utf8_lossy(&import.stderr)
+    );
+    let delete = julie_extract(&[
+        "store",
+        "delete",
+        "--store",
+        store.to_str().unwrap(),
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--file",
+        "extra.rs",
+        "--json",
+    ]);
+    assert!(
+        delete.status.success(),
+        "{}",
+        String::from_utf8_lossy(&delete.stdout)
+    );
     fs::write(pause.with_extension("resume"), b"resume").unwrap();
     let output = child.wait_with_output().unwrap();
     assert!(
@@ -704,6 +745,121 @@ fn claimed_resolve_holds_no_writer_lease_and_a_short_update_completes() {
         "stdout={} stderr={}",
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr)
+    );
+    let store_db = Connection::open(store.join("gen-001/store.db")).unwrap();
+    assert_eq!(
+        store_db
+            .query_row(
+                "SELECT resolution_state FROM views WHERE view_id='view-main'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .unwrap(),
+        "exact"
+    );
+    assert_eq!(
+        store_db
+            .query_row(
+                "SELECT COUNT(*)
+                 FROM manifest_entries AS entry JOIN views AS view
+                   ON view.view_id=entry.view_id AND view.current_generation=entry.generation
+                 WHERE entry.view_id='view-main' AND entry.path='extra.rs'",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        0
+    );
+}
+
+#[test]
+fn same_view_resolves_serialize_and_the_waiter_reuses_its_durable_request() {
+    let temp = TempDir::new();
+    let (_, store) = create_full_store(&temp);
+    let pause = temp.path().join("first-resolve.pause");
+    let first = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
+            "store",
+            "resolve",
+            "--store",
+            store.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--request-id",
+            "resolve-first",
+            "--idempotency-key",
+            "resolve-first-key",
+            "--json",
+        ])
+        .env("JULIE_EXTRACT_STORE_RESOLUTION_PAUSE_FILE", &pause)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
+    wait_for_path(&pause);
+
+    let waiter = julie_extract(&[
+        "store",
+        "resolve",
+        "--store",
+        store.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--request-id",
+        "resolve-waiter",
+        "--idempotency-key",
+        "resolve-waiter-key",
+        "--request-timeout-seconds",
+        "1",
+        "--json",
+    ]);
+    assert_eq!(waiter.status.code(), Some(1));
+    let report: Value = serde_json::from_slice(&waiter.stdout).unwrap();
+    assert_eq!(report["failure_class"], "request_timeout");
+
+    fs::write(pause.with_extension("resume"), b"resume").unwrap();
+    let first = first.wait_with_output().unwrap();
+    assert!(first.status.success());
+    let retry = resolve_output(&store, "ignored-retry-id", "resolve-waiter-key");
+    assert!(
+        retry.status.success(),
+        "stdout={} stderr={}",
+        String::from_utf8_lossy(&retry.stdout),
+        String::from_utf8_lossy(&retry.stderr)
+    );
+    let retry_report: Value = serde_json::from_slice(&retry.stdout).unwrap();
+    assert_eq!(retry_report["request"]["id"], "resolve-waiter");
+    assert_eq!(retry_report["resolution"]["state"], "exact");
+    let store_db = Connection::open(store.join("gen-001/store.db")).unwrap();
+    let coord = Connection::open(store.join("coord.db")).unwrap();
+    assert_eq!(
+        store_db
+            .query_row(
+                "SELECT COUNT(*) FROM store_log
+                 WHERE request_id IN ('resolve-first','resolve-waiter') AND terminal=1",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        2
+    );
+    assert_eq!(
+        coord
+            .query_row(
+                "SELECT COUNT(*) FROM requests
+                 WHERE request_id IN ('resolve-first','resolve-waiter') AND state='committed'",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        2
+    );
+    assert_eq!(
+        coord
+            .query_row("SELECT COUNT(*) FROM writer_lease", [], |row| row
+                .get::<_, i64>(0))
+            .unwrap(),
+        0
     );
 }
 
@@ -821,7 +977,9 @@ fn hard_kill_boundaries_resume_one_resolve_without_duplicate_terminal_state() {
     }
 
     for boundary in [
+        "resolution_exact_after_scratch_create",
         "resolution_before_exact_publish",
+        "resolution_exact_before_store_commit",
         "resolution_exact_after_store_commit",
         "resolution_terminal_after_store_commit",
         "resolution_coord_after_commit",
@@ -917,6 +1075,16 @@ fn hard_kill_boundaries_resume_one_resolve_without_duplicate_terminal_state() {
                 })
                 .unwrap(),
             0
+        );
+        assert!(
+            fs::read_dir(store.join("scratch"))
+                .unwrap()
+                .all(|entry| !entry
+                    .unwrap()
+                    .file_name()
+                    .to_string_lossy()
+                    .contains("resolve-crash")),
+            "boundary {boundary} left request-owned scratch"
         );
     }
 }

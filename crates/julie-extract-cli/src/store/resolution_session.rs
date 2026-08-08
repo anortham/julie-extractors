@@ -544,6 +544,10 @@ impl StoreScratchResolutionSession {
                PRIMARY KEY(version_id,symbol_id)
              ) STRICT;",
         )?;
+        #[cfg(feature = "test-store-resolution-contract")]
+        julie_extract_artifact::store::test_hooks::crash_if(
+            "resolution_exact_after_scratch_create",
+        );
         Ok(())
     }
 

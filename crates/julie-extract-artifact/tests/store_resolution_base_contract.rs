@@ -92,6 +92,8 @@ fn base_registration_roots_versions_before_off_lease_build_and_ready_publication
     let published_identity = catalog.publish_scratch(&build).unwrap();
     assert_eq!(published_identity.file_sha256, scratch_identity.file_sha256);
     assert!(!build.scratch_path.exists());
+    assert!(!PathBuf::from(format!("{}-wal", build.scratch_path.display())).exists());
+    assert!(!PathBuf::from(format!("{}-shm", build.scratch_path.display())).exists());
     assert!(build.final_path.exists());
 
     let ready = catalog.mark_ready(&build, NOW).unwrap();

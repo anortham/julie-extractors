@@ -376,13 +376,7 @@ impl ResolutionBaseCatalog {
         }
         #[cfg(feature = "test-store-crash")]
         super::test_hooks::crash_if("resolution_base_after_final_publish");
-        fs::remove_file(&build.scratch_path)?;
-        sync_directory_path(
-            build
-                .scratch_path
-                .parent()
-                .ok_or(ResolutionBaseCatalogError::InvalidArgument("scratch path"))?,
-        )?;
+        remove_resolution_file(&build.scratch_path)?;
         Ok(ResolutionBaseReader::open(&build.final_path)?
             .file_identity()
             .clone())
@@ -1107,6 +1101,12 @@ pub struct ResolutionPublicationFence {
     pub now_ms: i64,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ResolutionPublicationMarker {
+    StoreTransactionStart,
+    StoreTransactionEnd,
+}
+
 impl ResolutionBindingStore {
     pub fn new(factory: StoreConnectionFactory) -> Self {
         Self { factory }
@@ -1249,6 +1249,21 @@ impl ResolutionBindingStore {
         gaps: &[ResolutionGapFact],
         window_size: usize,
     ) -> Result<ResolutionViewBinding, ResolutionBindingError> {
+        self.publish_exact_with_markers(publication, fence, scratch, gaps, window_size, |_| {})
+    }
+
+    pub fn publish_exact_with_markers<M>(
+        &self,
+        publication: &ResolutionExactPublish,
+        fence: &ResolutionPublicationFence,
+        scratch: &ResolutionScratchReader,
+        gaps: &[ResolutionGapFact],
+        window_size: usize,
+        mut mark: M,
+    ) -> Result<ResolutionViewBinding, ResolutionBindingError>
+    where
+        M: FnMut(ResolutionPublicationMarker),
+    {
         if window_size == 0 {
             return Err(ResolutionBindingError::InvalidPublication {
                 detail: "window size must be positive".to_string(),
@@ -1283,6 +1298,7 @@ impl ResolutionBindingStore {
         self.validate_publication_fence(publication, fence)?;
 
         let mut connection = self.factory.open_writer()?;
+        mark(ResolutionPublicationMarker::StoreTransactionStart);
         let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
         let current = transaction
             .query_row(
@@ -1425,7 +1441,10 @@ impl ResolutionBindingStore {
             })?),
         )?;
         self.validate_publication_fence(publication, fence)?;
+        #[cfg(feature = "test-store-crash")]
+        super::test_hooks::crash_if("resolution_exact_before_store_commit");
         transaction.commit()?;
+        mark(ResolutionPublicationMarker::StoreTransactionEnd);
         Ok(ResolutionViewBinding {
             view_id: publication.view_id.clone(),
             manifest_generation: publication.manifest_generation,

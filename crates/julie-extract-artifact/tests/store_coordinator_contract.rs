@@ -1330,6 +1330,50 @@ fn own_request_runs_exclusively_until_terminal_before_backlog_snapshot() {
 }
 
 #[test]
+fn generic_backlog_drain_leaves_resolves_to_the_off_lease_resolver() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let clock = Arc::new(TestClock::default());
+    let holder = LeaseHolder::new("holder", "2.30.0", std::process::id());
+    let mut coordinator = StoreCoordinator::open_with_runtime(
+        &layout,
+        holder,
+        Arc::clone(&clock),
+        Arc::new(FixedLiveness(true)),
+    )
+    .unwrap();
+    enqueue_request(&mut coordinator, 1, RequestKind::Resolve, 1);
+    enqueue_request(&mut coordinator, 2, RequestKind::Resolve, 2);
+    enqueue_request(&mut coordinator, 3, RequestKind::Update, 3);
+    assert!(
+        coordinator
+            .claim_resolve("request-1", "resolver-a", 10, 5_000)
+            .unwrap()
+    );
+    let mut executor = RecordingExecutor {
+        order: Vec::new(),
+        clock,
+        advance_ms: 0,
+    };
+    let policy = CoordinatorPolicy {
+        own_request_id: Some("request-3".to_string()),
+        ..CoordinatorPolicy::default()
+    };
+
+    coordinator.drain(&mut executor, &policy).unwrap();
+
+    assert_eq!(executor.order, ["request-3"]);
+    assert_eq!(
+        coordinator.request("request-1").unwrap().state.as_str(),
+        "claimed"
+    );
+    assert_eq!(
+        coordinator.request("request-2").unwrap().state.as_str(),
+        "queued"
+    );
+}
+
+#[test]
 fn failed_own_request_transitions_to_backlog_and_drain_continues() {
     let temp = TempDir::new();
     let layout = layout(temp.path());

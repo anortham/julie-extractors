@@ -1245,6 +1245,9 @@ impl StoreCoordinator {
         let mut batch = None;
         for request_id in request_ids {
             let request = self.request(&request_id)?;
+            if request.kind == RequestKind::Resolve {
+                continue;
+            }
             let claim_is_eligible = request.state == RequestState::Queued
                 || request.claim_owner.as_deref() == Some(holder_id)
                 || request
