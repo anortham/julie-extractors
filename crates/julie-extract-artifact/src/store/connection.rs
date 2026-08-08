@@ -4,6 +4,7 @@ use std::fmt;
 
 use rusqlite::{Connection, OpenFlags, TransactionBehavior};
 
+use super::pragmas::{PragmaError, WriterPragmaProfile, configure_writer_pragmas};
 use super::{STORE_SQLITE_SCHEMA_VERSION, StoreLayout, StoreSchemaError};
 
 /// Opens store connections under the family and binary compatibility contract.
@@ -49,22 +50,7 @@ impl StoreConnectionFactory {
         )?;
         validate_store_schema(&connection)?;
         self.validate_identity_and_floor(&connection, AccessMode::Writer)?;
-        connection.execute_batch(
-            "PRAGMA page_size = 4096;
-             PRAGMA auto_vacuum = INCREMENTAL;
-             PRAGMA journal_mode = WAL;
-             PRAGMA wal_autocheckpoint = 1000;
-             PRAGMA synchronous = FULL;
-             PRAGMA foreign_keys = ON;
-             PRAGMA secure_delete = ON;",
-        )?;
-        verify_integer_pragma(&connection, "page_size", 4096)?;
-        verify_text_pragma(&connection, "journal_mode", "wal")?;
-        verify_integer_pragma(&connection, "wal_autocheckpoint", 1000)?;
-        verify_integer_pragma(&connection, "synchronous", 2)?;
-        verify_integer_pragma(&connection, "foreign_keys", 1)?;
-        verify_integer_pragma(&connection, "secure_delete", 1)?;
-        verify_integer_pragma(&connection, "auto_vacuum", 2)?;
+        configure_writer_pragmas(&connection, WriterPragmaProfile::Routine)?;
         self.advance_binary_version(&mut connection)?;
         Ok(connection)
     }
@@ -233,6 +219,32 @@ impl From<rusqlite::Error> for StoreConnectionError {
     }
 }
 
+impl From<PragmaError> for StoreConnectionError {
+    fn from(error: PragmaError) -> Self {
+        match error {
+            PragmaError::Sqlite(error) => Self::Sqlite(error),
+            PragmaError::IntegerMismatch {
+                pragma,
+                expected,
+                found,
+            } => Self::PragmaMismatch {
+                pragma,
+                expected,
+                found,
+            },
+            PragmaError::TextMismatch {
+                pragma,
+                expected,
+                found,
+            } => Self::TextPragmaMismatch {
+                pragma,
+                expected,
+                found,
+            },
+        }
+    }
+}
+
 impl From<StoreSchemaError> for StoreConnectionError {
     fn from(error: StoreSchemaError) -> Self {
         Self::Schema(error)
@@ -287,25 +299,6 @@ fn verify_integer_pragma(
         Ok(())
     } else {
         Err(StoreConnectionError::PragmaMismatch {
-            pragma,
-            expected,
-            found,
-        })
-    }
-}
-
-fn verify_text_pragma(
-    connection: &Connection,
-    pragma: &'static str,
-    expected: &'static str,
-) -> Result<(), StoreConnectionError> {
-    let found = connection.query_row(&format!("PRAGMA {pragma}"), [], |row| {
-        row.get::<_, String>(0)
-    })?;
-    if found.eq_ignore_ascii_case(expected) {
-        Ok(())
-    } else {
-        Err(StoreConnectionError::TextPragmaMismatch {
             pragma,
             expected,
             found,

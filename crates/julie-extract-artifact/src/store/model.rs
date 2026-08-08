@@ -314,6 +314,9 @@ fn retain_version_local_rows(file: &mut ArtifactFile) {
             fact.containing_symbol_id = None;
         }
     }
+    let mut structural_fact_ids = HashSet::new();
+    file.structural_facts
+        .retain(|fact| structural_fact_ids.insert(fact.structural_fact_id.clone()));
     for metric in &mut file.complexity_metrics {
         if !option_is_present(&symbol_ids, metric.symbol_id.as_deref()) {
             metric.symbol_id = None;

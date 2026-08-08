@@ -14,6 +14,7 @@ use julie_extract_artifact::model::{
 };
 use julie_extract_artifact::store::{
     StoreConnectionFactory, StoreLayout, StoreVersionState, StoreWriteRequest, StoreWriter,
+    StoreWriterError,
 };
 use julie_extract_artifact::store::{StoreFileVersion, StoreLevel, StoreProjectionError};
 use julie_extract_artifact::writer::ArtifactWriter;
@@ -89,6 +90,7 @@ fn metadata_json_is_preserved_byte_for_byte_in_every_projection() {
 fn stamped_identity_is_reused_and_other_identity_components_allocate_versions() {
     let store = TestStore::new("identity");
     let mut writer = store.writer();
+    writer.stage_capability_snapshot(1, capability_snapshot());
     let first = StoreFileVersion::try_from_artifact_file(
         1,
         &fixture_file("src/lib.rs", "rust", "blake3:aaa"),
@@ -133,6 +135,9 @@ fn stamped_identity_is_reused_and_other_identity_components_allocate_versions() 
         .iter()
         .enumerate()
         .map(|(index, version)| {
+            if version.extraction_epoch() == 2 {
+                writer.stage_capability_snapshot(2, capability_snapshot());
+            }
             writer
                 .write_level(
                     &request(&format!("request-other-{index}")),
@@ -161,6 +166,7 @@ fn stamped_identity_is_reused_and_other_identity_components_allocate_versions() 
 fn incomplete_version_resumes_without_allocating_a_second_identity() {
     let store = TestStore::new("resume");
     let mut writer = store.writer();
+    writer.stage_capability_snapshot(1, capability_snapshot());
     let version = StoreFileVersion::try_from_artifact_file(
         1,
         &fixture_file("src/lib.rs", "rust", "blake3:aaa"),
@@ -202,9 +208,88 @@ fn incomplete_version_resumes_without_allocating_a_second_identity() {
 }
 
 #[test]
+fn incomplete_resume_rejects_language_mismatch_without_mutation() {
+    assert_immutable_resume_conflict("language = 'csharp'", "resume-language-conflict");
+}
+
+#[test]
+fn incomplete_resume_rejects_byte_different_metadata_without_mutation() {
+    assert_immutable_resume_conflict(
+        r#"metadata_json = '{"language": "fixture"}'"#,
+        "resume-metadata-conflict",
+    );
+}
+
+fn assert_immutable_resume_conflict(mutation: &str, name: &str) {
+    let store = TestStore::new(name);
+    let mut writer = store.writer();
+    writer.stage_capability_snapshot(1, capability_snapshot());
+    let version = StoreFileVersion::try_from_artifact_file(
+        1,
+        &fixture_file("src/lib.rs", "rust", "blake3:aaa"),
+    )
+    .unwrap();
+    let completed = writer
+        .write_level(&request("request-seed"), &version, StoreLevel::L1)
+        .unwrap();
+    writer
+        .connection()
+        .execute_batch(&format!(
+            "UPDATE file_versions SET complete_l1 = NULL, {mutation} WHERE version_id = {}",
+            completed.version_id
+        ))
+        .unwrap();
+    let rows_before = snapshot_version_tables(
+        writer.connection(),
+        completed.version_id,
+        &["file_versions", "symbols", "reference_sites"],
+    );
+    let log_before = selected_rows(
+        writer.connection(),
+        "store_log",
+        &table_columns(writer.connection(), "store_log")
+            .iter()
+            .map(String::as_str)
+            .collect::<Vec<_>>(),
+        None,
+    );
+
+    let error = writer
+        .write_level(&request("request-resume"), &version, StoreLevel::L1)
+        .unwrap_err();
+
+    assert!(matches!(
+        error,
+        StoreWriterError::ImmutableFileConflict { version_id }
+            if version_id == completed.version_id
+    ));
+    assert_eq!(
+        snapshot_version_tables(
+            writer.connection(),
+            completed.version_id,
+            &["file_versions", "symbols", "reference_sites"],
+        ),
+        rows_before
+    );
+    assert_eq!(
+        selected_rows(
+            writer.connection(),
+            "store_log",
+            &table_columns(writer.connection(), "store_log")
+                .iter()
+                .map(String::as_str)
+                .collect::<Vec<_>>(),
+            None,
+        ),
+        log_before
+    );
+}
+
+#[test]
 fn retained_versions_can_reuse_local_ids_and_composite_parents() {
     let store = TestStore::new("composite-ids");
     let mut writer = store.writer();
+    writer.stage_capability_snapshot(1, capability_snapshot());
     let first = StoreFileVersion::try_from_artifact_file(
         1,
         &fixture_file("src/lib.rs", "rust", "blake3:aaa"),
@@ -232,6 +317,7 @@ fn retained_versions_can_reuse_local_ids_and_composite_parents() {
 fn stamp_failure_rolls_back_the_last_row_and_leaves_the_version_incomplete() {
     let store = TestStore::new("atomic-stamp");
     let mut writer = store.writer();
+    writer.stage_capability_snapshot(1, capability_snapshot());
     let version = StoreFileVersion::try_from_artifact_file(
         1,
         &fixture_file("src/lib.rs", "rust", "blake3:aaa"),
@@ -261,6 +347,7 @@ fn stamp_failure_rolls_back_the_last_row_and_leaves_the_version_incomplete() {
 fn multi_language_versions_persist_every_row_family_at_its_contract_level() {
     let store = TestStore::new("all-row-families");
     let mut writer = store.writer();
+    writer.stage_capability_snapshot(1, capability_snapshot());
     let versions = [
         fully_populated_file("src/lib.rs", "rust", "blake3:rust"),
         fully_populated_file("src/Program.cs", "csharp", "blake3:csharp"),
@@ -292,7 +379,14 @@ fn multi_language_versions_persist_every_row_family_at_its_contract_level() {
             )
             .unwrap();
 
-        assert_eq!(l1.counts, version.row_counts(StoreLevel::L1));
+        let mut expected_l1 = version.row_counts(StoreLevel::L1);
+        if index == 0 {
+            expected_l1.parser_inventory = 1;
+            expected_l1.language_capabilities = 1;
+            expected_l1.language_capability_fixtures = 1;
+            expected_l1.language_capability_gaps = 1;
+        }
+        assert_eq!(l1.counts, expected_l1);
         assert_eq!(l2.counts, version.row_counts(StoreLevel::L2));
         assert_eq!(l3.counts, version.row_counts(StoreLevel::L3));
     }
@@ -333,6 +427,7 @@ fn multi_language_versions_persist_every_row_family_at_its_contract_level() {
 fn l2_resume_replaces_only_identifier_sites_and_preserves_l1_bytes() {
     let store = TestStore::new("l2-resume");
     let mut writer = store.writer();
+    writer.stage_capability_snapshot(1, capability_snapshot());
     let version = StoreFileVersion::try_from_artifact_file(
         1,
         &fully_populated_file("src/lib.rs", "rust", "blake3:aaa"),
@@ -383,6 +478,7 @@ fn l2_resume_replaces_only_identifier_sites_and_preserves_l1_bytes() {
 fn l3_resume_replaces_only_l3_rows_and_preserves_earlier_levels_byte_for_byte() {
     let store = TestStore::new("l3-resume");
     let mut writer = store.writer();
+    writer.stage_capability_snapshot(1, capability_snapshot());
     let version = StoreFileVersion::try_from_artifact_file(
         1,
         &fully_populated_file("src/lib.rs", "rust", "blake3:aaa"),
@@ -465,6 +561,7 @@ fn complete_store_rows_match_v3_extraction_payloads_before_resolution() {
 
     let store = TestStore::new("v3-equivalence");
     let mut writer = store.writer();
+    writer.stage_capability_snapshot(1, capability_snapshot());
     let version = StoreFileVersion::try_from_artifact_file(1, &file).unwrap();
     let l1 = writer
         .write_level(&request("request-l1"), &version, StoreLevel::L1)
@@ -533,9 +630,83 @@ fn complete_store_rows_match_v3_extraction_payloads_before_resolution() {
 }
 
 #[test]
+fn duplicate_structural_fact_ids_keep_first_payload_and_remain_version_local() {
+    let mut file = fully_populated_file("src/lib.rs", "rust", "blake3:aaa");
+    let mut duplicate = file.structural_facts[0].clone();
+    duplicate.pattern_id = "fixture.later-loser.v1".to_string();
+    duplicate.metadata_json = Some(r#"{"winner":false}"#.to_string());
+    file.structural_facts.push(duplicate);
+
+    let mut legacy = ArtifactWriter::open_in_memory(artifact_metadata()).unwrap();
+    legacy
+        .write_scan(artifact_revision(), std::slice::from_ref(&file))
+        .unwrap();
+
+    let store = TestStore::new("duplicate-structural-facts");
+    let mut writer = store.writer();
+    writer.stage_capability_snapshot(1, capability_snapshot());
+    let first = StoreFileVersion::try_from_artifact_file(1, &file).unwrap();
+    let first_l1 = writer
+        .write_level(&request("request-first-l1"), &first, StoreLevel::L1)
+        .unwrap();
+    writer
+        .write_level(&request("request-first-l2"), &first, StoreLevel::L2)
+        .unwrap();
+    let first_l3 = writer
+        .write_level(&request("request-first-l3"), &first, StoreLevel::L3)
+        .unwrap();
+
+    assert_eq!(first.row_counts(StoreLevel::L3).structural_facts, 1);
+    assert_eq!(first_l3.counts.structural_facts, 1);
+    let columns = table_columns(writer.connection(), "structural_facts")
+        .into_iter()
+        .filter(|column| column != "version_id")
+        .collect::<Vec<_>>();
+    let column_refs = columns.iter().map(String::as_str).collect::<Vec<_>>();
+    assert_eq!(
+        selected_rows(
+            writer.connection(),
+            "structural_facts",
+            &column_refs,
+            Some(("version_id", first_l1.version_id)),
+        ),
+        selected_rows(legacy.connection(), "structural_facts", &column_refs, None)
+    );
+    assert_eq!(
+        writer
+            .connection()
+            .query_row(
+                "SELECT pattern_id, metadata_json FROM structural_facts WHERE version_id = ?1",
+                [first_l1.version_id],
+                |row| Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?)),
+            )
+            .unwrap(),
+        (
+            "fixture.pattern.v1".to_string(),
+            Some(r#"{"fact":true}"#.to_string())
+        )
+    );
+
+    let mut next_file = file.clone();
+    next_file.content_hash = "blake3:bbb".to_string();
+    let next = StoreFileVersion::try_from_artifact_file(1, &next_file).unwrap();
+    writer
+        .write_level(&request("request-next-l1"), &next, StoreLevel::L1)
+        .unwrap();
+    writer
+        .write_level(&request("request-next-l2"), &next, StoreLevel::L2)
+        .unwrap();
+    writer
+        .write_level(&request("request-next-l3"), &next, StoreLevel::L3)
+        .unwrap();
+    assert_eq!(table_count(writer.connection(), "structural_facts"), 2);
+}
+
+#[test]
 fn later_levels_refuse_to_run_before_their_predecessor_stamp() {
     let store = TestStore::new("level-order");
     let mut writer = store.writer();
+    writer.stage_capability_snapshot(1, capability_snapshot());
     let version = StoreFileVersion::try_from_artifact_file(
         1,
         &fully_populated_file("src/lib.rs", "rust", "blake3:aaa"),
@@ -560,6 +731,7 @@ fn later_levels_refuse_to_run_before_their_predecessor_stamp() {
 fn l2_stamp_failure_rolls_back_only_l2_and_keeps_l1_complete() {
     let store = TestStore::new("l2-atomic-stamp");
     let mut writer = store.writer();
+    writer.stage_capability_snapshot(1, capability_snapshot());
     let version = StoreFileVersion::try_from_artifact_file(
         1,
         &fully_populated_file("src/lib.rs", "rust", "blake3:aaa"),
@@ -604,7 +776,7 @@ fn l2_stamp_failure_rolls_back_only_l2_and_keeps_l1_complete() {
 fn capability_rows_are_epoch_global_and_not_duplicated_by_requests() {
     let store = TestStore::new("epoch-capabilities");
     let mut writer = store.writer();
-    writer.stage_capability_snapshot(capability_snapshot());
+    writer.stage_capability_snapshot(1, capability_snapshot());
     let first = StoreFileVersion::try_from_artifact_file(
         1,
         &fixture_file("src/lib.rs", "rust", "blake3:aaa"),
@@ -627,6 +799,7 @@ fn capability_rows_are_epoch_global_and_not_duplicated_by_requests() {
     let second_result = writer
         .write_level(&request("request-cap-2"), &second, StoreLevel::L1)
         .unwrap();
+    writer.stage_capability_snapshot(2, capability_snapshot());
     let next_epoch_result = writer
         .write_level(&request("request-cap-3"), &next_epoch, StoreLevel::L1)
         .unwrap();
@@ -645,9 +818,111 @@ fn capability_rows_are_epoch_global_and_not_duplicated_by_requests() {
 }
 
 #[test]
+fn uninitialized_epoch_rejects_missing_empty_and_stale_capability_snapshots() {
+    let store = TestStore::new("capability-required");
+    let mut writer = store.writer();
+    let epoch_two = StoreFileVersion::try_from_artifact_file(
+        2,
+        &fixture_file("src/lib.rs", "rust", "blake3:aaa"),
+    )
+    .unwrap();
+
+    let missing = writer
+        .write_level(&request("request-missing"), &epoch_two, StoreLevel::L1)
+        .unwrap_err();
+    assert!(matches!(
+        missing,
+        StoreWriterError::CapabilitySnapshotRequired {
+            extraction_epoch: 2
+        }
+    ));
+
+    writer.stage_capability_snapshot(1, capability_snapshot());
+    let stale = writer
+        .write_level(&request("request-stale"), &epoch_two, StoreLevel::L1)
+        .unwrap_err();
+    assert!(matches!(
+        stale,
+        StoreWriterError::CapabilitySnapshotEpochMismatch {
+            staged_epoch: 1,
+            requested_epoch: 2
+        }
+    ));
+
+    writer.stage_capability_snapshot(
+        2,
+        ArtifactCapabilitySnapshot {
+            parser_inventory: Vec::new(),
+            languages: Vec::new(),
+        },
+    );
+    let empty = writer
+        .write_level(&request("request-empty"), &epoch_two, StoreLevel::L1)
+        .unwrap_err();
+    assert!(matches!(
+        empty,
+        StoreWriterError::EmptyCapabilitySnapshot {
+            extraction_epoch: 2
+        }
+    ));
+    assert_eq!(table_count(writer.connection(), "file_versions"), 0);
+    assert_eq!(table_count(writer.connection(), "store_log"), 0);
+}
+
+#[test]
+fn initialized_epoch_needs_no_restaging_but_next_epoch_does() {
+    let store = TestStore::new("capability-epoch-lifecycle");
+    let mut writer = store.writer();
+    let first = StoreFileVersion::try_from_artifact_file(
+        1,
+        &fixture_file("src/lib.rs", "rust", "blake3:aaa"),
+    )
+    .unwrap();
+    writer.stage_capability_snapshot(1, capability_snapshot());
+    writer
+        .write_level(&request("request-first"), &first, StoreLevel::L1)
+        .unwrap();
+
+    let second = StoreFileVersion::try_from_artifact_file(
+        1,
+        &fixture_file("src/other.rs", "rust", "blake3:bbb"),
+    )
+    .unwrap();
+    writer
+        .write_level(&request("request-second"), &second, StoreLevel::L1)
+        .unwrap();
+
+    let next_epoch = StoreFileVersion::try_from_artifact_file(
+        2,
+        &fixture_file("src/lib.rs", "rust", "blake3:aaa"),
+    )
+    .unwrap();
+    let error = writer
+        .write_level(
+            &request("request-next-missing"),
+            &next_epoch,
+            StoreLevel::L1,
+        )
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        StoreWriterError::CapabilitySnapshotRequired {
+            extraction_epoch: 2
+        }
+    ));
+
+    writer.stage_capability_snapshot(2, capability_snapshot());
+    writer
+        .write_level(&request("request-next"), &next_epoch, StoreLevel::L1)
+        .unwrap();
+    assert_eq!(table_count(writer.connection(), "language_capabilities"), 2);
+}
+
+#[test]
 fn writer_selects_bulk_and_routine_wal_autocheckpoints_per_request() {
     let store = TestStore::new("wal-autocheckpoint");
     let mut writer = store.writer();
+    writer.stage_capability_snapshot(1, capability_snapshot());
     let first = StoreFileVersion::try_from_artifact_file(
         1,
         &fixture_file("src/lib.rs", "rust", "blake3:aaa"),
@@ -750,7 +1025,7 @@ fn projection_applies_v3_validity_filters_and_spanless_normalization() {
 fn conflicting_capability_snapshot_for_an_existing_epoch_is_rejected() {
     let store = TestStore::new("capability-conflict");
     let mut writer = store.writer();
-    writer.stage_capability_snapshot(capability_snapshot());
+    writer.stage_capability_snapshot(1, capability_snapshot());
     let first = StoreFileVersion::try_from_artifact_file(
         1,
         &fixture_file("src/lib.rs", "rust", "blake3:aaa"),
@@ -763,7 +1038,7 @@ fn conflicting_capability_snapshot_for_an_existing_epoch_is_rejected() {
     let mut conflicting = capability_snapshot();
     conflicting.parser_inventory[0].parser_package = "other-parser".to_string();
     conflicting.languages[0].parser_package = "other-parser".to_string();
-    writer.stage_capability_snapshot(conflicting);
+    writer.stage_capability_snapshot(1, conflicting);
     let second = StoreFileVersion::try_from_artifact_file(
         1,
         &fixture_file("src/other.rs", "rust", "blake3:bbb"),

@@ -3,8 +3,10 @@ use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use julie_extract_artifact::model::{
-    ArtifactFile, ArtifactIdentifier, ArtifactRelationship, ArtifactSymbol, FileStatus,
-    ReferenceSiteProvenance,
+    ArtifactCapabilityFlags, ArtifactCapabilitySnapshot, ArtifactFile, ArtifactIdentifier,
+    ArtifactLanguageCapabilityFixtureRow, ArtifactLanguageCapabilityGapRow,
+    ArtifactLanguageCapabilityRow, ArtifactParserInventoryRow, ArtifactRelationship,
+    ArtifactSymbol, CapabilityGapStatus, FileStatus, ReferenceSiteProvenance,
 };
 use julie_extract_artifact::store::{
     StoreConnectionFactory, StoreFileVersion, StoreLayout, StoreLevel, StoreWriteRequest,
@@ -15,8 +17,17 @@ const CREATED_AT: &str = "2026-08-07T12:00:00Z";
 
 #[test]
 fn statement_sets_are_prepared_once_per_level_transaction() {
-    let store = TestStore::new("prepare-once");
+    let small_store = TestStore::new("prepare-once-small");
+    let mut small_writer = small_store.writer();
+    small_writer.stage_capability_snapshot(1, dense_capability_snapshot(1));
+    let small_version = StoreFileVersion::try_from_artifact_file(1, &dense_file(1)).unwrap();
+    let small_l1 = small_writer
+        .write_level(&request("request-small-l1"), &small_version, StoreLevel::L1)
+        .unwrap();
+
+    let store = TestStore::new("prepare-once-large");
     let mut writer = store.writer();
+    writer.stage_capability_snapshot(1, dense_capability_snapshot(500));
     let version = StoreFileVersion::try_from_artifact_file(1, &dense_file(500)).unwrap();
 
     let l1 = writer
@@ -29,7 +40,9 @@ fn statement_sets_are_prepared_once_per_level_transaction() {
         .write_level(&request("request-l3"), &version, StoreLevel::L3)
         .unwrap();
 
-    assert_eq!(l1.statement_preparations, 8);
+    assert_eq!(small_l1.statement_preparations, 21);
+    assert_eq!(l1.statement_preparations, 21);
+    assert_eq!(l1.statement_preparations, small_l1.statement_preparations);
     assert_eq!(l2.statement_preparations, 2);
     assert_eq!(l3.statement_preparations, 5);
     assert_eq!(l1.counts.symbols, 500);
@@ -61,7 +74,163 @@ fn symbols_and_full_files_have_identical_l1_projections_across_languages() {
         let full = StoreFileVersion::try_from_artifact_file(1, &full).unwrap();
 
         assert!(symbols.l1_projection_equals(&full));
+
+        let symbols_store = TestStore::new(&format!("symbols-{language}"));
+        let mut symbols_writer = symbols_store.writer();
+        symbols_writer.stage_capability_snapshot(1, capability_snapshot(language));
+        let symbols_result = symbols_writer
+            .write_level(
+                &request(&format!("request-symbols-{language}")),
+                &symbols,
+                StoreLevel::L1,
+            )
+            .unwrap();
+
+        let full_store = TestStore::new(&format!("full-{language}"));
+        let mut full_writer = full_store.writer();
+        full_writer.stage_capability_snapshot(1, capability_snapshot(language));
+        let full_result = full_writer
+            .write_level(
+                &request(&format!("request-full-{language}")),
+                &full,
+                StoreLevel::L1,
+            )
+            .unwrap();
+
+        for table in [
+            "file_versions",
+            "symbols",
+            "symbol_annotations",
+            "reference_sites",
+            "relationships",
+            "pending_relationships",
+            "type_facts",
+            "complexity_metrics",
+            "parse_diagnostics",
+        ] {
+            assert_eq!(
+                version_rows(
+                    symbols_writer.connection(),
+                    table,
+                    symbols_result.version_id
+                ),
+                version_rows(full_writer.connection(), table, full_result.version_id),
+                "{language} {table}"
+            );
+        }
     }
+}
+
+fn dense_capability_snapshot(rows: usize) -> ArtifactCapabilitySnapshot {
+    let parser_inventory = (0..rows)
+        .map(|index| ArtifactParserInventoryRow {
+            language: format!("language-{index}"),
+            parser_package: format!("parser-{index}"),
+            parser_version: Some(format!("1.0.{index}")),
+            grammar_version: Some(index.to_string()),
+            source: Some("built-in".to_string()),
+            metadata: Some(serde_json::json!({"index": index})),
+        })
+        .collect::<Vec<_>>();
+    let languages = (0..rows)
+        .map(|index| capability_language(&format!("language-{index}"), &format!("parser-{index}")))
+        .collect::<Vec<_>>();
+    ArtifactCapabilitySnapshot {
+        parser_inventory,
+        languages,
+    }
+}
+
+fn capability_snapshot(language: &str) -> ArtifactCapabilitySnapshot {
+    let parser_package = format!("parser-{language}");
+    ArtifactCapabilitySnapshot {
+        parser_inventory: vec![ArtifactParserInventoryRow {
+            language: language.to_string(),
+            parser_package: parser_package.clone(),
+            parser_version: Some("1.0.0".to_string()),
+            grammar_version: Some("1".to_string()),
+            source: Some("built-in".to_string()),
+            metadata: None,
+        }],
+        languages: vec![capability_language(language, &parser_package)],
+    }
+}
+
+fn capability_language(language: &str, parser_package: &str) -> ArtifactLanguageCapabilityRow {
+    ArtifactLanguageCapabilityRow {
+        language: language.to_string(),
+        parser_package: parser_package.to_string(),
+        extensions: vec![format!(".{language}")],
+        dependency_status: "available".to_string(),
+        target_capabilities: ArtifactCapabilityFlags {
+            symbols: true,
+            relationships: true,
+            pending_relationships: true,
+            identifiers: true,
+            types: true,
+        },
+        actual_capabilities: ArtifactCapabilityFlags {
+            symbols: true,
+            relationships: true,
+            pending_relationships: true,
+            identifiers: true,
+            types: true,
+        },
+        kind_coverage: serde_json::json!({"function": true}),
+        fixtures: vec![ArtifactLanguageCapabilityFixtureRow {
+            fixture_name: "basic".to_string(),
+            source_path: format!("fixtures/{language}/basic.source"),
+            expected_path: format!("fixtures/{language}/basic.json"),
+        }],
+        gaps: vec![ArtifactLanguageCapabilityGapRow {
+            gap_id: format!("gap-{language}"),
+            capability: "fixture".to_string(),
+            status: CapabilityGapStatus::Exception,
+            reason: "fixture".to_string(),
+            required_closure: "none".to_string(),
+            evidence: serde_json::json!({"accepted": true}),
+        }],
+    }
+}
+
+fn version_rows(
+    connection: &rusqlite::Connection,
+    table: &str,
+    version_id: i64,
+) -> Vec<Vec<rusqlite::types::Value>> {
+    let columns = table_columns(connection, table)
+        .into_iter()
+        .filter(|column| {
+            column != "version_id" && !column.starts_with("complete_l") && column != "created_at"
+        })
+        .collect::<Vec<_>>();
+    let projection = columns.join(", ");
+    let mut statement = connection
+        .prepare(&format!(
+            "SELECT {projection} FROM {table} WHERE version_id = ?1"
+        ))
+        .unwrap();
+    let mut rows = statement
+        .query_map([version_id], |row| {
+            (0..columns.len())
+                .map(|index| row.get(index))
+                .collect::<rusqlite::Result<Vec<_>>>()
+        })
+        .unwrap()
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .unwrap();
+    rows.sort_by_key(|row| format!("{row:?}"));
+    rows
+}
+
+fn table_columns(connection: &rusqlite::Connection, table: &str) -> Vec<String> {
+    connection
+        .prepare(&format!("PRAGMA table_info({table})"))
+        .unwrap()
+        .query_map([], |row| row.get(1))
+        .unwrap()
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .unwrap()
 }
 
 fn dense_file(rows: usize) -> ArtifactFile {

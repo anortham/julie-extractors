@@ -1,4 +1,4 @@
-use rusqlite::{OptionalExtension, Transaction, params};
+use rusqlite::{CachedStatement, OptionalExtension, Transaction, params};
 
 use crate::model::ArtifactCapabilitySnapshot;
 
@@ -13,6 +13,27 @@ pub(super) enum CapabilityWriteError {
 impl From<rusqlite::Error> for CapabilityWriteError {
     fn from(error: rusqlite::Error) -> Self {
         Self::Sqlite(error)
+    }
+}
+
+#[derive(Debug, Default)]
+pub(super) struct StatementPreparationCounter {
+    count: usize,
+}
+
+impl StatementPreparationCounter {
+    pub(super) fn prepare_cached<'tx>(
+        &mut self,
+        tx: &'tx Transaction<'_>,
+        sql: &str,
+    ) -> rusqlite::Result<CachedStatement<'tx>> {
+        let statement = tx.prepare_cached(sql)?;
+        self.count += 1;
+        Ok(statement)
+    }
+
+    pub(super) fn count(&self) -> usize {
+        self.count
     }
 }
 
@@ -75,11 +96,12 @@ pub(super) fn insert_level_rows(
     version_id: i64,
     version: &StoreFileVersion,
     level: StoreLevel,
-) -> rusqlite::Result<(StoreRowCounts, usize)> {
+    preparations: &mut StatementPreparationCounter,
+) -> rusqlite::Result<StoreRowCounts> {
     match level {
-        StoreLevel::L1 => insert_l1_rows(tx, version_id, version),
-        StoreLevel::L2 => insert_l2_rows(tx, version_id, version),
-        StoreLevel::L3 => insert_l3_rows(tx, version_id, version),
+        StoreLevel::L1 => insert_l1_rows(tx, version_id, version, preparations),
+        StoreLevel::L2 => insert_l2_rows(tx, version_id, version, preparations),
+        StoreLevel::L3 => insert_l3_rows(tx, version_id, version, preparations),
     }
 }
 
@@ -87,10 +109,12 @@ fn insert_l1_rows(
     tx: &Transaction<'_>,
     version_id: i64,
     version: &StoreFileVersion,
-) -> rusqlite::Result<(StoreRowCounts, usize)> {
+    preparations: &mut StatementPreparationCounter,
+) -> rusqlite::Result<StoreRowCounts> {
     let file = version.artifact_file();
     let mut counts = StoreRowCounts::default();
-    let mut symbols = tx.prepare_cached(
+    let mut symbols = preparations.prepare_cached(
+        tx,
         "INSERT INTO symbols
          (version_id, symbol_id, path, language, name, kind, signature, doc_comment, visibility,
           parent_symbol_id, start_line, start_column, end_line, end_column, start_byte, end_byte,
@@ -101,21 +125,24 @@ fn insert_l1_rows(
          (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16,
           ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30)",
     )?;
-    let mut annotations = tx.prepare_cached(
+    let mut annotations = preparations.prepare_cached(
+        tx,
         "INSERT INTO symbol_annotations
          (version_id, annotation_id, symbol_id, annotation, annotation_key, raw_text, carrier,
           metadata_json)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
     )?;
-    let mut reference_sites = prepare_reference_sites(tx)?;
-    let mut relationships = tx.prepare_cached(
+    let mut reference_sites = prepare_reference_sites(tx, preparations)?;
+    let mut relationships = preparations.prepare_cached(
+        tx,
         "INSERT INTO relationships
          (version_id, relationship_id, reference_site_id, from_symbol_id, to_symbol_id, path,
           kind, start_line, start_column, end_line, end_column, start_byte, end_byte, confidence,
           metadata_json)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
     )?;
-    let mut pending = tx.prepare_cached(
+    let mut pending = preparations.prepare_cached(
+        tx,
         "INSERT INTO pending_relationships
          (version_id, pending_relationship_id, reference_site_id, from_symbol_id,
           caller_scope_symbol_id, path, kind, target_display_name, target_terminal_name,
@@ -124,13 +151,15 @@ fn insert_l1_rows(
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15,
                  ?16, ?17, ?18, ?19, ?20)",
     )?;
-    let mut type_facts = tx.prepare_cached(
+    let mut type_facts = preparations.prepare_cached(
+        tx,
         "INSERT INTO type_facts
          (version_id, type_fact_id, symbol_id, language, resolved_type, generic_params_json,
           constraints_json, is_inferred, metadata_json)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
     )?;
-    let mut complexity = tx.prepare_cached(
+    let mut complexity = preparations.prepare_cached(
+        tx,
         "INSERT INTO complexity_metrics
          (version_id, complexity_metric_id, path, language, scope, symbol_id, algorithm_id,
           covered_lines, covered_bytes, decision_count, loop_count, max_nesting_depth,
@@ -139,7 +168,8 @@ fn insert_l1_rows(
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15,
                  ?16, ?17, ?18, ?19, ?20)",
     )?;
-    let mut diagnostics = tx.prepare_cached(
+    let mut diagnostics = preparations.prepare_cached(
+        tx,
         "INSERT INTO parse_diagnostics
          (version_id, diagnostic_id, path, language, kind, message, start_line, start_column,
           end_line, end_column, start_byte, end_byte, metadata_json)
@@ -294,18 +324,20 @@ fn insert_l1_rows(
             row.metadata_json,
         ])? as i64;
     }
-    Ok((counts, 8))
+    Ok(counts)
 }
 
 fn insert_l2_rows(
     tx: &Transaction<'_>,
     version_id: i64,
     version: &StoreFileVersion,
-) -> rusqlite::Result<(StoreRowCounts, usize)> {
+    preparations: &mut StatementPreparationCounter,
+) -> rusqlite::Result<StoreRowCounts> {
     let file = version.artifact_file();
     let mut counts = StoreRowCounts::default();
-    let mut reference_sites = prepare_reference_sites(tx)?;
-    let mut identifiers = tx.prepare_cached(
+    let mut reference_sites = prepare_reference_sites(tx, preparations)?;
+    let mut identifiers = preparations.prepare_cached(
+        tx,
         "INSERT INTO identifiers
          (version_id, identifier_id, reference_site_id, path, language, name, kind,
           containing_symbol_id, start_line, start_column, end_line, end_column, start_byte,
@@ -339,27 +371,31 @@ fn insert_l2_rows(
             row.metadata_json,
         ])? as i64;
     }
-    Ok((counts, 2))
+    Ok(counts)
 }
 
 fn insert_l3_rows(
     tx: &Transaction<'_>,
     version_id: i64,
     version: &StoreFileVersion,
-) -> rusqlite::Result<(StoreRowCounts, usize)> {
+    preparations: &mut StatementPreparationCounter,
+) -> rusqlite::Result<StoreRowCounts> {
     let file = version.artifact_file();
     let mut counts = StoreRowCounts::default();
-    let mut usages = tx.prepare_cached(
+    let mut usages = preparations.prepare_cached(
+        tx,
         "INSERT INTO type_argument_usages
          (version_id, usage_id, identifier_id, path, language, metadata_json)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
     )?;
-    let mut arguments = tx.prepare_cached(
+    let mut arguments = preparations.prepare_cached(
+        tx,
         "INSERT INTO type_arguments
          (version_id, type_argument_id, usage_id, parent_type_argument_id, ordinal, type_name)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
     )?;
-    let mut literals = tx.prepare_cached(
+    let mut literals = preparations.prepare_cached(
+        tx,
         "INSERT INTO literals
          (version_id, literal_id, path, language, literal_text, kind, carrier, arg_position,
           containing_symbol_id, start_line, start_column, end_line, end_column, start_byte,
@@ -367,13 +403,15 @@ fn insert_l3_rows(
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15,
                  ?16, ?17)",
     )?;
-    let mut regions = tx.prepare_cached(
+    let mut regions = preparations.prepare_cached(
+        tx,
         "INSERT INTO source_regions
          (version_id, source_region_id, path, language, kind, containing_symbol_id, start_line,
           start_column, end_line, end_column, start_byte, end_byte, metadata_json)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
     )?;
-    let mut facts = tx.prepare_cached(
+    let mut facts = preparations.prepare_cached(
+        tx,
         "INSERT INTO structural_facts
          (version_id, structural_fact_id, path, language, pattern_id, capture_name, node_kind,
           containing_symbol_id, start_line, start_column, end_line, end_column, start_byte,
@@ -459,13 +497,15 @@ fn insert_l3_rows(
             row.metadata_json,
         ])? as i64;
     }
-    Ok((counts, 5))
+    Ok(counts)
 }
 
 fn prepare_reference_sites<'tx>(
     tx: &'tx Transaction<'_>,
+    preparations: &mut StatementPreparationCounter,
 ) -> rusqlite::Result<rusqlite::CachedStatement<'tx>> {
-    tx.prepare_cached(
+    preparations.prepare_cached(
+        tx,
         "INSERT OR IGNORE INTO reference_sites
          (version_id, reference_site_id, path, language, containing_symbol_id, start_line,
           start_column, end_line, end_column, start_byte, end_byte, is_exact, provenance, level)
@@ -504,15 +544,18 @@ pub(super) fn sync_capability_snapshot(
     tx: &Transaction<'_>,
     extraction_epoch: u32,
     snapshot: &ArtifactCapabilitySnapshot,
-) -> Result<(StoreRowCounts, usize), CapabilityWriteError> {
+    preparations: &mut StatementPreparationCounter,
+) -> Result<StoreRowCounts, CapabilityWriteError> {
     let mut counts = StoreRowCounts::default();
-    let mut parser_inventory = tx.prepare_cached(
+    let mut parser_inventory = preparations.prepare_cached(
+        tx,
         "INSERT OR IGNORE INTO parser_inventory
          (extraction_epoch, language, parser_package, parser_version, grammar_version, source,
           metadata_json)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
     )?;
-    let mut languages = tx.prepare_cached(
+    let mut languages = preparations.prepare_cached(
+        tx,
         "INSERT OR IGNORE INTO language_capabilities
          (extraction_epoch, language, parser_package, extensions_json, dependency_status,
           target_symbols, target_relationships, target_pending_relationships, target_identifiers,
@@ -521,12 +564,14 @@ pub(super) fn sync_capability_snapshot(
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15,
                  ?16)",
     )?;
-    let mut fixtures = tx.prepare_cached(
+    let mut fixtures = preparations.prepare_cached(
+        tx,
         "INSERT OR IGNORE INTO language_capability_fixtures
          (extraction_epoch, language, fixture_name, source_path, expected_path)
          VALUES (?1, ?2, ?3, ?4, ?5)",
     )?;
-    let mut gaps = tx.prepare_cached(
+    let mut gaps = preparations.prepare_cached(
+        tx,
         "INSERT OR IGNORE INTO language_capability_gaps
          (extraction_epoch, gap_id, language, capability, status, reason, required_closure,
           evidence_json)
@@ -590,16 +635,31 @@ pub(super) fn sync_capability_snapshot(
         }
     }
 
-    if !capability_snapshot_matches(tx, extraction_epoch, snapshot)? {
+    if !capability_snapshot_matches(tx, extraction_epoch, snapshot, preparations)? {
         return Err(CapabilityWriteError::Conflict);
     }
-    Ok((counts, 4))
+    Ok(counts)
+}
+
+pub(super) fn capability_epoch_initialized(
+    tx: &Transaction<'_>,
+    extraction_epoch: u32,
+    preparations: &mut StatementPreparationCounter,
+) -> rusqlite::Result<bool> {
+    let mut initialized = preparations.prepare_cached(
+        tx,
+        "SELECT EXISTS(
+             SELECT 1 FROM language_capabilities WHERE extraction_epoch = ?1
+         )",
+    )?;
+    initialized.query_row([extraction_epoch], |row| row.get(0))
 }
 
 fn capability_snapshot_matches(
     tx: &Transaction<'_>,
     extraction_epoch: u32,
     snapshot: &ArtifactCapabilitySnapshot,
+    preparations: &mut StatementPreparationCounter,
 ) -> rusqlite::Result<bool> {
     let expected_fixtures = snapshot
         .languages
@@ -611,29 +671,68 @@ fn capability_snapshot_matches(
         .iter()
         .map(|row| row.gaps.len() as i64)
         .sum::<i64>();
-    for (table, expected) in [
-        ("parser_inventory", snapshot.parser_inventory.len() as i64),
-        ("language_capabilities", snapshot.languages.len() as i64),
-        ("language_capability_fixtures", expected_fixtures),
-        ("language_capability_gaps", expected_gaps),
+    let mut parser_count = preparations.prepare_cached(
+        tx,
+        "SELECT COUNT(*) FROM parser_inventory WHERE extraction_epoch = ?1",
+    )?;
+    let mut language_count = preparations.prepare_cached(
+        tx,
+        "SELECT COUNT(*) FROM language_capabilities WHERE extraction_epoch = ?1",
+    )?;
+    let mut fixture_count = preparations.prepare_cached(
+        tx,
+        "SELECT COUNT(*) FROM language_capability_fixtures WHERE extraction_epoch = ?1",
+    )?;
+    let mut gap_count = preparations.prepare_cached(
+        tx,
+        "SELECT COUNT(*) FROM language_capability_gaps WHERE extraction_epoch = ?1",
+    )?;
+    for (statement, expected) in [
+        (&mut parser_count, snapshot.parser_inventory.len() as i64),
+        (&mut language_count, snapshot.languages.len() as i64),
+        (&mut fixture_count, expected_fixtures),
+        (&mut gap_count, expected_gaps),
     ] {
-        let count = tx.query_row(
-            &format!("SELECT COUNT(*) FROM {table} WHERE extraction_epoch = ?1"),
-            [extraction_epoch],
-            |row| row.get::<_, i64>(0),
-        )?;
+        let count = statement.query_row([extraction_epoch], |row| row.get::<_, i64>(0))?;
         if count != expected {
             return Ok(false);
         }
     }
+    let mut parser_match = preparations.prepare_cached(
+        tx,
+        "SELECT 1 FROM parser_inventory
+         WHERE extraction_epoch = ?1 AND language = ?2 AND parser_package = ?3
+           AND parser_version IS ?4 AND grammar_version IS ?5 AND source IS ?6
+           AND metadata_json IS ?7",
+    )?;
+    let mut language_match = preparations.prepare_cached(
+        tx,
+        "SELECT 1 FROM language_capabilities
+         WHERE extraction_epoch = ?1 AND language = ?2 AND parser_package = ?3
+           AND extensions_json = ?4 AND dependency_status = ?5
+           AND target_symbols = ?6 AND target_relationships = ?7
+           AND target_pending_relationships = ?8 AND target_identifiers = ?9
+           AND target_types = ?10 AND actual_symbols = ?11 AND actual_relationships = ?12
+           AND actual_pending_relationships = ?13 AND actual_identifiers = ?14
+           AND actual_types = ?15 AND kind_coverage_json = ?16",
+    )?;
+    let mut fixture_match = preparations.prepare_cached(
+        tx,
+        "SELECT 1 FROM language_capability_fixtures
+         WHERE extraction_epoch = ?1 AND language = ?2 AND fixture_name = ?3
+           AND source_path = ?4 AND expected_path = ?5",
+    )?;
+    let mut gap_match = preparations.prepare_cached(
+        tx,
+        "SELECT 1 FROM language_capability_gaps
+         WHERE extraction_epoch = ?1 AND gap_id = ?2 AND language = ?3
+           AND capability = ?4 AND status = ?5 AND reason = ?6
+           AND required_closure = ?7 AND evidence_json = ?8",
+    )?;
     for row in &snapshot.parser_inventory {
         let metadata_json = row.metadata.as_ref().map(|value| value.to_string());
-        let matched = tx
+        let matched = parser_match
             .query_row(
-                "SELECT 1 FROM parser_inventory
-             WHERE extraction_epoch = ?1 AND language = ?2 AND parser_package = ?3
-               AND parser_version IS ?4 AND grammar_version IS ?5 AND source IS ?6
-               AND metadata_json IS ?7",
                 params![
                     extraction_epoch,
                     row.language,
@@ -654,16 +753,8 @@ fn capability_snapshot_matches(
     for row in &snapshot.languages {
         let extensions_json =
             serde_json::to_string(&row.extensions).expect("capability extensions are serializable");
-        let matched = tx
+        let matched = language_match
             .query_row(
-                "SELECT 1 FROM language_capabilities
-             WHERE extraction_epoch = ?1 AND language = ?2 AND parser_package = ?3
-               AND extensions_json = ?4 AND dependency_status = ?5
-               AND target_symbols = ?6 AND target_relationships = ?7
-               AND target_pending_relationships = ?8 AND target_identifiers = ?9
-               AND target_types = ?10 AND actual_symbols = ?11 AND actual_relationships = ?12
-               AND actual_pending_relationships = ?13 AND actual_identifiers = ?14
-               AND actual_types = ?15 AND kind_coverage_json = ?16",
                 params![
                     extraction_epoch,
                     row.language,
@@ -690,11 +781,8 @@ fn capability_snapshot_matches(
             return Ok(false);
         }
         for fixture in &row.fixtures {
-            let matched = tx
+            let matched = fixture_match
                 .query_row(
-                    "SELECT 1 FROM language_capability_fixtures
-                 WHERE extraction_epoch = ?1 AND language = ?2 AND fixture_name = ?3
-                   AND source_path = ?4 AND expected_path = ?5",
                     params![
                         extraction_epoch,
                         row.language,
@@ -711,12 +799,8 @@ fn capability_snapshot_matches(
             }
         }
         for gap in &row.gaps {
-            let matched = tx
+            let matched = gap_match
                 .query_row(
-                    "SELECT 1 FROM language_capability_gaps
-                 WHERE extraction_epoch = ?1 AND gap_id = ?2 AND language = ?3
-                   AND capability = ?4 AND status = ?5 AND reason = ?6
-                   AND required_closure = ?7 AND evidence_json = ?8",
                     params![
                         extraction_epoch,
                         gap.gap_id,

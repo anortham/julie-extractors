@@ -1,6 +1,7 @@
 mod connection;
 mod layout;
 mod model;
+mod pragmas;
 mod rows;
 mod schema;
 mod writer;
