@@ -743,11 +743,11 @@ bounded retry; it never overwrites another request's change.
 
 **Acceptance:**
 
-- [ ] Version rows are append-only across update/delete.
-- [ ] Concurrent disjoint updates converge to a manifest containing both effects.
-- [ ] Delete never physically removes extraction rows.
-- [ ] Every content-changing result reports resolution unbound and exact-at mismatch honestly.
-- [ ] Full update obeys the same hash guard, natural-key equality proof, and no-L1-rewrite rule as
+- [x] Version rows are append-only across update/delete.
+- [x] Concurrent disjoint updates converge to a manifest containing both effects.
+- [x] Delete never physically removes extraction rows.
+- [x] Every content-changing result reports resolution unbound and exact-at mismatch honestly.
+- [x] Full update obeys the same hash guard, natural-key equality proof, and no-L1-rewrite rule as
       Full import.
 
 ### Task 9: Close Ph2b with crash, equivalence, and floor matrices
