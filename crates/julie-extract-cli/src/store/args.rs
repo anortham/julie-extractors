@@ -31,6 +31,8 @@ pub struct StoreArgs {
 #[derive(Debug, Subcommand)]
 pub enum StoreCommand {
     Import(StoreImportArgs),
+    Update(StoreUpdateArgs),
+    Delete(StoreDeleteArgs),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
@@ -60,6 +62,59 @@ pub struct StoreImportArgs {
     pub level: StoreLevelArg,
     #[command(flatten)]
     pub scan: StoreScanControls,
+    #[command(flatten)]
+    pub request: StoreRequestControls,
+    /// Emit the machine-readable store report.
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct StoreUpdateArgs {
+    /// Existing family-store directory.
+    #[arg(long, value_parser = parse_store_path)]
+    pub store: PathBuf,
+    /// UUID minted by the family owner.
+    #[arg(long, value_parser = parse_family_id)]
+    pub family: String,
+    /// Source root already bound to the view.
+    #[arg(long, value_parser = parse_store_path)]
+    pub root: PathBuf,
+    /// Existing stable view identifier.
+    #[arg(long, value_parser = parse_store_identifier)]
+    pub view: String,
+    /// One root-relative source file to update.
+    #[arg(long = "file", value_parser = parse_store_path)]
+    pub file: PathBuf,
+    /// Extraction depth requested for this update.
+    #[arg(long, value_enum, default_value_t = StoreLevelArg::Full)]
+    pub level: StoreLevelArg,
+    #[command(flatten)]
+    pub scan: StoreScanControls,
+    #[command(flatten)]
+    pub request: StoreRequestControls,
+    /// Emit the machine-readable store report.
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct StoreDeleteArgs {
+    /// Existing family-store directory.
+    #[arg(long, value_parser = parse_store_path)]
+    pub store: PathBuf,
+    /// UUID minted by the family owner.
+    #[arg(long, value_parser = parse_family_id)]
+    pub family: String,
+    /// Source root already bound to the view.
+    #[arg(long, value_parser = parse_store_path)]
+    pub root: PathBuf,
+    /// Existing stable view identifier.
+    #[arg(long, value_parser = parse_store_identifier)]
+    pub view: String,
+    /// Root-relative path to remove. Repeatable.
+    #[arg(long = "file", required = true, value_parser = parse_store_path)]
+    pub files: Vec<PathBuf>,
     #[command(flatten)]
     pub request: StoreRequestControls,
     /// Emit the machine-readable store report.

@@ -121,7 +121,7 @@ impl From<CommandOutcome> for DispatchOutcome {
 fn run(cli: Cli) -> DispatchOutcome {
     match cli.command {
         Command::Store(args) => {
-            DispatchOutcome::Store(Box::new(julie_extract_cli::store::import::dispatch(args)))
+            DispatchOutcome::Store(Box::new(julie_extract_cli::store::dispatch(args)))
         }
         Command::Scan(args) => scan(args).into(),
         Command::Update(args) => update(args).into(),

@@ -3,8 +3,8 @@ use std::sync::Arc;
 
 use julie_extract_artifact::store::{
     CoordinatorExecutor, CoordinatorRequest, ExecutionContext, ExecutionQuantum, ManifestEntry,
-    ManifestPublishDisposition, ManifestStore, RequestKind, StoreFileVersion, StoreLevel,
-    StoreWriteRequest, StoreWriter,
+    ManifestEntryStatus, ManifestPublishDisposition, ManifestPublishResult, ManifestStore,
+    RequestKind, StoreFileVersion, StoreLevel, StoreWriteRequest, StoreWriter,
 };
 use julie_extractors::{
     EXTRACTION_IDENTITY_EPOCH, ExtractionLevel, detect_language_from_extension,
@@ -34,6 +34,42 @@ pub(crate) struct ImportRequestPayload {
     pub requested_level: RequestedLevel,
     pub files: Vec<PlannedImportFile>,
     pub controls: ImportScanControls,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct UpdateRequestPayload {
+    pub schema_version: u32,
+    pub family_id: String,
+    pub root: String,
+    pub view_id: String,
+    pub requested_level: RequestedLevel,
+    pub file: PlannedImportFile,
+    pub controls: ImportScanControls,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct DeleteRequestPayload {
+    pub schema_version: u32,
+    pub family_id: String,
+    pub root: String,
+    pub view_id: String,
+    pub files: Vec<String>,
+}
+
+impl UpdateRequestPayload {
+    fn execution_payload(&self) -> ImportRequestPayload {
+        ImportRequestPayload {
+            schema_version: self.schema_version,
+            family_id: self.family_id.clone(),
+            root: self.root.clone(),
+            view_id: self.view_id.clone(),
+            requested_level: self.requested_level,
+            files: vec![self.file.clone()],
+            controls: self.controls.clone(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -116,6 +152,22 @@ struct ImportChunk {
     level: StoreLevel,
     start: usize,
     end: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum FilePlanOperation {
+    Import,
+    Update,
+}
+
+impl FilePlanOperation {
+    fn event(self, suffix: &str) -> String {
+        let operation = match self {
+            Self::Import => "import",
+            Self::Update => "update",
+        };
+        format!("store_{operation}_{suffix}")
+    }
 }
 
 pub(crate) struct StoreRequestExecutor {
@@ -245,6 +297,80 @@ impl StoreRequestExecutor {
         Ok(payload)
     }
 
+    pub(crate) fn validate_update_payload_json(
+        &self,
+        payload_json: &str,
+    ) -> Result<UpdateRequestPayload, String> {
+        validate_payload_bounds(payload_json.len(), 1)?;
+        let payload: UpdateRequestPayload = serde_json::from_str(payload_json)
+            .map_err(|_| "invalid_update_request_payload:invalid_json".to_string())?;
+        let execution_payload = payload.execution_payload();
+        let import_json = serde_json::to_string(&execution_payload)
+            .map_err(|_| "invalid_update_request_payload:invalid_json".to_string())?;
+        self.validate_payload_json(&import_json).map_err(|error| {
+            error.replacen(
+                "invalid_import_request_payload",
+                "invalid_update_request_payload",
+                1,
+            )
+        })?;
+        Ok(payload)
+    }
+
+    pub(crate) fn validate_delete_payload_json(
+        &self,
+        payload_json: &str,
+    ) -> Result<DeleteRequestPayload, String> {
+        validate_payload_bounds(payload_json.len(), 0)?;
+        let payload: DeleteRequestPayload = serde_json::from_str(payload_json)
+            .map_err(|_| "invalid_delete_request_payload:invalid_json".to_string())?;
+        if payload.schema_version != 1 {
+            return Err("invalid_delete_request_payload:unsupported_schema".to_string());
+        }
+        if payload.family_id != self.family_id {
+            return Err("invalid_delete_request_payload:family_mismatch".to_string());
+        }
+        if payload.view_id.is_empty()
+            || payload.view_id.len() > super::args::MAX_STORE_IDENTIFIER_BYTES
+            || payload.view_id.as_bytes().contains(&0)
+        {
+            return Err("invalid_delete_request_payload:invalid_view".to_string());
+        }
+        if payload.root.is_empty()
+            || payload.root.len() > super::args::MAX_STORE_PATH_BYTES
+            || payload.root.as_bytes().contains(&0)
+        {
+            return Err("invalid_delete_request_payload:invalid_root".to_string());
+        }
+        validate_payload_bounds(payload_json.len(), payload.files.len())?;
+        let root = std::path::Path::new(&payload.root);
+        let mut previous: Option<&str> = None;
+        for path in &payload.files {
+            if !valid_root_relative_path(root, path) {
+                return Err("invalid_delete_request_payload:invalid_file_path".to_string());
+            }
+            if previous.is_some_and(|previous| previous >= path.as_str()) {
+                return Err("invalid_delete_request_payload:plan_not_strictly_sorted".to_string());
+            }
+            previous = Some(path);
+        }
+        if payload.files.is_empty() {
+            return Err("invalid_delete_request_payload:empty_plan".to_string());
+        }
+        if !root.is_absolute()
+            || (root.exists()
+                && root
+                    .canonicalize()
+                    .ok()
+                    .as_deref()
+                    .and_then(std::path::Path::to_str)
+                    != Some(payload.root.as_str()))
+        {
+            return Err("invalid_delete_request_payload:root_not_canonical".to_string());
+        }
+        Ok(payload)
+    }
+
     fn validated_payload(
         &self,
         request: &CoordinatorRequest,
@@ -258,6 +384,7 @@ impl StoreRequestExecutor {
         request: &CoordinatorRequest,
         payload: &ImportRequestPayload,
         failed_files: usize,
+        operation: FilePlanOperation,
     ) -> Result<Option<Arc<ScanProgress>>, String> {
         let Some(progress_file) = payload.controls.progress_file.as_deref() else {
             return Ok(None);
@@ -270,7 +397,10 @@ impl StoreRequestExecutor {
             ScanProgress::create_for_artifact(std::path::Path::new(progress_file), &self.store_db)
                 .map_err(|error| format!("{error:?}"))?,
         );
-        progress.enter_phase("store_import");
+        progress.enter_phase(match operation {
+            FilePlanOperation::Import => "store_import",
+            FilePlanOperation::Update => "store_update",
+        });
         let completed_extractions: i64 = transaction
             .query_row(
                 "SELECT COUNT(*) FROM store_log
@@ -420,6 +550,7 @@ impl StoreRequestExecutor {
         hash: String,
         full: bool,
         manifest_disposition: &str,
+        operation: FilePlanOperation,
     ) -> Result<ExecutionQuantum, String> {
         let counts = terminal_row_counts(
             transaction,
@@ -427,7 +558,7 @@ impl StoreRequestExecutor {
             i64::try_from(generation).map_err(|_| "invalid_manifest_generation")?,
         )?;
         Ok(ExecutionQuantum::Complete {
-            event_kind: "store_import_completed".to_string(),
+            event_kind: operation.event("completed"),
             result_json: serde_json::json!({
                 "family_id": payload.family_id,
                 "l1": true,
@@ -436,6 +567,172 @@ impl StoreRequestExecutor {
                 "manifest_generation": generation,
                 "manifest_hash": hash,
                 "manifest_disposition": manifest_disposition,
+                "row_counts": {
+                    "file_versions": counts.0,
+                    "l1": counts.1,
+                    "l2": counts.2,
+                    "l3": counts.3,
+                },
+                "root": payload.root,
+                "view_id": payload.view_id,
+            })
+            .to_string(),
+        })
+    }
+
+    fn require_existing_view(
+        transaction: &Transaction<'_>,
+        view_id: &str,
+        root: &str,
+    ) -> Result<(), String> {
+        let stored = transaction
+            .query_row(
+                "SELECT root FROM views WHERE view_id = ?1",
+                [view_id],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()
+            .map_err(|error| error.to_string())?
+            .ok_or_else(|| "view_not_found".to_string())?;
+        if stored != root {
+            return Err("view_root_mismatch".to_string());
+        }
+        Ok(())
+    }
+
+    fn current_manifest(
+        transaction: &Transaction<'_>,
+        view_id: &str,
+    ) -> Result<(Option<u64>, Vec<ManifestEntry>), String> {
+        let generation = transaction
+            .query_row(
+                "SELECT current_generation FROM views WHERE view_id = ?1",
+                [view_id],
+                |row| row.get::<_, Option<i64>>(0),
+            )
+            .map_err(|error| error.to_string())?
+            .map(|value| u64::try_from(value).map_err(|_| "invalid_manifest_generation"))
+            .transpose()?;
+        let Some(generation) = generation else {
+            return Ok((None, Vec::new()));
+        };
+        let mut statement = transaction
+            .prepare(
+                "SELECT path, version_id, status, observed_content_hash, indexed_at,
+                        error_class, error_json
+                 FROM manifest_entries
+                 WHERE view_id = ?1 AND generation = ?2 ORDER BY path",
+            )
+            .map_err(|error| error.to_string())?;
+        let generation_sql =
+            i64::try_from(generation).map_err(|_| "invalid_manifest_generation")?;
+        let entries = statement
+            .query_map(rusqlite::params![view_id, generation_sql], |row| {
+                let status = match row.get::<_, String>(2)?.as_str() {
+                    "indexed" => ManifestEntryStatus::Indexed,
+                    "failed_preserved" => ManifestEntryStatus::FailedPreserved,
+                    "failed" => ManifestEntryStatus::Failed,
+                    value => {
+                        return Err(rusqlite::Error::FromSqlConversionFailure(
+                            2,
+                            rusqlite::types::Type::Text,
+                            format!("invalid manifest status {value}").into(),
+                        ));
+                    }
+                };
+                Ok(ManifestEntry {
+                    path: row.get(0)?,
+                    version_id: row.get(1)?,
+                    status,
+                    observed_content_hash: row.get(3)?,
+                    indexed_at: row.get(4)?,
+                    error_class: row.get(5)?,
+                    error_json: row.get(6)?,
+                })
+            })
+            .map_err(|error| error.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|error| error.to_string())?;
+        Ok((Some(generation), entries))
+    }
+
+    fn publish_file_plan(
+        transaction: &Transaction<'_>,
+        payload: &ImportRequestPayload,
+        failures: &std::collections::BTreeMap<String, ManifestEntry>,
+        indexed_at: &str,
+        request_id: &str,
+        operation: FilePlanOperation,
+    ) -> Result<ManifestPublishResult, String> {
+        let replacements =
+            Self::manifest_entries(transaction, &payload.files, failures, indexed_at)?;
+        let (expected, current) = Self::current_manifest(transaction, &payload.view_id)?;
+        let entries = match operation {
+            FilePlanOperation::Import => replacements,
+            FilePlanOperation::Update => {
+                let mut entries = current
+                    .into_iter()
+                    .map(|entry| (entry.path.clone(), entry))
+                    .collect::<std::collections::BTreeMap<_, _>>();
+                for replacement in replacements {
+                    entries.insert(replacement.path.clone(), replacement);
+                }
+                entries.into_values().collect()
+            }
+        };
+        ManifestStore::publish_in_transaction(
+            transaction,
+            &payload.view_id,
+            expected,
+            entries,
+            request_id,
+        )
+        .map_err(|error| error.to_string())
+    }
+
+    fn execute_delete(
+        &self,
+        transaction: &Transaction<'_>,
+        request: &CoordinatorRequest,
+        context: ExecutionContext,
+    ) -> Result<ExecutionQuantum, String> {
+        if context.next_chunk_index != 0 {
+            return Err("chunk_index_out_of_range".to_string());
+        }
+        let payload = self.validate_delete_payload_json(&request.payload_json)?;
+        Self::require_existing_view(transaction, &payload.view_id, &payload.root)?;
+        let (expected, entries) = Self::current_manifest(transaction, &payload.view_id)?;
+        let deleted = payload
+            .files
+            .iter()
+            .collect::<std::collections::BTreeSet<_>>();
+        let entries = entries
+            .into_iter()
+            .filter(|entry| !deleted.contains(&entry.path))
+            .collect::<Vec<_>>();
+        let published = ManifestStore::publish_in_transaction(
+            transaction,
+            &payload.view_id,
+            expected,
+            entries,
+            &request.request_id,
+        )
+        .map_err(|error| error.to_string())?;
+        let counts = terminal_row_counts(
+            transaction,
+            &payload.view_id,
+            i64::try_from(published.generation).map_err(|_| "invalid_manifest_generation")?,
+        )?;
+        Ok(ExecutionQuantum::Complete {
+            event_kind: "store_delete_completed".to_string(),
+            result_json: serde_json::json!({
+                "family_id": payload.family_id,
+                "l1": true,
+                "l2": false,
+                "l3": false,
+                "manifest_generation": published.generation,
+                "manifest_hash": published.manifest_hash,
+                "manifest_disposition": manifest_disposition(published.disposition),
                 "row_counts": {
                     "file_versions": counts.0,
                     "l1": counts.1,
@@ -498,6 +795,17 @@ fn validate_payload_bounds(serialized_bytes: usize, files: usize) -> Result<(), 
         return Err("invalid_import_request_payload:too_many_files".to_string());
     }
     Ok(())
+}
+
+fn valid_root_relative_path(root: &std::path::Path, path: &str) -> bool {
+    !path.is_empty()
+        && path.len() <= super::args::MAX_STORE_PATH_BYTES
+        && !path.starts_with('/')
+        && !path.contains(['\\', ':', '\0'])
+        && !path
+            .split('/')
+            .any(|part| part.is_empty() || part == "." || part == "..")
+        && root.join(path).starts_with(root)
 }
 
 fn load_durable_request_state(
@@ -616,10 +924,15 @@ impl CoordinatorExecutor for StoreRequestExecutor {
         request: &CoordinatorRequest,
         context: ExecutionContext,
     ) -> Result<ExecutionQuantum, String> {
-        if request.kind != RequestKind::Import {
-            return Err("unsupported_store_request_kind".to_string());
-        }
-        let payload = self.validated_payload(request)?;
+        let (operation, payload) = match request.kind {
+            RequestKind::Import => (FilePlanOperation::Import, self.validated_payload(request)?),
+            RequestKind::Update => (
+                FilePlanOperation::Update,
+                self.validate_update_payload_json(&request.payload_json)?
+                    .execution_payload(),
+            ),
+            RequestKind::Delete => return self.execute_delete(transaction, request, context),
+        };
         if self
             .watchdog
             .as_ref()
@@ -638,36 +951,35 @@ impl CoordinatorExecutor for StoreRequestExecutor {
         }
         let (mut failures, mut persisted_manifest_disposition) =
             load_durable_request_state(transaction, &request.request_id)?;
-        let progress = self.progress_for(transaction, request, &payload, failures.len())?;
-        ManifestStore::ensure_view_in_transaction(transaction, &payload.view_id, &payload.root)
-            .map_err(|error| error.to_string())?;
+        let progress =
+            self.progress_for(transaction, request, &payload, failures.len(), operation)?;
+        match operation {
+            FilePlanOperation::Import => {
+                ManifestStore::ensure_view_in_transaction(
+                    transaction,
+                    &payload.view_id,
+                    &payload.root,
+                )
+                .map_err(|error| error.to_string())?;
+            }
+            FilePlanOperation::Update => {
+                Self::require_existing_view(transaction, &payload.view_id, &payload.root)?;
+            }
+        }
         let indexed_at = OffsetDateTime::now_utc()
             .format(&Rfc3339)
             .map_err(|error| error.to_string())?;
         let chunk_index = usize::try_from(context.next_chunk_index)
             .map_err(|_| "chunk_index_out_of_range".to_string())?;
         if payload.files.is_empty() {
-            let expected = transaction
-                .query_row(
-                    "SELECT current_generation FROM views WHERE view_id = ?1",
-                    [&payload.view_id],
-                    |row| row.get::<_, Option<i64>>(0),
-                )
-                .map_err(|error| error.to_string())?
-                .map(|generation| {
-                    u64::try_from(generation).map_err(|_| "invalid_manifest_generation")
-                })
-                .transpose()?;
-            let entries =
-                Self::manifest_entries(transaction, &payload.files, &failures, &indexed_at)?;
-            let published = ManifestStore::publish_in_transaction(
+            let published = Self::publish_file_plan(
                 transaction,
-                &payload.view_id,
-                expected,
-                entries,
+                &payload,
+                &failures,
+                &indexed_at,
                 &request.request_id,
-            )
-            .map_err(|error| error.to_string())?;
+                operation,
+            )?;
             return Self::result(
                 transaction,
                 payload,
@@ -675,6 +987,7 @@ impl CoordinatorExecutor for StoreRequestExecutor {
                 published.manifest_hash,
                 requested_full,
                 manifest_disposition(published.disposition),
+                operation,
             );
         }
         let chunk = chunks
@@ -793,27 +1106,14 @@ impl CoordinatorExecutor for StoreRequestExecutor {
             }
         }
         if chunk.level == StoreLevel::L1 && chunk_index + 1 == l1_chunk_count {
-            let expected = transaction
-                .query_row(
-                    "SELECT current_generation FROM views WHERE view_id = ?1",
-                    [&payload.view_id],
-                    |row| row.get::<_, Option<i64>>(0),
-                )
-                .map_err(|error| error.to_string())?
-                .map(|generation| {
-                    u64::try_from(generation).map_err(|_| "invalid_manifest_generation")
-                })
-                .transpose()?;
-            let entries =
-                Self::manifest_entries(transaction, &payload.files, &failures, &indexed_at)?;
-            let published = ManifestStore::publish_in_transaction(
+            let published = Self::publish_file_plan(
                 transaction,
-                &payload.view_id,
-                expected,
-                entries,
+                &payload,
+                &failures,
+                &indexed_at,
                 &request.request_id,
-            )
-            .map_err(|error| error.to_string())?;
+                operation,
+            )?;
             persisted_manifest_disposition = manifest_disposition(published.disposition);
             wait_for_l1_test_hook()?;
             if !requested_full {
@@ -827,10 +1127,11 @@ impl CoordinatorExecutor for StoreRequestExecutor {
                     published.manifest_hash,
                     false,
                     persisted_manifest_disposition,
+                    operation,
                 );
             }
             return Ok(ExecutionQuantum::Progress {
-                event_kind: "store_import_l1_published".to_string(),
+                event_kind: operation.event("l1_published"),
                 payload_json: serde_json::json!({
                     "completed_files": chunk.end,
                     "failures": failure_facts(&failures),
@@ -844,7 +1145,7 @@ impl CoordinatorExecutor for StoreRequestExecutor {
         }
         if chunk_index + 1 < chunks.len() {
             return Ok(ExecutionQuantum::Progress {
-                event_kind: format!("store_import_l{}_chunk", chunk.level.as_i64()),
+                event_kind: operation.event(&format!("l{}_chunk", chunk.level.as_i64())),
                 payload_json: serde_json::json!({
                     "completed_files": chunk.end,
                     "failures": failure_facts(&failures),
@@ -878,6 +1179,7 @@ impl CoordinatorExecutor for StoreRequestExecutor {
             hash,
             true,
             persisted_manifest_disposition,
+            operation,
         )
     }
 }

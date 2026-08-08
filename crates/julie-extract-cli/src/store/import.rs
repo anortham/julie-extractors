@@ -1,4 +1,5 @@
 use std::io::{self, Write};
+use std::path::{Component, Path};
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -8,15 +9,15 @@ use julie_extract_artifact::store::{
 };
 use rusqlite::OptionalExtension;
 
-use super::args::{StoreArgs, StoreCommand, StoreImportArgs, StoreLevelArg};
+use super::args::{StoreImportArgs, StoreLevelArg};
 use super::executor::{
     ImportRequestPayload, ImportScanControls, PlannedImportFile, RequestedLevel,
     StoreRequestExecutor,
 };
 use super::report::{
-    StoreCommandOutcome, StoreCoordinatorDisposition, StoreFailureClass, StoreLevelCompletion,
-    StoreManifestDisposition, StoreOutputFormat, StoreOutputStream, StoreReport, StoreRequestState,
-    StoreRequestedLevel, StoreRowCounts,
+    StoreCommandOutcome, StoreCoordinatorDisposition, StoreErrorReport, StoreFailureClass,
+    StoreLevelCompletion, StoreManifestDisposition, StoreOperation, StoreOutputFormat,
+    StoreOutputStream, StoreReport, StoreRequestState, StoreRequestedLevel, StoreRowCounts,
 };
 
 pub struct StoreExecutionOutcome {
@@ -25,6 +26,24 @@ pub struct StoreExecutionOutcome {
 }
 
 impl StoreExecutionOutcome {
+    pub(crate) fn success(report: StoreReport, format: StoreOutputFormat) -> Self {
+        Self {
+            outcome: if report.failure_class == StoreFailureClass::RequestTimeout {
+                StoreCommandOutcome::observed_incomplete(report)
+            } else {
+                StoreCommandOutcome::queued(report)
+            },
+            format,
+        }
+    }
+
+    pub(crate) fn failure(report: StoreReport, format: StoreOutputFormat) -> Self {
+        Self {
+            outcome: StoreCommandOutcome::failed(report),
+            format,
+        }
+    }
+
     pub fn exit_code(&self) -> u8 {
         self.outcome.exit_code()
     }
@@ -46,13 +65,179 @@ impl StoreExecutionOutcome {
     }
 }
 
-pub fn dispatch(args: StoreArgs) -> StoreExecutionOutcome {
-    match args.command {
-        StoreCommand::Import(args) => run_import(args),
-    }
+pub(crate) struct ExistingViewContext {
+    pub layout: StoreLayout,
+    pub family_id: String,
+    pub root: String,
 }
 
-fn run_import(args: StoreImportArgs) -> StoreExecutionOutcome {
+pub(crate) fn open_existing_view(
+    store: &Path,
+    requested_family: &str,
+    requested_root: &Path,
+    view_id: &str,
+) -> Result<ExistingViewContext, String> {
+    if !store.join("CURRENT").exists() {
+        return Err("store_not_found".to_string());
+    }
+    let layout = StoreLayout::open(store).map_err(|error| error.to_string())?;
+    let family_id = trusted_store_family(&layout)?;
+    if family_id != requested_family {
+        return Err("family_mismatch".to_string());
+    }
+    let root = requested_root
+        .canonicalize()
+        .map_err(|error| error.to_string())?
+        .to_str()
+        .map(ToOwned::to_owned)
+        .ok_or_else(|| "path_is_not_utf8".to_string())?;
+    let connection =
+        rusqlite::Connection::open(layout.store_db()).map_err(|error| error.to_string())?;
+    let stored = connection
+        .query_row(
+            "SELECT root FROM views WHERE view_id = ?1",
+            [view_id],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()
+        .map_err(|error| error.to_string())?
+        .ok_or_else(|| "view_not_found".to_string())?;
+    if stored != root {
+        return Err("view_root_mismatch".to_string());
+    }
+    Ok(ExistingViewContext {
+        layout,
+        family_id,
+        root,
+    })
+}
+
+pub(crate) fn normalize_root_relative(path: &Path) -> Result<String, String> {
+    if path.is_absolute() {
+        return Err("file_must_be_root_relative".to_string());
+    }
+    let mut parts = Vec::new();
+    for component in path.components() {
+        let Component::Normal(part) = component else {
+            return Err("invalid_file_path".to_string());
+        };
+        parts.push(
+            part.to_str()
+                .ok_or_else(|| "path_is_not_utf8".to_string())?
+                .to_string(),
+        );
+    }
+    if parts.is_empty() {
+        return Err("invalid_file_path".to_string());
+    }
+    Ok(parts.join("/"))
+}
+
+pub(crate) struct RequestReportSpec {
+    pub operation: StoreOperation,
+    pub family_id: String,
+    pub view_id: String,
+    pub root: String,
+    pub requested_level: RequestedLevel,
+    pub l1_event_kind: &'static str,
+}
+
+pub(crate) fn report_request(
+    layout: &StoreLayout,
+    request: &CoordinatorRequest,
+    spec: RequestReportSpec,
+) -> Result<StoreReport, String> {
+    let committed = matches!(
+        request.state,
+        RequestState::Committed | RequestState::Acknowledged
+    );
+    let report_state = match request.state {
+        RequestState::Queued => StoreRequestState::Queued,
+        RequestState::Claimed => StoreRequestState::Claimed,
+        RequestState::Committed | RequestState::Acknowledged => StoreRequestState::Committed,
+        RequestState::Failed => StoreRequestState::Failed,
+    };
+    let mut report = StoreReport::new(
+        &request.request_id,
+        &spec.family_id,
+        &spec.view_id,
+        report_state,
+    )
+    .with_operation(spec.operation)
+    .with_idempotency_key(&request.idempotency_key)
+    .with_root(&spec.root)
+    .with_requested_level(match spec.requested_level {
+        RequestedLevel::L1 => StoreRequestedLevel::L1,
+        RequestedLevel::Full => StoreRequestedLevel::Full,
+    });
+    if !committed {
+        populate_durable_projection(
+            &mut report,
+            layout,
+            &spec.view_id,
+            &request.request_id,
+            spec.l1_event_kind,
+            spec.requested_level,
+            false,
+        )?;
+        if request.state == RequestState::Failed {
+            let message = request
+                .error_json
+                .clone()
+                .unwrap_or_else(|| "store_request_failed".to_string());
+            return Ok(report.with_failure(classify_failure(&message), message));
+        }
+        report.failure_class = StoreFailureClass::RequestTimeout;
+        report.error = Some(StoreErrorReport {
+            class: StoreFailureClass::RequestTimeout,
+            message: "request_timeout".to_string(),
+        });
+        return Ok(report);
+    }
+    let result: serde_json::Value = serde_json::from_str(
+        request
+            .result_json
+            .as_deref()
+            .ok_or("missing_store_result")?,
+    )
+    .map_err(|error| error.to_string())?;
+    report.coordinator = StoreCoordinatorDisposition::Committed;
+    report.manifest.generation = result["manifest_generation"].as_u64();
+    report.manifest.hash = result["manifest_hash"].as_str().map(ToOwned::to_owned);
+    report.manifest.disposition = match result["manifest_disposition"].as_str() {
+        Some("created") => StoreManifestDisposition::Created,
+        Some("reused") => StoreManifestDisposition::Reused,
+        _ => StoreManifestDisposition::NotPublished,
+    };
+    report.completion = StoreLevelCompletion {
+        l1: result["l1"].as_bool().unwrap_or(false),
+        l2: result["l2"].as_bool().unwrap_or(false),
+        l3: result["l3"].as_bool().unwrap_or(false),
+    };
+    report.row_counts = result
+        .get("row_counts")
+        .and_then(|counts| {
+            Some(StoreRowCounts {
+                file_versions: counts.get("file_versions")?.as_u64()?,
+                l1: counts.get("l1")?.as_u64()?,
+                l2: counts.get("l2")?.as_u64()?,
+                l3: counts.get("l3")?.as_u64()?,
+            })
+        })
+        .ok_or("invalid_terminal_row_counts")?;
+    populate_durable_projection(
+        &mut report,
+        layout,
+        &spec.view_id,
+        &request.request_id,
+        spec.l1_event_kind,
+        spec.requested_level,
+        true,
+    )?;
+    Ok(report)
+}
+
+pub(crate) fn run(args: StoreImportArgs) -> StoreExecutionOutcome {
     let format = if args.json {
         StoreOutputFormat::Json
     } else {
@@ -69,14 +254,7 @@ fn run_import(args: StoreImportArgs) -> StoreExecutionOutcome {
         .clone()
         .unwrap_or_else(|| request_id.clone());
     match execute_import(&args, &request_id, &idempotency_key) {
-        Ok(report) => StoreExecutionOutcome {
-            outcome: if report.failure_class == StoreFailureClass::RequestTimeout {
-                StoreCommandOutcome::observed_incomplete(report)
-            } else {
-                StoreCommandOutcome::queued(report)
-            },
-            format,
-        },
+        Ok(report) => StoreExecutionOutcome::success(report, format),
         Err(message) => {
             let report = base_report(
                 &args,
@@ -85,10 +263,7 @@ fn run_import(args: StoreImportArgs) -> StoreExecutionOutcome {
                 StoreRequestState::Failed,
             )
             .with_failure(classify_failure(&message), message);
-            StoreExecutionOutcome {
-                outcome: StoreCommandOutcome::failed(report),
-                format,
-            }
+            StoreExecutionOutcome::failure(report, format)
         }
     }
 }
@@ -319,6 +494,7 @@ fn execute_import(
                     &layout,
                     &canonical_payload.view_id,
                     &observed.request_id,
+                    "store_import_l1_published",
                     canonical_payload.requested_level,
                     false,
                 )?;
@@ -361,6 +537,7 @@ fn execute_import(
             &layout,
             &canonical_payload.view_id,
             &request.request_id,
+            "store_import_l1_published",
             canonical_payload.requested_level,
             false,
         )?;
@@ -402,17 +579,19 @@ fn execute_import(
         &layout,
         &canonical_payload.view_id,
         &request.request_id,
+        "store_import_l1_published",
         canonical_payload.requested_level,
         true,
     )?;
     Ok(report)
 }
 
-fn populate_durable_projection(
+pub(crate) fn populate_durable_projection(
     report: &mut StoreReport,
     layout: &StoreLayout,
     view_id: &str,
     request_id: &str,
+    l1_event_kind: &str,
     requested_level: RequestedLevel,
     preserve_terminal_snapshot: bool,
 ) -> Result<(), String> {
@@ -422,9 +601,9 @@ fn populate_durable_projection(
         let progress_payload = connection
             .query_row(
                 "SELECT payload_json FROM store_log
-                 WHERE request_id = ?1 AND event_kind = 'store_import_l1_published'
+                 WHERE request_id = ?1 AND event_kind = ?2
                  ORDER BY sequence DESC LIMIT 1",
-                [request_id],
+                rusqlite::params![request_id, l1_event_kind],
                 |row| row.get::<_, String>(0),
             )
             .optional()
@@ -548,7 +727,7 @@ fn root_scope_matches(requested: &std::path::Path, stored: &str) -> bool {
         .is_some_and(|parent| parent.join(name) == std::path::Path::new(stored))
 }
 
-fn absolute_runtime_path(path: &std::path::Path) -> Result<String, String> {
+pub(crate) fn absolute_runtime_path(path: &std::path::Path) -> Result<String, String> {
     let absolute = std::path::absolute(path).map_err(|error| error.to_string())?;
     let mut existing = absolute.as_path();
     let mut missing = Vec::new();
@@ -571,7 +750,7 @@ fn absolute_runtime_path(path: &std::path::Path) -> Result<String, String> {
         .ok_or_else(|| "path_is_not_utf8".to_string())
 }
 
-fn canonical_control_paths(paths: &[std::path::PathBuf]) -> Result<Vec<String>, String> {
+pub(crate) fn canonical_control_paths(paths: &[std::path::PathBuf]) -> Result<Vec<String>, String> {
     let mut paths = paths
         .iter()
         .map(|path| absolute_runtime_path(path))
@@ -581,7 +760,7 @@ fn canonical_control_paths(paths: &[std::path::PathBuf]) -> Result<Vec<String>, 
     Ok(paths)
 }
 
-fn trusted_store_family(layout: &StoreLayout) -> Result<String, String> {
+pub(crate) fn trusted_store_family(layout: &StoreLayout) -> Result<String, String> {
     rusqlite::Connection::open(layout.store_db())
         .map_err(|error| error.to_string())?
         .query_row(
@@ -592,8 +771,19 @@ fn trusted_store_family(layout: &StoreLayout) -> Result<String, String> {
         .map_err(|error| error.to_string())
 }
 
-fn classify_failure(message: &str) -> StoreFailureClass {
-    if message.contains("idempotency") || message.contains("IdempotencyConflict") {
+pub(crate) fn classify_failure(message: &str) -> StoreFailureClass {
+    if message.contains("store_not_found") {
+        StoreFailureClass::StoreNotFound
+    } else if message.contains("view_not_found") || message.contains("ViewNotFound") {
+        StoreFailureClass::ViewNotFound
+    } else if message.contains("family_mismatch") || message.contains("FamilyMismatch") {
+        StoreFailureClass::FamilyMismatch
+    } else if message.contains("invalid_file_path")
+        || message.contains("file_must_be_root_relative")
+        || message.contains("path_is_not_utf8")
+    {
+        StoreFailureClass::InvalidPath
+    } else if message.contains("idempotency") || message.contains("IdempotencyConflict") {
         StoreFailureClass::IdempotencyConflict
     } else if message.contains("l1_projection_mismatch") {
         StoreFailureClass::L1ProjectionMismatch
@@ -627,11 +817,11 @@ fn base_report(
         })
 }
 
-fn mint_request_id() -> String {
+pub(crate) fn mint_request_id() -> String {
     format!("request-{}-{}", std::process::id(), now_millis())
 }
 
-fn now_millis() -> i64 {
+pub(crate) fn now_millis() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_or(0, |duration| {
@@ -639,8 +829,31 @@ fn now_millis() -> i64 {
         })
 }
 
+pub(crate) fn drain_when_available(
+    coordinator: &mut StoreCoordinator,
+    executor: &mut StoreRequestExecutor,
+    request: &CoordinatorRequest,
+) -> Result<(), String> {
+    let policy = CoordinatorPolicy {
+        own_request_id: Some(request.request_id.clone()),
+        ..CoordinatorPolicy::default()
+    };
+    loop {
+        match coordinator.drain(executor, &policy) {
+            Ok(_) => return Ok(()),
+            Err(CoordinatorError::LeaseUnavailable) => {
+                if now_millis() >= request.requester_deadline.unwrap_or(i64::MAX) {
+                    return Ok(());
+                }
+                std::thread::sleep(std::time::Duration::from_millis(10));
+            }
+            Err(error) => return Err(error.to_string()),
+        }
+    }
+}
+
 #[derive(Debug)]
-struct ImportClock;
+pub(crate) struct ImportClock;
 
 impl julie_extract_artifact::store::UnixMillisClock for ImportClock {
     fn now_ms(&self) -> i64 {
@@ -649,7 +862,7 @@ impl julie_extract_artifact::store::UnixMillisClock for ImportClock {
 }
 
 #[derive(Debug)]
-struct ImportPidLiveness;
+pub(crate) struct ImportPidLiveness;
 
 impl julie_extract_artifact::store::PidLiveness for ImportPidLiveness {
     fn status(&self, pid: u32) -> julie_extract_artifact::store::PidStatus {

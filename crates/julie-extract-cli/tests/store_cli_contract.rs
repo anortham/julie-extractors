@@ -45,7 +45,9 @@ fn internal_parser_accepts_only_the_final_import_form() {
     .expect("store import should parse through the internal contract");
 
     let StoreRootCommand::Store(store) = cli.command;
-    let StoreCommand::Import(args) = store.command;
+    let StoreCommand::Import(args) = store.command else {
+        panic!("expected import command");
+    };
     assert_eq!(args.store, PathBuf::from("/tmp/family"));
     assert_eq!(args.family, "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11");
     assert_eq!(args.root, PathBuf::from("/tmp/repo"));
@@ -73,7 +75,9 @@ fn import_requires_family_root_view_and_store_but_allows_create_family_paths() {
     ];
     let parsed = StoreCli::try_parse_from(base).expect("missing family directory is createable");
     let StoreRootCommand::Store(store) = parsed.command;
-    let StoreCommand::Import(args) = store.command;
+    let StoreCommand::Import(args) = store.command else {
+        panic!("expected import command");
+    };
     assert_eq!(args.level, StoreLevelArg::Full);
     assert_eq!(args.request.request_timeout_seconds, 30);
     assert!(args.request.request_id.is_none());
@@ -92,7 +96,7 @@ fn import_requires_family_root_view_and_store_but_allows_create_family_paths() {
 
 #[test]
 fn unknown_store_verbs_are_rejected_without_a_public_command() {
-    for verb in ["update", "delete", "export", "resolve"] {
+    for verb in ["export", "resolve"] {
         let parsed =
             StoreCli::try_parse_from(["julie-extract", "store", verb, "--store", "/tmp/family"]);
         assert!(parsed.is_err(), "future store verb {verb} must not parse");
@@ -196,6 +200,7 @@ fn report_json_snapshot_locks_the_complete_v1_shape() {
             "hash": "sha256:abcd",
             "disposition": "created"
         },
+        "resolution": {"state": "unbound", "exact_at_matches": false},
         "row_counts": {"file_versions": 3, "l1": 4, "l2": 5, "l3": 6},
         "coordinator": "queued",
         "failure_class": "none",
@@ -210,7 +215,7 @@ fn report_human_output_is_stable_and_failures_stay_on_stderr() {
     let outcome = StoreCommandOutcome::queued(report);
     assert_eq!(
         outcome.render_human(),
-        "queued\noperation: import\nrequest: request-1\nidempotency_key: none\nfamily: family-1\nview: view-1\nroot: \nstate: queued\nrequested_level: full\ncompletion: - - -\nmanifest: generation=none hash=none disposition=not_published\nrows: file_versions=0 l1=0 l2=0 l3=0\ncoordinator: queued\nfailure_class: none\n"
+        "queued\noperation: import\nrequest: request-1\nidempotency_key: none\nfamily: family-1\nview: view-1\nroot: \nresolution: state=unbound exact_at_matches=false\nstate: queued\nrequested_level: full\ncompletion: - - -\nmanifest: generation=none hash=none disposition=not_published\nrows: file_versions=0 l1=0 l2=0 l3=0\ncoordinator: queued\nfailure_class: none\n"
     );
     let success_plan = outcome.output_plan(false);
     assert_eq!(success_plan.format, StoreOutputFormat::Human);
@@ -416,7 +421,9 @@ fn import_accepts_all_scan_controls_and_json_mode() {
     ])
     .expect("scan and report controls should parse");
     let StoreRootCommand::Store(store) = cli.command;
-    let StoreCommand::Import(args) = store.command;
+    let StoreCommand::Import(args) = store.command else {
+        panic!("expected import command");
+    };
     assert_eq!(args.scan.ignore_files.len(), 2);
     assert_eq!(args.scan.jobs, 4);
     assert_eq!(

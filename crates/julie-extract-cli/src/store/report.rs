@@ -12,6 +12,8 @@ pub const STORE_EXIT_INCOMPATIBLE: u8 = 3;
 #[serde(rename_all = "snake_case")]
 pub enum StoreOperation {
     Import,
+    Update,
+    Delete,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -61,6 +63,27 @@ pub struct StoreRowCounts {
     pub l1: u64,
     pub l2: u64,
     pub l3: u64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum StoreResolutionState {
+    Unbound,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StoreResolutionReport {
+    pub state: StoreResolutionState,
+    pub exact_at_matches: bool,
+}
+
+impl Default for StoreResolutionReport {
+    fn default() -> Self {
+        Self {
+            state: StoreResolutionState::Unbound,
+            exact_at_matches: false,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -152,6 +175,7 @@ pub struct StoreReport {
     pub completion: StoreLevelCompletion,
     pub manifest: StoreManifestReport,
     pub row_counts: StoreRowCounts,
+    pub resolution: StoreResolutionReport,
     pub coordinator: StoreCoordinatorDisposition,
     pub failure_class: StoreFailureClass,
     pub error: Option<StoreErrorReport>,
@@ -180,6 +204,7 @@ impl StoreReport {
             completion: StoreLevelCompletion::default(),
             manifest: StoreManifestReport::default(),
             row_counts: StoreRowCounts::default(),
+            resolution: StoreResolutionReport::default(),
             coordinator: match state {
                 StoreRequestState::Queued => StoreCoordinatorDisposition::Queued,
                 StoreRequestState::Claimed => StoreCoordinatorDisposition::Claimed,
@@ -201,6 +226,11 @@ impl StoreReport {
 
     pub fn with_root(mut self, root: impl Into<String>) -> Self {
         self.root = root.into();
+        self
+    }
+
+    pub fn with_operation(mut self, operation: StoreOperation) -> Self {
+        self.operation = operation;
         self
     }
 
@@ -344,7 +374,13 @@ impl StoreCommandOutcome {
         let mut output = String::new();
         output.push_str(self.report.state.as_str());
         output.push('\n');
-        output.push_str("operation: import\n");
+        output.push_str("operation: ");
+        output.push_str(match self.report.operation {
+            StoreOperation::Import => "import",
+            StoreOperation::Update => "update",
+            StoreOperation::Delete => "delete",
+        });
+        output.push('\n');
         output.push_str("request: ");
         output.push_str(&self.report.request.id);
         output.push('\n');
@@ -365,6 +401,17 @@ impl StoreCommandOutcome {
         output.push('\n');
         output.push_str("root: ");
         output.push_str(&self.report.root);
+        output.push('\n');
+        output.push_str("resolution: state=");
+        output.push_str(match self.report.resolution.state {
+            StoreResolutionState::Unbound => "unbound",
+        });
+        output.push_str(" exact_at_matches=");
+        output.push_str(if self.report.resolution.exact_at_matches {
+            "true"
+        } else {
+            "false"
+        });
         output.push('\n');
         output.push_str("state: ");
         output.push_str(self.report.state.as_str());
