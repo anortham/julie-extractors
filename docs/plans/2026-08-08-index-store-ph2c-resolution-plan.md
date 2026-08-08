@@ -693,10 +693,10 @@ No worker edits another worker's files, reverts shared changes, or commits unrel
 
 **Acceptance:**
 
-- [ ] Exported artifact is a valid current v3 artifact with exact pinned semantics.
-- [ ] No partial output is published and existing output is not overwritten implicitly.
-- [ ] Concurrent family changes cannot mix generations.
-- [ ] Store mutation is limited to bounded pin lifecycle.
+- [x] Exported artifact is a valid current v3 artifact with exact pinned semantics.
+- [x] No partial output is published and existing output is not overwritten implicitly.
+- [x] Concurrent family changes cannot mix generations.
+- [x] Store mutation is limited to bounded pin lifecycle.
 
 ## Task 11: Add Resumable Import From a Legacy Artifact
 

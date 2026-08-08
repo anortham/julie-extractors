@@ -95,6 +95,19 @@ pub struct StoreResolutionReport {
     pub exact_gap_files: Option<u64>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum StoreExportDisposition {
+    Created,
+    Reused,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StoreExportReport {
+    pub output: String,
+    pub disposition: StoreExportDisposition,
+}
+
 impl Default for StoreResolutionReport {
     fn default() -> Self {
         Self {
@@ -152,6 +165,7 @@ pub enum StoreFailureClass {
     ResolutionInputIncomplete,
     ResolutionFailed,
     ResolutionNotExact,
+    OutputIdentityMismatch,
     Internal,
 }
 
@@ -175,6 +189,7 @@ impl StoreFailureClass {
             Self::ResolutionInputIncomplete => "resolution_input_incomplete",
             Self::ResolutionFailed => "resolution_failed",
             Self::ResolutionNotExact => "resolution_not_exact",
+            Self::OutputIdentityMismatch => "output_identity_mismatch",
             Self::Internal => "internal",
         }
     }
@@ -206,6 +221,8 @@ pub struct StoreReport {
     pub manifest: StoreManifestReport,
     pub row_counts: StoreRowCounts,
     pub resolution: StoreResolutionReport,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub export: Option<StoreExportReport>,
     pub coordinator: StoreCoordinatorDisposition,
     pub failure_class: StoreFailureClass,
     pub error: Option<StoreErrorReport>,
@@ -235,6 +252,7 @@ impl StoreReport {
             manifest: StoreManifestReport::default(),
             row_counts: StoreRowCounts::default(),
             resolution: StoreResolutionReport::default(),
+            export: None,
             coordinator: match state {
                 StoreRequestState::Queued => StoreCoordinatorDisposition::Queued,
                 StoreRequestState::Claimed => StoreCoordinatorDisposition::Claimed,
@@ -286,6 +304,11 @@ impl StoreReport {
 
     pub fn with_coordinator(mut self, coordinator: StoreCoordinatorDisposition) -> Self {
         self.coordinator = coordinator;
+        self
+    }
+
+    pub fn with_export(mut self, export: StoreExportReport) -> Self {
+        self.export = Some(export);
         self
     }
 
@@ -461,6 +484,16 @@ impl StoreCommandOutcome {
             push_optional_u64(&mut output, self.report.resolution.exact_gap_rows);
             output.push_str(" exact_gap_files=");
             push_optional_u64(&mut output, self.report.resolution.exact_gap_files);
+            output.push('\n');
+        }
+        if let Some(export) = &self.report.export {
+            output.push_str("export: output=");
+            output.push_str(&export.output);
+            output.push_str(" disposition=");
+            output.push_str(match export.disposition {
+                StoreExportDisposition::Created => "created",
+                StoreExportDisposition::Reused => "reused",
+            });
             output.push('\n');
         }
         output.push_str("state: ");

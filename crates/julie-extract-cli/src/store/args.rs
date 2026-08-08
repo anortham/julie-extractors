@@ -34,6 +34,7 @@ pub enum StoreCommand {
     Update(StoreUpdateArgs),
     Delete(StoreDeleteArgs),
     Resolve(StoreResolveArgs),
+    Export(StoreExportArgs),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
@@ -136,6 +137,25 @@ pub struct StoreResolveArgs {
     pub view: String,
     #[command(flatten)]
     pub request: StoreRequestControls,
+    /// Emit the machine-readable store report.
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct StoreExportArgs {
+    /// Existing family-store directory.
+    #[arg(long, value_parser = parse_store_path)]
+    pub store: PathBuf,
+    /// Expected family UUID. Defaults to the existing store family.
+    #[arg(long, value_parser = parse_family_id)]
+    pub family: Option<String>,
+    /// Existing stable view identifier.
+    #[arg(long, value_parser = parse_store_identifier)]
+    pub view: String,
+    /// Destination path for the current v3 artifact.
+    #[arg(long, value_parser = parse_store_path)]
+    pub out: PathBuf,
     /// Emit the machine-readable store report.
     #[arg(long)]
     pub json: bool,

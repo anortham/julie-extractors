@@ -812,9 +812,11 @@ pub(crate) fn classify_failure(message: &str) -> StoreFailureClass {
         StoreFailureClass::ResolutionInputIncomplete
     } else if message.contains("resolution_not_exact") {
         StoreFailureClass::ResolutionNotExact
+    } else if message.contains("output_identity_mismatch") {
+        StoreFailureClass::OutputIdentityMismatch
     } else if message.contains("resolution_failed") {
         StoreFailureClass::ResolutionFailed
-    } else if message.contains("lease") {
+    } else if message.contains("lease") || message.contains("busy:") {
         StoreFailureClass::Busy
     } else {
         StoreFailureClass::Internal
