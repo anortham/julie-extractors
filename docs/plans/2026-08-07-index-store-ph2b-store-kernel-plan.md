@@ -517,14 +517,14 @@ upserts `parser_inventory` and all `language_capability*` rows once for that epo
 
 **Acceptance:**
 
-- [ ] Equal `(path, hash, epoch)` reuses one `version_id`; changed path/hash/epoch does not.
-- [ ] A killed level transaction leaves its stamp null; resume rewrites only the incomplete level.
-- [ ] Two retained versions may reuse every legacy local ID without PK/FK collision.
-- [ ] Full store rows, qualified by one version, equal the v3 writer's extraction rows before
+- [x] Equal `(path, hash, epoch)` reuses one `version_id`; changed path/hash/epoch does not.
+- [x] A killed level transaction leaves its stamp null; resume rewrites only the incomplete level.
+- [x] Two retained versions may reuse every legacy local ID without PK/FK collision.
+- [x] Full store rows, qualified by one version, equal the v3 writer's extraction rows before
       resolution and view bookkeeping.
-- [ ] Symbols and Full extraction produce identical L1 projections on the multi-language gate;
+- [x] Symbols and Full extraction produce identical L1 projections on the multi-language gate;
       any mismatch blocks the two-wave import model.
-- [ ] L1-stamped/L2-incomplete resume inserts only identifier-only reference sites and leaves L1
+- [x] L1-stamped/L2-incomplete resume inserts only identifier-only reference sites and leaves L1
       reference sites byte-identical.
 
 ### Task 4: Add immutable manifests and the store log
