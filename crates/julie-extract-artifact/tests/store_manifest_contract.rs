@@ -109,6 +109,29 @@ fn import_create_and_update_require_are_distinct_and_identical_sets_reuse() {
 }
 
 #[test]
+fn publishing_an_unknown_view_reports_view_not_found_before_manifest_lookup() {
+    let mut connection = Connection::open_in_memory().unwrap();
+    create_store_schema(&connection).unwrap();
+    let error = ManifestStore::new(&mut connection)
+        .publish(
+            "missing-view",
+            Some(7),
+            [ManifestEntry::failed(
+                "src/missing.rs",
+                "blake3:missing",
+                INDEXED_AT,
+                "read",
+                "{}",
+            )],
+            "request-missing-view",
+        )
+        .unwrap_err();
+
+    assert!(matches!(error, ManifestStoreError::ViewNotFound { .. }));
+    assert_eq!(error.code(), "view_not_found");
+}
+
+#[test]
 fn multi_delete_changes_only_the_next_entry_set_and_old_heads_remain_readable() {
     let mut connection = Connection::open_in_memory().unwrap();
     create_store_schema(&connection).unwrap();
@@ -830,7 +853,7 @@ fn manifest_effect_is_nonterminal_and_only_a_separate_final_transaction_commits_
 }
 
 #[test]
-fn path_policy_json_canonicalization_and_generation_overflow_are_explicit() {
+fn cross_platform_path_policy_json_canonicalization_and_generation_overflow_are_explicit() {
     let mut connection = Connection::open_in_memory().unwrap();
     create_store_schema(&connection).unwrap();
     let version_id = insert_version(&connection, "src/a.rs", "blake3:a");
@@ -849,7 +872,12 @@ fn path_policy_json_canonicalization_and_generation_overflow_are_explicit() {
         "\\src\\a.rs",
         "\\\\server\\share\\a.rs",
         "C:\\src\\a.rs",
+        "C:foo",
+        "c:foo/bar",
+        "Z:relative.rs",
+        "src/name:part.rs",
         "src/../a.rs",
+        "src/nul\0path.rs",
     ] {
         assert!(matches!(
             ManifestBuilder::from_entries([ManifestEntry::failed(
@@ -904,6 +932,70 @@ fn path_policy_json_canonicalization_and_generation_overflow_are_explicit() {
         }
     ));
     assert_eq!(overflow.code(), "manifest_generation_out_of_range");
+}
+
+#[test]
+fn allocating_after_sqlite_max_generation_is_a_typed_overflow() {
+    let mut connection = Connection::open_in_memory().unwrap();
+    create_store_schema(&connection).unwrap();
+    let first_version = insert_version(&connection, "src/lib.rs", "blake3:first");
+    let second_version = insert_version(&connection, "src/lib.rs", "blake3:second");
+    let first = ManifestBuilder::from_entries([ManifestEntry::indexed(
+        "src/lib.rs",
+        first_version,
+        "blake3:first",
+        INDEXED_AT,
+    )])
+    .build(&connection)
+    .unwrap();
+    ManifestStore::new(&mut connection)
+        .ensure_view("view-a", "/repo")
+        .unwrap();
+    let transaction = connection.transaction().unwrap();
+    transaction
+        .execute(
+            "INSERT INTO manifests
+             (view_id, generation, manifest_hash, request_id, created_at)
+             VALUES ('view-a', ?1, ?2, 'request-seed', ?3)",
+            params![i64::MAX, first.manifest_hash, INDEXED_AT],
+        )
+        .unwrap();
+    transaction
+        .execute(
+            "INSERT INTO manifest_entries
+             (view_id, generation, path, version_id, status, observed_content_hash, indexed_at)
+             VALUES ('view-a', ?1, 'src/lib.rs', ?2, 'indexed', 'blake3:first', ?3)",
+            params![i64::MAX, first_version, INDEXED_AT],
+        )
+        .unwrap();
+    transaction
+        .execute(
+            "UPDATE views SET current_generation = ?1 WHERE view_id = 'view-a'",
+            [i64::MAX],
+        )
+        .unwrap();
+    transaction.commit().unwrap();
+
+    let error = ManifestStore::new(&mut connection)
+        .publish(
+            "view-a",
+            Some(i64::MAX as u64),
+            [ManifestEntry::indexed(
+                "src/lib.rs",
+                second_version,
+                "blake3:second",
+                INDEXED_AT,
+            )],
+            "request-overflow",
+        )
+        .unwrap_err();
+
+    assert!(matches!(
+        error,
+        ManifestStoreError::GenerationOutOfRange { .. }
+    ));
+    assert_eq!(error.code(), "manifest_generation_out_of_range");
+    assert_manifest_counts(&connection, 1, 1, 0);
 }
 
 fn assert_manifest_counts(connection: &Connection, manifests: i64, entries: i64, log: i64) {

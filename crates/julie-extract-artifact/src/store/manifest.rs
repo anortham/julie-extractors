@@ -403,6 +403,10 @@ impl<'connection> ManifestStore<'connection> {
         if request_id.is_empty() {
             return Err(ManifestStoreError::EmptyRequestId);
         }
+        if view_id.is_empty() {
+            return Err(ManifestStoreError::EmptyViewId);
+        }
+        require_view_exists(self.connection, view_id)?;
         let desired = build_manifest(self.connection, entries.into_iter().collect())?;
         let base_entries = expected_generation
             .map(|generation| load_entries(self.connection, view_id, generation))
@@ -569,12 +573,21 @@ fn publish_transaction(
     let (generation, disposition) = match existing_generation {
         Some(generation) => (generation, ManifestPublishDisposition::Reused),
         None => {
-            let generation = transaction.query_row(
-                "SELECT COALESCE(MAX(generation), 0) + 1
-                 FROM manifests WHERE view_id = ?1",
+            let max_generation = transaction.query_row(
+                "SELECT MAX(generation) FROM manifests WHERE view_id = ?1",
                 [view_id],
-                |row| row.get::<_, i64>(0),
+                |row| row.get::<_, Option<i64>>(0),
             )?;
+            let generation = match max_generation {
+                Some(max_generation) => max_generation.checked_add(1).ok_or_else(|| {
+                    ManifestStoreError::GenerationOutOfRange {
+                        generation: u64::try_from(max_generation)
+                            .expect("manifest generations are positive")
+                            + 1,
+                    }
+                })?,
+                None => 1,
+            };
             transaction.execute(
                 "INSERT INTO manifests
                  (view_id, generation, manifest_hash, request_id, created_at)
@@ -887,6 +900,21 @@ fn current_generation(
     Ok(generation.map(|value| u64::try_from(value).expect("manifest generations are positive")))
 }
 
+fn require_view_exists(connection: &Connection, view_id: &str) -> Result<(), ManifestStoreError> {
+    let exists = connection.query_row(
+        "SELECT EXISTS(SELECT 1 FROM views WHERE view_id = ?1)",
+        [view_id],
+        |row| row.get::<_, bool>(0),
+    )?;
+    if exists {
+        Ok(())
+    } else {
+        Err(ManifestStoreError::ViewNotFound {
+            view_id: view_id.to_string(),
+        })
+    }
+}
+
 fn validate_view_identity(view_id: &str, root: &str) -> Result<(), ManifestStoreError> {
     if view_id.is_empty() {
         return Err(ManifestStoreError::EmptyViewId);
@@ -898,7 +926,12 @@ fn validate_view_identity(view_id: &str, root: &str) -> Result<(), ManifestStore
 }
 
 fn canonical_path(path: &str) -> Result<String, ManifestStoreError> {
-    if path.is_empty() || path.starts_with('/') || path.starts_with('\\') {
+    if path.is_empty()
+        || path.starts_with('/')
+        || path.starts_with('\\')
+        || path.contains('\0')
+        || path.contains(':')
+    {
         return Err(ManifestStoreError::InvalidPath {
             path: path.to_string(),
         });
@@ -921,7 +954,7 @@ fn canonical_path(path: &str) -> Result<String, ManifestStoreError> {
             _ => segments.push(segment),
         }
     }
-    if segments.is_empty() || segments[0].ends_with(':') {
+    if segments.is_empty() {
         return Err(ManifestStoreError::InvalidPath {
             path: path.to_string(),
         });
