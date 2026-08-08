@@ -4,7 +4,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use julie_extract_artifact::store::{
     StoreConnectionError, StoreConnectionFactory, StoreLayout, StoreLayoutError, StoreSchemaError,
-    create_store_schema,
+    create_coordinator_schema, create_store_schema,
 };
 use rusqlite::Connection;
 
@@ -24,6 +24,8 @@ fn store_layout_creation_publishes_a_reopenable_generation() {
     assert!(created.spool_dir().is_dir());
     assert!(created.scratch_dir().is_dir());
     assert!(created.bases_dir().is_dir());
+    assert_eq!(created.bases_dir(), created.generation_dir().join("bases"));
+    assert!(!temp.path().join("bases").exists());
 
     let metadata = store_metadata(created.store_db());
     assert_eq!(metadata_value(&metadata, "family_id"), "family-a");
@@ -32,6 +34,11 @@ fn store_layout_creation_publishes_a_reopenable_generation() {
     assert_eq!(metadata_value(&metadata, "min_writer_version"), "2.30.0");
     assert_eq!(metadata_value(&metadata, "created_by_version"), "2.30.0");
     assert_eq!(metadata_value(&metadata, "binary_version"), "2.30.0");
+
+    let store = Connection::open(created.store_db()).unwrap();
+    let coordinator = Connection::open(created.coordinator_db()).unwrap();
+    assert_eq!(pragma_i64(&store, "page_size"), 4096);
+    assert_eq!(pragma_i64(&coordinator, "page_size"), 4096);
 
     let reopened = StoreLayout::open(temp.path()).unwrap();
     assert_eq!(reopened.generation_name(), "gen-001");
@@ -211,6 +218,8 @@ fn writer_reasserts_and_reads_back_required_pragmas() {
     assert_eq!(pragma_i64(&writer, "foreign_keys"), 1);
     assert_eq!(pragma_i64(&writer, "secure_delete"), 1);
     assert_eq!(pragma_i64(&writer, "auto_vacuum"), 2);
+    assert_eq!(pragma_i64(&writer, "page_size"), 4096);
+    assert_eq!(pragma_i64(&writer, "wal_autocheckpoint"), 1000);
 }
 
 #[test]
@@ -297,6 +306,7 @@ fn creation_refuses_to_publish_a_generation_initialized_with_late_auto_vacuum() 
     let temp = TempStore::new("recover-invalid-pragmas");
     let generation = temp.path().join("gen-001");
     fs::create_dir(&generation).unwrap();
+    fs::create_dir(generation.join("bases")).unwrap();
     let store_db = generation.join("store.db");
     let connection = Connection::open(&store_db).unwrap();
     create_store_schema(&connection).unwrap();
@@ -320,6 +330,65 @@ fn creation_refuses_to_publish_a_generation_initialized_with_late_auto_vacuum() 
             pragma: "auto_vacuum",
             expected: 2,
             found: 0,
+        }
+    ));
+    assert!(!temp.path().join("CURRENT").exists());
+}
+
+#[test]
+fn creation_refuses_to_publish_an_adopted_generation_with_the_wrong_page_size() {
+    let temp = TempStore::new("recover-invalid-page-size");
+    let generation = temp.path().join("gen-001");
+    fs::create_dir(&generation).unwrap();
+    fs::create_dir(generation.join("bases")).unwrap();
+    let store_db = generation.join("store.db");
+    let connection = Connection::open(&store_db).unwrap();
+    connection
+        .execute_batch("PRAGMA page_size = 8192; PRAGMA auto_vacuum = INCREMENTAL;")
+        .unwrap();
+    create_store_schema(&connection).unwrap();
+    connection
+        .execute(
+            "INSERT INTO store_meta (key, value) VALUES ('family_id', 'family-a')",
+            [],
+        )
+        .unwrap();
+    assert_eq!(pragma_i64(&connection, "page_size"), 8192);
+    drop(connection);
+
+    let error = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap_err();
+
+    assert!(matches!(
+        error,
+        StoreLayoutError::PragmaMismatch {
+            pragma: "page_size",
+            expected: 4096,
+            found: 8192,
+        }
+    ));
+    assert!(!temp.path().join("CURRENT").exists());
+}
+
+#[test]
+fn creation_refuses_an_existing_coordinator_with_the_wrong_page_size() {
+    let temp = TempStore::new("coord-invalid-page-size");
+    let coordinator_db = temp.path().join("coord.db");
+    let connection = Connection::open(&coordinator_db).unwrap();
+    connection
+        .execute_batch("PRAGMA page_size = 8192; PRAGMA auto_vacuum = INCREMENTAL;")
+        .unwrap();
+    create_coordinator_schema(&connection).unwrap();
+    assert_eq!(pragma_i64(&connection, "page_size"), 8192);
+    drop(connection);
+
+    let error = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap_err();
+
+    assert!(matches!(
+        error,
+        StoreLayoutError::PragmaMismatch {
+            pragma: "page_size",
+            expected: 4096,
+            found: 8192,
         }
     ));
     assert!(!temp.path().join("CURRENT").exists());

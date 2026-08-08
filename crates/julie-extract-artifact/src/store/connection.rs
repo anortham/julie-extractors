@@ -50,13 +50,17 @@ impl StoreConnectionFactory {
         validate_store_schema(&connection)?;
         self.validate_identity_and_floor(&connection, AccessMode::Writer)?;
         connection.execute_batch(
-            "PRAGMA auto_vacuum = INCREMENTAL;
+            "PRAGMA page_size = 4096;
+             PRAGMA auto_vacuum = INCREMENTAL;
              PRAGMA journal_mode = WAL;
+             PRAGMA wal_autocheckpoint = 1000;
              PRAGMA synchronous = FULL;
              PRAGMA foreign_keys = ON;
              PRAGMA secure_delete = ON;",
         )?;
+        verify_integer_pragma(&connection, "page_size", 4096)?;
         verify_text_pragma(&connection, "journal_mode", "wal")?;
+        verify_integer_pragma(&connection, "wal_autocheckpoint", 1000)?;
         verify_integer_pragma(&connection, "synchronous", 2)?;
         verify_integer_pragma(&connection, "foreign_keys", 1)?;
         verify_integer_pragma(&connection, "secure_delete", 1)?;

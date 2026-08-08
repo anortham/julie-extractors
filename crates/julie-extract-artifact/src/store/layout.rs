@@ -42,10 +42,8 @@ impl StoreLayout {
         }
         let spool_dir = root.join("spool");
         let scratch_dir = root.join("scratch");
-        let bases_dir = root.join("bases");
         fs::create_dir_all(&spool_dir)?;
         fs::create_dir_all(&scratch_dir)?;
-        fs::create_dir_all(&bases_dir)?;
 
         let generation_dir = root.join(INITIAL_GENERATION);
         let existing_store_db = match fs::symlink_metadata(&generation_dir) {
@@ -56,6 +54,8 @@ impl StoreLayout {
                 let store_db =
                     canonicalize_within_root(&root, resolved_generation.join("store.db"))?;
                 ensure_path_type(&store_db, PathKind::File)?;
+                let bases_dir = canonicalize_within_root(&root, resolved_generation.join("bases"))?;
+                ensure_path_type(&bases_dir, PathKind::Directory)?;
                 validate_existing_generation(&store_db, family_id)?;
                 Some(store_db)
             }
@@ -72,6 +72,7 @@ impl StoreLayout {
                 fs::remove_dir_all(&partial_generation)?;
             }
             fs::create_dir(&partial_generation)?;
+            fs::create_dir(partial_generation.join("bases"))?;
             let partial_store_db = partial_generation.join("store.db");
             initialize_store_database(&partial_store_db, family_id, creator_version)?;
             sync_file(&partial_store_db)?;
@@ -122,7 +123,7 @@ impl StoreLayout {
         let coordinator_db = canonicalize_within_root(&root, root.join("coord.db"))?;
         let spool_dir = canonicalize_within_root(&root, root.join("spool"))?;
         let scratch_dir = canonicalize_within_root(&root, root.join("scratch"))?;
-        let bases_dir = canonicalize_within_root(&root, root.join("bases"))?;
+        let bases_dir = canonicalize_within_root(&root, generation_dir.join("bases"))?;
         ensure_path_type(&store_db, PathKind::File)?;
         ensure_path_type(&coordinator_db, PathKind::File)?;
         ensure_path_type(&spool_dir, PathKind::Directory)?;
@@ -306,6 +307,7 @@ fn partial_generation_scaffold(name: &str) -> bool {
 
 fn validate_existing_generation(path: &Path, expected: &str) -> Result<(), StoreLayoutError> {
     let connection = Connection::open(path)?;
+    verify_integer_pragma(&connection, "page_size", 4096)?;
     verify_integer_pragma(&connection, "auto_vacuum", 2)?;
     create_store_schema(&connection)?;
     let found = connection.query_row(
@@ -395,7 +397,8 @@ fn initialize_store_database(
 ) -> Result<(), StoreLayoutError> {
     let mut connection = Connection::open(path)?;
     connection.execute_batch(
-        "PRAGMA auto_vacuum = INCREMENTAL;
+        "PRAGMA page_size = 4096;
+         PRAGMA auto_vacuum = INCREMENTAL;
          PRAGMA journal_mode = WAL;
          PRAGMA synchronous = FULL;
          PRAGMA foreign_keys = ON;
@@ -425,7 +428,8 @@ fn initialize_store_database(
 fn initialize_coordinator_database(path: &Path) -> Result<(), StoreLayoutError> {
     let connection = Connection::open(path)?;
     connection.execute_batch(
-        "PRAGMA auto_vacuum = INCREMENTAL;
+        "PRAGMA page_size = 4096;
+         PRAGMA auto_vacuum = INCREMENTAL;
          PRAGMA journal_mode = WAL;
          PRAGMA synchronous = FULL;
          PRAGMA foreign_keys = ON;
@@ -439,6 +443,7 @@ fn initialize_coordinator_database(path: &Path) -> Result<(), StoreLayoutError> 
 }
 
 fn verify_creation_pragmas(connection: &Connection) -> Result<(), StoreLayoutError> {
+    verify_integer_pragma(connection, "page_size", 4096)?;
     verify_text_pragma(connection, "journal_mode", "wal")?;
     verify_integer_pragma(connection, "synchronous", 2)?;
     verify_integer_pragma(connection, "foreign_keys", 1)?;
