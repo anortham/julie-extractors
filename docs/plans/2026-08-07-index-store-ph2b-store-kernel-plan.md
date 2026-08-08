@@ -640,11 +640,11 @@ wires import only when its production path exists; Task 8 adds update/delete onl
 
 **Acceptance:**
 
-- [ ] The final import form parses through the internal contract; update/delete/future verbs do
+- [x] The final import form parses through the internal contract; update/delete/future verbs do
       not yet parse and no top-level store verb exists.
-- [ ] Legacy CLI contract tests pass unchanged.
-- [ ] Reports always name request, family, view, state, and exact failure class.
-- [ ] No public success or not-implemented stub exists.
+- [x] Legacy CLI contract tests pass unchanged.
+- [x] Reports always name request, family, view, state, and exact failure class.
+- [x] No public success or not-implemented stub exists.
 
 ### Task 7: Expose and implement queued `store import`
 
