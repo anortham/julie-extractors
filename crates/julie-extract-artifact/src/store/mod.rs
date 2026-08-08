@@ -1,5 +1,7 @@
 mod connection;
 mod layout;
+mod log;
+mod manifest;
 mod model;
 mod pragmas;
 mod rows;
@@ -8,6 +10,12 @@ mod writer;
 
 pub use connection::{StoreConnectionError, StoreConnectionFactory};
 pub use layout::{StoreLayout, StoreLayoutError};
+pub use log::{StoreLog, StoreLogEntry, StoreLogError, StoreLogRecord};
+pub use manifest::{
+    BuiltManifest, MANIFEST_HASH_ALGORITHM, MANIFEST_PUBLISH_MAX_RETRIES, ManifestBuilder,
+    ManifestEntry, ManifestEntryStatus, ManifestPublishDisposition, ManifestPublishResult,
+    ManifestStore, ManifestStoreError, ViewEnsureDisposition,
+};
 pub use model::{
     StoreFileVersion, StoreLevel, StoreProjectionError, StoreReferenceSite, StoreRowCounts,
 };
