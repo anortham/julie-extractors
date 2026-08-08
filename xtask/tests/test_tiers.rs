@@ -143,6 +143,20 @@ fn test_contract_tier_runs_golden_and_capability_gates_with_features() {
                 [
                     "test",
                     "-p",
+                    "julie-extract-cli",
+                    "--features",
+                    "test-store-resolution-contract",
+                    "--test",
+                    "store_resolution_contract",
+                    "--",
+                    "--test-threads=1",
+                ]
+            ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
                     "julie-extract-artifact",
                     "--test",
                     "schema_contract",

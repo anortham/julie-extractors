@@ -14,6 +14,9 @@ pub enum StoreOperation {
     Import,
     Update,
     Delete,
+    Resolve,
+    Export,
+    FromArtifact,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -21,6 +24,7 @@ pub enum StoreOperation {
 pub enum StoreRequestedLevel {
     L1,
     Full,
+    NotApplicable,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -69,12 +73,26 @@ pub struct StoreRowCounts {
 #[serde(rename_all = "snake_case")]
 pub enum StoreResolutionState {
     Unbound,
+    Converging,
+    Exact,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StoreResolutionReport {
     pub state: StoreResolutionState,
     pub exact_at_matches: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub base_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub delta_generation: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub exact_at_generation: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub gap_lower_bound: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub exact_gap_rows: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub exact_gap_files: Option<u64>,
 }
 
 impl Default for StoreResolutionReport {
@@ -82,6 +100,12 @@ impl Default for StoreResolutionReport {
         Self {
             state: StoreResolutionState::Unbound,
             exact_at_matches: false,
+            base_id: None,
+            delta_generation: None,
+            exact_at_generation: None,
+            gap_lower_bound: None,
+            exact_gap_rows: None,
+            exact_gap_files: None,
         }
     }
 }
@@ -125,6 +149,9 @@ pub enum StoreFailureClass {
     IdempotencyConflict,
     RequestTimeout,
     Busy,
+    ResolutionInputIncomplete,
+    ResolutionFailed,
+    ResolutionNotExact,
     Internal,
 }
 
@@ -145,6 +172,9 @@ impl StoreFailureClass {
             Self::IdempotencyConflict => "idempotency_conflict",
             Self::RequestTimeout => "request_timeout",
             Self::Busy => "busy",
+            Self::ResolutionInputIncomplete => "resolution_input_incomplete",
+            Self::ResolutionFailed => "resolution_failed",
+            Self::ResolutionNotExact => "resolution_not_exact",
             Self::Internal => "internal",
         }
     }
@@ -379,6 +409,9 @@ impl StoreCommandOutcome {
             StoreOperation::Import => "import",
             StoreOperation::Update => "update",
             StoreOperation::Delete => "delete",
+            StoreOperation::Resolve => "resolve",
+            StoreOperation::Export => "export",
+            StoreOperation::FromArtifact => "from_artifact",
         });
         output.push('\n');
         output.push_str("request: ");
@@ -405,6 +438,8 @@ impl StoreCommandOutcome {
         output.push_str("resolution: state=");
         output.push_str(match self.report.resolution.state {
             StoreResolutionState::Unbound => "unbound",
+            StoreResolutionState::Converging => "converging",
+            StoreResolutionState::Exact => "exact",
         });
         output.push_str(" exact_at_matches=");
         output.push_str(if self.report.resolution.exact_at_matches {
@@ -413,6 +448,21 @@ impl StoreCommandOutcome {
             "false"
         });
         output.push('\n');
+        if self.report.operation == StoreOperation::Resolve {
+            output.push_str("resolution_detail: base=");
+            output.push_str(self.report.resolution.base_id.as_deref().unwrap_or("none"));
+            output.push_str(" delta_generation=");
+            push_optional_u64(&mut output, self.report.resolution.delta_generation);
+            output.push_str(" exact_at_generation=");
+            push_optional_u64(&mut output, self.report.resolution.exact_at_generation);
+            output.push_str(" gap_lower_bound=");
+            push_optional_u64(&mut output, self.report.resolution.gap_lower_bound);
+            output.push_str(" exact_gap_rows=");
+            push_optional_u64(&mut output, self.report.resolution.exact_gap_rows);
+            output.push_str(" exact_gap_files=");
+            push_optional_u64(&mut output, self.report.resolution.exact_gap_files);
+            output.push('\n');
+        }
         output.push_str("state: ");
         output.push_str(self.report.state.as_str());
         output.push('\n');
@@ -420,6 +470,7 @@ impl StoreCommandOutcome {
         output.push_str(match self.report.requested_level {
             StoreRequestedLevel::L1 => "l1",
             StoreRequestedLevel::Full => "full",
+            StoreRequestedLevel::NotApplicable => "not_applicable",
         });
         output.push('\n');
         output.push_str("completion: ");
@@ -499,6 +550,13 @@ impl StoreCommandOutcome {
 
     pub fn write_json<W: Write>(&self, mut writer: W) -> io::Result<()> {
         writer.write_all(self.render_json().as_bytes())
+    }
+}
+
+fn push_optional_u64(output: &mut String, value: Option<u64>) {
+    match value {
+        Some(value) => output.push_str(&value.to_string()),
+        None => output.push_str("none"),
     }
 }
 

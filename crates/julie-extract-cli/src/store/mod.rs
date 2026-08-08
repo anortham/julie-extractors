@@ -4,6 +4,7 @@ mod executor;
 pub mod import;
 pub mod report;
 pub mod resolution_session;
+mod resolve;
 #[cfg(feature = "test-store-contract")]
 pub mod test_support;
 mod update;
@@ -15,13 +16,14 @@ pub fn dispatch(args: args::StoreArgs) -> StoreExecutionOutcome {
         args::StoreCommand::Import(args) => import::run(args),
         args::StoreCommand::Update(args) => update::run(args),
         args::StoreCommand::Delete(args) => delete::run(args),
+        args::StoreCommand::Resolve(args) => resolve::run(args),
     }
 }
 
 pub use args::{
     DEFAULT_REQUEST_TIMEOUT_SECONDS, MAX_REQUEST_TIMEOUT_SECONDS, MAX_STORE_IDENTIFIER_BYTES,
     MAX_STORE_PATH_BYTES, StoreArgs, StoreCommand, StoreDeleteArgs, StoreImportArgs, StoreLevelArg,
-    StoreRequestControls, StoreScanControls, StoreUpdateArgs,
+    StoreRequestControls, StoreResolveArgs, StoreScanControls, StoreUpdateArgs,
 };
 pub use report::{
     STORE_EXIT_INCOMPATIBLE, STORE_EXIT_OPERATIONAL_FAILURE, STORE_EXIT_SUCCESS, STORE_EXIT_USAGE,

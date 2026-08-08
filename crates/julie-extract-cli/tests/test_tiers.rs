@@ -5,9 +5,9 @@ use std::path::PathBuf;
 fn legacy_resolution_oracle_is_feature_gated_out_of_default_suite() {
     let crate_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let manifest = read(&crate_root.join("Cargo.toml"));
-    assert!(manifest.contains(
-        "test-store-resolution-contract = [\"julie-extract-artifact/test-store-resolution\"]"
-    ));
+    assert!(manifest.contains("test-store-resolution-contract = ["));
+    assert!(manifest.contains("\"julie-extract-artifact/test-store-crash\""));
+    assert!(manifest.contains("\"julie-extract-artifact/test-store-resolution\""));
 
     let harness = read(&crate_root.join("tests/resolution_session_contract.rs"));
     assert!(harness.starts_with("#![cfg(feature = \"test-store-resolution-contract\")]"));

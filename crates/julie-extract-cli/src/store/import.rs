@@ -808,6 +808,12 @@ pub(crate) fn classify_failure(message: &str) -> StoreFailureClass {
         StoreFailureClass::ViewRootMismatch
     } else if message.contains("request_timeout") {
         StoreFailureClass::RequestTimeout
+    } else if message.contains("resolution_input_incomplete") {
+        StoreFailureClass::ResolutionInputIncomplete
+    } else if message.contains("resolution_not_exact") {
+        StoreFailureClass::ResolutionNotExact
+    } else if message.contains("resolution_failed") {
+        StoreFailureClass::ResolutionFailed
     } else if message.contains("lease") {
         StoreFailureClass::Busy
     } else {

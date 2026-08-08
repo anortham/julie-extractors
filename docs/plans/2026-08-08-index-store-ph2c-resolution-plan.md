@@ -653,11 +653,11 @@ No worker edits another worker's files, reverts shared changes, or commits unrel
 
 **Acceptance:**
 
-- [ ] Public resolve is real, idempotent, resumable, and never extracts source.
-- [ ] At most one resolve claim exists per family; stale/dead claimant takeover is fenced.
-- [ ] Long compute holds no writer lease and heartbeat loss prevents publication.
-- [ ] Reports truthfully distinguish unbound/converging/exact and request-specific generations.
-- [ ] Existing import/update/delete scheduler and takeover contracts remain green.
+- [x] Public resolve is real, idempotent, resumable, and never extracts source.
+- [x] At most one resolve claim exists per family; stale/dead claimant takeover is fenced.
+- [x] Long compute holds no writer lease and heartbeat loss prevents publication.
+- [x] Reports truthfully distinguish unbound/converging/exact and request-specific generations.
+- [x] Existing import/update/delete scheduler and takeover contracts remain green.
 
 ## Task 10: Add Atomic Pinned Store Export
 

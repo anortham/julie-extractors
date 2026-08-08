@@ -147,6 +147,123 @@ fn schema_v2_request_kinds_roundtrip_and_only_one_resolve_may_be_claimed() {
 }
 
 #[test]
+fn resolve_claim_heartbeats_and_stale_takeover_are_fenced_without_a_writer_lease() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let mut coordinator = StoreCoordinator::open(&layout).unwrap();
+    coordinator
+        .enqueue(CoordinatorRequest::new(
+            "resolve-1",
+            "resolve-key-1",
+            RequestKind::Resolve,
+            "{}",
+            "requester",
+            30_000,
+            1,
+        ))
+        .unwrap();
+    coordinator
+        .enqueue(CoordinatorRequest::new(
+            "resolve-2",
+            "resolve-key-2",
+            RequestKind::Resolve,
+            "{}",
+            "requester",
+            30_000,
+            2,
+        ))
+        .unwrap();
+
+    assert!(
+        coordinator
+            .claim_resolve("resolve-1", "resolver-a", 10, 5_000)
+            .unwrap()
+    );
+    assert!(
+        !coordinator
+            .claim_resolve("resolve-2", "resolver-b", 20, 5_000)
+            .unwrap()
+    );
+    assert!(
+        coordinator
+            .heartbeat_resolve("resolve-1", "resolver-a", 30)
+            .unwrap()
+    );
+    assert!(
+        coordinator
+            .resolve_claim_is_current("resolve-1", "resolver-a")
+            .unwrap()
+    );
+    assert!(coordinator.lease().unwrap().is_none());
+
+    assert!(
+        coordinator
+            .claim_resolve("resolve-1", "resolver-b", 5_031, 5_000)
+            .unwrap()
+    );
+    assert!(
+        !coordinator
+            .heartbeat_resolve("resolve-1", "resolver-a", 5_032)
+            .unwrap()
+    );
+    assert!(
+        !coordinator
+            .fail_resolve("resolve-1", "resolver-a", "stale", 5_033)
+            .unwrap()
+    );
+    assert!(
+        coordinator
+            .resolve_claim_is_current("resolve-1", "resolver-b")
+            .unwrap()
+    );
+    assert!(coordinator.lease().unwrap().is_none());
+    append_terminal(&layout, "resolve-1", "{\"resolved\":true}");
+    assert!(matches!(
+        coordinator.commit_resolve("resolve-1", "resolver-a"),
+        Err(CoordinatorError::LeaseLost)
+    ));
+    assert!(
+        coordinator
+            .commit_resolve("resolve-1", "resolver-b")
+            .unwrap()
+            .committed_in_fact
+    );
+}
+
+#[test]
+fn dead_resolve_claimant_is_taken_over_before_the_heartbeat_stales() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let mut live = StoreCoordinator::open_with_liveness(&layout, FixedLiveness(true)).unwrap();
+    live.enqueue(CoordinatorRequest::new(
+        "resolve-1",
+        "resolve-key-1",
+        RequestKind::Resolve,
+        "{}",
+        "requester",
+        30_000,
+        1,
+    ))
+    .unwrap();
+    assert!(
+        live.claim_resolve("resolve-1", "cli-41", 10, 5_000)
+            .unwrap()
+    );
+
+    let dead = StoreCoordinator::open_with_liveness(&layout, FixedLiveness(false)).unwrap();
+    assert!(
+        dead.claim_resolve("resolve-1", "cli-42", 11, 5_000)
+            .unwrap()
+    );
+    assert!(!dead.heartbeat_resolve("resolve-1", "cli-41", 12).unwrap());
+    assert!(
+        dead.resolve_claim_is_current("resolve-1", "cli-42")
+            .unwrap()
+    );
+    assert!(dead.lease().unwrap().is_none());
+}
+
+#[test]
 fn terminal_log_reconciles_a_coord_tear_without_reexecution() {
     let temp = TempDir::new();
     let layout = layout(temp.path());

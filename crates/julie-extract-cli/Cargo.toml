@@ -40,7 +40,10 @@ test-heavy-contracts = []
 test-store-contract = ["julie-extract-artifact/test-store-crash"]
 # Real-CLI legacy resolution oracle; run from `cargo xtask test contract` with
 # one test thread because each case launches an extractor subprocess.
-test-store-resolution-contract = ["julie-extract-artifact/test-store-resolution"]
+test-store-resolution-contract = [
+    "julie-extract-artifact/test-store-crash",
+    "julie-extract-artifact/test-store-resolution",
+]
 
 [lints]
 workspace = true
