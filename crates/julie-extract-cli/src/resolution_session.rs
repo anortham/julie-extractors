@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashSet, VecDeque};
 
 use julie_extract_artifact::resolution_store::{
     self, IdentifierWorkItem, Outcome, PendingWorkItem, ResolutionCounts, ResolutionReportRow,
@@ -9,6 +9,8 @@ use rusqlite::Transaction;
 
 pub use crate::resolution::IdentifierLocator;
 use crate::resolution::{self, WorkspaceCandidateIndex};
+
+pub const DEFAULT_RESOLUTION_WINDOW_SIZE: usize = 512;
 
 pub trait SessionSourceKey {
     fn source_key(&self) -> &str;
@@ -182,6 +184,16 @@ pub struct CurrentResolutionOverlay {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub enum ResolutionPhaseChunk {
+    ResolvedPending(Vec<SessionResolvedPendingWorkItem>),
+    ResolvedIdentifiers(Vec<SessionResolvedIdentifierWorkItem>),
+    Pending(Vec<PendingWorkItem>),
+    Relationships(Vec<SessionRelationship>),
+    Identifiers(Vec<IdentifierWorkItem>),
+    WorkspaceGated(std::collections::BTreeSet<String>),
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum ResolutionWrite {
     Pending {
         pending_relationship_id: SemanticPendingRelationshipId,
@@ -276,49 +288,52 @@ pub trait ResolutionSession {
     fn corpus_identity(&self) -> Result<ResolutionCorpusIdentity, Self::Error>;
     fn prior_resolution_state(&mut self) -> Result<Option<SessionResolutionState>, Self::Error>;
     fn current_revision(&mut self) -> Result<i64, Self::Error>;
-    fn load_candidate_index(&mut self) -> Result<WorkspaceCandidateIndex, Self::Error>;
-    fn select_worklists(
+    fn open_resolution_pass(
         &mut self,
         request: &ResolutionPassRequest,
-        index: &WorkspaceCandidateIndex,
     ) -> Result<ResolutionWorklists, Self::Error>;
-    fn load_identifier_locator(
+    fn qualify_version(&self, source_key: &str) -> Result<SemanticVersionId, Self::Error>;
+    fn resolve_edge(
         &mut self,
-        scope: &ResolutionWorklistScope,
-    ) -> Result<IdentifierLocator, Self::Error>;
-    fn qualify_version(&self, source_key: &str) -> SemanticVersionId;
+        edge: &resolution::UnresolvedEdge,
+    ) -> Result<resolution::TierOutcome, Self::Error>;
+    fn target_symbol_name(
+        &mut self,
+        symbol_id: &SemanticSymbolId,
+    ) -> Result<Option<String>, Self::Error>;
     #[allow(clippy::too_many_arguments)]
     fn locate_identifier(
         &self,
-        locator: &IdentifierLocator,
         version: &SemanticVersionId,
         name: &str,
         start_byte: Option<i64>,
         end_byte: Option<i64>,
         start_line: i64,
-    ) -> Option<String>;
-    fn load_covered_identifiers(
+    ) -> Result<Option<String>, Self::Error>;
+    fn identifier_is_covered(
         &mut self,
-        index: &WorkspaceCandidateIndex,
-        locator: &IdentifierLocator,
-        scope: &ResolutionWorklistScope,
-    ) -> Result<HashSet<SemanticIdentifierId>, Self::Error>;
-    fn read_current_overlay(
+        identifier_id: &SemanticIdentifierId,
+    ) -> Result<bool, Self::Error>;
+    fn propagation_is_covered(
+        &mut self,
+        identifier_id: &SemanticIdentifierId,
+    ) -> Result<bool, Self::Error>;
+    fn propagation_is_owned(
+        &mut self,
+        identifier_id: &SemanticIdentifierId,
+    ) -> Result<bool, Self::Error>;
+    fn next_phase_chunk(
         &mut self,
         worklists: &ResolutionWorklists,
-        index: &WorkspaceCandidateIndex,
-        locator: &IdentifierLocator,
-        covered: &HashSet<SemanticIdentifierId>,
-    ) -> Result<CurrentResolutionOverlay, Self::Error>;
+    ) -> Result<Option<ResolutionPhaseChunk>, Self::Error>;
     fn flush(&mut self, writes: ResolutionWriteBatch) -> Result<ResolutionCounts, Self::Error>;
     fn aggregate_report(&mut self) -> Result<Vec<ResolutionReportRow>, Self::Error>;
     fn prepare_shadow(
         &mut self,
         worklists: &ResolutionWorklists,
-        index: &WorkspaceCandidateIndex,
         revision: i64,
     ) -> Result<(), Self::Error> {
-        let _ = (worklists, index, revision);
+        let _ = (worklists, revision);
         Ok(())
     }
     fn verify_shadow(&mut self) -> Result<(), Self::Error> {
@@ -331,6 +346,16 @@ pub struct LegacyResolutionSession<'session, 'connection> {
     scope: &'session ResolutionScopeInput,
     crossover: f64,
     shadow_baseline: Option<resolution::OverlaySnapshot>,
+    index: Option<WorkspaceCandidateIndex>,
+    locator: Option<IdentifierLocator>,
+    covered: HashSet<SemanticIdentifierId>,
+    propagation_covered: Option<HashSet<SemanticIdentifierId>>,
+    propagation_owned: Option<HashSet<SemanticIdentifierId>>,
+    phase: Option<ResolutionPhase>,
+    phase_chunks: VecDeque<ResolutionPhaseChunk>,
+    active_worklists: Option<ResolutionWorklists>,
+    window_size: usize,
+    max_emitted_chunk_size: usize,
 }
 
 impl<'session, 'connection> LegacyResolutionSession<'session, 'connection> {
@@ -344,7 +369,57 @@ impl<'session, 'connection> LegacyResolutionSession<'session, 'connection> {
             scope,
             crossover,
             shadow_baseline: None,
+            index: None,
+            locator: None,
+            covered: HashSet::new(),
+            propagation_covered: None,
+            propagation_owned: None,
+            phase: None,
+            phase_chunks: VecDeque::new(),
+            active_worklists: None,
+            window_size: DEFAULT_RESOLUTION_WINDOW_SIZE,
+            max_emitted_chunk_size: 0,
         }
+    }
+
+    pub fn with_window_size(mut self, window_size: usize) -> Self {
+        self.window_size = window_size.max(1);
+        self
+    }
+
+    pub fn max_emitted_chunk_size(&self) -> usize {
+        self.max_emitted_chunk_size
+    }
+
+    fn pop_phase_chunk(&mut self) -> Option<ResolutionPhaseChunk> {
+        let chunk = self.phase_chunks.pop_front()?;
+        let len = match &chunk {
+            ResolutionPhaseChunk::ResolvedPending(rows) => rows.len(),
+            ResolutionPhaseChunk::ResolvedIdentifiers(rows) => rows.len(),
+            ResolutionPhaseChunk::Pending(rows) => rows.len(),
+            ResolutionPhaseChunk::Relationships(rows) => rows.len(),
+            ResolutionPhaseChunk::Identifiers(rows) => rows.len(),
+            ResolutionPhaseChunk::WorkspaceGated(rows) => rows.len(),
+        };
+        self.max_emitted_chunk_size = self.max_emitted_chunk_size.max(len);
+        Some(chunk)
+    }
+
+    pub(crate) fn seed_pass(
+        &mut self,
+        index: WorkspaceCandidateIndex,
+        locator: IdentifierLocator,
+        worklists: &ResolutionWorklists,
+    ) -> Result<(), rusqlite::Error> {
+        let files = Self::legacy_files(&worklists.scope);
+        let covered =
+            resolution::covered_identifiers(self.transaction, &index, &locator, files.as_deref())?;
+        self.covered = self.semantic_identifier_ids(covered)?;
+        self.index = Some(index);
+        self.locator = Some(locator);
+        self.active_worklists = Some(worklists.clone());
+        self.phase = None;
+        Ok(())
     }
 
     fn legacy_files(scope: &ResolutionWorklistScope) -> Option<Vec<&str>> {
@@ -476,15 +551,11 @@ impl ResolutionSession for LegacyResolutionSession<'_, '_> {
         resolution::current_revision(self.transaction)
     }
 
-    fn load_candidate_index(&mut self) -> Result<WorkspaceCandidateIndex, Self::Error> {
-        resolution::load_index(self.transaction)
-    }
-
-    fn select_worklists(
+    fn open_resolution_pass(
         &mut self,
         request: &ResolutionPassRequest,
-        _index: &WorkspaceCandidateIndex,
     ) -> Result<ResolutionWorklists, Self::Error> {
+        let index = resolution::load_index(self.transaction)?;
         let (scope, effective_full, recheck_names, recheck_versions, selected_versions) =
             if request.full {
                 (
@@ -497,7 +568,7 @@ impl ResolutionSession for LegacyResolutionSession<'_, '_> {
             } else {
                 let revision = resolution::current_revision(self.transaction)?;
                 let delta =
-                    resolution::delta_scope_files(self.transaction, self.scope, _index, revision)?;
+                    resolution::delta_scope_files(self.transaction, self.scope, &index, revision)?;
                 let effective_full = resolution::delta_scope_crosses_over(
                     self.transaction,
                     self.scope.changed_file_ids.len(),
@@ -541,7 +612,7 @@ impl ResolutionSession for LegacyResolutionSession<'_, '_> {
             .cloned()
             .map(SemanticVersionId::LegacyFile)
             .collect();
-        Ok(ResolutionWorklists {
+        let worklists = ResolutionWorklists {
             scope,
             effective_full,
             recheck_names,
@@ -550,55 +621,124 @@ impl ResolutionSession for LegacyResolutionSession<'_, '_> {
             changed_versions,
             phase: ResolutionPhase::ResolvedPending,
             repair_identifiers: Vec::new(),
-        })
+        };
+        let files = Self::legacy_files(&worklists.scope);
+        let locator = IdentifierLocator::load_scoped(self.transaction, files.as_deref())?;
+        let covered =
+            resolution::covered_identifiers(self.transaction, &index, &locator, files.as_deref())?;
+        self.covered = self.semantic_identifier_ids(covered)?;
+        self.index = Some(index);
+        self.locator = Some(locator);
+        self.propagation_covered = None;
+        self.propagation_owned = None;
+        self.phase = None;
+        self.phase_chunks.clear();
+        self.active_worklists = Some(worklists.clone());
+        Ok(worklists)
     }
 
-    fn load_identifier_locator(
+    fn qualify_version(&self, source_key: &str) -> Result<SemanticVersionId, Self::Error> {
+        Ok(SemanticVersionId::LegacyFile(source_key.to_string()))
+    }
+
+    fn resolve_edge(
         &mut self,
-        scope: &ResolutionWorklistScope,
-    ) -> Result<IdentifierLocator, Self::Error> {
-        let files = Self::legacy_files(scope);
-        IdentifierLocator::load_scoped(self.transaction, files.as_deref())
+        edge: &resolution::UnresolvedEdge,
+    ) -> Result<resolution::TierOutcome, Self::Error> {
+        let result = resolution::resolve_with_candidate_lookup(
+            self.index.as_ref().ok_or(rusqlite::Error::InvalidQuery)?,
+            edge,
+        );
+        Ok(result.unwrap_or_else(|never| match never {}))
     }
 
-    fn qualify_version(&self, source_key: &str) -> SemanticVersionId {
-        SemanticVersionId::LegacyFile(source_key.to_string())
+    fn target_symbol_name(
+        &mut self,
+        symbol_id: &SemanticSymbolId,
+    ) -> Result<Option<String>, Self::Error> {
+        Ok(self
+            .index
+            .as_ref()
+            .and_then(|index| index.symbol_name(symbol_id))
+            .map(str::to_string))
     }
 
     fn locate_identifier(
         &self,
-        locator: &IdentifierLocator,
         version: &SemanticVersionId,
         name: &str,
         start_byte: Option<i64>,
         end_byte: Option<i64>,
         start_line: i64,
-    ) -> Option<String> {
+    ) -> Result<Option<String>, Self::Error> {
         let SemanticVersionId::LegacyFile(source_key) = version else {
-            return None;
+            return Ok(None);
         };
-        locator.locate(source_key, name, start_byte, end_byte, start_line)
+        Ok(self
+            .locator
+            .as_ref()
+            .and_then(|locator| locator.locate(source_key, name, start_byte, end_byte, start_line)))
     }
 
-    fn load_covered_identifiers(
+    fn identifier_is_covered(
         &mut self,
-        index: &WorkspaceCandidateIndex,
-        locator: &IdentifierLocator,
-        scope: &ResolutionWorklistScope,
-    ) -> Result<HashSet<SemanticIdentifierId>, Self::Error> {
-        let files = Self::legacy_files(scope);
-        let covered =
-            resolution::covered_identifiers(self.transaction, index, locator, files.as_deref())?;
-        self.semantic_identifier_ids(covered)
+        identifier_id: &SemanticIdentifierId,
+    ) -> Result<bool, Self::Error> {
+        Ok(self.covered.contains(identifier_id))
     }
 
-    fn read_current_overlay(
+    fn propagation_is_covered(
+        &mut self,
+        identifier_id: &SemanticIdentifierId,
+    ) -> Result<bool, Self::Error> {
+        if self.propagation_covered.is_none() {
+            let worklists = self
+                .active_worklists
+                .as_ref()
+                .ok_or(rusqlite::Error::InvalidQuery)?;
+            let files = (!worklists.effective_full)
+                .then(|| Self::legacy_version_refs(&worklists.selected_versions));
+            let local_ids = resolution::propagation_covered_identifiers(
+                self.transaction,
+                self.index.as_ref().ok_or(rusqlite::Error::InvalidQuery)?,
+                self.locator.as_ref().ok_or(rusqlite::Error::InvalidQuery)?,
+                files.as_deref(),
+            )?;
+            self.propagation_covered = Some(self.semantic_identifier_ids(local_ids)?);
+        }
+        Ok(self
+            .propagation_covered
+            .as_ref()
+            .is_some_and(|ids| ids.contains(identifier_id)))
+    }
+
+    fn propagation_is_owned(
+        &mut self,
+        identifier_id: &SemanticIdentifierId,
+    ) -> Result<bool, Self::Error> {
+        if self.propagation_owned.is_none() {
+            let raw_covered: HashSet<String> =
+                self.covered.iter().map(|id| id.local_id.clone()).collect();
+            let local_ids =
+                resolution::propagation_owned_identifiers(self.transaction, &raw_covered)?;
+            self.propagation_owned = Some(self.semantic_identifier_ids(local_ids)?);
+        }
+        Ok(self
+            .propagation_owned
+            .as_ref()
+            .is_some_and(|ids| ids.contains(identifier_id)))
+    }
+
+    fn next_phase_chunk(
         &mut self,
         worklists: &ResolutionWorklists,
-        index: &WorkspaceCandidateIndex,
-        locator: &IdentifierLocator,
-        covered: &HashSet<SemanticIdentifierId>,
-    ) -> Result<CurrentResolutionOverlay, Self::Error> {
+    ) -> Result<Option<ResolutionPhaseChunk>, Self::Error> {
+        if self.phase == Some(worklists.phase) {
+            return Ok(self.pop_phase_chunk());
+        }
+        let index = self.index.as_ref().ok_or(rusqlite::Error::InvalidQuery)?;
+        let locator = self.locator.as_ref().ok_or(rusqlite::Error::InvalidQuery)?;
+        let covered = &self.covered;
         let mut overlay = CurrentResolutionOverlay::default();
         let names: Vec<&str> = worklists.recheck_names.iter().map(String::as_str).collect();
         let recheck_files = Self::legacy_version_refs(&worklists.recheck_versions);
@@ -738,7 +878,53 @@ impl ResolutionSession for LegacyResolutionSession<'_, '_> {
                     resolution::workspace_tier2_gated_languages(self.transaction)?;
             }
         }
-        Ok(overlay)
+        let chunk = match worklists.phase {
+            ResolutionPhase::ResolvedPending => {
+                ResolutionPhaseChunk::ResolvedPending(overlay.resolved_pending)
+            }
+            ResolutionPhase::ResolvedIdentifiers => {
+                ResolutionPhaseChunk::ResolvedIdentifiers(overlay.resolved_identifiers)
+            }
+            ResolutionPhase::Pending => ResolutionPhaseChunk::Pending(overlay.pending),
+            ResolutionPhase::Relationships => {
+                ResolutionPhaseChunk::Relationships(overlay.relationships)
+            }
+            ResolutionPhase::Identifiers => ResolutionPhaseChunk::Identifiers(overlay.identifiers),
+            ResolutionPhase::WorkspaceGated => {
+                ResolutionPhaseChunk::WorkspaceGated(overlay.gated_languages)
+            }
+            ResolutionPhase::PropagationCovered | ResolutionPhase::PropagationOwned => {
+                return Ok(None);
+            }
+        };
+        self.phase = Some(worklists.phase);
+        self.phase_chunks.clear();
+        match chunk {
+            ResolutionPhaseChunk::ResolvedPending(rows) => self.phase_chunks.extend(
+                rows.chunks(self.window_size)
+                    .map(|chunk| ResolutionPhaseChunk::ResolvedPending(chunk.to_vec())),
+            ),
+            ResolutionPhaseChunk::ResolvedIdentifiers(rows) => self.phase_chunks.extend(
+                rows.chunks(self.window_size)
+                    .map(|chunk| ResolutionPhaseChunk::ResolvedIdentifiers(chunk.to_vec())),
+            ),
+            ResolutionPhaseChunk::Pending(rows) => self.phase_chunks.extend(
+                rows.chunks(self.window_size)
+                    .map(|chunk| ResolutionPhaseChunk::Pending(chunk.to_vec())),
+            ),
+            ResolutionPhaseChunk::Relationships(rows) => self.phase_chunks.extend(
+                rows.chunks(self.window_size)
+                    .map(|chunk| ResolutionPhaseChunk::Relationships(chunk.to_vec())),
+            ),
+            ResolutionPhaseChunk::Identifiers(rows) => self.phase_chunks.extend(
+                rows.chunks(self.window_size)
+                    .map(|chunk| ResolutionPhaseChunk::Identifiers(chunk.to_vec())),
+            ),
+            ResolutionPhaseChunk::WorkspaceGated(rows) => self
+                .phase_chunks
+                .push_back(ResolutionPhaseChunk::WorkspaceGated(rows)),
+        }
+        Ok(self.pop_phase_chunk())
     }
 
     fn flush(&mut self, writes: ResolutionWriteBatch) -> Result<ResolutionCounts, Self::Error> {
@@ -788,6 +974,8 @@ impl ResolutionSession for LegacyResolutionSession<'_, '_> {
             }
         }
         buffer.flush(self.transaction)?;
+        self.propagation_covered = None;
+        self.propagation_owned = None;
         Ok(ResolutionCounts::default())
     }
 
@@ -798,12 +986,15 @@ impl ResolutionSession for LegacyResolutionSession<'_, '_> {
     fn prepare_shadow(
         &mut self,
         worklists: &ResolutionWorklists,
-        index: &WorkspaceCandidateIndex,
         revision: i64,
     ) -> Result<(), Self::Error> {
         if !worklists.effective_full {
-            self.shadow_baseline =
-                resolution::capture_legacy_shadow(self.transaction, self.scope, index, revision)?;
+            self.shadow_baseline = resolution::capture_legacy_shadow(
+                self.transaction,
+                self.scope,
+                self.index.as_ref().ok_or(rusqlite::Error::InvalidQuery)?,
+                revision,
+            )?;
         }
         Ok(())
     }

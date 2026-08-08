@@ -12,6 +12,29 @@ use super::pragmas::{WriterPragmaProfile, configure_writer_pragmas};
 
 pub const RESOLUTION_BASE_USER_VERSION: i64 = 1;
 pub const RESOLUTION_BASE_FORMAT_VERSION: &str = "1";
+
+fn configure_resolution_scratch_connection(
+    connection: &Connection,
+) -> Result<(), ResolutionValidationError> {
+    configure_writer_pragmas(connection, WriterPragmaProfile::Bulk).map_err(|error| {
+        ResolutionValidationError::InvalidMetadata {
+            key: "pragma".to_string(),
+            value: format!("{error:?}"),
+        }
+    })
+}
+
+pub fn create_resolution_scratch_connection(
+    path: impl AsRef<Path>,
+) -> Result<Connection, ResolutionValidationError> {
+    let path = path.as_ref();
+    validate_output_path(path)?;
+    ensure_parent(path)?;
+    reject_existing_file(path)?;
+    let connection = Connection::open(path)?;
+    configure_resolution_scratch_connection(&connection)?;
+    Ok(connection)
+}
 pub const RESOLUTION_BASE_SQL: &str = r#"
 PRAGMA user_version = 1;
 
@@ -151,6 +174,10 @@ pub enum ResolutionValidationError {
     VersionRootMissing {
         version_id: i64,
     },
+    IdentifierTotalityViolation {
+        version_id: i64,
+        identifier_id: String,
+    },
     PathEscapesRoot {
         path: PathBuf,
         root: PathBuf,
@@ -206,6 +233,13 @@ impl fmt::Display for ResolutionValidationError {
             Self::VersionRootMissing { version_id } => {
                 write!(formatter, "resolution version root {version_id} is missing")
             }
+            Self::IdentifierTotalityViolation {
+                version_id,
+                identifier_id,
+            } => write!(
+                formatter,
+                "exact resolution omitted identifier ({version_id}, {identifier_id}) from a visible version"
+            ),
             Self::PathEscapesRoot { path, root } => {
                 write!(formatter, "resolution path {path:?} escapes {root:?}")
             }
@@ -474,6 +508,301 @@ impl ResolutionBaseBuilder {
 }
 
 #[derive(Debug)]
+pub struct ResolutionBaseWriter {
+    path: PathBuf,
+    connection: Connection,
+    manifest_hash: String,
+    resolver_output_epoch: i64,
+    catalog_hash: String,
+    counts: ResolutionSemanticCounts,
+    last_source_version: Option<i64>,
+    last_identifier_key: Option<(i64, String)>,
+    last_pending_key: Option<(i64, String)>,
+    completed: bool,
+}
+
+impl ResolutionBaseWriter {
+    pub fn new(
+        path: impl AsRef<Path>,
+        manifest_hash: impl Into<String>,
+        resolver_output_epoch: i64,
+    ) -> Result<Self, ResolutionValidationError> {
+        let path = path.as_ref().to_path_buf();
+        validate_output_path(&path)?;
+        let manifest_hash = manifest_hash.into();
+        if manifest_hash.is_empty() || resolver_output_epoch <= 0 {
+            return Err(ResolutionValidationError::InvalidArgument("identity"));
+        }
+        ensure_parent(&path)?;
+        reject_existing_file(&path)?;
+        let connection = Connection::open(&path)?;
+        configure_writer_pragmas(&connection, WriterPragmaProfile::Bulk).map_err(|error| {
+            ResolutionValidationError::InvalidMetadata {
+                key: "pragma".to_string(),
+                value: format!("{error:?}"),
+            }
+        })?;
+        connection.execute_batch(RESOLUTION_BASE_SQL)?;
+        let catalog_hash = resolution_base_catalog_hash(&connection)?;
+        connection.execute_batch("BEGIN IMMEDIATE")?;
+        Ok(Self {
+            path,
+            connection,
+            manifest_hash,
+            resolver_output_epoch,
+            catalog_hash,
+            counts: ResolutionSemanticCounts::default(),
+            last_source_version: None,
+            last_identifier_key: None,
+            last_pending_key: None,
+            completed: false,
+        })
+    }
+
+    pub fn push_source_version(
+        &mut self,
+        version_id: i64,
+    ) -> Result<(), ResolutionValidationError> {
+        if version_id <= 0
+            || self
+                .last_source_version
+                .is_some_and(|last| version_id <= last)
+        {
+            return Err(ResolutionValidationError::InvalidArgument(
+                "source version order",
+            ));
+        }
+        self.connection.execute(
+            "INSERT INTO resolution_base_versions(version_id) VALUES (?1)",
+            [version_id],
+        )?;
+        self.last_source_version = Some(version_id);
+        Ok(())
+    }
+
+    pub fn push_identifier_resolution(
+        &mut self,
+        row: ResolutionIdentifierRow,
+    ) -> Result<(), ResolutionValidationError> {
+        let key = (row.version_id, row.identifier_id.clone());
+        if row.identifier_id.is_empty()
+            || self
+                .last_identifier_key
+                .as_ref()
+                .is_some_and(|last| key <= *last)
+        {
+            return Err(ResolutionValidationError::InvalidArgument(
+                "identifier order",
+            ));
+        }
+        self.connection.execute(
+            "INSERT INTO identifier_resolutions
+             (version_id,identifier_id,target_version_id,target_symbol_id,tier,confidence,method,outcome,candidates)
+             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)",
+            params![
+                row.version_id,
+                row.identifier_id,
+                row.target_version_id,
+                row.target_symbol_id,
+                row.tier,
+                row.confidence,
+                row.method,
+                row.outcome,
+                row.candidates,
+            ],
+        )?;
+        self.last_identifier_key = Some(key);
+        self.counts.identifiers += 1;
+        Ok(())
+    }
+
+    pub fn push_pending_resolution(
+        &mut self,
+        row: ResolutionPendingRow,
+    ) -> Result<(), ResolutionValidationError> {
+        let key = (row.version_id, row.pending_relationship_id.clone());
+        if row.pending_relationship_id.is_empty()
+            || self
+                .last_pending_key
+                .as_ref()
+                .is_some_and(|last| key <= *last)
+        {
+            return Err(ResolutionValidationError::InvalidArgument("pending order"));
+        }
+        self.connection.execute(
+            "INSERT INTO pending_resolutions
+             (version_id,pending_relationship_id,target_version_id,target_symbol_id,tier,confidence,method)
+             VALUES (?1,?2,?3,?4,?5,?6,?7)",
+            params![
+                row.version_id,
+                row.pending_relationship_id,
+                row.target_version_id,
+                row.target_symbol_id,
+                row.tier,
+                row.confidence,
+                row.method,
+            ],
+        )?;
+        self.last_pending_key = Some(key);
+        self.counts.pending += 1;
+        Ok(())
+    }
+
+    pub fn finish_with_target_lookup<F>(
+        mut self,
+        mut target_exists: F,
+    ) -> Result<ResolutionFileIdentity, ResolutionValidationError>
+    where
+        F: FnMut(i64, &str) -> Result<bool, ResolutionValidationError>,
+    {
+        {
+            let mut statement = self.connection.prepare(
+                "SELECT target_version_id,target_symbol_id
+                 FROM identifier_resolutions
+                 WHERE target_version_id IS NOT NULL
+                 ORDER BY version_id,identifier_id",
+            )?;
+            let mut rows = statement.query([])?;
+            while let Some(row) = rows.next()? {
+                let version_id = row.get::<_, i64>(0)?;
+                let symbol_id = row.get::<_, String>(1)?;
+                if !target_exists(version_id, &symbol_id)? {
+                    return Err(ResolutionValidationError::TargetMissing {
+                        version_id,
+                        symbol_id,
+                    });
+                }
+            }
+        }
+        {
+            let mut statement = self.connection.prepare(
+                "SELECT target_version_id,target_symbol_id
+                 FROM pending_resolutions
+                 ORDER BY version_id,pending_relationship_id",
+            )?;
+            let mut rows = statement.query([])?;
+            while let Some(row) = rows.next()? {
+                let version_id = row.get::<_, i64>(0)?;
+                let symbol_id = row.get::<_, String>(1)?;
+                if !target_exists(version_id, &symbol_id)? {
+                    return Err(ResolutionValidationError::TargetMissing {
+                        version_id,
+                        symbol_id,
+                    });
+                }
+            }
+        }
+        insert_streaming_meta(
+            &self.connection,
+            &self.manifest_hash,
+            self.resolver_output_epoch,
+            self.counts,
+            &self.catalog_hash,
+            false,
+        )?;
+        let foreign_keys: i64 = self.connection.query_row(
+            "SELECT COUNT(*) FROM pragma_foreign_key_check",
+            [],
+            |row| row.get(0),
+        )?;
+        if foreign_keys != 0 {
+            return Err(ResolutionValidationError::InvalidMetadata {
+                key: "foreign_key_check".to_string(),
+                value: foreign_keys.to_string(),
+            });
+        }
+        let integrity: String = self
+            .connection
+            .query_row("PRAGMA integrity_check", [], |row| row.get(0))?;
+        if integrity != "ok" {
+            return Err(ResolutionValidationError::InvalidMetadata {
+                key: "integrity_check".to_string(),
+                value: integrity,
+            });
+        }
+        self.connection
+            .execute_batch("COMMIT; PRAGMA wal_checkpoint(TRUNCATE);")?;
+        let placeholder = Connection::open_in_memory()?;
+        drop(std::mem::replace(&mut self.connection, placeholder));
+        sync_path(&self.path)?;
+        self.connection = Connection::open(&self.path)?;
+        configure_writer_pragmas(&self.connection, WriterPragmaProfile::Bulk).map_err(|error| {
+            ResolutionValidationError::InvalidMetadata {
+                key: "pragma".to_string(),
+                value: format!("{error:?}"),
+            }
+        })?;
+        self.connection.execute_batch("BEGIN IMMEDIATE")?;
+        self.connection
+            .execute("UPDATE base_meta SET value='1' WHERE key='completed'", [])?;
+        self.connection
+            .execute_batch("COMMIT; PRAGMA wal_checkpoint(TRUNCATE);")?;
+        let placeholder = Connection::open_in_memory()?;
+        drop(std::mem::replace(&mut self.connection, placeholder));
+        sync_path(&self.path)?;
+        self.completed = true;
+        file_identity(
+            &self.path,
+            self.manifest_hash.clone(),
+            self.resolver_output_epoch,
+            self.catalog_hash.clone(),
+            self.counts,
+        )
+    }
+}
+
+impl Drop for ResolutionBaseWriter {
+    fn drop(&mut self) {
+        if self.completed {
+            return;
+        }
+        let _ = self.connection.execute_batch("ROLLBACK");
+        for suffix in ["", "-wal", "-shm"] {
+            let path = if suffix.is_empty() {
+                self.path.clone()
+            } else {
+                PathBuf::from(format!("{}{}", self.path.display(), suffix))
+            };
+            let _ = fs::remove_file(path);
+        }
+    }
+}
+
+fn insert_streaming_meta(
+    connection: &Connection,
+    manifest_hash: &str,
+    epoch: i64,
+    counts: ResolutionSemanticCounts,
+    catalog_hash: &str,
+    completed: bool,
+) -> Result<(), rusqlite::Error> {
+    for (key, value) in [
+        ("format_version", RESOLUTION_BASE_FORMAT_VERSION.to_string()),
+        ("catalog_sha256", catalog_hash.to_string()),
+        ("manifest_hash", manifest_hash.to_string()),
+        ("resolver_output_epoch", epoch.to_string()),
+        ("identifier_count", counts.identifiers.to_string()),
+        ("pending_count", counts.pending.to_string()),
+        ("completed", if completed { "1" } else { "0" }.to_string()),
+    ] {
+        connection.execute(
+            "INSERT INTO base_meta(key,value) VALUES (?1,?2)
+             ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            params![key, value],
+        )?;
+    }
+    connection.execute(
+        "INSERT INTO base_meta(key,value)
+         SELECT 'source_versions', json_group_array(version_id)
+         FROM (SELECT version_id FROM resolution_base_versions ORDER BY version_id)
+         WHERE 1
+         ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        [],
+    )?;
+    Ok(())
+}
+
+#[derive(Debug)]
 pub struct ResolutionBaseReader {
     path: PathBuf,
     connection: Connection,
@@ -602,6 +931,17 @@ impl ResolutionBaseReader {
             .collect::<Result<Vec<_>, _>>()?)
     }
 
+    pub fn contains_source_version(
+        &self,
+        version_id: i64,
+    ) -> Result<bool, ResolutionValidationError> {
+        Ok(self.connection.query_row(
+            "SELECT EXISTS(SELECT 1 FROM resolution_base_versions WHERE version_id=?1)",
+            [version_id],
+            |row| row.get(0),
+        )?)
+    }
+
     pub fn validate_targets(
         &self,
         visible_symbols: &BTreeSet<(i64, String)>,
@@ -662,6 +1002,40 @@ impl ResolutionBaseReader {
         Ok(rows)
     }
 
+    pub fn identifier_window(
+        &self,
+        after: Option<(i64, &str)>,
+        limit: usize,
+    ) -> Result<Vec<ResolutionIdentifierRow>, ResolutionValidationError> {
+        if limit == 0 {
+            return Err(ResolutionValidationError::InvalidArgument("window size"));
+        }
+        let limit = i64::try_from(limit)
+            .map_err(|_| ResolutionValidationError::InvalidArgument("window size"))?;
+        let (version_id, identifier_id) = after.unwrap_or((0, ""));
+        let mut statement = self.connection.prepare(
+            "SELECT version_id,identifier_id,target_version_id,target_symbol_id,tier,confidence,method,outcome,candidates
+             FROM identifier_resolutions
+             WHERE version_id>?1 OR (version_id=?1 AND identifier_id>?2)
+             ORDER BY version_id,identifier_id LIMIT ?3",
+        )?;
+        Ok(statement
+            .query_map(params![version_id, identifier_id, limit], |row| {
+                Ok(ResolutionIdentifierRow {
+                    version_id: row.get(0)?,
+                    identifier_id: row.get(1)?,
+                    target_version_id: row.get(2)?,
+                    target_symbol_id: row.get(3)?,
+                    tier: row.get(4)?,
+                    confidence: row.get(5)?,
+                    method: row.get(6)?,
+                    outcome: row.get(7)?,
+                    candidates: row.get(8)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?)
+    }
+
     pub fn pending(&self) -> Result<Vec<ResolutionPendingRow>, ResolutionValidationError> {
         let mut statement = self.connection.prepare("SELECT version_id,pending_relationship_id,target_version_id,target_symbol_id,tier,confidence,method FROM pending_resolutions ORDER BY version_id,pending_relationship_id")?;
         let rows = statement
@@ -678,6 +1052,38 @@ impl ResolutionBaseReader {
             })?
             .collect::<Result<Vec<_>, _>>()?;
         Ok(rows)
+    }
+
+    pub fn pending_window(
+        &self,
+        after: Option<(i64, &str)>,
+        limit: usize,
+    ) -> Result<Vec<ResolutionPendingRow>, ResolutionValidationError> {
+        if limit == 0 {
+            return Err(ResolutionValidationError::InvalidArgument("window size"));
+        }
+        let limit = i64::try_from(limit)
+            .map_err(|_| ResolutionValidationError::InvalidArgument("window size"))?;
+        let (version_id, pending_id) = after.unwrap_or((0, ""));
+        let mut statement = self.connection.prepare(
+            "SELECT version_id,pending_relationship_id,target_version_id,target_symbol_id,tier,confidence,method
+             FROM pending_resolutions
+             WHERE version_id>?1 OR (version_id=?1 AND pending_relationship_id>?2)
+             ORDER BY version_id,pending_relationship_id LIMIT ?3",
+        )?;
+        Ok(statement
+            .query_map(params![version_id, pending_id, limit], |row| {
+                Ok(ResolutionPendingRow {
+                    version_id: row.get(0)?,
+                    pending_relationship_id: row.get(1)?,
+                    target_version_id: row.get(2)?,
+                    target_symbol_id: row.get(3)?,
+                    tier: row.get(4)?,
+                    confidence: row.get(5)?,
+                    method: row.get(6)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?)
     }
 }
 

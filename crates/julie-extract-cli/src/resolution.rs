@@ -348,6 +348,57 @@ pub struct ImportRecord {
     pub is_namespace: bool,
 }
 
+#[derive(Debug, Clone)]
+pub struct CandidateHit {
+    pub semantic_id: session::SemanticSymbolId,
+    pub symbol: CandidateSymbol,
+}
+
+pub trait CandidateLookup {
+    type Error;
+
+    fn symbol_by_id(
+        &self,
+        source_key: &str,
+        local_id: &str,
+    ) -> Result<Option<CandidateHit>, Self::Error>;
+
+    fn visit_by_name<F>(&self, name: &str, visitor: F) -> Result<(), Self::Error>
+    where
+        F: FnMut(&Self, CandidateHit) -> Result<bool, Self::Error>;
+
+    fn visit_children_named<F>(
+        &self,
+        source_key: &str,
+        parent_id: &str,
+        name: &str,
+        visitor: F,
+    ) -> Result<(), Self::Error>
+    where
+        F: FnMut(&Self, CandidateHit) -> Result<bool, Self::Error>;
+
+    fn visit_top_level_named<F>(
+        &self,
+        source_key: &str,
+        name: &str,
+        visitor: F,
+    ) -> Result<(), Self::Error>
+    where
+        F: FnMut(&Self, CandidateHit) -> Result<bool, Self::Error>;
+
+    fn visit_type_facts<F>(
+        &self,
+        symbol_id: &session::SemanticSymbolId,
+        visitor: F,
+    ) -> Result<(), Self::Error>
+    where
+        F: FnMut(&Self, TypeFact) -> Result<bool, Self::Error>;
+
+    fn visit_imports<F>(&self, source_key: &str, visitor: F) -> Result<(), Self::Error>
+    where
+        F: FnMut(&Self, ImportRecord) -> Result<bool, Self::Error>;
+}
+
 // ---------------------------------------------------------------------------
 // WorkspaceCandidateIndex
 // ---------------------------------------------------------------------------
@@ -516,7 +567,7 @@ impl WorkspaceCandidateIndex {
 
     /// The name of the symbol with `id`, if present (used by relationship
     /// propagation to find the co-located identifier by name).
-    fn symbol_name(&self, id: &session::SemanticSymbolId) -> Option<&str> {
+    pub(crate) fn symbol_name(&self, id: &session::SemanticSymbolId) -> Option<&str> {
         self.by_semantic_id
             .get(id)
             .map(|&idx| self.symbols[idx].name.as_str())
@@ -554,13 +605,6 @@ impl WorkspaceCandidateIndex {
             .flat_map(|idxs| idxs.iter().map(|&idx| &self.symbols[idx]))
             .filter(|sym| sym.name == name)
             .collect()
-    }
-
-    fn type_facts(&self, symbol: &CandidateSymbol) -> &[TypeFact] {
-        self.type_facts_by_symbol
-            .get(self.semantic_id(symbol))
-            .map(Vec::as_slice)
-            .unwrap_or(&[])
     }
 
     fn imports(&self, file_id: &str) -> &[ImportRecord] {
@@ -637,6 +681,114 @@ impl WorkspaceCandidateIndex {
     }
 }
 
+impl CandidateLookup for WorkspaceCandidateIndex {
+    type Error = std::convert::Infallible;
+
+    fn symbol_by_id(
+        &self,
+        source_key: &str,
+        local_id: &str,
+    ) -> Result<Option<CandidateHit>, Self::Error> {
+        Ok(
+            WorkspaceCandidateIndex::symbol_by_id(self, source_key, local_id).map(|symbol| {
+                CandidateHit {
+                    semantic_id: self.semantic_id(symbol).clone(),
+                    symbol: symbol.clone(),
+                }
+            }),
+        )
+    }
+
+    fn visit_by_name<F>(&self, name: &str, mut visitor: F) -> Result<(), Self::Error>
+    where
+        F: FnMut(&Self, CandidateHit) -> Result<bool, Self::Error>,
+    {
+        for symbol in self.by_name(name) {
+            let hit = CandidateHit {
+                semantic_id: self.semantic_id(symbol).clone(),
+                symbol: symbol.clone(),
+            };
+            if !visitor(self, hit)? {
+                break;
+            }
+        }
+        Ok(())
+    }
+
+    fn visit_children_named<F>(
+        &self,
+        source_key: &str,
+        parent_id: &str,
+        name: &str,
+        mut visitor: F,
+    ) -> Result<(), Self::Error>
+    where
+        F: FnMut(&Self, CandidateHit) -> Result<bool, Self::Error>,
+    {
+        for symbol in self.children_named(source_key, parent_id, name) {
+            let hit = CandidateHit {
+                semantic_id: self.semantic_id(symbol).clone(),
+                symbol: symbol.clone(),
+            };
+            if !visitor(self, hit)? {
+                break;
+            }
+        }
+        Ok(())
+    }
+
+    fn visit_top_level_named<F>(
+        &self,
+        source_key: &str,
+        name: &str,
+        mut visitor: F,
+    ) -> Result<(), Self::Error>
+    where
+        F: FnMut(&Self, CandidateHit) -> Result<bool, Self::Error>,
+    {
+        for symbol in self.top_level_named(source_key, name) {
+            let hit = CandidateHit {
+                semantic_id: self.semantic_id(symbol).clone(),
+                symbol: symbol.clone(),
+            };
+            if !visitor(self, hit)? {
+                break;
+            }
+        }
+        Ok(())
+    }
+
+    fn visit_type_facts<F>(
+        &self,
+        symbol_id: &session::SemanticSymbolId,
+        mut visitor: F,
+    ) -> Result<(), Self::Error>
+    where
+        F: FnMut(&Self, TypeFact) -> Result<bool, Self::Error>,
+    {
+        if let Some(facts) = self.type_facts_by_symbol.get(symbol_id) {
+            for fact in facts {
+                if !visitor(self, fact.clone())? {
+                    break;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn visit_imports<F>(&self, source_key: &str, mut visitor: F) -> Result<(), Self::Error>
+    where
+        F: FnMut(&Self, ImportRecord) -> Result<bool, Self::Error>,
+    {
+        for import in self.imports(source_key) {
+            if !visitor(self, import.clone())? {
+                break;
+            }
+        }
+        Ok(())
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Tier identity
 // ---------------------------------------------------------------------------
@@ -707,13 +859,21 @@ pub fn tier3_static_type_proven(language: &str) -> bool {
 /// one. If none yields exactly one: `Ambiguous` when any tier yielded >= 2,
 /// `Missing` when every attempted tier yielded 0, `NoContext` when no tier was
 /// applicable (or every applicable tier was gated off). No best-guess selection.
+#[allow(dead_code)]
 pub fn resolve_one(edge: &UnresolvedEdge, index: &WorkspaceCandidateIndex) -> TierOutcome {
+    resolve_with_candidate_lookup(index, edge).unwrap_or_else(|never| match never {})
+}
+
+pub fn resolve_with_candidate_lookup<L: CandidateLookup>(
+    lookup: &L,
+    edge: &UnresolvedEdge,
+) -> Result<TierOutcome, L::Error> {
     if edge.terminal_name.is_empty() {
-        return TierOutcome::NoContext;
+        return Ok(TierOutcome::NoContext);
     }
     let tiers = applicable_tiers(edge);
     if tiers.is_empty() {
-        return TierOutcome::NoContext;
+        return Ok(TierOutcome::NoContext);
     }
 
     let mut attempted_any = false;
@@ -727,16 +887,16 @@ pub fn resolve_one(edge: &UnresolvedEdge, index: &WorkspaceCandidateIndex) -> Ti
         }
         attempted_any = true;
 
-        let candidates = tier_candidates(tier, edge, index);
+        let candidates = tier_candidates(tier, edge, lookup)?;
         match candidates.as_slice() {
             [] => {}
             [only] => {
-                return TierOutcome::Resolved {
+                return Ok(TierOutcome::Resolved {
                     target_symbol_id: only.symbol_id.clone(),
                     tier: tier.number(),
                     confidence: only.confidence.min(edge.source_confidence),
                     method: tier.method().to_string(),
-                };
+                });
             }
             many => {
                 if first_ambiguous.is_none() {
@@ -746,11 +906,11 @@ pub fn resolve_one(edge: &UnresolvedEdge, index: &WorkspaceCandidateIndex) -> Ti
         }
     }
 
-    match first_ambiguous {
+    Ok(match first_ambiguous {
         Some(candidates) => TierOutcome::Ambiguous { candidates },
         None if attempted_any => TierOutcome::Missing,
         None => TierOutcome::NoContext,
-    }
+    })
 }
 
 // ---------------------------------------------------------------------------
@@ -807,17 +967,17 @@ fn applicable_tiers(edge: &UnresolvedEdge) -> Vec<Tier> {
     }
 }
 
-fn tier_candidates(
+fn tier_candidates<L: CandidateLookup>(
     tier: Tier,
     edge: &UnresolvedEdge,
-    index: &WorkspaceCandidateIndex,
-) -> Vec<TierCandidate> {
+    lookup: &L,
+) -> Result<Vec<TierCandidate>, L::Error> {
     match tier {
-        Tier::Local => tier1_candidates(edge, index),
-        Tier::Import => tier2_candidates(edge, index),
-        Tier::Receiver => tier3_candidates(edge, index),
-        Tier::StaticType => static_type_candidates(edge, index),
-        Tier::Global => tier4_candidates(edge, index),
+        Tier::Local => tier1_candidates(edge, lookup),
+        Tier::Import => tier2_candidates(edge, lookup),
+        Tier::Receiver => tier3_candidates(edge, lookup),
+        Tier::StaticType => static_type_candidates(edge, lookup),
+        Tier::Global => tier4_candidates(edge, lookup),
     }
 }
 
@@ -838,51 +998,54 @@ fn tier_candidates(
 ///   helper is unreachable from elsewhere, so a cross-file reference to that name
 ///   means some other type. This deliberately over-refuses `internal` types, which
 ///   costs recall and never produces a wrong edge.
-fn static_type_candidates(
+fn static_type_candidates<L: CandidateLookup>(
     edge: &UnresolvedEdge,
-    index: &WorkspaceCandidateIndex,
-) -> Vec<TierCandidate> {
+    lookup: &L,
+) -> Result<Vec<TierCandidate>, L::Error> {
     let Some(receiver) = edge.receiver.as_deref() else {
-        return Vec::new();
+        return Ok(Vec::new());
     };
     if receiver.is_empty() {
-        return Vec::new();
+        return Ok(Vec::new());
     }
-    if scope_binds_receiver_name(edge, receiver, index) {
-        return Vec::new();
+    if scope_binds_receiver_name(edge, receiver, lookup)? {
+        return Ok(Vec::new());
     }
-    let Some(type_symbol) = resolve_static_type_symbol(edge, index, receiver) else {
-        return Vec::new();
+    let Some(type_symbol) = resolve_static_type_symbol(edge, lookup, receiver)? else {
+        return Ok(Vec::new());
     };
-    if !static_receiver_is_reachable(edge, type_symbol, index) {
-        return Vec::new();
+    if !static_receiver_is_reachable(edge, &type_symbol.symbol, lookup)? {
+        return Ok(Vec::new());
     }
-    if !static_type_import_corroborated(edge, type_symbol, index) {
-        return Vec::new();
+    if !static_type_import_corroborated(edge, &type_symbol.symbol, lookup)? {
+        return Ok(Vec::new());
     }
 
     let member_kinds = tier123_compatible_kinds(edge.kind);
-    let cross_file = type_symbol.file_id != edge.file_id;
+    let cross_file = type_symbol.symbol.file_id != edge.file_id;
     let mut set: BTreeSet<session::SemanticSymbolId> = BTreeSet::new();
-    for member in index.children_named(
-        &type_symbol.file_id,
-        &type_symbol.symbol_id,
+    lookup.visit_children_named(
+        &type_symbol.symbol.file_id,
+        &type_symbol.symbol.symbol_id,
         &edge.terminal_name,
-    ) {
-        if member.language == edge.language
-            && member_kinds.contains(&member.kind)
-            && is_statically_reachable(member)
-            && (!cross_file || member_is_cross_file_visible(member))
-        {
-            set.insert(index.semantic_id(member).clone());
-        }
-    }
-    set.into_iter()
+        |_, member| {
+            if member.symbol.language == edge.language
+                && member_kinds.contains(&member.symbol.kind)
+                && is_statically_reachable(&member.symbol)
+                && (!cross_file || member_is_cross_file_visible(&member.symbol))
+            {
+                set.insert(member.semantic_id);
+            }
+            Ok(set.len() < 2)
+        },
+    )?;
+    Ok(set
+        .into_iter()
         .map(|symbol_id| TierCandidate {
             symbol_id,
             confidence: CONFIDENCE_TIER3_STATIC,
         })
-        .collect()
+        .collect())
 }
 
 /// Cross-file static access only binds members that are publicly visible.
@@ -918,7 +1081,7 @@ fn is_statically_reachable(member: &CandidateSymbol) -> bool {
 
 /// Parse `isStatic` from a symbol's `metadata_json`. Prefers a JSON boolean;
 /// tolerates the strings `"true"` / `"false"`. Any other shape is ignored.
-fn parse_is_static_metadata(metadata_json: Option<&str>) -> Option<bool> {
+pub(crate) fn parse_is_static_metadata(metadata_json: Option<&str>) -> Option<bool> {
     let raw = metadata_json?;
     let value: serde_json::Value = serde_json::from_str(raw).ok()?;
     match value.get("isStatic")? {
@@ -994,22 +1157,28 @@ fn namespace_path_qualifier(namespace_json: &str) -> Option<String> {
 /// The namespace a symbol is declared in, as a dotted path, by walking its
 /// ancestors. C# records one `Namespace` symbol whose own name may already be
 /// dotted (`namespace App.Deep;`), and block syntax can nest several.
-fn declared_namespace_path(symbol: &CandidateSymbol, index: &WorkspaceCandidateIndex) -> String {
+fn declared_namespace_path<L: CandidateLookup>(
+    symbol: &CandidateSymbol,
+    lookup: &L,
+) -> Result<String, L::Error> {
     let mut segments = Vec::new();
-    let mut next = symbol.parent_symbol_id.as_deref();
-    let mut source_key = symbol.file_id.as_str();
+    let mut next = symbol.parent_symbol_id.clone();
+    let mut source_key = symbol.file_id.clone();
     while let Some(parent_id) = next {
-        let Some(parent) = index.symbol_by_id(source_key, parent_id) else {
+        let Some(parent) = lookup.symbol_by_id(&source_key, &parent_id)? else {
             break;
         };
-        if matches!(parent.kind, SymbolKind::Namespace | SymbolKind::Module) {
-            segments.push(parent.name.clone());
+        if matches!(
+            parent.symbol.kind,
+            SymbolKind::Namespace | SymbolKind::Module
+        ) {
+            segments.push(parent.symbol.name.clone());
         }
-        source_key = parent.file_id.as_str();
-        next = parent.parent_symbol_id.as_deref();
+        source_key = parent.symbol.file_id;
+        next = parent.symbol.parent_symbol_id;
     }
     segments.reverse();
-    segments.join(".")
+    Ok(segments.join("."))
 }
 
 /// Whether an explicitly written qualification can name `type_symbol`.
@@ -1046,37 +1215,37 @@ fn qualifier_matches_namespace(qualifier: &str, declared: &str) -> bool {
 /// scope chain through callables and stops at the first type-like ancestor — a
 /// class is not a binding scope for this purpose, and a record's primary
 /// constructor parameters are members reached through `this`, not shadowing locals.
-fn scope_binds_receiver_name(
+fn scope_binds_receiver_name<L: CandidateLookup>(
     edge: &UnresolvedEdge,
     receiver: &str,
-    index: &WorkspaceCandidateIndex,
-) -> bool {
-    let mut next = edge.caller_scope_symbol_id.as_deref();
-    let mut source_key = edge.file_id.as_str();
+    lookup: &L,
+) -> Result<bool, L::Error> {
+    let mut next = edge.caller_scope_symbol_id.clone();
+    let mut source_key = edge.file_id.clone();
     while let Some(scope_id) = next {
-        let Some(scope) = index.symbol_by_id(source_key, scope_id) else {
-            return false;
+        let Some(scope) = lookup.symbol_by_id(&source_key, &scope_id)? else {
+            return Ok(false);
         };
-        if is_type_like(&scope.kind) {
-            return false;
+        if is_type_like(&scope.symbol.kind) {
+            return Ok(false);
         }
-        // Prefer emitted local/parameter symbols (R2+) over signature parsing alone.
-        if index
-            .children_named(&scope.file_id, scope_id, receiver)
-            .into_iter()
-            .any(|child| child.kind == SymbolKind::Variable)
-        {
-            return true;
+        let mut bound = false;
+        lookup.visit_children_named(&scope.symbol.file_id, &scope_id, receiver, |_, child| {
+            bound = child.symbol.kind == SymbolKind::Variable;
+            Ok(!bound)
+        })?;
+        if bound {
+            return Ok(true);
         }
-        if let Some(signature) = scope.signature.as_deref()
+        if let Some(signature) = scope.symbol.signature.as_deref()
             && parameter_names(signature).any(|name| name == receiver)
         {
-            return true;
+            return Ok(true);
         }
-        source_key = scope.file_id.as_str();
-        next = scope.parent_symbol_id.as_deref();
+        source_key = scope.symbol.file_id;
+        next = scope.symbol.parent_symbol_id;
     }
-    false
+    Ok(false)
 }
 
 /// The declared parameter names in a callable's signature: the contents of the
@@ -1138,131 +1307,156 @@ fn split_top_level(text: &str, separator: char) -> impl Iterator<Item = &str> {
 /// "Nested" means enclosed by another *type*. A namespace or module parent does
 /// not nest a type — C# block-namespace syntax parents every type that way — so
 /// only a type-like parent disqualifies the receiver.
-fn static_receiver_is_reachable(
+fn static_receiver_is_reachable<L: CandidateLookup>(
     edge: &UnresolvedEdge,
     type_symbol: &CandidateSymbol,
-    index: &WorkspaceCandidateIndex,
-) -> bool {
-    let nested_in_type = type_symbol
-        .parent_symbol_id
-        .as_deref()
-        .and_then(|parent| index.symbol_by_id(&type_symbol.file_id, parent))
-        .is_some_and(|parent| is_type_like(&parent.kind));
+    lookup: &L,
+) -> Result<bool, L::Error> {
+    let nested_in_type = if let Some(parent) = type_symbol.parent_symbol_id.as_deref() {
+        lookup
+            .symbol_by_id(&type_symbol.file_id, parent)?
+            .is_some_and(|parent| is_type_like(&parent.symbol.kind))
+    } else {
+        false
+    };
     if nested_in_type {
-        return false;
+        return Ok(false);
     }
     if let Some(qualifier) = edge.receiver_qualifier.as_deref()
-        && !qualifier_matches_namespace(qualifier, &declared_namespace_path(type_symbol, index))
+        && !qualifier_matches_namespace(qualifier, &declared_namespace_path(type_symbol, lookup)?)
     {
-        return false;
+        return Ok(false);
     }
     if type_symbol.file_id == edge.file_id {
-        return true;
+        return Ok(true);
     }
-    matches!(type_symbol.visibility.as_deref(), Some("public"))
+    Ok(matches!(type_symbol.visibility.as_deref(), Some("public")))
 }
 
-fn tier1_candidates(edge: &UnresolvedEdge, index: &WorkspaceCandidateIndex) -> Vec<TierCandidate> {
+fn tier1_candidates<L: CandidateLookup>(
+    edge: &UnresolvedEdge,
+    lookup: &L,
+) -> Result<Vec<TierCandidate>, L::Error> {
     let kinds = tier123_compatible_kinds(edge.kind);
     let mut scope = edge.caller_scope_symbol_id.clone();
-    let mut source_key = edge.file_id.as_str();
+    let mut source_key = edge.file_id.clone();
     while let Some(scope_id) = scope {
-        let hits = index
-            .children_named(source_key, &scope_id, &edge.terminal_name)
-            .into_iter()
-            .filter(|candidate| {
-                candidate.language == edge.language && kinds.contains(&candidate.kind)
-            })
-            .map(|candidate| TierCandidate {
-                symbol_id: index.semantic_id(candidate).clone(),
-                confidence: CONFIDENCE_TIER1,
-            })
-            .collect::<Vec<_>>();
+        let mut hits = Vec::with_capacity(2);
+        lookup.visit_children_named(
+            &source_key,
+            &scope_id,
+            &edge.terminal_name,
+            |_, candidate| {
+                if candidate.symbol.language == edge.language
+                    && kinds.contains(&candidate.symbol.kind)
+                {
+                    hits.push(TierCandidate {
+                        symbol_id: candidate.semantic_id,
+                        confidence: CONFIDENCE_TIER1,
+                    });
+                }
+                Ok(hits.len() < 2)
+            },
+        )?;
         if !hits.is_empty() {
-            return hits;
+            return Ok(hits);
         }
-        let Some(symbol) = index.symbol_by_id(source_key, &scope_id) else {
+        let Some(symbol) = lookup.symbol_by_id(&source_key, &scope_id)? else {
             break;
         };
-        source_key = symbol.file_id.as_str();
-        scope = symbol.parent_symbol_id.clone();
+        source_key = symbol.symbol.file_id;
+        scope = symbol.symbol.parent_symbol_id.clone();
     }
 
-    index
-        .top_level_named(&edge.file_id, &edge.terminal_name)
-        .into_iter()
-        .filter(|candidate| candidate.language == edge.language && kinds.contains(&candidate.kind))
-        .map(|candidate| TierCandidate {
-            symbol_id: index.semantic_id(candidate).clone(),
-            confidence: CONFIDENCE_TIER1,
-        })
-        .collect()
+    let mut hits = Vec::with_capacity(2);
+    lookup.visit_top_level_named(&edge.file_id, &edge.terminal_name, |_, candidate| {
+        if candidate.symbol.language == edge.language && kinds.contains(&candidate.symbol.kind) {
+            hits.push(TierCandidate {
+                symbol_id: candidate.semantic_id,
+                confidence: CONFIDENCE_TIER1,
+            });
+        }
+        Ok(hits.len() < 2)
+    })?;
+    Ok(hits)
 }
 
 /// Tier 2: candidates reachable through an import whose **local binding**
 /// matches the terminal name (design §"Resolution tiers"). Aliases key on
 /// `imported_name` for the candidate lookup. Module-wide Branch B was removed:
 /// a named/default import must not authorize every export in the module.
-fn tier2_candidates(edge: &UnresolvedEdge, index: &WorkspaceCandidateIndex) -> Vec<TierCandidate> {
+fn tier2_candidates<L: CandidateLookup>(
+    edge: &UnresolvedEdge,
+    lookup: &L,
+) -> Result<Vec<TierCandidate>, L::Error> {
     let kinds = tier123_compatible_kinds(edge.kind);
     let mut set: BTreeSet<session::SemanticSymbolId> = BTreeSet::new();
 
-    for import in index.imports(&edge.file_id) {
+    lookup.visit_imports(&edge.file_id, |lookup, import| {
         if import.is_type_only || import.is_namespace {
             // Type-only: no value/runtime edges. Namespace: members need a
             // receiver (`NS.member`); bare names are not introduced into scope.
-            continue;
+            return Ok(true);
         }
         if import.is_default {
             // Default import local names are arbitrary (`import Foo from "./m"`).
             // Without default-export provenance on candidates, name-matching a
             // named export is a wrong edge. Fail closed until extractors mark
             // default-export declarations.
-            continue;
+            return Ok(true);
         }
         if import.local_name != edge.terminal_name {
-            continue;
+            return Ok(true);
         }
         // Named aliases key on the original export; non-aliased use local name.
         let target_name = import
             .imported_name
             .as_deref()
             .unwrap_or(import.local_name.as_str());
-        for cand in index.by_name(target_name) {
+        lookup.visit_by_name(target_name, |_, cand| {
             let module_ok = match (import.source.as_deref(), import.module_file_id.as_deref()) {
-                (Some(_), Some(module_file)) => module_file == cand.file_id,
+                (Some(_), Some(module_file)) => module_file == cand.symbol.file_id,
                 (Some(_), None) => false,
-                (None, Some(module_file)) => module_file == cand.file_id,
+                (None, Some(module_file)) => module_file == cand.symbol.file_id,
                 (None, None) => true,
             };
-            if cand.language == edge.language && kinds.contains(&cand.kind) && module_ok {
-                set.insert(index.semantic_id(cand).clone());
+            if cand.symbol.language == edge.language
+                && kinds.contains(&cand.symbol.kind)
+                && module_ok
+            {
+                set.insert(cand.semantic_id);
             }
-        }
-    }
+            Ok(set.len() < 2)
+        })?;
+        Ok(set.len() < 2)
+    })?;
 
-    set.into_iter()
+    Ok(set
+        .into_iter()
         .map(|symbol_id| TierCandidate {
             symbol_id,
             confidence: CONFIDENCE_TIER2,
         })
-        .collect()
+        .collect())
 }
 
 /// Tier 3: receiver name → scoped symbol → `type_facts.resolved_type` → unique
 /// same-language type symbol → member with the terminal name. Confidence drops to
 /// 0.65 when the contributing type fact `is_inferred`.
-fn tier3_candidates(edge: &UnresolvedEdge, index: &WorkspaceCandidateIndex) -> Vec<TierCandidate> {
+fn tier3_candidates<L: CandidateLookup>(
+    edge: &UnresolvedEdge,
+    lookup: &L,
+) -> Result<Vec<TierCandidate>, L::Error> {
     let Some(receiver) = edge.receiver.as_deref() else {
-        return Vec::new();
+        return Ok(Vec::new());
     };
     if receiver.is_empty() {
-        return Vec::new();
+        return Ok(Vec::new());
     }
 
-    let receiver_symbols = resolve_receiver_symbols(edge, index, receiver);
+    let receiver_symbols = resolve_receiver_symbols(edge, lookup, receiver)?;
     if receiver_symbols.is_empty() {
-        return Vec::new();
+        return Ok(Vec::new());
     }
 
     let member_kinds = tier123_compatible_kinds(edge.kind);
@@ -1272,29 +1466,37 @@ fn tier3_candidates(edge: &UnresolvedEdge, index: &WorkspaceCandidateIndex) -> V
     let mut members: BTreeMap<session::SemanticSymbolId, bool> = BTreeMap::new();
 
     for receiver_symbol in receiver_symbols {
-        for fact in index.type_facts(receiver_symbol) {
-            let Some(type_symbol) = unique_type_symbol(index, &fact.resolved_type, &edge.language)
-            else {
-                continue;
-            };
-            for member in index.children_named(
-                &type_symbol.file_id,
-                &type_symbol.symbol_id,
-                &edge.terminal_name,
-            ) {
-                if member.language == edge.language && member_kinds.contains(&member.kind) {
-                    let entry = members
-                        .entry(index.semantic_id(member).clone())
-                        .or_insert(fact.is_inferred);
-                    if !fact.is_inferred {
-                        *entry = false;
-                    }
-                }
+        lookup.visit_type_facts(&receiver_symbol.semantic_id, |lookup, fact| {
+            if let Some(type_symbol) =
+                unique_type_symbol(lookup, &fact.resolved_type, &edge.language)?
+            {
+                lookup.visit_children_named(
+                    &type_symbol.symbol.file_id,
+                    &type_symbol.symbol.symbol_id,
+                    &edge.terminal_name,
+                    |_, member| {
+                        if member.symbol.language == edge.language
+                            && member_kinds.contains(&member.symbol.kind)
+                        {
+                            let entry = members
+                                .entry(member.semantic_id)
+                                .or_insert(fact.is_inferred);
+                            if !fact.is_inferred {
+                                *entry = false;
+                            }
+                        }
+                        Ok(members.len() < 2)
+                    },
+                )?;
             }
+            Ok(members.len() < 2)
+        })?;
+        if members.len() >= 2 {
+            break;
         }
     }
 
-    members
+    Ok(members
         .into_iter()
         .map(|(symbol_id, is_inferred)| TierCandidate {
             symbol_id,
@@ -1304,7 +1506,7 @@ fn tier3_candidates(edge: &UnresolvedEdge, index: &WorkspaceCandidateIndex) -> V
                 CONFIDENCE_TIER3
             },
         })
-        .collect()
+        .collect())
 }
 
 /// Tier 4: exactly one kind-compatible candidate in the same language
@@ -1315,107 +1517,120 @@ fn tier3_candidates(edge: &UnresolvedEdge, index: &WorkspaceCandidateIndex) -> V
 /// For module languages with a tier-2 import contract (TS/JS), candidates are
 /// restricted to the same file as the edge. Cross-file names require import
 /// evidence — unique workspace globals would reintroduce unimported-export edges.
-fn tier4_candidates(edge: &UnresolvedEdge, index: &WorkspaceCandidateIndex) -> Vec<TierCandidate> {
+fn tier4_candidates<L: CandidateLookup>(
+    edge: &UnresolvedEdge,
+    lookup: &L,
+) -> Result<Vec<TierCandidate>, L::Error> {
     let kinds = tier4_compatible_kinds(edge.kind);
     if kinds.is_empty() {
-        return Vec::new();
+        return Ok(Vec::new());
     }
     let same_file_only = es_module_language(&edge.language);
     let mut set: BTreeSet<session::SemanticSymbolId> = BTreeSet::new();
-    for cand in index.by_name(&edge.terminal_name) {
-        if cand.language == edge.language
-            && kinds.contains(&cand.kind)
-            && (!same_file_only || cand.file_id == edge.file_id)
+    lookup.visit_by_name(&edge.terminal_name, |_, cand| {
+        if cand.symbol.language == edge.language
+            && kinds.contains(&cand.symbol.kind)
+            && (!same_file_only || cand.symbol.file_id == edge.file_id)
         {
-            set.insert(index.semantic_id(cand).clone());
+            set.insert(cand.semantic_id);
         }
-    }
-    set.into_iter()
+        Ok(set.len() < 2)
+    })?;
+    Ok(set
+        .into_iter()
         .map(|symbol_id| TierCandidate {
             symbol_id,
             confidence: CONFIDENCE_TIER4,
         })
-        .collect()
+        .collect())
 }
 
 /// Resolve the receiver name to symbol(s) in scope: walk the caller's scope chain
 /// (nearest scope first — locals, then enclosing-type fields as an ancestor's
 /// children), then fall back to file top-level symbols. Returns the set found at
 /// the first non-empty precedence level, ordered by `symbol_id`.
-fn resolve_receiver_symbols<'a>(
+fn resolve_receiver_symbols<L: CandidateLookup>(
     edge: &UnresolvedEdge,
-    index: &'a WorkspaceCandidateIndex,
+    lookup: &L,
     receiver: &str,
-) -> Vec<&'a CandidateSymbol> {
+) -> Result<Vec<CandidateHit>, L::Error> {
     let mut scope = edge.caller_scope_symbol_id.clone();
-    let mut source_key = edge.file_id.as_str();
+    let mut source_key = edge.file_id.clone();
     while let Some(scope_id) = scope {
-        let hits: Vec<&CandidateSymbol> = index
-            .children_named(source_key, &scope_id, receiver)
-            .into_iter()
-            .filter(|s| s.language == edge.language)
-            .collect();
+        let mut hits = Vec::with_capacity(2);
+        lookup.visit_children_named(&source_key, &scope_id, receiver, |_, hit| {
+            if hit.symbol.language == edge.language {
+                hits.push(hit);
+            }
+            Ok(hits.len() < 2)
+        })?;
         if !hits.is_empty() {
-            return sorted_by_id(hits);
+            hits.sort_by(|a, b| a.semantic_id.cmp(&b.semantic_id));
+            return Ok(hits);
         }
-        let Some(symbol) = index.symbol_by_id(source_key, &scope_id) else {
+        let Some(symbol) = lookup.symbol_by_id(&source_key, &scope_id)? else {
             break;
         };
-        source_key = symbol.file_id.as_str();
-        scope = symbol.parent_symbol_id.clone();
+        source_key = symbol.symbol.file_id;
+        scope = symbol.symbol.parent_symbol_id.clone();
     }
 
-    let hits: Vec<&CandidateSymbol> = index
-        .top_level_named(&edge.file_id, receiver)
-        .into_iter()
-        .filter(|s| s.language == edge.language)
-        .collect();
-    sorted_by_id(hits)
+    let mut hits = Vec::with_capacity(2);
+    lookup.visit_top_level_named(&edge.file_id, receiver, |_, hit| {
+        if hit.symbol.language == edge.language {
+            hits.push(hit);
+        }
+        Ok(hits.len() < 2)
+    })?;
+    hits.sort_by(|a, b| a.semantic_id.cmp(&b.semantic_id));
+    Ok(hits)
 }
 
 /// The single same-language, type-like symbol named `type_name`, or `None` when
 /// zero or more than one exist (partial classes / cross-file duplicates stay
 /// non-unique, so tier 3 declines rather than guesses).
-fn unique_type_symbol<'a>(
-    index: &'a WorkspaceCandidateIndex,
+fn unique_type_symbol<L: CandidateLookup>(
+    lookup: &L,
     type_name: &str,
     language: &str,
-) -> Option<&'a CandidateSymbol> {
-    unique_named_type_symbol(index, type_name, language, is_type_like)
+) -> Result<Option<CandidateHit>, L::Error> {
+    unique_named_type_symbol(lookup, type_name, language, is_type_like)
 }
 
 /// Type-name receiver for the static tier. Module languages only accept runtime
 /// value types (class/enum); interface/type-alias receivers cannot host static
 /// calls at runtime, so they never bind here.
-fn unique_static_type_symbol<'a>(
-    index: &'a WorkspaceCandidateIndex,
+fn unique_static_type_symbol<L: CandidateLookup>(
+    lookup: &L,
     type_name: &str,
     language: &str,
-) -> Option<&'a CandidateSymbol> {
-    unique_named_type_symbol(index, type_name, language, |kind| {
+) -> Result<Option<CandidateHit>, L::Error> {
+    unique_named_type_symbol(lookup, type_name, language, |kind| {
         is_static_type_receiver_kind(language, kind)
     })
 }
 
-fn unique_named_type_symbol<'a, F>(
-    index: &'a WorkspaceCandidateIndex,
+fn unique_named_type_symbol<L: CandidateLookup, F>(
+    lookup: &L,
     type_name: &str,
     language: &str,
     kind_ok: F,
-) -> Option<&'a CandidateSymbol>
+) -> Result<Option<CandidateHit>, L::Error>
 where
     F: Fn(&SymbolKind) -> bool,
 {
-    let mut found: Option<&CandidateSymbol> = None;
-    for cand in index.by_name(type_name) {
-        if cand.language == language && kind_ok(&cand.kind) {
+    let mut found: Option<CandidateHit> = None;
+    lookup.visit_by_name(type_name, |_, cand| {
+        if cand.symbol.language == language && kind_ok(&cand.symbol.kind) {
             if found.is_some() {
-                return None;
+                found = None;
+                return Ok(false);
             }
             found = Some(cand);
         }
-    }
-    found
+        Ok(true)
+    })?;
+    Ok(found)
 }
 
 /// Runtime value types that can appear as `Type.staticMember` receivers.
@@ -1431,69 +1646,75 @@ fn is_static_type_receiver_kind(language: &str, kind: &SymbolKind) -> bool {
 
 /// Resolve the type symbol named by a static-type receiver, including aliased
 /// imports (`import { Fixture as F }` → receiver `F` → type `Fixture`).
-fn resolve_static_type_symbol<'a>(
+fn resolve_static_type_symbol<L: CandidateLookup>(
     edge: &UnresolvedEdge,
-    index: &'a WorkspaceCandidateIndex,
+    lookup: &L,
     receiver: &str,
-) -> Option<&'a CandidateSymbol> {
-    if let Some(type_symbol) = unique_static_type_symbol(index, receiver, &edge.language) {
-        return Some(type_symbol);
+) -> Result<Option<CandidateHit>, L::Error> {
+    if let Some(type_symbol) = unique_static_type_symbol(lookup, receiver, &edge.language)? {
+        return Ok(Some(type_symbol));
     }
     // Alias path for ES modules including jsx/tsx dialect aliases.
     if !es_module_language(&edge.language) {
-        return None;
+        return Ok(None);
     }
     // Aliased import: local binding is the receiver, imported name is the type.
-    let mut found: Option<&CandidateSymbol> = None;
-    for import in index.imports(&edge.file_id) {
+    let mut found: Option<CandidateHit> = None;
+    let mut ambiguous = false;
+    lookup.visit_imports(&edge.file_id, |lookup, import| {
         if import.is_type_only || import.is_namespace || import.local_name != receiver {
-            continue;
+            return Ok(true);
         }
         let type_name = import
             .imported_name
             .as_deref()
             .unwrap_or(import.local_name.as_str());
         if type_name == receiver {
-            continue; // already tried unique_static_type_symbol(receiver)
+            return Ok(true);
         }
-        let Some(type_symbol) = unique_static_type_symbol(index, type_name, &edge.language) else {
-            continue;
+        let Some(type_symbol) = unique_static_type_symbol(lookup, type_name, &edge.language)?
+        else {
+            return Ok(true);
         };
         if let Some(module) = import.module_file_id.as_deref()
-            && module != type_symbol.file_id
+            && module != type_symbol.symbol.file_id
         {
-            continue;
+            return Ok(true);
         }
         if found.is_some() {
-            return None;
+            ambiguous = true;
+            return Ok(false);
         }
         found = Some(type_symbol);
-    }
-    found
+        Ok(true)
+    })?;
+    Ok((!ambiguous).then_some(found).flatten())
 }
 
 /// ES-module languages refuse cross-file static-type edges unless the receiver
 /// name is imported from the type's defining file. Includes JSX/TSX even when
 /// tier-2 resolution is not yet certified for those language ids. C# and
 /// similar namespace languages rely on uniqueness + visibility alone.
-fn static_type_import_corroborated(
+fn static_type_import_corroborated<L: CandidateLookup>(
     edge: &UnresolvedEdge,
     type_symbol: &CandidateSymbol,
-    index: &WorkspaceCandidateIndex,
-) -> bool {
+    lookup: &L,
+) -> Result<bool, L::Error> {
     if type_symbol.file_id == edge.file_id {
-        return true;
+        return Ok(true);
     }
     if !es_module_language(&edge.language) {
-        return true;
+        return Ok(true);
     }
     let Some(receiver) = edge.receiver.as_deref() else {
-        return false;
+        return Ok(false);
     };
-    index
-        .imports(&edge.file_id)
-        .iter()
-        .any(|import| import_binds_static_type(import, receiver, type_symbol))
+    let mut corroborated = false;
+    lookup.visit_imports(&edge.file_id, |_, import| {
+        corroborated = import_binds_static_type(&import, receiver, type_symbol);
+        Ok(!corroborated)
+    })?;
+    Ok(corroborated)
 }
 
 /// Whether `import` can name `type_symbol` as local binding `receiver`.
@@ -1524,11 +1745,6 @@ fn import_binds_static_type(
         .as_deref()
         .unwrap_or(import.local_name.as_str());
     imported == type_symbol.name
-}
-
-fn sorted_by_id(mut symbols: Vec<&CandidateSymbol>) -> Vec<&CandidateSymbol> {
-    symbols.sort_by(|a, b| a.symbol_id.cmp(&b.symbol_id));
-    symbols
 }
 
 // ---------------------------------------------------------------------------
@@ -1606,10 +1822,10 @@ use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use self::session::{
-    LegacyResolutionSession, ResolutionPassRequest, ResolutionPhase, ResolutionSession,
-    ResolutionWorklists, ResolutionWriteBatch, SemanticIdentifierId, SemanticPendingRelationshipId,
-    SemanticSymbolId, SemanticVersionId, SessionRelationship, SessionResolvedIdentifierWorkItem,
-    SessionResolvedPendingWorkItem, SessionSourceKey,
+    LegacyResolutionSession, ResolutionPassRequest, ResolutionPhase, ResolutionPhaseChunk,
+    ResolutionSession, ResolutionWorklists, ResolutionWriteBatch, SemanticIdentifierId,
+    SemanticPendingRelationshipId, SemanticSymbolId, SemanticVersionId, SessionRelationship,
+    SessionResolvedIdentifierWorkItem, SessionResolvedPendingWorkItem, SessionSourceKey,
 };
 use julie_extract_artifact::resolution_store::{
     self, Outcome, ResolutionCounts, ResolutionReportRow, ResolutionStatus,
@@ -1775,54 +1991,19 @@ pub fn run_resolution_session<S: ResolutionSession>(
     // (design §"Contract & rollout" item 2 — the WRITE path).
     let requested_full = is_full_scan || prior.is_none();
 
-    // Build the candidate index ONCE per hook invocation (design §"Performance &
-    // determinism"). The index is always whole-workspace: a delta edge may resolve
-    // to a symbol in an unchanged file.
-    let index = session.load_candidate_index()?;
-    // The identifier locator + covered-set are only consulted for same-file
-    // co-location joins, so a delta scopes both to the files it touches (FINDING 1:
-    // an O(delta) load rather than reloading every identifier each incremental
-    // scan). A full pass loads the whole workspace.
-    //
-    // The delta scope is computed BEFORE the branch is final: the selection can still
-    // cover most of the workspace, and past the crossover a scoped pass is strictly
-    // worse than Full — same rows, plus chunked `IN` clauses and per-file bookkeeping.
-    let worklists = session.select_worklists(
-        &ResolutionPassRequest {
-            full: requested_full,
-        },
-        &index,
-    )?;
+    let worklists = session.open_resolution_pass(&ResolutionPassRequest {
+        full: requested_full,
+    })?;
     let effective_full = worklists.effective_full;
-    session.prepare_shadow(&worklists, &index, revision)?;
-    let locator = session.load_identifier_locator(&worklists.scope)?;
-    let covered = session.load_covered_identifiers(&index, &locator, &worklists.scope)?;
+    session.prepare_shadow(&worklists, revision)?;
 
     let mut counts = ResolutionCounts::default();
     let mut gated: BTreeSet<String> = BTreeSet::new();
 
     if effective_full {
-        resolve_full(
-            session,
-            &worklists,
-            &index,
-            &locator,
-            &covered,
-            revision,
-            &mut counts,
-            &mut gated,
-        )?;
+        resolve_full(session, &worklists, revision, &mut counts, &mut gated)?;
     } else {
-        resolve_delta(
-            session,
-            &worklists,
-            &index,
-            &locator,
-            &covered,
-            revision,
-            &mut counts,
-            &mut gated,
-        )?;
+        resolve_delta(session, &worklists, revision, &mut counts, &mut gated)?;
     }
 
     session.verify_shadow()?;
@@ -1858,9 +2039,11 @@ pub fn run_resolution_session<S: ResolutionSession>(
         phase.phase = ResolutionPhase::WorkspaceGated;
         gated.is_empty()
             && session
-                .read_current_overlay(&phase, &index, &locator, &covered)?
-                .gated_languages
-                .is_empty()
+                .next_phase_chunk(&phase)?
+                .is_none_or(|chunk| match chunk {
+                    ResolutionPhaseChunk::WorkspaceGated(languages) => languages.is_empty(),
+                    _ => true,
+                })
     };
     let status = if corpus_current && status_gated_clear {
         ResolutionStatus::Complete
@@ -1890,22 +2073,22 @@ fn semantic_identifier_id<S: ResolutionSession>(
     session: &S,
     source_key: &str,
     local_id: &str,
-) -> SemanticIdentifierId {
-    SemanticIdentifierId {
-        version: session.qualify_version(source_key),
+) -> Result<SemanticIdentifierId, S::Error> {
+    Ok(SemanticIdentifierId {
+        version: session.qualify_version(source_key)?,
         local_id: local_id.to_string(),
-    }
+    })
 }
 
 fn semantic_pending_id<S: ResolutionSession>(
     session: &S,
     source_key: &str,
     local_id: &str,
-) -> SemanticPendingRelationshipId {
-    SemanticPendingRelationshipId {
-        version: session.qualify_version(source_key),
+) -> Result<SemanticPendingRelationshipId, S::Error> {
+    Ok(SemanticPendingRelationshipId {
+        version: session.qualify_version(source_key)?,
         local_id: local_id.to_string(),
-    }
+    })
 }
 
 // ---------------------------------------------------------------------------
@@ -1916,9 +2099,6 @@ fn semantic_pending_id<S: ResolutionSession>(
 fn resolve_full<S: ResolutionSession>(
     session: &mut S,
     worklists: &ResolutionWorklists,
-    index: &WorkspaceCandidateIndex,
-    locator: &IdentifierLocator,
-    covered: &HashSet<SemanticIdentifierId>,
     revision: i64,
     counts: &mut ResolutionCounts,
     gated: &mut BTreeSet<String>,
@@ -1937,84 +2117,42 @@ fn resolve_full<S: ResolutionSession>(
     // identifier from `worklist_full_identifiers`, so they need no separate repair.
     let mut phase = worklists.clone();
     phase.phase = ResolutionPhase::ResolvedPending;
-    let overlay = session.read_current_overlay(&phase, index, locator, covered)?;
-    let _ = recheck_resolved_pending_items(
-        session,
-        &mut buf,
-        &overlay.resolved_pending,
-        index,
-        locator,
-        gated,
-    );
+    while let Some(ResolutionPhaseChunk::ResolvedPending(items)) =
+        session.next_phase_chunk(&phase)?
+    {
+        let _ = recheck_resolved_pending_items(session, &mut buf, &items, gated)?;
+        session.flush(std::mem::take(&mut buf))?;
+    }
     // Flush demotions so the next worklist SELECT (resolved identifiers, then the
     // unresolved-pending fill) sees the demoted rows as unresolved — matches the
     // original immediate-demote ordering.
-    session.flush(std::mem::take(&mut buf))?;
-    // Read ownership *after* the demotion flush so an identifier whose pending was
-    // just demoted re-enters the recheck instead of keeping a stale target.
-    phase.phase = ResolutionPhase::PropagationCovered;
-    let propagation_covered = session
-        .read_current_overlay(&phase, index, locator, covered)?
-        .identifier_ids;
     phase.phase = ResolutionPhase::ResolvedIdentifiers;
-    let resolved_identifiers = session.read_current_overlay(&phase, index, locator, covered)?;
-    recheck_resolved_identifier_items(
-        session,
-        &mut buf,
-        &resolved_identifiers.resolved_identifiers,
-        index,
-        &propagation_covered,
-        revision,
-        counts,
-        gated,
-    );
-    session.flush(std::mem::take(&mut buf))?;
+    while let Some(ResolutionPhaseChunk::ResolvedIdentifiers(items)) =
+        session.next_phase_chunk(&phase)?
+    {
+        recheck_resolved_identifier_items(session, &mut buf, &items, revision, counts, gated)?;
+        session.flush(std::mem::take(&mut buf))?;
+    }
     // 1. Resolve every unresolved pending row; propagate resolved ones.
     phase.phase = ResolutionPhase::Pending;
-    let pending = session
-        .read_current_overlay(&phase, index, locator, covered)?
-        .pending;
-    resolve_pending_items(
-        session, &mut buf, &pending, index, locator, revision, counts, gated,
-    );
+    while let Some(ResolutionPhaseChunk::Pending(items)) = session.next_phase_chunk(&phase)? {
+        resolve_pending_items(session, &mut buf, &items, revision, counts, gated)?;
+        session.flush(std::mem::take(&mut buf))?;
+    }
     // Flush pending resolutions + their co-located identifier writes before the
     // tier-1 propagation and the generic identifier worklist read them.
-    session.flush(std::mem::take(&mut buf))?;
     // 2. Propagate tier-1 (extraction-time, same-file) relationships workspace-wide.
     phase.phase = ResolutionPhase::Relationships;
-    let relationships = session
-        .read_current_overlay(&phase, index, locator, covered)?
-        .relationships;
-    propagate_relationship_items(
-        session,
-        &relationships,
-        &mut buf,
-        index,
-        locator,
-        revision,
-        counts,
-    );
-    session.flush(std::mem::take(&mut buf))?;
+    while let Some(ResolutionPhaseChunk::Relationships(items)) = session.next_phase_chunk(&phase)? {
+        propagate_relationship_items(session, &items, &mut buf, revision, counts)?;
+        session.flush(std::mem::take(&mut buf))?;
+    }
     // 3. Generic identifier chain for every identifier propagation did not resolve.
-    phase.phase = ResolutionPhase::PropagationOwned;
-    let owned = session
-        .read_current_overlay(&phase, index, locator, covered)?
-        .identifier_ids;
     phase.phase = ResolutionPhase::Identifiers;
-    let identifiers = session
-        .read_current_overlay(&phase, index, locator, covered)?
-        .identifiers;
-    resolve_identifier_items(
-        session,
-        &mut buf,
-        &identifiers,
-        index,
-        &owned,
-        revision,
-        counts,
-        gated,
-    );
-    session.flush(std::mem::take(&mut buf))?;
+    while let Some(ResolutionPhaseChunk::Identifiers(items)) = session.next_phase_chunk(&phase)? {
+        resolve_identifier_items(session, &mut buf, &items, revision, counts, gated)?;
+        session.flush(std::mem::take(&mut buf))?;
+    }
     Ok(())
 }
 
@@ -2042,9 +2180,6 @@ where
 fn resolve_delta<S: ResolutionSession>(
     session: &mut S,
     worklists: &ResolutionWorklists,
-    index: &WorkspaceCandidateIndex,
-    locator: &IdentifierLocator,
-    covered: &HashSet<SemanticIdentifierId>,
     revision: i64,
     counts: &mut ResolutionCounts,
     gated: &mut BTreeSet<String>,
@@ -2056,85 +2191,48 @@ fn resolve_delta<S: ResolutionSession>(
 
     let mut phase = worklists.clone();
     phase.phase = ResolutionPhase::ResolvedPending;
-    let resolved_pending = session.read_current_overlay(&phase, index, locator, covered)?;
-    let demoted_co_locations = recheck_resolved_pending_items(
-        session,
-        &mut buf,
-        &resolved_pending.resolved_pending,
-        index,
-        locator,
-        gated,
-    );
+    let mut demoted_co_locations = Vec::new();
+    while let Some(ResolutionPhaseChunk::ResolvedPending(items)) =
+        session.next_phase_chunk(&phase)?
+    {
+        demoted_co_locations.extend(recheck_resolved_pending_items(
+            session, &mut buf, &items, gated,
+        )?);
+        session.flush(std::mem::take(&mut buf))?;
+    }
     // Flush demotions so the resolved-identifier sweep and the unresolved-pending
     // fill worklists (both filter on the overlay tables) see them.
-    session.flush(std::mem::take(&mut buf))?;
-    phase.phase = ResolutionPhase::PropagationCovered;
-    let propagation_covered = session
-        .read_current_overlay(&phase, index, locator, covered)?
-        .identifier_ids;
     phase.phase = ResolutionPhase::ResolvedIdentifiers;
-    let resolved_identifiers = session.read_current_overlay(&phase, index, locator, covered)?;
-    recheck_resolved_identifier_items(
-        session,
-        &mut buf,
-        &resolved_identifiers.resolved_identifiers,
-        index,
-        &propagation_covered,
-        revision,
-        counts,
-        gated,
-    );
-    session.flush(std::mem::take(&mut buf))?;
+    while let Some(ResolutionPhaseChunk::ResolvedIdentifiers(items)) =
+        session.next_phase_chunk(&phase)?
+    {
+        recheck_resolved_identifier_items(session, &mut buf, &items, revision, counts, gated)?;
+        session.flush(std::mem::take(&mut buf))?;
+    }
 
     phase.phase = ResolutionPhase::Pending;
-    let pending = session
-        .read_current_overlay(&phase, index, locator, covered)?
-        .pending;
-    resolve_pending_items(
-        session, &mut buf, &pending, index, locator, revision, counts, gated,
-    );
+    while let Some(ResolutionPhaseChunk::Pending(items)) = session.next_phase_chunk(&phase)? {
+        resolve_pending_items(session, &mut buf, &items, revision, counts, gated)?;
+        session.flush(std::mem::take(&mut buf))?;
+    }
     // Flush pending resolutions + co-located identifier writes before propagation
     // and the never-attempted identifier worklists read the overlay tables.
-    session.flush(std::mem::take(&mut buf))?;
 
     phase.phase = ResolutionPhase::Relationships;
-    let relationships = session
-        .read_current_overlay(&phase, index, locator, covered)?
-        .relationships;
-    propagate_relationship_items(
-        session,
-        &relationships,
-        &mut buf,
-        index,
-        locator,
-        revision,
-        counts,
-    );
-    session.flush(std::mem::take(&mut buf))?;
+    while let Some(ResolutionPhaseChunk::Relationships(items)) = session.next_phase_chunk(&phase)? {
+        propagate_relationship_items(session, &items, &mut buf, revision, counts)?;
+        session.flush(std::mem::take(&mut buf))?;
+    }
 
     phase.repair_identifiers = demoted_co_locations
         .into_iter()
         .map(|item| (item.identifier_id, item.name))
         .collect();
     phase.phase = ResolutionPhase::Identifiers;
-    let identifiers = session
-        .read_current_overlay(&phase, index, locator, covered)?
-        .identifiers;
-    phase.phase = ResolutionPhase::PropagationOwned;
-    let owned = session
-        .read_current_overlay(&phase, index, locator, covered)?
-        .identifier_ids;
-    resolve_identifier_items(
-        session,
-        &mut buf,
-        &identifiers,
-        index,
-        &owned,
-        revision,
-        counts,
-        gated,
-    );
-    session.flush(std::mem::take(&mut buf))?;
+    while let Some(ResolutionPhaseChunk::Identifiers(items)) = session.next_phase_chunk(&phase)? {
+        resolve_identifier_items(session, &mut buf, &items, revision, counts, gated)?;
+        session.flush(std::mem::take(&mut buf))?;
+    }
     Ok(())
 }
 
@@ -2153,13 +2251,11 @@ struct DemotedCoLocation {
 /// same single target. Returns the identifiers demoted alongside them, which the caller
 /// must re-derive (see [`DemotedCoLocation`]).
 fn recheck_resolved_pending_items<S: ResolutionSession>(
-    session: &S,
+    session: &mut S,
     buf: &mut ResolutionWriteBatch,
     items: &[SessionResolvedPendingWorkItem],
-    index: &WorkspaceCandidateIndex,
-    locator: &IdentifierLocator,
     gated: &mut BTreeSet<String>,
-) -> Vec<DemotedCoLocation> {
+) -> Result<Vec<DemotedCoLocation>, S::Error> {
     let mut demoted_co_locations = Vec::new();
     for resolved in items {
         if !tier2_enabled(&resolved.pending.language) {
@@ -2167,7 +2263,7 @@ fn recheck_resolved_pending_items<S: ResolutionSession>(
         }
         let keep = match UnresolvedEdge::from_pending(&resolved.pending) {
             Some(edge) => matches!(
-                resolve_one(&edge, index),
+                session.resolve_edge(&edge)?,
                 TierOutcome::Resolved { ref target_symbol_id, tier, .. }
                     if *target_symbol_id == resolved.target_symbol_id
                         && i64::from(tier) == resolved.tier
@@ -2180,67 +2276,57 @@ fn recheck_resolved_pending_items<S: ResolutionSession>(
                 session,
                 pending.source_key(),
                 &pending.pending_relationship_id,
-            ));
+            )?);
             // Clear the co-located identifier too: `demote_pending` only removes the
             // pending overlay, but the propagated identifier resolution must go with
             // it. A later fill sweep re-propagates if the edge re-resolves.
-            let version = session.qualify_version(pending.source_key());
+            let version = session.qualify_version(pending.source_key())?;
             if let Some(identifier_id) = session.locate_identifier(
-                locator,
                 &version,
                 &pending.target_terminal_name,
                 pending.start_byte,
                 pending.end_byte,
                 pending.start_line,
-            ) {
+            )? {
                 buf.demote_identifier(semantic_identifier_id(
                     session,
                     pending.source_key(),
                     &identifier_id,
-                ));
+                )?);
                 demoted_co_locations.push(DemotedCoLocation {
                     identifier_id: semantic_identifier_id(
                         session,
                         pending.source_key(),
                         &identifier_id,
-                    ),
+                    )?,
                     name: pending.target_terminal_name.clone(),
                 });
             }
         }
     }
-    demoted_co_locations
+    Ok(demoted_co_locations)
 }
 
 #[allow(clippy::too_many_arguments)]
 fn recheck_resolved_identifier_items<S: ResolutionSession>(
-    session: &S,
+    session: &mut S,
     buf: &mut ResolutionWriteBatch,
     items: &[SessionResolvedIdentifierWorkItem],
-    index: &WorkspaceCandidateIndex,
-    covered: &HashSet<SemanticIdentifierId>,
     revision: i64,
     counts: &mut ResolutionCounts,
     gated: &mut BTreeSet<String>,
-) {
+) -> Result<(), S::Error> {
     for resolved in items {
-        if covered.contains(&semantic_identifier_id(
+        if session.propagation_is_covered(&semantic_identifier_id(
             session,
             resolved.identifier.source_key(),
             &resolved.identifier.identifier_id,
-        )) {
+        )?)? {
             continue;
         }
-        record_identifier_edge(
-            session,
-            buf,
-            &resolved.identifier,
-            index,
-            revision,
-            counts,
-            gated,
-        );
+        record_identifier_edge(session, buf, &resolved.identifier, revision, counts, gated)?;
     }
+    Ok(())
 }
 
 // ---------------------------------------------------------------------------
@@ -2249,15 +2335,13 @@ fn recheck_resolved_identifier_items<S: ResolutionSession>(
 
 #[allow(clippy::too_many_arguments)]
 fn resolve_pending_items<S: ResolutionSession>(
-    session: &S,
+    session: &mut S,
     buf: &mut ResolutionWriteBatch,
     items: &[PendingWorkItem],
-    index: &WorkspaceCandidateIndex,
-    locator: &IdentifierLocator,
     revision: i64,
     counts: &mut ResolutionCounts,
     gated: &mut BTreeSet<String>,
-) {
+) -> Result<(), S::Error> {
     for item in items {
         let Some(edge) = UnresolvedEdge::from_pending(item) else {
             continue; // unsupported relationship kind: no overlay for pending rows.
@@ -2272,10 +2356,10 @@ fn resolve_pending_items<S: ResolutionSession>(
             tier,
             confidence,
             method,
-        } = resolve_one(&edge, index)
+        } = session.resolve_edge(&edge)?
         {
             buf.record_pending_resolution(
-                semantic_pending_id(session, item.source_key(), &item.pending_relationship_id),
+                semantic_pending_id(session, item.source_key(), &item.pending_relationship_id)?,
                 target_symbol_id.clone(),
                 tier,
                 confidence,
@@ -2285,17 +2369,16 @@ fn resolve_pending_items<S: ResolutionSession>(
             counts.pending_resolutions += 1;
             // Propagate onto the co-located identifier by span (line fallback only
             // when exactly one identifier matches — never into an ambiguous join).
-            let version = session.qualify_version(item.source_key());
+            let version = session.qualify_version(item.source_key())?;
             if let Some(identifier_id) = session.locate_identifier(
-                locator,
                 &version,
                 &item.target_terminal_name,
                 item.start_byte,
                 item.end_byte,
                 item.start_line,
-            ) {
+            )? {
                 buf.record_identifier_outcome(
-                    semantic_identifier_id(session, item.source_key(), &identifier_id),
+                    semantic_identifier_id(session, item.source_key(), &identifier_id)?,
                     Outcome::Resolved,
                     Some(target_symbol_id),
                     Some(tier),
@@ -2308,48 +2391,47 @@ fn resolve_pending_items<S: ResolutionSession>(
             }
         }
     }
+    Ok(())
 }
 
 #[allow(clippy::too_many_arguments)]
 fn resolve_identifier_items<S: ResolutionSession>(
-    session: &S,
+    session: &mut S,
     buf: &mut ResolutionWriteBatch,
     items: &[IdentifierWorkItem],
-    index: &WorkspaceCandidateIndex,
-    covered: &HashSet<SemanticIdentifierId>,
     revision: i64,
     counts: &mut ResolutionCounts,
     gated: &mut BTreeSet<String>,
-) {
+) -> Result<(), S::Error> {
     for item in items {
-        if covered.contains(&semantic_identifier_id(
+        if session.propagation_is_owned(&semantic_identifier_id(
             session,
             item.source_key(),
             &item.identifier_id,
-        )) {
+        )?)? {
             continue; // propagation already wrote this identifier's target.
         }
-        record_identifier_edge(session, buf, item, index, revision, counts, gated);
+        record_identifier_edge(session, buf, item, revision, counts, gated)?;
     }
+    Ok(())
 }
 
 /// Run the reduced identifier chain for one identifier and record its outcome
 /// (resolved/ambiguous/missing/no_context are all recorded — design §"Data flow"
 /// step 4). Idempotent upsert, so re-running demotes a regressed resolution.
 fn record_identifier_edge<S: ResolutionSession>(
-    session: &S,
+    session: &mut S,
     buf: &mut ResolutionWriteBatch,
     item: &IdentifierWorkItem,
-    index: &WorkspaceCandidateIndex,
     revision: i64,
     counts: &mut ResolutionCounts,
     gated: &mut BTreeSet<String>,
-) {
+) -> Result<(), S::Error> {
     let Some(edge) = UnresolvedEdge::from_identifier(item) else {
         // Unsupported identifier kind: record no-context so it stops re-entering
         // the never-attempted worklist for its kind.
         buf.record_identifier_outcome(
-            semantic_identifier_id(session, item.source_key(), &item.identifier_id),
+            semantic_identifier_id(session, item.source_key(), &item.identifier_id)?,
             Outcome::NoContext,
             None,
             None,
@@ -2359,38 +2441,39 @@ fn record_identifier_edge<S: ResolutionSession>(
             revision,
         );
         counts.identifier_resolutions += 1;
-        return;
+        return Ok(());
     };
     if applicable_tiers(&edge).contains(&Tier::Import) && !tier2_enabled(&item.language) {
         gated.insert(item.language.clone());
     }
-    let (outcome, target, tier, confidence, method, candidates) = match resolve_one(&edge, index) {
-        TierOutcome::Resolved {
-            target_symbol_id,
-            tier,
-            confidence,
-            method,
-        } => (
-            Outcome::Resolved,
-            Some(target_symbol_id),
-            Some(tier),
-            Some(confidence),
-            Some(method),
-            None,
-        ),
-        TierOutcome::Ambiguous { candidates } => (
-            Outcome::Ambiguous,
-            None,
-            None,
-            None,
-            None,
-            Some(candidates.len() as i64),
-        ),
-        TierOutcome::Missing => (Outcome::Missing, None, None, None, None, None),
-        TierOutcome::NoContext => (Outcome::NoContext, None, None, None, None, None),
-    };
+    let (outcome, target, tier, confidence, method, candidates) =
+        match session.resolve_edge(&edge)? {
+            TierOutcome::Resolved {
+                target_symbol_id,
+                tier,
+                confidence,
+                method,
+            } => (
+                Outcome::Resolved,
+                Some(target_symbol_id),
+                Some(tier),
+                Some(confidence),
+                Some(method),
+                None,
+            ),
+            TierOutcome::Ambiguous { candidates } => (
+                Outcome::Ambiguous,
+                None,
+                None,
+                None,
+                None,
+                Some(candidates.len() as i64),
+            ),
+            TierOutcome::Missing => (Outcome::Missing, None, None, None, None, None),
+            TierOutcome::NoContext => (Outcome::NoContext, None, None, None, None, None),
+        };
     buf.record_identifier_outcome(
-        semantic_identifier_id(session, item.source_key(), &item.identifier_id),
+        semantic_identifier_id(session, item.source_key(), &item.identifier_id)?,
         outcome,
         target,
         tier,
@@ -2400,36 +2483,33 @@ fn record_identifier_edge<S: ResolutionSession>(
         revision,
     );
     counts.identifier_resolutions += 1;
+    Ok(())
 }
 
 /// Propagate tier-1 (extraction-time, same-file) `relationships` edges onto their
 /// co-located identifiers. `file_filter` restricts to changed files on a delta
 /// pass; `None` covers the whole workspace on a full pass.
 fn propagate_relationship_items<S: ResolutionSession>(
-    session: &S,
+    session: &mut S,
     items: &[SessionRelationship],
     buf: &mut ResolutionWriteBatch,
-    index: &WorkspaceCandidateIndex,
-    locator: &IdentifierLocator,
     revision: i64,
     counts: &mut ResolutionCounts,
-) {
+) -> Result<(), S::Error> {
     for item in items {
         if ReferenceKind::from_relationship_kind(&item.kind).is_none() {
             continue;
         }
-        let Some(name) = index.symbol_name(&item.target_symbol_id) else {
+        let Some(name) = session.target_symbol_name(&item.target_symbol_id)? else {
             continue;
         };
-        let name = name.to_string();
         if let Some(identifier_id) = session.locate_identifier(
-            locator,
             &item.source_version_id,
             &name,
             item.start_byte,
             item.end_byte,
             item.start_line,
-        ) {
+        )? {
             buf.record_identifier_outcome(
                 SemanticIdentifierId {
                     version: item.source_version_id.clone(),
@@ -2446,6 +2526,7 @@ fn propagate_relationship_items<S: ResolutionSession>(
             counts.identifier_resolutions += 1;
         }
     }
+    Ok(())
 }
 
 pub(crate) fn load_relationship_rows(
@@ -2705,7 +2786,7 @@ fn load_file_ids_by_path(conn: &Connection) -> rusqlite::Result<HashMap<String, 
 /// `local_name`), imported-name keys (`imported_name`, `imported`), and `source`
 /// are read from `metadata_json` when present; per-language import metadata is
 /// not a normalized contract yet (F4), so this stays defensive.
-fn import_binding(
+pub(crate) fn import_binding(
     name: &str,
     metadata_json: Option<&str>,
 ) -> (String, Option<String>, Option<String>, bool, bool, bool) {
@@ -2757,7 +2838,7 @@ fn import_binding(
 /// independent of which of them exist. Split from selection because the delta scope
 /// needs the paths a specifier WOULD accept — a file that does not exist yet, or no
 /// longer does, is exactly the one that re-points it.
-fn import_module_candidates(
+pub(crate) fn import_module_candidates(
     importing_path: &str,
     source: Option<&str>,
     language: &str,
@@ -3688,7 +3769,7 @@ pub(crate) fn verify_legacy_shadow(
 fn shadow_legacy_leg(
     tx: &Transaction<'_>,
     scope: &ResolutionScopeInput,
-    index: &WorkspaceCandidateIndex,
+    _index: &WorkspaceCandidateIndex,
     legacy_scope: &DeltaScope,
     revision: i64,
 ) -> rusqlite::Result<OverlaySnapshot> {
@@ -3732,17 +3813,8 @@ fn shadow_legacy_leg(
             .collect(),
         ..ResolutionWorklists::default()
     };
-    let covered = session.load_covered_identifiers(index, &locator, &worklists.scope)?;
-    resolve_delta(
-        &mut session,
-        &worklists,
-        index,
-        &locator,
-        &covered,
-        revision,
-        &mut counts,
-        &mut gated,
-    )?;
+    session.seed_pass(load_index(tx)?, locator, &worklists)?;
+    resolve_delta(&mut session, &worklists, revision, &mut counts, &mut gated)?;
     OverlaySnapshot::capture(tx)
 }
 
@@ -5381,9 +5453,7 @@ mod tests {
     }
 
     #[test]
-    fn ambiguous_candidates_sorted_by_symbol_id() {
-        // INVARIANT: determinism — Ambiguous candidate list is ordered by
-        // symbol_id regardless of input order.
+    fn ambiguous_candidate_evidence_is_sorted_and_bounded() {
         let index = WorkspaceCandidateIndex::build(
             vec![
                 sym("zeta", "T", SymbolKind::Class, "rust", "f1"),
@@ -5401,7 +5471,7 @@ mod tests {
                         .into_iter()
                         .map(|candidate| candidate.local_id)
                         .collect::<Vec<_>>(),
-                    vec!["alpha", "mid", "zeta"]
+                    vec!["alpha", "mid"]
                 );
             }
             other => panic!("expected Ambiguous, got {other:?}"),

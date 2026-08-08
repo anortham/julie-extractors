@@ -3,6 +3,7 @@ mod delete;
 mod executor;
 pub mod import;
 pub mod report;
+pub mod resolution_session;
 #[cfg(feature = "test-store-contract")]
 pub mod test_support;
 mod update;

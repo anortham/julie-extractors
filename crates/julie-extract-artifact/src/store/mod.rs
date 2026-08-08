@@ -34,16 +34,18 @@ pub use model::{
 pub use resolution::{
     IdentifierResolutionRow, PendingResolutionRow, RESOLUTION_BASE_FORMAT_VERSION,
     RESOLUTION_BASE_SQL, RESOLUTION_BASE_USER_VERSION, ResolutionBaseBuilder, ResolutionBaseReader,
-    ResolutionFileIdentity, ResolutionIdentifierRow, ResolutionPendingRow,
-    ResolutionSemanticCounts, ResolutionValidationError, resolution_base_catalog_hash,
-    resolution_base_catalog_hash_for_sql,
+    ResolutionBaseWriter, ResolutionFileIdentity, ResolutionIdentifierRow, ResolutionPendingRow,
+    ResolutionSemanticCounts, ResolutionValidationError, create_resolution_scratch_connection,
+    resolution_base_catalog_hash, resolution_base_catalog_hash_for_sql,
 };
 pub use resolution_diff::{
     RESOLUTION_SCRATCH_FORMAT_VERSION, RESOLUTION_SCRATCH_SQL, RESOLUTION_SCRATCH_USER_VERSION,
-    ResolutionPendingTombstone, ResolutionScratchCounts, ResolutionScratchDelta,
-    ResolutionScratchDeltaReader, ResolutionScratchReader, resolution_scratch_catalog_hash,
+    ResolutionApplyCounts, ResolutionDiffResult, ResolutionGapFact, ResolutionGapKind,
+    ResolutionGapTable, ResolutionPendingTombstone, ResolutionScratchCounts,
+    ResolutionScratchDelta, ResolutionScratchDeltaReader, ResolutionScratchReader,
+    ResolutionScratchWriter, apply_base_delta, resolution_scratch_catalog_hash,
     resolution_scratch_catalog_hash_for_sql, scratch_identifier_target_set,
-    scratch_resolution_counts, scratch_semantic_counts,
+    scratch_resolution_counts, scratch_semantic_counts, stream_resolution_diff,
 };
 pub use schema::{
     STORE_FORMAT_EPOCH, STORE_SQLITE_SCHEMA_VERSION, StoreSchemaError, create_coordinator_schema,

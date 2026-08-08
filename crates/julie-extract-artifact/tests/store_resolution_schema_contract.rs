@@ -5,9 +5,10 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use julie_extract_artifact::store::{
-    ResolutionBaseBuilder, ResolutionBaseReader, ResolutionIdentifierRow, ResolutionPendingRow,
-    ResolutionScratchDelta, ResolutionSemanticCounts, resolution_base_catalog_hash,
-    resolution_scratch_catalog_hash,
+    ResolutionBaseBuilder, ResolutionBaseReader, ResolutionBaseWriter, ResolutionGapKind,
+    ResolutionGapTable, ResolutionIdentifierRow, ResolutionPendingRow, ResolutionScratchDelta,
+    ResolutionScratchReader, ResolutionSemanticCounts, ResolutionValidationError, apply_base_delta,
+    resolution_base_catalog_hash, resolution_scratch_catalog_hash, stream_resolution_diff,
 };
 use rusqlite::Connection;
 
@@ -40,6 +41,75 @@ impl TempDir {
     }
 }
 
+#[test]
+fn streaming_base_writer_requires_order_and_persists_without_corpus_buffers() {
+    let temp = TempDir::new("streaming-base");
+    let path = temp.path().join("base.db");
+    let mut writer = ResolutionBaseWriter::new(&path, "manifest-a", 6).unwrap();
+    writer.push_source_version(10).unwrap();
+    writer.push_source_version(20).unwrap();
+    writer
+        .push_identifier_resolution(identifier(10, "identifier-1"))
+        .unwrap();
+    writer
+        .push_pending_resolution(pending(20, "pending-1"))
+        .unwrap();
+    let identity = writer
+        .finish_with_target_lookup(|version_id, symbol_id| {
+            Ok(version_id == 20 && symbol_id == "symbol-4")
+        })
+        .unwrap();
+
+    assert_eq!(identity.counts.identifiers, 1);
+    assert_eq!(identity.counts.pending, 1);
+    let reader = ResolutionBaseReader::open(&path).unwrap();
+    assert_eq!(
+        reader.identifiers().unwrap(),
+        vec![identifier(10, "identifier-1")]
+    );
+    assert_eq!(reader.pending().unwrap(), vec![pending(20, "pending-1")]);
+}
+
+#[test]
+fn streaming_base_writer_rejects_out_of_order_rows() {
+    let temp = TempDir::new("streaming-order");
+    let path = temp.path().join("base.db");
+    let mut writer = ResolutionBaseWriter::new(&path, "manifest-a", 6).unwrap();
+    writer.push_source_version(10).unwrap();
+    writer.push_source_version(20).unwrap();
+    writer
+        .push_identifier_resolution(identifier(20, "identifier-2"))
+        .unwrap();
+
+    assert!(
+        writer
+            .push_identifier_resolution(identifier(10, "identifier-1"))
+            .is_err()
+    );
+}
+
+#[test]
+fn streaming_base_writer_missing_target_leaves_no_artifact() {
+    let temp = TempDir::new("streaming-target");
+    let path = temp.path().join("base.db");
+    let mut writer = ResolutionBaseWriter::new(&path, "manifest-a", 6).unwrap();
+    writer.push_source_version(10).unwrap();
+    writer.push_source_version(20).unwrap();
+    writer
+        .push_identifier_resolution(identifier(10, "identifier-1"))
+        .unwrap();
+
+    let error = writer
+        .finish_with_target_lookup(|_, _| Ok(false))
+        .unwrap_err();
+
+    assert!(matches!(
+        error,
+        julie_extract_artifact::store::ResolutionValidationError::TargetMissing { .. }
+    ));
+    assert!(!path.exists());
+}
+
 impl Drop for TempDir {
     fn drop(&mut self) {
         let _ = fs::remove_dir_all(&self.0);
@@ -70,6 +140,203 @@ fn pending(version_id: i64, pending_relationship_id: &str) -> ResolutionPendingR
         confidence: 0.85,
         method: "import_guided".to_string(),
     }
+}
+
+#[test]
+fn streaming_diff_and_apply_cover_replacements_deletes_path_reuse_and_collisions() {
+    let temp = TempDir::new("streaming-diff");
+    let base_path = temp.path().join("base.db");
+    let exact_path = temp.path().join("exact.db");
+    let delta_path = temp.path().join("delta.db");
+    let mut replaced_identifier = identifier(10, "identifier-replaced");
+    replaced_identifier.confidence = Some(0.55);
+    let mut replaced_pending = pending(10, "pending-replaced");
+    replaced_pending.confidence = 0.75;
+    build_base(
+        &base_path,
+        [10, 20, 30, 50],
+        vec![
+            identifier(10, "collision"),
+            identifier(10, "identifier-replaced"),
+            identifier(30, "identifier-removed"),
+            identifier(50, "preserved"),
+        ],
+        vec![
+            pending(10, "pending-same"),
+            pending(10, "pending-replaced"),
+            pending(10, "pending-delete-a"),
+            pending(30, "pending-delete-b"),
+        ],
+    );
+    build_base(
+        &exact_path,
+        [10, 20, 40, 50],
+        vec![
+            identifier(10, "collision"),
+            replaced_identifier.clone(),
+            identifier(20, "identifier-added"),
+            identifier(40, "collision"),
+            identifier(50, "preserved"),
+        ],
+        vec![
+            pending(10, "pending-same"),
+            replaced_pending.clone(),
+            pending(40, "pending-added"),
+        ],
+    );
+    let base = ResolutionBaseReader::open(&base_path).unwrap();
+    let exact = ResolutionBaseReader::open(&exact_path).unwrap();
+    let mut gaps = Vec::new();
+    let diff = stream_resolution_diff(&base, &exact, &delta_path, 2, |gap| {
+        gaps.push(gap);
+        Ok(())
+    })
+    .unwrap();
+    assert_eq!(diff.gaps, 8);
+    assert!(diff.max_window_rows <= 2);
+    assert_eq!(
+        gaps.into_iter()
+            .map(|gap| (gap.table, gap.version_id, gap.local_id, gap.kind))
+            .collect::<Vec<_>>(),
+        vec![
+            (
+                ResolutionGapTable::Identifier,
+                10,
+                "identifier-replaced".to_string(),
+                ResolutionGapKind::Replaced
+            ),
+            (
+                ResolutionGapTable::Identifier,
+                20,
+                "identifier-added".to_string(),
+                ResolutionGapKind::Added
+            ),
+            (
+                ResolutionGapTable::Identifier,
+                30,
+                "identifier-removed".to_string(),
+                ResolutionGapKind::Removed
+            ),
+            (
+                ResolutionGapTable::Identifier,
+                40,
+                "collision".to_string(),
+                ResolutionGapKind::Added
+            ),
+            (
+                ResolutionGapTable::Pending,
+                10,
+                "pending-delete-a".to_string(),
+                ResolutionGapKind::Removed
+            ),
+            (
+                ResolutionGapTable::Pending,
+                10,
+                "pending-replaced".to_string(),
+                ResolutionGapKind::Replaced
+            ),
+            (
+                ResolutionGapTable::Pending,
+                30,
+                "pending-delete-b".to_string(),
+                ResolutionGapKind::Removed
+            ),
+            (
+                ResolutionGapTable::Pending,
+                40,
+                "pending-added".to_string(),
+                ResolutionGapKind::Added
+            ),
+        ]
+    );
+
+    let delta = ResolutionScratchReader::open(&delta_path).unwrap();
+    assert_eq!(delta.semantic_counts().identifier_replacements, 3);
+    assert_eq!(delta.semantic_counts().pending_replacements, 2);
+    assert_eq!(delta.semantic_counts().pending_tombstones, 2);
+    let visible = BTreeSet::from([10, 20, 40, 50]);
+    let mut identifiers = Vec::new();
+    let mut pending_rows = Vec::new();
+    let applied = apply_base_delta(
+        &base,
+        &delta,
+        2,
+        |version_id| Ok(visible.contains(&version_id)),
+        |row| {
+            identifiers.push(row);
+            Ok(())
+        },
+        |row| {
+            pending_rows.push(row);
+            Ok(())
+        },
+    )
+    .unwrap();
+    assert!(applied.max_window_rows <= 2);
+    assert_eq!(identifiers, exact.identifiers().unwrap());
+    assert_eq!(pending_rows, exact.pending().unwrap());
+}
+
+#[test]
+fn streaming_diff_sink_error_rolls_back_without_completed_delta() {
+    let temp = TempDir::new("diff-sink-error");
+    let base_path = temp.path().join("base.db");
+    let exact_path = temp.path().join("exact.db");
+    let delta_path = temp.path().join("delta.db");
+    build_base(&base_path, [10, 20], vec![], vec![]);
+    build_base(&exact_path, [10, 20], vec![identifier(10, "added")], vec![]);
+    let base = ResolutionBaseReader::open(&base_path).unwrap();
+    let exact = ResolutionBaseReader::open(&exact_path).unwrap();
+
+    let error = stream_resolution_diff(&base, &exact, &delta_path, 2, |_| {
+        Err(ResolutionValidationError::InvalidArgument("gap sink"))
+    })
+    .unwrap_err();
+
+    assert!(matches!(
+        error,
+        ResolutionValidationError::InvalidArgument("gap sink")
+    ));
+    assert!(!delta_path.exists());
+}
+
+#[test]
+fn streaming_diff_rejects_missing_identifier_from_visible_exact_version() {
+    let temp = TempDir::new("identifier-totality");
+    let base_path = temp.path().join("base.db");
+    let exact_path = temp.path().join("exact.db");
+    let delta_path = temp.path().join("delta.db");
+    build_base(
+        &base_path,
+        [10, 20],
+        vec![identifier(10, "missing")],
+        vec![],
+    );
+    build_base(&exact_path, [10, 20], vec![], vec![]);
+    let base = ResolutionBaseReader::open(&base_path).unwrap();
+    let exact = ResolutionBaseReader::open(&exact_path).unwrap();
+
+    let error = stream_resolution_diff(&base, &exact, &delta_path, 3, |_| Ok(())).unwrap_err();
+
+    assert!(
+        matches!(error, ResolutionValidationError::IdentifierTotalityViolation {
+        version_id: 10, ref identifier_id
+    } if identifier_id == "missing")
+    );
+    assert!(!delta_path.exists());
+}
+
+fn build_base(
+    path: &Path,
+    versions: impl IntoIterator<Item = i64>,
+    identifiers: Vec<ResolutionIdentifierRow>,
+    pending_rows: Vec<ResolutionPendingRow>,
+) {
+    let visible = BTreeSet::from([(20, "symbol-4".to_string())]);
+    let mut builder = ResolutionBaseBuilder::new(path, "manifest-a", 6, versions).unwrap();
+    builder.push_identifier_batch(identifiers);
+    builder.push_pending_batch(pending_rows);
+    builder.finish(&visible).unwrap();
 }
 
 #[test]

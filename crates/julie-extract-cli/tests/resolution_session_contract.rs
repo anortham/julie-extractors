@@ -6,10 +6,10 @@ use std::path::Path;
 use julie_extract_artifact::resolution_store::{read_resolution_metadata, resolution_report};
 use julie_extract_cli::resolution::run_resolution_session;
 use julie_extract_cli::resolution_session::{
-    CurrentResolutionOverlay, IdentifierLocator, ResolutionCorpusIdentity, ResolutionPassRequest,
-    ResolutionPhase, ResolutionSession, ResolutionWorklistScope, ResolutionWorklists,
-    ResolutionWrite, ResolutionWriteBatch, SemanticIdentifierId, SemanticSymbolId,
-    SemanticVersionId, SessionRelationship, SessionResolutionState,
+    LegacyResolutionSession, ResolutionCorpusIdentity, ResolutionPassRequest, ResolutionPhase,
+    ResolutionSession, ResolutionWorklists, ResolutionWrite, ResolutionWriteBatch,
+    SemanticIdentifierId, SemanticSymbolId, SemanticVersionId, SessionRelationship,
+    SessionResolutionState,
 };
 use rusqlite::Connection;
 use serde_json::{Value, json};
@@ -79,6 +79,51 @@ fn legacy_resolution_oracle_is_pinned() {
     let expected_path = fixture_root().join("expected.semantic.json");
     let expected = std::fs::read_to_string(expected_path).expect("pinned oracle exists");
     assert_eq!(first, expected, "legacy semantic oracle changed");
+}
+
+#[test]
+fn legacy_phase_windows_are_bounded_and_output_invariant() {
+    let (_small_temp, small_db) = scan_fixture();
+    let (_large_temp, large_db) = scan_fixture();
+
+    let (small, small_peak) = rerun_resolution_with_window(&small_db, 1);
+    let (large, large_peak) = rerun_resolution_with_window(&large_db, 7);
+
+    assert_eq!(small, large);
+    assert_eq!(small_peak, 1);
+    assert!(large_peak <= 7);
+    assert!(large_peak > 1, "fixture does not exercise multi-row chunks");
+}
+
+fn rerun_resolution_with_window(db: &Path, window_size: usize) -> (Value, usize) {
+    let mut connection = Connection::open(db).expect("artifact opens");
+    let transaction = connection.transaction().expect("resolution transaction");
+    transaction
+        .execute_batch(
+            "DELETE FROM pending_resolutions;
+             DELETE FROM identifier_resolutions;
+             DELETE FROM artifact_metadata WHERE key LIKE 'reference_resolution_%';",
+        )
+        .expect("prior overlay clears");
+    let scope = julie_extract_artifact::writer::ResolutionScopeInput {
+        is_full_scan: true,
+        whole_corpus: true,
+        ..Default::default()
+    };
+    let mut session =
+        LegacyResolutionSession::new(&transaction, &scope, 0.7).with_window_size(window_size);
+    run_resolution_session(&mut session, true, true).expect("windowed resolution succeeds");
+    let peak = session.max_emitted_chunk_size();
+    drop(session);
+    transaction.commit().expect("windowed overlay commits");
+    let connection = Connection::open(db).expect("artifact reopens");
+    (
+        json!({
+            "pending": pending_resolution_rows(&connection),
+            "identifiers": identifier_resolution_rows(&connection),
+        }),
+        peak,
+    )
 }
 
 fn assert_vacuous_surfaces_are_populated(value: &Value) {
@@ -433,6 +478,8 @@ fn symbol_key(
 #[derive(Default)]
 struct FakeResolutionSession {
     writes: Vec<ResolutionWriteBatch>,
+    index: Option<julie_extract_cli::resolution::WorkspaceCandidateIndex>,
+    emitted_phases: Vec<ResolutionPhase>,
 }
 
 impl ResolutionSession for FakeResolutionSession {
@@ -455,10 +502,11 @@ impl ResolutionSession for FakeResolutionSession {
         Ok(1)
     }
 
-    fn load_candidate_index(
+    fn open_resolution_pass(
         &mut self,
-    ) -> Result<julie_extract_cli::resolution::WorkspaceCandidateIndex, Self::Error> {
-        Ok(
+        _request: &ResolutionPassRequest,
+    ) -> Result<ResolutionWorklists, Self::Error> {
+        self.index = Some(
             julie_extract_cli::resolution::WorkspaceCandidateIndex::build_versioned(
                 vec![
                     (
@@ -533,69 +581,83 @@ impl ResolutionSession for FakeResolutionSession {
                 vec![],
                 vec![],
             ),
-        )
-    }
-
-    fn select_worklists(
-        &mut self,
-        _request: &ResolutionPassRequest,
-        _index: &julie_extract_cli::resolution::WorkspaceCandidateIndex,
-    ) -> Result<ResolutionWorklists, Self::Error> {
+        );
+        self.emitted_phases.clear();
         Ok(ResolutionWorklists {
             effective_full: true,
             ..ResolutionWorklists::default()
         })
     }
 
-    fn load_identifier_locator(
-        &mut self,
-        _scope: &ResolutionWorklistScope,
-    ) -> Result<IdentifierLocator, Self::Error> {
-        Ok(IdentifierLocator::default())
-    }
-
-    fn qualify_version(&self, source_key: &str) -> SemanticVersionId {
-        match source_key {
+    fn qualify_version(&self, source_key: &str) -> Result<SemanticVersionId, Self::Error> {
+        Ok(match source_key {
             "caller" => SemanticVersionId::Store(10),
             "other-caller" => SemanticVersionId::Store(30),
             _ => panic!("unexpected fake source key: {source_key}"),
-        }
+        })
+    }
+
+    fn resolve_edge(
+        &mut self,
+        edge: &julie_extract_cli::resolution::UnresolvedEdge,
+    ) -> Result<julie_extract_cli::resolution::TierOutcome, Self::Error> {
+        Ok(julie_extract_cli::resolution::resolve_one(
+            edge,
+            self.index.as_ref().expect("fake pass is open"),
+        ))
+    }
+
+    fn target_symbol_name(
+        &mut self,
+        symbol_id: &SemanticSymbolId,
+    ) -> Result<Option<String>, Self::Error> {
+        Ok((symbol_id.local_id == "target").then(|| "launch".to_string()))
     }
 
     fn locate_identifier(
         &self,
-        _locator: &IdentifierLocator,
         version: &SemanticVersionId,
         name: &str,
         _start_byte: Option<i64>,
         _end_byte: Option<i64>,
         _start_line: i64,
-    ) -> Option<String> {
-        (*version == SemanticVersionId::Store(10) && name == "launch")
-            .then(|| "relationship-site".to_string())
+    ) -> Result<Option<String>, Self::Error> {
+        Ok(
+            (*version == SemanticVersionId::Store(10) && name == "launch")
+                .then(|| "relationship-site".to_string()),
+        )
     }
 
-    fn load_covered_identifiers(
+    fn identifier_is_covered(
         &mut self,
-        _index: &julie_extract_cli::resolution::WorkspaceCandidateIndex,
-        _locator: &IdentifierLocator,
-        _scope: &ResolutionWorklistScope,
-    ) -> Result<
-        std::collections::HashSet<julie_extract_cli::resolution_session::SemanticIdentifierId>,
-        Self::Error,
-    > {
-        Ok(Default::default())
+        _identifier_id: &SemanticIdentifierId,
+    ) -> Result<bool, Self::Error> {
+        Ok(false)
     }
 
-    fn read_current_overlay(
+    fn propagation_is_covered(
+        &mut self,
+        _identifier_id: &SemanticIdentifierId,
+    ) -> Result<bool, Self::Error> {
+        Ok(false)
+    }
+
+    fn propagation_is_owned(
+        &mut self,
+        _identifier_id: &SemanticIdentifierId,
+    ) -> Result<bool, Self::Error> {
+        Ok(false)
+    }
+
+    fn next_phase_chunk(
         &mut self,
         worklists: &ResolutionWorklists,
-        _index: &julie_extract_cli::resolution::WorkspaceCandidateIndex,
-        _locator: &IdentifierLocator,
-        _covered: &std::collections::HashSet<
-            julie_extract_cli::resolution_session::SemanticIdentifierId,
-        >,
-    ) -> Result<CurrentResolutionOverlay, Self::Error> {
+    ) -> Result<Option<julie_extract_cli::resolution_session::ResolutionPhaseChunk>, Self::Error>
+    {
+        if self.emitted_phases.contains(&worklists.phase) {
+            return Ok(None);
+        }
+        self.emitted_phases.push(worklists.phase);
         let identifiers = if worklists.phase == ResolutionPhase::Identifiers {
             vec![
                 julie_extract_artifact::resolution_store::IdentifierWorkItem {
@@ -634,10 +696,18 @@ impl ResolutionSession for FakeResolutionSession {
         } else {
             Vec::new()
         };
-        Ok(CurrentResolutionOverlay {
-            identifiers,
-            relationships,
-            ..CurrentResolutionOverlay::default()
+        Ok(match worklists.phase {
+            ResolutionPhase::Identifiers => Some(
+                julie_extract_cli::resolution_session::ResolutionPhaseChunk::Identifiers(
+                    identifiers,
+                ),
+            ),
+            ResolutionPhase::Relationships => Some(
+                julie_extract_cli::resolution_session::ResolutionPhaseChunk::Relationships(
+                    relationships,
+                ),
+            ),
+            _ => None,
         })
     }
 
@@ -737,4 +807,34 @@ fn generic_resolution_engine_contains_no_physical_storage_access() {
             "generic engine contains physical storage access: {forbidden}"
         );
     }
+}
+
+#[test]
+fn generic_resolution_session_contract_exposes_only_bounded_ports() {
+    let source = include_str!("../src/resolution_session.rs");
+    let start = source
+        .find("pub trait ResolutionSession")
+        .expect("resolution session contract starts");
+    let end = source[start..]
+        .find("pub struct LegacyResolutionSession")
+        .map(|offset| start + offset)
+        .expect("legacy adapter follows the contract");
+    let contract = &source[start..end];
+
+    for forbidden in [
+        "WorkspaceCandidateIndex",
+        "IdentifierLocator",
+        "HashSet<SemanticIdentifierId>",
+        "CurrentResolutionOverlay",
+        "Vec<PendingWorkItem>",
+        "Vec<IdentifierWorkItem>",
+        "Vec<SessionRelationship>",
+    ] {
+        assert!(
+            !contract.contains(forbidden),
+            "generic contract exposes an unbounded concrete collection: {forbidden}"
+        );
+    }
+    assert!(contract.contains("open_resolution_pass"));
+    assert!(contract.contains("next_phase_chunk"));
 }
