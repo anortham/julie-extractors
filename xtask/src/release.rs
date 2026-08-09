@@ -143,6 +143,14 @@ pub fn release_package_items() -> Vec<ReleasePackageItem> {
         },
         ReleasePackageItem {
             kind: ReleasePackageKind::Doc,
+            path_template: "docs/contracts/store-v1.md",
+        },
+        ReleasePackageItem {
+            kind: ReleasePackageKind::Doc,
+            path_template: "docs/contracts/sqlite-store-schema-v2.md",
+        },
+        ReleasePackageItem {
+            kind: ReleasePackageKind::Doc,
             path_template: "docs/contracts/sqlite-schema-v1.md",
         },
         ReleasePackageItem {
@@ -216,6 +224,10 @@ pub fn release_package_items() -> Vec<ReleasePackageItem> {
         ReleasePackageItem {
             kind: ReleasePackageKind::Doc,
             path_template: "docs/architecture/product-boundary.md",
+        },
+        ReleasePackageItem {
+            kind: ReleasePackageKind::Doc,
+            path_template: "docs/architecture/versioned-index-store.md",
         },
         ReleasePackageItem {
             kind: ReleasePackageKind::Doc,

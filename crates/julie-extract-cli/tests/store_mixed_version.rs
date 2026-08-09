@@ -13,6 +13,8 @@ const FAMILY_ID: &str = "8d19be9c-6ca0-43d2-8f25-0818869bb901";
 
 #[test]
 fn older_writer_requires_the_explicit_escape_and_never_lowers_stored_floors() {
+    let running_version = env!("CARGO_PKG_VERSION");
+    let future_version = next_minor_version(running_version);
     let fixture = tempfile::tempdir().unwrap();
     let root = fixture.path().join("root");
     let store = fixture.path().join("store");
@@ -40,7 +42,7 @@ fn older_writer_requires_the_explicit_escape_and_never_lowers_stored_floors() {
     );
 
     let database = store.join("gen-001/store.db");
-    set_meta(&database, "binary_version", "2.31.0");
+    set_meta(&database, "binary_version", &future_version);
     fs::write(root.join("lib.rs"), "pub fn value() -> i32 { 2 }\n").unwrap();
     let refused = run_store(
         &store,
@@ -84,13 +86,15 @@ fn older_writer_requires_the_explicit_escape_and_never_lowers_stored_floors() {
         String::from_utf8_lossy(&allowed.stderr)
     );
     assert_eq!(current_generation(&database), 2);
-    assert_eq!(meta(&database, "binary_version"), "2.31.0");
-    assert_eq!(meta(&database, "min_writer_version"), "2.30.0");
-    assert_eq!(meta(&database, "min_reader_version"), "2.30.0");
+    assert_eq!(meta(&database, "binary_version"), future_version);
+    assert_eq!(meta(&database, "min_writer_version"), running_version);
+    assert_eq!(meta(&database, "min_reader_version"), running_version);
 }
 
 #[test]
 fn downgrade_escape_never_bypasses_reader_or_writer_floors() {
+    let running_version = env!("CARGO_PKG_VERSION");
+    let future_version = next_minor_version(running_version);
     let fixture = tempfile::tempdir().unwrap();
     let root = fixture.path().join("root");
     let store = fixture.path().join("store");
@@ -118,8 +122,8 @@ fn downgrade_escape_never_bypasses_reader_or_writer_floors() {
     );
     let layout = StoreLayout::open(&store).unwrap();
     let database = layout.store_db().to_path_buf();
-    set_meta(&database, "binary_version", "2.31.0");
-    set_meta(&database, "min_writer_version", "2.31.0");
+    set_meta(&database, "binary_version", &future_version);
+    set_meta(&database, "min_writer_version", &future_version);
     fs::write(root.join("lib.rs"), "pub fn value() -> i32 { 3 }\n").unwrap();
 
     let refused = run_store(
@@ -140,22 +144,24 @@ fn downgrade_escape_never_bypasses_reader_or_writer_floors() {
     );
     assert!(!refused.status.success());
     assert_eq!(current_generation(&database), 1);
-    assert_eq!(meta(&database, "min_writer_version"), "2.31.0");
+    assert_eq!(meta(&database, "min_writer_version"), future_version);
 
-    set_meta(&database, "min_writer_version", "2.30.0");
-    set_meta(&database, "min_reader_version", "2.31.0");
-    let factory = StoreConnectionFactory::new(layout, FAMILY_ID, "2.30.0");
+    set_meta(&database, "min_writer_version", running_version);
+    set_meta(&database, "min_reader_version", &future_version);
+    let factory = StoreConnectionFactory::new(layout, FAMILY_ID, running_version);
     let error = factory.open_reader().unwrap_err();
     assert!(matches!(
         error,
         StoreConnectionError::ReaderVersionTooOld { running, required }
-            if running == "2.30.0" && required == "2.31.0"
+            if running == running_version && required == future_version
     ));
-    assert_eq!(meta(&database, "min_reader_version"), "2.31.0");
+    assert_eq!(meta(&database, "min_reader_version"), future_version);
 }
 
 #[test]
 fn reader_floor_also_blocks_public_writer_with_downgrade_escape() {
+    let running_version = env!("CARGO_PKG_VERSION");
+    let future_version = next_minor_version(running_version);
     let fixture = tempfile::tempdir().unwrap();
     let root = fixture.path().join("root");
     let store = fixture.path().join("store");
@@ -183,7 +189,7 @@ fn reader_floor_also_blocks_public_writer_with_downgrade_escape() {
     );
 
     let database = store.join("gen-001/store.db");
-    set_meta(&database, "min_reader_version", "2.31.0");
+    set_meta(&database, "min_reader_version", &future_version);
     fs::write(root.join("lib.rs"), "pub fn value() -> i32 { 2 }\n").unwrap();
     let refused = run_store(
         &store,
@@ -206,10 +212,12 @@ fn reader_floor_also_blocks_public_writer_with_downgrade_escape() {
     let report: serde_json::Value = serde_json::from_slice(&refused.stdout).unwrap();
     assert_eq!(
         report["error"]["message"],
-        "writer version \"2.30.0\" is below required version \"2.31.0\""
+        format!(
+            "writer version \"{running_version}\" is below required version \"{future_version}\""
+        )
     );
     assert_eq!(current_generation(&database), 1);
-    assert_eq!(meta(&database, "min_reader_version"), "2.31.0");
+    assert_eq!(meta(&database, "min_reader_version"), future_version);
 }
 
 #[test]
@@ -373,4 +381,11 @@ fn current_generation(database: &std::path::Path) -> i64 {
             |row| row.get(0),
         )
         .unwrap()
+}
+
+fn next_minor_version(version: &str) -> String {
+    let mut components = version.split('.');
+    let major = components.next().unwrap().parse::<u64>().unwrap();
+    let minor = components.next().unwrap().parse::<u64>().unwrap();
+    format!("{major}.{}.0", minor + 1)
 }

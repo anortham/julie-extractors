@@ -59,6 +59,30 @@ creates a family or enqueues work, then imports extraction rows, manifest state,
 through resumable store transactions. Neither adapter copies a SQLite database file, and ordinary
 imports still run extraction from source.
 
-Ph2d owns retention, garbage collection, repair, and generation promotion. In particular it must
-respect historical manifests, ready-base version roots, live pins, current view bindings, and active
-claims before deleting versions, bases, deltas, scratch files, or log rows.
+## Lifecycle and generations
+
+Ph2d adds bounded lifecycle maintenance under one root-owned maintenance intent. The planner treats
+current and historical manifests, ready-base version roots, live pins, current bindings, active
+requests/claims, receipts, and consumer cursors as explicit roots before deleting or demoting any
+version, base, delta, scratch file, or log row. L3 is demoted before L2; whole immutable versions are
+purged only after every root is gone. Checkpoint, incremental vacuum, and truncate-checkpoint are
+ordered and restartable.
+
+Large repair, promotion, and rollback work builds a new `gen-NNN` directory, validates every catalog
+and owned file, fsyncs it, then atomically replaces `CURRENT`. Readers remain generation-local and
+retained generations stay valid until their pins and safety window expire. Rollback is forward-built:
+it selects historical visible state while preserving the latest immutable identities, logs, receipts,
+and cursors in a newly named generation.
+
+`coord.db` remains outside generations. Its family allocator marks cover file-version and store-log
+identities globally plus manifest and resolution-delta generations per view. Ordinary request
+progress and terminal reconciliation advance those marks monotonically; promotion and rollback scan
+all named generations and receipts before raising destination allocators. No published identity is
+reused after a generation transition.
+
+The public lifecycle surface is `store maintain inspect|gc|repair|promote` plus `cursor
+advance|release`. Inspection is read-only and every mutation requires `--apply`. Forward rollback is
+an artifact API used by an orchestrator; it is deliberately not an end-user CLI verb.
+
+The v2.31.0 candidate completes Julie's producer-side Ph2 store program. Miller integration remains
+Ph3 work and is not implied by this release.

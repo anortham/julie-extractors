@@ -41,7 +41,7 @@ test subprocess crash hooks, Cargo/xtask, and Miller impact analysis.
 - [x] Task 5 — promotion, repair, and forward rollback
 - [x] Task 6 — maintenance CLI and reports
 - [x] Task 7 — crash, mixed-version, scale, and language gates
-- [ ] Task 8 — dogfood, docs, and release preparation
+- [x] Task 8 — dogfood, docs, and release preparation
 - [ ] Task 9 — pre-merge review and integration boundary
 
 ## Task 1: Freeze the final unreleased catalogs

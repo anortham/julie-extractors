@@ -10,7 +10,7 @@ use julie_extract_artifact::store::{
     ManifestFact, ManifestVersionFact, PlanBinding, RequestKind, StoreConnectionFactory,
     StoreCoordinator, StoreLayout, VersionFact, plan_maintenance,
 };
-use rusqlite::Connection;
+use rusqlite::{Connection, params};
 
 const DAY_MS: i64 = 86_400_000;
 static NEXT_TEMP_ID: AtomicU64 = AtomicU64::new(1);
@@ -308,6 +308,57 @@ fn paged_inspection_refuses_a_concurrent_coordinator_commit() {
     assert_eq!(error.code(), "maintenance_inspection_raced");
 }
 
+#[cfg(unix)]
+#[test]
+fn dead_maintenance_owner_is_replaced_before_its_expiry() {
+    let temp = TempStore::new("dead-maintenance-owner");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let mut child = std::process::Command::new("sh")
+        .args(["-c", "exit 0"])
+        .spawn()
+        .unwrap();
+    let dead_pid = child.id();
+    child.wait().unwrap();
+    Connection::open(layout.coordinator_db())
+        .unwrap()
+        .execute(
+            "INSERT INTO maintenance_intent
+             (resource,run_id,action,source_generation_name,owner_id,owner_pid,fencing_token,
+              heartbeat_at,expires_at,started_at,plan_fingerprint,source_min_writer_version)
+             VALUES ('store-maintenance','dead-run','gc','gen-001','dead-owner',?1,1,
+                     1,?2,1,'dead-plan','2.30.0')",
+            params![i64::from(dead_pid), i64::MAX],
+        )
+        .unwrap();
+
+    let plan = inspect_plan(&layout, 30 * DAY_MS);
+    let executor = MaintenanceExecutor::acquire(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0"),
+        MaintenanceRun::new(
+            "successor-run",
+            "successor-owner",
+            std::process::id(),
+            30 * DAY_MS,
+            5_000,
+        ),
+        &plan,
+    )
+    .unwrap();
+
+    let coord = Connection::open(layout.coordinator_db()).unwrap();
+    assert_eq!(
+        coord
+            .query_row(
+                "SELECT run_id FROM maintenance_intent WHERE resource='store-maintenance'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .unwrap(),
+        "successor-run"
+    );
+    drop(executor);
+}
+
 #[test]
 fn gc_demotes_l3_then_l2_and_only_then_purges_whole_unrooted_versions() {
     let temp = TempStore::new("gc-level-order");
@@ -367,6 +418,102 @@ fn gc_demotes_l3_then_l2_and_only_then_purges_whole_unrooted_versions() {
             )
             .unwrap(),
         "1,2"
+    );
+}
+
+#[test]
+fn gc_retires_manifest_entries_before_their_parent_manifests() {
+    let temp = TempStore::new("gc-manifest-entry-order");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let mut store = Connection::open(layout.store_db()).unwrap();
+    store.execute_batch("PRAGMA foreign_keys=ON;").unwrap();
+    let transaction = store.transaction().unwrap();
+    transaction
+        .execute(
+            "INSERT INTO views(view_id,root,current_generation,created_at,updated_at)
+             VALUES ('view-a','/repo',NULL,'1970-01-01T00:00:01Z','1970-01-01T00:00:01Z')",
+            [],
+        )
+        .unwrap();
+    transaction
+        .execute(
+            "INSERT INTO file_versions
+             (version_id,path,content_hash,extraction_epoch,language,content_bytes,
+              line_count,metadata_json,complete_l1,complete_l2,complete_l3)
+             VALUES (1,'src/lib.rs','content-hash',1,'rust',1,1,'{}',1,1,1)",
+            [],
+        )
+        .unwrap();
+    for generation in 1..=26_i64 {
+        transaction
+            .execute(
+                "INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+                 VALUES ('view-a',?1,?2,?3,'1970-01-01T00:00:01Z')",
+                params![
+                    generation,
+                    format!("manifest-{generation}"),
+                    format!("request-{generation}")
+                ],
+            )
+            .unwrap();
+        transaction
+            .execute(
+                "INSERT INTO manifest_entries
+                 (view_id,generation,path,language,version_id,status,observed_content_hash,
+                  indexed_at,error_class,error_json)
+                 VALUES ('view-a',?1,'src/lib.rs','rust',1,'indexed','content-hash',
+                         '1970-01-01T00:00:01Z',NULL,NULL)",
+                [generation],
+            )
+            .unwrap();
+    }
+    transaction
+        .execute(
+            "UPDATE views SET current_generation=26 WHERE view_id='view-a'",
+            [],
+        )
+        .unwrap();
+    transaction.commit().unwrap();
+
+    let plan = inspect_plan(&layout, 30 * DAY_MS);
+    assert_eq!(plan.eligible_manifests, [("view-a".to_string(), 1)]);
+    let mut executor = MaintenanceExecutor::acquire(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0"),
+        MaintenanceRun::new(
+            "gc-manifest-entry-order",
+            "owner",
+            std::process::id(),
+            30 * DAY_MS,
+            5_000,
+        ),
+        &plan,
+    )
+    .unwrap();
+    let report = executor.apply(&plan).unwrap();
+
+    assert_eq!(report.removed_manifests, 1);
+    assert_eq!(
+        store
+            .query_row("SELECT COUNT(*) FROM manifests", [], |row| row
+                .get::<_, i64>(0))
+            .unwrap(),
+        25
+    );
+    assert_eq!(
+        store
+            .query_row("SELECT COUNT(*) FROM manifest_entries", [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .unwrap(),
+        25
+    );
+    assert_eq!(
+        store
+            .query_row("SELECT COUNT(*) FROM pragma_foreign_key_check", [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .unwrap(),
+        0
     );
 }
 

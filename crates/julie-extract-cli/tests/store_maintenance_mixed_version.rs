@@ -10,10 +10,12 @@ const FAMILY_ID: &str = "f924890d-2554-4244-b7ff-e652c085ccaa";
 
 #[test]
 fn lifecycle_writers_honor_floors_escape_limits_retained_readers_and_monotonic_generations() {
+    let running_version = env!("CARGO_PKG_VERSION");
+    let future_version = next_minor_version(running_version);
     let fixture = tempfile::tempdir().unwrap();
     let store = fixture.path().join("store");
     let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
-    set_meta(layout.store_db(), "binary_version", "2.31.0");
+    set_meta(layout.store_db(), "binary_version", &future_version);
 
     let refused = maintain(&store, false);
     assert!(!refused.status.success());
@@ -30,7 +32,7 @@ fn lifecycle_writers_honor_floors_escape_limits_retained_readers_and_monotonic_g
     );
     assert_eq!(
         meta(&store.join("gen-002/store.db"), "binary_version"),
-        "2.31.0"
+        future_version
     );
     assert_eq!(
         Connection::open(store.join("gen-001/store.db"))
@@ -52,7 +54,7 @@ fn lifecycle_writers_honor_floors_escape_limits_retained_readers_and_monotonic_g
     set_meta(
         &store.join("gen-003/store.db"),
         "min_reader_version",
-        "2.31.0",
+        &future_version,
     );
     let floor_refused = maintain(&store, true);
     assert!(!floor_refused.status.success());
@@ -103,4 +105,11 @@ fn assert_success(output: &Output) {
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr)
     );
+}
+
+fn next_minor_version(version: &str) -> String {
+    let mut components = version.split('.');
+    let major = components.next().unwrap().parse::<u64>().unwrap();
+    let minor = components.next().unwrap().parse::<u64>().unwrap();
+    format!("{major}.{}.0", minor + 1)
 }

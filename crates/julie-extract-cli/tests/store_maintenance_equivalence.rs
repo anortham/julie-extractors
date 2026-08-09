@@ -11,6 +11,111 @@ use sha2::{Digest, Sha256};
 const FAMILY_ID: &str = "90d44d72-c939-4a14-8a27-72568b06af4c";
 
 #[test]
+fn post_promotion_writes_advance_family_allocator_marks() {
+    let fixture = tempfile::tempdir().unwrap();
+    let store = fixture.path().join("store");
+    let root = fixture.path().join("root");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("lib.rs"), "pub fn value() -> u32 { 1 }\n").unwrap();
+
+    assert_success(&run_store(&[
+        "store",
+        "import",
+        "--store",
+        path(&store),
+        "--family",
+        FAMILY_ID,
+        "--root",
+        path(&root),
+        "--view",
+        "view-main",
+        "--level",
+        "l1",
+        "--request-id",
+        "allocator-import",
+        "--idempotency-key",
+        "allocator-import",
+        "--json",
+    ]));
+    assert_success(&run_store(&[
+        "store",
+        "maintain",
+        "promote",
+        "--store",
+        path(&store),
+        "--apply",
+        "--json",
+    ]));
+
+    std::fs::write(root.join("lib.rs"), "pub fn value() -> u32 { 2 }\n").unwrap();
+    assert_success(&run_store(&[
+        "store",
+        "update",
+        "--store",
+        path(&store),
+        "--root",
+        path(&root),
+        "--view",
+        "view-main",
+        "--file",
+        "lib.rs",
+        "--level",
+        "l1",
+        "--request-id",
+        "allocator-update",
+        "--idempotency-key",
+        "allocator-update",
+        "--json",
+    ]));
+
+    let serving = StoreLayout::open(&store).unwrap();
+    assert_eq!(serving.generation_name(), "gen-002");
+    let catalog = Connection::open(serving.store_db()).unwrap();
+    let coordinator = Connection::open(serving.coordinator_db()).unwrap();
+    for (kind, scope, maximum) in [
+        (
+            "file_version",
+            "",
+            catalog
+                .query_row("SELECT MAX(version_id) FROM file_versions", [], |row| {
+                    row.get::<_, i64>(0)
+                })
+                .unwrap(),
+        ),
+        (
+            "store_log",
+            "",
+            catalog
+                .query_row("SELECT MAX(sequence) FROM store_log", [], |row| {
+                    row.get::<_, i64>(0)
+                })
+                .unwrap(),
+        ),
+        (
+            "manifest_generation",
+            "view-main",
+            catalog
+                .query_row(
+                    "SELECT MAX(generation) FROM manifests WHERE view_id='view-main'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .unwrap(),
+        ),
+    ] {
+        let high_water = coordinator
+            .query_row(
+                "SELECT high_water FROM family_allocator_marks
+                 WHERE allocator_kind=?1 AND scope_id=?2",
+                rusqlite::params![kind, scope],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap();
+        assert!(high_water >= maximum, "kind={kind} scope={scope}");
+    }
+}
+
+#[test]
 fn every_supported_language_and_natural_store_row_survives_public_promotion() {
     let fixture = tempfile::tempdir().unwrap();
     let store = fixture.path().join("store");

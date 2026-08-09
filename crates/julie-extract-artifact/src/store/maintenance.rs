@@ -14,7 +14,7 @@ use super::resolution::{
     resolution_file_bytes, resolution_file_sha256, retire_resolution_base, retire_resolution_delta,
 };
 use super::{
-    CoordinatorError, GenerationFence, MaintenanceAction, StoreConnectionError,
+    CoordinatorError, GenerationFence, MaintenanceAction, PidStatus, StoreConnectionError,
     StoreConnectionFactory, StoreCoordinator, StoreLog, StoreLogError,
 };
 
@@ -980,6 +980,12 @@ impl MaintenanceExecutor {
                 },
             )
             .optional()?;
+        let active_owner_dead = active_intent.as_ref().is_some_and(|(_, _, owner_pid, _)| {
+            match u32::try_from(*owner_pid) {
+                Ok(owner_pid) => super::coordinator::process_status(owner_pid) == PidStatus::Dead,
+                Err(_) => false,
+            }
+        });
         if active_intent
             .as_ref()
             .is_some_and(|(run_id, owner_id, owner_pid, expiry)| {
@@ -987,6 +993,7 @@ impl MaintenanceExecutor {
                     && (run_id != &run.run_id
                         || owner_id != &run.owner_id
                         || *owner_pid != i64::from(run.owner_pid))
+                    && !active_owner_dead
             })
         {
             return Err(MaintenanceError::MaintenanceBusy);
@@ -1003,10 +1010,17 @@ impl MaintenanceExecutor {
             return Err(MaintenanceError::MaintenanceBusy);
         }
         transaction.execute("DELETE FROM writer_lease WHERE expires_at<=?1", [wall_now])?;
-        transaction.execute(
-            "DELETE FROM maintenance_intent WHERE expires_at<=?1",
-            [wall_now],
-        )?;
+        if active_owner_dead {
+            transaction.execute(
+                "DELETE FROM maintenance_intent WHERE resource='store-maintenance'",
+                [],
+            )?;
+        } else {
+            transaction.execute(
+                "DELETE FROM maintenance_intent WHERE expires_at<=?1",
+                [wall_now],
+            )?;
+        }
         transaction.execute(
             "INSERT INTO maintenance_intent
              (resource,run_id,action,source_generation_name,owner_id,owner_pid,fencing_token,
@@ -1312,6 +1326,20 @@ impl MaintenanceExecutor {
             base_files.push(path);
         }
         for (view_id, generation) in &plan.eligible_manifests {
+            transaction.execute(
+                "DELETE FROM manifest_entries
+                 WHERE view_id=?1 AND generation=?2
+                   AND EXISTS(SELECT 1 FROM manifests
+                              WHERE manifests.view_id=manifest_entries.view_id
+                                AND manifests.generation=manifest_entries.generation)
+                   AND NOT EXISTS(SELECT 1 FROM views
+                                  WHERE views.view_id=manifest_entries.view_id
+                                    AND views.current_generation=manifest_entries.generation)
+                   AND NOT EXISTS(SELECT 1 FROM resolution_pins
+                                  WHERE resolution_pins.view_id=manifest_entries.view_id
+                                    AND resolution_pins.manifest_generation=manifest_entries.generation)",
+                params![view_id, generation],
+            )?;
             report.removed_manifests += transaction.execute(
                 "DELETE FROM manifests
                  WHERE view_id=?1 AND generation=?2

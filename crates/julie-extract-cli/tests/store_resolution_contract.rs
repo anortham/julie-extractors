@@ -321,6 +321,22 @@ fn public_resolve_builds_an_exact_binding_without_extracting_again() {
             .unwrap(),
         0
     );
+    let delta_generation = store_connection
+        .query_row(
+            "SELECT MAX(delta_generation) FROM resolution_deltas WHERE view_id='view-main'",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .unwrap();
+    let delta_high_water = coord
+        .query_row(
+            "SELECT high_water FROM family_allocator_marks
+             WHERE allocator_kind='resolution_delta_generation' AND scope_id='view-main'",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .unwrap();
+    assert!(delta_high_water >= delta_generation);
 }
 
 #[test]

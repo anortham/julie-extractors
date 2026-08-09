@@ -15,8 +15,8 @@ Contract version:
 - Extraction contract: `4`
 - SQLite schema: `6`
 - JSONL schema: `4`
-- Versioned store contract: `1` (unreleased Ph2b)
-- Versioned store SQLite schema: `1` (unreleased Ph2b)
+- Versioned store contract: `1` (v2.31.0)
+- Versioned store SQLite schema: `2` (v2.31.0)
 
 The legacy values mirror `EXTRACT_CONTRACT_VERSION` / `SQLITE_SCHEMA_VERSION` in
 `crates/julie-extract-artifact/src/schema.rs` and `JSONL_SCHEMA_VERSION` in
@@ -47,10 +47,13 @@ julie-extract export --db <path> --format jsonl --out <path|-> [--strict-schema]
 julie-extract languages [--json]
 julie-extract rebind --root <dir> --db <path> [--strict-schema] [--json]
 
-# Unreleased Ph2b store commands
+# Versioned family-store commands
 julie-extract store import --store <family-dir> --family <uuid> --root <dir> --view <id> [--level <l1|full>] [--json]
 julie-extract store update --store <family-dir> [--family <uuid>] --root <dir> --view <id> --file <path> [--level <l1|full>] [--json]
 julie-extract store delete --store <family-dir> [--family <uuid>] --root <dir> --view <id> --file <path>... [--json]
+julie-extract store resolve --store <family-dir> [--family <uuid>] --view <id> [--json]
+julie-extract store export --store <family-dir> [--family <uuid>] --view <id> --out <artifact.db> [--json]
+julie-extract store import --from-artifact <artifact.db> --store <family-dir> --family <uuid> --root <dir> --view <id> [--json]
 julie-extract store maintain inspect --store <family-dir> [--family <uuid>] [--json]
 julie-extract store maintain gc --store <family-dir> [--family <uuid>] [--apply] [--json]
 julie-extract store maintain repair --store <family-dir> [--family <uuid>] [--apply] [--json]
@@ -59,9 +62,9 @@ julie-extract store maintain cursor advance --store <family-dir> [--family <uuid
 julie-extract store maintain cursor release --store <family-dir> [--family <uuid>] --consumer <id> [--apply] [--json]
 ```
 
-The nested `store` surface is unreleased. Miller does not use it yet. Ph2b owns request-oriented
-import/update/delete, Ph2c owns resolution bases/deltas and exact-generation binding, and Ph2d owns
-the lifecycle-maintenance namespace documented below.
+The nested `store` surface is part of the v2.31.0 release candidate. Miller does not use it yet.
+Ph2b owns request-oriented import/update/delete, Ph2c owns resolution bases/deltas and
+exact-generation binding, and Ph2d owns the lifecycle-maintenance namespace documented below.
 
 ## Shared Flags
 
@@ -453,7 +456,7 @@ Outcomes:
 the extraction, SQLite, and JSONL versions pinned above are unchanged, and the
 CLI contract version stays `1`.
 
-### `store import`, `store update`, and `store delete` (unreleased Ph2b)
+### `store import`, `store update`, and `store delete`
 
 These commands target a family store, not a legacy `--db` artifact. `store import` creates the
 store when absent, creates a missing view, and binds that view to the canonical root. The caller
@@ -489,7 +492,7 @@ generation/hash/disposition, row counts, resolution state, failure class, and a 
 The physical format and recovery invariants are frozen in [store-v1.md](store-v1.md) and
 [sqlite-store-schema-v2.md](sqlite-store-schema-v2.md).
 
-### `store maintain` (unreleased Ph2d)
+### `store maintain`
 
 `store maintain inspect` is always read-only. `gc`, `repair`, `promote`, `cursor advance`, and
 `cursor release` are also read-only unless `--apply` is present. Their plan result is computed from

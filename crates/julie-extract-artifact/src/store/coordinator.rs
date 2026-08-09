@@ -1314,8 +1314,11 @@ impl StoreCoordinator {
             super::test_hooks::crash_if("post_store_pre_coord_reconcile");
             self.reconcile(&request.request_id)?;
         } else {
-            let connection = open_coordinator(&self.coordinator_db)?;
-            let changed = connection.execute(
+            let maxima = read_family_allocator_maxima(&store)?;
+            let mut connection = open_coordinator(&self.coordinator_db)?;
+            let transaction = begin_coordinator(&mut connection)?;
+            advance_family_allocator_marks(&transaction, &maxima, now)?;
+            let changed = transaction.execute(
                 "UPDATE requests SET claim_heartbeat_at = ?1, updated_at = ?1
                  WHERE request_id = ?2 AND state = 'claimed' AND claim_owner = ?3
                    AND EXISTS (
@@ -1335,6 +1338,7 @@ impl StoreCoordinator {
             if changed != 1 {
                 return Err(CoordinatorError::LeaseLost);
             }
+            transaction.commit()?;
         }
         Ok(())
     }
@@ -1498,6 +1502,7 @@ impl StoreCoordinator {
             [request_id],
             |row| row.get::<_, i64>(0),
         )?;
+        let maxima = read_family_allocator_maxima(&store)?;
         drop(store);
         let mut connection = open_coordinator(&self.coordinator_db)?;
         let transaction = begin_coordinator(&mut connection)?;
@@ -1531,6 +1536,7 @@ impl StoreCoordinator {
                 ),
             });
         }
+        advance_family_allocator_marks(&transaction, &maxima, self.clock.now_ms())?;
         if let Some(ref terminal) = terminal {
             let changed = transaction.execute(
                 "UPDATE requests SET state = 'committed', claim_owner = NULL,
@@ -2240,6 +2246,88 @@ fn sqlite_rfc3339(transaction: &Transaction<'_>, unix_ms: i64) -> Result<String,
         |row| row.get::<_, String>(0),
     )?;
     Ok(format!("{base}.{milliseconds:03}Z"))
+}
+
+struct FamilyAllocatorMaximum {
+    kind: &'static str,
+    scope_id: String,
+    high_water: i64,
+}
+
+fn read_family_allocator_maxima(
+    store: &Connection,
+) -> Result<Vec<FamilyAllocatorMaximum>, CoordinatorError> {
+    let mut maxima = vec![
+        FamilyAllocatorMaximum {
+            kind: "file_version",
+            scope_id: String::new(),
+            high_water: store.query_row(
+                "SELECT COALESCE(MAX(version_id),0) FROM file_versions",
+                [],
+                |row| row.get(0),
+            )?,
+        },
+        FamilyAllocatorMaximum {
+            kind: "store_log",
+            scope_id: String::new(),
+            high_water: store.query_row(
+                "SELECT COALESCE(MAX(sequence),0) FROM store_log",
+                [],
+                |row| row.get(0),
+            )?,
+        },
+    ];
+    read_scoped_allocator_maxima(
+        store,
+        "SELECT view_id,MAX(generation) FROM manifests GROUP BY view_id ORDER BY view_id",
+        "manifest_generation",
+        &mut maxima,
+    )?;
+    read_scoped_allocator_maxima(
+        store,
+        "SELECT view_id,MAX(delta_generation) FROM resolution_deltas
+         GROUP BY view_id ORDER BY view_id",
+        "resolution_delta_generation",
+        &mut maxima,
+    )?;
+    Ok(maxima)
+}
+
+fn read_scoped_allocator_maxima(
+    store: &Connection,
+    query: &str,
+    kind: &'static str,
+    maxima: &mut Vec<FamilyAllocatorMaximum>,
+) -> Result<(), CoordinatorError> {
+    let mut statement = store.prepare(query)?;
+    let mut rows = statement.query([])?;
+    while let Some(row) = rows.next()? {
+        maxima.push(FamilyAllocatorMaximum {
+            kind,
+            scope_id: row.get(0)?,
+            high_water: row.get(1)?,
+        });
+    }
+    Ok(())
+}
+
+fn advance_family_allocator_marks(
+    transaction: &Transaction<'_>,
+    maxima: &[FamilyAllocatorMaximum],
+    now: i64,
+) -> Result<(), CoordinatorError> {
+    for maximum in maxima {
+        transaction.execute(
+            "INSERT INTO family_allocator_marks
+             (allocator_kind,scope_id,high_water,updated_at)
+             VALUES (?1,?2,?3,?4)
+             ON CONFLICT(allocator_kind,scope_id) DO UPDATE SET
+               high_water=MAX(high_water,excluded.high_water),
+               updated_at=MAX(updated_at,excluded.updated_at)",
+            params![maximum.kind, maximum.scope_id, maximum.high_water, now],
+        )?;
+    }
+    Ok(())
 }
 
 fn open_coordinator(path: &Path) -> Result<Connection, CoordinatorError> {

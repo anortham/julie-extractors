@@ -90,6 +90,14 @@ fn release_package_list_is_exact_and_ordered() {
             },
             ReleasePackageItem {
                 kind: ReleasePackageKind::Doc,
+                path_template: "docs/contracts/store-v1.md",
+            },
+            ReleasePackageItem {
+                kind: ReleasePackageKind::Doc,
+                path_template: "docs/contracts/sqlite-store-schema-v2.md",
+            },
+            ReleasePackageItem {
+                kind: ReleasePackageKind::Doc,
                 path_template: "docs/contracts/sqlite-schema-v1.md",
             },
             ReleasePackageItem {
@@ -163,6 +171,10 @@ fn release_package_list_is_exact_and_ordered() {
             ReleasePackageItem {
                 kind: ReleasePackageKind::Doc,
                 path_template: "docs/architecture/product-boundary.md",
+            },
+            ReleasePackageItem {
+                kind: ReleasePackageKind::Doc,
+                path_template: "docs/architecture/versioned-index-store.md",
             },
             ReleasePackageItem {
                 kind: ReleasePackageKind::Doc,

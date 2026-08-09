@@ -75,6 +75,7 @@ python3 examples/python/sqlite_consumer.py target/example/artifact.sqlite
 | `info` | Read artifact metadata and totals without mutating the database. | `--db`, `--strict-schema`, `--json` |
 | `export` | Export a SQLite artifact to JSONL. | `--db`, `--format jsonl`, `--out`, `--strict-schema`, `--json` |
 | `languages` | Emit parser inventory and capability snapshot metadata. | `--json` |
+| `store` | Create and maintain a versioned family store. | `import`, `update`, `delete`, `resolve`, `export`, `maintain` |
 
 Every command accepts `--json` for a stable machine-readable report. Human
 output is intentionally not part of the contract.
@@ -85,9 +86,30 @@ caller-supplied `--ignore-file` rules, which take precedence over the in-tree
 ignore files. See [docs/contracts/cli.md](docs/contracts/cli.md) for the full
 layering and precedence contract.
 
+## Versioned family store
+
+The v2.31.0 release candidate adds a separate family-store contract without changing legacy
+`scan`, `update`, `delete`, `info`, or `export` artifacts. A family store keeps immutable file
+versions, coherent per-view manifests, durable queued requests, exact resolution bases/deltas, and
+retained store generations behind an atomic `CURRENT` pointer.
+
+```bash
+julie-extract store import --store target/family --family <uuid> \
+  --root . --view main --level full --json
+julie-extract store resolve --store target/family --view main --json
+julie-extract store maintain inspect --store target/family --json
+```
+
+Mutating maintenance commands require `--apply`. `gc` performs bounded retention/demotion and
+reclamation; `repair` validates and checkpoint-recovers; `promote` builds and atomically publishes a
+validated new generation. See the [store CLI contract](docs/contracts/cli.md),
+[store contract](docs/contracts/store-v1.md), and
+[architecture](docs/architecture/versioned-index-store.md). Miller does not use this store yet;
+consumer wiring is the next integration phase.
+
 ## Artifact contract
 
-SQLite schema v5 is the source of truth for durable output. It stores artifact
+SQLite schema v6 is the source of truth for legacy durable output. It stores artifact
 metadata, parser inventory and capability snapshots, extraction revisions,
 per-file change records, and the extracted data itself: symbols, annotations,
 identifiers, relationships, type facts, literals, source regions, structural

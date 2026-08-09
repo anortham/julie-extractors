@@ -1,5 +1,10 @@
 # Index Store Ph2b — Store Kernel + Queued Write Verbs Implementation Plan
 
+**Program status (2026-08-09):** Ph2b, Ph2c, and Ph2d are complete in the v2.31.0 release
+candidate. This plan remains the historical implementation record. Ph3 Miller integration is the
+only remaining versioned-store phase; release publication and Miller pin adoption remain separate
+approval actions.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use razorback:subagent-driven-development when
 > subagent delegation is available. Fall back to razorback:executing-plans for single-task,
 > tightly-sequential, or no-delegation runs.

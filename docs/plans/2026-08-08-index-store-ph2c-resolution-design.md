@@ -1,6 +1,7 @@
 # Index Store Ph2c Resolution Design
 
-**Status:** Proposed for implementation approval on 2026-08-08.
+**Status:** Completed 2026-08-08. Ph2d lifecycle completion is included in the v2.31.0 release
+candidate; Ph3 Miller integration remains separate.
 
 ## Goal
 
@@ -38,9 +39,9 @@ state and public commands.
 4. Re-run G3b against actual `store.db` delta publication and run the full state-machine,
    crash/recovery, equivalence, and concurrency gates.
 
-Ph2d still owns general retention, version/log reclamation, staged vacuum/reindex, capacity
-preflight, store-generation promotion, release preparation, and the Miller pin bump. Ph3 still
-owns Miller's production reader integration.
+Ph2d subsequently completed general retention, version/log reclamation, staged vacuum/reindex,
+capacity preflight, store-generation promotion, repair, forward rollback, and release preparation.
+Ph3 still owns Miller's production reader integration and the post-release pin bump.
 
 ## Architecture Quality
 
@@ -378,13 +379,13 @@ findings are represented as hard requirements above.
 
 ## Acceptance Criteria
 
-- [ ] Ph2c-a lands as a revertible legacy refactor followed by a separately revertible scratch
+- [x] Ph2c-a lands as a revertible legacy refactor followed by a separately revertible scratch
   mechanism proof.
-- [ ] Legacy artifact resolution output remains pinned-oracle equivalent.
-- [ ] G1/G2 cover both resolution tables and persisted roundtrip, including disappearing rows.
-- [ ] Every G3a/G3b/G3c pair in all three runs passes the predeclared thresholds.
-- [ ] Ph2c-b re-runs G3b against actual store publication and passes.
-- [ ] Schema-v2 base/delta/pin state and recovery satisfy the frozen section-14 state machine.
-- [ ] Public resolve/export/from-artifact commands are real, idempotent, crash-safe, and reported.
-- [ ] Multi-language incremental, fresh, exported, and legacy semantic rows agree.
-- [ ] Ph2d and Ph3 boundaries remain intact.
+- [x] Legacy artifact resolution output remains pinned-oracle equivalent.
+- [x] G1/G2 cover both resolution tables and persisted roundtrip, including disappearing rows.
+- [x] Every G3a/G3b/G3c pair in all three runs passes the predeclared thresholds.
+- [x] Ph2c-b re-runs G3b against actual store publication and passes.
+- [x] Schema-v2 base/delta/pin state and recovery satisfy the frozen section-14 state machine.
+- [x] Public resolve/export/from-artifact commands are real, idempotent, crash-safe, and reported.
+- [x] Multi-language incremental, fresh, exported, and legacy semantic rows agree.
+- [x] Ph2d and Ph3 boundaries remain intact.
