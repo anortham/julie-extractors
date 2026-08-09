@@ -206,6 +206,7 @@ fn capacity_is_conservative_and_demotion_cohort_is_bounded() {
 fn sqlite_inspection_covers_store_and_coordinator_roots_in_bounded_windows() {
     let temp = TempStore::new("sqlite-matrix");
     let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    fs::create_dir(temp.path().join("gen-1000")).unwrap();
     seed_store_matrix(&layout);
     let factory = StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0");
     let inspector = MaintenanceInspector::new(factory, FixedClock(20 * DAY_MS), FixedCapacity)
@@ -242,6 +243,7 @@ fn sqlite_inspection_covers_store_and_coordinator_roots_in_bounded_windows() {
     assert!(plan.protected_requests.contains(&"request-a".to_string()));
     assert!(plan.protected_cursors.contains(&"consumer-a".to_string()));
     assert!(plan.protected_generations.contains(&"gen-001".to_string()));
+    assert!(plan.protected_generations.contains(&"gen-1000".to_string()));
     assert!(plan.protected_pins.contains(&"pin-a".to_string()));
     assert_eq!(
         plan.expired_pins,

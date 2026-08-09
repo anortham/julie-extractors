@@ -343,6 +343,29 @@ fn rollback_safety_window_retains_unpinned_generations() {
 }
 
 #[test]
+fn retired_generation_cleanup_orders_numeric_suffixes() {
+    let temp = TempStore::new("numeric-generation-retention");
+    let initial = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    seed_source(&initial);
+    fs::rename(temp.path().join("gen-001"), temp.path().join("gen-998")).unwrap();
+    fs::write(temp.path().join("CURRENT"), "gen-998\n").unwrap();
+    let initial = StoreLayout::open(temp.path()).unwrap();
+    let policy = GenerationPolicy {
+        retained_generation_limit: 1,
+        rollback_safety_ms: 0,
+        ..GenerationPolicy::default()
+    };
+
+    let generation_999 = promote_once(&initial, "promote-999", 1_000, &policy);
+    let generation_1000 = promote_once(&generation_999, "promote-1000", 2_000, &policy);
+    let generation_1001 = promote_once(&generation_1000, "promote-1001", 3_000, &policy);
+
+    assert_eq!(generation_1001.generation_name(), "gen-1001");
+    assert!(!temp.path().join("gen-999").exists());
+    assert!(temp.path().join("gen-1000").exists());
+}
+
+#[test]
 fn forward_rollback_preserves_latest_logs_and_allocators_with_new_visible_identity() {
     let temp = TempStore::new("rollback");
     let initial = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();

@@ -2139,7 +2139,10 @@ fn terminal_request_archival_creates_one_receipt_and_preserves_replay_conflicts(
 #[test]
 fn consumer_cursor_advance_is_monotonic_bounded_and_releasable() {
     let temp = TempDir::new();
-    let layout = layout(temp.path());
+    let initial = layout(temp.path());
+    fs::rename(initial.generation_dir(), temp.path().join("gen-1000")).unwrap();
+    fs::write(temp.path().join("CURRENT"), "gen-1000\n").unwrap();
+    let layout = StoreLayout::open(temp.path()).unwrap();
     let mut coordinator = StoreCoordinator::open(&layout).unwrap();
     let coord = Connection::open(layout.coordinator_db()).unwrap();
     coord
@@ -2152,23 +2155,23 @@ fn consumer_cursor_advance_is_monotonic_bounded_and_releasable() {
         .unwrap();
 
     let cursor = coordinator
-        .advance_consumer_cursor("miller", "gen-001", 5, 2)
+        .advance_consumer_cursor("miller", "gen-1000", 5, 2)
         .unwrap();
     assert_eq!(
         cursor,
         ConsumerCursor {
             consumer_id: "miller".to_string(),
-            generation_name: "gen-001".to_string(),
+            generation_name: "gen-1000".to_string(),
             store_log_sequence: 5,
             updated_at: 2,
         }
     );
     assert!(matches!(
-        coordinator.advance_consumer_cursor("miller", "gen-001", 4, 3),
+        coordinator.advance_consumer_cursor("miller", "gen-1000", 4, 3),
         Err(CoordinatorError::CursorRegression { .. })
     ));
     assert!(matches!(
-        coordinator.advance_consumer_cursor("miller", "gen-001", 11, 3),
+        coordinator.advance_consumer_cursor("miller", "gen-1000", 11, 3),
         Err(CoordinatorError::CursorAhead { .. })
     ));
     assert!(matches!(

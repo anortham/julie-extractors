@@ -9,6 +9,7 @@ use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior, pa
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+use super::layout::valid_generation_name;
 use super::pragmas::{WriterPragmaProfile, configure_writer_pragmas};
 use super::resolution::{
     resolution_file_bytes, resolution_file_sha256, retire_resolution_base, retire_resolution_delta,
@@ -1802,12 +1803,7 @@ fn checked_generation_path(
     layout: &super::StoreLayout,
     generation_name: &str,
 ) -> Result<PathBuf, MaintenanceError> {
-    if generation_name.len() != 7
-        || !generation_name.starts_with("gen-")
-        || !generation_name[4..]
-            .bytes()
-            .all(|byte| byte.is_ascii_digit())
-    {
+    if !valid_generation_name(generation_name) {
         return Err(MaintenanceError::InvalidMetadata {
             field: "consumer_cursor_generation",
             value: generation_name.to_string(),
@@ -3016,10 +3012,7 @@ fn named_generations(root: &Path) -> Result<Vec<String>, MaintenanceError> {
     for entry in fs::read_dir(root)? {
         let entry = entry?;
         let name = entry.file_name().to_string_lossy().into_owned();
-        if name.len() == 7
-            && name.starts_with("gen-")
-            && name[4..].bytes().all(|byte| byte.is_ascii_digit())
-        {
+        if valid_generation_name(&name) {
             let metadata = fs::symlink_metadata(entry.path())?;
             if !metadata.is_dir() || metadata.file_type().is_symlink() {
                 return Err(MaintenanceError::InvalidMetadata {

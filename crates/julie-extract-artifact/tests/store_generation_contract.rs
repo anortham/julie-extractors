@@ -139,6 +139,31 @@ fn foreign_maintenance_intent_blocks_writers_and_matching_fence_is_admitted() {
             .unwrap(),
         "serving"
     );
+    drop(writer);
+    let coordinator = Connection::open(layout.coordinator_db()).unwrap();
+    coordinator
+        .execute_batch(
+            "DELETE FROM writer_lease;
+             DELETE FROM maintenance_intent;
+             INSERT INTO maintenance_intent
+             (resource, run_id, action, source_generation_name, owner_id, owner_pid,
+              fencing_token, heartbeat_at, expires_at, started_at, plan_fingerprint,
+              source_min_writer_version)
+             VALUES ('store-maintenance', 'run-a', 'promote', 'gen-001', 'owner-a', 7,
+                     41, 0, 1, 0, 'plan-a', '2.30.0');
+             INSERT INTO writer_lease
+             (resource, holder_id, holder_version, holder_pid, heartbeat_at, expires_at,
+              fencing_token)
+             VALUES ('store-writer', 'owner-a', '2.30.0', 7, 0, 1, 41);",
+        )
+        .unwrap();
+    let expired = GenerationFence::maintenance(&layout, "run-a", "owner-a", 7, 41, 0);
+    assert!(matches!(
+        StoreConnectionFactory::new(layout, "family-a", "2.30.0")
+            .with_generation_fence(expired)
+            .open_writer(),
+        Err(StoreConnectionError::WriterLeaseLost)
+    ));
 }
 
 #[test]

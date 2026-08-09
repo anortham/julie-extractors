@@ -14,6 +14,7 @@ use super::connection::{
     compare_versions as compare_store_versions, extractor_downgrade_allowed,
     required_writer_version,
 };
+use super::layout::valid_generation_name;
 use super::pragmas::{WriterPragmaProfile, configure_writer_pragmas};
 use super::{
     GenerationFence, StoreConnectionError, StoreConnectionFactory, StoreLayout, StoreLog,
@@ -2098,12 +2099,7 @@ fn validate_generation(
     layout: &StoreLayout,
     generation_name: &str,
 ) -> Result<(), CoordinatorError> {
-    if generation_name.len() != 7
-        || !generation_name.starts_with("gen-")
-        || !generation_name[4..]
-            .bytes()
-            .all(|byte| byte.is_ascii_digit())
-    {
+    if !valid_generation_name(generation_name) {
         return Err(CoordinatorError::InvalidGeneration {
             generation_name: generation_name.to_string(),
         });

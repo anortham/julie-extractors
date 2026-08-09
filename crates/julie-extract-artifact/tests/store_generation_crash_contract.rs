@@ -84,15 +84,57 @@ fn every_promotion_boundary_recovers_the_same_generation_without_duplicates() {
 }
 
 #[test]
+fn dead_partial_owner_is_replaced_before_its_expiry() {
+    let temp = TempStore::new("dead-partial-before-expiry");
+    let layout = StoreLayout::create(temp.path(), "family-generation-crash", "2.30.0").unwrap();
+    seed_source(&layout);
+    let output = run_worker_with_lease(
+        temp.path(),
+        "generation_after_partial_owner",
+        Duration::from_secs(5),
+    );
+    assert!(!output.status.success());
+
+    let current = StoreLayout::open(temp.path()).unwrap();
+    let plan = inspect_plan(&current);
+    let mut retry = GenerationLifecycle::acquire(
+        factory(&current),
+        MaintenanceRun::new(
+            "retry-dead-partial",
+            "retry-owner",
+            std::process::id(),
+            2_000,
+            5_000,
+        ),
+        &plan,
+        MaintenanceAction::Promote,
+    )
+    .unwrap();
+    let report = retry.promote(&plan, &GenerationPolicy::default()).unwrap();
+    assert_eq!(report.destination_generation, "gen-002");
+    assert!(!temp.path().join(".gen-002.partial").exists());
+}
+
+#[test]
 fn generation_promotion_crash_worker() {
     let Some(root) = std::env::var_os("JULIE_TEST_GENERATION_ROOT") else {
         return;
     };
     let layout = StoreLayout::open(PathBuf::from(root)).unwrap();
     let plan = inspect_plan(&layout);
+    let lease_duration_ms = std::env::var("JULIE_TEST_GENERATION_LEASE_MS")
+        .ok()
+        .and_then(|value| value.parse().ok())
+        .unwrap_or(100);
     let mut lifecycle = GenerationLifecycle::acquire(
         factory(&layout),
-        MaintenanceRun::new("crash-run", "crash-owner", std::process::id(), 1_000, 100),
+        MaintenanceRun::new(
+            "crash-run",
+            "crash-owner",
+            std::process::id(),
+            1_000,
+            lease_duration_ms,
+        ),
         &plan,
         MaintenanceAction::Promote,
     )
@@ -154,6 +196,10 @@ fn factory(layout: &StoreLayout) -> StoreConnectionFactory {
 }
 
 fn run_worker(root: &Path, boundary: &str) -> Output {
+    run_worker_with_lease(root, boundary, Duration::from_millis(100))
+}
+
+fn run_worker_with_lease(root: &Path, boundary: &str, lease_duration: Duration) -> Output {
     Command::new(std::env::current_exe().unwrap())
         .args([
             "--exact",
@@ -163,6 +209,10 @@ fn run_worker(root: &Path, boundary: &str) -> Output {
         ])
         .env("JULIE_TEST_GENERATION_ROOT", root)
         .env("JULIE_EXTRACT_STORE_TEST_CRASH_AT", boundary)
+        .env(
+            "JULIE_TEST_GENERATION_LEASE_MS",
+            lease_duration.as_millis().to_string(),
+        )
         .output()
         .unwrap()
 }

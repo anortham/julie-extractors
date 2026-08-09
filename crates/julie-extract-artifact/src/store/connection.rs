@@ -237,7 +237,10 @@ impl StoreConnectionFactory {
             lease,
             fence,
         };
-        self.validate_writer_lease(&writer.fence, writer.lease.is_some())?;
+        self.validate_writer_lease(
+            &writer.fence,
+            writer.lease.is_some() || writer.fence.run_id.is_some(),
+        )?;
         configure_writer_pragmas(&writer, WriterPragmaProfile::Routine)?;
         Ok(writer)
     }

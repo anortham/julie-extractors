@@ -564,9 +564,8 @@ fn recover_or_create_partial(
             || owner.owner_pid != run.owner_pid
             || owner.fencing_token != fencing_token
         {
-            let expired = owner.expires_at <= wall_now_ms()?;
             let dead = process_status(owner.owner_pid) == PidStatus::Dead;
-            if !expired || !dead {
+            if !dead {
                 return Err(GenerationError::PartialOwned(partial.to_path_buf()));
             }
         }
@@ -1731,18 +1730,18 @@ fn cleanup_retired_generations(
     current: &str,
     policy: &GenerationPolicy,
 ) -> Result<Vec<String>, GenerationError> {
-    let mut generations = named_generations(root)?;
-    generations.sort();
-    let mut retired = generations
+    let mut retired = named_generations(root)?
         .into_iter()
         .filter(|name| name != current)
-        .collect::<Vec<_>>();
+        .map(|name| generation_number(&name).map(|number| (number, name)))
+        .collect::<Result<Vec<_>, _>>()?;
+    retired.sort_by_key(|(number, _)| *number);
     if retired.len() <= policy.retained_generation_limit {
         return Ok(Vec::new());
     }
     let remove_count = retired.len() - policy.retained_generation_limit;
     let mut removed = Vec::new();
-    for name in retired.drain(..remove_count) {
+    for (_, name) in retired.drain(..remove_count) {
         let layout = StoreLayout::open_named_generation(root, &name)?;
         let connection = Connection::open(layout.store_db())?;
         let live_pins = connection.query_row(
