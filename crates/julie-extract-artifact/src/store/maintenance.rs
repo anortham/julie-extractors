@@ -928,6 +928,7 @@ impl MaintenanceExecutor {
         if !capacity_fits {
             return Err(MaintenanceError::CapacityInsufficient);
         }
+        factory.validate_writer_compatibility()?;
         let observed = MaintenanceInspector::new(
             factory.clone(),
             RevalidationClock(run.now_ms),
@@ -960,11 +961,7 @@ impl MaintenanceExecutor {
             [],
             |row| row.get::<_, String>(0),
         )?;
-        let holder_version = store.query_row(
-            "SELECT value FROM store_meta WHERE key='binary_version'",
-            [],
-            |row| row.get::<_, String>(0),
-        )?;
+        let holder_version = factory.binary_version().to_string();
         drop(store);
         let mut coord = open_maintenance_coordinator(factory.layout().coordinator_db())?;
         let transaction = coord.transaction_with_behavior(TransactionBehavior::Immediate)?;

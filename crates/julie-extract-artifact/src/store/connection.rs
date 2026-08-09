@@ -152,6 +152,19 @@ impl StoreConnectionFactory {
         &self.layout
     }
 
+    pub(crate) fn binary_version(&self) -> &str {
+        &self.binary_version
+    }
+
+    pub(crate) fn validate_writer_compatibility(&self) -> Result<(), StoreConnectionError> {
+        let connection = Connection::open_with_flags(
+            self.layout.store_db(),
+            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )?;
+        validate_store_schema(&connection)?;
+        self.validate_identity_and_floor(&connection, AccessMode::Writer)
+    }
+
     /// Opens a query-only connection after enforcing the reader floor.
     pub fn open_reader(&self) -> Result<Connection, StoreConnectionError> {
         let connection = Connection::open_with_flags(

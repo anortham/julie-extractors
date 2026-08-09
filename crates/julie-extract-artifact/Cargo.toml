@@ -14,6 +14,7 @@ description = "SQLite artifact persistence for julie-extract"
 test-perf = []
 test-takeover = []
 test-store-crash = []
+test-store-maintenance-contract = ["test-store-crash"]
 # Feature-gated legacy resolution oracle support, selected by the CLI contract
 # harness so the default artifact suite remains store-only and fast.
 test-store-resolution = []

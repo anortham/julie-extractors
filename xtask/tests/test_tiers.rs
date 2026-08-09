@@ -157,6 +157,70 @@ fn test_contract_tier_runs_golden_and_capability_gates_with_features() {
                 [
                     "test",
                     "-p",
+                    "julie-extract-artifact",
+                    "--test",
+                    "store_maintenance_contract",
+                    "--",
+                    "--test-threads=1",
+                ]
+            ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extract-artifact",
+                    "--test",
+                    "store_maintenance_property",
+                    "--",
+                    "--test-threads=1",
+                ]
+            ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extract-artifact",
+                    "--test",
+                    "store_generation_equivalence",
+                    "--",
+                    "--test-threads=1",
+                ]
+            ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extract-artifact",
+                    "--features",
+                    "test-store-maintenance-contract",
+                    "--test",
+                    "store_maintenance_crash_contract",
+                    "--",
+                    "--test-threads=1",
+                ]
+            ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extract-artifact",
+                    "--features",
+                    "test-store-maintenance-contract",
+                    "--test",
+                    "store_generation_crash_contract",
+                    "--",
+                    "--test-threads=1",
+                ]
+            ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
                     "julie-extract-cli",
                     "--features",
                     "test-store-resolution-contract",
@@ -328,6 +392,48 @@ fn test_contract_tier_runs_golden_and_capability_gates_with_features() {
                     "test-store-contract",
                     "--test",
                     "store_operations_contract",
+                    "--",
+                    "--test-threads=1",
+                ]
+            ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extract-cli",
+                    "--features",
+                    "test-store-maintenance-contract",
+                    "--test",
+                    "store_maintenance_equivalence",
+                    "--",
+                    "--test-threads=1",
+                ]
+            ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extract-cli",
+                    "--features",
+                    "test-store-maintenance-contract",
+                    "--test",
+                    "store_maintenance_mixed_version",
+                    "--",
+                    "--test-threads=1",
+                ]
+            ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extract-cli",
+                    "--features",
+                    "test-store-maintenance-contract",
+                    "--test",
+                    "store_maintenance_performance",
                     "--",
                     "--test-threads=1",
                 ]

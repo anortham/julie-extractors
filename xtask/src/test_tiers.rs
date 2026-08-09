@@ -310,6 +310,43 @@ fn contract_plan() -> TestPlan {
             "--test-threads=1",
         ],
     ));
+    for harness in [
+        "store_maintenance_contract",
+        "store_maintenance_property",
+        "store_generation_equivalence",
+    ] {
+        commands.push(CommandSpec::new(
+            "cargo",
+            [
+                "test",
+                "-p",
+                "julie-extract-artifact",
+                "--test",
+                harness,
+                "--",
+                "--test-threads=1",
+            ],
+        ));
+    }
+    for harness in [
+        "store_maintenance_crash_contract",
+        "store_generation_crash_contract",
+    ] {
+        commands.push(CommandSpec::new(
+            "cargo",
+            [
+                "test",
+                "-p",
+                "julie-extract-artifact",
+                "--features",
+                "test-store-maintenance-contract",
+                "--test",
+                harness,
+                "--",
+                "--test-threads=1",
+            ],
+        ));
+    }
     commands.push(CommandSpec::new(
         "cargo",
         [
@@ -448,6 +485,26 @@ fn contract_plan() -> TestPlan {
                 "julie-extract-cli",
                 "--features",
                 "test-store-contract",
+                "--test",
+                harness,
+                "--",
+                "--test-threads=1",
+            ],
+        ));
+    }
+    for harness in [
+        "store_maintenance_equivalence",
+        "store_maintenance_mixed_version",
+        "store_maintenance_performance",
+    ] {
+        commands.push(CommandSpec::new(
+            "cargo",
+            [
+                "test",
+                "-p",
+                "julie-extract-cli",
+                "--features",
+                "test-store-maintenance-contract",
                 "--test",
                 harness,
                 "--",

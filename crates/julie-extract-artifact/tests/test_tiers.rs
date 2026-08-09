@@ -124,6 +124,20 @@ fn store_crash_matrix_is_feature_gated_out_of_the_default_suite() {
     }
 }
 
+#[test]
+fn store_lifecycle_contracts_are_feature_gated_out_of_the_default_suite() {
+    let crate_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let manifest = read(&crate_root.join("Cargo.toml"));
+    assert!(manifest.contains("test-store-maintenance-contract = [\"test-store-crash\"]"));
+    for harness in [
+        "store_maintenance_crash_contract.rs",
+        "store_generation_crash_contract.rs",
+    ] {
+        let source = read(&crate_root.join("tests").join(harness));
+        assert!(source.starts_with("#![cfg(feature = \"test-store-crash\")]"));
+    }
+}
+
 fn read(path: &PathBuf) -> String {
     fs::read_to_string(path)
         .unwrap_or_else(|err| panic!("failed to read {}: {}", path.display(), err))

@@ -24,6 +24,23 @@ fn legacy_resolution_fixture_and_oracle_are_checked_in_together() {
     assert!(fixture.join("css/style.css").is_file());
 }
 
+#[test]
+fn store_lifecycle_process_and_scale_contracts_are_feature_gated() {
+    let crate_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let manifest = read(&crate_root.join("Cargo.toml"));
+    assert!(manifest.contains(
+        "test-store-maintenance-contract = [\n    \"test-store-contract\",\n    \"julie-extract-artifact/test-store-maintenance-contract\",\n]"
+    ));
+    for harness in [
+        "store_maintenance_equivalence.rs",
+        "store_maintenance_mixed_version.rs",
+        "store_maintenance_performance.rs",
+    ] {
+        let source = read(&crate_root.join("tests").join(harness));
+        assert!(source.starts_with("#![cfg(feature = \"test-store-maintenance-contract\")]"));
+    }
+}
+
 fn read(path: &PathBuf) -> String {
     fs::read_to_string(path)
         .unwrap_or_else(|err| panic!("failed to read {}: {err}", path.display()))
