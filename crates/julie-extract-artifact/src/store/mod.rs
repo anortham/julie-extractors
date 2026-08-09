@@ -19,10 +19,10 @@ pub use connection::{
     GenerationFence, StoreConnectionError, StoreConnectionFactory, StoreWriterConnection,
 };
 pub use coordinator::{
-    CoordinatorError, CoordinatorExecutor, CoordinatorPolicy, CoordinatorRequest, DrainReport,
-    EnqueueResult, ExecutionContext, ExecutionQuantum, LeaseDisposition, LeaseHolder, LeaseRecord,
-    PidLiveness, PidStatus, ReconcileOutcome, RequestKind, RequestState, StoreCoordinator,
-    UnixMillisClock, compare_versions,
+    ConsumerCursor, CoordinatorError, CoordinatorExecutor, CoordinatorPolicy, CoordinatorRequest,
+    DrainReport, EnqueueResult, ExecutionContext, ExecutionQuantum, LeaseDisposition, LeaseHolder,
+    LeaseRecord, PidLiveness, PidStatus, ReconcileOutcome, RequestKind, RequestReceipt,
+    RequestState, StoreCoordinator, UnixMillisClock, compare_versions,
 };
 pub use layout::{
     PartialGenerationOwner, StoreLayout, StoreLayoutError, write_partial_generation_owner,
@@ -31,10 +31,11 @@ pub use log::{StoreLog, StoreLogEntry, StoreLogError, StoreLogRecord};
 pub use maintenance::{
     AllocatorMark, BaseVersionFact, CapacityPlan, CapacityProvider, ConsumerCursorFact,
     CoordinatorRequestFact, DeltaVersionFact, DemotionCandidate, FailedPathFact,
-    MaintenanceCapacity, MaintenanceClock, MaintenanceError, MaintenanceInspector,
-    MaintenanceLevel, MaintenancePlan, MaintenancePolicy, MaintenanceRootKind, MaintenanceSnapshot,
-    ManifestFact, ManifestVersionFact, PlanBinding, ProtectionReason, RetentionPlan,
-    VersionDecision, VersionFact, VersionRootFact, plan_maintenance,
+    MaintenanceApplyPolicy, MaintenanceApplyReport, MaintenanceCapacity, MaintenanceClock,
+    MaintenanceError, MaintenanceExecutor, MaintenanceInspector, MaintenanceLevel, MaintenancePlan,
+    MaintenancePolicy, MaintenanceRootKind, MaintenanceRun, MaintenanceSnapshot, ManifestFact,
+    ManifestVersionFact, PlanBinding, ProtectionReason, RetentionPlan, VersionDecision,
+    VersionFact, VersionRootFact, plan_maintenance,
 };
 pub use manifest::{
     BuiltManifest, MANIFEST_HASH_ALGORITHM, MANIFEST_PUBLISH_MAX_RETRIES, ManifestBuilder,

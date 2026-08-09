@@ -1,6 +1,7 @@
 use std::cmp::Ordering;
 use std::error::Error;
 use std::fmt;
+use std::fs;
 use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -157,6 +158,26 @@ pub struct EnqueueResult {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RequestReceipt {
+    pub request_id: String,
+    pub idempotency_key: String,
+    pub kind: RequestKind,
+    pub payload_json: String,
+    pub terminal_result_json: String,
+    pub terminal_generation_name: String,
+    pub terminal_log_sequence: i64,
+    pub completed_at: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ConsumerCursor {
+    pub consumer_id: String,
+    pub generation_name: String,
+    pub store_log_sequence: i64,
+    pub updated_at: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LeaseHolder {
     pub holder_id: String,
     pub holder_version: String,
@@ -306,6 +327,23 @@ pub enum CoordinatorError {
         field: &'static str,
         value: i64,
     },
+    CursorRegression {
+        consumer_id: String,
+        current: i64,
+        requested: i64,
+    },
+    CursorAhead {
+        requested: i64,
+        high_water: i64,
+    },
+    CursorGenerationConflict {
+        consumer_id: String,
+        current: String,
+        requested: String,
+    },
+    InvalidGeneration {
+        generation_name: String,
+    },
     WriterVersionTooOld {
         running: String,
         required: String,
@@ -357,6 +395,35 @@ impl fmt::Display for CoordinatorError {
             Self::InvalidVersion { value } => write!(formatter, "invalid version {value:?}"),
             Self::InvalidTime { field, value } => {
                 write!(formatter, "invalid {field} timestamp {value}")
+            }
+            Self::CursorRegression {
+                consumer_id,
+                current,
+                requested,
+            } => write!(
+                formatter,
+                "consumer cursor {consumer_id:?} cannot regress from {current} to {requested}"
+            ),
+            Self::CursorAhead {
+                requested,
+                high_water,
+            } => write!(
+                formatter,
+                "consumer cursor sequence {requested} exceeds store-log high-water {high_water}"
+            ),
+            Self::CursorGenerationConflict {
+                consumer_id,
+                current,
+                requested,
+            } => write!(
+                formatter,
+                "consumer cursor {consumer_id:?} belongs to generation {current:?}, not {requested:?}"
+            ),
+            Self::InvalidGeneration { generation_name } => {
+                write!(
+                    formatter,
+                    "invalid or missing generation {generation_name:?}"
+                )
             }
             Self::WriterVersionTooOld { running, required } => write!(
                 formatter,
@@ -507,6 +574,13 @@ impl StoreCoordinator {
             .validate_write_fence()?;
         let mut connection = open_coordinator(&self.coordinator_db)?;
         let transaction = begin_coordinator(&mut connection)?;
+        if receipt_by_id(&transaction, &request.request_id)?
+            .is_some_and(|receipt| receipt.idempotency_key != request.idempotency_key)
+        {
+            return Err(CoordinatorError::RequestIdConflict {
+                request_id: request.request_id,
+            });
+        }
         if request_by_id(&transaction, &request.request_id)?
             .is_some_and(|existing| existing.idempotency_key != request.idempotency_key)
         {
@@ -525,6 +599,19 @@ impl StoreCoordinator {
             return Err(CoordinatorError::IdempotencyConflict {
                 idempotency_key: request.idempotency_key,
                 existing_request_id: existing.request_id,
+            });
+        }
+        if let Some(receipt) = receipt_by_idempotency(&transaction, &request.idempotency_key)? {
+            if receipt.kind == request.kind && receipt.payload_json == request.payload_json {
+                transaction.commit()?;
+                return Ok(EnqueueResult {
+                    inserted: false,
+                    request: request_from_receipt(receipt),
+                });
+            }
+            return Err(CoordinatorError::IdempotencyConflict {
+                idempotency_key: request.idempotency_key,
+                existing_request_id: receipt.request_id,
             });
         }
         transaction.execute(
@@ -1487,9 +1574,14 @@ impl StoreCoordinator {
 
     pub fn request(&self, request_id: &str) -> Result<CoordinatorRequest, CoordinatorError> {
         let connection = open_coordinator(&self.coordinator_db)?;
-        request_by_id(&connection, request_id)?.ok_or_else(|| CoordinatorError::RequestNotFound {
-            request_id: request_id.to_string(),
-        })
+        if let Some(request) = request_by_id(&connection, request_id)? {
+            return Ok(request);
+        }
+        receipt_by_id(&connection, request_id)?
+            .map(request_from_receipt)
+            .ok_or_else(|| CoordinatorError::RequestNotFound {
+                request_id: request_id.to_string(),
+            })
     }
 
     pub fn request_by_idempotency_key(
@@ -1497,7 +1589,204 @@ impl StoreCoordinator {
         idempotency_key: &str,
     ) -> Result<Option<CoordinatorRequest>, CoordinatorError> {
         let connection = open_coordinator(&self.coordinator_db)?;
-        request_by_idempotency(&connection, idempotency_key)
+        if let Some(request) = request_by_idempotency(&connection, idempotency_key)? {
+            return Ok(Some(request));
+        }
+        Ok(receipt_by_idempotency(&connection, idempotency_key)?.map(request_from_receipt))
+    }
+
+    pub fn archive_terminal_requests(
+        &mut self,
+        generation_name: &str,
+        completed_before: i64,
+        maximum_log_sequence: i64,
+        limit: usize,
+    ) -> Result<Vec<RequestReceipt>, CoordinatorError> {
+        validate_generation(&self.layout, generation_name)?;
+        if completed_before < 0 || maximum_log_sequence < 0 {
+            return Err(CoordinatorError::InvalidTime {
+                field: "request_archive",
+                value: completed_before.min(maximum_log_sequence),
+            });
+        }
+        if limit == 0 {
+            return Err(CoordinatorError::InvalidPolicy);
+        }
+        let mut connection = open_coordinator(&self.coordinator_db)?;
+        let transaction = begin_coordinator(&mut connection)?;
+        let candidates = {
+            let mut statement = transaction.prepare(
+                "SELECT request_id,idempotency_key,kind,payload_json,result_json,
+                        terminal_log_sequence,updated_at
+                 FROM requests
+                 WHERE state IN ('committed','acknowledged')
+                   AND result_json IS NOT NULL
+                   AND terminal_log_sequence IS NOT NULL
+                   AND updated_at<=?1 AND terminal_log_sequence<=?2
+                 ORDER BY terminal_log_sequence,request_id LIMIT ?3",
+            )?;
+            statement
+                .query_map(
+                    params![completed_before, maximum_log_sequence, limit as i64],
+                    |row| {
+                        Ok((
+                            row.get::<_, String>(0)?,
+                            row.get::<_, String>(1)?,
+                            row.get::<_, String>(2)?,
+                            row.get::<_, String>(3)?,
+                            row.get::<_, String>(4)?,
+                            row.get::<_, i64>(5)?,
+                            row.get::<_, i64>(6)?,
+                        ))
+                    },
+                )?
+                .collect::<Result<Vec<_>, _>>()?
+        };
+        let mut archived = Vec::with_capacity(candidates.len());
+        for (
+            request_id,
+            idempotency_key,
+            kind,
+            payload_json,
+            result_json,
+            sequence,
+            completed_at,
+        ) in candidates
+        {
+            let kind = RequestKind::parse(&kind)?;
+            transaction.execute(
+                "INSERT INTO request_receipts
+                 (request_id,idempotency_key,kind,payload_json,terminal_result_json,
+                  terminal_generation_name,terminal_log_sequence,completed_at)
+                 VALUES (?1,?2,?3,?4,?5,?6,?7,?8)",
+                params![
+                    request_id,
+                    idempotency_key,
+                    kind.as_str(),
+                    payload_json,
+                    result_json,
+                    generation_name,
+                    sequence,
+                    completed_at,
+                ],
+            )?;
+            let deleted = transaction.execute(
+                "DELETE FROM requests
+                 WHERE request_id=?1 AND state IN ('committed','acknowledged')
+                   AND terminal_log_sequence=?2",
+                params![request_id, sequence],
+            )?;
+            if deleted != 1 {
+                return Err(CoordinatorError::CorruptRequest {
+                    detail: format!("request {request_id:?} changed during archival"),
+                });
+            }
+            archived.push(RequestReceipt {
+                request_id,
+                idempotency_key,
+                kind,
+                payload_json,
+                terminal_result_json: result_json,
+                terminal_generation_name: generation_name.to_string(),
+                terminal_log_sequence: sequence,
+                completed_at,
+            });
+        }
+        transaction.commit()?;
+        Ok(archived)
+    }
+
+    pub fn advance_consumer_cursor(
+        &mut self,
+        consumer_id: &str,
+        generation_name: &str,
+        store_log_sequence: i64,
+        updated_at: i64,
+    ) -> Result<ConsumerCursor, CoordinatorError> {
+        if consumer_id.is_empty() || consumer_id.len() > 128 {
+            return Err(CoordinatorError::InvalidRequest);
+        }
+        validate_generation(&self.layout, generation_name)?;
+        if store_log_sequence < 0 || updated_at < 0 {
+            return Err(CoordinatorError::InvalidTime {
+                field: "consumer_cursor",
+                value: store_log_sequence.min(updated_at),
+            });
+        }
+        let mut connection = open_coordinator(&self.coordinator_db)?;
+        let transaction = begin_coordinator(&mut connection)?;
+        let high_water = transaction
+            .query_row(
+                "SELECT high_water FROM family_allocator_marks
+                 WHERE allocator_kind='store_log' AND scope_id=''",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .optional()?
+            .unwrap_or(0);
+        if store_log_sequence > high_water {
+            return Err(CoordinatorError::CursorAhead {
+                requested: store_log_sequence,
+                high_water,
+            });
+        }
+        let existing = transaction
+            .query_row(
+                "SELECT generation_name,store_log_sequence,updated_at
+                 FROM consumer_cursors WHERE consumer_id=?1",
+                [consumer_id],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, i64>(1)?,
+                        row.get::<_, i64>(2)?,
+                    ))
+                },
+            )
+            .optional()?;
+        if let Some((current_generation, current_sequence, current_updated_at)) = existing {
+            if current_generation != generation_name {
+                return Err(CoordinatorError::CursorGenerationConflict {
+                    consumer_id: consumer_id.to_string(),
+                    current: current_generation,
+                    requested: generation_name.to_string(),
+                });
+            }
+            if store_log_sequence < current_sequence || updated_at < current_updated_at {
+                return Err(CoordinatorError::CursorRegression {
+                    consumer_id: consumer_id.to_string(),
+                    current: current_sequence,
+                    requested: store_log_sequence,
+                });
+            }
+        }
+        transaction.execute(
+            "INSERT INTO consumer_cursors
+             (consumer_id,generation_name,store_log_sequence,updated_at)
+             VALUES (?1,?2,?3,?4)
+             ON CONFLICT(consumer_id) DO UPDATE SET
+               store_log_sequence=excluded.store_log_sequence,
+               updated_at=excluded.updated_at",
+            params![consumer_id, generation_name, store_log_sequence, updated_at],
+        )?;
+        transaction.commit()?;
+        Ok(ConsumerCursor {
+            consumer_id: consumer_id.to_string(),
+            generation_name: generation_name.to_string(),
+            store_log_sequence,
+            updated_at,
+        })
+    }
+
+    pub fn release_consumer_cursor(&mut self, consumer_id: &str) -> Result<bool, CoordinatorError> {
+        if consumer_id.is_empty() || consumer_id.len() > 128 {
+            return Err(CoordinatorError::InvalidRequest);
+        }
+        let connection = open_coordinator(&self.coordinator_db)?;
+        Ok(connection.execute(
+            "DELETE FROM consumer_cursors WHERE consumer_id=?1",
+            [consumer_id],
+        )? == 1)
     }
 
     pub fn acknowledge(&mut self, request_id: &str, now: i64) -> Result<bool, CoordinatorError> {
@@ -1707,6 +1996,141 @@ fn request_by_idempotency(
          FROM requests WHERE idempotency_key = ?1",
         idempotency_key,
     )
+}
+
+fn receipt_by_idempotency(
+    connection: &Connection,
+    idempotency_key: &str,
+) -> Result<Option<RequestReceipt>, CoordinatorError> {
+    query_receipt(
+        connection,
+        "SELECT request_id,idempotency_key,kind,payload_json,terminal_result_json,
+                terminal_generation_name,terminal_log_sequence,completed_at
+         FROM request_receipts WHERE idempotency_key=?1",
+        idempotency_key,
+    )
+}
+
+fn receipt_by_id(
+    connection: &Connection,
+    request_id: &str,
+) -> Result<Option<RequestReceipt>, CoordinatorError> {
+    query_receipt(
+        connection,
+        "SELECT request_id,idempotency_key,kind,payload_json,terminal_result_json,
+                terminal_generation_name,terminal_log_sequence,completed_at
+         FROM request_receipts WHERE request_id=?1",
+        request_id,
+    )
+}
+
+fn query_receipt(
+    connection: &Connection,
+    sql: &str,
+    parameter: &str,
+) -> Result<Option<RequestReceipt>, CoordinatorError> {
+    let row = connection
+        .query_row(sql, [parameter], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, String>(4)?,
+                row.get::<_, String>(5)?,
+                row.get::<_, i64>(6)?,
+                row.get::<_, i64>(7)?,
+            ))
+        })
+        .optional()?;
+    row.map(
+        |(
+            request_id,
+            idempotency_key,
+            kind,
+            payload_json,
+            terminal_result_json,
+            terminal_generation_name,
+            terminal_log_sequence,
+            completed_at,
+        )| {
+            Ok(RequestReceipt {
+                request_id,
+                idempotency_key,
+                kind: RequestKind::parse(&kind)?,
+                payload_json,
+                terminal_result_json,
+                terminal_generation_name,
+                terminal_log_sequence,
+                completed_at,
+            })
+        },
+    )
+    .transpose()
+}
+
+fn request_from_receipt(receipt: RequestReceipt) -> CoordinatorRequest {
+    CoordinatorRequest {
+        request_id: receipt.request_id,
+        idempotency_key: receipt.idempotency_key,
+        kind: receipt.kind,
+        payload_json: receipt.payload_json,
+        state: RequestState::Committed,
+        requester_id: "receipt".to_string(),
+        requester_deadline: None,
+        claim_owner: None,
+        claim_heartbeat_at: None,
+        terminal_log_sequence: Some(receipt.terminal_log_sequence),
+        result_json: Some(receipt.terminal_result_json),
+        error_json: None,
+        created_at: receipt.completed_at,
+        updated_at: receipt.completed_at,
+    }
+}
+
+fn validate_generation(
+    layout: &StoreLayout,
+    generation_name: &str,
+) -> Result<(), CoordinatorError> {
+    if generation_name.len() != 7
+        || !generation_name.starts_with("gen-")
+        || !generation_name[4..]
+            .bytes()
+            .all(|byte| byte.is_ascii_digit())
+    {
+        return Err(CoordinatorError::InvalidGeneration {
+            generation_name: generation_name.to_string(),
+        });
+    }
+    let path = layout.root().join(generation_name);
+    let Ok(metadata) = fs::symlink_metadata(&path) else {
+        return Err(CoordinatorError::InvalidGeneration {
+            generation_name: generation_name.to_string(),
+        });
+    };
+    if metadata.file_type().is_symlink() || !metadata.is_dir() {
+        return Err(CoordinatorError::InvalidGeneration {
+            generation_name: generation_name.to_string(),
+        });
+    }
+    let canonical_root =
+        layout
+            .root()
+            .canonicalize()
+            .map_err(|_| CoordinatorError::InvalidGeneration {
+                generation_name: generation_name.to_string(),
+            })?;
+    let canonical_path = path
+        .canonicalize()
+        .map_err(|_| CoordinatorError::InvalidGeneration {
+            generation_name: generation_name.to_string(),
+        })?;
+    if !canonical_path.starts_with(canonical_root) {
+        return Err(CoordinatorError::InvalidGeneration {
+            generation_name: generation_name.to_string(),
+        });
+    }
+    Ok(())
 }
 
 fn request_by_id(

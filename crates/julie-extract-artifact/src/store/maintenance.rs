@@ -3,14 +3,20 @@ use std::error::Error;
 use std::fmt;
 use std::fs;
 use std::io;
-use std::path::Path;
+use std::path::{Component, Path, PathBuf};
 
-use rusqlite::{Connection, OpenFlags, params};
+use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior, params};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use super::resolution::resolution_file_bytes;
-use super::{StoreConnectionError, StoreConnectionFactory};
+use super::pragmas::{WriterPragmaProfile, configure_writer_pragmas};
+use super::resolution::{
+    resolution_file_bytes, resolution_file_sha256, retire_resolution_base, retire_resolution_delta,
+};
+use super::{
+    CoordinatorError, GenerationFence, StoreConnectionError, StoreConnectionFactory,
+    StoreCoordinator, StoreLog, StoreLogError,
+};
 
 const DAY_MS: i64 = 86_400_000;
 const DEFAULT_WINDOW_SIZE: usize = 512;
@@ -289,6 +295,73 @@ pub struct MaintenancePlan {
     pub max_observed_window: usize,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MaintenanceRun {
+    pub run_id: String,
+    pub owner_id: String,
+    pub owner_pid: u32,
+    pub now_ms: i64,
+    pub lease_duration_ms: i64,
+}
+
+impl MaintenanceRun {
+    pub fn new(
+        run_id: impl Into<String>,
+        owner_id: impl Into<String>,
+        owner_pid: u32,
+        now_ms: i64,
+        lease_duration_ms: i64,
+    ) -> Self {
+        Self {
+            run_id: run_id.into(),
+            owner_id: owner_id.into(),
+            owner_pid,
+            now_ms,
+            lease_duration_ms,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct MaintenanceApplyReport {
+    pub demoted_l3: usize,
+    pub demoted_l2: usize,
+    pub purged_versions: usize,
+    pub removed_manifests: usize,
+    pub removed_deltas: usize,
+    pub removed_bases: usize,
+    pub removed_base_files: usize,
+    pub removed_pins: usize,
+    pub removed_scratch_files: usize,
+    pub archived_requests: usize,
+    pub pruned_log_rows: usize,
+    pub last_version_cursor: Option<i64>,
+    pub checkpoint_order: Vec<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MaintenanceApplyPolicy {
+    pub request_safety_ms: i64,
+    pub receipt_limit: usize,
+    pub incremental_vacuum_pages: usize,
+}
+
+impl Default for MaintenanceApplyPolicy {
+    fn default() -> Self {
+        Self {
+            request_safety_ms: 7 * DAY_MS,
+            receipt_limit: 100,
+            incremental_vacuum_pages: 64,
+        }
+    }
+}
+
+pub struct MaintenanceExecutor {
+    factory: StoreConnectionFactory,
+    run: MaintenanceRun,
+    fencing_token: i64,
+}
+
 impl MaintenancePlan {
     pub fn version(&self, version_id: i64) -> Option<&VersionDecision> {
         self.versions
@@ -310,7 +383,13 @@ pub enum MaintenanceError {
     UnknownRoot { kind: &'static str, id: String },
     InvalidPolicy { field: &'static str },
     InvalidMetadata { field: &'static str, value: String },
+    StalePlan,
+    MaintenanceBusy,
+    CapacityInsufficient,
+    MaintenanceFenceLost,
     Connection(StoreConnectionError),
+    Coordinator(CoordinatorError),
+    Log(StoreLogError),
     Sqlite(rusqlite::Error),
     Io(io::Error),
     Serialization(serde_json::Error),
@@ -323,7 +402,13 @@ impl MaintenanceError {
             Self::UnknownRoot { .. } => "unknown_maintenance_root",
             Self::InvalidPolicy { .. } => "invalid_maintenance_policy",
             Self::InvalidMetadata { .. } => "invalid_maintenance_metadata",
+            Self::StalePlan => "maintenance_plan_stale",
+            Self::MaintenanceBusy => "maintenance_busy",
+            Self::CapacityInsufficient => "capacity_insufficient",
+            Self::MaintenanceFenceLost => "maintenance_fence_lost",
             Self::Connection(_) => "store_connection_error",
+            Self::Coordinator(_) => "maintenance_coordinator_error",
+            Self::Log(_) => "maintenance_store_log_error",
             Self::Sqlite(_) => "maintenance_sqlite_error",
             Self::Io(_) => "maintenance_io_error",
             Self::Serialization(_) => "maintenance_serialization_error",
@@ -347,7 +432,20 @@ impl fmt::Display for MaintenanceError {
             Self::InvalidMetadata { field, value } => {
                 write!(formatter, "invalid maintenance metadata {field}={value:?}")
             }
+            Self::StalePlan => write!(formatter, "maintenance plan no longer matches store roots"),
+            Self::MaintenanceBusy => {
+                write!(formatter, "store maintenance cannot acquire ownership")
+            }
+            Self::CapacityInsufficient => {
+                write!(
+                    formatter,
+                    "insufficient capacity for the planned maintenance cohort"
+                )
+            }
+            Self::MaintenanceFenceLost => write!(formatter, "maintenance ownership was lost"),
             Self::Connection(error) => error.fmt(formatter),
+            Self::Coordinator(error) => error.fmt(formatter),
+            Self::Log(error) => error.fmt(formatter),
             Self::Sqlite(error) => error.fmt(formatter),
             Self::Io(error) => error.fmt(formatter),
             Self::Serialization(error) => error.fmt(formatter),
@@ -359,6 +457,8 @@ impl Error for MaintenanceError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Connection(error) => Some(error),
+            Self::Coordinator(error) => Some(error),
+            Self::Log(error) => Some(error),
             Self::Sqlite(error) => Some(error),
             Self::Io(error) => Some(error),
             Self::Serialization(error) => Some(error),
@@ -370,6 +470,18 @@ impl Error for MaintenanceError {
 impl From<StoreConnectionError> for MaintenanceError {
     fn from(error: StoreConnectionError) -> Self {
         Self::Connection(error)
+    }
+}
+
+impl From<CoordinatorError> for MaintenanceError {
+    fn from(error: CoordinatorError) -> Self {
+        Self::Coordinator(error)
+    }
+}
+
+impl From<StoreLogError> for MaintenanceError {
+    fn from(error: StoreLogError) -> Self {
+        Self::Log(error)
     }
 }
 
@@ -789,6 +901,869 @@ impl<C: MaintenanceClock, P: CapacityProvider> MaintenanceInspector<C, P> {
         plan.fingerprint = plan_fingerprint(&plan)?;
         Ok(plan)
     }
+}
+
+impl MaintenanceExecutor {
+    pub fn acquire(
+        factory: StoreConnectionFactory,
+        run: MaintenanceRun,
+        plan: &MaintenancePlan,
+    ) -> Result<Self, MaintenanceError> {
+        validate_run(&run)?;
+        if !plan.capacity.gc_fits {
+            return Err(MaintenanceError::CapacityInsufficient);
+        }
+        let observed = MaintenanceInspector::new(
+            factory.clone(),
+            RevalidationClock(run.now_ms),
+            RevalidationCapacity {
+                free_bytes: plan.capacity.facts.free_bytes,
+                staged_generation_bytes: plan.capacity.facts.staged_generation_bytes,
+            },
+        )
+        .inspect()?;
+        if observed.binding != plan.binding {
+            return Err(MaintenanceError::StalePlan);
+        }
+        let wall_now = wall_now_ms()?;
+        let expires_at = wall_now.checked_add(run.lease_duration_ms).ok_or(
+            MaintenanceError::InvalidMetadata {
+                field: "maintenance_expiry",
+                value: "overflow".to_string(),
+            },
+        )?;
+        let fencing_token = wall_now
+            .checked_add(i64::from(run.owner_pid))
+            .map(|value| value.max(1))
+            .ok_or(MaintenanceError::InvalidMetadata {
+                field: "maintenance_fencing_token",
+                value: "overflow".to_string(),
+            })?;
+        let store = factory.open_reader()?;
+        let source_min_writer_version = store.query_row(
+            "SELECT value FROM store_meta WHERE key='min_writer_version'",
+            [],
+            |row| row.get::<_, String>(0),
+        )?;
+        let holder_version = store.query_row(
+            "SELECT value FROM store_meta WHERE key='binary_version'",
+            [],
+            |row| row.get::<_, String>(0),
+        )?;
+        drop(store);
+        let mut coord = open_maintenance_coordinator(factory.layout().coordinator_db())?;
+        let transaction = coord.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let active_intent = transaction
+            .query_row(
+                "SELECT run_id,owner_id,owner_pid,expires_at FROM maintenance_intent
+                 WHERE resource='store-maintenance'",
+                [],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, i64>(2)?,
+                        row.get::<_, i64>(3)?,
+                    ))
+                },
+            )
+            .optional()?;
+        if active_intent
+            .as_ref()
+            .is_some_and(|(run_id, owner_id, owner_pid, expiry)| {
+                *expiry > wall_now
+                    && (run_id != &run.run_id
+                        || owner_id != &run.owner_id
+                        || *owner_pid != i64::from(run.owner_pid))
+            })
+        {
+            return Err(MaintenanceError::MaintenanceBusy);
+        }
+        if transaction.query_row(
+            "SELECT EXISTS(SELECT 1 FROM writer_lease WHERE expires_at>?1)",
+            [wall_now],
+            |row| row.get::<_, bool>(0),
+        )? || transaction.query_row(
+            "SELECT EXISTS(SELECT 1 FROM requests WHERE state='claimed')",
+            [],
+            |row| row.get::<_, bool>(0),
+        )? {
+            return Err(MaintenanceError::MaintenanceBusy);
+        }
+        transaction.execute("DELETE FROM writer_lease WHERE expires_at<=?1", [wall_now])?;
+        transaction.execute(
+            "DELETE FROM maintenance_intent WHERE expires_at<=?1",
+            [wall_now],
+        )?;
+        transaction.execute(
+            "INSERT INTO maintenance_intent
+             (resource,run_id,action,source_generation_name,owner_id,owner_pid,fencing_token,
+              heartbeat_at,expires_at,started_at,plan_fingerprint,source_min_writer_version)
+             VALUES ('store-maintenance',?1,'gc',?2,?3,?4,?5,?6,?7,?6,?8,?9)",
+            params![
+                run.run_id,
+                factory.layout().generation_name(),
+                run.owner_id,
+                run.owner_pid,
+                fencing_token,
+                wall_now,
+                expires_at,
+                plan.fingerprint,
+                source_min_writer_version,
+            ],
+        )?;
+        transaction.execute(
+            "INSERT INTO writer_lease
+             (resource,holder_id,holder_version,holder_pid,heartbeat_at,expires_at,fencing_token)
+             VALUES ('store-writer',?1,?2,?3,?4,?5,?6)",
+            params![
+                run.owner_id,
+                holder_version,
+                run.owner_pid,
+                wall_now,
+                expires_at,
+                fencing_token,
+            ],
+        )?;
+        transaction.commit()?;
+        Ok(Self {
+            factory,
+            run,
+            fencing_token,
+        })
+    }
+
+    pub fn apply(
+        &mut self,
+        plan: &MaintenancePlan,
+    ) -> Result<MaintenanceApplyReport, MaintenanceError> {
+        self.apply_with_policy(plan, &MaintenanceApplyPolicy::default())
+    }
+
+    pub fn apply_with_policy(
+        &mut self,
+        plan: &MaintenancePlan,
+        policy: &MaintenanceApplyPolicy,
+    ) -> Result<MaintenanceApplyReport, MaintenanceError> {
+        if policy.request_safety_ms < 0
+            || policy.receipt_limit == 0
+            || policy.incremental_vacuum_pages == 0
+        {
+            return Err(MaintenanceError::InvalidPolicy {
+                field: "maintenance_apply_policy",
+            });
+        }
+        self.validate_ownership(plan)?;
+        self.validate_plan_binding(plan)?;
+        let scratch_files = terminal_request_scratch_files(self.factory.layout())?;
+        let mut report = MaintenanceApplyReport::default();
+        for path in scratch_files {
+            #[cfg(feature = "test-store-crash")]
+            super::test_hooks::crash_if("maintenance_scratch_before_remove");
+            fs::remove_file(path)?;
+            report.removed_scratch_files += 1;
+            #[cfg(feature = "test-store-crash")]
+            super::test_hooks::crash_if("maintenance_scratch_after_remove");
+        }
+        let fence = GenerationFence::maintenance(
+            self.factory.layout(),
+            &self.run.run_id,
+            &self.run.owner_id,
+            self.run.owner_pid,
+            self.fencing_token,
+            wall_now_ms()?,
+        );
+        let mut writer = self
+            .factory
+            .clone()
+            .with_generation_fence(fence)
+            .open_writer()?;
+        let transaction = writer.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let durable_cursor = transaction
+            .query_row(
+                "SELECT CAST(value AS INTEGER) FROM store_meta
+                 WHERE key='maintenance_gc_version_cursor'
+                   AND EXISTS(SELECT 1 FROM store_meta
+                              WHERE key='maintenance_gc_plan_fingerprint' AND value=?1)",
+                [&plan.fingerprint],
+                |row| row.get::<_, i64>(0),
+            )
+            .optional()?
+            .unwrap_or(0);
+        report.removed_pins = transaction.execute(
+            "DELETE FROM resolution_pins
+             WHERE CAST(strftime('%s',expires_at) AS INTEGER)<=?1",
+            [self.run.now_ms.div_euclid(1000)],
+        )?;
+        for delta in &plan.eligible_deltas {
+            let (view_id, generation) = parse_scoped_generation(delta)?;
+            report.removed_deltas += retire_resolution_delta(&transaction, view_id, generation)?;
+        }
+        let mut base_files = Vec::new();
+        for base_id in &plan.eligible_bases {
+            let candidate = transaction
+                .query_row(
+                    "SELECT relative_path,file_bytes,file_sha256 FROM resolution_bases
+                     WHERE base_id=?1 AND state='ready'
+                       AND NOT EXISTS(SELECT 1 FROM views WHERE resolution_base_id=?1)
+                       AND NOT EXISTS(SELECT 1 FROM resolution_pins WHERE base_id=?1)
+                       AND NOT EXISTS(SELECT 1 FROM resolution_deltas WHERE base_id=?1)",
+                    [base_id],
+                    |row| {
+                        Ok((
+                            row.get::<_, String>(0)?,
+                            row.get::<_, i64>(1)?,
+                            row.get::<_, String>(2)?,
+                        ))
+                    },
+                )
+                .optional()?;
+            let Some((relative_path, recorded_bytes, recorded_sha256)) = candidate else {
+                continue;
+            };
+            let path = checked_base_path(self.factory.layout(), &relative_path)?;
+            let actual_bytes = resolution_file_bytes(&path)?;
+            if actual_bytes
+                != u64::try_from(recorded_bytes).map_err(|_| MaintenanceError::InvalidMetadata {
+                    field: "resolution_base_bytes",
+                    value: recorded_bytes.to_string(),
+                })?
+            {
+                return Err(MaintenanceError::InvalidMetadata {
+                    field: "resolution_base_bytes",
+                    value: base_id.clone(),
+                });
+            }
+            if resolution_file_sha256(&path)? != recorded_sha256 {
+                return Err(MaintenanceError::InvalidMetadata {
+                    field: "resolution_base_sha256",
+                    value: base_id.clone(),
+                });
+            }
+            report.removed_bases += retire_resolution_base(&transaction, base_id)?;
+            base_files.push(path);
+        }
+        for (view_id, generation) in &plan.eligible_manifests {
+            report.removed_manifests += transaction.execute(
+                "DELETE FROM manifests
+                 WHERE view_id=?1 AND generation=?2
+                   AND NOT EXISTS(SELECT 1 FROM views
+                                  WHERE views.view_id=manifests.view_id
+                                    AND views.current_generation=manifests.generation)
+                   AND NOT EXISTS(SELECT 1 FROM resolution_pins
+                                  WHERE resolution_pins.view_id=manifests.view_id
+                                    AND resolution_pins.manifest_generation=manifests.generation)",
+                params![view_id, generation],
+            )?;
+        }
+        for candidate in &plan.demotion_cohort {
+            if candidate.version_id <= durable_cursor {
+                continue;
+            }
+            if candidate.drop_l3 {
+                delete_level_rows(&transaction, candidate.version_id, MaintenanceLevel::L3)?;
+                let changed = transaction.execute(
+                    "UPDATE file_versions SET complete_l3=NULL
+                     WHERE version_id=?1 AND complete_l3 IS NOT NULL",
+                    [candidate.version_id],
+                )?;
+                report.demoted_l3 += changed;
+            } else if candidate.drop_l2 {
+                delete_level_rows(&transaction, candidate.version_id, MaintenanceLevel::L2)?;
+                let changed = transaction.execute(
+                    "UPDATE file_versions SET complete_l2=NULL,complete_l3=NULL
+                     WHERE version_id=?1 AND complete_l2 IS NOT NULL AND complete_l3 IS NULL",
+                    [candidate.version_id],
+                )?;
+                report.demoted_l2 += changed;
+            }
+            report.last_version_cursor = Some(candidate.version_id);
+        }
+        if plan.demotion_cohort.is_empty() {
+            for decision in &plan.versions {
+                if decision.version_id <= durable_cursor {
+                    continue;
+                }
+                if !decision.l1_reasons.is_empty()
+                    || !decision.l2_reasons.is_empty()
+                    || !decision.l3_reasons.is_empty()
+                {
+                    continue;
+                }
+                let changed = transaction.execute(
+                    "DELETE FROM file_versions
+                     WHERE version_id=?1 AND complete_l2 IS NULL AND complete_l3 IS NULL
+                       AND NOT EXISTS(SELECT 1 FROM manifest_entries WHERE version_id=?1)
+                       AND NOT EXISTS(SELECT 1 FROM resolution_base_versions WHERE version_id=?1)
+                       AND NOT EXISTS(SELECT 1 FROM resolution_identifier_deltas
+                                      WHERE version_id=?1 OR target_version_id=?1)
+                       AND NOT EXISTS(SELECT 1 FROM resolution_pending_deltas
+                                      WHERE version_id=?1 OR target_version_id=?1)",
+                    [decision.version_id],
+                )?;
+                report.purged_versions += changed;
+                if changed == 1 {
+                    report.last_version_cursor = Some(decision.version_id);
+                }
+            }
+        }
+        if let Some(cursor) = report.last_version_cursor {
+            transaction.execute(
+                "INSERT INTO store_meta(key,value)
+                 VALUES ('maintenance_gc_plan_fingerprint',?1)
+                 ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                [&plan.fingerprint],
+            )?;
+            transaction.execute(
+                "INSERT INTO store_meta(key,value)
+                 VALUES ('maintenance_gc_version_cursor',?1)
+                 ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                [cursor.to_string()],
+            )?;
+        }
+        self.validate_ownership(plan)?;
+        self.validate_coordinator_binding(plan)?;
+        #[cfg(feature = "test-store-crash")]
+        super::test_hooks::crash_if("maintenance_store_before_commit");
+        transaction.commit()?;
+        #[cfg(feature = "test-store-crash")]
+        super::test_hooks::crash_if("maintenance_store_after_commit");
+        for path in base_files {
+            #[cfg(feature = "test-store-crash")]
+            super::test_hooks::crash_if("maintenance_base_before_remove");
+            fs::remove_file(&path)?;
+            report.removed_base_files += 1;
+            #[cfg(feature = "test-store-crash")]
+            super::test_hooks::crash_if("maintenance_base_after_remove");
+        }
+        for path in orphan_base_files(self.factory.layout(), &writer)? {
+            #[cfg(feature = "test-store-crash")]
+            super::test_hooks::crash_if("maintenance_base_before_remove");
+            fs::remove_file(&path)?;
+            report.removed_base_files += 1;
+            #[cfg(feature = "test-store-crash")]
+            super::test_hooks::crash_if("maintenance_base_after_remove");
+        }
+        let (safe_sequence, _high_water) = self.safe_log_sequence(plan)?;
+        let completed_before = self.run.now_ms.saturating_sub(policy.request_safety_ms);
+        let mut coordinator = StoreCoordinator::open(self.factory.layout())?;
+        let archived = coordinator.archive_terminal_requests(
+            self.factory.layout().generation_name(),
+            completed_before,
+            safe_sequence,
+            policy.receipt_limit,
+        )?;
+        report.archived_requests = archived.len();
+        #[cfg(feature = "test-store-crash")]
+        super::test_hooks::crash_if("maintenance_after_coordinator_archive");
+        let receipt_ids = eligible_receipt_ids(
+            self.factory.layout().coordinator_db(),
+            completed_before,
+            safe_sequence,
+            policy.receipt_limit,
+        )?;
+        if !receipt_ids.is_empty() {
+            self.validate_ownership(plan)?;
+            let fence = GenerationFence::maintenance(
+                self.factory.layout(),
+                &self.run.run_id,
+                &self.run.owner_id,
+                self.run.owner_pid,
+                self.fencing_token,
+                wall_now_ms()?,
+            );
+            let mut log_writer = self
+                .factory
+                .clone()
+                .with_generation_fence(fence)
+                .open_writer()?;
+            let log_transaction =
+                log_writer.transaction_with_behavior(TransactionBehavior::Immediate)?;
+            for request_id in receipt_ids {
+                report.pruned_log_rows += StoreLog::prune_receipted_request(
+                    &log_transaction,
+                    &request_id,
+                    safe_sequence,
+                )?;
+            }
+            #[cfg(feature = "test-store-crash")]
+            super::test_hooks::crash_if("maintenance_log_before_commit");
+            log_transaction.commit()?;
+            #[cfg(feature = "test-store-crash")]
+            super::test_hooks::crash_if("maintenance_log_after_commit");
+            drop(log_writer);
+        }
+        report.checkpoint_order.push("checkpoint".to_string());
+        writer.execute_batch("PRAGMA wal_checkpoint(PASSIVE);")?;
+        report
+            .checkpoint_order
+            .push("incremental_vacuum".to_string());
+        writer.execute_batch(&format!(
+            "PRAGMA incremental_vacuum({});",
+            policy.incremental_vacuum_pages
+        ))?;
+        report
+            .checkpoint_order
+            .push("truncate_checkpoint".to_string());
+        writer.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);")?;
+        drop(writer);
+        self.finish()?;
+        Ok(report)
+    }
+
+    fn safe_log_sequence(&self, plan: &MaintenancePlan) -> Result<(i64, i64), MaintenanceError> {
+        let coord = Connection::open_with_flags(
+            self.factory.layout().coordinator_db(),
+            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )?;
+        let allocator_high_water = coord
+            .query_row(
+                "SELECT high_water FROM family_allocator_marks
+                 WHERE allocator_kind='store_log' AND scope_id=''",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .optional()?
+            .unwrap_or(0);
+        let high_water = allocator_high_water.max(plan.binding.store_log_max);
+        let mut safe = high_water;
+        let mut statement = coord.prepare(
+            "SELECT consumer_id,generation_name,store_log_sequence
+             FROM consumer_cursors ORDER BY consumer_id",
+        )?;
+        let mut rows = statement.query([])?;
+        while let Some(row) = rows.next()? {
+            let consumer_id: String = row.get(0)?;
+            let generation_name: String = row.get(1)?;
+            let sequence: i64 = row.get(2)?;
+            checked_generation_path(self.factory.layout(), &generation_name)?;
+            if sequence < 0 || sequence > high_water {
+                return Err(MaintenanceError::InvalidMetadata {
+                    field: "consumer_cursor",
+                    value: format!("{consumer_id}:{sequence}:{high_water}"),
+                });
+            }
+            safe = safe.min(sequence);
+        }
+        Ok((safe, high_water))
+    }
+
+    fn validate_ownership(&self, plan: &MaintenancePlan) -> Result<(), MaintenanceError> {
+        let coord = Connection::open_with_flags(
+            self.factory.layout().coordinator_db(),
+            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )?;
+        let valid = coord.query_row(
+            "SELECT EXISTS(
+               SELECT 1 FROM maintenance_intent i JOIN writer_lease l
+                 ON l.resource='store-writer'
+               WHERE i.resource='store-maintenance' AND i.run_id=?1 AND i.owner_id=?2
+                 AND i.owner_pid=?3 AND i.fencing_token=?4 AND i.plan_fingerprint=?5
+                 AND i.source_generation_name=?6 AND l.holder_id=i.owner_id
+                 AND l.holder_pid=i.owner_pid AND l.fencing_token=i.fencing_token
+                 AND i.expires_at>?7 AND l.expires_at>?7)",
+            params![
+                self.run.run_id,
+                self.run.owner_id,
+                self.run.owner_pid,
+                self.fencing_token,
+                plan.fingerprint,
+                self.factory.layout().generation_name(),
+                wall_now_ms()?,
+            ],
+            |row| row.get::<_, bool>(0),
+        )?;
+        if valid {
+            Ok(())
+        } else {
+            Err(MaintenanceError::MaintenanceFenceLost)
+        }
+    }
+
+    fn validate_plan_binding(&self, plan: &MaintenancePlan) -> Result<(), MaintenanceError> {
+        let observed = MaintenanceInspector::new(
+            self.factory.clone(),
+            RevalidationClock(self.run.now_ms),
+            RevalidationCapacity {
+                free_bytes: plan.capacity.facts.free_bytes,
+                staged_generation_bytes: plan.capacity.facts.staged_generation_bytes,
+            },
+        )
+        .inspect()?;
+        if observed.binding == plan.binding {
+            Ok(())
+        } else {
+            Err(MaintenanceError::StalePlan)
+        }
+    }
+
+    fn validate_coordinator_binding(&self, plan: &MaintenancePlan) -> Result<(), MaintenanceError> {
+        let observed = MaintenanceInspector::new(
+            self.factory.clone(),
+            RevalidationClock(self.run.now_ms),
+            RevalidationCapacity {
+                free_bytes: plan.capacity.facts.free_bytes,
+                staged_generation_bytes: plan.capacity.facts.staged_generation_bytes,
+            },
+        )
+        .inspect()?;
+        let expected = &plan.binding;
+        let actual = &observed.binding;
+        if actual.family_id == expected.family_id
+            && actual.current_generation == expected.current_generation
+            && actual.coordinator_root_fingerprint == expected.coordinator_root_fingerprint
+            && actual.store_log_max == expected.store_log_max
+            && actual.request_watermark == expected.request_watermark
+            && actual.allocator_marks == expected.allocator_marks
+        {
+            Ok(())
+        } else {
+            Err(MaintenanceError::StalePlan)
+        }
+    }
+
+    fn finish(&self) -> Result<(), MaintenanceError> {
+        let mut coord = open_maintenance_coordinator(self.factory.layout().coordinator_db())?;
+        let transaction = coord.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let released = transaction.execute(
+            "DELETE FROM writer_lease
+             WHERE resource='store-writer' AND holder_id=?1 AND holder_pid=?2
+               AND fencing_token=?3",
+            params![self.run.owner_id, self.run.owner_pid, self.fencing_token],
+        )?;
+        let cleared = transaction.execute(
+            "DELETE FROM maintenance_intent
+             WHERE resource='store-maintenance' AND run_id=?1 AND owner_id=?2
+               AND owner_pid=?3 AND fencing_token=?4",
+            params![
+                self.run.run_id,
+                self.run.owner_id,
+                self.run.owner_pid,
+                self.fencing_token,
+            ],
+        )?;
+        if released != 1 || cleared != 1 {
+            return Err(MaintenanceError::MaintenanceFenceLost);
+        }
+        transaction.commit()?;
+        Ok(())
+    }
+}
+
+#[derive(Clone, Copy)]
+struct RevalidationClock(i64);
+
+impl MaintenanceClock for RevalidationClock {
+    fn now_ms(&self) -> i64 {
+        self.0
+    }
+}
+
+struct RevalidationCapacity {
+    free_bytes: u64,
+    staged_generation_bytes: u64,
+}
+
+impl CapacityProvider for RevalidationCapacity {
+    fn free_bytes(&self, _path: &Path) -> Result<u64, io::Error> {
+        Ok(self.free_bytes)
+    }
+
+    fn staged_generation_bytes(&self, _path: &Path) -> Result<u64, io::Error> {
+        Ok(self.staged_generation_bytes)
+    }
+}
+
+fn validate_run(run: &MaintenanceRun) -> Result<(), MaintenanceError> {
+    if run.run_id.is_empty()
+        || run.run_id.len() > 128
+        || run.owner_id.is_empty()
+        || run.owner_id.len() > 128
+        || run.owner_pid == 0
+        || run.now_ms < 0
+        || run.lease_duration_ms <= 0
+    {
+        return Err(MaintenanceError::InvalidMetadata {
+            field: "maintenance_run",
+            value: run.run_id.clone(),
+        });
+    }
+    Ok(())
+}
+
+fn wall_now_ms() -> Result<i64, MaintenanceError> {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let millis = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|error| MaintenanceError::InvalidMetadata {
+            field: "system_clock",
+            value: error.to_string(),
+        })?
+        .as_millis();
+    i64::try_from(millis).map_err(|_| MaintenanceError::InvalidMetadata {
+        field: "system_clock",
+        value: "overflow".to_string(),
+    })
+}
+
+fn open_maintenance_coordinator(path: &Path) -> Result<Connection, MaintenanceError> {
+    let connection = Connection::open(path)?;
+    connection.busy_timeout(std::time::Duration::from_secs(5))?;
+    configure_writer_pragmas(&connection, WriterPragmaProfile::Routine).map_err(|error| {
+        MaintenanceError::InvalidMetadata {
+            field: "coordinator_pragmas",
+            value: format!("{error:?}"),
+        }
+    })?;
+    Ok(connection)
+}
+
+fn parse_scoped_generation(value: &str) -> Result<(&str, i64), MaintenanceError> {
+    let (view_id, generation) =
+        value
+            .rsplit_once(':')
+            .ok_or_else(|| MaintenanceError::InvalidMetadata {
+                field: "resolution_delta",
+                value: value.to_string(),
+            })?;
+    let generation = generation
+        .parse::<i64>()
+        .map_err(|_| MaintenanceError::InvalidMetadata {
+            field: "resolution_delta",
+            value: value.to_string(),
+        })?;
+    if view_id.is_empty() || generation <= 0 {
+        return Err(MaintenanceError::InvalidMetadata {
+            field: "resolution_delta",
+            value: value.to_string(),
+        });
+    }
+    Ok((view_id, generation))
+}
+
+fn checked_base_path(
+    layout: &super::StoreLayout,
+    relative_path: &str,
+) -> Result<PathBuf, MaintenanceError> {
+    let relative = Path::new(relative_path);
+    let mut components = relative.components();
+    if relative_path.contains(['\0', ':'])
+        || relative.is_absolute()
+        || components.next() != Some(Component::Normal("bases".as_ref()))
+        || components.any(|component| !matches!(component, Component::Normal(_)))
+    {
+        return Err(MaintenanceError::InvalidMetadata {
+            field: "resolution_base_path",
+            value: relative_path.to_string(),
+        });
+    }
+    let path = layout.generation_dir().join(relative);
+    let metadata = fs::symlink_metadata(&path)?;
+    if metadata.file_type().is_symlink() || !metadata.is_file() {
+        return Err(MaintenanceError::InvalidMetadata {
+            field: "resolution_base_path",
+            value: path.display().to_string(),
+        });
+    }
+    let canonical = path.canonicalize()?;
+    let bases = layout.bases_dir().canonicalize()?;
+    if !canonical.starts_with(&bases) {
+        return Err(MaintenanceError::InvalidMetadata {
+            field: "resolution_base_path",
+            value: canonical.display().to_string(),
+        });
+    }
+    Ok(canonical)
+}
+
+fn checked_generation_path(
+    layout: &super::StoreLayout,
+    generation_name: &str,
+) -> Result<PathBuf, MaintenanceError> {
+    if generation_name.len() != 7
+        || !generation_name.starts_with("gen-")
+        || !generation_name[4..]
+            .bytes()
+            .all(|byte| byte.is_ascii_digit())
+    {
+        return Err(MaintenanceError::InvalidMetadata {
+            field: "consumer_cursor_generation",
+            value: generation_name.to_string(),
+        });
+    }
+    let path = layout.root().join(generation_name);
+    let metadata = fs::symlink_metadata(&path)?;
+    if metadata.file_type().is_symlink() || !metadata.is_dir() {
+        return Err(MaintenanceError::InvalidMetadata {
+            field: "consumer_cursor_generation",
+            value: path.display().to_string(),
+        });
+    }
+    let canonical = path.canonicalize()?;
+    let root = layout.root().canonicalize()?;
+    if !canonical.starts_with(&root) {
+        return Err(MaintenanceError::InvalidMetadata {
+            field: "consumer_cursor_generation",
+            value: canonical.display().to_string(),
+        });
+    }
+    Ok(canonical)
+}
+
+fn eligible_receipt_ids(
+    coordinator_db: &Path,
+    completed_before: i64,
+    maximum_log_sequence: i64,
+    limit: usize,
+) -> Result<Vec<String>, MaintenanceError> {
+    let connection = Connection::open_with_flags(
+        coordinator_db,
+        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+    )?;
+    connection.pragma_update(None, "query_only", "ON")?;
+    let mut statement = connection.prepare(
+        "SELECT request_id FROM request_receipts
+         WHERE completed_at<=?1 AND terminal_log_sequence<=?2
+         ORDER BY terminal_log_sequence,request_id LIMIT ?3",
+    )?;
+    Ok(statement
+        .query_map(
+            params![completed_before, maximum_log_sequence, limit as i64],
+            |row| row.get::<_, String>(0),
+        )?
+        .collect::<Result<Vec<_>, _>>()?)
+}
+
+fn terminal_request_scratch_files(
+    layout: &super::StoreLayout,
+) -> Result<Vec<PathBuf>, MaintenanceError> {
+    let coordinator = Connection::open_with_flags(
+        layout.coordinator_db(),
+        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+    )?;
+    coordinator.pragma_update(None, "query_only", "ON")?;
+    let mut files = Vec::new();
+    for entry in fs::read_dir(layout.scratch_dir())? {
+        let entry = entry?;
+        let Some(name) = entry.file_name().to_str().map(str::to_string) else {
+            continue;
+        };
+        let Some(request_id) = request_id_from_scratch_name(&name) else {
+            continue;
+        };
+        let terminal = coordinator.query_row(
+            "SELECT EXISTS(SELECT 1 FROM requests
+                           WHERE request_id=?1 AND state IN ('failed','committed','acknowledged'))
+                    OR EXISTS(SELECT 1 FROM request_receipts WHERE request_id=?1)",
+            [request_id],
+            |row| row.get::<_, bool>(0),
+        )?;
+        if !terminal {
+            continue;
+        }
+        let metadata = fs::symlink_metadata(entry.path())?;
+        if metadata.file_type().is_symlink() || !metadata.is_file() {
+            return Err(MaintenanceError::InvalidMetadata {
+                field: "scratch_path",
+                value: entry.path().display().to_string(),
+            });
+        }
+        let canonical = entry.path().canonicalize()?;
+        if !canonical.starts_with(layout.scratch_dir().canonicalize()?) {
+            return Err(MaintenanceError::InvalidMetadata {
+                field: "scratch_path",
+                value: canonical.display().to_string(),
+            });
+        }
+        files.push(canonical);
+    }
+    files.sort();
+    Ok(files)
+}
+
+fn request_id_from_scratch_name(name: &str) -> Option<&str> {
+    let base = name
+        .strip_suffix("-wal")
+        .or_else(|| name.strip_suffix("-shm"))
+        .unwrap_or(name);
+    let base = base.strip_suffix(".work").unwrap_or(base);
+    let request = base
+        .strip_prefix("resolve-exact-")
+        .or_else(|| base.strip_prefix("resolve-delta-"))?
+        .strip_suffix(".db")?;
+    (!request.is_empty()).then_some(request)
+}
+
+fn orphan_base_files(
+    layout: &super::StoreLayout,
+    store: &Connection,
+) -> Result<Vec<PathBuf>, MaintenanceError> {
+    let mut statement =
+        store.prepare("SELECT relative_path FROM resolution_bases ORDER BY base_id")?;
+    let registered = statement
+        .query_map([], |row| row.get::<_, String>(0))?
+        .collect::<Result<BTreeSet<_>, _>>()?;
+    let mut orphaned = Vec::new();
+    for entry in fs::read_dir(layout.bases_dir())? {
+        let entry = entry?;
+        let metadata = fs::symlink_metadata(entry.path())?;
+        if metadata.file_type().is_symlink() || !metadata.is_file() {
+            return Err(MaintenanceError::InvalidMetadata {
+                field: "resolution_base_path",
+                value: entry.path().display().to_string(),
+            });
+        }
+        let relative = format!("bases/{}", entry.file_name().to_string_lossy());
+        if !registered.contains(&relative) {
+            let canonical = entry.path().canonicalize()?;
+            if !canonical.starts_with(layout.bases_dir().canonicalize()?) {
+                return Err(MaintenanceError::InvalidMetadata {
+                    field: "resolution_base_path",
+                    value: canonical.display().to_string(),
+                });
+            }
+            orphaned.push(canonical);
+        }
+    }
+    orphaned.sort();
+    Ok(orphaned)
+}
+
+fn delete_level_rows(
+    transaction: &rusqlite::Transaction<'_>,
+    version_id: i64,
+    level: MaintenanceLevel,
+) -> Result<(), MaintenanceError> {
+    match level {
+        MaintenanceLevel::L3 => {
+            for table in [
+                "type_arguments",
+                "type_argument_usages",
+                "literals",
+                "source_regions",
+                "structural_facts",
+            ] {
+                transaction.execute(
+                    &format!("DELETE FROM {table} WHERE version_id=?1"),
+                    [version_id],
+                )?;
+            }
+        }
+        MaintenanceLevel::L2 => {
+            transaction.execute("DELETE FROM identifiers WHERE version_id=?1", [version_id])?;
+            transaction.execute(
+                "DELETE FROM reference_sites WHERE version_id=?1 AND level=2",
+                [version_id],
+            )?;
+        }
+        MaintenanceLevel::L1 => {
+            return Err(MaintenanceError::InvalidMetadata {
+                field: "demotion_level",
+                value: "l1".to_string(),
+            });
+        }
+    }
+    Ok(())
 }
 
 fn data_version(connection: &Connection) -> Result<i64, MaintenanceError> {

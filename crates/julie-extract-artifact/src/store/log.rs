@@ -309,6 +309,25 @@ impl StoreLog {
     ) -> Result<Option<StoreLogRecord>, StoreLogError> {
         terminal_record(connection, request_id)
     }
+
+    pub fn prune_receipted_request(
+        transaction: &Transaction<'_>,
+        request_id: &str,
+        maximum_sequence: i64,
+    ) -> Result<usize, StoreLogError> {
+        if request_id.is_empty() || maximum_sequence < 0 {
+            return Err(StoreLogError::InvalidEntry);
+        }
+        transaction.execute(
+            "DELETE FROM request_chunks
+             WHERE request_id=?1 AND store_log_sequence<=?2",
+            params![request_id, maximum_sequence],
+        )?;
+        Ok(transaction.execute(
+            "DELETE FROM store_log WHERE request_id=?1 AND sequence<=?2",
+            params![request_id, maximum_sequence],
+        )?)
+    }
 }
 
 fn insert_entry(

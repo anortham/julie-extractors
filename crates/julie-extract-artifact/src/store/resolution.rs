@@ -3606,6 +3606,62 @@ pub(crate) fn resolution_file_bytes(path: &Path) -> Result<u64, io::Error> {
     Ok(metadata.len())
 }
 
+pub(crate) fn resolution_file_sha256(path: &Path) -> Result<String, io::Error> {
+    let mut file = File::open(path)?;
+    let metadata = file.metadata()?;
+    if !metadata.is_file() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!(
+                "resolution catalog is not a regular file: {}",
+                path.display()
+            ),
+        ));
+    }
+    let mut digest = Sha256::new();
+    let mut buffer = [0_u8; 64 * 1024];
+    loop {
+        let read = file.read(&mut buffer)?;
+        if read == 0 {
+            break;
+        }
+        digest.update(&buffer[..read]);
+    }
+    Ok(format!("{:x}", digest.finalize()))
+}
+
+pub(crate) fn retire_resolution_delta(
+    transaction: &Transaction<'_>,
+    view_id: &str,
+    generation: i64,
+) -> Result<usize, rusqlite::Error> {
+    transaction.execute(
+        "DELETE FROM resolution_deltas
+         WHERE view_id=?1 AND delta_generation=?2
+           AND NOT EXISTS(SELECT 1 FROM views
+                          WHERE views.view_id=resolution_deltas.view_id
+                            AND views.resolution_delta_generation=resolution_deltas.delta_generation)
+           AND NOT EXISTS(SELECT 1 FROM resolution_pins
+                          WHERE resolution_pins.view_id=resolution_deltas.view_id
+                            AND resolution_pins.delta_generation=resolution_deltas.delta_generation)",
+        params![view_id, generation],
+    )
+}
+
+pub(crate) fn retire_resolution_base(
+    transaction: &Transaction<'_>,
+    base_id: &str,
+) -> Result<usize, rusqlite::Error> {
+    transaction.execute(
+        "DELETE FROM resolution_bases
+         WHERE base_id=?1
+           AND NOT EXISTS(SELECT 1 FROM views WHERE resolution_base_id=?1)
+           AND NOT EXISTS(SELECT 1 FROM resolution_pins WHERE base_id=?1)
+           AND NOT EXISTS(SELECT 1 FROM resolution_deltas WHERE base_id=?1)",
+        [base_id],
+    )
+}
+
 pub fn resolution_base_catalog_hash(
     connection: &Connection,
 ) -> Result<String, ResolutionValidationError> {

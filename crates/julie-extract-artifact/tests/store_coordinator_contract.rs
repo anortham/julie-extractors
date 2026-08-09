@@ -5,10 +5,10 @@ use std::sync::{Arc, Barrier};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use julie_extract_artifact::store::{
-    CoordinatorError, CoordinatorExecutor, CoordinatorPolicy, CoordinatorRequest, ExecutionContext,
-    ExecutionQuantum, LeaseDisposition, LeaseHolder, PidLiveness, PidStatus, RequestKind,
-    StoreCoordinator, StoreLayout, StoreLevel, StoreLog, StoreLogEntry, UnixMillisClock,
-    compare_versions,
+    ConsumerCursor, CoordinatorError, CoordinatorExecutor, CoordinatorPolicy, CoordinatorRequest,
+    ExecutionContext, ExecutionQuantum, LeaseDisposition, LeaseHolder, PidLiveness, PidStatus,
+    RequestKind, RequestReceipt, StoreCoordinator, StoreLayout, StoreLevel, StoreLog,
+    StoreLogEntry, UnixMillisClock, compare_versions,
 };
 use rusqlite::{Connection, Transaction};
 
@@ -2029,4 +2029,152 @@ fn quantum_must_finish_inside_the_structural_lease_bound_before_store_commit() {
         coordinator.request("request-1").unwrap().state.as_str(),
         "committed"
     );
+}
+
+#[test]
+fn terminal_request_archival_creates_one_receipt_and_preserves_replay_conflicts() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let mut coordinator = StoreCoordinator::open(&layout).unwrap();
+    let request = CoordinatorRequest::new(
+        "request-archive",
+        "idem-archive",
+        RequestKind::Update,
+        r#"{"path":"src/lib.rs"}"#,
+        "requester",
+        1_000,
+        1,
+    );
+    coordinator.enqueue(request.clone()).unwrap();
+    let sequence = append_terminal(&layout, &request.request_id, r#"{"generation":7}"#);
+    Connection::open(layout.coordinator_db())
+        .unwrap()
+        .execute(
+            "UPDATE requests SET state='committed',terminal_log_sequence=?1,
+             result_json=?2,updated_at=10 WHERE request_id=?3",
+            rusqlite::params![sequence, r#"{"generation":7}"#, request.request_id],
+        )
+        .unwrap();
+
+    let archived = coordinator
+        .archive_terminal_requests("gen-001", 10, sequence, 10)
+        .unwrap();
+
+    assert_eq!(
+        archived,
+        vec![RequestReceipt {
+            request_id: "request-archive".to_string(),
+            idempotency_key: "idem-archive".to_string(),
+            kind: RequestKind::Update,
+            payload_json: r#"{"path":"src/lib.rs"}"#.to_string(),
+            terminal_result_json: r#"{"generation":7}"#.to_string(),
+            terminal_generation_name: "gen-001".to_string(),
+            terminal_log_sequence: sequence,
+            completed_at: 10,
+        }]
+    );
+    let coord = Connection::open(layout.coordinator_db()).unwrap();
+    assert_eq!(
+        coord
+            .query_row(
+                "SELECT COUNT(*) FROM requests WHERE request_id='request-archive'",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        0
+    );
+    assert_eq!(
+        coord
+            .query_row("SELECT COUNT(*) FROM request_receipts", [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .unwrap(),
+        1
+    );
+
+    let replay = coordinator
+        .enqueue(CoordinatorRequest::new(
+            "request-retry",
+            "idem-archive",
+            RequestKind::Update,
+            r#"{"path":"src/lib.rs"}"#,
+            "requester",
+            2_000,
+            12,
+        ))
+        .unwrap();
+    assert!(!replay.inserted);
+    assert_eq!(replay.request.request_id, "request-archive");
+    assert_eq!(
+        replay.request.result_json.as_deref(),
+        Some(r#"{"generation":7}"#)
+    );
+    assert!(matches!(
+        coordinator.enqueue(CoordinatorRequest::new(
+            "request-conflict",
+            "idem-archive",
+            RequestKind::Delete,
+            r#"{"path":"src/lib.rs"}"#,
+            "requester",
+            2_000,
+            12,
+        )),
+        Err(CoordinatorError::IdempotencyConflict { .. })
+    ));
+    assert!(matches!(
+        coordinator.enqueue(CoordinatorRequest::new(
+            "request-archive",
+            "different-idem",
+            RequestKind::Update,
+            r#"{"path":"src/lib.rs"}"#,
+            "requester",
+            2_000,
+            12,
+        )),
+        Err(CoordinatorError::RequestIdConflict { .. })
+    ));
+}
+
+#[test]
+fn consumer_cursor_advance_is_monotonic_bounded_and_releasable() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let mut coordinator = StoreCoordinator::open(&layout).unwrap();
+    let coord = Connection::open(layout.coordinator_db()).unwrap();
+    coord
+        .execute(
+            "INSERT INTO family_allocator_marks
+             (allocator_kind,scope_id,high_water,updated_at)
+             VALUES ('store_log','',10,1)",
+            [],
+        )
+        .unwrap();
+
+    let cursor = coordinator
+        .advance_consumer_cursor("miller", "gen-001", 5, 2)
+        .unwrap();
+    assert_eq!(
+        cursor,
+        ConsumerCursor {
+            consumer_id: "miller".to_string(),
+            generation_name: "gen-001".to_string(),
+            store_log_sequence: 5,
+            updated_at: 2,
+        }
+    );
+    assert!(matches!(
+        coordinator.advance_consumer_cursor("miller", "gen-001", 4, 3),
+        Err(CoordinatorError::CursorRegression { .. })
+    ));
+    assert!(matches!(
+        coordinator.advance_consumer_cursor("miller", "gen-001", 11, 3),
+        Err(CoordinatorError::CursorAhead { .. })
+    ));
+    assert!(matches!(
+        coordinator.advance_consumer_cursor("miller", "missing", 6, 3),
+        Err(CoordinatorError::InvalidGeneration { .. })
+    ));
+    assert!(coordinator.release_consumer_cursor("miller").unwrap());
+    assert!(!coordinator.release_consumer_cursor("miller").unwrap());
 }
