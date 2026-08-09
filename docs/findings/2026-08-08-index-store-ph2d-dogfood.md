@@ -1,8 +1,8 @@
 # Index Store Ph2d Dogfood
 
-Date: 2026-08-09  
-Branch: `codex/index-store-ph2d`  
-Candidate: `julie-extract 2.31.0`  
+Date: 2026-08-09
+Branch: `codex/index-store-ph2d`
+Candidate: `julie-extract 2.31.0`
 Status: local release preparation; no push, tag, publication, or Miller pin change
 
 ## Workload
