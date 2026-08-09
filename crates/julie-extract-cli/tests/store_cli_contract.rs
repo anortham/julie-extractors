@@ -503,6 +503,13 @@ fn help_exposes_store_while_legacy_json_contract_stays_unchanged() {
     assert!(help.contains("languages"));
     assert!(help.contains("store"));
 
+    let store_help = julie_extract(&["store", "--help"]);
+    assert!(store_help.status.success());
+    assert!(store_help.stderr.is_empty());
+    let store_help = String::from_utf8(store_help.stdout).expect("store help must be UTF-8");
+    assert!(store_help.contains("import"));
+    assert!(store_help.contains("maintain"));
+
     let languages = julie_extract(&["languages", "--json"]);
     assert_eq!(languages.status.code(), Some(0));
     assert!(languages.stderr.is_empty());

@@ -21,52 +21,61 @@ use super::report::{
 };
 
 pub struct StoreExecutionOutcome {
-    outcome: StoreCommandOutcome,
-    format: StoreOutputFormat,
+    exit_code: u8,
+    rendered: String,
+    stream: StoreOutputStream,
 }
 
 impl StoreExecutionOutcome {
     pub(crate) fn success(report: StoreReport, format: StoreOutputFormat) -> Self {
-        Self {
-            outcome: if report.failure_class == StoreFailureClass::RequestTimeout {
-                StoreCommandOutcome::observed_incomplete(report)
-            } else {
-                StoreCommandOutcome::queued(report)
-            },
-            format,
-        }
+        let outcome = if report.failure_class == StoreFailureClass::RequestTimeout {
+            StoreCommandOutcome::observed_incomplete(report)
+        } else {
+            StoreCommandOutcome::queued(report)
+        };
+        Self::request(outcome, format)
     }
 
     pub(crate) fn failure(report: StoreReport, format: StoreOutputFormat) -> Self {
-        Self {
-            outcome: StoreCommandOutcome::failed(report),
-            format,
-        }
+        Self::request(StoreCommandOutcome::failed(report), format)
     }
 
     pub(crate) fn incompatible(report: StoreReport, format: StoreOutputFormat) -> Self {
+        Self::request(StoreCommandOutcome::incompatible(report), format)
+    }
+
+    fn request(outcome: StoreCommandOutcome, format: StoreOutputFormat) -> Self {
+        let exit_code = outcome.exit_code();
+        let rendered = outcome.render(format);
+        let stream = outcome
+            .output_plan(format == StoreOutputFormat::Json)
+            .stream;
         Self {
-            outcome: StoreCommandOutcome::incompatible(report),
-            format,
+            exit_code,
+            rendered,
+            stream,
+        }
+    }
+
+    pub(crate) fn rendered(exit_code: u8, rendered: String, stream: StoreOutputStream) -> Self {
+        Self {
+            exit_code,
+            rendered,
+            stream,
         }
     }
 
     pub fn exit_code(&self) -> u8 {
-        self.outcome.exit_code()
+        self.exit_code
     }
 
     pub fn write(&self) {
-        let rendered = self.outcome.render(self.format);
-        match self
-            .outcome
-            .output_plan(self.format == StoreOutputFormat::Json)
-            .stream
-        {
+        match self.stream {
             StoreOutputStream::Stdout => {
-                let _ = io::stdout().lock().write_all(rendered.as_bytes());
+                let _ = io::stdout().lock().write_all(self.rendered.as_bytes());
             }
             StoreOutputStream::Stderr => {
-                let _ = io::stderr().lock().write_all(rendered.as_bytes());
+                let _ = io::stderr().lock().write_all(self.rendered.as_bytes());
             }
         }
     }

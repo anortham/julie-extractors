@@ -39,7 +39,7 @@ test subprocess crash hooks, Cargo/xtask, and Miller impact analysis.
 - [x] Task 3 — deterministic inspection and planning
 - [x] Task 4 — receipts, cursors, and bounded GC
 - [x] Task 5 — promotion, repair, and forward rollback
-- [ ] Task 6 — maintenance CLI and reports
+- [x] Task 6 — maintenance CLI and reports
 - [ ] Task 7 — crash, mixed-version, scale, and language gates
 - [ ] Task 8 — dogfood, docs, and release preparation
 - [ ] Task 9 — pre-merge review and integration boundary

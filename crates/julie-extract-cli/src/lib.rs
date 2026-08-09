@@ -5,8 +5,8 @@
 //! `tests/`** (which can only see a crate's public library API, never a binary's
 //! private modules) can exercise them directly.
 //!
-//! The [`store`] module owns the production store-import parser, executor, and
-//! report contract used by both the binary and integration tests.
+//! The [`store`] module owns the production family-store parser, request and
+//! maintenance executors, and their separate report contracts.
 //!
 //! The [`resolution`] module's [`resolution::resolve_workspace`] is the DB-bound
 //! workspace reference-resolution pass. The performance gate

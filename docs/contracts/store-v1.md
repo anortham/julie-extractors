@@ -125,3 +125,31 @@ active request/claim, scratch owner, consumer cursor window, and retained-genera
 Terminal request rows become durable receipts before coordinator deletion; orphan store logs are
 pruned only afterward and below every safe cursor. General maintenance behavior is specified by the
 Ph2d lifecycle design and is implemented behind `store maintain`.
+
+## Lifecycle maintenance interface
+
+The unreleased CLI exposes lifecycle work only under `store maintain`. `inspect` is read-only.
+`gc`, `repair`, `promote`, and consumer-cursor mutations require `--apply`; without it they return a
+pure plan and do not modify `store.db`, `coord.db`, generation files, or `CURRENT`.
+
+Every mutation validates the inspected plan fingerprint, store and coordinator root fingerprints,
+family, serving generation, capacity, maintenance intent, writer lease, and fencing token before
+its first write. A concurrent root change is `stale_plan`, not an implicit replan. Insufficient
+promotion headroom is `capacity_insufficient` before intent or lease acquisition. A live writer or
+maintenance owner is `busy`.
+
+GC preserves every root named by this contract and uses receipts before request/log pruning.
+Promotion builds a sibling generation, validates catalogs and identities, fsyncs the staged files,
+and replaces `CURRENT` only after the generation is ready. Repair may checkpoint a valid current
+generation, select one unambiguous valid named generation after a torn publication, or rebuild
+under the frozen generation policy. Ambiguous or unselectable state is reported honestly as
+`recovery_required` or `repair_unavailable`; repair never fabricates catalog state.
+
+Consumer cursor advance is monotonic, cannot pass the durable log high-water mark, and remains
+bound to the serving generation. Release removes only the exact consumer row. Consumer IDs are
+validated identifiers and are never interpolated into paths.
+
+Maintenance has its own JSON/human report schema, `StoreMaintenanceReport` version 1. It is not a
+request and does not add request IDs, view IDs, or request-state fields to the request-oriented
+StoreReport. JSON always uses one stdout line, including failures; human failure uses stderr. Exit
+codes are 0 completed/no-change, 1 operational refusal, 2 usage, and 3 incompatible store.

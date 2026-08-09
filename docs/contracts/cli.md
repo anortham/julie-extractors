@@ -51,11 +51,17 @@ julie-extract rebind --root <dir> --db <path> [--strict-schema] [--json]
 julie-extract store import --store <family-dir> --family <uuid> --root <dir> --view <id> [--level <l1|full>] [--json]
 julie-extract store update --store <family-dir> [--family <uuid>] --root <dir> --view <id> --file <path> [--level <l1|full>] [--json]
 julie-extract store delete --store <family-dir> [--family <uuid>] --root <dir> --view <id> --file <path>... [--json]
+julie-extract store maintain inspect --store <family-dir> [--family <uuid>] [--json]
+julie-extract store maintain gc --store <family-dir> [--family <uuid>] [--apply] [--json]
+julie-extract store maintain repair --store <family-dir> [--family <uuid>] [--apply] [--json]
+julie-extract store maintain promote --store <family-dir> [--family <uuid>] [--apply] [--json]
+julie-extract store maintain cursor advance --store <family-dir> [--family <uuid>] --consumer <id> --sequence <n> [--apply] [--json]
+julie-extract store maintain cursor release --store <family-dir> [--family <uuid>] --consumer <id> [--apply] [--json]
 ```
 
-The nested `store` surface is an unreleased Ph2b implementation slice. Miller does not use it
-yet. Ph2c still owns resolution bases/deltas and exact-generation binding; Ph2d still owns
-retention, garbage collection, and repair.
+The nested `store` surface is unreleased. Miller does not use it yet. Ph2b owns request-oriented
+import/update/delete, Ph2c owns resolution bases/deltas and exact-generation binding, and Ph2d owns
+the lifecycle-maintenance namespace documented below.
 
 ## Shared Flags
 
@@ -481,7 +487,32 @@ Store JSON uses its own `report_schema_version: 1`. Stable fields include `opera
 identity, family/view/root identity, coordinator state, requested/completed levels, manifest
 generation/hash/disposition, row counts, resolution state, failure class, and a nullable error.
 The physical format and recovery invariants are frozen in [store-v1.md](store-v1.md) and
-[sqlite-store-schema-v1.md](sqlite-store-schema-v1.md).
+[sqlite-store-schema-v2.md](sqlite-store-schema-v2.md).
+
+### `store maintain` (unreleased Ph2d)
+
+`store maintain inspect` is always read-only. `gc`, `repair`, `promote`, `cursor advance`, and
+`cursor release` are also read-only unless `--apply` is present. Their plan result is computed from
+the current immutable store and coordinator roots. Apply reacquires the maintenance fence and
+refuses a stale plan before mutation.
+
+`gc` applies the bounded retention plan. `promote` builds, validates, and atomically publishes a
+new generation. `repair` checkpoints a valid generation, recovers an unambiguous torn publication,
+or rebuilds only when the lifecycle policy permits it; it never guesses when no generation can be
+selected. Cursor advance is monotonic and generation-bound. Cursor release removes only the named
+consumer row; consumer IDs never become filesystem names.
+
+Maintenance emits a separate `StoreMaintenanceReport` with `report_schema_version: 1`; it does not
+change the request-oriented StoreReport. Stable fields include action, plan/apply mode, run and
+family identity, source/destination generation, disposition, plan and root fingerprints, retention
+and capacity facts, mutation counts, integrity checks, escalation/recovery facts, cursor facts,
+failure class, and nullable error. JSON success and failure each emit exactly one line on stdout.
+Human success uses stdout and human failure uses stderr.
+
+Maintenance exit codes are `0` for a completed plan/apply or semantic no-op, `1` for an operational
+refusal, `2` for CLI usage, and `3` for an incompatible store. Stable operational failure classes
+are `busy`, `stale_plan`, `capacity_insufficient`, `recovery_required`, `integrity_failed`, and
+`repair_unavailable`; incompatible schema/epoch/reader/writer floors use `incompatible_store`.
 
 ## Status Values
 

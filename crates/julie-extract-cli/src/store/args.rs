@@ -35,6 +35,104 @@ pub enum StoreCommand {
     Delete(StoreDeleteArgs),
     Resolve(StoreResolveArgs),
     Export(StoreExportArgs),
+    Maintain(StoreMaintainArgs),
+}
+
+#[derive(Debug, Args)]
+pub struct StoreMaintainArgs {
+    #[command(subcommand)]
+    pub command: StoreMaintenanceCommand,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum StoreMaintenanceCommand {
+    Inspect(StoreMaintenanceInspectArgs),
+    Gc(StoreMaintenanceMutationArgs),
+    Repair(StoreMaintenanceMutationArgs),
+    Promote(StoreMaintenanceMutationArgs),
+    Cursor(StoreMaintenanceCursorArgs),
+}
+
+#[derive(Debug, Args)]
+pub struct StoreMaintenanceInspectArgs {
+    /// Existing family-store directory.
+    #[arg(long, value_parser = parse_store_path)]
+    pub store: PathBuf,
+    /// Expected family UUID. Defaults to the existing store family.
+    #[arg(long, value_parser = parse_family_id)]
+    pub family: Option<String>,
+    /// Emit the machine-readable maintenance report.
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct StoreMaintenanceMutationArgs {
+    /// Existing family-store directory.
+    #[arg(long, value_parser = parse_store_path)]
+    pub store: PathBuf,
+    /// Expected family UUID. Defaults to the existing store family.
+    #[arg(long, value_parser = parse_family_id)]
+    pub family: Option<String>,
+    /// Apply the inspected plan. Without this flag the command is read-only.
+    #[arg(long)]
+    pub apply: bool,
+    /// Emit the machine-readable maintenance report.
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct StoreMaintenanceCursorArgs {
+    #[command(subcommand)]
+    pub command: StoreMaintenanceCursorCommand,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum StoreMaintenanceCursorCommand {
+    Advance(StoreMaintenanceCursorAdvanceArgs),
+    Release(StoreMaintenanceCursorReleaseArgs),
+}
+
+#[derive(Debug, Args)]
+pub struct StoreMaintenanceCursorAdvanceArgs {
+    /// Existing family-store directory.
+    #[arg(long, value_parser = parse_store_path)]
+    pub store: PathBuf,
+    /// Expected family UUID. Defaults to the existing store family.
+    #[arg(long, value_parser = parse_family_id)]
+    pub family: Option<String>,
+    /// Stable consumer identity. It is never used as a filesystem name.
+    #[arg(long, value_parser = parse_store_identifier)]
+    pub consumer: String,
+    /// Store-log sequence durably consumed by this consumer.
+    #[arg(long)]
+    pub sequence: i64,
+    /// Advance the durable cursor. Without this flag the command is read-only.
+    #[arg(long)]
+    pub apply: bool,
+    /// Emit the machine-readable maintenance report.
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct StoreMaintenanceCursorReleaseArgs {
+    /// Existing family-store directory.
+    #[arg(long, value_parser = parse_store_path)]
+    pub store: PathBuf,
+    /// Expected family UUID. Defaults to the existing store family.
+    #[arg(long, value_parser = parse_family_id)]
+    pub family: Option<String>,
+    /// Stable consumer identity. It is never used as a filesystem name.
+    #[arg(long, value_parser = parse_store_identifier)]
+    pub consumer: String,
+    /// Release the durable cursor. Without this flag the command is read-only.
+    #[arg(long)]
+    pub apply: bool,
+    /// Emit the machine-readable maintenance report.
+    #[arg(long)]
+    pub json: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]

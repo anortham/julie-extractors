@@ -4,6 +4,8 @@ mod executor;
 mod export;
 mod from_artifact;
 pub mod import;
+mod maintenance;
+pub mod maintenance_report;
 pub mod report;
 pub mod resolution_session;
 mod resolve;
@@ -20,14 +22,24 @@ pub fn dispatch(args: args::StoreArgs) -> StoreExecutionOutcome {
         args::StoreCommand::Delete(args) => delete::run(args),
         args::StoreCommand::Resolve(args) => resolve::run(args),
         args::StoreCommand::Export(args) => export::run(args),
+        args::StoreCommand::Maintain(args) => maintenance::run(args),
     }
 }
 
 pub use args::{
     DEFAULT_REQUEST_TIMEOUT_SECONDS, MAX_REQUEST_TIMEOUT_SECONDS, MAX_STORE_IDENTIFIER_BYTES,
     MAX_STORE_PATH_BYTES, StoreArgs, StoreCommand, StoreDeleteArgs, StoreExportArgs,
-    StoreImportArgs, StoreLevelArg, StoreRequestControls, StoreResolveArgs, StoreScanControls,
-    StoreUpdateArgs,
+    StoreImportArgs, StoreLevelArg, StoreMaintainArgs, StoreMaintenanceCommand,
+    StoreMaintenanceCursorAdvanceArgs, StoreMaintenanceCursorArgs, StoreMaintenanceCursorCommand,
+    StoreMaintenanceCursorReleaseArgs, StoreMaintenanceInspectArgs, StoreMaintenanceMutationArgs,
+    StoreRequestControls, StoreResolveArgs, StoreScanControls, StoreUpdateArgs,
+};
+pub use maintenance_report::{
+    STORE_MAINTENANCE_REPORT_SCHEMA_VERSION, StoreMaintenanceAction,
+    StoreMaintenanceCapacityReport, StoreMaintenanceCommandOutcome, StoreMaintenanceCounts,
+    StoreMaintenanceDisposition, StoreMaintenanceErrorReport, StoreMaintenanceFailureClass,
+    StoreMaintenanceFingerprints, StoreMaintenanceMode, StoreMaintenanceReport,
+    StoreMaintenanceRetentionReport,
 };
 pub use report::{
     STORE_EXIT_INCOMPATIBLE, STORE_EXIT_OPERATIONAL_FAILURE, STORE_EXIT_SUCCESS, STORE_EXIT_USAGE,
