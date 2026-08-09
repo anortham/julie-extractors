@@ -2,6 +2,7 @@ mod connection;
 mod coordinator;
 mod layout;
 mod log;
+mod maintenance;
 mod manifest;
 mod model;
 mod pragmas;
@@ -27,6 +28,14 @@ pub use layout::{
     PartialGenerationOwner, StoreLayout, StoreLayoutError, write_partial_generation_owner,
 };
 pub use log::{StoreLog, StoreLogEntry, StoreLogError, StoreLogRecord};
+pub use maintenance::{
+    AllocatorMark, BaseVersionFact, CapacityPlan, CapacityProvider, ConsumerCursorFact,
+    CoordinatorRequestFact, DeltaVersionFact, DemotionCandidate, FailedPathFact,
+    MaintenanceCapacity, MaintenanceClock, MaintenanceError, MaintenanceInspector,
+    MaintenanceLevel, MaintenancePlan, MaintenancePolicy, MaintenanceRootKind, MaintenanceSnapshot,
+    ManifestFact, ManifestVersionFact, PlanBinding, ProtectionReason, RetentionPlan,
+    VersionDecision, VersionFact, VersionRootFact, plan_maintenance,
+};
 pub use manifest::{
     BuiltManifest, MANIFEST_HASH_ALGORITHM, MANIFEST_PUBLISH_MAX_RETRIES, ManifestBuilder,
     ManifestEntry, ManifestEntryStatus, ManifestPublishDisposition, ManifestPublishResult,

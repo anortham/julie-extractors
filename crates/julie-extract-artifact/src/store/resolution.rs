@@ -3592,6 +3592,20 @@ pub(crate) fn file_identity(
     })
 }
 
+pub(crate) fn resolution_file_bytes(path: &Path) -> Result<u64, io::Error> {
+    let metadata = fs::symlink_metadata(path)?;
+    if !metadata.is_file() || metadata.file_type().is_symlink() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!(
+                "resolution catalog is not a regular file: {}",
+                path.display()
+            ),
+        ));
+    }
+    Ok(metadata.len())
+}
+
 pub fn resolution_base_catalog_hash(
     connection: &Connection,
 ) -> Result<String, ResolutionValidationError> {
