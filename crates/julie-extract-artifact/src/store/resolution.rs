@@ -12,8 +12,8 @@ use sha2::{Digest, Sha256};
 
 use super::pragmas::{WriterPragmaProfile, configure_writer_pragmas};
 use super::{
-    ResolutionBaseRecord, ResolutionBaseState, ResolutionDeltaRecord, ResolutionGapFact,
-    ResolutionGapKind, ResolutionGapTable, ResolutionIdentifierDeltaRecord,
+    GenerationFence, ResolutionBaseRecord, ResolutionBaseState, ResolutionDeltaRecord,
+    ResolutionGapFact, ResolutionGapKind, ResolutionGapTable, ResolutionIdentifierDeltaRecord,
     ResolutionPendingDeltaRecord, ResolutionPendingOperation, ResolutionPinOwnerKind,
     ResolutionPinRecord, ResolutionScratchReader, StoreConnectionError, StoreConnectionFactory,
     StoreLog, StoreLogEntry, StoreLogError, ViewResolutionState,
@@ -1297,7 +1297,17 @@ impl ResolutionBindingStore {
 
         self.validate_publication_fence(publication, fence)?;
 
-        let mut connection = self.factory.open_writer()?;
+        let mut connection = self
+            .factory
+            .clone()
+            .with_generation_fence(GenerationFence::writer(
+                self.factory.layout(),
+                &fence.holder_id,
+                fence.holder_pid,
+                fence.fencing_token,
+                fence.now_ms,
+            ))
+            .open_writer()?;
         mark(ResolutionPublicationMarker::StoreTransactionStart);
         let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
         let current = transaction

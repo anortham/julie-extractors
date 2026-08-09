@@ -201,6 +201,10 @@ fn exact_publish_is_atomic_and_stale_binding_cas_publishes_nothing() {
     assert_eq!(exact.state, ViewResolutionState::Exact);
     assert_eq!(exact.exact_at, Some(2));
     assert_eq!(exact.delta_generation, converging.delta_generation + 1);
+    Connection::open(layout.coordinator_db())
+        .unwrap()
+        .execute("DELETE FROM writer_lease WHERE resource='store-writer'", [])
+        .unwrap();
     bindings
         .open_pin(
             "pin-exact",
@@ -256,8 +260,16 @@ fn exact_publish_is_atomic_and_stale_binding_cas_publishes_nothing() {
         .unwrap();
     drop(connection);
 
-    Connection::open(layout.coordinator_db())
-        .unwrap()
+    let coordinator = Connection::open(layout.coordinator_db()).unwrap();
+    coordinator
+        .execute(
+            "INSERT INTO writer_lease
+             (resource,holder_id,holder_version,holder_pid,heartbeat_at,expires_at,fencing_token)
+             VALUES ('store-writer','holder-1',?1,42,1000,2000,7)",
+            [VERSION],
+        )
+        .unwrap();
+    coordinator
         .execute(
             "UPDATE writer_lease SET fencing_token=8 WHERE resource='store-writer'",
             [],
@@ -281,10 +293,11 @@ fn exact_publish_is_atomic_and_stale_binding_cas_publishes_nothing() {
         ..publication
     };
     claim_resolution_request(&layout, &stale.request_id);
-    assert!(matches!(
-        bindings.publish_exact(&stale, &fence, &scratch, &gaps, 1),
-        Err(ResolutionBindingError::CasLost { .. })
-    ));
+    let stale_result = bindings.publish_exact(&stale, &fence, &scratch, &gaps, 1);
+    assert!(
+        matches!(stale_result, Err(ResolutionBindingError::CasLost { .. })),
+        "{stale_result:?}"
+    );
     let connection = Connection::open(layout.store_db()).unwrap();
     let after: (i64, i64, i64) = connection
         .query_row(

@@ -73,10 +73,24 @@ pub fn create_coordinator_schema(conn: &Connection) -> Result<(), StoreSchemaErr
     create_schema(conn, "coord.db", COORDINATOR_SCHEMA_SQL)
 }
 
+pub(crate) fn validate_store_schema_version(conn: &Connection) -> Result<(), StoreSchemaError> {
+    validate_schema_version(conn, "store.db")
+}
+
 fn create_schema(
     conn: &Connection,
     database: &'static str,
     schema: &str,
+) -> Result<(), StoreSchemaError> {
+    validate_schema_version(conn, database)?;
+    conn.execute_batch("PRAGMA foreign_keys = ON;")?;
+    conn.execute_batch(schema)?;
+    Ok(())
+}
+
+fn validate_schema_version(
+    conn: &Connection,
+    database: &'static str,
 ) -> Result<(), StoreSchemaError> {
     let found = conn.query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))?;
     if found > STORE_SQLITE_SCHEMA_VERSION {
@@ -94,8 +108,6 @@ fn create_schema(
         });
     }
 
-    conn.execute_batch("PRAGMA foreign_keys = ON;")?;
-    conn.execute_batch(schema)?;
     Ok(())
 }
 

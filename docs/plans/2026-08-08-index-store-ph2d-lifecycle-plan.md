@@ -35,7 +35,7 @@ test subprocess crash hooks, Cargo/xtask, and Miller impact analysis.
 ## Progress
 
 - [x] Task 1 — final unreleased catalogs
-- [ ] Task 2 — universal generation and maintenance fencing
+- [x] Task 2 — universal generation and maintenance fencing
 - [ ] Task 3 — deterministic inspection and planning
 - [ ] Task 4 — receipts, cursors, and bounded GC
 - [ ] Task 5 — promotion, repair, and forward rollback

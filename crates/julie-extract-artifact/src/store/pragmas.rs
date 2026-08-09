@@ -50,14 +50,22 @@ pub(super) fn configure_writer_pragmas(
         "PRAGMA journal_mode = WAL;
          PRAGMA synchronous = FULL;
          PRAGMA foreign_keys = ON;
-         PRAGMA secure_delete = ON;",
+         PRAGMA secure_delete = ON;
+         PRAGMA journal_size_limit = 268435456;",
     )?;
     configure_wal_autocheckpoint(connection, profile)?;
     verify_text_pragma(connection, "journal_mode", "wal")?;
     verify_integer_pragma(connection, "synchronous", 2)?;
     verify_integer_pragma(connection, "foreign_keys", 1)?;
     verify_integer_pragma(connection, "secure_delete", 1)?;
+    verify_integer_pragma(connection, "journal_size_limit", 268_435_456)?;
     Ok(())
+}
+
+pub(super) fn validate_store_file_pragmas(connection: &Connection) -> Result<(), PragmaError> {
+    verify_integer_pragma(connection, "page_size", 4096)?;
+    verify_integer_pragma(connection, "auto_vacuum", 2)?;
+    verify_text_pragma(connection, "journal_mode", "wal")
 }
 
 pub(super) fn configure_wal_autocheckpoint(

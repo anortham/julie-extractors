@@ -12,7 +12,8 @@ use super::rows::{
 };
 use super::{
     StoreConnectionError, StoreConnectionFactory, StoreFileVersion, StoreLevel, StoreLog,
-    StoreLogEntry, StoreLogError, StoreRowCounts, StoreSchemaError, create_store_schema,
+    StoreLogEntry, StoreLogError, StoreRowCounts, StoreSchemaError, StoreWriterConnection,
+    create_store_schema,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -193,7 +194,7 @@ impl From<StoreSchemaError> for StoreWriterError {
 }
 
 pub struct StoreWriter {
-    connection: Connection,
+    connection: StoreWriterConnection,
     capability_snapshot: Option<StagedCapabilitySnapshot>,
 }
 

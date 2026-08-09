@@ -92,6 +92,59 @@ fn enqueue_deduplicates_by_idempotency_key_and_acquires_lease() {
 }
 
 #[test]
+fn coordinator_store_transactions_obey_the_generation_write_fence() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let clock = Arc::new(TestClock::default());
+    clock.set(10);
+    let holder = LeaseHolder::new("holder-a", "2.30.0", std::process::id());
+    let mut coordinator = StoreCoordinator::open_with_runtime(
+        &layout,
+        holder,
+        clock.clone(),
+        Arc::new(FixedLiveness(true)),
+    )
+    .unwrap();
+    enqueue_request(&mut coordinator, 1, RequestKind::Update, 1);
+    Connection::open(layout.store_db())
+        .unwrap()
+        .execute(
+            "UPDATE store_meta SET value = 'retired' WHERE key = 'generation_state'",
+            [],
+        )
+        .unwrap();
+    let mut executor = RecordingExecutor {
+        order: Vec::new(),
+        clock,
+        advance_ms: 0,
+    };
+
+    let error = coordinator
+        .drain(&mut executor, &CoordinatorPolicy::default())
+        .unwrap_err();
+
+    assert!(matches!(
+        error,
+        CoordinatorError::StoreConnection(
+            julie_extract_artifact::store::StoreConnectionError::GenerationNotServing { state }
+        ) if state == "retired"
+    ));
+    assert!(executor.order.is_empty());
+    assert_eq!(
+        coordinator.request("request-1").unwrap().state.as_str(),
+        "queued"
+    );
+    assert_eq!(
+        Connection::open(layout.store_db())
+            .unwrap()
+            .query_row("SELECT COUNT(*) FROM store_log", [], |row| row
+                .get::<_, i64>(0))
+            .unwrap(),
+        0
+    );
+}
+
+#[test]
 fn schema_v2_request_kinds_roundtrip_and_only_one_resolve_may_be_claimed() {
     let temp = TempDir::new();
     let layout = layout(temp.path());

@@ -14,14 +14,18 @@ mod schema;
 pub mod test_hooks;
 mod writer;
 
-pub use connection::{StoreConnectionError, StoreConnectionFactory};
+pub use connection::{
+    GenerationFence, StoreConnectionError, StoreConnectionFactory, StoreWriterConnection,
+};
 pub use coordinator::{
     CoordinatorError, CoordinatorExecutor, CoordinatorPolicy, CoordinatorRequest, DrainReport,
     EnqueueResult, ExecutionContext, ExecutionQuantum, LeaseDisposition, LeaseHolder, LeaseRecord,
     PidLiveness, PidStatus, ReconcileOutcome, RequestKind, RequestState, StoreCoordinator,
     UnixMillisClock, compare_versions,
 };
-pub use layout::{StoreLayout, StoreLayoutError};
+pub use layout::{
+    PartialGenerationOwner, StoreLayout, StoreLayoutError, write_partial_generation_owner,
+};
 pub use log::{StoreLog, StoreLogEntry, StoreLogError, StoreLogRecord};
 pub use manifest::{
     BuiltManifest, MANIFEST_HASH_ALGORITHM, MANIFEST_PUBLISH_MAX_RETRIES, ManifestBuilder,

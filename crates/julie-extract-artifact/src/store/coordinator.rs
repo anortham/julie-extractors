@@ -14,7 +14,10 @@ use super::connection::{
     required_writer_version,
 };
 use super::pragmas::{WriterPragmaProfile, configure_writer_pragmas};
-use super::{StoreConnectionError, StoreLayout, StoreLog, StoreLogEntry};
+use super::{
+    GenerationFence, StoreConnectionError, StoreConnectionFactory, StoreLayout, StoreLog,
+    StoreLogEntry,
+};
 
 const STORE_WRITER_RESOURCE: &str = "store-writer";
 const DEFAULT_LEASE_DURATION_MS: i64 = 5_000;
@@ -321,6 +324,7 @@ pub enum CoordinatorError {
     },
     Sqlite(rusqlite::Error),
     StoreLog(super::StoreLogError),
+    StoreConnection(StoreConnectionError),
 }
 
 impl fmt::Display for CoordinatorError {
@@ -378,6 +382,7 @@ impl fmt::Display for CoordinatorError {
             ),
             Self::Sqlite(error) => error.fmt(formatter),
             Self::StoreLog(error) => error.fmt(formatter),
+            Self::StoreConnection(error) => error.fmt(formatter),
         }
     }
 }
@@ -387,6 +392,7 @@ impl Error for CoordinatorError {
         match self {
             Self::Sqlite(error) => Some(error),
             Self::StoreLog(error) => Some(error),
+            Self::StoreConnection(error) => Some(error),
             _ => None,
         }
     }
@@ -404,7 +410,15 @@ impl From<super::StoreLogError> for CoordinatorError {
     }
 }
 
+impl From<StoreConnectionError> for CoordinatorError {
+    fn from(error: StoreConnectionError) -> Self {
+        Self::StoreConnection(error)
+    }
+}
+
 pub struct StoreCoordinator {
+    layout: StoreLayout,
+    family_id: String,
     coordinator_db: PathBuf,
     store_db: PathBuf,
     pid_liveness: Arc<dyn PidLiveness>,
@@ -447,8 +461,10 @@ impl StoreCoordinator {
         pid_liveness: impl PidLiveness + 'static,
     ) -> Result<Self, CoordinatorError> {
         open_coordinator(layout.coordinator_db())?;
-        Connection::open(layout.store_db())?;
+        let family_id = coordinator_store_family(layout)?;
         Ok(Self {
+            layout: layout.clone(),
+            family_id,
             coordinator_db: layout.coordinator_db().to_path_buf(),
             store_db: layout.store_db().to_path_buf(),
             pid_liveness: Arc::new(pid_liveness),
@@ -469,8 +485,10 @@ impl StoreCoordinator {
         L: PidLiveness + 'static,
     {
         open_coordinator(layout.coordinator_db())?;
-        Connection::open(layout.store_db())?;
+        let family_id = coordinator_store_family(layout)?;
         Ok(Self {
+            layout: layout.clone(),
+            family_id,
             coordinator_db: layout.coordinator_db().to_path_buf(),
             store_db: layout.store_db().to_path_buf(),
             pid_liveness,
@@ -485,6 +503,8 @@ impl StoreCoordinator {
         request: CoordinatorRequest,
     ) -> Result<EnqueueResult, CoordinatorError> {
         validate_request(&request)?;
+        StoreConnectionFactory::new(self.layout.clone(), self.family_id.clone(), "0.0.0")
+            .validate_write_fence()?;
         let mut connection = open_coordinator(&self.coordinator_db)?;
         let transaction = begin_coordinator(&mut connection)?;
         if request_by_id(&transaction, &request.request_id)?
@@ -879,6 +899,12 @@ impl StoreCoordinator {
             .holder
             .clone()
             .ok_or(CoordinatorError::MissingLeaseHolder)?;
+        StoreConnectionFactory::new(
+            self.layout.clone(),
+            self.family_id.clone(),
+            holder.holder_version.clone(),
+        )
+        .validate_write_fence()?;
         let started_at = self.clock.now_ms();
         let lease = self.try_acquire_or_takeover(holder.clone(), started_at)?;
         let LeaseDisposition::Acquired { fencing_token } = lease else {
@@ -1075,7 +1101,20 @@ impl StoreCoordinator {
         }
         #[cfg(feature = "test-store-crash")]
         super::test_hooks::crash_if("claim_before_effect");
-        let mut store = Connection::open(&self.store_db)?;
+        let factory = StoreConnectionFactory::new(
+            self.layout.clone(),
+            self.family_id.clone(),
+            holder.holder_version.clone(),
+        )
+        .with_generation_fence(GenerationFence::writer(
+            &self.layout,
+            &holder.holder_id,
+            holder.holder_pid,
+            fencing_token,
+            self.clock.now_ms(),
+        ));
+        let mut store = factory.open_writer()?;
+        factory.advance_binary_version(&mut store)?;
         configure_writer_pragmas(&store, WriterPragmaProfile::Bulk).map_err(|error| {
             CoordinatorError::CorruptRequest {
                 detail: format!("store writer pragma configuration failed: {error:?}"),
@@ -1545,7 +1584,7 @@ pub fn compare_versions(left: &str, right: &str) -> Result<Ordering, Coordinator
 }
 
 #[cfg(unix)]
-fn process_status(pid: u32) -> PidStatus {
+pub(crate) fn process_status(pid: u32) -> PidStatus {
     let kill_status = std::process::Command::new("kill")
         .args(["-0", &pid.to_string()])
         .stdout(std::process::Stdio::null())
@@ -1566,12 +1605,13 @@ fn process_status(pid: u32) -> PidStatus {
             PidStatus::Dead
         }
         Ok(output) if output.status.success() => PidStatus::Unknown,
+        Ok(_) => PidStatus::Dead,
         _ => PidStatus::Unknown,
     }
 }
 
 #[cfg(not(unix))]
-fn process_status(_pid: u32) -> PidStatus {
+pub(crate) fn process_status(_pid: u32) -> PidStatus {
     PidStatus::Unknown
 }
 
@@ -1787,6 +1827,18 @@ fn open_coordinator(path: &Path) -> Result<Connection, CoordinatorError> {
         }
     })?;
     Ok(connection)
+}
+
+fn coordinator_store_family(layout: &StoreLayout) -> Result<String, CoordinatorError> {
+    let store = Connection::open_with_flags(
+        layout.store_db(),
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX,
+    )?;
+    Ok(store.query_row(
+        "SELECT value FROM store_meta WHERE key = 'family_id'",
+        [],
+        |row| row.get(0),
+    )?)
 }
 
 fn begin_coordinator(connection: &mut Connection) -> Result<Transaction<'_>, CoordinatorError> {

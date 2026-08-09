@@ -3,14 +3,31 @@ use std::fmt;
 use std::fs::{self, File};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
+use std::time::{SystemTime, UNIX_EPOCH};
 
-use rusqlite::{Connection, params};
+use rusqlite::{Connection, OpenFlags, OptionalExtension, params};
+use serde::{Deserialize, Serialize};
 
-use super::pragmas::{PragmaError, WriterPragmaProfile, configure_writer_pragmas};
+use super::coordinator::{PidStatus, process_status};
+use super::pragmas::{
+    PragmaError, WriterPragmaProfile, configure_writer_pragmas, validate_store_file_pragmas,
+};
+use super::schema::validate_store_schema_version;
 use super::{StoreSchemaError, create_coordinator_schema, create_store_schema};
 
 const INITIAL_GENERATION: &str = "gen-001";
 const PARTIAL_GENERATION: &str = ".gen-001.partial";
+const PARTIAL_OWNER_FILE: &str = "OWNER.json";
+
+/// Durable ownership of an unpublished generation directory.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PartialGenerationOwner {
+    pub run_id: String,
+    pub owner_id: String,
+    pub owner_pid: u32,
+    pub fencing_token: i64,
+    pub expires_at: i64,
+}
 
 /// Paths belonging to one published store generation.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -35,9 +52,15 @@ impl StoreLayout {
         let root = root.as_ref();
         fs::create_dir_all(root)?;
         let root = root.canonicalize()?;
-        reap_scaffolding(&root)?;
         let coordinator_db = root.join("coord.db");
         validate_owned_coordinator_path(&root, &coordinator_db)?;
+        if !root.join("CURRENT").exists() {
+            let generations = named_generations(&root)?;
+            if !generations.is_empty() {
+                return Err(StoreLayoutError::CurrentRecoveryRequired { generations });
+            }
+        }
+        reap_scaffolding(&root)?;
         if root.join("CURRENT").exists() {
             let layout = Self::open(&root)?;
             validate_existing_generation(layout.store_db(), family_id)?;
@@ -74,6 +97,16 @@ impl StoreLayout {
                 fs::remove_dir_all(&partial_generation)?;
             }
             fs::create_dir(&partial_generation)?;
+            write_partial_generation_owner(
+                &partial_generation,
+                &PartialGenerationOwner {
+                    run_id: "layout-create".to_string(),
+                    owner_id: format!("layout-{}", std::process::id()),
+                    owner_pid: std::process::id(),
+                    fencing_token: 1,
+                    expires_at: i64::MAX,
+                },
+            )?;
             fs::create_dir(partial_generation.join("bases"))?;
             let partial_store_db = partial_generation.join("store.db");
             initialize_store_database(&partial_store_db, family_id, creator_version)?;
@@ -186,6 +219,12 @@ pub enum StoreLayoutError {
     CurrentMissing {
         path: PathBuf,
     },
+    CurrentRecoveryRequired {
+        generations: Vec<String>,
+    },
+    PartialGenerationRecoveryRequired {
+        path: PathBuf,
+    },
     InvalidGeneration {
         value: String,
     },
@@ -223,6 +262,16 @@ impl fmt::Display for StoreLayoutError {
             Self::CurrentMissing { path } => {
                 write!(formatter, "store CURRENT is missing at {}", path.display())
             }
+            Self::CurrentRecoveryRequired { generations } => write!(
+                formatter,
+                "store CURRENT is missing beside published generations: {}",
+                generations.join(", ")
+            ),
+            Self::PartialGenerationRecoveryRequired { path } => write!(
+                formatter,
+                "partial generation requires owned recovery at {}",
+                path.display()
+            ),
             Self::InvalidGeneration { value } => {
                 write!(formatter, "invalid store generation name {value:?}")
             }
@@ -268,6 +317,8 @@ impl Error for StoreLayoutError {
             Self::Schema(error) => Some(error),
             Self::Sqlite(error) => Some(error),
             Self::CurrentMissing { .. }
+            | Self::CurrentRecoveryRequired { .. }
+            | Self::PartialGenerationRecoveryRequired { .. }
             | Self::FamilyMismatch { .. }
             | Self::InvalidGeneration { .. }
             | Self::PathEscapesRoot { .. }
@@ -278,21 +329,158 @@ impl Error for StoreLayoutError {
     }
 }
 
-fn reap_scaffolding(root: &Path) -> io::Result<()> {
+fn named_generations(root: &Path) -> Result<Vec<String>, StoreLayoutError> {
+    let mut generations = Vec::new();
+    for entry in fs::read_dir(root)? {
+        let entry = entry?;
+        let name = entry.file_name();
+        let Some(name) = name.to_str() else {
+            continue;
+        };
+        if valid_generation_name(name) {
+            let generation = entry.path().canonicalize()?;
+            ensure_within_root(root, &generation)?;
+            ensure_path_type(&generation, PathKind::Directory)?;
+            generations.push(name.to_string());
+        }
+    }
+    generations.sort();
+    Ok(generations)
+}
+
+fn reap_scaffolding(root: &Path) -> Result<(), StoreLayoutError> {
+    let intent = maintenance_intent(root)?;
+    let mut reaped = Vec::new();
     for entry in fs::read_dir(root)? {
         let entry = entry?;
         let name = entry.file_name();
         let name = name.to_string_lossy();
-        if name == "CURRENT.partial" || partial_generation_scaffold(&name) {
-            let file_type = entry.file_type()?;
-            if file_type.is_dir() && !file_type.is_symlink() {
-                fs::remove_dir_all(entry.path())?;
-            } else {
-                fs::remove_file(entry.path())?;
+        if name == "CURRENT.partial" {
+            if intent
+                .as_ref()
+                .is_some_and(|intent| intent.expires_at > now_ms())
+            {
+                return Err(StoreLayoutError::PartialGenerationRecoveryRequired {
+                    path: entry.path(),
+                });
             }
+            let file_type = entry.file_type()?;
+            reaped.push((entry.path(), file_type.is_dir() && !file_type.is_symlink()));
+        } else if partial_generation_scaffold(&name) {
+            let file_type = entry.file_type()?;
+            if !file_type.is_dir() || file_type.is_symlink() {
+                return Err(StoreLayoutError::PartialGenerationRecoveryRequired {
+                    path: entry.path(),
+                });
+            }
+            let resolved = entry.path().canonicalize()?;
+            ensure_within_root(root, &resolved)?;
+            let owner = read_partial_generation_owner(root, &resolved)?;
+            let matches_intent = intent.as_ref().is_some_and(|intent| {
+                intent.run_id == owner.run_id
+                    && intent.owner_id == owner.owner_id
+                    && intent.fencing_token == owner.fencing_token
+            });
+            let intent_allows_reap = match intent.as_ref() {
+                None => true,
+                Some(intent) => matches_intent && intent.expires_at <= now_ms(),
+            };
+            if !intent_allows_reap || process_status(owner.owner_pid) != PidStatus::Dead {
+                return Err(StoreLayoutError::PartialGenerationRecoveryRequired {
+                    path: entry.path(),
+                });
+            }
+            reaped.push((resolved, true));
+        }
+    }
+    for (path, directory) in reaped {
+        if directory {
+            fs::remove_dir_all(path)?;
+        } else {
+            fs::remove_file(path)?;
         }
     }
     Ok(())
+}
+
+#[derive(Debug)]
+struct MaintenanceIntentOwner {
+    run_id: String,
+    owner_id: String,
+    fencing_token: i64,
+    expires_at: i64,
+}
+
+fn maintenance_intent(root: &Path) -> Result<Option<MaintenanceIntentOwner>, StoreLayoutError> {
+    let path = root.join("coord.db");
+    if !path.exists() {
+        return Ok(None);
+    }
+    let connection = Connection::open_with_flags(
+        path,
+        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+    )?;
+    Ok(connection
+        .query_row(
+            "SELECT run_id, owner_id, fencing_token, expires_at
+             FROM maintenance_intent WHERE resource = 'store-maintenance'",
+            [],
+            |row| {
+                Ok(MaintenanceIntentOwner {
+                    run_id: row.get(0)?,
+                    owner_id: row.get(1)?,
+                    fencing_token: row.get(2)?,
+                    expires_at: row.get(3)?,
+                })
+            },
+        )
+        .optional()?)
+}
+
+fn now_ms() -> i64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |duration| {
+            i64::try_from(duration.as_millis()).unwrap_or(i64::MAX)
+        })
+}
+
+pub fn write_partial_generation_owner(
+    partial_generation: &Path,
+    owner: &PartialGenerationOwner,
+) -> Result<(), StoreLayoutError> {
+    ensure_path_type(partial_generation, PathKind::Directory)?;
+    let path = partial_generation.join(PARTIAL_OWNER_FILE);
+    let bytes = serde_json::to_vec(owner).map_err(io::Error::other)?;
+    let mut file = File::create(path)?;
+    file.write_all(&bytes)?;
+    file.sync_all()?;
+    Ok(())
+}
+
+fn read_partial_generation_owner(
+    root: &Path,
+    partial_generation: &Path,
+) -> Result<PartialGenerationOwner, StoreLayoutError> {
+    let path = partial_generation.join(PARTIAL_OWNER_FILE);
+    let metadata = fs::symlink_metadata(&path).map_err(|_| {
+        StoreLayoutError::PartialGenerationRecoveryRequired {
+            path: partial_generation.to_path_buf(),
+        }
+    })?;
+    if !metadata.is_file() || metadata.file_type().is_symlink() {
+        return Err(StoreLayoutError::PartialGenerationRecoveryRequired {
+            path: partial_generation.to_path_buf(),
+        });
+    }
+    let path = path.canonicalize()?;
+    ensure_within_root(root, &path)?;
+    let bytes = fs::read(path)?;
+    serde_json::from_slice(&bytes).map_err(|_| {
+        StoreLayoutError::PartialGenerationRecoveryRequired {
+            path: partial_generation.to_path_buf(),
+        }
+    })
 }
 
 fn partial_generation_scaffold(name: &str) -> bool {
@@ -308,9 +496,12 @@ fn partial_generation_scaffold(name: &str) -> bool {
 }
 
 fn validate_existing_generation(path: &Path, expected: &str) -> Result<(), StoreLayoutError> {
-    let connection = Connection::open(path)?;
-    configure_writer_pragmas(&connection, WriterPragmaProfile::Routine)?;
-    create_store_schema(&connection)?;
+    let connection = Connection::open_with_flags(
+        path,
+        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+    )?;
+    validate_store_schema_version(&connection)?;
+    validate_store_file_pragmas(&connection)?;
     let found = connection.query_row(
         "SELECT value FROM store_meta WHERE key = 'family_id'",
         [],

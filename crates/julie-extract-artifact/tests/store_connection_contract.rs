@@ -271,6 +271,7 @@ fn writer_reasserts_and_reads_back_required_pragmas() {
     assert_eq!(pragma_i64(&writer, "auto_vacuum"), 2);
     assert_eq!(pragma_i64(&writer, "page_size"), 4096);
     assert_eq!(pragma_i64(&writer, "wal_autocheckpoint"), 1000);
+    assert_eq!(pragma_i64(&writer, "journal_size_limit"), 256 * 1024 * 1024);
 }
 
 #[test]
@@ -298,12 +299,13 @@ fn writer_detects_a_late_auto_vacuum_no_op() {
 }
 
 #[test]
-fn writer_advances_binary_version_and_refuses_an_older_direct_writer() {
+fn explicit_binary_version_advance_refuses_an_older_direct_writer() {
     let temp = TempStore::new("binary-version");
     let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
-    StoreConnectionFactory::new(layout.clone(), "family-a", "2.31.0")
-        .open_writer()
-        .unwrap();
+    let factory = StoreConnectionFactory::new(layout.clone(), "family-a", "2.31.0");
+    let mut writer = factory.open_writer().unwrap();
+    factory.advance_binary_version(&mut writer).unwrap();
+    drop(writer);
     assert_eq!(
         metadata_value(&store_metadata(layout.store_db()), "binary_version"),
         "2.31.0"
@@ -326,7 +328,7 @@ fn writer_advances_binary_version_and_refuses_an_older_direct_writer() {
 }
 
 #[test]
-fn creation_recovery_reaps_only_unpublished_scaffolding() {
+fn creation_recovery_never_reaps_unowned_scaffolding() {
     let temp = TempStore::new("recovery-reap");
     StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
     let scaffolding = temp.path().join(".gen-002.partial");
@@ -335,31 +337,34 @@ fn creation_recovery_reaps_only_unpublished_scaffolding() {
     fs::create_dir(&unreferenced_generation).unwrap();
     fs::write(temp.path().join("CURRENT.partial"), "gen-002\n").unwrap();
 
-    let reopened = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let error = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap_err();
 
-    assert_eq!(reopened.generation_name(), "gen-001");
-    assert!(!scaffolding.exists());
-    assert!(!temp.path().join("CURRENT.partial").exists());
+    assert!(matches!(
+        error,
+        StoreLayoutError::PartialGenerationRecoveryRequired { .. }
+    ));
+    assert!(scaffolding.exists());
     assert!(unreferenced_generation.is_dir());
 }
 
 #[test]
-fn creation_recovers_an_initialized_generation_not_yet_published() {
+fn creation_refuses_an_initialized_generation_without_current() {
     let temp = TempStore::new("recover-publish");
     StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
     fs::remove_file(temp.path().join("CURRENT")).unwrap();
 
-    let recovered = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let error = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap_err();
 
-    assert_eq!(recovered.generation_name(), "gen-001");
-    assert_eq!(
-        fs::read_to_string(temp.path().join("CURRENT")).unwrap(),
-        "gen-001\n"
-    );
+    assert!(matches!(
+        error,
+        StoreLayoutError::CurrentRecoveryRequired { generations }
+            if generations == vec!["gen-001".to_string()]
+    ));
+    assert!(!temp.path().join("CURRENT").exists());
 }
 
 #[test]
-fn creation_reasserts_wal_before_publishing_an_adopted_generation() {
+fn creation_never_mutates_an_unpublished_adopted_generation() {
     let temp = TempStore::new("recover-delete-journal");
     let generation = temp.path().join("gen-001");
     fs::create_dir(&generation).unwrap();
@@ -379,14 +384,15 @@ fn creation_reasserts_wal_before_publishing_an_adopted_generation() {
     assert_eq!(pragma_text(&connection, "journal_mode"), "delete");
     drop(connection);
 
-    let recovered = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let error = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap_err();
 
-    let connection = Connection::open(recovered.store_db()).unwrap();
-    assert_eq!(pragma_text(&connection, "journal_mode"), "wal");
-    assert_eq!(
-        fs::read_to_string(temp.path().join("CURRENT")).unwrap(),
-        "gen-001\n"
-    );
+    assert!(matches!(
+        error,
+        StoreLayoutError::CurrentRecoveryRequired { .. }
+    ));
+    let connection = Connection::open(&store_db).unwrap();
+    assert_eq!(pragma_text(&connection, "journal_mode"), "delete");
+    assert!(!temp.path().join("CURRENT").exists());
 }
 
 #[test]
@@ -414,11 +420,7 @@ fn creation_refuses_to_publish_a_generation_initialized_with_late_auto_vacuum() 
 
     assert!(matches!(
         error,
-        StoreLayoutError::PragmaMismatch {
-            pragma: "auto_vacuum",
-            expected: 2,
-            found: 0,
-        }
+        StoreLayoutError::CurrentRecoveryRequired { .. }
     ));
     assert!(!temp.path().join("CURRENT").exists());
 }
@@ -448,11 +450,7 @@ fn creation_refuses_to_publish_an_adopted_generation_with_the_wrong_page_size() 
 
     assert!(matches!(
         error,
-        StoreLayoutError::PragmaMismatch {
-            pragma: "page_size",
-            expected: 4096,
-            found: 8192,
-        }
+        StoreLayoutError::CurrentRecoveryRequired { .. }
     ));
     assert!(!temp.path().join("CURRENT").exists());
 }

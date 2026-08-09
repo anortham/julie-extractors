@@ -4,10 +4,10 @@ use std::sync::{Arc, Barrier};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use julie_extract_artifact::store::{
-    MANIFEST_HASH_ALGORITHM, MANIFEST_PUBLISH_MAX_RETRIES, ManifestBuilder, ManifestEntry,
-    ManifestPublishDisposition, ManifestStore, ManifestStoreError, StoreConnectionFactory,
-    StoreLayout, StoreLevel, StoreLog, StoreLogEntry, StoreLogError, ViewEnsureDisposition,
-    create_store_schema,
+    GenerationFence, MANIFEST_HASH_ALGORITHM, MANIFEST_PUBLISH_MAX_RETRIES, ManifestBuilder,
+    ManifestEntry, ManifestPublishDisposition, ManifestStore, ManifestStoreError,
+    StoreConnectionFactory, StoreLayout, StoreLevel, StoreLog, StoreLogEntry, StoreLogError,
+    StoreWriterConnection, ViewEnsureDisposition, create_store_schema,
 };
 use rusqlite::{Connection, params};
 
@@ -1252,7 +1252,7 @@ fn insert_version(connection: &Connection, path: &str, content_hash: &str) -> i6
 }
 
 fn spawn_publish(
-    mut connection: Connection,
+    mut connection: StoreWriterConnection,
     barrier: Arc<Barrier>,
     expected_generation: Option<u64>,
     entries: Vec<ManifestEntry>,
@@ -1298,11 +1298,29 @@ impl TestStore {
         ));
         fs::create_dir_all(&path).unwrap();
         let layout = StoreLayout::create(&path, "family-manifest", "2.30.0").unwrap();
+        Connection::open(layout.coordinator_db())
+            .unwrap()
+            .execute(
+                "INSERT INTO writer_lease
+                 (resource, holder_id, holder_version, holder_pid, heartbeat_at, expires_at,
+                  fencing_token)
+                 VALUES ('store-writer', 'manifest-test', '2.30.0', 7, 1,
+                         9223372036854775807, 41)",
+                [],
+            )
+            .unwrap();
         Self { path, layout }
     }
 
-    fn connection(&self) -> Connection {
+    fn connection(&self) -> StoreWriterConnection {
         StoreConnectionFactory::new(self.layout.clone(), "family-manifest", "2.30.0")
+            .with_generation_fence(GenerationFence::writer(
+                &self.layout,
+                "manifest-test",
+                7,
+                41,
+                10,
+            ))
             .open_writer()
             .unwrap()
     }
