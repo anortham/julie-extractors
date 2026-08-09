@@ -1,0 +1,240 @@
+#![cfg(feature = "test-store-crash")]
+
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::process::{Command, Output};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::thread;
+use std::time::Duration;
+
+use julie_extract_artifact::store::{
+    CapacityProvider, GenerationLifecycle, GenerationPolicy, MaintenanceAction, MaintenanceClock,
+    MaintenanceInspector, MaintenanceRun, StoreConnectionFactory, StoreLayout,
+};
+use rusqlite::Connection;
+use sha2::{Digest, Sha256};
+
+static NEXT_TEMP_ID: AtomicU64 = AtomicU64::new(1);
+
+#[test]
+fn every_promotion_boundary_recovers_the_same_generation_without_duplicates() {
+    for boundary in [
+        "generation_after_partial_owner",
+        "generation_after_logical_copy",
+        "generation_before_base_copy",
+        "generation_after_base_copy",
+        "generation_after_validation",
+        "generation_before_directory_rename",
+        "generation_after_directory_rename",
+        "generation_after_source_retired",
+        "generation_after_current_publish",
+        "generation_after_destination_serving",
+        "generation_after_maintenance_finish",
+    ] {
+        let temp = TempStore::new(boundary);
+        let layout = StoreLayout::create(temp.path(), "family-generation-crash", "2.30.0").unwrap();
+        seed_source(&layout);
+        let output = run_worker(temp.path(), boundary);
+        assert!(
+            !output.status.success(),
+            "boundary={boundary}: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        thread::sleep(Duration::from_millis(300));
+        let current = StoreLayout::open(temp.path()).unwrap();
+        let plan = inspect_plan(&current);
+        let mut retry = GenerationLifecycle::acquire(
+            factory(&current),
+            MaintenanceRun::new(
+                format!("retry-{boundary}"),
+                "retry-owner",
+                std::process::id(),
+                2_000,
+                5_000,
+            ),
+            &plan,
+            MaintenanceAction::Promote,
+        )
+        .unwrap();
+        let report = retry.promote(&plan, &GenerationPolicy::default()).unwrap();
+        assert_eq!(report.destination_generation, "gen-002", "{boundary}");
+        let serving = StoreLayout::open(temp.path()).unwrap();
+        assert_eq!(serving.generation_name(), "gen-002", "{boundary}");
+        assert!(!temp.path().join("gen-003").exists(), "{boundary}");
+        assert!(!temp.path().join(".gen-002.partial").exists(), "{boundary}");
+        assert!(
+            !serving.generation_dir().join("OWNER.json").exists(),
+            "{boundary}"
+        );
+        let store = Connection::open(serving.store_db()).unwrap();
+        let coord = Connection::open(serving.coordinator_db()).unwrap();
+        assert_valid(&store);
+        assert_valid(&coord);
+        assert_eq!(count(&store, "file_versions"), 1, "{boundary}");
+        assert_eq!(count(&store, "manifests"), 1, "{boundary}");
+        assert_eq!(count(&store, "store_log"), 1, "{boundary}");
+        assert_eq!(count(&coord, "maintenance_intent"), 0, "{boundary}");
+        assert_eq!(count(&coord, "writer_lease"), 0, "{boundary}");
+        assert_eq!(
+            fs::read(serving.bases_dir().join("base-a.db")).unwrap(),
+            b"resolution-base",
+            "{boundary}"
+        );
+    }
+}
+
+#[test]
+fn generation_promotion_crash_worker() {
+    let Some(root) = std::env::var_os("JULIE_TEST_GENERATION_ROOT") else {
+        return;
+    };
+    let layout = StoreLayout::open(PathBuf::from(root)).unwrap();
+    let plan = inspect_plan(&layout);
+    let mut lifecycle = GenerationLifecycle::acquire(
+        factory(&layout),
+        MaintenanceRun::new("crash-run", "crash-owner", std::process::id(), 1_000, 100),
+        &plan,
+        MaintenanceAction::Promote,
+    )
+    .unwrap();
+    lifecycle
+        .promote(&plan, &GenerationPolicy::default())
+        .unwrap();
+    panic!("worker passed crash boundary");
+}
+
+fn seed_source(layout: &StoreLayout) {
+    let base = b"resolution-base";
+    fs::write(layout.bases_dir().join("base-a.db"), base).unwrap();
+    let sha = format!("{:x}", Sha256::digest(base));
+    Connection::open(layout.store_db())
+        .unwrap()
+        .execute_batch(&format!(
+            "BEGIN IMMEDIATE;
+             INSERT INTO file_versions
+               (version_id,path,content_hash,extraction_epoch,language,content_bytes,line_count,
+                complete_l1,complete_l2,complete_l3)
+             VALUES (5,'src/lib.rs','blake3:a',1,'rust',10,1,1,2,3);
+             INSERT INTO views
+               (view_id,root,current_generation,resolution_state,resolution_base_id,
+                resolution_delta_generation,resolution_exact_at,created_at,updated_at)
+             VALUES ('view-a','/repo',2,'unbound',NULL,NULL,NULL,
+                     '2026-01-01T00:00:00Z','2026-01-01T00:00:00Z');
+             INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+             VALUES ('view-a',2,'sha256:m2','request-a','2026-01-01T00:00:00Z');
+             INSERT INTO manifest_entries
+               (view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
+             VALUES ('view-a',2,'src/lib.rs','rust',5,'indexed','blake3:a',
+                     '2026-01-01T00:00:00Z');
+             INSERT INTO resolution_bases
+               (base_id,manifest_hash,resolver_output_epoch,state,relative_path,identifier_count,
+                pending_count,file_bytes,file_sha256,request_id,created_at,updated_at)
+             VALUES ('base-a','sha256:m2',1,'ready','bases/base-a.db',0,0,{},{:?},
+                     'request-a','2026-01-01T00:00:00Z','2026-01-01T00:00:00Z');
+             INSERT INTO resolution_base_versions(base_id,version_id) VALUES ('base-a',5);
+             INSERT INTO store_log
+               (sequence,request_id,event_kind,view_id,generation,terminal,payload_json,created_at)
+             VALUES (7,'request-a','store_import_completed','view-a',2,1,'{{}}',
+                     '2026-01-01T00:00:00Z');
+             COMMIT;",
+            base.len(),
+            sha
+        ))
+        .unwrap();
+}
+
+fn inspect_plan(layout: &StoreLayout) -> julie_extract_artifact::store::MaintenancePlan {
+    MaintenanceInspector::new(factory(layout), FixedClock, FixedCapacity)
+        .inspect()
+        .unwrap()
+}
+
+fn factory(layout: &StoreLayout) -> StoreConnectionFactory {
+    StoreConnectionFactory::new(layout.clone(), "family-generation-crash", "2.30.0")
+}
+
+fn run_worker(root: &Path, boundary: &str) -> Output {
+    Command::new(std::env::current_exe().unwrap())
+        .args([
+            "--exact",
+            "generation_promotion_crash_worker",
+            "--nocapture",
+            "--test-threads=1",
+        ])
+        .env("JULIE_TEST_GENERATION_ROOT", root)
+        .env("JULIE_EXTRACT_STORE_TEST_CRASH_AT", boundary)
+        .output()
+        .unwrap()
+}
+
+fn assert_valid(connection: &Connection) {
+    assert_eq!(
+        connection
+            .query_row("PRAGMA quick_check", [], |row| row.get::<_, String>(0))
+            .unwrap(),
+        "ok"
+    );
+    assert_eq!(count_query(connection, "PRAGMA foreign_key_check"), 0);
+}
+
+fn count(connection: &Connection, table: &str) -> i64 {
+    count_query(connection, &format!("SELECT * FROM {table}"))
+}
+
+fn count_query(connection: &Connection, sql: &str) -> i64 {
+    let mut statement = connection.prepare(sql).unwrap();
+    let mut rows = statement.query([]).unwrap();
+    let mut count = 0;
+    while rows.next().unwrap().is_some() {
+        count += 1;
+    }
+    count
+}
+
+#[derive(Clone, Copy)]
+struct FixedClock;
+
+impl MaintenanceClock for FixedClock {
+    fn now_ms(&self) -> i64 {
+        1_000
+    }
+}
+
+#[derive(Clone, Copy)]
+struct FixedCapacity;
+
+impl CapacityProvider for FixedCapacity {
+    fn free_bytes(&self, _path: &Path) -> Result<u64, std::io::Error> {
+        Ok(512 * 1024 * 1024)
+    }
+
+    fn staged_generation_bytes(&self, _path: &Path) -> Result<u64, std::io::Error> {
+        Ok(64 * 1024 * 1024)
+    }
+}
+
+struct TempStore {
+    path: PathBuf,
+}
+
+impl TempStore {
+    fn new(name: &str) -> Self {
+        let id = NEXT_TEMP_ID.fetch_add(1, Ordering::Relaxed);
+        let path = std::env::temp_dir().join(format!(
+            "julie-store-generation-crash-{name}-{}-{id}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&path).unwrap();
+        Self { path }
+    }
+
+    fn path(&self) -> &Path {
+        &self.path
+    }
+}
+
+impl Drop for TempStore {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.path);
+    }
+}

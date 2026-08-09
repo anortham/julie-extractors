@@ -1,5 +1,6 @@
 mod connection;
 mod coordinator;
+mod generation;
 mod layout;
 mod log;
 mod maintenance;
@@ -23,6 +24,10 @@ pub use coordinator::{
     DrainReport, EnqueueResult, ExecutionContext, ExecutionQuantum, LeaseDisposition, LeaseHolder,
     LeaseRecord, PidLiveness, PidStatus, ReconcileOutcome, RequestKind, RequestReceipt,
     RequestState, StoreCoordinator, UnixMillisClock, compare_versions,
+};
+pub use generation::{
+    GenerationApplyReport, GenerationError, GenerationLifecycle, GenerationPolicy,
+    RepairDisposition,
 };
 pub use layout::{
     PartialGenerationOwner, StoreLayout, StoreLayoutError, write_partial_generation_owner,

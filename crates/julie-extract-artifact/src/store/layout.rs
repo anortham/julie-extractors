@@ -111,6 +111,7 @@ impl StoreLayout {
             let partial_store_db = partial_generation.join("store.db");
             initialize_store_database(&partial_store_db, family_id, creator_version)?;
             sync_file(&partial_store_db)?;
+            fs::remove_file(partial_generation.join(PARTIAL_OWNER_FILE))?;
             sync_directory(&partial_generation)?;
             fs::rename(&partial_generation, &generation_dir)?;
             sync_directory(&root)?;
@@ -151,7 +152,20 @@ impl StoreLayout {
                 value: generation_name,
             });
         }
-        let generation_dir = root.join(&generation_name).canonicalize()?;
+        Self::open_named_generation(&root, &generation_name)
+    }
+
+    pub(crate) fn open_named_generation(
+        root: impl AsRef<Path>,
+        generation_name: &str,
+    ) -> Result<Self, StoreLayoutError> {
+        let root = root.as_ref().canonicalize()?;
+        if !valid_generation_name(generation_name) {
+            return Err(StoreLayoutError::InvalidGeneration {
+                value: generation_name.to_string(),
+            });
+        }
+        let generation_dir = root.join(generation_name).canonicalize()?;
         ensure_within_root(&root, &generation_dir)?;
         ensure_path_type(&generation_dir, PathKind::Directory)?;
         let store_db = canonicalize_within_root(&root, generation_dir.join("store.db"))?;
@@ -166,7 +180,7 @@ impl StoreLayout {
         ensure_path_type(&bases_dir, PathKind::Directory)?;
         Ok(Self {
             root,
-            generation_name,
+            generation_name: generation_name.to_string(),
             generation_dir,
             store_db,
             coordinator_db,
@@ -329,7 +343,7 @@ impl Error for StoreLayoutError {
     }
 }
 
-fn named_generations(root: &Path) -> Result<Vec<String>, StoreLayoutError> {
+pub(crate) fn named_generations(root: &Path) -> Result<Vec<String>, StoreLayoutError> {
     let mut generations = Vec::new();
     for entry in fs::read_dir(root)? {
         let entry = entry?;
@@ -517,7 +531,7 @@ fn validate_existing_generation(path: &Path, expected: &str) -> Result<(), Store
     }
 }
 
-fn valid_generation_name(value: &str) -> bool {
+pub(crate) fn valid_generation_name(value: &str) -> bool {
     value
         .strip_prefix("gen-")
         .is_some_and(|digits| digits.len() >= 3 && digits.bytes().all(|byte| byte.is_ascii_digit()))
@@ -601,7 +615,7 @@ impl From<rusqlite::Error> for StoreLayoutError {
     }
 }
 
-fn initialize_store_database(
+pub(crate) fn initialize_store_database(
     path: &Path,
     family_id: &str,
     creator_version: &str,
@@ -663,16 +677,16 @@ impl From<PragmaError> for StoreLayoutError {
     }
 }
 
-fn sync_file(path: &Path) -> io::Result<()> {
+pub(crate) fn sync_file(path: &Path) -> io::Result<()> {
     File::open(path)?.sync_all()
 }
 
 #[cfg(unix)]
-fn sync_directory(path: &Path) -> io::Result<()> {
+pub(crate) fn sync_directory(path: &Path) -> io::Result<()> {
     File::open(path)?.sync_all()
 }
 
 #[cfg(not(unix))]
-fn sync_directory(_path: &Path) -> io::Result<()> {
+pub(crate) fn sync_directory(_path: &Path) -> io::Result<()> {
     Ok(())
 }

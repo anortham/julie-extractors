@@ -14,8 +14,8 @@ use super::resolution::{
     resolution_file_bytes, resolution_file_sha256, retire_resolution_base, retire_resolution_delta,
 };
 use super::{
-    CoordinatorError, GenerationFence, StoreConnectionError, StoreConnectionFactory,
-    StoreCoordinator, StoreLog, StoreLogError,
+    CoordinatorError, GenerationFence, MaintenanceAction, StoreConnectionError,
+    StoreConnectionFactory, StoreCoordinator, StoreLog, StoreLogError,
 };
 
 const DAY_MS: i64 = 86_400_000;
@@ -909,8 +909,23 @@ impl MaintenanceExecutor {
         run: MaintenanceRun,
         plan: &MaintenancePlan,
     ) -> Result<Self, MaintenanceError> {
+        Self::acquire_for_action(factory, run, plan, MaintenanceAction::Gc)
+    }
+
+    pub fn acquire_for_action(
+        factory: StoreConnectionFactory,
+        run: MaintenanceRun,
+        plan: &MaintenancePlan,
+        action: MaintenanceAction,
+    ) -> Result<Self, MaintenanceError> {
         validate_run(&run)?;
-        if !plan.capacity.gc_fits {
+        let capacity_fits = match action {
+            MaintenanceAction::Gc | MaintenanceAction::Repair => plan.capacity.gc_fits,
+            MaintenanceAction::Promote | MaintenanceAction::Rollback => {
+                plan.capacity.promotion_fits
+            }
+        };
+        if !capacity_fits {
             return Err(MaintenanceError::CapacityInsufficient);
         }
         let observed = MaintenanceInspector::new(
@@ -999,9 +1014,10 @@ impl MaintenanceExecutor {
             "INSERT INTO maintenance_intent
              (resource,run_id,action,source_generation_name,owner_id,owner_pid,fencing_token,
               heartbeat_at,expires_at,started_at,plan_fingerprint,source_min_writer_version)
-             VALUES ('store-maintenance',?1,'gc',?2,?3,?4,?5,?6,?7,?6,?8,?9)",
+             VALUES ('store-maintenance',?1,?2,?3,?4,?5,?6,?7,?8,?7,?9,?10)",
             params![
                 run.run_id,
+                action.as_str(),
                 factory.layout().generation_name(),
                 run.owner_id,
                 run.owner_pid,
@@ -1031,6 +1047,161 @@ impl MaintenanceExecutor {
             run,
             fencing_token,
         })
+    }
+
+    pub(crate) fn factory(&self) -> &StoreConnectionFactory {
+        &self.factory
+    }
+
+    pub(crate) fn run(&self) -> &MaintenanceRun {
+        &self.run
+    }
+
+    pub(crate) fn fencing_token(&self) -> i64 {
+        self.fencing_token
+    }
+
+    pub(crate) fn release_writer_for_generation_build(
+        &self,
+        plan: &MaintenancePlan,
+    ) -> Result<(), MaintenanceError> {
+        self.validate_ownership(plan)?;
+        let coord = open_maintenance_coordinator(self.factory.layout().coordinator_db())?;
+        let changed = coord.execute(
+            "DELETE FROM writer_lease
+             WHERE resource='store-writer' AND holder_id=?1 AND holder_pid=?2
+               AND fencing_token=?3",
+            params![self.run.owner_id, self.run.owner_pid, self.fencing_token],
+        )?;
+        if changed != 1 {
+            return Err(MaintenanceError::MaintenanceFenceLost);
+        }
+        Ok(())
+    }
+
+    pub(crate) fn heartbeat_generation_build(&self) -> Result<(), MaintenanceError> {
+        let wall_now = wall_now_ms()?;
+        let expires_at = wall_now.checked_add(self.run.lease_duration_ms).ok_or(
+            MaintenanceError::InvalidMetadata {
+                field: "maintenance_expiry",
+                value: "overflow".to_string(),
+            },
+        )?;
+        let coord = open_maintenance_coordinator(self.factory.layout().coordinator_db())?;
+        let changed = coord.execute(
+            "UPDATE maintenance_intent SET heartbeat_at=?5,expires_at=?6
+             WHERE resource='store-maintenance' AND run_id=?1 AND owner_id=?2
+               AND owner_pid=?3 AND fencing_token=?4 AND expires_at>?5",
+            params![
+                self.run.run_id,
+                self.run.owner_id,
+                self.run.owner_pid,
+                self.fencing_token,
+                wall_now,
+                expires_at,
+            ],
+        )?;
+        if changed != 1 {
+            return Err(MaintenanceError::MaintenanceFenceLost);
+        }
+        Ok(())
+    }
+
+    pub(crate) fn reacquire_writer_for_generation_publish(
+        &self,
+        plan: &MaintenancePlan,
+    ) -> Result<(), MaintenanceError> {
+        self.validate_generation_publish_binding(plan)?;
+        let wall_now = wall_now_ms()?;
+        let expires_at = wall_now.checked_add(self.run.lease_duration_ms).ok_or(
+            MaintenanceError::InvalidMetadata {
+                field: "maintenance_expiry",
+                value: "overflow".to_string(),
+            },
+        )?;
+        let store = self.factory.open_reader()?;
+        let holder_version = store.query_row(
+            "SELECT value FROM store_meta WHERE key='binary_version'",
+            [],
+            |row| row.get::<_, String>(0),
+        )?;
+        drop(store);
+        let mut coord = open_maintenance_coordinator(self.factory.layout().coordinator_db())?;
+        let transaction = coord.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let owns_intent = transaction.query_row(
+            "SELECT EXISTS(
+               SELECT 1 FROM maintenance_intent
+               WHERE resource='store-maintenance' AND run_id=?1 AND owner_id=?2
+                 AND owner_pid=?3 AND fencing_token=?4 AND plan_fingerprint=?5
+                 AND source_generation_name=?6 AND expires_at>?7
+             )",
+            params![
+                self.run.run_id,
+                self.run.owner_id,
+                self.run.owner_pid,
+                self.fencing_token,
+                plan.fingerprint,
+                self.factory.layout().generation_name(),
+                wall_now,
+            ],
+            |row| row.get::<_, bool>(0),
+        )?;
+        if !owns_intent
+            || transaction.query_row(
+                "SELECT EXISTS(SELECT 1 FROM requests WHERE state='claimed')",
+                [],
+                |row| row.get::<_, bool>(0),
+            )?
+            || transaction.query_row(
+                "SELECT EXISTS(SELECT 1 FROM writer_lease WHERE expires_at>?1)",
+                [wall_now],
+                |row| row.get::<_, bool>(0),
+            )?
+        {
+            return Err(MaintenanceError::MaintenanceBusy);
+        }
+        transaction.execute(
+            "INSERT INTO writer_lease
+             (resource,holder_id,holder_version,holder_pid,heartbeat_at,expires_at,fencing_token)
+             VALUES ('store-writer',?1,?2,?3,?4,?5,?6)",
+            params![
+                self.run.owner_id,
+                holder_version,
+                self.run.owner_pid,
+                wall_now,
+                expires_at,
+                self.fencing_token,
+            ],
+        )?;
+        transaction.commit()?;
+        Ok(())
+    }
+
+    pub(crate) fn finish_generation_action(&self) -> Result<(), MaintenanceError> {
+        let mut coord = open_maintenance_coordinator(self.factory.layout().coordinator_db())?;
+        let transaction = coord.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let lease_deleted = transaction.execute(
+            "DELETE FROM writer_lease
+             WHERE resource='store-writer' AND holder_id=?1 AND holder_pid=?2
+               AND fencing_token=?3",
+            params![self.run.owner_id, self.run.owner_pid, self.fencing_token],
+        )?;
+        let intent_deleted = transaction.execute(
+            "DELETE FROM maintenance_intent
+             WHERE resource='store-maintenance' AND run_id=?1 AND owner_id=?2
+               AND owner_pid=?3 AND fencing_token=?4",
+            params![
+                self.run.run_id,
+                self.run.owner_id,
+                self.run.owner_pid,
+                self.fencing_token,
+            ],
+        )?;
+        if lease_deleted != 1 || intent_deleted != 1 {
+            return Err(MaintenanceError::MaintenanceFenceLost);
+        }
+        transaction.commit()?;
+        Ok(())
     }
 
     pub fn apply(
@@ -1415,6 +1586,32 @@ impl MaintenanceExecutor {
             && actual.store_log_max == expected.store_log_max
             && actual.request_watermark == expected.request_watermark
             && actual.allocator_marks == expected.allocator_marks
+        {
+            Ok(())
+        } else {
+            Err(MaintenanceError::StalePlan)
+        }
+    }
+
+    fn validate_generation_publish_binding(
+        &self,
+        plan: &MaintenancePlan,
+    ) -> Result<(), MaintenanceError> {
+        let observed = MaintenanceInspector::new(
+            self.factory.clone(),
+            RevalidationClock(self.run.now_ms),
+            RevalidationCapacity {
+                free_bytes: plan.capacity.facts.free_bytes,
+                staged_generation_bytes: plan.capacity.facts.staged_generation_bytes,
+            },
+        )
+        .inspect()?;
+        let expected = &plan.binding;
+        let actual = &observed.binding;
+        if actual.family_id == expected.family_id
+            && actual.current_generation == expected.current_generation
+            && actual.store_log_max == expected.store_log_max
+            && actual.request_watermark == expected.request_watermark
         {
             Ok(())
         } else {
