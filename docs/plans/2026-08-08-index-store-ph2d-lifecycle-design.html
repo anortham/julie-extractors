@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+  <title>Index Store Ph2d Lifecycle Completion</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e;
+      --muted: #898781; --hairline: #e1e0d9; --border: rgba(11,11,11,0.10);
+      --accent: #2a78d6; --accent-track: #cde2fb; --good: #0ca30c;
+      --good-text: #006300; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
+      --good-wash: rgba(12,163,12,0.09); --warn-wash: rgba(250,178,25,0.14);
+      --accent-wash: rgba(42,120,214,0.10); --muted-wash: rgba(137,135,129,0.10);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:where(:not([data-theme="light"])) {
+        color-scheme: dark;
+        --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7;
+        --muted: #898781; --hairline: #2c2c2a; --border: rgba(255,255,255,0.10);
+        --accent: #3987e5; --accent-track: #104281; --good-text: #0ca30c;
+        --good-wash: rgba(12,163,12,0.16); --warn-wash: rgba(250,178,25,0.14);
+        --accent-wash: rgba(57,135,229,0.16); --muted-wash: rgba(137,135,129,0.14);
+      }
+    }
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7;
+      --muted: #898781; --hairline: #2c2c2a; --border: rgba(255,255,255,0.10);
+      --accent: #3987e5; --accent-track: #104281; --good-text: #0ca30c;
+      --good-wash: rgba(12,163,12,0.16); --warn-wash: rgba(250,178,25,0.14);
+      --accent-wash: rgba(57,135,229,0.16); --muted-wash: rgba(137,135,129,0.14);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: var(--page); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .digest { max-width: 860px; margin: 0 auto; padding: 28px 24px; }
+    .chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; line-height: 1; padding: 4px 9px; border-radius: 999px; white-space: nowrap; }
+    .chip .ico { font-size: 11px; }
+    .chip.done { background: var(--good-wash); color: var(--good-text); }
+    .chip.inprogress { background: var(--accent-wash); color: var(--accent); }
+    .chip.queued { background: var(--muted-wash); color: var(--ink-2); }
+    .chip.revised { background: var(--warn-wash); color: var(--ink); }
+    .meter { height: 10px; border-radius: 0 4px 4px 0; background: var(--accent-track); position: relative; overflow: hidden; }
+    .meter > i { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 0 4px 4px 0; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+    .digest header { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: end; margin-bottom: 8px; }
+    .digest h1 { font-size: 20px; font-weight: 650; }
+    .digest .goal { color: var(--ink-2); font-size: 14px; margin-top: 3px; max-width: 62ch; }
+    .digest .hprog { text-align: right; }
+    .digest .hprog .n { font-size: 26px; font-weight: 600; }
+    .digest .hprog .n small { font-size: 13px; color: var(--muted); font-weight: 500; }
+    .digest .hprog .meter { width: 180px; margin-top: 6px; }
+    .digest .spine { position: relative; margin-top: 22px; padding-left: 30px; }
+    .digest .spine::before { content: ""; position: absolute; left: 9px; top: 6px; bottom: 6px; width: 2px; background: var(--hairline); }
+    .digest .stage { position: relative; margin-bottom: 26px; }
+    .digest .stage::before { content: ""; position: absolute; left: -27px; top: 4px; width: 12px; height: 12px; border-radius: 50%; background: var(--surface); border: 2px solid var(--muted); }
+    .digest .stage.done::before { background: var(--good); border-color: var(--good); }
+    .digest .stage.now::before { background: var(--accent); border-color: var(--accent); }
+    .digest .stage h2 { font-size: 15px; font-weight: 650; display: flex; align-items: baseline; gap: 10px; }
+    .digest .stage h2 .chip { position: relative; top: -1px; }
+    .digest .stage .why { font-size: 13px; color: var(--muted); margin: 1px 0 8px; }
+    .digest .trow { display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: baseline; padding: 6px 0; border-top: 1px solid var(--hairline); font-size: 13.5px; }
+    .digest .trow:first-of-type { border-top: 0; }
+    .digest .trow .st { font-size: 12px; font-weight: 600; }
+    .digest .trow .st.done { color: var(--good-text); }
+    .digest .trow .st.inprogress { color: var(--accent); }
+    .digest .trow .st.queued { color: var(--muted); }
+    .digest .trow .what b { color: var(--muted); margin-right: 4px; }
+    .digest .trow .what span { color: var(--ink-2); }
+    .digest .flag { border-left: 3px solid var(--warning); background: var(--warn-wash); border-radius: 0 8px 8px 0; padding: 9px 12px; margin: 8px 0; font-size: 13px; }
+    .digest .flag b { font-weight: 650; }
+    .digest .flag p { color: var(--ink-2); margin-top: 2px; }
+    .digest .here { display: inline-flex; gap: 8px; align-items: center; margin: 2px 0 8px; font-size: 12.5px; font-weight: 650; color: var(--accent); }
+    .digest .here::before { content: "▶"; font-size: 10px; }
+    .digest .remains { margin-top: 4px; padding: 12px 16px; font-size: 13.5px; color: var(--ink-2); }
+    .digest .remains b { color: var(--ink); }
+    .digest footer { margin-top: 14px; font-size: 13px; color: var(--muted); }
+    .digest .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--hairline); margin-top: 16px; }
+    .digest .tabs button { appearance: none; border: 0; background: none; cursor: pointer; font: 600 13.5px/1 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink-2); padding: 10px 14px; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+    .digest .tabs button.on { color: var(--accent); border-bottom-color: var(--accent); }
+    .digest .pane { display: none; }
+    .digest .pane.on { display: block; }
+    .digest .dec { padding: 14px 16px; margin: 12px 0 10px; }
+    .digest .dec h3 { font-size: 14px; font-weight: 650; display: flex; gap: 8px; align-items: baseline; }
+    .digest .dec .where { font-size: 12px; color: var(--muted); font-weight: 500; }
+    .digest .dec p { font-size: 13.5px; color: var(--ink-2); margin-top: 4px; }
+    .digest .dec p b { color: var(--ink); }
+    .digest .rail h3 { font-size: 13px; font-weight: 650; margin: 14px 0 6px; }
+    .digest .rail li { margin: 0 0 7px 18px; font-size: 13.5px; color: var(--ink-2); }
+    .digest .rail li strong { color: var(--ink); font-weight: 600; }
+  </style>
+</head>
+<body>
+<section class="digest">
+  <header>
+    <div>
+      <h1>Index Store Ph2d Lifecycle Completion</h1>
+      <p class="goal">Close Julie's family-store lifecycle safely, then prepare the release Miller can adopt.</p>
+    </div>
+    <div class="hprog">
+      <div class="n">1<small> / 6 phases</small></div>
+      <div class="meter" aria-label="17% complete"><i style="width:17%"></i></div>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="Digest sections">
+    <button class="on" data-pane="timeline">Timeline</button>
+    <button data-pane="decisions">Decisions</button>
+    <button data-pane="rails">Guardrails</button>
+  </nav>
+
+  <div class="pane on" id="timeline">
+    <div class="spine">
+      <div class="stage done">
+        <h2>Phase 1 — Design <span class="chip done"><span class="ico">✓</span>Direction approved</span></h2>
+        <p class="why">Freeze safety boundaries before any destructive implementation.</p>
+        <div class="trow"><span class="st done">✓ Done</span><span class="what"><b>1</b>Map Ph2b/Ph2c contracts <span>— roots, pins, coordinator tears, reports, and layout.</span></span></div>
+        <div class="trow"><span class="st done">✓ Done</span><span class="what"><b>2</b>Run adversarial doubt pass <span>— fencing, pruning, allocators, and generation state corrected.</span></span></div>
+      </div>
+
+      <div class="stage now">
+        <h2>Phase 2 — Catalog and fencing <span class="chip inprogress"><span class="ico">◐</span>Planning</span></h2>
+        <p class="why">Make every later delete and promotion mechanically safe.</p>
+        <div class="here">You are here — approved design moving into executable planning</div>
+        <div class="trow"><span class="st queued">○ Queued</span><span class="what"><b>3</b>Amend unreleased schema v2 once <span>— GC indexes, receipts, cursors, allocator marks, guard contracts.</span></span></div>
+        <div class="trow"><span class="st queued">○ Queued</span><span class="what"><b>4</b>Fence all writers <span>— maintenance intent, generation state, ownership, and stale-plan checks.</span></span></div>
+        <div class="flag"><b>⚠ Criterion revised — cross-database pruning.</b><p>Terminal requests become compact receipts before request deletion; only then may orphan store logs be pruned.</p></div>
+      </div>
+
+      <div class="stage">
+        <h2>Phase 3 — Retention and capacity <span class="chip queued"><span class="ico">○</span>Queued</span></h2>
+        <p class="why">Reclaim only objects outside every level-qualified root.</p>
+        <div class="trow"><span class="st queued">○ Queued</span><span class="what"><b>5</b>Plan reachability <span>— manifests, bases, deltas, pins, requests, scratch, cursors, generations.</span></span></div>
+        <div class="trow"><span class="st queued">○ Queued</span><span class="what"><b>6</b>Apply bounded GC <span>— L3 before L2, 100-version/64-MiB cohorts, ordered request/log pruning.</span></span></div>
+        <div class="trow"><span class="st queued">○ Queued</span><span class="what"><b>7</b>Enforce capacity <span>— logical targets and physical WAL/rollback headroom.</span></span></div>
+      </div>
+
+      <div class="stage">
+        <h2>Phase 4 — Repair and promotion <span class="chip queued"><span class="ico">○</span>Queued</span></h2>
+        <p class="why">Never risk the only serving copy for a large repair.</p>
+        <div class="trow"><span class="st queued">○ Queued</span><span class="what"><b>8</b>Classify repair <span>— checkpoint, torn-state recovery, incremental vacuum, or rebuild.</span></span></div>
+        <div class="trow"><span class="st queued">○ Queued</span><span class="what"><b>9</b>Promote generation <span>— deterministic copy, validation, fsync, atomic CURRENT.</span></span></div>
+        <div class="trow"><span class="st queued">○ Queued</span><span class="what"><b>10</b>Retain and roll back <span>— forward-built rollback, generation-local pins, four allocator families.</span></span></div>
+      </div>
+
+      <div class="stage">
+        <h2>Phase 5 — Public contract and gates <span class="chip queued"><span class="ico">○</span>Queued</span></h2>
+        <p class="why">Expose one truthful lifecycle surface and prove crash safety.</p>
+        <div class="trow"><span class="st queued">○ Queued</span><span class="what"><b>11</b>Add store maintain <span>— inspect, gc, repair, promote, explicit apply, separate report.</span></span></div>
+        <div class="trow"><span class="st queued">○ Queued</span><span class="what"><b>12</b>Run matrix <span>— randomized roots, crash boundaries, mixed versions, platforms, scale.</span></span></div>
+      </div>
+
+      <div class="stage">
+        <h2>Phase 6 — Release readiness <span class="chip queued"><span class="ico">○</span>Queued</span></h2>
+        <p class="why">Publish only after live package evidence exists.</p>
+        <div class="trow"><span class="st queued">○ Queued</span><span class="what"><b>13</b>Dogfood and package <span>— real repositories, checksums, downloaded assets, release notes.</span></span></div>
+        <div class="trow"><span class="st queued">○ Queued</span><span class="what"><b>14</b>Validate Miller pin <span>— local adoption proof; live change remains approval-gated.</span></span></div>
+      </div>
+    </div>
+    <div class="card remains"><b>Remaining:</b> create one tracked Ph2d worktree, freeze the executable plan, and implement through release readiness.</div>
+  </div>
+
+  <div class="pane" id="decisions">
+    <div class="card dec"><h3>One maintenance namespace <span class="where">Public API</span></h3><p><b>Chosen:</b> `store maintain` contains inspect, gc, repair, and promote. Mutation requires explicit apply.</p></div>
+    <div class="card dec"><h3>Planner then fenced apply <span class="where">Safety</span></h3><p><b>Chosen:</b> deterministic read-only reachability first; every apply revalidates roots, watermarks, CURRENT, and generation state.</p></div>
+    <div class="card dec"><h3>Bounded in-place reclamation <span class="where">Capacity</span></h3><p><b>Chosen:</b> GC plus incremental vacuum handles normal pressure. Full repair and format work build a new generation.</p></div>
+    <div class="card dec"><h3>Receipts before log pruning <span class="where">Recovery</span></h3><p><b>Chosen:</b> coordinator receipts preserve idempotency and request IDs; store logs are pruned only after the live request row is gone.</p></div>
+    <div class="card dec"><h3>Generation-local pins <span class="where">Readers</span></h3><p><b>Chosen:</b> old readers renew in the old generation; retained-generation cleanup checks that generation's pins.</p></div>
+    <div class="card dec"><h3>Forward rollback, no identity reuse <span class="where">Promotion</span></h3><p><b>Chosen:</b> rollback builds a new generation; family marks cover versions, logs, manifests, and resolution deltas.</p></div>
+  </div>
+
+  <div class="pane" id="rails">
+    <div class="rail">
+      <h3>Never touch</h3>
+      <ul>
+        <li><strong>Protected roots</strong> — manifests, bases, identifier and pending deltas, bindings, pins, requests, scratch owners, cursors, rollback generations.</li>
+        <li><strong>Serving generation in place</strong> — no full VACUUM, schema migration, or speculative immutable-row repair.</li>
+        <li><strong>Legacy v3 contract</strong> — existing artifact commands and request-oriented store reports stay compatible.</li>
+      </ul>
+      <h3>Held constant</h3>
+      <ul>
+        <li><strong>Retention defaults</strong> — 7 days, 1.20 target, 1.25 ceiling, 24 path history; roots and time window win.</li>
+        <li><strong>Database split</strong> — store generations remain separate from root-owned coordination.</li>
+        <li><strong>Release boundary</strong> — no push, tag, publication, or live Miller pin change without approval.</li>
+      </ul>
+      <h3>Verification gates</h3>
+      <ul>
+        <li><strong>Correctness</strong> — randomized reachability and natural-row promotion equivalence.</li>
+        <li><strong>Recovery</strong> — kill every catalog, filesystem, allocator, and CURRENT boundary.</li>
+        <li><strong>Scale</strong> — bounded RSS, WAL, transaction time, and free-space refusal.</li>
+        <li><strong>Compatibility</strong> — real old/current binaries and all supported languages.</li>
+      </ul>
+    </div>
+  </div>
+
+  <footer>Digest of <a href="2026-08-08-index-store-ph2d-lifecycle-design.md">the full design</a></footer>
+</section>
+<script>
+  document.querySelectorAll(".tabs button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tabs button").forEach(b => b.classList.remove("on"));
+      document.querySelectorAll(".pane").forEach(p => p.classList.remove("on"));
+      btn.classList.add("on");
+      document.getElementById(btn.dataset.pane).classList.add("on");
+    });
+  });
+</script>
+</body>
+</html>
