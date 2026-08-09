@@ -349,6 +349,7 @@ fn store_meta_seeds_only_schema_and_retention_defaults() {
     assert_eq!(
         rows,
         BTreeMap::from([
+            ("generation_state".to_string(), "serving".to_string()),
             ("retention_byte_ceiling".to_string(), "1.25".to_string()),
             ("retention_byte_target".to_string(), "1.20".to_string()),
             ("retention_path_cap".to_string(), "24".to_string()),
@@ -834,10 +835,17 @@ fn expected_store_tables() -> BTreeSet<String> {
 }
 
 fn expected_coordinator_tables() -> BTreeSet<String> {
-    ["requests", "writer_lease"]
-        .into_iter()
-        .map(str::to_string)
-        .collect()
+    [
+        "consumer_cursors",
+        "family_allocator_marks",
+        "maintenance_intent",
+        "request_receipts",
+        "requests",
+        "writer_lease",
+    ]
+    .into_iter()
+    .map(str::to_string)
+    .collect()
 }
 
 fn expected_child_tables() -> BTreeSet<String> {
@@ -971,6 +979,14 @@ fn expected_store_indexes() -> BTreeMap<String, Vec<String>> {
             "version_id,scope,start_byte",
         ),
         ("idx_gc_diagnostics_path", "version_id,path"),
+        (
+            "idx_gc_resolution_identifier_deltas_version",
+            "version_id,view_id,delta_generation,identifier_id",
+        ),
+        (
+            "idx_gc_resolution_pending_deltas_version",
+            "version_id,view_id,delta_generation,pending_relationship_id",
+        ),
         (
             "idx_gc_source_regions_export_order",
             "version_id,path,start_byte,end_byte,kind,source_region_id",

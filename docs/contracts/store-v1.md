@@ -1,6 +1,6 @@
 # Versioned Index Store v1
 
-Status: frozen Ph2c contract. The exact physical catalog is
+Status: frozen Ph2d lifecycle contract. The exact physical catalog is
 [`sqlite-store-schema-v2.md`](sqlite-store-schema-v2.md).
 
 This contract defines the target-owned family store used after the legacy v3 artifact boundary. It does not change the v3 `ArtifactWriter`, SQLite schema version 6, or the standalone extraction artifact.
@@ -26,6 +26,7 @@ This contract defines the target-owned family store used after the legacy v3 art
 | `retention_byte_target` | `1.20` |
 | `retention_byte_ceiling` | `1.25` |
 | `retention_path_cap` | `24` |
+| `generation_state` | `serving` |
 
 The writer atomically binds `family_id`, `extraction_identity_epoch`, `min_reader_version`, `min_writer_version`, `created_by_version`, and monotonic `binary_version` when it creates or adopts a family.
 
@@ -61,13 +62,15 @@ A manifest entry's nullable version FK is `ON DELETE RESTRICT`; live and histori
 
 ## Durable log and progress
 
-`store_log.sequence` is the sole monotonic `AUTOINCREMENT` allocator. Each row has a non-empty request and event kind, optional view/generation/version/level coordinates, a checked terminal flag, a JSON payload, and canonical creation time. A partial unique index permits one terminal row per request.
+`store_log.sequence` is the store catalog's monotonic `AUTOINCREMENT` log allocator. Each row has a non-empty request and event kind, optional view/generation/version/level coordinates, a checked terminal flag, a JSON payload, and canonical creation time. A partial unique index permits one terminal row per request. Root-owned family allocator marks prevent file-version, log, per-view manifest, and per-view resolution-delta identities from restarting after promotion or forward rollback.
 
 `request_chunks` records global non-negative chunk indexes and the unique store-log sequence owned by each chunk. It deliberately has no FK to the prunable log, versions, or manifests. Ph2b does not prune `store_log`.
 
 ## Coordinator
 
-`coord.db` is independently creatable and contains only `requests` and the optional singleton `writer_lease`.
+`coord.db` is independently creatable and contains live `requests`, the optional singleton
+`writer_lease`, immutable `request_receipts`, durable `consumer_cursors`, the optional singleton
+`maintenance_intent`, and scoped `family_allocator_marks`.
 
 - Request kinds are `import`, `update`, `delete`, `resolve`, `export`, or `from_artifact`.
 - Request states are `queued`, `claimed`, `committed`, `acknowledged`, or `failed`.
@@ -78,6 +81,11 @@ A manifest entry's nullable version FK is `ON DELETE RESTRICT`; live and histori
 - A partial unique index permits at most one claimed `resolve` request per family coordinator.
 - Coordinator clocks are Unix-millisecond integers.
 - The lease resource is exactly `store-writer`; holder identity/version are non-empty, PID and fencing token are positive, and release deletes the row.
+- A terminal request may age into one immutable receipt that independently reserves its request ID
+  and idempotency key and preserves the original terminal result and generation identity.
+- Consumer cursor sequence/time and family allocator high-water/time values cannot regress.
+- The maintenance intent is resource `store-maintenance`, carries one coherent owner/heartbeat/fence,
+  and blocks ordinary writer acquisition while live.
 
 `store.db` also catalogs immutable resolution bases, rooted source versions, cumulative per-view
 deltas, and bounded reader/resolve pins. Semantic result rows remain in immutable base and delta
@@ -112,5 +120,8 @@ files; they are not copied into general Store tables.
 ## Retention boundary
 
 Ph2d may reclaim only objects outside every current/historical manifest, ready-base version root,
-live resolution pin, current base/delta binding, and active request/claim. Ph2c does not implement
-general retention, log pruning, repair, or generation promotion.
+identifier and pending delta source/target root, live resolution pin, current base/delta binding,
+active request/claim, scratch owner, consumer cursor window, and retained-generation safety window.
+Terminal request rows become durable receipts before coordinator deletion; orphan store logs are
+pruned only afterward and below every safe cursor. General maintenance behavior is specified by the
+Ph2d lifecycle design and is implemented behind `store maintain`.

@@ -1,6 +1,6 @@
 # SQLite Store Schema v2
 
-Status: frozen Ph2c catalog authority.
+Status: frozen Ph2d lifecycle catalog authority.
 
 All ordinary tables are `STRICT`. `store.db` timestamps are canonical RFC 3339 UTC text
 (`YYYY-MM-DDTHH:MM:SS[.fraction]Z`, with one to nine fractional digits when present); `coord.db`
@@ -13,8 +13,8 @@ each non-internal `sqlite_master` row with non-null SQL as
 hashes the UTF-8 bytes with SHA-256.
 
 ```text catalog-authority
-store-catalog-sha256: d869e6a004fa99c7c3440d0cdd381e9a4ff4ce99cf96d6e951264439cbc86789
-coordinator-catalog-sha256: 539a3a567f589585aa96c54be9c1262b447c2a38d4188fea091bc0fa3d4e7e36
+store-catalog-sha256: e2b2656de28d296cd692de553d49592f0eff15be87bc6f4fc4a16ef290de0281
+coordinator-catalog-sha256: 633e93a3a5d162b56248656410c6e4ce849795e067bff02a31dc85ce4328c02d
 ```
 
 ## Store catalog additions
@@ -66,6 +66,27 @@ resolver-output epoch, completed stamp, semantic counts, integrity checks, and S
 They contain `identifier_resolutions` and `pending_resolutions`; those tables are intentionally not
 added to `store.db`.
 
+`store_meta.generation_state` is seeded as `serving` and may contain only `serving` or `retired`.
+Existing-generation opens validate without running schema initialization or changing `user_version`;
+the state is the durable store-side half of the root-owned maintenance fence.
+
+## Coordinator lifecycle additions
+
+The root-owned coordinator catalog adds:
+
+```text
+request_receipts(request_id, idempotency_key, kind, payload_json, terminal_result_json, terminal_generation_name, terminal_log_sequence, completed_at)
+consumer_cursors(consumer_id, generation_name, store_log_sequence, updated_at)
+maintenance_intent(resource, run_id, action, source_generation_name, owner_id, owner_pid, fencing_token, heartbeat_at, expires_at, started_at, plan_fingerprint, source_min_writer_version)
+family_allocator_marks(allocator_kind, scope_id, high_water, updated_at)
+```
+
+Receipts are immutable and independently reserve both request ID and idempotency key. Consumer cursor
+sequence/time and family allocator high-water/time values cannot regress. The singleton maintenance
+intent uses resource `store-maintenance`, a coherent heartbeat/expiry window, and actions `gc`,
+`repair`, `promote`, or `rollback`. Global `file_version` and `store_log` allocator marks use the
+empty scope; `manifest_generation` and `resolution_delta_generation` marks use a non-empty view ID.
+
 The schema-v2-only explicit indexes are:
 
 ```text
@@ -73,7 +94,9 @@ read: uidx_read_resolution_bases_identity(manifest_hash, resolver_output_epoch)
 read: idx_read_resolution_base_versions_version(version_id, base_id)
 read: idx_read_resolution_deltas_base(base_id, view_id, delta_generation)
 read: idx_read_resolution_identifier_deltas_target(target_version_id, target_symbol_id, view_id, delta_generation)
+gc: idx_gc_resolution_identifier_deltas_version(version_id, view_id, delta_generation, identifier_id)
 read: idx_read_resolution_pending_deltas_target(target_version_id, target_symbol_id, view_id, delta_generation)
+gc: idx_gc_resolution_pending_deltas_version(version_id, view_id, delta_generation, pending_relationship_id)
 read: idx_read_resolution_pins_owner_expiry(owner_kind, owner_id, expires_at, pin_id)
 read: idx_read_resolution_pins_bound(view_id, manifest_generation, base_id, delta_generation)
 ```

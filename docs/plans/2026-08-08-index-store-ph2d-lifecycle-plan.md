@@ -32,6 +32,18 @@ test subprocess crash hooks, Cargo/xtask, and Miller impact analysis.
 - A task is complete only after focused tests, relevant regressions, strict Clippy, format, diff, and
   clean-state evidence. Commit each task locally; never push during implementation.
 
+## Progress
+
+- [x] Task 1 — final unreleased catalogs
+- [ ] Task 2 — universal generation and maintenance fencing
+- [ ] Task 3 — deterministic inspection and planning
+- [ ] Task 4 — receipts, cursors, and bounded GC
+- [ ] Task 5 — promotion, repair, and forward rollback
+- [ ] Task 6 — maintenance CLI and reports
+- [ ] Task 7 — crash, mixed-version, scale, and language gates
+- [ ] Task 8 — dogfood, docs, and release preparation
+- [ ] Task 9 — pre-merge review and integration boundary
+
 ## Task 1: Freeze the final unreleased catalogs
 
 **Files**

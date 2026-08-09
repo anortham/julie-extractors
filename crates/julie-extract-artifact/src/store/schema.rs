@@ -113,7 +113,29 @@ INSERT OR IGNORE INTO store_meta (key, value) VALUES
   ('retention_window_days', '7'),
   ('retention_byte_target', '1.20'),
   ('retention_byte_ceiling', '1.25'),
-  ('retention_path_cap', '24');
+  ('retention_path_cap', '24'),
+  ('generation_state', 'serving');
+
+CREATE TRIGGER IF NOT EXISTS trg_store_meta_generation_state_insert
+BEFORE INSERT ON store_meta
+WHEN NEW.key = 'generation_state' AND NEW.value NOT IN ('serving', 'retired')
+BEGIN
+  SELECT RAISE(ABORT, 'invalid generation state');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_store_meta_generation_state_update
+BEFORE UPDATE OF value ON store_meta
+WHEN NEW.key = 'generation_state' AND NEW.value NOT IN ('serving', 'retired')
+BEGIN
+  SELECT RAISE(ABORT, 'invalid generation state');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_store_meta_generation_state_delete
+BEFORE DELETE ON store_meta
+WHEN OLD.key = 'generation_state'
+BEGIN
+  SELECT RAISE(ABORT, 'generation state is required');
+END;
 
 CREATE TABLE IF NOT EXISTS file_versions (
   version_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1079,8 +1101,12 @@ CREATE INDEX IF NOT EXISTS idx_read_resolution_deltas_base
   ON resolution_deltas(base_id, view_id, delta_generation);
 CREATE INDEX IF NOT EXISTS idx_read_resolution_identifier_deltas_target
   ON resolution_identifier_deltas(target_version_id, target_symbol_id, view_id, delta_generation);
+CREATE INDEX IF NOT EXISTS idx_gc_resolution_identifier_deltas_version
+  ON resolution_identifier_deltas(version_id, view_id, delta_generation, identifier_id);
 CREATE INDEX IF NOT EXISTS idx_read_resolution_pending_deltas_target
   ON resolution_pending_deltas(target_version_id, target_symbol_id, view_id, delta_generation);
+CREATE INDEX IF NOT EXISTS idx_gc_resolution_pending_deltas_version
+  ON resolution_pending_deltas(version_id, view_id, delta_generation, pending_relationship_id);
 CREATE INDEX IF NOT EXISTS idx_read_resolution_pins_owner_expiry
   ON resolution_pins(owner_kind, owner_id, expires_at, pin_id);
 CREATE INDEX IF NOT EXISTS idx_read_resolution_pins_bound
@@ -1265,6 +1291,106 @@ CREATE TABLE IF NOT EXISTS writer_lease (
   expires_at INTEGER NOT NULL,
   fencing_token INTEGER NOT NULL CHECK (fencing_token > 0)
 ) STRICT;
+
+CREATE TABLE IF NOT EXISTS request_receipts (
+  request_id TEXT PRIMARY KEY CHECK (length(request_id) BETWEEN 1 AND 128),
+  idempotency_key TEXT NOT NULL UNIQUE CHECK (length(idempotency_key) BETWEEN 1 AND 128),
+  kind TEXT NOT NULL CHECK (kind IN ('import', 'update', 'delete', 'resolve', 'export', 'from_artifact')),
+  payload_json TEXT NOT NULL CHECK (json_valid(payload_json)),
+  terminal_result_json TEXT NOT NULL CHECK (json_valid(terminal_result_json)),
+  terminal_generation_name TEXT NOT NULL CHECK (length(terminal_generation_name) BETWEEN 1 AND 128),
+  terminal_log_sequence INTEGER NOT NULL UNIQUE CHECK (terminal_log_sequence > 0),
+  completed_at INTEGER NOT NULL CHECK (completed_at >= 0)
+) STRICT;
+
+CREATE TABLE IF NOT EXISTS consumer_cursors (
+  consumer_id TEXT PRIMARY KEY CHECK (length(consumer_id) BETWEEN 1 AND 128),
+  generation_name TEXT NOT NULL CHECK (length(generation_name) BETWEEN 1 AND 128),
+  store_log_sequence INTEGER NOT NULL CHECK (store_log_sequence >= 0),
+  updated_at INTEGER NOT NULL CHECK (updated_at >= 0)
+) STRICT;
+
+CREATE TABLE IF NOT EXISTS maintenance_intent (
+  resource TEXT PRIMARY KEY CHECK (resource = 'store-maintenance'),
+  run_id TEXT NOT NULL UNIQUE CHECK (length(run_id) BETWEEN 1 AND 128),
+  action TEXT NOT NULL CHECK (action IN ('gc', 'repair', 'promote', 'rollback')),
+  source_generation_name TEXT NOT NULL CHECK (length(source_generation_name) BETWEEN 1 AND 128),
+  owner_id TEXT NOT NULL CHECK (length(owner_id) BETWEEN 1 AND 128),
+  owner_pid INTEGER NOT NULL CHECK (owner_pid > 0),
+  fencing_token INTEGER NOT NULL CHECK (fencing_token > 0),
+  heartbeat_at INTEGER NOT NULL CHECK (heartbeat_at >= 0),
+  expires_at INTEGER NOT NULL CHECK (expires_at > heartbeat_at),
+  started_at INTEGER NOT NULL CHECK (started_at >= 0 AND started_at <= heartbeat_at),
+  plan_fingerprint TEXT NOT NULL CHECK (length(plan_fingerprint) > 0),
+  source_min_writer_version TEXT NOT NULL CHECK (length(source_min_writer_version) > 0)
+) STRICT;
+
+CREATE TABLE IF NOT EXISTS family_allocator_marks (
+  allocator_kind TEXT NOT NULL CHECK (
+    allocator_kind IN (
+      'file_version',
+      'store_log',
+      'manifest_generation',
+      'resolution_delta_generation'
+    )
+  ),
+  scope_id TEXT NOT NULL,
+  high_water INTEGER NOT NULL CHECK (high_water >= 0),
+  updated_at INTEGER NOT NULL CHECK (updated_at >= 0),
+  PRIMARY KEY (allocator_kind, scope_id),
+  CHECK (
+    (allocator_kind IN ('file_version', 'store_log') AND scope_id = '')
+    OR
+    (allocator_kind IN ('manifest_generation', 'resolution_delta_generation') AND length(scope_id) > 0)
+  )
+) STRICT;
+
+CREATE TRIGGER IF NOT EXISTS trg_request_receipts_immutable_update
+BEFORE UPDATE ON request_receipts
+BEGIN
+  SELECT RAISE(ABORT, 'request receipts are immutable');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_request_receipts_immutable_delete
+BEFORE DELETE ON request_receipts
+BEGIN
+  SELECT RAISE(ABORT, 'request receipts are immutable');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_consumer_cursors_monotonic
+BEFORE UPDATE ON consumer_cursors
+WHEN NEW.store_log_sequence < OLD.store_log_sequence OR NEW.updated_at < OLD.updated_at
+BEGIN
+  SELECT RAISE(ABORT, 'consumer cursor cannot regress');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_maintenance_intent_coherent_update
+BEFORE UPDATE ON maintenance_intent
+WHEN NEW.run_id <> OLD.run_id
+  OR NEW.action <> OLD.action
+  OR NEW.source_generation_name <> OLD.source_generation_name
+  OR NEW.started_at <> OLD.started_at
+  OR NEW.plan_fingerprint <> OLD.plan_fingerprint
+  OR NEW.source_min_writer_version <> OLD.source_min_writer_version
+  OR NEW.fencing_token < OLD.fencing_token
+  OR NEW.heartbeat_at < OLD.heartbeat_at
+  OR (
+    (NEW.owner_id <> OLD.owner_id OR NEW.owner_pid <> OLD.owner_pid)
+    AND NEW.fencing_token <= OLD.fencing_token
+  )
+BEGIN
+  SELECT RAISE(ABORT, 'maintenance intent cannot regress or change identity');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_family_allocator_marks_monotonic
+BEFORE UPDATE ON family_allocator_marks
+WHEN NEW.allocator_kind <> OLD.allocator_kind
+  OR NEW.scope_id <> OLD.scope_id
+  OR NEW.high_water < OLD.high_water
+  OR NEW.updated_at < OLD.updated_at
+BEGIN
+  SELECT RAISE(ABORT, 'family allocator mark cannot regress');
+END;
 
 CREATE UNIQUE INDEX IF NOT EXISTS uidx_read_requests_idempotency_key
   ON requests(idempotency_key);

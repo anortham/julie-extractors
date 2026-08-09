@@ -21,6 +21,62 @@ impl StoreLevel {
     }
 }
 
+/// Durable lifecycle state of one named store generation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GenerationState {
+    Serving,
+    Retired,
+}
+
+impl GenerationState {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Serving => "serving",
+            Self::Retired => "retired",
+        }
+    }
+}
+
+/// Durable maintenance operation held by the family coordinator.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MaintenanceAction {
+    Gc,
+    Repair,
+    Promote,
+    Rollback,
+}
+
+impl MaintenanceAction {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Gc => "gc",
+            Self::Repair => "repair",
+            Self::Promote => "promote",
+            Self::Rollback => "rollback",
+        }
+    }
+}
+
+/// Monotonic identity family stored in root-owned coordinator metadata.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FamilyAllocatorKind {
+    FileVersion,
+    StoreLog,
+    ManifestGeneration,
+    ResolutionDeltaGeneration,
+}
+
+impl FamilyAllocatorKind {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::FileVersion => "file_version",
+            Self::StoreLog => "store_log",
+            Self::ManifestGeneration => "manifest_generation",
+            Self::ResolutionDeltaGeneration => "resolution_delta_generation",
+        }
+    }
+}
+
 /// Durable state of one immutable resolution base catalog row.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ResolutionBaseState {
