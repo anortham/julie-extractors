@@ -9,7 +9,9 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use clap::Parser;
 use julie_extract_cli::store::args::{StoreCli, StoreCommand, StoreRootCommand};
-use julie_extract_cli::store::test_support::write_v3_extraction_oracle;
+use julie_extract_cli::store::test_support::{
+    write_all_language_fixture, write_v3_extraction_oracle,
+};
 use rusqlite::{Connection, OptionalExtension};
 use serde_json::Value;
 
@@ -107,6 +109,34 @@ fn create_full_store(temp: &TempDir) -> PathBuf {
         "pub fn answer() -> i32 { helper() }\nfn helper() -> i32 { 1 }\n",
     )
     .unwrap();
+    let import = julie_extract(&[
+        "store",
+        "import",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11",
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--level",
+        "full",
+        "--json",
+    ]);
+    assert!(
+        import.status.success(),
+        "{}",
+        String::from_utf8_lossy(&import.stdout)
+    );
+    store
+}
+
+fn create_full_language_store(temp: &TempDir) -> PathBuf {
+    let root = temp.path().join("language-source");
+    let store = temp.path().join("language-family");
+    fs::create_dir_all(&root).unwrap();
+    write_all_language_fixture(&root).unwrap();
     let import = julie_extract(&[
         "store",
         "import",
@@ -858,11 +888,11 @@ fn exact_view_exports_current_v3_artifact_with_resolution_overlay() {
 #[test]
 fn exported_extraction_payload_matches_fresh_v3_oracle_for_every_table() {
     let temp = TempDir::new();
-    let store = create_full_store(&temp);
+    let store = create_full_language_store(&temp);
     resolve(&store);
     let output_path = temp.path().join("export.db");
     let oracle_path = temp.path().join("oracle.db");
-    write_v3_extraction_oracle(&temp.path().join("source"), &oracle_path).unwrap();
+    write_v3_extraction_oracle(&temp.path().join("language-source"), &oracle_path).unwrap();
     let exported = export(&store, &output_path);
     assert!(
         exported.status.success(),

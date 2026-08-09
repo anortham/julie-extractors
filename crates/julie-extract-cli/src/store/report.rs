@@ -166,6 +166,7 @@ pub enum StoreFailureClass {
     ResolutionFailed,
     ResolutionNotExact,
     OutputIdentityMismatch,
+    CapacityInsufficient,
     Internal,
 }
 
@@ -190,6 +191,7 @@ impl StoreFailureClass {
             Self::ResolutionFailed => "resolution_failed",
             Self::ResolutionNotExact => "resolution_not_exact",
             Self::OutputIdentityMismatch => "output_identity_mismatch",
+            Self::CapacityInsufficient => "capacity_insufficient",
             Self::Internal => "internal",
         }
     }

@@ -113,6 +113,17 @@ pub struct StoreMaintenanceRetentionReport {
     pub target_bytes: u64,
     pub ceiling_bytes: u64,
     pub pressure: bool,
+    pub physical_current_bytes: u64,
+    pub physical_bytes_before_gc: u64,
+    pub physical_bytes_after_gc: u64,
+    pub physical_baseline_bytes: u64,
+    pub physical_target_bytes: u64,
+    pub physical_ceiling_bytes: u64,
+    pub physical_target_breached: bool,
+    pub physical_ceiling_breached: bool,
+    pub physical_breach_limit: u32,
+    pub physical_breach_streak: u32,
+    pub compaction_required: bool,
 }
 
 impl From<&RetentionPlan> for StoreMaintenanceRetentionReport {
@@ -124,6 +135,17 @@ impl From<&RetentionPlan> for StoreMaintenanceRetentionReport {
             target_bytes: value.target_bytes,
             ceiling_bytes: value.ceiling_bytes,
             pressure: value.pressure,
+            physical_current_bytes: value.physical_current_bytes,
+            physical_bytes_before_gc: value.physical_current_bytes,
+            physical_bytes_after_gc: 0,
+            physical_baseline_bytes: value.physical_baseline_bytes,
+            physical_target_bytes: value.physical_target_bytes,
+            physical_ceiling_bytes: value.physical_ceiling_bytes,
+            physical_target_breached: value.physical_target_breached,
+            physical_ceiling_breached: value.physical_ceiling_breached,
+            physical_breach_limit: value.physical_breach_limit,
+            physical_breach_streak: value.physical_breach_streak,
+            compaction_required: value.compaction_required,
         }
     }
 }
@@ -271,6 +293,19 @@ impl StoreMaintenanceReport {
         self.counts.removed_scratch_files = applied.removed_scratch_files;
         self.counts.archived_requests = applied.archived_requests;
         self.counts.pruned_log_rows = applied.pruned_log_rows;
+        self.retention.physical_current_bytes = applied.physical_bytes_before;
+        self.retention.physical_bytes_before_gc = applied.physical_bytes_before;
+        self.retention.physical_bytes_after_gc = applied.physical_bytes_after;
+        self.retention.physical_baseline_bytes = applied.physical_baseline_bytes;
+        self.retention.physical_target_bytes = applied.physical_target_bytes;
+        self.retention.physical_ceiling_bytes = applied.physical_ceiling_bytes;
+        self.retention.physical_target_breached = applied.physical_target_breached;
+        self.retention.physical_ceiling_breached = applied.physical_ceiling_breached;
+        self.retention.physical_breach_streak = applied.physical_breach_streak;
+        self.retention.compaction_required = applied.compaction_required;
+        if applied.compaction_required {
+            self.escalation = Some("compaction_required".to_string());
+        }
         self.last_version_cursor = applied.last_version_cursor;
         self
     }
@@ -385,6 +420,17 @@ impl StoreMaintenanceReport {
                 target_bytes: 0,
                 ceiling_bytes: 0,
                 pressure: false,
+                physical_current_bytes: 0,
+                physical_bytes_before_gc: 0,
+                physical_bytes_after_gc: 0,
+                physical_baseline_bytes: 0,
+                physical_target_bytes: 0,
+                physical_ceiling_bytes: 0,
+                physical_target_breached: false,
+                physical_ceiling_breached: false,
+                physical_breach_limit: 0,
+                physical_breach_streak: 0,
+                compaction_required: false,
             },
             capacity: StoreMaintenanceCapacityReport {
                 measured_bytes: 0,

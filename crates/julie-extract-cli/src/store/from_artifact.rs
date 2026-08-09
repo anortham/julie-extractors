@@ -30,7 +30,7 @@ use super::executor::{
 use super::import::{
     ImportClock, ImportPidLiveness, RequestReportSpec, StoreExecutionOutcome,
     absolute_runtime_path, classify_failure, drain_when_available, mint_request_id, now_millis,
-    open_existing_store, report_request, root_scope_matches,
+    open_existing_store, preflight_store_capacity, report_request, root_scope_matches,
 };
 use super::report::{
     StoreOperation, StoreOutputFormat, StoreReport, StoreRequestState, StoreRequestedLevel,
@@ -138,6 +138,15 @@ fn execute(
     }
 
     let payload = preflight_payload(args, &supplied_source)?;
+    let source_bytes = payload.source.file_bytes.saturating_add(
+        payload
+            .files
+            .iter()
+            .map(|file| file.content_bytes)
+            .fold(0_u64, u64::saturating_add),
+    );
+    preflight_store_capacity(&args.store, source_bytes)
+        .map_err(FromArtifactFailure::Operational)?;
     let layout = StoreLayout::create(&args.store, &args.family, env!("CARGO_PKG_VERSION"))
         .map_err(|error| FromArtifactFailure::Operational(error.to_string()))?;
     let holder = lease_holder();

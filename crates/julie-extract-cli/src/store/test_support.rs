@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+use std::fs;
 use std::path::Path;
 
 use julie_extract_artifact::metadata::ArtifactMetadata;
@@ -10,6 +12,36 @@ use crate::discovery::{DiscoveryPolicy, FileSelection};
 use crate::extraction::extract_artifact_file;
 
 const ORACLE_TIME: &str = "2026-08-08T00:00:00Z";
+
+pub fn write_all_language_fixture(root: &Path) -> Result<Vec<String>, String> {
+    let source_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/extraction");
+    let mut copied = BTreeSet::new();
+    for language in julie_extractors::language::supported_languages() {
+        let basic = source_root.join(language).join("basic");
+        let source = fs::read_dir(&basic)
+            .map_err(|error| format!("read {language} fixture: {error}"))?
+            .filter_map(Result::ok)
+            .map(|entry| entry.path())
+            .find(|path| {
+                path.is_file()
+                    && path
+                        .file_name()
+                        .and_then(|name| name.to_str())
+                        .is_some_and(|name| name.starts_with("source."))
+            })
+            .ok_or_else(|| format!("{language} fixture has no source file"))?;
+        let destination = root.join("languages").join(language);
+        fs::create_dir_all(&destination)
+            .map_err(|error| format!("create {language} fixture: {error}"))?;
+        let file_name = source
+            .file_name()
+            .ok_or_else(|| format!("{language} fixture source has no name"))?;
+        fs::copy(&source, destination.join(file_name))
+            .map_err(|error| format!("copy {language} fixture: {error}"))?;
+        copied.insert(language.to_string());
+    }
+    Ok(copied.into_iter().collect())
+}
 
 pub fn write_v3_extraction_oracle(root: &Path, database: &Path) -> Result<(), String> {
     let policy =

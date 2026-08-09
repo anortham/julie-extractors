@@ -711,7 +711,18 @@ fn maintenance_report_json_and_human_snapshots_are_stable() {
                 "eligible_bytes": 0,
                 "target_bytes": 0,
                 "ceiling_bytes": 0,
-                "pressure": false
+                "pressure": false,
+                "physical_current_bytes": 536576,
+                "physical_bytes_before_gc": 536576,
+                "physical_bytes_after_gc": 0,
+                "physical_baseline_bytes": 536576,
+                "physical_target_bytes": 643891,
+                "physical_ceiling_bytes": 670720,
+                "physical_target_breached": false,
+                "physical_ceiling_breached": false,
+                "physical_breach_limit": 3,
+                "physical_breach_streak": 0,
+                "compaction_required": false
             },
             "capacity": {
                 "measured_bytes": 0,

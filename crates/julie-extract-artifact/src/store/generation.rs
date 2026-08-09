@@ -138,11 +138,9 @@ impl GenerationLifecycle {
         self.executor
             .reacquire_writer_for_generation_publish(plan)?;
         let connection = Connection::open(source.store_db())?;
-        connection.execute_batch(
-            "PRAGMA wal_checkpoint(PASSIVE);
-             PRAGMA incremental_vacuum(256);
-             PRAGMA wal_checkpoint(TRUNCATE);",
-        )?;
+        connection.execute_batch("PRAGMA wal_checkpoint(PASSIVE);")?;
+        MaintenanceExecutor::step_incremental_vacuum(&connection, 256)?;
+        connection.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);")?;
         let valid = database_is_valid(&connection)?;
         drop(connection);
         if valid {

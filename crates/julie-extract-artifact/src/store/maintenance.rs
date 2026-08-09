@@ -25,6 +25,7 @@ const MAX_DEMOTION_VERSIONS: usize = 100;
 const MAX_DEMOTION_BYTES: u64 = 64 * 1024 * 1024;
 const JOURNAL_RETENTION_BYTES: u64 = 256 * 1024 * 1024;
 const CHECKPOINT_HEADROOM_BYTES: u64 = 16 * 1024 * 1024;
+const DEFAULT_PHYSICAL_BREACH_LIMIT: u32 = 3;
 
 pub trait MaintenanceClock {
     fn now_ms(&self) -> i64;
@@ -170,6 +171,8 @@ pub struct MaintenanceCapacity {
     pub base_bytes: u64,
     pub scratch_bytes: u64,
     pub staged_generation_bytes: u64,
+    pub retention_baseline_bytes: u64,
+    pub retention_breach_streak: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -207,6 +210,7 @@ pub struct MaintenancePolicy {
     pub target_denominator: u64,
     pub ceiling_numerator: u64,
     pub ceiling_denominator: u64,
+    pub physical_breach_limit: u32,
 }
 
 impl Default for MaintenancePolicy {
@@ -218,6 +222,7 @@ impl Default for MaintenancePolicy {
             target_denominator: 100,
             ceiling_numerator: 125,
             ceiling_denominator: 100,
+            physical_breach_limit: DEFAULT_PHYSICAL_BREACH_LIMIT,
         }
     }
 }
@@ -258,6 +263,15 @@ pub struct RetentionPlan {
     pub target_bytes: u64,
     pub ceiling_bytes: u64,
     pub pressure: bool,
+    pub physical_current_bytes: u64,
+    pub physical_baseline_bytes: u64,
+    pub physical_target_bytes: u64,
+    pub physical_ceiling_bytes: u64,
+    pub physical_target_breached: bool,
+    pub physical_ceiling_breached: bool,
+    pub physical_breach_limit: u32,
+    pub physical_breach_streak: u32,
+    pub compaction_required: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -338,6 +352,20 @@ pub struct MaintenanceApplyReport {
     pub pruned_log_rows: usize,
     pub last_version_cursor: Option<i64>,
     pub checkpoint_order: Vec<String>,
+    pub store_bytes_before_vacuum: u64,
+    pub store_bytes_after_vacuum: u64,
+    pub freelist_pages_before_vacuum: u64,
+    pub freelist_pages_after_vacuum: u64,
+    pub vacuum_pages: u64,
+    pub physical_bytes_before: u64,
+    pub physical_bytes_after: u64,
+    pub physical_baseline_bytes: u64,
+    pub physical_target_bytes: u64,
+    pub physical_ceiling_bytes: u64,
+    pub physical_target_breached: bool,
+    pub physical_ceiling_breached: bool,
+    pub physical_breach_streak: u32,
+    pub compaction_required: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -708,8 +736,31 @@ pub fn plan_maintenance(
             field: "eligible_bytes",
             value: "overflow".to_string(),
         })?;
+    let measured_bytes = snapshot
+        .capacity
+        .store_page_bytes
+        .saturating_add(snapshot.capacity.store_wal_bytes)
+        .saturating_add(snapshot.capacity.base_bytes)
+        .saturating_add(snapshot.capacity.scratch_bytes);
+    let physical_baseline_bytes = if snapshot.capacity.retention_baseline_bytes == 0 {
+        measured_bytes
+    } else {
+        snapshot.capacity.retention_baseline_bytes
+    };
+    let physical_target_bytes = ratio_bytes(
+        physical_baseline_bytes,
+        policy.target_numerator,
+        policy.target_denominator,
+    )?;
+    let physical_ceiling_bytes = ratio_bytes(
+        physical_baseline_bytes,
+        policy.ceiling_numerator,
+        policy.ceiling_denominator,
+    )?;
+    let physical_target_breached = measured_bytes > physical_target_bytes;
+    let physical_ceiling_breached = measured_bytes > physical_ceiling_bytes;
     let pressure = retained_logical_bytes > target_bytes;
-    let pressure_only_manifests = if pressure {
+    let pressure_only_manifests = if pressure || physical_ceiling_breached {
         Vec::new()
     } else {
         eligible_manifests.clone()
@@ -719,12 +770,6 @@ pub fn plan_maintenance(
         .iter()
         .map(|candidate| candidate.estimated_dirty_bytes)
         .sum();
-    let measured_bytes = snapshot
-        .capacity
-        .store_page_bytes
-        .saturating_add(snapshot.capacity.store_wal_bytes)
-        .saturating_add(snapshot.capacity.base_bytes)
-        .saturating_add(snapshot.capacity.scratch_bytes);
     let gc_required_bytes = demotion_wal_headroom_bytes
         .saturating_add(snapshot.capacity.store_wal_bytes)
         .saturating_add(CHECKPOINT_HEADROOM_BYTES);
@@ -781,6 +826,16 @@ pub fn plan_maintenance(
             target_bytes,
             ceiling_bytes,
             pressure,
+            physical_current_bytes: measured_bytes,
+            physical_baseline_bytes,
+            physical_target_bytes,
+            physical_ceiling_bytes,
+            physical_target_breached,
+            physical_ceiling_breached,
+            physical_breach_limit: policy.physical_breach_limit,
+            physical_breach_streak: snapshot.capacity.retention_breach_streak,
+            compaction_required: snapshot.capacity.retention_breach_streak
+                >= policy.physical_breach_limit,
         },
         capacity,
         max_observed_window: 0,
@@ -1492,20 +1547,105 @@ impl MaintenanceExecutor {
         }
         report.checkpoint_order.push("checkpoint".to_string());
         writer.execute_batch("PRAGMA wal_checkpoint(PASSIVE);")?;
+        let store_bytes_before_vacuum = file_len(self.factory.layout().store_db())?;
+        let freelist_pages_before_vacuum =
+            sqlite_u64(&writer, "PRAGMA freelist_count", "freelist_count")?;
         report
             .checkpoint_order
             .push("incremental_vacuum".to_string());
-        writer.execute_batch(&format!(
-            "PRAGMA incremental_vacuum({});",
-            policy.incremental_vacuum_pages
-        ))?;
+        let vacuum_pages = Self::step_incremental_vacuum(&writer, policy.incremental_vacuum_pages)?;
+        let freelist_pages_after_vacuum =
+            sqlite_u64(&writer, "PRAGMA freelist_count", "freelist_count")?;
         report
             .checkpoint_order
             .push("truncate_checkpoint".to_string());
         writer.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);")?;
+        report.store_bytes_before_vacuum = store_bytes_before_vacuum;
+        report.store_bytes_after_vacuum = file_len(self.factory.layout().store_db())?;
+        report.freelist_pages_before_vacuum = freelist_pages_before_vacuum;
+        report.freelist_pages_after_vacuum = freelist_pages_after_vacuum;
+        report.vacuum_pages = vacuum_pages;
+        let physical_bytes_after = physical_bytes(&writer, self.factory.layout())?;
+        let physical_target_breached = physical_bytes_after > plan.retention.physical_target_bytes;
+        let physical_ceiling_breached =
+            physical_bytes_after > plan.retention.physical_ceiling_bytes;
+        let previous_streak = writer
+            .query_row(
+                "SELECT value FROM store_meta
+                 WHERE key='retention_physical_breach_streak'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()?
+            .map(|value| {
+                value
+                    .parse::<u32>()
+                    .map_err(|_| MaintenanceError::InvalidMetadata {
+                        field: "retention_physical_breach_streak",
+                        value,
+                    })
+            })
+            .transpose()?
+            .unwrap_or(0);
+        let physical_breach_streak = if physical_target_breached {
+            previous_streak.saturating_add(1)
+        } else {
+            0
+        };
+        let compaction_required = physical_breach_streak >= plan.retention.physical_breach_limit;
+        let metadata = writer.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        metadata.execute(
+            "INSERT INTO store_meta(key,value)
+             VALUES ('retention_physical_baseline_bytes',?1)
+             ON CONFLICT(key) DO NOTHING",
+            [plan.retention.physical_baseline_bytes.to_string()],
+        )?;
+        metadata.execute(
+            "INSERT INTO store_meta(key,value)
+             VALUES ('retention_physical_breach_streak',?1)
+             ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            [physical_breach_streak.to_string()],
+        )?;
+        metadata.commit()?;
+        report.physical_bytes_before = plan.retention.physical_current_bytes;
+        report.physical_bytes_after = physical_bytes_after;
+        report.physical_baseline_bytes = plan.retention.physical_baseline_bytes;
+        report.physical_target_bytes = plan.retention.physical_target_bytes;
+        report.physical_ceiling_bytes = plan.retention.physical_ceiling_bytes;
+        report.physical_target_breached = physical_target_breached;
+        report.physical_ceiling_breached = physical_ceiling_breached;
+        report.physical_breach_streak = physical_breach_streak;
+        report.compaction_required = compaction_required;
         drop(writer);
         self.finish()?;
         Ok(report)
+    }
+
+    pub(crate) fn step_incremental_vacuum(
+        connection: &Connection,
+        pages_per_step: usize,
+    ) -> Result<u64, MaintenanceError> {
+        let page_budget =
+            u64::try_from(pages_per_step).map_err(|_| MaintenanceError::InvalidPolicy {
+                field: "incremental_vacuum_pages",
+            })?;
+        let mut vacuum_pages = 0_u64;
+        loop {
+            let before = sqlite_u64(connection, "PRAGMA freelist_count", "freelist_count")?;
+            if before == 0 || vacuum_pages >= page_budget {
+                return Ok(vacuum_pages);
+            }
+            let requested = before.min(page_budget - vacuum_pages);
+            connection.execute_batch(&format!("PRAGMA incremental_vacuum({requested});"))?;
+            let after = sqlite_u64(connection, "PRAGMA freelist_count", "freelist_count")?;
+            if after >= before {
+                return Err(MaintenanceError::InvalidMetadata {
+                    field: "incremental_vacuum",
+                    value: format!("freelist did not decrease from {before}"),
+                });
+            }
+            vacuum_pages = vacuum_pages.saturating_add(before - after);
+        }
     }
 
     fn safe_log_sequence(&self, plan: &MaintenancePlan) -> Result<(i64, i64), MaintenanceError> {
@@ -1999,6 +2139,11 @@ fn validate_policy(policy: &MaintenancePolicy) -> Result<(), MaintenanceError> {
             field: "retention_path_cap",
         });
     }
+    if policy.physical_breach_limit == 0 {
+        return Err(MaintenanceError::InvalidPolicy {
+            field: "physical_breach_limit",
+        });
+    }
     if policy.target_denominator == 0 || policy.ceiling_denominator == 0 {
         return Err(MaintenanceError::InvalidPolicy {
             field: "ratio_denominator",
@@ -2415,6 +2560,23 @@ fn read_policy(store: &Connection) -> Result<MaintenancePolicy, MaintenanceError
     };
     let (target_numerator, target_denominator) = ratio("retention_byte_target")?;
     let (ceiling_numerator, ceiling_denominator) = ratio("retention_byte_ceiling")?;
+    let physical_breach_limit = store
+        .query_row(
+            "SELECT value FROM store_meta WHERE key='retention_physical_breach_limit'",
+            [],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()?
+        .map(|value| {
+            value
+                .parse::<u32>()
+                .map_err(|_| MaintenanceError::InvalidMetadata {
+                    field: "retention_physical_breach_limit",
+                    value,
+                })
+        })
+        .transpose()?
+        .unwrap_or(DEFAULT_PHYSICAL_BREACH_LIMIT);
     Ok(MaintenancePolicy {
         retention_window_days: integer("retention_window_days")?,
         retention_path_cap: usize::try_from(integer("retention_path_cap")?).map_err(|_| {
@@ -2427,6 +2589,7 @@ fn read_policy(store: &Connection) -> Result<MaintenancePolicy, MaintenanceError
         target_denominator,
         ceiling_numerator,
         ceiling_denominator,
+        physical_breach_limit,
     })
 }
 
@@ -2438,18 +2601,80 @@ fn read_capacity<P: CapacityProvider>(
     let page_size = sqlite_u64(store, "PRAGMA page_size", "page_size")?;
     let page_count = sqlite_u64(store, "PRAGMA page_count", "page_count")?;
     let freelist = sqlite_u64(store, "PRAGMA freelist_count", "freelist_count")?;
+    let store_wal_bytes = file_len(Path::new(&format!(
+        "{}-wal",
+        factory.layout().store_db().display()
+    )))?;
+    let base_bytes = directory_bytes(factory.layout().bases_dir())?;
+    let scratch_bytes = directory_bytes(factory.layout().scratch_dir())?;
+    let measured_bytes = page_size
+        .saturating_mul(page_count)
+        .saturating_add(store_wal_bytes)
+        .saturating_add(base_bytes)
+        .saturating_add(scratch_bytes);
+    let retention_baseline_bytes = store
+        .query_row(
+            "SELECT value FROM store_meta
+             WHERE key='retention_physical_baseline_bytes'",
+            [],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()?
+        .map(|value| {
+            value
+                .parse::<u64>()
+                .map_err(|_| MaintenanceError::InvalidMetadata {
+                    field: "retention_physical_baseline_bytes",
+                    value,
+                })
+        })
+        .transpose()?
+        .unwrap_or(measured_bytes);
+    let retention_breach_streak = store
+        .query_row(
+            "SELECT value FROM store_meta
+             WHERE key='retention_physical_breach_streak'",
+            [],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()?
+        .map(|value| {
+            value
+                .parse::<u32>()
+                .map_err(|_| MaintenanceError::InvalidMetadata {
+                    field: "retention_physical_breach_streak",
+                    value,
+                })
+        })
+        .transpose()?
+        .unwrap_or(0);
     Ok(MaintenanceCapacity {
         free_bytes: provider.free_bytes(factory.layout().root())?,
         store_page_bytes: page_size.saturating_mul(page_count),
         store_freelist_bytes: page_size.saturating_mul(freelist),
-        store_wal_bytes: file_len(Path::new(&format!(
-            "{}-wal",
-            factory.layout().store_db().display()
-        )))?,
-        base_bytes: directory_bytes(factory.layout().bases_dir())?,
-        scratch_bytes: directory_bytes(factory.layout().scratch_dir())?,
+        store_wal_bytes,
+        base_bytes,
+        scratch_bytes,
         staged_generation_bytes: provider.staged_generation_bytes(factory.layout().root())?,
+        retention_baseline_bytes,
+        retention_breach_streak,
     })
+}
+
+fn physical_bytes(
+    store: &Connection,
+    layout: &super::layout::StoreLayout,
+) -> Result<u64, MaintenanceError> {
+    let page_size = sqlite_u64(store, "PRAGMA page_size", "page_size")?;
+    let page_count = sqlite_u64(store, "PRAGMA page_count", "page_count")?;
+    Ok(page_size
+        .saturating_mul(page_count)
+        .saturating_add(file_len(Path::new(&format!(
+            "{}-wal",
+            layout.store_db().display()
+        )))?)
+        .saturating_add(directory_bytes(layout.bases_dir())?)
+        .saturating_add(directory_bytes(layout.scratch_dir())?))
 }
 
 fn sqlite_u64(

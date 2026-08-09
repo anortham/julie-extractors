@@ -125,6 +125,7 @@ INSERT OR IGNORE INTO store_meta (key, value) VALUES
   ('retention_window_days', '7'),
   ('retention_byte_target', '1.20'),
   ('retention_byte_ceiling', '1.25'),
+  ('retention_physical_breach_limit', '3'),
   ('retention_path_cap', '24'),
   ('generation_state', 'serving');
 

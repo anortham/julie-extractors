@@ -7,9 +7,20 @@ use julie_extract_artifact::store::{
     CoordinatorError, LeaseDisposition, LeaseHolder, StoreConnectionError, StoreConnectionFactory,
     StoreCoordinator, StoreLayout,
 };
+use julie_extract_cli::store::test_support::write_all_language_fixture;
 use rusqlite::Connection;
 
 const FAMILY_ID: &str = "8d19be9c-6ca0-43d2-8f25-0818869bb901";
+
+fn write_mixed_version_fixture(root: &std::path::Path, value: i32) {
+    fs::create_dir_all(root).unwrap();
+    write_all_language_fixture(root).unwrap();
+    fs::write(
+        root.join("lib.rs"),
+        format!("pub fn value() -> i32 {{ {value} }}\n"),
+    )
+    .unwrap();
+}
 
 #[test]
 fn older_writer_requires_the_explicit_escape_and_never_lowers_stored_floors() {
@@ -18,8 +29,7 @@ fn older_writer_requires_the_explicit_escape_and_never_lowers_stored_floors() {
     let fixture = tempfile::tempdir().unwrap();
     let root = fixture.path().join("root");
     let store = fixture.path().join("store");
-    fs::create_dir(&root).unwrap();
-    fs::write(root.join("lib.rs"), "pub fn value() -> i32 { 1 }\n").unwrap();
+    write_mixed_version_fixture(&root, 1);
     assert!(
         run_store(
             &store,
@@ -98,8 +108,7 @@ fn downgrade_escape_never_bypasses_reader_or_writer_floors() {
     let fixture = tempfile::tempdir().unwrap();
     let root = fixture.path().join("root");
     let store = fixture.path().join("store");
-    fs::create_dir(&root).unwrap();
-    fs::write(root.join("lib.rs"), "pub fn value() -> i32 { 1 }\n").unwrap();
+    write_mixed_version_fixture(&root, 1);
     assert!(
         run_store(
             &store,
@@ -165,8 +174,7 @@ fn reader_floor_also_blocks_public_writer_with_downgrade_escape() {
     let fixture = tempfile::tempdir().unwrap();
     let root = fixture.path().join("root");
     let store = fixture.path().join("store");
-    fs::create_dir(&root).unwrap();
-    fs::write(root.join("lib.rs"), "pub fn value() -> i32 { 1 }\n").unwrap();
+    write_mixed_version_fixture(&root, 1);
     assert!(
         run_store(
             &store,
@@ -225,8 +233,7 @@ fn malformed_recorded_binary_is_refused_even_with_downgrade_escape() {
     let fixture = tempfile::tempdir().unwrap();
     let root = fixture.path().join("root");
     let store = fixture.path().join("store");
-    fs::create_dir(&root).unwrap();
-    fs::write(root.join("lib.rs"), "pub fn value() -> i32 { 1 }\n").unwrap();
+    write_mixed_version_fixture(&root, 1);
     assert!(
         run_store(
             &store,

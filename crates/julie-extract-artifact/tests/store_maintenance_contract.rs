@@ -5,10 +5,10 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use julie_extract_artifact::store::{
     CapacityProvider, CoordinatorRequest, DeltaVersionFact, MaintenanceApplyPolicy,
-    MaintenanceCapacity, MaintenanceClock, MaintenanceExecutor, MaintenanceInspector,
-    MaintenanceLevel, MaintenancePolicy, MaintenanceRootKind, MaintenanceRun, MaintenanceSnapshot,
-    ManifestFact, ManifestVersionFact, PlanBinding, RequestKind, StoreConnectionFactory,
-    StoreCoordinator, StoreLayout, VersionFact, plan_maintenance,
+    MaintenanceApplyReport, MaintenanceCapacity, MaintenanceClock, MaintenanceExecutor,
+    MaintenanceInspector, MaintenanceLevel, MaintenancePolicy, MaintenanceRootKind, MaintenanceRun,
+    MaintenanceSnapshot, ManifestFact, ManifestVersionFact, PlanBinding, RequestKind,
+    StoreConnectionFactory, StoreCoordinator, StoreLayout, VersionFact, plan_maintenance,
 };
 use rusqlite::{Connection, params};
 
@@ -181,6 +181,8 @@ fn capacity_is_conservative_and_demotion_cohort_is_bounded() {
         base_bytes: 16 * 1024 * 1024,
         scratch_bytes: 2 * 1024 * 1024,
         staged_generation_bytes: 48 * 1024 * 1024,
+        retention_baseline_bytes: 0,
+        retention_breach_streak: 0,
     };
     snapshot.versions = (1..=150)
         .map(|id| VersionFact {
@@ -420,6 +422,108 @@ fn gc_demotes_l3_then_l2_and_only_then_purges_whole_unrooted_versions() {
             )
             .unwrap(),
         "1,2"
+    );
+}
+
+#[test]
+fn gc_steps_incremental_vacuum_until_the_freelist_is_empty() {
+    let temp = TempStore::new("gc-physical-reclaim");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    seed_gc_level_matrix(&layout);
+    let mut store = Connection::open(layout.store_db()).unwrap();
+    store
+        .execute_batch("CREATE TABLE gc_pressure (payload BLOB NOT NULL);")
+        .unwrap();
+    let transaction = store.transaction().unwrap();
+    for _ in 0..4096 {
+        transaction
+            .execute(
+                "INSERT INTO gc_pressure(payload) VALUES (?1)",
+                [vec![0_u8; 4096]],
+            )
+            .unwrap();
+    }
+    transaction.commit().unwrap();
+    store.execute("DELETE FROM gc_pressure", []).unwrap();
+    let freelist_before: i64 = store
+        .query_row("PRAGMA freelist_count", [], |row| row.get(0))
+        .unwrap();
+    assert!(freelist_before > 64);
+    let bytes_before = fs::metadata(layout.store_db()).unwrap().len();
+
+    let plan = inspect_plan(&layout, 30 * DAY_MS);
+    let mut executor = MaintenanceExecutor::acquire(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0"),
+        MaintenanceRun::new(
+            "gc-physical",
+            "owner",
+            std::process::id(),
+            30 * DAY_MS,
+            5_000,
+        ),
+        &plan,
+    )
+    .unwrap();
+    let policy = MaintenanceApplyPolicy {
+        incremental_vacuum_pages: usize::try_from(freelist_before).unwrap(),
+        ..MaintenanceApplyPolicy::default()
+    };
+    let report = executor.apply_with_policy(&plan, &policy).unwrap();
+
+    let bytes_after = fs::metadata(layout.store_db()).unwrap().len();
+    assert_eq!(report.freelist_pages_after_vacuum, 0);
+    assert!(report.vacuum_pages >= freelist_before as u64);
+    assert!(bytes_after < bytes_before);
+}
+
+#[test]
+fn gc_persists_physical_retention_breaches_and_requests_compaction() {
+    let temp = TempStore::new("gc-physical-retention");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    seed_gc_level_matrix(&layout);
+    Connection::open(layout.store_db())
+        .unwrap()
+        .execute(
+            "INSERT INTO store_meta(key,value)
+             VALUES ('retention_physical_baseline_bytes','1')
+             ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            [],
+        )
+        .unwrap();
+
+    let mut report = MaintenanceApplyReport::default();
+    for run_number in 1..=3 {
+        let plan = inspect_plan(&layout, 30 * DAY_MS + run_number);
+        assert!(plan.retention.physical_current_bytes > plan.retention.physical_ceiling_bytes);
+        let mut executor = MaintenanceExecutor::acquire(
+            StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0"),
+            MaintenanceRun::new(
+                format!("gc-physical-{run_number}"),
+                "owner",
+                std::process::id(),
+                30 * DAY_MS + run_number,
+                5_000,
+            ),
+            &plan,
+        )
+        .unwrap();
+        report = executor.apply(&plan).unwrap();
+    }
+
+    assert!(report.physical_bytes_after > report.physical_target_bytes);
+    assert_eq!(report.physical_breach_streak, 3);
+    assert!(report.compaction_required);
+    assert_eq!(
+        Connection::open(layout.store_db())
+            .unwrap()
+            .query_row(
+                "SELECT value FROM store_meta
+                 WHERE key='retention_physical_breach_streak'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .unwrap(),
+        "3"
     );
 }
 

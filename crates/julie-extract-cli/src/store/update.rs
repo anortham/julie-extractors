@@ -12,8 +12,8 @@ use super::executor::{
 use super::import::{
     ImportClock, ImportPidLiveness, RequestReportSpec, StoreExecutionOutcome,
     absolute_runtime_path, canonical_control_paths, classify_failure, drain_when_available,
-    mint_request_id, normalize_root_relative, now_millis, open_existing_store, report_request,
-    require_existing_view, root_scope_matches,
+    mint_request_id, normalize_root_relative, now_millis, open_existing_store,
+    preflight_store_capacity, report_request, require_existing_view, root_scope_matches,
 };
 use super::report::{
     StoreOperation, StoreOutputFormat, StoreReport, StoreRequestState, StoreRequestedLevel,
@@ -134,6 +134,7 @@ fn execute_update(
         validate_target_within_root(root, &root_relative_path)?;
         let (content_hash, content_bytes) =
             crate::extraction::read_source_identity(&target).map_err(|error| error.message)?;
+        preflight_store_capacity(&args.store, content_bytes)?;
         let payload = UpdateRequestPayload {
             schema_version: 1,
             family_id: family_id.clone(),

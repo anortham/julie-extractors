@@ -769,7 +769,7 @@ impl CapacityProvider for CliCapacity {
 }
 
 #[cfg(unix)]
-fn filesystem_free_bytes(path: &Path) -> Result<u64, io::Error> {
+pub(crate) fn filesystem_free_bytes(path: &Path) -> Result<u64, io::Error> {
     let output = Command::new("df").arg("-Pk").arg(path).output()?;
     if !output.status.success() {
         return Err(io::Error::other("df failed to read filesystem capacity"));
@@ -789,7 +789,7 @@ fn filesystem_free_bytes(path: &Path) -> Result<u64, io::Error> {
 }
 
 #[cfg(windows)]
-fn filesystem_free_bytes(path: &Path) -> Result<u64, io::Error> {
+pub(crate) fn filesystem_free_bytes(path: &Path) -> Result<u64, io::Error> {
     let output = Command::new("powershell.exe")
         .args([
             "-NoProfile",

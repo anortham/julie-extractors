@@ -9,7 +9,9 @@ use std::time::{Duration, Instant};
 
 use rusqlite::Connection;
 
-use julie_extract_cli::store::test_support::write_v3_extraction_oracle;
+use julie_extract_cli::store::test_support::{
+    write_all_language_fixture, write_v3_extraction_oracle,
+};
 
 const FAMILY_INCREMENTAL: &str = "c095f60c-5655-47a4-8af6-c24e85b15001";
 const FAMILY_FRESH: &str = "c095f60c-5655-47a4-8af6-c24e85b15002";
@@ -1156,6 +1158,7 @@ fn write_multilanguage_fixture(root: &Path) {
     for (path, content) in files {
         fs::write(root.join(path), content).unwrap();
     }
+    write_all_language_fixture(root).unwrap();
 }
 
 fn normalized_visible_rows(_database: &Path) -> BTreeMap<String, Vec<String>> {
@@ -1451,22 +1454,12 @@ fn assert_required_languages(database: &Path) {
         .unwrap()
         .collect::<Result<Vec<_>, _>>()
         .unwrap();
-    for required in [
-        "csharp",
-        "json",
-        "markdown",
-        "python",
-        "razor",
-        "rust",
-        "sql",
-        "typescript",
-        "yaml",
-    ] {
-        assert!(
-            languages.iter().any(|language| language == required),
-            "{required}: {languages:?}"
-        );
-    }
+    let mut expected = julie_extractors::language::supported_languages()
+        .iter()
+        .map(|language| (*language).to_string())
+        .collect::<Vec<_>>();
+    expected.sort();
+    assert_eq!(languages, expected);
 }
 
 fn normalized_store_rows_for_v3(

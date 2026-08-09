@@ -331,16 +331,22 @@ fn materialize_export(
         .execute_batch("PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA foreign_keys=OFF;")
         .map_err(|error| error.to_string())?;
     create_schema(&output).map_err(|error| error.to_string())?;
+    output
+        .execute_batch("PRAGMA foreign_keys=OFF;")
+        .map_err(|error| error.to_string())?;
     let source = factory.open_reader().map_err(|error| error.to_string())?;
     let transaction = output.transaction().map_err(|error| error.to_string())?;
     initialize_export_metadata(&transaction, identity)?;
     insert_revision(&transaction, identity)?;
-    copy_files(&source, &transaction, identity)?;
+    copy_files(&source, &transaction, identity).map_err(|error| format!("copy_files:{error}"))?;
     for &(source_table, target_table) in VERSION_TABLES {
-        copy_version_table(&source, &transaction, identity, source_table, target_table)?;
+        copy_version_table(&source, &transaction, identity, source_table, target_table)
+            .map_err(|error| format!("copy_version_table:{source_table}:{error}"))?;
     }
-    copy_global_tables(&source, &transaction, identity)?;
-    prepare_visible_versions(&source, &transaction, identity)?;
+    copy_global_tables(&source, &transaction, identity)
+        .map_err(|error| format!("copy_global_tables:{error}"))?;
+    prepare_visible_versions(&source, &transaction, identity)
+        .map_err(|error| format!("prepare_visible_versions:{error}"))?;
     copy_resolution(
         factory,
         layout,
@@ -349,8 +355,11 @@ fn materialize_export(
         now,
         identity,
         &transaction,
-    )?;
-    transaction.commit().map_err(|error| error.to_string())?;
+    )
+    .map_err(|error| format!("copy_resolution:{error}"))?;
+    transaction
+        .commit()
+        .map_err(|error| format!("export_commit:{error}"))?;
     output
         .execute_batch("PRAGMA wal_checkpoint(TRUNCATE); PRAGMA foreign_keys=ON;")
         .map_err(|error| error.to_string())?;

@@ -373,33 +373,18 @@ fn execute_import(
                 .canonicalize()
                 .map_err(|error| error.to_string())?;
             let root_text = root.to_string_lossy().into_owned();
-            let layout = StoreLayout::create(&args.store, &args.family, env!("CARGO_PKG_VERSION"))
-                .map_err(|error| error.to_string())?;
-            let progress = args
-                .scan
-                .progress_file
-                .as_deref()
-                .map(|path| {
-                    crate::progress::ScanProgress::create_for_artifact(path, layout.store_db())
-                })
-                .transpose()
-                .map_err(|error| format!("{error:?}"))?
-                .map(Arc::new);
-            if let Some(progress) = progress.as_deref() {
-                progress.enter_phase("discovery");
-            }
             let exclusions = crate::discovery::DiscoveryExclusions {
                 progress_path: args.scan.progress_file.clone(),
                 spool_dir: args.scan.spool_dir.clone(),
             };
             let discovery = crate::discovery::DiscoveryPolicy::build_excluding(
                 &root,
-                layout.store_db(),
+                &args.store.join("gen-001").join("store.db"),
                 exclusions,
                 &args.scan.ignore_files,
             )
             .map_err(|error| format!("{error:?}"))?
-            .discover_with_progress(progress.as_deref());
+            .discover_with_progress(None);
             if let Some(error) = discovery.errors.first() {
                 return Err(error.message.clone());
             }
@@ -418,6 +403,26 @@ fn execute_import(
                 })
                 .collect::<Result<Vec<_>, String>>()?;
             files.sort_by(|left, right| left.root_relative_path.cmp(&right.root_relative_path));
+            let source_bytes = files
+                .iter()
+                .map(|file| file.content_bytes)
+                .fold(0_u64, u64::saturating_add);
+            preflight_store_capacity(&args.store, source_bytes)?;
+            let layout = StoreLayout::create(&args.store, &args.family, env!("CARGO_PKG_VERSION"))
+                .map_err(|error| error.to_string())?;
+            let progress = args
+                .scan
+                .progress_file
+                .as_deref()
+                .map(|path| {
+                    crate::progress::ScanProgress::create_for_artifact(path, layout.store_db())
+                })
+                .transpose()
+                .map_err(|error| format!("{error:?}"))?
+                .map(Arc::new);
+            if let Some(progress) = progress.as_deref() {
+                progress.enter_phase("discovery");
+            }
             let planned_payload = ImportRequestPayload {
                 schema_version: 1,
                 family_id: args.family.clone(),
@@ -804,7 +809,9 @@ pub(crate) fn trusted_store_family(layout: &StoreLayout) -> Result<String, Strin
 }
 
 pub(crate) fn classify_failure(message: &str) -> StoreFailureClass {
-    if message.contains("store_not_found") {
+    if message.contains("capacity_insufficient") {
+        StoreFailureClass::CapacityInsufficient
+    } else if message.contains("store_not_found") {
         StoreFailureClass::StoreNotFound
     } else if message.contains("view_not_found") || message.contains("ViewNotFound") {
         StoreFailureClass::ViewNotFound
@@ -867,6 +874,72 @@ pub(crate) fn now_millis() -> i64 {
         .map_or(0, |duration| {
             i64::try_from(duration.as_millis()).unwrap_or(i64::MAX)
         })
+}
+
+const STORE_CAPACITY_HEADROOM_BYTES: u64 = 64 * 1024 * 1024;
+
+pub(crate) fn required_store_capacity_bytes(source_bytes: u64) -> u64 {
+    source_bytes
+        .saturating_mul(2)
+        .saturating_add(super::executor::estimate_projected_wal_bytes(source_bytes))
+        .saturating_add(STORE_CAPACITY_HEADROOM_BYTES)
+}
+
+pub(crate) fn ensure_store_capacity(
+    available_bytes: u64,
+    required_bytes: u64,
+) -> Result<(), String> {
+    if available_bytes >= required_bytes {
+        Ok(())
+    } else {
+        Err(format!(
+            "capacity_insufficient:required_bytes={required_bytes}:available_bytes={available_bytes}"
+        ))
+    }
+}
+
+pub(crate) fn preflight_store_capacity(path: &Path, source_bytes: u64) -> Result<(), String> {
+    let mut probe = path;
+    while !probe.exists() {
+        probe = probe
+            .parent()
+            .ok_or_else(|| "capacity_probe_has_no_existing_ancestor".to_string())?;
+    }
+    let available = super::maintenance::filesystem_free_bytes(probe)
+        .map_err(|error| format!("capacity_probe_failed:{error}"))?;
+    ensure_store_capacity(available, required_store_capacity_bytes(source_bytes))
+}
+
+#[cfg(test)]
+mod capacity_tests {
+    use super::{ensure_store_capacity, preflight_store_capacity, required_store_capacity_bytes};
+
+    #[test]
+    fn capacity_preflight_rejects_a_peak_that_does_not_fit() {
+        let required = required_store_capacity_bytes(8 * 1024 * 1024);
+
+        let error = ensure_store_capacity(required - 1, required).unwrap_err();
+
+        assert!(error.starts_with("capacity_insufficient:"));
+    }
+
+    #[test]
+    fn capacity_preflight_accepts_the_exact_peak() {
+        let required = required_store_capacity_bytes(8 * 1024 * 1024);
+
+        ensure_store_capacity(required, required).unwrap();
+    }
+
+    #[test]
+    fn capacity_preflight_checks_the_filesystem_without_creating_the_store() {
+        let temp = tempfile::tempdir().unwrap();
+        let store = temp.path().join("new-store");
+
+        let error = preflight_store_capacity(&store, u64::MAX).unwrap_err();
+
+        assert!(error.starts_with("capacity_insufficient:"));
+        assert!(!store.exists());
+    }
 }
 
 pub(crate) fn drain_when_available(

@@ -352,6 +352,10 @@ fn store_meta_seeds_only_schema_and_retention_defaults() {
             ("generation_state".to_string(), "serving".to_string()),
             ("retention_byte_ceiling".to_string(), "1.25".to_string()),
             ("retention_byte_target".to_string(), "1.20".to_string()),
+            (
+                "retention_physical_breach_limit".to_string(),
+                "3".to_string(),
+            ),
             ("retention_path_cap".to_string(), "24".to_string()),
             ("retention_window_days".to_string(), "7".to_string()),
             (
