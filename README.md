@@ -88,7 +88,7 @@ layering and precedence contract.
 
 ## Versioned family store
 
-The v2.31.0 release candidate adds a separate family-store contract without changing legacy
+The v2.31.1 release provides a separate family-store contract without changing legacy
 `scan`, `update`, `delete`, `info`, or `export` artifacts. A family store keeps immutable file
 versions, coherent per-view manifests, durable queued requests, exact resolution bases/deltas, and
 retained store generations behind an atomic `CURRENT` pointer.
@@ -104,8 +104,8 @@ Mutating maintenance commands require `--apply`. `gc` performs bounded retention
 reclamation; `repair` validates and checkpoint-recovers; `promote` builds and atomically publishes a
 validated new generation. See the [store CLI contract](docs/contracts/cli.md),
 [store contract](docs/contracts/store-v1.md), and
-[architecture](docs/architecture/versioned-index-store.md). Miller does not use this store yet;
-consumer wiring is the next integration phase.
+[architecture](docs/architecture/versioned-index-store.md). Miller Ph3 consumer wiring targets this
+contract; Miller keeps store mode explicit until its own release and scale-default decision.
 
 ## Artifact contract
 
