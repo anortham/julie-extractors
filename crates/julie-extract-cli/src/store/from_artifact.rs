@@ -590,7 +590,7 @@ pub(crate) fn materialize_resolution_base(
         .map(|file| (file.path.as_str(), file.file_id.as_str()))
         .collect::<BTreeMap<_, _>>();
     let base_id = format!(
-        "from-artifact-{manifest_hash}-{}",
+        "base-{manifest_hash}-{}",
         payload.source.resolver_output_epoch
     );
     let file_name = format!("{base_id}.db");

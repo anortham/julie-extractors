@@ -489,6 +489,7 @@ fn current_v3_artifact_imports_full_rows_and_binds_exact() {
     assert_eq!(report["completion"]["l3"], true);
     assert_eq!(report["resolution"]["state"], "exact");
     assert_eq!(report["resolution"]["exact_at_matches"], true);
+    resolve(&store);
 
     let source = Connection::open(&artifact).unwrap();
     let imported = Connection::open(store.join("gen-001/store.db")).unwrap();
