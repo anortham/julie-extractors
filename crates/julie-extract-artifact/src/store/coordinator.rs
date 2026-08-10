@@ -1324,8 +1324,7 @@ impl StoreCoordinator {
         }
         let service_now = self.clock.now_ms();
         let wall_now = system_now_ms();
-        if !self.heartbeat_lease_for(holder, fencing_token, wall_now, policy.lease_duration_ms)?
-        {
+        if !self.heartbeat_lease_for(holder, fencing_token, wall_now, policy.lease_duration_ms)? {
             return Err(CoordinatorError::LeaseLost);
         }
         if !self.claim_request(
@@ -1444,8 +1443,7 @@ impl StoreCoordinator {
             }
         };
         let wall_now = system_now_ms();
-        if !self.heartbeat_lease_for(holder, fencing_token, wall_now, policy.lease_duration_ms)?
-        {
+        if !self.heartbeat_lease_for(holder, fencing_token, wall_now, policy.lease_duration_ms)? {
             return Err(CoordinatorError::LeaseLost);
         }
         transaction.commit()?;
@@ -1459,8 +1457,7 @@ impl StoreCoordinator {
         }
         let service_now = self.clock.now_ms();
         let wall_now = system_now_ms();
-        if !self.heartbeat_lease_for(holder, fencing_token, wall_now, policy.lease_duration_ms)?
-        {
+        if !self.heartbeat_lease_for(holder, fencing_token, wall_now, policy.lease_duration_ms)? {
             return Err(CoordinatorError::LeaseLost);
         }
         if completed {

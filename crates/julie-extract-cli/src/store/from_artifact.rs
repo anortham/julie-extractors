@@ -691,9 +691,7 @@ pub(crate) fn materialize_resolution_base(
             if prior_request_id != request_id
                 && !prior_building_owner_is_reclaimable(family_root, &prior_request_id)?
             {
-                return Err(format!(
-                    "resolution_base_building_busy:{prior_request_id}"
-                ));
+                return Err(format!("resolution_base_building_busy:{prior_request_id}"));
             }
             transaction
                 .execute(
