@@ -787,8 +787,13 @@ fn validate_catalog_identity(
     Ok(())
 }
 
-fn base_id(manifest_hash: &str, resolver_output_epoch: i64) -> String {
+/// Canonical catalog and on-disk base identity shared by import and resolve.
+pub fn resolution_base_id(manifest_hash: &str, resolver_output_epoch: i64) -> String {
     format!("base-{manifest_hash}-{resolver_output_epoch}")
+}
+
+fn base_id(manifest_hash: &str, resolver_output_epoch: i64) -> String {
+    resolution_base_id(manifest_hash, resolver_output_epoch)
 }
 
 fn manifest_source_versions(

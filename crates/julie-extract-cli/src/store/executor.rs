@@ -1065,36 +1065,14 @@ impl StoreRequestExecutor {
             &payload,
             generation,
             &manifest_hash,
+            &request.request_id,
+            &indexed_at,
         )?;
         store_test_crash!("from_artifact_base_before_catalog");
         let identifier_count = i64::try_from(base.identity.counts.identifiers)
             .map_err(|_| "resolution_identifier_count_out_of_range".to_string())?;
         let pending_count = i64::try_from(base.identity.counts.pending)
             .map_err(|_| "resolution_pending_count_out_of_range".to_string())?;
-        let file_bytes = i64::try_from(base.identity.file_bytes)
-            .map_err(|_| "resolution_file_size_out_of_range".to_string())?;
-        transaction
-            .execute(
-                "INSERT INTO resolution_bases
-                 (base_id,manifest_hash,resolver_output_epoch,state,relative_path,
-                  identifier_count,pending_count,file_bytes,file_sha256,request_id,
-                  created_at,updated_at)
-                 VALUES (?1,?2,?3,'ready',?4,?5,?6,?7,?8,?9,?10,?10)
-                 ON CONFLICT(base_id) DO NOTHING",
-                rusqlite::params![
-                    base.base_id,
-                    manifest_hash,
-                    payload.source.resolver_output_epoch,
-                    base.relative_path,
-                    identifier_count,
-                    pending_count,
-                    file_bytes,
-                    base.identity.file_sha256,
-                    request.request_id,
-                    indexed_at,
-                ],
-            )
-            .map_err(|error| error.to_string())?;
         let registered: (String, i64, String, i64, i64) = transaction
             .query_row(
                 "SELECT manifest_hash,resolver_output_epoch,file_sha256,
@@ -1123,15 +1101,10 @@ impl StoreRequestExecutor {
         {
             return Err("resolution_base_catalog_identity_mismatch".to_string());
         }
-        for version_id in &base.source_versions {
-            transaction
-                .execute(
-                    "INSERT OR IGNORE INTO resolution_base_versions(base_id,version_id)
-                     VALUES (?1,?2)",
-                    rusqlite::params![base.base_id, version_id],
-                )
-                .map_err(|error| error.to_string())?;
-        }
+        debug_assert!(
+            base.already_ready
+                || registered.2 == base.identity.file_sha256
+        );
         let delta_generation: i64 = transaction
             .query_row(
                 "SELECT COALESCE(MAX(delta_generation),0) FROM resolution_deltas WHERE view_id=?1",

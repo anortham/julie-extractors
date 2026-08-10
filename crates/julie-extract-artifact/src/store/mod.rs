@@ -64,7 +64,7 @@ pub use resolution::{
     ResolutionIdentifierRow, ResolutionPendingRow, ResolutionPublicationFence,
     ResolutionPublicationMarker, ResolutionSemanticCounts, ResolutionValidationError,
     ResolutionViewBinding, create_resolution_scratch_connection, resolution_base_catalog_hash,
-    resolution_base_catalog_hash_for_sql,
+    resolution_base_catalog_hash_for_sql, resolution_base_id,
 };
 pub use resolution_diff::{
     RESOLUTION_SCRATCH_FORMAT_VERSION, RESOLUTION_SCRATCH_SQL, RESOLUTION_SCRATCH_USER_VERSION,
