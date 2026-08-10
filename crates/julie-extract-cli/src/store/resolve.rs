@@ -350,7 +350,16 @@ fn resolve_claimed(
         with_writer_lease(coordinator, holder, deadline, |_coordinator, fencing_token| {
             heartbeat.ensure_live()?;
             ensure_resolve_claim(layout, request, holder)?;
-            append_resolution_terminal(layout, request, &binding, None, None)?;
+            append_resolution_terminal(
+                &factory,
+                layout,
+                holder,
+                fencing_token,
+                request,
+                &binding,
+                None,
+                None,
+            )?;
             ResolutionBindingStore::new(fenced_factory(&factory, layout, holder, fencing_token))
                 .release_pin(&pin_id, ResolutionPinOwnerKind::Resolve, &holder.holder_id)
                 .map_err(|error| format!("resolution_failed: {error}"))?;
@@ -437,7 +446,18 @@ fn resolve_claimed(
             .map_err(|error| format!("resolution_failed: {error}"))?;
         #[cfg(feature = "test-store-resolution-contract")]
         julie_extract_artifact::store::test_hooks::crash_if("resolution_exact_after_store_commit");
-        append_resolution_terminal(layout, request, &published, Some(&scratch), Some(&gaps))?;
+        #[cfg(feature = "test-store-resolution-contract")]
+        pause_after_exact_publish_for_test()?;
+        append_resolution_terminal(
+            &factory,
+            layout,
+            holder,
+            fencing_token,
+            request,
+            &published,
+            Some(&scratch),
+            Some(&gaps),
+        )?;
         fenced_bindings
             .release_pin(&pin_id, ResolutionPinOwnerKind::Resolve, &holder.holder_id)
             .map_err(|error| format!("resolution_failed: {error}"))?;
@@ -577,15 +597,20 @@ fn normalize_dead_writer_lease(
 }
 
 fn append_resolution_terminal(
+    factory: &StoreConnectionFactory,
     layout: &StoreLayout,
+    holder: &LeaseHolder,
+    fencing_token: i64,
     request: &CoordinatorRequest,
     binding: &ResolutionViewBinding,
     scratch: Option<&ResolutionScratchReader>,
     gaps: Option<&[ResolutionGapFact]>,
 ) -> Result<(), String> {
-    let mut connection = Connection::open(layout.store_db()).map_err(|error| error.to_string())?;
+    let mut connection = fenced_factory(factory, layout, holder, fencing_token)
+        .open_writer()
+        .map_err(|error| format!("resolution_failed: {error}"))?;
     let transaction = connection
-        .transaction()
+        .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
         .map_err(|error| error.to_string())?;
     if StoreLog::committed_in_fact(&transaction, &request.request_id)
         .map_err(|error| error.to_string())?
@@ -943,11 +968,27 @@ fn remove_sqlite_if_exists(path: &std::path::Path) -> Result<(), String> {
 
 #[cfg(feature = "test-store-resolution-contract")]
 fn pause_after_claim_for_test() -> Result<(), String> {
-    let Ok(ready_path) = std::env::var("JULIE_EXTRACT_STORE_RESOLUTION_PAUSE_FILE") else {
+    pause_on_env_file(
+        "JULIE_EXTRACT_STORE_RESOLUTION_PAUSE_FILE",
+        b"claimed",
+    )
+}
+
+#[cfg(feature = "test-store-resolution-contract")]
+fn pause_after_exact_publish_for_test() -> Result<(), String> {
+    pause_on_env_file(
+        "JULIE_EXTRACT_STORE_RESOLUTION_PAUSE_AFTER_EXACT_FILE",
+        b"exact",
+    )
+}
+
+#[cfg(feature = "test-store-resolution-contract")]
+fn pause_on_env_file(env_var: &str, ready_bytes: &[u8]) -> Result<(), String> {
+    let Ok(ready_path) = std::env::var(env_var) else {
         return Ok(());
     };
     let ready_path = std::path::PathBuf::from(ready_path);
-    fs::write(&ready_path, b"claimed").map_err(|error| error.to_string())?;
+    fs::write(&ready_path, ready_bytes).map_err(|error| error.to_string())?;
     let resume_path = ready_path.with_extension("resume");
     while !resume_path.exists() {
         thread::sleep(Duration::from_millis(10));
