@@ -406,6 +406,7 @@ pub struct MaintenanceExecutor {
     run: MaintenanceRun,
     fencing_token: i64,
     source_min_writer_version: String,
+    capacity: Box<dyn CapacityProvider + Send + Sync>,
 }
 
 impl MaintenancePlan {
@@ -981,8 +982,9 @@ impl MaintenanceExecutor {
         factory: StoreConnectionFactory,
         run: MaintenanceRun,
         plan: &MaintenancePlan,
+        capacity: impl CapacityProvider + Send + Sync + 'static,
     ) -> Result<Self, MaintenanceError> {
-        Self::acquire_for_action(factory, run, plan, MaintenanceAction::Gc)
+        Self::acquire_for_action(factory, run, plan, MaintenanceAction::Gc, capacity)
     }
 
     pub fn acquire_for_action(
@@ -990,8 +992,10 @@ impl MaintenanceExecutor {
         run: MaintenanceRun,
         plan: &MaintenancePlan,
         action: MaintenanceAction,
+        capacity: impl CapacityProvider + Send + Sync + 'static,
     ) -> Result<Self, MaintenanceError> {
         validate_run(&run)?;
+        let capacity: Box<dyn CapacityProvider + Send + Sync> = Box::new(capacity);
         let capacity_fits = match action {
             MaintenanceAction::Gc | MaintenanceAction::Repair => plan.capacity.gc_fits,
             MaintenanceAction::Promote | MaintenanceAction::Rollback => {
@@ -1001,13 +1005,17 @@ impl MaintenanceExecutor {
         if !capacity_fits {
             return Err(MaintenanceError::CapacityInsufficient);
         }
+        ensure_live_capacity(
+            capacity.as_ref(),
+            factory.layout().root(),
+            required_bytes_for_action(plan, action),
+        )?;
         factory.validate_writer_compatibility()?;
         let observed = MaintenanceInspector::new(
             factory.clone(),
             RevalidationClock(run.now_ms),
-            RevalidationCapacity {
-                free_bytes: plan.capacity.facts.free_bytes,
-                staged_generation_bytes: plan.capacity.facts.staged_generation_bytes,
+            LiveCapacityProbe {
+                provider: capacity.as_ref(),
             },
         )
         .inspect()?;
@@ -1140,6 +1148,7 @@ impl MaintenanceExecutor {
             run,
             fencing_token,
             source_min_writer_version,
+            capacity,
         };
         #[cfg(feature = "test-store-crash")]
         super::test_hooks::crash_if("maintenance_after_intent_before_floor");
@@ -1149,6 +1158,25 @@ impl MaintenanceExecutor {
             return Err(error);
         }
         Ok(executor)
+    }
+
+    pub(crate) fn ensure_gc_capacity(&self, plan: &MaintenancePlan) -> Result<(), MaintenanceError> {
+        ensure_live_capacity(
+            self.capacity.as_ref(),
+            self.factory.layout().root(),
+            plan.capacity.gc_required_bytes,
+        )
+    }
+
+    pub(crate) fn ensure_promotion_capacity(
+        &self,
+        plan: &MaintenancePlan,
+    ) -> Result<(), MaintenanceError> {
+        ensure_live_capacity(
+            self.capacity.as_ref(),
+            self.factory.layout().root(),
+            plan.capacity.promotion_required_bytes,
+        )
     }
 
     pub(crate) fn factory(&self) -> &StoreConnectionFactory {
@@ -1309,6 +1337,8 @@ impl MaintenanceExecutor {
         }
         self.validate_ownership(plan)?;
         self.validate_plan_binding(plan)?;
+        // Live free-bytes re-probe before first mutative step (scratch purge).
+        self.ensure_gc_capacity(plan)?;
         let scratch_files = terminal_request_scratch_files(self.factory.layout())?;
         let mut report = MaintenanceApplyReport::default();
         for path in scratch_files {
@@ -1344,6 +1374,8 @@ impl MaintenanceExecutor {
             )
             .optional()?
             .unwrap_or(0);
+        // Re-probe again immediately before first GC delete/demotion cohort.
+        self.ensure_gc_capacity(plan)?;
         report.removed_pins = transaction.execute(
             "DELETE FROM resolution_pins
              WHERE CAST(strftime('%s',expires_at) AS INTEGER)<=?1",
@@ -1737,9 +1769,8 @@ impl MaintenanceExecutor {
         let observed = MaintenanceInspector::new(
             self.factory.clone(),
             RevalidationClock(self.run.now_ms),
-            RevalidationCapacity {
-                free_bytes: plan.capacity.facts.free_bytes,
-                staged_generation_bytes: plan.capacity.facts.staged_generation_bytes,
+            LiveCapacityProbe {
+                provider: self.capacity.as_ref(),
             },
         )
         .inspect()?;
@@ -1754,9 +1785,8 @@ impl MaintenanceExecutor {
         let observed = MaintenanceInspector::new(
             self.factory.clone(),
             RevalidationClock(self.run.now_ms),
-            RevalidationCapacity {
-                free_bytes: plan.capacity.facts.free_bytes,
-                staged_generation_bytes: plan.capacity.facts.staged_generation_bytes,
+            LiveCapacityProbe {
+                provider: self.capacity.as_ref(),
             },
         )
         .inspect()?;
@@ -1782,9 +1812,8 @@ impl MaintenanceExecutor {
         let observed = MaintenanceInspector::new(
             self.factory.clone(),
             RevalidationClock(self.run.now_ms),
-            RevalidationCapacity {
-                free_bytes: plan.capacity.facts.free_bytes,
-                staged_generation_bytes: plan.capacity.facts.staged_generation_bytes,
+            LiveCapacityProbe {
+                provider: self.capacity.as_ref(),
             },
         )
         .inspect()?;
@@ -1963,19 +1992,39 @@ impl MaintenanceClock for RevalidationClock {
     }
 }
 
-struct RevalidationCapacity {
-    free_bytes: u64,
-    staged_generation_bytes: u64,
+struct LiveCapacityProbe<'a> {
+    provider: &'a dyn CapacityProvider,
 }
 
-impl CapacityProvider for RevalidationCapacity {
-    fn free_bytes(&self, _path: &Path) -> Result<u64, io::Error> {
-        Ok(self.free_bytes)
+impl CapacityProvider for LiveCapacityProbe<'_> {
+    fn free_bytes(&self, path: &Path) -> Result<u64, io::Error> {
+        self.provider.free_bytes(path)
     }
 
-    fn staged_generation_bytes(&self, _path: &Path) -> Result<u64, io::Error> {
-        Ok(self.staged_generation_bytes)
+    fn staged_generation_bytes(&self, path: &Path) -> Result<u64, io::Error> {
+        self.provider.staged_generation_bytes(path)
     }
+}
+
+fn required_bytes_for_action(plan: &MaintenancePlan, action: MaintenanceAction) -> u64 {
+    match action {
+        MaintenanceAction::Gc | MaintenanceAction::Repair => plan.capacity.gc_required_bytes,
+        MaintenanceAction::Promote | MaintenanceAction::Rollback => {
+            plan.capacity.promotion_required_bytes
+        }
+    }
+}
+
+fn ensure_live_capacity(
+    provider: &dyn CapacityProvider,
+    root: &Path,
+    required_bytes: u64,
+) -> Result<(), MaintenanceError> {
+    let free_bytes = provider.free_bytes(root)?;
+    if free_bytes < required_bytes {
+        return Err(MaintenanceError::CapacityInsufficient);
+    }
+    Ok(())
 }
 
 fn validate_run(run: &MaintenanceRun) -> Result<(), MaintenanceError> {

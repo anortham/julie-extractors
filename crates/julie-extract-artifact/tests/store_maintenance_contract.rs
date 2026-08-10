@@ -1,15 +1,16 @@
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use julie_extract_artifact::store::{
     CapacityProvider, CoordinatorRequest, DeltaVersionFact, MaintenanceApplyPolicy,
-    MaintenanceApplyReport, MaintenanceCapacity, MaintenanceClock, MaintenanceExecutor,
-    MaintenanceInspector, MaintenanceLevel, MaintenancePolicy, MaintenanceRootKind, MaintenanceRun,
-    MaintenanceSnapshot, ManifestFact, ManifestVersionFact, PlanBinding, RequestKind,
-    StoreConnectionError, StoreConnectionFactory, StoreCoordinator, StoreLayout, VersionFact,
-    plan_maintenance,
+    MaintenanceApplyReport, MaintenanceCapacity, MaintenanceClock, MaintenanceError,
+    MaintenanceExecutor, MaintenanceInspector, MaintenanceLevel, MaintenancePolicy,
+    MaintenanceRootKind, MaintenanceRun, MaintenanceSnapshot, ManifestFact, ManifestVersionFact,
+    PlanBinding, RequestKind, StoreConnectionError, StoreConnectionFactory, StoreCoordinator,
+    StoreLayout, VersionFact, plan_maintenance,
 };
 use rusqlite::{Connection, params};
 
@@ -347,6 +348,7 @@ fn dead_maintenance_owner_is_replaced_before_its_expiry() {
             5_000,
         ),
         &plan,
+        FixedCapacity,
     )
     .unwrap();
 
@@ -375,6 +377,7 @@ fn gc_demotes_l3_then_l2_and_only_then_purges_whole_unrooted_versions() {
         StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0"),
         MaintenanceRun::new("gc-1", "owner", std::process::id(), 30 * DAY_MS, 5_000),
         &first,
+        FixedCapacity,
     )
     .unwrap();
     let first_report = executor.apply(&first).unwrap();
@@ -395,6 +398,7 @@ fn gc_demotes_l3_then_l2_and_only_then_purges_whole_unrooted_versions() {
         StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0"),
         MaintenanceRun::new("gc-2", "owner", std::process::id(), 30 * DAY_MS + 1, 5_000),
         &second,
+        FixedCapacity,
     )
     .unwrap();
     let second_report = executor.apply(&second).unwrap();
@@ -409,6 +413,7 @@ fn gc_demotes_l3_then_l2_and_only_then_purges_whole_unrooted_versions() {
         StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0"),
         MaintenanceRun::new("gc-3", "owner", std::process::id(), 30 * DAY_MS + 2, 5_000),
         &third,
+        FixedCapacity,
     )
     .unwrap();
     let third_report = executor.apply(&third).unwrap();
@@ -463,6 +468,7 @@ fn gc_steps_incremental_vacuum_until_the_freelist_is_empty() {
             5_000,
         ),
         &plan,
+        FixedCapacity,
     )
     .unwrap();
     let policy = MaintenanceApplyPolicy {
@@ -506,6 +512,7 @@ fn gc_persists_physical_retention_breaches_and_requests_compaction() {
                 5_000,
             ),
             &plan,
+            FixedCapacity,
         )
         .unwrap();
         report = executor.apply(&plan).unwrap();
@@ -594,6 +601,7 @@ fn gc_retires_manifest_entries_before_their_parent_manifests() {
             5_000,
         ),
         &plan,
+        FixedCapacity,
     )
     .unwrap();
     let report = executor.apply(&plan).unwrap();
@@ -662,6 +670,7 @@ fn gc_archives_terminal_requests_before_pruning_their_store_log() {
             5_000,
         ),
         &plan,
+        FixedCapacity,
     )
     .unwrap();
     let report = executor
@@ -737,6 +746,7 @@ fn malformed_or_ahead_consumer_cursors_block_request_log_pruning() {
             StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0"),
             MaintenanceRun::new(name, "owner", std::process::id(), 30 * DAY_MS, 5_000),
             &plan,
+            FixedCapacity,
         )
         .unwrap();
         let error = executor
@@ -812,6 +822,7 @@ fn hundred_version_cohorts_persist_a_cursor_and_resume_without_duplicates_or_gap
             5_000,
         ),
         &first,
+        FixedCapacity,
     )
     .unwrap();
     let first_report = executor.apply(&first).unwrap();
@@ -838,6 +849,7 @@ fn hundred_version_cohorts_persist_a_cursor_and_resume_without_duplicates_or_gap
             5_000,
         ),
         &second,
+        FixedCapacity,
     )
     .unwrap();
     let second_report = executor.apply(&second).unwrap();
@@ -894,6 +906,7 @@ fn terminal_request_scratch_is_reaped_while_live_request_scratch_is_preserved() 
             5_000,
         ),
         &plan,
+        FixedCapacity,
     )
     .unwrap();
     let report = executor.apply(&plan).unwrap();
@@ -919,6 +932,69 @@ fn terminal_request_scratch_is_reaped_while_live_request_scratch_is_preserved() 
     );
 }
 
+#[test]
+fn apply_refuses_when_live_free_bytes_drop_below_required_headroom() {
+    let temp = TempStore::new("gc-capacity-reprobe");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    seed_gc_level_matrix(&layout);
+    Connection::open(layout.coordinator_db())
+        .unwrap()
+        .execute(
+            "INSERT INTO requests
+             (request_id,idempotency_key,kind,payload_json,state,requester_id,requester_deadline,
+              claim_owner,claim_heartbeat_at,terminal_log_sequence,result_json,error_json,
+              created_at,updated_at)
+             VALUES ('failed-request','failed-idem','resolve','{}','failed','cli',NULL,NULL,NULL,
+                     NULL,NULL,'{}',1,1)",
+            [],
+        )
+        .unwrap();
+    fs::write(
+        layout.scratch_dir().join("resolve-exact-failed-request.db"),
+        b"scratch",
+    )
+    .unwrap();
+
+    let plan = inspect_plan(&layout, 30 * DAY_MS);
+    assert!(plan.capacity.gc_fits);
+    assert!(plan.capacity.gc_required_bytes > 0);
+    assert!(!plan.demotion_cohort.is_empty());
+
+    let free_bytes = Arc::new(AtomicU64::new(512 * 1024 * 1024));
+    let capacity = ControllableCapacity {
+        free_bytes: Arc::clone(&free_bytes),
+    };
+    let mut executor = MaintenanceExecutor::acquire(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0"),
+        MaintenanceRun::new(
+            "gc-capacity",
+            "owner",
+            std::process::id(),
+            30 * DAY_MS,
+            5_000,
+        ),
+        &plan,
+        capacity,
+    )
+    .unwrap();
+
+    free_bytes.store(0, Ordering::SeqCst);
+    let error = executor.apply(&plan).unwrap_err();
+    assert!(
+        matches!(error, MaintenanceError::CapacityInsufficient),
+        "expected capacity_insufficient, got {error:?}"
+    );
+
+    assert!(
+        layout
+            .scratch_dir()
+            .join("resolve-exact-failed-request.db")
+            .exists(),
+        "scratch must remain when capacity re-probe refuses apply"
+    );
+    assert_level_state(&layout, 2, true, true, 1, 1);
+    assert_level_state(&layout, 3, true, true, 1, 1);
+}
 
 #[test]
 fn acquire_raises_source_writer_floor_and_mirrors_intent() {
@@ -929,6 +1005,7 @@ fn acquire_raises_source_writer_floor_and_mirrors_intent() {
         StoreConnectionFactory::new(layout.clone(), "family-a", "2.31.0"),
         MaintenanceRun::new("floor-run", "owner", std::process::id(), 30 * DAY_MS, 5_000),
         &plan,
+        FixedCapacity,
     )
     .unwrap();
 
@@ -989,6 +1066,7 @@ fn finish_restores_serving_source_floor_and_clears_intent_mirrors() {
         StoreConnectionFactory::new(layout.clone(), "family-a", "2.31.0"),
         MaintenanceRun::new("restore-run", "owner", std::process::id(), 30 * DAY_MS, 5_000),
         &plan,
+        FixedCapacity,
     )
     .unwrap();
     assert_eq!(
@@ -1466,6 +1544,21 @@ struct FixedCapacity;
 impl CapacityProvider for FixedCapacity {
     fn free_bytes(&self, _path: &Path) -> Result<u64, std::io::Error> {
         Ok(512 * 1024 * 1024)
+    }
+
+    fn staged_generation_bytes(&self, _path: &Path) -> Result<u64, std::io::Error> {
+        Ok(64 * 1024 * 1024)
+    }
+}
+
+#[derive(Clone)]
+struct ControllableCapacity {
+    free_bytes: Arc<AtomicU64>,
+}
+
+impl CapacityProvider for ControllableCapacity {
+    fn free_bytes(&self, _path: &Path) -> Result<u64, std::io::Error> {
+        Ok(self.free_bytes.load(Ordering::SeqCst))
     }
 
     fn staged_generation_bytes(&self, _path: &Path) -> Result<u64, std::io::Error> {

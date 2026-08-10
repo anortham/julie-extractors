@@ -55,6 +55,7 @@ fn every_promotion_boundary_recovers_the_same_generation_without_duplicates() {
             ),
             &plan,
             MaintenanceAction::Promote,
+            FixedCapacity,
         )
         .unwrap();
         let report = retry.promote(&plan, &GenerationPolicy::default()).unwrap();
@@ -109,6 +110,7 @@ fn dead_partial_owner_is_replaced_before_its_expiry() {
         ),
         &plan,
         MaintenanceAction::Promote,
+        FixedCapacity,
     )
     .unwrap();
     let report = retry.promote(&plan, &GenerationPolicy::default()).unwrap();
@@ -191,6 +193,7 @@ fn crash_between_intent_and_floor_blocks_foreign_writers_via_intent_alone() {
         ),
         &plan,
         MaintenanceAction::Promote,
+        FixedCapacity,
     )
     .unwrap();
     let report = retry.promote(&plan, &GenerationPolicy::default()).unwrap();
@@ -219,6 +222,7 @@ fn generation_promotion_crash_worker() {
         ),
         &plan,
         MaintenanceAction::Promote,
+        FixedCapacity,
     )
     .unwrap();
     lifecycle

@@ -329,6 +329,7 @@ fn promote_destination_keeps_pre_maintenance_floor_and_drops_tmp_mirrors() {
         MaintenanceRun::new("promote-floor", "owner", std::process::id(), 1_000, 30_000),
         &plan,
         MaintenanceAction::Promote,
+        FixedCapacity,
     )
     .unwrap();
 

@@ -29,6 +29,7 @@ fn promotion_streams_exact_rows_and_advances_current() {
         MaintenanceRun::new("promote-1", "owner", std::process::id(), 1_000, 30_000),
         &plan,
         MaintenanceAction::Promote,
+        FixedCapacity,
     )
     .unwrap();
 
@@ -81,6 +82,7 @@ fn promotion_refuses_a_base_file_identity_mismatch_without_moving_current() {
         MaintenanceRun::new("promote-base", "owner", std::process::id(), 1_000, 30_000),
         &plan,
         MaintenanceAction::Promote,
+        FixedCapacity,
     )
     .unwrap();
 
@@ -165,6 +167,7 @@ fn repair_stops_after_checkpoint_when_the_serving_generation_is_valid() {
         MaintenanceRun::new("repair-1", "owner", std::process::id(), 1_000, 30_000),
         &plan,
         MaintenanceAction::Repair,
+        FixedCapacity,
     )
     .unwrap();
 
@@ -218,6 +221,7 @@ fn logical_copy_is_bounded_by_the_configured_primary_key_window() {
         MaintenanceRun::new("promote-window", "owner", std::process::id(), 1_000, 30_000),
         &plan,
         MaintenanceAction::Promote,
+        FixedCapacity,
     )
     .unwrap();
 
@@ -376,6 +380,7 @@ fn forward_rollback_preserves_latest_logs_and_allocators_with_new_visible_identi
         MaintenanceRun::new("promote-1", "owner", std::process::id(), 1_000, 30_000),
         &first_plan,
         MaintenanceAction::Promote,
+        FixedCapacity,
     )
     .unwrap();
     promotion
@@ -389,6 +394,7 @@ fn forward_rollback_preserves_latest_logs_and_allocators_with_new_visible_identi
         MaintenanceRun::new("rollback-1", "owner", std::process::id(), 2_000, 30_000),
         &rollback_plan,
         MaintenanceAction::Rollback,
+        FixedCapacity,
     )
     .unwrap();
 
@@ -496,6 +502,7 @@ fn forward_rollback_refuses_conflicting_immutable_identity() {
         ),
         &plan,
         MaintenanceAction::Rollback,
+        FixedCapacity,
     )
     .unwrap();
 
@@ -537,6 +544,7 @@ fn forward_rollback_rebinds_exact_resolution_with_fresh_manifest_and_delta_ids()
         ),
         &plan,
         MaintenanceAction::Rollback,
+        FixedCapacity,
     )
     .unwrap();
 
@@ -807,6 +815,7 @@ fn promote_once(
         MaintenanceRun::new(run_id, "owner", std::process::id(), now_ms, 30_000),
         &plan,
         MaintenanceAction::Promote,
+        FixedCapacity,
     )
     .unwrap();
     lifecycle.promote(&plan, policy).unwrap();

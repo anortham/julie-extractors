@@ -99,6 +99,7 @@ fn apply_repair(context: MaintenanceContext, format: StoreOutputFormat) -> Store
         run,
         &context.plan,
         MaintenanceAction::Repair,
+        CliCapacity,
     ) {
         Ok(lifecycle) => lifecycle,
         Err(error) => {
@@ -140,6 +141,7 @@ fn apply_promotion(
         run,
         &context.plan,
         MaintenanceAction::Promote,
+        CliCapacity,
     ) {
         Ok(lifecycle) => lifecycle,
         Err(error) => {
@@ -174,7 +176,12 @@ fn apply_promotion(
 fn apply_gc(context: MaintenanceContext, format: StoreOutputFormat) -> StoreExecutionOutcome {
     let run = maintenance_run();
     let run_id = run.run_id.clone();
-    let mut executor = match MaintenanceExecutor::acquire(context.factory, run, &context.plan) {
+    let mut executor = match MaintenanceExecutor::acquire(
+        context.factory,
+        run,
+        &context.plan,
+        CliCapacity,
+    ) {
         Ok(executor) => executor,
         Err(error) => {
             return failure(

@@ -10,7 +10,9 @@ use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior, pa
 
 use super::coordinator::process_status;
 use super::layout::{initialize_store_database, named_generations, sync_directory, sync_file};
-use super::maintenance::{MaintenanceError, MaintenanceExecutor, MaintenancePlan, MaintenanceRun};
+use super::maintenance::{
+    CapacityProvider, MaintenanceError, MaintenanceExecutor, MaintenancePlan, MaintenanceRun,
+};
 use super::resolution::{resolution_file_bytes, resolution_file_sha256};
 use super::{
     MaintenanceAction, PartialGenerationOwner, PidStatus, StoreConnectionError,
@@ -70,11 +72,13 @@ impl GenerationLifecycle {
         run: MaintenanceRun,
         plan: &MaintenancePlan,
         action: MaintenanceAction,
+        capacity: impl CapacityProvider + Send + Sync + 'static,
     ) -> Result<Self, GenerationError> {
         if action == MaintenanceAction::Gc {
             return Err(GenerationError::InvalidAction(action));
         }
-        let executor = MaintenanceExecutor::acquire_for_action(factory, run, plan, action)?;
+        let executor =
+            MaintenanceExecutor::acquire_for_action(factory, run, plan, action, capacity)?;
         executor.release_writer_for_generation_build(plan)?;
         Ok(Self { executor, action })
     }
@@ -185,6 +189,8 @@ impl GenerationLifecycle {
         if let Some(report) = self.recover_named_successor(plan, policy, &source)? {
             return Ok(report);
         }
+        // Live free-bytes re-probe before generation staging/create.
+        self.executor.ensure_promotion_capacity(plan)?;
         let destination_name = next_generation_name(root)?;
         let partial_name = format!(".{destination_name}.partial");
         let partial = root.join(&partial_name);
