@@ -598,8 +598,6 @@ impl StoreCoordinator {
         request: CoordinatorRequest,
     ) -> Result<EnqueueResult, CoordinatorError> {
         validate_request(&request)?;
-        StoreConnectionFactory::new(self.layout.clone(), self.family_id.clone(), "0.0.0")
-            .validate_write_fence()?;
         let mut connection = open_coordinator(&self.coordinator_db)?;
         let transaction = begin_coordinator(&mut connection)?;
         if receipt_by_id(&transaction, &request.request_id)?
@@ -642,6 +640,8 @@ impl StoreCoordinator {
                 existing_request_id: receipt.request_id,
             });
         }
+        // In-txn recheck: refuse new inserts under foreign live maintenance intent.
+        refuse_foreign_live_maintenance_intent(&*transaction, self.clock.now_ms())?;
         transaction.execute(
             "INSERT INTO requests
              (request_id, idempotency_key, kind, payload_json, state, requester_id,
@@ -678,6 +678,9 @@ impl StoreCoordinator {
         let stale_before = now.saturating_sub(stale_after_ms);
         let mut connection = open_coordinator(&self.coordinator_db)?;
         let transaction = begin_coordinator(&mut connection)?;
+        if foreign_live_maintenance_intent(&*transaction, now)?.is_some() {
+            return Ok(false);
+        }
         let Some(request) = request_by_id(&transaction, request_id)? else {
             return Ok(false);
         };
@@ -1860,6 +1863,7 @@ impl StoreCoordinator {
         }
         let mut connection = open_coordinator(&self.coordinator_db)?;
         let transaction = begin_coordinator(&mut connection)?;
+        refuse_foreign_live_maintenance_intent(&*transaction, self.clock.now_ms())?;
         let high_water = transaction
             .query_row(
                 "SELECT high_water FROM family_allocator_marks
@@ -1927,11 +1931,15 @@ impl StoreCoordinator {
         if consumer_id.is_empty() || consumer_id.len() > 128 {
             return Err(CoordinatorError::InvalidRequest);
         }
-        let connection = open_coordinator(&self.coordinator_db)?;
-        Ok(connection.execute(
+        let mut connection = open_coordinator(&self.coordinator_db)?;
+        let transaction = begin_coordinator(&mut connection)?;
+        refuse_foreign_live_maintenance_intent(&*transaction, self.clock.now_ms())?;
+        let changed = transaction.execute(
             "DELETE FROM consumer_cursors WHERE consumer_id=?1",
             [consumer_id],
-        )? == 1)
+        )?;
+        transaction.commit()?;
+        Ok(changed == 1)
     }
 
     pub fn acknowledge(&mut self, request_id: &str, now: i64) -> Result<bool, CoordinatorError> {
@@ -2119,6 +2127,20 @@ pub fn foreign_live_maintenance_intent(
         owner_pid,
         fencing_token,
     }))
+}
+
+fn refuse_foreign_live_maintenance_intent(
+    conn: &Connection,
+    now: i64,
+) -> Result<(), CoordinatorError> {
+    if let Some(intent) = foreign_live_maintenance_intent(conn, now)? {
+        return Err(CoordinatorError::StoreConnection(
+            StoreConnectionError::MaintenanceInProgress {
+                run_id: intent.run_id,
+            },
+        ));
+    }
+    Ok(())
 }
 
 fn checked_lease_expiry(now: i64, lease_duration_ms: i64) -> Result<i64, CoordinatorError> {
