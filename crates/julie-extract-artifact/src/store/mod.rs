@@ -21,9 +21,10 @@ pub use connection::{
 };
 pub use coordinator::{
     ConsumerCursor, CoordinatorError, CoordinatorExecutor, CoordinatorPolicy, CoordinatorRequest,
-    DrainReport, EnqueueResult, ExecutionContext, ExecutionQuantum, LeaseDisposition, LeaseHolder,
-    LeaseRecord, PidLiveness, PidStatus, ReconcileOutcome, RequestKind, RequestReceipt,
-    RequestState, StoreCoordinator, UnixMillisClock, compare_versions,
+    DrainReport, EnqueueResult, ExecutionContext, ExecutionQuantum, IntentIdentity, LeaseDisposition,
+    LeaseHolder, LeaseRecord, MaintenanceOwnerFence, PidLiveness, PidStatus, ReconcileOutcome,
+    RequestKind, RequestReceipt, RequestState, StoreCoordinator, UnixMillisClock, compare_versions,
+    foreign_live_maintenance_intent,
 };
 pub use generation::{
     GenerationApplyReport, GenerationError, GenerationLifecycle, GenerationPolicy,

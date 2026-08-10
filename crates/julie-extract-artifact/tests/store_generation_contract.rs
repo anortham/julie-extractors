@@ -117,6 +117,17 @@ fn foreign_maintenance_intent_blocks_writers_and_matching_fence_is_admitted() {
         StoreConnectionError::MaintenanceInProgress { run_id } if run_id == "run-a"
     ));
 
+    let holder_only = GenerationFence::writer(&layout, "owner-a", 7, 41, 10);
+    let error = factory
+        .clone()
+        .with_generation_fence(holder_only)
+        .open_writer()
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        StoreConnectionError::MaintenanceInProgress { run_id } if run_id == "run-a"
+    ));
+
     Connection::open(layout.coordinator_db())
         .unwrap()
         .execute(
@@ -127,6 +138,17 @@ fn foreign_maintenance_intent_blocks_writers_and_matching_fence_is_admitted() {
             [],
         )
         .unwrap();
+    let wrong_pid_fence = GenerationFence::maintenance(&layout, "run-a", "owner-a", 8, 41, 10);
+    let error = factory
+        .clone()
+        .with_generation_fence(wrong_pid_fence)
+        .open_writer()
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        StoreConnectionError::MaintenanceInProgress { run_id } if run_id == "run-a"
+    ));
+
     let fence = GenerationFence::maintenance(&layout, "run-a", "owner-a", 7, 41, 10);
     let writer = factory.with_generation_fence(fence).open_writer().unwrap();
     assert_eq!(
