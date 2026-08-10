@@ -8,7 +8,8 @@ use julie_extract_artifact::store::{
     MaintenanceApplyReport, MaintenanceCapacity, MaintenanceClock, MaintenanceExecutor,
     MaintenanceInspector, MaintenanceLevel, MaintenancePolicy, MaintenanceRootKind, MaintenanceRun,
     MaintenanceSnapshot, ManifestFact, ManifestVersionFact, PlanBinding, RequestKind,
-    StoreConnectionFactory, StoreCoordinator, StoreLayout, VersionFact, plan_maintenance,
+    StoreConnectionError, StoreConnectionFactory, StoreCoordinator, StoreLayout, VersionFact,
+    plan_maintenance,
 };
 use rusqlite::{Connection, params};
 
@@ -916,6 +917,127 @@ fn terminal_request_scratch_is_reaped_while_live_request_scratch_is_preserved() 
             .join("resolve-exact-live-request.db")
             .exists()
     );
+}
+
+
+#[test]
+fn acquire_raises_source_writer_floor_and_mirrors_intent() {
+    let temp = TempStore::new("floor-raise");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let plan = inspect_plan(&layout, 30 * DAY_MS);
+    let executor = MaintenanceExecutor::acquire(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.31.0"),
+        MaintenanceRun::new("floor-run", "owner", std::process::id(), 30 * DAY_MS, 5_000),
+        &plan,
+    )
+    .unwrap();
+
+    let store = Connection::open(layout.store_db()).unwrap();
+    assert_eq!(meta(&store, "min_writer_version"), "2.31.0");
+    assert_eq!(meta(&store, "maintenance_tmp_run_id"), "floor-run");
+    assert_eq!(meta(&store, "maintenance_tmp_action"), "gc");
+    assert_eq!(meta(&store, "maintenance_tmp_source_min_writer_version"), "2.30.0");
+    let coord = Connection::open(layout.coordinator_db()).unwrap();
+    assert_eq!(
+        coord
+            .query_row(
+                "SELECT source_min_writer_version FROM maintenance_intent
+                 WHERE resource='store-maintenance'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .unwrap(),
+        "2.30.0"
+    );
+
+    let older = StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0");
+    let error = older.open_writer().unwrap_err();
+    assert!(
+        matches!(
+            error,
+            StoreConnectionError::MaintenanceInProgress { ref run_id }
+                if run_id == "floor-run"
+        ),
+        "live intent must refuse ordinary writers first: {error:?}"
+    );
+    // Clear intent so the raised floor is the only remaining barrier for older binaries.
+    Connection::open(layout.coordinator_db())
+        .unwrap()
+        .execute_batch(
+            "DELETE FROM writer_lease;
+             DELETE FROM maintenance_intent;",
+        )
+        .unwrap();
+    let error = older.open_writer().unwrap_err();
+    match error {
+        StoreConnectionError::WriterVersionTooOld {
+            ref running,
+            ref required,
+        } if running == "2.30.0" && required == "2.31.0" => {}
+        other => panic!("expected WriterVersionTooOld after intent expiry, got {other:?}"),
+    }
+    drop(executor);
+}
+
+#[test]
+fn finish_restores_serving_source_floor_and_clears_intent_mirrors() {
+    let temp = TempStore::new("floor-restore");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    seed_gc_level_matrix(&layout);
+    let plan = inspect_plan(&layout, 30 * DAY_MS);
+    let mut executor = MaintenanceExecutor::acquire(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.31.0"),
+        MaintenanceRun::new("restore-run", "owner", std::process::id(), 30 * DAY_MS, 5_000),
+        &plan,
+    )
+    .unwrap();
+    assert_eq!(
+        meta(&Connection::open(layout.store_db()).unwrap(), "min_writer_version"),
+        "2.31.0"
+    );
+    executor.apply(&plan).unwrap();
+
+    let store = Connection::open(layout.store_db()).unwrap();
+    assert_eq!(meta(&store, "min_writer_version"), "2.30.0");
+    let tmp_count: i64 = store
+        .query_row(
+            "SELECT COUNT(*) FROM store_meta WHERE key LIKE 'maintenance_tmp_%'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(tmp_count, 0);
+    let coord = Connection::open(layout.coordinator_db()).unwrap();
+    assert_eq!(
+        coord
+            .query_row(
+                "SELECT COUNT(*) FROM maintenance_intent",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        0
+    );
+    assert_eq!(
+        coord
+            .query_row(
+                "SELECT COUNT(*) FROM writer_lease",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        0
+    );
+}
+
+fn meta(connection: &Connection, key: &str) -> String {
+    connection
+        .query_row(
+            "SELECT value FROM store_meta WHERE key=?1",
+            [key],
+            |row| row.get(0),
+        )
+        .unwrap()
 }
 
 fn maintenance_cursor(layout: &StoreLayout) -> i64 {

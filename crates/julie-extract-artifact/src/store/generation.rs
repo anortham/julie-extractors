@@ -615,7 +615,11 @@ fn logical_copy_generation(
     source_connection.execute_batch("PRAGMA query_only=ON; PRAGMA foreign_keys=ON;")?;
     let mut destination = Connection::open(destination_path)?;
     destination.execute_batch("PRAGMA foreign_keys=OFF;")?;
-    copy_store_metadata(&source_connection, &mut destination)?;
+    copy_store_metadata(
+        &source_connection,
+        &mut destination,
+        executor.source_min_writer_version(),
+    )?;
     let mut tables = table_names(&source_connection)?;
     tables.retain(|table| table != "store_meta" && table != "resolution_pins");
     let mut counts = CopyCounts::default();
@@ -659,7 +663,7 @@ fn validate_logical_copy(
         });
     }
     for table in table_names(&source_connection)? {
-        if table == "resolution_pins" {
+        if table == "resolution_pins" || table == "store_meta" {
             continue;
         }
         let source_count = table_count(&source_connection, &table)?;
@@ -670,6 +674,17 @@ fn validate_logical_copy(
                 detail: format!("{table}:{source_count}:{destination_count}"),
             });
         }
+    }
+    let mirrored = destination.query_row(
+        "SELECT EXISTS(SELECT 1 FROM store_meta WHERE key LIKE 'maintenance_tmp_%')",
+        [],
+        |row| row.get::<_, bool>(0),
+    )?;
+    if mirrored {
+        return Err(GenerationError::Validation {
+            check: "destination_maintenance_tmp",
+            detail: "temporary intent mirrors must not remain on destination".to_string(),
+        });
     }
     if table_count(&destination, "resolution_pins")? != 0 {
         return Err(GenerationError::Validation {
@@ -706,6 +721,7 @@ fn table_count(connection: &Connection, table: &str) -> Result<i64, GenerationEr
 fn copy_store_metadata(
     source: &Connection,
     destination: &mut Connection,
+    source_min_writer_version: &str,
 ) -> Result<(), GenerationError> {
     let mut statement = source.prepare("SELECT key,value FROM store_meta ORDER BY key")?;
     let rows = statement
@@ -715,15 +731,25 @@ fn copy_store_metadata(
         .collect::<Result<Vec<_>, _>>()?;
     let transaction = destination.transaction_with_behavior(TransactionBehavior::Immediate)?;
     for (key, value) in rows {
-        if key == "generation_state" {
+        if key == "generation_state" || key.starts_with("maintenance_tmp_") {
             continue;
         }
+        let value = if key == "min_writer_version" {
+            source_min_writer_version
+        } else {
+            value.as_str()
+        };
         transaction.execute(
             "INSERT INTO store_meta(key,value) VALUES (?1,?2)
              ON CONFLICT(key) DO UPDATE SET value=excluded.value",
             params![key, value],
         )?;
     }
+    // M5: never leave temporary intent mirrors on the destination generation.
+    transaction.execute(
+        "DELETE FROM store_meta WHERE key LIKE 'maintenance_tmp_%'",
+        [],
+    )?;
     transaction.execute(
         "UPDATE store_meta SET value='retired' WHERE key='generation_state'",
         [],

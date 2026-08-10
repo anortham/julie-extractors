@@ -30,6 +30,12 @@ This contract defines the target-owned family store used after the legacy v3 art
 
 The writer atomically binds `family_id`, `extraction_identity_epoch`, `min_reader_version`, `min_writer_version`, `created_by_version`, and monotonic `binary_version` when it creates or adopts a family.
 
+Keys with the reserved prefix `maintenance_tmp_` are temporary intent-mirror metadata written only
+on a frozen source generation while maintenance is live. They must never remain on a published
+destination generation. Promotion copies restore `min_writer_version` to the pre-maintenance value
+recorded on `maintenance_intent.source_min_writer_version` rather than the temporary raised source
+floor.
+
 ## Immutable versions
 
 `file_versions` allocates a never-reused integer `version_id` and stores `path`, `content_hash`, `extraction_epoch`, `language`, `content_bytes`, nullable `line_count`, nullable `metadata_json`, and nullable `complete_l1`, `complete_l2`, and `complete_l3` log stamps.

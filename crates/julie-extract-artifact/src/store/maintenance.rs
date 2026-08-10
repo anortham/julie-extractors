@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
 use std::fmt;
@@ -14,6 +15,7 @@ use super::pragmas::{WriterPragmaProfile, configure_writer_pragmas};
 use super::resolution::{
     resolution_file_bytes, resolution_file_sha256, retire_resolution_base, retire_resolution_delta,
 };
+use super::connection::compare_versions;
 use super::{
     CoordinatorError, GenerationFence, MaintenanceAction, PidStatus, StoreConnectionError,
     StoreConnectionFactory, StoreCoordinator, StoreLog, StoreLogError,
@@ -26,6 +28,20 @@ const MAX_DEMOTION_BYTES: u64 = 64 * 1024 * 1024;
 const JOURNAL_RETENTION_BYTES: u64 = 256 * 1024 * 1024;
 const CHECKPOINT_HEADROOM_BYTES: u64 = 16 * 1024 * 1024;
 const DEFAULT_PHYSICAL_BREACH_LIMIT: u32 = 3;
+
+const MAINTENANCE_TMP_PREFIX: &str = "maintenance_tmp_";
+const META_MIN_WRITER_VERSION: &str = "min_writer_version";
+const META_GENERATION_STATE: &str = "generation_state";
+const TMP_RUN_ID: &str = "maintenance_tmp_run_id";
+const TMP_ACTION: &str = "maintenance_tmp_action";
+const TMP_SOURCE_GENERATION: &str = "maintenance_tmp_source_generation_name";
+const TMP_OWNER_ID: &str = "maintenance_tmp_owner_id";
+const TMP_OWNER_PID: &str = "maintenance_tmp_owner_pid";
+const TMP_FENCING_TOKEN: &str = "maintenance_tmp_fencing_token";
+const TMP_HEARTBEAT_AT: &str = "maintenance_tmp_heartbeat_at";
+const TMP_STARTED_AT: &str = "maintenance_tmp_started_at";
+const TMP_PLAN_FINGERPRINT: &str = "maintenance_tmp_plan_fingerprint";
+const TMP_SOURCE_MIN_WRITER: &str = "maintenance_tmp_source_min_writer_version";
 
 pub trait MaintenanceClock {
     fn now_ms(&self) -> i64;
@@ -389,6 +405,7 @@ pub struct MaintenanceExecutor {
     factory: StoreConnectionFactory,
     run: MaintenanceRun,
     fencing_token: i64,
+    source_min_writer_version: String,
 }
 
 impl MaintenancePlan {
@@ -1012,7 +1029,7 @@ impl MaintenanceExecutor {
                 value: "overflow".to_string(),
             })?;
         let store = factory.open_reader()?;
-        let source_min_writer_version = store.query_row(
+        let store_min_writer_version = store.query_row(
             "SELECT value FROM store_meta WHERE key='min_writer_version'",
             [],
             |row| row.get::<_, String>(0),
@@ -1023,7 +1040,8 @@ impl MaintenanceExecutor {
         let transaction = coord.transaction_with_behavior(TransactionBehavior::Immediate)?;
         let active_intent = transaction
             .query_row(
-                "SELECT run_id,owner_id,owner_pid,expires_at FROM maintenance_intent
+                "SELECT run_id,owner_id,owner_pid,expires_at,source_min_writer_version
+                 FROM maintenance_intent
                  WHERE resource='store-maintenance'",
                 [],
                 |row| {
@@ -1032,11 +1050,18 @@ impl MaintenanceExecutor {
                         row.get::<_, String>(1)?,
                         row.get::<_, i64>(2)?,
                         row.get::<_, i64>(3)?,
+                        row.get::<_, String>(4)?,
                     ))
                 },
             )
             .optional()?;
-        let active_owner_dead = active_intent.as_ref().is_some_and(|(_, _, owner_pid, _)| {
+        // Preserve the pre-maintenance floor across dead/expired takeover when a prior intent
+        // already recorded it. Store floor alone may already be temporarily raised.
+        let source_min_writer_version = active_intent
+            .as_ref()
+            .map(|(_, _, _, _, prior)| prior.clone())
+            .unwrap_or_else(|| store_min_writer_version.clone());
+        let active_owner_dead = active_intent.as_ref().is_some_and(|(_, _, owner_pid, _, _)| {
             match u32::try_from(*owner_pid) {
                 Ok(owner_pid) => super::coordinator::process_status(owner_pid) == PidStatus::Dead,
                 Err(_) => false,
@@ -1044,7 +1069,7 @@ impl MaintenanceExecutor {
         });
         if active_intent
             .as_ref()
-            .is_some_and(|(run_id, owner_id, owner_pid, expiry)| {
+            .is_some_and(|(run_id, owner_id, owner_pid, expiry, _)| {
                 *expiry > wall_now
                     && (run_id != &run.run_id
                         || owner_id != &run.owner_id
@@ -1077,6 +1102,7 @@ impl MaintenanceExecutor {
                 [wall_now],
             )?;
         }
+        // M1: durable intent + writer lease under one coordinator transaction.
         transaction.execute(
             "INSERT INTO maintenance_intent
              (resource,run_id,action,source_generation_name,owner_id,owner_pid,fencing_token,
@@ -1109,11 +1135,20 @@ impl MaintenanceExecutor {
             ],
         )?;
         transaction.commit()?;
-        Ok(Self {
+        let executor = Self {
             factory,
             run,
             fencing_token,
-        })
+            source_min_writer_version,
+        };
+        #[cfg(feature = "test-store-crash")]
+        super::test_hooks::crash_if("maintenance_after_intent_before_floor");
+        // M2: raise frozen source floor and mirror intent into store_meta.
+        if let Err(error) = executor.raise_source_floor_and_mirror(action, wall_now) {
+            let _ = executor.restore_serving_source_floor_and_clear_coord();
+            return Err(error);
+        }
+        Ok(executor)
     }
 
     pub(crate) fn factory(&self) -> &StoreConnectionFactory {
@@ -1126,6 +1161,10 @@ impl MaintenanceExecutor {
 
     pub(crate) fn fencing_token(&self) -> i64 {
         self.fencing_token
+    }
+
+    pub(crate) fn source_min_writer_version(&self) -> &str {
+        &self.source_min_writer_version
     }
 
     pub(crate) fn release_writer_for_generation_build(
@@ -1245,30 +1284,7 @@ impl MaintenanceExecutor {
     }
 
     pub(crate) fn finish_generation_action(&self) -> Result<(), MaintenanceError> {
-        let mut coord = open_maintenance_coordinator(self.factory.layout().coordinator_db())?;
-        let transaction = coord.transaction_with_behavior(TransactionBehavior::Immediate)?;
-        let lease_deleted = transaction.execute(
-            "DELETE FROM writer_lease
-             WHERE resource='store-writer' AND holder_id=?1 AND holder_pid=?2
-               AND fencing_token=?3",
-            params![self.run.owner_id, self.run.owner_pid, self.fencing_token],
-        )?;
-        let intent_deleted = transaction.execute(
-            "DELETE FROM maintenance_intent
-             WHERE resource='store-maintenance' AND run_id=?1 AND owner_id=?2
-               AND owner_pid=?3 AND fencing_token=?4",
-            params![
-                self.run.run_id,
-                self.run.owner_id,
-                self.run.owner_pid,
-                self.fencing_token,
-            ],
-        )?;
-        if lease_deleted != 1 || intent_deleted != 1 {
-            return Err(MaintenanceError::MaintenanceFenceLost);
-        }
-        transaction.commit()?;
-        Ok(())
+        self.restore_serving_source_floor_and_clear_coord()
     }
 
     pub fn apply(
@@ -1786,15 +1802,139 @@ impl MaintenanceExecutor {
     }
 
     fn finish(&self) -> Result<(), MaintenanceError> {
+        self.restore_serving_source_floor_and_clear_coord()
+    }
+
+    fn raise_source_floor_and_mirror(
+        &self,
+        action: MaintenanceAction,
+        wall_now: i64,
+    ) -> Result<(), MaintenanceError> {
+        let generation_state = Connection::open_with_flags(
+            self.factory.layout().store_db(),
+            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )?
+        .query_row(
+            "SELECT value FROM store_meta WHERE key=?1",
+            [META_GENERATION_STATE],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()?
+        .unwrap_or_default();
+        // Mid-publish recovery can open a retired CURRENT generation. Floor raise applies only
+        // while the bound generation is still serving writers.
+        if generation_state != "serving" {
+            return Ok(());
+        }
+        let binary = self.factory.binary_version();
+        let raised = match compare_versions(binary, &self.source_min_writer_version)? {
+            Ordering::Greater => binary.to_string(),
+            _ => self.source_min_writer_version.clone(),
+        };
+        let plan_fingerprint: String = {
+            let coord = Connection::open_with_flags(
+                self.factory.layout().coordinator_db(),
+                OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+            )?;
+            coord.query_row(
+                "SELECT plan_fingerprint FROM maintenance_intent
+                 WHERE resource='store-maintenance' AND run_id=?1 AND fencing_token=?2",
+                params![self.run.run_id, self.fencing_token],
+                |row| row.get(0),
+            )?
+        };
+        let fence = GenerationFence::maintenance(
+            self.factory.layout(),
+            &self.run.run_id,
+            &self.run.owner_id,
+            self.run.owner_pid,
+            self.fencing_token,
+            wall_now,
+        );
+        let mut writer = self
+            .factory
+            .clone()
+            .with_generation_fence(fence)
+            .open_writer()?;
+        let transaction = writer.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        transaction.execute(
+            "UPDATE store_meta SET value=?1 WHERE key=?2",
+            params![raised, META_MIN_WRITER_VERSION],
+        )?;
+        let owner_pid = self.run.owner_pid.to_string();
+        let fencing_token = self.fencing_token.to_string();
+        let heartbeat = wall_now.to_string();
+        let mirror_rows = [
+            (TMP_RUN_ID, self.run.run_id.as_str()),
+            (TMP_ACTION, action.as_str()),
+            (TMP_SOURCE_GENERATION, self.factory.layout().generation_name()),
+            (TMP_OWNER_ID, self.run.owner_id.as_str()),
+            (TMP_OWNER_PID, owner_pid.as_str()),
+            (TMP_FENCING_TOKEN, fencing_token.as_str()),
+            (TMP_HEARTBEAT_AT, heartbeat.as_str()),
+            (TMP_STARTED_AT, heartbeat.as_str()),
+            (TMP_PLAN_FINGERPRINT, plan_fingerprint.as_str()),
+            (TMP_SOURCE_MIN_WRITER, self.source_min_writer_version.as_str()),
+        ];
+        for (key, value) in mirror_rows {
+            transaction.execute(
+                "INSERT INTO store_meta(key,value) VALUES (?1,?2)
+                 ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                params![key, value],
+            )?;
+        }
+        transaction.commit()?;
+        Ok(())
+    }
+
+    fn restore_serving_source_floor_and_clear_coord(&self) -> Result<(), MaintenanceError> {
+        let generation_state = Connection::open_with_flags(
+            self.factory.layout().store_db(),
+            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )?
+        .query_row(
+            "SELECT value FROM store_meta WHERE key=?1",
+            [META_GENERATION_STATE],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()?
+        .unwrap_or_default();
+        if generation_state == "serving" {
+            let wall_now = wall_now_ms()?;
+            let fence = GenerationFence::maintenance(
+                self.factory.layout(),
+                &self.run.run_id,
+                &self.run.owner_id,
+                self.run.owner_pid,
+                self.fencing_token,
+                wall_now,
+            );
+            let mut writer = self
+                .factory
+                .clone()
+                .with_generation_fence(fence)
+                .open_writer()?;
+            let transaction = writer.transaction_with_behavior(TransactionBehavior::Immediate)?;
+            transaction.execute(
+                "UPDATE store_meta SET value=?1 WHERE key=?2",
+                params![self.source_min_writer_version, META_MIN_WRITER_VERSION],
+            )?;
+            transaction.execute(
+                "DELETE FROM store_meta WHERE key LIKE ?1",
+                [format!("{}%", MAINTENANCE_TMP_PREFIX)],
+            )?;
+            transaction.commit()?;
+            drop(writer);
+        }
         let mut coord = open_maintenance_coordinator(self.factory.layout().coordinator_db())?;
         let transaction = coord.transaction_with_behavior(TransactionBehavior::Immediate)?;
-        let released = transaction.execute(
+        let lease_deleted = transaction.execute(
             "DELETE FROM writer_lease
              WHERE resource='store-writer' AND holder_id=?1 AND holder_pid=?2
                AND fencing_token=?3",
             params![self.run.owner_id, self.run.owner_pid, self.fencing_token],
         )?;
-        let cleared = transaction.execute(
+        let intent_deleted = transaction.execute(
             "DELETE FROM maintenance_intent
              WHERE resource='store-maintenance' AND run_id=?1 AND owner_id=?2
                AND owner_pid=?3 AND fencing_token=?4",
@@ -1805,7 +1945,8 @@ impl MaintenanceExecutor {
                 self.fencing_token,
             ],
         )?;
-        if released != 1 || cleared != 1 {
+        // After M3 generation build, the writer lease may already be absent; intent must clear.
+        if intent_deleted != 1 || lease_deleted > 1 {
             return Err(MaintenanceError::MaintenanceFenceLost);
         }
         transaction.commit()?;
