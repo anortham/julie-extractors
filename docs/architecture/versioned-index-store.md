@@ -62,7 +62,7 @@ imports still run extraction from source.
 ## Lifecycle and generations
 
 Ph2d adds bounded lifecycle maintenance under one root-owned maintenance intent. The planner treats
-current and historical manifests, ready-base version roots, live pins, current bindings, active
+current and historical manifests, ready-base version roots, unexpired pins, current bindings, active
 requests/claims, receipts, and consumer cursors as explicit roots before deleting or demoting any
 version, base, delta, scratch file, or log row. L3 is demoted before L2; whole immutable versions are
 purged only after every root is gone. Checkpoint, incremental vacuum, and truncate-checkpoint are
@@ -86,3 +86,69 @@ an artifact API used by an orchestrator; it is deliberately not an end-user CLI 
 
 The v2.31.0 candidate completes Julie's producer-side Ph2 store program. Miller integration remains
 Ph3 work and is not implied by this release.
+
+## Concurrent fencing (post-Ph2d hardening)
+
+Concurrent import, resolve, and maintain against one family store share `coord.db` and generation
+local `store.db` files. Fencing rules below keep foreign writers off a frozen source and keep every
+durable store mutation lease- and generation-checked.
+
+### Maintenance intent as lease authority
+
+A live foreign `maintenance_intent` blocks ordinary `store-writer` lease acquire even when no
+`writer_lease` row exists. Promote and repair may release the writer lease for a long generation
+build while the intent stays live; ordinary writers still refuse.
+
+Maintenance ownership is explicit. Ordinary `try_acquire_or_takeover` never bypasses intent.
+Maintenance uses `try_acquire_for_maintenance` with a full identity fence
+(`run_id` + `owner_id` + `owner_pid` + `fencing_token`) that must match the live intent row.
+Matching holder id or PID alone does not admit a writer under foreign intent. Expired intents and
+dead-owner takeover still follow the existing PID and expiry policy.
+
+Enqueue of a new request, resolve claim, consumer cursor advance, and cursor release recheck foreign
+live intent inside the same `BEGIN IMMEDIATE` transaction that would write. Pre-transaction checks
+alone are not enough. Idempotent enqueue replay of an existing request may return without insert.
+
+### Temporary writer floor and intent mirrors
+
+During acquire, maintenance writes `coord.db` intent and lease first (M1), then raises the serving
+source `min_writer_version` and writes `maintenance_tmp_*` intent-mirror keys under a maintenance
+fence (M2), then may release only the writer lease for the long build (M3).
+
+Promotion materializes the destination with the pre-maintenance `min_writer_version` and never
+copies temporary raised floors or `maintenance_tmp_*` keys as permanent destination state (M5).
+Finish and abort restore a still-serving source floor and clear mirrors under the maintenance fence
+before they delete lease and intent in `coord.db` (M7). Clearing intent first while a serving source
+still holds a temporary raised floor is a defect. A retired source skips restore; the published
+destination already holds the pre-maintenance floor from M5.
+
+### Resolve publication and pins
+
+Resolve never opens `store.db` for durable writes without a generation fence and live writer lease.
+Terminal log append uses the same fenced writer path as exact publication. Exact publish always
+heartbeats the writer lease once immediately before `BEGIN IMMEDIATE`, revalidates lease ownership
+against wall clock (not only a stale fence capture), and rolls back the whole IMMEDIATE transaction
+if ownership is lost before the view CAS. There is no mid-transaction heartbeat and no partial exact
+binding.
+
+Resolve pins release on success and best-effort on failure while claim or lease ownership still
+allows release. Expired pins are not GC or rebuild roots for base protection; only unexpired pins
+(or existing delta rows) protect a ready base.
+
+### Maintenance apply capacity and import bases
+
+Maintenance apply re-probes live free bytes immediately before the first mutative GC cohort, scratch
+purge batch, and generation staging create. Plan-time free-byte samples are not frozen for the whole
+apply.
+
+Import resolution bases follow building→ready CAS discipline: durable catalog `building`, materialize
+and publish the base file, then CAS `building → ready` only when file identity and semantic counts
+match. A crash leaves non-ready catalog state; retry may reclaim abandoned `building` or treat a
+ready identity hit as success after compare. Import and resolve share one `resolution_base_id`
+helper.
+
+### Follow-ups intentionally deferred
+
+Cooperative cancel of off-lease resolve CPU work and unique scratch nonces remain deferred. This
+hardening does not claim cross-database atomicity between `coord.db` and `store.db`; recovery follows
+the ordered multi-step state machines above.

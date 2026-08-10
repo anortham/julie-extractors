@@ -87,6 +87,12 @@ A manifest entry's nullable version FK is `ON DELETE RESTRICT`; live and histori
 - A partial unique index permits at most one claimed `resolve` request per family coordinator.
 - Coordinator clocks are Unix-millisecond integers.
 - The lease resource is exactly `store-writer`; holder identity/version are non-empty, PID and fencing token are positive, and release deletes the row.
+- Ordinary writer lease acquire refuses while a foreign live maintenance intent exists, even when no
+  `writer_lease` row is present. Maintenance ownership is explicit
+  (`run_id` + `owner_id` + `owner_pid` + `fencing_token`) and is not inferred from holder id/PID alone.
+- Enqueue of a new request, resolve claim, consumer cursor advance, and cursor release recheck
+  foreign live intent inside the same IMMEDIATE coordinator transaction that would mutate. Idempotent
+  enqueue replay of an existing request may return without insert under live intent.
 - A terminal request may age into one immutable receipt that independently reserves its request ID
   and idempotency key and preserves the original terminal result and generation identity.
 - Consumer cursor sequence/time and family allocator high-water/time values cannot regress.
@@ -101,12 +107,20 @@ files; they are not copied into general Store tables.
 
 - `store resolve` claims through `coord.db` without holding the store-writer lease during semantic
   computation.
+- Durable resolve writes to `store.db` (exact publish and terminal log append) use a generation-fenced
+  writer; unfenced raw opens are not a production path.
 - The input manifest, resolver-output epoch, ready base, request claim, writer holder PID, and
   fencing token are revalidated before and inside the final publication transaction.
-- Exact publication inserts one cumulative delta, all replacement/tombstone rows, the view binding,
-  and one `resolution_exact_published` log effect in the same `store.db` transaction.
+- Exact publication heartbeats the writer lease once immediately before `BEGIN IMMEDIATE`, revalidates
+  lease ownership against wall clock, inserts one cumulative delta, all replacement/tombstone rows,
+  the view binding, and one `resolution_exact_published` log effect in the same `store.db` transaction.
 - A CAS or fence loser publishes none of those rows. A store-committed/coordinator-uncommitted tear
   reconciles from the terminal store fact without re-executing semantic work.
+- Resolve pins release on success and best-effort on failure while ownership still allows release.
+  Expired pins are not base-protection roots; only unexpired pins or existing delta rows protect a
+  ready base.
+- Import materializes resolution bases with catalog `building` before file publish and CAS
+  `building → ready` only after file identity and semantic counts match.
 - Only the dedicated resolver may claim `resolve` requests. Generic import/update/delete backlog
   draining leaves them queued while another resolve is claimed.
 - Request-private exact/base scratch files are not catalog data. A successor that owns the same
@@ -126,7 +140,7 @@ files; they are not copied into general Store tables.
 ## Retention boundary
 
 Ph2d may reclaim only objects outside every current/historical manifest, ready-base version root,
-identifier and pending delta source/target root, live resolution pin, current base/delta binding,
+identifier and pending delta source/target root, unexpired resolution pin, current base/delta binding,
 active request/claim, scratch owner, consumer cursor window, and retained-generation safety window.
 Terminal request rows become durable receipts before coordinator deletion; orphan store logs are
 pruned only afterward and below every safe cursor. General maintenance behavior is specified by the
@@ -140,8 +154,10 @@ pure plan and do not modify `store.db`, `coord.db`, generation files, or `CURREN
 
 Every mutation validates the inspected plan fingerprint, store and coordinator root fingerprints,
 family, serving generation, capacity, maintenance intent, writer lease, and fencing token before
-its first write. A concurrent root change is `stale_plan`, not an implicit replan. Insufficient
-promotion headroom is `capacity_insufficient` before intent or lease acquisition. A live writer or
+its first write. Apply re-probes live free bytes immediately before the first mutative GC cohort,
+scratch purge, and generation staging create rather than freezing plan-time free space for the whole
+run. A concurrent root change is `stale_plan`, not an implicit replan. Insufficient promotion
+headroom is `capacity_insufficient` before intent or lease acquisition. A live writer or
 maintenance owner is `busy`.
 
 GC preserves every root named by this contract and uses receipts before request/log pruning.
