@@ -59,18 +59,17 @@
   <section class="digest">
     <header>
       <div><h1>Julie Extract v2.31.2 Release Preparation</h1><p class="goal">Prepare the merged family-store fixes as a locally verified release candidate without publishing it.</p></div>
-      <div class="hprog"><div class="n">0<small> / 1 task</small></div><div class="meter" aria-label="0% complete"><i style="width:0%"></i></div></div>
+      <div class="hprog"><div class="n">1<small> / 1 task</small></div><div class="meter" aria-label="100% complete"><i style="width:100%"></i></div></div>
     </header>
     <nav class="tabs" aria-label="Digest sections"><button class="on" data-pane="timeline">Timeline</button><button data-pane="decisions">Decisions</button><button data-pane="rails">Guardrails</button></nav>
     <div class="pane on" id="timeline">
       <div class="spine">
-        <div class="stage now"><h2>Local release candidate <span class="chip inprogress"><span class="ico">◐</span>0 / 1</span></h2><p class="why">Keep v2.31.1 published until the new assets are actually released.</p>
-          <div class="here">You are here — Task 1 running</div>
-          <div class="trow"><span class="st inprogress">◐ In progress</span><span class="what"><b>1</b>Prepare v2.31.2 metadata and notes <span>— bump manifests and lockfile, run release gates, commit and merge locally</span></span></div>
+        <div class="stage done"><h2>Local release candidate <span class="chip done"><span class="ico">✓</span>1 / 1</span></h2><p class="why">Keep v2.31.1 published until the new assets are actually released.</p>
+          <div class="trow"><span class="st done">✓ Done</span><span class="what"><b>1</b>Prepare v2.31.2 metadata and notes <span>— manifests, lockfile, release gates, commit, and local merge complete</span></span></div>
           <div class="flag"><b>⚠ Publication boundary.</b><p>No push, tag, GitHub release, or Miller pin update belongs in this local-preparation task.</p></div>
         </div>
       </div>
-      <div class="card remains"><b>Remaining:</b> after the candidate is verified and merged locally, publish v2.31.2 in an approved session, verify all four downloaded assets, then update Miller's pin.</div>
+      <div class="card remains"><b>Remaining:</b> publish v2.31.2 in an approved session, verify all four downloaded assets, then update Miller's pin and prepare Miller's coordinated release.</div>
     </div>
     <div class="pane" id="decisions">
       <div class="card dec"><h3>Patch version <span class="where">Task 1</span></h3><p>The published baseline is v2.31.1 and the merged fixes are compatible patch work. <b>Landed:</b> prepare v2.31.2.</p></div>
