@@ -3,8 +3,8 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use julie_extract_artifact::store::{
-    StoreConnectionError, StoreConnectionFactory, StoreLayout, StoreLayoutError, StoreSchemaError,
-    create_coordinator_schema, create_store_schema,
+    GenerationFence, StoreConnectionError, StoreConnectionFactory, StoreLayout, StoreLayoutError,
+    StoreSchemaError, create_coordinator_schema, create_store_schema,
 };
 use rusqlite::Connection;
 
@@ -552,6 +552,90 @@ fn creation_never_adopts_a_generation_symlink_outside_the_family() {
 
     assert!(matches!(error, StoreLayoutError::PathEscapesRoot { .. }));
     assert!(!temp.path().join("CURRENT").exists());
+}
+
+#[test]
+fn promote_style_lease_release_still_blocks_foreign_open_writer() {
+    let temp = TempStore::new("promote-lease-free");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    Connection::open(layout.coordinator_db())
+        .unwrap()
+        .execute(
+            "INSERT INTO maintenance_intent
+             (resource, run_id, action, source_generation_name, owner_id, owner_pid,
+              fencing_token, heartbeat_at, expires_at, started_at, plan_fingerprint,
+              source_min_writer_version)
+             VALUES ('store-maintenance', 'run-promote', 'promote', 'gen-001', 'owner-a', 7,
+                     41, 1, 9223372036854775807, 1, 'plan-a', '2.30.0')",
+            [],
+        )
+        .unwrap();
+
+    let error = StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0")
+        .open_writer()
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        StoreConnectionError::MaintenanceInProgress { run_id } if run_id == "run-promote"
+    ));
+
+    let holder_only_fence = GenerationFence::writer(&layout, "owner-a", 7, 41, 10);
+    let error = StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0")
+        .with_generation_fence(holder_only_fence)
+        .open_writer()
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        StoreConnectionError::MaintenanceInProgress { run_id } if run_id == "run-promote"
+    ));
+
+    Connection::open(layout.coordinator_db())
+        .unwrap()
+        .execute(
+            "INSERT INTO writer_lease
+             (resource, holder_id, holder_version, holder_pid, heartbeat_at, expires_at,
+              fencing_token)
+             VALUES ('store-writer', 'owner-a', '2.30.0', 7, 1, 9223372036854775807, 41)",
+            [],
+        )
+        .unwrap();
+    let maintenance_fence =
+        GenerationFence::maintenance(&layout, "run-promote", "owner-a", 7, 41, 10);
+    assert!(
+        StoreConnectionFactory::new(layout, "family-a", "2.30.0")
+            .with_generation_fence(maintenance_fence)
+            .open_writer()
+            .is_ok()
+    );
+}
+
+#[test]
+fn pre_fenced_writer_rejects_lease_expired_by_wall_clock_despite_stale_checked_at() {
+    let temp = TempStore::new("wall-time-lease");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let now_ms = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as i64;
+    let stale_checked_at = now_ms - 60_000;
+    let expires_at = now_ms - 1_000;
+    assert!(expires_at > stale_checked_at);
+    Connection::open(layout.coordinator_db())
+        .unwrap()
+        .execute(
+            "INSERT INTO writer_lease
+             (resource, holder_id, holder_version, holder_pid, heartbeat_at, expires_at,
+              fencing_token)
+             VALUES ('store-writer', 'owner-wall', '2.30.0', 11, ?1, ?2, 77)",
+            rusqlite::params![stale_checked_at, expires_at],
+        )
+        .unwrap();
+    let fence = GenerationFence::writer(&layout, "owner-wall", 11, 77, stale_checked_at);
+    let error = StoreConnectionFactory::new(layout, "family-a", "2.30.0")
+        .with_generation_fence(fence)
+        .open_writer()
+        .unwrap_err();
+    assert!(matches!(error, StoreConnectionError::WriterLeaseLost));
 }
 
 fn store_metadata(path: &Path) -> Vec<(String, String)> {

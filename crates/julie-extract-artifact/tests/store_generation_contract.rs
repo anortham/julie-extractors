@@ -3,8 +3,10 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use julie_extract_artifact::store::{
-    GenerationFence, PartialGenerationOwner, StoreConnectionError, StoreConnectionFactory,
-    StoreLayout, StoreLayoutError, write_partial_generation_owner,
+    CapacityProvider, GenerationFence, GenerationLifecycle, GenerationPolicy, MaintenanceAction,
+    MaintenanceClock, MaintenanceInspector, MaintenanceRun, PartialGenerationOwner,
+    StoreConnectionError, StoreConnectionFactory, StoreLayout, StoreLayoutError,
+    write_partial_generation_owner,
 };
 use rusqlite::Connection;
 
@@ -117,6 +119,17 @@ fn foreign_maintenance_intent_blocks_writers_and_matching_fence_is_admitted() {
         StoreConnectionError::MaintenanceInProgress { run_id } if run_id == "run-a"
     ));
 
+    let holder_only = GenerationFence::writer(&layout, "owner-a", 7, 41, 10);
+    let error = factory
+        .clone()
+        .with_generation_fence(holder_only)
+        .open_writer()
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        StoreConnectionError::MaintenanceInProgress { run_id } if run_id == "run-a"
+    ));
+
     Connection::open(layout.coordinator_db())
         .unwrap()
         .execute(
@@ -127,6 +140,17 @@ fn foreign_maintenance_intent_blocks_writers_and_matching_fence_is_admitted() {
             [],
         )
         .unwrap();
+    let wrong_pid_fence = GenerationFence::maintenance(&layout, "run-a", "owner-a", 8, 41, 10);
+    let error = factory
+        .clone()
+        .with_generation_fence(wrong_pid_fence)
+        .open_writer()
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        StoreConnectionError::MaintenanceInProgress { run_id } if run_id == "run-a"
+    ));
+
     let fence = GenerationFence::maintenance(&layout, "run-a", "owner-a", 7, 41, 10);
     let writer = factory.with_generation_fence(fence).open_writer().unwrap();
     assert_eq!(
@@ -157,7 +181,7 @@ fn foreign_maintenance_intent_blocks_writers_and_matching_fence_is_admitted() {
              VALUES ('store-writer', 'owner-a', '2.30.0', 7, 0, 1, 41);",
         )
         .unwrap();
-    let expired = GenerationFence::maintenance(&layout, "run-a", "owner-a", 7, 41, 0);
+    let expired = GenerationFence::maintenance(&layout, "run-a", "owner-a", 7, 41, 1);
     assert!(matches!(
         StoreConnectionFactory::new(layout, "family-a", "2.30.0")
             .with_generation_fence(expired)
@@ -286,6 +310,89 @@ fn partial_generation_cleanup_requires_a_dead_owner_and_absent_or_expired_intent
 
     StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
     assert!(!partial.exists());
+}
+
+#[test]
+fn promote_destination_keeps_pre_maintenance_floor_and_drops_tmp_mirrors() {
+    let temp = TempStore::new("promote-floor");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let plan = MaintenanceInspector::new(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.31.0"),
+        FixedClock(1_000),
+        FixedCapacity,
+    )
+    .inspect()
+    .unwrap();
+    let mut lifecycle = GenerationLifecycle::acquire(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.31.0"),
+        MaintenanceRun::new("promote-floor", "owner", std::process::id(), 1_000, 30_000),
+        &plan,
+        MaintenanceAction::Promote,
+        FixedCapacity,
+    )
+    .unwrap();
+
+    let source_during_build = Connection::open(layout.store_db()).unwrap();
+    assert_eq!(
+        metadata(&source_during_build, "min_writer_version"),
+        "2.31.0"
+    );
+    assert_eq!(
+        metadata(
+            &source_during_build,
+            "maintenance_tmp_source_min_writer_version"
+        ),
+        "2.30.0"
+    );
+    drop(source_during_build);
+
+    let report = lifecycle
+        .promote(&plan, &GenerationPolicy::default())
+        .unwrap();
+    assert_eq!(report.destination_generation, "gen-002");
+
+    let serving = StoreLayout::open(temp.path()).unwrap();
+    assert_eq!(serving.generation_name(), "gen-002");
+    let destination = Connection::open(serving.store_db()).unwrap();
+    assert_eq!(metadata(&destination, "min_writer_version"), "2.30.0");
+    let tmp_count: i64 = destination
+        .query_row(
+            "SELECT COUNT(*) FROM store_meta WHERE key LIKE 'maintenance_tmp_%'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(tmp_count, 0);
+    let coord = Connection::open(serving.coordinator_db()).unwrap();
+    assert_eq!(
+        coord
+            .query_row("SELECT COUNT(*) FROM maintenance_intent", [], |row| row
+                .get::<_, i64>(0),)
+            .unwrap(),
+        0
+    );
+}
+
+#[derive(Clone, Copy)]
+struct FixedClock(i64);
+
+impl MaintenanceClock for FixedClock {
+    fn now_ms(&self) -> i64 {
+        self.0
+    }
+}
+
+#[derive(Clone, Copy)]
+struct FixedCapacity;
+
+impl CapacityProvider for FixedCapacity {
+    fn free_bytes(&self, _path: &Path) -> Result<u64, std::io::Error> {
+        Ok(512 * 1024 * 1024)
+    }
+
+    fn staged_generation_bytes(&self, _path: &Path) -> Result<u64, std::io::Error> {
+        Ok(64 * 1024 * 1024)
+    }
 }
 
 fn metadata(connection: &Connection, key: &str) -> String {

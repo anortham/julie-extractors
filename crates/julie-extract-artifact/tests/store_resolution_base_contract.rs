@@ -183,13 +183,14 @@ fn missing_ready_file_is_not_reset_while_a_pin_protects_the_base() {
     catalog.publish_scratch(&build).unwrap();
     let ready = catalog.mark_ready(&build, NOW).unwrap();
     let connection = Connection::open(layout.store_db()).unwrap();
+    let unexpired = "2026-08-08T20:20:00Z";
     connection
         .execute(
             "INSERT INTO resolution_pins
              (pin_id,owner_kind,owner_id,view_id,manifest_generation,base_id,
               delta_generation,expires_at,created_at)
-             VALUES ('pin-a','reader','reader-a','view-a',1,?1,NULL,?2,?2)",
-            params![ready.base_id, NOW],
+             VALUES ('pin-a','reader','reader-a','view-a',1,?1,NULL,?2,?3)",
+            params![ready.base_id, unexpired, NOW],
         )
         .unwrap();
     fs::remove_file(&build.final_path).unwrap();
@@ -221,6 +222,47 @@ fn missing_ready_file_is_not_reset_while_a_pin_protects_the_base() {
             .unwrap(),
         ResolutionBaseRecovery::Rebuild(_)
     ));
+}
+
+#[test]
+fn expired_pin_does_not_protect_a_ready_base_from_rebuild() {
+    let temp = TempDir::new("pin-expired");
+    let (layout, manifest_hash, version_id) = store_with_manifest(temp.path());
+    let catalog = catalog(&layout);
+    let build = new_build(&catalog, &manifest_hash, "request-a");
+    write_empty_base(&build.scratch_path, &manifest_hash, version_id);
+    catalog.publish_scratch(&build).unwrap();
+    let ready = catalog.mark_ready(&build, NOW).unwrap();
+    let connection = Connection::open(layout.store_db()).unwrap();
+    let expired = "2026-08-08T18:00:00Z";
+    connection
+        .execute(
+            "INSERT INTO resolution_pins
+             (pin_id,owner_kind,owner_id,view_id,manifest_generation,base_id,
+              delta_generation,expires_at,created_at)
+             VALUES ('pin-expired','reader','reader-a','view-a',1,?1,NULL,?2,?2)",
+            params![ready.base_id, expired],
+        )
+        .unwrap();
+    fs::remove_file(&build.final_path).unwrap();
+
+    assert!(matches!(
+        catalog
+            .recover(&manifest_hash, 7, "request-b", false, NOW)
+            .unwrap(),
+        ResolutionBaseRecovery::Rebuild(_)
+    ));
+    assert_eq!(
+        connection
+            .query_row(
+                "SELECT COUNT(*) FROM resolution_pins WHERE pin_id='pin-expired'",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        1,
+        "expired pins remain until reaped; they just stop protecting"
+    );
 }
 
 #[test]

@@ -526,7 +526,9 @@ impl ResolutionBaseCatalog {
         if !same_owner && prior_owner_live {
             return Ok(ResolutionBaseRecovery::LiveOwner(record));
         }
-        if record.state == ResolutionBaseState::Ready && self.base_is_protected(&record.base_id)? {
+        if record.state == ResolutionBaseState::Ready
+            && self.base_is_protected(&record.base_id, now)?
+        {
             return Err(ResolutionBaseCatalogError::FileProtected {
                 base_id: record.base_id,
             });
@@ -702,12 +704,19 @@ impl ResolutionBaseCatalog {
         Ok(true)
     }
 
-    fn base_is_protected(&self, base_id: &str) -> Result<bool, ResolutionBaseCatalogError> {
+    fn base_is_protected(
+        &self,
+        base_id: &str,
+        now: &str,
+    ) -> Result<bool, ResolutionBaseCatalogError> {
         let connection = self.factory.open_reader()?;
         Ok(connection.query_row(
-            "SELECT EXISTS(SELECT 1 FROM resolution_pins WHERE base_id=?1)
-                 OR EXISTS(SELECT 1 FROM resolution_deltas WHERE base_id=?1)",
-            [base_id],
+            "SELECT EXISTS(
+                 SELECT 1 FROM resolution_pins
+                 WHERE base_id=?1 AND julianday(expires_at)>julianday(?2)
+               )
+               OR EXISTS(SELECT 1 FROM resolution_deltas WHERE base_id=?1)",
+            params![base_id, now],
             |row| row.get(0),
         )?)
     }
@@ -779,8 +788,13 @@ fn validate_catalog_identity(
     Ok(())
 }
 
-fn base_id(manifest_hash: &str, resolver_output_epoch: i64) -> String {
+/// Canonical catalog and on-disk base identity shared by import and resolve.
+pub fn resolution_base_id(manifest_hash: &str, resolver_output_epoch: i64) -> String {
     format!("base-{manifest_hash}-{resolver_output_epoch}")
+}
+
+fn base_id(manifest_hash: &str, resolver_output_epoch: i64) -> String {
+    resolution_base_id(manifest_hash, resolver_output_epoch)
 }
 
 fn manifest_source_versions(
@@ -1241,27 +1255,42 @@ impl ResolutionBindingStore {
         Ok((binding, pin))
     }
 
-    pub fn publish_exact(
+    pub fn publish_exact<H>(
         &self,
         publication: &ResolutionExactPublish,
         fence: &ResolutionPublicationFence,
         scratch: &ResolutionScratchReader,
         gaps: &[ResolutionGapFact],
         window_size: usize,
-    ) -> Result<ResolutionViewBinding, ResolutionBindingError> {
-        self.publish_exact_with_markers(publication, fence, scratch, gaps, window_size, |_| {})
+        heartbeat: H,
+    ) -> Result<ResolutionViewBinding, ResolutionBindingError>
+    where
+        H: FnOnce() -> Result<(), ResolutionBindingError>,
+    {
+        self.publish_exact_with_markers(
+            publication,
+            fence,
+            scratch,
+            gaps,
+            window_size,
+            heartbeat,
+            |_| {},
+        )
     }
 
-    pub fn publish_exact_with_markers<M>(
+    #[allow(clippy::too_many_arguments)]
+    pub fn publish_exact_with_markers<H, M>(
         &self,
         publication: &ResolutionExactPublish,
         fence: &ResolutionPublicationFence,
         scratch: &ResolutionScratchReader,
         gaps: &[ResolutionGapFact],
         window_size: usize,
+        heartbeat: H,
         mut mark: M,
     ) -> Result<ResolutionViewBinding, ResolutionBindingError>
     where
+        H: FnOnce() -> Result<(), ResolutionBindingError>,
         M: FnMut(ResolutionPublicationMarker),
     {
         if window_size == 0 {
@@ -1309,6 +1338,9 @@ impl ResolutionBindingStore {
             ))
             .open_writer()?;
         mark(ResolutionPublicationMarker::StoreTransactionStart);
+        // Mandatory pre-BEGIN heartbeat: renew full lease TTL before IMMEDIATE work.
+        // Never heartbeat mid-transaction.
+        heartbeat()?;
         let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
         let current = transaction
             .query_row(
@@ -1401,6 +1433,8 @@ impl ResolutionBindingStore {
             publication.manifest_generation,
             delta_generation,
         )?;
+        // Wall-clock revalidation before view CAS. Failure rolls back the IMMEDIATE txn.
+        self.validate_publication_fence(publication, fence)?;
         let changed = transaction.execute(
             "UPDATE views SET resolution_state='exact',resolution_delta_generation=?1,
                     resolution_exact_at=?2,updated_at=?3
@@ -1450,7 +1484,6 @@ impl ResolutionBindingStore {
                 }
             })?),
         )?;
-        self.validate_publication_fence(publication, fence)?;
         #[cfg(feature = "test-store-crash")]
         super::test_hooks::crash_if("resolution_exact_before_store_commit");
         transaction.commit()?;
@@ -1481,6 +1514,7 @@ impl ResolutionBindingStore {
             OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
         )?;
         connection.execute_batch("PRAGMA query_only = ON;")?;
+        // Compare lease expiry against current wall clock, not fence.now_ms alone.
         let valid: i64 = connection.query_row(
             "SELECT EXISTS(
                SELECT 1 FROM requests AS request
@@ -1496,7 +1530,7 @@ impl ResolutionBindingStore {
                 fence.holder_id,
                 i64::from(fence.holder_pid),
                 fence.fencing_token,
-                fence.now_ms,
+                super::connection::system_now_ms(),
             ],
             |row| row.get(0),
         )?;

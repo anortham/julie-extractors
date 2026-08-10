@@ -959,6 +959,215 @@ fn resolve_claim_loss_stops_before_base_or_exact_publication() {
 }
 
 #[test]
+fn failed_resolve_releases_live_pin_when_writer_ownership_can_be_reacquired() {
+    let temp = TempDir::new();
+    let (root, store) = create_full_store(&temp);
+    assert!(
+        resolve_output(&store, "resolve-seed", "resolve-seed-key")
+            .status
+            .success()
+    );
+    fs::write(
+        root.join("lib.rs"),
+        "pub fn answer() -> i32 { helper() }\nfn helper() -> i32 { 2 }\n",
+    )
+    .unwrap();
+    assert!(
+        julie_extract(&[
+            "store",
+            "update",
+            "--store",
+            store.to_str().unwrap(),
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--file",
+            "lib.rs",
+            "--level",
+            "full",
+            "--json",
+        ])
+        .status
+        .success()
+    );
+
+    let pause = temp.path().join("pin-release.pause");
+    let child = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
+            "store",
+            "resolve",
+            "--store",
+            store.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--request-id",
+            "resolve-pin-release",
+            "--idempotency-key",
+            "resolve-pin-release-key",
+            "--json",
+        ])
+        .env(
+            "JULIE_EXTRACT_STORE_RESOLUTION_PAUSE_AFTER_EXACT_FILE",
+            &pause,
+        )
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
+    wait_for_path(&pause);
+
+    // Expire the held writer lease so the post-exact terminal append fails closed.
+    // Claim ownership remains; Drop can reacquire a writer lease and release the pin.
+    Connection::open(store.join("coord.db"))
+        .unwrap()
+        .execute("UPDATE writer_lease SET expires_at=0, heartbeat_at=0", [])
+        .unwrap();
+
+    fs::write(pause.with_extension("resume"), b"resume").unwrap();
+    let output = child.wait_with_output().unwrap();
+    assert!(
+        !output.status.success(),
+        "resolve must fail after lease loss; stdout={} stderr={}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let db = Connection::open(store.join("gen-001/store.db")).unwrap();
+    assert_eq!(
+        db.query_row(
+            "SELECT COUNT(*) FROM resolution_pins
+             WHERE pin_id LIKE 'resolve-resolve-pin-release-%'
+               AND owner_kind='resolve'",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .unwrap(),
+        0,
+        "failed resolve must release its live pin when writer ownership can be reacquired"
+    );
+}
+
+#[test]
+fn successful_resolve_leaves_no_live_resolve_pin() {
+    let temp = TempDir::new();
+    let (_, store) = create_full_store(&temp);
+    assert!(
+        resolve_output(&store, "resolve-clean-pin", "resolve-clean-pin-key")
+            .status
+            .success()
+    );
+    let db = Connection::open(store.join("gen-001/store.db")).unwrap();
+    assert_eq!(
+        db.query_row(
+            "SELECT COUNT(*) FROM resolution_pins WHERE owner_kind='resolve'",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .unwrap(),
+        0
+    );
+}
+
+#[test]
+fn resolve_terminal_append_fails_closed_under_foreign_live_maintenance_intent() {
+    let temp = TempDir::new();
+    let (root, store) = create_full_store(&temp);
+    assert!(
+        resolve_output(&store, "resolve-seed", "resolve-seed-key")
+            .status
+            .success()
+    );
+    fs::write(
+        root.join("lib.rs"),
+        "pub fn answer() -> i32 { helper() }\nfn helper() -> i32 { 2 }\n",
+    )
+    .unwrap();
+    assert!(
+        julie_extract(&[
+            "store",
+            "update",
+            "--store",
+            store.to_str().unwrap(),
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--file",
+            "lib.rs",
+            "--level",
+            "full",
+            "--json",
+        ])
+        .status
+        .success()
+    );
+
+    let pause = temp.path().join("after-exact.pause");
+    let child = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
+            "store",
+            "resolve",
+            "--store",
+            store.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--request-id",
+            "resolve-fenced-terminal",
+            "--idempotency-key",
+            "resolve-fenced-terminal-key",
+            "--json",
+        ])
+        .env(
+            "JULIE_EXTRACT_STORE_RESOLUTION_PAUSE_AFTER_EXACT_FILE",
+            &pause,
+        )
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
+    wait_for_path(&pause);
+
+    // Foreign live maintenance intent is durable before the terminal append.
+    // Unfenced Connection::open(store.db) would still write the terminal row;
+    // fenced open_writer must refuse and leave no terminal fact.
+    Connection::open(store.join("coord.db"))
+        .unwrap()
+        .execute(
+            "INSERT INTO maintenance_intent
+             (resource, run_id, action, source_generation_name, owner_id, owner_pid,
+              fencing_token, heartbeat_at, expires_at, started_at, plan_fingerprint,
+              source_min_writer_version)
+             VALUES ('store-maintenance', 'run-foreign', 'promote', 'gen-001', 'maint-owner', 7,
+                     99, 1, 9223372036854775807, 1, 'plan-foreign', '2.30.0')",
+            [],
+        )
+        .unwrap();
+
+    fs::write(pause.with_extension("resume"), b"resume").unwrap();
+    let output = child.wait_with_output().unwrap();
+    assert!(
+        !output.status.success(),
+        "resolve must fail closed under foreign live maintenance intent; stdout={} stderr={}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let db = Connection::open(store.join("gen-001/store.db")).unwrap();
+    assert_eq!(
+        db.query_row(
+            "SELECT COUNT(*) FROM store_log
+             WHERE request_id='resolve-fenced-terminal' AND terminal=1",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .unwrap(),
+        0,
+        "terminal append must not land without a generation fence"
+    );
+}
+
+#[test]
 fn hard_kill_boundaries_resume_one_resolve_without_duplicate_terminal_state() {
     {
         let temp = TempDir::new();

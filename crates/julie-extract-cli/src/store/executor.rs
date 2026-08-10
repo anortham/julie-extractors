@@ -1065,74 +1065,63 @@ impl StoreRequestExecutor {
             &payload,
             generation,
             &manifest_hash,
+            &request.request_id,
+            &indexed_at,
         )?;
-        store_test_crash!("from_artifact_base_before_catalog");
-        let identifier_count = i64::try_from(base.identity.counts.identifiers)
-            .map_err(|_| "resolution_identifier_count_out_of_range".to_string())?;
-        let pending_count = i64::try_from(base.identity.counts.pending)
-            .map_err(|_| "resolution_pending_count_out_of_range".to_string())?;
-        let file_bytes = i64::try_from(base.identity.file_bytes)
-            .map_err(|_| "resolution_file_size_out_of_range".to_string())?;
-        transaction
-            .execute(
-                "INSERT INTO resolution_bases
-                 (base_id,manifest_hash,resolver_output_epoch,state,relative_path,
-                  identifier_count,pending_count,file_bytes,file_sha256,request_id,
-                  created_at,updated_at)
-                 VALUES (?1,?2,?3,'ready',?4,?5,?6,?7,?8,?9,?10,?10)
-                 ON CONFLICT(base_id) DO NOTHING",
-                rusqlite::params![
-                    base.base_id,
-                    manifest_hash,
-                    payload.source.resolver_output_epoch,
-                    base.relative_path,
-                    identifier_count,
-                    pending_count,
-                    file_bytes,
-                    base.identity.file_sha256,
-                    request.request_id,
-                    indexed_at,
-                ],
-            )
-            .map_err(|error| error.to_string())?;
-        let registered: (String, i64, String, i64, i64) = transaction
-            .query_row(
-                "SELECT manifest_hash,resolver_output_epoch,file_sha256,
+        // Same-quantum constraint: if later steps fail, roll back the catalog and
+        // remove any final base file this call published so the FS does not outlive
+        // the uncommitted ready/building rows.
+        let published_cleanup = if base.published_new_file {
+            self.store_db
+                .parent()
+                .map(|generation_dir| generation_dir.join(format!("bases/{}.db", base.base_id)))
+        } else {
+            None
+        };
+        let cleanup_published = |keep: bool| {
+            if keep {
+                return;
+            }
+            if let Some(path) = published_cleanup.as_ref() {
+                let _ = super::from_artifact::remove_base_file_set_for_cleanup(path);
+            }
+        };
+        let complete = (|| {
+            store_test_crash!("from_artifact_base_before_catalog");
+            let identifier_count = i64::try_from(base.identity.counts.identifiers)
+                .map_err(|_| "resolution_identifier_count_out_of_range".to_string())?;
+            let pending_count = i64::try_from(base.identity.counts.pending)
+                .map_err(|_| "resolution_pending_count_out_of_range".to_string())?;
+            let registered: (String, i64, String, i64, i64) = transaction
+                .query_row(
+                    "SELECT manifest_hash,resolver_output_epoch,file_sha256,
                         identifier_count,pending_count
                  FROM resolution_bases WHERE base_id=?1 AND state='ready'",
-                [&base.base_id],
-                |row| {
-                    Ok((
-                        row.get(0)?,
-                        row.get(1)?,
-                        row.get(2)?,
-                        row.get(3)?,
-                        row.get(4)?,
-                    ))
-                },
-            )
-            .map_err(|error| error.to_string())?;
-        if registered
-            != (
-                manifest_hash.clone(),
-                payload.source.resolver_output_epoch,
-                base.identity.file_sha256.clone(),
-                identifier_count,
-                pending_count,
-            )
-        {
-            return Err("resolution_base_catalog_identity_mismatch".to_string());
-        }
-        for version_id in &base.source_versions {
-            transaction
-                .execute(
-                    "INSERT OR IGNORE INTO resolution_base_versions(base_id,version_id)
-                     VALUES (?1,?2)",
-                    rusqlite::params![base.base_id, version_id],
+                    [&base.base_id],
+                    |row| {
+                        Ok((
+                            row.get(0)?,
+                            row.get(1)?,
+                            row.get(2)?,
+                            row.get(3)?,
+                            row.get(4)?,
+                        ))
+                    },
                 )
                 .map_err(|error| error.to_string())?;
-        }
-        let delta_generation: i64 = transaction
+            if registered
+                != (
+                    manifest_hash.clone(),
+                    payload.source.resolver_output_epoch,
+                    base.identity.file_sha256.clone(),
+                    identifier_count,
+                    pending_count,
+                )
+            {
+                return Err("resolution_base_catalog_identity_mismatch".to_string());
+            }
+            debug_assert!(base.already_ready || registered.2 == base.identity.file_sha256);
+            let delta_generation: i64 = transaction
             .query_row(
                 "SELECT COALESCE(MAX(delta_generation),0) FROM resolution_deltas WHERE view_id=?1",
                 [&payload.view_id],
@@ -1141,89 +1130,101 @@ impl StoreRequestExecutor {
             .map_err(|error| error.to_string())?
             .checked_add(1)
             .ok_or_else(|| "resolution_delta_generation_out_of_range".to_string())?;
-        transaction
-            .execute(
-                "INSERT INTO resolution_deltas
+            transaction
+                .execute(
+                    "INSERT INTO resolution_deltas
                  (view_id,delta_generation,base_id,manifest_generation,manifest_hash,
                   resolver_output_epoch,identifier_replacements,pending_replacements,
                   pending_tombstones,exact_gap_rows,exact_gap_files,exact_gap_json,
                   request_id,created_at)
                  VALUES (?1,?2,?3,?4,?5,?6,0,0,0,0,0,
                          '{\"files\":[],\"rows\":[]}',?7,?8)",
-                rusqlite::params![
-                    payload.view_id,
-                    delta_generation,
-                    base.base_id,
-                    generation,
-                    manifest_hash,
-                    payload.source.resolver_output_epoch,
-                    request.request_id,
-                    indexed_at,
-                ],
-            )
-            .map_err(|error| error.to_string())?;
-        store_test_crash!("from_artifact_exact_before_cas");
-        let changed = transaction
-            .execute(
-                "UPDATE views SET resolution_state='exact',resolution_base_id=?1,
+                    rusqlite::params![
+                        payload.view_id,
+                        delta_generation,
+                        base.base_id,
+                        generation,
+                        manifest_hash,
+                        payload.source.resolver_output_epoch,
+                        request.request_id,
+                        indexed_at,
+                    ],
+                )
+                .map_err(|error| error.to_string())?;
+            store_test_crash!("from_artifact_exact_before_cas");
+            let changed = transaction
+                .execute(
+                    "UPDATE views SET resolution_state='exact',resolution_base_id=?1,
                         resolution_delta_generation=?2,resolution_exact_at=?3,updated_at=?4
                  WHERE view_id=?5 AND current_generation=?3",
-                rusqlite::params![
-                    base.base_id,
-                    delta_generation,
-                    generation,
-                    indexed_at,
-                    payload.view_id,
-                ],
+                    rusqlite::params![
+                        base.base_id,
+                        delta_generation,
+                        generation,
+                        indexed_at,
+                        payload.view_id,
+                    ],
+                )
+                .map_err(|error| error.to_string())?;
+            if changed != 1 {
+                return Err("resolution_binding_cas_lost".to_string());
+            }
+            store_test_crash!("from_artifact_exact_after_cas_before_commit");
+            StoreLog::append_effect(
+                transaction,
+                &StoreLogEntry::new(
+                    &request.request_id,
+                    "resolution_bound",
+                    serde_json::json!({
+                        "base_id": base.base_id,
+                        "delta_generation": delta_generation,
+                        "manifest_generation": generation,
+                        "state": "exact",
+                    })
+                    .to_string(),
+                    &indexed_at,
+                )
+                .with_view(&payload.view_id)
+                .with_generation(
+                    u64::try_from(generation)
+                        .map_err(|_| "invalid_manifest_generation".to_string())?,
+                ),
             )
             .map_err(|error| error.to_string())?;
-        if changed != 1 {
-            return Err("resolution_binding_cas_lost".to_string());
-        }
-        store_test_crash!("from_artifact_exact_after_cas_before_commit");
-        StoreLog::append_effect(
-            transaction,
-            &StoreLogEntry::new(
-                &request.request_id,
-                "resolution_bound",
-                serde_json::json!({
-                    "base_id": base.base_id,
-                    "delta_generation": delta_generation,
+            let counts = terminal_row_counts(transaction, &payload.view_id, generation)?;
+            let state = load_durable_request_state(transaction, &request.request_id)?;
+            Ok(ExecutionQuantum::Complete {
+                event_kind: "store_from_artifact_completed".to_string(),
+                result_json: serde_json::json!({
+                    "family_id": payload.family_id,
+                    "l1": true,
+                    "l2": true,
+                    "l3": true,
                     "manifest_generation": generation,
-                    "state": "exact",
+                    "manifest_hash": manifest_hash,
+                    "manifest_disposition": state.manifest_disposition,
+                    "row_counts": {
+                        "file_versions": counts.0,
+                        "l1": counts.1,
+                        "l2": counts.2,
+                        "l3": counts.3,
+                    },
+                    "root": payload.root,
+                    "view_id": payload.view_id,
                 })
                 .to_string(),
-                &indexed_at,
-            )
-            .with_view(&payload.view_id)
-            .with_generation(
-                u64::try_from(generation).map_err(|_| "invalid_manifest_generation".to_string())?,
-            ),
-        )
-        .map_err(|error| error.to_string())?;
-        let counts = terminal_row_counts(transaction, &payload.view_id, generation)?;
-        let state = load_durable_request_state(transaction, &request.request_id)?;
-        Ok(ExecutionQuantum::Complete {
-            event_kind: "store_from_artifact_completed".to_string(),
-            result_json: serde_json::json!({
-                "family_id": payload.family_id,
-                "l1": true,
-                "l2": true,
-                "l3": true,
-                "manifest_generation": generation,
-                "manifest_hash": manifest_hash,
-                "manifest_disposition": state.manifest_disposition,
-                "row_counts": {
-                    "file_versions": counts.0,
-                    "l1": counts.1,
-                    "l2": counts.2,
-                    "l3": counts.3,
-                },
-                "root": payload.root,
-                "view_id": payload.view_id,
             })
-            .to_string(),
-        })
+        })();
+        match complete {
+            Ok(quantum) => {
+                cleanup_published(true);
+                Ok(quantum)
+            }
+            Err(error) => {
+                cleanup_published(false);
+                Err(error)
+            }
+        }
     }
 }
 

@@ -21,9 +21,10 @@ pub use connection::{
 };
 pub use coordinator::{
     ConsumerCursor, CoordinatorError, CoordinatorExecutor, CoordinatorPolicy, CoordinatorRequest,
-    DrainReport, EnqueueResult, ExecutionContext, ExecutionQuantum, LeaseDisposition, LeaseHolder,
-    LeaseRecord, PidLiveness, PidStatus, ReconcileOutcome, RequestKind, RequestReceipt,
-    RequestState, StoreCoordinator, UnixMillisClock, compare_versions,
+    DrainReport, EnqueueResult, ExecutionContext, ExecutionQuantum, IntentIdentity,
+    LeaseDisposition, LeaseHolder, LeaseRecord, MaintenanceOwnerFence, PidLiveness, PidStatus,
+    ReconcileOutcome, RequestKind, RequestReceipt, RequestState, StoreCoordinator, UnixMillisClock,
+    compare_versions, foreign_live_maintenance_intent,
 };
 pub use generation::{
     GenerationApplyReport, GenerationError, GenerationLifecycle, GenerationPolicy,
@@ -63,7 +64,7 @@ pub use resolution::{
     ResolutionIdentifierRow, ResolutionPendingRow, ResolutionPublicationFence,
     ResolutionPublicationMarker, ResolutionSemanticCounts, ResolutionValidationError,
     ResolutionViewBinding, create_resolution_scratch_connection, resolution_base_catalog_hash,
-    resolution_base_catalog_hash_for_sql,
+    resolution_base_catalog_hash_for_sql, resolution_base_id,
 };
 pub use resolution_diff::{
     RESOLUTION_SCRATCH_FORMAT_VERSION, RESOLUTION_SCRATCH_SQL, RESOLUTION_SCRATCH_USER_VERSION,

@@ -85,6 +85,7 @@ fn coordinator_receipt_survives_death_before_store_log_pruning_and_retry_finishe
             5_000,
         ),
         &plan,
+        FixedCapacity,
     )
     .unwrap();
     let report = executor
@@ -152,6 +153,7 @@ fn base_catalog_and_owned_file_boundaries_recover_without_false_ready_rows() {
                 5_000,
             ),
             &plan,
+            FixedCapacity,
         )
         .unwrap();
         executor.apply(&plan).unwrap();
@@ -195,6 +197,7 @@ fn request_scratch_removal_is_restartable_on_both_sides_of_unlink() {
                 5_000,
             ),
             &plan,
+            FixedCapacity,
         )
         .unwrap();
         executor.apply(&plan).unwrap();
@@ -281,6 +284,7 @@ fn run_gc(layout: &StoreLayout, run_id: &str) {
         factory(layout),
         MaintenanceRun::new(run_id, "crash-owner", std::process::id(), 30 * DAY_MS, 250),
         &plan,
+        FixedCapacity,
     )
     .unwrap();
     executor

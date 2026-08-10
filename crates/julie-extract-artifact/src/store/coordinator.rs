@@ -12,7 +12,7 @@ use rusqlite::{Connection, OptionalExtension, Transaction, TransactionBehavior, 
 
 use super::connection::{
     compare_versions as compare_store_versions, extractor_downgrade_allowed,
-    required_writer_version,
+    required_writer_version, system_now_ms,
 };
 use super::layout::valid_generation_name;
 use super::pragmas::{WriterPragmaProfile, configure_writer_pragmas};
@@ -196,6 +196,33 @@ impl LeaseHolder {
             holder_version: holder_version.into(),
             holder_pid,
         }
+    }
+}
+
+/// Live maintenance_intent identity fields used for lease authority decisions.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct IntentIdentity {
+    pub run_id: String,
+    pub owner_id: String,
+    pub owner_pid: u32,
+    pub fencing_token: i64,
+}
+
+/// Explicit maintenance-owner proof required to acquire under a live intent.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MaintenanceOwnerFence {
+    pub run_id: String,
+    pub owner_id: String,
+    pub owner_pid: u32,
+    pub fencing_token: i64,
+}
+
+impl MaintenanceOwnerFence {
+    fn matches_intent(&self, intent: &IntentIdentity) -> bool {
+        self.run_id == intent.run_id
+            && self.owner_id == intent.owner_id
+            && self.owner_pid == intent.owner_pid
+            && self.fencing_token == intent.fencing_token
     }
 }
 
@@ -571,8 +598,6 @@ impl StoreCoordinator {
         request: CoordinatorRequest,
     ) -> Result<EnqueueResult, CoordinatorError> {
         validate_request(&request)?;
-        StoreConnectionFactory::new(self.layout.clone(), self.family_id.clone(), "0.0.0")
-            .validate_write_fence()?;
         let mut connection = open_coordinator(&self.coordinator_db)?;
         let transaction = begin_coordinator(&mut connection)?;
         if receipt_by_id(&transaction, &request.request_id)?
@@ -615,6 +640,8 @@ impl StoreCoordinator {
                 existing_request_id: receipt.request_id,
             });
         }
+        // In-txn recheck: refuse new inserts under foreign live maintenance intent.
+        refuse_foreign_live_maintenance_intent(&transaction, self.clock.now_ms())?;
         transaction.execute(
             "INSERT INTO requests
              (request_id, idempotency_key, kind, payload_json, state, requester_id,
@@ -651,6 +678,9 @@ impl StoreCoordinator {
         let stale_before = now.saturating_sub(stale_after_ms);
         let mut connection = open_coordinator(&self.coordinator_db)?;
         let transaction = begin_coordinator(&mut connection)?;
+        if foreign_live_maintenance_intent(&transaction, now)?.is_some() {
+            return Ok(false);
+        }
         let Some(request) = request_by_id(&transaction, request_id)? else {
             return Ok(false);
         };
@@ -775,6 +805,39 @@ impl StoreCoordinator {
         holder: LeaseHolder,
         now: i64,
     ) -> Result<LeaseDisposition, CoordinatorError> {
+        self.try_acquire_with_intent_policy(holder, None, now)
+    }
+
+    /// Acquires the store-writer lease under an explicit maintenance-owner fence.
+    ///
+    /// Ordinary [`try_acquire_or_takeover`] never accepts a maintenance bypass. This API
+    /// requires the live `maintenance_intent` row to match `owner` on every field and
+    /// reuses `owner.fencing_token` as the lease fencing token.
+    pub fn try_acquire_for_maintenance(
+        &mut self,
+        holder: LeaseHolder,
+        owner: MaintenanceOwnerFence,
+        now: i64,
+    ) -> Result<LeaseDisposition, CoordinatorError> {
+        if owner.run_id.is_empty()
+            || owner.owner_id.is_empty()
+            || owner.owner_pid == 0
+            || owner.fencing_token <= 0
+        {
+            return Err(CoordinatorError::InvalidRequest);
+        }
+        if holder.holder_id != owner.owner_id || holder.holder_pid != owner.owner_pid {
+            return Err(CoordinatorError::InvalidRequest);
+        }
+        self.try_acquire_with_intent_policy(holder, Some(owner), now)
+    }
+
+    fn try_acquire_with_intent_policy(
+        &mut self,
+        holder: LeaseHolder,
+        maintenance_owner: Option<MaintenanceOwnerFence>,
+        now: i64,
+    ) -> Result<LeaseDisposition, CoordinatorError> {
         if holder.holder_id.is_empty() || holder.holder_version.is_empty() || holder.holder_pid == 0
         {
             return Err(CoordinatorError::InvalidRequest);
@@ -782,6 +845,21 @@ impl StoreCoordinator {
         self.ensure_writer_eligible(&holder.holder_version)?;
         let mut connection = open_coordinator(&self.coordinator_db)?;
         let transaction = begin_coordinator(&mut connection)?;
+        let live_intent = foreign_live_maintenance_intent(&transaction, now)?;
+        match (&maintenance_owner, live_intent) {
+            (Some(owner), Some(intent)) if owner.matches_intent(&intent) => {}
+            (Some(_), Some(intent)) | (None, Some(intent)) => {
+                return Err(CoordinatorError::StoreConnection(
+                    StoreConnectionError::MaintenanceInProgress {
+                        run_id: intent.run_id,
+                    },
+                ));
+            }
+            // Maintenance-owner acquire requires a live matching intent. Do not
+            // fall through and mint a writer lease with a caller-supplied token.
+            (Some(_), None) => return Err(CoordinatorError::InvalidRequest),
+            (None, None) => {}
+        }
         let existing = transaction
             .query_row(
                 "SELECT holder_id, holder_pid, expires_at, fencing_token FROM writer_lease
@@ -798,8 +876,27 @@ impl StoreCoordinator {
             )
             .optional()?;
         let expires_at = checked_lease_expiry(now, DEFAULT_LEASE_DURATION_MS)?;
-        let disposition = match existing {
-            None => {
+        let disposition = match (existing, maintenance_owner.as_ref()) {
+            (None, Some(owner)) => {
+                transaction.execute(
+                    "INSERT INTO writer_lease
+                     (resource, holder_id, holder_version, holder_pid, heartbeat_at, expires_at, fencing_token)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                    params![
+                        STORE_WRITER_RESOURCE,
+                        holder.holder_id,
+                        holder.holder_version,
+                        holder.holder_pid,
+                        now,
+                        expires_at,
+                        owner.fencing_token,
+                    ],
+                )?;
+                LeaseDisposition::Acquired {
+                    fencing_token: owner.fencing_token,
+                }
+            }
+            (None, None) => {
                 let fencing_token = allocate_fencing_token(now.max(1))?;
                 transaction.execute(
                     "INSERT INTO writer_lease
@@ -817,7 +914,27 @@ impl StoreCoordinator {
                 )?;
                 LeaseDisposition::Acquired { fencing_token }
             }
-            Some((holder_id, old_pid, old_expiry, fencing_token))
+            (Some((holder_id, old_pid, old_expiry, fencing_token)), Some(owner))
+                if holder_id == holder.holder_id
+                    && old_pid == holder.holder_pid
+                    && fencing_token == owner.fencing_token
+                    && old_expiry > now =>
+            {
+                transaction.execute(
+                    "UPDATE writer_lease SET holder_version = ?1, holder_pid = ?2,
+                     heartbeat_at = ?3, expires_at = ?4 WHERE resource = ?5 AND fencing_token = ?6",
+                    params![
+                        holder.holder_version,
+                        holder.holder_pid,
+                        now,
+                        expires_at,
+                        STORE_WRITER_RESOURCE,
+                        fencing_token,
+                    ],
+                )?;
+                LeaseDisposition::Acquired { fencing_token }
+            }
+            (Some((holder_id, old_pid, old_expiry, fencing_token)), None)
                 if holder_id == holder.holder_id
                     && old_pid == holder.holder_pid
                     && old_expiry > now
@@ -837,7 +954,34 @@ impl StoreCoordinator {
                 )?;
                 LeaseDisposition::Acquired { fencing_token }
             }
-            Some((old_holder_id, old_pid, old_expiry, fencing_token))
+            (Some((old_holder_id, old_pid, old_expiry, fencing_token)), Some(owner))
+                if old_expiry <= now || self.pid_liveness.status(old_pid) == PidStatus::Dead =>
+            {
+                transaction.execute(
+                    "UPDATE writer_lease SET holder_id = ?1, holder_version = ?2,
+                     holder_pid = ?3, heartbeat_at = ?4, expires_at = ?5, fencing_token = ?6
+                     WHERE resource = ?7 AND fencing_token = ?8",
+                    params![
+                        holder.holder_id,
+                        holder.holder_version,
+                        holder.holder_pid,
+                        now,
+                        expires_at,
+                        owner.fencing_token,
+                        STORE_WRITER_RESOURCE,
+                        fencing_token,
+                    ],
+                )?;
+                transaction.execute(
+                    "UPDATE requests SET claim_owner = ?1, claim_heartbeat_at = ?2, updated_at = ?2
+                     WHERE state = 'claimed' AND claim_owner = ?3",
+                    params![holder.holder_id, now, old_holder_id],
+                )?;
+                LeaseDisposition::Acquired {
+                    fencing_token: owner.fencing_token,
+                }
+            }
+            (Some((old_holder_id, old_pid, old_expiry, fencing_token)), None)
                 if old_expiry <= now || self.pid_liveness.status(old_pid) == PidStatus::Dead =>
             {
                 let minimum_token = fencing_token
@@ -871,7 +1015,7 @@ impl StoreCoordinator {
                     fencing_token: next_token,
                 }
             }
-            Some(_) => LeaseDisposition::HeldByOther,
+            (Some(_), _) => LeaseDisposition::HeldByOther,
         };
         transaction.commit()?;
         if let LeaseDisposition::Acquired { fencing_token } = disposition {
@@ -993,8 +1137,12 @@ impl StoreCoordinator {
             holder.holder_version.clone(),
         )
         .validate_write_fence()?;
+        // Service-window scheduling stays on the injected clock; store-writer
+        // lease rows always live in the wall-clock domain so open_writer fence
+        // checks cannot accept wall-expired leases.
         let started_at = self.clock.now_ms();
-        let lease = self.try_acquire_or_takeover(holder.clone(), started_at)?;
+        let wall_now = system_now_ms();
+        let lease = self.try_acquire_or_takeover(holder.clone(), wall_now)?;
         let LeaseDisposition::Acquired { fencing_token } = lease else {
             return Err(CoordinatorError::LeaseUnavailable);
         };
@@ -1174,15 +1322,16 @@ impl StoreCoordinator {
         if reconciliation.committed_in_fact {
             return Ok(());
         }
-        let now = self.clock.now_ms();
-        if !self.heartbeat_lease_for(holder, fencing_token, now, policy.lease_duration_ms)? {
+        let service_now = self.clock.now_ms();
+        let wall_now = system_now_ms();
+        if !self.heartbeat_lease_for(holder, fencing_token, wall_now, policy.lease_duration_ms)? {
             return Err(CoordinatorError::LeaseLost);
         }
         if !self.claim_request(
             &request.request_id,
             holder,
             fencing_token,
-            now,
+            service_now,
             policy.lease_duration_ms,
         )? {
             return Ok(());
@@ -1199,7 +1348,7 @@ impl StoreCoordinator {
             &holder.holder_id,
             holder.holder_pid,
             fencing_token,
-            self.clock.now_ms(),
+            wall_now,
         ));
         let mut store = factory.open_writer()?;
         factory.advance_binary_version(&mut store)?;
@@ -1293,8 +1442,8 @@ impl StoreCoordinator {
                 true
             }
         };
-        let now = self.clock.now_ms();
-        if !self.heartbeat_lease_for(holder, fencing_token, now, policy.lease_duration_ms)? {
+        let wall_now = system_now_ms();
+        if !self.heartbeat_lease_for(holder, fencing_token, wall_now, policy.lease_duration_ms)? {
             return Err(CoordinatorError::LeaseLost);
         }
         transaction.commit()?;
@@ -1306,8 +1455,9 @@ impl StoreCoordinator {
         if completed {
             super::test_hooks::crash_if("terminal_after_store_commit");
         }
-        let now = self.clock.now_ms();
-        if !self.heartbeat_lease_for(holder, fencing_token, now, policy.lease_duration_ms)? {
+        let service_now = self.clock.now_ms();
+        let wall_now = system_now_ms();
+        if !self.heartbeat_lease_for(holder, fencing_token, wall_now, policy.lease_duration_ms)? {
             return Err(CoordinatorError::LeaseLost);
         }
         if completed {
@@ -1318,22 +1468,23 @@ impl StoreCoordinator {
             let maxima = read_family_allocator_maxima(&store)?;
             let mut connection = open_coordinator(&self.coordinator_db)?;
             let transaction = begin_coordinator(&mut connection)?;
-            advance_family_allocator_marks(&transaction, &maxima, now)?;
+            advance_family_allocator_marks(&transaction, &maxima, service_now)?;
             let changed = transaction.execute(
                 "UPDATE requests SET claim_heartbeat_at = ?1, updated_at = ?1
                  WHERE request_id = ?2 AND state = 'claimed' AND claim_owner = ?3
                    AND EXISTS (
                      SELECT 1 FROM writer_lease
                      WHERE resource = ?4 AND holder_id = ?3 AND holder_pid = ?5
-                       AND fencing_token = ?6 AND expires_at > ?1
+                       AND fencing_token = ?6 AND expires_at > ?7
                    )",
                 params![
-                    now,
+                    service_now,
                     request.request_id,
                     holder.holder_id,
                     STORE_WRITER_RESOURCE,
                     holder.holder_pid,
                     fencing_token,
+                    wall_now,
                 ],
             )?;
             if changed != 1 {
@@ -1722,6 +1873,7 @@ impl StoreCoordinator {
         }
         let mut connection = open_coordinator(&self.coordinator_db)?;
         let transaction = begin_coordinator(&mut connection)?;
+        refuse_foreign_live_maintenance_intent(&transaction, self.clock.now_ms())?;
         let high_water = transaction
             .query_row(
                 "SELECT high_water FROM family_allocator_marks
@@ -1789,11 +1941,15 @@ impl StoreCoordinator {
         if consumer_id.is_empty() || consumer_id.len() > 128 {
             return Err(CoordinatorError::InvalidRequest);
         }
-        let connection = open_coordinator(&self.coordinator_db)?;
-        Ok(connection.execute(
+        let mut connection = open_coordinator(&self.coordinator_db)?;
+        let transaction = begin_coordinator(&mut connection)?;
+        refuse_foreign_live_maintenance_intent(&transaction, self.clock.now_ms())?;
+        let changed = transaction.execute(
             "DELETE FROM consumer_cursors WHERE consumer_id=?1",
             [consumer_id],
-        )? == 1)
+        )?;
+        transaction.commit()?;
+        Ok(changed == 1)
     }
 
     pub fn acknowledge(&mut self, request_id: &str, now: i64) -> Result<bool, CoordinatorError> {
@@ -1946,6 +2102,55 @@ fn validate_request(request: &CoordinatorRequest) -> Result<(), CoordinatorError
     } else {
         Ok(())
     }
+}
+
+/// Returns the live maintenance intent identity when `expires_at > now`.
+pub fn foreign_live_maintenance_intent(
+    conn: &Connection,
+    now: i64,
+) -> Result<Option<IntentIdentity>, CoordinatorError> {
+    let intent = conn
+        .query_row(
+            "SELECT run_id, owner_id, owner_pid, fencing_token, expires_at
+             FROM maintenance_intent WHERE resource = 'store-maintenance'",
+            [],
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, u32>(2)?,
+                    row.get::<_, i64>(3)?,
+                    row.get::<_, i64>(4)?,
+                ))
+            },
+        )
+        .optional()?;
+    let Some((run_id, owner_id, owner_pid, fencing_token, expires_at)) = intent else {
+        return Ok(None);
+    };
+    if expires_at <= now {
+        return Ok(None);
+    }
+    Ok(Some(IntentIdentity {
+        run_id,
+        owner_id,
+        owner_pid,
+        fencing_token,
+    }))
+}
+
+fn refuse_foreign_live_maintenance_intent(
+    conn: &Connection,
+    now: i64,
+) -> Result<(), CoordinatorError> {
+    if let Some(intent) = foreign_live_maintenance_intent(conn, now)? {
+        return Err(CoordinatorError::StoreConnection(
+            StoreConnectionError::MaintenanceInProgress {
+                run_id: intent.run_id,
+            },
+        ));
+    }
+    Ok(())
 }
 
 fn checked_lease_expiry(now: i64, lease_duration_ms: i64) -> Result<i64, CoordinatorError> {

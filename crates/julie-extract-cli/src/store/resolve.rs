@@ -246,39 +246,49 @@ fn resolve_claimed(
         .map_err(|error| format!("resolution_failed: {error}"))?;
     if !has_ready_base {
         let created_at = store_timestamp(layout, "now")?;
-        let begin = with_writer_lease(coordinator, holder, deadline, |fencing_token| {
-            ensure_resolve_claim(layout, request, holder)?;
-            ResolutionBaseCatalog::new(fenced_factory(&factory, layout, holder, fencing_token))
-                .begin_build(
-                    &identity.manifest_hash,
-                    payload.resolver_output_epoch,
-                    &request.request_id,
-                    &created_at,
-                )
-                .map_err(|error| error.to_string())
-        })?;
+        let begin = with_writer_lease(
+            coordinator,
+            holder,
+            deadline,
+            |_coordinator, fencing_token| {
+                ensure_resolve_claim(layout, request, holder)?;
+                ResolutionBaseCatalog::new(fenced_factory(&factory, layout, holder, fencing_token))
+                    .begin_build(
+                        &identity.manifest_hash,
+                        payload.resolver_output_epoch,
+                        &request.request_id,
+                        &created_at,
+                    )
+                    .map_err(|error| error.to_string())
+            },
+        )?;
         let build = match begin {
             ResolutionBaseBegin::Build(build) => Some(build),
             ResolutionBaseBegin::Ready(_) => None,
             ResolutionBaseBegin::Building(_) => {
-                let recovery = with_writer_lease(coordinator, holder, deadline, |fencing_token| {
-                    heartbeat.ensure_live()?;
-                    ensure_resolve_claim(layout, request, holder)?;
-                    ResolutionBaseCatalog::new(fenced_factory(
-                        &factory,
-                        layout,
-                        holder,
-                        fencing_token,
-                    ))
-                    .recover(
-                        &identity.manifest_hash,
-                        payload.resolver_output_epoch,
-                        &request.request_id,
-                        false,
-                        &store_timestamp(layout, "now")?,
-                    )
-                    .map_err(|error| format!("resolution_failed: {error}"))
-                })?;
+                let recovery = with_writer_lease(
+                    coordinator,
+                    holder,
+                    deadline,
+                    |_coordinator, fencing_token| {
+                        heartbeat.ensure_live()?;
+                        ensure_resolve_claim(layout, request, holder)?;
+                        ResolutionBaseCatalog::new(fenced_factory(
+                            &factory,
+                            layout,
+                            holder,
+                            fencing_token,
+                        ))
+                        .recover(
+                            &identity.manifest_hash,
+                            payload.resolver_output_epoch,
+                            &request.request_id,
+                            false,
+                            &store_timestamp(layout, "now")?,
+                        )
+                        .map_err(|error| format!("resolution_failed: {error}"))
+                    },
+                )?;
                 match recovery {
                     ResolutionBaseRecovery::Ready(_) => None,
                     ResolutionBaseRecovery::Rebuild(build) => Some(build),
@@ -308,14 +318,24 @@ fn resolve_claimed(
                 .publish_scratch(&build)
                 .map_err(|error| format!("resolution_failed: {error}"))?;
             heartbeat.ensure_current(coordinator, request, holder)?;
-            with_writer_lease(coordinator, holder, deadline, |fencing_token| {
-                heartbeat.ensure_live()?;
-                ensure_resolve_claim(layout, request, holder)?;
-                ResolutionBaseCatalog::new(fenced_factory(&factory, layout, holder, fencing_token))
+            with_writer_lease(
+                coordinator,
+                holder,
+                deadline,
+                |_coordinator, fencing_token| {
+                    heartbeat.ensure_live()?;
+                    ensure_resolve_claim(layout, request, holder)?;
+                    ResolutionBaseCatalog::new(fenced_factory(
+                        &factory,
+                        layout,
+                        holder,
+                        fencing_token,
+                    ))
                     .mark_ready(&build, &store_timestamp(layout, "now")?)
                     .map(|_| ())
                     .map_err(|error| format!("resolution_failed: {error}"))
-            })?;
+                },
+            )?;
         }
     }
 
@@ -330,13 +350,20 @@ fn resolve_claimed(
         created_at: store_timestamp(layout, "now")?,
     };
     heartbeat.ensure_current(coordinator, request, holder)?;
-    let (binding, _) = with_writer_lease(coordinator, holder, deadline, |fencing_token| {
-        heartbeat.ensure_live()?;
-        ensure_resolve_claim(layout, request, holder)?;
-        ResolutionBindingStore::new(fenced_factory(&factory, layout, holder, fencing_token))
-            .begin_convergence(&convergence)
-            .map_err(|error| format!("resolution_failed: {error}"))
-    })?;
+    let (binding, _) = with_writer_lease(
+        coordinator,
+        holder,
+        deadline,
+        |_coordinator, fencing_token| {
+            heartbeat.ensure_live()?;
+            ensure_resolve_claim(layout, request, holder)?;
+            ResolutionBindingStore::new(fenced_factory(&factory, layout, holder, fencing_token))
+                .begin_convergence(&convergence)
+                .map_err(|error| format!("resolution_failed: {error}"))
+        },
+    )?;
+    let mut pin_guard =
+        ResolvePinGuard::armed(factory.clone(), pin_id.clone(), holder.holder_id.clone());
     let exact_path = layout
         .scratch_dir()
         .join(format!("resolve-exact-{}.db", request.request_id));
@@ -345,15 +372,35 @@ fn resolve_claimed(
         .join(format!("resolve-delta-{}.db", request.request_id));
     if binding.state == ViewResolutionState::Exact {
         heartbeat.ensure_current(coordinator, request, holder)?;
-        with_writer_lease(coordinator, holder, deadline, |fencing_token| {
-            heartbeat.ensure_live()?;
-            ensure_resolve_claim(layout, request, holder)?;
-            append_resolution_terminal(layout, request, &binding, None, None)?;
-            ResolutionBindingStore::new(fenced_factory(&factory, layout, holder, fencing_token))
+        with_writer_lease(
+            coordinator,
+            holder,
+            deadline,
+            |_coordinator, fencing_token| {
+                heartbeat.ensure_live()?;
+                ensure_resolve_claim(layout, request, holder)?;
+                append_resolution_terminal(
+                    &factory,
+                    layout,
+                    holder,
+                    fencing_token,
+                    request,
+                    &binding,
+                    None,
+                    None,
+                )?;
+                ResolutionBindingStore::new(fenced_factory(
+                    &factory,
+                    layout,
+                    holder,
+                    fencing_token,
+                ))
                 .release_pin(&pin_id, ResolutionPinOwnerKind::Resolve, &holder.holder_id)
                 .map_err(|error| format!("resolution_failed: {error}"))?;
-            Ok(())
-        })?;
+                pin_guard.disarm();
+                Ok(())
+            },
+        )?;
         remove_sqlite_if_exists(&delta_path)?;
         remove_sqlite_if_exists(&exact_path)?;
         return Ok(());
@@ -399,53 +446,120 @@ fn resolve_claimed(
     let scratch = ResolutionScratchReader::open(&delta_path)
         .map_err(|error| format!("resolution_failed: {error}"))?;
     heartbeat.ensure_current(coordinator, request, holder)?;
-    with_writer_lease(coordinator, holder, deadline, |fencing_token| {
-        heartbeat.ensure_live()?;
-        ensure_resolve_claim(layout, request, holder)?;
-        let publication = ResolutionExactPublish {
-            view_id: payload.view_id.clone(),
-            manifest_generation: binding.manifest_generation,
-            manifest_hash: binding.manifest_hash.clone(),
-            base_id: binding.base_id.clone(),
-            previous_delta_generation: binding.delta_generation,
-            resolver_output_epoch: payload.resolver_output_epoch,
-            request_id: request.request_id.clone(),
-            created_at: store_timestamp(layout, "now")?,
-        };
-        let fence = ResolutionPublicationFence {
-            claim_owner: holder.holder_id.clone(),
-            holder_id: holder.holder_id.clone(),
-            holder_pid: holder.holder_pid,
-            fencing_token,
-            now_ms: now_millis(),
-        };
-        #[cfg(feature = "test-store-resolution-contract")]
-        julie_extract_artifact::store::test_hooks::crash_if("resolution_before_exact_publish");
-        let fenced_bindings =
-            ResolutionBindingStore::new(fenced_factory(&factory, layout, holder, fencing_token));
-        let published = fenced_bindings
-            .publish_exact(
-                &publication,
-                &fence,
-                &scratch,
-                &gaps,
-                RESOLUTION_WINDOW_SIZE,
-            )
-            .map_err(|error| format!("resolution_failed: {error}"))?;
-        #[cfg(feature = "test-store-resolution-contract")]
-        julie_extract_artifact::store::test_hooks::crash_if("resolution_exact_after_store_commit");
-        append_resolution_terminal(layout, request, &published, Some(&scratch), Some(&gaps))?;
-        fenced_bindings
-            .release_pin(&pin_id, ResolutionPinOwnerKind::Resolve, &holder.holder_id)
-            .map_err(|error| format!("resolution_failed: {error}"))?;
-        Ok(())
-    })?;
+    with_writer_lease(
+        coordinator,
+        holder,
+        deadline,
+        |coordinator, fencing_token| {
+            heartbeat.ensure_live()?;
+            ensure_resolve_claim(layout, request, holder)?;
+            let publication = ResolutionExactPublish {
+                view_id: payload.view_id.clone(),
+                manifest_generation: binding.manifest_generation,
+                manifest_hash: binding.manifest_hash.clone(),
+                base_id: binding.base_id.clone(),
+                previous_delta_generation: binding.delta_generation,
+                resolver_output_epoch: payload.resolver_output_epoch,
+                request_id: request.request_id.clone(),
+                created_at: store_timestamp(layout, "now")?,
+            };
+            let fence = ResolutionPublicationFence {
+                claim_owner: holder.holder_id.clone(),
+                holder_id: holder.holder_id.clone(),
+                holder_pid: holder.holder_pid,
+                fencing_token,
+                now_ms: now_millis(),
+            };
+            #[cfg(feature = "test-store-resolution-contract")]
+            julie_extract_artifact::store::test_hooks::crash_if("resolution_before_exact_publish");
+            let fenced_bindings = ResolutionBindingStore::new(fenced_factory(
+                &factory,
+                layout,
+                holder,
+                fencing_token,
+            ));
+            let published = fenced_bindings
+                .publish_exact(
+                    &publication,
+                    &fence,
+                    &scratch,
+                    &gaps,
+                    RESOLUTION_WINDOW_SIZE,
+                    || {
+                        exact_publish_heartbeat(
+                            coordinator,
+                            holder,
+                            fencing_token,
+                            &publication.request_id,
+                        )
+                    },
+                )
+                .map_err(|error| format!("resolution_failed: {error}"))?;
+            #[cfg(feature = "test-store-resolution-contract")]
+            julie_extract_artifact::store::test_hooks::crash_if(
+                "resolution_exact_after_store_commit",
+            );
+            #[cfg(feature = "test-store-resolution-contract")]
+            pause_after_exact_publish_for_test()?;
+            append_resolution_terminal(
+                &factory,
+                layout,
+                holder,
+                fencing_token,
+                request,
+                &published,
+                Some(&scratch),
+                Some(&gaps),
+            )?;
+            fenced_bindings
+                .release_pin(&pin_id, ResolutionPinOwnerKind::Resolve, &holder.holder_id)
+                .map_err(|error| format!("resolution_failed: {error}"))?;
+            pin_guard.disarm();
+            Ok(())
+        },
+    )?;
     drop(scratch);
     drop(exact);
     drop(base);
     remove_sqlite_if_exists(&delta_path)?;
     remove_sqlite_if_exists(&exact_path)?;
     Ok(())
+}
+
+struct ResolvePinGuard {
+    factory: StoreConnectionFactory,
+    pin_id: String,
+    owner_id: String,
+    armed: bool,
+}
+
+impl ResolvePinGuard {
+    fn armed(factory: StoreConnectionFactory, pin_id: String, owner_id: String) -> Self {
+        Self {
+            factory,
+            pin_id,
+            owner_id,
+            armed: true,
+        }
+    }
+
+    fn disarm(&mut self) {
+        self.armed = false;
+    }
+}
+
+impl Drop for ResolvePinGuard {
+    fn drop(&mut self) {
+        if !self.armed {
+            return;
+        }
+        self.armed = false;
+        let _ = ResolutionBindingStore::new(self.factory.clone()).release_pin(
+            &self.pin_id,
+            ResolutionPinOwnerKind::Resolve,
+            &self.owner_id,
+        );
+    }
 }
 
 fn fenced_factory(
@@ -469,7 +583,7 @@ fn with_writer_lease<T>(
     coordinator: &mut StoreCoordinator,
     holder: &LeaseHolder,
     deadline: i64,
-    operation: impl FnOnce(i64) -> Result<T, String>,
+    operation: impl FnOnce(&mut StoreCoordinator, i64) -> Result<T, String>,
 ) -> Result<T, String> {
     let fencing_token = loop {
         match coordinator
@@ -483,7 +597,13 @@ fn with_writer_lease<T>(
             LeaseDisposition::HeldByOther => return Err("request_timeout".to_string()),
         }
     };
-    let result = operation(fencing_token);
+    // Renew immediately after acquire so the operation starts with a full lease TTL.
+    if let Err(error) = exact_publish_heartbeat(coordinator, holder, fencing_token, "writer-lease")
+    {
+        let _ = coordinator.release_lease(holder, fencing_token);
+        return Err(format!("resolution_failed: {error}"));
+    }
+    let result = operation(coordinator, fencing_token);
     let release = coordinator
         .release_lease(holder, fencing_token)
         .map_err(|error| error.to_string());
@@ -492,6 +612,47 @@ fn with_writer_lease<T>(
         (Ok(_), Ok(false)) => Err("resolution_failed: writer lease was lost".to_string()),
         (Ok(_), Err(error)) | (Err(error), _) => Err(error),
     }
+}
+
+fn exact_publish_heartbeat(
+    coordinator: &mut StoreCoordinator,
+    holder: &LeaseHolder,
+    fencing_token: i64,
+    request_id: &str,
+) -> Result<(), julie_extract_artifact::store::ResolutionBindingError> {
+    use julie_extract_artifact::store::ResolutionBindingError;
+    let now = now_millis();
+    let alive = coordinator
+        .heartbeat_lease(holder, fencing_token, now)
+        .map_err(|error| ResolutionBindingError::InvalidPublication {
+            detail: error.to_string(),
+        })?;
+    if !alive {
+        return Err(ResolutionBindingError::FenceLost {
+            request_id: request_id.to_string(),
+        });
+    }
+    let Some(record) =
+        coordinator
+            .lease()
+            .map_err(|error| ResolutionBindingError::InvalidPublication {
+                detail: error.to_string(),
+            })?
+    else {
+        return Err(ResolutionBindingError::FenceLost {
+            request_id: request_id.to_string(),
+        });
+    };
+    if record.holder.holder_id != holder.holder_id
+        || record.holder.holder_pid != holder.holder_pid
+        || record.fencing_token != fencing_token
+        || record.expires_at <= now_millis()
+    {
+        return Err(ResolutionBindingError::FenceLost {
+            request_id: request_id.to_string(),
+        });
+    }
+    Ok(())
 }
 
 fn normalize_dead_writer_lease(
@@ -527,16 +688,22 @@ fn normalize_dead_writer_lease(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn append_resolution_terminal(
+    factory: &StoreConnectionFactory,
     layout: &StoreLayout,
+    holder: &LeaseHolder,
+    fencing_token: i64,
     request: &CoordinatorRequest,
     binding: &ResolutionViewBinding,
     scratch: Option<&ResolutionScratchReader>,
     gaps: Option<&[ResolutionGapFact]>,
 ) -> Result<(), String> {
-    let mut connection = Connection::open(layout.store_db()).map_err(|error| error.to_string())?;
+    let mut connection = fenced_factory(factory, layout, holder, fencing_token)
+        .open_writer()
+        .map_err(|error| format!("resolution_failed: {error}"))?;
     let transaction = connection
-        .transaction()
+        .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
         .map_err(|error| error.to_string())?;
     if StoreLog::committed_in_fact(&transaction, &request.request_id)
         .map_err(|error| error.to_string())?
@@ -894,11 +1061,24 @@ fn remove_sqlite_if_exists(path: &std::path::Path) -> Result<(), String> {
 
 #[cfg(feature = "test-store-resolution-contract")]
 fn pause_after_claim_for_test() -> Result<(), String> {
-    let Ok(ready_path) = std::env::var("JULIE_EXTRACT_STORE_RESOLUTION_PAUSE_FILE") else {
+    pause_on_env_file("JULIE_EXTRACT_STORE_RESOLUTION_PAUSE_FILE", b"claimed")
+}
+
+#[cfg(feature = "test-store-resolution-contract")]
+fn pause_after_exact_publish_for_test() -> Result<(), String> {
+    pause_on_env_file(
+        "JULIE_EXTRACT_STORE_RESOLUTION_PAUSE_AFTER_EXACT_FILE",
+        b"exact",
+    )
+}
+
+#[cfg(feature = "test-store-resolution-contract")]
+fn pause_on_env_file(env_var: &str, ready_bytes: &[u8]) -> Result<(), String> {
+    let Ok(ready_path) = std::env::var(env_var) else {
         return Ok(());
     };
     let ready_path = std::path::PathBuf::from(ready_path);
-    fs::write(&ready_path, b"claimed").map_err(|error| error.to_string())?;
+    fs::write(&ready_path, ready_bytes).map_err(|error| error.to_string())?;
     let resume_path = ready_path.with_extension("resume");
     while !resume_path.exists() {
         thread::sleep(Duration::from_millis(10));

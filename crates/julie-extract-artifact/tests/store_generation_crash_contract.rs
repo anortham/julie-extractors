@@ -9,7 +9,8 @@ use std::time::Duration;
 
 use julie_extract_artifact::store::{
     CapacityProvider, GenerationLifecycle, GenerationPolicy, MaintenanceAction, MaintenanceClock,
-    MaintenanceInspector, MaintenanceRun, StoreConnectionFactory, StoreLayout,
+    MaintenanceInspector, MaintenanceRun, StoreConnectionError, StoreConnectionFactory,
+    StoreLayout,
 };
 use rusqlite::Connection;
 use sha2::{Digest, Sha256};
@@ -19,6 +20,7 @@ static NEXT_TEMP_ID: AtomicU64 = AtomicU64::new(1);
 #[test]
 fn every_promotion_boundary_recovers_the_same_generation_without_duplicates() {
     for boundary in [
+        "maintenance_after_intent_before_floor",
         "generation_after_partial_owner",
         "generation_after_logical_copy",
         "generation_before_base_copy",
@@ -54,6 +56,7 @@ fn every_promotion_boundary_recovers_the_same_generation_without_duplicates() {
             ),
             &plan,
             MaintenanceAction::Promote,
+            FixedCapacity,
         )
         .unwrap();
         let report = retry.promote(&plan, &GenerationPolicy::default()).unwrap();
@@ -108,11 +111,94 @@ fn dead_partial_owner_is_replaced_before_its_expiry() {
         ),
         &plan,
         MaintenanceAction::Promote,
+        FixedCapacity,
     )
     .unwrap();
     let report = retry.promote(&plan, &GenerationPolicy::default()).unwrap();
     assert_eq!(report.destination_generation, "gen-002");
     assert!(!temp.path().join(".gen-002.partial").exists());
+}
+
+#[test]
+fn crash_between_intent_and_floor_blocks_foreign_writers_via_intent_alone() {
+    let temp = TempStore::new("intent-before-floor");
+    let layout = StoreLayout::create(temp.path(), "family-generation-crash", "2.30.0").unwrap();
+    seed_source(&layout);
+    let output = run_worker_with_lease(
+        temp.path(),
+        "maintenance_after_intent_before_floor",
+        Duration::from_secs(5),
+    );
+    assert!(
+        !output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let store = Connection::open(layout.store_db()).unwrap();
+    assert_eq!(
+        store
+            .query_row(
+                "SELECT value FROM store_meta WHERE key='min_writer_version'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .unwrap(),
+        "2.30.0"
+    );
+    let tmp_count: i64 = store
+        .query_row(
+            "SELECT COUNT(*) FROM store_meta WHERE key LIKE 'maintenance_tmp_%'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(tmp_count, 0);
+    let coord = Connection::open(layout.coordinator_db()).unwrap();
+    assert_eq!(
+        coord
+            .query_row(
+                "SELECT COUNT(*) FROM maintenance_intent WHERE expires_at > 0",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        1
+    );
+
+    let error = factory(&layout).open_writer().unwrap_err();
+    match error {
+        StoreConnectionError::MaintenanceInProgress { ref run_id } if run_id == "crash-run" => {}
+        other => panic!("expected MaintenanceInProgress for crash-run, got {other:?}"),
+    }
+
+    thread::sleep(Duration::from_millis(300));
+    // Drop dead crash-owner ownership so a successor can take over.
+    Connection::open(layout.coordinator_db())
+        .unwrap()
+        .execute_batch(
+            "DELETE FROM writer_lease;
+             DELETE FROM maintenance_intent;",
+        )
+        .unwrap();
+    let current = StoreLayout::open(temp.path()).unwrap();
+    let plan = inspect_plan(&current);
+    let mut retry = GenerationLifecycle::acquire(
+        factory(&current),
+        MaintenanceRun::new(
+            "retry-intent-before-floor",
+            "retry-owner",
+            std::process::id(),
+            2_000,
+            5_000,
+        ),
+        &plan,
+        MaintenanceAction::Promote,
+        FixedCapacity,
+    )
+    .unwrap();
+    let report = retry.promote(&plan, &GenerationPolicy::default()).unwrap();
+    assert_eq!(report.destination_generation, "gen-002");
 }
 
 #[test]
@@ -137,6 +223,7 @@ fn generation_promotion_crash_worker() {
         ),
         &plan,
         MaintenanceAction::Promote,
+        FixedCapacity,
     )
     .unwrap();
     lifecycle

@@ -8,7 +8,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior};
 
-use super::coordinator::{LeaseDisposition, LeaseHolder, StoreCoordinator};
+use super::coordinator::{CoordinatorError, LeaseDisposition, LeaseHolder, StoreCoordinator};
 use super::pragmas::{PragmaError, WriterPragmaProfile, configure_writer_pragmas};
 use super::{STORE_SQLITE_SCHEMA_VERSION, StoreLayout, StoreLayoutError, StoreSchemaError};
 
@@ -189,58 +189,63 @@ impl StoreConnectionFactory {
         validate_store_schema(&connection)?;
         self.validate_identity_and_floor(&connection, AccessMode::Writer)?;
         self.validate_generation_write_fence(&connection)?;
-        let (fence, lease) = if let Some(fence) = self.generation_fence.clone() {
-            (fence, None)
-        } else {
-            let sequence = NEXT_DIRECT_WRITER.fetch_add(1, AtomicOrdering::Relaxed);
-            let holder = LeaseHolder::new(
-                format!("store-factory-{}-{sequence}", std::process::id()),
-                &self.binary_version,
-                std::process::id(),
-            );
-            let mut coordinator = StoreCoordinator::open(&self.layout).map_err(|error| {
-                StoreConnectionError::WriterLeaseUnavailable {
-                    detail: error.to_string(),
-                }
-            })?;
-            let deadline = Instant::now() + Duration::from_secs(5);
-            let (fencing_token, checked_at) = loop {
-                let checked_at = system_now_ms();
-                let disposition = coordinator
-                    .try_acquire_or_takeover(holder.clone(), checked_at)
-                    .map_err(|error| StoreConnectionError::WriterLeaseUnavailable {
-                        detail: error.to_string(),
-                    })?;
-                if let LeaseDisposition::Acquired { fencing_token } = disposition {
-                    break (fencing_token, checked_at);
-                }
-                if Instant::now() >= deadline {
-                    return Err(StoreConnectionError::WriterLeaseUnavailable {
-                        detail: "store-writer lease is held by another process".to_string(),
-                    });
-                }
-                std::thread::sleep(Duration::from_millis(10));
-            };
-            (
-                GenerationFence::writer(
-                    &self.layout,
-                    &holder.holder_id,
-                    holder.holder_pid,
-                    fencing_token,
-                    checked_at,
-                ),
-                Some((coordinator, holder, fencing_token)),
-            )
+        let (fence, lease) = match self.generation_fence.clone() {
+            Some(fence) if fence.run_id.is_some() => {
+                // Maintenance path: full intent identity was checked above. Do not treat
+                // holder_id/PID alone as ownership and do not take an ordinary lease.
+                (fence, None)
+            }
+            Some(fence) => {
+                // Pre-fenced ordinary writer (caller already holds the lease).
+                (fence, None)
+            }
+            None => {
+                let sequence = NEXT_DIRECT_WRITER.fetch_add(1, AtomicOrdering::Relaxed);
+                let holder = LeaseHolder::new(
+                    format!("store-factory-{}-{sequence}", std::process::id()),
+                    &self.binary_version,
+                    std::process::id(),
+                );
+                let mut coordinator =
+                    StoreCoordinator::open(&self.layout).map_err(map_coordinator_lease_error)?;
+                let deadline = Instant::now() + Duration::from_secs(5);
+                let (fencing_token, checked_at) = loop {
+                    let checked_at = system_now_ms();
+                    let disposition = coordinator
+                        .try_acquire_or_takeover(holder.clone(), checked_at)
+                        .map_err(map_coordinator_lease_error)?;
+                    if let LeaseDisposition::Acquired { fencing_token } = disposition {
+                        if let Err(error) = self.validate_generation_write_fence(&connection) {
+                            let _ = coordinator.release_lease(&holder, fencing_token);
+                            return Err(error);
+                        }
+                        break (fencing_token, checked_at);
+                    }
+                    if Instant::now() >= deadline {
+                        return Err(StoreConnectionError::WriterLeaseUnavailable {
+                            detail: "store-writer lease is held by another process".to_string(),
+                        });
+                    }
+                    std::thread::sleep(Duration::from_millis(10));
+                };
+                (
+                    GenerationFence::writer(
+                        &self.layout,
+                        &holder.holder_id,
+                        holder.holder_pid,
+                        fencing_token,
+                        checked_at,
+                    ),
+                    Some((coordinator, holder, fencing_token)),
+                )
+            }
         };
         let writer = StoreWriterConnection {
             connection,
             lease,
             fence,
         };
-        self.validate_writer_lease(
-            &writer.fence,
-            writer.lease.is_some() || writer.fence.run_id.is_some(),
-        )?;
+        self.validate_writer_lease(&writer.fence)?;
         configure_writer_pragmas(&writer, WriterPragmaProfile::Routine)?;
         Ok(writer)
     }
@@ -251,7 +256,7 @@ impl StoreConnectionFactory {
         connection: &mut StoreWriterConnection,
     ) -> Result<(), StoreConnectionError> {
         self.validate_generation_write_fence(connection)?;
-        self.validate_writer_lease(&connection.fence, connection.lease.is_some())?;
+        self.validate_writer_lease(&connection.fence)?;
         let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
         let recorded = metadata_value(&transaction, "binary_version")?;
         let running_version = ParsedVersion::parse("binary_version", &self.binary_version)?;
@@ -266,13 +271,13 @@ impl StoreConnectionFactory {
         Ok(())
     }
 
-    fn validate_writer_lease(
-        &self,
-        fence: &GenerationFence,
-        use_system_time: bool,
-    ) -> Result<(), StoreConnectionError> {
+    fn validate_writer_lease(&self, fence: &GenerationFence) -> Result<(), StoreConnectionError> {
         let owns_generation = fence.root == self.layout.root()
             && fence.generation_name == self.layout.generation_name();
+        // Always validate lease expiry against wall clock. Drain/quantum paths
+        // heartbeat and mint store-writer leases in the wall domain so this
+        // check cannot accept a wall-expired row via a stale fence.checked_at.
+        let now_ms = system_now_ms();
         let owns_lease = Connection::open_with_flags(
             self.layout.coordinator_db(),
             OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
@@ -283,16 +288,7 @@ impl StoreConnectionFactory {
                WHERE resource = 'store-writer' AND holder_id = ?1 AND holder_pid = ?2
                  AND fencing_token = ?3 AND expires_at > ?4
              )",
-            rusqlite::params![
-                fence.owner_id,
-                fence.owner_pid,
-                fence.fencing_token,
-                if use_system_time {
-                    system_now_ms()
-                } else {
-                    fence.checked_at
-                }
-            ],
+            rusqlite::params![fence.owner_id, fence.owner_pid, fence.fencing_token, now_ms],
             |row| row.get::<_, i64>(0),
         )? == 1;
         if !owns_generation || !owns_lease {
@@ -322,21 +318,24 @@ impl StoreConnectionFactory {
         )?;
         let intent = coordinator
             .query_row(
-                "SELECT run_id, owner_id, fencing_token, source_generation_name, expires_at
+                "SELECT run_id, owner_id, owner_pid, fencing_token, source_generation_name, expires_at
                  FROM maintenance_intent WHERE resource = 'store-maintenance'",
                 [],
                 |row| {
                     Ok((
                         row.get::<_, String>(0)?,
                         row.get::<_, String>(1)?,
-                        row.get::<_, i64>(2)?,
-                        row.get::<_, String>(3)?,
-                        row.get::<_, i64>(4)?,
+                        row.get::<_, u32>(2)?,
+                        row.get::<_, i64>(3)?,
+                        row.get::<_, String>(4)?,
+                        row.get::<_, i64>(5)?,
                     ))
                 },
             )
             .optional()?;
-        let Some((run_id, owner_id, fencing_token, generation_name, expires_at)) = intent else {
+        let Some((run_id, owner_id, owner_pid, fencing_token, generation_name, expires_at)) =
+            intent
+        else {
             return Ok(());
         };
         let now_ms = system_now_ms();
@@ -348,6 +347,7 @@ impl StoreConnectionFactory {
                 && fence.generation_name == self.layout.generation_name()
                 && fence.run_id.as_deref() == Some(run_id.as_str())
                 && fence.owner_id == owner_id
+                && fence.owner_pid == owner_pid
                 && fence.fencing_token == fencing_token
                 && generation_name == self.layout.generation_name()
         });
@@ -594,6 +594,15 @@ impl From<StoreSchemaError> for StoreConnectionError {
     }
 }
 
+fn map_coordinator_lease_error(error: CoordinatorError) -> StoreConnectionError {
+    match error {
+        CoordinatorError::StoreConnection(error) => error,
+        other => StoreConnectionError::WriterLeaseUnavailable {
+            detail: other.to_string(),
+        },
+    }
+}
+
 fn validate_store_schema(connection: &Connection) -> Result<(), StoreConnectionError> {
     let found = connection.query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))?;
     if found > STORE_SQLITE_SCHEMA_VERSION {
@@ -615,7 +624,7 @@ fn validate_store_schema(connection: &Connection) -> Result<(), StoreConnectionE
     Ok(())
 }
 
-fn system_now_ms() -> i64 {
+pub(crate) fn system_now_ms() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_or(0, |duration| {

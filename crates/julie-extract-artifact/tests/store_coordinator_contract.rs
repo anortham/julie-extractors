@@ -6,9 +6,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use julie_extract_artifact::store::{
     ConsumerCursor, CoordinatorError, CoordinatorExecutor, CoordinatorPolicy, CoordinatorRequest,
-    ExecutionContext, ExecutionQuantum, LeaseDisposition, LeaseHolder, PidLiveness, PidStatus,
-    RequestKind, RequestReceipt, StoreCoordinator, StoreLayout, StoreLevel, StoreLog,
-    StoreLogEntry, UnixMillisClock, compare_versions,
+    ExecutionContext, ExecutionQuantum, IntentIdentity, LeaseDisposition, LeaseHolder,
+    MaintenanceOwnerFence, PidLiveness, PidStatus, RequestKind, RequestReceipt, StoreCoordinator,
+    StoreLayout, StoreLevel, StoreLog, StoreLogEntry, UnixMillisClock, compare_versions,
+    foreign_live_maintenance_intent,
 };
 use rusqlite::{Connection, Transaction};
 
@@ -813,6 +814,297 @@ fn reused_cross_process_token_requires_the_current_holder_pid() {
             .unwrap()
     );
     assert!(coordinator.release_lease(&holder_b, fencing_token).unwrap());
+}
+
+#[test]
+fn foreign_live_maintenance_intent_blocks_ordinary_lease_acquire_without_a_lease_row() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    insert_live_maintenance_intent(&layout, "run-a", "owner-a", 7, 41, 10_000);
+    let mut coordinator =
+        StoreCoordinator::open_with_liveness(&layout, FixedLiveness(true)).unwrap();
+
+    let error = coordinator
+        .try_acquire_or_takeover(LeaseHolder::new("foreign", "2.30.0", 99), 50)
+        .unwrap_err();
+
+    assert!(matches!(
+        error,
+        CoordinatorError::StoreConnection(
+            julie_extract_artifact::store::StoreConnectionError::MaintenanceInProgress { run_id }
+        ) if run_id == "run-a"
+    ));
+    assert!(coordinator.lease().unwrap().is_none());
+    let conn = Connection::open(layout.coordinator_db()).unwrap();
+    assert_eq!(
+        foreign_live_maintenance_intent(&conn, 50).unwrap(),
+        Some(IntentIdentity {
+            run_id: "run-a".to_string(),
+            owner_id: "owner-a".to_string(),
+            owner_pid: 7,
+            fencing_token: 41,
+        })
+    );
+}
+
+#[test]
+fn maintenance_owner_acquire_requires_full_intent_identity() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    insert_live_maintenance_intent(&layout, "run-a", "owner-a", 7, 41, 10_000);
+    let holder = LeaseHolder::new("owner-a", "2.30.0", 7);
+    let mut coordinator =
+        StoreCoordinator::open_with_liveness(&layout, FixedLiveness(true)).unwrap();
+
+    let same_holder_without_owner_fence = coordinator
+        .try_acquire_or_takeover(holder.clone(), 50)
+        .unwrap_err();
+    assert!(matches!(
+        same_holder_without_owner_fence,
+        CoordinatorError::StoreConnection(
+            julie_extract_artifact::store::StoreConnectionError::MaintenanceInProgress { run_id }
+        ) if run_id == "run-a"
+    ));
+
+    let wrong_token = coordinator
+        .try_acquire_for_maintenance(
+            holder.clone(),
+            MaintenanceOwnerFence {
+                run_id: "run-a".to_string(),
+                owner_id: "owner-a".to_string(),
+                owner_pid: 7,
+                fencing_token: 40,
+            },
+            50,
+        )
+        .unwrap_err();
+    assert!(matches!(
+        wrong_token,
+        CoordinatorError::StoreConnection(
+            julie_extract_artifact::store::StoreConnectionError::MaintenanceInProgress { run_id }
+        ) if run_id == "run-a"
+    ));
+
+    let acquired = coordinator
+        .try_acquire_for_maintenance(
+            holder.clone(),
+            MaintenanceOwnerFence {
+                run_id: "run-a".to_string(),
+                owner_id: "owner-a".to_string(),
+                owner_pid: 7,
+                fencing_token: 41,
+            },
+            50,
+        )
+        .unwrap();
+    assert_eq!(acquired, LeaseDisposition::Acquired { fencing_token: 41 });
+    let lease = coordinator.lease().unwrap().unwrap();
+    assert_eq!(lease.holder.holder_id, "owner-a");
+    assert_eq!(lease.holder.holder_pid, 7);
+    assert_eq!(lease.fencing_token, 41);
+}
+
+#[test]
+fn maintenance_owner_acquire_without_live_intent_is_invalid() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let holder = LeaseHolder::new("owner-a", "2.30.0", 7);
+    let mut coordinator =
+        StoreCoordinator::open_with_liveness(&layout, FixedLiveness(true)).unwrap();
+
+    let error = coordinator
+        .try_acquire_for_maintenance(
+            holder,
+            MaintenanceOwnerFence {
+                run_id: "run-missing".to_string(),
+                owner_id: "owner-a".to_string(),
+                owner_pid: 7,
+                fencing_token: 41,
+            },
+            50,
+        )
+        .unwrap_err();
+    assert!(
+        matches!(error, CoordinatorError::InvalidRequest),
+        "expected InvalidRequest without live intent, got {error:?}"
+    );
+    assert!(coordinator.lease().unwrap().is_none());
+}
+
+#[test]
+fn expired_maintenance_intent_allows_ordinary_lease_acquire() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    insert_live_maintenance_intent(&layout, "run-a", "owner-a", 7, 41, 20);
+    let mut coordinator =
+        StoreCoordinator::open_with_liveness(&layout, FixedLiveness(true)).unwrap();
+
+    assert!(
+        coordinator
+            .try_acquire_or_takeover(LeaseHolder::new("foreign", "2.30.0", 99), 50)
+            .unwrap()
+            .acquired()
+    );
+}
+
+fn insert_live_maintenance_intent(
+    layout: &StoreLayout,
+    run_id: &str,
+    owner_id: &str,
+    owner_pid: u32,
+    fencing_token: i64,
+    expires_at: i64,
+) {
+    Connection::open(layout.coordinator_db())
+        .unwrap()
+        .execute(
+            "INSERT INTO maintenance_intent
+             (resource, run_id, action, source_generation_name, owner_id, owner_pid,
+              fencing_token, heartbeat_at, expires_at, started_at, plan_fingerprint,
+              source_min_writer_version)
+             VALUES ('store-maintenance', ?1, 'promote', 'gen-001', ?2, ?3,
+                     ?4, 1, ?5, 1, 'plan-a', '2.30.0')",
+            rusqlite::params![run_id, owner_id, owner_pid, fencing_token, expires_at],
+        )
+        .unwrap();
+}
+
+#[test]
+fn enqueue_refuses_new_insert_under_foreign_live_maintenance_intent() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    insert_live_maintenance_intent(&layout, "run-a", "owner-a", 7, 41, i64::MAX);
+    let mut coordinator = StoreCoordinator::open(&layout).unwrap();
+
+    let error = coordinator
+        .enqueue(CoordinatorRequest::new(
+            "req-1",
+            "idem-1",
+            RequestKind::Import,
+            "{}",
+            "requester",
+            30_000,
+            1,
+        ))
+        .unwrap_err();
+
+    assert!(matches!(
+        error,
+        CoordinatorError::StoreConnection(
+            julie_extract_artifact::store::StoreConnectionError::MaintenanceInProgress { run_id }
+        ) if run_id == "run-a"
+    ));
+    let count: i64 = Connection::open(layout.coordinator_db())
+        .unwrap()
+        .query_row("SELECT COUNT(*) FROM requests", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(count, 0);
+}
+
+#[test]
+fn enqueue_idempotent_replay_still_returns_existing_under_foreign_live_intent() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let mut coordinator = StoreCoordinator::open(&layout).unwrap();
+    let request = CoordinatorRequest::new(
+        "req-1",
+        "idem-1",
+        RequestKind::Import,
+        "{}",
+        "requester",
+        30_000,
+        1,
+    );
+    let first = coordinator.enqueue(request.clone()).unwrap();
+    assert!(first.inserted);
+    insert_live_maintenance_intent(&layout, "run-a", "owner-a", 7, 41, i64::MAX);
+
+    let second = coordinator.enqueue(request).unwrap();
+    assert!(!second.inserted);
+    assert_eq!(second.request.request_id, "req-1");
+}
+
+#[test]
+fn claim_resolve_returns_false_under_foreign_live_maintenance_intent() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let mut coordinator = StoreCoordinator::open(&layout).unwrap();
+    coordinator
+        .enqueue(CoordinatorRequest::new(
+            "resolve-1",
+            "resolve-key-1",
+            RequestKind::Resolve,
+            "{}",
+            "requester",
+            30_000,
+            1,
+        ))
+        .unwrap();
+    insert_live_maintenance_intent(&layout, "run-a", "owner-a", 7, 41, i64::MAX);
+
+    assert!(
+        !coordinator
+            .claim_resolve("resolve-1", "resolver-a", 10, 5_000)
+            .unwrap()
+    );
+    let state: String = Connection::open(layout.coordinator_db())
+        .unwrap()
+        .query_row(
+            "SELECT state FROM requests WHERE request_id='resolve-1'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(state, "queued");
+}
+
+#[test]
+fn consumer_cursor_mutations_refuse_under_foreign_live_maintenance_intent() {
+    let temp = TempDir::new();
+    let initial = layout(temp.path());
+    fs::rename(initial.generation_dir(), temp.path().join("gen-1000")).unwrap();
+    fs::write(temp.path().join("CURRENT"), "gen-1000\n").unwrap();
+    let layout = StoreLayout::open(temp.path()).unwrap();
+    let mut coordinator = StoreCoordinator::open(&layout).unwrap();
+    Connection::open(layout.coordinator_db())
+        .unwrap()
+        .execute(
+            "INSERT INTO family_allocator_marks
+             (allocator_kind,scope_id,high_water,updated_at)
+             VALUES ('store_log','',10,1)",
+            [],
+        )
+        .unwrap();
+    coordinator
+        .advance_consumer_cursor("miller", "gen-1000", 5, 2)
+        .unwrap();
+    insert_live_maintenance_intent(&layout, "run-a", "owner-a", 7, 41, i64::MAX);
+
+    let advance_error = coordinator
+        .advance_consumer_cursor("miller", "gen-1000", 6, 3)
+        .unwrap_err();
+    assert!(matches!(
+        advance_error,
+        CoordinatorError::StoreConnection(
+            julie_extract_artifact::store::StoreConnectionError::MaintenanceInProgress { run_id }
+        ) if run_id == "run-a"
+    ));
+    let release_error = coordinator.release_consumer_cursor("miller").unwrap_err();
+    assert!(matches!(
+        release_error,
+        CoordinatorError::StoreConnection(
+            julie_extract_artifact::store::StoreConnectionError::MaintenanceInProgress { run_id }
+        ) if run_id == "run-a"
+    ));
+    let sequence: i64 = Connection::open(layout.coordinator_db())
+        .unwrap()
+        .query_row(
+            "SELECT store_log_sequence FROM consumer_cursors WHERE consumer_id='miller'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(sequence, 5);
 }
 
 #[test]
