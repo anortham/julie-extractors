@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+  <title>Julie Extract v2.31.2 Release Preparation Plan</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink-2:#52514e;
+      --muted:#898781; --hairline:#e1e0d9; --border:rgba(11,11,11,0.10);
+      --accent:#2a78d6; --accent-track:#cde2fb; --good:#0ca30c;
+      --good-text:#006300; --warning:#fab219; --good-wash:rgba(12,163,12,0.09);
+      --warn-wash:rgba(250,178,25,0.14); --accent-wash:rgba(42,120,214,0.10);
+      --muted-wash:rgba(137,135,129,0.10);
+    }
+    @media (prefers-color-scheme: dark) { :root:where(:not([data-theme="light"])) {
+      color-scheme:dark; --page:#0d0d0d; --surface:#1a1a19; --ink:#fff; --ink-2:#c3c2b7;
+      --hairline:#2c2c2a; --border:rgba(255,255,255,0.10); --accent:#3987e5;
+      --accent-track:#104281; --good-text:#0ca30c; --good-wash:rgba(12,163,12,0.16);
+      --warn-wash:rgba(250,178,25,0.14); --accent-wash:rgba(57,135,229,0.16);
+      --muted-wash:rgba(137,135,129,0.14);
+    }}
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:var(--page);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+    a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+    .digest{max-width:860px;margin:0 auto;padding:28px 24px}
+    .chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;line-height:1;padding:4px 9px;border-radius:999px;white-space:nowrap}
+    .chip .ico{font-size:11px}.chip.done{background:var(--good-wash);color:var(--good-text)}
+    .chip.inprogress{background:var(--accent-wash);color:var(--accent)}.chip.queued{background:var(--muted-wash);color:var(--ink-2)}
+    .chip.revised{background:var(--warn-wash);color:var(--ink)}
+    .meter{height:10px;border-radius:0 4px 4px 0;background:var(--accent-track);position:relative;overflow:hidden}
+    .meter>i{position:absolute;inset:0 auto 0 0;background:var(--accent);border-radius:0 4px 4px 0}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:10px}
+    .digest header{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:end;margin-bottom:8px}
+    .digest h1{font-size:20px;font-weight:650}.digest .goal{color:var(--ink-2);font-size:14px;margin-top:3px;max-width:62ch}
+    .digest .hprog{text-align:right}.digest .hprog .n{font-size:26px;font-weight:600}.digest .hprog .n small{font-size:13px;color:var(--muted);font-weight:500}
+    .digest .hprog .meter{width:180px;margin-top:6px}
+    .digest .spine{position:relative;margin-top:22px;padding-left:30px}.digest .spine::before{content:"";position:absolute;left:9px;top:6px;bottom:6px;width:2px;background:var(--hairline)}
+    .digest .stage{position:relative;margin-bottom:26px}.digest .stage::before{content:"";position:absolute;left:-27px;top:4px;width:12px;height:12px;border-radius:50%;background:var(--surface);border:2px solid var(--muted)}
+    .digest .stage.now::before{background:var(--accent);border-color:var(--accent)}.digest .stage h2{font-size:15px;font-weight:650;display:flex;align-items:baseline;gap:10px}
+    .digest .stage h2 .chip{position:relative;top:-1px}.digest .stage .why{font-size:13px;color:var(--muted);margin:1px 0 8px}
+    .digest .trow{display:grid;grid-template-columns:120px 1fr;gap:10px;align-items:baseline;padding:6px 0;border-top:1px solid var(--hairline);font-size:13.5px}
+    .digest .trow:first-of-type{border-top:0}.digest .trow .st{font-size:12px;font-weight:600}.digest .trow .st.inprogress{color:var(--accent)}
+    .digest .trow .st.queued{color:var(--muted)}.digest .trow .what b{color:var(--muted);margin-right:4px}.digest .trow .what span{color:var(--ink-2)}
+    .digest .flag{border-left:3px solid var(--warning);background:var(--warn-wash);border-radius:0 8px 8px 0;padding:9px 12px;margin:8px 0;font-size:13px}
+    .digest .flag b{font-weight:650}.digest .flag p{color:var(--ink-2);margin-top:2px}.digest .here{display:inline-flex;gap:8px;align-items:center;margin:2px 0 8px;font-size:12.5px;font-weight:650;color:var(--accent)}
+    .digest .here::before{content:"▶";font-size:10px}.digest .remains{margin-top:4px;padding:12px 16px;font-size:13.5px;color:var(--ink-2)}.digest .remains b{color:var(--ink)}
+    .digest footer{margin-top:14px;font-size:13px;color:var(--muted)}.digest .tabs{display:flex;gap:2px;border-bottom:1px solid var(--hairline);margin-top:16px}
+    .digest .tabs button{appearance:none;border:0;background:none;cursor:pointer;font:600 13.5px/1 system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink-2);padding:10px 14px;border-bottom:2px solid transparent;margin-bottom:-1px}
+    .digest .tabs button.on{color:var(--accent);border-bottom-color:var(--accent)}.digest .pane{display:none}.digest .pane.on{display:block}
+    .digest .dec{padding:14px 16px;margin:12px 0 10px}.digest .dec h3{font-size:14px;font-weight:650;display:flex;gap:8px;align-items:baseline}.digest .dec .where{font-size:12px;color:var(--muted);font-weight:500}
+    .digest .dec p{font-size:13.5px;color:var(--ink-2);margin-top:4px}.digest .dec p b{color:var(--ink)}.digest .rail h3{font-size:13px;font-weight:650;margin:14px 0 6px}
+    .digest .rail li{margin:0 0 7px 18px;font-size:13.5px;color:var(--ink-2)}.digest .rail li strong{color:var(--ink);font-weight:600}
+  </style>
+</head>
+<body>
+  <section class="digest">
+    <header>
+      <div><h1>Julie Extract v2.31.2 Release Preparation</h1><p class="goal">Prepare the merged family-store fixes as a locally verified release candidate without publishing it.</p></div>
+      <div class="hprog"><div class="n">0<small> / 1 task</small></div><div class="meter" aria-label="0% complete"><i style="width:0%"></i></div></div>
+    </header>
+    <nav class="tabs" aria-label="Digest sections"><button class="on" data-pane="timeline">Timeline</button><button data-pane="decisions">Decisions</button><button data-pane="rails">Guardrails</button></nav>
+    <div class="pane on" id="timeline">
+      <div class="spine">
+        <div class="stage now"><h2>Local release candidate <span class="chip inprogress"><span class="ico">◐</span>0 / 1</span></h2><p class="why">Keep v2.31.1 published until the new assets are actually released.</p>
+          <div class="here">You are here — Task 1 running</div>
+          <div class="trow"><span class="st inprogress">◐ In progress</span><span class="what"><b>1</b>Prepare v2.31.2 metadata and notes <span>— bump manifests and lockfile, run release gates, commit and merge locally</span></span></div>
+          <div class="flag"><b>⚠ Publication boundary.</b><p>No push, tag, GitHub release, or Miller pin update belongs in this local-preparation task.</p></div>
+        </div>
+      </div>
+      <div class="card remains"><b>Remaining:</b> after the candidate is verified and merged locally, publish v2.31.2 in an approved session, verify all four downloaded assets, then update Miller's pin.</div>
+    </div>
+    <div class="pane" id="decisions">
+      <div class="card dec"><h3>Patch version <span class="where">Task 1</span></h3><p>The published baseline is v2.31.1 and the merged fixes are compatible patch work. <b>Landed:</b> prepare v2.31.2.</p></div>
+      <div class="card dec"><h3>Published pointer <span class="where">Task 1</span></h3><p>The release docs keep v2.31.1 as current until publication. <b>Landed:</b> do not make an unverified currency claim.</p></div>
+      <div class="card dec"><h3>Consumer pin <span class="where">Task 1</span></h3><p>Miller cannot pin an unavailable release asset. <b>Landed:</b> update the pin only after v2.31.2 assets and checksums are live.</p></div>
+    </div>
+    <div class="pane" id="rails">
+      <div class="rail"><h3>Never touch</h3><ul><li><strong>Remote state</strong> — no push, tag, publish, or release overwrite.</li><li><strong>Unrelated worktrees</strong> — preserve existing user changes.</li></ul></div>
+      <div class="rail"><h3>Held constant</h3><ul><li><strong>Store behavior</strong> — the merged runtime commit is unchanged.</li><li><strong>Release contract</strong> — four target packages and the existing package manifest remain authoritative.</li></ul></div>
+      <div class="rail"><h3>Verification gates</h3><ul><li><strong>Rust 1.95 formatting, default, and contract tiers</strong> — runtime confidence.</li><li><strong>Release preflight and package-list</strong> — version and package-input consistency.</li><li><strong>Agent-doc sync and diff check</strong> — repository hygiene.</li></ul></div>
+    </div>
+    <footer>Digest of <a href="2026-08-09-julie-extract-2.31.2-release-prep.md">the full plan</a></footer>
+  </section>
+  <script>document.querySelectorAll(".tabs button").forEach(btn=>{btn.addEventListener("click",()=>{document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("on"));document.querySelectorAll(".pane").forEach(p=>p.classList.remove("on"));btn.classList.add("on");document.getElementById(btn.dataset.pane).classList.add("on")})})</script>
+</body>
+</html>
