@@ -274,23 +274,10 @@ impl StoreConnectionFactory {
     fn validate_writer_lease(&self, fence: &GenerationFence) -> Result<(), StoreConnectionError> {
         let owns_generation = fence.root == self.layout.root()
             && fence.generation_name == self.layout.generation_name();
-        // Prefer wall clock when the fence was minted near real time (production
-        // drain/resolve path). Injected test clocks (tiny epochs or historical
-        // absolute stamps far from wall) validate in the fence clock domain so
-        // expires_at and now stay coherent. Quantum fences are recreated every
-        // few seconds, so a 60s near-wall window does not reintroduce long-lived
-        // stale checked_at acceptance.
-        let wall_now = system_now_ms();
-        // Quantum fences are recreated every few seconds. Anything minted more
-        // than 10 minutes from wall is treated as a synthetic/historical clock
-        // domain (tests), and validated against fence.checked_at instead.
-        let near_wall = fence.checked_at <= wall_now.saturating_add(5_000)
-            && wall_now.saturating_sub(fence.checked_at) <= 600_000;
-        let now_ms = if near_wall {
-            wall_now
-        } else {
-            fence.checked_at
-        };
+        // Always validate lease expiry against wall clock. Drain/quantum paths
+        // heartbeat and mint store-writer leases in the wall domain so this
+        // check cannot accept a wall-expired row via a stale fence.checked_at.
+        let now_ms = system_now_ms();
         let owns_lease = Connection::open_with_flags(
             self.layout.coordinator_db(),
             OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,

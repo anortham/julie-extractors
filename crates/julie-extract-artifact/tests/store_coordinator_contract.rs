@@ -905,6 +905,33 @@ fn maintenance_owner_acquire_requires_full_intent_identity() {
 }
 
 #[test]
+fn maintenance_owner_acquire_without_live_intent_is_invalid() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let holder = LeaseHolder::new("owner-a", "2.30.0", 7);
+    let mut coordinator =
+        StoreCoordinator::open_with_liveness(&layout, FixedLiveness(true)).unwrap();
+
+    let error = coordinator
+        .try_acquire_for_maintenance(
+            holder,
+            MaintenanceOwnerFence {
+                run_id: "run-missing".to_string(),
+                owner_id: "owner-a".to_string(),
+                owner_pid: 7,
+                fencing_token: 41,
+            },
+            50,
+        )
+        .unwrap_err();
+    assert!(
+        matches!(error, CoordinatorError::InvalidRequest),
+        "expected InvalidRequest without live intent, got {error:?}"
+    );
+    assert!(coordinator.lease().unwrap().is_none());
+}
+
+#[test]
 fn expired_maintenance_intent_allows_ordinary_lease_acquire() {
     let temp = TempDir::new();
     let layout = layout(temp.path());

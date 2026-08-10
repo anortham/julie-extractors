@@ -1068,6 +1068,25 @@ impl StoreRequestExecutor {
             &request.request_id,
             &indexed_at,
         )?;
+        // Same-quantum constraint: if later steps fail, roll back the catalog and
+        // remove any final base file this call published so the FS does not outlive
+        // the uncommitted ready/building rows.
+        let published_cleanup = if base.published_new_file {
+            self.store_db
+                .parent()
+                .map(|generation_dir| generation_dir.join(format!("bases/{}.db", base.base_id)))
+        } else {
+            None
+        };
+        let cleanup_published = |keep: bool| {
+            if keep {
+                return;
+            }
+            if let Some(path) = published_cleanup.as_ref() {
+                let _ = super::from_artifact::remove_base_file_set_for_cleanup(path);
+            }
+        };
+        let complete = (|| {
         store_test_crash!("from_artifact_base_before_catalog");
         let identifier_count = i64::try_from(base.identity.counts.identifiers)
             .map_err(|_| "resolution_identifier_count_out_of_range".to_string())?;
@@ -1194,6 +1213,17 @@ impl StoreRequestExecutor {
             })
             .to_string(),
         })
+        })();
+        match complete {
+            Ok(quantum) => {
+                cleanup_published(true);
+                Ok(quantum)
+            }
+            Err(error) => {
+                cleanup_published(false);
+                Err(error)
+            }
+        }
     }
 }
 

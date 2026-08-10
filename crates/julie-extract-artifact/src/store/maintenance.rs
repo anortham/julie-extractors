@@ -5,6 +5,7 @@ use std::fmt;
 use std::fs;
 use std::io;
 use std::path::{Component, Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering as AtomicOrdering};
 
 use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior, params};
 use serde::{Deserialize, Serialize};
@@ -407,6 +408,17 @@ pub struct MaintenanceExecutor {
     fencing_token: i64,
     source_min_writer_version: String,
     capacity: Box<dyn CapacityProvider + Send + Sync>,
+    /// Disarmed only after a successful finish/restore so Drop cannot leave a raised floor.
+    finished: AtomicBool,
+}
+
+impl Drop for MaintenanceExecutor {
+    fn drop(&mut self) {
+        if self.finished.load(AtomicOrdering::Acquire) {
+            return;
+        }
+        let _ = self.restore_serving_source_floor_and_clear_coord();
+    }
 }
 
 impl MaintenancePlan {
@@ -1149,12 +1161,14 @@ impl MaintenanceExecutor {
             fencing_token,
             source_min_writer_version,
             capacity,
+            finished: AtomicBool::new(false),
         };
         #[cfg(feature = "test-store-crash")]
         super::test_hooks::crash_if("maintenance_after_intent_before_floor");
         // M2: raise frozen source floor and mirror intent into store_meta.
         if let Err(error) = executor.raise_source_floor_and_mirror(action, wall_now) {
             let _ = executor.restore_serving_source_floor_and_clear_coord();
+            executor.finished.store(true, AtomicOrdering::Release);
             return Err(error);
         }
         Ok(executor)
@@ -1315,7 +1329,7 @@ impl MaintenanceExecutor {
     }
 
     pub(crate) fn finish_generation_action(&self) -> Result<(), MaintenanceError> {
-        self.restore_serving_source_floor_and_clear_coord()
+        self.finish()
     }
 
     pub fn apply(
@@ -1834,7 +1848,9 @@ impl MaintenanceExecutor {
     }
 
     fn finish(&self) -> Result<(), MaintenanceError> {
-        self.restore_serving_source_floor_and_clear_coord()
+        self.restore_serving_source_floor_and_clear_coord()?;
+        self.finished.store(true, AtomicOrdering::Release);
+        Ok(())
     }
 
     fn raise_source_floor_and_mirror(

@@ -12,7 +12,7 @@ use rusqlite::{Connection, OptionalExtension, Transaction, TransactionBehavior, 
 
 use super::connection::{
     compare_versions as compare_store_versions, extractor_downgrade_allowed,
-    required_writer_version,
+    required_writer_version, system_now_ms,
 };
 use super::layout::valid_generation_name;
 use super::pragmas::{WriterPragmaProfile, configure_writer_pragmas};
@@ -845,17 +845,20 @@ impl StoreCoordinator {
         self.ensure_writer_eligible(&holder.holder_version)?;
         let mut connection = open_coordinator(&self.coordinator_db)?;
         let transaction = begin_coordinator(&mut connection)?;
-        if let Some(intent) = foreign_live_maintenance_intent(&transaction, now)? {
-            match &maintenance_owner {
-                Some(owner) if owner.matches_intent(&intent) => {}
-                _ => {
-                    return Err(CoordinatorError::StoreConnection(
-                        StoreConnectionError::MaintenanceInProgress {
-                            run_id: intent.run_id,
-                        },
-                    ));
-                }
+        let live_intent = foreign_live_maintenance_intent(&transaction, now)?;
+        match (&maintenance_owner, live_intent) {
+            (Some(owner), Some(intent)) if owner.matches_intent(&intent) => {}
+            (Some(_), Some(intent)) | (None, Some(intent)) => {
+                return Err(CoordinatorError::StoreConnection(
+                    StoreConnectionError::MaintenanceInProgress {
+                        run_id: intent.run_id,
+                    },
+                ));
             }
+            // Maintenance-owner acquire requires a live matching intent. Do not
+            // fall through and mint a writer lease with a caller-supplied token.
+            (Some(_), None) => return Err(CoordinatorError::InvalidRequest),
+            (None, None) => {}
         }
         let existing = transaction
             .query_row(
@@ -1134,8 +1137,12 @@ impl StoreCoordinator {
             holder.holder_version.clone(),
         )
         .validate_write_fence()?;
+        // Service-window scheduling stays on the injected clock; store-writer
+        // lease rows always live in the wall-clock domain so open_writer fence
+        // checks cannot accept wall-expired leases.
         let started_at = self.clock.now_ms();
-        let lease = self.try_acquire_or_takeover(holder.clone(), started_at)?;
+        let wall_now = system_now_ms();
+        let lease = self.try_acquire_or_takeover(holder.clone(), wall_now)?;
         let LeaseDisposition::Acquired { fencing_token } = lease else {
             return Err(CoordinatorError::LeaseUnavailable);
         };
@@ -1315,15 +1322,17 @@ impl StoreCoordinator {
         if reconciliation.committed_in_fact {
             return Ok(());
         }
-        let now = self.clock.now_ms();
-        if !self.heartbeat_lease_for(holder, fencing_token, now, policy.lease_duration_ms)? {
+        let service_now = self.clock.now_ms();
+        let wall_now = system_now_ms();
+        if !self.heartbeat_lease_for(holder, fencing_token, wall_now, policy.lease_duration_ms)?
+        {
             return Err(CoordinatorError::LeaseLost);
         }
         if !self.claim_request(
             &request.request_id,
             holder,
             fencing_token,
-            now,
+            service_now,
             policy.lease_duration_ms,
         )? {
             return Ok(());
@@ -1340,7 +1349,7 @@ impl StoreCoordinator {
             &holder.holder_id,
             holder.holder_pid,
             fencing_token,
-            self.clock.now_ms(),
+            wall_now,
         ));
         let mut store = factory.open_writer()?;
         factory.advance_binary_version(&mut store)?;
@@ -1434,8 +1443,9 @@ impl StoreCoordinator {
                 true
             }
         };
-        let now = self.clock.now_ms();
-        if !self.heartbeat_lease_for(holder, fencing_token, now, policy.lease_duration_ms)? {
+        let wall_now = system_now_ms();
+        if !self.heartbeat_lease_for(holder, fencing_token, wall_now, policy.lease_duration_ms)?
+        {
             return Err(CoordinatorError::LeaseLost);
         }
         transaction.commit()?;
@@ -1447,8 +1457,10 @@ impl StoreCoordinator {
         if completed {
             super::test_hooks::crash_if("terminal_after_store_commit");
         }
-        let now = self.clock.now_ms();
-        if !self.heartbeat_lease_for(holder, fencing_token, now, policy.lease_duration_ms)? {
+        let service_now = self.clock.now_ms();
+        let wall_now = system_now_ms();
+        if !self.heartbeat_lease_for(holder, fencing_token, wall_now, policy.lease_duration_ms)?
+        {
             return Err(CoordinatorError::LeaseLost);
         }
         if completed {
@@ -1459,22 +1471,23 @@ impl StoreCoordinator {
             let maxima = read_family_allocator_maxima(&store)?;
             let mut connection = open_coordinator(&self.coordinator_db)?;
             let transaction = begin_coordinator(&mut connection)?;
-            advance_family_allocator_marks(&transaction, &maxima, now)?;
+            advance_family_allocator_marks(&transaction, &maxima, service_now)?;
             let changed = transaction.execute(
                 "UPDATE requests SET claim_heartbeat_at = ?1, updated_at = ?1
                  WHERE request_id = ?2 AND state = 'claimed' AND claim_owner = ?3
                    AND EXISTS (
                      SELECT 1 FROM writer_lease
                      WHERE resource = ?4 AND holder_id = ?3 AND holder_pid = ?5
-                       AND fencing_token = ?6 AND expires_at > ?1
+                       AND fencing_token = ?6 AND expires_at > ?7
                    )",
                 params![
-                    now,
+                    service_now,
                     request.request_id,
                     holder.holder_id,
                     STORE_WRITER_RESOURCE,
                     holder.holder_pid,
                     fencing_token,
+                    wall_now,
                 ],
             )?;
             if changed != 1 {

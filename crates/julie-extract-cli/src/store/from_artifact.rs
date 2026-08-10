@@ -561,8 +561,22 @@ pub(crate) struct ImportedResolutionBase {
     pub base_id: String,
     pub identity: ResolutionFileIdentity,
     pub already_ready: bool,
+    /// True only when this call published a new final base file (hard-link from scratch).
+    /// Callers clean this path on post-materialize quantum failure so a rolled-back
+    /// catalog does not leave an orphan file. Reused existing files are not cleaned.
+    pub published_new_file: bool,
 }
 
+/// Materialize a resolution base under the import/from_artifact quantum.
+///
+/// Architecture note (T8 multi-txn vs same-quantum): the coordinator quantum already
+/// holds one IMMEDIATE writer on `store.db`. A nested second IMMEDIATE writer blocks
+/// on that lock, so T8a (building) and T8d (ready) cannot commit as separate durable
+/// store transactions inside this quantum. Steps T8a–T8d therefore share the outer
+/// quantum transaction. Strongest in-quantum guarantees:
+/// - building reclaim refuses live foreign owners (see reclaim path)
+/// - new final files are cleaned on error after publish when CAS/later steps fail
+/// - callers must clean `published_new_file` if later quantum work fails before commit
 pub(crate) fn materialize_resolution_base(
     transaction: &Transaction<'_>,
     store_db: &Path,
@@ -612,7 +626,7 @@ pub(crate) fn materialize_resolution_base(
         .join("scratch")
         .join(format!("resolution-{base_id}-{request_id}.partial.db"));
 
-    // T8a: durable catalog state=building (or reuse ready identity hit).
+    // T8a: catalog state=building (or reuse ready identity hit). Same outer quantum txn.
     let existing = transaction
         .query_row(
             "SELECT state,manifest_hash,resolver_output_epoch,file_sha256,
@@ -640,7 +654,7 @@ pub(crate) fn materialize_resolution_base(
         existing_sha,
         existing_identifiers,
         existing_pending,
-        _owner,
+        prior_request_id,
     )) = existing
     {
         if state == "ready" {
@@ -670,9 +684,17 @@ pub(crate) fn materialize_resolution_base(
                 base_id,
                 identity,
                 already_ready: true,
+                published_new_file: false,
             });
         }
         if state == "building" {
+            if prior_request_id != request_id
+                && !prior_building_owner_is_reclaimable(family_root, &prior_request_id)?
+            {
+                return Err(format!(
+                    "resolution_base_building_busy:{prior_request_id}"
+                ));
+            }
             transaction
                 .execute(
                     "UPDATE resolution_bases
@@ -737,6 +759,7 @@ pub(crate) fn materialize_resolution_base(
                     base_id,
                     identity,
                     already_ready: false,
+                    published_new_file: false,
                 });
             }
             Ok(_) | Err(_) => {
@@ -794,14 +817,18 @@ pub(crate) fn materialize_resolution_base(
         .map_err(|error| error.to_string())?;
 
     // T8c: durable publish into bases + fsync.
+    // New final files are cleaned on subsequent errors until CAS succeeds.
     fs::create_dir_all(
         final_path
             .parent()
             .ok_or_else(|| "invalid_base_path".to_string())?,
     )
     .map_err(|error| error.to_string())?;
+    let mut published_new_file = false;
     match fs::hard_link(&scratch_path, &final_path) {
-        Ok(()) => {}
+        Ok(()) => {
+            published_new_file = true;
+        }
         Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
             let existing =
                 ResolutionBaseReader::open(&final_path).map_err(|error| error.to_string())?;
@@ -811,23 +838,76 @@ pub(crate) fn materialize_resolution_base(
         }
         Err(error) => return Err(error.to_string()),
     }
-    File::open(
+    let cleanup_published = |published: bool| {
+        if published {
+            let _ = remove_base_file_set(&final_path);
+        }
+    };
+    if let Err(error) = File::open(
         final_path
             .parent()
             .ok_or_else(|| "invalid_base_path".to_string())?,
     )
     .and_then(|file| file.sync_all())
-    .map_err(|error| error.to_string())?;
-    remove_base_file_set(&scratch_path)?;
+    {
+        cleanup_published(published_new_file);
+        return Err(error.to_string());
+    }
+    if let Err(error) = remove_base_file_set(&scratch_path) {
+        cleanup_published(published_new_file);
+        return Err(error);
+    }
 
     // T8d: CAS building → ready only if identity matches.
-    cas_building_to_ready(transaction, &base_id, request_id, &identity, indexed_at)?;
+    if let Err(error) =
+        cas_building_to_ready(transaction, &base_id, request_id, &identity, indexed_at)
+    {
+        cleanup_published(published_new_file);
+        return Err(error);
+    }
 
     Ok(ImportedResolutionBase {
         base_id,
         identity,
         already_ready: false,
+        published_new_file,
     })
+}
+
+/// Reclaim a building base only when the prior owner is the same request, missing,
+/// terminal, or already receipted. Live queued/claimed owners keep exclusive ownership.
+fn prior_building_owner_is_reclaimable(
+    family_root: &Path,
+    prior_request_id: &str,
+) -> Result<bool, String> {
+    let coordinator_db = family_root.join("coord.db");
+    let connection = Connection::open_with_flags(
+        &coordinator_db,
+        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+    )
+    .map_err(|error| error.to_string())?;
+    let state = connection
+        .query_row(
+            "SELECT state FROM requests WHERE request_id=?1",
+            [prior_request_id],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()
+        .map_err(|error| error.to_string())?;
+    match state.as_deref() {
+        None => Ok(true),
+        Some("failed" | "committed" | "acknowledged") => Ok(true),
+        Some(_) => {
+            let receipted = connection
+                .query_row(
+                    "SELECT EXISTS(SELECT 1 FROM request_receipts WHERE request_id=?1)",
+                    [prior_request_id],
+                    |row| row.get::<_, bool>(0),
+                )
+                .map_err(|error| error.to_string())?;
+            Ok(receipted)
+        }
+    }
 }
 
 fn cas_building_to_ready(
@@ -864,6 +944,10 @@ fn cas_building_to_ready(
         return Err("resolution_base_ready_cas_lost".to_string());
     }
     Ok(())
+}
+
+pub(crate) fn remove_base_file_set_for_cleanup(path: &Path) -> Result<(), String> {
+    remove_base_file_set(path)
 }
 
 fn remove_base_file_set(path: &Path) -> Result<(), String> {

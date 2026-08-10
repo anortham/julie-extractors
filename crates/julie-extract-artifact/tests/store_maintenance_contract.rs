@@ -997,6 +997,71 @@ fn apply_refuses_when_live_free_bytes_drop_below_required_headroom() {
 }
 
 #[test]
+fn apply_error_after_floor_raise_restores_floor_and_clears_intent_on_drop() {
+    let temp = TempStore::new("floor-restore-on-error");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    seed_gc_level_matrix(&layout);
+    let plan = inspect_plan(&layout, 30 * DAY_MS);
+    let free_bytes = Arc::new(AtomicU64::new(512 * 1024 * 1024));
+    let capacity = ControllableCapacity {
+        free_bytes: Arc::clone(&free_bytes),
+    };
+    let mut executor = MaintenanceExecutor::acquire(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.31.0"),
+        MaintenanceRun::new(
+            "floor-err-run",
+            "owner",
+            std::process::id(),
+            30 * DAY_MS,
+            5_000,
+        ),
+        &plan,
+        capacity,
+    )
+    .unwrap();
+    assert_eq!(
+        meta(
+            &Connection::open(layout.store_db()).unwrap(),
+            "min_writer_version"
+        ),
+        "2.31.0"
+    );
+    free_bytes.store(0, Ordering::SeqCst);
+    let error = executor.apply(&plan).unwrap_err();
+    assert!(
+        matches!(error, MaintenanceError::CapacityInsufficient),
+        "expected capacity_insufficient, got {error:?}"
+    );
+    drop(executor);
+
+    let store = Connection::open(layout.store_db()).unwrap();
+    assert_eq!(meta(&store, "min_writer_version"), "2.30.0");
+    let tmp_count: i64 = store
+        .query_row(
+            "SELECT COUNT(*) FROM store_meta WHERE key LIKE 'maintenance_tmp_%'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(tmp_count, 0);
+    let coord = Connection::open(layout.coordinator_db()).unwrap();
+    assert_eq!(
+        coord
+            .query_row("SELECT COUNT(*) FROM maintenance_intent", [], |row| row
+                .get::<_, i64>(0))
+            .unwrap(),
+        0
+    );
+    assert_eq!(
+        coord
+            .query_row("SELECT COUNT(*) FROM writer_lease", [], |row| row
+                .get::<_, i64>(0))
+            .unwrap(),
+        0
+    );
+}
+
+#[test]
 fn acquire_raises_source_writer_floor_and_mirrors_intent() {
     let temp = TempStore::new("floor-raise");
     let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
