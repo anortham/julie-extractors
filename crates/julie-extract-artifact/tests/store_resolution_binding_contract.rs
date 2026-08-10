@@ -127,7 +127,7 @@ fn exact_publish_is_atomic_and_stale_binding_cas_publishes_nothing() {
         },
     ] {
         assert!(matches!(
-            bindings.publish_exact(&invalid, &fence, &scratch, &gaps, 1),
+            bindings.publish_exact(&invalid, &fence, &scratch, &gaps, 1, || Ok(())),
             Err(ResolutionBindingError::CasLost { .. })
                 | Err(ResolutionBindingError::ViewNotFound { .. })
         ));
@@ -144,7 +144,7 @@ fn exact_publish_is_atomic_and_stale_binding_cas_publishes_nothing() {
         ..publication.clone()
     };
     assert!(matches!(
-        bindings.publish_exact(&wrong_manifest, &fence, &wrong_scratch, &[], 1),
+        bindings.publish_exact(&wrong_manifest, &fence, &wrong_scratch, &[], 1, || Ok(())),
         Err(ResolutionBindingError::CasLost { .. })
     ));
     let wrong_fence = ResolutionPublicationFence {
@@ -152,7 +152,7 @@ fn exact_publish_is_atomic_and_stale_binding_cas_publishes_nothing() {
         ..fence.clone()
     };
     assert!(matches!(
-        bindings.publish_exact(&publication, &wrong_fence, &scratch, &gaps, 1),
+        bindings.publish_exact(&publication, &wrong_fence, &scratch, &gaps, 1, || Ok(())),
         Err(ResolutionBindingError::FenceLost { .. })
     ));
     let missing_claim = ResolutionExactPublish {
@@ -160,7 +160,7 @@ fn exact_publish_is_atomic_and_stale_binding_cas_publishes_nothing() {
         ..publication.clone()
     };
     assert!(matches!(
-        bindings.publish_exact(&missing_claim, &fence, &scratch, &gaps, 1),
+        bindings.publish_exact(&missing_claim, &fence, &scratch, &gaps, 1, || Ok(())),
         Err(ResolutionBindingError::FenceLost { .. })
     ));
     let invalid_target_path = temp.0.join("invalid-target-delta.db");
@@ -180,17 +180,30 @@ fn exact_publish_is_atomic_and_stale_binding_cas_publishes_nothing() {
     invalid_target.finish().unwrap();
     let invalid_target = ResolutionScratchReader::open(&invalid_target_path).unwrap();
     assert!(matches!(
-        bindings.publish_exact(&publication, &fence, &invalid_target, &gaps, 1),
+        bindings.publish_exact(&publication, &fence, &invalid_target, &gaps, 1, || Ok(())),
         Err(ResolutionBindingError::InvalidPublication { .. })
     ));
     assert_eq!(publication_counts(&layout), before_failures);
 
     let mut publication_markers = Vec::new();
+    let mut heartbeat_count = 0u32;
     let exact = bindings
-        .publish_exact_with_markers(&publication, &fence, &scratch, &gaps, 1, |marker| {
-            publication_markers.push(marker);
-        })
+        .publish_exact_with_markers(
+            &publication,
+            &fence,
+            &scratch,
+            &gaps,
+            1,
+            || {
+                heartbeat_count += 1;
+                Ok(())
+            },
+            |marker| {
+                publication_markers.push(marker);
+            },
+        )
         .unwrap();
+    assert_eq!(heartbeat_count, 1);
     assert_eq!(
         publication_markers,
         [
@@ -260,13 +273,14 @@ fn exact_publish_is_atomic_and_stale_binding_cas_publishes_nothing() {
         .unwrap();
     drop(connection);
 
+    let now_ms = wall_now_ms();
     let coordinator = Connection::open(layout.coordinator_db()).unwrap();
     coordinator
         .execute(
             "INSERT INTO writer_lease
              (resource,holder_id,holder_version,holder_pid,heartbeat_at,expires_at,fencing_token)
-             VALUES ('store-writer','holder-1',?1,42,1000,2000,7)",
-            [VERSION],
+             VALUES ('store-writer','holder-1',?1,42,?2,?3,7)",
+            rusqlite::params![VERSION, now_ms, now_ms + 60_000],
         )
         .unwrap();
     coordinator
@@ -276,7 +290,7 @@ fn exact_publish_is_atomic_and_stale_binding_cas_publishes_nothing() {
         )
         .unwrap();
     assert!(matches!(
-        bindings.publish_exact(&publication, &fence, &scratch, &gaps, 1),
+        bindings.publish_exact(&publication, &fence, &scratch, &gaps, 1, || Ok(())),
         Err(ResolutionBindingError::FenceLost { .. })
     ));
     Connection::open(layout.coordinator_db())
@@ -293,7 +307,7 @@ fn exact_publish_is_atomic_and_stale_binding_cas_publishes_nothing() {
         ..publication
     };
     claim_resolution_request(&layout, &stale.request_id);
-    let stale_result = bindings.publish_exact(&stale, &fence, &scratch, &gaps, 1);
+    let stale_result = bindings.publish_exact(&stale, &fence, &scratch, &gaps, 1, || Ok(()));
     assert!(
         matches!(stale_result, Err(ResolutionBindingError::CasLost { .. })),
         "{stale_result:?}"
@@ -312,7 +326,170 @@ fn exact_publish_is_atomic_and_stale_binding_cas_publishes_nothing() {
     assert_eq!(after, before);
 }
 
+#[test]
+fn exact_publish_rejects_wall_clock_expired_lease_even_when_fence_now_is_stale() {
+    let temp = TempDir::new();
+    let layout = StoreLayout::create(&temp.0, FAMILY_ID, VERSION).unwrap();
+    let (base_hash, base_version) = publish_manifest(&layout, "view-a", None, "src/a.rs", "a");
+    let factory = StoreConnectionFactory::new(layout.clone(), FAMILY_ID, VERSION);
+    let base = ready_empty_base(&factory, &base_hash, base_version, "request-base");
+    let bindings = ResolutionBindingStore::new(factory);
+    let (manifest_hash, exact_version) =
+        publish_manifest(&layout, "view-wall", None, "src/b.rs", "b");
+    insert_symbol(&layout, exact_version, "symbol-1", "src/b.rs");
+    let converging = bindings
+        .bind_base("view-wall", 7, "request-bind-wall", NOW)
+        .unwrap();
+    let scratch_path = temp.0.join("wall-expired-delta.db");
+    let mut scratch = ResolutionScratchDelta::new(&scratch_path, &manifest_hash, 7).unwrap();
+    scratch.push_identifier_replacement(ResolutionIdentifierRow {
+        version_id: exact_version,
+        identifier_id: "identifier-1".to_string(),
+        target_version_id: Some(exact_version),
+        target_symbol_id: Some("symbol-1".to_string()),
+        tier: Some(2),
+        confidence: Some(0.9),
+        method: Some("exact".to_string()),
+        outcome: "resolved".to_string(),
+        candidates: Some(1),
+    });
+    scratch.finish().unwrap();
+    let scratch = ResolutionScratchReader::open(&scratch_path).unwrap();
+    let publication = ResolutionExactPublish {
+        view_id: "view-wall".to_string(),
+        manifest_generation: 1,
+        manifest_hash,
+        base_id: base,
+        previous_delta_generation: converging.delta_generation,
+        resolver_output_epoch: 7,
+        request_id: "request-wall-expired".to_string(),
+        created_at: NOW.to_string(),
+    };
+    claim_resolution_request(&layout, &publication.request_id);
+    let now_ms = wall_now_ms();
+    // expires_at is past wall clock, but still after a stale fence.now_ms.
+    // Old logic compared expires_at > fence.now_ms and would accept this lease.
+    let expires_at = now_ms - 1_000;
+    let stale_now_ms = now_ms - 60_000;
+    Connection::open(layout.coordinator_db())
+        .unwrap()
+        .execute(
+            "INSERT OR REPLACE INTO writer_lease
+             (resource,holder_id,holder_version,holder_pid,heartbeat_at,expires_at,fencing_token)
+             VALUES ('store-writer','holder-1',?1,42,?2,?3,7)",
+            rusqlite::params![VERSION, stale_now_ms, expires_at],
+        )
+        .unwrap();
+    assert!(expires_at > stale_now_ms);
+    assert!(expires_at < now_ms);
+    let fence = ResolutionPublicationFence {
+        claim_owner: "holder-1".to_string(),
+        holder_id: "holder-1".to_string(),
+        holder_pid: 42,
+        fencing_token: 7,
+        now_ms: stale_now_ms,
+    };
+    let before = view_publication_counts(&layout, "view-wall");
+    let result = bindings.publish_exact(&publication, &fence, &scratch, &[], 1, || Ok(()));
+    assert!(
+        matches!(result, Err(ResolutionBindingError::FenceLost { .. })),
+        "{result:?}"
+    );
+    assert_eq!(view_publication_counts(&layout, "view-wall"), before);
+    let state: String = Connection::open(layout.store_db())
+        .unwrap()
+        .query_row(
+            "SELECT resolution_state FROM views WHERE view_id='view-wall'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_ne!(state, "exact");
+}
+
+#[test]
+fn exact_publish_heartbeats_once_before_begin_immediate_and_rolls_back_on_heartbeat_loss() {
+    let temp = TempDir::new();
+    let layout = StoreLayout::create(&temp.0, FAMILY_ID, VERSION).unwrap();
+    let (base_hash, base_version) = publish_manifest(&layout, "view-a", None, "src/a.rs", "a");
+    let factory = StoreConnectionFactory::new(layout.clone(), FAMILY_ID, VERSION);
+    let base = ready_empty_base(&factory, &base_hash, base_version, "request-base");
+    let bindings = ResolutionBindingStore::new(factory);
+    let (manifest_hash, exact_version) =
+        publish_manifest(&layout, "view-hb", None, "src/b.rs", "b");
+    insert_symbol(&layout, exact_version, "symbol-1", "src/b.rs");
+    let converging = bindings
+        .bind_base("view-hb", 7, "request-bind-hb", NOW)
+        .unwrap();
+    let scratch_path = temp.0.join("heartbeat-delta.db");
+    let mut scratch = ResolutionScratchDelta::new(&scratch_path, &manifest_hash, 7).unwrap();
+    scratch.push_identifier_replacement(ResolutionIdentifierRow {
+        version_id: exact_version,
+        identifier_id: "identifier-1".to_string(),
+        target_version_id: Some(exact_version),
+        target_symbol_id: Some("symbol-1".to_string()),
+        tier: Some(2),
+        confidence: Some(0.9),
+        method: Some("exact".to_string()),
+        outcome: "resolved".to_string(),
+        candidates: Some(1),
+    });
+    scratch.finish().unwrap();
+    let scratch = ResolutionScratchReader::open(&scratch_path).unwrap();
+    let publication = ResolutionExactPublish {
+        view_id: "view-hb".to_string(),
+        manifest_generation: 1,
+        manifest_hash,
+        base_id: base,
+        previous_delta_generation: converging.delta_generation,
+        resolver_output_epoch: 7,
+        request_id: "request-hb".to_string(),
+        created_at: NOW.to_string(),
+    };
+    let fence = publication_fence(&layout, &publication.request_id);
+    let mut markers = Vec::new();
+    let mut heartbeat_count = 0u32;
+    let before = view_publication_counts(&layout, "view-hb");
+    let result = bindings.publish_exact_with_markers(
+        &publication,
+        &fence,
+        &scratch,
+        &[],
+        1,
+        || {
+            heartbeat_count += 1;
+            Err(ResolutionBindingError::FenceLost {
+                request_id: publication.request_id.clone(),
+            })
+        },
+        |marker| markers.push(marker),
+    );
+    assert_eq!(heartbeat_count, 1);
+    assert_eq!(
+        markers,
+        [ResolutionPublicationMarker::StoreTransactionStart]
+    );
+    assert!(
+        matches!(result, Err(ResolutionBindingError::FenceLost { .. })),
+        "{result:?}"
+    );
+    assert_eq!(view_publication_counts(&layout, "view-hb"), before);
+    let state: String = Connection::open(layout.store_db())
+        .unwrap()
+        .query_row(
+            "SELECT resolution_state FROM views WHERE view_id='view-hb'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_ne!(state, "exact");
+}
+
 fn publication_counts(layout: &StoreLayout) -> (i64, i64, i64, i64, i64) {
+    view_publication_counts(layout, "view-c")
+}
+
+fn view_publication_counts(layout: &StoreLayout, view_id: &str) -> (i64, i64, i64, i64, i64) {
     Connection::open(layout.store_db())
         .unwrap()
         .query_row(
@@ -321,8 +498,8 @@ fn publication_counts(layout: &StoreLayout) -> (i64, i64, i64, i64, i64) {
                (SELECT COUNT(*) FROM resolution_identifier_deltas),
                (SELECT COUNT(*) FROM resolution_pending_deltas),
                (SELECT COUNT(*) FROM store_log),
-               (SELECT resolution_delta_generation FROM views WHERE view_id='view-c')",
-            [],
+               (SELECT resolution_delta_generation FROM views WHERE view_id=?1)",
+            [view_id],
             |row| {
                 Ok((
                     row.get(0)?,
@@ -581,15 +758,23 @@ fn identical_manifest_reuses_ready_base_exactly_and_changed_manifest_binds_neare
     );
 }
 
+fn wall_now_ms() -> i64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| i64::try_from(duration.as_millis()).unwrap_or(i64::MAX))
+        .unwrap_or(0)
+}
+
 fn publication_fence(layout: &StoreLayout, request_id: &str) -> ResolutionPublicationFence {
     claim_resolution_request(layout, request_id);
+    let now_ms = wall_now_ms();
     let connection = Connection::open(layout.coordinator_db()).unwrap();
     connection
         .execute(
             "INSERT OR REPLACE INTO writer_lease
              (resource,holder_id,holder_version,holder_pid,heartbeat_at,expires_at,fencing_token)
-             VALUES ('store-writer','holder-1',?1,42,1000,2000,7)",
-            [VERSION],
+             VALUES ('store-writer','holder-1',?1,42,?2,?3,7)",
+            rusqlite::params![VERSION, now_ms, now_ms + 60_000],
         )
         .unwrap();
     ResolutionPublicationFence {
@@ -597,7 +782,7 @@ fn publication_fence(layout: &StoreLayout, request_id: &str) -> ResolutionPublic
         holder_id: "holder-1".to_string(),
         holder_pid: 42,
         fencing_token: 7,
-        now_ms: 1000,
+        now_ms,
     }
 }
 

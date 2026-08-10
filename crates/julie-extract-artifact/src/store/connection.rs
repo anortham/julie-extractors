@@ -248,10 +248,7 @@ impl StoreConnectionFactory {
             lease,
             fence,
         };
-        self.validate_writer_lease(
-            &writer.fence,
-            writer.lease.is_some() || writer.fence.run_id.is_some(),
-        )?;
+        self.validate_writer_lease(&writer.fence)?;
         configure_writer_pragmas(&writer, WriterPragmaProfile::Routine)?;
         Ok(writer)
     }
@@ -262,7 +259,7 @@ impl StoreConnectionFactory {
         connection: &mut StoreWriterConnection,
     ) -> Result<(), StoreConnectionError> {
         self.validate_generation_write_fence(connection)?;
-        self.validate_writer_lease(&connection.fence, connection.lease.is_some())?;
+        self.validate_writer_lease(&connection.fence)?;
         let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
         let recorded = metadata_value(&transaction, "binary_version")?;
         let running_version = ParsedVersion::parse("binary_version", &self.binary_version)?;
@@ -280,10 +277,11 @@ impl StoreConnectionFactory {
     fn validate_writer_lease(
         &self,
         fence: &GenerationFence,
-        use_system_time: bool,
     ) -> Result<(), StoreConnectionError> {
         let owns_generation = fence.root == self.layout.root()
             && fence.generation_name == self.layout.generation_name();
+        // Always compare against wall clock. A stale fence.checked_at must not
+        // keep an expired writer lease alive.
         let owns_lease = Connection::open_with_flags(
             self.layout.coordinator_db(),
             OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
@@ -298,11 +296,7 @@ impl StoreConnectionFactory {
                 fence.owner_id,
                 fence.owner_pid,
                 fence.fencing_token,
-                if use_system_time {
-                    system_now_ms()
-                } else {
-                    fence.checked_at
-                }
+                system_now_ms()
             ],
             |row| row.get::<_, i64>(0),
         )? == 1;
@@ -639,7 +633,7 @@ fn validate_store_schema(connection: &Connection) -> Result<(), StoreConnectionE
     Ok(())
 }
 
-fn system_now_ms() -> i64 {
+pub(crate) fn system_now_ms() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_or(0, |duration| {
