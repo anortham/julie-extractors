@@ -927,54 +927,6 @@ fn clean_artifact_path(out_dir: &Path, stem: &str) -> Result<PathBuf, CompatErro
     Ok(db_path)
 }
 
-#[cfg(test)]
-mod epoch_policy_tests {
-    use super::{ArtifactDiff, CompatOutcome, LedgerEntry, TableDifference, verdict_for_epochs};
-
-    fn difference() -> ArtifactDiff {
-        ArtifactDiff {
-            differences: vec![TableDifference::OnlyInCurrent {
-                table: "symbols".to_string(),
-            }],
-        }
-    }
-
-    fn declaration() -> LedgerEntry {
-        LedgerEntry {
-            version: "2.30.0".to_string(),
-            classification: Some("compatible".to_string()),
-        }
-    }
-
-    #[test]
-    fn same_epoch_difference_fails_even_when_classified() {
-        assert_eq!(
-            verdict_for_epochs(&difference(), 1, 1, Some(&declaration())),
-            CompatOutcome::Fail
-        );
-    }
-
-    #[test]
-    fn epoch_bump_requires_a_classified_difference() {
-        assert_eq!(
-            verdict_for_epochs(&difference(), 1, 2, None),
-            CompatOutcome::Fail
-        );
-        assert_eq!(
-            verdict_for_epochs(&difference(), 1, 2, Some(&declaration())),
-            CompatOutcome::Notice
-        );
-    }
-
-    #[test]
-    fn byte_identical_output_passes_without_an_epoch_bump() {
-        assert_eq!(
-            verdict_for_epochs(&ArtifactDiff::default(), 1, 1, None),
-            CompatOutcome::Pass
-        );
-    }
-}
-
 fn write_dump(path: &Path, dump: &ArtifactDump) -> Result<(), CompatError> {
     let mut rendered = String::new();
     for table in &dump.tables {
@@ -1044,4 +996,52 @@ fn repo_root() -> PathBuf {
         .parent()
         .expect("xtask crate should live under repo root")
         .to_path_buf()
+}
+
+#[cfg(test)]
+mod epoch_policy_tests {
+    use super::{ArtifactDiff, CompatOutcome, LedgerEntry, TableDifference, verdict_for_epochs};
+
+    fn difference() -> ArtifactDiff {
+        ArtifactDiff {
+            differences: vec![TableDifference::OnlyInCurrent {
+                table: "symbols".to_string(),
+            }],
+        }
+    }
+
+    fn declaration() -> LedgerEntry {
+        LedgerEntry {
+            version: "2.30.0".to_string(),
+            classification: Some("compatible".to_string()),
+        }
+    }
+
+    #[test]
+    fn same_epoch_difference_fails_even_when_classified() {
+        assert_eq!(
+            verdict_for_epochs(&difference(), 1, 1, Some(&declaration())),
+            CompatOutcome::Fail
+        );
+    }
+
+    #[test]
+    fn epoch_bump_requires_a_classified_difference() {
+        assert_eq!(
+            verdict_for_epochs(&difference(), 1, 2, None),
+            CompatOutcome::Fail
+        );
+        assert_eq!(
+            verdict_for_epochs(&difference(), 1, 2, Some(&declaration())),
+            CompatOutcome::Notice
+        );
+    }
+
+    #[test]
+    fn byte_identical_output_passes_without_an_epoch_bump() {
+        assert_eq!(
+            verdict_for_epochs(&ArtifactDiff::default(), 1, 1, None),
+            CompatOutcome::Pass
+        );
+    }
 }
