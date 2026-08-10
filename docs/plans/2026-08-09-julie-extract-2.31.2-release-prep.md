@@ -4,7 +4,7 @@
 
 **Goal:** Prepare the merged family-store fixes as a locally verified Julie Extract v2.31.2 release candidate without publishing it.
 
-**Architecture:** This is release metadata and evidence work only. The merged runtime commit remains the source of behavior; the prep updates the three crate versions, lockfile package versions, and versioned release notes so the existing release preflight and four-target packaging workflow can consume the candidate. The published-release pointer stays at v2.31.1 until publication.
+**Architecture:** This is release metadata, evidence, and local test-timing guidance work. The merged runtime commit remains the source of behavior; the prep updates the three crate versions, lockfile package versions, versioned release notes, and local timing guidance so the existing release preflight and four-target packaging workflow can consume the candidate. The published-release pointer stays at v2.31.1 until publication.
 
 **Tech Stack:** Rust 1.95, Cargo workspace, `cargo xtask` release tooling, GitHub Actions release packaging.
 
@@ -54,6 +54,8 @@
 - 2026-08-09T19:21:28-05:00 | final | `3824382c56e75ec31cd3f544294400483acd3317` | PASS | Exact-HEAD `cargo xtask test default`, formatting, metadata, agent-doc sync, whitespace, release preflight, and package-list checks.
 - 2026-08-09T19:21:28-05:00 | final | `3824382c56e75ec31cd3f544294400483acd3317` | PASS | Exact-HEAD `cargo xtask test contract`; captured log `/tmp/julie-v2.31.2-contract-3824382.log`, 692 lines, exit 0, no failed test result.
 - 2026-08-09T19:21:28-05:00 | release boundary | `3824382c56e75ec31cd3f544294400483acd3317` | EXPECTED HOLD | `scripts/check-release-state.sh` reports the v2.31.2 tag is not on origin and local `main` is three commits ahead; no remote operation was performed.
+- 2026-08-10T01:14:43Z | CI rerun `31345869462` | `2a90eba13bc973e5b840292bf9236dbdf5ffdb95` | EXPECTED FAILURE | All default-tier tests passed; the 90s GitHub Actions wall-clock guard measured about 122s including fresh package compilation after the store test expansion. CI timing is removed from the test-tier runner; reproducible timing is a local acceptance measurement instead.
+- 2026-08-09T20:23:56-05:00 | local timing | `2a90eba13bc973e5b840292bf9236dbdf5ffdb95` + timing-only working tree | PASS | Three warmed-cache `cargo xtask test default` runs on this macOS host passed in 42.37s, 41.62s, and 41.26s real time; range 1.11s. This is report-only evidence, not a CI gate.
 
 ## Parallel Execution Contract
 

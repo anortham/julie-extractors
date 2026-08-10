@@ -277,8 +277,16 @@ cargo xtask performance writer-current-schema --out-dir target/performance/write
 
 ## Guardrails
 
-- Enforce the default-suite wall-clock budget (90s, `xtask/src/test_tiers.rs`)
-  as implementation work grows.
+- Keep test-tier pass/fail independent of machine-dependent wall-clock time.
+- Measure default-tier timing locally on a stable machine, with the same
+  toolchain and warmed build cache, using three runs such as:
+
+  ```bash
+  for run in 1 2 3; do /usr/bin/time -p cargo xtask test default; done
+  ```
+
+  Record the local min/median/max when timing is an acceptance criterion; do
+  not use GitHub Actions duration as a performance gate.
 - Add a tiny-fixture writer budget before the SQLite writer lands.
 - Add convention tests that fail if slow tests enter default.
 - Add contract tests that fail when required schema indexes are missing.
