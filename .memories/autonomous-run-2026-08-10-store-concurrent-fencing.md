@@ -1,12 +1,12 @@
 # Autonomous run report — Store Concurrent Fencing Hardening
 
-- **Status:** Complete (PR pending — filled in after PR creation)
+- **Status:** Complete (PR https://github.com/anortham/julie-extractors/pull/11)
 - **Plan:** docs/plans/2026-08-10-store-concurrent-fencing-hardening.md
 - **Branch:** fix/store-concurrent-fencing
 - **Worktree:** .worktrees/fix/store-concurrent-fencing
 - **Base:** main (merge-base 2bfe383)
 - **HEAD:** 96f767d
-- **PR URL:** pending — filled in after PR creation
+- **PR URL:** https://github.com/anortham/julie-extractors/pull/11
 
 ## What shipped
 
