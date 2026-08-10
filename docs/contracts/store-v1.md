@@ -148,7 +148,7 @@ Ph2d lifecycle design and is implemented behind `store maintain`.
 
 ## Lifecycle maintenance interface
 
-The unreleased CLI exposes lifecycle work only under `store maintain`. `inspect` is read-only.
+The published CLI exposes lifecycle work only under `store maintain`. `inspect` is read-only.
 `gc`, `repair`, `promote`, and consumer-cursor mutations require `--apply`; without it they return a
 pure plan and do not modify `store.db`, `coord.db`, generation files, or `CURRENT`.
 

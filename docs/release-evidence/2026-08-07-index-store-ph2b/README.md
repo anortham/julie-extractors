@@ -1,8 +1,8 @@
 # Index Store Ph2b Implementation Evidence
 
-Status: unreleased implementation evidence, captured 2026-08-08. Miller does not use this store.
-Ph2c resolution/binding and Ph2d retention/GC/repair remain before the versioned-store program can
-close.
+Status: historical Ph2b slice evidence, captured 2026-08-08. The versioned family store later
+shipped in v2.31.0 and was hardened through v2.31.3. Miller still does not use this store in
+production (Ph3).
 
 ## Revisions and isolation
 

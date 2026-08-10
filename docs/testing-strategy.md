@@ -242,8 +242,9 @@ The closeout dogfood uses a release `julie-extract` binary, disposable source ar
 with two views, L1-first Full imports, 20 public updates/deletes, an externally killed batch with
 takeover/reconciliation, and fresh-store visible-row equivalence. Databases, raw reports, timing,
 and WAL observations stay under `target/`; the durable summary is
-[release evidence](release-evidence/2026-08-07-index-store-ph2b/README.md). This is unreleased
-implementation evidence, not a Miller adoption or release claim.
+[release evidence](release-evidence/2026-08-07-index-store-ph2b/README.md). The family store is
+published (v2.31.0+); this file remains process evidence for the Ph2b slice, not a Miller
+adoption claim.
 
 ## CI Policy
 

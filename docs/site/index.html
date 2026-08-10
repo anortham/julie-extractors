@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>julie-extractors - hand-written code extraction for 36 languages</title>
-  <meta name="description" content="Source tree in, versioned SQLite artifact out. Hand-written tree-sitter extractors for 36 languages cover symbols, references, relationships, framework routes, and typed structural facts without query files.">
+  <title>julie-extractors - hand-written code extraction for 38 languages</title>
+  <meta name="description" content="Source tree in, versioned SQLite artifact out. Hand-written tree-sitter extractors for 38 languages cover symbols, references, relationships, framework routes, and typed structural facts without query files.">
   <link rel="canonical" href="https://anortham.github.io/julie-extractors/">
 
   <meta property="og:type" content="website">
-  <meta property="og:title" content="julie-extractors - hand-written code extraction for 36 languages">
+  <meta property="og:title" content="julie-extractors - hand-written code extraction for 38 languages">
   <meta property="og:description" content="Source tree in, versioned SQLite artifact out. Hand-written extractors with fixture-proven coverage and no query files.">
   <meta property="og:url" content="https://anortham.github.io/julie-extractors/">
 
@@ -32,7 +32,7 @@
       <p class="eyebrow">Source tree in, versioned artifact out</p>
       <h1>Extraction without shortcuts.</h1>
       <p class="hero-lede">
-        Each of 36 languages gets its own hand-written tree-sitter extractor. The output is one SQLite
+        Each of 38 languages gets its own hand-written tree-sitter extractor. The output is one SQLite
         artifact any tool can read: symbols with real signatures, resolved references, framework route
         facts, doc comments, and complexity metrics. There are no query files anywhere in the codebase,
         and no coverage claim without fixture evidence behind it.
@@ -60,21 +60,20 @@
           tools in C#, Python, Go, JavaScript, or Rust consume it by spawning a binary and reading a database.
         </p>
         <p>
-          Extraction is imperative Rust per language, over 125,000 lines of it, instead of tree-sitter
-          query packs. There is not a single <code>.scm</code> file in the repository, and the tree-sitter
-          query engine is never invoked. The extra code pays for what queries cannot express: context
-          carried across the tree, language scope rules, framework conventions, and reference resolution
-          that refuses to guess.
+          Extraction is imperative Rust per language instead of tree-sitter query packs. There is not a
+          single <code>.scm</code> file in the repository, and the tree-sitter query engine is never
+          invoked. The extra code pays for what queries cannot express: context carried across the tree,
+          language scope rules, framework conventions, and reference resolution that refuses to guess.
         </p>
       </div>
       <div class="feature-strip" aria-label="Product pillars">
         <div>
-          <strong>36 languages</strong>
+          <strong>38 languages</strong>
           <span>each with its own hand-written extractor, held to one fixture-proven quality bar</span>
         </div>
         <div>
-          <strong>13 data domains</strong>
-          <span>from symbols and relationships to structural facts, literals, and complexity metrics</span>
+          <strong>Versioned family store</strong>
+          <span>optional multi-worktree index generations with fenced concurrent writers (v2.31+)</span>
         </div>
         <div>
           <strong>0 query files</strong>
@@ -90,21 +89,21 @@
       </div>
       <div class="prose">
         <p>
-          The capability snapshot (<code>julie-extract languages --json</code>) reports 36 languages.
+          The capability snapshot (<code>julie-extract languages --json</code>) reports 38 languages.
           Framework awareness rides on top as typed structural facts: route and endpoint definitions across
           Express, Fastify, NestJS, Next.js, Flask, FastAPI, Django, Rails, Laravel, Symfony, Phoenix,
           Spring, Ktor, Gin, Echo, Axum, Actix, ASP.NET, Nuxt, Vue, and React, plus htmx attributes, Alpine
-          directives, and SQL DDL/DML shapes. It adds up to nearly 200 versioned pattern IDs.
+          directives, and SQL DDL/DML shapes.
         </p>
       </div>
       <div class="language-cloud" aria-label="Supported languages">
         <span>bash</span><span>c</span><span>cpp</span><span>csharp</span><span>css</span><span>dart</span>
-        <span>elixir</span><span>gdscript</span><span>go</span><span>html</span><span>java</span>
+        <span>elixir</span><span>erlang</span><span>gdscript</span><span>go</span><span>html</span><span>java</span>
         <span>javascript</span><span>json</span><span>jsx</span><span>kotlin</span><span>lua</span>
         <span>markdown</span><span>php</span><span>powershell</span><span>python</span><span>qml</span>
         <span>r</span><span>razor</span><span>regex</span><span>ruby</span><span>rust</span><span>scala</span>
         <span>sql</span><span>swift</span><span>toml</span><span>tsx</span><span>typescript</span>
-        <span>vbnet</span><span>vue</span><span>yaml</span><span>zig</span>
+        <span>vbnet</span><span>vue</span><span>xml</span><span>yaml</span><span>zig</span>
       </div>
     </section>
 
@@ -129,21 +128,21 @@
       </div>
       <div class="metrics-table-wrap">
         <table class="metrics-table">
-          <caption>Fixture-proven native coverage by extraction domain (36 languages).</caption>
+          <caption>Fixture-proven native coverage by extraction domain (38 languages).</caption>
           <thead>
             <tr><th scope="col">Domain</th><th scope="col">Proven coverage</th><th scope="col">Applicable closure</th></tr>
           </thead>
           <tbody>
-            <tr><td>Symbols</td><td>36/36</td><td>36/36</td></tr>
-            <tr><td>Relationships</td><td>36/36</td><td>36/36</td></tr>
-            <tr><td>Structural facts</td><td>36/36</td><td>36/36</td></tr>
-            <tr><td>Literals</td><td>36/36</td><td>36/36</td></tr>
-            <tr><td>Body spans</td><td>35/36</td><td>35/35</td></tr>
-            <tr><td>Doc comments</td><td>35/36</td><td>35/35</td></tr>
-            <tr><td>Source regions</td><td>35/36</td><td>35/35</td></tr>
-            <tr><td>Identifiers</td><td>33/36</td><td>33/33</td></tr>
-            <tr><td>Complexity metrics</td><td>30/36</td><td>30/30</td></tr>
-            <tr><td>Types</td><td>29/36</td><td>29/29</td></tr>
+            <tr><td>Symbols</td><td>38/38</td><td>38/38</td></tr>
+            <tr><td>Structural facts</td><td>38/38</td><td>38/38</td></tr>
+            <tr><td>Literals</td><td>38/38</td><td>38/38</td></tr>
+            <tr><td>Relationships</td><td>37/38</td><td>37/38</td></tr>
+            <tr><td>Body spans</td><td>37/38</td><td>37/37</td></tr>
+            <tr><td>Source regions</td><td>37/38</td><td>37/37</td></tr>
+            <tr><td>Doc comments</td><td>36/38</td><td>36/37</td></tr>
+            <tr><td>Identifiers</td><td>35/38</td><td>35/35</td></tr>
+            <tr><td>Complexity metrics</td><td>31/38</td><td>31/32</td></tr>
+            <tr><td>Types</td><td>30/38</td><td>30/30</td></tr>
           </tbody>
         </table>
         <p class="metrics-note">
@@ -180,7 +179,17 @@
           <span>capabilities</span>
           <code>julie-extract languages --json</code>
         </button>
+        <button class="command-line" type="button" data-copy="julie-extract store import --store .julie-store --family <uuid> --root . --view main --json">
+          <span>family store</span>
+          <code>julie-extract store import --store .julie-store --family &lt;uuid&gt; --root . --view main --json</code>
+        </button>
       </div>
+      <p class="metrics-note">
+        Standalone artifacts use <code>scan</code>/<code>update</code>/<code>export</code>. The optional
+        versioned family store supports concurrent worktrees with fenced writers; see
+        <code>docs/contracts/store-v1.md</code> and the
+        <a href="https://github.com/anortham/julie-extractors/releases/latest" target="_blank" rel="noopener">latest release</a>.
+      </p>
     </section>
 
     <section class="section install-section">

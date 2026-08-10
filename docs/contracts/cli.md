@@ -15,8 +15,8 @@ Contract version:
 - Extraction contract: `4`
 - SQLite schema: `6`
 - JSONL schema: `4`
-- Versioned store contract: `1` (v2.31.0)
-- Versioned store SQLite schema: `2` (v2.31.0)
+- Versioned store contract: `1` (published v2.31.0; concurrent fencing hardened through v2.31.3)
+- Versioned store SQLite schema: `2` (published v2.31.0)
 
 The legacy values mirror `EXTRACT_CONTRACT_VERSION` / `SQLITE_SCHEMA_VERSION` in
 `crates/julie-extract-artifact/src/schema.rs` and `JSONL_SCHEMA_VERSION` in
@@ -62,9 +62,12 @@ julie-extract store maintain cursor advance --store <family-dir> [--family <uuid
 julie-extract store maintain cursor release --store <family-dir> [--family <uuid>] --consumer <id> [--apply] [--json]
 ```
 
-The nested `store` surface is part of the v2.31.0 release candidate. Miller does not use it yet.
+The nested `store` surface is published (v2.31.0+; concurrent multi-worktree fencing through
+v2.31.3). Miller does not use it in production yet — Ph3 consumer wiring is separate.
 Ph2b owns request-oriented import/update/delete, Ph2c owns resolution bases/deltas and
-exact-generation binding, and Ph2d owns the lifecycle-maintenance namespace documented below.
+exact-generation binding, Ph2d owns the lifecycle-maintenance namespace documented below, and
+post-Ph2d fencing hardening owns intent-aware leases, temporary writer floors, and pin/publish
+safety under concurrent maintainers.
 
 ## Shared Flags
 

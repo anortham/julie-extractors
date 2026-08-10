@@ -1,8 +1,8 @@
 # Index Store Ph2c Resolution Evidence
 
-Status: unreleased implementation evidence, captured 2026-08-08. Miller does not use the Ph2c
-store-resolution path. Ph2d owns retention, GC, repair, and promotion; Ph3 owns optimization of the
-large real-repository resolver lookup path.
+Status: historical Ph2c slice evidence, captured 2026-08-08. Store resolution shipped in v2.31.0
+and was hardened through v2.31.3. Miller still does not use the family-store resolution path in
+production (Ph3).
 
 ## Revisions and isolation
 

@@ -84,8 +84,9 @@ The public lifecycle surface is `store maintain inspect|gc|repair|promote` plus 
 advance|release`. Inspection is read-only and every mutation requires `--apply`. Forward rollback is
 an artifact API used by an orchestrator; it is deliberately not an end-user CLI verb.
 
-The v2.31.0 candidate completes Julie's producer-side Ph2 store program. Miller integration remains
-Ph3 work and is not implied by this release.
+v2.31.0 completed Julie's producer-side Ph2 store program. v2.31.1–v2.31.3 are patch releases for
+physical maintenance, capacity safety, and concurrent multi-worktree fencing. Miller integration
+remains Ph3 work and is not implied by those releases.
 
 ## Concurrent fencing (post-Ph2d hardening)
 

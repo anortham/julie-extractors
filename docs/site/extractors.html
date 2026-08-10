@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hand-written extractors, not query files</title>
-  <meta name="description" content="Why julie-extractors uses 125,000 lines of imperative Rust instead of tree-sitter query packs: typed structural facts, fail-closed reference resolution, owned grammar forks, and fixture-proven coverage across 36 languages.">
+  <meta name="description" content="Why julie-extractors uses imperative Rust instead of tree-sitter query packs: typed structural facts, fail-closed reference resolution, owned grammar forks, and fixture-proven coverage across 38 languages.">
   <link rel="canonical" href="https://anortham.github.io/julie-extractors/extractors.html">
 
   <meta property="og:type" content="article">
@@ -38,8 +38,8 @@
           Nearly every tree-sitter-based code-intelligence tool drives extraction the same way: a pack of
           <code>.scm</code> query files per language, matched against the syntax tree by the tree-sitter
           query engine. julie-extractors has no query files at all and never invokes the query engine.
-          Each of its 36 languages gets an imperative Rust extractor that walks the concrete syntax tree
-          directly, about 125,000 lines of extraction code in total.
+          Each of its 38 languages gets an imperative Rust extractor that walks the concrete syntax tree
+          directly, with a large hand-written extraction surface instead of query packs.
         </p>
         <p>
           That is an unfashionable amount of code. This page explains why it was written anyway, and what
@@ -97,7 +97,7 @@
           across files. ES-module imports carry export provenance. Tests are classified by role per
           language rather than by a single "is a test" bit, with golden fixtures proving at least one
           emitted role for all 28 code languages. Symbols carry assembled signatures, doc comments (35 of
-          36 languages), body spans, and per-function complexity, which is usually enough for an agent to
+          38 languages), body spans, and per-function complexity, which is usually enough for an agent to
           reason about an API without opening the file.
         </p>
 
@@ -130,7 +130,7 @@
           floating dependency.
         </p>
 
-        <h3>Keeping 36 languages honest</h3>
+        <h3>Keeping 38 languages honest</h3>
         <p>
           The obvious failure mode of hand-written breadth is uneven depth: a few well-tended languages
           and thirty that quietly lag. The repository's answer is a capability matrix with no silent
