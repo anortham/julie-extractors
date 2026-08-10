@@ -51,6 +51,9 @@
 - 2026-08-09T19:13:20-05:00 | worker | `b2d23814b50d8f329d3f950e247bdbe2b1188ca1` | PASS | `cargo xtask release preflight --version 2.31.2`; 4 targets and 32 inputs validated.
 - 2026-08-09T19:13:20-05:00 | worker | `b2d23814b50d8f329d3f950e247bdbe2b1188ca1` | PASS | `cargo xtask release package-list`, `scripts/check-agent-doc-sync.sh`, and `git diff --check`.
 - 2026-08-09T19:15:00-05:00 | integration | `962aa8aec3e360879ffb8b4d06846d331d9b6dba` | PASS | Release-prep commit fast-forwarded into local Julie `main`; remote state was intentionally unchanged.
+- 2026-08-09T19:21:28-05:00 | final | `3824382c56e75ec31cd3f544294400483acd3317` | PASS | Exact-HEAD `cargo xtask test default`, formatting, metadata, agent-doc sync, whitespace, release preflight, and package-list checks.
+- 2026-08-09T19:21:28-05:00 | final | `3824382c56e75ec31cd3f544294400483acd3317` | PASS | Exact-HEAD `cargo xtask test contract`; captured log `/tmp/julie-v2.31.2-contract-3824382.log`, 692 lines, exit 0, no failed test result.
+- 2026-08-09T19:21:28-05:00 | release boundary | `3824382c56e75ec31cd3f544294400483acd3317` | EXPECTED HOLD | `scripts/check-release-state.sh` reports the v2.31.2 tag is not on origin and local `main` is three commits ahead; no remote operation was performed.
 
 ## Parallel Execution Contract
 
