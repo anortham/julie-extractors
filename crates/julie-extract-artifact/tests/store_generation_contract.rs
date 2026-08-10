@@ -199,6 +199,7 @@ fn expired_writer_lease_cannot_authorize_a_later_write() {
     assert_eq!(metadata(&writer, "binary_version"), "2.30.0");
 }
 
+#[cfg(unix)]
 #[test]
 fn partial_generation_cleanup_requires_a_dead_owner_and_absent_or_expired_intent() {
     let temp = TempStore::new("partial-ownership");
@@ -252,12 +253,19 @@ fn partial_generation_cleanup_requires_a_dead_owner_and_absent_or_expired_intent
         )
         .unwrap();
 
+    let mut child = std::process::Command::new("sh")
+        .args(["-c", "exit 0"])
+        .spawn()
+        .unwrap();
+    let dead_pid = child.id();
+    child.wait().unwrap();
+
     write_partial_generation_owner(
         &partial,
         &PartialGenerationOwner {
             run_id: "run-dead".to_string(),
             owner_id: "owner-dead".to_string(),
-            owner_pid: u32::MAX,
+            owner_pid: dead_pid,
             fencing_token: 91,
             expires_at: 1,
         },
@@ -271,8 +279,8 @@ fn partial_generation_cleanup_requires_a_dead_owner_and_absent_or_expired_intent
               fencing_token, heartbeat_at, expires_at, started_at, plan_fingerprint,
               source_min_writer_version)
              VALUES ('store-maintenance', 'run-dead', 'promote', 'gen-001', 'owner-dead',
-                     4294967295, 91, 0, 1, 0, 'plan', '2.30.0')",
-            [],
+                     ?1, 91, 0, 1, 0, 'plan', '2.30.0')",
+            [i64::from(dead_pid)],
         )
         .unwrap();
 
