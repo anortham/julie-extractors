@@ -339,6 +339,11 @@ fn resolve_claimed(
                 .begin_convergence(&convergence)
                 .map_err(|error| format!("resolution_failed: {error}"))
         })?;
+    let mut pin_guard = ResolvePinGuard::armed(
+        factory.clone(),
+        pin_id.clone(),
+        holder.holder_id.clone(),
+    );
     let exact_path = layout
         .scratch_dir()
         .join(format!("resolve-exact-{}.db", request.request_id));
@@ -363,6 +368,7 @@ fn resolve_claimed(
             ResolutionBindingStore::new(fenced_factory(&factory, layout, holder, fencing_token))
                 .release_pin(&pin_id, ResolutionPinOwnerKind::Resolve, &holder.holder_id)
                 .map_err(|error| format!("resolution_failed: {error}"))?;
+            pin_guard.disarm();
             Ok(())
         })?;
         remove_sqlite_if_exists(&delta_path)?;
@@ -461,6 +467,7 @@ fn resolve_claimed(
         fenced_bindings
             .release_pin(&pin_id, ResolutionPinOwnerKind::Resolve, &holder.holder_id)
             .map_err(|error| format!("resolution_failed: {error}"))?;
+        pin_guard.disarm();
         Ok(())
     })?;
     drop(scratch);
@@ -469,6 +476,42 @@ fn resolve_claimed(
     remove_sqlite_if_exists(&delta_path)?;
     remove_sqlite_if_exists(&exact_path)?;
     Ok(())
+}
+
+struct ResolvePinGuard {
+    factory: StoreConnectionFactory,
+    pin_id: String,
+    owner_id: String,
+    armed: bool,
+}
+
+impl ResolvePinGuard {
+    fn armed(factory: StoreConnectionFactory, pin_id: String, owner_id: String) -> Self {
+        Self {
+            factory,
+            pin_id,
+            owner_id,
+            armed: true,
+        }
+    }
+
+    fn disarm(&mut self) {
+        self.armed = false;
+    }
+}
+
+impl Drop for ResolvePinGuard {
+    fn drop(&mut self) {
+        if !self.armed {
+            return;
+        }
+        self.armed = false;
+        let _ = ResolutionBindingStore::new(self.factory.clone()).release_pin(
+            &self.pin_id,
+            ResolutionPinOwnerKind::Resolve,
+            &self.owner_id,
+        );
+    }
 }
 
 fn fenced_factory(

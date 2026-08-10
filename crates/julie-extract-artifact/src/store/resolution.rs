@@ -526,7 +526,8 @@ impl ResolutionBaseCatalog {
         if !same_owner && prior_owner_live {
             return Ok(ResolutionBaseRecovery::LiveOwner(record));
         }
-        if record.state == ResolutionBaseState::Ready && self.base_is_protected(&record.base_id)? {
+        if record.state == ResolutionBaseState::Ready && self.base_is_protected(&record.base_id, now)?
+        {
             return Err(ResolutionBaseCatalogError::FileProtected {
                 base_id: record.base_id,
             });
@@ -702,12 +703,19 @@ impl ResolutionBaseCatalog {
         Ok(true)
     }
 
-    fn base_is_protected(&self, base_id: &str) -> Result<bool, ResolutionBaseCatalogError> {
+    fn base_is_protected(
+        &self,
+        base_id: &str,
+        now: &str,
+    ) -> Result<bool, ResolutionBaseCatalogError> {
         let connection = self.factory.open_reader()?;
         Ok(connection.query_row(
-            "SELECT EXISTS(SELECT 1 FROM resolution_pins WHERE base_id=?1)
-                 OR EXISTS(SELECT 1 FROM resolution_deltas WHERE base_id=?1)",
-            [base_id],
+            "SELECT EXISTS(
+                 SELECT 1 FROM resolution_pins
+                 WHERE base_id=?1 AND julianday(expires_at)>julianday(?2)
+               )
+               OR EXISTS(SELECT 1 FROM resolution_deltas WHERE base_id=?1)",
+            params![base_id, now],
             |row| row.get(0),
         )?)
     }
