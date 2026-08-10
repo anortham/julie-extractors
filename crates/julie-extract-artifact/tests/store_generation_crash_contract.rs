@@ -9,7 +9,8 @@ use std::time::Duration;
 
 use julie_extract_artifact::store::{
     CapacityProvider, GenerationLifecycle, GenerationPolicy, MaintenanceAction, MaintenanceClock,
-    MaintenanceInspector, MaintenanceRun, StoreConnectionError, StoreConnectionFactory, StoreLayout,
+    MaintenanceInspector, MaintenanceRun, StoreConnectionError, StoreConnectionFactory,
+    StoreLayout,
 };
 use rusqlite::Connection;
 use sha2::{Digest, Sha256};

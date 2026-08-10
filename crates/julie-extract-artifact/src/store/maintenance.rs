@@ -10,12 +10,12 @@ use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior, pa
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+use super::connection::compare_versions;
 use super::layout::valid_generation_name;
 use super::pragmas::{WriterPragmaProfile, configure_writer_pragmas};
 use super::resolution::{
     resolution_file_bytes, resolution_file_sha256, retire_resolution_base, retire_resolution_delta,
 };
-use super::connection::compare_versions;
 use super::{
     CoordinatorError, GenerationFence, MaintenanceAction, PidStatus, StoreConnectionError,
     StoreConnectionFactory, StoreCoordinator, StoreLog, StoreLogError,
@@ -1069,12 +1069,12 @@ impl MaintenanceExecutor {
             .as_ref()
             .map(|(_, _, _, _, prior)| prior.clone())
             .unwrap_or_else(|| store_min_writer_version.clone());
-        let active_owner_dead = active_intent.as_ref().is_some_and(|(_, _, owner_pid, _, _)| {
-            match u32::try_from(*owner_pid) {
+        let active_owner_dead = active_intent
+            .as_ref()
+            .is_some_and(|(_, _, owner_pid, _, _)| match u32::try_from(*owner_pid) {
                 Ok(owner_pid) => super::coordinator::process_status(owner_pid) == PidStatus::Dead,
                 Err(_) => false,
-            }
-        });
+            });
         if active_intent
             .as_ref()
             .is_some_and(|(run_id, owner_id, owner_pid, expiry, _)| {
@@ -1160,7 +1160,10 @@ impl MaintenanceExecutor {
         Ok(executor)
     }
 
-    pub(crate) fn ensure_gc_capacity(&self, plan: &MaintenancePlan) -> Result<(), MaintenanceError> {
+    pub(crate) fn ensure_gc_capacity(
+        &self,
+        plan: &MaintenancePlan,
+    ) -> Result<(), MaintenanceError> {
         ensure_live_capacity(
             self.capacity.as_ref(),
             self.factory.layout().root(),
@@ -1896,14 +1899,20 @@ impl MaintenanceExecutor {
         let mirror_rows = [
             (TMP_RUN_ID, self.run.run_id.as_str()),
             (TMP_ACTION, action.as_str()),
-            (TMP_SOURCE_GENERATION, self.factory.layout().generation_name()),
+            (
+                TMP_SOURCE_GENERATION,
+                self.factory.layout().generation_name(),
+            ),
             (TMP_OWNER_ID, self.run.owner_id.as_str()),
             (TMP_OWNER_PID, owner_pid.as_str()),
             (TMP_FENCING_TOKEN, fencing_token.as_str()),
             (TMP_HEARTBEAT_AT, heartbeat.as_str()),
             (TMP_STARTED_AT, heartbeat.as_str()),
             (TMP_PLAN_FINGERPRINT, plan_fingerprint.as_str()),
-            (TMP_SOURCE_MIN_WRITER, self.source_min_writer_version.as_str()),
+            (
+                TMP_SOURCE_MIN_WRITER,
+                self.source_min_writer_version.as_str(),
+            ),
         ];
         for (key, value) in mirror_rows {
             transaction.execute(

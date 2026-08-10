@@ -526,7 +526,8 @@ impl ResolutionBaseCatalog {
         if !same_owner && prior_owner_live {
             return Ok(ResolutionBaseRecovery::LiveOwner(record));
         }
-        if record.state == ResolutionBaseState::Ready && self.base_is_protected(&record.base_id, now)?
+        if record.state == ResolutionBaseState::Ready
+            && self.base_is_protected(&record.base_id, now)?
         {
             return Err(ResolutionBaseCatalogError::FileProtected {
                 base_id: record.base_id,
@@ -1277,6 +1278,7 @@ impl ResolutionBindingStore {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn publish_exact_with_markers<H, M>(
         &self,
         publication: &ResolutionExactPublish,

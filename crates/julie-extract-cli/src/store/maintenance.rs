@@ -176,24 +176,20 @@ fn apply_promotion(
 fn apply_gc(context: MaintenanceContext, format: StoreOutputFormat) -> StoreExecutionOutcome {
     let run = maintenance_run();
     let run_id = run.run_id.clone();
-    let mut executor = match MaintenanceExecutor::acquire(
-        context.factory,
-        run,
-        &context.plan,
-        CliCapacity,
-    ) {
-        Ok(executor) => executor,
-        Err(error) => {
-            return failure(
-                maintenance_error_report_from_plan(
-                    StoreMaintenanceAction::Gc,
-                    &context.plan,
-                    &error,
-                ),
-                format,
-            );
-        }
-    };
+    let mut executor =
+        match MaintenanceExecutor::acquire(context.factory, run, &context.plan, CliCapacity) {
+            Ok(executor) => executor,
+            Err(error) => {
+                return failure(
+                    maintenance_error_report_from_plan(
+                        StoreMaintenanceAction::Gc,
+                        &context.plan,
+                        &error,
+                    ),
+                    format,
+                );
+            }
+        };
     match executor.apply(&context.plan) {
         Ok(applied) => success(
             StoreMaintenanceReport::planned(StoreMaintenanceAction::Gc, &context.plan)

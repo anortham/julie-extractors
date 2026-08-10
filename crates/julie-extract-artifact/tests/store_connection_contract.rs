@@ -599,7 +599,8 @@ fn promote_style_lease_release_still_blocks_foreign_open_writer() {
             [],
         )
         .unwrap();
-    let maintenance_fence = GenerationFence::maintenance(&layout, "run-promote", "owner-a", 7, 41, 10);
+    let maintenance_fence =
+        GenerationFence::maintenance(&layout, "run-promote", "owner-a", 7, 41, 10);
     assert!(
         StoreConnectionFactory::new(layout, "family-a", "2.30.0")
             .with_generation_fence(maintenance_fence)

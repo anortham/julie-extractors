@@ -897,12 +897,7 @@ fn maintenance_owner_acquire_requires_full_intent_identity() {
             50,
         )
         .unwrap();
-    assert_eq!(
-        acquired,
-        LeaseDisposition::Acquired {
-            fencing_token: 41
-        }
-    );
+    assert_eq!(acquired, LeaseDisposition::Acquired { fencing_token: 41 });
     let lease = coordinator.lease().unwrap().unwrap();
     assert_eq!(lease.holder.holder_id, "owner-a");
     assert_eq!(lease.holder.holder_pid, 7);

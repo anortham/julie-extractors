@@ -8,9 +8,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior};
 
-use super::coordinator::{
-    CoordinatorError, LeaseDisposition, LeaseHolder, StoreCoordinator,
-};
+use super::coordinator::{CoordinatorError, LeaseDisposition, LeaseHolder, StoreCoordinator};
 use super::pragmas::{PragmaError, WriterPragmaProfile, configure_writer_pragmas};
 use super::{STORE_SQLITE_SCHEMA_VERSION, StoreLayout, StoreLayoutError, StoreSchemaError};
 
@@ -208,9 +206,8 @@ impl StoreConnectionFactory {
                     &self.binary_version,
                     std::process::id(),
                 );
-                let mut coordinator = StoreCoordinator::open(&self.layout).map_err(|error| {
-                    map_coordinator_lease_error(error)
-                })?;
+                let mut coordinator =
+                    StoreCoordinator::open(&self.layout).map_err(map_coordinator_lease_error)?;
                 let deadline = Instant::now() + Duration::from_secs(5);
                 let (fencing_token, checked_at) = loop {
                     let checked_at = system_now_ms();
@@ -274,10 +271,7 @@ impl StoreConnectionFactory {
         Ok(())
     }
 
-    fn validate_writer_lease(
-        &self,
-        fence: &GenerationFence,
-    ) -> Result<(), StoreConnectionError> {
+    fn validate_writer_lease(&self, fence: &GenerationFence) -> Result<(), StoreConnectionError> {
         let owns_generation = fence.root == self.layout.root()
             && fence.generation_name == self.layout.generation_name();
         // Prefer wall clock when the fence was minted near real time (production
@@ -307,12 +301,7 @@ impl StoreConnectionFactory {
                WHERE resource = 'store-writer' AND holder_id = ?1 AND holder_pid = ?2
                  AND fencing_token = ?3 AND expires_at > ?4
              )",
-            rusqlite::params![
-                fence.owner_id,
-                fence.owner_pid,
-                fence.fencing_token,
-                now_ms
-            ],
+            rusqlite::params![fence.owner_id, fence.owner_pid, fence.fencing_token, now_ms],
             |row| row.get::<_, i64>(0),
         )? == 1;
         if !owns_generation || !owns_lease {

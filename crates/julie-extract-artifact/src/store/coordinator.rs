@@ -641,7 +641,7 @@ impl StoreCoordinator {
             });
         }
         // In-txn recheck: refuse new inserts under foreign live maintenance intent.
-        refuse_foreign_live_maintenance_intent(&*transaction, self.clock.now_ms())?;
+        refuse_foreign_live_maintenance_intent(&transaction, self.clock.now_ms())?;
         transaction.execute(
             "INSERT INTO requests
              (request_id, idempotency_key, kind, payload_json, state, requester_id,
@@ -678,7 +678,7 @@ impl StoreCoordinator {
         let stale_before = now.saturating_sub(stale_after_ms);
         let mut connection = open_coordinator(&self.coordinator_db)?;
         let transaction = begin_coordinator(&mut connection)?;
-        if foreign_live_maintenance_intent(&*transaction, now)?.is_some() {
+        if foreign_live_maintenance_intent(&transaction, now)?.is_some() {
             return Ok(false);
         }
         let Some(request) = request_by_id(&transaction, request_id)? else {
@@ -845,7 +845,7 @@ impl StoreCoordinator {
         self.ensure_writer_eligible(&holder.holder_version)?;
         let mut connection = open_coordinator(&self.coordinator_db)?;
         let transaction = begin_coordinator(&mut connection)?;
-        if let Some(intent) = foreign_live_maintenance_intent(&*transaction, now)? {
+        if let Some(intent) = foreign_live_maintenance_intent(&transaction, now)? {
             match &maintenance_owner {
                 Some(owner) if owner.matches_intent(&intent) => {}
                 _ => {
@@ -1863,7 +1863,7 @@ impl StoreCoordinator {
         }
         let mut connection = open_coordinator(&self.coordinator_db)?;
         let transaction = begin_coordinator(&mut connection)?;
-        refuse_foreign_live_maintenance_intent(&*transaction, self.clock.now_ms())?;
+        refuse_foreign_live_maintenance_intent(&transaction, self.clock.now_ms())?;
         let high_water = transaction
             .query_row(
                 "SELECT high_water FROM family_allocator_marks
@@ -1933,7 +1933,7 @@ impl StoreCoordinator {
         }
         let mut connection = open_coordinator(&self.coordinator_db)?;
         let transaction = begin_coordinator(&mut connection)?;
-        refuse_foreign_live_maintenance_intent(&*transaction, self.clock.now_ms())?;
+        refuse_foreign_live_maintenance_intent(&transaction, self.clock.now_ms())?;
         let changed = transaction.execute(
             "DELETE FROM consumer_cursors WHERE consumer_id=?1",
             [consumer_id],

@@ -1101,10 +1101,7 @@ impl StoreRequestExecutor {
         {
             return Err("resolution_base_catalog_identity_mismatch".to_string());
         }
-        debug_assert!(
-            base.already_ready
-                || registered.2 == base.identity.file_sha256
-        );
+        debug_assert!(base.already_ready || registered.2 == base.identity.file_sha256);
         let delta_generation: i64 = transaction
             .query_row(
                 "SELECT COALESCE(MAX(delta_generation),0) FROM resolution_deltas WHERE view_id=?1",

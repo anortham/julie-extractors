@@ -1013,7 +1013,10 @@ fn acquire_raises_source_writer_floor_and_mirrors_intent() {
     assert_eq!(meta(&store, "min_writer_version"), "2.31.0");
     assert_eq!(meta(&store, "maintenance_tmp_run_id"), "floor-run");
     assert_eq!(meta(&store, "maintenance_tmp_action"), "gc");
-    assert_eq!(meta(&store, "maintenance_tmp_source_min_writer_version"), "2.30.0");
+    assert_eq!(
+        meta(&store, "maintenance_tmp_source_min_writer_version"),
+        "2.30.0"
+    );
     let coord = Connection::open(layout.coordinator_db()).unwrap();
     assert_eq!(
         coord
@@ -1064,13 +1067,22 @@ fn finish_restores_serving_source_floor_and_clears_intent_mirrors() {
     let plan = inspect_plan(&layout, 30 * DAY_MS);
     let mut executor = MaintenanceExecutor::acquire(
         StoreConnectionFactory::new(layout.clone(), "family-a", "2.31.0"),
-        MaintenanceRun::new("restore-run", "owner", std::process::id(), 30 * DAY_MS, 5_000),
+        MaintenanceRun::new(
+            "restore-run",
+            "owner",
+            std::process::id(),
+            30 * DAY_MS,
+            5_000,
+        ),
         &plan,
         FixedCapacity,
     )
     .unwrap();
     assert_eq!(
-        meta(&Connection::open(layout.store_db()).unwrap(), "min_writer_version"),
+        meta(
+            &Connection::open(layout.store_db()).unwrap(),
+            "min_writer_version"
+        ),
         "2.31.0"
     );
     executor.apply(&plan).unwrap();
@@ -1088,21 +1100,15 @@ fn finish_restores_serving_source_floor_and_clears_intent_mirrors() {
     let coord = Connection::open(layout.coordinator_db()).unwrap();
     assert_eq!(
         coord
-            .query_row(
-                "SELECT COUNT(*) FROM maintenance_intent",
-                [],
-                |row| row.get::<_, i64>(0),
-            )
+            .query_row("SELECT COUNT(*) FROM maintenance_intent", [], |row| row
+                .get::<_, i64>(0),)
             .unwrap(),
         0
     );
     assert_eq!(
         coord
-            .query_row(
-                "SELECT COUNT(*) FROM writer_lease",
-                [],
-                |row| row.get::<_, i64>(0),
-            )
+            .query_row("SELECT COUNT(*) FROM writer_lease", [], |row| row
+                .get::<_, i64>(0),)
             .unwrap(),
         0
     );
@@ -1110,11 +1116,9 @@ fn finish_restores_serving_source_floor_and_clears_intent_mirrors() {
 
 fn meta(connection: &Connection, key: &str) -> String {
     connection
-        .query_row(
-            "SELECT value FROM store_meta WHERE key=?1",
-            [key],
-            |row| row.get(0),
-        )
+        .query_row("SELECT value FROM store_meta WHERE key=?1", [key], |row| {
+            row.get(0)
+        })
         .unwrap()
 }
 

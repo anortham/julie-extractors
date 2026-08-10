@@ -181,7 +181,7 @@ fn foreign_maintenance_intent_blocks_writers_and_matching_fence_is_admitted() {
              VALUES ('store-writer', 'owner-a', '2.30.0', 7, 0, 1, 41);",
         )
         .unwrap();
-    let expired = GenerationFence::maintenance(&layout, "run-a", "owner-a", 7, 41, 0);
+    let expired = GenerationFence::maintenance(&layout, "run-a", "owner-a", 7, 41, 1);
     assert!(matches!(
         StoreConnectionFactory::new(layout, "family-a", "2.30.0")
             .with_generation_fence(expired)
@@ -312,7 +312,6 @@ fn partial_generation_cleanup_requires_a_dead_owner_and_absent_or_expired_intent
     assert!(!partial.exists());
 }
 
-
 #[test]
 fn promote_destination_keeps_pre_maintenance_floor_and_drops_tmp_mirrors() {
     let temp = TempStore::new("promote-floor");
@@ -334,9 +333,15 @@ fn promote_destination_keeps_pre_maintenance_floor_and_drops_tmp_mirrors() {
     .unwrap();
 
     let source_during_build = Connection::open(layout.store_db()).unwrap();
-    assert_eq!(metadata(&source_during_build, "min_writer_version"), "2.31.0");
     assert_eq!(
-        metadata(&source_during_build, "maintenance_tmp_source_min_writer_version"),
+        metadata(&source_during_build, "min_writer_version"),
+        "2.31.0"
+    );
+    assert_eq!(
+        metadata(
+            &source_during_build,
+            "maintenance_tmp_source_min_writer_version"
+        ),
         "2.30.0"
     );
     drop(source_during_build);
@@ -361,11 +366,8 @@ fn promote_destination_keeps_pre_maintenance_floor_and_drops_tmp_mirrors() {
     let coord = Connection::open(serving.coordinator_db()).unwrap();
     assert_eq!(
         coord
-            .query_row(
-                "SELECT COUNT(*) FROM maintenance_intent",
-                [],
-                |row| row.get::<_, i64>(0),
-            )
+            .query_row("SELECT COUNT(*) FROM maintenance_intent", [], |row| row
+                .get::<_, i64>(0),)
             .unwrap(),
         0
     );
