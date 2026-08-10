@@ -386,9 +386,17 @@ fn publish_real_store_delta(
     let mut timeline = WriteTimeline::default();
     let total_started = Instant::now();
     let published = bindings
-        .publish_exact_with_markers(&publication, &fence, scratch, gaps, WINDOW_SIZE, |marker| {
-            timeline.mark_publication(marker)
-        })
+        .publish_exact_with_markers(
+            &publication,
+            &fence,
+            scratch,
+            gaps,
+            WINDOW_SIZE,
+            || Ok(()),
+            |marker| {
+                timeline.mark_publication(marker);
+            },
+        )
         .unwrap();
     assert_eq!(published.state.as_str(), "exact");
     let elapsed = timeline.finish(total_started.elapsed());
