@@ -13,7 +13,7 @@ each non-internal `sqlite_master` row with non-null SQL as
 hashes the UTF-8 bytes with SHA-256.
 
 ```text catalog-authority
-store-catalog-sha256: e2b2656de28d296cd692de553d49592f0eff15be87bc6f4fc4a16ef290de0281
+store-catalog-sha256: 28654ace146042ef1ea8dcf85703dcc7f87b958eb055eff6633b830e1bded163
 coordinator-catalog-sha256: 633e93a3a5d162b56248656410c6e4ce849795e067bff02a31dc85ce4328c02d
 ```
 
@@ -28,6 +28,9 @@ resolution_deltas(view_id, delta_generation, base_id, manifest_generation, manif
 resolution_identifier_deltas(view_id, delta_generation, version_id, identifier_id, target_version_id, target_symbol_id, tier, confidence, method, outcome, candidates)
 resolution_pending_deltas(view_id, delta_generation, version_id, pending_relationship_id, operation, target_version_id, target_symbol_id, tier, confidence, method)
 resolution_pins(pin_id, owner_kind, owner_id, view_id, manifest_generation, base_id, delta_generation, expires_at, created_at)
+resolution_scope_batches(transition_id, view_id, previous_transition_id, from_manifest_generation, from_manifest_hash, to_manifest_generation, to_manifest_hash, scope_usable, predecessor_manifest_generation, predecessor_manifest_hash, base_id, delta_generation, resolver_output_epoch, change_count, changes_hash, request_id, created_at)
+resolution_scope_changes(transition_id, ordinal, path, old_version_id, new_version_id)
+resolution_scope_states(view_id, predecessor_manifest_generation, predecessor_manifest_hash, base_id, delta_generation, resolver_output_epoch, current_manifest_generation, current_manifest_hash, latest_transition_id)
 ```
 
 `manifest_entries` is now:
@@ -70,6 +73,20 @@ added to `store.db`.
 Existing-generation opens validate without running schema initialization or changing `user_version`;
 the state is the durable store-side half of the root-owned maintenance fence.
 
+`store_meta.resolution_scope_journal_version` is `1`. Its absence is valid on a read-only legacy
+schema-v2 store and means no partial scope may be trusted. The first mutating open or manifest
+publication installs the additive feature without changing `PRAGMA user_version`. Promotion upgrades
+the source before catalog comparison and copies the feature metadata with the rest of `store_meta`.
+
+`resolution_scope_batches.transition_id` is the only transition identity and is never derived from
+reusable manifest generations. Each non-no-op flip appends one header linked to the previous header
+for that view. A usable header repeats the first exact predecessor manifest/base/delta/epoch tuple,
+records a binary-path-ordered child count, and hashes the canonical child payload under
+`julie-resolution-scope-changes-v1`. Each child stores one touched path and its nullable old/new
+file-version IDs. A missing predecessor, missing feature history, journal/head discontinuity, or more
+than 512 changes writes a scope-unusable header with zero children and the canonical empty-payload
+hash. Same-generation no-op reuse writes no header.
+
 ## Coordinator lifecycle additions
 
 The root-owned coordinator catalog adds:
@@ -99,6 +116,8 @@ read: idx_read_resolution_pending_deltas_target(target_version_id, target_symbol
 gc: idx_gc_resolution_pending_deltas_version(version_id, view_id, delta_generation, pending_relationship_id)
 read: idx_read_resolution_pins_owner_expiry(owner_kind, owner_id, expires_at, pin_id)
 read: idx_read_resolution_pins_bound(view_id, manifest_generation, base_id, delta_generation)
+read: idx_read_resolution_scope_batches_view(view_id, transition_id)
+read: idx_read_resolution_scope_changes_versions(old_version_id, new_version_id, transition_id)
 ```
 
 Every schema-v1 index remains present. Primary-key and unique-constraint autoindexes are structural

@@ -42,6 +42,100 @@ fn schemas_are_independent_strict_idempotent_version_two_catalogs() {
 }
 
 #[test]
+fn resolution_scope_journal_is_an_additive_schema_v2_feature() {
+    let store = open_store();
+
+    assert_eq!(user_version(&store), 2);
+    assert_eq!(
+        store
+            .query_row(
+                "SELECT value FROM store_meta WHERE key='resolution_scope_journal_version'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .unwrap(),
+        "1"
+    );
+    assert_eq!(
+        table_columns(&store, "resolution_scope_states"),
+        vec![
+            "view_id TEXT",
+            "predecessor_manifest_generation INTEGER",
+            "predecessor_manifest_hash TEXT",
+            "base_id TEXT",
+            "delta_generation INTEGER",
+            "resolver_output_epoch INTEGER",
+            "current_manifest_generation INTEGER",
+            "current_manifest_hash TEXT",
+            "latest_transition_id INTEGER",
+        ]
+    );
+    assert_eq!(
+        table_columns(&store, "resolution_scope_batches"),
+        vec![
+            "transition_id INTEGER",
+            "view_id TEXT",
+            "previous_transition_id INTEGER",
+            "from_manifest_generation INTEGER",
+            "from_manifest_hash TEXT",
+            "to_manifest_generation INTEGER",
+            "to_manifest_hash TEXT",
+            "scope_usable INTEGER",
+            "predecessor_manifest_generation INTEGER",
+            "predecessor_manifest_hash TEXT",
+            "base_id TEXT",
+            "delta_generation INTEGER",
+            "resolver_output_epoch INTEGER",
+            "change_count INTEGER",
+            "changes_hash TEXT",
+            "request_id TEXT",
+            "created_at TEXT",
+        ]
+    );
+    assert_eq!(
+        table_columns(&store, "resolution_scope_changes"),
+        vec![
+            "transition_id INTEGER",
+            "ordinal INTEGER",
+            "path TEXT",
+            "old_version_id INTEGER",
+            "new_version_id INTEGER",
+        ]
+    );
+}
+
+#[test]
+fn resolution_scope_batches_reject_noncanonical_timestamps() {
+    let store = open_store();
+    store
+        .execute(
+            "INSERT INTO views(view_id,root,created_at,updated_at)
+             VALUES ('view-a','/repo','2026-08-11T12:00:00Z','2026-08-11T12:00:00Z')",
+            [],
+        )
+        .unwrap();
+    store
+        .execute(
+            "INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+             VALUES ('view-a',1,'hash-a','request-a','2026-08-11T12:00:00Z')",
+            [],
+        )
+        .unwrap();
+
+    assert!(
+        store
+            .execute(
+                "INSERT INTO resolution_scope_batches
+                 (view_id,to_manifest_generation,to_manifest_hash,scope_usable,change_count,
+                  changes_hash,request_id,created_at)
+                 VALUES ('view-a',1,'hash-a',0,0,'sha256:empty','request-a','not-a-time')",
+                [],
+            )
+            .is_err()
+    );
+}
+
+#[test]
 fn resolution_catalog_columns_are_frozen() {
     let store = open_store();
 
@@ -361,6 +455,10 @@ fn store_meta_seeds_only_schema_and_retention_defaults() {
             (
                 "store_format_epoch".to_string(),
                 STORE_FORMAT_EPOCH.to_string(),
+            ),
+            (
+                "resolution_scope_journal_version".to_string(),
+                "1".to_string(),
             ),
             (
                 "store_sqlite_schema_version".to_string(),
@@ -822,6 +920,9 @@ fn expected_store_tables() -> BTreeSet<String> {
         "resolution_identifier_deltas",
         "resolution_pending_deltas",
         "resolution_pins",
+        "resolution_scope_batches",
+        "resolution_scope_changes",
+        "resolution_scope_states",
         "source_regions",
         "store_log",
         "store_meta",
@@ -1074,6 +1175,14 @@ fn expected_store_indexes() -> BTreeMap<String, Vec<String>> {
         (
             "idx_read_resolution_pins_owner_expiry",
             "owner_kind,owner_id,expires_at,pin_id",
+        ),
+        (
+            "idx_read_resolution_scope_batches_view",
+            "view_id,transition_id",
+        ),
+        (
+            "idx_read_resolution_scope_changes_versions",
+            "old_version_id,new_version_id,transition_id",
         ),
         (
             "idx_read_pending_caller_scope",

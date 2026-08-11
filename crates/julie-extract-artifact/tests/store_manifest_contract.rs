@@ -6,8 +6,9 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use julie_extract_artifact::store::{
     GenerationFence, MANIFEST_HASH_ALGORITHM, MANIFEST_PUBLISH_MAX_RETRIES, ManifestBuilder,
     ManifestEntry, ManifestPublishDisposition, ManifestStore, ManifestStoreError,
-    StoreConnectionFactory, StoreLayout, StoreLevel, StoreLog, StoreLogEntry, StoreLogError,
-    StoreWriterConnection, ViewEnsureDisposition, create_store_schema,
+    RESOLUTION_SCOPE_MAX_CHANGES, ResolutionScopeError, StoreConnectionFactory, StoreLayout,
+    StoreLevel, StoreLog, StoreLogEntry, StoreLogError, StoreWriterConnection,
+    ViewEnsureDisposition, create_store_schema, validate_resolution_scope_batch,
 };
 use rusqlite::{Connection, params};
 
@@ -48,6 +49,49 @@ fn canonical_hash_is_order_independent_and_cold_publish_uses_cas() {
     assert_eq!(published.generation, 1);
     assert_eq!(published.disposition, ManifestPublishDisposition::Created);
     assert!(published.effect_sequence.is_some());
+}
+
+#[test]
+fn transactional_publication_uses_the_shared_scope_capture_seam() {
+    let mut connection = Connection::open_in_memory().unwrap();
+    create_store_schema(&connection).unwrap();
+    let version = insert_version(&connection, "src/lib.rs", "blake3:first");
+    let transaction = connection.transaction().unwrap();
+    ManifestStore::ensure_view_in_transaction(&transaction, "view-a", "/repo").unwrap();
+
+    ManifestStore::publish_in_transaction(
+        &transaction,
+        "view-a",
+        None,
+        [ManifestEntry::indexed(
+            "src/lib.rs",
+            "rust",
+            version,
+            "blake3:first",
+            INDEXED_AT,
+        )],
+        "request-first",
+    )
+    .unwrap();
+    transaction.commit().unwrap();
+
+    assert_eq!(
+        connection
+            .query_row(
+                "SELECT transition_id,scope_usable,change_count
+                 FROM resolution_scope_batches",
+                [],
+                |row| {
+                    Ok((
+                        row.get::<_, i64>(0)?,
+                        row.get::<_, i64>(1)?,
+                        row.get::<_, i64>(2)?,
+                    ))
+                },
+            )
+            .unwrap(),
+        (1, 0, 0)
+    );
 }
 
 #[test]
@@ -209,6 +253,504 @@ fn manifest_flip_from_an_exact_view_invalidates_resolution_before_advancing_the_
             )
             .unwrap(),
         ("unbound".to_string(), None, None, None)
+    );
+}
+
+#[test]
+fn manifest_transitions_chain_reused_generations_from_the_first_exact_scope() {
+    let mut connection = Connection::open_in_memory().unwrap();
+    create_store_schema(&connection).unwrap();
+    let first_version = insert_version(&connection, "src/lib.rs", "blake3:first");
+    let first_entry = ManifestEntry::indexed(
+        "src/lib.rs",
+        "rust",
+        first_version,
+        "blake3:first",
+        INDEXED_AT,
+    );
+    let first = {
+        let mut store = ManifestStore::new(&mut connection);
+        store.ensure_view("view-a", "/repo").unwrap();
+        store
+            .publish("view-a", None, [first_entry.clone()], "request-first")
+            .unwrap()
+    };
+    connection
+        .execute(
+            "INSERT INTO resolution_bases
+             (base_id,manifest_hash,resolver_output_epoch,state,relative_path,
+              identifier_count,pending_count,file_bytes,file_sha256,request_id,created_at,updated_at)
+             VALUES ('base-a',?1,7,'ready','bases/base-a.db',0,0,1,'sha256:a',
+                     'request-resolve',?2,?2)",
+            params![first.manifest_hash, INDEXED_AT],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO resolution_deltas
+             (view_id,delta_generation,base_id,manifest_generation,manifest_hash,
+              resolver_output_epoch,identifier_replacements,pending_replacements,
+              pending_tombstones,exact_gap_rows,exact_gap_files,exact_gap_json,request_id,created_at)
+             VALUES ('view-a',11,'base-a',1,?1,7,0,0,0,0,0,'[]','request-resolve',?2)",
+            params![first.manifest_hash, INDEXED_AT],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "UPDATE views
+             SET resolution_state='exact',resolution_base_id='base-a',
+                 resolution_delta_generation=11,resolution_exact_at=1
+             WHERE view_id='view-a'",
+            [],
+        )
+        .unwrap();
+    let identical = ManifestStore::new(&mut connection)
+        .publish(
+            "view-a",
+            Some(first.generation),
+            [first_entry.clone()],
+            "request-identical",
+        )
+        .unwrap();
+    assert_eq!(identical.disposition, ManifestPublishDisposition::Reused);
+    assert_eq!(
+        connection
+            .query_row("SELECT COUNT(*) FROM resolution_scope_batches", [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .unwrap(),
+        1
+    );
+    let second_version = insert_version(&connection, "src/lib.rs", "blake3:second");
+    let second = ManifestStore::new(&mut connection)
+        .publish(
+            "view-a",
+            Some(1),
+            [ManifestEntry::indexed(
+                "src/lib.rs",
+                "rust",
+                second_version,
+                "blake3:second",
+                INDEXED_AT,
+            )],
+            "request-second",
+        )
+        .unwrap();
+    let reused = ManifestStore::new(&mut connection)
+        .publish(
+            "view-a",
+            Some(second.generation),
+            [first_entry.clone()],
+            "request-reuse",
+        )
+        .unwrap();
+
+    assert_eq!(reused.generation, first.generation);
+    let batches = connection
+        .prepare(
+            "SELECT transition_id,previous_transition_id,from_manifest_generation,
+                    to_manifest_generation,scope_usable,predecessor_manifest_generation,
+                    base_id,delta_generation,resolver_output_epoch,change_count
+             FROM resolution_scope_batches WHERE view_id='view-a' ORDER BY transition_id",
+        )
+        .unwrap()
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, i64>(0)?,
+                row.get::<_, Option<i64>>(1)?,
+                row.get::<_, Option<i64>>(2)?,
+                row.get::<_, i64>(3)?,
+                row.get::<_, i64>(4)?,
+                row.get::<_, Option<i64>>(5)?,
+                row.get::<_, Option<String>>(6)?,
+                row.get::<_, Option<i64>>(7)?,
+                row.get::<_, Option<i64>>(8)?,
+                row.get::<_, i64>(9)?,
+            ))
+        })
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    assert_eq!(batches.len(), 3);
+    assert_eq!(batches[0], (1, None, None, 1, 0, None, None, None, None, 0));
+    assert_eq!(
+        batches[1],
+        (
+            2,
+            Some(1),
+            Some(1),
+            2,
+            1,
+            Some(1),
+            Some("base-a".to_string()),
+            Some(11),
+            Some(7),
+            1,
+        )
+    );
+    assert_eq!(
+        batches[2],
+        (
+            3,
+            Some(2),
+            Some(2),
+            1,
+            1,
+            Some(1),
+            Some("base-a".to_string()),
+            Some(11),
+            Some(7),
+            1,
+        )
+    );
+    let changes = connection
+        .prepare(
+            "SELECT transition_id,path,old_version_id,new_version_id
+             FROM resolution_scope_changes ORDER BY transition_id,ordinal",
+        )
+        .unwrap()
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, i64>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, Option<i64>>(2)?,
+                row.get::<_, Option<i64>>(3)?,
+            ))
+        })
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    assert_eq!(
+        changes,
+        vec![
+            (
+                2,
+                "src/lib.rs".to_string(),
+                Some(first_version),
+                Some(second_version),
+            ),
+            (
+                3,
+                "src/lib.rs".to_string(),
+                Some(second_version),
+                Some(first_version),
+            ),
+        ]
+    );
+    for transition_id in 1..=3 {
+        assert!(
+            validate_resolution_scope_batch(&connection, transition_id)
+                .unwrap()
+                .is_some()
+        );
+    }
+    connection
+        .execute(
+            "UPDATE views
+             SET current_generation=2,resolution_state='unbound',resolution_base_id=NULL,
+                 resolution_delta_generation=NULL,resolution_exact_at=NULL
+             WHERE view_id='view-a'",
+            [],
+        )
+        .unwrap();
+    ManifestStore::new(&mut connection)
+        .publish("view-a", Some(2), [first_entry], "request-after-gap")
+        .unwrap();
+    assert_eq!(
+        connection
+            .query_row(
+                "SELECT previous_transition_id,scope_usable,change_count
+                 FROM resolution_scope_batches WHERE transition_id=4",
+                [],
+                |row| {
+                    Ok((
+                        row.get::<_, Option<i64>>(0)?,
+                        row.get::<_, i64>(1)?,
+                        row.get::<_, i64>(2)?,
+                    ))
+                },
+            )
+            .unwrap(),
+        (Some(3), 0, 0)
+    );
+    assert!(
+        !validate_resolution_scope_batch(&connection, 4)
+            .unwrap()
+            .unwrap()
+            .scope_usable
+    );
+}
+
+#[test]
+fn resolution_scope_batch_headers_are_immutable() {
+    let mut connection = Connection::open_in_memory().unwrap();
+    create_store_schema(&connection).unwrap();
+    let version = insert_version(&connection, "src/lib.rs", "blake3:first");
+    let mut store = ManifestStore::new(&mut connection);
+    store.ensure_view("view-a", "/repo").unwrap();
+    store
+        .publish(
+            "view-a",
+            None,
+            [ManifestEntry::indexed(
+                "src/lib.rs",
+                "rust",
+                version,
+                "blake3:first",
+                INDEXED_AT,
+            )],
+            "request-first",
+        )
+        .unwrap();
+
+    assert!(
+        connection
+            .execute(
+                "UPDATE resolution_scope_batches SET request_id='rewritten' WHERE transition_id=1",
+                [],
+            )
+            .is_err()
+    );
+}
+
+#[test]
+fn scope_validation_rejects_a_discontinuous_previous_transition() {
+    let mut connection = Connection::open_in_memory().unwrap();
+    create_store_schema(&connection).unwrap();
+    let mut store = ManifestStore::new(&mut connection);
+    store.ensure_view("view-a", "/repo").unwrap();
+    store.publish("view-a", None, [], "request-first").unwrap();
+    let empty_hash = connection
+        .query_row(
+            "SELECT changes_hash FROM resolution_scope_batches WHERE transition_id=1",
+            [],
+            |row| row.get::<_, String>(0),
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+             VALUES ('view-a',2,'hash-two','request-second',?1)",
+            [INDEXED_AT],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO resolution_bases
+             (base_id,manifest_hash,resolver_output_epoch,state,relative_path,
+              identifier_count,pending_count,file_bytes,file_sha256,request_id,created_at,updated_at)
+             VALUES ('base-two','hash-two',1,'ready','bases/base-two.db',0,0,1,'sha256:two',
+                     'request-resolve',?1,?1)",
+            [INDEXED_AT],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO resolution_deltas
+             (view_id,delta_generation,base_id,manifest_generation,manifest_hash,
+              resolver_output_epoch,identifier_replacements,pending_replacements,
+              pending_tombstones,exact_gap_rows,exact_gap_files,exact_gap_json,request_id,created_at)
+             VALUES ('view-a',1,'base-two',2,'hash-two',1,0,0,0,0,0,'[]',
+                     'request-resolve',?1)",
+            [INDEXED_AT],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO resolution_scope_batches
+             (view_id,previous_transition_id,from_manifest_generation,from_manifest_hash,
+              to_manifest_generation,to_manifest_hash,scope_usable,
+              predecessor_manifest_generation,predecessor_manifest_hash,base_id,
+              delta_generation,resolver_output_epoch,change_count,changes_hash,request_id,created_at)
+             VALUES ('view-a',1,2,'hash-two',2,'hash-two',1,2,'hash-two','base-two',1,1,
+                     0,?1,'request-second',?2)",
+            params![empty_hash, INDEXED_AT],
+        )
+        .unwrap();
+
+    let error = validate_resolution_scope_batch(&connection, 2).unwrap_err();
+
+    assert!(matches!(
+        error,
+        ResolutionScopeError::InvalidBatch {
+            transition_id: 2,
+            ..
+        }
+    ));
+}
+
+#[test]
+fn legacy_publication_without_scope_metadata_records_full_fallback() {
+    let mut connection = Connection::open_in_memory().unwrap();
+    create_store_schema(&connection).unwrap();
+    let first_version = insert_version(&connection, "src/lib.rs", "blake3:first");
+    let first = {
+        let mut store = ManifestStore::new(&mut connection);
+        store.ensure_view("view-a", "/repo").unwrap();
+        store
+            .publish(
+                "view-a",
+                None,
+                [ManifestEntry::indexed(
+                    "src/lib.rs",
+                    "rust",
+                    first_version,
+                    "blake3:first",
+                    INDEXED_AT,
+                )],
+                "request-first",
+            )
+            .unwrap()
+    };
+    connection
+        .execute(
+            "INSERT INTO resolution_bases
+             (base_id,manifest_hash,resolver_output_epoch,state,relative_path,
+              identifier_count,pending_count,file_bytes,file_sha256,request_id,created_at,updated_at)
+             VALUES ('base-a',?1,7,'ready','bases/base-a.db',0,0,1,'sha256:a',
+                     'request-resolve',?2,?2)",
+            params![first.manifest_hash, INDEXED_AT],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO resolution_deltas
+             (view_id,delta_generation,base_id,manifest_generation,manifest_hash,
+              resolver_output_epoch,identifier_replacements,pending_replacements,
+              pending_tombstones,exact_gap_rows,exact_gap_files,exact_gap_json,request_id,created_at)
+             VALUES ('view-a',11,'base-a',1,?1,7,0,0,0,0,0,'[]','request-resolve',?2)",
+            params![first.manifest_hash, INDEXED_AT],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "UPDATE views
+             SET resolution_state='exact',resolution_base_id='base-a',
+                 resolution_delta_generation=11,resolution_exact_at=1
+             WHERE view_id='view-a'",
+            [],
+        )
+        .unwrap();
+    connection
+        .execute_batch(
+            "DROP TABLE resolution_scope_states;
+             DROP TABLE resolution_scope_changes;
+             DROP TABLE resolution_scope_batches;
+             DELETE FROM store_meta WHERE key='resolution_scope_journal_version';",
+        )
+        .unwrap();
+    let second_version = insert_version(&connection, "src/lib.rs", "blake3:second");
+
+    ManifestStore::new(&mut connection)
+        .publish(
+            "view-a",
+            Some(1),
+            [ManifestEntry::indexed(
+                "src/lib.rs",
+                "rust",
+                second_version,
+                "blake3:second",
+                INDEXED_AT,
+            )],
+            "request-second",
+        )
+        .unwrap();
+
+    assert_eq!(
+        connection
+            .query_row(
+                "SELECT scope_usable,change_count FROM resolution_scope_batches",
+                [],
+                |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)),
+            )
+            .unwrap(),
+        (0, 0)
+    );
+    assert_eq!(
+        connection
+            .query_row("SELECT COUNT(*) FROM resolution_scope_changes", [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .unwrap(),
+        0
+    );
+}
+
+#[test]
+fn scope_change_bound_records_header_only_fallback() {
+    let mut connection = Connection::open_in_memory().unwrap();
+    create_store_schema(&connection).unwrap();
+    let entries = (0..=RESOLUTION_SCOPE_MAX_CHANGES)
+        .map(|index| {
+            ManifestEntry::failed(
+                format!("src/{index:04}.rs"),
+                "rust",
+                format!("blake3:{index}"),
+                INDEXED_AT,
+                "read",
+                r#"{"message":"failed"}"#,
+            )
+        })
+        .collect::<Vec<_>>();
+    let first = {
+        let mut store = ManifestStore::new(&mut connection);
+        store.ensure_view("view-a", "/repo").unwrap();
+        store
+            .publish("view-a", None, entries, "request-first")
+            .unwrap()
+    };
+    connection
+        .execute(
+            "INSERT INTO resolution_bases
+             (base_id,manifest_hash,resolver_output_epoch,state,relative_path,
+              identifier_count,pending_count,file_bytes,file_sha256,request_id,created_at,updated_at)
+             VALUES ('base-a',?1,7,'ready','bases/base-a.db',0,0,1,'sha256:a',
+                     'request-resolve',?2,?2)",
+            params![first.manifest_hash, INDEXED_AT],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO resolution_deltas
+             (view_id,delta_generation,base_id,manifest_generation,manifest_hash,
+              resolver_output_epoch,identifier_replacements,pending_replacements,
+              pending_tombstones,exact_gap_rows,exact_gap_files,exact_gap_json,request_id,created_at)
+             VALUES ('view-a',11,'base-a',1,?1,7,0,0,0,0,0,'[]','request-resolve',?2)",
+            params![first.manifest_hash, INDEXED_AT],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "UPDATE views
+             SET resolution_state='exact',resolution_base_id='base-a',
+                 resolution_delta_generation=11,resolution_exact_at=1
+             WHERE view_id='view-a'",
+            [],
+        )
+        .unwrap();
+
+    ManifestStore::new(&mut connection)
+        .publish("view-a", Some(1), [], "request-delete-all")
+        .unwrap();
+
+    assert_eq!(
+        connection
+            .query_row(
+                "SELECT scope_usable,change_count FROM resolution_scope_batches
+                 WHERE transition_id=2",
+                [],
+                |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)),
+            )
+            .unwrap(),
+        (0, 0)
+    );
+    assert_eq!(
+        connection
+            .query_row("SELECT COUNT(*) FROM resolution_scope_changes", [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .unwrap(),
+        0
     );
 }
 

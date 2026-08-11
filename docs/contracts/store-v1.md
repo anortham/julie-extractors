@@ -22,6 +22,7 @@ This contract defines the target-owned family store used after the legacy v3 art
 |---|---:|
 | `store_sqlite_schema_version` | `2` |
 | `store_format_epoch` | `1` |
+| `resolution_scope_journal_version` | `1` |
 | `retention_window_days` | `7` |
 | `retention_byte_target` | `1.20` |
 | `retention_byte_ceiling` | `1.25` |
@@ -65,6 +66,19 @@ canonical creation/update times, and a coherent resolution state. `unbound` has 
 - `failed`: no version is present and both error fields are present.
 
 A manifest entry's nullable version FK is `ON DELETE RESTRICT`; live and historical manifests are GC roots. Publication inserts the manifest before changing `views.current_generation` in one transaction.
+
+Every non-no-op manifest flip also appends one immutable resolution-scope transition identified by
+an `AUTOINCREMENT` transition ID. Manifest generation is payload, not transition identity, so a
+view may transition from generation 1 to 2 and later reuse generation 1 without reusing a scope
+transition. The per-view `previous_transition_id` chain records that order.
+
+When a view is exact, the first flip captures its manifest/base/delta/resolver-epoch tuple. Later
+flips preserve that predecessor until exact publication replaces the lifecycle. A usable batch
+contains binary-path-ordered touched names with old/new file-version IDs plus an exact child count
+and SHA-256 payload hash. More than 512 touched names, no predecessor tuple, absent feature history,
+or a journal/head discontinuity produces a scope-unusable header with zero children; consumers must
+run full resolution rather than interpreting partial scope. Re-publishing the current generation is
+a no-op and appends no transition.
 
 ## Durable log and progress
 
@@ -175,3 +189,8 @@ Maintenance has its own JSON/human report schema, `StoreMaintenanceReport` versi
 request and does not add request IDs, view IDs, or request-state fields to the request-oriented
 StoreReport. JSON always uses one stdout line, including failures; human failure uses stderr. Exit
 codes are 0 completed/no-change, 1 operational refusal, 2 usage, and 3 incompatible store.
+
+The scope journal is an additive schema-v2 feature. A schema-v2 store without
+`resolution_scope_journal_version` remains readable. Its first writer open or manifest publication
+atomically installs the three tables and metadata key before mutation; generation promotion performs
+that upgrade before comparing source and destination catalogs and copies every durable metadata key.

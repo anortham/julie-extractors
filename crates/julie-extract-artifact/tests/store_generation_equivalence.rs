@@ -70,6 +70,71 @@ fn promotion_streams_exact_rows_and_advances_current() {
 }
 
 #[test]
+fn promotion_copies_scope_journal_rows_and_metadata() {
+    let temp = TempStore::new("promotion-scope-journal");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    Connection::open(layout.store_db())
+        .unwrap()
+        .execute_batch(
+            "BEGIN IMMEDIATE;
+             INSERT INTO views(view_id,root,current_generation,created_at,updated_at)
+             VALUES ('view-a','/repo',1,'2026-01-01T00:00:00Z','2026-01-01T00:00:00Z');
+             INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+             VALUES ('view-a',1,'sha256:m1','request-a','2026-01-01T00:00:00Z');
+             INSERT INTO resolution_scope_batches
+               (transition_id,view_id,to_manifest_generation,to_manifest_hash,scope_usable,
+                change_count,changes_hash,request_id,created_at)
+             VALUES (5,'view-a',1,'sha256:m1',0,0,
+                     'sha256:6fefdaedb46e55f2dd1f1852406cb565306739f79dd0a53de2acb50045069590',
+                     'request-a','2026-01-01T00:00:00Z');
+             COMMIT;",
+        )
+        .unwrap();
+
+    let current = promote_once(
+        &layout,
+        "promote-scope-journal",
+        1_000,
+        &GenerationPolicy::default(),
+    );
+    let destination = Connection::open(current.store_db()).unwrap();
+
+    assert_eq!(
+        metadata(&destination, "resolution_scope_journal_version"),
+        "1"
+    );
+    assert_eq!(
+        destination
+            .query_row(
+                "SELECT transition_id,view_id,to_manifest_generation,scope_usable,change_count
+                 FROM resolution_scope_batches",
+                [],
+                |row| {
+                    Ok((
+                        row.get::<_, i64>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, i64>(2)?,
+                        row.get::<_, i64>(3)?,
+                        row.get::<_, i64>(4)?,
+                    ))
+                },
+            )
+            .unwrap(),
+        (5, "view-a".to_string(), 1, 0, 0)
+    );
+    assert_eq!(
+        destination
+            .query_row(
+                "SELECT seq FROM sqlite_sequence WHERE name='resolution_scope_batches'",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        5
+    );
+}
+
+#[test]
 fn promotion_refuses_a_base_file_identity_mismatch_without_moving_current() {
     let temp = TempStore::new("base-identity");
     let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();

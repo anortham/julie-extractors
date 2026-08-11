@@ -11,6 +11,7 @@ mod resolution;
 mod resolution_diff;
 mod rows;
 mod schema;
+mod scope;
 #[cfg(feature = "test-store-crash")]
 #[doc(hidden)]
 pub mod test_hooks;
@@ -79,6 +80,12 @@ pub use resolution_diff::{
 pub use schema::{
     STORE_FORMAT_EPOCH, STORE_SQLITE_SCHEMA_VERSION, StoreSchemaError, create_coordinator_schema,
     create_store_schema,
+};
+pub use scope::{
+    RESOLUTION_SCOPE_JOURNAL_VERSION, RESOLUTION_SCOPE_MAX_CHANGES, ResolutionScopeBatch,
+    ResolutionScopeChange, ResolutionScopeError, ResolutionScopeState,
+    ensure_resolution_scope_feature, resolution_scope_batch, resolution_scope_journal_version,
+    resolution_scope_state, validate_resolution_scope_batch,
 };
 pub use writer::{
     StoreVersionState, StoreWriteRequest, StoreWriteResult, StoreWriter, StoreWriterError,

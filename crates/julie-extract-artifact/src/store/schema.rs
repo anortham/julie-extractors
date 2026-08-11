@@ -3,6 +3,8 @@ use std::fmt;
 
 use rusqlite::Connection;
 
+use super::scope::{ResolutionScopeError, ensure_resolution_scope_feature};
+
 /// Physical SQLite catalog version shared by `store.db` and `coord.db`.
 pub const STORE_SQLITE_SCHEMA_VERSION: i64 = 2;
 /// Initial generation-format epoch for the versioned store.
@@ -21,6 +23,7 @@ pub enum StoreSchemaError {
         found: i64,
         supported: i64,
     },
+    ResolutionScope(ResolutionScopeError),
     Sqlite(rusqlite::Error),
 }
 
@@ -44,6 +47,7 @@ impl fmt::Display for StoreSchemaError {
                 "{database} schema version {found} requires migration to version {supported}"
             ),
             Self::Sqlite(error) => error.fmt(formatter),
+            Self::ResolutionScope(error) => error.fmt(formatter),
         }
     }
 }
@@ -52,6 +56,7 @@ impl Error for StoreSchemaError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Sqlite(error) => Some(error),
+            Self::ResolutionScope(error) => Some(error),
             Self::NewerSchema { .. } | Self::OlderSchema { .. } => None,
         }
     }
@@ -63,9 +68,17 @@ impl From<rusqlite::Error> for StoreSchemaError {
     }
 }
 
+impl From<ResolutionScopeError> for StoreSchemaError {
+    fn from(error: ResolutionScopeError) -> Self {
+        Self::ResolutionScope(error)
+    }
+}
+
 /// Creates or validates the independently versioned `store.db` catalog.
 pub fn create_store_schema(conn: &Connection) -> Result<(), StoreSchemaError> {
-    create_schema(conn, "store.db", STORE_SCHEMA_SQL)
+    create_schema(conn, "store.db", STORE_SCHEMA_SQL)?;
+    ensure_resolution_scope_feature(conn)?;
+    Ok(())
 }
 
 /// Creates or validates the independently versioned `coord.db` catalog.

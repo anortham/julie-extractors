@@ -373,6 +373,64 @@ fn promote_destination_keeps_pre_maintenance_floor_and_drops_tmp_mirrors() {
     );
 }
 
+#[test]
+fn promotion_upgrades_legacy_schema_v2_before_catalog_comparison() {
+    let temp = TempStore::new("promote-legacy-scope");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    Connection::open(layout.store_db())
+        .unwrap()
+        .execute_batch(
+            "DROP TABLE resolution_scope_states;
+             DROP TABLE resolution_scope_changes;
+             DROP TABLE resolution_scope_batches;
+             DELETE FROM store_meta WHERE key='resolution_scope_journal_version';",
+        )
+        .unwrap();
+    let plan = MaintenanceInspector::new(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0"),
+        FixedClock(1_000),
+        FixedCapacity,
+    )
+    .inspect()
+    .unwrap();
+    let mut lifecycle = GenerationLifecycle::acquire(
+        StoreConnectionFactory::new(layout, "family-a", "2.30.0"),
+        MaintenanceRun::new(
+            "promote-legacy-scope",
+            "owner",
+            std::process::id(),
+            1_000,
+            30_000,
+        ),
+        &plan,
+        MaintenanceAction::Promote,
+        FixedCapacity,
+    )
+    .unwrap();
+
+    lifecycle
+        .promote(&plan, &GenerationPolicy::default())
+        .unwrap();
+
+    let serving = StoreLayout::open(temp.path()).unwrap();
+    let destination = Connection::open(serving.store_db()).unwrap();
+    assert_eq!(
+        metadata(&destination, "resolution_scope_journal_version"),
+        "1"
+    );
+    assert_eq!(
+        destination
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_schema
+                 WHERE type='table' AND name LIKE 'resolution_scope_%'",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        3
+    );
+}
+
 #[derive(Clone, Copy)]
 struct FixedClock(i64);
 

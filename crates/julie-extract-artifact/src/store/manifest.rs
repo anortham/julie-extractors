@@ -7,6 +7,7 @@ use std::time::Duration;
 use rusqlite::{Connection, OptionalExtension, Transaction, TransactionBehavior, params};
 use sha2::{Digest, Sha256};
 
+use super::scope::{ResolutionScopeError, capture_resolution_scope_transition};
 use super::{StoreLog, StoreLogEntry, StoreLogError};
 
 const MANIFEST_HASH_DOMAIN: &[u8] = b"julie-store-manifest-v2";
@@ -210,6 +211,7 @@ pub enum ManifestStoreError {
         view_id: String,
         generation: u64,
     },
+    Scope(ResolutionScopeError),
     Log(StoreLogError),
     Sqlite(rusqlite::Error),
 }
@@ -233,6 +235,7 @@ impl ManifestStoreError {
             Self::GenerationOutOfRange { .. } => "manifest_generation_out_of_range",
             Self::GenerationMismatch { .. } => "manifest_generation_mismatch",
             Self::ManifestNotFound { .. } => "manifest_not_found",
+            Self::Scope(_) => "resolution_scope_error",
             Self::Log(error) => error.code(),
             Self::Sqlite(_) => "store_sqlite_error",
         }
@@ -295,6 +298,7 @@ impl fmt::Display for ManifestStoreError {
                 formatter,
                 "manifest {view_id:?} generation {generation} was not found"
             ),
+            Self::Scope(error) => error.fmt(formatter),
             Self::Log(error) => error.fmt(formatter),
             Self::Sqlite(error) => error.fmt(formatter),
         }
@@ -304,6 +308,7 @@ impl fmt::Display for ManifestStoreError {
 impl Error for ManifestStoreError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
+            Self::Scope(error) => Some(error),
             Self::Log(error) => Some(error),
             Self::Sqlite(error) => Some(error),
             _ => None,
@@ -320,6 +325,12 @@ impl From<rusqlite::Error> for ManifestStoreError {
 impl From<StoreLogError> for ManifestStoreError {
     fn from(error: StoreLogError) -> Self {
         Self::Log(error)
+    }
+}
+
+impl From<ResolutionScopeError> for ManifestStoreError {
+    fn from(error: ResolutionScopeError) -> Self {
+        Self::Scope(error)
     }
 }
 
@@ -718,6 +729,18 @@ fn publish_transaction(
     )?;
     let generation_sql = sqlite_generation(generation)?;
     let actual_generation_sql = actual_generation.map(sqlite_generation).transpose()?;
+    capture_resolution_scope_transition(
+        transaction,
+        view_id,
+        actual_generation_sql,
+        generation_sql,
+        &manifest.manifest_hash,
+        manifest
+            .entries
+            .iter()
+            .map(|entry| (entry.path.clone(), entry.version_id)),
+        request_id,
+    )?;
     ManifestStore::invalidate_resolution_binding(transaction, view_id)?;
     let changed = transaction.execute(
         "UPDATE views
