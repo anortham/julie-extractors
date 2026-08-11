@@ -17,7 +17,7 @@ with the [CLI contract](contracts/cli.md), [report contract](contracts/reports.m
 Ph2b, Ph2c, and Ph2d implement the [store v1 contract](contracts/store-v1.md),
 [SQLite store schema v2](contracts/sqlite-store-schema-v2.md), and
 [versioned-store architecture](architecture/versioned-index-store.md). The implementation is
-published in v2.31.0 and patched through v2.31.3. Miller Ph3 consumer wiring targets this contract while
+published in v2.31.0 and patched through v2.31.4. Miller Ph3 consumer wiring targets this contract while
 keeping store mode explicit until its own release and scale-default decision. The implementation
 plans and dogfood records are:
 
@@ -28,6 +28,7 @@ plans and dogfood records are:
 - [Ph2d lifecycle design](plans/2026-08-08-index-store-ph2d-lifecycle-design.md)
 - [Ph2d lifecycle plan](plans/2026-08-08-index-store-ph2d-lifecycle-plan.md)
 - [Ph2d dogfood evidence](findings/2026-08-08-index-store-ph2d-dogfood.md)
+- [v2.31.4 release notes](release-notes/v2.31.4.md)
 - [v2.31.3 release notes](release-notes/v2.31.3.md)
 - [v2.31.2 release notes](release-notes/v2.31.2.md)
 - [v2.31.1 release notes](release-notes/v2.31.1.md)

@@ -1,6 +1,6 @@
 [package]
 name = "julie-extract-artifact"
-version = "2.31.3"
+version = "2.31.4"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
