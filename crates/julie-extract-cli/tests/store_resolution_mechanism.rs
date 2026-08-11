@@ -1,14 +1,17 @@
 #![cfg(feature = "test-store-resolution-contract")]
 
 use julie_extract_artifact::store::{
-    ManifestStore, ResolutionBaseReader, StoreConnectionFactory, StoreLayout,
+    ManifestEntry, ManifestStore, ResolutionBaseReader, ResolutionBaseWriter,
+    ResolutionIdentifierRow, ResolutionPendingRow, StoreConnectionFactory, StoreLayout,
+    ensure_resolution_scope_feature,
 };
 use julie_extract_cli::resolution::{
     CandidateSymbol, EdgeOrigin, ReferenceKind, TierOutcome, TypeFact, UnresolvedEdge,
     WorkspaceCandidateIndex, resolve_one, resolve_with_candidate_lookup, run_resolution_session,
 };
 use julie_extract_cli::resolution_session::{
-    ResolutionPassRequest, ResolutionPhase, ResolutionSession, ResolutionWorklists,
+    ResolutionPassRequest, ResolutionPhase, ResolutionPhaseChunk, ResolutionSession,
+    ResolutionWorklists, ResolutionWriteBatch, SemanticIdentifierId, SemanticVersionId,
 };
 use julie_extract_cli::store::resolution_session::{
     StoreManifestIdentity, StoreResolutionError, StoreScratchResolutionSession,
@@ -39,6 +42,10 @@ fn store_resolution_source_uses_only_bounded_ports() {
     }
     assert!(source.contains("LIMIT ?"));
     assert!(source.contains("open_reader()"));
+    assert!(source.contains("build_store_delta_scope"));
+    assert!(source.contains("PriorOverlayReader"));
+    assert!(!source.contains("Incremental(String)"));
+    assert!(!source.contains("IdentifierTotalityMissing"));
 }
 
 #[test]
@@ -595,6 +602,422 @@ fn visible_version_roots_commit_once_per_bounded_store_page() {
 }
 
 #[test]
+fn scoped_store_resolution_reuses_predecessor_and_carries_unselected_sibling() {
+    let temp = TempDir::new().unwrap();
+    let layout = StoreLayout::create(temp.path().join("family"), "family-a", "2.30.0").unwrap();
+    let factory = StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0");
+    let mut connection = factory.open_writer().unwrap();
+    ensure_resolution_scope_feature(&connection).unwrap();
+    ManifestStore::new(&mut connection)
+        .ensure_view("view-a", "/repo")
+        .unwrap();
+    let old_target = insert_version(&connection, "src/target.rs", "rust", true);
+    let new_target = insert_version(&connection, "src/target-new.rs", "rust", true);
+    connection
+        .execute(
+            "UPDATE file_versions SET path='src/target.rs' WHERE version_id=?1",
+            [new_target],
+        )
+        .unwrap();
+    let user = insert_version(&connection, "src/user.rs", "rust", true);
+    insert_named_symbol(&connection, old_target, "old-foo", "Foo", "src/target.rs");
+    insert_named_symbol(&connection, new_target, "new-foo", "Foo", "src/target.rs");
+    insert_named_symbol(&connection, user, "caller", "caller", "src/user.rs");
+    insert_named_symbol(
+        &connection,
+        user,
+        "sibling-target",
+        "NeverDefined",
+        "src/user.rs",
+    );
+    insert_named_identifier(
+        &connection,
+        old_target,
+        "removed-use",
+        "NeverDefined",
+        "src/target.rs",
+    );
+    insert_named_identifier(&connection, user, "foo-use", "Foo", "src/user.rs");
+    insert_named_identifier(
+        &connection,
+        user,
+        "sibling-use",
+        "NeverDefined",
+        "src/user.rs",
+    );
+    connection
+        .execute(
+            "UPDATE identifiers
+             SET start_line=3,end_line=3,start_byte=15,end_byte=19,
+                 metadata_json='{\"receiver\":\"receiverOnly\"}'
+             WHERE version_id=?1 AND identifier_id='sibling-use'",
+            [user],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO pending_relationships
+             (version_id,pending_relationship_id,reference_site_id,from_symbol_id,path,kind,
+              target_display_name,target_terminal_name,target_namespace_json,start_line,start_column,
+              end_line,end_column,start_byte,end_byte,confidence)
+             VALUES (?1,?2,'site-foo-use','caller','src/user.rs','calls','Foo','Foo','[]',2,1,2,5,5,9,1.0)",
+            params![user, "a-unresolved"],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO pending_relationships
+             (version_id,pending_relationship_id,reference_site_id,from_symbol_id,path,kind,
+              target_display_name,target_terminal_name,target_namespace_json,start_line,start_column,
+              end_line,end_column,start_byte,end_byte,confidence)
+             VALUES (?1,?2,'site-foo-use','caller','src/user.rs','calls','Foo','Foo','[]',2,1,2,5,5,9,1.0)",
+            params![user, "z-resolved"],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO relationships
+             (version_id,relationship_id,reference_site_id,from_symbol_id,to_symbol_id,path,kind,
+              start_line,start_column,end_line,end_column,start_byte,end_byte,confidence)
+             VALUES (?1,'sibling-relationship','site-sibling-use','caller','sibling-target',
+                     'src/user.rs','calls',3,1,3,5,15,19,1.0)",
+            [user],
+        )
+        .unwrap();
+    let first_entries = [
+        manifest_entry(&connection, old_target),
+        manifest_entry(&connection, user),
+    ];
+    let first = publish_manifest(&mut connection, None, first_entries, "request-first");
+    let base_path = layout.bases_dir().join("base-a.db");
+    let mut base = ResolutionBaseWriter::new(&base_path, &first.manifest_hash, 6).unwrap();
+    base.push_source_version(old_target).unwrap();
+    base.push_source_version(user).unwrap();
+    base.push_identifier_resolution(ResolutionIdentifierRow {
+        version_id: old_target,
+        identifier_id: "removed-use".to_string(),
+        target_version_id: None,
+        target_symbol_id: None,
+        tier: None,
+        confidence: None,
+        method: Some("removed-version".to_string()),
+        outcome: "missing".to_string(),
+        candidates: Some(0),
+    })
+    .unwrap();
+    base.push_pending_resolution(ResolutionPendingRow {
+        version_id: user,
+        pending_relationship_id: "z-resolved".to_string(),
+        target_version_id: old_target,
+        target_symbol_id: "old-foo".to_string(),
+        tier: 4,
+        confidence: 1.0,
+        method: "base-pending".to_string(),
+    })
+    .unwrap();
+    base.push_identifier_resolution(ResolutionIdentifierRow {
+        version_id: user,
+        identifier_id: "foo-use".to_string(),
+        target_version_id: Some(old_target),
+        target_symbol_id: Some("old-foo".to_string()),
+        tier: Some(4),
+        confidence: Some(1.0),
+        method: Some("base-foo".to_string()),
+        outcome: "resolved".to_string(),
+        candidates: Some(1),
+    })
+    .unwrap();
+    base.push_identifier_resolution(ResolutionIdentifierRow {
+        version_id: user,
+        identifier_id: "sibling-use".to_string(),
+        target_version_id: Some(user),
+        target_symbol_id: Some("sibling-target".to_string()),
+        tier: Some(1),
+        confidence: Some(0.95),
+        method: Some("base-sibling".to_string()),
+        outcome: "resolved".to_string(),
+        candidates: None,
+    })
+    .unwrap();
+    let base_identity = base.finish_with_target_lookup(|_, _| Ok(true)).unwrap();
+    connection
+        .execute(
+            "INSERT INTO resolution_bases
+         (base_id,manifest_hash,resolver_output_epoch,state,relative_path,identifier_count,
+          pending_count,file_bytes,file_sha256,request_id,created_at,updated_at)
+         VALUES ('base-a',?1,6,'ready','bases/base-a.db',3,1,?2,?3,'request-base',?4,?4)",
+            params![
+                first.manifest_hash,
+                i64::try_from(base_identity.file_bytes).unwrap(),
+                base_identity.file_sha256,
+                NOW
+            ],
+        )
+        .unwrap();
+    for version_id in [old_target, user] {
+        connection
+            .execute(
+                "INSERT INTO resolution_base_versions(base_id,version_id) VALUES ('base-a',?1)",
+                [version_id],
+            )
+            .unwrap();
+    }
+    connection
+        .execute(
+            "INSERT INTO resolution_deltas
+         (view_id,delta_generation,base_id,manifest_generation,manifest_hash,resolver_output_epoch,
+          identifier_replacements,pending_replacements,pending_tombstones,exact_gap_rows,
+          exact_gap_files,exact_gap_json,request_id,created_at)
+         VALUES ('view-a',1,'base-a',?1,?2,6,0,0,0,0,0,'[]','request-base',?3)",
+            params![
+                i64::try_from(first.generation).unwrap(),
+                first.manifest_hash,
+                NOW
+            ],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "UPDATE views SET resolution_state='exact',resolution_base_id='base-a',
+         resolution_delta_generation=1,resolution_exact_at=?1 WHERE view_id='view-a'",
+            [i64::try_from(first.generation).unwrap()],
+        )
+        .unwrap();
+    let second_entries = [
+        manifest_entry(&connection, new_target),
+        manifest_entry(&connection, user),
+    ];
+    let second = publish_manifest(
+        &mut connection,
+        Some(i64::try_from(first.generation).unwrap()),
+        second_entries,
+        "request-second",
+    );
+    drop(connection);
+
+    let probe_identity = StoreManifestIdentity {
+        family_id: "family-a".to_string(),
+        view_id: "view-a".to_string(),
+        generation: i64::try_from(second.generation).unwrap(),
+        manifest_hash: second.manifest_hash.clone(),
+    };
+    let mut selected_probe = StoreScratchResolutionSession::new(
+        factory.clone(),
+        probe_identity.clone(),
+        temp.path().join("selected-probe.db"),
+        1,
+        6,
+    )
+    .unwrap();
+    assert!(selected_probe.prior_resolution_state().unwrap().is_some());
+    selected_probe
+        .open_resolution_pass(&ResolutionPassRequest { full: false })
+        .unwrap();
+    assert!(
+        selected_probe
+            .propagation_is_covered(&SemanticIdentifierId {
+                version: SemanticVersionId::Store(user),
+                local_id: "foo-use".to_string(),
+            })
+            .unwrap()
+    );
+    assert!(
+        selected_probe
+            .propagation_is_covered(&SemanticIdentifierId {
+                version: SemanticVersionId::Store(user),
+                local_id: "sibling-use".to_string(),
+            })
+            .unwrap()
+    );
+    let mut writes = ResolutionWriteBatch::default();
+    writes.demote_identifier(SemanticIdentifierId {
+        version: SemanticVersionId::Store(user),
+        local_id: "foo-use".to_string(),
+    });
+    selected_probe.flush(writes).unwrap();
+    let selected_worklists = ResolutionWorklists {
+        effective_full: false,
+        selected_versions: vec![SemanticVersionId::Store(user)],
+        phase: ResolutionPhase::ResolvedIdentifiers,
+        ..ResolutionWorklists::default()
+    };
+    let mut selected_ids = Vec::new();
+    while let Some(ResolutionPhaseChunk::ResolvedIdentifiers(rows)) = selected_probe
+        .next_phase_chunk(&selected_worklists)
+        .unwrap()
+    {
+        selected_ids.extend(rows.into_iter().map(|row| row.identifier.identifier_id));
+    }
+    assert_eq!(selected_ids, ["sibling-use"]);
+
+    let mut hydration_probe = StoreScratchResolutionSession::new(
+        factory.clone(),
+        StoreManifestIdentity {
+            family_id: "family-a".to_string(),
+            view_id: "view-a".to_string(),
+            generation: i64::try_from(second.generation).unwrap(),
+            manifest_hash: second.manifest_hash.clone(),
+        },
+        temp.path().join("hydration-probe.db"),
+        1,
+        6,
+    )
+    .unwrap();
+    assert!(hydration_probe.prior_resolution_state().unwrap().is_some());
+    hydration_probe
+        .open_resolution_pass(&ResolutionPassRequest { full: false })
+        .unwrap();
+    let hydration_worklists = ResolutionWorklists {
+        effective_full: false,
+        selected_versions: vec![SemanticVersionId::Store(user)],
+        phase: ResolutionPhase::ResolvedIdentifiers,
+        ..ResolutionWorklists::default()
+    };
+    let first_hydrated = hydration_probe
+        .next_phase_chunk(&hydration_worklists)
+        .unwrap()
+        .unwrap();
+    assert!(matches!(
+        first_hydrated,
+        ResolutionPhaseChunk::ResolvedIdentifiers(rows)
+            if rows[0].identifier.identifier_id == "foo-use"
+    ));
+    let mut writes = ResolutionWriteBatch::default();
+    writes.demote_identifier(SemanticIdentifierId {
+        version: SemanticVersionId::Store(user),
+        local_id: "sibling-use".to_string(),
+    });
+    hydration_probe.flush(writes).unwrap();
+    assert!(
+        hydration_probe
+            .next_phase_chunk(&hydration_worklists)
+            .unwrap()
+            .is_none()
+    );
+
+    let mut name_probe = StoreScratchResolutionSession::new(
+        factory.clone(),
+        probe_identity,
+        temp.path().join("name-probe.db"),
+        1,
+        6,
+    )
+    .unwrap();
+    assert!(name_probe.prior_resolution_state().unwrap().is_some());
+    name_probe
+        .open_resolution_pass(&ResolutionPassRequest { full: false })
+        .unwrap();
+    let name_worklists = ResolutionWorklists {
+        effective_full: false,
+        recheck_names: vec!["NeverDefined".to_string()],
+        phase: ResolutionPhase::ResolvedIdentifiers,
+        ..ResolutionWorklists::default()
+    };
+    let mut name_ids = Vec::new();
+    while let Some(ResolutionPhaseChunk::ResolvedIdentifiers(rows)) =
+        name_probe.next_phase_chunk(&name_worklists).unwrap()
+    {
+        name_ids.extend(rows.into_iter().map(|row| row.identifier.identifier_id));
+    }
+    assert_eq!(name_ids, ["sibling-use"]);
+
+    let forced_path = temp.path().join("forced.db");
+    let mut forced = StoreScratchResolutionSession::new(
+        factory.clone(),
+        StoreManifestIdentity {
+            family_id: "family-a".to_string(),
+            view_id: "view-a".to_string(),
+            generation: i64::try_from(second.generation).unwrap(),
+            manifest_hash: second.manifest_hash.clone(),
+        },
+        &forced_path,
+        1,
+        6,
+    )
+    .unwrap();
+    let (_, forced_report) = run_resolution_session(&mut forced, true, true).unwrap();
+    assert!(forced_report.rows.is_some());
+    forced.finish_exact().unwrap();
+    let forced_rows = ResolutionBaseReader::open(&forced_path)
+        .unwrap()
+        .identifiers()
+        .unwrap();
+    assert_eq!(forced_rows.len(), 2);
+    assert_ne!(forced_rows[1].method.as_deref(), Some("base-sibling"));
+
+    let exact_path = temp.path().join("exact.db");
+    let mut session = StoreScratchResolutionSession::new(
+        factory,
+        StoreManifestIdentity {
+            family_id: "family-a".to_string(),
+            view_id: "view-a".to_string(),
+            generation: i64::try_from(second.generation).unwrap(),
+            manifest_hash: second.manifest_hash.clone(),
+        },
+        &exact_path,
+        1,
+        6,
+    )
+    .unwrap();
+    let (_, report) = run_resolution_session(&mut session, false, true).unwrap();
+    assert_eq!(report.status.as_str(), "partial");
+    assert!(report.rows.is_none());
+    session.finish_exact().unwrap();
+    let rows = ResolutionBaseReader::open(&exact_path)
+        .unwrap()
+        .identifiers()
+        .unwrap();
+    assert_eq!(rows.len(), 2);
+    assert_eq!(rows[0].identifier_id, "foo-use");
+    assert_eq!(rows[0].target_version_id, Some(new_target));
+    assert_eq!(rows[1].identifier_id, "sibling-use");
+    assert_eq!(rows[1].target_version_id, Some(user));
+    assert_eq!(rows[1].method.as_deref(), Some("base-sibling"));
+    assert!(!rows.iter().any(|row| row.identifier_id == "removed-use"));
+
+    let connection = Connection::open(layout.store_db()).unwrap();
+    connection
+        .execute(
+            "UPDATE resolution_deltas SET identifier_replacements=1
+         WHERE view_id='view-a' AND delta_generation=1",
+            [],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO resolution_identifier_deltas
+         (view_id,delta_generation,version_id,identifier_id,target_version_id,target_symbol_id,
+          tier,confidence,method,outcome,candidates)
+         VALUES ('view-a',1,?1,'sibling-use',?2,'old-foo',4,1.0,'stale','resolved',1)",
+            params![user, old_target],
+        )
+        .unwrap();
+    drop(connection);
+    let stale_path = temp.path().join("stale.db");
+    let mut stale = StoreScratchResolutionSession::new(
+        StoreConnectionFactory::new(layout, "family-a", "2.30.0"),
+        StoreManifestIdentity {
+            family_id: "family-a".to_string(),
+            view_id: "view-a".to_string(),
+            generation: i64::try_from(second.generation).unwrap(),
+            manifest_hash: second.manifest_hash,
+        },
+        &stale_path,
+        1,
+        6,
+    )
+    .unwrap();
+    run_resolution_session(&mut stale, false, true).unwrap();
+    assert!(matches!(
+        stale.finish_exact().unwrap_err(),
+        StoreResolutionError::Artifact(
+            julie_extract_artifact::store::ResolutionValidationError::TargetMissing { .. }
+        )
+    ));
+    assert!(!stale_path.exists());
+}
+
+#[test]
 fn pinned_fixture_store_session_matches_legacy_semantics() {
     let temp = TempDir::new().unwrap();
     let root = temp.path().join("repo");
@@ -925,4 +1348,77 @@ fn insert_version(connection: &Connection, path: &str, language: &str, complete_
         params![path, format!("hash-{path}"), language, complete_l2.then_some(1)],
     ).unwrap();
     connection.last_insert_rowid()
+}
+
+fn manifest_entry(connection: &Connection, version_id: i64) -> ManifestEntry {
+    connection
+        .query_row(
+            "SELECT path,language,content_hash FROM file_versions WHERE version_id=?1",
+            [version_id],
+            |row| {
+                Ok(ManifestEntry::indexed(
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    version_id,
+                    row.get::<_, String>(2)?,
+                    NOW,
+                ))
+            },
+        )
+        .unwrap()
+}
+
+fn publish_manifest(
+    connection: &mut Connection,
+    expected_generation: Option<i64>,
+    entries: impl IntoIterator<Item = ManifestEntry>,
+    request_id: &str,
+) -> julie_extract_artifact::store::ManifestPublishResult {
+    ManifestStore::new(connection)
+        .publish(
+            "view-a",
+            expected_generation.map(|value| value as u64),
+            entries,
+            request_id,
+        )
+        .unwrap()
+}
+
+fn insert_named_symbol(
+    connection: &Connection,
+    version_id: i64,
+    symbol_id: &str,
+    name: &str,
+    path: &str,
+) {
+    connection.execute(
+        "INSERT INTO symbols(version_id,symbol_id,path,language,name,kind,
+         start_line,start_column,end_line,end_column,start_byte,end_byte,is_test,test_container,test_lifecycle)
+         VALUES (?1,?2,?3,'rust',?4,'function',1,1,1,5,0,4,0,0,0)",
+        params![version_id, symbol_id, path, name],
+    ).unwrap();
+}
+
+fn insert_named_identifier(
+    connection: &Connection,
+    version_id: i64,
+    identifier_id: &str,
+    name: &str,
+    path: &str,
+) {
+    let site_id = format!("site-{identifier_id}");
+    connection
+        .execute(
+            "INSERT INTO reference_sites(version_id,reference_site_id,path,language,
+         start_line,start_column,end_line,end_column,start_byte,end_byte,is_exact,provenance,level)
+         VALUES (?1,?2,?3,'rust',2,1,2,5,5,9,1,'target_token',2)",
+            params![version_id, site_id, path],
+        )
+        .unwrap();
+    connection.execute(
+        "INSERT INTO identifiers(version_id,identifier_id,reference_site_id,path,language,name,kind,
+         start_line,start_column,end_line,end_column,start_byte,end_byte,confidence)
+         VALUES (?1,?2,?3,?4,'rust',?5,'call',2,1,2,5,5,9,1.0)",
+        params![version_id, identifier_id, site_id, path, name],
+    ).unwrap();
 }

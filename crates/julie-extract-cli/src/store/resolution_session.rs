@@ -4,11 +4,13 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 
 use julie_extract_artifact::resolution_store::{
-    IdentifierWorkItem, PendingWorkItem, ResolutionCounts, ResolutionReportRow,
+    IdentifierWorkItem, Outcome, PendingWorkItem, ResolutionCounts, ResolutionReportRow,
+    ResolutionStatus,
 };
 use julie_extract_artifact::store::{
     ResolutionBaseWriter, ResolutionFileIdentity, ResolutionIdentifierRow, ResolutionPendingRow,
-    ResolutionValidationError, create_resolution_scratch_connection,
+    ResolutionScopeState, ResolutionValidationError, StoreLayout,
+    create_resolution_scratch_connection, resolution_scope_state,
 };
 use julie_extract_artifact::store::{StoreConnectionError, StoreConnectionFactory};
 use julie_extractors::SymbolKind;
@@ -21,12 +23,20 @@ use crate::resolution::{
 use crate::resolution_session::{
     ResolutionCorpusIdentity, ResolutionPassRequest, ResolutionPhase, ResolutionPhaseChunk,
     ResolutionSession, ResolutionWorklists, ResolutionWrite, ResolutionWriteBatch,
-    SemanticIdentifierId,
+    SemanticIdentifierId, SessionResolvedIdentifierWorkItem, SessionResolvedPendingWorkItem,
 };
 use crate::resolution_session::{SemanticSymbolId, SemanticVersionId};
+use crate::store::delta_scope::{
+    StoreDeltaScopeDecision, StoreDeltaScopeRequest, build_store_delta_scope,
+};
+use crate::store::prior_overlay::{
+    PriorOverlayAccess, PriorOverlayKey, PriorOverlayPage, PriorOverlayReader,
+};
 
 const MAX_STORE_RESOLUTION_WINDOW: usize = 300;
 type CandidatePage = (Vec<CandidateHit>, Option<(i64, String)>);
+type PriorPhaseKeys = (Vec<(i64, String)>, Option<PriorOverlayKey>);
+type PriorPhaseAccess = PriorOverlayAccess<PriorPhaseKeys>;
 
 #[derive(Debug, Default)]
 struct CandidateWindow {
@@ -240,9 +250,17 @@ impl From<ResolutionValidationError> for StoreResolutionError {
     }
 }
 
+fn incremental_error(detail: impl Into<String>) -> StoreResolutionError {
+    StoreResolutionError::Artifact(ResolutionValidationError::InvalidMetadata {
+        key: "incremental_resolution".to_string(),
+        value: detail.into(),
+    })
+}
+
 #[derive(Debug)]
 pub struct StoreScratchResolutionSession {
     reader_factory: StoreConnectionFactory,
+    layout: StoreLayout,
     identity: StoreManifestIdentity,
     exact_path: PathBuf,
     window_size: usize,
@@ -261,6 +279,8 @@ pub struct StoreScratchResolutionSession {
     filtered_summaries: RefCell<BoundedCache<FilteredSummaryKey, CandidateSummary>>,
     tier_candidates: RefCell<TierCandidateAccumulator>,
     resolution_cache: RefCell<HashMap<ResolutionLookupKey, TierOutcome>>,
+    prior_overlay: Option<PriorOverlayReader>,
+    prior_scope_state: Option<ResolutionScopeState>,
 }
 
 impl StoreScratchResolutionSession {
@@ -289,8 +309,10 @@ impl StoreScratchResolutionSession {
         if exact_path.exists() {
             return Err(StoreResolutionError::UnexpectedOutputPath(exact_path));
         }
+        let layout = store_layout_from_factory(&reader_factory)?;
         let mut session = Self {
             reader_factory,
+            layout,
             identity,
             exact_path,
             window_size,
@@ -309,6 +331,8 @@ impl StoreScratchResolutionSession {
             filtered_summaries: RefCell::new(BoundedCache::new(window_size)),
             tier_candidates: RefCell::new(TierCandidateAccumulator::default()),
             resolution_cache: RefCell::new(HashMap::new()),
+            prior_overlay: None,
+            prior_scope_state: None,
         };
         session.validate_manifest()?;
         session.initialize_scratch()?;
@@ -453,6 +477,8 @@ impl StoreScratchResolutionSession {
     }
 
     pub fn finish_exact(mut self) -> Result<ResolutionFileIdentity, StoreResolutionError> {
+        self.materialize_prior_overlay()?;
+        self.validate_identifier_totality()?;
         let mut writer = ResolutionBaseWriter::new(
             &self.exact_path,
             self.identity.manifest_hash.clone(),
@@ -469,9 +495,12 @@ impl StoreScratchResolutionSession {
         }
         {
             let mut statement = self.scratch.prepare(
-                "SELECT version_id,identifier_id,target_version_id,target_symbol_id,
-                        tier,confidence,method,outcome,candidates
-                 FROM identifier_resolutions ORDER BY version_id,identifier_id",
+                "SELECT resolved.version_id,resolved.identifier_id,resolved.target_version_id,
+                        resolved.target_symbol_id,resolved.tier,resolved.confidence,
+                        resolved.method,resolved.outcome,resolved.candidates
+                 FROM identifier_resolutions AS resolved
+                 JOIN visible_versions AS visible ON visible.version_id=resolved.version_id
+                 ORDER BY resolved.version_id,resolved.identifier_id",
             )?;
             let mut rows = statement.query([])?;
             while let Some(row) = rows.next()? {
@@ -490,9 +519,12 @@ impl StoreScratchResolutionSession {
         }
         {
             let mut statement = self.scratch.prepare(
-                "SELECT version_id,pending_relationship_id,target_version_id,target_symbol_id,
-                        tier,confidence,method
-                 FROM pending_resolutions ORDER BY version_id,pending_relationship_id",
+                "SELECT resolved.version_id,resolved.pending_relationship_id,
+                        resolved.target_version_id,resolved.target_symbol_id,
+                        resolved.tier,resolved.confidence,resolved.method
+                 FROM pending_resolutions AS resolved
+                 JOIN visible_versions AS visible ON visible.version_id=resolved.version_id
+                 ORDER BY resolved.version_id,resolved.pending_relationship_id",
             )?;
             let mut rows = statement.query([])?;
             while let Some(row) = rows.next()? {
@@ -613,6 +645,16 @@ impl StoreScratchResolutionSession {
                method TEXT NOT NULL,
                PRIMARY KEY(version_id,pending_relationship_id)
              ) STRICT;
+             CREATE TABLE identifier_touched(
+               version_id INTEGER NOT NULL,
+               identifier_id TEXT NOT NULL,
+               PRIMARY KEY(version_id,identifier_id)
+             ) STRICT;
+             CREATE TABLE pending_touched(
+               version_id INTEGER NOT NULL,
+               pending_relationship_id TEXT NOT NULL,
+               PRIMARY KEY(version_id,pending_relationship_id)
+             ) STRICT;
              CREATE TABLE phase_keys(
                phase INTEGER NOT NULL,
                version_id INTEGER NOT NULL,
@@ -692,6 +734,154 @@ impl StoreScratchResolutionSession {
             .optional()?;
         if let Some((path, version_id)) = incomplete {
             return Err(StoreResolutionError::InputIncomplete { path, version_id });
+        }
+        Ok(())
+    }
+
+    fn materialize_prior_overlay(&mut self) -> Result<(), StoreResolutionError> {
+        let Some(prior) = &self.prior_overlay else {
+            return Ok(());
+        };
+        let mut after_version = 0;
+        loop {
+            let versions = {
+                let mut statement = self.scratch.prepare(
+                    "SELECT version_id FROM visible_versions WHERE version_id>?1 ORDER BY version_id LIMIT ?2",
+                )?;
+                statement
+                    .query_map(params![after_version, self.sql_window_limit()?], |row| {
+                        row.get(0)
+                    })?
+                    .collect::<Result<Vec<i64>, _>>()?
+            };
+            if versions.is_empty() {
+                break;
+            }
+            for version_chunk in versions.chunks(256) {
+                let mut after = None;
+                loop {
+                    let page = ready_prior(
+                        prior
+                            .identifiers_by_files(version_chunk, after.as_ref(), self.window_size)
+                            .map_err(|error| incremental_error(error.to_string()))?,
+                    )?;
+                    let transaction = self.scratch.transaction()?;
+                    {
+                        let mut insert = transaction.prepare_cached(
+                            "INSERT OR IGNORE INTO identifier_resolutions
+                             (version_id,identifier_id,target_version_id,target_symbol_id,tier,confidence,method,outcome,candidates)
+                             SELECT ?1,?2,?3,?4,?5,?6,?7,?8,?9
+                             WHERE NOT EXISTS (
+                               SELECT 1 FROM identifier_touched
+                               WHERE version_id=?1 AND identifier_id=?2
+                             )",
+                        )?;
+                        for row in page.rows {
+                            insert.execute(params![
+                                row.version_id,
+                                row.identifier_id,
+                                row.target_version_id,
+                                row.target_symbol_id,
+                                row.tier,
+                                row.confidence,
+                                row.method,
+                                row.outcome,
+                                row.candidates
+                            ])?;
+                        }
+                    }
+                    transaction.commit()?;
+                    let Some(next) = page.next else { break };
+                    after = Some(next);
+                }
+                let mut after = None;
+                loop {
+                    let page = ready_prior(
+                        prior
+                            .pending_by_files(version_chunk, after.as_ref(), self.window_size)
+                            .map_err(|error| incremental_error(error.to_string()))?,
+                    )?;
+                    let transaction = self.scratch.transaction()?;
+                    {
+                        let mut insert = transaction.prepare_cached(
+                            "INSERT OR IGNORE INTO pending_resolutions
+                             (version_id,pending_relationship_id,target_version_id,target_symbol_id,tier,confidence,method)
+                             SELECT ?1,?2,?3,?4,?5,?6,?7
+                             WHERE NOT EXISTS (
+                               SELECT 1 FROM pending_touched
+                               WHERE version_id=?1 AND pending_relationship_id=?2
+                             )",
+                        )?;
+                        for row in page.rows {
+                            insert.execute(params![
+                                row.version_id,
+                                row.pending_relationship_id,
+                                row.target_version_id,
+                                row.target_symbol_id,
+                                row.tier,
+                                row.confidence,
+                                row.method
+                            ])?;
+                        }
+                    }
+                    transaction.commit()?;
+                    let Some(next) = page.next else { break };
+                    after = Some(next);
+                }
+            }
+            after_version = *versions.last().expect("non-empty visible version page");
+        }
+        Ok(())
+    }
+
+    fn validate_identifier_totality(&self) -> Result<(), StoreResolutionError> {
+        let connection = self.open_reader()?;
+        let mut after = (0, String::new());
+        loop {
+            let keys = {
+                let mut statement = connection.prepare(
+                    "SELECT i.version_id,i.identifier_id
+                     FROM identifiers AS i
+                     WHERE EXISTS (
+                       SELECT 1 FROM manifest_entries AS me
+                       WHERE me.view_id=?1 AND me.generation=?2
+                         AND me.status IN ('indexed','failed_preserved')
+                         AND me.version_id=i.version_id
+                     ) AND (i.version_id,i.identifier_id)>(?3,?4)
+                     ORDER BY i.version_id,i.identifier_id COLLATE BINARY LIMIT ?5",
+                )?;
+                statement
+                    .query_map(
+                        params![
+                            self.identity.view_id,
+                            self.identity.generation,
+                            after.0,
+                            after.1,
+                            self.sql_window_limit()?
+                        ],
+                        |row| Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?)),
+                    )?
+                    .collect::<Result<Vec<_>, _>>()?
+            };
+            if keys.is_empty() {
+                break;
+            }
+            for (version_id, identifier_id) in &keys {
+                let exists: bool = self.scratch.query_row(
+                    "SELECT EXISTS(SELECT 1 FROM identifier_resolutions WHERE version_id=?1 AND identifier_id=?2)",
+                    params![version_id, identifier_id],
+                    |row| row.get(0),
+                )?;
+                if !exists {
+                    return Err(StoreResolutionError::Artifact(
+                        ResolutionValidationError::IdentifierTotalityViolation {
+                            version_id: *version_id,
+                            identifier_id: identifier_id.clone(),
+                        },
+                    ));
+                }
+            }
+            after = keys.last().cloned().expect("non-empty identifier page");
         }
         Ok(())
     }
@@ -1348,7 +1538,14 @@ impl ResolutionSession for StoreScratchResolutionSession {
     fn prior_resolution_state(
         &mut self,
     ) -> Result<Option<crate::resolution_session::SessionResolutionState>, Self::Error> {
-        Ok(None)
+        let Some(state) = self.prepare_prior_overlay()? else {
+            return Ok(None);
+        };
+        Ok(Some(crate::resolution_session::SessionResolutionState {
+            status: ResolutionStatus::Complete,
+            version: resolution::RESOLUTION_VERSION,
+            last_full_revision: state.predecessor_manifest_generation,
+        }))
     }
 
     fn current_revision(&mut self) -> Result<i64, Self::Error> {
@@ -1357,7 +1554,7 @@ impl ResolutionSession for StoreScratchResolutionSession {
 
     fn open_resolution_pass(
         &mut self,
-        _request: &ResolutionPassRequest,
+        request: &ResolutionPassRequest,
     ) -> Result<ResolutionWorklists, Self::Error> {
         let reset = self.scratch.transaction()?;
         reset.execute("DELETE FROM visible_versions", [])?;
@@ -1385,10 +1582,50 @@ impl ResolutionSession for StoreScratchResolutionSession {
         }
         self.active_phase = None;
         self.phase_after = None;
-        Ok(ResolutionWorklists {
-            effective_full: true,
-            ..ResolutionWorklists::default()
-        })
+        if request.full {
+            self.prior_overlay = None;
+            self.prior_scope_state = None;
+            return Ok(ResolutionWorklists {
+                effective_full: true,
+                ..ResolutionWorklists::default()
+            });
+        }
+        let connection = self.open_reader()?;
+        let decision = build_store_delta_scope(
+            &connection,
+            StoreDeltaScopeRequest {
+                view_id: &self.identity.view_id,
+                manifest_generation: self.identity.generation,
+                manifest_hash: &self.identity.manifest_hash,
+                resolver_output_epoch: self.resolver_output_epoch,
+                incremental_enabled: true,
+            },
+        )
+        .map_err(|error| incremental_error(error.to_string()))?;
+        let _effective_full = decision.worklists().effective_full;
+        match decision {
+            StoreDeltaScopeDecision::Scoped(worklists) => {
+                let stored_state = resolution_scope_state(&connection, &self.identity.view_id)
+                    .map_err(|error| incremental_error(error.to_string()))?;
+                if self.prepare_prior_overlay()?.is_some() && stored_state == self.prior_scope_state
+                {
+                    Ok(worklists)
+                } else {
+                    self.prior_overlay = None;
+                    self.prior_scope_state = None;
+                    Ok(ResolutionWorklists {
+                        effective_full: true,
+                        ..ResolutionWorklists::default()
+                    })
+                }
+            }
+            StoreDeltaScopeDecision::Full { worklists, reason } => {
+                let _reason = reason.as_str();
+                self.prior_overlay = None;
+                self.prior_scope_state = None;
+                Ok(worklists)
+            }
+        }
     }
 
     fn qualify_version(&self, source_key: &str) -> Result<SemanticVersionId, Self::Error> {
@@ -1459,21 +1696,22 @@ impl ResolutionSession for StoreScratchResolutionSession {
         &mut self,
         identifier_id: &SemanticIdentifierId,
     ) -> Result<bool, Self::Error> {
-        self.scratch_identifier_exists(identifier_id)
+        self.effective_identifier_exists(identifier_id)
     }
 
     fn propagation_is_covered(
         &mut self,
-        _identifier_id: &SemanticIdentifierId,
+        identifier_id: &SemanticIdentifierId,
     ) -> Result<bool, Self::Error> {
-        Ok(false)
+        Ok(self.propagating_pending_exists(identifier_id)?
+            || self.materialized_relationship_covers(identifier_id)?)
     }
 
     fn propagation_is_owned(
         &mut self,
         identifier_id: &SemanticIdentifierId,
     ) -> Result<bool, Self::Error> {
-        self.scratch_identifier_exists(identifier_id)
+        self.effective_identifier_exists(identifier_id)
     }
 
     fn next_phase_chunk(
@@ -1481,18 +1719,21 @@ impl ResolutionSession for StoreScratchResolutionSession {
         worklists: &ResolutionWorklists,
     ) -> Result<Option<ResolutionPhaseChunk>, Self::Error> {
         if self.active_phase != Some(worklists.phase) {
-            self.freeze_phase(worklists.phase)?;
+            self.freeze_phase(worklists)?;
             self.active_phase = Some(worklists.phase);
             self.phase_after = None;
         }
         if matches!(
             worklists.phase,
-            ResolutionPhase::ResolvedPending
-                | ResolutionPhase::PropagationCovered
-                | ResolutionPhase::ResolvedIdentifiers
-                | ResolutionPhase::PropagationOwned
+            ResolutionPhase::PropagationCovered | ResolutionPhase::PropagationOwned
         ) {
             return Ok(None);
+        }
+        if matches!(
+            worklists.phase,
+            ResolutionPhase::ResolvedPending | ResolutionPhase::ResolvedIdentifiers
+        ) {
+            self.prune_touched_prior_phase(worklists.phase)?;
         }
         if worklists.phase == ResolutionPhase::WorkspaceGated {
             let languages = self.workspace_gated_languages()?;
@@ -1525,6 +1766,14 @@ impl ResolutionSession for StoreScratchResolutionSession {
         self.max_emitted_chunk_size = self.max_emitted_chunk_size.max(keys.len());
         self.reset_candidate_window()?;
         let chunk = match worklists.phase {
+            ResolutionPhase::ResolvedPending => Some(ResolutionPhaseChunk::ResolvedPending(
+                self.load_resolved_pending_page(&keys)?,
+            )),
+            ResolutionPhase::ResolvedIdentifiers => {
+                Some(ResolutionPhaseChunk::ResolvedIdentifiers(
+                    self.load_resolved_identifier_page(&keys)?,
+                ))
+            }
             ResolutionPhase::Pending => Some(ResolutionPhaseChunk::Pending(
                 self.load_pending_page(&keys)?,
             )),
@@ -1571,6 +1820,12 @@ impl ResolutionSession for StoreScratchResolutionSession {
             let mut identifier_delete = transaction.prepare(
                 "DELETE FROM identifier_resolutions WHERE version_id=?1 AND identifier_id=?2",
             )?;
+            let mut pending_touch = transaction.prepare(
+                "INSERT OR IGNORE INTO pending_touched(version_id,pending_relationship_id) VALUES (?1,?2)",
+            )?;
+            let mut identifier_touch = transaction.prepare(
+                "INSERT OR IGNORE INTO identifier_touched(version_id,identifier_id) VALUES (?1,?2)",
+            )?;
             for write in writes.writes {
                 match write {
                     ResolutionWrite::Pending {
@@ -1592,14 +1847,17 @@ impl ResolutionSession for StoreScratchResolutionSession {
                             confidence,
                             method
                         ])?;
+                        pending_touch
+                            .execute(params![version_id, pending_relationship_id.local_id])?;
                     }
                     ResolutionWrite::DemotePending {
                         pending_relationship_id,
                     } => {
-                        pending_delete.execute(params![
-                            store_version(&pending_relationship_id.version)?,
-                            pending_relationship_id.local_id
-                        ])?;
+                        let version_id = store_version(&pending_relationship_id.version)?;
+                        pending_delete
+                            .execute(params![version_id, pending_relationship_id.local_id])?;
+                        pending_touch
+                            .execute(params![version_id, pending_relationship_id.local_id])?;
                     }
                     ResolutionWrite::Identifier {
                         identifier_id,
@@ -1615,8 +1873,9 @@ impl ResolutionSession for StoreScratchResolutionSession {
                             .as_ref()
                             .map(|id| store_version(&id.version))
                             .transpose()?;
+                        let version_id = store_version(&identifier_id.version)?;
                         identifier_upsert.execute(params![
-                            store_version(&identifier_id.version)?,
+                            version_id,
                             identifier_id.local_id,
                             target_version_id,
                             target_symbol_id.map(|id| id.local_id),
@@ -1626,12 +1885,12 @@ impl ResolutionSession for StoreScratchResolutionSession {
                             outcome.as_str(),
                             candidates
                         ])?;
+                        identifier_touch.execute(params![version_id, identifier_id.local_id])?;
                     }
                     ResolutionWrite::DemoteIdentifier { identifier_id } => {
-                        identifier_delete.execute(params![
-                            store_version(&identifier_id.version)?,
-                            identifier_id.local_id
-                        ])?;
+                        let version_id = store_version(&identifier_id.version)?;
+                        identifier_delete.execute(params![version_id, identifier_id.local_id])?;
+                        identifier_touch.execute(params![version_id, identifier_id.local_id])?;
                     }
                 }
             }
@@ -1809,14 +2068,342 @@ impl StoreScratchResolutionSession {
         )?)
     }
 
-    fn freeze_phase(&mut self, phase: ResolutionPhase) -> Result<(), StoreResolutionError> {
+    fn prepare_prior_overlay(
+        &mut self,
+    ) -> Result<Option<ResolutionScopeState>, StoreResolutionError> {
+        if let Some(state) = &self.prior_scope_state {
+            return Ok(Some(state.clone()));
+        }
+        let connection = self.open_reader()?;
+        let state = resolution_scope_state(&connection, &self.identity.view_id)
+            .map_err(|error| incremental_error(error.to_string()))?;
+        let Some(state) = state else {
+            return Ok(None);
+        };
+        if state.current_manifest_generation != self.identity.generation
+            || state.current_manifest_hash != self.identity.manifest_hash
+            || state.resolver_output_epoch != self.resolver_output_epoch
+        {
+            return Ok(None);
+        }
+        match PriorOverlayReader::open(&self.layout, &state)
+            .map_err(|error| incremental_error(error.to_string()))?
+        {
+            PriorOverlayAccess::Ready(reader) => {
+                self.prior_overlay = Some(reader);
+                self.prior_scope_state = Some(state.clone());
+                Ok(Some(state))
+            }
+            PriorOverlayAccess::FullFallback(_) => Ok(None),
+        }
+    }
+
+    fn effective_identifier_exists(
+        &self,
+        identifier_id: &SemanticIdentifierId,
+    ) -> Result<bool, StoreResolutionError> {
+        let version_id = store_version(&identifier_id.version)?;
+        let touched: bool = self.scratch.query_row(
+            "SELECT EXISTS(SELECT 1 FROM identifier_touched WHERE version_id=?1 AND identifier_id=?2)",
+            params![version_id, identifier_id.local_id],
+            |row| row.get(0),
+        )?;
+        if touched {
+            return self.scratch_identifier_exists(identifier_id);
+        }
+        let Some(prior) = &self.prior_overlay else {
+            return Ok(false);
+        };
+        match prior
+            .identifier(version_id, &identifier_id.local_id)
+            .map_err(|error| incremental_error(error.to_string()))?
+        {
+            PriorOverlayAccess::Ready(row) => Ok(row.is_some()),
+            PriorOverlayAccess::FullFallback(fallback) => Err(incremental_error(format!(
+                "prior overlay changed during resolution: {fallback:?}"
+            ))),
+        }
+    }
+
+    fn propagating_pending_exists(
+        &self,
+        identifier_id: &SemanticIdentifierId,
+    ) -> Result<bool, StoreResolutionError> {
+        let version_id = store_version(&identifier_id.version)?;
+        let connection = self.open_reader()?;
+        let sql = "SELECT pr.pending_relationship_id
+             FROM identifiers AS i
+             JOIN pending_relationships AS pr
+               ON pr.version_id=i.version_id AND pr.target_terminal_name=i.name
+              AND ((pr.start_byte IS NOT NULL AND pr.end_byte IS NOT NULL
+                    AND i.start_byte>=pr.start_byte AND i.start_byte<=pr.end_byte
+                    AND i.end_byte<=pr.end_byte)
+                   OR ((pr.start_byte IS NULL OR pr.end_byte IS NULL)
+                       AND i.start_line=pr.start_line))
+             WHERE i.version_id=?1 AND i.identifier_id=?2
+               AND pr.pending_relationship_id>?3
+             ORDER BY pr.pending_relationship_id COLLATE BINARY LIMIT ?4";
+        let mut after = String::new();
+        loop {
+            let ids = connection
+                .prepare(sql)?
+                .query_map(
+                    params![
+                        version_id,
+                        identifier_id.local_id,
+                        after,
+                        self.sql_window_limit()?
+                    ],
+                    |row| row.get::<_, String>(0),
+                )?
+                .collect::<Result<Vec<_>, _>>()?;
+            self.max_store_read_page
+                .set(self.max_store_read_page.get().max(ids.len()));
+            if ids.is_empty() {
+                break;
+            }
+            for local_id in &ids {
+                let touched: bool = self.scratch.query_row(
+                    "SELECT EXISTS(SELECT 1 FROM pending_touched WHERE version_id=?1 AND pending_relationship_id=?2)",
+                    params![version_id, local_id],
+                    |row| row.get(0),
+                )?;
+                if touched {
+                    let exists: bool = self.scratch.query_row(
+                        "SELECT EXISTS(SELECT 1 FROM pending_resolutions WHERE version_id=?1 AND pending_relationship_id=?2)",
+                        params![version_id, local_id],
+                        |row| row.get(0),
+                    )?;
+                    if exists {
+                        return Ok(true);
+                    }
+                } else if let Some(prior) = &self.prior_overlay {
+                    match prior
+                        .pending(version_id, local_id)
+                        .map_err(|error| incremental_error(error.to_string()))?
+                    {
+                        PriorOverlayAccess::Ready(Some(_)) => return Ok(true),
+                        PriorOverlayAccess::Ready(None) => {}
+                        PriorOverlayAccess::FullFallback(fallback) => {
+                            return Err(incremental_error(format!(
+                                "prior overlay changed during resolution: {fallback:?}"
+                            )));
+                        }
+                    }
+                }
+            }
+            after = ids
+                .last()
+                .cloned()
+                .expect("non-empty pending coverage page");
+        }
+        Ok(false)
+    }
+
+    fn materialized_relationship_covers(
+        &self,
+        identifier_id: &SemanticIdentifierId,
+    ) -> Result<bool, StoreResolutionError> {
+        let version_id = store_version(&identifier_id.version)?;
+        let connection = self.open_reader()?;
+        let sql = "SELECT r.relationship_id,r.kind,target.name,r.start_line,r.start_byte,r.end_byte
+                   FROM identifiers AS i
+                   JOIN relationships AS r ON r.version_id=i.version_id
+                   JOIN symbols AS target
+                     ON target.version_id=r.version_id AND target.symbol_id=r.to_symbol_id
+                   WHERE i.version_id=?1 AND i.identifier_id=?2
+                     AND r.relationship_id>?3
+                     AND EXISTS (
+                       SELECT 1 FROM manifest_entries AS me
+                       WHERE me.view_id=?4 AND me.generation=?5
+                         AND me.status IN ('indexed','failed_preserved')
+                         AND me.version_id=r.version_id
+                     )
+                   ORDER BY r.relationship_id COLLATE BINARY LIMIT ?6";
+        let mut after = String::new();
+        loop {
+            let rows = connection
+                .prepare(sql)?
+                .query_map(
+                    params![
+                        version_id,
+                        identifier_id.local_id,
+                        after,
+                        self.identity.view_id,
+                        self.identity.generation,
+                        self.sql_window_limit()?
+                    ],
+                    |row| {
+                        Ok((
+                            row.get::<_, String>(0)?,
+                            row.get::<_, String>(1)?,
+                            row.get::<_, String>(2)?,
+                            row.get::<_, Option<i64>>(3)?.unwrap_or(0),
+                            row.get::<_, Option<i64>>(4)?,
+                            row.get::<_, Option<i64>>(5)?,
+                        ))
+                    },
+                )?
+                .collect::<Result<Vec<_>, _>>()?;
+            self.max_store_read_page
+                .set(self.max_store_read_page.get().max(rows.len()));
+            if rows.is_empty() {
+                break;
+            }
+            for (_, kind, name, start_line, start_byte, end_byte) in &rows {
+                if ReferenceKind::from_relationship_kind(kind).is_some()
+                    && self.locate_identifier(
+                        &identifier_id.version,
+                        name,
+                        *start_byte,
+                        *end_byte,
+                        *start_line,
+                    )? == Some(identifier_id.local_id.clone())
+                {
+                    return Ok(true);
+                }
+            }
+            after = rows
+                .last()
+                .expect("non-empty relationship coverage page")
+                .0
+                .clone();
+        }
+        Ok(false)
+    }
+
+    fn freeze_prior_phase(
+        &mut self,
+        worklists: &ResolutionWorklists,
+    ) -> Result<(), StoreResolutionError> {
+        let code = phase_code(worklists.phase);
+        let versions = store_versions(&worklists.selected_versions)?;
+        let prior = self
+            .prior_overlay
+            .as_ref()
+            .ok_or_else(|| incremental_error("prior overlay unavailable"))?;
+        let transaction = self.scratch.transaction()?;
+        let (touched_table, touched_id) = match worklists.phase {
+            ResolutionPhase::ResolvedPending => ("pending_touched", "pending_relationship_id"),
+            ResolutionPhase::ResolvedIdentifiers => ("identifier_touched", "identifier_id"),
+            _ => unreachable!(),
+        };
+        let insert_sql = format!(
+            "INSERT OR IGNORE INTO phase_keys(phase,version_id,local_id)
+             SELECT ?1,?2,?3
+             WHERE EXISTS (SELECT 1 FROM visible_versions WHERE version_id=?2)
+               AND NOT EXISTS (
+                 SELECT 1 FROM {touched_table}
+                 WHERE version_id=?2 AND {touched_id}=?3
+               )"
+        );
+        let mut insert = transaction.prepare_cached(&insert_sql)?;
+        for names in worklists.recheck_names.chunks(256) {
+            let name_refs = names.iter().map(String::as_str).collect::<Vec<_>>();
+            let mut after = None;
+            loop {
+                let access = match worklists.phase {
+                    ResolutionPhase::ResolvedPending => prior
+                        .pending_by_names(&name_refs, after.as_ref(), self.window_size)
+                        .map(|page| {
+                            map_prior_page(page, |row| {
+                                (row.version_id, row.pending_relationship_id)
+                            })
+                        }),
+                    ResolutionPhase::ResolvedIdentifiers => prior
+                        .identifiers_by_names(&name_refs, after.as_ref(), self.window_size)
+                        .map(|page| {
+                            map_prior_page(page, |row| (row.version_id, row.identifier_id))
+                        }),
+                    _ => unreachable!(),
+                }
+                .map_err(|error| incremental_error(error.to_string()))?;
+                let (rows, next) = prior_key_rows(access)?;
+                for (version_id, local_id) in rows {
+                    insert.execute(params![code, version_id, local_id])?;
+                }
+                let Some(next) = next else { break };
+                after = Some(next);
+            }
+        }
+        for versions in versions.chunks(256) {
+            let mut after = None;
+            loop {
+                let access = match worklists.phase {
+                    ResolutionPhase::ResolvedPending => prior
+                        .pending_by_files(versions, after.as_ref(), self.window_size)
+                        .map(|page| {
+                            map_prior_page(page, |row| {
+                                (row.version_id, row.pending_relationship_id)
+                            })
+                        }),
+                    ResolutionPhase::ResolvedIdentifiers => prior
+                        .identifiers_by_files(versions, after.as_ref(), self.window_size)
+                        .map(|page| {
+                            map_prior_page(page, |row| (row.version_id, row.identifier_id))
+                        }),
+                    _ => unreachable!(),
+                }
+                .map_err(|error| incremental_error(error.to_string()))?;
+                let (rows, next) = prior_key_rows(access)?;
+                for (version_id, local_id) in rows {
+                    insert.execute(params![code, version_id, local_id])?;
+                }
+                let Some(next) = next else { break };
+                after = Some(next);
+            }
+        }
+        drop(insert);
+        transaction.commit()?;
+        Ok(())
+    }
+
+    fn prune_touched_prior_phase(
+        &mut self,
+        phase: ResolutionPhase,
+    ) -> Result<(), StoreResolutionError> {
         let code = phase_code(phase);
-        let sql_window_limit = self.sql_window_limit()?;
+        let (touched_table, touched_id) = match phase {
+            ResolutionPhase::ResolvedPending => ("pending_touched", "pending_relationship_id"),
+            ResolutionPhase::ResolvedIdentifiers => ("identifier_touched", "identifier_id"),
+            _ => return Ok(()),
+        };
+        self.scratch.execute(
+            &format!(
+                "DELETE FROM phase_keys
+                 WHERE phase=?1 AND EXISTS (
+                   SELECT 1 FROM {touched_table}
+                   WHERE version_id=phase_keys.version_id
+                     AND {touched_id}=phase_keys.local_id
+                 )"
+            ),
+            [code],
+        )?;
+        Ok(())
+    }
+
+    fn freeze_phase(
+        &mut self,
+        worklists: &ResolutionWorklists,
+    ) -> Result<(), StoreResolutionError> {
+        let phase = worklists.phase;
+        let code = phase_code(phase);
         if self.scratch.query_row(
             "SELECT EXISTS(SELECT 1 FROM phase_ready WHERE phase=?1)",
             [code],
             |row| row.get::<_, bool>(0),
         )? {
+            return Ok(());
+        }
+        if !worklists.effective_full
+            && matches!(
+                phase,
+                ResolutionPhase::ResolvedPending | ResolutionPhase::ResolvedIdentifiers
+            )
+        {
+            self.freeze_prior_phase(worklists)?;
+            self.scratch
+                .execute("INSERT INTO phase_ready(phase) VALUES (?1)", [code])?;
             return Ok(());
         }
         let table = match phase {
@@ -1835,50 +2422,83 @@ impl StoreScratchResolutionSession {
         let transaction = self.scratch.transaction()?;
         if let Some((table, id_column)) = table {
             let connection = phase_reader.as_ref().expect("phase reader initialized");
-            let sql = format!(
-                "SELECT source.version_id,source.{id_column}
-                 FROM {table} AS source
-                 WHERE EXISTS (
-                   SELECT 1 FROM manifest_entries AS me
-                   WHERE me.view_id=?1 AND me.generation=?2
-                     AND me.status IN ('indexed','failed_preserved')
-                     AND me.version_id=source.version_id
-                 )
-                   AND (source.version_id,source.{id_column})>(?3,?4)
-                 ORDER BY source.version_id,source.{id_column} COLLATE BINARY LIMIT ?5"
-            );
-            let mut after = (0, String::new());
-            loop {
-                let keys = {
-                    let mut statement = connection.prepare(&sql)?;
-                    statement
-                        .query_map(
-                            params![
-                                self.identity.view_id,
-                                self.identity.generation,
-                                after.0,
-                                after.1,
-                                sql_window_limit
-                            ],
-                            |row| Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?)),
-                        )?
-                        .collect::<Result<Vec<_>, _>>()?
+            if worklists.effective_full {
+                freeze_source_query(
+                    connection,
+                    &transaction,
+                    &self.identity,
+                    self.window_size,
+                    code,
+                    table,
+                    id_column,
+                    None,
+                    &[],
+                )?;
+            } else {
+                let versions = match phase {
+                    ResolutionPhase::Relationships => &worklists.changed_versions,
+                    ResolutionPhase::Pending | ResolutionPhase::Identifiers => {
+                        &worklists.recheck_versions
+                    }
+                    _ => &worklists.recheck_versions,
                 };
-                self.max_store_read_page
-                    .set(self.max_store_read_page.get().max(keys.len()));
-                if keys.is_empty() {
-                    break;
+                for values in versions.chunks(256) {
+                    let values = store_versions(values)?
+                        .into_iter()
+                        .map(rusqlite::types::Value::Integer)
+                        .collect::<Vec<_>>();
+                    freeze_source_query(
+                        connection,
+                        &transaction,
+                        &self.identity,
+                        self.window_size,
+                        code,
+                        table,
+                        id_column,
+                        None,
+                        &values,
+                    )?;
                 }
-                let insert = format!(
-                    "WITH incoming(version_id,local_id) AS (VALUES {})
-                     INSERT INTO phase_keys(phase,version_id,local_id)
-                     SELECT ?,incoming.version_id,incoming.local_id FROM incoming",
-                    key_values_clause(keys.len())
-                );
-                let mut bind = key_params(&keys);
-                bind.push(rusqlite::types::Value::Integer(code));
-                transaction.execute(&insert, rusqlite::params_from_iter(bind))?;
-                after = keys.last().cloned().expect("non-empty key page");
+                if matches!(
+                    phase,
+                    ResolutionPhase::Pending | ResolutionPhase::Identifiers
+                ) {
+                    let name_column = if phase == ResolutionPhase::Pending {
+                        "target_terminal_name"
+                    } else {
+                        "name"
+                    };
+                    for names in worklists.recheck_names.chunks(256) {
+                        let names = names
+                            .iter()
+                            .cloned()
+                            .map(rusqlite::types::Value::Text)
+                            .collect::<Vec<_>>();
+                        freeze_source_query(
+                            connection,
+                            &transaction,
+                            &self.identity,
+                            self.window_size,
+                            code,
+                            table,
+                            id_column,
+                            Some(name_column),
+                            &names,
+                        )?;
+                    }
+                }
+                if phase == ResolutionPhase::Identifiers {
+                    let mut insert = transaction.prepare_cached(
+                        "INSERT OR IGNORE INTO phase_keys(phase,version_id,local_id) VALUES (?1,?2,?3)",
+                    )?;
+                    for (identifier, _) in &worklists.repair_identifiers {
+                        insert.execute(params![
+                            code,
+                            store_version(&identifier.version)?,
+                            identifier.local_id
+                        ])?;
+                    }
+                }
             }
             match phase {
                 ResolutionPhase::Pending => {
@@ -1908,7 +2528,98 @@ impl StoreScratchResolutionSession {
         }
         transaction.execute("INSERT INTO phase_ready(phase) VALUES (?1)", [code])?;
         transaction.commit()?;
+        if !worklists.effective_full
+            && matches!(
+                phase,
+                ResolutionPhase::Pending | ResolutionPhase::Identifiers
+            )
+        {
+            self.prune_effectively_covered_phase(phase)?;
+        }
         Ok(())
+    }
+
+    fn prune_effectively_covered_phase(
+        &mut self,
+        phase: ResolutionPhase,
+    ) -> Result<(), StoreResolutionError> {
+        let code = phase_code(phase);
+        let mut after = (0, String::new());
+        loop {
+            let keys = {
+                let mut statement = self.scratch.prepare(
+                    "SELECT version_id,local_id FROM phase_keys
+                     WHERE phase=?1 AND (version_id,local_id)>(?2,?3)
+                     ORDER BY version_id,local_id COLLATE BINARY LIMIT ?4",
+                )?;
+                statement
+                    .query_map(
+                        params![code, after.0, after.1, self.sql_window_limit()?],
+                        |row| Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?)),
+                    )?
+                    .collect::<Result<Vec<_>, _>>()?
+            };
+            if keys.is_empty() {
+                break;
+            }
+            let mut covered = Vec::new();
+            for (version_id, local_id) in &keys {
+                let is_covered = if phase == ResolutionPhase::Identifiers {
+                    self.effective_identifier_exists(&SemanticIdentifierId {
+                        version: SemanticVersionId::Store(*version_id),
+                        local_id: local_id.clone(),
+                    })?
+                } else {
+                    self.effective_pending_exists(*version_id, local_id)?
+                };
+                if is_covered {
+                    covered.push((*version_id, local_id.clone()));
+                }
+            }
+            let transaction = self.scratch.transaction()?;
+            {
+                let mut delete = transaction.prepare_cached(
+                    "DELETE FROM phase_keys WHERE phase=?1 AND version_id=?2 AND local_id=?3",
+                )?;
+                for (version_id, local_id) in covered {
+                    delete.execute(params![code, version_id, local_id])?;
+                }
+            }
+            transaction.commit()?;
+            after = keys.last().cloned().expect("non-empty phase key page");
+        }
+        Ok(())
+    }
+
+    fn effective_pending_exists(
+        &self,
+        version_id: i64,
+        local_id: &str,
+    ) -> Result<bool, StoreResolutionError> {
+        let touched: bool = self.scratch.query_row(
+            "SELECT EXISTS(SELECT 1 FROM pending_touched WHERE version_id=?1 AND pending_relationship_id=?2)",
+            params![version_id, local_id],
+            |row| row.get(0),
+        )?;
+        if touched {
+            return Ok(self.scratch.query_row(
+                "SELECT EXISTS(SELECT 1 FROM pending_resolutions WHERE version_id=?1 AND pending_relationship_id=?2)",
+                params![version_id, local_id],
+                |row| row.get(0),
+            )?);
+        }
+        let Some(prior) = &self.prior_overlay else {
+            return Ok(false);
+        };
+        match prior
+            .pending(version_id, local_id)
+            .map_err(|error| incremental_error(error.to_string()))?
+        {
+            PriorOverlayAccess::Ready(row) => Ok(row.is_some()),
+            PriorOverlayAccess::FullFallback(fallback) => Err(incremental_error(format!(
+                "prior overlay changed during resolution: {fallback:?}"
+            ))),
+        }
     }
 
     fn load_pending_page(
@@ -1959,6 +2670,42 @@ impl StoreScratchResolutionSession {
         })?;
         self.validate_hydrated_keys("pending", keys, &keyed_rows)?;
         Ok(keyed_rows.into_iter().map(|(_, row)| row).collect())
+    }
+
+    fn load_resolved_pending_page(
+        &self,
+        keys: &[(i64, String)],
+    ) -> Result<Vec<SessionResolvedPendingWorkItem>, StoreResolutionError> {
+        let pending = self.load_pending_page(keys)?;
+        let prior = self
+            .prior_overlay
+            .as_ref()
+            .ok_or_else(|| incremental_error("prior overlay unavailable"))?;
+        keys.iter()
+            .zip(pending)
+            .map(|((version_id, local_id), pending)| {
+                let row = ready_prior(
+                    prior
+                        .pending(*version_id, local_id)
+                        .map_err(|error| incremental_error(error.to_string()))?,
+                )?
+                .ok_or_else(|| {
+                    incremental_error(format!(
+                        "frozen prior pending row disappeared: {version_id}:{local_id}"
+                    ))
+                })?;
+                Ok(SessionResolvedPendingWorkItem {
+                    pending,
+                    target_symbol_id: SemanticSymbolId {
+                        version: SemanticVersionId::Store(row.target_version_id),
+                        local_id: row.target_symbol_id,
+                    },
+                    tier: row.tier,
+                    confidence: row.confidence,
+                    method: row.method,
+                })
+            })
+            .collect()
     }
 
     fn load_relationship_page(
@@ -2065,6 +2812,52 @@ impl StoreScratchResolutionSession {
         Ok(keyed_rows.into_iter().map(|(_, row)| row).collect())
     }
 
+    fn load_resolved_identifier_page(
+        &self,
+        keys: &[(i64, String)],
+    ) -> Result<Vec<SessionResolvedIdentifierWorkItem>, StoreResolutionError> {
+        let identifiers = self.load_identifier_page(keys)?;
+        let prior = self
+            .prior_overlay
+            .as_ref()
+            .ok_or_else(|| incremental_error("prior overlay unavailable"))?;
+        keys.iter()
+            .zip(identifiers)
+            .map(|((version_id, local_id), identifier)| {
+                let row = ready_prior(
+                    prior
+                        .identifier(*version_id, local_id)
+                        .map_err(|error| incremental_error(error.to_string()))?,
+                )?
+                .ok_or_else(|| {
+                    incremental_error(format!(
+                        "frozen prior identifier row disappeared: {version_id}:{local_id}"
+                    ))
+                })?;
+                let outcome = Outcome::parse(&row.outcome).ok_or_else(|| {
+                    incremental_error(format!(
+                        "invalid prior identifier outcome {:?}",
+                        row.outcome
+                    ))
+                })?;
+                Ok(SessionResolvedIdentifierWorkItem {
+                    identifier,
+                    target_symbol_id: row.target_version_id.zip(row.target_symbol_id).map(
+                        |(version_id, local_id)| SemanticSymbolId {
+                            version: SemanticVersionId::Store(version_id),
+                            local_id,
+                        },
+                    ),
+                    tier: row.tier,
+                    confidence: row.confidence,
+                    method: row.method,
+                    outcome,
+                    candidates: row.candidates,
+                })
+            })
+            .collect()
+    }
+
     fn validate_hydrated_keys<T>(
         &self,
         phase: &'static str,
@@ -2168,6 +2961,132 @@ fn parse_source_key(source_key: &str) -> Result<i64, StoreResolutionError> {
     source_key
         .parse()
         .map_err(|_| StoreResolutionError::InvalidIdentity)
+}
+
+fn store_layout_from_factory(
+    factory: &StoreConnectionFactory,
+) -> Result<StoreLayout, StoreResolutionError> {
+    let connection = factory.open_reader()?;
+    let store_path: String = connection.query_row(
+        "SELECT file FROM pragma_database_list WHERE name='main'",
+        [],
+        |row| row.get(0),
+    )?;
+    let store_path = PathBuf::from(store_path);
+    let root = store_path
+        .parent()
+        .and_then(Path::parent)
+        .ok_or_else(|| incremental_error("store layout root unavailable"))?;
+    let layout = StoreLayout::open(root).map_err(|error| incremental_error(error.to_string()))?;
+    if layout.store_db() != store_path {
+        return Err(incremental_error(
+            "connection generation does not match CURRENT",
+        ));
+    }
+    Ok(layout)
+}
+
+fn map_prior_page<T>(
+    access: PriorOverlayAccess<PriorOverlayPage<T>>,
+    key: impl Fn(T) -> (i64, String),
+) -> PriorPhaseAccess {
+    match access {
+        PriorOverlayAccess::Ready(page) => {
+            PriorOverlayAccess::Ready((page.rows.into_iter().map(key).collect(), page.next))
+        }
+        PriorOverlayAccess::FullFallback(fallback) => PriorOverlayAccess::FullFallback(fallback),
+    }
+}
+
+fn ready_prior<T>(access: PriorOverlayAccess<T>) -> Result<T, StoreResolutionError> {
+    match access {
+        PriorOverlayAccess::Ready(value) => Ok(value),
+        PriorOverlayAccess::FullFallback(fallback) => Err(incremental_error(format!(
+            "prior overlay changed during resolution: {fallback:?}"
+        ))),
+    }
+}
+
+fn prior_key_rows(access: PriorPhaseAccess) -> Result<PriorPhaseKeys, StoreResolutionError> {
+    ready_prior(access)
+}
+
+fn store_versions(versions: &[SemanticVersionId]) -> Result<Vec<i64>, StoreResolutionError> {
+    versions.iter().map(store_version).collect()
+}
+
+#[allow(clippy::too_many_arguments)]
+fn freeze_source_query(
+    connection: &Connection,
+    transaction: &rusqlite::Transaction<'_>,
+    identity: &StoreManifestIdentity,
+    window_size: usize,
+    phase: i64,
+    table: &str,
+    id_column: &str,
+    name_column: Option<&str>,
+    values: &[rusqlite::types::Value],
+) -> Result<(), StoreResolutionError> {
+    if !values.is_empty() || name_column.is_none() {
+        let filter = if values.is_empty() {
+            String::new()
+        } else {
+            let column = name_column.unwrap_or("version_id");
+            format!("AND source.{column} IN (SELECT value FROM selected)")
+        };
+        let with = if values.is_empty() {
+            String::new()
+        } else {
+            format!(
+                "WITH selected(value) AS (VALUES {}) ",
+                (0..values.len())
+                    .map(|_| "(?)")
+                    .collect::<Vec<_>>()
+                    .join(",")
+            )
+        };
+        let sql = format!(
+            "{with}SELECT source.version_id,source.{id_column}
+             FROM {table} AS source
+             WHERE EXISTS (
+               SELECT 1 FROM manifest_entries AS me
+               WHERE me.view_id=? AND me.generation=?
+                 AND me.status IN ('indexed','failed_preserved')
+                 AND me.version_id=source.version_id
+             ) {filter}
+               AND (source.version_id,source.{id_column})>(?,?)
+             ORDER BY source.version_id,source.{id_column} COLLATE BINARY LIMIT ?"
+        );
+        let mut after = (0, String::new());
+        loop {
+            let mut bind = values.to_vec();
+            bind.push(identity.view_id.clone().into());
+            bind.push(identity.generation.into());
+            bind.push(after.0.into());
+            bind.push(after.1.clone().into());
+            bind.push(i64::try_from(window_size).unwrap().into());
+            let keys = connection
+                .prepare(&sql)?
+                .query_map(rusqlite::params_from_iter(bind), |row| {
+                    Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?))
+                })?
+                .collect::<Result<Vec<_>, _>>()?;
+            if keys.is_empty() {
+                break;
+            }
+            let insert = format!(
+                "WITH incoming(version_id,local_id) AS (VALUES {})
+                 INSERT OR IGNORE INTO phase_keys(phase,version_id,local_id)
+                 SELECT ?,incoming.version_id,incoming.local_id FROM incoming",
+                key_values_clause(keys.len())
+            );
+            let mut insert_bind = key_params(&keys);
+            insert_bind.push(phase.into());
+            transaction.execute(&insert, rusqlite::params_from_iter(insert_bind))?;
+            after = keys.last().cloned().expect("non-empty source key page");
+        }
+    }
+    Ok(())
 }
 
 fn store_version(version: &SemanticVersionId) -> Result<i64, StoreResolutionError> {

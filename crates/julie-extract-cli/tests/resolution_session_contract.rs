@@ -525,6 +525,7 @@ struct FakeResolutionSession {
     writes: Vec<ResolutionWriteBatch>,
     index: Option<julie_extract_cli::resolution::WorkspaceCandidateIndex>,
     emitted_phases: Vec<ResolutionPhase>,
+    effective_full: bool,
 }
 
 impl ResolutionSession for FakeResolutionSession {
@@ -629,7 +630,7 @@ impl ResolutionSession for FakeResolutionSession {
         );
         self.emitted_phases.clear();
         Ok(ResolutionWorklists {
-            effective_full: true,
+            effective_full: self.effective_full,
             ..ResolutionWorklists::default()
         })
     }
@@ -780,6 +781,17 @@ fn resolver_policy_executes_through_a_session_without_sqlite() {
 
     let (counts, _) = run_resolution_session(&mut session, true, true).unwrap();
 
+    assert_eq!(
+        session.emitted_phases,
+        [
+            ResolutionPhase::ResolvedPending,
+            ResolutionPhase::ResolvedIdentifiers,
+            ResolutionPhase::Pending,
+            ResolutionPhase::Relationships,
+            ResolutionPhase::Identifiers,
+            ResolutionPhase::WorkspaceGated,
+        ]
+    );
     assert_eq!(
         session
             .writes

@@ -549,11 +549,11 @@ make coverage/propagation consult scratch union prior, and bulk-copy untouched c
 `finish_exact` target validation.
 
 **Acceptance criteria:**
-- [ ] `resolve_delta` runs unchanged through the store session.
-- [ ] Scratch wins per `(version_id, identifier_id)`, missing sibling rows in partially recomputed files are carried forward,
+- [x] `resolve_delta` runs unchanged through the store session.
+- [x] Scratch wins per `(version_id, identifier_id)`, missing sibling rows in partially recomputed files are carried forward,
       removed versions are never carried forward, and every visible identifier remains total.
-- [ ] Target validation rejects stale carried-forward targets.
-- [ ] Carry-forward stays bounded and focused mechanism/session tests pass.
+- [x] Target validation rejects stale carried-forward targets.
+- [x] Carry-forward stays bounded and focused mechanism/session tests pass.
 
 ### Task 6: Resolve wiring, telemetry, and differential oracle
 
