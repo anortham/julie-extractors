@@ -874,7 +874,8 @@ fn public_store_import_reaches_the_production_executor() {
     assert_eq!(
         output.status.code(),
         Some(0),
-        "stderr: {}",
+        "stdout: {}\nstderr: {}",
+        String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr)
     );
 
