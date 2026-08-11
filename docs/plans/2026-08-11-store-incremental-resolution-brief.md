@@ -519,11 +519,11 @@ expansions to manifest/version-qualified SQL. Define `path_added`/`path_deleted`
 and keep content-only replacement out of that arm. Apply `DELTA_SCOPE_CROSSOVER=0.7` and the single-file exemption verbatim.
 
 **Acceptance criteria:**
-- [ ] Mirrored legacy/store fixtures produce identical recheck names, files, selected rows, and crossover decisions.
-- [ ] Journal chain/count/hash/epoch failures and env-off return named full-fallback reasons.
-- [ ] Tier-4 uniqueness flips in unchanged files enter scope through touched names.
-- [ ] Added/deleted paths reproduce legacy structural module re-point scope; content-only replacement does not over-expand it.
-- [ ] Focused scope parity tests pass.
+- [x] Mirrored legacy/store fixtures produce identical recheck names, files, selected rows, and crossover decisions.
+- [x] Journal chain/count/hash/epoch failures and env-off return named full-fallback reasons.
+- [x] Tier-4 uniqueness flips in unchanged files enter scope through touched names.
+- [x] Added/deleted paths reproduce legacy structural module re-point scope; content-only replacement does not over-expand it.
+- [x] Focused scope parity tests pass.
 
 ### Task 5: Scoped session and exact materialization
 
