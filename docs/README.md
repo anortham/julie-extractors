@@ -29,6 +29,7 @@ plans and dogfood records are:
 - [Ph2d lifecycle plan](plans/2026-08-08-index-store-ph2d-lifecycle-plan.md)
 - [Ph2d dogfood evidence](findings/2026-08-08-index-store-ph2d-dogfood.md)
 - [v2.31.4 release notes](release-notes/v2.31.4.md)
+- [v2.31.4 release evidence](release-evidence/2026-08-11-v2-31-4-release.md)
 - [v2.31.3 release notes](release-notes/v2.31.3.md)
 - [v2.31.2 release notes](release-notes/v2.31.2.md)
 - [v2.31.1 release notes](release-notes/v2.31.1.md)
