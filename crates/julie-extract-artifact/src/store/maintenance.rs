@@ -1393,6 +1393,16 @@ impl MaintenanceExecutor {
             .unwrap_or(0);
         // Re-probe again immediately before first GC delete/demotion cohort.
         self.ensure_gc_capacity(plan)?;
+        if resolution_scope_state_available(&transaction)? {
+            transaction.execute(
+                "DELETE FROM resolution_scope_batches AS batch
+                 WHERE NOT EXISTS(
+                   SELECT 1 FROM resolution_scope_state AS state
+                   WHERE state.view_id=batch.view_id
+                 )",
+                [],
+            )?;
+        }
         report.removed_pins = transaction.execute(
             "DELETE FROM resolution_pins
              WHERE CAST(strftime('%s',expires_at) AS INTEGER)<=?1",

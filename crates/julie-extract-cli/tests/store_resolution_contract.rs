@@ -400,11 +400,20 @@ fn from_artifact_exact_publication_clears_scope_atomically_after_retry() {
     assert_eq!(
         Connection::open(&store_db)
             .unwrap()
-            .query_row("SELECT COUNT(*) FROM resolution_scope_state", [], |row| {
-                row.get::<_, i64>(0)
-            })
+            .query_row(
+                "SELECT
+                   (SELECT COUNT(*) FROM resolution_scope_state),
+                   (SELECT COUNT(*) FROM resolution_scope_batches),
+                   (SELECT COUNT(*) FROM resolution_scope_journal)",
+                [],
+                |row| Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, i64>(1)?,
+                    row.get::<_, i64>(2)?
+                )),
+            )
             .unwrap(),
-        1
+        (1, 1, 1)
     );
 
     let retried = julie_extract(&args);
@@ -419,13 +428,22 @@ fn from_artifact_exact_publication_clears_scope_atomically_after_retry() {
             .unwrap()
             .query_row(
                 "SELECT resolution_state='exact',
-                        (SELECT COUNT(*) FROM resolution_scope_state)
+                        (SELECT COUNT(*) FROM resolution_scope_state),
+                        (SELECT COUNT(*) FROM resolution_scope_batches),
+                        (SELECT COUNT(*) FROM resolution_scope_journal)
                  FROM views WHERE view_id='view-main'",
                 [],
-                |row| Ok((row.get::<_, bool>(0)?, row.get::<_, i64>(1)?)),
+                |row| {
+                    Ok((
+                        row.get::<_, bool>(0)?,
+                        row.get::<_, i64>(1)?,
+                        row.get::<_, i64>(2)?,
+                        row.get::<_, i64>(3)?,
+                    ))
+                },
             )
             .unwrap(),
-        (true, 0)
+        (true, 0, 0, 0)
     );
 }
 

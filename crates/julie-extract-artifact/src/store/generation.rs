@@ -13,7 +13,9 @@ use super::layout::{initialize_store_database, named_generations, sync_directory
 use super::maintenance::{
     CapacityProvider, MaintenanceError, MaintenanceExecutor, MaintenancePlan, MaintenanceRun,
 };
-use super::resolution::{resolution_file_bytes, resolution_file_sha256};
+use super::resolution::{
+    resolution_file_bytes, resolution_file_sha256, retire_resolution_scope_chain,
+};
 use super::{
     MaintenanceAction, PartialGenerationOwner, PidStatus, StoreConnectionError,
     StoreConnectionFactory, StoreLayout, StoreLayoutError, write_partial_generation_owner,
@@ -1057,14 +1059,7 @@ fn apply_forward_rollback(
             params![view.view_id, selected_manifest],
             |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
         )?;
-        transaction.execute(
-            "DELETE FROM resolution_scope_state WHERE view_id=?1",
-            [&view.view_id],
-        )?;
-        transaction.execute(
-            "DELETE FROM resolution_scope_batches WHERE view_id=?1",
-            [&view.view_id],
-        )?;
+        retire_resolution_scope_chain(&transaction, &view.view_id)?;
         transaction.execute(
             "UPDATE views SET current_generation=NULL,resolution_state='unbound',
                resolution_base_id=NULL,resolution_delta_generation=NULL,resolution_exact_at=NULL

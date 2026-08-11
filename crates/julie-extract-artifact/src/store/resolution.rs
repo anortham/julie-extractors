@@ -1121,9 +1121,44 @@ pub enum ResolutionPublicationMarker {
     StoreTransactionEnd,
 }
 
+pub(crate) fn retire_resolution_scope_chain(
+    transaction: &Transaction<'_>,
+    view_id: &str,
+) -> Result<(), rusqlite::Error> {
+    transaction.execute(
+        "DELETE FROM resolution_scope_state WHERE view_id=?1",
+        [view_id],
+    )?;
+    transaction.execute(
+        "DELETE FROM resolution_scope_batches WHERE view_id=?1",
+        [view_id],
+    )?;
+    Ok(())
+}
+
 impl ResolutionBindingStore {
     pub fn new(factory: StoreConnectionFactory) -> Self {
         Self { factory }
+    }
+
+    /// Invalidates a view's resolution binding inside its removal transaction.
+    pub fn invalidate_for_view_removal_in_transaction(
+        transaction: &Transaction<'_>,
+        view_id: &str,
+    ) -> Result<(), ResolutionBindingError> {
+        retire_resolution_scope_chain(transaction, view_id)?;
+        let changed = transaction.execute(
+            "UPDATE views SET resolution_state='unbound',resolution_base_id=NULL,
+                    resolution_delta_generation=NULL,resolution_exact_at=NULL
+             WHERE view_id=?1",
+            [view_id],
+        )?;
+        if changed != 1 {
+            return Err(ResolutionBindingError::ViewNotFound {
+                view_id: view_id.to_string(),
+            });
+        }
+        Ok(())
     }
 
     pub fn bind_base(
@@ -1206,10 +1241,7 @@ impl ResolutionBindingStore {
             });
         }
         if exact {
-            transaction.execute(
-                "DELETE FROM resolution_scope_state WHERE view_id=?1",
-                [view_id],
-            )?;
+            retire_resolution_scope_chain(&transaction, view_id)?;
         }
         let payload = serde_json::json!({
             "base_id": base.base_id,
@@ -1304,10 +1336,7 @@ impl ResolutionBindingStore {
                 view_id: binding.view_id.clone(),
             });
         }
-        transaction.execute(
-            "DELETE FROM resolution_scope_state WHERE view_id=?1",
-            [&binding.view_id],
-        )?;
+        retire_resolution_scope_chain(transaction, &binding.view_id)?;
         Ok(())
     }
 
@@ -1516,10 +1545,7 @@ impl ResolutionBindingStore {
                 view_id: publication.view_id.clone(),
             });
         }
-        transaction.execute(
-            "DELETE FROM resolution_scope_state WHERE view_id=?1",
-            [&publication.view_id],
-        )?;
+        retire_resolution_scope_chain(&transaction, &publication.view_id)?;
         let payload = serde_json::json!({
             "base_id": publication.base_id,
             "delta_generation": delta_generation,

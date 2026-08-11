@@ -430,6 +430,7 @@ pub(crate) fn capture_resolution_scope_transition(
     new_entries: impl IntoIterator<Item = ScopeManifestEntry>,
     request_id: &str,
 ) -> Result<i64, ResolutionScopeError> {
+    let feature_was_installed = resolution_scope_journal_version(transaction)?.is_some();
     ensure_resolution_scope_feature(transaction)?;
     let previous_transition_id = transaction.query_row(
         "SELECT MAX(transition_id) FROM resolution_scope_batches WHERE view_id=?1",
@@ -445,16 +446,17 @@ pub(crate) fn capture_resolution_scope_transition(
             )
         })
         .transpose()?;
-    let state = if from_manifest_generation.is_some() && previous_transition_id.is_none() {
-        None
-    } else if let Some(state) = exact_scope_state(transaction, view_id)? {
-        Some(state)
-    } else {
-        resolution_scope_state(transaction, view_id)?.filter(|state| {
-            Some(state.current_manifest_generation) == from_manifest_generation
-                && Some(state.current_manifest_hash.as_str()) == from_manifest_hash.as_deref()
-        })
-    };
+    let state =
+        if feature_was_installed && let Some(state) = exact_scope_state(transaction, view_id)? {
+            Some(state)
+        } else if from_manifest_generation.is_some() && previous_transition_id.is_none() {
+            None
+        } else {
+            resolution_scope_state(transaction, view_id)?.filter(|state| {
+                Some(state.current_manifest_generation) == from_manifest_generation
+                    && Some(state.current_manifest_hash.as_str()) == from_manifest_hash.as_deref()
+            })
+        };
     let deltas = if state.is_some() {
         let old_entries = manifest_entries(transaction, view_id, from_manifest_generation)?;
         let new_entries = new_entries

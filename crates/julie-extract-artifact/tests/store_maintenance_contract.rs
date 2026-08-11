@@ -652,7 +652,7 @@ fn gc_persists_physical_retention_breaches_and_requests_compaction() {
 }
 
 #[test]
-fn gc_retires_manifest_entries_before_their_parent_manifests() {
+fn gc_retires_inactive_scope_batches_before_their_parent_manifests() {
     let temp = TempStore::new("gc-manifest-entry-order");
     let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
     let mut store = Connection::open(layout.store_db()).unwrap();
@@ -703,6 +703,20 @@ fn gc_retires_manifest_entries_before_their_parent_manifests() {
             [],
         )
         .unwrap();
+    transaction
+        .execute(
+            "INSERT INTO resolution_scope_batches
+             (view_id,previous_transition_id,from_manifest_generation,from_manifest_hash,
+              to_manifest_generation,to_manifest_hash,scope_usable,
+              predecessor_manifest_generation,predecessor_manifest_hash,base_id,
+              delta_generation,resolver_output_epoch,change_count,change_hash,request_id,
+              completed_at)
+             VALUES ('view-a',NULL,1,'manifest-1',2,'manifest-2',0,
+                     NULL,NULL,NULL,NULL,NULL,0,'blake3:empty','scope-fallback',
+                     '1970-01-01T00:00:01Z')",
+            [],
+        )
+        .unwrap();
     transaction.commit().unwrap();
 
     let plan = inspect_plan(&layout, 30 * DAY_MS);
@@ -723,6 +737,14 @@ fn gc_retires_manifest_entries_before_their_parent_manifests() {
     let report = executor.apply(&plan).unwrap();
 
     assert_eq!(report.removed_manifests, 1);
+    assert_eq!(
+        store
+            .query_row("SELECT COUNT(*) FROM resolution_scope_batches", [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .unwrap(),
+        0
+    );
     assert_eq!(
         store
             .query_row("SELECT COUNT(*) FROM manifests", [], |row| row

@@ -164,7 +164,7 @@ fn manifest_hash_v2_is_language_sensitive_and_language_roundtrips() {
 }
 
 #[test]
-fn manifest_flip_from_an_exact_view_invalidates_resolution_before_advancing_the_head() {
+fn manifest_flip_from_exact_without_prior_batch_starts_a_fresh_scope_chain() {
     let mut connection = Connection::open_in_memory().unwrap();
     create_store_schema(&connection).unwrap();
     let first_version = insert_version(&connection, "src/lib.rs", "blake3:first");
@@ -212,6 +212,12 @@ fn manifest_flip_from_an_exact_view_invalidates_resolution_before_advancing_the_
              SET resolution_state='exact',resolution_base_id='base-a',
                  resolution_delta_generation=1,resolution_exact_at=1
              WHERE view_id='view-a'",
+            [],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "DELETE FROM resolution_scope_batches WHERE view_id='view-a'",
             [],
         )
         .unwrap();
@@ -272,6 +278,28 @@ fn manifest_flip_from_an_exact_view_invalidates_resolution_before_advancing_the_
         .unwrap();
 
     assert_eq!(published.generation, 2);
+    assert_eq!(
+        connection
+            .query_row(
+                "SELECT batch.previous_transition_id,batch.scope_usable,
+                        state.predecessor_manifest_generation,
+                        state.current_manifest_generation
+                 FROM resolution_scope_batches AS batch
+                 JOIN resolution_scope_state AS state ON state.view_id=batch.view_id
+                 WHERE batch.view_id='view-a'",
+                [],
+                |row| {
+                    Ok((
+                        row.get::<_, Option<i64>>(0)?,
+                        row.get::<_, i64>(1)?,
+                        row.get::<_, i64>(2)?,
+                        row.get::<_, i64>(3)?,
+                    ))
+                },
+            )
+            .unwrap(),
+        (None, 1, 1, 2)
+    );
     assert_eq!(
         connection
             .query_row(

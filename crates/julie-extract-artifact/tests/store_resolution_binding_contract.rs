@@ -419,11 +419,175 @@ fn exact_publication_clears_scope_only_after_winning_the_latest_manifest_cas() {
         .publish_exact(&latest, &latest_fence, &latest_scratch, &[], 1, || Ok(()))
         .unwrap();
 
+    let connection = Connection::open(layout.store_db()).unwrap();
+    let retired: (i64, i64, i64) = connection
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM resolution_scope_state WHERE view_id='view-a'),
+               (SELECT COUNT(*) FROM resolution_scope_batches WHERE view_id='view-a'),
+               (SELECT COUNT(*) FROM resolution_scope_journal)",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .unwrap();
+    assert_eq!(retired, (0, 0, 0));
+    drop(connection);
+
+    publish_manifest(&layout, "view-a", Some(3), "src/d.rs", "d");
+    let connection = Connection::open(layout.store_db()).unwrap();
+    let fresh_chain: (Option<i64>, i64, i64) = connection
+        .query_row(
+            "SELECT batch.previous_transition_id,
+                    state.predecessor_manifest_generation,
+                    state.current_manifest_generation
+             FROM resolution_scope_batches AS batch
+             JOIN resolution_scope_state AS state ON state.view_id=batch.view_id
+             WHERE batch.view_id='view-a'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .unwrap();
+    assert_eq!(fresh_chain, (None, 3, 4));
     assert!(
-        resolution_scope_state(&Connection::open(layout.store_db()).unwrap(), "view-a")
+        resolution_scope_state(&connection, "view-a")
             .unwrap()
-            .is_none()
+            .is_some()
     );
+}
+
+#[test]
+fn removing_a_view_retires_its_active_scope_chain_atomically() {
+    let temp = TempDir::new();
+    let layout = StoreLayout::create(&temp.0, FAMILY_ID, VERSION).unwrap();
+    let (predecessor_hash, predecessor_version) =
+        publish_manifest(&layout, "view-a", None, "src/a.rs", "a");
+    let factory = StoreConnectionFactory::new(layout.clone(), FAMILY_ID, VERSION);
+    ready_empty_base(
+        &factory,
+        &predecessor_hash,
+        predecessor_version,
+        "request-base",
+    );
+    let bindings = ResolutionBindingStore::new(factory);
+    bindings
+        .bind_base("view-a", 7, "request-predecessor", NOW)
+        .unwrap();
+    publish_manifest(&layout, "view-a", Some(1), "src/b.rs", "b");
+    publish_manifest(&layout, "view-a", Some(2), "src/c.rs", "c");
+
+    let connection = Connection::open(layout.store_db()).unwrap();
+    let before: (i64, i64, i64, i64) = connection
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM views WHERE view_id='view-a'),
+               (SELECT COUNT(*) FROM resolution_scope_state WHERE view_id='view-a'),
+               (SELECT COUNT(*) FROM resolution_scope_batches WHERE view_id='view-a'),
+               (SELECT COUNT(*) FROM resolution_scope_journal
+                  WHERE transition_id IN (
+                    SELECT transition_id FROM resolution_scope_batches WHERE view_id='view-a'
+                  ))",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        )
+        .unwrap();
+    assert_eq!(before, (1, 1, 2, 4));
+    drop(connection);
+
+    let mut connection = Connection::open(layout.store_db()).unwrap();
+    let transaction = connection.transaction().unwrap();
+    ResolutionBindingStore::invalidate_for_view_removal_in_transaction(&transaction, "view-a")
+        .unwrap();
+    transaction
+        .execute(
+            "UPDATE views SET current_generation=NULL WHERE view_id='view-a'",
+            [],
+        )
+        .unwrap();
+    transaction
+        .execute("DELETE FROM resolution_deltas WHERE view_id='view-a'", [])
+        .unwrap();
+    transaction
+        .execute("DELETE FROM manifest_entries WHERE view_id='view-a'", [])
+        .unwrap();
+    transaction
+        .execute("DELETE FROM manifests WHERE view_id='view-a'", [])
+        .unwrap();
+    transaction
+        .execute("DELETE FROM views WHERE view_id='view-a'", [])
+        .unwrap();
+    transaction.commit().unwrap();
+
+    let connection = Connection::open(layout.store_db()).unwrap();
+    let after: (i64, i64, i64, i64) = connection
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM views WHERE view_id='view-a'),
+               (SELECT COUNT(*) FROM resolution_scope_state WHERE view_id='view-a'),
+               (SELECT COUNT(*) FROM resolution_scope_batches WHERE view_id='view-a'),
+               (SELECT COUNT(*) FROM resolution_scope_journal)",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        )
+        .unwrap();
+    assert_eq!(after, (0, 0, 0, 0));
+}
+
+#[test]
+fn view_removal_invalidation_preserves_live_resolution_pins() {
+    let temp = TempDir::new();
+    let layout = StoreLayout::create(&temp.0, FAMILY_ID, VERSION).unwrap();
+    let (predecessor_hash, predecessor_version) =
+        publish_manifest(&layout, "view-a", None, "src/a.rs", "a");
+    let factory = StoreConnectionFactory::new(layout.clone(), FAMILY_ID, VERSION);
+    ready_empty_base(
+        &factory,
+        &predecessor_hash,
+        predecessor_version,
+        "request-base",
+    );
+    let bindings = ResolutionBindingStore::new(factory);
+    bindings
+        .bind_base("view-a", 7, "request-predecessor", NOW)
+        .unwrap();
+    bindings
+        .open_pin(
+            "pin-view-removal",
+            ResolutionPinOwnerKind::Reader,
+            "reader-view-removal",
+            "view-a",
+            "2026-08-08T20:40:00Z",
+            NOW,
+        )
+        .unwrap();
+    publish_manifest(&layout, "view-a", Some(1), "src/b.rs", "b");
+
+    let mut connection = Connection::open(layout.store_db()).unwrap();
+    let transaction = connection.transaction().unwrap();
+    ResolutionBindingStore::invalidate_for_view_removal_in_transaction(&transaction, "view-a")
+        .unwrap();
+    assert_eq!(
+        transaction
+            .query_row(
+                "SELECT
+                   (SELECT COUNT(*) FROM resolution_scope_state WHERE view_id='view-a'),
+                   (SELECT COUNT(*) FROM resolution_scope_batches WHERE view_id='view-a'),
+                   (SELECT COUNT(*) FROM resolution_pins WHERE view_id='view-a')",
+                [],
+                |row| Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, i64>(1)?,
+                    row.get::<_, i64>(2)?
+                )),
+            )
+            .unwrap(),
+        (0, 0, 1)
+    );
+    assert!(
+        transaction
+            .execute("DELETE FROM resolution_deltas WHERE view_id='view-a'", [])
+            .is_err()
+    );
+    transaction.rollback().unwrap();
 }
 
 #[test]
@@ -753,10 +917,23 @@ fn exact_base_reuse_clears_the_manifest_scope_root_after_its_cas_wins() {
 
     assert_eq!(exact.state, ViewResolutionState::Exact);
     assert_eq!(exact.base_id, second_base);
-    assert!(
-        resolution_scope_state(&Connection::open(layout.store_db()).unwrap(), "view-a")
+    assert_eq!(
+        Connection::open(layout.store_db())
             .unwrap()
-            .is_none()
+            .query_row(
+                "SELECT
+                   (SELECT COUNT(*) FROM resolution_scope_state WHERE view_id='view-a'),
+                   (SELECT COUNT(*) FROM resolution_scope_batches WHERE view_id='view-a'),
+                   (SELECT COUNT(*) FROM resolution_scope_journal)",
+                [],
+                |row| Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, i64>(1)?,
+                    row.get::<_, i64>(2)?
+                )),
+            )
+            .unwrap(),
+        (0, 0, 0)
     );
 }
 
