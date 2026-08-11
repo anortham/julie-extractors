@@ -468,11 +468,11 @@ CLI `store/executor.rs:1157`, which moves behind a `ResolutionBindingStore` meth
 exact publication.
 
 **Acceptance criteria:**
-- [ ] GC between manifest publication and resolve cannot remove the predecessor overlay.
-- [ ] CAS loss and a second manifest update preserve the original exact predecessor and all later journal batches.
-- [ ] Crash points around capture, flip, exact publish, clear, rollback, and promotion recover without a dangling root.
-- [ ] Forward rollback, generation promotion, and the executor exact-binding path each preserve or explicitly invalidate scope state; the executor path publishes through `ResolutionBindingStore`.
-- [ ] Focused binding, maintenance, generation, and crash contracts pass.
+- [x] GC between manifest publication and resolve cannot remove the predecessor overlay.
+- [x] CAS loss and a second manifest update preserve the original exact predecessor and all later journal batches.
+- [x] Crash points around capture, flip, exact publish, clear, rollback, and promotion recover without a dangling root.
+- [x] Forward rollback, generation promotion, and the executor exact-binding path each preserve or explicitly invalidate scope state; the executor path publishes through `ResolutionBindingStore`.
+- [x] Focused binding, maintenance, generation, and crash contracts pass.
 
 ### Task 3: Prior overlay reader
 
