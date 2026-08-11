@@ -338,7 +338,7 @@ fn high_collision_store_lookup_matches_legacy_and_caps_ambiguity_evidence() {
         matches!(store_outcome, TierOutcome::Ambiguous { ref candidates, exact_count: 10_000 } if candidates.len() == 2)
     );
     assert!(session.max_store_read_page() <= 300);
-    assert_eq!(session.max_store_read_page(), 300);
+    assert_eq!(session.max_store_read_page(), 2);
     run_resolution_session(&mut session, true, true).unwrap();
     session.finish_exact().unwrap();
     let rows = ResolutionBaseReader::open(&exact_path)
@@ -494,7 +494,9 @@ fn store_phase_windows_freeze_membership_and_emit_identical_exact_bases() {
     run_resolution_session(&mut small, true, true).unwrap();
     assert_eq!(small.max_emitted_chunk_size(), 1);
     assert_eq!(small.max_store_read_page(), 1);
+    assert!(small.max_candidate_cache_entries() <= 3);
     let small_reader_opens = small.phase_reader_opens();
+    assert_eq!(small_reader_opens, 26);
     let small_identity = small.finish_exact().unwrap();
 
     let mut large = StoreScratchResolutionSession::new(
@@ -509,10 +511,11 @@ fn store_phase_windows_freeze_membership_and_emit_identical_exact_bases() {
     assert!(large.max_emitted_chunk_size() <= 7);
     assert!(large.max_emitted_chunk_size() > 1);
     assert!(large.max_store_read_page() <= 7);
+    assert!(large.max_candidate_cache_entries() <= 21);
     let large_reader_opens = large.phase_reader_opens();
+    assert_eq!(large_reader_opens, 7);
     let large_identity = large.finish_exact().unwrap();
     assert!(small_reader_opens > large_reader_opens * 3);
-    assert!(large_reader_opens <= 20);
 
     let small = ResolutionBaseReader::open(small_identity.path).unwrap();
     let large = ResolutionBaseReader::open(large_identity.path).unwrap();

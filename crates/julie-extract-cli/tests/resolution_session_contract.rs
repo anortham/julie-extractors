@@ -732,6 +732,8 @@ impl ResolutionSession for FakeResolutionSession {
                     local_id: "target".to_string(),
                 },
                 source_version_id: SemanticVersionId::Store(10),
+                located_identifier_id: None,
+                identifier_lookup_complete: false,
                 kind: "calls".to_string(),
                 start_line: 1,
                 start_byte: Some(0),

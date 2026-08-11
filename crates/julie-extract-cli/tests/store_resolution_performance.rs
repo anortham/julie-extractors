@@ -30,6 +30,10 @@ const MILLER_FILE_ROWS: usize = 1_538;
 const MILLER_IDENTIFIER_ROWS: usize = 392_134;
 const MILLER_PENDING_ROWS: usize = 89_538;
 const MILLER_RESOLVED_PENDING_ROWS: usize = 10_412;
+const TARGET_VALIDATION_DISTINCT_TARGETS: usize = 2_048;
+const TARGET_VALIDATION_MAX: Duration = Duration::from_secs(2);
+const CANDIDATE_RESOLUTION_DISTINCT_NAMES: usize = 20_000;
+const CANDIDATE_RESOLUTION_MAX: Duration = Duration::from_millis(3_500);
 const PAIRS: [&str; 2] = ["miller-unchanged", "miller-mutated"];
 const NOW: &str = "2026-08-08T12:00:00.000Z";
 
@@ -148,6 +152,82 @@ fn performance_gate_resets_only_its_owned_directories() {
     assert!(owned.is_dir());
     assert!(!owned.join("stale.db").exists());
     assert_eq!(fs::read(sibling).unwrap(), b"keep");
+}
+
+#[test]
+fn target_validation_finishes_with_high_distinct_target_cardinality() {
+    let temp = tempfile::tempdir().unwrap();
+    let layout = build_target_validation_fixture(temp.path(), TARGET_VALIDATION_DISTINCT_TARGETS);
+    let identity = manifest_identity(&layout, 1);
+    let factory = StoreConnectionFactory::new(layout, FAMILY_ID, env!("CARGO_PKG_VERSION"));
+    let exact_path = temp.path().join("exact.db");
+    let mut session = StoreScratchResolutionSession::new(
+        factory,
+        identity,
+        &exact_path,
+        WINDOW_SIZE,
+        RESOLVER_OUTPUT_EPOCH,
+    )
+    .unwrap();
+    run_resolution_session(&mut session, true, true).unwrap();
+
+    let started = Instant::now();
+    let exact = session.finish_exact().unwrap();
+    let elapsed = started.elapsed();
+
+    assert_eq!(
+        exact.counts.identifiers,
+        TARGET_VALIDATION_DISTINCT_TARGETS as u64
+    );
+    let connection = Connection::open(exact_path).unwrap();
+    let distinct_targets: i64 = connection
+        .query_row(
+            "SELECT COUNT(*) FROM (
+               SELECT DISTINCT target_version_id,target_symbol_id
+               FROM identifier_resolutions
+               WHERE target_version_id IS NOT NULL
+             )",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(distinct_targets, TARGET_VALIDATION_DISTINCT_TARGETS as i64);
+    assert!(
+        elapsed <= TARGET_VALIDATION_MAX,
+        "target validation took {elapsed:?}, expected at most {TARGET_VALIDATION_MAX:?}"
+    );
+}
+
+#[test]
+fn candidate_resolution_finishes_with_high_distinct_name_cardinality() {
+    let temp = tempfile::tempdir().unwrap();
+    let layout = build_target_validation_fixture(temp.path(), CANDIDATE_RESOLUTION_DISTINCT_NAMES);
+    let identity = manifest_identity(&layout, 1);
+    let factory = StoreConnectionFactory::new(layout, FAMILY_ID, env!("CARGO_PKG_VERSION"));
+    let exact_path = temp.path().join("exact.db");
+    let mut session = StoreScratchResolutionSession::new(
+        factory,
+        identity,
+        &exact_path,
+        WINDOW_SIZE,
+        RESOLVER_OUTPUT_EPOCH,
+    )
+    .unwrap();
+
+    let started = Instant::now();
+    run_resolution_session(&mut session, true, true).unwrap();
+    let elapsed = started.elapsed();
+    assert!(session.max_candidate_cache_entries() <= WINDOW_SIZE * 3);
+
+    let exact = session.finish_exact().unwrap();
+    assert_eq!(
+        exact.counts.identifiers,
+        CANDIDATE_RESOLUTION_DISTINCT_NAMES as u64
+    );
+    assert!(
+        elapsed <= CANDIDATE_RESOLUTION_MAX,
+        "candidate resolution took {elapsed:?}, expected at most {CANDIDATE_RESOLUTION_MAX:?}"
+    );
 }
 
 #[test]
@@ -886,6 +966,106 @@ fn ensure_ready_performance_base(layout: &StoreLayout) {
     session.finish_exact().unwrap();
     catalog.publish_scratch(&build).unwrap();
     catalog.mark_ready(&build, NOW).unwrap();
+}
+
+fn build_target_validation_fixture(root: &Path, target_count: usize) -> StoreLayout {
+    let layout =
+        StoreLayout::create(root.join("family"), FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
+    let factory = StoreConnectionFactory::new(layout.clone(), FAMILY_ID, env!("CARGO_PKG_VERSION"));
+    let mut connection = factory.open_writer().unwrap();
+    ManifestStore::new(&mut connection)
+        .ensure_view(VIEW_ID, ROOT)
+        .unwrap();
+    let transaction = connection.transaction().unwrap();
+    let path = "src/high-cardinality.cs";
+    let version = insert_version(&transaction, path, "high-cardinality-hash");
+    transaction
+        .execute(
+            "INSERT INTO symbols(version_id,symbol_id,path,language,name,kind,
+             start_line,start_column,end_line,end_column,start_byte,end_byte,is_test,test_container,test_lifecycle)
+             VALUES (?1,'caller',?2,'csharp','caller','function',1,1,100000,1,0,1000000,0,0,0)",
+            params![version, path],
+        )
+        .unwrap();
+    let mut symbol_insert = transaction
+        .prepare(
+            "INSERT INTO symbols(version_id,symbol_id,path,language,name,kind,
+             start_line,start_column,end_line,end_column,start_byte,end_byte,is_test,test_container,test_lifecycle)
+             VALUES (?1,?2,?3,'csharp',?4,'function',?5,1,?5,10,?6,?7,0,0,0)",
+        )
+        .unwrap();
+    let mut site_insert = transaction
+        .prepare(
+            "INSERT INTO reference_sites(version_id,reference_site_id,path,language,containing_symbol_id,
+             start_line,start_column,end_line,end_column,start_byte,end_byte,is_exact,provenance,level)
+             VALUES (?1,?2,?3,'csharp','caller',?4,1,?4,7,?5,?6,1,'target_token',2)",
+        )
+        .unwrap();
+    let mut identifier_insert = transaction
+        .prepare(
+            "INSERT INTO identifiers(version_id,identifier_id,reference_site_id,path,language,name,kind,
+             containing_symbol_id,start_line,start_column,end_line,end_column,start_byte,end_byte,confidence)
+             VALUES (?1,?2,?3,?4,'csharp',?5,'call','caller',?6,1,?6,7,?7,?8,1.0)",
+        )
+        .unwrap();
+    for index in 0..target_count {
+        let target = format!("target-{index:08}");
+        let site = format!("site-{index:08}");
+        let identifier = format!("identifier-{index:08}");
+        let line = i64::try_from(index).unwrap() + 2;
+        let start = i64::try_from(index).unwrap() * 20 + 100;
+        symbol_insert
+            .execute(params![
+                version,
+                target,
+                path,
+                target,
+                line,
+                start,
+                start + 10
+            ])
+            .unwrap();
+        site_insert
+            .execute(params![version, site, path, line, start + 11, start + 17])
+            .unwrap();
+        identifier_insert
+            .execute(params![
+                version,
+                identifier,
+                site,
+                path,
+                target,
+                line,
+                start + 11,
+                start + 17
+            ])
+            .unwrap();
+    }
+    drop(identifier_insert);
+    drop(site_insert);
+    drop(symbol_insert);
+    transaction
+        .execute(
+            "INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+             VALUES (?1,1,?2,'target-validation',?3)",
+            params![VIEW_ID, "4".repeat(64), NOW],
+        )
+        .unwrap();
+    transaction
+        .execute(
+            "INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
+             VALUES (?1,1,?2,'csharp',?3,'indexed','high-cardinality-hash',?4)",
+            params![VIEW_ID, path, version, NOW],
+        )
+        .unwrap();
+    transaction
+        .execute(
+            "UPDATE views SET current_generation=1 WHERE view_id=?1",
+            [VIEW_ID],
+        )
+        .unwrap();
+    transaction.commit().unwrap();
+    layout
 }
 
 fn insert_version(transaction: &rusqlite::Transaction<'_>, path: &str, hash: &str) -> i64 {

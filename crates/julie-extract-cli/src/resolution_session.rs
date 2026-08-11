@@ -145,6 +145,8 @@ pub enum ResolutionPhase {
 pub struct SessionRelationship {
     pub target_symbol_id: SemanticSymbolId,
     pub source_version_id: SemanticVersionId,
+    pub located_identifier_id: Option<String>,
+    pub identifier_lookup_complete: bool,
     pub kind: String,
     pub start_line: i64,
     pub start_byte: Option<i64>,
@@ -816,6 +818,8 @@ impl ResolutionSession for LegacyResolutionSession<'_, '_> {
                                 local_id: row.target_symbol_id,
                             },
                             source_version_id: SemanticVersionId::LegacyFile(row.source_key),
+                            located_identifier_id: None,
+                            identifier_lookup_complete: false,
                             kind: row.kind,
                             start_line: row.start_line,
                             start_byte: row.start_byte,

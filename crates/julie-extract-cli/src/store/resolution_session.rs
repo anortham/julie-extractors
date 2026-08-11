@@ -1,5 +1,5 @@
 use std::cell::{Cell, RefCell};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, BTreeSet, HashMap, VecDeque};
 use std::fmt;
 use std::path::{Path, PathBuf};
 
@@ -27,6 +27,75 @@ use crate::resolution_session::{SemanticSymbolId, SemanticVersionId};
 
 const MAX_STORE_RESOLUTION_WINDOW: usize = 300;
 type CandidatePage = (Vec<CandidateHit>, Option<(i64, String)>);
+
+#[derive(Debug, Default)]
+struct CandidateWindow {
+    primed_names: BTreeSet<String>,
+    by_name: HashMap<String, Vec<CandidateHit>>,
+    by_id: HashMap<SemanticSymbolId, Option<CandidateHit>>,
+    module_versions: HashMap<(Vec<String>, String), Option<String>>,
+}
+
+impl CandidateWindow {
+    fn entry_count(&self) -> usize {
+        self.by_name.values().map(Vec::len).sum::<usize>()
+            + self.by_id.len()
+            + self.module_versions.len()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct FilteredSummaryKey {
+    name: String,
+    language: String,
+    kinds: Vec<String>,
+    version_id: Option<i64>,
+    confidence_bits: u64,
+}
+
+#[derive(Debug, Default)]
+struct TierCandidateAccumulator {
+    buffered: BTreeMap<SemanticSymbolId, f64>,
+    spilled: bool,
+}
+
+#[derive(Debug)]
+struct BoundedCache<K, V> {
+    capacity: usize,
+    order: VecDeque<K>,
+    values: HashMap<K, V>,
+}
+
+impl<K, V> BoundedCache<K, V>
+where
+    K: Clone + Eq + std::hash::Hash,
+{
+    fn new(capacity: usize) -> Self {
+        Self {
+            capacity,
+            order: VecDeque::new(),
+            values: HashMap::new(),
+        }
+    }
+
+    fn get(&self, key: &K) -> Option<&V> {
+        self.values.get(key)
+    }
+
+    fn insert(&mut self, key: K, value: V) {
+        if let Some(existing) = self.values.get_mut(&key) {
+            *existing = value;
+            return;
+        }
+        if self.values.len() == self.capacity
+            && let Some(evicted) = self.order.pop_front()
+        {
+            self.values.remove(&evicted);
+        }
+        self.order.push_back(key.clone());
+        self.values.insert(key, value);
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct ResolutionLookupKey {
@@ -185,8 +254,12 @@ pub struct StoreScratchResolutionSession {
     max_emitted_chunk_size: usize,
     max_store_read_page: Cell<usize>,
     phase_reader_opens: Cell<usize>,
+    max_candidate_cache_entries: Cell<usize>,
     visible_root_batches: usize,
     candidate_reader: RefCell<Option<Connection>>,
+    candidate_window: RefCell<CandidateWindow>,
+    filtered_summaries: RefCell<BoundedCache<FilteredSummaryKey, CandidateSummary>>,
+    tier_candidates: RefCell<TierCandidateAccumulator>,
     resolution_cache: RefCell<HashMap<ResolutionLookupKey, TierOutcome>>,
 }
 
@@ -229,8 +302,12 @@ impl StoreScratchResolutionSession {
             max_emitted_chunk_size: 0,
             max_store_read_page: Cell::new(0),
             phase_reader_opens: Cell::new(0),
+            max_candidate_cache_entries: Cell::new(0),
             visible_root_batches: 0,
             candidate_reader: RefCell::new(None),
+            candidate_window: RefCell::new(CandidateWindow::default()),
+            filtered_summaries: RefCell::new(BoundedCache::new(window_size)),
+            tier_candidates: RefCell::new(TierCandidateAccumulator::default()),
             resolution_cache: RefCell::new(HashMap::new()),
         };
         session.validate_manifest()?;
@@ -323,6 +400,10 @@ impl StoreScratchResolutionSession {
 
     pub fn phase_reader_opens(&self) -> usize {
         self.phase_reader_opens.get()
+    }
+
+    pub fn max_candidate_cache_entries(&self) -> usize {
+        self.max_candidate_cache_entries.get()
     }
 
     #[cfg(feature = "test-store-resolution-contract")]
@@ -426,27 +507,30 @@ impl StoreScratchResolutionSession {
                 })?;
             }
         }
-        let factory = self.reader_factory.clone();
         let identity = self.identity.clone();
+        let connection = self.reader_factory.open_reader().map_err(|error| {
+            ResolutionValidationError::InvalidMetadata {
+                key: "store_reader".to_string(),
+                value: error.to_string(),
+            }
+        })?;
+        let mut target_exists = connection
+            .prepare(
+                "SELECT EXISTS(
+                   SELECT 1 FROM symbols AS s
+                   WHERE s.version_id = ?1 AND s.symbol_id = ?2
+                     AND EXISTS (
+                       SELECT 1 FROM manifest_entries AS me
+                       WHERE me.view_id = ?3 AND me.generation = ?4
+                         AND me.status IN ('indexed','failed_preserved')
+                         AND me.version_id = s.version_id
+                     )
+                 )",
+            )
+            .map_err(ResolutionValidationError::Sqlite)?;
         let result = writer.finish_with_target_lookup(move |version_id, symbol_id| {
-            let connection = factory.open_reader().map_err(|error| {
-                ResolutionValidationError::InvalidMetadata {
-                    key: "store_reader".to_string(),
-                    value: error.to_string(),
-                }
-            })?;
-            let exists = connection
+            let exists = target_exists
                 .query_row(
-                    "SELECT EXISTS(
-                       SELECT 1 FROM symbols AS s
-                       WHERE s.version_id = ?1 AND s.symbol_id = ?2
-                         AND EXISTS (
-                           SELECT 1 FROM manifest_entries AS me
-                           WHERE me.view_id = ?3 AND me.generation = ?4
-                             AND me.status IN ('indexed','failed_preserved')
-                             AND me.version_id = s.version_id
-                         )
-                     )",
                     params![version_id, symbol_id, identity.view_id, identity.generation],
                     |row| row.get::<_, bool>(0),
                 )
@@ -488,6 +572,7 @@ impl StoreScratchResolutionSession {
     fn reset_candidate_window(&mut self) -> Result<(), StoreResolutionError> {
         let reader = self.open_phase_reader()?;
         *self.candidate_reader.get_mut() = Some(reader);
+        *self.candidate_window.get_mut() = CandidateWindow::default();
         self.resolution_cache.get_mut().clear();
         Ok(())
     }
@@ -621,7 +706,14 @@ impl CandidateLookup for StoreScratchResolutionSession {
         local_id: &str,
     ) -> Result<Option<CandidateHit>, Self::Error> {
         let version_id = parse_source_key(source_key)?;
-        self.with_candidate_reader(|connection| {
+        let semantic_id = SemanticSymbolId {
+            version: SemanticVersionId::Store(version_id),
+            local_id: local_id.to_string(),
+        };
+        if let Some(hit) = self.candidate_window.borrow().by_id.get(&semantic_id) {
+            return Ok(hit.clone());
+        }
+        let hit = self.with_candidate_reader(|connection| {
             let hit = connection
                 .query_row(
                     "SELECT s.version_id, s.symbol_id, s.language, s.name, s.kind,
@@ -645,13 +737,31 @@ impl CandidateLookup for StoreScratchResolutionSession {
                 .optional()?
                 .flatten();
             Ok(hit)
-        })
+        })?;
+        let mut window = self.candidate_window.borrow_mut();
+        if window.by_id.len() < self.window_size {
+            window.by_id.insert(semantic_id, hit.clone());
+        }
+        self.max_candidate_cache_entries.set(
+            self.max_candidate_cache_entries
+                .get()
+                .max(window.entry_count()),
+        );
+        Ok(hit)
     }
 
     fn visit_by_name<F>(&self, name: &str, mut visitor: F) -> Result<(), Self::Error>
     where
         F: FnMut(&Self, CandidateHit) -> Result<bool, Self::Error>,
     {
+        if let Some(hits) = self.cached_name_hits(name) {
+            for hit in hits {
+                if !visitor(self, hit)? {
+                    break;
+                }
+            }
+            return Ok(());
+        }
         let sql = "SELECT s.version_id, s.symbol_id, s.language, s.name, s.kind,
                     s.parent_symbol_id, s.visibility, s.signature, s.metadata_json
              FROM symbols AS s
@@ -690,6 +800,200 @@ impl CandidateLookup for StoreScratchResolutionSession {
         Ok(())
     }
 
+    fn visit_filtered_by_name<F>(
+        &self,
+        name: &str,
+        language: &str,
+        kinds: &[SymbolKind],
+        source_key: Option<&str>,
+        mut visitor: F,
+    ) -> Result<(), Self::Error>
+    where
+        F: FnMut(&Self, CandidateHit) -> Result<bool, Self::Error>,
+    {
+        if let Some(hits) = self.cached_name_hits(name) {
+            for hit in hits.into_iter().filter(|candidate| {
+                candidate.symbol.language == language
+                    && kinds.contains(&candidate.symbol.kind)
+                    && source_key.is_none_or(|source_key| candidate.symbol.file_id == source_key)
+            }) {
+                if !visitor(self, hit)? {
+                    break;
+                }
+            }
+            return Ok(());
+        }
+        let version_id = source_key.map(parse_source_key).transpose()?;
+        let kind_values = (0..kinds.len()).map(|_| "?").collect::<Vec<_>>().join(",");
+        let version_filter = version_id.map_or("", |_| "AND s.version_id=?");
+        let sql = format!(
+            "SELECT s.version_id,s.symbol_id,s.language,s.name,s.kind,
+                    s.parent_symbol_id,s.visibility,s.signature,s.metadata_json
+             FROM symbols AS s
+             WHERE s.name=? AND s.language=? AND s.kind IN ({kind_values})
+               {version_filter}
+               AND EXISTS (
+                 SELECT 1 FROM manifest_entries AS me
+                 WHERE me.view_id=? AND me.generation=?
+                   AND me.status IN ('indexed','failed_preserved')
+                   AND me.version_id=s.version_id
+               )
+               AND (s.version_id,s.symbol_id)>(?,?)
+             ORDER BY s.version_id,s.symbol_id COLLATE BINARY LIMIT ?"
+        );
+        let mut after = (0, String::new());
+        loop {
+            let mut bind = vec![name.to_string().into(), language.to_string().into()];
+            bind.extend(
+                kinds
+                    .iter()
+                    .map(|kind| rusqlite::types::Value::Text(kind.to_string())),
+            );
+            if let Some(version_id) = version_id {
+                bind.push(version_id.into());
+            }
+            bind.push(self.identity.view_id.clone().into());
+            bind.push(self.identity.generation.into());
+            bind.push(after.0.into());
+            bind.push(after.1.clone().into());
+            bind.push(self.sql_window_limit()?.into());
+            let rows = self.with_candidate_reader(|connection| {
+                let mut statement = connection.prepare(&sql)?;
+                statement
+                    .query_map(rusqlite::params_from_iter(bind), |row| {
+                        Ok((
+                            row.get::<_, i64>(0)?,
+                            row.get::<_, String>(1)?,
+                            candidate_hit(row)?,
+                        ))
+                    })?
+                    .collect::<Result<Vec<_>, _>>()
+                    .map_err(StoreResolutionError::from)
+            })?;
+            self.max_store_read_page
+                .set(self.max_store_read_page.get().max(rows.len()));
+            if rows.is_empty() {
+                break;
+            }
+            let mut last = None;
+            for (version_id, symbol_id, hit) in rows {
+                last = Some((version_id, symbol_id));
+                if let Some(hit) = hit
+                    && !visitor(self, hit)?
+                {
+                    return Ok(());
+                }
+            }
+            let Some(next) = last else {
+                break;
+            };
+            after = next;
+        }
+        Ok(())
+    }
+
+    fn filtered_name_summary(
+        &self,
+        name: &str,
+        language: &str,
+        kinds: &[SymbolKind],
+        source_key: Option<&str>,
+        confidence: f64,
+    ) -> Result<CandidateSummary, Self::Error> {
+        if let Some(hits) = self.cached_name_hits(name) {
+            let candidates = hits
+                .into_iter()
+                .filter(|candidate| {
+                    candidate.symbol.language == language
+                        && kinds.contains(&candidate.symbol.kind)
+                        && source_key
+                            .is_none_or(|source_key| candidate.symbol.file_id == source_key)
+                })
+                .map(|candidate| (candidate.semantic_id, confidence))
+                .collect::<BTreeMap<_, _>>();
+            return Ok(CandidateSummary {
+                evidence: candidates
+                    .iter()
+                    .take(2)
+                    .map(|(semantic_id, confidence)| CandidateEvidence {
+                        semantic_id: semantic_id.clone(),
+                        confidence: *confidence,
+                    })
+                    .collect(),
+                exact_count: candidates.len() as u64,
+            });
+        }
+        let version_id = source_key.map(parse_source_key).transpose()?;
+        let key = FilteredSummaryKey {
+            name: name.to_string(),
+            language: language.to_string(),
+            kinds: kinds.iter().map(ToString::to_string).collect(),
+            version_id,
+            confidence_bits: confidence.to_bits(),
+        };
+        let cached_summary = self.filtered_summaries.borrow().get(&key).cloned();
+        if let Some(summary) = cached_summary {
+            return Ok(summary);
+        }
+        let kind_values = (0..kinds.len()).map(|_| "?").collect::<Vec<_>>().join(",");
+        let version_filter = version_id.map_or("", |_| "AND s.version_id=?");
+        let sql = format!(
+            "SELECT s.version_id,s.symbol_id,COUNT(*) OVER()
+             FROM symbols AS s
+             WHERE s.name=? AND s.language=? AND s.kind IN ({kind_values})
+               {version_filter}
+               AND EXISTS (
+                 SELECT 1 FROM manifest_entries AS me
+                 WHERE me.view_id=? AND me.generation=?
+                   AND me.status IN ('indexed','failed_preserved')
+                   AND me.version_id=s.version_id
+               )
+             ORDER BY s.version_id,s.symbol_id COLLATE BINARY LIMIT 2"
+        );
+        let mut bind = vec![name.to_string().into(), language.to_string().into()];
+        bind.extend(
+            kinds
+                .iter()
+                .map(|kind| rusqlite::types::Value::Text(kind.to_string())),
+        );
+        if let Some(version_id) = version_id {
+            bind.push(version_id.into());
+        }
+        bind.push(self.identity.view_id.clone().into());
+        bind.push(self.identity.generation.into());
+        let rows = self.with_candidate_reader(|connection| {
+            let mut statement = connection.prepare(&sql)?;
+            statement
+                .query_map(rusqlite::params_from_iter(bind), |row| {
+                    Ok((
+                        SemanticSymbolId {
+                            version: SemanticVersionId::Store(row.get(0)?),
+                            local_id: row.get(1)?,
+                        },
+                        row.get::<_, i64>(2)?,
+                    ))
+                })?
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(StoreResolutionError::from)
+        })?;
+        self.max_store_read_page
+            .set(self.max_store_read_page.get().max(rows.len()));
+        let summary = CandidateSummary {
+            evidence: rows
+                .iter()
+                .map(|(semantic_id, _)| CandidateEvidence {
+                    semantic_id: semantic_id.clone(),
+                    confidence,
+                })
+                .collect(),
+            exact_count: rows.first().map_or(0, |(_, count)| *count as u64),
+        };
+        self.filtered_summaries
+            .borrow_mut()
+            .insert(key, summary.clone());
+        Ok(summary)
+    }
+
     fn visit_children_named<F>(
         &self,
         source_key: &str,
@@ -701,6 +1005,17 @@ impl CandidateLookup for StoreScratchResolutionSession {
         F: FnMut(&Self, CandidateHit) -> Result<bool, Self::Error>,
     {
         let version_id = parse_source_key(source_key)?;
+        if let Some(hits) = self.cached_name_hits(name) {
+            for hit in hits.into_iter().filter(|hit| {
+                hit.semantic_id.version == SemanticVersionId::Store(version_id)
+                    && hit.symbol.parent_symbol_id.as_deref() == Some(parent_id)
+            }) {
+                if !visitor(self, hit)? {
+                    break;
+                }
+            }
+            return Ok(());
+        }
         let sql = "SELECT s.version_id, s.symbol_id, s.language, s.name, s.kind,
                     s.parent_symbol_id, s.visibility, s.signature, s.metadata_json
              FROM symbols AS s
@@ -749,6 +1064,17 @@ impl CandidateLookup for StoreScratchResolutionSession {
         F: FnMut(&Self, CandidateHit) -> Result<bool, Self::Error>,
     {
         let version_id = parse_source_key(source_key)?;
+        if let Some(hits) = self.cached_name_hits(name) {
+            for hit in hits.into_iter().filter(|hit| {
+                hit.semantic_id.version == SemanticVersionId::Store(version_id)
+                    && hit.symbol.parent_symbol_id.is_none()
+            }) {
+                if !visitor(self, hit)? {
+                    break;
+                }
+            }
+            return Ok(());
+        }
         let sql = "SELECT s.version_id, s.symbol_id, s.language, s.name, s.kind,
                     s.parent_symbol_id, s.visibility, s.signature, s.metadata_json
              FROM symbols AS s
@@ -809,10 +1135,9 @@ impl CandidateLookup for StoreScratchResolutionSession {
              ORDER BY tf.type_fact_id COLLATE BINARY LIMIT ?6";
         let mut after = String::new();
         loop {
-            let page = {
-                let connection = self.open_reader()?;
+            let page = self.with_candidate_reader(|connection| {
                 let mut statement = connection.prepare(sql)?;
-                statement
+                Ok(statement
                     .query_map(
                         params![
                             version_id,
@@ -833,8 +1158,8 @@ impl CandidateLookup for StoreScratchResolutionSession {
                             ))
                         },
                     )?
-                    .collect::<Result<Vec<_>, _>>()?
-            };
+                    .collect::<Result<Vec<_>, _>>()?)
+            })?;
             self.max_store_read_page
                 .set(self.max_store_read_page.get().max(page.len()));
             if page.is_empty() {
@@ -867,10 +1192,9 @@ impl CandidateLookup for StoreScratchResolutionSession {
              ORDER BY s.symbol_id COLLATE BINARY LIMIT ?5";
         let mut after = String::new();
         loop {
-            let page = {
-                let connection = self.open_reader()?;
+            let page = self.with_candidate_reader(|connection| {
                 let mut statement = connection.prepare(sql)?;
-                statement
+                Ok(statement
                     .query_map(
                         params![
                             version_id,
@@ -889,8 +1213,8 @@ impl CandidateLookup for StoreScratchResolutionSession {
                             ))
                         },
                     )?
-                    .collect::<Result<Vec<_>, _>>()?
-            };
+                    .collect::<Result<Vec<_>, _>>()?)
+            })?;
             self.max_store_read_page
                 .set(self.max_store_read_page.get().max(page.len()));
             if page.is_empty() {
@@ -923,8 +1247,13 @@ impl CandidateLookup for StoreScratchResolutionSession {
     }
 
     fn reset_tier_candidates(&self) -> Result<(), Self::Error> {
-        self.scratch
-            .execute("DELETE FROM tier_candidate_accumulator", [])?;
+        let mut accumulator = self.tier_candidates.borrow_mut();
+        if accumulator.spilled {
+            self.scratch
+                .execute("DELETE FROM tier_candidate_accumulator", [])?;
+        }
+        accumulator.buffered.clear();
+        accumulator.spilled = false;
         Ok(())
     }
 
@@ -933,18 +1262,36 @@ impl CandidateLookup for StoreScratchResolutionSession {
         semantic_id: SemanticSymbolId,
         confidence: f64,
     ) -> Result<(), Self::Error> {
-        let version_id = store_version(&semantic_id.version)?;
-        self.scratch.execute(
-            "INSERT INTO tier_candidate_accumulator(version_id,symbol_id,confidence)
-             VALUES (?1,?2,?3)
-             ON CONFLICT(version_id,symbol_id) DO UPDATE SET
-               confidence=MAX(confidence,excluded.confidence)",
-            params![version_id, semantic_id.local_id, confidence],
-        )?;
+        let mut accumulator = self.tier_candidates.borrow_mut();
+        if let Some(stored) = accumulator.buffered.get_mut(&semantic_id) {
+            *stored = stored.max(confidence);
+            return Ok(());
+        }
+        if accumulator.buffered.len() == self.window_size {
+            accumulator.spilled = true;
+            self.flush_tier_candidate_buffer(&mut accumulator)?;
+        }
+        accumulator.buffered.insert(semantic_id, confidence);
         Ok(())
     }
 
     fn tier_candidate_summary(&self) -> Result<CandidateSummary, Self::Error> {
+        let mut accumulator = self.tier_candidates.borrow_mut();
+        if !accumulator.spilled {
+            return Ok(CandidateSummary {
+                evidence: accumulator
+                    .buffered
+                    .iter()
+                    .take(2)
+                    .map(|(semantic_id, confidence)| CandidateEvidence {
+                        semantic_id: semantic_id.clone(),
+                        confidence: *confidence,
+                    })
+                    .collect(),
+                exact_count: accumulator.buffered.len() as u64,
+            });
+        }
+        self.flush_tier_candidate_buffer(&mut accumulator)?;
         let exact_count = self.scratch.query_row(
             "SELECT COUNT(*) FROM tier_candidate_accumulator",
             [],
@@ -1062,26 +1409,9 @@ impl ResolutionSession for StoreScratchResolutionSession {
         let SemanticVersionId::Store(version_id) = symbol_id.version else {
             return Ok(None);
         };
-        let connection = self.open_reader()?;
-        Ok(connection
-            .query_row(
-                "SELECT s.name FROM symbols AS s
-                 WHERE s.version_id=?1 AND s.symbol_id=?2
-                   AND EXISTS (
-                     SELECT 1 FROM manifest_entries AS me
-                     WHERE me.view_id=?3 AND me.generation=?4
-                       AND me.status IN ('indexed','failed_preserved')
-                       AND me.version_id=s.version_id
-                   )",
-                params![
-                    version_id,
-                    symbol_id.local_id,
-                    self.identity.view_id,
-                    self.identity.generation
-                ],
-                |row| row.get(0),
-            )
-            .optional()?)
+        Ok(self
+            .symbol_by_id(&version_id.to_string(), &symbol_id.local_id)?
+            .map(|hit| hit.symbol.name))
     }
 
     fn locate_identifier(
@@ -1194,18 +1524,22 @@ impl ResolutionSession for StoreScratchResolutionSession {
         self.phase_after = keys.last().cloned();
         self.max_emitted_chunk_size = self.max_emitted_chunk_size.max(keys.len());
         self.reset_candidate_window()?;
-        match worklists.phase {
-            ResolutionPhase::Pending => Ok(Some(ResolutionPhaseChunk::Pending(
+        let chunk = match worklists.phase {
+            ResolutionPhase::Pending => Some(ResolutionPhaseChunk::Pending(
                 self.load_pending_page(&keys)?,
-            ))),
-            ResolutionPhase::Relationships => Ok(Some(ResolutionPhaseChunk::Relationships(
+            )),
+            ResolutionPhase::Relationships => Some(ResolutionPhaseChunk::Relationships(
                 self.load_relationship_page(&keys)?,
-            ))),
-            ResolutionPhase::Identifiers => Ok(Some(ResolutionPhaseChunk::Identifiers(
+            )),
+            ResolutionPhase::Identifiers => Some(ResolutionPhaseChunk::Identifiers(
                 self.load_identifier_page(&keys)?,
-            ))),
-            _ => Ok(None),
+            )),
+            _ => None,
+        };
+        if let Some(chunk) = &chunk {
+            self.prime_candidate_window(chunk)?;
         }
+        Ok(chunk)
     }
 
     fn flush(&mut self, writes: ResolutionWriteBatch) -> Result<ResolutionCounts, Self::Error> {
@@ -1312,6 +1646,133 @@ impl ResolutionSession for StoreScratchResolutionSession {
 }
 
 impl StoreScratchResolutionSession {
+    fn cached_name_hits(&self, name: &str) -> Option<Vec<CandidateHit>> {
+        let window = self.candidate_window.borrow();
+        window
+            .primed_names
+            .contains(name)
+            .then(|| window.by_name.get(name).cloned().unwrap_or_default())
+    }
+
+    fn flush_tier_candidate_buffer(
+        &self,
+        accumulator: &mut TierCandidateAccumulator,
+    ) -> Result<(), StoreResolutionError> {
+        if accumulator.buffered.is_empty() {
+            return Ok(());
+        }
+        self.scratch
+            .execute_batch("SAVEPOINT tier_candidate_flush")?;
+        let result = (|| {
+            let mut insert = self.scratch.prepare_cached(
+                "INSERT INTO tier_candidate_accumulator(version_id,symbol_id,confidence)
+                 VALUES (?1,?2,?3)
+                 ON CONFLICT(version_id,symbol_id) DO UPDATE SET
+                   confidence=MAX(confidence,excluded.confidence)",
+            )?;
+            for (semantic_id, confidence) in &accumulator.buffered {
+                insert.execute(params![
+                    store_version(&semantic_id.version)?,
+                    semantic_id.local_id,
+                    confidence
+                ])?;
+            }
+            Ok::<_, StoreResolutionError>(())
+        })();
+        if result.is_ok() {
+            self.scratch.execute_batch("RELEASE tier_candidate_flush")?;
+            accumulator.buffered.clear();
+            return Ok(());
+        }
+        let _ = self
+            .scratch
+            .execute_batch("ROLLBACK TO tier_candidate_flush; RELEASE tier_candidate_flush");
+        result
+    }
+
+    fn prime_candidate_window(
+        &self,
+        chunk: &ResolutionPhaseChunk,
+    ) -> Result<(), StoreResolutionError> {
+        let names = match chunk {
+            ResolutionPhaseChunk::Pending(items) => items
+                .iter()
+                .map(|item| item.target_terminal_name.clone())
+                .collect::<BTreeSet<_>>(),
+            ResolutionPhaseChunk::Identifiers(items) => items
+                .iter()
+                .map(|item| item.name.clone())
+                .collect::<BTreeSet<_>>(),
+            _ => BTreeSet::new(),
+        };
+        if names.is_empty() {
+            return Ok(());
+        }
+        let values = (0..names.len())
+            .map(|_| "(?)")
+            .collect::<Vec<_>>()
+            .join(",");
+        let sql = format!(
+            "WITH wanted(name) AS (VALUES {values})
+             SELECT s.version_id,s.symbol_id,s.language,s.name,s.kind,
+                    s.parent_symbol_id,s.visibility,s.signature,s.metadata_json
+             FROM wanted
+             JOIN symbols AS s ON s.name=wanted.name
+             WHERE EXISTS (
+               SELECT 1 FROM manifest_entries AS me
+               WHERE me.view_id=? AND me.generation=?
+                 AND me.status IN ('indexed','failed_preserved')
+                 AND me.version_id=s.version_id
+             )
+             ORDER BY s.name COLLATE BINARY,s.version_id,s.symbol_id COLLATE BINARY
+             LIMIT ?"
+        );
+        let mut bind = names
+            .iter()
+            .cloned()
+            .map(rusqlite::types::Value::Text)
+            .collect::<Vec<_>>();
+        bind.push(self.identity.view_id.clone().into());
+        bind.push(self.identity.generation.into());
+        bind.push(self.sql_window_limit()?.into());
+        let rows = self.with_candidate_reader(|connection| {
+            let mut statement = connection.prepare(&sql)?;
+            statement
+                .query_map(rusqlite::params_from_iter(bind), |row| {
+                    Ok((row.get::<_, String>(3)?, candidate_hit(row)?))
+                })?
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(StoreResolutionError::from)
+        })?;
+        self.max_store_read_page
+            .set(self.max_store_read_page.get().max(rows.len()));
+        let cutoff = (rows.len() == self.window_size)
+            .then(|| rows.last().expect("full candidate page").0.clone());
+        let mut window = self.candidate_window.borrow_mut();
+        for name in names {
+            if cutoff.as_ref().is_none_or(|cutoff| name < *cutoff) {
+                window.primed_names.insert(name);
+            }
+        }
+        for (name, hit) in rows {
+            if !window.primed_names.contains(&name) {
+                continue;
+            }
+            if let Some(hit) = hit {
+                window
+                    .by_id
+                    .insert(hit.semantic_id.clone(), Some(hit.clone()));
+                window.by_name.entry(name).or_default().push(hit);
+            }
+        }
+        self.max_candidate_cache_entries.set(
+            self.max_candidate_cache_entries
+                .get()
+                .max(window.entry_count()),
+        );
+        Ok(())
+    }
+
     fn candidate_page(
         &self,
         sql: &str,
@@ -1364,8 +1825,16 @@ impl StoreScratchResolutionSession {
             ResolutionPhase::Identifiers => Some(("identifiers", "identifier_id")),
             _ => None,
         };
+        let phase_reader = if table.is_some() {
+            self.phase_reader_opens
+                .set(self.phase_reader_opens.get() + 1);
+            Some(self.reader_factory.open_reader()?)
+        } else {
+            None
+        };
         let transaction = self.scratch.transaction()?;
         if let Some((table, id_column)) = table {
+            let connection = phase_reader.as_ref().expect("phase reader initialized");
             let sql = format!(
                 "SELECT source.version_id,source.{id_column}
                  FROM {table} AS source
@@ -1381,9 +1850,6 @@ impl StoreScratchResolutionSession {
             let mut after = (0, String::new());
             loop {
                 let keys = {
-                    self.phase_reader_opens
-                        .set(self.phase_reader_opens.get() + 1);
-                    let connection = self.reader_factory.open_reader()?;
                     let mut statement = connection.prepare(&sql)?;
                     statement
                         .query_map(
@@ -1449,7 +1915,6 @@ impl StoreScratchResolutionSession {
         &self,
         keys: &[(i64, String)],
     ) -> Result<Vec<PendingWorkItem>, StoreResolutionError> {
-        let connection = self.open_phase_reader()?;
         let sql = format!(
             "WITH wanted(version_id,local_id) AS (VALUES {})
              SELECT pr.version_id,pr.pending_relationship_id,pr.from_symbol_id,pr.caller_scope_symbol_id,
@@ -1464,32 +1929,34 @@ impl StoreScratchResolutionSession {
              ORDER BY pr.version_id,pr.pending_relationship_id COLLATE BINARY",
             key_values_clause(keys.len())
         );
-        let mut statement = connection.prepare(&sql)?;
-        let keyed_rows = statement
-            .query_map(rusqlite::params_from_iter(key_params(keys)), |row| {
-                Ok((
-                    (row.get::<_, i64>(0)?, row.get::<_, String>(1)?),
-                    PendingWorkItem {
-                        pending_relationship_id: row.get(1)?,
-                        from_symbol_id: row.get(2)?,
-                        caller_scope_symbol_id: row.get(3)?,
-                        file_id: row.get::<_, i64>(0)?.to_string(),
-                        path: row.get(4)?,
-                        language: row.get(5)?,
-                        kind: row.get(6)?,
-                        target_display_name: row.get(7)?,
-                        target_terminal_name: row.get(8)?,
-                        target_receiver: row.get(9)?,
-                        target_namespace_json: row.get(10)?,
-                        target_import_context: row.get(11)?,
-                        start_line: row.get(12)?,
-                        start_byte: row.get(13)?,
-                        end_byte: row.get(14)?,
-                        confidence: row.get(15)?,
-                    },
-                ))
-            })?
-            .collect::<Result<Vec<_>, _>>()?;
+        let keyed_rows = self.with_candidate_reader(|connection| {
+            let mut statement = connection.prepare(&sql)?;
+            Ok(statement
+                .query_map(rusqlite::params_from_iter(key_params(keys)), |row| {
+                    Ok((
+                        (row.get::<_, i64>(0)?, row.get::<_, String>(1)?),
+                        PendingWorkItem {
+                            pending_relationship_id: row.get(1)?,
+                            from_symbol_id: row.get(2)?,
+                            caller_scope_symbol_id: row.get(3)?,
+                            file_id: row.get::<_, i64>(0)?.to_string(),
+                            path: row.get(4)?,
+                            language: row.get(5)?,
+                            kind: row.get(6)?,
+                            target_display_name: row.get(7)?,
+                            target_terminal_name: row.get(8)?,
+                            target_receiver: row.get(9)?,
+                            target_namespace_json: row.get(10)?,
+                            target_import_context: row.get(11)?,
+                            start_line: row.get(12)?,
+                            start_byte: row.get(13)?,
+                            end_byte: row.get(14)?,
+                            confidence: row.get(15)?,
+                        },
+                    ))
+                })?
+                .collect::<Result<Vec<_>, _>>()?)
+        })?;
         self.validate_hydrated_keys("pending", keys, &keyed_rows)?;
         Ok(keyed_rows.into_iter().map(|(_, row)| row).collect())
     }
@@ -1498,37 +1965,55 @@ impl StoreScratchResolutionSession {
         &self,
         keys: &[(i64, String)],
     ) -> Result<Vec<crate::resolution_session::SessionRelationship>, StoreResolutionError> {
-        let connection = self.open_phase_reader()?;
         let sql = format!(
             "WITH wanted(version_id,local_id) AS (VALUES {})
              SELECT r.version_id,r.relationship_id,r.to_symbol_id,r.kind,r.start_line,r.start_byte,
-                    r.end_byte,r.confidence
+                    r.end_byte,r.confidence,
+                    CASE WHEN COUNT(i.identifier_id)=1 THEN MIN(i.identifier_id) END
              FROM wanted
              JOIN relationships AS r
                ON r.version_id=wanted.version_id AND r.relationship_id=wanted.local_id
+             LEFT JOIN symbols AS target
+               ON target.version_id=r.version_id AND target.symbol_id=r.to_symbol_id
+             LEFT JOIN identifiers AS i
+               ON i.version_id=r.version_id AND i.name=target.name
+              AND (
+                (r.start_byte IS NOT NULL AND r.end_byte IS NOT NULL
+                 AND i.start_byte>=r.start_byte AND i.start_byte<=r.end_byte
+                 AND i.end_byte<=r.end_byte)
+                OR
+                ((r.start_byte IS NULL OR r.end_byte IS NULL)
+                 AND i.start_line=COALESCE(r.start_line,0))
+              )
+             GROUP BY r.version_id,r.relationship_id,r.to_symbol_id,r.kind,r.start_line,
+                      r.start_byte,r.end_byte,r.confidence
              ORDER BY r.version_id,r.relationship_id COLLATE BINARY",
             key_values_clause(keys.len())
         );
-        let mut statement = connection.prepare(&sql)?;
-        let keyed_rows = statement
-            .query_map(rusqlite::params_from_iter(key_params(keys)), |row| {
-                Ok((
-                    (row.get::<_, i64>(0)?, row.get::<_, String>(1)?),
-                    crate::resolution_session::SessionRelationship {
-                        target_symbol_id: SemanticSymbolId {
-                            version: SemanticVersionId::Store(row.get(0)?),
-                            local_id: row.get(2)?,
+        let keyed_rows = self.with_candidate_reader(|connection| {
+            let mut statement = connection.prepare(&sql)?;
+            Ok(statement
+                .query_map(rusqlite::params_from_iter(key_params(keys)), |row| {
+                    Ok((
+                        (row.get::<_, i64>(0)?, row.get::<_, String>(1)?),
+                        crate::resolution_session::SessionRelationship {
+                            target_symbol_id: SemanticSymbolId {
+                                version: SemanticVersionId::Store(row.get(0)?),
+                                local_id: row.get(2)?,
+                            },
+                            source_version_id: SemanticVersionId::Store(row.get(0)?),
+                            located_identifier_id: row.get(8)?,
+                            identifier_lookup_complete: true,
+                            kind: row.get(3)?,
+                            start_line: row.get::<_, Option<i64>>(4)?.unwrap_or(0),
+                            start_byte: row.get(5)?,
+                            end_byte: row.get(6)?,
+                            confidence: row.get(7)?,
                         },
-                        source_version_id: SemanticVersionId::Store(row.get(0)?),
-                        kind: row.get(3)?,
-                        start_line: row.get::<_, Option<i64>>(4)?.unwrap_or(0),
-                        start_byte: row.get(5)?,
-                        end_byte: row.get(6)?,
-                        confidence: row.get(7)?,
-                    },
-                ))
-            })?
-            .collect::<Result<Vec<_>, _>>()?;
+                    ))
+                })?
+                .collect::<Result<Vec<_>, _>>()?)
+        })?;
         self.validate_hydrated_keys("relationships", keys, &keyed_rows)?;
         Ok(keyed_rows.into_iter().map(|(_, row)| row).collect())
     }
@@ -1537,7 +2022,6 @@ impl StoreScratchResolutionSession {
         &self,
         keys: &[(i64, String)],
     ) -> Result<Vec<IdentifierWorkItem>, StoreResolutionError> {
-        let connection = self.open_phase_reader()?;
         let sql = format!(
             "WITH wanted(version_id,local_id) AS (VALUES {})
              SELECT i.version_id,i.identifier_id,i.path,i.language,i.name,i.kind,
@@ -1551,30 +2035,32 @@ impl StoreScratchResolutionSession {
              ORDER BY i.version_id,i.identifier_id COLLATE BINARY",
             key_values_clause(keys.len())
         );
-        let mut statement = connection.prepare(&sql)?;
-        let keyed_rows = statement
-            .query_map(rusqlite::params_from_iter(key_params(keys)), |row| {
-                Ok((
-                    (row.get::<_, i64>(0)?, row.get::<_, String>(1)?),
-                    IdentifierWorkItem {
-                        identifier_id: row.get(1)?,
-                        file_id: row.get::<_, i64>(0)?.to_string(),
-                        path: row.get(2)?,
-                        language: row.get(3)?,
-                        name: row.get(4)?,
-                        kind: row.get(5)?,
-                        containing_symbol_id: row.get(6)?,
-                        start_line: row.get(7)?,
-                        start_byte: row.get(8)?,
-                        end_byte: row.get(9)?,
-                        receiver: row.get(10)?,
-                        receiver_qualifier: row.get(11)?,
-                        import_context: row.get(12)?,
-                        confidence: row.get(13)?,
-                    },
-                ))
-            })?
-            .collect::<Result<Vec<_>, _>>()?;
+        let keyed_rows = self.with_candidate_reader(|connection| {
+            let mut statement = connection.prepare(&sql)?;
+            Ok(statement
+                .query_map(rusqlite::params_from_iter(key_params(keys)), |row| {
+                    Ok((
+                        (row.get::<_, i64>(0)?, row.get::<_, String>(1)?),
+                        IdentifierWorkItem {
+                            identifier_id: row.get(1)?,
+                            file_id: row.get::<_, i64>(0)?.to_string(),
+                            path: row.get(2)?,
+                            language: row.get(3)?,
+                            name: row.get(4)?,
+                            kind: row.get(5)?,
+                            containing_symbol_id: row.get(6)?,
+                            start_line: row.get(7)?,
+                            start_byte: row.get(8)?,
+                            end_byte: row.get(9)?,
+                            receiver: row.get(10)?,
+                            receiver_qualifier: row.get(11)?,
+                            import_context: row.get(12)?,
+                            confidence: row.get(13)?,
+                        },
+                    ))
+                })?
+                .collect::<Result<Vec<_>, _>>()?)
+        })?;
         self.validate_hydrated_keys("identifiers", keys, &keyed_rows)?;
         Ok(keyed_rows.into_iter().map(|(_, row)| row).collect())
     }
@@ -1630,31 +2116,51 @@ impl StoreScratchResolutionSession {
         candidates: &[String],
         language: &str,
     ) -> Result<Option<String>, StoreResolutionError> {
-        for candidate in candidates {
-            let connection = self.open_reader()?;
-            let version_id = connection
-                .query_row(
-                    "SELECT me.version_id
-                     FROM manifest_entries AS me
-                     JOIN file_versions AS fv ON fv.version_id = me.version_id
-                     WHERE me.view_id = ?1 AND me.generation = ?2
-                       AND me.status IN ('indexed', 'failed_preserved')
-                       AND me.path = ?3 AND fv.language = ?4
-                     LIMIT 1",
-                    params![
-                        self.identity.view_id,
-                        self.identity.generation,
-                        candidate,
-                        language
-                    ],
-                    |row| row.get::<_, i64>(0),
-                )
-                .optional()?;
-            if let Some(version_id) = version_id {
-                return Ok(Some(version_id.to_string()));
-            }
+        let cache_key = (candidates.to_vec(), language.to_string());
+        if let Some(version) = self
+            .candidate_window
+            .borrow()
+            .module_versions
+            .get(&cache_key)
+        {
+            return Ok(version.clone());
         }
-        Ok(None)
+        let version = self.with_candidate_reader(|connection| {
+            for candidate in candidates {
+                let version_id = connection
+                    .query_row(
+                        "SELECT me.version_id
+                         FROM manifest_entries AS me
+                         JOIN file_versions AS fv ON fv.version_id = me.version_id
+                         WHERE me.view_id = ?1 AND me.generation = ?2
+                           AND me.status IN ('indexed', 'failed_preserved')
+                           AND me.path = ?3 AND fv.language = ?4
+                         LIMIT 1",
+                        params![
+                            self.identity.view_id,
+                            self.identity.generation,
+                            candidate,
+                            language
+                        ],
+                        |row| row.get::<_, i64>(0),
+                    )
+                    .optional()?;
+                if let Some(version_id) = version_id {
+                    return Ok(Some(version_id.to_string()));
+                }
+            }
+            Ok(None)
+        })?;
+        let mut window = self.candidate_window.borrow_mut();
+        if window.module_versions.len() < self.window_size {
+            window.module_versions.insert(cache_key, version.clone());
+        }
+        self.max_candidate_cache_entries.set(
+            self.max_candidate_cache_entries
+                .get()
+                .max(window.entry_count()),
+        );
+        Ok(version)
     }
 }
 

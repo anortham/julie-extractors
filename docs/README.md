@@ -34,6 +34,8 @@ plans and dogfood records are:
 - [v2.31.0 release notes](release-notes/v2.31.0.md)
 - [Concurrent fencing plan](plans/2026-08-10-store-concurrent-fencing-hardening.md)
 - [Concurrent fencing evidence](evidence/2026-08-10-store-concurrent-fencing.md)
+- [Store resolution performance repair plan](plans/2026-08-10-store-resolution-performance-repair.md)
+- [Store resolution performance evidence](findings/2026-08-10-store-resolution-performance-repair.md)
 
 ## Evidence and historical material
 

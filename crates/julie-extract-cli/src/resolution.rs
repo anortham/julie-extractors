@@ -382,6 +382,59 @@ pub trait CandidateLookup {
     where
         F: FnMut(&Self, CandidateHit) -> Result<bool, Self::Error>;
 
+    fn visit_filtered_by_name<F>(
+        &self,
+        name: &str,
+        language: &str,
+        kinds: &[SymbolKind],
+        source_key: Option<&str>,
+        mut visitor: F,
+    ) -> Result<(), Self::Error>
+    where
+        F: FnMut(&Self, CandidateHit) -> Result<bool, Self::Error>,
+    {
+        self.visit_by_name(name, |lookup, candidate| {
+            if candidate.symbol.language == language
+                && kinds.contains(&candidate.symbol.kind)
+                && source_key.is_none_or(|source_key| candidate.symbol.file_id == source_key)
+            {
+                return visitor(lookup, candidate);
+            }
+            Ok(true)
+        })
+    }
+
+    fn filtered_name_summary(
+        &self,
+        name: &str,
+        language: &str,
+        kinds: &[SymbolKind],
+        source_key: Option<&str>,
+        confidence: f64,
+    ) -> Result<CandidateSummary, Self::Error> {
+        let mut candidates = BTreeMap::new();
+        self.visit_by_name(name, |_, candidate| {
+            if candidate.symbol.language == language
+                && kinds.contains(&candidate.symbol.kind)
+                && source_key.is_none_or(|source_key| candidate.symbol.file_id == source_key)
+            {
+                candidates.insert(candidate.semantic_id, confidence);
+            }
+            Ok(true)
+        })?;
+        Ok(CandidateSummary {
+            evidence: candidates
+                .iter()
+                .take(2)
+                .map(|(semantic_id, confidence)| CandidateEvidence {
+                    semantic_id: semantic_id.clone(),
+                    confidence: *confidence,
+                })
+                .collect(),
+            exact_count: candidates.len() as u64,
+        })
+    }
+
     fn visit_children_named<F>(
         &self,
         source_key: &str,
@@ -1476,21 +1529,21 @@ fn tier2_candidates<L: CandidateLookup>(
             .imported_name
             .as_deref()
             .unwrap_or(import.local_name.as_str());
-        lookup.visit_by_name(target_name, |_, cand| {
-            let module_ok = match (import.source.as_deref(), import.module_file_id.as_deref()) {
-                (Some(_), Some(module_file)) => module_file == cand.symbol.file_id,
-                (Some(_), None) => false,
-                (None, Some(module_file)) => module_file == cand.symbol.file_id,
-                (None, None) => true,
-            };
-            if cand.symbol.language == edge.language
-                && kinds.contains(&cand.symbol.kind)
-                && module_ok
-            {
+        let module_file = match (import.source.as_deref(), import.module_file_id.as_deref()) {
+            (Some(_), Some(module_file)) | (None, Some(module_file)) => Some(module_file),
+            (Some(_), None) => return Ok(true),
+            (None, None) => None,
+        };
+        lookup.visit_filtered_by_name(
+            target_name,
+            &edge.language,
+            kinds,
+            module_file,
+            |_, cand| {
                 lookup.record_tier_candidate(cand.semantic_id, CONFIDENCE_TIER2)?;
-            }
-            Ok(true)
-        })?;
+                Ok(true)
+            },
+        )?;
         Ok(true)
     })?;
     lookup.tier_candidate_summary()
@@ -1560,22 +1613,21 @@ fn tier4_candidates<L: CandidateLookup>(
     edge: &UnresolvedEdge,
     lookup: &L,
 ) -> Result<CandidateSummary, L::Error> {
-    lookup.reset_tier_candidates()?;
     let kinds = tier4_compatible_kinds(edge.kind);
     if kinds.is_empty() {
-        return lookup.tier_candidate_summary();
+        return Ok(CandidateSummary {
+            evidence: Vec::new(),
+            exact_count: 0,
+        });
     }
     let same_file_only = es_module_language(&edge.language);
-    lookup.visit_by_name(&edge.terminal_name, |_, cand| {
-        if cand.symbol.language == edge.language
-            && kinds.contains(&cand.symbol.kind)
-            && (!same_file_only || cand.symbol.file_id == edge.file_id)
-        {
-            lookup.record_tier_candidate(cand.semantic_id, CONFIDENCE_TIER4)?;
-        }
-        Ok(true)
-    })?;
-    lookup.tier_candidate_summary()
+    lookup.filtered_name_summary(
+        &edge.terminal_name,
+        &edge.language,
+        kinds,
+        same_file_only.then_some(edge.file_id.as_str()),
+        CONFIDENCE_TIER4,
+    )
 }
 
 /// Resolve the receiver name to symbol(s) in scope: walk the caller's scope chain
@@ -1631,7 +1683,7 @@ fn unique_type_symbol<L: CandidateLookup>(
     type_name: &str,
     language: &str,
 ) -> Result<Option<CandidateHit>, L::Error> {
-    unique_named_type_symbol(lookup, type_name, language, is_type_like)
+    unique_named_type_symbol(lookup, type_name, language, TYPE_LIKE_KINDS)
 }
 
 /// Type-name receiver for the static tier. Module languages only accept runtime
@@ -1642,43 +1694,30 @@ fn unique_static_type_symbol<L: CandidateLookup>(
     type_name: &str,
     language: &str,
 ) -> Result<Option<CandidateHit>, L::Error> {
-    unique_named_type_symbol(lookup, type_name, language, |kind| {
-        is_static_type_receiver_kind(language, kind)
-    })
+    let kinds = if es_module_language(language) {
+        &[SymbolKind::Class, SymbolKind::Enum][..]
+    } else {
+        TYPE_LIKE_KINDS
+    };
+    unique_named_type_symbol(lookup, type_name, language, kinds)
 }
 
-fn unique_named_type_symbol<L: CandidateLookup, F>(
+fn unique_named_type_symbol<L: CandidateLookup>(
     lookup: &L,
     type_name: &str,
     language: &str,
-    kind_ok: F,
-) -> Result<Option<CandidateHit>, L::Error>
-where
-    F: Fn(&SymbolKind) -> bool,
-{
+    kinds: &[SymbolKind],
+) -> Result<Option<CandidateHit>, L::Error> {
     let mut found: Option<CandidateHit> = None;
-    lookup.visit_by_name(type_name, |_, cand| {
-        if cand.symbol.language == language && kind_ok(&cand.symbol.kind) {
-            if found.is_some() {
-                found = None;
-                return Ok(false);
-            }
-            found = Some(cand);
+    lookup.visit_filtered_by_name(type_name, language, kinds, None, |_, cand| {
+        if found.is_some() {
+            found = None;
+            return Ok(false);
         }
+        found = Some(cand);
         Ok(true)
     })?;
     Ok(found)
-}
-
-/// Runtime value types that can appear as `Type.staticMember` receivers.
-/// TypeScript/JavaScript modules: class and enum only (interfaces/type aliases
-/// erase at runtime). Other languages keep the full type-like set.
-fn is_static_type_receiver_kind(language: &str, kind: &SymbolKind) -> bool {
-    if es_module_language(language) {
-        matches!(kind, SymbolKind::Class | SymbolKind::Enum)
-    } else {
-        is_type_like(kind)
-    }
 }
 
 /// Resolve the type symbol named by a static-type receiver, including aliased
@@ -2537,16 +2576,21 @@ fn propagate_relationship_items<S: ResolutionSession>(
         if ReferenceKind::from_relationship_kind(&item.kind).is_none() {
             continue;
         }
-        let Some(name) = session.target_symbol_name(&item.target_symbol_id)? else {
-            continue;
+        let identifier_id = if item.identifier_lookup_complete {
+            item.located_identifier_id.clone()
+        } else {
+            let Some(name) = session.target_symbol_name(&item.target_symbol_id)? else {
+                continue;
+            };
+            session.locate_identifier(
+                &item.source_version_id,
+                &name,
+                item.start_byte,
+                item.end_byte,
+                item.start_line,
+            )?
         };
-        if let Some(identifier_id) = session.locate_identifier(
-            &item.source_version_id,
-            &name,
-            item.start_byte,
-            item.end_byte,
-            item.start_line,
-        )? {
+        if let Some(identifier_id) = identifier_id {
             buf.record_identifier_outcome(
                 SemanticIdentifierId {
                     version: item.source_version_id.clone(),
