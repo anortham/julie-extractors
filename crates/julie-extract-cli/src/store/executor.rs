@@ -5,8 +5,9 @@ use julie_extract_artifact::model::FileStatus;
 use julie_extract_artifact::store::{
     CoordinatorExecutor, CoordinatorRequest, ExecutionContext, ExecutionQuantum, ManifestEntry,
     ManifestEntryStatus, ManifestPublishDisposition, ManifestPublishResult, ManifestStore,
-    RequestKind, StoreFileVersion, StoreLevel, StoreLog, StoreLogEntry, StoreWriteRequest,
-    StoreWriter,
+    RequestKind, ResolutionBindingError, ResolutionBindingStore, ResolutionViewBinding,
+    StoreFileVersion, StoreLevel, StoreLog, StoreLogEntry, StoreWriteRequest, StoreWriter,
+    ViewResolutionState,
 };
 use julie_extractors::{
     EXTRACTION_IDENTITY_EPOCH, ExtractionLevel, detect_language_from_extension,
@@ -1152,23 +1153,24 @@ impl StoreRequestExecutor {
                 )
                 .map_err(|error| error.to_string())?;
             store_test_crash!("from_artifact_exact_before_cas");
-            let changed = transaction
-                .execute(
-                    "UPDATE views SET resolution_state='exact',resolution_base_id=?1,
-                        resolution_delta_generation=?2,resolution_exact_at=?3,updated_at=?4
-                 WHERE view_id=?5 AND current_generation=?3",
-                    rusqlite::params![
-                        base.base_id,
-                        delta_generation,
-                        generation,
-                        indexed_at,
-                        payload.view_id,
-                    ],
-                )
-                .map_err(|error| error.to_string())?;
-            if changed != 1 {
-                return Err("resolution_binding_cas_lost".to_string());
-            }
+            ResolutionBindingStore::publish_exact_binding_in_transaction(
+                transaction,
+                &ResolutionViewBinding {
+                    view_id: payload.view_id.clone(),
+                    manifest_generation: generation,
+                    manifest_hash: manifest_hash.clone(),
+                    base_id: base.base_id.clone(),
+                    delta_generation,
+                    state: ViewResolutionState::Exact,
+                    exact_at: Some(generation),
+                },
+                payload.source.resolver_output_epoch,
+                &indexed_at,
+            )
+            .map_err(|error| match error {
+                ResolutionBindingError::CasLost { .. } => "resolution_binding_cas_lost".to_string(),
+                error => error.to_string(),
+            })?;
             store_test_crash!("from_artifact_exact_after_cas_before_commit");
             StoreLog::append_effect(
                 transaction,

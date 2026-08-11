@@ -74,8 +74,22 @@ fn every_promotion_boundary_recovers_the_same_generation_without_duplicates() {
         assert_valid(&store);
         assert_valid(&coord);
         assert_eq!(count(&store, "file_versions"), 1, "{boundary}");
-        assert_eq!(count(&store, "manifests"), 1, "{boundary}");
+        assert_eq!(count(&store, "manifests"), 2, "{boundary}");
         assert_eq!(count(&store, "store_log"), 1, "{boundary}");
+        assert_eq!(
+            store
+                .query_row(
+                    "SELECT predecessor_manifest_generation || ':' || base_id || ':' ||
+                            delta_generation || ':' || current_manifest_generation || ':' ||
+                            journal_through_transition_id
+                     FROM resolution_scope_state WHERE view_id='view-a'",
+                    [],
+                    |row| row.get::<_, String>(0),
+                )
+                .unwrap(),
+            "1:base-a:1:2:5",
+            "{boundary}"
+        );
         assert_eq!(count(&coord, "maintenance_intent"), 0, "{boundary}");
         assert_eq!(count(&coord, "writer_lease"), 0, "{boundary}");
         assert_eq!(
@@ -202,6 +216,71 @@ fn crash_between_intent_and_floor_blocks_foreign_writers_via_intent_alone() {
 }
 
 #[test]
+fn forward_rollback_crashes_recover_with_scope_explicitly_invalidated() {
+    for boundary in [
+        "generation_after_logical_copy",
+        "generation_after_directory_rename",
+        "generation_after_current_publish",
+    ] {
+        let temp = TempStore::new(boundary);
+        let initial =
+            StoreLayout::create(temp.path(), "family-generation-crash", "2.30.0").unwrap();
+        seed_source(&initial);
+        let initial_plan = inspect_plan(&initial);
+        let mut promotion = GenerationLifecycle::acquire(
+            factory(&initial),
+            MaintenanceRun::new(
+                format!("prepare-{boundary}"),
+                "prepare-owner",
+                std::process::id(),
+                500,
+                5_000,
+            ),
+            &initial_plan,
+            MaintenanceAction::Promote,
+            FixedCapacity,
+        )
+        .unwrap();
+        promotion
+            .promote(&initial_plan, &GenerationPolicy::default())
+            .unwrap();
+
+        let crashed = run_rollback_worker(temp.path(), boundary);
+        assert!(
+            !crashed.status.success(),
+            "boundary={boundary}: {}",
+            String::from_utf8_lossy(&crashed.stderr)
+        );
+        thread::sleep(Duration::from_millis(300));
+        let current = StoreLayout::open(temp.path()).unwrap();
+        let plan = inspect_plan(&current);
+        let mut retry = GenerationLifecycle::acquire(
+            factory(&current),
+            MaintenanceRun::new(
+                format!("retry-rollback-{boundary}"),
+                "retry-owner",
+                std::process::id(),
+                2_000,
+                5_000,
+            ),
+            &plan,
+            MaintenanceAction::Rollback,
+            FixedCapacity,
+        )
+        .unwrap();
+        let report = retry
+            .rollback(&plan, &GenerationPolicy::default(), "gen-001")
+            .unwrap();
+        assert_eq!(report.destination_generation, "gen-003", "{boundary}");
+        let serving = StoreLayout::open(temp.path()).unwrap();
+        let store = Connection::open(serving.store_db()).unwrap();
+        assert_valid(&store);
+        assert_eq!(count(&store, "resolution_scope_state"), 0, "{boundary}");
+        assert_eq!(count(&store, "resolution_scope_batches"), 0, "{boundary}");
+    }
+}
+
+#[test]
 fn generation_promotion_crash_worker() {
     let Some(root) = std::env::var_os("JULIE_TEST_GENERATION_ROOT") else {
         return;
@@ -212,6 +291,11 @@ fn generation_promotion_crash_worker() {
         .ok()
         .and_then(|value| value.parse().ok())
         .unwrap_or(100);
+    let action = if std::env::var_os("JULIE_TEST_GENERATION_ROLLBACK").is_some() {
+        MaintenanceAction::Rollback
+    } else {
+        MaintenanceAction::Promote
+    };
     let mut lifecycle = GenerationLifecycle::acquire(
         factory(&layout),
         MaintenanceRun::new(
@@ -222,13 +306,19 @@ fn generation_promotion_crash_worker() {
             lease_duration_ms,
         ),
         &plan,
-        MaintenanceAction::Promote,
+        action,
         FixedCapacity,
     )
     .unwrap();
-    lifecycle
-        .promote(&plan, &GenerationPolicy::default())
-        .unwrap();
+    if action == MaintenanceAction::Rollback {
+        lifecycle
+            .rollback(&plan, &GenerationPolicy::default(), "gen-001")
+            .unwrap();
+    } else {
+        lifecycle
+            .promote(&plan, &GenerationPolicy::default())
+            .unwrap();
+    }
     panic!("worker passed crash boundary");
 }
 
@@ -250,17 +340,42 @@ fn seed_source(layout: &StoreLayout) {
              VALUES ('view-a','/repo',2,'unbound',NULL,NULL,NULL,
                      '2026-01-01T00:00:00Z','2026-01-01T00:00:00Z');
              INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
-             VALUES ('view-a',2,'sha256:m2','request-a','2026-01-01T00:00:00Z');
+             VALUES
+               ('view-a',1,'sha256:m1','request-predecessor','2025-12-31T00:00:00Z'),
+               ('view-a',2,'sha256:m2','request-a','2026-01-01T00:00:00Z');
              INSERT INTO manifest_entries
                (view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
-             VALUES ('view-a',2,'src/lib.rs','rust',5,'indexed','blake3:a',
-                     '2026-01-01T00:00:00Z');
+             VALUES
+               ('view-a',1,'src/lib.rs','rust',5,'indexed','blake3:a',
+                '2025-12-31T00:00:00Z'),
+               ('view-a',2,'src/lib.rs','rust',5,'indexed','blake3:a',
+                '2026-01-01T00:00:00Z');
              INSERT INTO resolution_bases
                (base_id,manifest_hash,resolver_output_epoch,state,relative_path,identifier_count,
                 pending_count,file_bytes,file_sha256,request_id,created_at,updated_at)
-             VALUES ('base-a','sha256:m2',1,'ready','bases/base-a.db',0,0,{},{:?},
+             VALUES ('base-a','sha256:m1',1,'ready','bases/base-a.db',0,0,{},{:?},
                      'request-a','2026-01-01T00:00:00Z','2026-01-01T00:00:00Z');
              INSERT INTO resolution_base_versions(base_id,version_id) VALUES ('base-a',5);
+             INSERT INTO resolution_deltas
+               (view_id,delta_generation,base_id,manifest_generation,manifest_hash,
+                resolver_output_epoch,identifier_replacements,pending_replacements,
+                pending_tombstones,exact_gap_rows,exact_gap_files,exact_gap_json,request_id,created_at)
+             VALUES ('view-a',1,'base-a',1,'sha256:m1',1,0,0,0,0,0,'{{}}','request-predecessor',
+                     '2025-12-31T00:00:00Z');
+             INSERT INTO resolution_scope_batches
+               (transition_id,view_id,from_manifest_generation,from_manifest_hash,
+                to_manifest_generation,to_manifest_hash,scope_usable,
+                predecessor_manifest_generation,predecessor_manifest_hash,base_id,
+                delta_generation,resolver_output_epoch,change_count,change_hash,request_id,
+                completed_at)
+             VALUES (5,'view-a',1,'sha256:m1',2,'sha256:m2',1,1,'sha256:m1','base-a',1,1,0,
+                     'sha256:6fefdaedb46e55f2dd1f1852406cb565306739f79dd0a53de2acb50045069590',
+                     'request-a','2026-01-01T00:00:00Z');
+             INSERT INTO resolution_scope_state
+               (view_id,predecessor_manifest_generation,predecessor_manifest_hash,base_id,
+                delta_generation,resolver_output_epoch,current_manifest_generation,
+                current_manifest_hash,journal_through_transition_id)
+             VALUES ('view-a',1,'sha256:m1','base-a',1,1,2,'sha256:m2',5);
              INSERT INTO store_log
                (sequence,request_id,event_kind,view_id,generation,terminal,payload_json,created_at)
              VALUES (7,'request-a','store_import_completed','view-a',2,1,'{{}}',
@@ -300,6 +415,22 @@ fn run_worker_with_lease(root: &Path, boundary: &str, lease_duration: Duration) 
             "JULIE_TEST_GENERATION_LEASE_MS",
             lease_duration.as_millis().to_string(),
         )
+        .output()
+        .unwrap()
+}
+
+fn run_rollback_worker(root: &Path, boundary: &str) -> Output {
+    Command::new(std::env::current_exe().unwrap())
+        .args([
+            "--exact",
+            "generation_promotion_crash_worker",
+            "--nocapture",
+            "--test-threads=1",
+        ])
+        .env("JULIE_TEST_GENERATION_ROOT", root)
+        .env("JULIE_EXTRACT_STORE_TEST_CRASH_AT", boundary)
+        .env("JULIE_TEST_GENERATION_ROLLBACK", "1")
+        .env("JULIE_TEST_GENERATION_LEASE_MS", "100")
         .output()
         .unwrap()
 }

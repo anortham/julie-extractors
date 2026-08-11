@@ -1058,6 +1058,14 @@ fn apply_forward_rollback(
             |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
         )?;
         transaction.execute(
+            "DELETE FROM resolution_scope_state WHERE view_id=?1",
+            [&view.view_id],
+        )?;
+        transaction.execute(
+            "DELETE FROM resolution_scope_batches WHERE view_id=?1",
+            [&view.view_id],
+        )?;
+        transaction.execute(
             "UPDATE views SET current_generation=NULL,resolution_state='unbound',
                resolution_base_id=NULL,resolution_delta_generation=NULL,resolution_exact_at=NULL
              WHERE view_id=?1",

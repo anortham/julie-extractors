@@ -1409,6 +1409,7 @@ impl MaintenanceExecutor {
                     "SELECT relative_path,file_bytes,file_sha256 FROM resolution_bases
                      WHERE base_id=?1 AND state='ready'
                        AND NOT EXISTS(SELECT 1 FROM views WHERE resolution_base_id=?1)
+                       AND NOT EXISTS(SELECT 1 FROM resolution_scope_state WHERE base_id=?1)
                        AND NOT EXISTS(SELECT 1 FROM resolution_pins WHERE base_id=?1)
                        AND NOT EXISTS(SELECT 1 FROM resolution_deltas WHERE base_id=?1)",
                     [base_id],
@@ -1458,7 +1459,11 @@ impl MaintenanceExecutor {
                                     AND views.current_generation=manifest_entries.generation)
                    AND NOT EXISTS(SELECT 1 FROM resolution_pins
                                   WHERE resolution_pins.view_id=manifest_entries.view_id
-                                    AND resolution_pins.manifest_generation=manifest_entries.generation)",
+                                    AND resolution_pins.manifest_generation=manifest_entries.generation)
+                   AND NOT EXISTS(SELECT 1 FROM resolution_scope_state
+                                  WHERE resolution_scope_state.view_id=manifest_entries.view_id
+                                    AND resolution_scope_state.predecessor_manifest_generation=
+                                        manifest_entries.generation)",
                 params![view_id, generation],
             )?;
             report.removed_manifests += transaction.execute(
@@ -1469,7 +1474,11 @@ impl MaintenanceExecutor {
                                     AND views.current_generation=manifests.generation)
                    AND NOT EXISTS(SELECT 1 FROM resolution_pins
                                   WHERE resolution_pins.view_id=manifests.view_id
-                                    AND resolution_pins.manifest_generation=manifests.generation)",
+                                    AND resolution_pins.manifest_generation=manifests.generation)
+                   AND NOT EXISTS(SELECT 1 FROM resolution_scope_state
+                                  WHERE resolution_scope_state.view_id=manifests.view_id
+                                    AND resolution_scope_state.predecessor_manifest_generation=
+                                        manifests.generation)",
                 params![view_id, generation],
             )?;
         }
@@ -2997,10 +3006,18 @@ fn read_manifests(
     peak: &mut usize,
     output: &mut Vec<ManifestFact>,
 ) -> Result<(), MaintenanceError> {
+    let scope_root = if resolution_scope_state_available(connection)? {
+        " OR EXISTS(SELECT 1 FROM resolution_scope_state scope WHERE scope.view_id=m.view_id AND scope.predecessor_manifest_generation=m.generation)"
+    } else {
+        ""
+    };
+    let sql = format!(
+        "SELECT m.view_id,m.generation,CAST(strftime('%s',m.created_at) AS INTEGER)*1000,(m.generation IS v.current_generation{scope_root}) FROM manifests m JOIN views v ON v.view_id=m.view_id WHERE (m.view_id,m.generation)>(?1,?2) ORDER BY m.view_id,m.generation LIMIT ?3"
+    );
     let mut after_view = String::new();
     let mut after_generation = 0_i64;
     loop {
-        let mut statement = connection.prepare("SELECT m.view_id,m.generation,CAST(strftime('%s',m.created_at) AS INTEGER)*1000,m.generation IS v.current_generation FROM manifests m JOIN views v ON v.view_id=m.view_id WHERE (m.view_id,m.generation)>(?1,?2) ORDER BY m.view_id,m.generation LIMIT ?3")?;
+        let mut statement = connection.prepare(&sql)?;
         let page: Vec<_> = statement
             .query_map(params![after_view, after_generation, limit as i64], |row| {
                 Ok(ManifestFact {
@@ -3020,6 +3037,30 @@ fn read_manifests(
         output.extend(page);
     }
     Ok(())
+}
+
+fn resolution_scope_state_available(connection: &Connection) -> Result<bool, MaintenanceError> {
+    let version = connection
+        .query_row(
+            "SELECT value FROM store_meta WHERE key='resolution_scope_journal_version'",
+            [],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()?;
+    let table_exists = connection.query_row(
+        "SELECT EXISTS(SELECT 1 FROM sqlite_schema
+                       WHERE type='table' AND name='resolution_scope_state')",
+        [],
+        |row| row.get::<_, bool>(0),
+    )?;
+    match (version.as_deref(), table_exists) {
+        (None, false) => Ok(false),
+        (Some("1"), true) => Ok(true),
+        _ => Err(MaintenanceError::InvalidMetadata {
+            field: "resolution_scope_journal_version",
+            value: version.unwrap_or_else(|| "missing".to_string()),
+        }),
+    }
 }
 
 fn read_manifest_versions(
@@ -3233,6 +3274,9 @@ fn read_additional_version_roots(
             });
         }
     }
+    if resolution_scope_state_available(connection)? {
+        read_scope_journal_version_roots(connection, limit, peak, output)?;
+    }
     output.sort_by(|left, right| {
         (
             left.version_id,
@@ -3248,6 +3292,84 @@ fn read_additional_version_roots(
             ))
     });
     output.dedup();
+    Ok(())
+}
+
+fn read_scope_journal_version_roots(
+    connection: &Connection,
+    limit: usize,
+    peak: &mut usize,
+    output: &mut Vec<VersionRootFact>,
+) -> Result<(), MaintenanceError> {
+    let mut after = String::new();
+    loop {
+        let mut statement = connection.prepare(
+            "WITH roots(root_key,version_id,reference) AS (
+               SELECT 'scope-old:'||scope.view_id||':'||printf('%020d',journal.transition_id)||
+                        ':'||printf('%020d',journal.old_version_id)||':'||hex(journal.path),
+                      journal.old_version_id,
+                      scope.view_id||':scope:'||journal.transition_id
+               FROM resolution_scope_state scope
+               JOIN resolution_scope_batches batch
+                 ON batch.view_id=scope.view_id
+                AND batch.transition_id<=scope.journal_through_transition_id
+                AND batch.scope_usable=1
+                AND batch.predecessor_manifest_generation=
+                    scope.predecessor_manifest_generation
+                AND batch.predecessor_manifest_hash=scope.predecessor_manifest_hash
+                AND batch.base_id=scope.base_id
+                AND batch.delta_generation=scope.delta_generation
+                AND batch.resolver_output_epoch=scope.resolver_output_epoch
+               JOIN resolution_scope_journal journal
+                 ON journal.transition_id=batch.transition_id
+               WHERE journal.old_version_id IS NOT NULL
+               UNION ALL
+               SELECT 'scope-new:'||scope.view_id||':'||printf('%020d',journal.transition_id)||
+                        ':'||printf('%020d',journal.new_version_id)||':'||hex(journal.path),
+                      journal.new_version_id,
+                      scope.view_id||':scope:'||journal.transition_id
+               FROM resolution_scope_state scope
+               JOIN resolution_scope_batches batch
+                 ON batch.view_id=scope.view_id
+                AND batch.transition_id<=scope.journal_through_transition_id
+                AND batch.scope_usable=1
+                AND batch.predecessor_manifest_generation=
+                    scope.predecessor_manifest_generation
+                AND batch.predecessor_manifest_hash=scope.predecessor_manifest_hash
+                AND batch.base_id=scope.base_id
+                AND batch.delta_generation=scope.delta_generation
+                AND batch.resolver_output_epoch=scope.resolver_output_epoch
+               JOIN resolution_scope_journal journal
+                 ON journal.transition_id=batch.transition_id
+               WHERE journal.new_version_id IS NOT NULL
+             )
+             SELECT root_key,version_id,reference FROM roots
+             WHERE root_key>?1 ORDER BY root_key LIMIT ?2",
+        )?;
+        let page = statement
+            .query_map(params![after, limit as i64], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, i64>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        observe_page(peak, page.len(), limit)?;
+        let Some(last) = page.last() else {
+            break;
+        };
+        after = last.0.clone();
+        output.extend(
+            page.into_iter()
+                .map(|(_, version_id, reference)| VersionRootFact {
+                    version_id,
+                    max_level: MaintenanceLevel::L2,
+                    kind: MaintenanceRootKind::ViewBinding,
+                    reference,
+                }),
+        );
+    }
     Ok(())
 }
 
@@ -3301,30 +3423,59 @@ fn read_store_objects(
     snapshot: &mut MaintenanceSnapshot,
 ) -> Result<(), MaintenanceError> {
     let now_seconds = now_ms.div_euclid(1000);
+    let scope_available = resolution_scope_state_available(connection)?;
+    let protected_base_scope = if scope_available {
+        " OR EXISTS(SELECT 1 FROM resolution_scope_state WHERE base_id=resolution_bases.base_id)"
+    } else {
+        ""
+    };
+    let eligible_base_scope = if scope_available {
+        " AND NOT EXISTS(SELECT 1 FROM resolution_scope_state WHERE base_id=resolution_bases.base_id)"
+    } else {
+        ""
+    };
+    let protected_delta_scope = if scope_available {
+        " OR EXISTS(SELECT 1 FROM resolution_scope_state WHERE resolution_scope_state.view_id=resolution_deltas.view_id AND resolution_scope_state.delta_generation=resolution_deltas.delta_generation)"
+    } else {
+        ""
+    };
+    let eligible_delta_scope = if scope_available {
+        " AND NOT EXISTS(SELECT 1 FROM resolution_scope_state WHERE resolution_scope_state.view_id=resolution_deltas.view_id AND resolution_scope_state.delta_generation=resolution_deltas.delta_generation)"
+    } else {
+        ""
+    };
     snapshot.protected_bases = read_string_pages_with_extra(
         connection,
-        "SELECT base_id FROM resolution_bases WHERE (state='building' OR EXISTS(SELECT 1 FROM views WHERE resolution_base_id=resolution_bases.base_id) OR EXISTS(SELECT 1 FROM resolution_pins WHERE base_id=resolution_bases.base_id AND CAST(strftime('%s',expires_at) AS INTEGER)>?3)) AND base_id>?1 ORDER BY base_id LIMIT ?2",
+        &format!(
+            "SELECT base_id FROM resolution_bases WHERE (state='building' OR EXISTS(SELECT 1 FROM views WHERE resolution_base_id=resolution_bases.base_id){protected_base_scope} OR EXISTS(SELECT 1 FROM resolution_pins WHERE base_id=resolution_bases.base_id AND CAST(strftime('%s',expires_at) AS INTEGER)>?3)) AND base_id>?1 ORDER BY base_id LIMIT ?2"
+        ),
         limit,
         peak,
         now_seconds,
     )?;
     snapshot.eligible_bases = read_string_pages_with_extra(
         connection,
-        "SELECT base_id FROM resolution_bases WHERE state='ready' AND NOT EXISTS(SELECT 1 FROM views WHERE resolution_base_id=resolution_bases.base_id) AND NOT EXISTS(SELECT 1 FROM resolution_pins WHERE base_id=resolution_bases.base_id AND CAST(strftime('%s',expires_at) AS INTEGER)>?3) AND NOT EXISTS(SELECT 1 FROM resolution_deltas WHERE base_id=resolution_bases.base_id) AND base_id>?1 ORDER BY base_id LIMIT ?2",
+        &format!(
+            "SELECT base_id FROM resolution_bases WHERE state='ready' AND NOT EXISTS(SELECT 1 FROM views WHERE resolution_base_id=resolution_bases.base_id){eligible_base_scope} AND NOT EXISTS(SELECT 1 FROM resolution_pins WHERE base_id=resolution_bases.base_id AND CAST(strftime('%s',expires_at) AS INTEGER)>?3) AND NOT EXISTS(SELECT 1 FROM resolution_deltas WHERE base_id=resolution_bases.base_id) AND base_id>?1 ORDER BY base_id LIMIT ?2"
+        ),
         limit,
         peak,
         now_seconds,
     )?;
     snapshot.protected_deltas = read_string_pages_with_extra(
         connection,
-        "SELECT view_id||':'||printf('%020d',delta_generation) FROM resolution_deltas WHERE (EXISTS(SELECT 1 FROM views WHERE views.view_id=resolution_deltas.view_id AND views.resolution_delta_generation=resolution_deltas.delta_generation) OR EXISTS(SELECT 1 FROM resolution_pins WHERE resolution_pins.view_id=resolution_deltas.view_id AND resolution_pins.delta_generation=resolution_deltas.delta_generation AND CAST(strftime('%s',expires_at) AS INTEGER)>?3)) AND view_id||':'||printf('%020d',delta_generation)>?1 ORDER BY view_id,delta_generation LIMIT ?2",
+        &format!(
+            "SELECT view_id||':'||printf('%020d',delta_generation) FROM resolution_deltas WHERE (EXISTS(SELECT 1 FROM views WHERE views.view_id=resolution_deltas.view_id AND views.resolution_delta_generation=resolution_deltas.delta_generation){protected_delta_scope} OR EXISTS(SELECT 1 FROM resolution_pins WHERE resolution_pins.view_id=resolution_deltas.view_id AND resolution_pins.delta_generation=resolution_deltas.delta_generation AND CAST(strftime('%s',expires_at) AS INTEGER)>?3)) AND view_id||':'||printf('%020d',delta_generation)>?1 ORDER BY view_id,delta_generation LIMIT ?2"
+        ),
         limit,
         peak,
         now_seconds,
     )?;
     snapshot.eligible_deltas = read_string_pages_with_extra(
         connection,
-        "SELECT view_id||':'||printf('%020d',delta_generation) FROM resolution_deltas WHERE NOT EXISTS(SELECT 1 FROM views WHERE views.view_id=resolution_deltas.view_id AND views.resolution_delta_generation=resolution_deltas.delta_generation) AND NOT EXISTS(SELECT 1 FROM resolution_pins WHERE resolution_pins.view_id=resolution_deltas.view_id AND resolution_pins.delta_generation=resolution_deltas.delta_generation AND CAST(strftime('%s',expires_at) AS INTEGER)>?3) AND view_id||':'||printf('%020d',delta_generation)>?1 ORDER BY view_id,delta_generation LIMIT ?2",
+        &format!(
+            "SELECT view_id||':'||printf('%020d',delta_generation) FROM resolution_deltas WHERE NOT EXISTS(SELECT 1 FROM views WHERE views.view_id=resolution_deltas.view_id AND views.resolution_delta_generation=resolution_deltas.delta_generation){eligible_delta_scope} AND NOT EXISTS(SELECT 1 FROM resolution_pins WHERE resolution_pins.view_id=resolution_deltas.view_id AND resolution_pins.delta_generation=resolution_deltas.delta_generation AND CAST(strftime('%s',expires_at) AS INTEGER)>?3) AND view_id||':'||printf('%020d',delta_generation)>?1 ORDER BY view_id,delta_generation LIMIT ?2"
+        ),
         limit,
         peak,
         now_seconds,

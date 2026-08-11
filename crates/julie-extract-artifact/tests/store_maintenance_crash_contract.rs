@@ -48,6 +48,28 @@ fn store_demotions_are_atomic_on_both_sides_of_the_commit() {
             "boundary={boundary}: {}",
             String::from_utf8_lossy(&output.stderr)
         );
+        assert_eq!(
+            Connection::open(layout.store_db())
+                .unwrap()
+                .query_row(
+                    "SELECT
+                       (SELECT COUNT(*) FROM resolution_scope_state WHERE view_id='view-scope'),
+                       (SELECT COUNT(*) FROM resolution_bases WHERE base_id='base-scope'),
+                       (SELECT COUNT(*) FROM resolution_deltas
+                        WHERE view_id='view-scope' AND delta_generation=1)",
+                    [],
+                    |row| {
+                        Ok((
+                            row.get::<_, i64>(0)?,
+                            row.get::<_, i64>(1)?,
+                            row.get::<_, i64>(2)?,
+                        ))
+                    },
+                )
+                .unwrap(),
+            (1, 1, 1),
+            "boundary={boundary}"
+        );
     }
 }
 
@@ -312,6 +334,40 @@ fn seed_l3_candidate(layout: &StoreLayout) {
              (version_id,structural_fact_id,path,language,pattern_id,capture_name,node_kind,
               start_line,start_column,end_line,end_column,start_byte,end_byte,confidence)
              VALUES (1,'fact','src/lib.rs','rust','test.fact','node','node',1,0,1,1,0,1,1.0);
+             INSERT INTO views(view_id,root,current_generation,created_at,updated_at)
+             VALUES ('view-scope','/repo',2,'2026-01-01T00:00:00Z','2026-01-02T00:00:00Z');
+             INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+             VALUES
+               ('view-scope',1,'sha256:m1','request-1','2026-01-01T00:00:00Z'),
+               ('view-scope',2,'sha256:m2','request-2','2026-01-02T00:00:00Z');
+             INSERT INTO resolution_bases
+               (base_id,manifest_hash,resolver_output_epoch,state,relative_path,identifier_count,
+                pending_count,file_bytes,file_sha256,request_id,created_at,updated_at)
+             VALUES ('base-scope','sha256:m1',1,'ready','bases/base-scope.db',0,0,1,
+                     'sha256:base','request-1','2026-01-01T00:00:00Z',
+                     '2026-01-01T00:00:00Z');
+             INSERT INTO resolution_base_versions(base_id,version_id) VALUES ('base-scope',1);
+             INSERT INTO resolution_deltas
+               (view_id,delta_generation,base_id,manifest_generation,manifest_hash,
+                resolver_output_epoch,identifier_replacements,pending_replacements,
+                pending_tombstones,exact_gap_rows,exact_gap_files,exact_gap_json,request_id,created_at)
+             VALUES ('view-scope',1,'base-scope',1,'sha256:m1',1,0,0,0,0,0,'{}','request-1',
+                     '2026-01-01T00:00:00Z');
+             INSERT INTO resolution_scope_batches
+               (transition_id,view_id,from_manifest_generation,from_manifest_hash,
+                to_manifest_generation,to_manifest_hash,scope_usable,
+                predecessor_manifest_generation,predecessor_manifest_hash,base_id,
+                delta_generation,resolver_output_epoch,change_count,change_hash,request_id,
+                completed_at)
+             VALUES (1,'view-scope',1,'sha256:m1',2,'sha256:m2',1,1,'sha256:m1','base-scope',
+                     1,1,0,
+                     'sha256:6fefdaedb46e55f2dd1f1852406cb565306739f79dd0a53de2acb50045069590',
+                     'request-2','2026-01-02T00:00:00Z');
+             INSERT INTO resolution_scope_state
+               (view_id,predecessor_manifest_generation,predecessor_manifest_hash,base_id,
+                delta_generation,resolver_output_epoch,current_manifest_generation,
+                current_manifest_hash,journal_through_transition_id)
+             VALUES ('view-scope',1,'sha256:m1','base-scope',1,1,2,'sha256:m2',1);
              COMMIT;",
         )
         .unwrap();

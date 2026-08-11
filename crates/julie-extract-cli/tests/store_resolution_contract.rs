@@ -340,6 +340,96 @@ fn public_resolve_builds_an_exact_binding_without_extracting_again() {
 }
 
 #[test]
+fn from_artifact_exact_publication_clears_scope_atomically_after_retry() {
+    let temp = TempDir::new();
+    let (root, store) = create_full_store(&temp);
+    assert!(
+        resolve_output(&store, "resolve-predecessor", "resolve-predecessor-key")
+            .status
+            .success()
+    );
+    fs::write(
+        root.join("lib.rs"),
+        "pub fn answer() -> i32 { helper() }\nfn helper() -> i32 { 2 }\n",
+    )
+    .unwrap();
+    let artifact = temp.path().join("updated.db");
+    let scan = julie_extract(&[
+        "scan",
+        "--root",
+        root.to_str().unwrap(),
+        "--db",
+        artifact.to_str().unwrap(),
+        "--json",
+    ]);
+    assert!(
+        scan.status.success(),
+        "{}",
+        String::from_utf8_lossy(&scan.stdout)
+    );
+    let args = [
+        "store",
+        "import",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11",
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--from-artifact",
+        artifact.to_str().unwrap(),
+        "--request-id",
+        "from-artifact-scope",
+        "--idempotency-key",
+        "from-artifact-scope-key",
+        "--json",
+    ];
+    let crashed = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args(args)
+        .env(
+            "JULIE_EXTRACT_STORE_TEST_CRASH_AT",
+            "from_artifact_exact_after_cas_before_commit",
+        )
+        .output()
+        .unwrap();
+    assert!(!crashed.status.success());
+
+    let store_db = store.join("gen-001/store.db");
+    assert_eq!(
+        Connection::open(&store_db)
+            .unwrap()
+            .query_row("SELECT COUNT(*) FROM resolution_scope_state", [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .unwrap(),
+        1
+    );
+
+    let retried = julie_extract(&args);
+    assert!(
+        retried.status.success(),
+        "stdout={} stderr={}",
+        String::from_utf8_lossy(&retried.stdout),
+        String::from_utf8_lossy(&retried.stderr)
+    );
+    assert_eq!(
+        Connection::open(&store_db)
+            .unwrap()
+            .query_row(
+                "SELECT resolution_state='exact',
+                        (SELECT COUNT(*) FROM resolution_scope_state)
+                 FROM views WHERE view_id='view-main'",
+                [],
+                |row| Ok((row.get::<_, bool>(0)?, row.get::<_, i64>(1)?)),
+            )
+            .unwrap(),
+        (true, 0)
+    );
+}
+
+#[test]
 fn incomplete_l2_resolve_fails_durably_without_base_delta_or_exactness() {
     let temp = TempDir::new();
     let root = temp.path().join("source");
@@ -1261,6 +1351,23 @@ fn hard_kill_boundaries_resume_one_resolve_without_duplicate_terminal_state() {
             !crashed.status.success(),
             "boundary {boundary} returned normally"
         );
+        let store_db = store.join("gen-001/store.db");
+        let scope_rows = Connection::open(&store_db)
+            .unwrap()
+            .query_row("SELECT COUNT(*) FROM resolution_scope_state", [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .unwrap();
+        assert_eq!(
+            scope_rows,
+            i64::from(matches!(
+                boundary,
+                "resolution_exact_after_scratch_create"
+                    | "resolution_before_exact_publish"
+                    | "resolution_exact_before_store_commit"
+            )),
+            "boundary={boundary}"
+        );
         let retry = resolve_output(&store, "resolve-retry", "resolve-crash-key");
         assert!(
             retry.status.success(),
@@ -1271,7 +1378,7 @@ fn hard_kill_boundaries_resume_one_resolve_without_duplicate_terminal_state() {
         let report: Value = serde_json::from_slice(&retry.stdout).unwrap();
         assert_eq!(report["request"]["id"], "resolve-crash");
         assert_eq!(report["resolution"]["state"], "exact");
-        let db = Connection::open(store.join("gen-001/store.db")).unwrap();
+        let db = Connection::open(store_db).unwrap();
         assert_eq!(
             db.query_row(
                 "SELECT COUNT(*) FROM store_log
@@ -1281,6 +1388,14 @@ fn hard_kill_boundaries_resume_one_resolve_without_duplicate_terminal_state() {
             )
             .unwrap(),
             1
+        );
+        assert_eq!(
+            db.query_row("SELECT COUNT(*) FROM resolution_scope_state", [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .unwrap(),
+            0,
+            "boundary={boundary}"
         );
         let coord = Connection::open(store.join("coord.db")).unwrap();
         assert_eq!(

@@ -1205,6 +1205,12 @@ impl ResolutionBindingStore {
                 view_id: view_id.to_string(),
             });
         }
+        if exact {
+            transaction.execute(
+                "DELETE FROM resolution_scope_state WHERE view_id=?1",
+                [view_id],
+            )?;
+        }
         let payload = serde_json::json!({
             "base_id": base.base_id,
             "delta_generation": delta_generation,
@@ -1253,6 +1259,56 @@ impl ResolutionBindingStore {
             &request.created_at,
         )?;
         Ok((binding, pin))
+    }
+
+    /// Publishes an already-stored exact delta inside the caller's transaction.
+    pub fn publish_exact_binding_in_transaction(
+        transaction: &Transaction<'_>,
+        binding: &ResolutionViewBinding,
+        resolver_output_epoch: i64,
+        updated_at: &str,
+    ) -> Result<(), ResolutionBindingError> {
+        if binding.state != ViewResolutionState::Exact
+            || binding.exact_at != Some(binding.manifest_generation)
+        {
+            return Err(ResolutionBindingError::InvalidPublication {
+                detail: "exact binding publication must name its manifest generation".to_string(),
+            });
+        }
+        let changed = transaction.execute(
+            "UPDATE views SET resolution_state='exact',resolution_base_id=?1,
+                    resolution_delta_generation=?2,resolution_exact_at=?3,updated_at=?4
+             WHERE view_id=?5 AND current_generation=?3
+               AND EXISTS(
+                 SELECT 1 FROM manifests
+                 WHERE view_id=?5 AND generation=?3 AND manifest_hash=?6
+               )
+               AND EXISTS(
+                 SELECT 1 FROM resolution_deltas
+                 WHERE view_id=?5 AND delta_generation=?2 AND base_id=?1
+                   AND manifest_generation=?3 AND manifest_hash=?6
+                   AND resolver_output_epoch=?7
+               )",
+            params![
+                binding.base_id,
+                binding.delta_generation,
+                binding.manifest_generation,
+                updated_at,
+                binding.view_id,
+                binding.manifest_hash,
+                resolver_output_epoch,
+            ],
+        )?;
+        if changed != 1 {
+            return Err(ResolutionBindingError::CasLost {
+                view_id: binding.view_id.clone(),
+            });
+        }
+        transaction.execute(
+            "DELETE FROM resolution_scope_state WHERE view_id=?1",
+            [&binding.view_id],
+        )?;
+        Ok(())
     }
 
     pub fn publish_exact<H>(
@@ -1460,6 +1516,10 @@ impl ResolutionBindingStore {
                 view_id: publication.view_id.clone(),
             });
         }
+        transaction.execute(
+            "DELETE FROM resolution_scope_state WHERE view_id=?1",
+            [&publication.view_id],
+        )?;
         let payload = serde_json::json!({
             "base_id": publication.base_id,
             "delta_generation": delta_generation,
@@ -1822,6 +1882,11 @@ impl ResolutionBindingStore {
                  SELECT 1 FROM resolution_pins AS pin
                  WHERE pin.view_id=delta.view_id
                    AND pin.delta_generation=delta.delta_generation
+               )
+               AND NOT EXISTS(
+                 SELECT 1 FROM resolution_scope_state AS scope
+                 WHERE scope.view_id=delta.view_id
+                   AND scope.delta_generation=delta.delta_generation
                )",
             [view_id],
         )?;
@@ -3675,6 +3740,10 @@ pub(crate) fn retire_resolution_delta(
            AND NOT EXISTS(SELECT 1 FROM views
                           WHERE views.view_id=resolution_deltas.view_id
                             AND views.resolution_delta_generation=resolution_deltas.delta_generation)
+           AND NOT EXISTS(SELECT 1 FROM resolution_scope_state
+                          WHERE resolution_scope_state.view_id=resolution_deltas.view_id
+                            AND resolution_scope_state.delta_generation=
+                                resolution_deltas.delta_generation)
            AND NOT EXISTS(SELECT 1 FROM resolution_pins
                           WHERE resolution_pins.view_id=resolution_deltas.view_id
                             AND resolution_pins.delta_generation=resolution_deltas.delta_generation)",
@@ -3690,6 +3759,7 @@ pub(crate) fn retire_resolution_base(
         "DELETE FROM resolution_bases
          WHERE base_id=?1
            AND NOT EXISTS(SELECT 1 FROM views WHERE resolution_base_id=?1)
+           AND NOT EXISTS(SELECT 1 FROM resolution_scope_state WHERE base_id=?1)
            AND NOT EXISTS(SELECT 1 FROM resolution_pins WHERE base_id=?1)
            AND NOT EXISTS(SELECT 1 FROM resolution_deltas WHERE base_id=?1)",
         [base_id],

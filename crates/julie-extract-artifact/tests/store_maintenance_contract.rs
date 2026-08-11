@@ -296,6 +296,122 @@ fn sqlite_inspection_covers_store_and_coordinator_roots_in_bounded_windows() {
 }
 
 #[test]
+fn scope_predecessor_is_a_concrete_maintenance_root() {
+    let temp = TempStore::new("scope-predecessor-root");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let store = Connection::open(layout.store_db()).unwrap();
+    store
+        .execute_batch(
+            "PRAGMA foreign_keys=ON;
+             BEGIN IMMEDIATE;
+             INSERT INTO file_versions
+               (version_id,path,content_hash,extraction_epoch,language,content_bytes,line_count,
+                complete_l1,complete_l2,complete_l3)
+             VALUES
+               (1,'src/lib.rs','blake3:a',1,'rust',10,1,1,2,3),
+               (2,'src/lib.rs','blake3:b',1,'rust',10,1,1,2,3);
+             INSERT INTO views(view_id,root,current_generation,created_at,updated_at)
+             VALUES ('view-a','/repo',3,'2026-01-01T00:00:00Z','2026-01-03T00:00:00Z');
+             INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+             VALUES
+               ('view-a',1,'sha256:m1','request-1','2026-01-01T00:00:00Z'),
+               ('view-a',2,'sha256:m2','request-2','2026-01-02T00:00:00Z'),
+               ('view-a',3,'sha256:m3','request-3','2026-01-03T00:00:00Z');
+             INSERT INTO manifest_entries
+               (view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
+             VALUES
+               ('view-a',1,'src/lib.rs','rust',1,'indexed','blake3:a','2026-01-01T00:00:00Z'),
+               ('view-a',2,'src/lib.rs','rust',2,'indexed','blake3:b','2026-01-02T00:00:00Z');
+             INSERT INTO resolution_bases
+               (base_id,manifest_hash,resolver_output_epoch,state,relative_path,identifier_count,
+                pending_count,file_bytes,file_sha256,request_id,created_at,updated_at)
+             VALUES ('base-scope','sha256:m1',7,'ready','bases/base-scope.db',1,0,10,
+                     'sha256:base','request-base','2026-01-01T00:00:00Z',
+                     '2026-01-01T00:00:00Z');
+             INSERT INTO resolution_base_versions(base_id,version_id) VALUES ('base-scope',1);
+             INSERT INTO resolution_deltas
+               (view_id,delta_generation,base_id,manifest_generation,manifest_hash,
+                resolver_output_epoch,identifier_replacements,pending_replacements,
+                pending_tombstones,exact_gap_rows,exact_gap_files,exact_gap_json,request_id,created_at)
+             VALUES ('view-a',1,'base-scope',1,'sha256:m1',7,1,0,0,0,0,'{}','request-exact',
+                     '2026-01-01T00:00:00Z');
+             INSERT INTO resolution_identifier_deltas
+               (view_id,delta_generation,version_id,identifier_id,target_version_id,
+                target_symbol_id,tier,confidence,method,outcome,candidates)
+             VALUES ('view-a',1,1,'identifier-a',1,'symbol-a',1,1.0,'exact','resolved',1);
+             INSERT INTO resolution_scope_batches
+               (transition_id,view_id,from_manifest_generation,from_manifest_hash,
+                to_manifest_generation,to_manifest_hash,scope_usable,
+                predecessor_manifest_generation,predecessor_manifest_hash,base_id,
+                delta_generation,resolver_output_epoch,change_count,change_hash,request_id,
+                completed_at)
+             VALUES (1,'view-a',1,'sha256:m1',2,'sha256:m2',1,1,'sha256:m1','base-scope',1,7,1,
+                     'sha256:changes','request-2','2026-01-02T00:00:00Z');
+             INSERT INTO resolution_scope_batches
+               (transition_id,view_id,previous_transition_id,from_manifest_generation,
+                from_manifest_hash,to_manifest_generation,to_manifest_hash,scope_usable,
+                predecessor_manifest_generation,predecessor_manifest_hash,base_id,
+                delta_generation,resolver_output_epoch,change_count,change_hash,request_id,
+                completed_at)
+             VALUES (2,'view-a',1,2,'sha256:m2',3,'sha256:m3',1,1,'sha256:m1','base-scope',1,7,1,
+                     'sha256:changes-2','request-3','2026-01-03T00:00:00Z');
+             INSERT INTO resolution_scope_journal
+               (transition_id,path,change_kind,old_version_id,new_version_id,touched_names_json)
+             VALUES (1,'src/lib.rs','content_replaced',1,2,'[]');
+             INSERT INTO resolution_scope_journal
+               (transition_id,path,change_kind,old_version_id,new_version_id,touched_names_json)
+             VALUES (2,'src/lib.rs','path_deleted',2,NULL,'[]');
+             INSERT INTO resolution_scope_state
+               (view_id,predecessor_manifest_generation,predecessor_manifest_hash,base_id,
+                delta_generation,resolver_output_epoch,current_manifest_generation,
+                current_manifest_hash,journal_through_transition_id)
+             VALUES ('view-a',1,'sha256:m1','base-scope',1,7,3,'sha256:m3',2);
+             COMMIT;",
+        )
+        .unwrap();
+
+    let plan = MaintenanceInspector::new(
+        StoreConnectionFactory::new(layout, "family-a", "2.30.0"),
+        FixedClock(20 * DAY_MS),
+        FixedCapacity,
+    )
+    .inspect()
+    .unwrap();
+
+    assert!(plan.protected_bases.contains(&"base-scope".to_string()));
+    assert!(!plan.eligible_bases.contains(&"base-scope".to_string()));
+    assert!(
+        plan.protected_deltas
+            .contains(&"view-a:00000000000000000001".to_string())
+    );
+    assert!(
+        !plan
+            .eligible_deltas
+            .contains(&"view-a:00000000000000000001".to_string())
+    );
+    assert!(
+        plan.version(1)
+            .unwrap()
+            .reasons(MaintenanceLevel::L1)
+            .iter()
+            .any(|reason| {
+                reason.kind == MaintenanceRootKind::CurrentManifest
+                    && reason.reference == "view-a:1"
+            })
+    );
+    assert!(
+        plan.version(2)
+            .unwrap()
+            .reasons(MaintenanceLevel::L2)
+            .iter()
+            .any(|reason| {
+                reason.kind == MaintenanceRootKind::ViewBinding
+                    && reason.reference == "view-a:scope:2"
+            })
+    );
+}
+
+#[test]
 fn paged_inspection_refuses_a_concurrent_coordinator_commit() {
     let temp = TempStore::new("inspection-race");
     let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();

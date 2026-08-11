@@ -659,6 +659,25 @@ fn forward_rollback_rebinds_exact_resolution_with_fresh_manifest_and_delta_ids()
         fs::read(current.bases_dir().join("base-a.db")).unwrap(),
         b"valid resolution base"
     );
+    assert_eq!(
+        store
+            .query_row(
+                "SELECT
+                   (SELECT COUNT(*) FROM resolution_scope_state),
+                   (SELECT COUNT(*) FROM resolution_scope_batches),
+                   (SELECT COUNT(*) FROM resolution_scope_journal)",
+                [],
+                |row| {
+                    Ok((
+                        row.get::<_, i64>(0)?,
+                        row.get::<_, i64>(1)?,
+                        row.get::<_, i64>(2)?,
+                    ))
+                },
+            )
+            .unwrap(),
+        (0, 0, 0)
+    );
     let coord = Connection::open(current.coordinator_db()).unwrap();
     assert_eq!(allocator(&coord, "manifest_generation", "view-a"), 9);
     assert_eq!(
@@ -831,6 +850,22 @@ fn seed_latest_unbound(layout: &StoreLayout) {
                (view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
              VALUES ('view-a',8,'src/c.rs','rust',19,'indexed','blake3:c',
                      '2026-01-02T00:00:00Z');
+             INSERT INTO resolution_scope_batches
+               (transition_id,view_id,from_manifest_generation,from_manifest_hash,
+                to_manifest_generation,to_manifest_hash,scope_usable,
+                predecessor_manifest_generation,predecessor_manifest_hash,base_id,
+                delta_generation,resolver_output_epoch,change_count,change_hash,request_id,
+                completed_at)
+             VALUES (1,'view-a',4,'sha256:m4',8,'sha256:m8',1,4,'sha256:m4','base-a',9,1,1,
+                     'sha256:changes','request-b','2026-01-02T00:00:00Z');
+             INSERT INTO resolution_scope_journal
+               (transition_id,path,change_kind,old_version_id,new_version_id,touched_names_json)
+             VALUES (1,'src/c.rs','content_replaced',7,19,'[]');
+             INSERT INTO resolution_scope_state
+               (view_id,predecessor_manifest_generation,predecessor_manifest_hash,base_id,
+                delta_generation,resolver_output_epoch,current_manifest_generation,
+                current_manifest_hash,journal_through_transition_id)
+             VALUES ('view-a',4,'sha256:m4','base-a',9,1,8,'sha256:m8',1);
              UPDATE views SET current_generation=8,updated_at='2026-01-02T00:00:00Z'
              WHERE view_id='view-a';
              INSERT INTO store_log

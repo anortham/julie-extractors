@@ -11,7 +11,7 @@ use julie_extract_artifact::store::{
     ResolutionGapKind, ResolutionGapTable, ResolutionIdentifierRow, ResolutionPendingOperation,
     ResolutionPendingRow, ResolutionPinOwnerKind, ResolutionPublicationFence,
     ResolutionPublicationMarker, ResolutionScratchDelta, ResolutionScratchReader,
-    StoreConnectionFactory, StoreLayout, ViewResolutionState,
+    StoreConnectionFactory, StoreLayout, ViewResolutionState, resolution_scope_state,
 };
 use rusqlite::Connection;
 
@@ -327,6 +327,106 @@ fn exact_publish_is_atomic_and_stale_binding_cas_publishes_nothing() {
 }
 
 #[test]
+fn exact_publication_clears_scope_only_after_winning_the_latest_manifest_cas() {
+    let temp = TempDir::new();
+    let layout = StoreLayout::create(&temp.0, FAMILY_ID, VERSION).unwrap();
+    let (predecessor_hash, predecessor_version) =
+        publish_manifest(&layout, "view-a", None, "src/a.rs", "a");
+    let factory = StoreConnectionFactory::new(layout.clone(), FAMILY_ID, VERSION);
+    let base_id = ready_empty_base(
+        &factory,
+        &predecessor_hash,
+        predecessor_version,
+        "request-base",
+    );
+    let bindings = ResolutionBindingStore::new(factory);
+    let predecessor = bindings
+        .bind_base("view-a", 7, "request-predecessor", NOW)
+        .unwrap();
+    let (second_hash, _) = publish_manifest(&layout, "view-a", Some(1), "src/b.rs", "b");
+    let (latest_hash, _) = publish_manifest(&layout, "view-a", Some(2), "src/c.rs", "c");
+    let converging = bindings
+        .bind_base("view-a", 7, "request-converging", NOW)
+        .unwrap();
+
+    let state_before =
+        resolution_scope_state(&Connection::open(layout.store_db()).unwrap(), "view-a")
+            .unwrap()
+            .unwrap();
+    assert_eq!(
+        (
+            state_before.predecessor_manifest_generation,
+            state_before.predecessor_manifest_hash.as_str(),
+            state_before.base_id.as_str(),
+            state_before.delta_generation,
+            state_before.current_manifest_generation,
+            state_before.journal_through_transition_id,
+        ),
+        (
+            1,
+            predecessor_hash.as_str(),
+            base_id.as_str(),
+            predecessor.delta_generation,
+            3,
+            3,
+        )
+    );
+
+    let stale_scratch_path = temp.0.join("stale-delta.db");
+    ResolutionScratchDelta::new(&stale_scratch_path, &second_hash, 7)
+        .unwrap()
+        .finish()
+        .unwrap();
+    let stale_scratch = ResolutionScratchReader::open(&stale_scratch_path).unwrap();
+    let stale = ResolutionExactPublish {
+        view_id: "view-a".to_string(),
+        manifest_generation: 2,
+        manifest_hash: second_hash,
+        base_id: base_id.clone(),
+        previous_delta_generation: converging.delta_generation,
+        resolver_output_epoch: 7,
+        request_id: "request-stale".to_string(),
+        created_at: NOW.to_string(),
+    };
+    let stale_fence = publication_fence(&layout, &stale.request_id);
+    assert!(matches!(
+        bindings.publish_exact(&stale, &stale_fence, &stale_scratch, &[], 1, || Ok(())),
+        Err(ResolutionBindingError::CasLost { .. })
+    ));
+    assert_eq!(
+        resolution_scope_state(&Connection::open(layout.store_db()).unwrap(), "view-a").unwrap(),
+        Some(state_before)
+    );
+
+    let latest_scratch_path = temp.0.join("latest-delta.db");
+    ResolutionScratchDelta::new(&latest_scratch_path, &latest_hash, 7)
+        .unwrap()
+        .finish()
+        .unwrap();
+    let latest_scratch = ResolutionScratchReader::open(&latest_scratch_path).unwrap();
+    let latest = ResolutionExactPublish {
+        view_id: "view-a".to_string(),
+        manifest_generation: 3,
+        manifest_hash: latest_hash,
+        base_id,
+        previous_delta_generation: converging.delta_generation,
+        resolver_output_epoch: 7,
+        request_id: "request-latest".to_string(),
+        created_at: NOW.to_string(),
+    };
+    let latest_fence = publication_fence(&layout, &latest.request_id);
+    bindings
+        .publish_exact(&latest, &latest_fence, &latest_scratch, &[], 1, || Ok(()))
+        .unwrap();
+
+    assert!(
+        resolution_scope_state(&Connection::open(layout.store_db()).unwrap(), "view-a")
+            .unwrap()
+            .is_none()
+    );
+}
+
+#[test]
 fn exact_publish_rejects_wall_clock_expired_lease_even_when_fence_now_is_stale() {
     let temp = TempDir::new();
     let layout = StoreLayout::create(&temp.0, FAMILY_ID, VERSION).unwrap();
@@ -570,9 +670,19 @@ fn cleanup_removes_only_unpinned_superseded_deltas_and_reaps_expired_pins() {
         bindings
             .cleanup_superseded_deltas("view-a", "2026-08-08T20:32:00Z")
             .unwrap(),
-        1
+        0
     );
     let connection = Connection::open(layout.store_db()).unwrap();
+    assert_eq!(
+        connection
+            .query_row(
+                "SELECT delta_generation FROM resolution_scope_state WHERE view_id='view-a'",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        first.delta_generation
+    );
     assert_eq!(
         connection
             .query_row(
@@ -591,7 +701,7 @@ fn cleanup_removes_only_unpinned_superseded_deltas_and_reaps_expired_pins() {
                 |row| row.get::<_, i64>(0),
             )
             .unwrap(),
-        1
+        2
     );
 }
 
@@ -614,6 +724,40 @@ fn binding_never_reuses_an_exact_head_from_another_resolver_epoch() {
     assert_eq!(second.base_id, base8);
     assert_ne!(first.delta_generation, second.delta_generation);
     assert_eq!(second.state, ViewResolutionState::Exact);
+}
+
+#[test]
+fn exact_base_reuse_clears_the_manifest_scope_root_after_its_cas_wins() {
+    let temp = TempDir::new();
+    let layout = StoreLayout::create(&temp.0, FAMILY_ID, VERSION).unwrap();
+    let (first_hash, first_version) = publish_manifest(&layout, "view-a", None, "src/a.rs", "a");
+    let factory = StoreConnectionFactory::new(layout.clone(), FAMILY_ID, VERSION);
+    ready_empty_base(&factory, &first_hash, first_version, "request-base-a");
+    let bindings = ResolutionBindingStore::new(factory.clone());
+    bindings
+        .bind_base("view-a", 7, "request-exact-a", NOW)
+        .unwrap();
+
+    let (second_hash, second_version) = publish_manifest(&layout, "view-b", None, "src/b.rs", "b");
+    let second_base = ready_empty_base(&factory, &second_hash, second_version, "request-base-b");
+    publish_manifest(&layout, "view-a", Some(1), "src/b.rs", "b");
+    assert!(
+        resolution_scope_state(&Connection::open(layout.store_db()).unwrap(), "view-a")
+            .unwrap()
+            .is_some()
+    );
+
+    let exact = bindings
+        .bind_base("view-a", 7, "request-exact-b", NOW)
+        .unwrap();
+
+    assert_eq!(exact.state, ViewResolutionState::Exact);
+    assert_eq!(exact.base_id, second_base);
+    assert!(
+        resolution_scope_state(&Connection::open(layout.store_db()).unwrap(), "view-a")
+            .unwrap()
+            .is_none()
+    );
 }
 
 impl Drop for TempDir {
