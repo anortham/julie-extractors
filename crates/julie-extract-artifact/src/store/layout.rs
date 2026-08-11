@@ -121,6 +121,7 @@ impl StoreLayout {
         let mut current = File::create(&partial_current)?;
         current.write_all(format!("{INITIAL_GENERATION}\n").as_bytes())?;
         current.sync_all()?;
+        drop(current);
         fs::rename(&partial_current, root.join("CURRENT"))?;
         sync_directory(&root)?;
 
