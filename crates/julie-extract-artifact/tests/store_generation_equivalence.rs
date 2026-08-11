@@ -83,7 +83,7 @@ fn promotion_copies_scope_journal_rows_and_metadata() {
              VALUES ('view-a',1,'sha256:m1','request-a','2026-01-01T00:00:00Z');
              INSERT INTO resolution_scope_batches
                (transition_id,view_id,to_manifest_generation,to_manifest_hash,scope_usable,
-                change_count,changes_hash,request_id,created_at)
+                change_count,change_hash,request_id,completed_at)
              VALUES (5,'view-a',1,'sha256:m1',0,0,
                      'sha256:6fefdaedb46e55f2dd1f1852406cb565306739f79dd0a53de2acb50045069590',
                      'request-a','2026-01-01T00:00:00Z');

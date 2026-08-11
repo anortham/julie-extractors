@@ -6,9 +6,10 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use julie_extract_artifact::store::{
     GenerationFence, MANIFEST_HASH_ALGORITHM, MANIFEST_PUBLISH_MAX_RETRIES, ManifestBuilder,
     ManifestEntry, ManifestPublishDisposition, ManifestStore, ManifestStoreError,
-    RESOLUTION_SCOPE_MAX_CHANGES, ResolutionScopeError, StoreConnectionFactory, StoreLayout,
-    StoreLevel, StoreLog, StoreLogEntry, StoreLogError, StoreWriterConnection,
-    ViewEnsureDisposition, create_store_schema, validate_resolution_scope_batch,
+    RESOLUTION_SCOPE_MAX_CHANGES, ResolutionScopeChangeKind, ResolutionScopeError,
+    StoreConnectionFactory, StoreLayout, StoreLevel, StoreLog, StoreLogEntry, StoreLogError,
+    StoreWriterConnection, ViewEnsureDisposition, create_store_schema,
+    validate_resolution_scope_batch,
 };
 use rusqlite::{Connection, params};
 
@@ -406,7 +407,7 @@ fn manifest_transitions_chain_reused_generations_from_the_first_exact_scope() {
     let changes = connection
         .prepare(
             "SELECT transition_id,path,old_version_id,new_version_id
-             FROM resolution_scope_changes ORDER BY transition_id,ordinal",
+             FROM resolution_scope_journal ORDER BY transition_id,path COLLATE BINARY",
         )
         .unwrap()
         .query_map([], |row| {
@@ -482,6 +483,194 @@ fn manifest_transitions_chain_reused_generations_from_the_first_exact_scope() {
 }
 
 #[test]
+fn scope_journal_records_add_delete_replacement_and_old_new_names() {
+    let mut connection = Connection::open_in_memory().unwrap();
+    create_store_schema(&connection).unwrap();
+    let replaced_old = insert_version(&connection, "src/b.rs", "blake3:b-old");
+    let replaced_new = insert_version(&connection, "src/b.rs", "blake3:b-new");
+    let deleted = insert_version(&connection, "src/c.rs", "blake3:c");
+    let added = insert_version(&connection, "src/a.rs", "blake3:a");
+    for name in ["Zebra", "Alpha", "Shared", "Alpha"] {
+        insert_symbol_name(&connection, replaced_old, name);
+    }
+    for name in ["Shared", "Beta"] {
+        insert_symbol_name(&connection, replaced_new, name);
+    }
+    insert_symbol_name(&connection, deleted, "Gone");
+    insert_symbol_name(&connection, added, "New");
+    let first = {
+        let mut store = ManifestStore::new(&mut connection);
+        store.ensure_view("view-a", "/repo").unwrap();
+        store
+            .publish(
+                "view-a",
+                None,
+                [
+                    ManifestEntry::indexed(
+                        "src/b.rs",
+                        "rust",
+                        replaced_old,
+                        "blake3:b-old",
+                        INDEXED_AT,
+                    ),
+                    ManifestEntry::indexed("src/c.rs", "rust", deleted, "blake3:c", INDEXED_AT),
+                ],
+                "request-first",
+            )
+            .unwrap()
+    };
+    bind_exact(&connection, &first.manifest_hash, 1, 11, 7);
+
+    ManifestStore::new(&mut connection)
+        .publish(
+            "view-a",
+            Some(1),
+            [
+                ManifestEntry::indexed("src/a.rs", "rust", added, "blake3:a", INDEXED_AT),
+                ManifestEntry::indexed(
+                    "src/b.rs",
+                    "rust",
+                    replaced_new,
+                    "blake3:b-new",
+                    INDEXED_AT,
+                ),
+            ],
+            "request-second",
+        )
+        .unwrap();
+
+    let batch = validate_resolution_scope_batch(&connection, 2)
+        .unwrap()
+        .unwrap();
+    assert!(batch.scope_usable);
+    assert_eq!(batch.change_count, 3);
+    assert_eq!(batch.changes.len(), 3);
+    assert_eq!(batch.changes[0].path, "src/a.rs");
+    assert_eq!(
+        batch.changes[0].change_kind,
+        ResolutionScopeChangeKind::PathAdded
+    );
+    assert_eq!(batch.changes[0].old_version_id, None);
+    assert_eq!(batch.changes[0].new_version_id, Some(added));
+    assert_eq!(batch.changes[0].touched_names_json, r#"["New"]"#);
+    assert_eq!(batch.changes[1].path, "src/b.rs");
+    assert_eq!(
+        batch.changes[1].change_kind,
+        ResolutionScopeChangeKind::ContentReplaced
+    );
+    assert_eq!(batch.changes[1].old_version_id, Some(replaced_old));
+    assert_eq!(batch.changes[1].new_version_id, Some(replaced_new));
+    assert_eq!(
+        batch.changes[1].touched_names_json,
+        r#"["Alpha","Beta","Shared","Zebra"]"#
+    );
+    assert_eq!(batch.changes[2].path, "src/c.rs");
+    assert_eq!(
+        batch.changes[2].change_kind,
+        ResolutionScopeChangeKind::PathDeleted
+    );
+    assert_eq!(batch.changes[2].old_version_id, Some(deleted));
+    assert_eq!(batch.changes[2].new_version_id, None);
+    assert_eq!(batch.changes[2].touched_names_json, r#"["Gone"]"#);
+
+    connection
+        .execute_batch("DROP TRIGGER trg_resolution_scope_journal_immutable_update")
+        .unwrap();
+    connection
+        .execute(
+            "UPDATE resolution_scope_journal SET touched_names_json='[]'
+             WHERE transition_id=2 AND path='src/b.rs'",
+            [],
+        )
+        .unwrap();
+    assert!(
+        validate_resolution_scope_batch(&connection, 2)
+            .unwrap_err()
+            .to_string()
+            .contains("change hash")
+    );
+    connection
+        .execute(
+            "UPDATE resolution_scope_journal
+             SET touched_names_json='[\"Alpha\",\"Beta\",\"Shared\",\"Zebra\"]'
+             WHERE transition_id=2 AND path='src/b.rs'",
+            [],
+        )
+        .unwrap();
+    validate_resolution_scope_batch(&connection, 2).unwrap();
+    connection
+        .execute(
+            "UPDATE resolution_scope_journal SET change_kind='content_replaced'
+             WHERE transition_id=2 AND path='src/a.rs'",
+            [],
+        )
+        .unwrap();
+    assert!(
+        validate_resolution_scope_batch(&connection, 2)
+            .unwrap_err()
+            .to_string()
+            .contains("change hash")
+    );
+}
+
+#[test]
+fn same_version_semantic_change_records_content_replacement() {
+    let mut connection = Connection::open_in_memory().unwrap();
+    create_store_schema(&connection).unwrap();
+    let version = insert_version(&connection, "src/lib.rs", "blake3:lib");
+    insert_symbol_name(&connection, version, "Library");
+    let first = {
+        let mut store = ManifestStore::new(&mut connection);
+        store.ensure_view("view-a", "/repo").unwrap();
+        store
+            .publish(
+                "view-a",
+                None,
+                [ManifestEntry::indexed(
+                    "src/lib.rs",
+                    "rust",
+                    version,
+                    "blake3:lib",
+                    INDEXED_AT,
+                )],
+                "request-first",
+            )
+            .unwrap()
+    };
+    bind_exact(&connection, &first.manifest_hash, 1, 11, 7);
+
+    ManifestStore::new(&mut connection)
+        .publish(
+            "view-a",
+            Some(1),
+            [ManifestEntry::failed_preserved(
+                "src/lib.rs",
+                "rust",
+                version,
+                "blake3:observed-new",
+                INDEXED_AT,
+                "parse",
+                r#"{"message":"changed"}"#,
+            )],
+            "request-second",
+        )
+        .unwrap();
+
+    let batch = validate_resolution_scope_batch(&connection, 2)
+        .unwrap()
+        .unwrap();
+    assert_eq!(batch.change_count, 1);
+    assert_eq!(batch.changes[0].path, "src/lib.rs");
+    assert_eq!(
+        batch.changes[0].change_kind,
+        ResolutionScopeChangeKind::ContentReplaced
+    );
+    assert_eq!(batch.changes[0].old_version_id, Some(version));
+    assert_eq!(batch.changes[0].new_version_id, Some(version));
+    assert_eq!(batch.changes[0].touched_names_json, r#"["Library"]"#);
+}
+
+#[test]
 fn resolution_scope_batch_headers_are_immutable() {
     let mut connection = Connection::open_in_memory().unwrap();
     create_store_schema(&connection).unwrap();
@@ -522,7 +711,7 @@ fn scope_validation_rejects_a_discontinuous_previous_transition() {
     store.publish("view-a", None, [], "request-first").unwrap();
     let empty_hash = connection
         .query_row(
-            "SELECT changes_hash FROM resolution_scope_batches WHERE transition_id=1",
+            "SELECT change_hash FROM resolution_scope_batches WHERE transition_id=1",
             [],
             |row| row.get::<_, String>(0),
         )
@@ -561,7 +750,7 @@ fn scope_validation_rejects_a_discontinuous_previous_transition() {
              (view_id,previous_transition_id,from_manifest_generation,from_manifest_hash,
               to_manifest_generation,to_manifest_hash,scope_usable,
               predecessor_manifest_generation,predecessor_manifest_hash,base_id,
-              delta_generation,resolver_output_epoch,change_count,changes_hash,request_id,created_at)
+              delta_generation,resolver_output_epoch,change_count,change_hash,request_id,completed_at)
              VALUES ('view-a',1,2,'hash-two',2,'hash-two',1,2,'hash-two','base-two',1,1,
                      0,?1,'request-second',?2)",
             params![empty_hash, INDEXED_AT],
@@ -633,8 +822,8 @@ fn legacy_publication_without_scope_metadata_records_full_fallback() {
         .unwrap();
     connection
         .execute_batch(
-            "DROP TABLE resolution_scope_states;
-             DROP TABLE resolution_scope_changes;
+            "DROP TABLE resolution_scope_state;
+             DROP TABLE resolution_scope_journal;
              DROP TABLE resolution_scope_batches;
              DELETE FROM store_meta WHERE key='resolution_scope_journal_version';",
         )
@@ -668,7 +857,7 @@ fn legacy_publication_without_scope_metadata_records_full_fallback() {
     );
     assert_eq!(
         connection
-            .query_row("SELECT COUNT(*) FROM resolution_scope_changes", [], |row| {
+            .query_row("SELECT COUNT(*) FROM resolution_scope_journal", [], |row| {
                 row.get::<_, i64>(0)
             })
             .unwrap(),
@@ -733,20 +922,15 @@ fn scope_change_bound_records_header_only_fallback() {
         .publish("view-a", Some(1), [], "request-delete-all")
         .unwrap();
 
+    let batch = validate_resolution_scope_batch(&connection, 2)
+        .unwrap()
+        .unwrap();
+    assert!(!batch.scope_usable);
+    assert_eq!(batch.change_count, 0);
+    assert!(batch.changes.is_empty());
     assert_eq!(
         connection
-            .query_row(
-                "SELECT scope_usable,change_count FROM resolution_scope_batches
-                 WHERE transition_id=2",
-                [],
-                |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)),
-            )
-            .unwrap(),
-        (0, 0)
-    );
-    assert_eq!(
-        connection
-            .query_row("SELECT COUNT(*) FROM resolution_scope_changes", [], |row| {
+            .query_row("SELECT COUNT(*) FROM resolution_scope_journal", [], |row| {
                 row.get::<_, i64>(0)
             })
             .unwrap(),
@@ -1791,6 +1975,66 @@ fn insert_version(connection: &Connection, path: &str, content_hash: &str) -> i6
         )
         .unwrap();
     connection.last_insert_rowid()
+}
+
+fn insert_symbol_name(connection: &Connection, version_id: i64, name: &str) {
+    connection
+        .execute(
+            "INSERT INTO symbols
+             (version_id,symbol_id,path,language,name,kind,start_line,start_column,
+              end_line,end_column,start_byte,end_byte)
+             SELECT ?1,printf('symbol-%d-%d',?1,
+                              (SELECT COUNT(*) FROM symbols WHERE version_id=?1)),
+                    path,language,?2,'function',
+                    1,0,1,1,0,1
+             FROM file_versions WHERE version_id=?1",
+            params![version_id, name],
+        )
+        .unwrap();
+}
+
+fn bind_exact(
+    connection: &Connection,
+    manifest_hash: &str,
+    generation: i64,
+    delta_generation: i64,
+    resolver_output_epoch: i64,
+) {
+    connection
+        .execute(
+            "INSERT INTO resolution_bases
+             (base_id,manifest_hash,resolver_output_epoch,state,relative_path,
+              identifier_count,pending_count,file_bytes,file_sha256,request_id,created_at,updated_at)
+             VALUES ('base-a',?1,?2,'ready','bases/base-a.db',0,0,1,'sha256:a',
+                     'request-resolve',?3,?3)",
+            params![manifest_hash, resolver_output_epoch, INDEXED_AT],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO resolution_deltas
+             (view_id,delta_generation,base_id,manifest_generation,manifest_hash,
+              resolver_output_epoch,identifier_replacements,pending_replacements,
+              pending_tombstones,exact_gap_rows,exact_gap_files,exact_gap_json,request_id,created_at)
+             VALUES ('view-a',?1,'base-a',?2,?3,?4,0,0,0,0,0,'[]','request-resolve',?5)",
+            params![
+                delta_generation,
+                generation,
+                manifest_hash,
+                resolver_output_epoch,
+                INDEXED_AT
+            ],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "UPDATE views
+             SET resolution_state='exact',resolution_base_id='base-a',
+                 resolution_delta_generation=?1,resolution_exact_at=?2
+             WHERE view_id='view-a'",
+            params![delta_generation, generation],
+        )
+        .unwrap();
 }
 
 fn spawn_publish(

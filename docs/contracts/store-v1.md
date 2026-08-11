@@ -194,3 +194,10 @@ The scope journal is an additive schema-v2 feature. A schema-v2 store without
 `resolution_scope_journal_version` remains readable. Its first writer open or manifest publication
 atomically installs the three tables and metadata key before mutation; generation promotion performs
 that upgrade before comparing source and destination catalogs and copies every durable metadata key.
+`resolution_scope_batches` stores immutable transition headers with `change_hash` and
+`completed_at`; `resolution_scope_state` carries `journal_through_transition_id`; and
+`resolution_scope_journal` stores binary-path-ordered `path_added`, `path_deleted`, or
+`content_replaced` rows. Each row includes nullable old/new version IDs and canonical sorted,
+deduplicated `touched_names_json` derived from symbols in both versions. The header hash covers the
+complete child payload. Transitions without an exact predecessor or with more than 512 changed paths
+are valid scope-unusable header-only fallbacks.

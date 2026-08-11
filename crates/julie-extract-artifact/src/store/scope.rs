@@ -10,7 +10,7 @@ pub const RESOLUTION_SCOPE_JOURNAL_VERSION: i64 = 1;
 /// Maximum touched paths retained in one incremental-resolution batch.
 pub const RESOLUTION_SCOPE_MAX_CHANGES: usize = 512;
 
-const RESOLUTION_SCOPE_CHANGES_HASH_DOMAIN: &[u8] = b"julie-resolution-scope-changes-v1";
+const RESOLUTION_SCOPE_CHANGE_HASH_DOMAIN: &[u8] = b"julie-resolution-scope-changes-v1";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// Preserved exact predecessor and current journal head for one view.
@@ -23,16 +23,44 @@ pub struct ResolutionScopeState {
     pub resolver_output_epoch: i64,
     pub current_manifest_generation: i64,
     pub current_manifest_hash: String,
-    pub latest_transition_id: i64,
+    pub journal_through_transition_id: i64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Semantic path change recorded by the resolution-scope journal.
+pub enum ResolutionScopeChangeKind {
+    PathAdded,
+    PathDeleted,
+    ContentReplaced,
+}
+
+impl ResolutionScopeChangeKind {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::PathAdded => "path_added",
+            Self::PathDeleted => "path_deleted",
+            Self::ContentReplaced => "content_replaced",
+        }
+    }
+
+    fn parse(value: &str) -> Option<Self> {
+        match value {
+            "path_added" => Some(Self::PathAdded),
+            "path_deleted" => Some(Self::PathDeleted),
+            "content_replaced" => Some(Self::ContentReplaced),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// One deterministic touched-path payload in a scope transition.
 pub struct ResolutionScopeChange {
-    pub ordinal: i64,
     pub path: String,
+    pub change_kind: ResolutionScopeChangeKind,
     pub old_version_id: Option<i64>,
     pub new_version_id: Option<i64>,
+    pub touched_names_json: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -52,10 +80,21 @@ pub struct ResolutionScopeBatch {
     pub delta_generation: Option<i64>,
     pub resolver_output_epoch: Option<i64>,
     pub change_count: i64,
-    pub changes_hash: String,
+    pub change_hash: String,
     pub request_id: String,
-    pub created_at: String,
+    pub completed_at: String,
     pub changes: Vec<ResolutionScopeChange>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct ScopeManifestEntry {
+    pub path: String,
+    pub language: String,
+    pub version_id: Option<i64>,
+    pub status: String,
+    pub observed_content_hash: String,
+    pub error_class: Option<String>,
+    pub error_json: Option<String>,
 }
 
 #[derive(Debug)]
@@ -161,8 +200,8 @@ pub fn resolution_scope_state(
         .query_row(
             "SELECT view_id,predecessor_manifest_generation,predecessor_manifest_hash,
                     base_id,delta_generation,resolver_output_epoch,current_manifest_generation,
-                    current_manifest_hash,latest_transition_id
-             FROM resolution_scope_states WHERE view_id=?1",
+                    current_manifest_hash,journal_through_transition_id
+             FROM resolution_scope_state WHERE view_id=?1",
             [view_id],
             scope_state_from_row,
         )
@@ -183,8 +222,8 @@ pub fn resolution_scope_batch(
             "SELECT transition_id,view_id,previous_transition_id,from_manifest_generation,
                     from_manifest_hash,to_manifest_generation,to_manifest_hash,scope_usable,
                     predecessor_manifest_generation,predecessor_manifest_hash,base_id,
-                    delta_generation,resolver_output_epoch,change_count,changes_hash,request_id,
-                    created_at
+                    delta_generation,resolver_output_epoch,change_count,change_hash,request_id,
+                    completed_at
              FROM resolution_scope_batches WHERE transition_id=?1",
             [transition_id],
             scope_batch_from_row,
@@ -194,16 +233,19 @@ pub fn resolution_scope_batch(
         return Ok(None);
     };
     let mut statement = connection.prepare(
-        "SELECT ordinal,path,old_version_id,new_version_id
-         FROM resolution_scope_changes WHERE transition_id=?1 ORDER BY ordinal",
+        "SELECT path,change_kind,old_version_id,new_version_id,touched_names_json
+         FROM resolution_scope_journal
+         WHERE transition_id=?1 ORDER BY path COLLATE BINARY",
     )?;
     batch.changes = statement
         .query_map([transition_id], |row| {
             Ok(ResolutionScopeChange {
-                ordinal: row.get(0)?,
-                path: row.get(1)?,
+                path: row.get(0)?,
+                change_kind: ResolutionScopeChangeKind::parse(&row.get::<_, String>(1)?)
+                    .ok_or_else(|| rusqlite::Error::InvalidQuery)?,
                 old_version_id: row.get(2)?,
                 new_version_id: row.get(3)?,
+                touched_names_json: row.get(4)?,
             })
         })?
         .collect::<Result<Vec<_>, _>>()?;
@@ -224,18 +266,7 @@ pub fn validate_resolution_scope_batch(
             "stored change count does not match child rows",
         ));
     }
-    if batch
-        .changes
-        .iter()
-        .enumerate()
-        .any(|(ordinal, change)| change.ordinal != ordinal as i64)
-    {
-        return Err(invalid_batch(
-            transition_id,
-            "change ordinals are not contiguous",
-        ));
-    }
-    if batch.changes_hash != changes_hash(&batch.changes) {
+    if batch.change_hash != change_hash(&batch.changes) {
         return Err(invalid_batch(
             transition_id,
             "stored change hash does not match child rows",
@@ -327,13 +358,13 @@ fn validate_usable_batch(
             "usable batch has no source manifest",
         ));
     };
-    let old_entries = manifest_versions(connection, &batch.view_id, Some(from_generation))?;
-    let new_entries = manifest_versions(
+    let old_entries = manifest_entries(connection, &batch.view_id, Some(from_generation))?;
+    let new_entries = manifest_entries(
         connection,
         &batch.view_id,
         Some(batch.to_manifest_generation),
     )?;
-    if scope_changes(&old_entries, &new_entries) != batch.changes {
+    if scope_changes(connection, &old_entries, &new_entries)? != batch.changes {
         return Err(invalid_batch(
             batch.transition_id,
             "child rows do not match the source and target manifests",
@@ -381,7 +412,7 @@ pub(crate) fn capture_resolution_scope_transition(
     from_manifest_generation: Option<i64>,
     to_manifest_generation: i64,
     to_manifest_hash: &str,
-    new_entries: impl IntoIterator<Item = (String, Option<i64>)>,
+    new_entries: impl IntoIterator<Item = ScopeManifestEntry>,
     request_id: &str,
 ) -> Result<i64, ResolutionScopeError> {
     ensure_resolution_scope_feature(transaction)?;
@@ -399,9 +430,12 @@ pub(crate) fn capture_resolution_scope_transition(
             )
         })
         .transpose()?;
-    let old_entries = manifest_versions(transaction, view_id, from_manifest_generation)?;
-    let new_entries = new_entries.into_iter().collect::<BTreeMap<_, _>>();
-    let changes = scope_changes(&old_entries, &new_entries);
+    let old_entries = manifest_entries(transaction, view_id, from_manifest_generation)?;
+    let new_entries = new_entries
+        .into_iter()
+        .map(|entry| (entry.path.clone(), entry))
+        .collect::<BTreeMap<_, _>>();
+    let changes = scope_changes(transaction, &old_entries, &new_entries)?;
     let state = if from_manifest_generation.is_some() && previous_transition_id.is_none() {
         None
     } else if let Some(state) = exact_scope_state(transaction, view_id)? {
@@ -414,14 +448,14 @@ pub(crate) fn capture_resolution_scope_transition(
     };
     let usable = state.is_some() && changes.len() <= RESOLUTION_SCOPE_MAX_CHANGES;
     let stored_changes = if usable { changes.as_slice() } else { &[] };
-    let hash = changes_hash(stored_changes);
+    let hash = change_hash(stored_changes);
     let state_columns = state.as_ref().filter(|_| usable);
     transaction.execute(
         "INSERT INTO resolution_scope_batches
          (view_id,previous_transition_id,from_manifest_generation,from_manifest_hash,
           to_manifest_generation,to_manifest_hash,scope_usable,
           predecessor_manifest_generation,predecessor_manifest_hash,base_id,
-          delta_generation,resolver_output_epoch,change_count,changes_hash,request_id,created_at)
+          delta_generation,resolver_output_epoch,change_count,change_hash,request_id,completed_at)
          VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,
                  strftime('%Y-%m-%dT%H:%M:%fZ','now'))",
         params![
@@ -445,24 +479,25 @@ pub(crate) fn capture_resolution_scope_transition(
     let transition_id = transaction.last_insert_rowid();
     for change in stored_changes {
         transaction.execute(
-            "INSERT INTO resolution_scope_changes
-             (transition_id,ordinal,path,old_version_id,new_version_id)
-             VALUES (?1,?2,?3,?4,?5)",
+            "INSERT INTO resolution_scope_journal
+             (transition_id,path,change_kind,old_version_id,new_version_id,touched_names_json)
+             VALUES (?1,?2,?3,?4,?5,?6)",
             params![
                 transition_id,
-                change.ordinal,
                 change.path,
+                change.change_kind.as_str(),
                 change.old_version_id,
                 change.new_version_id,
+                change.touched_names_json,
             ],
         )?;
     }
     if let Some(state) = state_columns {
         transaction.execute(
-            "INSERT INTO resolution_scope_states
+            "INSERT INTO resolution_scope_state
              (view_id,predecessor_manifest_generation,predecessor_manifest_hash,base_id,
               delta_generation,resolver_output_epoch,current_manifest_generation,
-              current_manifest_hash,latest_transition_id)
+              current_manifest_hash,journal_through_transition_id)
              VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)
              ON CONFLICT(view_id) DO UPDATE SET
                predecessor_manifest_generation=excluded.predecessor_manifest_generation,
@@ -472,7 +507,7 @@ pub(crate) fn capture_resolution_scope_transition(
                resolver_output_epoch=excluded.resolver_output_epoch,
                current_manifest_generation=excluded.current_manifest_generation,
                current_manifest_hash=excluded.current_manifest_hash,
-               latest_transition_id=excluded.latest_transition_id",
+               journal_through_transition_id=excluded.journal_through_transition_id",
             params![
                 view_id,
                 state.predecessor_manifest_generation,
@@ -487,7 +522,7 @@ pub(crate) fn capture_resolution_scope_transition(
         )?;
     } else {
         transaction.execute(
-            "DELETE FROM resolution_scope_states WHERE view_id=?1",
+            "DELETE FROM resolution_scope_state WHERE view_id=?1",
             [view_id],
         )?;
     }
@@ -520,29 +555,40 @@ fn exact_scope_state(
         .map_err(Into::into)
 }
 
-fn manifest_versions(
+fn manifest_entries(
     connection: &Connection,
     view_id: &str,
     generation: Option<i64>,
-) -> Result<BTreeMap<String, Option<i64>>, ResolutionScopeError> {
+) -> Result<BTreeMap<String, ScopeManifestEntry>, ResolutionScopeError> {
     let Some(generation) = generation else {
         return Ok(BTreeMap::new());
     };
     let mut statement = connection.prepare(
-        "SELECT path,version_id FROM manifest_entries
+        "SELECT path,language,version_id,status,observed_content_hash,error_class,error_json
+         FROM manifest_entries
          WHERE view_id=?1 AND generation=?2 ORDER BY path COLLATE BINARY",
     )?;
     Ok(statement
         .query_map(params![view_id, generation], |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, Option<i64>>(1)?))
+            let entry = ScopeManifestEntry {
+                path: row.get(0)?,
+                language: row.get(1)?,
+                version_id: row.get(2)?,
+                status: row.get(3)?,
+                observed_content_hash: row.get(4)?,
+                error_class: row.get(5)?,
+                error_json: row.get(6)?,
+            };
+            Ok((entry.path.clone(), entry))
         })?
         .collect::<Result<BTreeMap<_, _>, _>>()?)
 }
 
 fn scope_changes(
-    old_entries: &BTreeMap<String, Option<i64>>,
-    new_entries: &BTreeMap<String, Option<i64>>,
-) -> Vec<ResolutionScopeChange> {
+    connection: &Connection,
+    old_entries: &BTreeMap<String, ScopeManifestEntry>,
+    new_entries: &BTreeMap<String, ScopeManifestEntry>,
+) -> Result<Vec<ResolutionScopeChange>, ResolutionScopeError> {
     let mut paths = old_entries
         .keys()
         .chain(new_entries.keys())
@@ -552,26 +598,60 @@ fn scope_changes(
     paths
         .into_iter()
         .filter(|path| old_entries.get(*path) != new_entries.get(*path))
-        .enumerate()
-        .map(|(ordinal, path)| ResolutionScopeChange {
-            ordinal: ordinal as i64,
-            path: path.clone(),
-            old_version_id: old_entries.get(path).copied().flatten(),
-            new_version_id: new_entries.get(path).copied().flatten(),
+        .map(|path| {
+            let old_entry = old_entries.get(path);
+            let new_entry = new_entries.get(path);
+            let change_kind = match (old_entry, new_entry) {
+                (None, Some(_)) => ResolutionScopeChangeKind::PathAdded,
+                (Some(_), None) => ResolutionScopeChangeKind::PathDeleted,
+                (Some(_), Some(_)) => ResolutionScopeChangeKind::ContentReplaced,
+                (None, None) => unreachable!("changed path exists in at least one manifest"),
+            };
+            let old_version_id = old_entry.and_then(|entry| entry.version_id);
+            let new_version_id = new_entry.and_then(|entry| entry.version_id);
+            Ok(ResolutionScopeChange {
+                path: path.clone(),
+                change_kind,
+                old_version_id,
+                new_version_id,
+                touched_names_json: touched_names_json(connection, old_version_id, new_version_id)?,
+            })
         })
         .collect()
 }
 
-fn changes_hash(changes: &[ResolutionScopeChange]) -> String {
+fn touched_names_json(
+    connection: &Connection,
+    old_version_id: Option<i64>,
+    new_version_id: Option<i64>,
+) -> Result<String, ResolutionScopeError> {
+    let mut statement = connection.prepare(
+        "SELECT DISTINCT name FROM symbols
+         WHERE version_id=?1 OR version_id=?2
+         ORDER BY name COLLATE BINARY",
+    )?;
+    let names = statement
+        .query_map(params![old_version_id, new_version_id], |row| {
+            row.get::<_, String>(0)
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(serde_json::to_string(&names).expect("symbol names are JSON serializable"))
+}
+
+fn change_hash(changes: &[ResolutionScopeChange]) -> String {
     let mut canonical = Vec::new();
-    canonical.extend_from_slice(RESOLUTION_SCOPE_CHANGES_HASH_DOMAIN);
+    canonical.extend_from_slice(RESOLUTION_SCOPE_CHANGE_HASH_DOMAIN);
     canonical.extend_from_slice(&(changes.len() as u64).to_be_bytes());
     for change in changes {
-        canonical.extend_from_slice(&(change.ordinal as u64).to_be_bytes());
         canonical.extend_from_slice(&(change.path.len() as u64).to_be_bytes());
         canonical.extend_from_slice(change.path.as_bytes());
+        let change_kind = change.change_kind.as_str();
+        canonical.extend_from_slice(&(change_kind.len() as u64).to_be_bytes());
+        canonical.extend_from_slice(change_kind.as_bytes());
         encode_optional_i64(&mut canonical, change.old_version_id);
         encode_optional_i64(&mut canonical, change.new_version_id);
+        canonical.extend_from_slice(&(change.touched_names_json.len() as u64).to_be_bytes());
+        canonical.extend_from_slice(change.touched_names_json.as_bytes());
     }
     format!("sha256:{:x}", Sha256::digest(canonical))
 }
@@ -596,7 +676,7 @@ fn scope_state_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<ResolutionS
         resolver_output_epoch: row.get(5)?,
         current_manifest_generation: row.get(6)?,
         current_manifest_hash: row.get(7)?,
-        latest_transition_id: row.get(8)?,
+        journal_through_transition_id: row.get(8)?,
     })
 }
 
@@ -616,9 +696,9 @@ fn scope_batch_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<ResolutionS
         delta_generation: row.get(11)?,
         resolver_output_epoch: row.get(12)?,
         change_count: row.get(13)?,
-        changes_hash: row.get(14)?,
+        change_hash: row.get(14)?,
         request_id: row.get(15)?,
-        created_at: row.get(16)?,
+        completed_at: row.get(16)?,
         changes: Vec::new(),
     })
 }
@@ -646,23 +726,23 @@ CREATE TABLE IF NOT EXISTS resolution_scope_batches (
   delta_generation INTEGER,
   resolver_output_epoch INTEGER,
   change_count INTEGER NOT NULL CHECK (change_count >= 0),
-  changes_hash TEXT NOT NULL CHECK (length(changes_hash) > 0),
+  change_hash TEXT NOT NULL CHECK (length(change_hash) > 0),
   request_id TEXT NOT NULL CHECK (length(request_id) > 0),
-  created_at TEXT NOT NULL CHECK (
-    length(created_at) BETWEEN 20 AND 30
-      AND substr(created_at, 5, 1) = '-'
-      AND substr(created_at, 8, 1) = '-'
-      AND substr(created_at, 11, 1) = 'T'
-      AND substr(created_at, 14, 1) = ':'
-      AND substr(created_at, 17, 1) = ':'
-      AND substr(created_at, -1, 1) = 'Z'
-      AND strftime('%Y-%m-%dT%H:%M:%S', created_at) = substr(created_at, 1, 19)
+  completed_at TEXT NOT NULL CHECK (
+    length(completed_at) BETWEEN 20 AND 30
+      AND substr(completed_at, 5, 1) = '-'
+      AND substr(completed_at, 8, 1) = '-'
+      AND substr(completed_at, 11, 1) = 'T'
+      AND substr(completed_at, 14, 1) = ':'
+      AND substr(completed_at, 17, 1) = ':'
+      AND substr(completed_at, -1, 1) = 'Z'
+      AND strftime('%Y-%m-%dT%H:%M:%S', completed_at) = substr(completed_at, 1, 19)
       AND (
-        length(created_at) = 20
+        length(completed_at) = 20
         OR (
-          substr(created_at, 20, 1) = '.'
-          AND length(created_at) >= 22
-          AND substr(created_at, 21, length(created_at) - 21) NOT GLOB '*[^0-9]*'
+          substr(completed_at, 20, 1) = '.'
+          AND length(completed_at) >= 22
+          AND substr(completed_at, 21, length(completed_at) - 21) NOT GLOB '*[^0-9]*'
         )
       )
   ),
@@ -703,20 +783,29 @@ CREATE TABLE IF NOT EXISTS resolution_scope_batches (
   )
 ) STRICT;
 
-CREATE TABLE IF NOT EXISTS resolution_scope_changes (
+CREATE TABLE IF NOT EXISTS resolution_scope_journal (
   transition_id INTEGER NOT NULL,
-  ordinal INTEGER NOT NULL CHECK (ordinal >= 0),
   path TEXT NOT NULL CHECK (length(path) > 0),
+  change_kind TEXT NOT NULL CHECK (
+    change_kind IN ('path_added', 'path_deleted', 'content_replaced')
+  ),
   old_version_id INTEGER,
   new_version_id INTEGER,
-  PRIMARY KEY (transition_id, ordinal),
-  UNIQUE (transition_id, path),
+  touched_names_json TEXT NOT NULL CHECK (
+    json_valid(touched_names_json) AND json_type(touched_names_json) = 'array'
+  ),
+  PRIMARY KEY (transition_id, path),
   FOREIGN KEY (transition_id) REFERENCES resolution_scope_batches(transition_id) ON DELETE CASCADE,
   FOREIGN KEY (old_version_id) REFERENCES file_versions(version_id) ON DELETE RESTRICT,
-  FOREIGN KEY (new_version_id) REFERENCES file_versions(version_id) ON DELETE RESTRICT
+  FOREIGN KEY (new_version_id) REFERENCES file_versions(version_id) ON DELETE RESTRICT,
+  CHECK (
+    (change_kind = 'path_added' AND old_version_id IS NULL)
+    OR (change_kind = 'path_deleted' AND new_version_id IS NULL)
+    OR change_kind = 'content_replaced'
+  )
 ) STRICT;
 
-CREATE TABLE IF NOT EXISTS resolution_scope_states (
+CREATE TABLE IF NOT EXISTS resolution_scope_state (
   view_id TEXT PRIMARY KEY,
   predecessor_manifest_generation INTEGER NOT NULL CHECK (predecessor_manifest_generation > 0),
   predecessor_manifest_hash TEXT NOT NULL CHECK (length(predecessor_manifest_hash) > 0),
@@ -725,7 +814,7 @@ CREATE TABLE IF NOT EXISTS resolution_scope_states (
   resolver_output_epoch INTEGER NOT NULL CHECK (resolver_output_epoch > 0),
   current_manifest_generation INTEGER NOT NULL CHECK (current_manifest_generation > 0),
   current_manifest_hash TEXT NOT NULL CHECK (length(current_manifest_hash) > 0),
-  latest_transition_id INTEGER NOT NULL,
+  journal_through_transition_id INTEGER NOT NULL,
   FOREIGN KEY (view_id) REFERENCES views(view_id) ON DELETE CASCADE,
   FOREIGN KEY (view_id, predecessor_manifest_generation)
     REFERENCES manifests(view_id, generation) ON DELETE NO ACTION,
@@ -734,14 +823,16 @@ CREATE TABLE IF NOT EXISTS resolution_scope_states (
     REFERENCES resolution_deltas(view_id, delta_generation) ON DELETE NO ACTION,
   FOREIGN KEY (view_id, current_manifest_generation)
     REFERENCES manifests(view_id, generation) ON DELETE NO ACTION,
-  FOREIGN KEY (view_id, latest_transition_id)
+  FOREIGN KEY (view_id, journal_through_transition_id)
     REFERENCES resolution_scope_batches(view_id, transition_id) ON DELETE NO ACTION
 ) STRICT;
 
 CREATE INDEX IF NOT EXISTS idx_read_resolution_scope_batches_view
 ON resolution_scope_batches(view_id, transition_id);
-CREATE INDEX IF NOT EXISTS idx_read_resolution_scope_changes_versions
-ON resolution_scope_changes(old_version_id, new_version_id, transition_id);
+CREATE INDEX IF NOT EXISTS idx_read_resolution_scope_journal_versions
+ON resolution_scope_journal(old_version_id, new_version_id, transition_id);
+CREATE INDEX IF NOT EXISTS idx_read_resolution_scope_journal_kind
+ON resolution_scope_journal(change_kind, transition_id, path);
 
 CREATE TRIGGER IF NOT EXISTS trg_resolution_scope_batch_immutable_update
 BEFORE UPDATE ON resolution_scope_batches
@@ -749,10 +840,10 @@ BEGIN
   SELECT RAISE(ABORT, 'resolution scope batches are immutable');
 END;
 
-CREATE TRIGGER IF NOT EXISTS trg_resolution_scope_change_immutable_update
-BEFORE UPDATE ON resolution_scope_changes
+CREATE TRIGGER IF NOT EXISTS trg_resolution_scope_journal_immutable_update
+BEFORE UPDATE ON resolution_scope_journal
 BEGIN
-  SELECT RAISE(ABORT, 'resolution scope changes are immutable');
+  SELECT RAISE(ABORT, 'resolution scope journal rows are immutable');
 END;
 
 INSERT INTO store_meta(key, value)

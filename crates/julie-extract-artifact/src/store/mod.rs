@@ -83,7 +83,7 @@ pub use schema::{
 };
 pub use scope::{
     RESOLUTION_SCOPE_JOURNAL_VERSION, RESOLUTION_SCOPE_MAX_CHANGES, ResolutionScopeBatch,
-    ResolutionScopeChange, ResolutionScopeError, ResolutionScopeState,
+    ResolutionScopeChange, ResolutionScopeChangeKind, ResolutionScopeError, ResolutionScopeState,
     ensure_resolution_scope_feature, resolution_scope_batch, resolution_scope_journal_version,
     resolution_scope_state, validate_resolution_scope_batch,
 };

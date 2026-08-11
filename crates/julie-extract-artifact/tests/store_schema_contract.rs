@@ -57,7 +57,7 @@ fn resolution_scope_journal_is_an_additive_schema_v2_feature() {
         "1"
     );
     assert_eq!(
-        table_columns(&store, "resolution_scope_states"),
+        table_columns(&store, "resolution_scope_state"),
         vec![
             "view_id TEXT",
             "predecessor_manifest_generation INTEGER",
@@ -67,7 +67,7 @@ fn resolution_scope_journal_is_an_additive_schema_v2_feature() {
             "resolver_output_epoch INTEGER",
             "current_manifest_generation INTEGER",
             "current_manifest_hash TEXT",
-            "latest_transition_id INTEGER",
+            "journal_through_transition_id INTEGER",
         ]
     );
     assert_eq!(
@@ -87,19 +87,20 @@ fn resolution_scope_journal_is_an_additive_schema_v2_feature() {
             "delta_generation INTEGER",
             "resolver_output_epoch INTEGER",
             "change_count INTEGER",
-            "changes_hash TEXT",
+            "change_hash TEXT",
             "request_id TEXT",
-            "created_at TEXT",
+            "completed_at TEXT",
         ]
     );
     assert_eq!(
-        table_columns(&store, "resolution_scope_changes"),
+        table_columns(&store, "resolution_scope_journal"),
         vec![
             "transition_id INTEGER",
-            "ordinal INTEGER",
             "path TEXT",
+            "change_kind TEXT",
             "old_version_id INTEGER",
             "new_version_id INTEGER",
+            "touched_names_json TEXT",
         ]
     );
 }
@@ -127,8 +128,50 @@ fn resolution_scope_batches_reject_noncanonical_timestamps() {
             .execute(
                 "INSERT INTO resolution_scope_batches
                  (view_id,to_manifest_generation,to_manifest_hash,scope_usable,change_count,
-                  changes_hash,request_id,created_at)
+                  change_hash,request_id,completed_at)
                  VALUES ('view-a',1,'hash-a',0,0,'sha256:empty','request-a','not-a-time')",
+                [],
+            )
+            .is_err()
+    );
+}
+
+#[test]
+fn resolution_scope_journal_change_kinds_constrain_absent_sides() {
+    let store = open_store();
+    store
+        .execute_batch(
+            "INSERT INTO file_versions
+             (version_id,path,content_hash,extraction_epoch,language,content_bytes,complete_l1)
+             VALUES (1,'src/a.rs','blake3:a',1,'rust',1,1);
+             INSERT INTO views(view_id,root,created_at,updated_at)
+             VALUES ('view-a','/repo','2026-08-11T12:00:00Z','2026-08-11T12:00:00Z');
+             INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+             VALUES ('view-a',1,'hash-a','request-a','2026-08-11T12:00:00Z');
+             INSERT INTO resolution_scope_batches
+             (transition_id,view_id,to_manifest_generation,to_manifest_hash,scope_usable,
+              change_count,change_hash,request_id,completed_at)
+             VALUES (1,'view-a',1,'hash-a',0,0,'sha256:empty','request-a',
+                     '2026-08-11T12:00:00Z');",
+        )
+        .unwrap();
+
+    assert!(
+        store
+            .execute(
+                "INSERT INTO resolution_scope_journal
+                 (transition_id,path,change_kind,old_version_id,touched_names_json)
+                 VALUES (1,'src/a.rs','path_added',1,'[]')",
+                [],
+            )
+            .is_err()
+    );
+    assert!(
+        store
+            .execute(
+                "INSERT INTO resolution_scope_journal
+                 (transition_id,path,change_kind,new_version_id,touched_names_json)
+                 VALUES (1,'src/b.rs','path_deleted',1,'[]')",
                 [],
             )
             .is_err()
@@ -921,8 +964,8 @@ fn expected_store_tables() -> BTreeSet<String> {
         "resolution_pending_deltas",
         "resolution_pins",
         "resolution_scope_batches",
-        "resolution_scope_changes",
-        "resolution_scope_states",
+        "resolution_scope_journal",
+        "resolution_scope_state",
         "source_regions",
         "store_log",
         "store_meta",
@@ -1181,8 +1224,12 @@ fn expected_store_indexes() -> BTreeMap<String, Vec<String>> {
             "view_id,transition_id",
         ),
         (
-            "idx_read_resolution_scope_changes_versions",
+            "idx_read_resolution_scope_journal_versions",
             "old_version_id,new_version_id,transition_id",
+        ),
+        (
+            "idx_read_resolution_scope_journal_kind",
+            "change_kind,transition_id,path",
         ),
         (
             "idx_read_pending_caller_scope",

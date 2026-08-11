@@ -7,7 +7,7 @@ use std::time::Duration;
 use rusqlite::{Connection, OptionalExtension, Transaction, TransactionBehavior, params};
 use sha2::{Digest, Sha256};
 
-use super::scope::{ResolutionScopeError, capture_resolution_scope_transition};
+use super::scope::{ResolutionScopeError, ScopeManifestEntry, capture_resolution_scope_transition};
 use super::{StoreLog, StoreLogEntry, StoreLogError};
 
 const MANIFEST_HASH_DOMAIN: &[u8] = b"julie-store-manifest-v2";
@@ -27,7 +27,7 @@ pub enum ManifestEntryStatus {
 }
 
 impl ManifestEntryStatus {
-    fn as_str(self) -> &'static str {
+    pub(super) fn as_str(self) -> &'static str {
         match self {
             Self::Indexed => "indexed",
             Self::FailedPreserved => "failed_preserved",
@@ -735,10 +735,15 @@ fn publish_transaction(
         actual_generation_sql,
         generation_sql,
         &manifest.manifest_hash,
-        manifest
-            .entries
-            .iter()
-            .map(|entry| (entry.path.clone(), entry.version_id)),
+        manifest.entries.iter().map(|entry| ScopeManifestEntry {
+            path: entry.path.clone(),
+            language: entry.language.clone(),
+            version_id: entry.version_id,
+            status: entry.status.as_str().to_string(),
+            observed_content_hash: entry.observed_content_hash.clone(),
+            error_class: entry.error_class.clone(),
+            error_json: entry.error_json.clone(),
+        }),
         request_id,
     )?;
     ManifestStore::invalidate_resolution_binding(transaction, view_id)?;

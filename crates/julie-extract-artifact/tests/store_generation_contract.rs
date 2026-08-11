@@ -380,8 +380,8 @@ fn promotion_upgrades_legacy_schema_v2_before_catalog_comparison() {
     Connection::open(layout.store_db())
         .unwrap()
         .execute_batch(
-            "DROP TABLE resolution_scope_states;
-             DROP TABLE resolution_scope_changes;
+            "DROP TABLE resolution_scope_state;
+             DROP TABLE resolution_scope_journal;
              DROP TABLE resolution_scope_batches;
              DELETE FROM store_meta WHERE key='resolution_scope_journal_version';",
         )

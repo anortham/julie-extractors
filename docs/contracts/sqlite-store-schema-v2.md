@@ -13,7 +13,7 @@ each non-internal `sqlite_master` row with non-null SQL as
 hashes the UTF-8 bytes with SHA-256.
 
 ```text catalog-authority
-store-catalog-sha256: 28654ace146042ef1ea8dcf85703dcc7f87b958eb055eff6633b830e1bded163
+store-catalog-sha256: e2c5b2c96fba2df9c7a31f9b26df8bc4164f33ef534d473a062f2d7a73723b0c
 coordinator-catalog-sha256: 633e93a3a5d162b56248656410c6e4ce849795e067bff02a31dc85ce4328c02d
 ```
 
@@ -28,9 +28,9 @@ resolution_deltas(view_id, delta_generation, base_id, manifest_generation, manif
 resolution_identifier_deltas(view_id, delta_generation, version_id, identifier_id, target_version_id, target_symbol_id, tier, confidence, method, outcome, candidates)
 resolution_pending_deltas(view_id, delta_generation, version_id, pending_relationship_id, operation, target_version_id, target_symbol_id, tier, confidence, method)
 resolution_pins(pin_id, owner_kind, owner_id, view_id, manifest_generation, base_id, delta_generation, expires_at, created_at)
-resolution_scope_batches(transition_id, view_id, previous_transition_id, from_manifest_generation, from_manifest_hash, to_manifest_generation, to_manifest_hash, scope_usable, predecessor_manifest_generation, predecessor_manifest_hash, base_id, delta_generation, resolver_output_epoch, change_count, changes_hash, request_id, created_at)
-resolution_scope_changes(transition_id, ordinal, path, old_version_id, new_version_id)
-resolution_scope_states(view_id, predecessor_manifest_generation, predecessor_manifest_hash, base_id, delta_generation, resolver_output_epoch, current_manifest_generation, current_manifest_hash, latest_transition_id)
+resolution_scope_batches(transition_id, view_id, previous_transition_id, from_manifest_generation, from_manifest_hash, to_manifest_generation, to_manifest_hash, scope_usable, predecessor_manifest_generation, predecessor_manifest_hash, base_id, delta_generation, resolver_output_epoch, change_count, change_hash, request_id, completed_at)
+resolution_scope_journal(transition_id, path, change_kind, old_version_id, new_version_id, touched_names_json)
+resolution_scope_state(view_id, predecessor_manifest_generation, predecessor_manifest_hash, base_id, delta_generation, resolver_output_epoch, current_manifest_generation, current_manifest_hash, journal_through_transition_id)
 ```
 
 `manifest_entries` is now:
@@ -82,8 +82,10 @@ the source before catalog comparison and copies the feature metadata with the re
 reusable manifest generations. Each non-no-op flip appends one header linked to the previous header
 for that view. A usable header repeats the first exact predecessor manifest/base/delta/epoch tuple,
 records a binary-path-ordered child count, and hashes the canonical child payload under
-`julie-resolution-scope-changes-v1`. Each child stores one touched path and its nullable old/new
-file-version IDs. A missing predecessor, missing feature history, journal/head discontinuity, or more
+`julie-resolution-scope-changes-v1`. Each child stores one touched path, its `path_added`,
+`path_deleted`, or `content_replaced` kind, nullable old/new file-version IDs, and canonical
+binary-sorted, deduplicated JSON symbol names from both versions. A missing predecessor, missing
+feature history, journal/head discontinuity, or more
 than 512 changes writes a scope-unusable header with zero children and the canonical empty-payload
 hash. Same-generation no-op reuse writes no header.
 
@@ -117,7 +119,8 @@ gc: idx_gc_resolution_pending_deltas_version(version_id, view_id, delta_generati
 read: idx_read_resolution_pins_owner_expiry(owner_kind, owner_id, expires_at, pin_id)
 read: idx_read_resolution_pins_bound(view_id, manifest_generation, base_id, delta_generation)
 read: idx_read_resolution_scope_batches_view(view_id, transition_id)
-read: idx_read_resolution_scope_changes_versions(old_version_id, new_version_id, transition_id)
+read: idx_read_resolution_scope_journal_versions(old_version_id, new_version_id, transition_id)
+read: idx_read_resolution_scope_journal_kind(change_kind, transition_id, path)
 ```
 
 Every schema-v1 index remains present. Primary-key and unique-constraint autoindexes are structural
