@@ -843,7 +843,7 @@ impl StoreRequestExecutor {
             entries,
             request_id,
         )
-        .map_err(|error| error.to_string())?;
+        .map_err(|error| format!("store_import_publish_manifest:{error}"))?;
         store_test_crash!("manifest_after_publish_before_commit");
         Ok(published)
     }
@@ -1509,7 +1509,8 @@ impl CoordinatorExecutor for StoreRequestExecutor {
             manifest_generation,
             manifest_hash,
             manifest_disposition: mut persisted_manifest_disposition,
-        } = load_durable_request_state(transaction, &request.request_id)?;
+        } = load_durable_request_state(transaction, &request.request_id)
+            .map_err(|error| format!("store_import_load_request_state:{error}"))?;
         let progress =
             self.progress_for(transaction, request, &payload, failures.len(), operation)?;
         match operation {
@@ -1519,7 +1520,7 @@ impl CoordinatorExecutor for StoreRequestExecutor {
                     &payload.view_id,
                     &payload.root,
                 )
-                .map_err(|error| error.to_string())?;
+                .map_err(|error| format!("store_import_ensure_view:{error}"))?;
             }
             FilePlanOperation::Update => {
                 Self::require_existing_view(transaction, &payload.view_id, &payload.root)?;
@@ -1570,7 +1571,7 @@ impl CoordinatorExecutor for StoreRequestExecutor {
                 EXTRACTION_IDENTITY_EPOCH,
                 chunk.level,
             )
-            .map_err(|error| error.to_string())?;
+            .map_err(|error| format!("store_import_lookup_version:{error}"))?;
             if complete.is_some() {
                 continue;
             }
@@ -1590,7 +1591,8 @@ impl CoordinatorExecutor for StoreRequestExecutor {
                 extraction_level,
                 &indexed_at,
             )
-        })?;
+        })
+        .map_err(|error| format!("store_import_extract:{error}"))?;
         for (discovered, extracted) in work.into_iter().zip(extracted) {
             let write_request = StoreWriteRequest::bulk(&request.request_id, &indexed_at);
             match chunk.level {
@@ -1649,7 +1651,7 @@ impl CoordinatorExecutor for StoreRequestExecutor {
                         &version,
                         StoreLevel::L1,
                     )
-                    .map_err(|error| error.to_string())?;
+                    .map_err(|error| format!("store_import_write_l1:{error}"))?;
                 }
                 StoreLevel::L2 | StoreLevel::L3 => {
                     let full = Self::validate_full(transaction, &discovered, &extracted?)?;
