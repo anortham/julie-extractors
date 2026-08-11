@@ -1151,9 +1151,12 @@ fn validate_resolution(connection: &Connection) -> Result<(), String> {
         .ok_or_else(|| {
             "reference_resolution_status is missing from the source artifact".to_string()
         })?;
-    if metadata.status != ResolutionStatus::Complete {
+    if !matches!(
+        metadata.status,
+        ResolutionStatus::Complete | ResolutionStatus::Partial
+    ) {
         return Err(format!(
-            "reference_resolution_status must be complete, found {}",
+            "reference_resolution_status must be complete or current partial, found {}",
             metadata.status.as_str()
         ));
     }
@@ -1166,6 +1169,21 @@ fn validate_resolution(connection: &Connection) -> Result<(), String> {
     }
     if metadata.last_full_revision <= 0 {
         return Err("reference_resolution_last_full_revision must be positive".to_string());
+    }
+    let current_revision = connection
+        .query_row(
+            "SELECT MAX(revision_id) FROM extraction_revisions",
+            [],
+            |row| row.get::<_, Option<i64>>(0),
+        )
+        .map_err(|error| error.to_string())?
+        .ok_or_else(|| "source artifact has no extraction revision".to_string())?;
+    if metadata.last_full_revision != current_revision {
+        return Err(format!(
+            "{} resolution is stale: last full revision {}, current revision {current_revision}",
+            metadata.status.as_str(),
+            metadata.last_full_revision
+        ));
     }
     let missing_identifier: bool = connection
         .query_row(

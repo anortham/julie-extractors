@@ -185,6 +185,32 @@ fn create_legacy_artifact(temp: &TempDir) -> (PathBuf, PathBuf) {
     (root, artifact)
 }
 
+fn create_gated_partial_artifact(temp: &TempDir) -> (PathBuf, PathBuf) {
+    let root = temp.path().join("partial-source");
+    let artifact = temp.path().join("partial.db");
+    fs::create_dir_all(&root).unwrap();
+    fs::copy(
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../fixtures/extraction/rust/basic/source.rs"),
+        root.join("source.rs"),
+    )
+    .unwrap();
+    let scan = julie_extract(&[
+        "scan",
+        "--root",
+        root.to_str().unwrap(),
+        "--db",
+        artifact.to_str().unwrap(),
+        "--json",
+    ]);
+    assert!(
+        scan.status.success(),
+        "{}",
+        String::from_utf8_lossy(&scan.stdout)
+    );
+    (root, artifact)
+}
+
 fn resolve(store: &Path) {
     let output = julie_extract(&[
         "store",
@@ -441,6 +467,217 @@ fn from_artifact_rejects_incomplete_resolution_before_store_creation() {
             .as_str()
             .unwrap()
             .contains("reference_resolution_status")
+    );
+    assert!(!store.exists());
+}
+
+#[test]
+fn from_artifact_accepts_current_gated_partial_as_exact_store_resolution() {
+    let temp = TempDir::new();
+    let (root, artifact) = create_gated_partial_artifact(&temp);
+    let store = temp.path().join("family");
+    let fresh_store = temp.path().join("fresh-family");
+    let source = Connection::open(&artifact).unwrap();
+    let (status, last_full_revision, current_revision): (String, i64, i64) = source
+        .query_row(
+            "SELECT status.value,CAST(last_full.value AS INTEGER),MAX(revision.revision_id)
+             FROM artifact_metadata AS status
+             JOIN artifact_metadata AS last_full
+             JOIN extraction_revisions AS revision
+             WHERE status.key='reference_resolution_status'
+               AND last_full.key='reference_resolution_last_full_revision'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .unwrap();
+    assert_eq!(status, "partial");
+    assert_eq!(last_full_revision, current_revision);
+    assert!(
+        source
+            .query_row(
+                "SELECT COUNT(*) FROM pending_relationships
+                 WHERE pending_relationship_id NOT IN
+                   (SELECT pending_relationship_id FROM pending_resolutions)",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap()
+            > 0
+    );
+
+    let output = julie_extract(&[
+        "store",
+        "import",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11",
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--from-artifact",
+        artifact.to_str().unwrap(),
+        "--json",
+    ]);
+
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stdout)
+    );
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["state"], "committed");
+    assert_eq!(report["resolution"]["state"], "exact");
+    assert_eq!(report["resolution"]["exact_at_matches"], true);
+    let connection = Connection::open(store.join("gen-001/store.db")).unwrap();
+    assert!(
+        connection
+            .query_row(
+                "SELECT resolution_state='exact'
+                        AND resolution_exact_at=current_generation
+                 FROM views WHERE view_id='view-main'",
+                [],
+                |row| row.get::<_, bool>(0),
+            )
+            .unwrap()
+    );
+    let fresh = julie_extract(&[
+        "store",
+        "import",
+        "--store",
+        fresh_store.to_str().unwrap(),
+        "--family",
+        "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11",
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--level",
+        "full",
+        "--json",
+    ]);
+    assert!(
+        fresh.status.success(),
+        "{}",
+        String::from_utf8_lossy(&fresh.stdout)
+    );
+    resolve(&fresh_store);
+    let partial_export = temp.path().join("partial-roundtrip.db");
+    let fresh_export = temp.path().join("fresh-roundtrip.db");
+    let exported = export(&store, &partial_export);
+    assert!(
+        exported.status.success(),
+        "{}",
+        String::from_utf8_lossy(&exported.stdout)
+    );
+    let exported = export(&fresh_store, &fresh_export);
+    assert!(
+        exported.status.success(),
+        "{}",
+        String::from_utf8_lossy(&exported.stdout)
+    );
+    let partial_rows = normalized_v3_rows_with_resolution(&partial_export);
+    let fresh_rows = normalized_v3_rows_with_resolution(&fresh_export);
+    for table in ["identifier_resolutions", "pending_resolutions"] {
+        assert_eq!(partial_rows.get(table), fresh_rows.get(table), "{table}");
+    }
+}
+
+#[test]
+fn from_artifact_rejects_stale_complete_and_partial_before_store_creation() {
+    for status in ["complete", "partial"] {
+        let temp = TempDir::new();
+        let (root, artifact) = create_gated_partial_artifact(&temp);
+        let store = temp.path().join("family");
+        let connection = Connection::open(&artifact).unwrap();
+        connection
+            .execute(
+                "UPDATE artifact_metadata SET value=?1
+                 WHERE key='reference_resolution_status'",
+                [status],
+            )
+            .unwrap();
+        connection
+            .execute(
+                "INSERT INTO extraction_revisions
+                 (revision_id,parent_revision_id,operation,mode,started_at,completed_at,
+                  binary_version,extract_contract_version,sqlite_schema_version,input_root,counts_json)
+                 SELECT revision_id+1,revision_id,'update','incremental',started_at,completed_at,
+                        binary_version,extract_contract_version,sqlite_schema_version,input_root,counts_json
+                 FROM extraction_revisions ORDER BY revision_id DESC LIMIT 1",
+                [],
+            )
+            .unwrap();
+
+        let output = julie_extract(&[
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11",
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--from-artifact",
+            artifact.to_str().unwrap(),
+            "--json",
+        ]);
+
+        assert_eq!(output.status.code(), Some(1), "{status}");
+        let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(report["failure_class"], "resolution_input_incomplete");
+        assert!(
+            report["error"]["message"]
+                .as_str()
+                .unwrap()
+                .contains(&format!("{status} resolution is stale")),
+            "{status}"
+        );
+        assert!(!store.exists(), "{status}");
+    }
+}
+
+#[test]
+fn from_artifact_rejects_current_partial_with_missing_identifier_resolution() {
+    let temp = TempDir::new();
+    let (root, artifact) = create_gated_partial_artifact(&temp);
+    let store = temp.path().join("family");
+    Connection::open(&artifact)
+        .unwrap()
+        .execute(
+            "DELETE FROM identifier_resolutions
+             WHERE identifier_id=(SELECT identifier_id FROM identifier_resolutions LIMIT 1)",
+            [],
+        )
+        .unwrap();
+
+    let output = julie_extract(&[
+        "store",
+        "import",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11",
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--from-artifact",
+        artifact.to_str().unwrap(),
+        "--json",
+    ]);
+
+    assert_eq!(output.status.code(), Some(1));
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["failure_class"], "resolution_input_incomplete");
+    assert!(
+        report["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("incomplete for identifiers")
     );
     assert!(!store.exists());
 }

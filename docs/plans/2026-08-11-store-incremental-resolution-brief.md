@@ -653,11 +653,11 @@ revising the Task 7 thresholds), run the branch gate, then make delta mode defau
 **Execution mode:** systematic debugging. Reproduce the missing-store sequence, trace `reference_resolution_status` across extraction, store publication, resolve, and Miller's committed-input validation, identify one evidenced root cause, then add a failing regression before changing production code. The root cause determines the exact owned files; keep store-writing behavior in this repository and do not change Miller production behavior without explicit approval.
 
 **Acceptance criteria:**
-- [ ] A deterministic missing-family-store recovery regression fails for the observed partial-status reason before the fix.
-- [ ] Root-cause evidence identifies where complete resolution becomes partial across the producer/consumer boundary.
-- [ ] The producer fix makes refresh/`RootRebind` converge to complete reference resolution and a readable Miller workspace.
-- [ ] Focused producer contracts, the recovery integration regression, and applicable Miller consumer contracts pass.
-- [ ] `TODO.md` records the closure evidence or removes the resolved open item.
+- [x] A deterministic missing-family-store recovery regression fails for the observed partial-status reason before the fix.
+- [x] Root-cause evidence identifies where complete resolution becomes partial across the producer/consumer boundary.
+- [x] The producer fix makes refresh/`RootRebind` converge to complete reference resolution and a readable Miller workspace.
+- [x] Focused producer contracts, the recovery integration regression, and applicable Miller consumer contracts pass.
+- [x] `TODO.md` records the closure evidence or removes the resolved open item.
 
 ## Explicitly out of scope
 
