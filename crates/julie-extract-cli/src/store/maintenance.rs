@@ -1,7 +1,6 @@
 use std::fs;
 use std::io;
 use std::path::Path;
-use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use julie_extract_artifact::store::{
@@ -771,47 +770,8 @@ impl CapacityProvider for CliCapacity {
     }
 }
 
-#[cfg(unix)]
 pub(crate) fn filesystem_free_bytes(path: &Path) -> Result<u64, io::Error> {
-    let output = Command::new("df").arg("-Pk").arg(path).output()?;
-    if !output.status.success() {
-        return Err(io::Error::other("df failed to read filesystem capacity"));
-    }
-    let stdout = String::from_utf8(output.stdout)
-        .map_err(|_| io::Error::other("df returned non-UTF-8 output"))?;
-    let available_kib = stdout
-        .lines()
-        .rfind(|line| !line.trim().is_empty())
-        .and_then(|line| line.split_whitespace().nth(3))
-        .ok_or_else(|| io::Error::other("df output omitted available bytes"))?
-        .parse::<u64>()
-        .map_err(|_| io::Error::other("df returned invalid available bytes"))?;
-    available_kib
-        .checked_mul(1024)
-        .ok_or_else(|| io::Error::other("filesystem capacity overflow"))
-}
-
-#[cfg(windows)]
-pub(crate) fn filesystem_free_bytes(path: &Path) -> Result<u64, io::Error> {
-    let output = Command::new("powershell.exe")
-        .args([
-            "-NoProfile",
-            "-NonInteractive",
-            "-Command",
-            "(Get-Volume -FilePath $args[0]).SizeRemaining",
-        ])
-        .arg(path)
-        .output()?;
-    if !output.status.success() {
-        return Err(io::Error::other(
-            "PowerShell failed to read filesystem capacity",
-        ));
-    }
-    String::from_utf8(output.stdout)
-        .map_err(|_| io::Error::other("PowerShell returned non-UTF-8 output"))?
-        .trim()
-        .parse::<u64>()
-        .map_err(|_| io::Error::other("PowerShell returned invalid available bytes"))
+    fs4::available_space(path)
 }
 
 fn directory_bytes(path: &Path) -> Result<u64, io::Error> {

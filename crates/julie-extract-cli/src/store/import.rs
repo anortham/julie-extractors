@@ -933,12 +933,21 @@ mod capacity_tests {
     #[test]
     fn capacity_preflight_checks_the_filesystem_without_creating_the_store() {
         let temp = tempfile::tempdir().unwrap();
-        let store = temp.path().join("new-store");
+        let store = temp.path().join("missing").join("new-store");
 
         let error = preflight_store_capacity(&store, u64::MAX).unwrap_err();
 
         assert!(error.starts_with("capacity_insufficient:"));
         assert!(!store.exists());
+    }
+
+    #[test]
+    fn capacity_probe_reads_a_real_temporary_directory() {
+        let temp = tempfile::tempdir().unwrap();
+
+        let available = super::super::maintenance::filesystem_free_bytes(temp.path()).unwrap();
+
+        assert!(available > 0);
     }
 }
 

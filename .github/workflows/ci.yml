@@ -96,3 +96,24 @@ jobs:
           name: compat-check-dumps
           path: target/compat-check/*.dump.txt
           if-no-files-found: warn
+
+  windows-capacity-store:
+    name: Windows Capacity Store Probe
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Test native filesystem capacity
+        run: cargo test -p julie-extract-cli capacity_tests --lib
+
+      - name: Test store import with a local path
+        run: >-
+          cargo test -p julie-extract-cli --test store_import_contract
+          public_store_import_reaches_the_production_executor -- --exact
