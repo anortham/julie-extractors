@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
 use std::fmt;
 use std::fs::{self, File};
@@ -971,6 +971,52 @@ pub struct ResolutionExactPublish {
     pub created_at: String,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum ResolutionExecutionMode {
+    Full,
+    Scoped,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ResolutionExecutionTelemetry {
+    #[serde(rename = "resolution_mode")]
+    mode: ResolutionExecutionMode,
+    scope_file_count: u64,
+    scope_name_count: u64,
+    scope_row_count: u64,
+    fallback_reason: Option<String>,
+    phase_timings_ms: BTreeMap<String, u64>,
+}
+
+impl ResolutionExecutionTelemetry {
+    fn validate(&self) -> Result<(), ResolutionBindingError> {
+        let fallback_valid = self.fallback_reason.as_deref().is_none_or(|reason| {
+            !reason.is_empty()
+                && reason.len() <= 128
+                && reason
+                    .bytes()
+                    .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'_')
+        });
+        let fallback_matches_mode = match self.mode {
+            ResolutionExecutionMode::Full => self.fallback_reason.is_some(),
+            ResolutionExecutionMode::Scoped => self.fallback_reason.is_none(),
+        };
+        let timings_valid = self.phase_timings_ms.len() == 3
+            && ["diff", "resolution", "scope"]
+                .into_iter()
+                .all(|phase| self.phase_timings_ms.contains_key(phase));
+        if fallback_valid && fallback_matches_mode && timings_valid {
+            Ok(())
+        } else {
+            Err(ResolutionBindingError::InvalidPublication {
+                detail: "resolution execution telemetry is invalid".to_string(),
+            })
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ResolutionConvergenceBegin {
     pub view_id: String,
@@ -1352,12 +1398,38 @@ impl ResolutionBindingStore {
     where
         H: FnOnce() -> Result<(), ResolutionBindingError>,
     {
-        self.publish_exact_with_markers(
+        self.publish_exact_with_telemetry(
             publication,
             fence,
             scratch,
             gaps,
             window_size,
+            None,
+            heartbeat,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn publish_exact_with_telemetry<H>(
+        &self,
+        publication: &ResolutionExactPublish,
+        fence: &ResolutionPublicationFence,
+        scratch: &ResolutionScratchReader,
+        gaps: &[ResolutionGapFact],
+        window_size: usize,
+        telemetry: Option<&serde_json::Value>,
+        heartbeat: H,
+    ) -> Result<ResolutionViewBinding, ResolutionBindingError>
+    where
+        H: FnOnce() -> Result<(), ResolutionBindingError>,
+    {
+        self.publish_exact_with_telemetry_and_markers(
+            publication,
+            fence,
+            scratch,
+            gaps,
+            window_size,
+            telemetry,
             heartbeat,
             |_| {},
         )
@@ -1371,6 +1443,34 @@ impl ResolutionBindingStore {
         scratch: &ResolutionScratchReader,
         gaps: &[ResolutionGapFact],
         window_size: usize,
+        heartbeat: H,
+        mark: M,
+    ) -> Result<ResolutionViewBinding, ResolutionBindingError>
+    where
+        H: FnOnce() -> Result<(), ResolutionBindingError>,
+        M: FnMut(ResolutionPublicationMarker),
+    {
+        self.publish_exact_with_telemetry_and_markers(
+            publication,
+            fence,
+            scratch,
+            gaps,
+            window_size,
+            None,
+            heartbeat,
+            mark,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn publish_exact_with_telemetry_and_markers<H, M>(
+        &self,
+        publication: &ResolutionExactPublish,
+        fence: &ResolutionPublicationFence,
+        scratch: &ResolutionScratchReader,
+        gaps: &[ResolutionGapFact],
+        window_size: usize,
+        telemetry: Option<&serde_json::Value>,
         heartbeat: H,
         mut mark: M,
     ) -> Result<ResolutionViewBinding, ResolutionBindingError>
@@ -1391,6 +1491,18 @@ impl ResolutionBindingStore {
                     .to_string(),
             });
         }
+        let telemetry = telemetry
+            .map(|value| {
+                serde_json::from_value::<ResolutionExecutionTelemetry>(value.clone())
+                    .map_err(|_| ResolutionBindingError::InvalidPublication {
+                        detail: "resolution execution telemetry is invalid".to_string(),
+                    })
+                    .and_then(|telemetry| {
+                        telemetry.validate()?;
+                        Ok(telemetry)
+                    })
+            })
+            .transpose()?;
         let counts = scratch.semantic_counts();
         let identifier_replacements = checked_publication_count(
             publication,
@@ -1546,21 +1658,49 @@ impl ResolutionBindingStore {
             });
         }
         retire_resolution_scope_chain(&transaction, &publication.view_id)?;
-        let payload = serde_json::json!({
+        let mut payload = serde_json::json!({
             "base_id": publication.base_id,
             "delta_generation": delta_generation,
             "exact_gap_files": exact_gap_files,
             "exact_gap_rows": exact_gap_rows,
             "manifest_generation": publication.manifest_generation,
             "manifest_hash": publication.manifest_hash,
-        })
-        .to_string();
+        });
+        if let Some(telemetry) = telemetry.as_ref() {
+            let object = payload
+                .as_object_mut()
+                .expect("resolution exact payload is an object");
+            object.insert(
+                "resolution_mode".to_string(),
+                serde_json::json!(telemetry.mode),
+            );
+            object.insert(
+                "scope_file_count".to_string(),
+                serde_json::json!(telemetry.scope_file_count),
+            );
+            object.insert(
+                "scope_name_count".to_string(),
+                serde_json::json!(telemetry.scope_name_count),
+            );
+            object.insert(
+                "scope_row_count".to_string(),
+                serde_json::json!(telemetry.scope_row_count),
+            );
+            object.insert(
+                "fallback_reason".to_string(),
+                serde_json::json!(telemetry.fallback_reason),
+            );
+            object.insert(
+                "phase_timings_ms".to_string(),
+                serde_json::json!(telemetry.phase_timings_ms),
+            );
+        }
         StoreLog::append_effect(
             &transaction,
             &StoreLogEntry::new(
                 &publication.request_id,
                 "resolution_exact_published",
-                payload,
+                payload.to_string(),
                 &publication.created_at,
             )
             .with_view(&publication.view_id)
@@ -1583,6 +1723,79 @@ impl ResolutionBindingStore {
             state: ViewResolutionState::Exact,
             exact_at: Some(publication.manifest_generation),
         })
+    }
+
+    pub fn exact_publication_telemetry(
+        &self,
+        request_id: &str,
+        view_id: &str,
+        manifest_generation: i64,
+    ) -> Result<Option<serde_json::Value>, ResolutionBindingError> {
+        if request_id.is_empty() || view_id.is_empty() || manifest_generation <= 0 {
+            return Err(ResolutionBindingError::InvalidPublication {
+                detail: "resolution telemetry identity is invalid".to_string(),
+            });
+        }
+        let connection = self.factory.open_reader()?;
+        let payload = connection
+            .query_row(
+                "SELECT payload_json FROM store_log
+                 WHERE request_id=?1 AND event_kind='resolution_exact_published'
+                   AND view_id=?2 AND generation=?3
+                 ORDER BY sequence DESC LIMIT 1",
+                params![request_id, view_id, manifest_generation],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()?;
+        let Some(payload) = payload else {
+            return Ok(None);
+        };
+        let value: serde_json::Value = serde_json::from_str(&payload).map_err(|_| {
+            ResolutionBindingError::InvalidPublication {
+                detail: "durable resolution telemetry payload is invalid JSON".to_string(),
+            }
+        })?;
+        if value["manifest_generation"].as_i64() != Some(manifest_generation) {
+            return Err(ResolutionBindingError::InvalidPublication {
+                detail: "durable resolution telemetry manifest is invalid".to_string(),
+            });
+        }
+        let telemetry_keys = [
+            "resolution_mode",
+            "scope_file_count",
+            "scope_name_count",
+            "scope_row_count",
+            "fallback_reason",
+            "phase_timings_ms",
+        ];
+        let present = telemetry_keys
+            .iter()
+            .filter(|key| value.get(**key).is_some())
+            .count();
+        if present == 0 {
+            return Ok(None);
+        }
+        if present != telemetry_keys.len() {
+            return Err(ResolutionBindingError::InvalidPublication {
+                detail: "durable resolution execution telemetry is incomplete".to_string(),
+            });
+        }
+        let telemetry_value = serde_json::json!({
+            "resolution_mode": value.get("resolution_mode"),
+            "scope_file_count": value.get("scope_file_count"),
+            "scope_name_count": value.get("scope_name_count"),
+            "scope_row_count": value.get("scope_row_count"),
+            "fallback_reason": value.get("fallback_reason"),
+            "phase_timings_ms": value.get("phase_timings_ms"),
+        });
+        let telemetry: ResolutionExecutionTelemetry = serde_json::from_value(telemetry_value)
+            .map_err(|_| ResolutionBindingError::InvalidPublication {
+                detail: "durable resolution execution telemetry is invalid".to_string(),
+            })?;
+        telemetry.validate()?;
+        Ok(Some(
+            serde_json::to_value(telemetry).expect("validated resolution telemetry serializes"),
+        ))
     }
 
     fn validate_publication_fence(

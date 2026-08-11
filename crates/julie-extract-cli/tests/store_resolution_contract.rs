@@ -47,6 +47,15 @@ impl Drop for TempDir {
 
 fn julie_extract(args: &[&str]) -> std::process::Output {
     Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .env_remove("JULIE_STORE_RESOLUTION_DELTA")
+        .args(args)
+        .output()
+        .expect("julie-extract should start")
+}
+
+fn julie_extract_with_resolution_delta(args: &[&str], value: &str) -> std::process::Output {
+    Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .env("JULIE_STORE_RESOLUTION_DELTA", value)
         .args(args)
         .output()
         .expect("julie-extract should start")
@@ -111,6 +120,431 @@ fn resolve_output(store: &Path, request_id: &str, key: &str) -> std::process::Ou
         key,
         "--json",
     ])
+}
+
+#[test]
+fn resolve_defaults_to_forced_full_and_emits_additive_telemetry() {
+    let temp = TempDir::new();
+    let (_, store) = create_full_store(&temp);
+
+    let output = resolve_output(&store, "resolve-default-full", "resolve-default-full-key");
+
+    assert!(
+        output.status.success(),
+        "stdout={} stderr={}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["resolution"]["resolution_mode"], "full");
+    assert_eq!(
+        report["resolution"]["fallback_reason"],
+        "incremental_resolution_disabled"
+    );
+    assert!(report["resolution"]["scope_file_count"].is_u64());
+    assert!(report["resolution"]["scope_name_count"].is_u64());
+    assert!(report["resolution"]["scope_row_count"].is_u64());
+    assert!(report["resolution"]["phase_timings_ms"].is_object());
+}
+
+#[test]
+fn resolve_rejects_invalid_delta_escape_hatch_values() {
+    let temp = TempDir::new();
+    let (_, store) = create_full_store(&temp);
+
+    let output = julie_extract_with_resolution_delta(
+        &[
+            "store",
+            "resolve",
+            "--store",
+            store.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--request-id",
+            "resolve-invalid-delta",
+            "--idempotency-key",
+            "resolve-invalid-delta-key",
+            "--json",
+        ],
+        "sometimes",
+    );
+
+    assert_eq!(output.status.code(), Some(1));
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["failure_class"], "resolution_failed");
+    assert_eq!(
+        report["error"]["message"],
+        "resolution_failed: JULIE_STORE_RESOLUTION_DELTA must be 'on' or 'off', found 'sometimes'"
+    );
+}
+
+#[test]
+fn resolve_uses_scoped_mode_only_when_escape_hatch_is_on() {
+    let temp = TempDir::new();
+    let (root, store) = create_full_store(&temp);
+    assert!(
+        resolve_output(&store, "resolve-scope-base", "resolve-scope-base-key")
+            .status
+            .success()
+    );
+    fs::write(
+        root.join("lib.rs"),
+        "pub fn answer() -> i32 { helper() }\nfn helper() -> i32 { 2 }\n",
+    )
+    .unwrap();
+    let update = julie_extract(&[
+        "store",
+        "update",
+        "--store",
+        store.to_str().unwrap(),
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--file",
+        "lib.rs",
+        "--level",
+        "full",
+        "--request-id",
+        "update-for-scope",
+        "--idempotency-key",
+        "update-for-scope-key",
+        "--json",
+    ]);
+    assert!(
+        update.status.success(),
+        "stdout={} stderr={}",
+        String::from_utf8_lossy(&update.stdout),
+        String::from_utf8_lossy(&update.stderr)
+    );
+
+    let resolve = julie_extract_with_resolution_delta(
+        &[
+            "store",
+            "resolve",
+            "--store",
+            store.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--request-id",
+            "resolve-scoped",
+            "--idempotency-key",
+            "resolve-scoped-key",
+            "--json",
+        ],
+        "on",
+    );
+
+    assert!(
+        resolve.status.success(),
+        "stdout={} stderr={}",
+        String::from_utf8_lossy(&resolve.stdout),
+        String::from_utf8_lossy(&resolve.stderr)
+    );
+    let report: Value = serde_json::from_slice(&resolve.stdout).unwrap();
+    assert_eq!(report["resolution"]["resolution_mode"], "scoped");
+    assert!(report["resolution"]["fallback_reason"].is_null());
+    assert!(report["resolution"]["scope_file_count"].as_u64().unwrap() >= 1);
+    assert!(report["resolution"]["scope_name_count"].as_u64().unwrap() >= 1);
+    assert!(report["resolution"]["scope_row_count"].as_u64().unwrap() >= 1);
+    assert!(report["resolution"]["phase_timings_ms"]["resolution"].is_u64());
+}
+
+#[test]
+fn explicit_off_and_unset_choose_the_same_forced_full_contract() {
+    let unset_temp = TempDir::new();
+    let off_temp = TempDir::new();
+    let (_, unset_store) = create_full_store(&unset_temp);
+    let (_, off_store) = create_full_store(&off_temp);
+
+    let unset = resolve_output(&unset_store, "resolve-unset", "resolve-unset-key");
+    let off = julie_extract_with_resolution_delta(
+        &[
+            "store",
+            "resolve",
+            "--store",
+            off_store.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--request-id",
+            "resolve-off",
+            "--idempotency-key",
+            "resolve-off-key",
+            "--json",
+        ],
+        "off",
+    );
+
+    assert!(unset.status.success());
+    assert!(off.status.success());
+    let unset: Value = serde_json::from_slice(&unset.stdout).unwrap();
+    let off: Value = serde_json::from_slice(&off.stdout).unwrap();
+    for field in [
+        "resolution_mode",
+        "scope_file_count",
+        "scope_name_count",
+        "scope_row_count",
+        "fallback_reason",
+    ] {
+        assert_eq!(unset["resolution"][field], off["resolution"][field]);
+    }
+}
+
+#[test]
+fn forced_full_resolve_ignores_unreadable_incremental_state() {
+    for delta in [None, Some("off")] {
+        let temp = TempDir::new();
+        let (root, store) = create_full_store(&temp);
+        let mut seed = Command::new(env!("CARGO_BIN_EXE_julie-extract"));
+        seed.args([
+            "store",
+            "resolve",
+            "--store",
+            store.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--request-id",
+            "resolve-forced-seed",
+            "--idempotency-key",
+            "resolve-forced-seed-key",
+            "--json",
+        ])
+        .env(
+            "JULIE_EXTRACT_STORE_TEST_CRASH_AT",
+            "resolution_prior_state_read",
+        );
+        match delta {
+            Some(value) => {
+                seed.env("JULIE_STORE_RESOLUTION_DELTA", value);
+            }
+            None => {
+                seed.env_remove("JULIE_STORE_RESOLUTION_DELTA");
+            }
+        }
+        let seed = seed.output().unwrap();
+        assert!(
+            seed.status.success(),
+            "stdout={} stderr={}",
+            String::from_utf8_lossy(&seed.stdout),
+            String::from_utf8_lossy(&seed.stderr)
+        );
+        fs::write(
+            root.join("lib.rs"),
+            "pub fn answer() -> i32 { helper() }\nfn helper() -> i32 { 2 }\n",
+        )
+        .unwrap();
+        assert!(
+            julie_extract(&[
+                "store",
+                "update",
+                "--store",
+                store.to_str().unwrap(),
+                "--root",
+                root.to_str().unwrap(),
+                "--view",
+                "view-main",
+                "--file",
+                "lib.rs",
+                "--level",
+                "full",
+                "--json",
+            ])
+            .status
+            .success()
+        );
+        Connection::open(store.join("gen-001/store.db"))
+            .unwrap()
+            .execute(
+                "UPDATE resolution_scope_state SET current_manifest_hash='malformed'
+                 WHERE view_id='view-main'",
+                [],
+            )
+            .unwrap();
+        let args = [
+            "store",
+            "resolve",
+            "--store",
+            store.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--request-id",
+            "resolve-forced-corrupt-scope",
+            "--idempotency-key",
+            "resolve-forced-corrupt-scope-key",
+            "--json",
+        ];
+        let mut command = Command::new(env!("CARGO_BIN_EXE_julie-extract"));
+        command.args(args).env(
+            "JULIE_EXTRACT_STORE_TEST_CRASH_AT",
+            "resolution_prior_state_read",
+        );
+        match delta {
+            Some(value) => {
+                command.env("JULIE_STORE_RESOLUTION_DELTA", value);
+            }
+            None => {
+                command.env_remove("JULIE_STORE_RESOLUTION_DELTA");
+            }
+        }
+        let output = command.output().unwrap();
+        assert!(
+            output.status.success(),
+            "stdout={} stderr={}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(report["resolution"]["resolution_mode"], "full");
+        assert_eq!(
+            report["resolution"]["fallback_reason"],
+            "incremental_resolution_disabled"
+        );
+    }
+}
+
+#[test]
+fn retry_after_exact_publish_crash_replays_the_actual_scoped_telemetry() {
+    let temp = TempDir::new();
+    let (root, store) = create_full_store(&temp);
+    assert!(
+        resolve_output(
+            &store,
+            "resolve-telemetry-seed",
+            "resolve-telemetry-seed-key"
+        )
+        .status
+        .success()
+    );
+    fs::write(
+        root.join("lib.rs"),
+        "pub fn answer() -> i32 { helper() }\nfn helper() -> i32 { 2 }\n",
+    )
+    .unwrap();
+    assert!(
+        julie_extract(&[
+            "store",
+            "update",
+            "--store",
+            store.to_str().unwrap(),
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--file",
+            "lib.rs",
+            "--level",
+            "full",
+            "--json",
+        ])
+        .status
+        .success()
+    );
+
+    let crashed = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
+            "store",
+            "resolve",
+            "--store",
+            store.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--request-id",
+            "resolve-telemetry-crash",
+            "--idempotency-key",
+            "resolve-telemetry-crash-key",
+            "--json",
+        ])
+        .env("JULIE_STORE_RESOLUTION_DELTA", "on")
+        .env(
+            "JULIE_EXTRACT_STORE_TEST_CRASH_AT",
+            "resolution_exact_after_store_commit",
+        )
+        .output()
+        .unwrap();
+    assert!(!crashed.status.success());
+    let durable_counts: (i64, i64, i64, i64, i64) =
+        Connection::open(store.join("gen-001/store.db"))
+            .unwrap()
+            .query_row(
+                "SELECT identifier_replacements,pending_replacements,pending_tombstones,
+                        exact_gap_rows,exact_gap_files
+                 FROM resolution_deltas
+                 WHERE request_id='resolve-telemetry-crash'
+                 ORDER BY delta_generation DESC LIMIT 1",
+                [],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                    ))
+                },
+            )
+            .unwrap();
+    assert!(durable_counts.0 + durable_counts.1 + durable_counts.2 > 0);
+    assert!(durable_counts.3 > 0);
+
+    let retry = julie_extract_with_resolution_delta(
+        &[
+            "store",
+            "resolve",
+            "--store",
+            store.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--request-id",
+            "resolve-telemetry-retry",
+            "--idempotency-key",
+            "resolve-telemetry-crash-key",
+            "--json",
+        ],
+        "on",
+    );
+    assert!(
+        retry.status.success(),
+        "stdout={} stderr={}",
+        String::from_utf8_lossy(&retry.stdout),
+        String::from_utf8_lossy(&retry.stderr)
+    );
+    let report: Value = serde_json::from_slice(&retry.stdout).unwrap();
+    assert_eq!(report["request"]["id"], "resolve-telemetry-crash");
+    assert_eq!(report["resolution"]["resolution_mode"], "scoped");
+    assert!(report["resolution"]["fallback_reason"].is_null());
+    assert!(report["resolution"]["scope_file_count"].as_u64().unwrap() >= 1);
+    assert!(report["resolution"]["scope_name_count"].as_u64().unwrap() >= 1);
+    assert!(report["resolution"]["scope_row_count"].as_u64().unwrap() >= 1);
+    assert!(report["resolution"]["phase_timings_ms"]["scope"].is_u64());
+    let terminal: Value = serde_json::from_str(
+        &Connection::open(store.join("gen-001/store.db"))
+            .unwrap()
+            .query_row(
+                "SELECT payload_json FROM store_log
+                 WHERE request_id='resolve-telemetry-crash' AND terminal=1",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(terminal["identifier_replacements"], durable_counts.0);
+    assert_eq!(terminal["pending_replacements"], durable_counts.1);
+    assert_eq!(terminal["pending_tombstones"], durable_counts.2);
+    assert_eq!(terminal["exact_gap_rows"], durable_counts.3);
+    assert_eq!(terminal["exact_gap_files"], durable_counts.4);
+    assert_eq!(terminal["gap_lower_bound"], durable_counts.3);
+}
+
+#[test]
+fn resolve_has_one_store_scope_planner_seam_and_reports_its_actual_decision() {
+    let resolve = include_str!("../src/store/resolve.rs");
+    let session = include_str!("../src/store/resolution_session.rs");
+
+    assert!(!resolve.contains("build_store_delta_scope"));
+    assert_eq!(session.matches("build_store_delta_scope(").count(), 1);
+    assert!(resolve.contains("!payload.resolution_delta_enabled"));
+    assert!(resolve.contains(".decision_telemetry()"));
 }
 
 #[test]

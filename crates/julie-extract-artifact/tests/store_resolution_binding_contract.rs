@@ -185,15 +185,46 @@ fn exact_publish_is_atomic_and_stale_binding_cas_publishes_nothing() {
     ));
     assert_eq!(publication_counts(&layout), before_failures);
 
-    let mut publication_markers = Vec::new();
-    let mut heartbeat_count = 0u32;
-    let exact = bindings
-        .publish_exact_with_markers(
+    let invalid_telemetry = serde_json::json!({
+        "resolution_mode": "scoped",
+        "scope_file_count": 2,
+        "scope_name_count": 3,
+        "scope_row_count": 5,
+        "fallback_reason": "not_allowed_for_scoped",
+        "phase_timings_ms": {"diff": 7, "resolution": 11, "scope": 3},
+    });
+    assert!(matches!(
+        bindings.publish_exact_with_telemetry(
             &publication,
             &fence,
             &scratch,
             &gaps,
             1,
+            Some(&invalid_telemetry),
+            || Ok(())
+        ),
+        Err(ResolutionBindingError::InvalidPublication { .. })
+    ));
+    assert_eq!(publication_counts(&layout), before_failures);
+
+    let mut publication_markers = Vec::new();
+    let mut heartbeat_count = 0u32;
+    let telemetry = serde_json::json!({
+        "resolution_mode": "scoped",
+        "scope_file_count": 2,
+        "scope_name_count": 3,
+        "scope_row_count": 5,
+        "fallback_reason": null,
+        "phase_timings_ms": {"diff": 7, "resolution": 11, "scope": 3},
+    });
+    let exact = bindings
+        .publish_exact_with_telemetry_and_markers(
+            &publication,
+            &fence,
+            &scratch,
+            &gaps,
+            1,
+            Some(&telemetry),
             || {
                 heartbeat_count += 1;
                 Ok(())
@@ -250,6 +281,54 @@ fn exact_publish_is_atomic_and_stale_binding_cas_publishes_nothing() {
         )
         .unwrap();
     assert_eq!(counts, (1, 1, 1, 2));
+    let payload: serde_json::Value = serde_json::from_str(
+        &connection
+            .query_row(
+                "SELECT payload_json FROM store_log
+                 WHERE request_id='request-exact' AND event_kind='resolution_exact_published'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(payload["resolution_mode"], "scoped");
+    assert_eq!(payload["scope_file_count"], 2);
+    assert_eq!(payload["scope_name_count"], 3);
+    assert_eq!(payload["scope_row_count"], 5);
+    assert!(payload["fallback_reason"].is_null());
+    assert_eq!(payload["phase_timings_ms"]["scope"], 3);
+    assert_eq!(
+        bindings
+            .exact_publication_telemetry("request-exact", "view-c", 2)
+            .unwrap(),
+        Some(telemetry.clone())
+    );
+    assert_eq!(
+        bindings
+            .exact_publication_telemetry("request-exact", "wrong-view", 2)
+            .unwrap(),
+        None
+    );
+    assert_eq!(
+        bindings
+            .exact_publication_telemetry("request-exact", "view-c", 3)
+            .unwrap(),
+        None
+    );
+    let mut partial = payload;
+    partial.as_object_mut().unwrap().remove("resolution_mode");
+    connection
+        .execute(
+            "UPDATE store_log SET payload_json=?1
+             WHERE request_id='request-exact' AND event_kind='resolution_exact_published'",
+            [partial.to_string()],
+        )
+        .unwrap();
+    assert!(matches!(
+        bindings.exact_publication_telemetry("request-exact", "view-c", 2),
+        Err(ResolutionBindingError::InvalidPublication { .. })
+    ));
     assert_eq!(
         connection
             .query_row(
@@ -418,6 +497,12 @@ fn exact_publication_clears_scope_only_after_winning_the_latest_manifest_cas() {
     bindings
         .publish_exact(&latest, &latest_fence, &latest_scratch, &[], 1, || Ok(()))
         .unwrap();
+    assert_eq!(
+        bindings
+            .exact_publication_telemetry("request-latest", "view-a", 3)
+            .unwrap(),
+        None
+    );
 
     let connection = Connection::open(layout.store_db()).unwrap();
     let retired: (i64, i64, i64) = connection

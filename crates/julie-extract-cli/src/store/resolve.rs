@@ -1,8 +1,9 @@
+use std::collections::BTreeMap;
 use std::fs;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, mpsc};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use julie_extract_artifact::store::{
     CoordinatorRequest, GenerationFence, LeaseDisposition, LeaseHolder, RequestKind, RequestState,
@@ -25,6 +26,7 @@ use super::report::{
     StoreRequestedLevel, StoreResolutionState,
 };
 use super::resolution_session::{StoreManifestIdentity, StoreScratchResolutionSession};
+use crate::resolution_session::{ResolutionWorklists, SemanticVersionId};
 
 const RESOLVE_CLAIM_STALE_MS: i64 = 5_000;
 const RESOLUTION_WINDOW_SIZE: usize = 300;
@@ -35,6 +37,76 @@ struct ResolveRequestPayload {
     family_id: String,
     view_id: String,
     resolver_output_epoch: i64,
+    #[serde(default)]
+    resolution_delta_enabled: bool,
+}
+
+#[derive(Debug, Clone)]
+struct ResolutionExecutionTelemetry {
+    resolution_mode: &'static str,
+    scope_file_count: u64,
+    scope_name_count: u64,
+    scope_row_count: u64,
+    fallback_reason: Option<String>,
+    phase_timings_ms: BTreeMap<String, u64>,
+}
+
+impl ResolutionExecutionTelemetry {
+    fn forced_full(fallback_reason: impl Into<String>) -> Self {
+        Self {
+            resolution_mode: "full",
+            scope_file_count: 0,
+            scope_name_count: 0,
+            scope_row_count: 0,
+            fallback_reason: Some(fallback_reason.into()),
+            phase_timings_ms: BTreeMap::new(),
+        }
+    }
+
+    fn durable_payload(&self) -> serde_json::Value {
+        serde_json::json!({
+            "resolution_mode": self.resolution_mode,
+            "scope_file_count": self.scope_file_count,
+            "scope_name_count": self.scope_name_count,
+            "scope_row_count": self.scope_row_count,
+            "fallback_reason": self.fallback_reason,
+            "phase_timings_ms": self.phase_timings_ms,
+        })
+    }
+
+    fn from_durable_payload(payload: &serde_json::Value) -> Result<Self, String> {
+        let resolution_mode = match payload["resolution_mode"].as_str() {
+            Some("full") => "full",
+            Some("scoped") => "scoped",
+            _ => return Err("resolution_failed: invalid durable resolution mode".to_string()),
+        };
+        let fallback_reason = payload["fallback_reason"].as_str().map(ToOwned::to_owned);
+        let phase_timings_ms = payload["phase_timings_ms"]
+            .as_object()
+            .ok_or_else(|| "resolution_failed: invalid durable phase timings".to_string())?
+            .iter()
+            .map(|(phase, value)| {
+                value
+                    .as_u64()
+                    .map(|value| (phase.clone(), value))
+                    .ok_or_else(|| "resolution_failed: invalid durable phase timing".to_string())
+            })
+            .collect::<Result<_, _>>()?;
+        Ok(Self {
+            resolution_mode,
+            scope_file_count: payload["scope_file_count"]
+                .as_u64()
+                .ok_or_else(|| "resolution_failed: invalid durable scope file count".to_string())?,
+            scope_name_count: payload["scope_name_count"]
+                .as_u64()
+                .ok_or_else(|| "resolution_failed: invalid durable scope name count".to_string())?,
+            scope_row_count: payload["scope_row_count"]
+                .as_u64()
+                .ok_or_else(|| "resolution_failed: invalid durable scope row count".to_string())?,
+            fallback_reason,
+            phase_timings_ms,
+        })
+    }
 }
 
 pub(crate) fn run(args: StoreResolveArgs) -> StoreExecutionOutcome {
@@ -78,6 +150,7 @@ fn execute_resolve(
     idempotency_key: &str,
     failure_family: &mut String,
 ) -> Result<StoreReport, String> {
+    let resolution_delta_enabled = resolution_delta_enabled()?;
     let existing = open_existing_store(&args.store, args.family.as_deref())?;
     failure_family.clone_from(&existing.family_id);
     let layout = existing.layout;
@@ -99,6 +172,7 @@ fn execute_resolve(
         family_id: family_id.clone(),
         view_id: args.view.clone(),
         resolver_output_epoch: crate::resolution::RESOLUTION_VERSION,
+        resolution_delta_enabled,
     };
     let canonical = if let Some(existing) = coordinator
         .request_by_idempotency_key(idempotency_key)
@@ -310,6 +384,7 @@ fn resolve_claimed(
                 payload.resolver_output_epoch,
             )
             .map_err(classify_resolution_error)?;
+            session.force_full_without_prior_state();
             crate::resolution::run_resolution_session(&mut session, true, true)
                 .map_err(classify_resolution_error)?;
             session.finish_exact().map_err(classify_resolution_error)?;
@@ -364,6 +439,12 @@ fn resolve_claimed(
     )?;
     let mut pin_guard =
         ResolvePinGuard::armed(factory.clone(), pin_id.clone(), holder.holder_id.clone());
+    let mut telemetry =
+        ResolutionExecutionTelemetry::forced_full(if payload.resolution_delta_enabled {
+            "resolution_already_exact"
+        } else {
+            "incremental_resolution_disabled"
+        });
     let exact_path = layout
         .scratch_dir()
         .join(format!("resolve-exact-{}.db", request.request_id));
@@ -371,6 +452,16 @@ fn resolve_claimed(
         .scratch_dir()
         .join(format!("resolve-delta-{}.db", request.request_id));
     if binding.state == ViewResolutionState::Exact {
+        if let Some(durable) = ResolutionBindingStore::new(factory.clone())
+            .exact_publication_telemetry(
+                &request.request_id,
+                &binding.view_id,
+                binding.manifest_generation,
+            )
+            .map_err(|error| format!("resolution_failed: {error}"))?
+        {
+            telemetry = ResolutionExecutionTelemetry::from_durable_payload(&durable)?;
+        }
         heartbeat.ensure_current(coordinator, request, holder)?;
         with_writer_lease(
             coordinator,
@@ -386,8 +477,7 @@ fn resolve_claimed(
                     fencing_token,
                     request,
                     &binding,
-                    None,
-                    None,
+                    &telemetry,
                 )?;
                 ResolutionBindingStore::new(fenced_factory(
                     &factory,
@@ -410,17 +500,50 @@ fn resolve_claimed(
     remove_resolution_scratch_if_exists(&exact_path)?;
     let mut exact_session = StoreScratchResolutionSession::new(
         factory.clone(),
-        identity,
+        identity.clone(),
         &exact_path,
         RESOLUTION_WINDOW_SIZE,
         payload.resolver_output_epoch,
     )
     .map_err(classify_resolution_error)?;
-    crate::resolution::run_resolution_session(&mut exact_session, true, true)
-        .map_err(classify_resolution_error)?;
+    if !payload.resolution_delta_enabled {
+        exact_session.force_full_without_prior_state();
+    }
+    let resolution_started = Instant::now();
+    crate::resolution::run_resolution_session(
+        &mut exact_session,
+        !payload.resolution_delta_enabled,
+        true,
+    )
+    .map_err(classify_resolution_error)?;
+    let decision = exact_session
+        .decision_telemetry()
+        .cloned()
+        .ok_or_else(|| "resolution_failed: resolution decision telemetry missing".to_string())?;
+    apply_scope_counts(&factory, &identity, &decision.worklists, &mut telemetry)?;
+    telemetry.resolution_mode = if decision.effective_full {
+        "full"
+    } else {
+        "scoped"
+    };
+    telemetry.fallback_reason = decision.fallback_reason.map(|reason| {
+        if reason == "resolution_requested_full" && !payload.resolution_delta_enabled {
+            "incremental_resolution_disabled".to_string()
+        } else if reason == "resolution_requested_full" {
+            "resolution_prior_overlay_unavailable".to_string()
+        } else {
+            reason.to_string()
+        }
+    });
+    telemetry
+        .phase_timings_ms
+        .insert("scope".to_string(), decision.elapsed_millis);
     exact_session
         .finish_exact()
         .map_err(classify_resolution_error)?;
+    telemetry
+        .phase_timings_ms
+        .insert("resolution".to_string(), elapsed_millis(resolution_started));
     heartbeat.ensure_current(coordinator, request, holder)?;
 
     let base_relative_path = factory
@@ -438,14 +561,20 @@ fn resolve_claimed(
         .map_err(|error| format!("resolution_failed: {error}"))?;
     remove_sqlite_if_exists(&delta_path)?;
     let mut gaps = Vec::<ResolutionGapFact>::new();
+    let diff_started = Instant::now();
     stream_resolution_diff(&base, &exact, &delta_path, RESOLUTION_WINDOW_SIZE, |gap| {
         gaps.push(gap);
         Ok(())
     })
     .map_err(|error| format!("resolution_failed: {error}"))?;
+    telemetry
+        .phase_timings_ms
+        .insert("diff".to_string(), elapsed_millis(diff_started));
     let scratch = ResolutionScratchReader::open(&delta_path)
         .map_err(|error| format!("resolution_failed: {error}"))?;
     heartbeat.ensure_current(coordinator, request, holder)?;
+    #[cfg(feature = "test-store-resolution-contract")]
+    pause_before_exact_publish_for_test()?;
     with_writer_lease(
         coordinator,
         holder,
@@ -478,13 +607,15 @@ fn resolve_claimed(
                 holder,
                 fencing_token,
             ));
+            let durable_telemetry = telemetry.durable_payload();
             let published = fenced_bindings
-                .publish_exact(
+                .publish_exact_with_telemetry(
                     &publication,
                     &fence,
                     &scratch,
                     &gaps,
                     RESOLUTION_WINDOW_SIZE,
+                    Some(&durable_telemetry),
                     || {
                         exact_publish_heartbeat(
                             coordinator,
@@ -508,8 +639,7 @@ fn resolve_claimed(
                 fencing_token,
                 request,
                 &published,
-                Some(&scratch),
-                Some(&gaps),
+                &telemetry,
             )?;
             fenced_bindings
                 .release_pin(&pin_id, ResolutionPinOwnerKind::Resolve, &holder.holder_id)
@@ -696,8 +826,7 @@ fn append_resolution_terminal(
     fencing_token: i64,
     request: &CoordinatorRequest,
     binding: &ResolutionViewBinding,
-    scratch: Option<&ResolutionScratchReader>,
-    gaps: Option<&[ResolutionGapFact]>,
+    telemetry: &ResolutionExecutionTelemetry,
 ) -> Result<(), String> {
     let mut connection = fenced_factory(factory, layout, holder, fencing_token)
         .open_writer()
@@ -713,25 +842,41 @@ fn append_resolution_terminal(
     }
     let delta = transaction
         .query_row(
-            "SELECT exact_gap_rows,exact_gap_files FROM resolution_deltas
+            "SELECT identifier_replacements,pending_replacements,pending_tombstones,
+                    exact_gap_rows,exact_gap_files
+             FROM resolution_deltas
              WHERE view_id=?1 AND delta_generation=?2",
             params![binding.view_id, binding.delta_generation],
-            |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)),
+            |row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, i64>(1)?,
+                    row.get::<_, i64>(2)?,
+                    row.get::<_, i64>(3)?,
+                    row.get::<_, i64>(4)?,
+                ))
+            },
         )
         .map_err(|error| error.to_string())?;
     let result_json = serde_json::json!({
         "base_id": binding.base_id,
         "delta_generation": binding.delta_generation,
         "exact_at_generation": binding.exact_at,
-        "exact_gap_files": delta.1,
-        "exact_gap_rows": delta.0,
-        "gap_lower_bound": gaps.map_or(0, |facts| facts.len()),
-        "identifier_replacements": scratch.map_or(0, |value| value.semantic_counts().identifier_replacements),
+        "exact_gap_files": delta.4,
+        "exact_gap_rows": delta.3,
+        "gap_lower_bound": delta.3,
+        "identifier_replacements": delta.0,
         "manifest_generation": binding.manifest_generation,
         "manifest_hash": binding.manifest_hash,
-        "pending_replacements": scratch.map_or(0, |value| value.semantic_counts().pending_replacements),
-        "pending_tombstones": scratch.map_or(0, |value| value.semantic_counts().pending_tombstones),
+        "pending_replacements": delta.1,
+        "pending_tombstones": delta.2,
         "resolution_state": binding.state.as_str(),
+        "resolution_mode": telemetry.resolution_mode,
+        "scope_file_count": telemetry.scope_file_count,
+        "scope_name_count": telemetry.scope_name_count,
+        "scope_row_count": telemetry.scope_row_count,
+        "fallback_reason": telemetry.fallback_reason,
+        "phase_timings_ms": telemetry.phase_timings_ms,
     })
     .to_string();
     let created_at = transaction
@@ -797,6 +942,105 @@ fn ensure_resolve_claim(
     } else {
         Err("resolution_failed: resolve claim lost".to_string())
     }
+}
+
+fn resolution_delta_enabled() -> Result<bool, String> {
+    match std::env::var("JULIE_STORE_RESOLUTION_DELTA") {
+        Ok(value) if value == "on" => Ok(true),
+        Ok(value) if value == "off" => Ok(false),
+        Ok(value) => Err(format!(
+            "resolution_failed: JULIE_STORE_RESOLUTION_DELTA must be 'on' or 'off', found '{value}'"
+        )),
+        Err(std::env::VarError::NotPresent) => Ok(false),
+        Err(std::env::VarError::NotUnicode(_)) => Err(
+            "resolution_failed: JULIE_STORE_RESOLUTION_DELTA must be valid UTF-8 'on' or 'off'"
+                .to_string(),
+        ),
+    }
+}
+
+fn apply_scope_counts(
+    factory: &StoreConnectionFactory,
+    identity: &StoreManifestIdentity,
+    worklists: &ResolutionWorklists,
+    telemetry: &mut ResolutionExecutionTelemetry,
+) -> Result<(), String> {
+    let connection = factory
+        .open_reader()
+        .map_err(|error| format!("resolution_failed: {error}"))?;
+    telemetry.scope_name_count = u64::try_from(worklists.recheck_names.len())
+        .map_err(|_| "resolution_failed: scope name count overflow".to_string())?;
+    if worklists.effective_full {
+        let file_count = connection
+            .query_row(
+                "SELECT COUNT(*) FROM manifest_entries
+                 WHERE view_id=?1 AND generation=?2
+                   AND status IN ('indexed','failed_preserved')",
+                params![identity.view_id, identity.generation],
+                |row| row.get::<_, i64>(0),
+            )
+            .map_err(|error| format!("resolution_failed: {error}"))?;
+        telemetry.scope_file_count = u64::try_from(file_count)
+            .map_err(|_| "resolution_failed: scope file count invalid".to_string())?;
+        for table in ["identifiers", "pending_relationships", "relationships"] {
+            let count = connection
+                .query_row(
+                    &format!(
+                        "SELECT COUNT(*) FROM {table} AS row
+                         WHERE EXISTS(
+                           SELECT 1 FROM manifest_entries AS entry
+                           WHERE entry.view_id=?1 AND entry.generation=?2
+                             AND entry.status IN ('indexed','failed_preserved')
+                             AND entry.version_id=row.version_id
+                         )"
+                    ),
+                    params![identity.view_id, identity.generation],
+                    |row| row.get::<_, i64>(0),
+                )
+                .map_err(|error| format!("resolution_failed: {error}"))?;
+            telemetry.scope_row_count = telemetry.scope_row_count.saturating_add(
+                u64::try_from(count)
+                    .map_err(|_| "resolution_failed: scope row count invalid".to_string())?,
+            );
+        }
+        return Ok(());
+    }
+
+    let versions = worklists
+        .selected_versions
+        .iter()
+        .filter_map(|version| match version {
+            SemanticVersionId::Store(version_id) => Some(*version_id),
+            SemanticVersionId::LegacyFile(_) => None,
+        })
+        .collect::<Vec<_>>();
+    telemetry.scope_file_count = u64::try_from(versions.len())
+        .map_err(|_| "resolution_failed: scope file count overflow".to_string())?;
+    let mut row_count = 0_u64;
+    for chunk in versions.chunks(256) {
+        let placeholders = std::iter::repeat_n("?", chunk.len())
+            .collect::<Vec<_>>()
+            .join(",");
+        for table in ["identifiers", "pending_relationships", "relationships"] {
+            let count = connection
+                .query_row(
+                    &format!("SELECT COUNT(*) FROM {table} WHERE version_id IN ({placeholders})"),
+                    rusqlite::params_from_iter(chunk),
+                    |row| row.get::<_, i64>(0),
+                )
+                .map_err(|error| format!("resolution_failed: {error}"))?;
+            row_count = row_count.saturating_add(
+                u64::try_from(count)
+                    .map_err(|_| "resolution_failed: scope row count invalid".to_string())?,
+            );
+        }
+    }
+    telemetry.scope_row_count = row_count;
+    Ok(())
+}
+
+fn elapsed_millis(started: Instant) -> u64 {
+    u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX)
 }
 
 fn parse_payload(payload_json: &str) -> Result<ResolveRequestPayload, String> {
@@ -914,6 +1158,19 @@ fn report_resolve(
         report.resolution.gap_lower_bound = result["gap_lower_bound"].as_u64();
         report.resolution.exact_gap_rows = result["exact_gap_rows"].as_u64();
         report.resolution.exact_gap_files = result["exact_gap_files"].as_u64();
+        report.resolution.resolution_mode =
+            result["resolution_mode"].as_str().map(ToOwned::to_owned);
+        report.resolution.scope_file_count = result["scope_file_count"].as_u64();
+        report.resolution.scope_name_count = result["scope_name_count"].as_u64();
+        report.resolution.scope_row_count = result["scope_row_count"].as_u64();
+        report.resolution.fallback_reason =
+            result["fallback_reason"].as_str().map(ToOwned::to_owned);
+        report.resolution.phase_timings_ms = result["phase_timings_ms"].as_object().map(|values| {
+            values
+                .iter()
+                .filter_map(|(name, value)| value.as_u64().map(|value| (name.clone(), value)))
+                .collect()
+        });
         report.manifest.generation = result["manifest_generation"].as_u64();
         report.manifest.hash = result["manifest_hash"].as_str().map(ToOwned::to_owned);
     } else {
@@ -1062,6 +1319,14 @@ fn remove_sqlite_if_exists(path: &std::path::Path) -> Result<(), String> {
 #[cfg(feature = "test-store-resolution-contract")]
 fn pause_after_claim_for_test() -> Result<(), String> {
     pause_on_env_file("JULIE_EXTRACT_STORE_RESOLUTION_PAUSE_FILE", b"claimed")
+}
+
+#[cfg(feature = "test-store-resolution-contract")]
+fn pause_before_exact_publish_for_test() -> Result<(), String> {
+    pause_on_env_file(
+        "JULIE_EXTRACT_STORE_RESOLUTION_PAUSE_BEFORE_EXACT_FILE",
+        b"exact",
+    )
 }
 
 #[cfg(feature = "test-store-resolution-contract")]

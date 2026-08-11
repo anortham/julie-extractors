@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::io::{self, Write};
 
 use serde::{Deserialize, Serialize};
@@ -93,6 +94,18 @@ pub struct StoreResolutionReport {
     pub exact_gap_rows: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub exact_gap_files: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resolution_mode: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scope_file_count: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scope_name_count: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scope_row_count: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fallback_reason: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub phase_timings_ms: Option<BTreeMap<String, u64>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -119,6 +132,12 @@ impl Default for StoreResolutionReport {
             gap_lower_bound: None,
             exact_gap_rows: None,
             exact_gap_files: None,
+            resolution_mode: None,
+            scope_file_count: None,
+            scope_name_count: None,
+            scope_row_count: None,
+            fallback_reason: None,
+            phase_timings_ms: None,
         }
     }
 }

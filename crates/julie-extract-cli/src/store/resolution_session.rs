@@ -2,6 +2,7 @@ use std::cell::{Cell, RefCell};
 use std::collections::{BTreeMap, BTreeSet, HashMap, VecDeque};
 use std::fmt;
 use std::path::{Path, PathBuf};
+use std::time::Instant;
 
 use julie_extract_artifact::resolution_store::{
     IdentifierWorkItem, Outcome, PendingWorkItem, ResolutionCounts, ResolutionReportRow,
@@ -37,6 +38,14 @@ const MAX_STORE_RESOLUTION_WINDOW: usize = 300;
 type CandidatePage = (Vec<CandidateHit>, Option<(i64, String)>);
 type PriorPhaseKeys = (Vec<(i64, String)>, Option<PriorOverlayKey>);
 type PriorPhaseAccess = PriorOverlayAccess<PriorPhaseKeys>;
+
+#[derive(Debug, Clone)]
+pub(crate) struct StoreResolutionDecisionTelemetry {
+    pub(crate) effective_full: bool,
+    pub(crate) fallback_reason: Option<&'static str>,
+    pub(crate) worklists: ResolutionWorklists,
+    pub(crate) elapsed_millis: u64,
+}
 
 #[derive(Debug, Default)]
 struct CandidateWindow {
@@ -281,6 +290,8 @@ pub struct StoreScratchResolutionSession {
     resolution_cache: RefCell<HashMap<ResolutionLookupKey, TierOutcome>>,
     prior_overlay: Option<PriorOverlayReader>,
     prior_scope_state: Option<ResolutionScopeState>,
+    decision_telemetry: Option<StoreResolutionDecisionTelemetry>,
+    forced_full_without_prior_state: bool,
 }
 
 impl StoreScratchResolutionSession {
@@ -333,6 +344,8 @@ impl StoreScratchResolutionSession {
             resolution_cache: RefCell::new(HashMap::new()),
             prior_overlay: None,
             prior_scope_state: None,
+            decision_telemetry: None,
+            forced_full_without_prior_state: false,
         };
         session.validate_manifest()?;
         session.initialize_scratch()?;
@@ -412,6 +425,14 @@ impl StoreScratchResolutionSession {
 
     pub fn resolver_output_epoch(&self) -> i64 {
         self.resolver_output_epoch
+    }
+
+    pub(crate) fn decision_telemetry(&self) -> Option<&StoreResolutionDecisionTelemetry> {
+        self.decision_telemetry.as_ref()
+    }
+
+    pub(crate) fn force_full_without_prior_state(&mut self) {
+        self.forced_full_without_prior_state = true;
     }
 
     pub fn max_emitted_chunk_size(&self) -> usize {
@@ -1538,6 +1559,11 @@ impl ResolutionSession for StoreScratchResolutionSession {
     fn prior_resolution_state(
         &mut self,
     ) -> Result<Option<crate::resolution_session::SessionResolutionState>, Self::Error> {
+        if self.forced_full_without_prior_state {
+            return Ok(None);
+        }
+        #[cfg(feature = "test-store-resolution-contract")]
+        julie_extract_artifact::store::test_hooks::crash_if("resolution_prior_state_read");
         let Some(state) = self.prepare_prior_overlay()? else {
             return Ok(None);
         };
@@ -1556,6 +1582,8 @@ impl ResolutionSession for StoreScratchResolutionSession {
         &mut self,
         request: &ResolutionPassRequest,
     ) -> Result<ResolutionWorklists, Self::Error> {
+        let started = Instant::now();
+        self.decision_telemetry = None;
         let reset = self.scratch.transaction()?;
         reset.execute("DELETE FROM visible_versions", [])?;
         reset.execute("DELETE FROM phase_keys", [])?;
@@ -1585,10 +1613,17 @@ impl ResolutionSession for StoreScratchResolutionSession {
         if request.full {
             self.prior_overlay = None;
             self.prior_scope_state = None;
-            return Ok(ResolutionWorklists {
+            let worklists = ResolutionWorklists {
                 effective_full: true,
                 ..ResolutionWorklists::default()
+            };
+            self.decision_telemetry = Some(StoreResolutionDecisionTelemetry {
+                effective_full: true,
+                fallback_reason: Some("resolution_requested_full"),
+                worklists: worklists.clone(),
+                elapsed_millis: elapsed_millis(started),
             });
+            return Ok(worklists);
         }
         let connection = self.open_reader()?;
         let decision = build_store_delta_scope(
@@ -1609,20 +1644,38 @@ impl ResolutionSession for StoreScratchResolutionSession {
                     .map_err(|error| incremental_error(error.to_string()))?;
                 if self.prepare_prior_overlay()?.is_some() && stored_state == self.prior_scope_state
                 {
+                    self.decision_telemetry = Some(StoreResolutionDecisionTelemetry {
+                        effective_full: false,
+                        fallback_reason: None,
+                        worklists: worklists.clone(),
+                        elapsed_millis: elapsed_millis(started),
+                    });
                     Ok(worklists)
                 } else {
                     self.prior_overlay = None;
                     self.prior_scope_state = None;
-                    Ok(ResolutionWorklists {
+                    let worklists = ResolutionWorklists {
                         effective_full: true,
                         ..ResolutionWorklists::default()
-                    })
+                    };
+                    self.decision_telemetry = Some(StoreResolutionDecisionTelemetry {
+                        effective_full: true,
+                        fallback_reason: Some("resolution_prior_overlay_unavailable"),
+                        worklists: worklists.clone(),
+                        elapsed_millis: elapsed_millis(started),
+                    });
+                    Ok(worklists)
                 }
             }
             StoreDeltaScopeDecision::Full { worklists, reason } => {
-                let _reason = reason.as_str();
                 self.prior_overlay = None;
                 self.prior_scope_state = None;
+                self.decision_telemetry = Some(StoreResolutionDecisionTelemetry {
+                    effective_full: true,
+                    fallback_reason: Some(reason.as_str()),
+                    worklists: worklists.clone(),
+                    elapsed_millis: elapsed_millis(started),
+                });
                 Ok(worklists)
             }
         }
@@ -3124,6 +3177,10 @@ fn key_params(keys: &[(i64, String)]) -> Vec<rusqlite::types::Value> {
             ]
         })
         .collect()
+}
+
+fn elapsed_millis(started: Instant) -> u64 {
+    u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX)
 }
 
 fn candidate_hit(row: &Row<'_>) -> rusqlite::Result<Option<CandidateHit>> {

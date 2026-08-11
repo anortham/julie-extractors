@@ -576,11 +576,11 @@ make coverage/propagation consult scratch union prior, and bulk-copy untouched c
 multi-generation differential sequences, and preserve the existing diff/publish path below rebase thresholds.
 
 **Acceptance criteria:**
-- [ ] Off-switch output and behavior match the pre-change full path.
-- [ ] The new binary defaults to forced-full throughout Tasks 1-7; no partial implementation can activate scoped mode.
-- [ ] Every curated and seeded sequence produces equal full/scoped canonical semantic row digests.
-- [ ] CAS loss while a later manifest publishes never commits stale exact output.
-- [ ] CLI contract, mechanism, session, and equivalence targets pass.
+- [x] Off-switch output and behavior match the pre-change full path.
+- [x] The new binary defaults to forced-full throughout Tasks 1-7; no partial implementation can activate scoped mode.
+- [x] Every curated and seeded sequence produces equal full/scoped canonical semantic row digests.
+- [x] CAS loss while a later manifest publishes never commits stale exact output.
+- [x] CLI contract, mechanism, session, and equivalence targets pass.
 
 ### Task 7: Atomic base rebase and live rotation
 
