@@ -493,10 +493,10 @@ merged reads over predecessor base plus cumulative delta.
 and expose the resolved worklists needed by `resolve_delta` without materializing the corpus.
 
 **Acceptance criteria:**
-- [ ] Replacement and tombstone precedence matches Miller's family-store reader for collision fixtures.
-- [ ] By-name/by-file reads are deterministic, bounded, and use composite indexes.
-- [ ] Missing or incoherent predecessor files/rows return typed full-fallback evidence.
-- [ ] Focused prior-overlay tests pass.
+- [x] Replacement and tombstone precedence matches Miller's family-store reader for collision fixtures.
+- [x] By-name/by-file reads are deterministic, bounded, and use composite indexes.
+- [x] Missing or incoherent predecessor files/rows return typed full-fallback evidence.
+- [x] Focused prior-overlay tests pass.
 
 ### Task 4: Store dependency-closure scope
 
