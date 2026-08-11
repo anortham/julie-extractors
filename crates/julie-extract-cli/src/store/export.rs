@@ -371,7 +371,9 @@ fn materialize_export(
         return Err("artifact_foreign_key_check_failed".to_string());
     }
     output.close().map_err(|(_, error)| error.to_string())?;
-    fs::File::open(partial_path)
+    OpenOptions::new()
+        .write(true)
+        .open(partial_path)
         .and_then(|file| file.sync_all())
         .map_err(|error| error.to_string())
 }
@@ -1313,6 +1315,7 @@ fn publish_partial(partial: &Path, output: &Path) -> Result<(), String> {
         }
     })?;
     fs::remove_file(partial).map_err(|error| error.to_string())?;
+    #[cfg(unix)]
     if let Some(parent) = output.parent() {
         fs::File::open(parent)
             .and_then(|directory| directory.sync_all())

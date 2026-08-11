@@ -841,15 +841,18 @@ pub(crate) fn materialize_resolution_base(
             let _ = remove_base_file_set(&final_path);
         }
     };
-    if let Err(error) = File::open(
-        final_path
-            .parent()
-            .ok_or_else(|| "invalid_base_path".to_string())?,
-    )
-    .and_then(|file| file.sync_all())
+    #[cfg(unix)]
     {
-        cleanup_published(published_new_file);
-        return Err(error.to_string());
+        if let Err(error) = File::open(
+            final_path
+                .parent()
+                .ok_or_else(|| "invalid_base_path".to_string())?,
+        )
+        .and_then(|file| file.sync_all())
+        {
+            cleanup_published(published_new_file);
+            return Err(error.to_string());
+        }
     }
     if let Err(error) = remove_base_file_set(&scratch_path) {
         cleanup_published(published_new_file);

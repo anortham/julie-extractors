@@ -1,6 +1,6 @@
 use std::error::Error;
 use std::fmt;
-use std::fs::{self, File};
+use std::fs::{self, File, OpenOptions};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -679,7 +679,7 @@ impl From<PragmaError> for StoreLayoutError {
 }
 
 pub(crate) fn sync_file(path: &Path) -> io::Result<()> {
-    File::open(path)?.sync_all()
+    OpenOptions::new().write(true).open(path)?.sync_all()
 }
 
 #[cfg(unix)]

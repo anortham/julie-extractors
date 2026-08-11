@@ -10,6 +10,7 @@ use rusqlite::{
 };
 use sha2::{Digest, Sha256};
 
+use super::layout::{sync_directory, sync_file};
 use super::pragmas::{WriterPragmaProfile, configure_writer_pragmas};
 use super::{
     GenerationFence, ResolutionBaseRecord, ResolutionBaseState, ResolutionDeltaRecord,
@@ -925,7 +926,7 @@ fn validate_ready_file_identity(
 }
 
 fn sync_directory_path(path: &Path) -> Result<(), ResolutionBaseCatalogError> {
-    File::open(path)?.sync_all()?;
+    sync_directory(path)?;
     Ok(())
 }
 
@@ -4363,6 +4364,6 @@ pub(crate) fn reject_existing_file(path: &Path) -> Result<(), ResolutionValidati
 }
 
 pub(crate) fn sync_path(path: &Path) -> Result<(), ResolutionValidationError> {
-    File::open(path)?.sync_all()?;
+    sync_file(path)?;
     Ok(())
 }
