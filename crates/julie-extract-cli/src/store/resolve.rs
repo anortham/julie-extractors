@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 use std::fs;
+use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, mpsc};
 use std::thread;
@@ -7,11 +8,11 @@ use std::time::{Duration, Instant};
 
 use julie_extract_artifact::store::{
     CoordinatorRequest, GenerationFence, LeaseDisposition, LeaseHolder, RequestKind, RequestState,
-    ResolutionBaseBegin, ResolutionBaseCatalog, ResolutionBaseReader, ResolutionBaseRecovery,
-    ResolutionBindingStore, ResolutionConvergenceBegin, ResolutionExactPublish, ResolutionGapFact,
-    ResolutionPinOwnerKind, ResolutionPublicationFence, ResolutionScratchReader,
-    ResolutionViewBinding, StoreConnectionFactory, StoreCoordinator, StoreLayout, StoreLog,
-    StoreLogEntry, ViewResolutionState, stream_resolution_diff,
+    ResolutionBaseBegin, ResolutionBaseBuild, ResolutionBaseCatalog, ResolutionBaseReader,
+    ResolutionBaseRecovery, ResolutionBindingStore, ResolutionConvergenceBegin,
+    ResolutionExactPublish, ResolutionGapFact, ResolutionPinOwnerKind, ResolutionPublicationFence,
+    ResolutionScratchReader, ResolutionViewBinding, StoreConnectionFactory, StoreCoordinator,
+    StoreLayout, StoreLog, StoreLogEntry, ViewResolutionState, stream_resolution_diff,
 };
 use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
@@ -572,9 +573,106 @@ fn resolve_claimed(
         .insert("diff".to_string(), elapsed_millis(diff_started));
     let scratch = ResolutionScratchReader::open(&delta_path)
         .map_err(|error| format!("resolution_failed: {error}"))?;
+    let publication = ResolutionExactPublish {
+        view_id: payload.view_id.clone(),
+        manifest_generation: binding.manifest_generation,
+        manifest_hash: binding.manifest_hash.clone(),
+        base_id: binding.base_id.clone(),
+        previous_delta_generation: binding.delta_generation,
+        resolver_output_epoch: payload.resolver_output_epoch,
+        request_id: request.request_id.clone(),
+        created_at: store_timestamp(layout, "now")?,
+    };
+    let rebase_required = ResolutionBindingStore::new(factory.clone())
+        .exact_rebase_required(&publication, &scratch, &gaps)
+        .map_err(|error| format!("resolution_failed: {error}"))?;
     heartbeat.ensure_current(coordinator, request, holder)?;
     #[cfg(feature = "test-store-resolution-contract")]
     pause_before_exact_publish_for_test()?;
+    #[cfg(feature = "test-store-resolution-contract")]
+    julie_extract_artifact::store::test_hooks::crash_if("resolution_before_exact_publish");
+    if rebase_required {
+        drop(scratch);
+        drop(exact);
+        drop(base);
+        remove_sqlite_if_exists(&delta_path)?;
+        let rebased_base_id = prepare_rebased_base(
+            layout,
+            &factory,
+            coordinator,
+            holder,
+            request,
+            heartbeat,
+            deadline,
+            &publication,
+            &exact_path,
+        )?;
+        with_writer_lease(
+            coordinator,
+            holder,
+            deadline,
+            |coordinator, fencing_token| {
+                heartbeat.ensure_live()?;
+                ensure_resolve_claim(layout, request, holder)?;
+                let fence = ResolutionPublicationFence {
+                    claim_owner: holder.holder_id.clone(),
+                    holder_id: holder.holder_id.clone(),
+                    holder_pid: holder.holder_pid,
+                    fencing_token,
+                    now_ms: now_millis(),
+                };
+                let fenced_bindings = ResolutionBindingStore::new(fenced_factory(
+                    &factory,
+                    layout,
+                    holder,
+                    fencing_token,
+                ));
+                let durable_telemetry = telemetry.durable_payload();
+                let published = fenced_bindings
+                    .publish_rebased_exact(
+                        &publication,
+                        &rebased_base_id,
+                        &fence,
+                        Some(&durable_telemetry),
+                        || {
+                            exact_publish_heartbeat(
+                                coordinator,
+                                holder,
+                                fencing_token,
+                                &publication.request_id,
+                            )
+                        },
+                    )
+                    .map_err(|error| format!("resolution_failed: {error}"))?;
+                #[cfg(feature = "test-store-resolution-contract")]
+                julie_extract_artifact::store::test_hooks::crash_if(
+                    "resolution_exact_after_store_commit",
+                );
+                #[cfg(feature = "test-store-resolution-contract")]
+                julie_extract_artifact::store::test_hooks::crash_if(
+                    "resolution_rebase_after_store_commit",
+                );
+                #[cfg(feature = "test-store-resolution-contract")]
+                pause_after_exact_publish_for_test()?;
+                append_resolution_terminal(
+                    &factory,
+                    layout,
+                    holder,
+                    fencing_token,
+                    request,
+                    &published,
+                    &telemetry,
+                )?;
+                fenced_bindings
+                    .release_pin(&pin_id, ResolutionPinOwnerKind::Resolve, &holder.holder_id)
+                    .map_err(|error| format!("resolution_failed: {error}"))?;
+                pin_guard.disarm();
+                Ok(())
+            },
+        )?;
+        remove_sqlite_if_exists(&exact_path)?;
+        return Ok(());
+    }
     with_writer_lease(
         coordinator,
         holder,
@@ -582,16 +680,6 @@ fn resolve_claimed(
         |coordinator, fencing_token| {
             heartbeat.ensure_live()?;
             ensure_resolve_claim(layout, request, holder)?;
-            let publication = ResolutionExactPublish {
-                view_id: payload.view_id.clone(),
-                manifest_generation: binding.manifest_generation,
-                manifest_hash: binding.manifest_hash.clone(),
-                base_id: binding.base_id.clone(),
-                previous_delta_generation: binding.delta_generation,
-                resolver_output_epoch: payload.resolver_output_epoch,
-                request_id: request.request_id.clone(),
-                created_at: store_timestamp(layout, "now")?,
-            };
             let fence = ResolutionPublicationFence {
                 claim_owner: holder.holder_id.clone(),
                 holder_id: holder.holder_id.clone(),
@@ -599,8 +687,6 @@ fn resolve_claimed(
                 fencing_token,
                 now_ms: now_millis(),
             };
-            #[cfg(feature = "test-store-resolution-contract")]
-            julie_extract_artifact::store::test_hooks::crash_if("resolution_before_exact_publish");
             let fenced_bindings = ResolutionBindingStore::new(fenced_factory(
                 &factory,
                 layout,
@@ -653,6 +739,112 @@ fn resolve_claimed(
     drop(base);
     remove_sqlite_if_exists(&delta_path)?;
     remove_sqlite_if_exists(&exact_path)?;
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn prepare_rebased_base(
+    layout: &StoreLayout,
+    factory: &StoreConnectionFactory,
+    coordinator: &mut StoreCoordinator,
+    holder: &LeaseHolder,
+    request: &CoordinatorRequest,
+    heartbeat: &ResolveHeartbeat,
+    deadline: i64,
+    publication: &ResolutionExactPublish,
+    exact_path: &Path,
+) -> Result<String, String> {
+    let begin = with_writer_lease(
+        coordinator,
+        holder,
+        deadline,
+        |_coordinator, fencing_token| {
+            heartbeat.ensure_live()?;
+            ensure_resolve_claim(layout, request, holder)?;
+            ResolutionBaseCatalog::new(fenced_factory(factory, layout, holder, fencing_token))
+                .begin_build(
+                    &publication.manifest_hash,
+                    publication.resolver_output_epoch,
+                    &publication.request_id,
+                    &publication.created_at,
+                )
+                .map_err(|error| format!("resolution_failed: {error}"))
+        },
+    )?;
+    let catalog = ResolutionBaseCatalog::new(factory.clone());
+    let build = match begin {
+        ResolutionBaseBegin::Build(build) => Some(build),
+        ResolutionBaseBegin::Ready(record) => return Ok(record.base_id),
+        ResolutionBaseBegin::Building(_) => {
+            let recovery = with_writer_lease(
+                coordinator,
+                holder,
+                deadline,
+                |_coordinator, fencing_token| {
+                    heartbeat.ensure_live()?;
+                    ensure_resolve_claim(layout, request, holder)?;
+                    ResolutionBaseCatalog::new(fenced_factory(
+                        factory,
+                        layout,
+                        holder,
+                        fencing_token,
+                    ))
+                    .recover(
+                        &publication.manifest_hash,
+                        publication.resolver_output_epoch,
+                        &publication.request_id,
+                        false,
+                        &store_timestamp(layout, "now")?,
+                    )
+                    .map_err(|error| format!("resolution_failed: {error}"))
+                },
+            )?;
+            match recovery {
+                ResolutionBaseRecovery::Ready(record) => return Ok(record.base_id),
+                ResolutionBaseRecovery::Rebuild(build) => Some(build),
+                ResolutionBaseRecovery::LiveOwner(_) => {
+                    return Err(
+                        "resolution_failed: a live base builder owns this identity".to_string()
+                    );
+                }
+            }
+        }
+    };
+    let build = build.expect("rebase build is present");
+    promote_exact_scratch_for_rebase(exact_path, &build)?;
+    heartbeat.ensure_current(coordinator, request, holder)?;
+    catalog
+        .publish_scratch(&build)
+        .map_err(|error| format!("resolution_failed: {error}"))?;
+    heartbeat.ensure_current(coordinator, request, holder)?;
+    with_writer_lease(
+        coordinator,
+        holder,
+        deadline,
+        |_coordinator, fencing_token| {
+            heartbeat.ensure_live()?;
+            ensure_resolve_claim(layout, request, holder)?;
+            ResolutionBaseCatalog::new(fenced_factory(factory, layout, holder, fencing_token))
+                .mark_ready(&build, &store_timestamp(layout, "now")?)
+                .map(|record| record.base_id)
+                .map_err(|error| format!("resolution_failed: {error}"))
+        },
+    )
+}
+
+fn promote_exact_scratch_for_rebase(
+    exact_path: &Path,
+    build: &ResolutionBaseBuild,
+) -> Result<(), String> {
+    fs::rename(exact_path, &build.scratch_path).map_err(|error| {
+        format!(
+            "resolution_failed: failed to promote exact scratch {} to {}: {error}",
+            exact_path.display(),
+            build.scratch_path.display()
+        )
+    })?;
+    #[cfg(feature = "test-store-resolution-contract")]
+    julie_extract_artifact::store::test_hooks::crash_if("resolution_rebase_after_scratch_promote");
     Ok(())
 }
 

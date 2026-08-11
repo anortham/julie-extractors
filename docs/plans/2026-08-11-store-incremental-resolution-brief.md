@@ -606,11 +606,11 @@ or reuse an already-ready base for the exact manifest identity, rotate the curre
 cleanup/recovery for CAS-loser ready bases.
 
 **Acceptance criteria:**
-- [ ] Rebase publishes no oversized old-base diff and immediately serves the new base with an empty delta.
-- [ ] A crash or CAS loss leaves either the old coherent binding or the new coherent binding, never a hybrid.
-- [ ] A ready base for the exact manifest identity is reused and CAS-bound with an empty delta without a second build.
-- [ ] Miller observes the sequence advance and reopens the new base path without restart.
-- [ ] Binding, performance, Miller fast, and Miller Scale store tests pass.
+- [x] Rebase publishes no oversized old-base diff and immediately serves the new base with an empty delta.
+- [x] A crash or CAS loss leaves either the old coherent binding or the new coherent binding, never a hybrid.
+- [x] A ready base for the exact manifest identity is reused and CAS-bound with an empty delta without a second build.
+- [x] Miller observes the sequence advance and reopens the new base path without restart.
+- [x] Binding, performance, Miller fast, and Miller Scale store tests pass.
 
 ### Task 8: Dogfood replay, default flip, and release evidence
 

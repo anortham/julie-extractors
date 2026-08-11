@@ -1017,6 +1017,59 @@ impl ResolutionExecutionTelemetry {
     }
 }
 
+fn validated_execution_telemetry(
+    value: Option<&serde_json::Value>,
+) -> Result<Option<ResolutionExecutionTelemetry>, ResolutionBindingError> {
+    value
+        .map(|value| {
+            serde_json::from_value::<ResolutionExecutionTelemetry>(value.clone())
+                .map_err(|_| ResolutionBindingError::InvalidPublication {
+                    detail: "resolution execution telemetry is invalid".to_string(),
+                })
+                .and_then(|telemetry| {
+                    telemetry.validate()?;
+                    Ok(telemetry)
+                })
+        })
+        .transpose()
+}
+
+fn merge_execution_telemetry(
+    payload: &mut serde_json::Value,
+    telemetry: Option<&ResolutionExecutionTelemetry>,
+) {
+    let Some(telemetry) = telemetry else {
+        return;
+    };
+    let object = payload
+        .as_object_mut()
+        .expect("resolution exact payload is an object");
+    object.insert(
+        "resolution_mode".to_string(),
+        serde_json::json!(telemetry.mode),
+    );
+    object.insert(
+        "scope_file_count".to_string(),
+        serde_json::json!(telemetry.scope_file_count),
+    );
+    object.insert(
+        "scope_name_count".to_string(),
+        serde_json::json!(telemetry.scope_name_count),
+    );
+    object.insert(
+        "scope_row_count".to_string(),
+        serde_json::json!(telemetry.scope_row_count),
+    );
+    object.insert(
+        "fallback_reason".to_string(),
+        serde_json::json!(telemetry.fallback_reason),
+    );
+    object.insert(
+        "phase_timings_ms".to_string(),
+        serde_json::json!(telemetry.phase_timings_ms),
+    );
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ResolutionConvergenceBegin {
     pub view_id: String,
@@ -1318,6 +1371,86 @@ impl ResolutionBindingStore {
         })
     }
 
+    pub fn exact_rebase_required(
+        &self,
+        publication: &ResolutionExactPublish,
+        scratch: &ResolutionScratchReader,
+        gaps: &[ResolutionGapFact],
+    ) -> Result<bool, ResolutionBindingError> {
+        const REPLACEMENT_PERCENT_DENOMINATOR: u128 = 4;
+        const CUMULATIVE_GAP_BYTES_LIMIT: u64 = 64 * 1024 * 1024;
+
+        if scratch.file_identity().manifest_hash != publication.manifest_hash
+            || scratch.file_identity().resolver_output_epoch != publication.resolver_output_epoch
+        {
+            return Err(ResolutionBindingError::InvalidPublication {
+                detail: "scratch manifest or resolver epoch does not match the publication"
+                    .to_string(),
+            });
+        }
+        let counts = scratch.semantic_counts();
+        let replacement_rows = u128::from(counts.identifier_replacements)
+            + u128::from(counts.pending_replacements)
+            + u128::from(counts.pending_tombstones);
+        let connection = self.factory.open_reader()?;
+        let bound_identity = connection
+            .query_row(
+                "SELECT manifest_hash,resolver_output_epoch
+                 FROM resolution_bases WHERE base_id=?1",
+                [&publication.base_id],
+                |row| Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?)),
+            )
+            .optional()?
+            .ok_or_else(|| ResolutionBindingError::InvalidPublication {
+                detail: "bound resolution base was not found".to_string(),
+            })?;
+        let ready = ResolutionBaseCatalog::new(self.factory.clone())
+            .find_ready(&bound_identity.0, bound_identity.1)?
+            .ok_or_else(|| ResolutionBindingError::InvalidPublication {
+                detail: "bound resolution base is not ready".to_string(),
+            })?;
+        if ready.base_id != publication.base_id
+            || ready.resolver_output_epoch != publication.resolver_output_epoch
+        {
+            return Err(ResolutionBindingError::InvalidPublication {
+                detail: "bound resolution base identity does not match the publication".to_string(),
+            });
+        }
+        let base_rows = ready
+            .identifier_count
+            .checked_add(ready.pending_count)
+            .ok_or_else(|| ResolutionBindingError::InvalidPublication {
+                detail: "bound resolution base semantic row count is out of range".to_string(),
+            })?;
+        if base_rows < 0 {
+            return Err(ResolutionBindingError::InvalidPublication {
+                detail: "bound resolution base semantic row count is invalid".to_string(),
+            });
+        }
+        if replacement_rows * REPLACEMENT_PERCENT_DENOMINATOR > base_rows as u128 {
+            return Ok(true);
+        }
+        let existing_gap_bytes: i64 = connection.query_row(
+            "SELECT COALESCE(SUM(length(CAST(exact_gap_json AS BLOB))),0)
+             FROM resolution_deltas WHERE view_id=?1 AND base_id=?2",
+            params![publication.view_id, publication.base_id],
+            |row| row.get(0),
+        )?;
+        if existing_gap_bytes < 0 {
+            return Err(ResolutionBindingError::InvalidPublication {
+                detail: "cumulative exact gap byte count is invalid".to_string(),
+            });
+        }
+        let (gap_json, _, _) = canonical_gap_payload(publication, gaps)?;
+        let cumulative_gap_bytes = u128::from(existing_gap_bytes as u64)
+            + u128::try_from(gap_json.len()).map_err(|_| {
+                ResolutionBindingError::InvalidPublication {
+                    detail: "exact gap payload length is out of range".to_string(),
+                }
+            })?;
+        Ok(cumulative_gap_bytes > u128::from(CUMULATIVE_GAP_BYTES_LIMIT))
+    }
+
     pub fn begin_convergence(
         &self,
         request: &ResolutionConvergenceBegin,
@@ -1491,18 +1624,7 @@ impl ResolutionBindingStore {
                     .to_string(),
             });
         }
-        let telemetry = telemetry
-            .map(|value| {
-                serde_json::from_value::<ResolutionExecutionTelemetry>(value.clone())
-                    .map_err(|_| ResolutionBindingError::InvalidPublication {
-                        detail: "resolution execution telemetry is invalid".to_string(),
-                    })
-                    .and_then(|telemetry| {
-                        telemetry.validate()?;
-                        Ok(telemetry)
-                    })
-            })
-            .transpose()?;
+        let telemetry = validated_execution_telemetry(telemetry)?;
         let counts = scratch.semantic_counts();
         let identifier_replacements = checked_publication_count(
             publication,
@@ -1666,35 +1788,7 @@ impl ResolutionBindingStore {
             "manifest_generation": publication.manifest_generation,
             "manifest_hash": publication.manifest_hash,
         });
-        if let Some(telemetry) = telemetry.as_ref() {
-            let object = payload
-                .as_object_mut()
-                .expect("resolution exact payload is an object");
-            object.insert(
-                "resolution_mode".to_string(),
-                serde_json::json!(telemetry.mode),
-            );
-            object.insert(
-                "scope_file_count".to_string(),
-                serde_json::json!(telemetry.scope_file_count),
-            );
-            object.insert(
-                "scope_name_count".to_string(),
-                serde_json::json!(telemetry.scope_name_count),
-            );
-            object.insert(
-                "scope_row_count".to_string(),
-                serde_json::json!(telemetry.scope_row_count),
-            );
-            object.insert(
-                "fallback_reason".to_string(),
-                serde_json::json!(telemetry.fallback_reason),
-            );
-            object.insert(
-                "phase_timings_ms".to_string(),
-                serde_json::json!(telemetry.phase_timings_ms),
-            );
-        }
+        merge_execution_telemetry(&mut payload, telemetry.as_ref());
         StoreLog::append_effect(
             &transaction,
             &StoreLogEntry::new(
@@ -1725,6 +1819,217 @@ impl ResolutionBindingStore {
         })
     }
 
+    pub fn publish_rebased_exact<H>(
+        &self,
+        publication: &ResolutionExactPublish,
+        rebased_base_id: &str,
+        fence: &ResolutionPublicationFence,
+        telemetry: Option<&serde_json::Value>,
+        heartbeat: H,
+    ) -> Result<ResolutionViewBinding, ResolutionBindingError>
+    where
+        H: FnOnce() -> Result<(), ResolutionBindingError>,
+    {
+        if rebased_base_id.is_empty() || rebased_base_id == publication.base_id {
+            return Err(ResolutionBindingError::InvalidPublication {
+                detail: "rebased resolution base is invalid".to_string(),
+            });
+        }
+        let telemetry = validated_execution_telemetry(telemetry)?;
+        let ready = ResolutionBaseCatalog::new(self.factory.clone())
+            .find_ready(
+                &publication.manifest_hash,
+                publication.resolver_output_epoch,
+            )?
+            .ok_or_else(|| ResolutionBindingError::InvalidPublication {
+                detail: "rebased resolution base is not ready for the exact manifest".to_string(),
+            })?;
+        if ready.base_id != rebased_base_id {
+            return Err(ResolutionBindingError::InvalidPublication {
+                detail: "rebased resolution base identity does not match the exact manifest"
+                    .to_string(),
+            });
+        }
+        self.validate_publication_fence(publication, fence)?;
+
+        let mut connection = self
+            .factory
+            .clone()
+            .with_generation_fence(GenerationFence::writer(
+                self.factory.layout(),
+                &fence.holder_id,
+                fence.holder_pid,
+                fence.fencing_token,
+                fence.now_ms,
+            ))
+            .open_writer()?;
+        heartbeat()?;
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let rebased_identity = transaction
+            .query_row(
+                "SELECT manifest_hash,resolver_output_epoch,state
+                 FROM resolution_bases WHERE base_id=?1",
+                [rebased_base_id],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, i64>(1)?,
+                        row.get::<_, String>(2)?,
+                    ))
+                },
+            )
+            .optional()?;
+        if rebased_identity
+            != Some((
+                publication.manifest_hash.clone(),
+                publication.resolver_output_epoch,
+                "ready".to_string(),
+            ))
+        {
+            return Err(ResolutionBindingError::InvalidPublication {
+                detail: "rebased resolution base is not ready for the exact manifest".to_string(),
+            });
+        }
+        let current = transaction
+            .query_row(
+                "SELECT view.current_generation,manifest.manifest_hash,
+                        view.resolution_base_id,view.resolution_delta_generation,
+                        view.resolution_state
+                 FROM views AS view
+                 LEFT JOIN manifests AS manifest
+                   ON manifest.view_id=view.view_id AND manifest.generation=view.current_generation
+                 WHERE view.view_id=?1",
+                [&publication.view_id],
+                |row| {
+                    Ok((
+                        row.get::<_, Option<i64>>(0)?,
+                        row.get::<_, Option<String>>(1)?,
+                        row.get::<_, Option<String>>(2)?,
+                        row.get::<_, Option<i64>>(3)?,
+                        row.get::<_, String>(4)?,
+                    ))
+                },
+            )
+            .optional()?
+            .ok_or_else(|| ResolutionBindingError::ViewNotFound {
+                view_id: publication.view_id.clone(),
+            })?;
+        if current
+            != (
+                Some(publication.manifest_generation),
+                Some(publication.manifest_hash.clone()),
+                Some(publication.base_id.clone()),
+                Some(publication.previous_delta_generation),
+                "converging".to_string(),
+            )
+        {
+            return Err(ResolutionBindingError::CasLost {
+                view_id: publication.view_id.clone(),
+            });
+        }
+        let maximum: i64 = transaction.query_row(
+            "SELECT COALESCE(MAX(delta_generation),0) FROM resolution_deltas WHERE view_id=?1",
+            [&publication.view_id],
+            |row| row.get(0),
+        )?;
+        let delta_generation =
+            maximum
+                .checked_add(1)
+                .ok_or_else(|| ResolutionBindingError::GenerationOutOfRange {
+                    view_id: publication.view_id.clone(),
+                })?;
+        transaction.execute(
+            "INSERT INTO resolution_deltas
+             (view_id,delta_generation,base_id,manifest_generation,manifest_hash,
+              resolver_output_epoch,identifier_replacements,pending_replacements,
+              pending_tombstones,exact_gap_rows,exact_gap_files,exact_gap_json,request_id,created_at)
+             VALUES (?1,?2,?3,?4,?5,?6,0,0,0,0,0,'{\"files\":[],\"rows\":[]}',?7,?8)",
+            params![
+                publication.view_id,
+                delta_generation,
+                rebased_base_id,
+                publication.manifest_generation,
+                publication.manifest_hash,
+                publication.resolver_output_epoch,
+                publication.request_id,
+                publication.created_at,
+            ],
+        )?;
+        validate_published_delta_visibility(
+            &transaction,
+            &publication.view_id,
+            publication.manifest_generation,
+            delta_generation,
+        )?;
+        self.validate_publication_fence(publication, fence)?;
+        let changed = transaction.execute(
+            "UPDATE views SET resolution_state='exact',resolution_base_id=?1,
+                    resolution_delta_generation=?2,resolution_exact_at=?3,updated_at=?4
+             WHERE view_id=?5 AND current_generation=?3
+               AND resolution_state='converging' AND resolution_base_id=?6
+               AND resolution_delta_generation=?7
+               AND EXISTS(
+                 SELECT 1 FROM manifests
+                 WHERE view_id=?5 AND generation=?3 AND manifest_hash=?8
+               )",
+            params![
+                rebased_base_id,
+                delta_generation,
+                publication.manifest_generation,
+                publication.created_at,
+                publication.view_id,
+                publication.base_id,
+                publication.previous_delta_generation,
+                publication.manifest_hash,
+            ],
+        )?;
+        if changed != 1 {
+            return Err(ResolutionBindingError::CasLost {
+                view_id: publication.view_id.clone(),
+            });
+        }
+        retire_resolution_scope_chain(&transaction, &publication.view_id)?;
+        let mut payload = serde_json::json!({
+            "base_id": rebased_base_id,
+            "previous_base_id": publication.base_id,
+            "delta_generation": delta_generation,
+            "exact_gap_files": 0,
+            "exact_gap_rows": 0,
+            "manifest_generation": publication.manifest_generation,
+            "manifest_hash": publication.manifest_hash,
+        });
+        merge_execution_telemetry(&mut payload, telemetry.as_ref());
+        StoreLog::append_effect(
+            &transaction,
+            &StoreLogEntry::new(
+                &publication.request_id,
+                "resolution_exact_rebased",
+                payload.to_string(),
+                &publication.created_at,
+            )
+            .with_view(&publication.view_id)
+            .with_generation(u64::try_from(publication.manifest_generation).map_err(|_| {
+                ResolutionBindingError::GenerationOutOfRange {
+                    view_id: publication.view_id.clone(),
+                }
+            })?),
+        )?;
+        #[cfg(feature = "test-store-crash")]
+        super::test_hooks::crash_if("resolution_exact_before_store_commit");
+        #[cfg(feature = "test-store-crash")]
+        super::test_hooks::crash_if("resolution_rebase_before_store_commit");
+        transaction.commit()?;
+        Ok(ResolutionViewBinding {
+            view_id: publication.view_id.clone(),
+            manifest_generation: publication.manifest_generation,
+            manifest_hash: publication.manifest_hash.clone(),
+            base_id: rebased_base_id.to_string(),
+            delta_generation,
+            state: ViewResolutionState::Exact,
+            exact_at: Some(publication.manifest_generation),
+        })
+    }
+
     pub fn exact_publication_telemetry(
         &self,
         request_id: &str,
@@ -1740,7 +2045,8 @@ impl ResolutionBindingStore {
         let payload = connection
             .query_row(
                 "SELECT payload_json FROM store_log
-                 WHERE request_id=?1 AND event_kind='resolution_exact_published'
+                 WHERE request_id=?1
+                   AND event_kind IN ('resolution_exact_published','resolution_exact_rebased')
                    AND view_id=?2 AND generation=?3
                  ORDER BY sequence DESC LIMIT 1",
                 params![request_id, view_id, manifest_generation],

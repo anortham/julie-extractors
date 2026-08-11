@@ -6,12 +6,13 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use julie_extract_artifact::store::{
-    ManifestEntry, ManifestStore, ResolutionBaseBegin, ResolutionBaseCatalog, ResolutionBaseWriter,
-    ResolutionBindingError, ResolutionBindingStore, ResolutionExactPublish, ResolutionGapFact,
-    ResolutionGapKind, ResolutionGapTable, ResolutionIdentifierRow, ResolutionPendingOperation,
-    ResolutionPendingRow, ResolutionPinOwnerKind, ResolutionPublicationFence,
-    ResolutionPublicationMarker, ResolutionScratchDelta, ResolutionScratchReader,
-    StoreConnectionFactory, StoreLayout, ViewResolutionState, resolution_scope_state,
+    ManifestEntry, ManifestStore, ResolutionBaseBegin, ResolutionBaseCatalog,
+    ResolutionBaseCatalogError, ResolutionBaseWriter, ResolutionBindingError,
+    ResolutionBindingStore, ResolutionExactPublish, ResolutionGapFact, ResolutionGapKind,
+    ResolutionGapTable, ResolutionIdentifierRow, ResolutionPendingOperation, ResolutionPendingRow,
+    ResolutionPinOwnerKind, ResolutionPublicationFence, ResolutionPublicationMarker,
+    ResolutionScratchDelta, ResolutionScratchReader, StoreConnectionFactory, StoreLayout,
+    ViewResolutionState, resolution_scope_state,
 };
 use rusqlite::Connection;
 
@@ -538,6 +539,403 @@ fn exact_publication_clears_scope_only_after_winning_the_latest_manifest_cas() {
             .unwrap()
             .is_some()
     );
+}
+
+#[test]
+fn rebased_exact_publish_rotates_to_a_ready_base_with_an_empty_delta() {
+    let temp = TempDir::new();
+    let layout = StoreLayout::create(&temp.0, FAMILY_ID, VERSION).unwrap();
+    let (first_hash, first_version) =
+        publish_manifest(&layout, "view-rebase", None, "src/a.rs", "a");
+    let factory = StoreConnectionFactory::new(layout.clone(), FAMILY_ID, VERSION);
+    let old_base = ready_empty_base(&factory, &first_hash, first_version, "request-old-base");
+    let bindings = ResolutionBindingStore::new(factory.clone());
+    bindings
+        .bind_base("view-rebase", 7, "request-first-bind", NOW)
+        .unwrap();
+
+    let (second_hash, second_version) =
+        publish_manifest(&layout, "view-rebase", Some(1), "src/b.rs", "b");
+    let converging = bindings
+        .bind_base("view-rebase", 7, "request-converging", NOW)
+        .unwrap();
+    assert_eq!(converging.base_id, old_base);
+    let new_base = ready_empty_base(
+        &factory,
+        &second_hash,
+        second_version,
+        "request-rebased-base",
+    );
+    let publication = ResolutionExactPublish {
+        view_id: "view-rebase".to_string(),
+        manifest_generation: 2,
+        manifest_hash: second_hash,
+        base_id: old_base.clone(),
+        previous_delta_generation: converging.delta_generation,
+        resolver_output_epoch: 7,
+        request_id: "request-rebase".to_string(),
+        created_at: NOW.to_string(),
+    };
+    let fence = publication_fence(&layout, &publication.request_id);
+    let telemetry = serde_json::json!({
+        "resolution_mode": "scoped",
+        "scope_file_count": 1,
+        "scope_name_count": 1,
+        "scope_row_count": 1,
+        "fallback_reason": null,
+        "phase_timings_ms": {"diff": 1, "resolution": 2, "scope": 3},
+    });
+
+    let rebased = bindings
+        .publish_rebased_exact(&publication, &new_base, &fence, Some(&telemetry), || Ok(()))
+        .unwrap();
+
+    assert_eq!(rebased.base_id, new_base);
+    assert_eq!(rebased.state, ViewResolutionState::Exact);
+    assert_eq!(rebased.exact_at, Some(2));
+    let connection = Connection::open(layout.store_db()).unwrap();
+    let delta: (String, i64, i64, i64, i64, i64, String) = connection
+        .query_row(
+            "SELECT base_id,identifier_replacements,pending_replacements,pending_tombstones,
+                    exact_gap_rows,exact_gap_files,exact_gap_json
+             FROM resolution_deltas WHERE view_id='view-rebase' AND delta_generation=?1",
+            [rebased.delta_generation],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                    row.get(6)?,
+                ))
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        delta,
+        (
+            new_base.clone(),
+            0,
+            0,
+            0,
+            0,
+            0,
+            "{\"files\":[],\"rows\":[]}".to_string()
+        )
+    );
+    let effect: serde_json::Value = serde_json::from_str(
+        &connection
+            .query_row(
+                "SELECT payload_json FROM store_log
+                 WHERE request_id='request-rebase' AND event_kind='resolution_exact_rebased'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(effect["base_id"], new_base);
+    assert_eq!(effect["previous_base_id"], old_base);
+    assert_eq!(effect["delta_generation"], rebased.delta_generation);
+    assert_eq!(effect["resolution_mode"], "scoped");
+    assert_eq!(
+        bindings
+            .exact_publication_telemetry("request-rebase", "view-rebase", 2)
+            .unwrap(),
+        Some(telemetry)
+    );
+}
+
+#[test]
+fn rebased_exact_publish_cas_loss_keeps_the_ready_base_without_rotating_the_view() {
+    let temp = TempDir::new();
+    let layout = StoreLayout::create(&temp.0, FAMILY_ID, VERSION).unwrap();
+    let (first_hash, first_version) =
+        publish_manifest(&layout, "view-rebase-cas", None, "src/a.rs", "a");
+    let factory = StoreConnectionFactory::new(layout.clone(), FAMILY_ID, VERSION);
+    let old_base = ready_empty_base(&factory, &first_hash, first_version, "request-old-base");
+    let catalog = ResolutionBaseCatalog::new(factory.clone());
+    let bindings = ResolutionBindingStore::new(factory.clone());
+    bindings
+        .bind_base("view-rebase-cas", 7, "request-first-bind", NOW)
+        .unwrap();
+    let (second_hash, second_version) =
+        publish_manifest(&layout, "view-rebase-cas", Some(1), "src/b.rs", "b");
+    let converging = bindings
+        .bind_base("view-rebase-cas", 7, "request-converging", NOW)
+        .unwrap();
+    let new_base = ready_empty_base(
+        &factory,
+        &second_hash,
+        second_version,
+        "request-rebased-base",
+    );
+    let publication = ResolutionExactPublish {
+        view_id: "view-rebase-cas".to_string(),
+        manifest_generation: 2,
+        manifest_hash: second_hash.clone(),
+        base_id: old_base,
+        previous_delta_generation: converging.delta_generation,
+        resolver_output_epoch: 7,
+        request_id: "request-rebase-cas".to_string(),
+        created_at: NOW.to_string(),
+    };
+    let fence = publication_fence(&layout, &publication.request_id);
+    publish_manifest(&layout, "view-rebase-cas", Some(2), "src/c.rs", "c");
+    let before = rebase_cas_state(&layout, "view-rebase-cas");
+
+    assert!(matches!(
+        bindings.publish_rebased_exact(&publication, &new_base, &fence, None, || Ok(())),
+        Err(ResolutionBindingError::CasLost { .. })
+    ));
+
+    assert_eq!(rebase_cas_state(&layout, "view-rebase-cas"), before);
+    assert_eq!(
+        catalog
+            .find_ready(&second_hash, 7)
+            .unwrap()
+            .unwrap()
+            .base_id,
+        new_base
+    );
+}
+
+#[test]
+fn rebased_exact_publish_rejects_a_ready_record_whose_base_file_is_missing() {
+    let temp = TempDir::new();
+    let layout = StoreLayout::create(&temp.0, FAMILY_ID, VERSION).unwrap();
+    let (first_hash, first_version) =
+        publish_manifest(&layout, "view-rebase-missing", None, "src/a.rs", "a");
+    let factory = StoreConnectionFactory::new(layout.clone(), FAMILY_ID, VERSION);
+    let old_base = ready_empty_base(&factory, &first_hash, first_version, "request-old-base");
+    let bindings = ResolutionBindingStore::new(factory.clone());
+    bindings
+        .bind_base("view-rebase-missing", 7, "request-first-bind", NOW)
+        .unwrap();
+    let (second_hash, second_version) =
+        publish_manifest(&layout, "view-rebase-missing", Some(1), "src/b.rs", "b");
+    let converging = bindings
+        .bind_base("view-rebase-missing", 7, "request-converging", NOW)
+        .unwrap();
+    let new_base = ready_empty_base(
+        &factory,
+        &second_hash,
+        second_version,
+        "request-rebased-base",
+    );
+    let relative_path: String = Connection::open(layout.store_db())
+        .unwrap()
+        .query_row(
+            "SELECT relative_path FROM resolution_bases WHERE base_id=?1",
+            [&new_base],
+            |row| row.get(0),
+        )
+        .unwrap();
+    fs::remove_file(layout.generation_dir().join(relative_path)).unwrap();
+    let publication = ResolutionExactPublish {
+        view_id: "view-rebase-missing".to_string(),
+        manifest_generation: 2,
+        manifest_hash: second_hash,
+        base_id: old_base,
+        previous_delta_generation: converging.delta_generation,
+        resolver_output_epoch: 7,
+        request_id: "request-rebase-missing".to_string(),
+        created_at: NOW.to_string(),
+    };
+    let fence = publication_fence(&layout, &publication.request_id);
+    let before = view_publication_counts(&layout, "view-rebase-missing");
+
+    assert!(matches!(
+        bindings.publish_rebased_exact(&publication, &new_base, &fence, None, || Ok(())),
+        Err(ResolutionBindingError::Catalog(_))
+            | Err(ResolutionBindingError::InvalidPublication { .. })
+    ));
+
+    assert_eq!(
+        view_publication_counts(&layout, "view-rebase-missing"),
+        before
+    );
+}
+
+#[test]
+fn exact_rebase_policy_rejects_incoherent_bound_base_catalog_identity() {
+    let temp = TempDir::new();
+    let layout = StoreLayout::create(&temp.0, FAMILY_ID, VERSION).unwrap();
+    let (manifest_hash, version_id) =
+        publish_manifest(&layout, "view-policy-corrupt", None, "src/a.rs", "a");
+    let factory = StoreConnectionFactory::new(layout.clone(), FAMILY_ID, VERSION);
+    let base_id = ready_base_with_identifiers(
+        &factory,
+        &manifest_hash,
+        version_id,
+        "request-policy-base",
+        4,
+    );
+    let scratch_path = temp.0.join("policy-corrupt-delta.db");
+    ResolutionScratchDelta::new(&scratch_path, &manifest_hash, 7)
+        .unwrap()
+        .finish()
+        .unwrap();
+    let scratch = ResolutionScratchReader::open(scratch_path).unwrap();
+    let publication = ResolutionExactPublish {
+        view_id: "view-policy-corrupt".to_string(),
+        manifest_generation: 1,
+        manifest_hash,
+        base_id: base_id.clone(),
+        previous_delta_generation: 1,
+        resolver_output_epoch: 7,
+        request_id: "request-policy-corrupt".to_string(),
+        created_at: NOW.to_string(),
+    };
+    Connection::open(layout.store_db())
+        .unwrap()
+        .execute(
+            "UPDATE resolution_bases SET identifier_count=1 WHERE base_id=?1",
+            [&base_id],
+        )
+        .unwrap();
+
+    let result =
+        ResolutionBindingStore::new(factory).exact_rebase_required(&publication, &scratch, &[]);
+
+    assert!(matches!(
+        result,
+        Err(ResolutionBindingError::Catalog(
+            ResolutionBaseCatalogError::FileIdentityMismatch { .. }
+        ))
+    ));
+}
+
+#[test]
+fn replacement_rebase_threshold_is_strict_at_one_quarter() {
+    let temp = TempDir::new();
+    let layout = StoreLayout::create(&temp.0, FAMILY_ID, VERSION).unwrap();
+    let (manifest_hash, version_id) =
+        publish_manifest(&layout, "view-row-boundary", None, "src/a.rs", "a");
+    let factory = StoreConnectionFactory::new(layout, FAMILY_ID, VERSION);
+    let base_id = ready_base_with_identifiers(
+        &factory,
+        &manifest_hash,
+        version_id,
+        "request-row-boundary-base",
+        4,
+    );
+    let publication = ResolutionExactPublish {
+        view_id: "view-row-boundary".to_string(),
+        manifest_generation: 1,
+        manifest_hash: manifest_hash.clone(),
+        base_id,
+        previous_delta_generation: 1,
+        resolver_output_epoch: 7,
+        request_id: "request-row-boundary".to_string(),
+        created_at: NOW.to_string(),
+    };
+    let equal_path = temp.0.join("row-boundary-equal.db");
+    let equal = replacement_scratch(&equal_path, &manifest_hash, version_id, 1);
+    let over_path = temp.0.join("row-boundary-over.db");
+    let over = replacement_scratch(&over_path, &manifest_hash, version_id, 2);
+    let bindings = ResolutionBindingStore::new(factory);
+
+    assert!(
+        !bindings
+            .exact_rebase_required(&publication, &equal, &[])
+            .unwrap()
+    );
+    assert!(
+        bindings
+            .exact_rebase_required(&publication, &over, &[])
+            .unwrap()
+    );
+}
+
+#[test]
+fn gap_rebase_threshold_is_strict_at_sixty_four_mib() {
+    const LIMIT: usize = 64 * 1024 * 1024;
+
+    let temp = TempDir::new();
+    let layout = StoreLayout::create(&temp.0, FAMILY_ID, VERSION).unwrap();
+    let (manifest_hash, version_id) =
+        publish_manifest(&layout, "view-gap-boundary", None, "src/a.rs", "a");
+    let factory = StoreConnectionFactory::new(layout.clone(), FAMILY_ID, VERSION);
+    let base_id = ready_empty_base(
+        &factory,
+        &manifest_hash,
+        version_id,
+        "request-gap-boundary-base",
+    );
+    let binding = ResolutionBindingStore::new(factory.clone())
+        .bind_base("view-gap-boundary", 7, "request-gap-boundary-bind", NOW)
+        .unwrap();
+    let scratch_path = temp.0.join("gap-boundary.db");
+    ResolutionScratchDelta::new(&scratch_path, &manifest_hash, 7)
+        .unwrap()
+        .finish()
+        .unwrap();
+    let scratch = ResolutionScratchReader::open(scratch_path).unwrap();
+    let publication = ResolutionExactPublish {
+        view_id: "view-gap-boundary".to_string(),
+        manifest_generation: 1,
+        manifest_hash,
+        base_id,
+        previous_delta_generation: binding.delta_generation,
+        resolver_output_epoch: 7,
+        request_id: "request-gap-boundary".to_string(),
+        created_at: NOW.to_string(),
+    };
+    let current_payload_bytes = serde_json::json!({"files": [], "rows": []})
+        .to_string()
+        .len();
+    install_canonical_gap_payload_bytes(
+        &layout,
+        "view-gap-boundary",
+        LIMIT - current_payload_bytes,
+    );
+    let bindings = ResolutionBindingStore::new(factory);
+
+    assert!(
+        !bindings
+            .exact_rebase_required(&publication, &scratch, &[])
+            .unwrap()
+    );
+    install_canonical_gap_payload_bytes(
+        &layout,
+        "view-gap-boundary",
+        LIMIT - current_payload_bytes + 1,
+    );
+    assert!(
+        bindings
+            .exact_rebase_required(&publication, &scratch, &[])
+            .unwrap()
+    );
+}
+
+fn rebase_cas_state(
+    layout: &StoreLayout,
+    view_id: &str,
+) -> (i64, i64, i64, Option<String>, Option<i64>, String) {
+    Connection::open(layout.store_db())
+        .unwrap()
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM resolution_deltas),
+               (SELECT COUNT(*) FROM store_log WHERE event_kind='resolution_exact_rebased'),
+               current_generation,resolution_base_id,resolution_delta_generation,resolution_state
+             FROM views WHERE view_id=?1",
+            [view_id],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                ))
+            },
+        )
+        .unwrap()
 }
 
 #[test]
@@ -1303,4 +1701,97 @@ fn ready_empty_base_epoch(
     writer.finish_with_target_lookup(|_, _| Ok(true)).unwrap();
     catalog.publish_scratch(&build).unwrap();
     catalog.mark_ready(&build, NOW).unwrap().base_id
+}
+
+fn ready_base_with_identifiers(
+    factory: &StoreConnectionFactory,
+    manifest_hash: &str,
+    version_id: i64,
+    request_id: &str,
+    count: usize,
+) -> String {
+    let catalog = ResolutionBaseCatalog::new(factory.clone());
+    let build = match catalog
+        .begin_build(manifest_hash, 7, request_id, NOW)
+        .unwrap()
+    {
+        ResolutionBaseBegin::Build(build) => build,
+        other => panic!("expected build, got {other:?}"),
+    };
+    let mut writer = ResolutionBaseWriter::new(&build.scratch_path, manifest_hash, 7).unwrap();
+    writer.push_source_version(version_id).unwrap();
+    for index in 0..count {
+        writer
+            .push_identifier_resolution(ResolutionIdentifierRow {
+                version_id,
+                identifier_id: format!("identifier-{index:04}"),
+                target_version_id: None,
+                target_symbol_id: None,
+                tier: None,
+                confidence: None,
+                method: None,
+                outcome: "missing".to_string(),
+                candidates: Some(0),
+            })
+            .unwrap();
+    }
+    writer.finish_with_target_lookup(|_, _| Ok(true)).unwrap();
+    catalog.publish_scratch(&build).unwrap();
+    catalog.mark_ready(&build, NOW).unwrap().base_id
+}
+
+fn replacement_scratch(
+    path: &std::path::Path,
+    manifest_hash: &str,
+    version_id: i64,
+    count: usize,
+) -> ResolutionScratchReader {
+    let mut scratch = ResolutionScratchDelta::new(path, manifest_hash, 7).unwrap();
+    for index in 0..count {
+        scratch.push_identifier_replacement(ResolutionIdentifierRow {
+            version_id,
+            identifier_id: format!("identifier-{index:04}"),
+            target_version_id: None,
+            target_symbol_id: None,
+            tier: None,
+            confidence: None,
+            method: None,
+            outcome: "missing".to_string(),
+            candidates: Some(0),
+        });
+    }
+    scratch.finish().unwrap();
+    ResolutionScratchReader::open(path).unwrap()
+}
+
+fn install_canonical_gap_payload_bytes(layout: &StoreLayout, view_id: &str, bytes: usize) {
+    let prefix = r#"{"files":[1],"rows":[{"kind":"added","local_id":""#;
+    let suffix = r#"","table":"identifier","version_id":1}]}"#;
+    let padding = bytes.checked_sub(prefix.len() + suffix.len()).unwrap();
+    let connection = Connection::open(layout.store_db()).unwrap();
+    connection
+        .execute(
+            "UPDATE resolution_deltas
+             SET exact_gap_rows=1,exact_gap_files=1,
+                 exact_gap_json=?1 || substr(replace(hex(zeroblob((?2 + 1) / 2)),'0','x'),1,?2) || ?3
+             WHERE view_id=?4",
+            rusqlite::params![
+                prefix,
+                i64::try_from(padding).unwrap(),
+                suffix,
+                view_id
+            ],
+        )
+        .unwrap();
+    assert_eq!(
+        connection
+            .query_row(
+                "SELECT length(CAST(exact_gap_json AS BLOB)),json_valid(exact_gap_json)
+                 FROM resolution_deltas WHERE view_id=?1",
+                [view_id],
+                |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)),
+            )
+            .unwrap(),
+        (i64::try_from(bytes).unwrap(), 1)
+    );
 }

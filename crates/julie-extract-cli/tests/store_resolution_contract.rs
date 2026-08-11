@@ -106,6 +106,57 @@ fn create_full_store(temp: &TempDir) -> (PathBuf, PathBuf) {
     (root, store)
 }
 
+fn install_canonical_gap_payload_bytes(store_db: &Path, view_id: &str, bytes: usize) {
+    let prefix = r#"{"files":[1],"rows":[{"kind":"added","local_id":""#;
+    let suffix = r#"","table":"identifier","version_id":1}]}"#;
+    let connection = Connection::open(store_db).unwrap();
+    let other_bytes: i64 = connection
+        .query_row(
+            "SELECT COALESCE(SUM(length(CAST(exact_gap_json AS BLOB))),0)
+             FROM resolution_deltas
+             WHERE view_id=?1
+               AND delta_generation<>(SELECT resolution_delta_generation FROM views
+                                      WHERE view_id=?1)",
+            [view_id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let current_bytes = bytes
+        .checked_sub(usize::try_from(other_bytes).unwrap())
+        .unwrap();
+    let padding = current_bytes
+        .checked_sub(prefix.len() + suffix.len())
+        .unwrap();
+    connection
+        .execute(
+            "UPDATE resolution_deltas
+             SET exact_gap_rows=1,exact_gap_files=1,
+                 exact_gap_json=?1 || substr(replace(hex(zeroblob((?2 + 1) / 2)),'0','x'),1,?2) || ?3
+             WHERE view_id=?4
+               AND delta_generation=(SELECT resolution_delta_generation FROM views
+                                     WHERE view_id=?4)",
+            rusqlite::params![
+                prefix,
+                i64::try_from(padding).unwrap(),
+                suffix,
+                view_id
+            ],
+        )
+        .unwrap();
+    assert_eq!(
+        connection
+            .query_row(
+                "SELECT SUM(length(CAST(exact_gap_json AS BLOB))),MIN(json_valid(exact_gap_json))
+                 FROM resolution_deltas
+                 WHERE view_id=?1",
+                [view_id],
+                |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)),
+            )
+            .unwrap(),
+        (i64::try_from(bytes).unwrap(), 1)
+    );
+}
+
 fn resolve_output(store: &Path, request_id: &str, key: &str) -> std::process::Output {
     julie_extract(&[
         "store",
@@ -406,6 +457,35 @@ fn forced_full_resolve_ignores_unreadable_incremental_state() {
 fn retry_after_exact_publish_crash_replays_the_actual_scoped_telemetry() {
     let temp = TempDir::new();
     let (root, store) = create_full_store(&temp);
+    for index in 0..4 {
+        let file = format!("stable-{index}.rs");
+        fs::write(
+            root.join(&file),
+            format!(
+                "pub fn stable_{index}() -> i32 {{ helper_{index}() }}\nfn helper_{index}() -> i32 {{ {index} }}\n"
+            ),
+        )
+        .unwrap();
+        assert!(
+            julie_extract(&[
+                "store",
+                "update",
+                "--store",
+                store.to_str().unwrap(),
+                "--root",
+                root.to_str().unwrap(),
+                "--view",
+                "view-main",
+                "--file",
+                &file,
+                "--level",
+                "full",
+                "--json",
+            ])
+            .status
+            .success()
+        );
+    }
     assert!(
         resolve_output(
             &store,
@@ -982,6 +1062,15 @@ fn changed_manifest_resolves_against_the_ready_base_and_publishes_a_cumulative_d
         "pub fn answer() -> i32 { helper() }\nfn helper() -> i32 { 1 }\n",
     )
     .unwrap();
+    for index in 0..4 {
+        fs::write(
+            root.join(format!("stable-{index}.rs")),
+            format!(
+                "pub fn stable_{index}() -> i32 {{ helper_{index}() }}\nfn helper_{index}() -> i32 {{ {index} }}\n"
+            ),
+        )
+        .unwrap();
+    }
     let family = "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11";
     let import = julie_extract(&[
         "store",
@@ -1081,6 +1170,266 @@ fn changed_manifest_resolves_against_the_ready_base_and_publishes_a_cumulative_d
         })
         .unwrap(),
         3
+    );
+}
+
+#[test]
+fn replacement_rows_over_one_quarter_rebase_to_the_current_manifest_base() {
+    let temp = TempDir::new();
+    let (root, store) = create_full_store(&temp);
+    assert!(
+        resolve_output(&store, "resolve-rebase-seed", "resolve-rebase-seed-key")
+            .status
+            .success()
+    );
+    let store_db = store.join("gen-001/store.db");
+    let old_base: String = Connection::open(&store_db)
+        .unwrap()
+        .query_row(
+            "SELECT resolution_base_id FROM views WHERE view_id='view-main'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    fs::write(
+        root.join("lib.rs"),
+        "pub fn answer() -> i32 { replacement() }\nfn replacement() -> i32 { 9 }\n",
+    )
+    .unwrap();
+    assert!(
+        julie_extract(&[
+            "store",
+            "update",
+            "--store",
+            store.to_str().unwrap(),
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--file",
+            "lib.rs",
+            "--level",
+            "full",
+            "--json",
+        ])
+        .status
+        .success()
+    );
+
+    let resolved = resolve_output(
+        &store,
+        "resolve-rebase-threshold",
+        "resolve-rebase-threshold-key",
+    );
+
+    assert!(
+        resolved.status.success(),
+        "stdout={} stderr={}",
+        String::from_utf8_lossy(&resolved.stdout),
+        String::from_utf8_lossy(&resolved.stderr)
+    );
+    let connection = Connection::open(store_db).unwrap();
+    let current: (String, i64, i64, i64, i64) = connection
+        .query_row(
+            "SELECT view.resolution_base_id,delta.identifier_replacements,
+                    delta.pending_replacements,delta.pending_tombstones,delta.exact_gap_rows
+             FROM views AS view
+             JOIN resolution_deltas AS delta
+               ON delta.view_id=view.view_id
+              AND delta.delta_generation=view.resolution_delta_generation
+             WHERE view.view_id='view-main'",
+            [],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                ))
+            },
+        )
+        .unwrap();
+    assert_ne!(current.0, old_base);
+    assert_eq!((current.1, current.2, current.3, current.4), (0, 0, 0, 0));
+    assert_eq!(
+        connection
+            .query_row(
+                "SELECT COUNT(*) FROM store_log
+                 WHERE request_id='resolve-rebase-threshold'
+                   AND event_kind='resolution_exact_rebased'",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        1
+    );
+}
+
+#[test]
+fn cumulative_gap_threshold_keeps_equality_and_rebases_the_first_byte_over() {
+    const LIMIT: usize = 64 * 1024 * 1024;
+
+    for extra_byte in [0, 1] {
+        let temp = TempDir::new();
+        let (root, store) = create_full_store(&temp);
+        assert!(
+            resolve_output(
+                &store,
+                &format!("resolve-gap-seed-{extra_byte}"),
+                &format!("resolve-gap-seed-key-{extra_byte}")
+            )
+            .status
+            .success()
+        );
+        let store_db = store.join("gen-001/store.db");
+        let old_base: String = Connection::open(&store_db)
+            .unwrap()
+            .query_row(
+                "SELECT resolution_base_id FROM views WHERE view_id='view-main'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let current_payload_bytes = serde_json::json!({"files": [], "rows": []})
+            .to_string()
+            .len();
+        install_canonical_gap_payload_bytes(
+            &store_db,
+            "view-main",
+            LIMIT - current_payload_bytes * 2 + extra_byte,
+        );
+        fs::write(root.join("extra.rs"), "// structural-only addition\n").unwrap();
+        assert!(
+            julie_extract(&[
+                "store",
+                "update",
+                "--store",
+                store.to_str().unwrap(),
+                "--root",
+                root.to_str().unwrap(),
+                "--view",
+                "view-main",
+                "--file",
+                "extra.rs",
+                "--level",
+                "full",
+                "--json",
+            ])
+            .status
+            .success()
+        );
+
+        let resolved = resolve_output(
+            &store,
+            &format!("resolve-gap-threshold-{extra_byte}"),
+            &format!("resolve-gap-threshold-key-{extra_byte}"),
+        );
+
+        assert!(
+            resolved.status.success(),
+            "stdout={} stderr={}",
+            String::from_utf8_lossy(&resolved.stdout),
+            String::from_utf8_lossy(&resolved.stderr)
+        );
+        let connection = Connection::open(store_db).unwrap();
+        let current: (String, i64, i64, i64) = connection
+            .query_row(
+                "SELECT view.resolution_base_id,delta.identifier_replacements,
+                        delta.pending_replacements,delta.pending_tombstones
+                 FROM views AS view
+                 JOIN resolution_deltas AS delta
+                   ON delta.view_id=view.view_id
+                  AND delta.delta_generation=view.resolution_delta_generation
+                 WHERE view.view_id='view-main'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            )
+            .unwrap();
+        if extra_byte == 0 {
+            assert_eq!(current.0, old_base);
+        } else {
+            assert_ne!(current.0, old_base);
+        }
+        assert_eq!((current.1, current.2, current.3), (0, 0, 0));
+    }
+}
+
+#[test]
+fn changes_below_both_rebase_thresholds_keep_the_cumulative_delta_path() {
+    let temp = TempDir::new();
+    let (root, store) = create_full_store(&temp);
+    assert!(
+        resolve_output(&store, "resolve-below-seed", "resolve-below-seed-key")
+            .status
+            .success()
+    );
+    let store_db = store.join("gen-001/store.db");
+    let connection = Connection::open(&store_db).unwrap();
+    let old_base: String = connection
+        .query_row(
+            "SELECT resolution_base_id FROM views WHERE view_id='view-main'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    drop(connection);
+    fs::write(root.join("small.rs"), "// structural-only addition\n").unwrap();
+    assert!(
+        julie_extract(&[
+            "store",
+            "update",
+            "--store",
+            store.to_str().unwrap(),
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--file",
+            "small.rs",
+            "--level",
+            "full",
+            "--json",
+        ])
+        .status
+        .success()
+    );
+
+    let resolved = resolve_output(
+        &store,
+        "resolve-below-threshold",
+        "resolve-below-threshold-key",
+    );
+
+    assert!(resolved.status.success());
+    let connection = Connection::open(store_db).unwrap();
+    let current: (String, i64) = connection
+        .query_row(
+            "SELECT view.resolution_base_id,
+                    delta.identifier_replacements + delta.pending_replacements
+                      + delta.pending_tombstones
+             FROM views AS view
+             JOIN resolution_deltas AS delta
+               ON delta.view_id=view.view_id
+              AND delta.delta_generation=view.resolution_delta_generation
+             WHERE view.view_id='view-main'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!(current.0, old_base);
+    assert_eq!(current.1, 0);
+    assert_eq!(
+        connection
+            .query_row(
+                "SELECT COUNT(*) FROM store_log
+                 WHERE request_id='resolve-below-threshold'
+                   AND event_kind='resolution_exact_published'",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        1
     );
 }
 
@@ -1877,6 +2226,199 @@ fn hard_kill_boundaries_resume_one_resolve_without_duplicate_terminal_state() {
                     .to_string_lossy()
                     .contains("resolve-crash")),
             "boundary {boundary} left request-owned scratch"
+        );
+    }
+}
+
+#[test]
+fn rebase_crash_boundaries_retry_with_one_ready_base_and_one_empty_delta() {
+    for boundary in [
+        "resolution_base_after_row_insert",
+        "resolution_base_after_root_insert",
+        "resolution_rebase_after_scratch_promote",
+        "resolution_base_after_final_publish",
+        "resolution_base_before_ready_commit",
+        "resolution_base_after_ready_commit",
+        "resolution_rebase_before_store_commit",
+        "resolution_rebase_after_store_commit",
+    ] {
+        let temp = TempDir::new();
+        let (root, store) = create_full_store(&temp);
+        assert!(
+            resolve_output(&store, "resolve-rebase-seed", "resolve-rebase-seed-key")
+                .status
+                .success()
+        );
+        let store_db = store.join("gen-001/store.db");
+        let old_base: String = Connection::open(&store_db)
+            .unwrap()
+            .query_row(
+                "SELECT resolution_base_id FROM views WHERE view_id='view-main'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        Connection::open(&store_db)
+            .unwrap()
+            .execute(
+                "UPDATE resolution_bases SET identifier_count=1,pending_count=0 WHERE base_id=?1",
+                [&old_base],
+            )
+            .unwrap();
+        fs::write(
+            root.join("lib.rs"),
+            "pub fn answer() -> i32 { retry_target() }\nfn retry_target() -> i32 { 12 }\n",
+        )
+        .unwrap();
+        assert!(
+            julie_extract(&[
+                "store",
+                "update",
+                "--store",
+                store.to_str().unwrap(),
+                "--root",
+                root.to_str().unwrap(),
+                "--view",
+                "view-main",
+                "--file",
+                "lib.rs",
+                "--level",
+                "full",
+                "--json",
+            ])
+            .status
+            .success()
+        );
+        let crashed = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+            .args([
+                "store",
+                "resolve",
+                "--store",
+                store.to_str().unwrap(),
+                "--view",
+                "view-main",
+                "--request-id",
+                "resolve-rebase-crash",
+                "--idempotency-key",
+                "resolve-rebase-crash-key",
+                "--json",
+            ])
+            .env("JULIE_EXTRACT_STORE_TEST_CRASH_AT", boundary)
+            .output()
+            .unwrap();
+        assert!(!crashed.status.success(), "boundary={boundary}");
+        let before_retry: (String, Option<String>, Option<i64>) = Connection::open(&store_db)
+            .unwrap()
+            .query_row(
+                "SELECT resolution_state,resolution_base_id,resolution_delta_generation
+                 FROM views WHERE view_id='view-main'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .unwrap();
+        match before_retry.0.as_str() {
+            "converging" => assert_eq!(before_retry.1.as_deref(), Some(old_base.as_str())),
+            "exact" => {
+                assert_ne!(before_retry.1.as_deref(), Some(old_base.as_str()));
+                let bound_base: String = Connection::open(&store_db)
+                    .unwrap()
+                    .query_row(
+                        "SELECT base_id FROM resolution_deltas
+                         WHERE view_id='view-main' AND delta_generation=?1",
+                        [before_retry.2.unwrap()],
+                        |row| row.get(0),
+                    )
+                    .unwrap();
+                assert_eq!(Some(bound_base), before_retry.1);
+            }
+            state => panic!("boundary={boundary} left unexpected state {state}"),
+        }
+
+        let retry = resolve_output(&store, "resolve-rebase-retry", "resolve-rebase-crash-key");
+
+        assert!(
+            retry.status.success(),
+            "boundary={boundary} stdout={} stderr={}",
+            String::from_utf8_lossy(&retry.stdout),
+            String::from_utf8_lossy(&retry.stderr)
+        );
+        let report: Value = serde_json::from_slice(&retry.stdout).unwrap();
+        assert_eq!(report["request"]["id"], "resolve-rebase-crash");
+        assert_eq!(report["resolution"]["state"], "exact");
+        let connection = Connection::open(&store_db).unwrap();
+        let final_state: (String, String, i64, String) = connection
+            .query_row(
+                "SELECT view.resolution_state,view.resolution_base_id,
+                        view.resolution_delta_generation,manifest.manifest_hash
+                 FROM views AS view
+                 JOIN manifests AS manifest
+                   ON manifest.view_id=view.view_id
+                  AND manifest.generation=view.current_generation
+                 WHERE view.view_id='view-main'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            )
+            .unwrap();
+        assert_eq!(final_state.0, "exact");
+        assert_ne!(final_state.1, old_base);
+        let delta: (String, i64, i64, i64, i64) = connection
+            .query_row(
+                "SELECT base_id,identifier_replacements,pending_replacements,
+                        pending_tombstones,exact_gap_rows
+                 FROM resolution_deltas
+                 WHERE view_id='view-main' AND delta_generation=?1",
+                [final_state.2],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                    ))
+                },
+            )
+            .unwrap();
+        assert_eq!(delta, (final_state.1.clone(), 0, 0, 0, 0));
+        let terminal: Value = serde_json::from_str(
+            &connection
+                .query_row(
+                    "SELECT payload_json FROM store_log
+                     WHERE request_id='resolve-rebase-crash' AND terminal=1",
+                    [],
+                    |row| row.get::<_, String>(0),
+                )
+                .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(terminal["identifier_replacements"], 0);
+        assert_eq!(terminal["pending_replacements"], 0);
+        assert_eq!(terminal["pending_tombstones"], 0);
+        assert_eq!(terminal["exact_gap_rows"], 0);
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM resolution_bases
+                     WHERE manifest_hash=?1 AND resolver_output_epoch=6",
+                    [&final_state.3],
+                    |row| row.get::<_, i64>(0),
+                )
+                .unwrap(),
+            1,
+            "boundary={boundary}"
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM store_log
+                     WHERE request_id='resolve-rebase-crash'
+                       AND event_kind='resolution_exact_rebased'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .unwrap(),
+            1,
+            "boundary={boundary}"
         );
     }
 }
