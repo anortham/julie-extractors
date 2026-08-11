@@ -174,11 +174,26 @@ fn resolve_output(store: &Path, request_id: &str, key: &str) -> std::process::Ou
 }
 
 #[test]
-fn resolve_defaults_to_forced_full_and_emits_additive_telemetry() {
+fn resolve_explicit_off_forces_full_and_emits_additive_telemetry() {
     let temp = TempDir::new();
     let (_, store) = create_full_store(&temp);
 
-    let output = resolve_output(&store, "resolve-default-full", "resolve-default-full-key");
+    let output = julie_extract_with_resolution_delta(
+        &[
+            "store",
+            "resolve",
+            "--store",
+            store.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--request-id",
+            "resolve-explicit-full",
+            "--idempotency-key",
+            "resolve-explicit-full-key",
+            "--json",
+        ],
+        "off",
+    );
 
     assert!(
         output.status.success(),
@@ -230,7 +245,7 @@ fn resolve_rejects_invalid_delta_escape_hatch_values() {
 }
 
 #[test]
-fn resolve_uses_scoped_mode_only_when_escape_hatch_is_on() {
+fn resolve_uses_scoped_mode_when_delta_env_is_unset() {
     let temp = TempDir::new();
     let (root, store) = create_full_store(&temp);
     assert!(
@@ -269,22 +284,7 @@ fn resolve_uses_scoped_mode_only_when_escape_hatch_is_on() {
         String::from_utf8_lossy(&update.stderr)
     );
 
-    let resolve = julie_extract_with_resolution_delta(
-        &[
-            "store",
-            "resolve",
-            "--store",
-            store.to_str().unwrap(),
-            "--view",
-            "view-main",
-            "--request-id",
-            "resolve-scoped",
-            "--idempotency-key",
-            "resolve-scoped-key",
-            "--json",
-        ],
-        "on",
-    );
+    let resolve = resolve_output(&store, "resolve-scoped", "resolve-scoped-key");
 
     assert!(
         resolve.status.success(),
@@ -302,52 +302,11 @@ fn resolve_uses_scoped_mode_only_when_escape_hatch_is_on() {
 }
 
 #[test]
-fn explicit_off_and_unset_choose_the_same_forced_full_contract() {
-    let unset_temp = TempDir::new();
-    let off_temp = TempDir::new();
-    let (_, unset_store) = create_full_store(&unset_temp);
-    let (_, off_store) = create_full_store(&off_temp);
-
-    let unset = resolve_output(&unset_store, "resolve-unset", "resolve-unset-key");
-    let off = julie_extract_with_resolution_delta(
-        &[
-            "store",
-            "resolve",
-            "--store",
-            off_store.to_str().unwrap(),
-            "--view",
-            "view-main",
-            "--request-id",
-            "resolve-off",
-            "--idempotency-key",
-            "resolve-off-key",
-            "--json",
-        ],
-        "off",
-    );
-
-    assert!(unset.status.success());
-    assert!(off.status.success());
-    let unset: Value = serde_json::from_slice(&unset.stdout).unwrap();
-    let off: Value = serde_json::from_slice(&off.stdout).unwrap();
-    for field in [
-        "resolution_mode",
-        "scope_file_count",
-        "scope_name_count",
-        "scope_row_count",
-        "fallback_reason",
-    ] {
-        assert_eq!(unset["resolution"][field], off["resolution"][field]);
-    }
-}
-
-#[test]
 fn forced_full_resolve_ignores_unreadable_incremental_state() {
-    for delta in [None, Some("off")] {
-        let temp = TempDir::new();
-        let (root, store) = create_full_store(&temp);
-        let mut seed = Command::new(env!("CARGO_BIN_EXE_julie-extract"));
-        seed.args([
+    let temp = TempDir::new();
+    let (root, store) = create_full_store(&temp);
+    let seed = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
             "store",
             "resolve",
             "--store",
@@ -360,58 +319,53 @@ fn forced_full_resolve_ignores_unreadable_incremental_state() {
             "resolve-forced-seed-key",
             "--json",
         ])
+        .env("JULIE_STORE_RESOLUTION_DELTA", "off")
         .env(
             "JULIE_EXTRACT_STORE_TEST_CRASH_AT",
             "resolution_prior_state_read",
-        );
-        match delta {
-            Some(value) => {
-                seed.env("JULIE_STORE_RESOLUTION_DELTA", value);
-            }
-            None => {
-                seed.env_remove("JULIE_STORE_RESOLUTION_DELTA");
-            }
-        }
-        let seed = seed.output().unwrap();
-        assert!(
-            seed.status.success(),
-            "stdout={} stderr={}",
-            String::from_utf8_lossy(&seed.stdout),
-            String::from_utf8_lossy(&seed.stderr)
-        );
-        fs::write(
-            root.join("lib.rs"),
-            "pub fn answer() -> i32 { helper() }\nfn helper() -> i32 { 2 }\n",
+        )
+        .output()
+        .unwrap();
+    assert!(
+        seed.status.success(),
+        "stdout={} stderr={}",
+        String::from_utf8_lossy(&seed.stdout),
+        String::from_utf8_lossy(&seed.stderr)
+    );
+    fs::write(
+        root.join("lib.rs"),
+        "pub fn answer() -> i32 { helper() }\nfn helper() -> i32 { 2 }\n",
+    )
+    .unwrap();
+    assert!(
+        julie_extract(&[
+            "store",
+            "update",
+            "--store",
+            store.to_str().unwrap(),
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--file",
+            "lib.rs",
+            "--level",
+            "full",
+            "--json",
+        ])
+        .status
+        .success()
+    );
+    Connection::open(store.join("gen-001/store.db"))
+        .unwrap()
+        .execute(
+            "UPDATE resolution_scope_state SET current_manifest_hash='malformed'
+                 WHERE view_id='view-main'",
+            [],
         )
         .unwrap();
-        assert!(
-            julie_extract(&[
-                "store",
-                "update",
-                "--store",
-                store.to_str().unwrap(),
-                "--root",
-                root.to_str().unwrap(),
-                "--view",
-                "view-main",
-                "--file",
-                "lib.rs",
-                "--level",
-                "full",
-                "--json",
-            ])
-            .status
-            .success()
-        );
-        Connection::open(store.join("gen-001/store.db"))
-            .unwrap()
-            .execute(
-                "UPDATE resolution_scope_state SET current_manifest_hash='malformed'
-                 WHERE view_id='view-main'",
-                [],
-            )
-            .unwrap();
-        let args = [
+    let output = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
             "store",
             "resolve",
             "--store",
@@ -423,34 +377,26 @@ fn forced_full_resolve_ignores_unreadable_incremental_state() {
             "--idempotency-key",
             "resolve-forced-corrupt-scope-key",
             "--json",
-        ];
-        let mut command = Command::new(env!("CARGO_BIN_EXE_julie-extract"));
-        command.args(args).env(
+        ])
+        .env("JULIE_STORE_RESOLUTION_DELTA", "off")
+        .env(
             "JULIE_EXTRACT_STORE_TEST_CRASH_AT",
             "resolution_prior_state_read",
-        );
-        match delta {
-            Some(value) => {
-                command.env("JULIE_STORE_RESOLUTION_DELTA", value);
-            }
-            None => {
-                command.env_remove("JULIE_STORE_RESOLUTION_DELTA");
-            }
-        }
-        let output = command.output().unwrap();
-        assert!(
-            output.status.success(),
-            "stdout={} stderr={}",
-            String::from_utf8_lossy(&output.stdout),
-            String::from_utf8_lossy(&output.stderr)
-        );
-        let report: Value = serde_json::from_slice(&output.stdout).unwrap();
-        assert_eq!(report["resolution"]["resolution_mode"], "full");
-        assert_eq!(
-            report["resolution"]["fallback_reason"],
-            "incremental_resolution_disabled"
-        );
-    }
+        )
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "stdout={} stderr={}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["resolution"]["resolution_mode"], "full");
+    assert_eq!(
+        report["resolution"]["fallback_reason"],
+        "incremental_resolution_disabled"
+    );
 }
 
 #[test]

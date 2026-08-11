@@ -1,18 +1,14 @@
 #![cfg(feature = "test-store-resolution-contract")]
 
-use std::cell::RefCell;
-use std::collections::{BTreeSet, VecDeque};
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, Instant};
 
 use julie_extract_artifact::store::{
-    ManifestStore, ResolutionBaseBegin, ResolutionBaseCatalog, ResolutionBaseReader,
-    ResolutionBaseWriter, ResolutionBindingStore, ResolutionDiffMarker, ResolutionExactPublish,
-    ResolutionFileIdentity, ResolutionIdentifierRow, ResolutionPendingRow,
-    ResolutionPublicationFence, ResolutionPublicationMarker, ResolutionScratchReader,
-    StoreConnectionFactory, StoreLayout, apply_base_delta, stream_resolution_diff_with_markers,
+    ManifestStore, ResolutionBaseBegin, ResolutionBaseCatalog, ResolutionBindingStore,
+    ResolutionDiffMarker, StoreConnectionFactory, StoreLayout,
 };
 use julie_extract_cli::resolution::run_resolution_session;
 use julie_extract_cli::store::resolution_session::{
@@ -20,6 +16,8 @@ use julie_extract_cli::store::resolution_session::{
 };
 use rusqlite::{Connection, params};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use sha2::{Digest, Sha256};
 
 const FAMILY_ID: &str = "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11";
 const VIEW_ID: &str = "view-miller-scale";
@@ -30,12 +28,51 @@ const MILLER_FILE_ROWS: usize = 1_538;
 const MILLER_IDENTIFIER_ROWS: usize = 392_134;
 const MILLER_PENDING_ROWS: usize = 89_538;
 const MILLER_RESOLVED_PENDING_ROWS: usize = 10_412;
+const MILLER_DISTINCT_IDENTIFIER_NAMES: usize = 20_109;
+const MILLER_CHANGED_FILES: usize = 98;
+const REBASE_GAP_BYTES: usize = 64 * 1024 * 1024 + 1;
 const TARGET_VALIDATION_DISTINCT_TARGETS: usize = 2_048;
 const TARGET_VALIDATION_MAX: Duration = Duration::from_secs(2);
 const CANDIDATE_RESOLUTION_DISTINCT_NAMES: usize = 20_000;
 const CANDIDATE_RESOLUTION_MAX: Duration = Duration::from_millis(3_500);
 const PAIRS: [&str; 2] = ["miller-unchanged", "miller-mutated"];
 const NOW: &str = "2026-08-08T12:00:00.000Z";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ReplayMode {
+    ForcedFull,
+    Scoped,
+}
+
+impl ReplayMode {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::ForcedFull => "full",
+            Self::Scoped => "scoped",
+        }
+    }
+
+    fn env_value(self) -> &'static str {
+        match self {
+            Self::ForcedFull => "off",
+            Self::Scoped => "on",
+        }
+    }
+}
+
+fn replay_mode(pair: &str) -> ReplayMode {
+    match pair {
+        "miller-unchanged" => ReplayMode::ForcedFull,
+        "miller-mutated" => ReplayMode::Scoped,
+        other => panic!("unexpected replay pair {other}"),
+    }
+}
+
+#[test]
+fn replay_pair_contract_runs_forced_full_before_scoped() {
+    assert_eq!(replay_mode(PAIRS[0]), ReplayMode::ForcedFull);
+    assert_eq!(replay_mode(PAIRS[1]), ReplayMode::Scoped);
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Sample {
@@ -53,12 +90,30 @@ struct Sample {
     peak_rss_bytes: u64,
     base_bytes: u64,
     delta_bytes: u64,
-    semantic_differences: u64,
-    applied_differences: u64,
-    exact_gap_mismatches: u64,
+    semantic_differences: Option<u64>,
+    applied_differences: Option<u64>,
     foreground_bind_ms: u64,
-    foreground_identifier_work: u64,
+    foreground_identifier_work: Option<u64>,
     background_pipeline_ms: u64,
+    resolution_mode: String,
+    cpu_user_ms: u64,
+    cpu_system_ms: u64,
+    phase_timings_ms: BTreeMap<String, u64>,
+    scope_file_count: u64,
+    scope_name_count: u64,
+    scope_row_count: u64,
+    fallback_reason: Option<String>,
+    canonical_semantic_digest: String,
+    row_level_differences: Option<u64>,
+    fixture_snapshot_digest: String,
+    artifact_path: PathBuf,
+    exact_gap_rows: u64,
+    exact_gap_files: u64,
+    cumulative_gap_bytes_before: u64,
+    cumulative_gap_bytes_after: u64,
+    cumulative_delta_rows_before: u64,
+    cumulative_delta_rows_after: u64,
+    rebased: bool,
 }
 
 #[derive(Default)]
@@ -94,17 +149,6 @@ impl WriteTimeline {
         assert!(self.intervals > 0);
         assert!(self.elapsed <= total);
         self.elapsed
-    }
-
-    fn mark_publication(&mut self, marker: ResolutionPublicationMarker) {
-        match marker {
-            ResolutionPublicationMarker::StoreTransactionStart => {
-                self.mark(ResolutionDiffMarker::DeltaWriteStart);
-            }
-            ResolutionPublicationMarker::StoreTransactionEnd => {
-                self.mark(ResolutionDiffMarker::DeltaWriteEnd);
-            }
-        }
     }
 }
 
@@ -257,23 +301,23 @@ fn store_resolution_performance_gate() {
     assert!(runs >= 3);
     let out_dir = PathBuf::from(out_dir);
     fs::create_dir_all(&out_dir).unwrap();
-    let fixture_root = out_dir.join(format!("fixture-{}", std::process::id()));
-    reset_owned_directory(&fixture_root);
     let rows = std::env::var("JULIE_STORE_RESOLUTION_PERF_ROWS")
         .ok()
         .map(|value| value.parse().unwrap())
         .unwrap_or(MILLER_IDENTIFIER_ROWS);
-    build_store_fixture(
-        &fixture_root,
-        rows,
-        scaled_pending_rows(rows),
-        scaled_resolved_pending_rows(rows),
-    );
 
     for run in 1..=runs {
         let run_dir = out_dir.join(format!("run-{run:03}"));
         reset_owned_directory(&run_dir);
+        let mut samples = Vec::with_capacity(PAIRS.len());
         for pair in PAIRS {
+            let fixture_root = run_dir.join(format!("fixture-{pair}"));
+            build_store_fixture(
+                &fixture_root,
+                rows,
+                scaled_pending_rows(rows),
+                scaled_resolved_pending_rows(rows),
+            );
             let worker_output = run_dir.join(format!(".{pair}.worker.json"));
             let mut command = timed_worker_command();
             let output = command
@@ -295,18 +339,44 @@ fn store_resolution_performance_gate() {
                 .unwrap();
             assert!(
                 output.status.success(),
-                "{}",
+                "stdout={} stderr={}",
+                String::from_utf8_lossy(&output.stdout),
                 String::from_utf8_lossy(&output.stderr)
             );
             let mut sample: Sample =
                 serde_json::from_slice(&fs::read(&worker_output).unwrap()).unwrap();
-            sample.peak_rss_bytes = parse_peak_rss(&output.stderr);
+            sample.peak_rss_bytes = sample.peak_rss_bytes.max(parse_peak_rss(&output.stderr));
+            samples.push(sample);
+            fs::remove_file(worker_output).unwrap();
+        }
+        let row_level_differences =
+            artifact_semantic_differences(&samples[0].artifact_path, &samples[1].artifact_path);
+        assert_eq!(row_level_differences, 0);
+        assert_eq!(
+            samples[0].canonical_semantic_digest,
+            samples[1].canonical_semantic_digest
+        );
+        for sample in &mut samples {
+            sample.semantic_differences = Some(row_level_differences);
+            sample.applied_differences = Some(row_level_differences);
+            sample.row_level_differences = Some(row_level_differences);
             fs::write(
-                run_dir.join(format!("{pair}.json")),
-                serde_json::to_vec_pretty(&sample).unwrap(),
+                run_dir.join(format!("{}.json", sample.pair)),
+                serde_json::to_vec_pretty(sample).unwrap(),
             )
             .unwrap();
-            fs::remove_file(worker_output).unwrap();
+        }
+        let forced_full = samples
+            .iter()
+            .find(|sample| sample.resolution_mode == "full")
+            .unwrap();
+        let scoped = samples
+            .iter()
+            .find(|sample| sample.resolution_mode == "scoped")
+            .unwrap();
+        assert!(scoped.time_to_exact_ms < 30_000);
+        if rows == MILLER_IDENTIFIER_ROWS {
+            assert!(scoped.time_to_exact_ms < forced_full.time_to_exact_ms);
         }
     }
 }
@@ -353,451 +423,484 @@ fn parse_peak_rss(stderr: &[u8]) -> u64 {
 fn measure_pair(store_root: &Path, pair: &str, run: usize, out_dir: &Path) -> Sample {
     assert!(PAIRS.contains(&pair));
     let layout = StoreLayout::open(store_root).unwrap();
-    let base_generation = 1;
-    let exact_generation = if pair == "miller-unchanged" { 3 } else { 2 };
-    let base_identity = manifest_identity(&layout, base_generation);
-    let exact_identity = manifest_identity(&layout, exact_generation);
+    let mode = replay_mode(pair);
     let sample_root = out_dir.join(format!("worker-{pair}-{run}"));
     fs::create_dir_all(&sample_root).unwrap();
-
-    let foreground_started = Instant::now();
-    let _ = manifest_identity(&layout, exact_generation);
-    let foreground_bind_ms = elapsed_ms(foreground_started.elapsed());
-
-    let (base_path, _, _, _) = build_exact(&layout, base_identity, sample_root.join("base.db"));
-    let (exact_path, exact_file, resolution_compute_ms, store_fresh_ms) = build_exact(
-        &layout,
-        exact_identity.clone(),
-        sample_root.join("exact.db"),
-    );
-    let (repeat_path, _, _, _) =
-        build_exact(&layout, exact_identity, sample_root.join("repeat.db"));
-    let semantic_differences = base_differences(&exact_path, &repeat_path);
-
-    let base = ResolutionBaseReader::open(&base_path).unwrap();
-    let exact = ResolutionBaseReader::open(&exact_path).unwrap();
-    let delta_path = sample_root.join("delta.db");
-    let mut gaps = Vec::new();
-    let mut scratch_timeline = WriteTimeline::default();
-    let diff_started = Instant::now();
-    let diff = stream_resolution_diff_with_markers(
-        &base,
-        &exact,
-        &delta_path,
-        WINDOW_SIZE,
-        |gap| {
-            gaps.push(gap);
-            Ok(())
-        },
-        |marker| scratch_timeline.mark(marker),
-    )
-    .unwrap();
-    let diff_total = diff_started.elapsed();
-    scratch_timeline.finish(diff_total);
-    let delta = ResolutionScratchReader::open(&delta_path).unwrap();
-    let write_duration =
-        publish_real_store_delta(&layout, pair, run, exact_generation, &delta, &gaps);
-    let applied_path = sample_root.join("applied.db");
-    apply_delta(&base, &delta, &exact, &applied_path);
-    let applied_differences = base_differences(&applied_path, &exact_path);
-    let exact_gap_mismatches = u64::from(diff.gaps != gaps.len() as u64);
-    let diff_ms = elapsed_ms(diff_total);
-    let delta_write_ms = elapsed_ms(write_duration);
-    let integrity_ms = store_fresh_ms.saturating_sub(resolution_compute_ms);
-    let time_to_exact_ms = store_fresh_ms + diff_ms + delta_write_ms;
+    let view_id = format!("replay-{pair}-{run}");
+    let fixture_snapshot_digest = fixture_snapshot_digest(&layout);
+    let before = prepare_replay_view(&layout, &view_id, mode);
+    let request_id = format!("replay-resolve-{pair}-{run}");
+    let timed = run_timed_resolve(store_root, &view_id, &request_id, mode);
+    let reported_mode = timed.report["resolution"]["resolution_mode"]
+        .as_str()
+        .unwrap();
+    assert_eq!(reported_mode, mode.as_str());
+    assert_eq!(timed.report["resolution"]["state"], "exact");
+    let phase_timings_ms = timed.report["resolution"]["phase_timings_ms"]
+        .as_object()
+        .unwrap()
+        .iter()
+        .map(|(phase, value)| (phase.clone(), value.as_u64().unwrap()))
+        .collect::<BTreeMap<_, _>>();
+    let scope_file_count = timed.report["resolution"]["scope_file_count"]
+        .as_u64()
+        .unwrap();
+    let scope_name_count = timed.report["resolution"]["scope_name_count"]
+        .as_u64()
+        .unwrap();
+    let scope_row_count = timed.report["resolution"]["scope_row_count"]
+        .as_u64()
+        .unwrap();
+    let fallback_reason = timed.report["resolution"]["fallback_reason"]
+        .as_str()
+        .map(str::to_string);
+    if mode == ReplayMode::Scoped {
+        assert_eq!(scope_file_count, MILLER_CHANGED_FILES as u64);
+        assert!(fallback_reason.is_none());
+    }
+    let artifact_path = sample_root.join("resolved.db");
+    export_view(store_root, &view_id, &artifact_path);
+    let canonical_semantic_digest = artifact_semantic_digest(&artifact_path);
+    let artifact = Connection::open(&artifact_path).unwrap();
+    let identifier_rows = artifact
+        .query_row("SELECT COUNT(*) FROM identifier_resolutions", [], |row| {
+            row.get::<_, i64>(0)
+        })
+        .map(|value| u64::try_from(value).unwrap())
+        .unwrap();
+    let pending_rows = artifact
+        .query_row("SELECT COUNT(*) FROM pending_resolutions", [], |row| {
+            row.get::<_, i64>(0)
+        })
+        .map(|value| u64::try_from(value).unwrap())
+        .unwrap();
+    let after = current_resolution_storage(&layout, &view_id);
+    let rebased = Connection::open(layout.store_db())
+        .unwrap()
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM store_log
+             WHERE request_id=?1 AND event_kind='resolution_exact_rebased')",
+            [&request_id],
+            |row| row.get::<_, bool>(0),
+        )
+        .unwrap();
+    if mode == ReplayMode::Scoped {
+        assert!(rebased);
+        assert!(before.gap_bytes > 64 * 1024 * 1024);
+        assert!(after.gap_bytes <= 64 * 1024 * 1024);
+        assert_eq!(after.delta_rows, 0);
+    }
+    let resolution_compute_ms = phase_timings_ms.get("resolution").copied().unwrap_or(0);
+    let diff_ms = phase_timings_ms.get("diff").copied().unwrap_or(0);
+    let scoped_ms = phase_timings_ms.get("scope").copied().unwrap_or(0);
+    let publish_ms = timed
+        .wall_ms
+        .saturating_sub(resolution_compute_ms + diff_ms + scoped_ms);
+    let base_bytes = current_resolution_base_bytes(&layout, &view_id);
 
     Sample {
         pair: pair.to_string(),
         run,
         resolution_compute_ms,
-        store_fresh_ms,
+        store_fresh_ms: timed.wall_ms,
         diff_ms,
-        delta_write_ms,
-        publish_ms: 0,
-        time_to_exact_ms,
-        integrity_ms,
-        identifier_rows: exact_file.counts.identifiers,
-        pending_rows: exact_file.counts.pending,
-        peak_rss_bytes: 0,
-        base_bytes: fs::metadata(base_path).unwrap().len(),
-        delta_bytes: fs::metadata(delta_path).unwrap().len(),
-        semantic_differences,
-        applied_differences,
-        exact_gap_mismatches,
-        foreground_bind_ms,
-        foreground_identifier_work: 0,
-        background_pipeline_ms: time_to_exact_ms,
+        delta_write_ms: publish_ms,
+        publish_ms,
+        time_to_exact_ms: timed.wall_ms,
+        integrity_ms: publish_ms,
+        identifier_rows,
+        pending_rows,
+        peak_rss_bytes: timed.peak_rss_bytes,
+        base_bytes,
+        delta_bytes: after.gap_bytes,
+        semantic_differences: None,
+        applied_differences: None,
+        foreground_bind_ms: scoped_ms,
+        foreground_identifier_work: None,
+        background_pipeline_ms: timed.wall_ms,
+        resolution_mode: reported_mode.to_string(),
+        cpu_user_ms: timed.cpu_user_ms,
+        cpu_system_ms: timed.cpu_system_ms,
+        phase_timings_ms,
+        scope_file_count,
+        scope_name_count,
+        scope_row_count,
+        fallback_reason,
+        canonical_semantic_digest,
+        row_level_differences: None,
+        fixture_snapshot_digest,
+        artifact_path,
+        exact_gap_rows: after.gap_rows,
+        exact_gap_files: after.gap_files,
+        cumulative_gap_bytes_before: before.gap_bytes,
+        cumulative_gap_bytes_after: after.gap_bytes,
+        cumulative_delta_rows_before: before.delta_rows,
+        cumulative_delta_rows_after: after.delta_rows,
+        rebased,
     }
 }
 
-fn publish_real_store_delta(
-    layout: &StoreLayout,
-    pair: &str,
-    run: usize,
-    source_generation: i64,
-    scratch: &ResolutionScratchReader,
-    gaps: &[julie_extract_artifact::store::ResolutionGapFact],
-) -> Duration {
-    let view_id = format!("perf-{pair}-{run}");
-    let request_id = format!("perf-publish-{pair}-{run}");
+struct TimedResolve {
+    report: Value,
+    wall_ms: u64,
+    cpu_user_ms: u64,
+    cpu_system_ms: u64,
+    peak_rss_bytes: u64,
+}
+
+#[derive(Clone, Copy)]
+struct ResolutionStorage {
+    gap_bytes: u64,
+    gap_rows: u64,
+    gap_files: u64,
+    delta_rows: u64,
+}
+
+struct ResolutionRowShape {
+    identifiers: usize,
+    pending: usize,
+    resolved_pending: usize,
+    distinct_target_names: usize,
+}
+
+fn prepare_replay_view(layout: &StoreLayout, view_id: &str, mode: ReplayMode) -> ResolutionStorage {
     let factory = StoreConnectionFactory::new(layout.clone(), FAMILY_ID, env!("CARGO_PKG_VERSION"));
-    let manifest_hash = prepare_publication_view(layout, &view_id, source_generation, &request_id);
-    let bindings = ResolutionBindingStore::new(factory);
+    let mut connection = factory.open_writer().unwrap();
+    let mut manifests = ManifestStore::new(&mut connection);
+    let base_entries = manifests.entries(VIEW_ID, 1).unwrap();
+    let current_entries = manifests.entries(VIEW_ID, 2).unwrap();
+    manifests.ensure_view(view_id, ROOT).unwrap();
+    let base = manifests
+        .publish(
+            view_id,
+            None,
+            base_entries,
+            &format!("replay-base-{view_id}"),
+        )
+        .unwrap();
+    assert_eq!(base.generation, 1);
+    drop(connection);
+    ensure_ready_replay_base(layout, view_id);
+    let bindings = ResolutionBindingStore::new(factory.clone());
     let bound = bindings
         .bind_base(
-            &view_id,
+            view_id,
             RESOLVER_OUTPUT_EPOCH,
-            &format!("perf-bind-{pair}-{run}"),
+            &format!("replay-bind-{view_id}"),
             NOW,
         )
         .unwrap();
-    assert_eq!(bound.state.as_str(), "converging");
-    let fence = publication_fence(layout, &request_id);
-    let publication = ResolutionExactPublish {
-        view_id,
-        manifest_generation: 1,
-        manifest_hash,
-        base_id: bound.base_id,
-        previous_delta_generation: bound.delta_generation,
-        resolver_output_epoch: RESOLVER_OUTPUT_EPOCH,
-        request_id,
-        created_at: NOW.to_string(),
-    };
-    let mut timeline = WriteTimeline::default();
-    let total_started = Instant::now();
-    let published = bindings
-        .publish_exact_with_markers(
-            &publication,
-            &fence,
-            scratch,
-            gaps,
-            WINDOW_SIZE,
-            || Ok(()),
-            |marker| {
-                timeline.mark_publication(marker);
-            },
+    assert_eq!(bound.state.as_str(), "exact");
+    if mode == ReplayMode::Scoped {
+        install_canonical_gap_payload(layout, view_id, REBASE_GAP_BYTES);
+    }
+    let before = current_resolution_storage(layout, view_id);
+    let mut connection = factory.open_writer().unwrap();
+    let current = ManifestStore::new(&mut connection)
+        .publish(
+            view_id,
+            Some(1),
+            current_entries,
+            &format!("replay-current-{view_id}"),
         )
         .unwrap();
-    assert_eq!(published.state.as_str(), "exact");
-    let elapsed = timeline.finish(total_started.elapsed());
-    complete_publication_request(layout, &publication.request_id);
-    elapsed
-}
-
-fn complete_publication_request(layout: &StoreLayout, request_id: &str) {
-    let terminal_sequence = Connection::open(layout.store_db())
+    assert_eq!(current.generation, 2);
+    let scope: (i64, bool) = Connection::open(layout.store_db())
         .unwrap()
         .query_row(
-            "SELECT sequence FROM store_log
-             WHERE request_id=?1 AND event_kind='resolution_exact_published'",
-            [request_id],
-            |row| row.get::<_, i64>(0),
-        )
-        .unwrap();
-    Connection::open(layout.coordinator_db())
-        .unwrap()
-        .execute(
-            "UPDATE requests
-             SET state='committed',claim_owner=NULL,claim_heartbeat_at=NULL,
-                 terminal_log_sequence=?1,result_json='{}',updated_at=1001
-             WHERE request_id=?2 AND state='claimed'",
-            params![terminal_sequence, request_id],
-        )
-        .unwrap();
-}
-
-fn prepare_publication_view(
-    layout: &StoreLayout,
-    view_id: &str,
-    source_generation: i64,
-    request_id: &str,
-) -> String {
-    let mut connection = Connection::open(layout.store_db()).unwrap();
-    let transaction = connection.transaction().unwrap();
-    let manifest_hash = transaction
-        .query_row(
-            "SELECT manifest_hash FROM manifests WHERE view_id=?1 AND generation=?2",
-            params![VIEW_ID, source_generation],
-            |row| row.get::<_, String>(0),
-        )
-        .unwrap();
-    transaction
-        .execute(
-            "INSERT INTO views(view_id,root,created_at,updated_at) VALUES (?1,?2,?3,?3)",
-            params![view_id, ROOT, NOW],
-        )
-        .unwrap();
-    transaction
-        .execute(
-            "INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
-             VALUES (?1,1,?2,?3,?4)",
-            params![view_id, manifest_hash, request_id, NOW],
-        )
-        .unwrap();
-    transaction
-        .execute(
-            "INSERT INTO manifest_entries
-             (view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at,
-              error_class,error_json)
-             SELECT ?1,1,path,language,version_id,status,observed_content_hash,indexed_at,
-                    error_class,error_json
-             FROM manifest_entries WHERE view_id=?2 AND generation=?3",
-            params![view_id, VIEW_ID, source_generation],
-        )
-        .unwrap();
-    transaction
-        .execute(
-            "UPDATE views SET current_generation=1 WHERE view_id=?1",
+            "SELECT change_count,scope_usable FROM resolution_scope_batches
+             WHERE view_id=?1 ORDER BY transition_id DESC LIMIT 1",
             [view_id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
         )
         .unwrap();
-    transaction.commit().unwrap();
-    manifest_hash
+    assert_eq!(scope, (MILLER_CHANGED_FILES as i64, true));
+    before
 }
 
-fn publication_fence(layout: &StoreLayout, request_id: &str) -> ResolutionPublicationFence {
-    let connection = Connection::open(layout.coordinator_db()).unwrap();
-    connection
+fn install_canonical_gap_payload(layout: &StoreLayout, view_id: &str, bytes: usize) {
+    let prefix = r#"{"files":[1],"rows":[{"kind":"added","local_id":""#;
+    let suffix = r#"","table":"identifier","version_id":1}]}"#;
+    let padding = bytes.checked_sub(prefix.len() + suffix.len()).unwrap();
+    Connection::open(layout.store_db())
+        .unwrap()
         .execute(
-            "INSERT INTO requests
-             (request_id,idempotency_key,kind,payload_json,state,requester_id,
-              requester_deadline,claim_owner,claim_heartbeat_at,terminal_log_sequence,
-              result_json,error_json,created_at,updated_at)
-             VALUES (?1,?2,'resolve','{}','claimed','performance',NULL,'performance-holder',1000,
-                     NULL,NULL,NULL,1000,1000)",
-            params![request_id, format!("key-{request_id}")],
+            "UPDATE resolution_deltas
+             SET exact_gap_rows=1,exact_gap_files=1,
+                 exact_gap_json=?1 || substr(replace(hex(zeroblob((?2 + 1) / 2)),'0','x'),1,?2) || ?3
+             WHERE view_id=?4
+               AND delta_generation=(SELECT resolution_delta_generation FROM views WHERE view_id=?4)",
+            params![
+                prefix,
+                i64::try_from(padding).unwrap(),
+                suffix,
+                view_id
+            ],
         )
         .unwrap();
-    connection
-        .execute(
-            "INSERT OR REPLACE INTO writer_lease
-             (resource,holder_id,holder_version,holder_pid,heartbeat_at,expires_at,fencing_token)
-             VALUES ('store-writer','performance-holder',?1,42,1000,2000,7)",
-            [env!("CARGO_PKG_VERSION")],
+}
+
+fn run_timed_resolve(
+    store_root: &Path,
+    view_id: &str,
+    request_id: &str,
+    mode: ReplayMode,
+) -> TimedResolve {
+    let mut command = timed_worker_command();
+    let started = Instant::now();
+    let output = command
+        .arg(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
+            "store",
+            "resolve",
+            "--store",
+            store_root.to_str().unwrap(),
+            "--view",
+            view_id,
+            "--request-id",
+            request_id,
+            "--idempotency-key",
+            request_id,
+            "--json",
+        ])
+        .env("JULIE_STORE_RESOLUTION_DELTA", mode.env_value())
+        .output()
+        .unwrap();
+    let wall_ms = elapsed_ms(started.elapsed());
+    assert!(
+        output.status.success(),
+        "stdout={} stderr={}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    TimedResolve {
+        report: serde_json::from_slice(&output.stdout).unwrap(),
+        wall_ms,
+        cpu_user_ms: parse_cpu_ms(&output.stderr, "User time"),
+        cpu_system_ms: parse_cpu_ms(&output.stderr, "System time"),
+        peak_rss_bytes: parse_peak_rss(&output.stderr),
+    }
+}
+
+fn parse_cpu_ms(stderr: &[u8], label: &str) -> u64 {
+    String::from_utf8_lossy(stderr)
+        .lines()
+        .find(|line| line.contains(label))
+        .and_then(|line| line.rsplit(':').next())
+        .and_then(|value| value.trim().parse::<f64>().ok())
+        .map(|seconds| (seconds * 1_000.0).round() as u64)
+        .unwrap()
+}
+
+fn export_view(store_root: &Path, view_id: &str, artifact_path: &Path) {
+    let output = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
+            "store",
+            "export",
+            "--store",
+            store_root.to_str().unwrap(),
+            "--view",
+            view_id,
+            "--out",
+            artifact_path.to_str().unwrap(),
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "stdout={} stderr={}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+fn current_resolution_storage(layout: &StoreLayout, view_id: &str) -> ResolutionStorage {
+    let values: (i64, i64, i64, i64) = Connection::open(layout.store_db())
+        .unwrap()
+        .query_row(
+            "SELECT COALESCE(SUM(length(CAST(delta.exact_gap_json AS BLOB))),0),
+                    COALESCE(SUM(delta.exact_gap_rows),0),
+                    COALESCE(SUM(delta.exact_gap_files),0),
+                    COALESCE(SUM(delta.identifier_replacements + delta.pending_replacements +
+                                 delta.pending_tombstones),0)
+             FROM views AS view
+             JOIN resolution_deltas AS delta
+               ON delta.view_id=view.view_id AND delta.base_id=view.resolution_base_id
+            WHERE view.view_id=?1",
+            [view_id],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
         )
         .unwrap();
-    ResolutionPublicationFence {
-        claim_owner: "performance-holder".to_string(),
-        holder_id: "performance-holder".to_string(),
-        holder_pid: 42,
-        fencing_token: 7,
-        now_ms: 1000,
+    ResolutionStorage {
+        gap_bytes: u64::try_from(values.0).unwrap(),
+        gap_rows: u64::try_from(values.1).unwrap(),
+        gap_files: u64::try_from(values.2).unwrap(),
+        delta_rows: u64::try_from(values.3).unwrap(),
+    }
+}
+
+fn current_resolution_base_bytes(layout: &StoreLayout, view_id: &str) -> u64 {
+    let relative_path: String = Connection::open(layout.store_db())
+        .unwrap()
+        .query_row(
+            "SELECT base.relative_path FROM views AS view
+             JOIN resolution_bases AS base ON base.base_id=view.resolution_base_id
+             WHERE view.view_id=?1",
+            [view_id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    fs::metadata(layout.generation_dir().join(relative_path))
+        .unwrap()
+        .len()
+}
+
+fn fixture_snapshot_digest(layout: &StoreLayout) -> String {
+    let connection = Connection::open(layout.store_db()).unwrap();
+    let mut digest = Sha256::new();
+    for query in [
+        "SELECT * FROM file_versions ORDER BY version_id",
+        "SELECT * FROM manifests WHERE view_id='view-miller-scale' ORDER BY generation",
+        "SELECT * FROM manifest_entries WHERE view_id='view-miller-scale' ORDER BY generation,path COLLATE BINARY",
+        "SELECT * FROM symbols ORDER BY version_id,symbol_id COLLATE BINARY",
+        "SELECT * FROM symbol_annotations ORDER BY 1,2",
+        "SELECT * FROM reference_sites ORDER BY version_id,reference_site_id COLLATE BINARY",
+        "SELECT * FROM identifiers ORDER BY version_id,identifier_id COLLATE BINARY",
+        "SELECT * FROM pending_relationships ORDER BY version_id,pending_relationship_id COLLATE BINARY",
+        "SELECT * FROM relationships ORDER BY version_id,relationship_id COLLATE BINARY",
+        "SELECT * FROM type_facts ORDER BY 1,2",
+        "SELECT * FROM type_argument_usages ORDER BY 1,2",
+        "SELECT * FROM type_arguments ORDER BY 1,2",
+        "SELECT * FROM literals ORDER BY 1,2",
+        "SELECT * FROM source_regions ORDER BY 1,2",
+        "SELECT * FROM structural_facts ORDER BY 1,2",
+        "SELECT * FROM complexity_metrics ORDER BY 1,2",
+        "SELECT * FROM parse_diagnostics ORDER BY 1,2",
+    ] {
+        let mut statement = connection.prepare(query).unwrap();
+        let column_count = statement.column_count();
+        let mut rows = statement.query([]).unwrap();
+        while let Some(row) = rows.next().unwrap() {
+            for index in 0..column_count {
+                digest.update(format!("{:?}\0", row.get_ref(index).unwrap()).as_bytes());
+            }
+            digest.update(b"\n");
+        }
+        digest.update(b"\x1e");
+    }
+    format!("{:x}", digest.finalize())
+}
+
+fn artifact_semantic_digest(path: &Path) -> String {
+    let connection = Connection::open(path).unwrap();
+    let mut digest = Sha256::new();
+    for query in [
+        format!(
+            "{} ORDER BY file.path COLLATE BINARY",
+            artifact_projection("main", "files")
+        ),
+        format!(
+            "{} ORDER BY source.path COLLATE BINARY,identifier.start_byte,identifier.identifier_id COLLATE BINARY",
+            artifact_projection("main", "identifiers")
+        ),
+        format!(
+            "{} ORDER BY source.path COLLATE BINARY,pending.start_byte,pending.pending_relationship_id COLLATE BINARY",
+            artifact_projection("main", "pending")
+        ),
+    ] {
+        let mut statement = connection.prepare(&query).unwrap();
+        let column_count = statement.column_count();
+        let mut rows = statement.query([]).unwrap();
+        while let Some(row) = rows.next().unwrap() {
+            for index in 0..column_count {
+                digest.update(format!("{:?}\0", row.get_ref(index).unwrap()).as_bytes());
+            }
+            digest.update(b"\n");
+        }
+        digest.update(b"\x1e");
+    }
+    format!("{:x}", digest.finalize())
+}
+
+fn artifact_semantic_differences(left: &Path, right: &Path) -> u64 {
+    let connection = Connection::open(left).unwrap();
+    connection
+        .execute("ATTACH DATABASE ?1 AS compared", [right.to_str().unwrap()])
+        .unwrap();
+    ["files", "identifiers", "pending"]
+        .into_iter()
+        .map(|table| {
+            let left = artifact_projection("main", table);
+            let right = artifact_projection("compared", table);
+            let forward = format!("SELECT COUNT(*) FROM ({left} EXCEPT {right})");
+            let reverse = format!("SELECT COUNT(*) FROM ({right} EXCEPT {left})");
+            let forward = connection
+                .query_row(&forward, [], |row| row.get::<_, i64>(0))
+                .unwrap();
+            let reverse = connection
+                .query_row(&reverse, [], |row| row.get::<_, i64>(0))
+                .unwrap();
+            u64::try_from(forward + reverse).unwrap()
+        })
+        .sum()
+}
+
+fn artifact_projection(schema: &str, table: &str) -> String {
+    match table {
+        "files" => format!(
+            "SELECT file.path,file.language,file.content_hash
+             FROM {schema}.files AS file"
+        ),
+        "identifiers" => format!(
+            "SELECT source.path,identifier.name,identifier.kind,identifier.start_byte,
+                    identifier.end_byte,resolution.outcome,target_file.path,target.name,
+                    resolution.tier,resolution.confidence,resolution.method,resolution.candidates
+             FROM {schema}.identifier_resolutions AS resolution
+             JOIN {schema}.identifiers AS identifier
+               ON identifier.identifier_id=resolution.identifier_id
+             JOIN {schema}.files AS source ON source.file_id=identifier.file_id
+             LEFT JOIN {schema}.symbols AS target
+               ON target.symbol_id=resolution.target_symbol_id
+             LEFT JOIN {schema}.files AS target_file ON target_file.file_id=target.file_id"
+        ),
+        "pending" => format!(
+            "SELECT source.path,pending.kind,pending.target_terminal_name,pending.start_byte,
+                    pending.end_byte,target_file.path,target.name,resolution.tier,
+                    resolution.confidence,resolution.method
+             FROM {schema}.pending_resolutions AS resolution
+             JOIN {schema}.pending_relationships AS pending
+               ON pending.pending_relationship_id=resolution.pending_relationship_id
+             JOIN {schema}.files AS source ON source.file_id=pending.file_id
+             JOIN {schema}.symbols AS target ON target.symbol_id=resolution.target_symbol_id
+             JOIN {schema}.files AS target_file ON target_file.file_id=target.file_id"
+        ),
+        other => panic!("unexpected artifact projection {other}"),
     }
 }
 
 fn manifest_identity(layout: &StoreLayout, generation: i64) -> StoreManifestIdentity {
+    view_manifest_identity(layout, VIEW_ID, generation)
+}
+
+fn view_manifest_identity(
+    layout: &StoreLayout,
+    view_id: &str,
+    generation: i64,
+) -> StoreManifestIdentity {
     let connection = Connection::open(layout.store_db()).unwrap();
     let manifest_hash = connection
         .query_row(
             "SELECT manifest_hash FROM manifests WHERE view_id=?1 AND generation=?2",
-            params![VIEW_ID, generation],
+            params![view_id, generation],
             |row| row.get(0),
         )
         .unwrap();
     StoreManifestIdentity {
         family_id: FAMILY_ID.to_string(),
-        view_id: VIEW_ID.to_string(),
+        view_id: view_id.to_string(),
         generation,
         manifest_hash,
-    }
-}
-
-fn build_exact(
-    layout: &StoreLayout,
-    identity: StoreManifestIdentity,
-    path: PathBuf,
-) -> (PathBuf, ResolutionFileIdentity, u64, u64) {
-    let factory = StoreConnectionFactory::new(layout.clone(), FAMILY_ID, env!("CARGO_PKG_VERSION"));
-    let mut session = StoreScratchResolutionSession::new(
-        factory,
-        identity,
-        &path,
-        WINDOW_SIZE,
-        RESOLVER_OUTPUT_EPOCH,
-    )
-    .unwrap();
-    let fresh_started = Instant::now();
-    let compute_started = Instant::now();
-    run_resolution_session(&mut session, true, true).unwrap();
-    let resolution_compute_ms = elapsed_ms(compute_started.elapsed());
-    let file = session.finish_exact().unwrap();
-    let store_fresh_ms = elapsed_ms(fresh_started.elapsed());
-    (path, file, resolution_compute_ms, store_fresh_ms)
-}
-
-fn apply_delta(
-    base: &ResolutionBaseReader,
-    delta: &ResolutionScratchReader,
-    exact: &ResolutionBaseReader,
-    path: &Path,
-) {
-    let versions = exact.source_versions().unwrap();
-    let visible = versions.iter().copied().collect::<BTreeSet<_>>();
-    let mut writer = ResolutionBaseWriter::new(
-        path,
-        exact.file_identity().manifest_hash.clone(),
-        exact.file_identity().resolver_output_epoch,
-    )
-    .unwrap();
-    for version in versions {
-        writer.push_source_version(version).unwrap();
-    }
-    let writer = RefCell::new(writer);
-    apply_base_delta(
-        base,
-        delta,
-        WINDOW_SIZE,
-        |version| Ok(visible.contains(&version)),
-        |row| writer.borrow_mut().push_identifier_resolution(row),
-        |row| writer.borrow_mut().push_pending_resolution(row),
-    )
-    .unwrap();
-    writer
-        .into_inner()
-        .finish_with_target_lookup(|_, _| Ok(true))
-        .unwrap();
-}
-
-fn base_differences(left: &Path, right: &Path) -> u64 {
-    let left = ResolutionBaseReader::open(left).unwrap();
-    let right = ResolutionBaseReader::open(right).unwrap();
-    let mut differences =
-        u64::from(left.source_versions().unwrap() != right.source_versions().unwrap());
-    differences += identifier_differences(&left, &right);
-    differences += pending_differences(&left, &right);
-    differences
-}
-
-fn identifier_differences(left: &ResolutionBaseReader, right: &ResolutionBaseReader) -> u64 {
-    let mut left = IdentifierCursor::new(left);
-    let mut right = IdentifierCursor::new(right);
-    merge_differences(
-        || left.next(),
-        || right.next(),
-        |row| (row.version_id, row.identifier_id.clone()),
-    )
-}
-
-fn pending_differences(left: &ResolutionBaseReader, right: &ResolutionBaseReader) -> u64 {
-    let mut left = PendingCursor::new(left);
-    let mut right = PendingCursor::new(right);
-    merge_differences(
-        || left.next(),
-        || right.next(),
-        |row| (row.version_id, row.pending_relationship_id.clone()),
-    )
-}
-
-fn merge_differences<T, N1, N2, K>(mut left: N1, mut right: N2, key: K) -> u64
-where
-    T: PartialEq,
-    N1: FnMut() -> Option<T>,
-    N2: FnMut() -> Option<T>,
-    K: Fn(&T) -> (i64, String),
-{
-    let mut differences = 0;
-    let mut left_row = left();
-    let mut right_row = right();
-    while left_row.is_some() || right_row.is_some() {
-        match (&left_row, &right_row) {
-            (Some(left_value), Some(right_value)) => match key(left_value).cmp(&key(right_value)) {
-                std::cmp::Ordering::Less => {
-                    differences += 1;
-                    left_row = left();
-                }
-                std::cmp::Ordering::Greater => {
-                    differences += 1;
-                    right_row = right();
-                }
-                std::cmp::Ordering::Equal => {
-                    differences += u64::from(left_value != right_value);
-                    left_row = left();
-                    right_row = right();
-                }
-            },
-            (Some(_), None) => {
-                differences += 1;
-                left_row = left();
-            }
-            (None, Some(_)) => {
-                differences += 1;
-                right_row = right();
-            }
-            (None, None) => break,
-        }
-    }
-    differences
-}
-
-struct IdentifierCursor<'a> {
-    reader: &'a ResolutionBaseReader,
-    rows: VecDeque<ResolutionIdentifierRow>,
-    after: Option<(i64, String)>,
-}
-
-impl<'a> IdentifierCursor<'a> {
-    fn new(reader: &'a ResolutionBaseReader) -> Self {
-        Self {
-            reader,
-            rows: VecDeque::new(),
-            after: None,
-        }
-    }
-
-    fn next(&mut self) -> Option<ResolutionIdentifierRow> {
-        if self.rows.is_empty() {
-            self.rows = self
-                .reader
-                .identifier_window(
-                    self.after
-                        .as_ref()
-                        .map(|(version, id)| (*version, id.as_str())),
-                    1_024,
-                )
-                .unwrap()
-                .into();
-        }
-        let row = self.rows.pop_front();
-        if let Some(row) = &row {
-            self.after = Some((row.version_id, row.identifier_id.clone()));
-        }
-        row
-    }
-}
-
-struct PendingCursor<'a> {
-    reader: &'a ResolutionBaseReader,
-    rows: VecDeque<ResolutionPendingRow>,
-    after: Option<(i64, String)>,
-}
-
-impl<'a> PendingCursor<'a> {
-    fn new(reader: &'a ResolutionBaseReader) -> Self {
-        Self {
-            reader,
-            rows: VecDeque::new(),
-            after: None,
-        }
-    }
-
-    fn next(&mut self) -> Option<ResolutionPendingRow> {
-        if self.rows.is_empty() {
-            self.rows = self
-                .reader
-                .pending_window(
-                    self.after
-                        .as_ref()
-                        .map(|(version, id)| (*version, id.as_str())),
-                    1_024,
-                )
-                .unwrap()
-                .into();
-        }
-        let row = self.rows.pop_front();
-        if let Some(row) = &row {
-            self.after = Some((row.version_id, row.pending_relationship_id.clone()));
-        }
-        row
     }
 }
 
@@ -832,48 +935,57 @@ fn build_store_fixture(
             &format!("hash-{index:04}"),
         ));
     }
-    let reuse_new = insert_version(&transaction, "src/file-1535.cs", "hash-reused");
     insert_resolution_rows(
         &transaction,
         versions[0],
         "src/miller-scale.cs",
         "target",
-        identifier_rows,
-        pending_rows,
-        resolved_pending_rows,
+        ResolutionRowShape {
+            identifiers: identifier_rows,
+            pending: pending_rows,
+            resolved_pending: resolved_pending_rows,
+            distinct_target_names: MILLER_DISTINCT_IDENTIFIER_NAMES
+                .saturating_sub(1)
+                .min(identifier_rows.max(1)),
+        },
     );
-    for &index in &[1533usize, 1534, 1535, 1536, 1537] {
-        let target_name = if matches!(index, 1533 | 1534) {
-            "ambiguous".to_string()
-        } else {
-            format!("target-{index:04}")
-        };
+    let changed_start = MILLER_FILE_ROWS - MILLER_CHANGED_FILES;
+    let mut changed_versions = Vec::with_capacity(MILLER_CHANGED_FILES);
+    for (index, version) in versions.iter().copied().enumerate().skip(changed_start) {
+        let path = format!("src/file-{index:04}.cs");
         insert_resolution_rows(
             &transaction,
-            versions[index],
-            &format!("src/file-{index:04}.cs"),
-            &target_name,
-            4,
-            4,
-            usize::from(!matches!(index, 1533 | 1534)) * 4,
+            version,
+            &path,
+            &format!("target-base-{index:04}"),
+            ResolutionRowShape {
+                identifiers: 4,
+                pending: 4,
+                resolved_pending: 4,
+                distinct_target_names: 1,
+            },
         );
+        let changed = insert_version(&transaction, &path, &format!("hash-changed-{index:04}"));
+        insert_resolution_rows(
+            &transaction,
+            changed,
+            &path,
+            &format!("target-changed-{index:04}"),
+            ResolutionRowShape {
+                identifiers: 4,
+                pending: 4,
+                resolved_pending: 4,
+                distinct_target_names: 1,
+            },
+        );
+        changed_versions.push(changed);
     }
-    insert_resolution_rows(
-        &transaction,
-        reuse_new,
-        "src/file-1535.cs",
-        "target-reused",
-        4,
-        4,
-        4,
-    );
     transaction
         .execute(
             "INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
-         VALUES (?1,1,?2,'request-one',?5),
-                (?1,2,?3,'request-two',?5),
-                (?1,3,?4,'request-three',?5)",
-            params![VIEW_ID, "1".repeat(64), "2".repeat(64), "3".repeat(64), NOW],
+         VALUES (?1,1,?2,'request-one',?4),
+                (?1,2,?3,'request-two',?4)",
+            params![VIEW_ID, "1".repeat(64), "2".repeat(64), NOW],
         )
         .unwrap();
     for (index, version) in versions.iter().copied().enumerate() {
@@ -887,46 +999,21 @@ fn build_store_fixture(
              VALUES (?1,1,?2,'csharp',?3,'indexed',?4,?5)",
             params![VIEW_ID, path, version, format!("hash-{index:04}"), NOW],
         ).unwrap();
-        transaction.execute(
-            "INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
-             VALUES (?1,3,?2,'csharp',?3,'indexed',?4,?5)",
-            params![VIEW_ID, path, version, format!("hash-{index:04}"), NOW],
-        ).unwrap();
-        if matches!(index, 1533 | 1534) {
-            continue;
-        }
-        if index == 1535 {
-            transaction.execute(
-                "INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
-                 VALUES (?1,2,?2,'csharp',?3,'indexed','hash-reused',?4)",
-                params![VIEW_ID, path, reuse_new, NOW],
-            ).unwrap();
-        } else if index == 1536 {
-            transaction.execute(
-                "INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at,error_class,error_json)
-                 VALUES (?1,2,?2,'csharp',NULL,'failed',?3,?4,'parse','{}')",
-                params![VIEW_ID, path, format!("hash-{index:04}"), NOW],
-            ).unwrap();
+        let (current_version, current_hash) = if index >= changed_start {
+            (
+                changed_versions[index - changed_start],
+                format!("hash-changed-{index:04}"),
+            )
         } else {
-            let status = if index == 1537 {
-                "failed_preserved"
-            } else {
-                "indexed"
-            };
-            if status == "failed_preserved" {
-                transaction.execute(
-                    "INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at,error_class,error_json)
-                     VALUES (?1,2,?2,'csharp',?3,?4,?5,?6,'parse','{}')",
-                    params![VIEW_ID, path, version, status, format!("hash-{index:04}"), NOW],
-                ).unwrap();
-            } else {
-                transaction.execute(
-                    "INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
-                     VALUES (?1,2,?2,'csharp',?3,?4,?5,?6)",
-                    params![VIEW_ID, path, version, status, format!("hash-{index:04}"), NOW],
-                ).unwrap();
-            }
-        }
+            (version, format!("hash-{index:04}"))
+        };
+        transaction
+            .execute(
+                "INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
+                 VALUES (?1,2,?2,'csharp',?3,'indexed',?4,?5)",
+                params![VIEW_ID, path, current_version, current_hash, NOW],
+            )
+            .unwrap();
     }
     transaction
         .execute(
@@ -935,13 +1022,19 @@ fn build_store_fixture(
         )
         .unwrap();
     transaction.commit().unwrap();
-    ensure_ready_performance_base(&layout);
 }
 
-fn ensure_ready_performance_base(layout: &StoreLayout) {
-    let identity = manifest_identity(layout, 1);
+fn ensure_ready_replay_base(layout: &StoreLayout, view_id: &str) {
+    let identity = view_manifest_identity(layout, view_id, 1);
     let factory = StoreConnectionFactory::new(layout.clone(), FAMILY_ID, env!("CARGO_PKG_VERSION"));
     let catalog = ResolutionBaseCatalog::new(factory.clone());
+    if catalog
+        .find_ready(&identity.manifest_hash, RESOLVER_OUTPUT_EPOCH)
+        .unwrap()
+        .is_some()
+    {
+        return;
+    }
     let build = match catalog
         .begin_build(
             &identity.manifest_hash,
@@ -1082,18 +1175,37 @@ fn insert_resolution_rows(
     version: i64,
     path: &str,
     target_name: &str,
-    identifier_rows: usize,
-    pending_rows: usize,
-    resolved_pending_rows: usize,
+    shape: ResolutionRowShape,
 ) {
-    assert!(resolved_pending_rows <= pending_rows);
+    assert!(shape.resolved_pending <= shape.pending);
+    assert!(shape.distinct_target_names > 0);
     transaction.execute(
         "INSERT INTO symbols(version_id,symbol_id,path,language,name,kind,
          start_line,start_column,end_line,end_column,start_byte,end_byte,is_test,test_container,test_lifecycle)
-         VALUES (?1,'target',?2,'csharp',?3,'function',1,1,1,10,0,10,0,0,0),
-                (?1,'caller',?2,'csharp','caller','function',2,1,500000,1,11,5000000,0,0,0)",
-        params![version, path, target_name],
+         VALUES (?1,'caller',?2,'csharp','caller','function',2,1,500000,1,11,5000000,0,0,0)",
+        params![version, path],
     ).unwrap();
+    let mut symbol_insert = transaction.prepare(
+        "INSERT INTO symbols(version_id,symbol_id,path,language,name,kind,
+         start_line,start_column,end_line,end_column,start_byte,end_byte,is_test,test_container,test_lifecycle)
+         VALUES (?1,?2,?3,'csharp',?4,'function',1,1,1,10,0,10,0,0,0)",
+    ).unwrap();
+    for index in 0..shape.distinct_target_names {
+        let symbol_id = if shape.distinct_target_names == 1 {
+            "target".to_string()
+        } else {
+            format!("target-{index:05}")
+        };
+        let name = if shape.distinct_target_names == 1 {
+            target_name.to_string()
+        } else {
+            format!("{target_name}-{index:05}")
+        };
+        symbol_insert
+            .execute(params![version, symbol_id, path, name])
+            .unwrap();
+    }
+    drop(symbol_insert);
     let mut site_insert = transaction.prepare(
         "INSERT INTO reference_sites(version_id,reference_site_id,path,language,containing_symbol_id,
          start_line,start_column,end_line,end_column,start_byte,end_byte,is_exact,provenance,level)
@@ -1110,11 +1222,13 @@ fn insert_resolution_rows(
          target_namespace_json,start_line,start_column,end_line,end_column,start_byte,end_byte,confidence)
          VALUES (?1,?2,?3,'caller','caller',?4,'calls',?5,?5,'[]',?6,1,?6,7,?7,?8,1.0)",
     ).unwrap();
-    for index in 0..identifier_rows {
-        let row_target_name = if index < pending_rows && index >= resolved_pending_rows {
-            "ambiguous"
+    for index in 0..shape.identifiers {
+        let row_target_name = if index < shape.pending && index >= shape.resolved_pending {
+            "ambiguous".to_string()
+        } else if shape.distinct_target_names == 1 {
+            target_name.to_string()
         } else {
-            target_name
+            format!("{target_name}-{:05}", index % shape.distinct_target_names)
         };
         let site = format!("site-{index:08}");
         let identifier = format!("identifier-{index:08}");
@@ -1129,20 +1243,20 @@ fn insert_resolution_rows(
                 identifier,
                 site,
                 path,
-                row_target_name,
+                &row_target_name,
                 line,
                 start,
                 start + 6
             ])
             .unwrap();
-        if index < pending_rows {
+        if index < shape.pending {
             pending_insert
                 .execute(params![
                     version,
                     format!("pending-{index:08}"),
                     site,
                     path,
-                    row_target_name,
+                    &row_target_name,
                     line,
                     start,
                     start + 6

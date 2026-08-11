@@ -119,6 +119,10 @@ files; they are not copied into general Store tables.
 
 ## Resolution publication
 
+- `JULIE_STORE_RESOLUTION_DELTA` defaults to scoped resolution when unset. `on` selects the same
+  behavior explicitly. `off` forces the pre-incremental full-resolution path without reading prior
+  scope state. Any unusable or incomplete scope journal falls back to full resolution before semantic
+  publication.
 - `store resolve` claims through `coord.db` without holding the store-writer lease during semantic
   computation.
 - Durable resolve writes to `store.db` (exact publish and terminal log append) use a generation-fenced

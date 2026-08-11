@@ -17,8 +17,8 @@ with the [CLI contract](contracts/cli.md), [report contract](contracts/reports.m
 Ph2b, Ph2c, and Ph2d implement the [store v1 contract](contracts/store-v1.md),
 [SQLite store schema v2](contracts/sqlite-store-schema-v2.md), and
 [versioned-store architecture](architecture/versioned-index-store.md). The implementation is
-published in v2.31.0 and patched through v2.31.4. Miller Ph3 consumer wiring targets this contract while
-keeping store mode explicit until its own release and scale-default decision. The implementation
+published in v2.31.0 and patched through v2.31.4. The next minor release makes validated scoped
+resolution the default while retaining an explicit forced-full escape hatch. The implementation
 plans and dogfood records are:
 
 - [Ph2b store-kernel plan](plans/2026-08-07-index-store-ph2b-store-kernel-plan.md)
@@ -38,6 +38,8 @@ plans and dogfood records are:
 - [Concurrent fencing evidence](evidence/2026-08-10-store-concurrent-fencing.md)
 - [Store resolution performance repair plan](plans/2026-08-10-store-resolution-performance-repair.md)
 - [Store resolution performance evidence](findings/2026-08-10-store-resolution-performance-repair.md)
+- [Incremental-resolution dogfood and verification ledger](findings/2026-08-11-store-incremental-resolution-dogfood.md)
+- [v2.32.0 release notes](release-notes/v2.32.0.md)
 
 ## Evidence and historical material
 

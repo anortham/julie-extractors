@@ -1,6 +1,6 @@
 use std::cell::{Cell, RefCell};
 use std::collections::{BTreeMap, BTreeSet, HashMap, VecDeque};
-use std::fmt;
+use std::fmt::{self, Write as _};
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
@@ -15,7 +15,7 @@ use julie_extract_artifact::store::{
 };
 use julie_extract_artifact::store::{StoreConnectionError, StoreConnectionFactory};
 use julie_extractors::SymbolKind;
-use rusqlite::{Connection, OptionalExtension, Row, params};
+use rusqlite::{Connection, OptionalExtension, Row, Transaction, params};
 
 use crate::resolution::{
     self, CandidateEvidence, CandidateHit, CandidateLookup, CandidateSummary, CandidateSymbol,
@@ -760,98 +760,109 @@ impl StoreScratchResolutionSession {
     }
 
     fn materialize_prior_overlay(&mut self) -> Result<(), StoreResolutionError> {
-        let Some(prior) = &self.prior_overlay else {
+        let Some(state) = self.prior_scope_state.clone() else {
             return Ok(());
         };
-        let mut after_version = 0;
-        loop {
-            let versions = {
-                let mut statement = self.scratch.prepare(
-                    "SELECT version_id FROM visible_versions WHERE version_id>?1 ORDER BY version_id LIMIT ?2",
-                )?;
-                statement
-                    .query_map(params![after_version, self.sql_window_limit()?], |row| {
-                        row.get(0)
-                    })?
-                    .collect::<Result<Vec<i64>, _>>()?
-            };
-            if versions.is_empty() {
-                break;
-            }
-            for version_chunk in versions.chunks(256) {
-                let mut after = None;
-                loop {
-                    let page = ready_prior(
-                        prior
-                            .identifiers_by_files(version_chunk, after.as_ref(), self.window_size)
-                            .map_err(|error| incremental_error(error.to_string()))?,
-                    )?;
-                    let transaction = self.scratch.transaction()?;
-                    {
-                        let mut insert = transaction.prepare_cached(
-                            "INSERT OR IGNORE INTO identifier_resolutions
-                             (version_id,identifier_id,target_version_id,target_symbol_id,tier,confidence,method,outcome,candidates)
-                             SELECT ?1,?2,?3,?4,?5,?6,?7,?8,?9
-                             WHERE NOT EXISTS (
-                               SELECT 1 FROM identifier_touched
-                               WHERE version_id=?1 AND identifier_id=?2
-                             )",
-                        )?;
-                        for row in page.rows {
-                            insert.execute(params![
-                                row.version_id,
-                                row.identifier_id,
-                                row.target_version_id,
-                                row.target_symbol_id,
-                                row.tier,
-                                row.confidence,
-                                row.method,
-                                row.outcome,
-                                row.candidates
-                            ])?;
-                        }
-                    }
-                    transaction.commit()?;
-                    let Some(next) = page.next else { break };
-                    after = Some(next);
-                }
-                let mut after = None;
-                loop {
-                    let page = ready_prior(
-                        prior
-                            .pending_by_files(version_chunk, after.as_ref(), self.window_size)
-                            .map_err(|error| incremental_error(error.to_string()))?,
-                    )?;
-                    let transaction = self.scratch.transaction()?;
-                    {
-                        let mut insert = transaction.prepare_cached(
-                            "INSERT OR IGNORE INTO pending_resolutions
-                             (version_id,pending_relationship_id,target_version_id,target_symbol_id,tier,confidence,method)
-                             SELECT ?1,?2,?3,?4,?5,?6,?7
-                             WHERE NOT EXISTS (
-                               SELECT 1 FROM pending_touched
-                               WHERE version_id=?1 AND pending_relationship_id=?2
-                             )",
-                        )?;
-                        for row in page.rows {
-                            insert.execute(params![
-                                row.version_id,
-                                row.pending_relationship_id,
-                                row.target_version_id,
-                                row.target_symbol_id,
-                                row.tier,
-                                row.confidence,
-                                row.method
-                            ])?;
-                        }
-                    }
-                    transaction.commit()?;
-                    let Some(next) = page.next else { break };
-                    after = Some(next);
-                }
-            }
-            after_version = *versions.last().expect("non-empty visible version page");
-        }
+        let base_path = self
+            .layout
+            .generation_dir()
+            .join("bases")
+            .join(format!("{}.db", state.base_id));
+        self.scratch.execute(
+            "ATTACH DATABASE ?1 AS prior_store",
+            [sqlite_read_only_uri(self.layout.store_db(), false)?],
+        )?;
+        self.scratch.execute(
+            "ATTACH DATABASE ?1 AS prior_base",
+            [sqlite_read_only_uri(&base_path, true)?],
+        )?;
+        let copy_result = (|| -> Result<(), StoreResolutionError> {
+            let transaction = self.scratch.transaction()?;
+            validate_frozen_prior_overlay(&transaction, &state)?;
+            transaction.execute(
+                "INSERT OR IGNORE INTO identifier_resolutions
+                 (version_id,identifier_id,target_version_id,target_symbol_id,tier,confidence,
+                  method,outcome,candidates)
+                 SELECT source.version_id,source.identifier_id,
+                        CASE WHEN delta.version_id IS NOT NULL
+                             THEN delta.target_version_id ELSE base.target_version_id END,
+                        CASE WHEN delta.version_id IS NOT NULL
+                             THEN delta.target_symbol_id ELSE base.target_symbol_id END,
+                        CASE WHEN delta.version_id IS NOT NULL THEN delta.tier ELSE base.tier END,
+                        CASE WHEN delta.version_id IS NOT NULL
+                             THEN delta.confidence ELSE base.confidence END,
+                        CASE WHEN delta.version_id IS NOT NULL THEN delta.method ELSE base.method END,
+                        CASE WHEN delta.version_id IS NOT NULL THEN delta.outcome ELSE base.outcome END,
+                        CASE WHEN delta.version_id IS NOT NULL
+                             THEN delta.candidates ELSE base.candidates END
+                 FROM prior_store.identifiers AS source
+                 JOIN visible_versions AS visible ON visible.version_id=source.version_id
+                 JOIN prior_store.manifest_entries AS predecessor
+                   ON predecessor.view_id=?1 AND predecessor.generation=?2
+                  AND predecessor.version_id=source.version_id
+                 LEFT JOIN prior_base.identifier_resolutions AS base
+                   ON base.version_id=source.version_id
+                  AND base.identifier_id=source.identifier_id
+                 LEFT JOIN prior_store.resolution_identifier_deltas AS delta
+                   ON delta.view_id=?1 AND delta.delta_generation=?3
+                  AND delta.version_id=source.version_id
+                  AND delta.identifier_id=source.identifier_id
+                 LEFT JOIN identifier_touched AS touched
+                   ON touched.version_id=source.version_id
+                  AND touched.identifier_id=source.identifier_id
+                 WHERE touched.identifier_id IS NULL
+                   AND (delta.version_id IS NOT NULL OR base.version_id IS NOT NULL)",
+                params![
+                    state.view_id,
+                    state.predecessor_manifest_generation,
+                    state.delta_generation
+                ],
+            )?;
+            transaction.execute(
+                "INSERT OR IGNORE INTO pending_resolutions
+                 (version_id,pending_relationship_id,target_version_id,target_symbol_id,tier,
+                  confidence,method)
+                 SELECT source.version_id,source.pending_relationship_id,
+                        CASE WHEN delta.operation='replace'
+                             THEN delta.target_version_id ELSE base.target_version_id END,
+                        CASE WHEN delta.operation='replace'
+                             THEN delta.target_symbol_id ELSE base.target_symbol_id END,
+                        CASE WHEN delta.operation='replace' THEN delta.tier ELSE base.tier END,
+                        CASE WHEN delta.operation='replace'
+                             THEN delta.confidence ELSE base.confidence END,
+                        CASE WHEN delta.operation='replace' THEN delta.method ELSE base.method END
+                 FROM prior_store.pending_relationships AS source
+                 JOIN visible_versions AS visible ON visible.version_id=source.version_id
+                 JOIN prior_store.manifest_entries AS predecessor
+                   ON predecessor.view_id=?1 AND predecessor.generation=?2
+                  AND predecessor.version_id=source.version_id
+                 LEFT JOIN prior_base.pending_resolutions AS base
+                   ON base.version_id=source.version_id
+                  AND base.pending_relationship_id=source.pending_relationship_id
+                 LEFT JOIN prior_store.resolution_pending_deltas AS delta
+                   ON delta.view_id=?1 AND delta.delta_generation=?3
+                  AND delta.version_id=source.version_id
+                  AND delta.pending_relationship_id=source.pending_relationship_id
+                 LEFT JOIN pending_touched AS touched
+                   ON touched.version_id=source.version_id
+                  AND touched.pending_relationship_id=source.pending_relationship_id
+                 WHERE touched.pending_relationship_id IS NULL
+                   AND (delta.operation='replace'
+                        OR (delta.operation IS NULL AND base.version_id IS NOT NULL))",
+                params![
+                    state.view_id,
+                    state.predecessor_manifest_generation,
+                    state.delta_generation
+                ],
+            )?;
+            transaction.commit()?;
+            Ok(())
+        })();
+        let detach_base = self.scratch.execute("DETACH DATABASE prior_base", []);
+        let detach_store = self.scratch.execute("DETACH DATABASE prior_store", []);
+        copy_result?;
+        detach_base?;
+        detach_store?;
         Ok(())
     }
 
@@ -3149,6 +3160,147 @@ fn store_version(version: &SemanticVersionId) -> Result<i64, StoreResolutionErro
     }
 }
 
+fn sqlite_read_only_uri(path: &Path, immutable: bool) -> Result<String, StoreResolutionError> {
+    let path = path.to_str().ok_or_else(|| {
+        incremental_error(format!(
+            "prior overlay path is not UTF-8: {}",
+            path.display()
+        ))
+    })?;
+    let normalized = path.replace('\\', "/");
+    let mut uri = String::from("file:");
+    for byte in normalized.bytes() {
+        if byte.is_ascii_alphanumeric() || matches!(byte, b'/' | b':' | b'-' | b'.' | b'_' | b'~') {
+            uri.push(char::from(byte));
+        } else {
+            write!(uri, "%{byte:02X}").expect("writing to String cannot fail");
+        }
+    }
+    if immutable {
+        uri.push_str("?mode=ro&immutable=1");
+    } else {
+        uri.push_str("?mode=ro");
+    }
+    Ok(uri)
+}
+
+fn validate_frozen_prior_overlay(
+    transaction: &Transaction<'_>,
+    state: &ResolutionScopeState,
+) -> Result<(), StoreResolutionError> {
+    let relative_path = format!("bases/{}.db", state.base_id);
+    let checks = transaction.query_row(
+        "SELECT
+           EXISTS(
+             SELECT 1 FROM prior_store.resolution_scope_state
+             WHERE view_id=?1 AND predecessor_manifest_generation=?2
+               AND predecessor_manifest_hash=?3 AND base_id=?4 AND delta_generation=?5
+               AND resolver_output_epoch=?6 AND current_manifest_generation=?7
+               AND current_manifest_hash=?8 AND journal_through_transition_id=?9
+           ),
+           EXISTS(
+             SELECT 1 FROM prior_store.views AS view
+             JOIN prior_store.manifests AS current
+               ON current.view_id=view.view_id AND current.generation=view.current_generation
+             JOIN prior_store.manifests AS predecessor
+               ON predecessor.view_id=view.view_id AND predecessor.generation=?2
+             WHERE view.view_id=?1 AND view.current_generation=?7
+               AND current.manifest_hash=?8 AND predecessor.manifest_hash=?3
+           ),
+           EXISTS(
+             SELECT 1 FROM prior_store.resolution_bases AS base
+             WHERE base.base_id=?4 AND base.resolver_output_epoch=?6 AND base.state='ready'
+               AND base.relative_path=?10 AND base.identifier_count>=0 AND base.pending_count>=0
+               AND base.file_bytes>0 AND length(base.file_sha256)>0
+           ),
+           EXISTS(
+             SELECT 1 FROM prior_store.resolution_bases AS base
+             WHERE base.base_id=?4
+               AND base.manifest_hash=(SELECT value FROM prior_base.base_meta WHERE key='manifest_hash')
+               AND CAST(base.resolver_output_epoch AS TEXT)=
+                   (SELECT value FROM prior_base.base_meta WHERE key='resolver_output_epoch')
+               AND CAST(base.identifier_count AS TEXT)=
+                   (SELECT value FROM prior_base.base_meta WHERE key='identifier_count')
+               AND CAST(base.pending_count AS TEXT)=
+                   (SELECT value FROM prior_base.base_meta WHERE key='pending_count')
+               AND (SELECT value FROM prior_base.base_meta WHERE key='completed')='1'
+           ),
+           EXISTS(
+             SELECT 1 FROM prior_store.resolution_bases AS base
+             WHERE base.base_id=?4
+               AND base.identifier_count=(SELECT COUNT(*) FROM prior_base.identifier_resolutions)
+               AND base.pending_count=(SELECT COUNT(*) FROM prior_base.pending_resolutions)
+           ),
+           NOT EXISTS(
+             SELECT version_id FROM prior_store.resolution_base_versions WHERE base_id=?4
+             EXCEPT SELECT version_id FROM prior_base.resolution_base_versions
+           ),
+           NOT EXISTS(
+             SELECT version_id FROM prior_base.resolution_base_versions
+             EXCEPT SELECT version_id FROM prior_store.resolution_base_versions WHERE base_id=?4
+           ),
+           EXISTS(
+             SELECT 1 FROM prior_store.resolution_deltas AS delta
+             WHERE delta.view_id=?1 AND delta.delta_generation=?5 AND delta.base_id=?4
+               AND delta.manifest_generation=?2 AND delta.manifest_hash=?3
+               AND delta.resolver_output_epoch=?6
+               AND delta.identifier_replacements=(
+                 SELECT COUNT(*) FROM prior_store.resolution_identifier_deltas
+                 WHERE view_id=?1 AND delta_generation=?5
+               )
+               AND delta.pending_replacements=(
+                 SELECT COUNT(*) FROM prior_store.resolution_pending_deltas
+                 WHERE view_id=?1 AND delta_generation=?5 AND operation='replace'
+               )
+               AND delta.pending_tombstones=(
+                 SELECT COUNT(*) FROM prior_store.resolution_pending_deltas
+                 WHERE view_id=?1 AND delta_generation=?5 AND operation='tombstone'
+               )
+           )",
+        params![
+            state.view_id,
+            state.predecessor_manifest_generation,
+            state.predecessor_manifest_hash,
+            state.base_id,
+            state.delta_generation,
+            state.resolver_output_epoch,
+            state.current_manifest_generation,
+            state.current_manifest_hash,
+            state.journal_through_transition_id,
+            relative_path,
+        ],
+        |row| {
+            Ok([
+                row.get::<_, bool>(0)?,
+                row.get::<_, bool>(1)?,
+                row.get::<_, bool>(2)?,
+                row.get::<_, bool>(3)?,
+                row.get::<_, bool>(4)?,
+                row.get::<_, bool>(5)?,
+                row.get::<_, bool>(6)?,
+                row.get::<_, bool>(7)?,
+            ])
+        },
+    )?;
+    let names = [
+        "scope state",
+        "manifest state",
+        "ready base catalog identity",
+        "ready base metadata identity",
+        "ready base row counts",
+        "catalog base roots",
+        "attached base roots",
+        "delta identity and counts",
+    ];
+    if let Some((name, _)) = names.iter().zip(checks).find(|(_, valid)| !valid) {
+        Err(incremental_error(format!(
+            "prior overlay {name} changed before exact materialization"
+        )))
+    } else {
+        Ok(())
+    }
+}
+
 fn phase_code(phase: ResolutionPhase) -> i64 {
     match phase {
         ResolutionPhase::ResolvedPending => 1,
@@ -3215,5 +3367,64 @@ fn candidate_hit(row: &Row<'_>) -> rusqlite::Result<Option<CandidateHit>> {
 impl Drop for StoreScratchResolutionSession {
     fn drop(&mut self) {
         let _ = self.remove_scratch();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn prior_overlay_attach_uris_reject_store_and_base_writes() {
+        let temp = tempfile::tempdir().unwrap();
+        let store_path = temp.path().join("prior store.db");
+        let base_path = temp.path().join("prior base.db");
+        for path in [&store_path, &base_path] {
+            let connection = Connection::open(path).unwrap();
+            connection
+                .execute_batch(
+                    "CREATE TABLE guarded(value INTEGER); INSERT INTO guarded VALUES (1);",
+                )
+                .unwrap();
+        }
+
+        let scratch = Connection::open_in_memory().unwrap();
+        scratch
+            .execute(
+                "ATTACH DATABASE ?1 AS readonly_store",
+                [sqlite_read_only_uri(&store_path, false).unwrap()],
+            )
+            .unwrap();
+        scratch
+            .execute(
+                "ATTACH DATABASE ?1 AS readonly_base",
+                [sqlite_read_only_uri(&base_path, true).unwrap()],
+            )
+            .unwrap();
+
+        assert!(
+            scratch
+                .execute("UPDATE readonly_store.guarded SET value=2", [])
+                .is_err()
+        );
+        assert!(
+            scratch
+                .execute("UPDATE readonly_base.guarded SET value=2", [])
+                .is_err()
+        );
+        assert_eq!(
+            scratch
+                .query_row("SELECT value FROM readonly_store.guarded", [], |row| row
+                    .get::<_, i64>(0))
+                .unwrap(),
+            1
+        );
+        assert_eq!(
+            scratch
+                .query_row("SELECT value FROM readonly_base.guarded", [], |row| row
+                    .get::<_, i64>(0))
+                .unwrap(),
+            1
+        );
     }
 }

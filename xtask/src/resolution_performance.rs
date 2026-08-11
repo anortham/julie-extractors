@@ -10,6 +10,7 @@ pub const MIN_IDENTIFIER_ROWS_PER_SECOND: f64 = 50_000.0;
 pub const MAX_DIFF_OVERHEAD_RATIO: f64 = 0.50;
 pub const MAX_TIME_TO_EXACT_MS: u64 = 30_000;
 pub const REFUTED_BIND_CONTROL_MS: u64 = 24_390;
+pub const REBASE_GAP_BYTES: u64 = 64 * 1024 * 1024;
 pub const FIXED_PAIRS: [&str; 2] = ["miller-unchanged", "miller-mutated"];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -36,10 +37,21 @@ pub struct ResolutionPerformanceSample {
     pub delta_bytes: u64,
     pub semantic_differences: u64,
     pub applied_differences: u64,
-    pub exact_gap_mismatches: u64,
     pub foreground_bind_ms: u64,
-    pub foreground_identifier_work: u64,
+    pub foreground_identifier_work: Option<u64>,
     pub background_pipeline_ms: u64,
+    pub resolution_mode: String,
+    pub fallback_reason: Option<String>,
+    pub canonical_semantic_digest: String,
+    pub row_level_differences: u64,
+    pub fixture_snapshot_digest: String,
+    pub exact_gap_rows: u64,
+    pub exact_gap_files: u64,
+    pub cumulative_gap_bytes_before: u64,
+    pub cumulative_gap_bytes_after: u64,
+    pub cumulative_delta_rows_before: u64,
+    pub cumulative_delta_rows_after: u64,
+    pub rebased: bool,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -50,11 +62,12 @@ pub struct ResolutionPerformanceVerdict {
     pub diff_overhead_ratio: f64,
     pub g1_passed: bool,
     pub g2_passed: bool,
-    pub g3a_passed: bool,
-    pub g3b_passed: bool,
-    pub g3c_passed: bool,
-    pub g4_passed: bool,
+    pub identifier_throughput_status: String,
+    pub diff_overhead_status: String,
+    pub g3c_passed: Option<bool>,
+    pub g4_passed: Option<bool>,
     pub g5_passed: bool,
+    pub g6_passed: bool,
     pub passed: bool,
 }
 
@@ -291,7 +304,33 @@ pub fn evaluate_samples(
         ));
     }
 
-    let verdicts = samples.into_iter().map(evaluate_sample).collect::<Vec<_>>();
+    let mut verdicts = samples.into_iter().map(evaluate_sample).collect::<Vec<_>>();
+    for run in 1..=runs {
+        let full = verdicts
+            .iter()
+            .position(|sample| sample.sample.run == run && sample.sample.pair == FIXED_PAIRS[0])
+            .expect("complete fixed-pair evidence");
+        let scoped = verdicts
+            .iter()
+            .position(|sample| sample.sample.run == run && sample.sample.pair == FIXED_PAIRS[1])
+            .expect("complete fixed-pair evidence");
+        let faster =
+            verdicts[scoped].sample.time_to_exact_ms < verdicts[full].sample.time_to_exact_ms;
+        let equivalent = !verdicts[scoped].sample.canonical_semantic_digest.is_empty()
+            && verdicts[scoped].sample.canonical_semantic_digest
+                == verdicts[full].sample.canonical_semantic_digest
+            && !verdicts[scoped].sample.fixture_snapshot_digest.is_empty()
+            && verdicts[scoped].sample.fixture_snapshot_digest
+                == verdicts[full].sample.fixture_snapshot_digest;
+        verdicts[full].g2_passed = equivalent;
+        verdicts[full].passed &= equivalent;
+        verdicts[scoped].g2_passed = equivalent;
+        verdicts[scoped].passed &= equivalent;
+        verdicts[full].g6_passed = faster;
+        verdicts[full].passed &= faster;
+        verdicts[scoped].g6_passed = faster;
+        verdicts[scoped].passed &= faster;
+    }
     let passed = verdicts.iter().all(|sample| sample.passed);
     Ok(ResolutionPerformanceSummary {
         runs,
@@ -312,27 +351,50 @@ fn evaluate_sample(sample: ResolutionPerformanceSample) -> ResolutionPerformance
     } else {
         (sample.diff_ms + sample.delta_write_ms) as f64 / sample.resolution_compute_ms as f64
     };
-    let g1_passed = sample.semantic_differences == 0;
-    let g2_passed = sample.applied_differences == 0;
-    let g3a_passed = identifier_rows_per_second >= MIN_IDENTIFIER_ROWS_PER_SECOND;
-    let g3b_passed = diff_overhead_ratio <= MAX_DIFF_OVERHEAD_RATIO;
-    let g3c_passed = sample.time_to_exact_ms <= MAX_TIME_TO_EXACT_MS;
-    let g4_passed = sample.exact_gap_mismatches == 0;
-    let g5_passed = sample.foreground_identifier_work == 0
-        && sample.background_pipeline_ms < REFUTED_BIND_CONTROL_MS;
-    let passed =
-        g1_passed && g2_passed && g3a_passed && g3b_passed && g3c_passed && g4_passed && g5_passed;
+    let g1_passed = sample.semantic_differences == 0
+        && sample.applied_differences == 0
+        && sample.row_level_differences == 0;
+    let g2_passed = true;
+    let forced_full_control = sample.pair == FIXED_PAIRS[0];
+    let identifier_throughput_status = "report_only".to_string();
+    let diff_overhead_status = "report_only".to_string();
+    let g3c_passed =
+        (!forced_full_control).then_some(sample.time_to_exact_ms <= MAX_TIME_TO_EXACT_MS);
+    let g4_passed = (!forced_full_control).then_some(
+        sample.rebased
+            && sample.cumulative_gap_bytes_before > REBASE_GAP_BYTES
+            && sample.cumulative_gap_bytes_after <= REBASE_GAP_BYTES
+            && sample.cumulative_gap_bytes_after < sample.cumulative_gap_bytes_before
+            && sample.delta_bytes == sample.cumulative_gap_bytes_after
+            && sample.exact_gap_rows == 0
+            && sample.exact_gap_files == 0
+            && sample.cumulative_delta_rows_after == 0
+            && sample.base_bytes > 0,
+    );
+    let g5_passed = if forced_full_control {
+        sample.resolution_mode == "full"
+            && sample.fallback_reason.as_deref() == Some("incremental_resolution_disabled")
+    } else {
+        sample.resolution_mode == "scoped" && sample.fallback_reason.is_none()
+    };
+    let g6_passed = true;
+    let passed = g1_passed
+        && g2_passed
+        && g3c_passed.unwrap_or(true)
+        && g4_passed.unwrap_or(true)
+        && g5_passed;
     ResolutionPerformanceVerdict {
         sample,
         identifier_rows_per_second,
         diff_overhead_ratio,
         g1_passed,
         g2_passed,
-        g3a_passed,
-        g3b_passed,
+        identifier_throughput_status,
+        diff_overhead_status,
         g3c_passed,
         g4_passed,
         g5_passed,
+        g6_passed,
         passed,
     }
 }

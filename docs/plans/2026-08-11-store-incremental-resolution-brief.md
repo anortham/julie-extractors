@@ -614,12 +614,16 @@ cleanup/recovery for CAS-loser ready bases.
 
 ### Task 8: Dogfood replay, default flip, and release evidence
 
-**Files:** modify `crates/julie-extract-cli/tests/store_resolution_performance.rs`, store contract/release-note/docs-map
-files, and add the dated findings/verification-ledger document.
+**Files:** modify `crates/julie-extract-cli/tests/store_resolution_performance.rs`, the focused resolution-session
+and mechanism contracts needed to enforce bulk carry-forward, the mode-aware xtask evaluator, store
+contract/release-note/docs-map files, and add the dated findings/verification-ledger document.
 
-**Contract inputs:** all Tasks 1-7 behavior, the recorded Miller 98-file transition, and the branch/security gates.
+**Contract inputs:** all Tasks 1-7 behavior, a deterministic faithful recorded-scale replay of the
+Miller 98-file transition shape, and the branch/security gates.
 
 **File ownership:** Task 8 exclusively owns the performance replay harness and release/evidence documentation.
+The dogfood performance blocker authorizes the minimal bulk carry-forward correction in
+`store/resolution_session.rs`, its focused mechanism/session contracts, and the mode-aware xtask evaluator.
 
 **Serialization required:** Yes; this is the final evidence and default-flip task.
 
@@ -627,17 +631,19 @@ files, and add the dated findings/verification-ledger document.
 
 **Interfaces:** produce the release evidence for default-on scoped resolution; no new runtime interface.
 
-**What to build:** replay the recorded Miller 98-file transition in forced-full and scoped modes, compare canonical
-semantic row digests and row-level output, record phase metrics/RSS/storage, re-measure and record the gap/delta
+**What to build:** run a deterministic faithful recorded-scale replay of the Miller 98-file transition
+shape in forced-full and scoped modes, compare canonical semantic row digests and row-level output,
+record phase metrics/RSS/storage, re-measure and record the gap/delta
 storage figures in the findings doc (replacing the provisional 151.7 MB session measurement and confirming or
 revising the Task 7 thresholds), run the branch gate, then make delta mode default-on with the off-switch retained.
 
 **Acceptance criteria:**
-- [ ] Forced-full and scoped canonical row digests and semantic rows are identical.
-- [ ] Scoped resolution completes in seconds rather than minutes on the recorded Miller transition.
-- [ ] Rebase collapses accumulated gap/delta storage under the fixed thresholds.
-- [ ] All branch, security, replay, and consumer gates pass with a complete verification ledger.
-- [ ] Only this task changes the unset-env default from forced-full to scoped; explicit `off` keeps the pre-change full behavior verbatim.
+- [x] Forced-full and scoped canonical row digests and semantic rows are identical.
+- [x] Scoped resolution completes in seconds rather than minutes on the deterministic faithful
+  recorded-scale replay.
+- [x] Rebase collapses accumulated gap/delta storage under the fixed thresholds.
+- [x] All branch, security, replay, and consumer gates pass with a complete verification ledger.
+- [x] Only this task changes the unset-env default from forced-full to scoped; explicit `off` keeps the pre-change full behavior verbatim.
 
 ### Task 9: Fresh-store recovery completeness
 

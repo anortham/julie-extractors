@@ -1143,7 +1143,7 @@ fn resolution_delta_enabled() -> Result<bool, String> {
         Ok(value) => Err(format!(
             "resolution_failed: JULIE_STORE_RESOLUTION_DELTA must be 'on' or 'off', found '{value}'"
         )),
-        Err(std::env::VarError::NotPresent) => Ok(false),
+        Err(std::env::VarError::NotPresent) => Ok(true),
         Err(std::env::VarError::NotUnicode(_)) => Err(
             "resolution_failed: JULIE_STORE_RESOLUTION_DELTA must be valid UTF-8 'on' or 'off'"
                 .to_string(),
