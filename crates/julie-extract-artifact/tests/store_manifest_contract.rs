@@ -96,6 +96,40 @@ fn transactional_publication_uses_the_shared_scope_capture_seam() {
 }
 
 #[test]
+fn no_state_header_only_publication_does_not_read_symbols() {
+    let mut connection = Connection::open_in_memory().unwrap();
+    create_store_schema(&connection).unwrap();
+    ManifestStore::new(&mut connection)
+        .ensure_view("view-a", "/repo")
+        .unwrap();
+    connection.execute_batch("DROP TABLE symbols").unwrap();
+
+    let published = ManifestStore::new(&mut connection)
+        .publish(
+            "view-a",
+            None,
+            [ManifestEntry::failed(
+                "src/lib.rs",
+                "rust",
+                "blake3:unavailable",
+                INDEXED_AT,
+                "read",
+                r#"{"message":"unavailable"}"#,
+            )],
+            "request-first",
+        )
+        .unwrap();
+
+    assert_eq!(published.generation, 1);
+    let batch = validate_resolution_scope_batch(&connection, 1)
+        .unwrap()
+        .unwrap();
+    assert!(!batch.scope_usable);
+    assert_eq!(batch.change_count, 0);
+    assert!(batch.changes.is_empty());
+}
+
+#[test]
 fn manifest_hash_v2_is_language_sensitive_and_language_roundtrips() {
     let mut connection = Connection::open_in_memory().unwrap();
     create_store_schema(&connection).unwrap();

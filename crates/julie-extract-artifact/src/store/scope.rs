@@ -97,6 +97,14 @@ pub(super) struct ScopeManifestEntry {
     pub error_json: Option<String>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ScopeChangeDelta {
+    path: String,
+    change_kind: ResolutionScopeChangeKind,
+    old_version_id: Option<i64>,
+    new_version_id: Option<i64>,
+}
+
 #[derive(Debug)]
 /// Typed feature-upgrade or scope-batch validation failure.
 pub enum ResolutionScopeError {
@@ -364,7 +372,14 @@ fn validate_usable_batch(
         &batch.view_id,
         Some(batch.to_manifest_generation),
     )?;
-    if scope_changes(connection, &old_entries, &new_entries)? != batch.changes {
+    let deltas = scope_change_deltas(&old_entries, &new_entries);
+    if deltas.len() > RESOLUTION_SCOPE_MAX_CHANGES {
+        return Err(invalid_batch(
+            batch.transition_id,
+            "usable batch exceeds the scope change bound",
+        ));
+    }
+    if hydrate_scope_changes(connection, &deltas)? != batch.changes {
         return Err(invalid_batch(
             batch.transition_id,
             "child rows do not match the source and target manifests",
@@ -430,12 +445,6 @@ pub(crate) fn capture_resolution_scope_transition(
             )
         })
         .transpose()?;
-    let old_entries = manifest_entries(transaction, view_id, from_manifest_generation)?;
-    let new_entries = new_entries
-        .into_iter()
-        .map(|entry| (entry.path.clone(), entry))
-        .collect::<BTreeMap<_, _>>();
-    let changes = scope_changes(transaction, &old_entries, &new_entries)?;
     let state = if from_manifest_generation.is_some() && previous_transition_id.is_none() {
         None
     } else if let Some(state) = exact_scope_state(transaction, view_id)? {
@@ -446,8 +455,23 @@ pub(crate) fn capture_resolution_scope_transition(
                 && Some(state.current_manifest_hash.as_str()) == from_manifest_hash.as_deref()
         })
     };
-    let usable = state.is_some() && changes.len() <= RESOLUTION_SCOPE_MAX_CHANGES;
-    let stored_changes = if usable { changes.as_slice() } else { &[] };
+    let deltas = if state.is_some() {
+        let old_entries = manifest_entries(transaction, view_id, from_manifest_generation)?;
+        let new_entries = new_entries
+            .into_iter()
+            .map(|entry| (entry.path.clone(), entry))
+            .collect::<BTreeMap<_, _>>();
+        scope_change_deltas(&old_entries, &new_entries)
+    } else {
+        Vec::new()
+    };
+    let usable = state.is_some() && deltas.len() <= RESOLUTION_SCOPE_MAX_CHANGES;
+    let changes = if usable {
+        hydrate_scope_changes(transaction, &deltas)?
+    } else {
+        Vec::new()
+    };
+    let stored_changes = changes.as_slice();
     let hash = change_hash(stored_changes);
     let state_columns = state.as_ref().filter(|_| usable);
     transaction.execute(
@@ -584,52 +608,79 @@ fn manifest_entries(
         .collect::<Result<BTreeMap<_, _>, _>>()?)
 }
 
-fn scope_changes(
-    connection: &Connection,
+fn scope_change_deltas(
     old_entries: &BTreeMap<String, ScopeManifestEntry>,
     new_entries: &BTreeMap<String, ScopeManifestEntry>,
-) -> Result<Vec<ResolutionScopeChange>, ResolutionScopeError> {
-    let mut paths = old_entries
-        .keys()
-        .chain(new_entries.keys())
-        .collect::<Vec<_>>();
-    paths.sort_by(|left, right| left.as_bytes().cmp(right.as_bytes()));
-    paths.dedup();
-    paths
-        .into_iter()
-        .filter(|path| old_entries.get(*path) != new_entries.get(*path))
-        .map(|path| {
-            let old_entry = old_entries.get(path);
-            let new_entry = new_entries.get(path);
-            let change_kind = match (old_entry, new_entry) {
-                (None, Some(_)) => ResolutionScopeChangeKind::PathAdded,
-                (Some(_), None) => ResolutionScopeChangeKind::PathDeleted,
-                (Some(_), Some(_)) => ResolutionScopeChangeKind::ContentReplaced,
-                (None, None) => unreachable!("changed path exists in at least one manifest"),
-            };
-            let old_version_id = old_entry.and_then(|entry| entry.version_id);
-            let new_version_id = new_entry.and_then(|entry| entry.version_id);
-            Ok(ResolutionScopeChange {
+) -> Vec<ScopeChangeDelta> {
+    let mut deltas = Vec::new();
+    for (path, old_entry) in old_entries {
+        let (change_kind, new_version_id) = match new_entries.get(path) {
+            Some(new_entry) if old_entry == new_entry => continue,
+            Some(new_entry) => (
+                ResolutionScopeChangeKind::ContentReplaced,
+                new_entry.version_id,
+            ),
+            None => (ResolutionScopeChangeKind::PathDeleted, None),
+        };
+        deltas.push(ScopeChangeDelta {
+            path: path.clone(),
+            change_kind,
+            old_version_id: old_entry.version_id,
+            new_version_id,
+        });
+        if deltas.len() > RESOLUTION_SCOPE_MAX_CHANGES {
+            return deltas;
+        }
+    }
+    for (path, new_entry) in new_entries {
+        if !old_entries.contains_key(path) {
+            deltas.push(ScopeChangeDelta {
                 path: path.clone(),
-                change_kind,
-                old_version_id,
-                new_version_id,
-                touched_names_json: touched_names_json(connection, old_version_id, new_version_id)?,
+                change_kind: ResolutionScopeChangeKind::PathAdded,
+                old_version_id: None,
+                new_version_id: new_entry.version_id,
+            });
+            if deltas.len() > RESOLUTION_SCOPE_MAX_CHANGES {
+                return deltas;
+            }
+        }
+    }
+    deltas.sort_by(|left, right| left.path.as_bytes().cmp(right.path.as_bytes()));
+    deltas
+}
+
+fn hydrate_scope_changes(
+    connection: &Connection,
+    deltas: &[ScopeChangeDelta],
+) -> Result<Vec<ResolutionScopeChange>, ResolutionScopeError> {
+    let mut statement = connection.prepare(
+        "SELECT DISTINCT name FROM symbols
+         WHERE version_id=?1 OR version_id=?2
+         ORDER BY name COLLATE BINARY",
+    )?;
+    deltas
+        .iter()
+        .map(|delta| {
+            Ok(ResolutionScopeChange {
+                path: delta.path.clone(),
+                change_kind: delta.change_kind,
+                old_version_id: delta.old_version_id,
+                new_version_id: delta.new_version_id,
+                touched_names_json: touched_names_json(
+                    &mut statement,
+                    delta.old_version_id,
+                    delta.new_version_id,
+                )?,
             })
         })
         .collect()
 }
 
 fn touched_names_json(
-    connection: &Connection,
+    statement: &mut rusqlite::Statement<'_>,
     old_version_id: Option<i64>,
     new_version_id: Option<i64>,
 ) -> Result<String, ResolutionScopeError> {
-    let mut statement = connection.prepare(
-        "SELECT DISTINCT name FROM symbols
-         WHERE version_id=?1 OR version_id=?2
-         ORDER BY name COLLATE BINARY",
-    )?;
     let names = statement
         .query_map(params![old_version_id, new_version_id], |row| {
             row.get::<_, String>(0)
