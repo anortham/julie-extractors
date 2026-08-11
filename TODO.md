@@ -637,3 +637,21 @@ is rejected.
   multi-hop receivers; static enum and constant access; and local-shadows-type-name.
   The numbers above were measured 2026-07-27 on Miller's `.miller/symbols.db`
   (binary_version 2.18.0, sqlite schema 5, head revision 104).
+
+## 17. Fresh family-store recovery reports partial reference resolution — open
+
+- **Where:** store scan/resolve orchestration under
+  `crates/julie-extract-cli/src/store/`; Miller consumer validation in
+  `StoreWorkspaceCoordinator.RequireCommitted`; reproduction workspace
+  `/home/murphy/source/julie-extractors` with `julie-extract 2.31.4`.
+- **Observed:** after the family-store directory named by `.miller/store.json`
+  disappeared, Miller attempted `RootRebind` recovery 16 times. Every attempt
+  failed with `resolution_input_incomplete: reference_resolution_status must be
+  complete, found partial`, leaving the workspace unreadable.
+- **Plan gap:** the 2026-08-11 incremental-resolution plan improves `store
+  resolve` performance and fallback behavior, but does not require this fresh
+  store/bootstrap recovery case to succeed.
+- **Proposed fix:** identify why a fresh store recovery publishes partial
+  reference-resolution input, fix the producer path, and add an integration
+  regression proving missing family store → Miller refresh/`RootRebind` →
+  complete resolution → readable workspace.
