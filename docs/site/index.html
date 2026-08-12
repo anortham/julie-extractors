@@ -73,7 +73,7 @@
         </div>
         <div>
           <strong>Versioned family store</strong>
-          <span>optional multi-worktree index generations with fenced concurrent writers (v2.31+)</span>
+          <span>optional multi-worktree index generations with fenced concurrent writers (v2.31.0+)</span>
         </div>
         <div>
           <strong>0 query files</strong>
@@ -147,8 +147,8 @@
         </table>
         <p class="metrics-note">
           "Applicable closure" means a cell is either fixture-proven or carries a recorded reason the domain
-          is not a real construct in that language. Full scorecard and gates in the
-          <a href="https://github.com/anortham/julie-extractors#data-quality" target="_blank" rel="noopener">repository README</a>.
+          is not a real construct in that language. Quality policy and gates are in the
+          <a href="https://github.com/anortham/julie-extractors#supported-languages" target="_blank" rel="noopener">repository README</a>.
         </p>
       </div>
     </section>
@@ -189,6 +189,12 @@
         versioned family store supports concurrent worktrees with fenced writers; see
         <code>docs/contracts/store-v1.md</code> and the
         <a href="https://github.com/anortham/julie-extractors/releases/latest" target="_blank" rel="noopener">latest release</a>.
+      </p>
+      <p class="metrics-note">
+        <strong>Current release: v2.32.1.</strong> Long artifact imports renew their writer lease,
+        byte-identical retries reuse validated state, scope crossover avoids unnecessary setup, and exact
+        resolution publication reuses prepared work. Read the
+        <a href="https://github.com/anortham/julie-extractors/releases/tag/v2.32.1" target="_blank" rel="noopener">release notes</a> for measured results.
       </p>
     </section>
 

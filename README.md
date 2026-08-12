@@ -88,10 +88,13 @@ layering and precedence contract.
 
 ## Versioned family store
 
-The v2.31.1 release provides a separate family-store contract without changing legacy
-`scan`, `update`, `delete`, `info`, or `export` artifacts. A family store keeps immutable file
-versions, coherent per-view manifests, durable queued requests, exact resolution bases/deltas, and
-retained store generations behind an atomic `CURRENT` pointer.
+The versioned family store is separate from legacy `scan`, `update`, `delete`, `info`, and `export`
+artifacts. It keeps immutable file versions, coherent per-view manifests, durable queued requests,
+exact resolution bases/deltas, and retained store generations behind an atomic `CURRENT` pointer.
+Version 2.32.0 made validated scoped resolution the default while retaining an explicit forced-full
+escape hatch. The current v2.32.1 release hardens long artifact imports, reuses validated state for
+byte-identical retries, avoids unnecessary scoped setup near full-resolution crossover, and speeds
+exact resolution publication without changing public contracts. See the [v2.32.1 release notes](docs/release-notes/v2.32.1.md).
 
 ```bash
 julie-extract store import --store target/family --family <uuid> \
