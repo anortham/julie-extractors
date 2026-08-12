@@ -279,7 +279,7 @@ fn curated_receiver_and_tier4_uniqueness_flips_match_full() {
         );
     }
     pair.rescan();
-    let _ = pair.resolve_and_compare("scoped", None);
+    let _ = pair.resolve_and_compare("full", Some("resolution_scope_crossover"));
 }
 
 #[test]
@@ -373,4 +373,35 @@ fn crossover_fallback_matches_full() {
     }
     pair.rescan();
     let _ = pair.resolve_and_compare("full", Some("resolution_scope_crossover"));
+}
+
+#[test]
+fn one_file_broad_name_crossover_matches_full() {
+    let mut files = vec![(
+        "src/target.ts".to_string(),
+        "export function shared() { return 1; }\n".to_string(),
+    )];
+    for index in 0..9 {
+        files.push((
+            format!("src/collision-{index}.ts"),
+            format!(
+                "export function collision{index}() {{ return shared() + shared() + shared(); }}\n"
+            ),
+        ));
+    }
+    let file_refs = files
+        .iter()
+        .map(|(path, content)| (path.as_str(), content.as_str()))
+        .collect::<Vec<_>>();
+    let pair = StorePair::new(&file_refs);
+    for root in pair.roots() {
+        write_source(
+            root,
+            "src/target.ts",
+            "export function shared() { return 2; }\n",
+        );
+    }
+    pair.rescan();
+    let (_, report) = pair.resolve_and_compare("full", Some("resolution_scope_crossover"));
+    assert_eq!(report["resolution"]["scope_file_count"], 10);
 }
