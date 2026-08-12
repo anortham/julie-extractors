@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicI64, AtomicU64, Ordering};
-use std::sync::{Arc, Barrier};
+use std::sync::{Arc, Barrier, mpsc};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use julie_extract_artifact::store::{
@@ -1962,6 +1962,15 @@ fn drain_releases_the_lease_on_executor_error_and_panic() {
                 .unwrap();
             assert_eq!(report.failed_requests, 1);
         }
+        let request = coordinator.request("request-1").unwrap();
+        if panic {
+            assert_eq!(request.state.as_str(), "claimed");
+            assert_eq!(request.claim_owner.as_deref(), Some("holder"));
+        } else {
+            assert_eq!(request.state.as_str(), "failed");
+            assert!(request.claim_owner.is_none());
+            assert!(request.error_json.is_some());
+        }
         assert!(coordinator.lease().unwrap().is_none());
     }
 }
@@ -2246,6 +2255,109 @@ fn store_log_timestamp_maps_injected_unix_milliseconds_to_real_utc() {
 
 struct SlowExecutor {
     clock: Arc<TestClock>,
+}
+
+struct BlockingExecutor {
+    entered: mpsc::Sender<()>,
+    resume: mpsc::Receiver<()>,
+}
+
+impl CoordinatorExecutor for BlockingExecutor {
+    fn execute_quantum(
+        &mut self,
+        _transaction: &Transaction<'_>,
+        _request: &CoordinatorRequest,
+        _context: ExecutionContext,
+    ) -> Result<ExecutionQuantum, String> {
+        self.entered.send(()).unwrap();
+        self.resume.recv().unwrap();
+        Ok(ExecutionQuantum::Complete {
+            event_kind: "complete".to_string(),
+            result_json: "{}".to_string(),
+        })
+    }
+}
+
+#[test]
+fn long_running_quantum_heartbeats_writer_lease_and_commits_once() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let clock = Arc::new(TestClock::default());
+    clock.set(10);
+    let holder = LeaseHolder::new("holder", "2.30.0", std::process::id());
+    let mut coordinator = StoreCoordinator::open_with_runtime(
+        &layout,
+        holder,
+        Arc::clone(&clock),
+        Arc::new(FixedLiveness(true)),
+    )
+    .unwrap();
+    enqueue_request(&mut coordinator, 1, RequestKind::FromArtifact, 1);
+    let (entered_sender, entered_receiver) = mpsc::channel();
+    let (resume_sender, resume_receiver) = mpsc::channel();
+    let policy = CoordinatorPolicy {
+        lease_duration_ms: 120,
+        maximum_quantum_ms: 100,
+        ..CoordinatorPolicy::default()
+    };
+    let worker = std::thread::spawn(move || {
+        coordinator.drain(
+            &mut BlockingExecutor {
+                entered: entered_sender,
+                resume: resume_receiver,
+            },
+            &policy,
+        )
+    });
+    entered_receiver
+        .recv_timeout(std::time::Duration::from_secs(2))
+        .unwrap();
+    let connection = Connection::open(layout.coordinator_db()).unwrap();
+    let initial_expiry = connection
+        .query_row(
+            "SELECT expires_at FROM writer_lease WHERE resource='store-writer'",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .unwrap();
+    while SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as i64
+        <= initial_expiry
+    {
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+    let renewed_expiry = connection
+        .query_row(
+            "SELECT expires_at FROM writer_lease WHERE resource='store-writer'",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .unwrap();
+    clock.advance(101);
+    resume_sender.send(()).unwrap();
+    let outcome = worker.join().unwrap();
+
+    assert!(outcome.is_ok(), "long quantum lost its fence: {outcome:?}");
+    assert!(renewed_expiry > initial_expiry);
+    let coordinator = StoreCoordinator::open(&layout).unwrap();
+    assert_eq!(
+        coordinator.request("request-1").unwrap().state.as_str(),
+        "committed"
+    );
+    assert!(coordinator.lease().unwrap().is_none());
+    assert_eq!(
+        Connection::open(layout.store_db())
+            .unwrap()
+            .query_row(
+                "SELECT COUNT(*) FROM store_log WHERE request_id='request-1' AND terminal=1",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        1
+    );
 }
 
 impl CoordinatorExecutor for SlowExecutor {

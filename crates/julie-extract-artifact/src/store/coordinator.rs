@@ -4,8 +4,8 @@ use std::fmt;
 use std::fs;
 use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
-use std::sync::atomic::{AtomicI64, Ordering as AtomicOrdering};
+use std::sync::atomic::{AtomicBool, AtomicI64, Ordering as AtomicOrdering};
+use std::sync::{Arc, mpsc};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use rusqlite::{Connection, OptionalExtension, Transaction, TransactionBehavior, params};
@@ -54,6 +54,10 @@ impl RequestKind {
 
     fn is_batch(self) -> bool {
         matches!(self, Self::Import | Self::FromArtifact)
+    }
+
+    fn permits_renewable_quantum(self) -> bool {
+        matches!(self, Self::FromArtifact)
     }
 
     fn parse(value: &str) -> Result<Self, CoordinatorError> {
@@ -1074,21 +1078,13 @@ impl StoreCoordinator {
         now: i64,
         lease_duration_ms: i64,
     ) -> Result<bool, CoordinatorError> {
-        let expires_at = checked_lease_expiry(now, lease_duration_ms)?;
-        let connection = open_coordinator(&self.coordinator_db)?;
-        Ok(connection.execute(
-            "UPDATE writer_lease SET heartbeat_at = ?1, expires_at = ?2
-             WHERE resource = ?3 AND holder_id = ?4 AND holder_pid = ?5 AND fencing_token = ?6
-               AND expires_at > ?1",
-            params![
-                now,
-                expires_at,
-                STORE_WRITER_RESOURCE,
-                holder.holder_id,
-                holder.holder_pid,
-                fencing_token,
-            ],
-        )? == 1)
+        heartbeat_lease_at(
+            &self.coordinator_db,
+            holder,
+            fencing_token,
+            now,
+            lease_duration_ms,
+        )
     }
 
     pub fn lease(&self) -> Result<Option<LeaseRecord>, CoordinatorError> {
@@ -1153,7 +1149,18 @@ impl StoreCoordinator {
             armed: true,
         };
         let result = catch_unwind(AssertUnwindSafe(|| {
-            self.drain_acquired(executor, policy, &holder, fencing_token, started_at)
+            let heartbeat = LeaseHeartbeatGuard::start(
+                self.coordinator_db.clone(),
+                holder.clone(),
+                fencing_token,
+                policy.lease_duration_ms,
+            );
+            let result = self.drain_acquired(executor, policy, &holder, fencing_token, started_at);
+            if heartbeat.stop() {
+                result
+            } else {
+                Err(CoordinatorError::LeaseLost)
+            }
         }));
         match result {
             Ok(result) => {
@@ -1384,7 +1391,7 @@ impl StoreCoordinator {
         };
         let quantum_finished_at = self.clock.now_ms();
         let elapsed_ms = quantum_finished_at.saturating_sub(quantum_started_at);
-        if elapsed_ms > policy.maximum_quantum_ms {
+        if elapsed_ms > policy.maximum_quantum_ms && !request.kind.permits_renewable_quantum() {
             drop(transaction);
             if !self.requeue_request(
                 &request.request_id,
@@ -2424,6 +2431,71 @@ struct LeaseReleaseGuard {
     armed: bool,
 }
 
+struct LeaseHeartbeatGuard {
+    stop: mpsc::Sender<()>,
+    current: Arc<AtomicBool>,
+    worker: Option<std::thread::JoinHandle<()>>,
+}
+
+impl LeaseHeartbeatGuard {
+    fn start(
+        coordinator_db: PathBuf,
+        holder: LeaseHolder,
+        fencing_token: i64,
+        lease_duration_ms: i64,
+    ) -> Self {
+        let (stop, receiver) = mpsc::channel();
+        let current = Arc::new(AtomicBool::new(true));
+        let worker_current = Arc::clone(&current);
+        let interval_ms = u64::try_from((lease_duration_ms / 3).max(1)).unwrap_or(1);
+        let worker = std::thread::spawn(move || {
+            loop {
+                match receiver.recv_timeout(Duration::from_millis(interval_ms)) {
+                    Ok(()) | Err(mpsc::RecvTimeoutError::Disconnected) => return,
+                    Err(mpsc::RecvTimeoutError::Timeout) => {}
+                }
+                let now = system_now_ms();
+                match heartbeat_lease_at(
+                    &coordinator_db,
+                    &holder,
+                    fencing_token,
+                    now,
+                    lease_duration_ms,
+                ) {
+                    Ok(true) => {}
+                    Ok(false) | Err(_) => {
+                        worker_current.store(false, AtomicOrdering::Release);
+                        return;
+                    }
+                }
+            }
+        });
+        Self {
+            stop,
+            current,
+            worker: Some(worker),
+        }
+    }
+
+    fn stop(mut self) -> bool {
+        let _ = self.stop.send(());
+        let joined = self
+            .worker
+            .take()
+            .is_none_or(|worker| worker.join().is_ok());
+        joined && self.current.load(AtomicOrdering::Acquire)
+    }
+}
+
+impl Drop for LeaseHeartbeatGuard {
+    fn drop(&mut self) {
+        let _ = self.stop.send(());
+        if let Some(worker) = self.worker.take() {
+            let _ = worker.join();
+        }
+    }
+}
+
 impl LeaseReleaseGuard {
     fn disarm(&mut self) {
         self.armed = false;
@@ -2568,6 +2640,30 @@ fn release_lease_at(
         "DELETE FROM writer_lease
          WHERE resource = ?1 AND holder_id = ?2 AND holder_pid = ?3 AND fencing_token = ?4",
         params![
+            STORE_WRITER_RESOURCE,
+            holder.holder_id,
+            holder.holder_pid,
+            fencing_token,
+        ],
+    )? == 1)
+}
+
+fn heartbeat_lease_at(
+    coordinator_db: &Path,
+    holder: &LeaseHolder,
+    fencing_token: i64,
+    now: i64,
+    lease_duration_ms: i64,
+) -> Result<bool, CoordinatorError> {
+    let expires_at = checked_lease_expiry(now, lease_duration_ms)?;
+    let connection = open_coordinator(coordinator_db)?;
+    Ok(connection.execute(
+        "UPDATE writer_lease SET heartbeat_at = ?1, expires_at = ?2
+         WHERE resource = ?3 AND holder_id = ?4 AND holder_pid = ?5 AND fencing_token = ?6
+           AND expires_at > ?1",
+        params![
+            now,
+            expires_at,
             STORE_WRITER_RESOURCE,
             holder.holder_id,
             holder.holder_pid,
