@@ -672,6 +672,15 @@ fn scoped_store_resolution_reuses_predecessor_and_carries_unselected_sibling() {
         "NeverDefined",
         "src/user.rs",
     );
+    for index in 0..3 {
+        insert_named_identifier(
+            &connection,
+            untouched,
+            &format!("padding-use-{index}"),
+            &format!("Padding{index}"),
+            "src/untouched.rs",
+        );
+    }
     connection
         .execute(
             "UPDATE identifiers
@@ -797,13 +806,27 @@ fn scoped_store_resolution_reuses_predecessor_and_carries_unselected_sibling() {
         candidates: None,
     })
     .unwrap();
+    for index in 0..3 {
+        base.push_identifier_resolution(ResolutionIdentifierRow {
+            version_id: untouched,
+            identifier_id: format!("padding-use-{index}"),
+            target_version_id: None,
+            target_symbol_id: None,
+            tier: None,
+            confidence: None,
+            method: None,
+            outcome: "missing".to_string(),
+            candidates: Some(0),
+        })
+        .unwrap();
+    }
     let base_identity = base.finish_with_target_lookup(|_, _| Ok(true)).unwrap();
     connection
         .execute(
             "INSERT INTO resolution_bases
          (base_id,manifest_hash,resolver_output_epoch,state,relative_path,identifier_count,
           pending_count,file_bytes,file_sha256,request_id,created_at,updated_at)
-         VALUES ('base-a',?1,6,'ready','bases/base-a.db',3,4,?2,?3,'request-base',?4,?4)",
+         VALUES ('base-a',?1,6,'ready','bases/base-a.db',6,4,?2,?3,'request-base',?4,?4)",
             params![
                 first.manifest_hash,
                 i64::try_from(base_identity.file_bytes).unwrap(),
@@ -1030,8 +1053,14 @@ fn scoped_store_resolution_reuses_predecessor_and_carries_unselected_sibling() {
         .unwrap()
         .identifiers()
         .unwrap();
-    assert_eq!(forced_rows.len(), 2);
-    assert_ne!(forced_rows[1].method.as_deref(), Some("base-sibling"));
+    assert_eq!(forced_rows.len(), 5);
+    assert_ne!(
+        forced_rows
+            .iter()
+            .find(|row| row.identifier_id == "sibling-use")
+            .and_then(|row| row.method.as_deref()),
+        Some("base-sibling")
+    );
 
     let exact_path = temp.path().join("exact.db");
     let mut session = StoreScratchResolutionSession::new(
@@ -1071,12 +1100,18 @@ fn scoped_store_resolution_reuses_predecessor_and_carries_unselected_sibling() {
         .unwrap()
         .identifiers()
         .unwrap();
-    assert_eq!(rows.len(), 2);
-    assert_eq!(rows[0].identifier_id, "foo-use");
-    assert_eq!(rows[0].target_version_id, Some(new_target));
-    assert_eq!(rows[1].identifier_id, "sibling-use");
-    assert_eq!(rows[1].target_version_id, Some(user));
-    assert_eq!(rows[1].method.as_deref(), Some("base-sibling"));
+    assert_eq!(rows.len(), 5);
+    let foo = rows
+        .iter()
+        .find(|row| row.identifier_id == "foo-use")
+        .unwrap();
+    assert_eq!(foo.target_version_id, Some(new_target));
+    let sibling = rows
+        .iter()
+        .find(|row| row.identifier_id == "sibling-use")
+        .unwrap();
+    assert_eq!(sibling.target_version_id, Some(user));
+    assert_eq!(sibling.method.as_deref(), Some("base-sibling"));
     assert!(!rows.iter().any(|row| row.identifier_id == "removed-use"));
     let pending = ResolutionBaseReader::open(&exact_path)
         .unwrap()
@@ -1265,7 +1300,7 @@ fn scoped_store_resolution_reuses_predecessor_and_carries_unselected_sibling() {
     cumulative.finish_exact().unwrap();
     let cumulative_reader = ResolutionBaseReader::open(&cumulative_path).unwrap();
     let cumulative_identifiers = cumulative_reader.identifiers().unwrap();
-    assert_eq!(cumulative_identifiers.len(), 2);
+    assert_eq!(cumulative_identifiers.len(), 5);
     assert!(cumulative_identifiers.iter().any(|row| {
         row.identifier_id == "foo-use" && row.target_version_id == Some(latest_target)
     }));

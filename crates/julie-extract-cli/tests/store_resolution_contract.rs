@@ -245,7 +245,7 @@ fn resolve_rejects_invalid_delta_escape_hatch_values() {
 }
 
 #[test]
-fn resolve_uses_scoped_mode_when_delta_env_is_unset() {
+fn resolve_unset_delta_uses_planner_and_reports_dense_scope_fallback() {
     let temp = TempDir::new();
     let (root, store) = create_full_store(&temp);
     assert!(
@@ -293,10 +293,13 @@ fn resolve_uses_scoped_mode_when_delta_env_is_unset() {
         String::from_utf8_lossy(&resolve.stderr)
     );
     let report: Value = serde_json::from_slice(&resolve.stdout).unwrap();
-    assert_eq!(report["resolution"]["resolution_mode"], "scoped");
-    assert!(report["resolution"]["fallback_reason"].is_null());
+    assert_eq!(report["resolution"]["resolution_mode"], "full");
+    assert_eq!(
+        report["resolution"]["fallback_reason"],
+        "resolution_scope_crossover"
+    );
     assert!(report["resolution"]["scope_file_count"].as_u64().unwrap() >= 1);
-    assert!(report["resolution"]["scope_name_count"].as_u64().unwrap() >= 1);
+    assert_eq!(report["resolution"]["scope_name_count"], 0);
     assert!(report["resolution"]["scope_row_count"].as_u64().unwrap() >= 1);
     assert!(report["resolution"]["phase_timings_ms"]["resolution"].is_u64());
 }

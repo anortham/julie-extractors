@@ -24,6 +24,7 @@ fn store_scope_matches_legacy_name_file_row_and_decision_expansion() {
     let importer = insert_version(&connection, "src/user.ts", "user");
     let receiver = insert_version(&connection, "src/receiver.ts", "receiver");
     let tier_four = insert_version(&connection, "src/other.ts", "other");
+    let padding = insert_version(&connection, "src/padding.ts", "padding");
     insert_symbol(&connection, old_target, "old-foo", "Foo", "function", None);
     insert_symbol(&connection, new_target, "new-foo", "Foo", "function", None);
     insert_symbol(
@@ -60,12 +61,41 @@ fn store_scope_matches_legacy_name_file_row_and_decision_expansion() {
         Some("widget"),
     );
     insert_identifier(&connection, tier_four, "identifier-foo", "Foo", None);
+    insert_identifier(
+        &connection,
+        padding,
+        "identifier-padding-a",
+        "PaddingA",
+        None,
+    );
+    insert_identifier(
+        &connection,
+        padding,
+        "identifier-padding-b",
+        "PaddingB",
+        None,
+    );
+    insert_identifier(
+        &connection,
+        padding,
+        "identifier-padding-c",
+        "PaddingC",
+        None,
+    );
+    insert_identifier(
+        &connection,
+        padding,
+        "identifier-padding-d",
+        "PaddingD",
+        None,
+    );
 
     let first_entries = [
         entry(&connection, old_target),
         entry(&connection, importer),
         entry(&connection, receiver),
         entry(&connection, tier_four),
+        entry(&connection, padding),
     ];
     let first = publish(&mut connection, None, first_entries, "request-first");
     let first_generation = i64::try_from(first.generation).unwrap();
@@ -75,6 +105,7 @@ fn store_scope_matches_legacy_name_file_row_and_decision_expansion() {
         entry(&connection, importer),
         entry(&connection, receiver),
         entry(&connection, tier_four),
+        entry(&connection, padding),
     ];
     let second = publish(
         &mut connection,
@@ -255,11 +286,7 @@ fn journal_count_hash_chain_epoch_and_predecessor_failures_have_distinct_full_re
 }
 
 #[test]
-fn crossover_promotes_multi_file_scope_but_exempts_one_changed_file() {
-    let (single_store, single_manifest) = replacement_scope();
-    let single = scope_decision(&single_store, &single_manifest, 7);
-    assert!(matches!(single, StoreDeltaScopeDecision::Scoped(_)));
-
+fn crossover_promotes_multi_file_scope() {
     let (multi_store, multi_manifest) = two_file_replacement_scope();
     let multi = scope_decision(&multi_store, &multi_manifest, 7);
     let StoreDeltaScopeDecision::Full { reason, .. } = &multi else {
@@ -267,6 +294,40 @@ fn crossover_promotes_multi_file_scope_but_exempts_one_changed_file() {
     };
     assert_eq!(*reason, StoreDeltaScopeFullReason::Crossover);
     assert!(multi.worklists().effective_full);
+}
+
+#[test]
+fn one_changed_file_with_broad_name_collisions_crosses_over_before_resolution() {
+    let (connection, manifest) = broad_name_collision_scope();
+    let total_identifiers = connection
+        .query_row(
+            "SELECT COUNT(*)
+             FROM identifiers AS identifier
+             JOIN manifest_entries AS entry ON entry.version_id=identifier.version_id
+             WHERE entry.view_id='view-a' AND entry.generation=?1
+               AND entry.status IN ('indexed','failed_preserved')",
+            [i64::try_from(manifest.generation).unwrap()],
+            |row| row.get::<_, i64>(0),
+        )
+        .unwrap();
+    let changed_paths = connection
+        .query_row(
+            "SELECT change_count FROM resolution_scope_batches
+             WHERE transition_id=(SELECT MAX(transition_id) FROM resolution_scope_batches)",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .unwrap();
+    assert_eq!(changed_paths, 1);
+    assert_eq!(total_identifiers, 100);
+
+    let decision = scope_decision(&connection, &manifest, 7);
+    let StoreDeltaScopeDecision::Full { reason, .. } = decision else {
+        panic!(
+            "one changed path selected all {total_identifiers} identifier rows through a common name"
+        );
+    };
+    assert_eq!(reason, StoreDeltaScopeFullReason::Crossover);
 }
 
 #[test]
@@ -337,6 +398,84 @@ fn two_file_replacement_scope() -> (Connection, ManifestPublishResult) {
     (connection, second)
 }
 
+fn broad_name_collision_scope() -> (Connection, ManifestPublishResult) {
+    let mut connection = scope_store();
+    let old_target = insert_version(&connection, "src/target.ts", "old-target");
+    let new_target = insert_version(&connection, "src/target.ts", "new-target");
+    insert_symbol(
+        &connection,
+        old_target,
+        "old-shared",
+        "Shared",
+        "function",
+        None,
+    );
+    insert_symbol(
+        &connection,
+        new_target,
+        "new-shared",
+        "Shared",
+        "function",
+        None,
+    );
+    for index in 0..10 {
+        insert_identifier(
+            &connection,
+            old_target,
+            &format!("old-target-{index}"),
+            "Shared",
+            None,
+        );
+        insert_identifier(
+            &connection,
+            new_target,
+            &format!("new-target-{index}"),
+            "Shared",
+            None,
+        );
+    }
+
+    let mut old_entries = vec![entry(&connection, old_target)];
+    let mut new_entries = vec![entry(&connection, new_target)];
+    for file in 0..9 {
+        let version = insert_version(
+            &connection,
+            &format!("src/collision-{file}.ts"),
+            &format!("collision-{file}"),
+        );
+        insert_symbol(
+            &connection,
+            version,
+            &format!("collision-symbol-{file}"),
+            &format!("Collision{file}"),
+            "function",
+            None,
+        );
+        for identifier in 0..10 {
+            insert_identifier(
+                &connection,
+                version,
+                &format!("collision-{file}-{identifier}"),
+                "Shared",
+                None,
+            );
+        }
+        old_entries.push(entry(&connection, version));
+        new_entries.push(entry(&connection, version));
+    }
+
+    let first = publish(&mut connection, None, old_entries, "request-first");
+    let first_generation = i64::try_from(first.generation).unwrap();
+    bind_exact(&connection, &first.manifest_hash, first_generation, 11, 7);
+    let second = publish(
+        &mut connection,
+        Some(first_generation),
+        new_entries,
+        "request-second",
+    );
+    (connection, second)
+}
+
 fn deleted_paths_crossover_scope() -> (Connection, ManifestPublishResult) {
     let mut connection = scope_store();
     let retained = insert_version(&connection, "src/retained.ts", "retained");
@@ -399,6 +538,15 @@ fn structural_scope(
     let mut connection = scope_store();
     let target = insert_version(&connection, "src/util.ts", "util");
     let importer = insert_version(&connection, "src/user.ts", "user");
+    let padding = (0..4)
+        .map(|index| {
+            insert_version(
+                &connection,
+                &format!("src/padding-{index}.ts"),
+                &format!("padding-{index}"),
+            )
+        })
+        .collect::<Vec<_>>();
     insert_symbol(&connection, target, "utility", "Utility", "function", None);
     insert_symbol(
         &connection,
@@ -409,6 +557,7 @@ fn structural_scope(
         Some(r#"{"source":"./util"}"#),
     );
     let mut first_entries = vec![entry(&connection, importer)];
+    first_entries.extend(padding.iter().map(|version| entry(&connection, *version)));
     if target_in_first {
         first_entries.push(entry(&connection, target));
     }
@@ -416,6 +565,7 @@ fn structural_scope(
     let first_generation = i64::try_from(first.generation).unwrap();
     bind_exact(&connection, &first.manifest_hash, first_generation, 11, 7);
     let mut second_entries = vec![entry(&connection, importer)];
+    second_entries.extend(padding.iter().map(|version| entry(&connection, *version)));
     if target_in_second {
         second_entries.push(entry(&connection, target));
     }

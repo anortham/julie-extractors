@@ -147,10 +147,9 @@ pub(crate) fn build_store_delta_scope(
     if scope_crosses_over(
         connection,
         request,
-        changed_paths.len(),
         logical_recheck_paths.len(),
         &recheck_names,
-        &recheck_versions,
+        &selected_versions,
     )? {
         return Ok(full(StoreDeltaScopeFullReason::Crossover));
     }
@@ -440,19 +439,17 @@ fn versions_matching_names(
     Ok(versions)
 }
 
+/// Promotes when the selected-version and name/receiver identifier reads reach the
+/// fixed crossover. Store predecessor phases execute both arms, including duplicate
+/// reads, so the journal's changed-path count is not a safe proxy for admitted work.
 fn scope_crosses_over(
     connection: &Connection,
     request: StoreDeltaScopeRequest<'_>,
-    changed_path_count: usize,
     logical_recheck_file_count: usize,
     recheck_names: &BTreeSet<String>,
-    recheck_versions: &BTreeSet<i64>,
+    selected_versions: &BTreeSet<i64>,
 ) -> Result<bool, ResolutionScopeError> {
-    if changed_path_count <= 1
-        || (recheck_names.is_empty()
-            && recheck_versions.is_empty()
-            && logical_recheck_file_count == 0)
-    {
+    if selected_versions.is_empty() && logical_recheck_file_count == 0 {
         return Ok(false);
     }
     let total_identifiers: i64 = connection.query_row(
@@ -477,7 +474,7 @@ fn scope_crosses_over(
     }
 
     let mut scoped_identifiers = 0i64;
-    let version_values = recheck_versions.iter().copied().collect::<Vec<_>>();
+    let version_values = selected_versions.iter().copied().collect::<Vec<_>>();
     for chunk in version_values.chunks(SCOPE_QUERY_CHUNK) {
         let sql = format!(
             "SELECT COUNT(*) FROM identifiers WHERE version_id IN ({})",
@@ -495,13 +492,15 @@ fn scope_crosses_over(
              JOIN identifiers AS identifier ON identifier.version_id=entry.version_id
              WHERE entry.view_id=? AND entry.generation=?
                AND entry.status IN ('indexed','failed_preserved')
-               AND identifier.name IN ({})",
+               AND (identifier.name IN ({0})
+                    OR json_extract(identifier.metadata_json,'$.receiver') IN ({0}))",
             placeholders(chunk.len())
         );
         let mut bind = vec![
             rusqlite::types::Value::Text(request.view_id.to_string()),
             rusqlite::types::Value::Integer(request.manifest_generation),
         ];
+        bind.extend(chunk.iter().cloned().map(rusqlite::types::Value::Text));
         bind.extend(chunk.into_iter().map(rusqlite::types::Value::Text));
         scoped_identifiers +=
             connection.query_row(&sql, rusqlite::params_from_iter(bind), |row| {
