@@ -241,6 +241,43 @@ fn candidate_query_sample(session: &StoreScratchResolutionSession) -> CandidateQ
     }
 }
 
+fn query_diagnostic_identity(
+    layout: &StoreLayout,
+    view_id: &str,
+    generation: i64,
+) -> StoreManifestIdentity {
+    let connection = Connection::open(layout.store_db()).unwrap();
+    let (current_generation, state, base_id, delta_generation): (i64, String, String, i64) =
+        connection
+            .query_row(
+                "SELECT current_generation,resolution_state,resolution_base_id,
+                        resolution_delta_generation
+                 FROM views WHERE view_id=?1",
+                [view_id],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            )
+            .unwrap();
+    assert_eq!(current_generation, generation);
+    assert_eq!(state, "converging");
+    let (bound_manifest_generation, base_state, base_manifest_hash): (i64, String, String) =
+        connection
+            .query_row(
+                "SELECT delta.manifest_generation,base.state,base.manifest_hash
+                 FROM resolution_deltas AS delta
+                 JOIN resolution_bases AS base ON base.base_id=delta.base_id
+                 WHERE delta.view_id=?1 AND delta.delta_generation=?2
+                   AND delta.base_id=?3",
+                params![view_id, delta_generation, base_id],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .unwrap();
+    assert_eq!(bound_manifest_generation, generation);
+    assert_eq!(base_state, "ready");
+    let identity = view_manifest_identity(layout, view_id, generation);
+    assert_ne!(base_manifest_hash, identity.manifest_hash);
+    identity
+}
+
 impl ResolutionSession for SnapshottingSession<'_> {
     type Error = <StoreScratchResolutionSession as ResolutionSession>::Error;
 
@@ -657,19 +694,12 @@ fn store_resolution_performance_worker() {
 
 #[test]
 fn store_resolution_query_diagnostic_fixture() {
-    let Ok(store_root) = std::env::var("JULIE_STORE_RESOLUTION_QUERY_FIXTURE") else {
+    let Ok(store_root) = std::env::var("JULIE_STORE_RESOLUTION_QUERY_PREPARE_STORE") else {
         return;
     };
-    let store_root = PathBuf::from(store_root);
-    reset_owned_directory(&store_root);
-    build_store_fixture(
-        &store_root,
-        MILLER_IDENTIFIER_ROWS,
-        MILLER_PENDING_ROWS,
-        MILLER_RESOLVED_PENDING_ROWS,
-    );
-    let layout = StoreLayout::open(store_root.join("family")).unwrap();
-    prepare_replay_view(&layout, "query-diagnostic", ReplayMode::Scoped);
+    let view_id = std::env::var("JULIE_STORE_RESOLUTION_QUERY_VIEW").unwrap();
+    let layout = StoreLayout::open(store_root).unwrap();
+    prepare_replay_view(&layout, &view_id, ReplayMode::Scoped);
 }
 
 #[test]
@@ -677,9 +707,14 @@ fn store_resolution_query_diagnostic_worker() {
     let Ok(store_root) = std::env::var("JULIE_STORE_RESOLUTION_QUERY_STORE") else {
         return;
     };
+    let view_id = std::env::var("JULIE_STORE_RESOLUTION_QUERY_VIEW").unwrap();
+    let generation = std::env::var("JULIE_STORE_RESOLUTION_QUERY_GENERATION")
+        .unwrap()
+        .parse()
+        .unwrap();
     let output = PathBuf::from(std::env::var("JULIE_STORE_RESOLUTION_QUERY_OUTPUT").unwrap());
     let layout = StoreLayout::open(&store_root).unwrap();
-    let identity = view_manifest_identity(&layout, "query-diagnostic", 2);
+    let identity = query_diagnostic_identity(&layout, &view_id, generation);
     let factory = StoreConnectionFactory::new(layout, FAMILY_ID, env!("CARGO_PKG_VERSION"));
     let exact_path = output.with_extension("exact.db");
     assert!(!exact_path.exists());
@@ -712,6 +747,20 @@ fn store_resolution_query_diagnostic_worker() {
     };
     fs::write(&output, serde_json::to_vec_pretty(&diagnostic).unwrap()).unwrap();
     session.finish_exact().unwrap();
+}
+
+#[test]
+fn store_resolution_query_diagnostic_readiness() {
+    let Ok(store_root) = std::env::var("JULIE_STORE_RESOLUTION_QUERY_STORE") else {
+        return;
+    };
+    let view_id = std::env::var("JULIE_STORE_RESOLUTION_QUERY_VIEW").unwrap();
+    let generation = std::env::var("JULIE_STORE_RESOLUTION_QUERY_GENERATION")
+        .unwrap()
+        .parse()
+        .unwrap();
+    let layout = StoreLayout::open(store_root).unwrap();
+    query_diagnostic_identity(&layout, &view_id, generation);
 }
 
 #[test]
