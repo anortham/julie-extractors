@@ -12,7 +12,7 @@ use julie_extract_artifact::store::{
 };
 use julie_extract_cli::resolution::run_resolution_session;
 use julie_extract_cli::store::resolution_session::{
-    StoreManifestIdentity, StoreScratchResolutionSession,
+    CandidateQueryFamily, StoreManifestIdentity, StoreScratchResolutionSession,
 };
 use rusqlite::{Connection, params};
 use serde::{Deserialize, Serialize};
@@ -35,6 +35,9 @@ const TARGET_VALIDATION_DISTINCT_TARGETS: usize = 2_048;
 const TARGET_VALIDATION_MAX: Duration = Duration::from_secs(2);
 const CANDIDATE_RESOLUTION_DISTINCT_NAMES: usize = 20_000;
 const CANDIDATE_RESOLUTION_MAX: Duration = Duration::from_millis(3_500);
+const REPEATED_NAME_IDENTIFIERS: usize = 32;
+const REPEATED_NAME_CANDIDATES: usize = WINDOW_SIZE + 1;
+const REPEATED_NAME_TOP_LEVEL_QUERY_BOUND: usize = 3;
 const PAIRS: [&str; 2] = ["miller-unchanged", "miller-mutated"];
 const NOW: &str = "2026-08-08T12:00:00.000Z";
 
@@ -271,6 +274,60 @@ fn candidate_resolution_finishes_with_high_distinct_name_cardinality() {
     assert!(
         elapsed <= CANDIDATE_RESOLUTION_MAX,
         "candidate resolution took {elapsed:?}, expected at most {CANDIDATE_RESOLUTION_MAX:?}"
+    );
+}
+
+#[test]
+fn repeated_name_high_fanout_reports_candidate_query_families_and_exact_output() {
+    let temp = tempfile::tempdir().unwrap();
+    let layout = build_repeated_name_candidate_fixture(
+        temp.path(),
+        REPEATED_NAME_IDENTIFIERS,
+        REPEATED_NAME_CANDIDATES,
+    );
+    let identity = manifest_identity(&layout, 1);
+    let factory = StoreConnectionFactory::new(layout, FAMILY_ID, env!("CARGO_PKG_VERSION"));
+    let exact_path = temp.path().join("exact.db");
+    let mut session = StoreScratchResolutionSession::new(
+        factory,
+        identity,
+        &exact_path,
+        WINDOW_SIZE,
+        RESOLVER_OUTPUT_EPOCH,
+    )
+    .unwrap();
+
+    run_resolution_session(&mut session, true, true).unwrap();
+    let prime = session.candidate_query_telemetry(CandidateQueryFamily::PrimeWindow);
+    let top_level = session.candidate_query_telemetry(CandidateQueryFamily::TopLevelNamed);
+    let summary = session.candidate_query_telemetry(CandidateQueryFamily::FilteredNameSummary);
+    let identifier_hydration =
+        session.candidate_query_telemetry(CandidateQueryFamily::IdentifierHydration);
+    let exact = session.finish_exact().unwrap();
+
+    assert_eq!(exact.counts.identifiers, REPEATED_NAME_IDENTIFIERS as u64);
+    let exact_connection = Connection::open(&exact_path).unwrap();
+    let ambiguous: i64 = exact_connection
+        .query_row(
+            "SELECT COUNT(*) FROM identifier_resolutions WHERE outcome='ambiguous'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(ambiguous, REPEATED_NAME_IDENTIFIERS as i64);
+    assert_eq!(prime.executions, 1);
+    assert_eq!(prime.rows_read, WINDOW_SIZE);
+    assert_eq!(summary.executions, 1);
+    assert_eq!(summary.rows_read, 2);
+    assert_eq!(identifier_hydration.executions, 1);
+    assert_eq!(identifier_hydration.rows_read, REPEATED_NAME_IDENTIFIERS);
+    assert!(
+        top_level.executions <= REPEATED_NAME_TOP_LEVEL_QUERY_BOUND,
+        "top-level candidate query executions were {}, expected at most {} for {} identifiers sharing one name and {} candidate rows",
+        top_level.executions,
+        REPEATED_NAME_TOP_LEVEL_QUERY_BOUND,
+        REPEATED_NAME_IDENTIFIERS,
+        REPEATED_NAME_CANDIDATES
     );
 }
 
@@ -1148,6 +1205,127 @@ fn build_target_validation_fixture(root: &Path, target_count: usize) -> StoreLay
         .execute(
             "INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
              VALUES (?1,1,?2,'csharp',?3,'indexed','high-cardinality-hash',?4)",
+            params![VIEW_ID, path, version, NOW],
+        )
+        .unwrap();
+    transaction
+        .execute(
+            "UPDATE views SET current_generation=1 WHERE view_id=?1",
+            [VIEW_ID],
+        )
+        .unwrap();
+    transaction.commit().unwrap();
+    layout
+}
+
+fn build_repeated_name_candidate_fixture(
+    root: &Path,
+    identifier_count: usize,
+    candidate_count: usize,
+) -> StoreLayout {
+    let layout =
+        StoreLayout::create(root.join("family"), FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
+    let factory = StoreConnectionFactory::new(layout.clone(), FAMILY_ID, env!("CARGO_PKG_VERSION"));
+    let mut connection = factory.open_writer().unwrap();
+    ManifestStore::new(&mut connection)
+        .ensure_view(VIEW_ID, ROOT)
+        .unwrap();
+    let transaction = connection.transaction().unwrap();
+    let path = "src/repeated-name.cs";
+    let version = insert_version(&transaction, path, "repeated-name-hash");
+    let mut symbol_insert = transaction
+        .prepare(
+            "INSERT INTO symbols(version_id,symbol_id,path,language,name,kind,
+             start_line,start_column,end_line,end_column,start_byte,end_byte,is_test,test_container,test_lifecycle)
+             VALUES (?1,?2,?3,'csharp',?4,'function',?5,1,?6,10,?7,?8,0,0,0)",
+        )
+        .unwrap();
+    for index in 0..candidate_count {
+        let line = i64::try_from(index).unwrap() + 2;
+        let start = i64::try_from(index).unwrap() * 20 + 100;
+        symbol_insert
+            .execute(params![
+                version,
+                format!("candidate-{index:08}"),
+                path,
+                "shared_target",
+                line,
+                line,
+                start,
+                start + 10
+            ])
+            .unwrap();
+    }
+    let mut site_insert = transaction
+        .prepare(
+            "INSERT INTO reference_sites(version_id,reference_site_id,path,language,containing_symbol_id,
+             start_line,start_column,end_line,end_column,start_byte,end_byte,is_exact,provenance,level)
+             VALUES (?1,?2,?3,'csharp',?4,?5,1,?5,7,?6,?7,1,'target_token',2)",
+        )
+        .unwrap();
+    let mut identifier_insert = transaction
+        .prepare(
+            "INSERT INTO identifiers(version_id,identifier_id,reference_site_id,path,language,name,kind,
+             containing_symbol_id,start_line,start_column,end_line,end_column,start_byte,end_byte,confidence)
+             VALUES (?1,?2,?3,?4,'csharp','shared_target','call',?5,?6,1,?6,7,?7,?8,?9)",
+        )
+        .unwrap();
+    for index in 0..identifier_count {
+        let caller = format!("caller-{index:08}");
+        let line = i64::try_from(candidate_count + index).unwrap() + 2;
+        let start = i64::try_from(candidate_count + index).unwrap() * 20 + 100;
+        symbol_insert
+            .execute(params![
+                version,
+                caller,
+                path,
+                format!("caller_{index:08}"),
+                line,
+                line,
+                start,
+                start + 10
+            ])
+            .unwrap();
+        let site = format!("site-{index:08}");
+        site_insert
+            .execute(params![
+                version,
+                site,
+                path,
+                caller,
+                line,
+                start + 11,
+                start + 17
+            ])
+            .unwrap();
+        identifier_insert
+            .execute(params![
+                version,
+                format!("identifier-{index:08}"),
+                site,
+                path,
+                caller,
+                line,
+                start + 11,
+                start + 17,
+                1.0 - (index as f64 * 0.001)
+            ])
+            .unwrap();
+    }
+    drop(identifier_insert);
+    drop(site_insert);
+    drop(symbol_insert);
+    transaction
+        .execute(
+            "INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+             VALUES (?1,1,?2,'repeated-name',?3)",
+            params![VIEW_ID, "5".repeat(64), NOW],
+        )
+        .unwrap();
+    transaction
+        .execute(
+            "INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
+             VALUES (?1,1,?2,'csharp',?3,'indexed','repeated-name-hash',?4)",
             params![VIEW_ID, path, version, NOW],
         )
         .unwrap();

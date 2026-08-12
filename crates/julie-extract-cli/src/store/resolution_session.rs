@@ -39,6 +39,39 @@ type CandidatePage = (Vec<CandidateHit>, Option<(i64, String)>);
 type PriorPhaseKeys = (Vec<(i64, String)>, Option<PriorOverlayKey>);
 type PriorPhaseAccess = PriorOverlayAccess<PriorPhaseKeys>;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(usize)]
+pub enum CandidateQueryFamily {
+    PrimeWindow,
+    SymbolById,
+    ByName,
+    FilteredByName,
+    FilteredNameSummary,
+    ChildrenNamed,
+    TopLevelNamed,
+    TypeFacts,
+    Imports,
+    ModuleVersion,
+    LocateIdentifier,
+    PendingHydration,
+    RelationshipHydration,
+    IdentifierHydration,
+}
+
+impl CandidateQueryFamily {
+    const COUNT: usize = 14;
+
+    const fn index(self) -> usize {
+        self as usize
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct CandidateQueryTelemetry {
+    pub executions: usize,
+    pub rows_read: usize,
+}
+
 #[derive(Debug, Clone)]
 pub(crate) struct StoreResolutionDecisionTelemetry {
     pub(crate) effective_full: bool,
@@ -282,6 +315,7 @@ pub struct StoreScratchResolutionSession {
     max_store_read_page: Cell<usize>,
     phase_reader_opens: Cell<usize>,
     max_candidate_cache_entries: Cell<usize>,
+    candidate_query_telemetry: Cell<[CandidateQueryTelemetry; CandidateQueryFamily::COUNT]>,
     visible_root_batches: usize,
     candidate_reader: RefCell<Option<Connection>>,
     candidate_window: RefCell<CandidateWindow>,
@@ -336,6 +370,9 @@ impl StoreScratchResolutionSession {
             max_store_read_page: Cell::new(0),
             phase_reader_opens: Cell::new(0),
             max_candidate_cache_entries: Cell::new(0),
+            candidate_query_telemetry: Cell::new(
+                [CandidateQueryTelemetry::default(); CandidateQueryFamily::COUNT],
+            ),
             visible_root_batches: 0,
             candidate_reader: RefCell::new(None),
             candidate_window: RefCell::new(CandidateWindow::default()),
@@ -449,6 +486,13 @@ impl StoreScratchResolutionSession {
 
     pub fn max_candidate_cache_entries(&self) -> usize {
         self.max_candidate_cache_entries.get()
+    }
+
+    pub fn candidate_query_telemetry(
+        &self,
+        family: CandidateQueryFamily,
+    ) -> CandidateQueryTelemetry {
+        self.candidate_query_telemetry.get()[family.index()]
     }
 
     #[cfg(feature = "test-store-resolution-contract")]
@@ -620,6 +664,14 @@ impl StoreScratchResolutionSession {
         }
         let reader = self.candidate_reader.borrow();
         read(reader.as_ref().expect("candidate reader initialized"))
+    }
+
+    fn record_candidate_query(&self, family: CandidateQueryFamily, rows_read: usize) {
+        let mut telemetry = self.candidate_query_telemetry.get();
+        let family = &mut telemetry[family.index()];
+        family.executions = family.executions.saturating_add(1);
+        family.rows_read = family.rows_read.saturating_add(rows_read);
+        self.candidate_query_telemetry.set(telemetry);
     }
 
     fn reset_candidate_window(&mut self) -> Result<(), StoreResolutionError> {
@@ -935,8 +987,8 @@ impl CandidateLookup for StoreScratchResolutionSession {
         if let Some(hit) = self.candidate_window.borrow().by_id.get(&semantic_id) {
             return Ok(hit.clone());
         }
-        let hit = self.with_candidate_reader(|connection| {
-            let hit = connection
+        let row = self.with_candidate_reader(|connection| {
+            Ok(connection
                 .query_row(
                     "SELECT s.version_id, s.symbol_id, s.language, s.name, s.kind,
                         s.parent_symbol_id, s.visibility, s.signature, s.metadata_json
@@ -956,10 +1008,10 @@ impl CandidateLookup for StoreScratchResolutionSession {
                     ],
                     candidate_hit,
                 )
-                .optional()?
-                .flatten();
-            Ok(hit)
+                .optional()?)
         })?;
+        self.record_candidate_query(CandidateQueryFamily::SymbolById, usize::from(row.is_some()));
+        let hit = row.flatten();
         let mut window = self.candidate_window.borrow_mut();
         if window.by_id.len() < self.window_size {
             window.by_id.insert(semantic_id, hit.clone());
@@ -999,6 +1051,7 @@ impl CandidateLookup for StoreScratchResolutionSession {
         let mut after = (0, String::new());
         loop {
             let (page, next) = self.candidate_page(
+                CandidateQueryFamily::ByName,
                 sql,
                 vec![
                     name.to_string().into(),
@@ -1092,6 +1145,7 @@ impl CandidateLookup for StoreScratchResolutionSession {
                     .collect::<Result<Vec<_>, _>>()
                     .map_err(StoreResolutionError::from)
             })?;
+            self.record_candidate_query(CandidateQueryFamily::FilteredByName, rows.len());
             self.max_store_read_page
                 .set(self.max_store_read_page.get().max(rows.len()));
             if rows.is_empty() {
@@ -1198,6 +1252,7 @@ impl CandidateLookup for StoreScratchResolutionSession {
                 .collect::<Result<Vec<_>, _>>()
                 .map_err(StoreResolutionError::from)
         })?;
+        self.record_candidate_query(CandidateQueryFamily::FilteredNameSummary, rows.len());
         self.max_store_read_page
             .set(self.max_store_read_page.get().max(rows.len()));
         let summary = CandidateSummary {
@@ -1252,6 +1307,7 @@ impl CandidateLookup for StoreScratchResolutionSession {
         let mut after = String::new();
         loop {
             let (page, next) = self.candidate_page(
+                CandidateQueryFamily::ChildrenNamed,
                 sql,
                 vec![
                     version_id.into(),
@@ -1311,6 +1367,7 @@ impl CandidateLookup for StoreScratchResolutionSession {
         let mut after = String::new();
         loop {
             let (page, next) = self.candidate_page(
+                CandidateQueryFamily::TopLevelNamed,
                 sql,
                 vec![
                     version_id.into(),
@@ -1382,6 +1439,7 @@ impl CandidateLookup for StoreScratchResolutionSession {
                     )?
                     .collect::<Result<Vec<_>, _>>()?)
             })?;
+            self.record_candidate_query(CandidateQueryFamily::TypeFacts, page.len());
             self.max_store_read_page
                 .set(self.max_store_read_page.get().max(page.len()));
             if page.is_empty() {
@@ -1437,6 +1495,7 @@ impl CandidateLookup for StoreScratchResolutionSession {
                     )?
                     .collect::<Result<Vec<_>, _>>()?)
             })?;
+            self.record_candidate_query(CandidateQueryFamily::Imports, page.len());
             self.max_store_read_page
                 .set(self.max_store_read_page.get().max(page.len()));
             if page.is_empty() {
@@ -1726,7 +1785,7 @@ impl ResolutionSession for StoreScratchResolutionSession {
         let SemanticVersionId::Store(version_id) = version else {
             return Ok(None);
         };
-        self.with_candidate_reader(|connection| {
+        let (identifier_id, rows_read) = self.with_candidate_reader(|connection| {
             let ids = if let (Some(start_byte), Some(end_byte)) = (start_byte, end_byte) {
                 connection
                     .prepare_cached(
@@ -1752,8 +1811,10 @@ impl ResolutionSession for StoreScratchResolutionSession {
                     .collect::<Result<Vec<_>, _>>()?
             };
             let identifier_id = (ids.len() == 1).then(|| ids[0].clone());
-            Ok(identifier_id)
-        })
+            Ok((identifier_id, ids.len()))
+        })?;
+        self.record_candidate_query(CandidateQueryFamily::LocateIdentifier, rows_read);
+        Ok(identifier_id)
     }
 
     fn identifier_is_covered(
@@ -2067,6 +2128,7 @@ impl StoreScratchResolutionSession {
                 .collect::<Result<Vec<_>, _>>()
                 .map_err(StoreResolutionError::from)
         })?;
+        self.record_candidate_query(CandidateQueryFamily::PrimeWindow, rows.len());
         self.max_store_read_page
             .set(self.max_store_read_page.get().max(rows.len()));
         let cutoff = (rows.len() == self.window_size)
@@ -2098,6 +2160,7 @@ impl StoreScratchResolutionSession {
 
     fn candidate_page(
         &self,
+        family: CandidateQueryFamily,
         sql: &str,
         bind: Vec<rusqlite::types::Value>,
     ) -> Result<CandidatePage, StoreResolutionError> {
@@ -2116,6 +2179,7 @@ impl StoreScratchResolutionSession {
             }
             self.max_store_read_page
                 .set(self.max_store_read_page.get().max(page_rows));
+            self.record_candidate_query(family, page_rows);
             Ok((hits, last))
         })
     }
@@ -2732,6 +2796,7 @@ impl StoreScratchResolutionSession {
                 })?
                 .collect::<Result<Vec<_>, _>>()?)
         })?;
+        self.record_candidate_query(CandidateQueryFamily::PendingHydration, keyed_rows.len());
         self.validate_hydrated_keys("pending", keys, &keyed_rows)?;
         Ok(keyed_rows.into_iter().map(|(_, row)| row).collect())
     }
@@ -2825,6 +2890,10 @@ impl StoreScratchResolutionSession {
                 })?
                 .collect::<Result<Vec<_>, _>>()?)
         })?;
+        self.record_candidate_query(
+            CandidateQueryFamily::RelationshipHydration,
+            keyed_rows.len(),
+        );
         self.validate_hydrated_keys("relationships", keys, &keyed_rows)?;
         Ok(keyed_rows.into_iter().map(|(_, row)| row).collect())
     }
@@ -2872,6 +2941,7 @@ impl StoreScratchResolutionSession {
                 })?
                 .collect::<Result<Vec<_>, _>>()?)
         })?;
+        self.record_candidate_query(CandidateQueryFamily::IdentifierHydration, keyed_rows.len());
         self.validate_hydrated_keys("identifiers", keys, &keyed_rows)?;
         Ok(keyed_rows.into_iter().map(|(_, row)| row).collect())
     }
@@ -3002,6 +3072,10 @@ impl StoreScratchResolutionSession {
                         |row| row.get::<_, i64>(0),
                     )
                     .optional()?;
+                self.record_candidate_query(
+                    CandidateQueryFamily::ModuleVersion,
+                    usize::from(version_id.is_some()),
+                );
                 if let Some(version_id) = version_id {
                     return Ok(Some(version_id.to_string()));
                 }
