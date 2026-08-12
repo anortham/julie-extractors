@@ -6,13 +6,20 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, Instant};
 
+use julie_extract_artifact::resolution_store::{ResolutionCounts, ResolutionReportRow};
 use julie_extract_artifact::store::{
     ManifestStore, ResolutionBaseBegin, ResolutionBaseCatalog, ResolutionBindingStore,
     ResolutionDiffMarker, StoreConnectionFactory, StoreLayout,
 };
-use julie_extract_cli::resolution::run_resolution_session;
+use julie_extract_cli::resolution::{self, run_resolution_session};
+use julie_extract_cli::resolution_session::{
+    ResolutionCorpusIdentity, ResolutionPassRequest, ResolutionPhaseChunk, ResolutionSession,
+    ResolutionWorklists, ResolutionWriteBatch, SemanticIdentifierId, SemanticSymbolId,
+    SemanticVersionId, SessionResolutionState,
+};
 use julie_extract_cli::store::resolution_session::{
-    CandidateQueryFamily, StoreManifestIdentity, StoreScratchResolutionSession,
+    CandidateQueryFamily, CandidateQueryTelemetry, StoreManifestIdentity,
+    StoreScratchResolutionSession,
 };
 use rusqlite::{Connection, params};
 use serde::{Deserialize, Serialize};
@@ -117,6 +124,228 @@ struct Sample {
     cumulative_delta_rows_before: u64,
     cumulative_delta_rows_after: u64,
     rebased: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct CandidateQueryMetric {
+    executions: usize,
+    rows: usize,
+}
+
+impl From<CandidateQueryTelemetry> for CandidateQueryMetric {
+    fn from(telemetry: CandidateQueryTelemetry) -> Self {
+        Self {
+            executions: telemetry.executions,
+            rows: telemetry.rows_read,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct CandidateQuerySample {
+    by_name: CandidateQueryMetric,
+    children_named: CandidateQueryMetric,
+    filtered_by_name: CandidateQueryMetric,
+    filtered_name_summary: CandidateQueryMetric,
+    identifier_hydration: CandidateQueryMetric,
+    imports: CandidateQueryMetric,
+    locate_identifier: CandidateQueryMetric,
+    module_version: CandidateQueryMetric,
+    pending_hydration: CandidateQueryMetric,
+    prime_window: CandidateQueryMetric,
+    relationship_hydration: CandidateQueryMetric,
+    symbol_by_id: CandidateQueryMetric,
+    top_level_named: CandidateQueryMetric,
+    type_facts: CandidateQueryMetric,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct CandidateQueryDiagnostic {
+    elapsed_ms: u64,
+    configured_resolution_mode: String,
+    configured_scope_file_count: usize,
+    max_store_read_page: usize,
+    max_candidate_cache_entries: usize,
+    queries: CandidateQuerySample,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct CandidateQuerySnapshot {
+    elapsed_ms: u64,
+    total_executions: usize,
+    queries: CandidateQuerySample,
+}
+
+struct SnapshottingSession<'a> {
+    inner: &'a mut StoreScratchResolutionSession,
+    output: PathBuf,
+    started: Instant,
+    next_execution_threshold: usize,
+}
+
+impl SnapshottingSession<'_> {
+    fn persist_if_due(&mut self) {
+        let queries = candidate_query_sample(self.inner);
+        let total_executions = queries.total_executions();
+        if total_executions < self.next_execution_threshold {
+            return;
+        }
+        let snapshot = CandidateQuerySnapshot {
+            elapsed_ms: elapsed_ms(self.started.elapsed()),
+            total_executions,
+            queries,
+        };
+        let pending = self.output.with_extension("json.pending");
+        fs::write(&pending, serde_json::to_vec_pretty(&snapshot).unwrap()).unwrap();
+        fs::rename(pending, &self.output).unwrap();
+        self.next_execution_threshold = total_executions.next_power_of_two().saturating_mul(2);
+    }
+}
+
+impl CandidateQuerySample {
+    fn total_executions(&self) -> usize {
+        self.by_name.executions
+            + self.children_named.executions
+            + self.filtered_by_name.executions
+            + self.filtered_name_summary.executions
+            + self.identifier_hydration.executions
+            + self.imports.executions
+            + self.locate_identifier.executions
+            + self.module_version.executions
+            + self.pending_hydration.executions
+            + self.prime_window.executions
+            + self.relationship_hydration.executions
+            + self.symbol_by_id.executions
+            + self.top_level_named.executions
+            + self.type_facts.executions
+    }
+}
+
+fn candidate_query_sample(session: &StoreScratchResolutionSession) -> CandidateQuerySample {
+    let metric = |family| session.candidate_query_telemetry(family).into();
+    CandidateQuerySample {
+        by_name: metric(CandidateQueryFamily::ByName),
+        children_named: metric(CandidateQueryFamily::ChildrenNamed),
+        filtered_by_name: metric(CandidateQueryFamily::FilteredByName),
+        filtered_name_summary: metric(CandidateQueryFamily::FilteredNameSummary),
+        identifier_hydration: metric(CandidateQueryFamily::IdentifierHydration),
+        imports: metric(CandidateQueryFamily::Imports),
+        locate_identifier: metric(CandidateQueryFamily::LocateIdentifier),
+        module_version: metric(CandidateQueryFamily::ModuleVersion),
+        pending_hydration: metric(CandidateQueryFamily::PendingHydration),
+        prime_window: metric(CandidateQueryFamily::PrimeWindow),
+        relationship_hydration: metric(CandidateQueryFamily::RelationshipHydration),
+        symbol_by_id: metric(CandidateQueryFamily::SymbolById),
+        top_level_named: metric(CandidateQueryFamily::TopLevelNamed),
+        type_facts: metric(CandidateQueryFamily::TypeFacts),
+    }
+}
+
+impl ResolutionSession for SnapshottingSession<'_> {
+    type Error = <StoreScratchResolutionSession as ResolutionSession>::Error;
+
+    fn corpus_identity(&self) -> Result<ResolutionCorpusIdentity, Self::Error> {
+        self.inner.corpus_identity()
+    }
+
+    fn prior_resolution_state(&mut self) -> Result<Option<SessionResolutionState>, Self::Error> {
+        self.inner.prior_resolution_state()
+    }
+
+    fn current_revision(&mut self) -> Result<i64, Self::Error> {
+        self.inner.current_revision()
+    }
+
+    fn open_resolution_pass(
+        &mut self,
+        request: &ResolutionPassRequest,
+    ) -> Result<ResolutionWorklists, Self::Error> {
+        self.inner.open_resolution_pass(request)
+    }
+
+    fn qualify_version(&self, source_key: &str) -> Result<SemanticVersionId, Self::Error> {
+        self.inner.qualify_version(source_key)
+    }
+
+    fn resolve_edge(
+        &mut self,
+        edge: &resolution::UnresolvedEdge,
+    ) -> Result<resolution::TierOutcome, Self::Error> {
+        let outcome = self.inner.resolve_edge(edge)?;
+        self.persist_if_due();
+        Ok(outcome)
+    }
+
+    fn target_symbol_name(
+        &mut self,
+        symbol_id: &SemanticSymbolId,
+    ) -> Result<Option<String>, Self::Error> {
+        self.inner.target_symbol_name(symbol_id)
+    }
+
+    fn locate_identifier(
+        &self,
+        version: &SemanticVersionId,
+        name: &str,
+        start_byte: Option<i64>,
+        end_byte: Option<i64>,
+        start_line: i64,
+    ) -> Result<Option<String>, Self::Error> {
+        self.inner
+            .locate_identifier(version, name, start_byte, end_byte, start_line)
+    }
+
+    fn identifier_is_covered(
+        &mut self,
+        identifier_id: &SemanticIdentifierId,
+    ) -> Result<bool, Self::Error> {
+        self.inner.identifier_is_covered(identifier_id)
+    }
+
+    fn propagation_is_covered(
+        &mut self,
+        identifier_id: &SemanticIdentifierId,
+    ) -> Result<bool, Self::Error> {
+        self.inner.propagation_is_covered(identifier_id)
+    }
+
+    fn propagation_is_owned(
+        &mut self,
+        identifier_id: &SemanticIdentifierId,
+    ) -> Result<bool, Self::Error> {
+        self.inner.propagation_is_owned(identifier_id)
+    }
+
+    fn next_phase_chunk(
+        &mut self,
+        worklists: &ResolutionWorklists,
+    ) -> Result<Option<ResolutionPhaseChunk>, Self::Error> {
+        let chunk = self.inner.next_phase_chunk(worklists)?;
+        self.persist_if_due();
+        Ok(chunk)
+    }
+
+    fn flush(&mut self, writes: ResolutionWriteBatch) -> Result<ResolutionCounts, Self::Error> {
+        let counts = self.inner.flush(writes)?;
+        self.persist_if_due();
+        Ok(counts)
+    }
+
+    fn aggregate_report(&mut self) -> Result<Vec<ResolutionReportRow>, Self::Error> {
+        self.inner.aggregate_report()
+    }
+
+    fn prepare_shadow(
+        &mut self,
+        worklists: &ResolutionWorklists,
+        revision: i64,
+    ) -> Result<(), Self::Error> {
+        self.inner.prepare_shadow(worklists, revision)
+    }
+
+    fn verify_shadow(&mut self) -> Result<(), Self::Error> {
+        self.inner.verify_shadow()
+    }
 }
 
 #[derive(Default)]
@@ -332,6 +561,86 @@ fn repeated_name_high_fanout_reports_candidate_query_families_and_exact_output()
 }
 
 #[test]
+fn candidate_query_sample_serializes_all_fixed_families() {
+    let temp = tempfile::tempdir().unwrap();
+    let layout = build_repeated_name_candidate_fixture(temp.path(), 1, WINDOW_SIZE + 1);
+    let identity = manifest_identity(&layout, 1);
+    let factory = StoreConnectionFactory::new(layout, FAMILY_ID, env!("CARGO_PKG_VERSION"));
+    let exact_path = temp.path().join("exact.db");
+    let mut session = StoreScratchResolutionSession::new(
+        factory,
+        identity,
+        exact_path,
+        WINDOW_SIZE,
+        RESOLVER_OUTPUT_EPOCH,
+    )
+    .unwrap();
+    run_resolution_session(&mut session, true, true).unwrap();
+
+    let value = serde_json::to_value(candidate_query_sample(&session)).unwrap();
+    let keys = value
+        .as_object()
+        .unwrap()
+        .keys()
+        .cloned()
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        keys,
+        vec![
+            "by_name",
+            "children_named",
+            "filtered_by_name",
+            "filtered_name_summary",
+            "identifier_hydration",
+            "imports",
+            "locate_identifier",
+            "module_version",
+            "pending_hydration",
+            "prime_window",
+            "relationship_hydration",
+            "symbol_by_id",
+            "top_level_named",
+            "type_facts",
+        ]
+    );
+    assert_eq!(value["prime_window"]["executions"], 1);
+    assert_eq!(value["prime_window"]["rows"], WINDOW_SIZE);
+}
+
+#[test]
+fn live_candidate_query_snapshot_persists_before_resolution_finishes() {
+    let temp = tempfile::tempdir().unwrap();
+    let layout = build_repeated_name_candidate_fixture(temp.path(), 4, WINDOW_SIZE + 1);
+    let identity = manifest_identity(&layout, 1);
+    let factory = StoreConnectionFactory::new(layout, FAMILY_ID, env!("CARGO_PKG_VERSION"));
+    let exact_path = temp.path().join("exact.db");
+    let output = temp.path().join("snapshot.json");
+    let mut session = StoreScratchResolutionSession::new(
+        factory,
+        identity,
+        exact_path,
+        WINDOW_SIZE,
+        RESOLVER_OUTPUT_EPOCH,
+    )
+    .unwrap();
+    let mut snapshotting = SnapshottingSession {
+        inner: &mut session,
+        output: output.clone(),
+        started: Instant::now(),
+        next_execution_threshold: 1,
+    };
+
+    run_resolution_session(&mut snapshotting, true, true).unwrap();
+    let snapshot: CandidateQuerySnapshot =
+        serde_json::from_slice(&fs::read(output).unwrap()).unwrap();
+
+    assert!(snapshot.total_executions >= 1);
+    assert_eq!(snapshot.queries.prime_window.executions, 1);
+    assert_eq!(snapshot.queries.prime_window.rows, WINDOW_SIZE);
+}
+
+#[test]
 fn store_resolution_performance_worker() {
     let Ok(store_root) = std::env::var("JULIE_STORE_RESOLUTION_PERF_WORKER_STORE") else {
         return;
@@ -344,6 +653,65 @@ fn store_resolution_performance_worker() {
     let output = PathBuf::from(std::env::var("JULIE_STORE_RESOLUTION_PERF_WORKER_OUTPUT").unwrap());
     let sample = measure_pair(Path::new(&store_root), &pair, run, output.parent().unwrap());
     fs::write(output, serde_json::to_vec_pretty(&sample).unwrap()).unwrap();
+}
+
+#[test]
+fn store_resolution_query_diagnostic_fixture() {
+    let Ok(store_root) = std::env::var("JULIE_STORE_RESOLUTION_QUERY_FIXTURE") else {
+        return;
+    };
+    let store_root = PathBuf::from(store_root);
+    reset_owned_directory(&store_root);
+    build_store_fixture(
+        &store_root,
+        MILLER_IDENTIFIER_ROWS,
+        MILLER_PENDING_ROWS,
+        MILLER_RESOLVED_PENDING_ROWS,
+    );
+    let layout = StoreLayout::open(store_root.join("family")).unwrap();
+    prepare_replay_view(&layout, "query-diagnostic", ReplayMode::Scoped);
+}
+
+#[test]
+fn store_resolution_query_diagnostic_worker() {
+    let Ok(store_root) = std::env::var("JULIE_STORE_RESOLUTION_QUERY_STORE") else {
+        return;
+    };
+    let output = PathBuf::from(std::env::var("JULIE_STORE_RESOLUTION_QUERY_OUTPUT").unwrap());
+    let layout = StoreLayout::open(&store_root).unwrap();
+    let identity = view_manifest_identity(&layout, "query-diagnostic", 2);
+    let factory = StoreConnectionFactory::new(layout, FAMILY_ID, env!("CARGO_PKG_VERSION"));
+    let exact_path = output.with_extension("exact.db");
+    assert!(!exact_path.exists());
+    let mut session = StoreScratchResolutionSession::new(
+        factory,
+        identity,
+        &exact_path,
+        WINDOW_SIZE,
+        RESOLVER_OUTPUT_EPOCH,
+    )
+    .unwrap();
+    let started = Instant::now();
+    let snapshot_output = output.with_extension("live.json");
+    let mut snapshotting = SnapshottingSession {
+        inner: &mut session,
+        output: snapshot_output,
+        started,
+        next_execution_threshold: 1,
+    };
+    run_resolution_session(&mut snapshotting, false, true).unwrap();
+    drop(snapshotting);
+    let elapsed_ms = elapsed_ms(started.elapsed());
+    let diagnostic = CandidateQueryDiagnostic {
+        elapsed_ms,
+        configured_resolution_mode: "scoped".to_string(),
+        configured_scope_file_count: MILLER_CHANGED_FILES,
+        max_store_read_page: session.max_store_read_page(),
+        max_candidate_cache_entries: session.max_candidate_cache_entries(),
+        queries: candidate_query_sample(&session),
+    };
+    fs::write(&output, serde_json::to_vec_pretty(&diagnostic).unwrap()).unwrap();
+    session.finish_exact().unwrap();
 }
 
 #[test]
