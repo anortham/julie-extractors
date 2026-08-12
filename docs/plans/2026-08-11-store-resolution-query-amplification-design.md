@@ -9,9 +9,17 @@ The first hypothesis was that `prime_candidate_window`'s global `LIMIT window_si
 A faithful scoped replay now identifies the production access pattern. On a verified reflink clone with a ready
 392,526-identifier predecessor base, the one replay completed in 49.81 seconds. `run_resolution_session` took
 24.848 seconds. `LocateIdentifier` executed 10,804 times—72.12% of all candidate statements and exactly the
-pending-row count—because `materialized_relationship_covers` calls it inside its relationship-row loop. Both
-locator indexes already exist; an index-only change cannot remove those round trips. `finish_exact` then consumed
-about another 23.7 seconds and is a separate measured bottleneck.
+pending-row count. A first exact regression attributed those calls to `materialized_relationship_covers` and
+batched that path, but the one faithful replay disproved the attribution: wall time remained 49.63 seconds,
+`run_resolution_session` remained 24.740 seconds, `LocateIdentifier` remained 10,804, and the new relationship
+coverage family executed zero times. The uncommitted wrong-path slice was removed.
+
+The real replay has zero relationship-hydration queries. The matching production path is
+`recheck_resolved_pending_items`: it rechecks the prior pending worklist and calls `locate_identifier` for each
+demoted co-located identifier. `load_resolved_pending_page` already hydrates that worklist in bounded pages but
+does not carry the exact co-located identifier result. Both locator indexes already exist; an index-only change
+cannot remove 10,804 round trips. `finish_exact` then consumes about another 23.7 seconds and remains a separate
+measured bottleneck.
 
 ## Goals
 
@@ -39,12 +47,23 @@ Deferred pending telemetry. It remains a possible implementation only if the fai
 The faithful replay did not select this option. The dominant calls are relationship-coverage locators, not repeated
 candidate pages.
 
-### Batch relationship coverage
+### Batch materialized relationship coverage
 
-Selected. Replace the per-relationship `locate_identifier` call shape with a bounded SQL or scratch-materialized
-coverage query that evaluates identifiers and reference-kind relationships in pages. Preserve the existing rule:
-coverage is true only when the relationship target maps to exactly one identifier at the same version/name/span
-or line. Keep view/generation visibility predicates and deterministic order. No cache may grow with the workspace.
+Rejected after replay. The exact synthetic test proved the implementation's semantics and batching, but the
+faithful path executed no relationship-hydration work and retained all 10,804 locator calls. Do not retain or
+recreate this optimization as a fix for the measured incident.
+
+### Hydrate co-located identifiers in resolved-pending pages
+
+Selected. Extend `SessionResolvedPendingWorkItem` with the same exact-result shape already used by
+`SessionRelationship`: `located_identifier_id: Option<String>` plus `identifier_lookup_complete: bool`.
+`StoreScratchResolutionSession::load_resolved_pending_page` computes the result in the existing bounded key page,
+using the current span/line and exactly-one-match rules. `recheck_resolved_pending_items` consumes the hydrated
+result and falls back to `locate_identifier` only for other session adapters whose lookup is not complete.
+
+This keeps SQLite and visibility policy inside the store session, keeps generic orchestration storage-agnostic,
+and avoids a second workspace-sized scratch projection. The interface is wider by two fields but already has a
+proven analogue in `SessionRelationship`; both the store adapter and in-memory contract adapter exercise it.
 
 ### Exact finalization
 
@@ -63,7 +82,11 @@ Add internal counters to `StoreScratchResolutionSession`:
 
 Expose them through the existing test/diagnostic surface and carry them into the store resolution phase report. Labels are a fixed enum/string set, not SQL text or symbol names.
 
-The first diagnostic fixture uses many identifiers sharing one name and more candidate symbols than `window_size`. It guards the disproven top-level theory and verifies fixed-family counters. Test-only diagnostics persist logarithmic live snapshots and fail closed unless the configured view is current, converging, and bound to a ready predecessor. Task 3 implements batched relationship coverage, verifies exact output and bounded work, then runs one faithful replay. A second task instruments and fixes exact finalization.
+The first diagnostic fixture uses many identifiers sharing one name and more candidate symbols than `window_size`.
+It guards the disproven top-level theory and verifies fixed-family counters. Test-only diagnostics persist
+logarithmic live snapshots and fail closed unless the configured view is current, converging, and bound to a ready
+predecessor. Task 3 hydrates exact co-located identifiers in bounded resolved-pending pages, verifies demotion
+parity and query bounds, then runs one faithful replay. Task 4 instruments and fixes exact finalization.
 
 ## Verification Budget
 
