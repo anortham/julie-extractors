@@ -18,7 +18,7 @@ Ph2b, Ph2c, and Ph2d implement the [store v1 contract](contracts/store-v1.md),
 [SQLite store schema v2](contracts/sqlite-store-schema-v2.md), and
 [versioned-store architecture](architecture/versioned-index-store.md). The implementation is
 published in v2.31.0 and patched through v2.31.4. Version 2.32.0 makes validated scoped resolution
-the default while retaining an explicit forced-full escape hatch. The local v2.32.1 candidate hardens long
+the default while retaining an explicit forced-full escape hatch. Version 2.32.1 hardens long
 artifact imports, bounds scope crossover before execution, reuses identical imports, and accelerates exact
 resolution publication without changing public contracts. The implementation
 plans and dogfood records are:
@@ -43,7 +43,8 @@ plans and dogfood records are:
 - [Incremental-resolution dogfood and verification ledger](findings/2026-08-11-store-incremental-resolution-dogfood.md)
 - [v2.32.0 release notes](release-notes/v2.32.0.md)
 - [v2.32.0 release evidence](release-evidence/2026-08-11-v2-32-0-release.md)
-- [v2.32.1 candidate release notes](release-notes/v2.32.1.md)
+- [v2.32.1 release notes](release-notes/v2.32.1.md)
+- [v2.32.1 release evidence](release-evidence/2026-08-12-v2-32-1-release.md)
 
 ## Evidence and historical material
 
