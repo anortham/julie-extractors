@@ -1,5 +1,6 @@
 #![cfg(feature = "test-store-resolution-contract")]
 
+use std::cell::Cell;
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -13,9 +14,9 @@ use julie_extract_artifact::store::{
 };
 use julie_extract_cli::resolution::{self, run_resolution_session};
 use julie_extract_cli::resolution_session::{
-    ResolutionCorpusIdentity, ResolutionPassRequest, ResolutionPhaseChunk, ResolutionSession,
-    ResolutionWorklists, ResolutionWriteBatch, SemanticIdentifierId, SemanticSymbolId,
-    SemanticVersionId, SessionResolutionState,
+    ResolutionCorpusIdentity, ResolutionPassRequest, ResolutionPhase, ResolutionPhaseChunk,
+    ResolutionSession, ResolutionWorklists, ResolutionWriteBatch, SemanticIdentifierId,
+    SemanticSymbolId, SemanticVersionId, SessionResolutionState,
 };
 use julie_extract_cli::store::resolution_session::{
     CandidateQueryFamily, CandidateQueryTelemetry, StoreManifestIdentity,
@@ -166,6 +167,7 @@ struct CandidateQueryDiagnostic {
     configured_scope_file_count: usize,
     max_store_read_page: usize,
     max_candidate_cache_entries: usize,
+    locate_identifier_by_phase: LocateIdentifierPhaseSample,
     queries: CandidateQuerySample,
 }
 
@@ -173,7 +175,16 @@ struct CandidateQueryDiagnostic {
 struct CandidateQuerySnapshot {
     elapsed_ms: u64,
     total_executions: usize,
+    locate_identifier_by_phase: LocateIdentifierPhaseSample,
     queries: CandidateQuerySample,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+struct LocateIdentifierPhaseSample {
+    resolved_pending: usize,
+    pending: usize,
+    relationships: usize,
+    other_or_unset: usize,
 }
 
 struct SnapshottingSession<'a> {
@@ -181,9 +192,26 @@ struct SnapshottingSession<'a> {
     output: PathBuf,
     started: Instant,
     next_execution_threshold: usize,
+    phase: Cell<Option<ResolutionPhase>>,
+    locate_identifier_by_phase: Cell<LocateIdentifierPhaseSample>,
 }
 
 impl SnapshottingSession<'_> {
+    fn locate_identifier_phase_sample(&self) -> LocateIdentifierPhaseSample {
+        self.locate_identifier_by_phase.get()
+    }
+
+    fn record_locate_identifier(&self) {
+        let mut sample = self.locate_identifier_by_phase.get();
+        match self.phase.get() {
+            Some(ResolutionPhase::ResolvedPending) => sample.resolved_pending += 1,
+            Some(ResolutionPhase::Pending) => sample.pending += 1,
+            Some(ResolutionPhase::Relationships) => sample.relationships += 1,
+            _ => sample.other_or_unset += 1,
+        }
+        self.locate_identifier_by_phase.set(sample);
+    }
+
     fn persist_if_due(&mut self) {
         let queries = candidate_query_sample(self.inner);
         let total_executions = queries.total_executions();
@@ -193,6 +221,7 @@ impl SnapshottingSession<'_> {
         let snapshot = CandidateQuerySnapshot {
             elapsed_ms: elapsed_ms(self.started.elapsed()),
             total_executions,
+            locate_identifier_by_phase: self.locate_identifier_phase_sample(),
             queries,
         };
         let pending = self.output.with_extension("json.pending");
@@ -328,8 +357,11 @@ impl ResolutionSession for SnapshottingSession<'_> {
         end_byte: Option<i64>,
         start_line: i64,
     ) -> Result<Option<String>, Self::Error> {
-        self.inner
-            .locate_identifier(version, name, start_byte, end_byte, start_line)
+        let identifier = self
+            .inner
+            .locate_identifier(version, name, start_byte, end_byte, start_line)?;
+        self.record_locate_identifier();
+        Ok(identifier)
     }
 
     fn identifier_is_covered(
@@ -357,6 +389,7 @@ impl ResolutionSession for SnapshottingSession<'_> {
         &mut self,
         worklists: &ResolutionWorklists,
     ) -> Result<Option<ResolutionPhaseChunk>, Self::Error> {
+        self.phase.set(Some(worklists.phase));
         let chunk = self.inner.next_phase_chunk(worklists)?;
         self.persist_if_due();
         Ok(chunk)
@@ -646,6 +679,69 @@ fn candidate_query_sample_serializes_all_fixed_families() {
 }
 
 #[test]
+fn snapshotting_session_attributes_locator_calls_to_fixed_phases() {
+    let temp = tempfile::tempdir().unwrap();
+    let layout = build_repeated_name_candidate_fixture(temp.path(), 1, 1);
+    let identity = manifest_identity(&layout, 1);
+    let factory = StoreConnectionFactory::new(layout, FAMILY_ID, env!("CARGO_PKG_VERSION"));
+    let exact_path = temp.path().join("exact.db");
+    let output = temp.path().join("snapshot.json");
+    let mut session = StoreScratchResolutionSession::new(
+        factory,
+        identity,
+        exact_path,
+        WINDOW_SIZE,
+        RESOLVER_OUTPUT_EPOCH,
+    )
+    .unwrap();
+    let mut snapshotting = SnapshottingSession {
+        inner: &mut session,
+        output,
+        started: Instant::now(),
+        next_execution_threshold: usize::MAX,
+        phase: Cell::new(None),
+        locate_identifier_by_phase: Cell::new(LocateIdentifierPhaseSample::default()),
+    };
+    let worklists = snapshotting
+        .open_resolution_pass(&ResolutionPassRequest::full())
+        .unwrap();
+    let version = SemanticVersionId::Store(1);
+    let locate = |session: &SnapshottingSession<'_>| {
+        session
+            .locate_identifier(&version, "shared_target", Some(131), Some(137), 3)
+            .unwrap()
+    };
+
+    assert_eq!(
+        locate(&snapshotting).as_deref(),
+        Some("identifier-00000000")
+    );
+    for (phase, calls) in [
+        (ResolutionPhase::ResolvedPending, 1),
+        (ResolutionPhase::Pending, 2),
+        (ResolutionPhase::Relationships, 3),
+        (ResolutionPhase::Identifiers, 4),
+    ] {
+        let mut phase_worklists = worklists.clone();
+        phase_worklists.phase = phase;
+        snapshotting.next_phase_chunk(&phase_worklists).unwrap();
+        for _ in 0..calls {
+            locate(&snapshotting);
+        }
+    }
+
+    assert_eq!(
+        snapshotting.locate_identifier_phase_sample(),
+        LocateIdentifierPhaseSample {
+            resolved_pending: 1,
+            pending: 2,
+            relationships: 3,
+            other_or_unset: 5,
+        }
+    );
+}
+
+#[test]
 fn live_candidate_query_snapshot_persists_before_resolution_finishes() {
     let temp = tempfile::tempdir().unwrap();
     let layout = build_repeated_name_candidate_fixture(temp.path(), 4, WINDOW_SIZE + 1);
@@ -666,6 +762,8 @@ fn live_candidate_query_snapshot_persists_before_resolution_finishes() {
         output: output.clone(),
         started: Instant::now(),
         next_execution_threshold: 1,
+        phase: Cell::new(None),
+        locate_identifier_by_phase: Cell::new(LocateIdentifierPhaseSample::default()),
     };
 
     run_resolution_session(&mut snapshotting, true, true).unwrap();
@@ -733,8 +831,11 @@ fn store_resolution_query_diagnostic_worker() {
         output: snapshot_output,
         started,
         next_execution_threshold: 1,
+        phase: Cell::new(None),
+        locate_identifier_by_phase: Cell::new(LocateIdentifierPhaseSample::default()),
     };
     run_resolution_session(&mut snapshotting, false, true).unwrap();
+    let locate_identifier_by_phase = snapshotting.locate_identifier_phase_sample();
     drop(snapshotting);
     let elapsed_ms = elapsed_ms(started.elapsed());
     let diagnostic = CandidateQueryDiagnostic {
@@ -743,6 +844,7 @@ fn store_resolution_query_diagnostic_worker() {
         configured_scope_file_count: MILLER_CHANGED_FILES,
         max_store_read_page: session.max_store_read_page(),
         max_candidate_cache_entries: session.max_candidate_cache_entries(),
+        locate_identifier_by_phase,
         queries: candidate_query_sample(&session),
     };
     fs::write(&output, serde_json::to_vec_pretty(&diagnostic).unwrap()).unwrap();
