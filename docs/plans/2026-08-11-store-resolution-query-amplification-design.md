@@ -55,11 +55,25 @@ recreate this optimization as a fix for the measured incident.
 
 ### Hydrate co-located identifiers in resolved-pending pages
 
-Selected. Extend `SessionResolvedPendingWorkItem` with the same exact-result shape already used by
+Rejected after replay. The bounded page implementation passed its real scoped RED/GREEN, but the faithful run
+executed this family zero times and retained all 10,804 locator calls. This second uncommitted wrong-path slice was
+removed.
+
+### Attribute locator calls by resolution phase
+
+Completed as test-only diagnostics at `5089c3a2`. `SnapshottingSession` records fixed locator buckets for
+ResolvedPending, Pending, Relationships, and Other/Unset in live and final JSON. The one new-evidence replay
+reported Pending=10,804 and every other bucket=0; its earliest retained snapshot already showed Pending=8,109 at
+1.047 seconds. `resolve_pending_items` is therefore the exact production caller.
+
+### Hydrate co-located identifiers in pending pages
+
+Selected. Add `SessionPendingWorkItem` with a `PendingWorkItem` plus the same exact-result shape already used by
 `SessionRelationship`: `located_identifier_id: Option<String>` plus `identifier_lookup_complete: bool`.
-`StoreScratchResolutionSession::load_resolved_pending_page` computes the result in the existing bounded key page,
-using the current span/line and exactly-one-match rules. `recheck_resolved_pending_items` consumes the hydrated
-result and falls back to `locate_identifier` only for other session adapters whose lookup is not complete.
+`StoreScratchResolutionSession::load_pending_page` computes the result in the existing bounded key page, using the
+current span/line and exactly-one-match rules. `resolve_pending_items` consumes the hydrated result and falls back
+to `locate_identifier` only for session adapters whose lookup is not complete. `load_resolved_pending_page` may
+unwrap the same pending row without changing resolved-pending behavior.
 
 This keeps SQLite and visibility policy inside the store session, keeps generic orchestration storage-agnostic,
 and avoids a second workspace-sized scratch projection. The interface is wider by two fields but already has a
@@ -85,8 +99,8 @@ Expose them through the existing test/diagnostic surface and carry them into the
 The first diagnostic fixture uses many identifiers sharing one name and more candidate symbols than `window_size`.
 It guards the disproven top-level theory and verifies fixed-family counters. Test-only diagnostics persist
 logarithmic live snapshots and fail closed unless the configured view is current, converging, and bound to a ready
-predecessor. Task 3 hydrates exact co-located identifiers in bounded resolved-pending pages, verifies demotion
-parity and query bounds, then runs one faithful replay. Task 4 instruments and fixes exact finalization.
+predecessor. Task 3 hydrates exact co-located identifiers in bounded Pending pages, verifies resolution parity and
+query bounds, then runs one faithful replay. Task 4 instruments and fixes exact finalization.
 
 ## Verification Budget
 

@@ -4,11 +4,11 @@
 
 **Goal:** Identify and remove the resolver query family responsible for production SQLite read amplification, with telemetry that prevents another speculative fix.
 
-**Architecture:** Add fixed-cardinality query counters inside `StoreScratchResolutionSession`, disprove or confirm each candidate family with bounded evidence, then move exact co-located identifier lookup into the existing bounded resolved-pending hydration page. Keep generic resolution storage-agnostic and preserve a fallback for session adapters that cannot pre-hydrate the result. Instrument exact finalization only after the resolver query fix is measured.
+**Architecture:** Add fixed-cardinality query and caller-phase counters inside the test diagnostic, disprove or confirm each candidate family with bounded evidence, then move exact co-located identifier lookup into the existing bounded Pending hydration page. Keep generic resolution storage-agnostic and preserve a fallback for session adapters that cannot pre-hydrate the result. Instrument exact finalization only after the resolver query fix is measured.
 
 **Tech Stack:** Rust, rusqlite, SQLite family store, cargo test, existing store-resolution performance fixtures.
 
-**Architecture Quality:** Medium-risk deep-session change. `SessionResolvedPendingWorkItem` gains the same complete/optional identifier-result contract as `SessionRelationship`; the store adapter owns SQLite batching and the generic resolver owns only fallback policy. No public artifact/store schema or workspace-sized cache is added.
+**Architecture Quality:** Medium-risk deep-session change. A `SessionPendingWorkItem` wraps the artifact-owned `PendingWorkItem` with the same complete/optional identifier-result contract as `SessionRelationship`; the store adapter owns SQLite batching and the generic resolver owns only fallback policy. No public artifact/store schema or workspace-sized cache is added.
 
 ## Global Constraints
 
@@ -123,10 +123,10 @@
 - Modify: this plan
 
 **Interfaces:**
-- Consumes: Task 2's 10,804 `LocateIdentifier` executions, the disproven relationship-coverage replay, and the existing `SessionRelationship` complete/optional hydration contract.
-- Produces: `SessionResolvedPendingWorkItem.located_identifier_id: Option<String>` plus `identifier_lookup_complete: bool`, populated in bounded store pages and consumed without per-row store locator calls.
+- Consumes: Task 2's 10,804 `LocateIdentifier` executions, two disproven caller replays, caller-phase telemetry commit `5089c3a2`, and the existing `SessionRelationship` complete/optional hydration contract.
+- Produces: `SessionPendingWorkItem { pending, located_identifier_id, identifier_lookup_complete }`, populated in bounded store Pending pages and consumed without per-row store locator calls.
 
-**Contract inputs:** Preserve exactly-one-match semantics for byte spans and line fallback, including ambiguity and no-match. Store hydration marks lookup complete even when no unique identifier exists. Other adapters may set it false and retain the existing locator fallback. Do not add a workspace-sized cache or store schema.
+**Contract inputs:** Exact caller evidence is Pending=10,804 and every other phase=0. Preserve exactly-one-match semantics for byte spans and line fallback, including ambiguity and no-match. Store hydration marks lookup complete even when no unique identifier exists. Other adapters may set it false and retain the existing locator fallback. Do not add a workspace-sized cache or store schema.
 
 **File ownership:** the three exact resolver/session sources, mechanism/performance regression only as required, plus design/plan evidence
 
@@ -135,10 +135,10 @@
 **Dependency reason:** Must not optimize before Task 2 names the production bottleneck.
 
 **Acceptance criteria:**
-- [ ] Exact RED exercises the real `ResolvedPending` phase and fails because store `LocateIdentifier` executions equal demoted pending rows.
-- [ ] GREEN covers byte span, line fallback, ambiguity, no match, and non-store fallback while reducing store `LocateIdentifier` executions to zero.
-- [ ] The new identifier-hydration query executes once per bounded resolved-pending page, not once per row.
-- [ ] Exact digest, demotion counts, and resolution rows remain unchanged.
+- [ ] Exact RED exercises the real `Pending` phase and fails because store `LocateIdentifier` executions equal successfully resolved pending rows.
+- [ ] GREEN covers byte span, line fallback, ambiguity, no match, and non-store fallback while reducing store Pending `LocateIdentifier` executions to zero.
+- [ ] The new identifier-hydration query executes once per bounded Pending page, not once per row.
+- [ ] Exact digest, pending/identifier resolution counts, and rows remain unchanged.
 - [ ] Memory stays bounded by the existing phase window; no workspace-sized cache or scratch projection is added.
 - [ ] A single bounded real replay completes within 60 seconds or identifies one newly measured next bottleneck without an unchanged rerun.
 - [ ] Commit only owned files with `serial-worker-commit`.
