@@ -270,6 +270,14 @@ pub(crate) struct StoreRequestExecutor {
     family_id: String,
     watchdog: Option<crate::watchdog::ParentWatchdog>,
     progress: std::collections::BTreeMap<(String, String), Arc<ScanProgress>>,
+    from_artifact_reuse: Option<FromArtifactReuse>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct FromArtifactReuse {
+    pub request_id: String,
+    pub generation: u64,
+    pub manifest_hash: String,
 }
 
 /// A durable request may describe a million-file repository without permitting
@@ -291,7 +299,13 @@ impl StoreRequestExecutor {
             family_id,
             watchdog,
             progress: std::collections::BTreeMap::new(),
+            from_artifact_reuse: None,
         }
+    }
+
+    pub(crate) fn with_from_artifact_reuse(mut self, reuse: Option<FromArtifactReuse>) -> Self {
+        self.from_artifact_reuse = reuse;
+        self
     }
 
     pub(crate) fn validate_payload_json(
@@ -916,6 +930,53 @@ impl StoreRequestExecutor {
         super::from_artifact::verify_source_identity(&payload)?;
         ManifestStore::ensure_view_in_transaction(transaction, &payload.view_id, &payload.root)
             .map_err(|error| error.to_string())?;
+        if context.next_chunk_index == 0
+            && let Some(reuse) = self
+                .from_artifact_reuse
+                .as_ref()
+                .filter(|reuse| reuse.request_id == request.request_id)
+        {
+            let reuse_generation = i64::try_from(reuse.generation)
+                .map_err(|_| "invalid_manifest_generation".to_string())?;
+            let current = transaction
+                .query_row(
+                    "SELECT view.current_generation,manifest.manifest_hash
+                     FROM views AS view JOIN manifests AS manifest
+                       ON manifest.view_id=view.view_id
+                      AND manifest.generation=view.current_generation
+                     WHERE view.view_id=?1
+                       AND view.resolution_state='exact'
+                       AND view.resolution_exact_at=view.current_generation",
+                    [&payload.view_id],
+                    |row| Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?)),
+                )
+                .optional()
+                .map_err(|error| error.to_string())?;
+            if current == Some((reuse_generation, reuse.manifest_hash.clone())) {
+                let counts = terminal_row_counts(transaction, &payload.view_id, reuse_generation)?;
+                return Ok(ExecutionQuantum::Complete {
+                    event_kind: "store_from_artifact_reused".to_string(),
+                    result_json: serde_json::json!({
+                        "family_id": payload.family_id,
+                        "l1": true,
+                        "l2": true,
+                        "l3": true,
+                        "manifest_generation": reuse.generation,
+                        "manifest_hash": reuse.manifest_hash,
+                        "manifest_disposition": "reused",
+                        "row_counts": {
+                            "file_versions": counts.0,
+                            "l1": counts.1,
+                            "l2": counts.2,
+                            "l3": counts.3,
+                        },
+                        "root": payload.root,
+                        "view_id": payload.view_id,
+                    })
+                    .to_string(),
+                });
+            }
+        }
         let chunk_ranges = chunk_ranges(
             &payload
                 .files

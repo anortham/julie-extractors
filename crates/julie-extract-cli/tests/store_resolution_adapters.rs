@@ -925,6 +925,228 @@ fn committed_from_artifact_replay_survives_source_deletion_without_new_effects()
 }
 
 #[test]
+fn identical_from_artifact_retry_with_a_new_key_skips_file_materialization() {
+    let temp = TempDir::new();
+    let (root, artifact) = create_legacy_artifact(&temp);
+    let store = temp.path().join("family");
+    let family = "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11";
+    for (request_id, idempotency_key) in [
+        ("from-artifact-original", "from-artifact-original-key"),
+        ("from-artifact-retry", "from-artifact-retry-key"),
+    ] {
+        let output = julie_extract(&[
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            family,
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--from-artifact",
+            artifact.to_str().unwrap(),
+            "--request-id",
+            request_id,
+            "--idempotency-key",
+            idempotency_key,
+            "--json",
+        ]);
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stdout)
+        );
+    }
+
+    let connection = Connection::open(store.join("gen-001/store.db")).unwrap();
+    let (retry_materialization_chunks, retry_terminal_reuse, manifests, versions): (
+        i64,
+        i64,
+        i64,
+        i64,
+    ) = connection
+        .query_row(
+            "SELECT
+                   (SELECT COUNT(*) FROM store_log
+                    WHERE request_id='from-artifact-retry'
+                      AND event_kind='store_from_artifact_versions_written'),
+                   (SELECT COUNT(*) FROM store_log
+                    WHERE request_id='from-artifact-retry' AND terminal=1
+                      AND event_kind='store_from_artifact_reused'),
+                   (SELECT COUNT(*) FROM manifests WHERE view_id='view-main'),
+                   (SELECT COUNT(*) FROM file_versions)",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        )
+        .unwrap();
+    assert_eq!(retry_materialization_chunks, 0);
+    assert_eq!(retry_terminal_reuse, 1);
+    assert_eq!(manifests, 1);
+    assert_eq!(versions, 1);
+}
+
+#[test]
+fn changed_from_artifact_content_with_a_new_key_materializes_a_new_version() {
+    let temp = TempDir::new();
+    let (root, artifact) = create_legacy_artifact(&temp);
+    let store = temp.path().join("family");
+    let family = "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11";
+    let original = julie_extract(&[
+        "store",
+        "import",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        family,
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--from-artifact",
+        artifact.to_str().unwrap(),
+        "--request-id",
+        "from-artifact-original",
+        "--idempotency-key",
+        "from-artifact-original-key",
+        "--json",
+    ]);
+    assert!(original.status.success());
+    fs::write(root.join("lib.rs"), "pub fn answer() -> i32 { 2 }\n").unwrap();
+    let scan = julie_extract(&[
+        "scan",
+        "--root",
+        root.to_str().unwrap(),
+        "--db",
+        artifact.to_str().unwrap(),
+        "--force",
+        "--json",
+    ]);
+    assert!(
+        scan.status.success(),
+        "{}",
+        String::from_utf8_lossy(&scan.stdout)
+    );
+    let changed = julie_extract(&[
+        "store",
+        "import",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        family,
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--from-artifact",
+        artifact.to_str().unwrap(),
+        "--request-id",
+        "from-artifact-changed",
+        "--idempotency-key",
+        "from-artifact-changed-key",
+        "--json",
+    ]);
+    assert!(
+        changed.status.success(),
+        "{}",
+        String::from_utf8_lossy(&changed.stdout)
+    );
+
+    let connection = Connection::open(store.join("gen-001/store.db")).unwrap();
+    let (materialization_chunks, manifests, versions): (i64, i64, i64) = connection
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM store_log
+                WHERE request_id='from-artifact-changed'
+                  AND event_kind='store_from_artifact_versions_written'),
+               (SELECT COUNT(*) FROM manifests WHERE view_id='view-main'),
+               (SELECT COUNT(*) FROM file_versions)",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .unwrap();
+    assert_eq!(materialization_chunks, 1);
+    assert_eq!(manifests, 2);
+    assert_eq!(versions, 2);
+}
+
+#[test]
+fn incomplete_prior_from_artifact_request_does_not_authorize_reuse() {
+    let temp = TempDir::new();
+    let (root, artifact) = create_legacy_artifact(&temp);
+    let store = temp.path().join("family");
+    let family = "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11";
+    let original_args = [
+        "store",
+        "import",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        family,
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--from-artifact",
+        artifact.to_str().unwrap(),
+        "--request-id",
+        "from-artifact-incomplete",
+        "--idempotency-key",
+        "from-artifact-incomplete-key",
+        "--json",
+    ];
+    let crashed = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args(original_args)
+        .env(
+            "JULIE_EXTRACT_STORE_TEST_CRASH_AT",
+            "terminal_after_store_commit",
+        )
+        .output()
+        .unwrap();
+    assert!(!crashed.status.success());
+
+    let retry = julie_extract(&[
+        "store",
+        "import",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        family,
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--from-artifact",
+        artifact.to_str().unwrap(),
+        "--request-id",
+        "from-artifact-after-incomplete",
+        "--idempotency-key",
+        "from-artifact-after-incomplete-key",
+        "--json",
+    ]);
+    assert!(
+        retry.status.success(),
+        "{}",
+        String::from_utf8_lossy(&retry.stdout)
+    );
+
+    let connection = Connection::open(store.join("gen-001/store.db")).unwrap();
+    assert_eq!(
+        connection
+            .query_row(
+                "SELECT COUNT(*) FROM store_log
+                 WHERE request_id='from-artifact-after-incomplete'
+                   AND event_kind='store_from_artifact_versions_written'",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        1
+    );
+}
+
+#[test]
 fn from_artifact_crash_boundaries_resume_without_duplicate_versions_or_effects() {
     for boundary in [
         "child_rows_before_level_stamp",

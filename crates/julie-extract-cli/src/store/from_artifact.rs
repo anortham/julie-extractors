@@ -157,12 +157,21 @@ fn execute(
             .unwrap_or(i64::MAX)
             .saturating_mul(1_000),
     );
+    let payload_json =
+        serde_json::to_string(&payload).expect("from-artifact payload is serializable");
+    let reuse = reusable_from_artifact_manifest(
+        &layout,
+        &coordinator,
+        request_id,
+        &payload.view_id,
+        &payload_json,
+    )?;
     let request = coordinator
         .enqueue(CoordinatorRequest::new(
             request_id,
             idempotency_key,
             RequestKind::FromArtifact,
-            serde_json::to_string(&payload).expect("from-artifact payload is serializable"),
+            payload_json,
             holder.holder_id,
             deadline,
             now,
@@ -170,13 +179,66 @@ fn execute(
         .map_err(|error| FromArtifactFailure::Operational(error.to_string()))?
         .request;
     let mut executor =
-        StoreRequestExecutor::new(layout.store_db().to_path_buf(), args.family.clone(), None);
+        StoreRequestExecutor::new(layout.store_db().to_path_buf(), args.family.clone(), None)
+            .with_from_artifact_reuse(reuse);
     drain_when_available(&mut coordinator, &mut executor, &request)
         .map_err(FromArtifactFailure::Operational)?;
     let observed = coordinator
         .request(&request.request_id)
         .map_err(|error| FromArtifactFailure::Operational(error.to_string()))?;
     report(&layout, &observed, &payload).map_err(FromArtifactFailure::Operational)
+}
+
+fn reusable_from_artifact_manifest(
+    layout: &StoreLayout,
+    coordinator: &StoreCoordinator,
+    request_id: &str,
+    view_id: &str,
+    payload_json: &str,
+) -> Result<Option<super::executor::FromArtifactReuse>, FromArtifactFailure> {
+    let connection = Connection::open(layout.store_db())
+        .map_err(|error| FromArtifactFailure::Operational(error.to_string()))?;
+    let current = connection
+        .query_row(
+            "SELECT view.current_generation,manifest.manifest_hash,manifest.request_id
+             FROM views AS view JOIN manifests AS manifest
+               ON manifest.view_id=view.view_id
+              AND manifest.generation=view.current_generation
+             WHERE view.view_id=?1
+               AND view.resolution_state='exact'
+               AND view.resolution_exact_at=view.current_generation",
+            [view_id],
+            |row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            },
+        )
+        .optional()
+        .map_err(|error| FromArtifactFailure::Operational(error.to_string()))?;
+    let Some((generation, manifest_hash, origin_request_id)) = current else {
+        return Ok(None);
+    };
+    let Ok(origin) = coordinator.request(&origin_request_id) else {
+        return Ok(None);
+    };
+    if origin.kind != RequestKind::FromArtifact
+        || !matches!(
+            origin.state,
+            RequestState::Committed | RequestState::Acknowledged
+        )
+        || origin.payload_json != payload_json
+    {
+        return Ok(None);
+    }
+    Ok(Some(super::executor::FromArtifactReuse {
+        request_id: request_id.to_string(),
+        generation: u64::try_from(generation)
+            .map_err(|_| FromArtifactFailure::Operational("invalid_manifest_generation".into()))?,
+        manifest_hash,
+    }))
 }
 
 fn preflight_payload(
