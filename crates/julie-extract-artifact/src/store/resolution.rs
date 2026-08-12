@@ -3214,6 +3214,8 @@ impl ResolutionBaseBuilder {
     }
 }
 
+const RESOLUTION_BASE_STATEMENT_CACHE_CAPACITY: usize = 1;
+
 #[derive(Debug)]
 pub struct ResolutionBaseWriter {
     path: PathBuf,
@@ -3243,6 +3245,7 @@ impl ResolutionBaseWriter {
         ensure_parent(&path)?;
         reject_existing_file(&path)?;
         let connection = Connection::open(&path)?;
+        connection.set_prepared_statement_cache_capacity(RESOLUTION_BASE_STATEMENT_CACHE_CAPACITY);
         configure_writer_pragmas(&connection, WriterPragmaProfile::Bulk).map_err(|error| {
             ResolutionValidationError::InvalidMetadata {
                 key: "pragma".to_string(),
@@ -3302,11 +3305,13 @@ impl ResolutionBaseWriter {
                 "identifier order",
             ));
         }
-        self.connection.execute(
-            "INSERT INTO identifier_resolutions
-             (version_id,identifier_id,target_version_id,target_symbol_id,tier,confidence,method,outcome,candidates)
-             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)",
-            params![
+        {
+            let mut statement = self.connection.prepare_cached(
+                "INSERT INTO identifier_resolutions
+                 (version_id,identifier_id,target_version_id,target_symbol_id,tier,confidence,method,outcome,candidates)
+                 VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)",
+            )?;
+            statement.execute(params![
                 row.version_id,
                 row.identifier_id,
                 row.target_version_id,
@@ -3316,8 +3321,8 @@ impl ResolutionBaseWriter {
                 row.method,
                 row.outcome,
                 row.candidates,
-            ],
-        )?;
+            ])?;
+        }
         self.last_identifier_key = Some(key);
         self.counts.identifiers += 1;
         Ok(())

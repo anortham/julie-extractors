@@ -86,9 +86,13 @@ performance regression.
 
 ### Exact finalization
 
-Track separately from candidate resolution. Add timings/counters around `finish_exact` publication work, then
-optimize its largest measured database/file phase after the relationship-coverage fix. Combining the two would
-hide whether query amplification or publication improved.
+Completed independently from candidate resolution. Fixed cumulative timings around eight `finish_exact`
+boundaries measured identifier-row insertion as the largest exclusive phase: 14.304 seconds of a 24.947-second
+finish. `ResolutionBaseWriter::push_identifier_resolution` prepared the same insert for every row. A one-entry
+rusqlite prepared-statement cache behind the unchanged streaming writer API reduced a 100,000-row exact contract
+from 3.415 seconds to 1.715 seconds without buffering or a new public page API. The single post-fix replay reduced
+identifier-row insertion to 7.547 seconds and total process wall from 49.98 to 43.10 seconds. Exact file SHA-256,
+392,526 identifier rows, 10,804 pending rows, 1,538 source versions, and SQLite integrity remained unchanged.
 
 ## Design
 
@@ -104,8 +108,8 @@ Expose them through the existing test/diagnostic surface and carry them into the
 The first diagnostic fixture uses many identifiers sharing one name and more candidate symbols than `window_size`.
 It guards the disproven top-level theory and verifies fixed-family counters. Test-only diagnostics persist
 logarithmic live snapshots and fail closed unless the configured view is current, converging, and bound to a ready
-predecessor. Task 3 closed with a rejected no-win optimization and preserved caller telemetry. Task 4 instruments
-and fixes exact finalization, which remains approximately half the total wall time.
+predecessor. Task 3 closed with a rejected no-win optimization and preserved caller telemetry. Task 4 measured
+exact finalization before changing behavior and shipped only the selected identifier-row statement reuse.
 
 ## Verification Budget
 

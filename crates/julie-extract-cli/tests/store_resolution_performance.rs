@@ -9,8 +9,9 @@ use std::time::{Duration, Instant};
 
 use julie_extract_artifact::resolution_store::{ResolutionCounts, ResolutionReportRow};
 use julie_extract_artifact::store::{
-    ManifestStore, ResolutionBaseBegin, ResolutionBaseCatalog, ResolutionBindingStore,
-    ResolutionDiffMarker, StoreConnectionFactory, StoreLayout,
+    ManifestStore, ResolutionBaseBegin, ResolutionBaseCatalog, ResolutionBaseWriter,
+    ResolutionBindingStore, ResolutionDiffMarker, ResolutionFileIdentity, StoreConnectionFactory,
+    StoreLayout,
 };
 use julie_extract_cli::resolution::{self, run_resolution_session};
 use julie_extract_cli::resolution_session::{
@@ -19,8 +20,8 @@ use julie_extract_cli::resolution_session::{
     SemanticSymbolId, SemanticVersionId, SessionResolutionState,
 };
 use julie_extract_cli::store::resolution_session::{
-    CandidateQueryFamily, CandidateQueryTelemetry, StoreManifestIdentity,
-    StoreScratchResolutionSession,
+    CandidateQueryFamily, CandidateQueryTelemetry, FinishExactPhase, FinishExactPhaseSample,
+    StoreManifestIdentity, StoreScratchResolutionSession,
 };
 use rusqlite::{Connection, params};
 use serde::{Deserialize, Serialize};
@@ -46,6 +47,8 @@ const CANDIDATE_RESOLUTION_MAX: Duration = Duration::from_millis(3_500);
 const REPEATED_NAME_IDENTIFIERS: usize = 32;
 const REPEATED_NAME_CANDIDATES: usize = WINDOW_SIZE + 1;
 const REPEATED_NAME_TOP_LEVEL_QUERY_BOUND: usize = 3;
+const IDENTIFIER_WRITER_ROWS: usize = 100_000;
+const IDENTIFIER_WRITER_MAX: Duration = Duration::from_millis(2_500);
 const PAIRS: [&str; 2] = ["miller-unchanged", "miller-mutated"];
 const NOW: &str = "2026-08-08T12:00:00.000Z";
 
@@ -169,6 +172,7 @@ struct CandidateQueryDiagnostic {
     max_candidate_cache_entries: usize,
     locate_identifier_by_phase: LocateIdentifierPhaseSample,
     queries: CandidateQuerySample,
+    finish_exact: Vec<FinishExactPhaseSample>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -177,6 +181,7 @@ struct CandidateQuerySnapshot {
     total_executions: usize,
     locate_identifier_by_phase: LocateIdentifierPhaseSample,
     queries: CandidateQuerySample,
+    finish_exact: Vec<FinishExactPhaseSample>,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -223,12 +228,48 @@ impl SnapshottingSession<'_> {
             total_executions,
             locate_identifier_by_phase: self.locate_identifier_phase_sample(),
             queries,
+            finish_exact: Vec::new(),
         };
-        let pending = self.output.with_extension("json.pending");
-        fs::write(&pending, serde_json::to_vec_pretty(&snapshot).unwrap()).unwrap();
-        fs::rename(pending, &self.output).unwrap();
+        persist_json_atomically(&self.output, &snapshot);
         self.next_execution_threshold = total_executions.next_power_of_two().saturating_mul(2);
     }
+}
+
+fn persist_json_atomically(path: &Path, value: &impl Serialize) {
+    let pending = path.with_extension("json.pending");
+    fs::write(&pending, serde_json::to_vec_pretty(value).unwrap()).unwrap();
+    fs::rename(pending, path).unwrap();
+}
+
+fn finish_exact_with_diagnostics(
+    session: StoreScratchResolutionSession,
+    started: Instant,
+    output: &Path,
+    live_output: &Path,
+    mut diagnostic: CandidateQueryDiagnostic,
+) -> ResolutionFileIdentity {
+    let total_executions = diagnostic.queries.total_executions();
+    let queries = diagnostic.queries.clone();
+    let locate_identifier_by_phase = diagnostic.locate_identifier_by_phase;
+    let mut finish_exact = Vec::new();
+    let identity = session
+        .finish_exact_observing(|sample| {
+            finish_exact.push(sample);
+            persist_json_atomically(
+                live_output,
+                &CandidateQuerySnapshot {
+                    elapsed_ms: elapsed_ms(started.elapsed()),
+                    total_executions,
+                    locate_identifier_by_phase,
+                    queries: queries.clone(),
+                    finish_exact: finish_exact.clone(),
+                },
+            );
+        })
+        .unwrap();
+    diagnostic.finish_exact = finish_exact;
+    persist_json_atomically(output, &diagnostic);
+    identity
 }
 
 impl CandidateQuerySample {
@@ -679,6 +720,349 @@ fn candidate_query_sample_serializes_all_fixed_families() {
 }
 
 #[test]
+fn finish_exact_observer_retains_every_cumulative_phase_and_preserves_identity() {
+    let temp = tempfile::tempdir().unwrap();
+    let baseline_layout =
+        build_repeated_name_candidate_fixture(&temp.path().join("baseline"), 4, 5);
+    let baseline_identity = manifest_identity(&baseline_layout, 1);
+    let baseline_factory =
+        StoreConnectionFactory::new(baseline_layout, FAMILY_ID, env!("CARGO_PKG_VERSION"));
+    let baseline_path = temp.path().join("baseline.db");
+    let mut baseline_session = StoreScratchResolutionSession::new(
+        baseline_factory,
+        baseline_identity,
+        &baseline_path,
+        WINDOW_SIZE,
+        RESOLVER_OUTPUT_EPOCH,
+    )
+    .unwrap();
+    run_resolution_session(&mut baseline_session, true, true).unwrap();
+    let baseline = baseline_session.finish_exact().unwrap();
+
+    let observed_layout =
+        build_repeated_name_candidate_fixture(&temp.path().join("observed"), 4, 5);
+    let observed_identity = manifest_identity(&observed_layout, 1);
+    let observed_factory =
+        StoreConnectionFactory::new(observed_layout, FAMILY_ID, env!("CARGO_PKG_VERSION"));
+    let observed_path = temp.path().join("observed.db");
+    let retained_path = temp.path().join("finish-live.json");
+    let mut observed_session = StoreScratchResolutionSession::new(
+        observed_factory,
+        observed_identity,
+        &observed_path,
+        WINDOW_SIZE,
+        RESOLVER_OUTPUT_EPOCH,
+    )
+    .unwrap();
+    run_resolution_session(&mut observed_session, true, true).unwrap();
+    let mut samples = Vec::<FinishExactPhaseSample>::new();
+    let observed = observed_session
+        .finish_exact_observing(|sample| {
+            samples.push(sample);
+            fs::write(&retained_path, serde_json::to_vec_pretty(&samples).unwrap()).unwrap();
+        })
+        .unwrap();
+
+    assert_eq!(
+        samples
+            .iter()
+            .map(|sample| sample.phase)
+            .collect::<Vec<_>>(),
+        vec![
+            FinishExactPhase::PriorOverlay,
+            FinishExactPhase::IdentifierTotality,
+            FinishExactPhase::WriterInit,
+            FinishExactPhase::SourceVersions,
+            FinishExactPhase::IdentifierRows,
+            FinishExactPhase::PendingRows,
+            FinishExactPhase::WriterFinish,
+            FinishExactPhase::ScratchCleanup,
+        ]
+    );
+    assert!(
+        samples
+            .windows(2)
+            .all(|pair| pair[0].cumulative_micros <= pair[1].cumulative_micros)
+    );
+    let retained: Vec<FinishExactPhaseSample> =
+        serde_json::from_slice(&fs::read(retained_path).unwrap()).unwrap();
+    assert_eq!(retained, samples);
+    assert_eq!(
+        serde_json::to_value(&samples).unwrap(),
+        serde_json::json!([
+            {"phase": "prior_overlay", "cumulative_micros": samples[0].cumulative_micros},
+            {"phase": "identifier_totality", "cumulative_micros": samples[1].cumulative_micros},
+            {"phase": "writer_init", "cumulative_micros": samples[2].cumulative_micros},
+            {"phase": "source_versions", "cumulative_micros": samples[3].cumulative_micros},
+            {"phase": "identifier_rows", "cumulative_micros": samples[4].cumulative_micros},
+            {"phase": "pending_rows", "cumulative_micros": samples[5].cumulative_micros},
+            {"phase": "writer_finish", "cumulative_micros": samples[6].cumulative_micros},
+            {"phase": "scratch_cleanup", "cumulative_micros": samples[7].cumulative_micros},
+        ])
+    );
+    assert_eq!(observed.manifest_hash, baseline.manifest_hash);
+    assert_eq!(
+        observed.resolver_output_epoch,
+        baseline.resolver_output_epoch
+    );
+    assert_eq!(observed.catalog_hash, baseline.catalog_hash);
+    assert_eq!(observed.file_bytes, baseline.file_bytes);
+    assert_eq!(observed.file_sha256, baseline.file_sha256);
+    assert_eq!(observed.counts, baseline.counts);
+    assert_eq!(observed.counts.identifiers, 4);
+    assert_eq!(observed.counts.pending, 0);
+    assert_eq!(
+        Connection::open(observed_path)
+            .unwrap()
+            .query_row("PRAGMA integrity_check", [], |row| row.get::<_, String>(0))
+            .unwrap(),
+        "ok"
+    );
+}
+
+#[test]
+fn finish_exact_live_diagnostic_retains_last_completed_phase_when_observer_stops() {
+    let temp = tempfile::tempdir().unwrap();
+    let layout = build_repeated_name_candidate_fixture(temp.path(), 4, 5);
+    let identity = manifest_identity(&layout, 1);
+    let factory = StoreConnectionFactory::new(layout, FAMILY_ID, env!("CARGO_PKG_VERSION"));
+    let exact_path = temp.path().join("exact.db");
+    let output = temp.path().join("finish-live.json");
+    let mut session = StoreScratchResolutionSession::new(
+        factory,
+        identity,
+        &exact_path,
+        WINDOW_SIZE,
+        RESOLVER_OUTPUT_EPOCH,
+    )
+    .unwrap();
+    run_resolution_session(&mut session, true, true).unwrap();
+    let queries = candidate_query_sample(&session);
+    let mut completed = Vec::new();
+
+    let stopped = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        session
+            .finish_exact_observing(|sample| {
+                completed.push(sample);
+                persist_json_atomically(
+                    &output,
+                    &CandidateQuerySnapshot {
+                        elapsed_ms: 17,
+                        total_executions: queries.total_executions(),
+                        locate_identifier_by_phase: LocateIdentifierPhaseSample::default(),
+                        queries: queries.clone(),
+                        finish_exact: completed.clone(),
+                    },
+                );
+                if sample.phase == FinishExactPhase::WriterInit {
+                    panic!("simulated diagnostic stop");
+                }
+            })
+            .unwrap();
+    }));
+
+    assert!(stopped.is_err());
+    let retained: CandidateQuerySnapshot =
+        serde_json::from_slice(&fs::read(output).unwrap()).unwrap();
+    assert_eq!(
+        retained
+            .finish_exact
+            .iter()
+            .map(|sample| sample.phase)
+            .collect::<Vec<_>>(),
+        vec![
+            FinishExactPhase::PriorOverlay,
+            FinishExactPhase::IdentifierTotality,
+            FinishExactPhase::WriterInit,
+        ]
+    );
+    assert!(
+        retained
+            .finish_exact
+            .windows(2)
+            .all(|pair| { pair[0].cumulative_micros <= pair[1].cumulative_micros })
+    );
+    assert_eq!(
+        serde_json::to_value(&retained).unwrap()["finish_exact"][2]["phase"],
+        "writer_init"
+    );
+}
+
+#[test]
+fn finish_exact_diagnostic_publishes_complete_fixed_samples_to_final_and_live_json() {
+    let temp = tempfile::tempdir().unwrap();
+    let layout = build_repeated_name_candidate_fixture(temp.path(), 4, 5);
+    let identity = manifest_identity(&layout, 1);
+    let factory = StoreConnectionFactory::new(layout, FAMILY_ID, env!("CARGO_PKG_VERSION"));
+    let exact_path = temp.path().join("exact.db");
+    let output = temp.path().join("final.json");
+    let live_output = temp.path().join("live.json");
+    let mut session = StoreScratchResolutionSession::new(
+        factory,
+        identity,
+        &exact_path,
+        WINDOW_SIZE,
+        RESOLVER_OUTPUT_EPOCH,
+    )
+    .unwrap();
+    run_resolution_session(&mut session, true, true).unwrap();
+    let queries = candidate_query_sample(&session);
+    let diagnostic = CandidateQueryDiagnostic {
+        elapsed_ms: 23,
+        configured_resolution_mode: "scoped".to_string(),
+        configured_scope_file_count: 2,
+        max_store_read_page: session.max_store_read_page(),
+        max_candidate_cache_entries: session.max_candidate_cache_entries(),
+        locate_identifier_by_phase: LocateIdentifierPhaseSample::default(),
+        queries,
+        finish_exact: Vec::new(),
+    };
+
+    let identity =
+        finish_exact_with_diagnostics(session, Instant::now(), &output, &live_output, diagnostic);
+
+    let final_diagnostic: CandidateQueryDiagnostic =
+        serde_json::from_slice(&fs::read(output).unwrap()).unwrap();
+    let live_diagnostic: CandidateQuerySnapshot =
+        serde_json::from_slice(&fs::read(live_output).unwrap()).unwrap();
+    let expected = vec![
+        FinishExactPhase::PriorOverlay,
+        FinishExactPhase::IdentifierTotality,
+        FinishExactPhase::WriterInit,
+        FinishExactPhase::SourceVersions,
+        FinishExactPhase::IdentifierRows,
+        FinishExactPhase::PendingRows,
+        FinishExactPhase::WriterFinish,
+        FinishExactPhase::ScratchCleanup,
+    ];
+    assert_eq!(
+        final_diagnostic
+            .finish_exact
+            .iter()
+            .map(|sample| sample.phase)
+            .collect::<Vec<_>>(),
+        expected
+    );
+    assert_eq!(live_diagnostic.finish_exact, final_diagnostic.finish_exact);
+    assert_eq!(identity.counts.identifiers, 4);
+    assert_eq!(identity.counts.pending, 0);
+    assert_eq!(
+        serde_json::to_value(final_diagnostic).unwrap()["finish_exact"][7]["phase"],
+        "scratch_cleanup"
+    );
+}
+
+#[test]
+fn finish_exact_cumulative_timing_excludes_observer_persistence_work() {
+    let temp = tempfile::tempdir().unwrap();
+    let layout = build_repeated_name_candidate_fixture(temp.path(), 1, 1);
+    let identity = manifest_identity(&layout, 1);
+    let factory = StoreConnectionFactory::new(layout, FAMILY_ID, env!("CARGO_PKG_VERSION"));
+    let exact_path = temp.path().join("exact.db");
+    let mut session = StoreScratchResolutionSession::new(
+        factory,
+        identity,
+        &exact_path,
+        WINDOW_SIZE,
+        RESOLVER_OUTPUT_EPOCH,
+    )
+    .unwrap();
+    run_resolution_session(&mut session, true, true).unwrap();
+    let mut samples = Vec::new();
+    let wall_started = Instant::now();
+
+    session
+        .finish_exact_observing(|sample| {
+            samples.push(sample);
+            std::thread::sleep(Duration::from_millis(10));
+        })
+        .unwrap();
+
+    let wall_micros = u64::try_from(wall_started.elapsed().as_micros()).unwrap();
+    let final_cumulative = samples.last().unwrap().cumulative_micros;
+    assert_eq!(samples.len(), 8);
+    assert!(
+        final_cumulative.saturating_add(50_000) < wall_micros,
+        "final cumulative {final_cumulative}us should exclude observer wall {wall_micros}us"
+    );
+}
+
+#[test]
+fn streaming_identifier_writer_reuses_one_statement_at_high_cardinality() {
+    let temp = tempfile::tempdir().unwrap();
+    let path = temp.path().join("identifier-writer.db");
+    let mut writer = ResolutionBaseWriter::new(&path, "manifest-a", RESOLVER_OUTPUT_EPOCH).unwrap();
+    writer.push_source_version(10).unwrap();
+    writer.push_source_version(20).unwrap();
+    let started = Instant::now();
+
+    for index in 0..IDENTIFIER_WRITER_ROWS {
+        writer
+            .push_identifier_resolution(julie_extract_artifact::store::ResolutionIdentifierRow {
+                version_id: 10,
+                identifier_id: format!("identifier-{index:08}"),
+                target_version_id: Some(20),
+                target_symbol_id: Some("symbol-4".to_string()),
+                tier: Some(1),
+                confidence: Some(0.95),
+                method: Some("same_file".to_string()),
+                outcome: "resolved".to_string(),
+                candidates: Some(1),
+            })
+            .unwrap();
+    }
+    let insert_elapsed = started.elapsed();
+    let identity = writer
+        .finish_with_target_lookup(|version_id, symbol_id| {
+            Ok(version_id == 20 && symbol_id == "symbol-4")
+        })
+        .unwrap();
+
+    assert_eq!(identity.manifest_hash, "manifest-a");
+    assert_eq!(identity.resolver_output_epoch, RESOLVER_OUTPUT_EPOCH);
+    assert_eq!(identity.counts.identifiers, IDENTIFIER_WRITER_ROWS as u64);
+    assert_eq!(identity.counts.pending, 0);
+    assert_eq!(identity.path, path);
+    assert!(!identity.file_sha256.is_empty());
+    let connection = Connection::open(&identity.path).unwrap();
+    assert_eq!(
+        connection
+            .query_row(
+                "SELECT identifier_id FROM identifier_resolutions ORDER BY version_id,identifier_id LIMIT 1",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .unwrap(),
+        "identifier-00000000"
+    );
+    assert_eq!(
+        connection
+            .query_row(
+                "SELECT identifier_id FROM identifier_resolutions ORDER BY version_id DESC,identifier_id DESC LIMIT 1",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .unwrap(),
+        "identifier-00099999"
+    );
+    assert_eq!(
+        connection
+            .query_row("PRAGMA integrity_check", [], |row| row.get::<_, String>(0))
+            .unwrap(),
+        "ok"
+    );
+    eprintln!(
+        "identifier_writer_rows={} insert_elapsed_ms={}",
+        IDENTIFIER_WRITER_ROWS,
+        insert_elapsed.as_millis()
+    );
+    assert!(
+        insert_elapsed <= IDENTIFIER_WRITER_MAX,
+        "streaming {IDENTIFIER_WRITER_ROWS} identifier rows took {insert_elapsed:?}, expected at most {IDENTIFIER_WRITER_MAX:?}"
+    );
+}
+
+#[test]
 fn snapshotting_session_attributes_locator_calls_to_fixed_phases() {
     let temp = tempfile::tempdir().unwrap();
     let layout = build_repeated_name_candidate_fixture(temp.path(), 1, 1);
@@ -828,7 +1212,7 @@ fn store_resolution_query_diagnostic_worker() {
     let snapshot_output = output.with_extension("live.json");
     let mut snapshotting = SnapshottingSession {
         inner: &mut session,
-        output: snapshot_output,
+        output: snapshot_output.clone(),
         started,
         next_execution_threshold: 1,
         phase: Cell::new(None),
@@ -846,9 +1230,9 @@ fn store_resolution_query_diagnostic_worker() {
         max_candidate_cache_entries: session.max_candidate_cache_entries(),
         locate_identifier_by_phase,
         queries: candidate_query_sample(&session),
+        finish_exact: Vec::new(),
     };
-    fs::write(&output, serde_json::to_vec_pretty(&diagnostic).unwrap()).unwrap();
-    session.finish_exact().unwrap();
+    finish_exact_with_diagnostics(session, started, &output, &snapshot_output, diagnostic);
 }
 
 #[test]

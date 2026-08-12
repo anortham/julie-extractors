@@ -54,7 +54,7 @@
 | Task 1: Query telemetry and repeated-name RED | None - serial | `crates/julie-extract-cli/src/store/resolution_session.rs`; `crates/julie-extract-cli/src/store/report.rs` only if existing report wiring requires it; focused store resolution tests | Yes | Task 2 consumes the exact counters and failing fixture established here.
 | Task 2: Bounded faithful query-family replay | None - serial | replay/report harness and evidence docs only unless telemetry wiring is incomplete | Yes | Must consume Task 1's counters and select, not implement, the next optimization.
 | Task 3: Measured query-family fix | None - serial | exact resolver source/tests named by Task 2; design/plan evidence | Yes | Implementation depends on Task 2's measured dominant family and access pattern.
-| Task 4: Exact finalization telemetry and fix | None - serial | exact `finish_exact` implementation/tests selected by one bounded diagnostic; design/plan evidence | Yes | Begins only after Task 3's resolver replay, so the two measured phases remain attributable.
+| Task 4: Exact finalization telemetry and fix | None - serial | exact `finish_exact` implementation/tests, artifact resolution writer and exact contracts selected by one bounded diagnostic; design/plan evidence | Yes | Begins only after Task 3's resolver replay, so the two measured phases remain attributable.
 
 ### Task 1: Query telemetry and repeated-name RED
 
@@ -146,6 +146,7 @@
 
 **Files:**
 - Modify: exact `StoreScratchResolutionSession::finish_exact` source selected by the diagnostic
+- Modify: `crates/julie-extract-artifact/src/store/resolution.rs` after the bounded diagnostic selected identifier-row insertion
 - Test: focused store-resolution mechanism or performance regression for the selected phase
 - Modify: `docs/plans/2026-08-11-store-resolution-query-amplification-design.md`
 - Modify: this plan
@@ -156,15 +157,15 @@
 
 **Contract inputs:** Instrument before changing behavior. Preserve crash consistency, manifest/base identity, canonical digest, and row equality. Do not combine unrelated finalization phases in one fix.
 
-**File ownership:** exact finalization source/tests selected by the diagnostic, plus design/plan evidence
+**File ownership:** exact finalization source/tests selected by the diagnostic; artifact resolution writer and exact artifact/performance contracts selected by the measured identifier-row phase; plus design/plan evidence
 
 **Serialization required:** Yes.
 
 **Dependency reason:** Resolver and finalization improvements must be measured independently.
 
 **Acceptance criteria:**
-- [ ] One bounded diagnostic divides `finish_exact` into fixed-cardinality phases and names the largest elapsed/database/file phase.
-- [ ] Exact RED fails on that phase's work invariant before implementation and passes after the minimal fix.
-- [ ] Canonical digest, rows, crash recovery, and publication identity remain exact.
-- [ ] One bounded replay completes within 60 seconds or stops once with evidence naming the next bottleneck.
-- [ ] Commit only owned files with `serial-worker-commit`.
+- [x] One bounded diagnostic divided `finish_exact` into eight fixed phases and measured identifier-row insertion as the largest exclusive phase at 14.304 seconds.
+- [x] Exact RED failed at 3.415 seconds for 100,000 streamed identifier rows and passed at 1.715 seconds after one-entry prepared-statement reuse.
+- [x] Canonical exact file SHA-256, 392,526 identifier rows, 10,804 pending rows, 1,538 source versions, crash recovery, publication identity, and integrity remained exact.
+- [x] The one post-fix replay completed in 43.10 seconds versus the 49.98-second instrumentation baseline; identifier-row insertion fell to 7.547 seconds.
+- [x] Commit only owned files with `serial-worker-commit`.

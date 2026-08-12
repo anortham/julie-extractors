@@ -16,6 +16,8 @@ use julie_extract_artifact::store::{
 use julie_extract_artifact::store::{StoreConnectionError, StoreConnectionFactory};
 use julie_extractors::SymbolKind;
 use rusqlite::{Connection, OptionalExtension, Row, Transaction, params};
+#[cfg(feature = "test-store-resolution-contract")]
+use serde::{Deserialize, Serialize};
 
 use crate::resolution::{
     self, CandidateEvidence, CandidateHit, CandidateLookup, CandidateSummary, CandidateSymbol,
@@ -70,6 +72,55 @@ impl CandidateQueryFamily {
 pub struct CandidateQueryTelemetry {
     pub executions: usize,
     pub rows_read: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum FinishExactBoundary {
+    PriorOverlay,
+    IdentifierTotality,
+    WriterInit,
+    SourceVersions,
+    IdentifierRows,
+    PendingRows,
+    WriterFinish,
+    ScratchCleanup,
+}
+
+#[cfg(feature = "test-store-resolution-contract")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FinishExactPhase {
+    PriorOverlay,
+    IdentifierTotality,
+    WriterInit,
+    SourceVersions,
+    IdentifierRows,
+    PendingRows,
+    WriterFinish,
+    ScratchCleanup,
+}
+
+#[cfg(feature = "test-store-resolution-contract")]
+impl From<FinishExactBoundary> for FinishExactPhase {
+    fn from(boundary: FinishExactBoundary) -> Self {
+        match boundary {
+            FinishExactBoundary::PriorOverlay => Self::PriorOverlay,
+            FinishExactBoundary::IdentifierTotality => Self::IdentifierTotality,
+            FinishExactBoundary::WriterInit => Self::WriterInit,
+            FinishExactBoundary::SourceVersions => Self::SourceVersions,
+            FinishExactBoundary::IdentifierRows => Self::IdentifierRows,
+            FinishExactBoundary::PendingRows => Self::PendingRows,
+            FinishExactBoundary::WriterFinish => Self::WriterFinish,
+            FinishExactBoundary::ScratchCleanup => Self::ScratchCleanup,
+        }
+    }
+}
+
+#[cfg(feature = "test-store-resolution-contract")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FinishExactPhaseSample {
+    pub phase: FinishExactPhase,
+    pub cumulative_micros: u64,
 }
 
 #[derive(Debug, Clone)]
@@ -541,14 +592,46 @@ impl StoreScratchResolutionSession {
         Ok(())
     }
 
-    pub fn finish_exact(mut self) -> Result<ResolutionFileIdentity, StoreResolutionError> {
+    pub fn finish_exact(self) -> Result<ResolutionFileIdentity, StoreResolutionError> {
+        self.finish_exact_inner(|_| {})
+    }
+
+    #[cfg(feature = "test-store-resolution-contract")]
+    pub fn finish_exact_observing(
+        self,
+        mut observer: impl FnMut(FinishExactPhaseSample),
+    ) -> Result<ResolutionFileIdentity, StoreResolutionError> {
+        let started = Instant::now();
+        let mut observer_micros = 0u128;
+        self.finish_exact_inner(|boundary| {
+            let cumulative_micros = started
+                .elapsed()
+                .as_micros()
+                .saturating_sub(observer_micros);
+            let observer_started = Instant::now();
+            observer(FinishExactPhaseSample {
+                phase: boundary.into(),
+                cumulative_micros: u64::try_from(cumulative_micros).unwrap_or(u64::MAX),
+            });
+            observer_micros =
+                observer_micros.saturating_add(observer_started.elapsed().as_micros());
+        })
+    }
+
+    fn finish_exact_inner(
+        mut self,
+        mut completed: impl FnMut(FinishExactBoundary),
+    ) -> Result<ResolutionFileIdentity, StoreResolutionError> {
         self.materialize_prior_overlay()?;
+        completed(FinishExactBoundary::PriorOverlay);
         self.validate_identifier_totality()?;
+        completed(FinishExactBoundary::IdentifierTotality);
         let mut writer = ResolutionBaseWriter::new(
             &self.exact_path,
             self.identity.manifest_hash.clone(),
             self.resolver_output_epoch,
         )?;
+        completed(FinishExactBoundary::WriterInit);
         {
             let mut statement = self
                 .scratch
@@ -558,6 +641,7 @@ impl StoreScratchResolutionSession {
                 writer.push_source_version(row.get(0)?)?;
             }
         }
+        completed(FinishExactBoundary::SourceVersions);
         {
             let mut statement = self.scratch.prepare(
                 "SELECT resolved.version_id,resolved.identifier_id,resolved.target_version_id,
@@ -582,6 +666,7 @@ impl StoreScratchResolutionSession {
                 })?;
             }
         }
+        completed(FinishExactBoundary::IdentifierRows);
         {
             let mut statement = self.scratch.prepare(
                 "SELECT resolved.version_id,resolved.pending_relationship_id,
@@ -604,6 +689,7 @@ impl StoreScratchResolutionSession {
                 })?;
             }
         }
+        completed(FinishExactBoundary::PendingRows);
         let identity = self.identity.clone();
         let connection = self.reader_factory.open_reader().map_err(|error| {
             ResolutionValidationError::InvalidMetadata {
@@ -634,7 +720,9 @@ impl StoreScratchResolutionSession {
                 .map_err(ResolutionValidationError::Sqlite)?;
             Ok(exists)
         })?;
+        completed(FinishExactBoundary::WriterFinish);
         self.remove_scratch()?;
+        completed(FinishExactBoundary::ScratchCleanup);
         Ok(result)
     }
 
