@@ -68,16 +68,21 @@ reported Pending=10,804 and every other bucket=0; its earliest retained snapshot
 
 ### Hydrate co-located identifiers in pending pages
 
-Selected. Add `SessionPendingWorkItem` with a `PendingWorkItem` plus the same exact-result shape already used by
+Rejected after replay. The exact implementation removed all 10,804 Pending locator statements and reduced total
+candidate statements from 14,980 to 4,176 with unchanged digest/rows. The one faithful replay was still slower:
+50.46 seconds wall / 25.418 seconds resolver versus 49.88 seconds / 24.813 seconds baseline. The enriched bounded
+page query used both locator indexes but added temporary GROUP BY/ORDER BY B-trees. The uncommitted slice was
+removed because statement-count reduction did not reduce wall time.
+
+The rejected design added `SessionPendingWorkItem` with a `PendingWorkItem` plus the same exact-result shape used by
 `SessionRelationship`: `located_identifier_id: Option<String>` plus `identifier_lookup_complete: bool`.
 `StoreScratchResolutionSession::load_pending_page` computes the result in the existing bounded key page, using the
 current span/line and exactly-one-match rules. `resolve_pending_items` consumes the hydrated result and falls back
 to `locate_identifier` only for session adapters whose lookup is not complete. `load_resolved_pending_page` may
 unwrap the same pending row without changing resolved-pending behavior.
 
-This keeps SQLite and visibility policy inside the store session, keeps generic orchestration storage-agnostic,
-and avoids a second workspace-sized scratch projection. The interface is wider by two fields but already has a
-proven analogue in `SessionRelationship`; both the store adapter and in-memory contract adapter exercise it.
+Its architecture remained correct, but a correct internal interface is not enough reason to ship a measured
+performance regression.
 
 ### Exact finalization
 
@@ -99,8 +104,8 @@ Expose them through the existing test/diagnostic surface and carry them into the
 The first diagnostic fixture uses many identifiers sharing one name and more candidate symbols than `window_size`.
 It guards the disproven top-level theory and verifies fixed-family counters. Test-only diagnostics persist
 logarithmic live snapshots and fail closed unless the configured view is current, converging, and bound to a ready
-predecessor. Task 3 hydrates exact co-located identifiers in bounded Pending pages, verifies resolution parity and
-query bounds, then runs one faithful replay. Task 4 instruments and fixes exact finalization.
+predecessor. Task 3 closed with a rejected no-win optimization and preserved caller telemetry. Task 4 instruments
+and fixes exact finalization, which remains approximately half the total wall time.
 
 ## Verification Budget
 

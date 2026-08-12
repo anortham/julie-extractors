@@ -135,13 +135,12 @@
 **Dependency reason:** Must not optimize before Task 2 names the production bottleneck.
 
 **Acceptance criteria:**
-- [ ] Exact RED exercises the real `Pending` phase and fails because store `LocateIdentifier` executions equal successfully resolved pending rows.
-- [ ] GREEN covers byte span, line fallback, ambiguity, no match, and non-store fallback while reducing store Pending `LocateIdentifier` executions to zero.
-- [ ] The new identifier-hydration query executes once per bounded Pending page, not once per row.
-- [ ] Exact digest, pending/identifier resolution counts, and rows remain unchanged.
-- [ ] Memory stays bounded by the existing phase window; no workspace-sized cache or scratch projection is added.
-- [ ] A single bounded real replay completes within 60 seconds or identifies one newly measured next bottleneck without an unchanged rerun.
-- [ ] Commit only owned files with `serial-worker-commit`.
+- [x] Exact RED exercised the real Pending phase and failed at 8 locator statements versus zero after semantic assertions.
+- [x] GREEN covered byte span, line fallback, ambiguity, no match, and fallback while reducing locator statements to zero.
+- [x] Existing `PendingHydration` remained one execution per bounded page; no query family was renamed or double-counted.
+- [x] Exact digest, pending/identifier counts, and rows remained unchanged.
+- [x] One faithful replay completed once under 60 seconds and showed the candidate was not wall-clock load-bearing: 50.46 seconds versus 49.88 seconds baseline.
+- [x] The no-win production/test slice was removed; only caller-attribution telemetry remains committed at `5089c3a2`.
 
 ### Task 4: Exact finalization telemetry and fix
 
