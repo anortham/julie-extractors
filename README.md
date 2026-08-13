@@ -92,11 +92,14 @@ The versioned family store is separate from legacy `scan`, `update`, `delete`, `
 artifacts. It keeps immutable file versions, coherent per-view manifests, durable queued requests,
 exact resolution bases/deltas, and retained store generations behind an atomic `CURRENT` pointer.
 Version 2.32.0 made validated scoped resolution the default while retaining an explicit forced-full
-escape hatch. The current v2.33.0 release keeps long batch work from being rolled back at the quantum
+escape hatch. Version 2.33.0 keeps long batch work from being rolled back at the quantum
 cap, frees a store wedged by an abandoned resolve claim, makes incremental vacuum reclaim its whole page
 budget per call, and repairs three Windows defects: unknown process liveness, an import that never
-retried a blocked drain, and a failed resolve that leaked its scratch database. See the
-[v2.33.0 release notes](docs/release-notes/v2.33.0.md).
+retried a blocked drain, and a failed resolve that leaked its scratch database. The current v2.33.1
+release repairs a Windows defect that broke every scoped store resolution since v2.32.0: a verbatim
+`\\?\` path prefix reached a SQLite URI and became an invalid authority, so a view could never leave
+`converging`. **Windows users on v2.32.0 through v2.33.0 should upgrade.** See the
+[v2.33.1 release notes](docs/release-notes/v2.33.1.md).
 
 ```bash
 julie-extract store import --store target/family --family <uuid> \

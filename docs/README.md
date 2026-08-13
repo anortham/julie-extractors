@@ -23,8 +23,10 @@ artifact imports, bounds scope crossover before execution, reuses identical impo
 resolution publication without changing public contracts. Version 2.33.0 keeps long batch work from being
 rolled back at the quantum cap, frees a store wedged by an abandoned resolve claim, makes incremental vacuum
 reclaim its whole page budget per call, and repairs three Windows defects: unknown process liveness, an
-import that never retried a blocked drain, and a failed resolve that leaked its scratch database. The
-implementation plans and dogfood records are:
+import that never retried a blocked drain, and a failed resolve that leaked its scratch database.
+Version 2.33.1 repairs a fourth Windows defect that broke every scoped store resolution since 2.32.0: a
+verbatim `\\?\` path prefix reached a SQLite URI and became an invalid authority, so a view could never
+leave `converging`. The implementation plans and dogfood records are:
 
 - [Ph2b store-kernel plan](plans/2026-08-07-index-store-ph2b-store-kernel-plan.md)
 - [Ph2b implementation evidence](release-evidence/2026-08-07-index-store-ph2b/README.md)
@@ -48,6 +50,7 @@ implementation plans and dogfood records are:
 - [v2.32.0 release evidence](release-evidence/2026-08-11-v2-32-0-release.md)
 - [v2.32.1 release notes](release-notes/v2.32.1.md)
 - [v2.32.1 release evidence](release-evidence/2026-08-12-v2-32-1-release.md)
+- [v2.33.1 release notes](release-notes/v2.33.1.md)
 - [v2.33.0 release notes](release-notes/v2.33.0.md)
 
 ## Evidence and historical material
