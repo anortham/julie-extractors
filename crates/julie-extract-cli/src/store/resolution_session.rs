@@ -3329,8 +3329,27 @@ fn sqlite_read_only_uri(path: &Path, immutable: bool) -> Result<String, StoreRes
             path.display()
         ))
     })?;
-    let normalized = path.replace('\\', "/");
-    let mut uri = String::from("file:");
+    // StoreLayout canonicalizes every path it hands out (layout.rs:54, :133), and on Windows
+    // std::fs::canonicalize returns the VERBATIM spelling: \\?\C:\... , or \\?\UNC\server\share for
+    // a network path. Strip that prefix BEFORE the separator swap below. Left in place, \\?\ became
+    // //?/ , the leading // made SQLite look for a URI authority, and '?' is absent from the
+    // safe-byte set so it was percent-encoded — yielding file://%3F/C:/... and the SQLite error
+    // "invalid uri authority: %3F". That failed every scoped resolve on Windows and pinned the view
+    // at `converging`. Full resolves clear prior_scope_state and skip the overlay, which is why the
+    // store still served data while never becoming exact.
+    let stripped = path
+        .strip_prefix(r"\\?\UNC\")
+        .map(|rest| format!(r"\\{rest}"))
+        .or_else(|| path.strip_prefix(r"\\?\").map(str::to_string))
+        .unwrap_or_else(|| path.to_string());
+    let normalized = stripped.replace('\\', "/");
+    // Emit an EMPTY authority explicitly. "file:" + "C:/x" parses only because it has no "//" at
+    // all; anchoring the path with a leading slash keeps the authority empty for a drive path AND
+    // for a UNC path, instead of letting the host name become the authority.
+    let mut uri = String::from("file://");
+    if !normalized.starts_with('/') {
+        uri.push('/');
+    }
     for byte in normalized.bytes() {
         if byte.is_ascii_alphanumeric() || matches!(byte, b'/' | b':' | b'-' | b'.' | b'_' | b'~') {
             uri.push(char::from(byte));
@@ -3535,6 +3554,62 @@ impl Drop for StoreScratchResolutionSession {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A CANONICALIZED store path must still produce an attachable URI.
+    ///
+    /// `StoreLayout` canonicalizes every path it hands out (`layout.rs:54`, `:133`), and on Windows
+    /// `std::fs::canonicalize` returns the VERBATIM spelling `\\?\C:\...`. The URI builder replaced
+    /// `\` with `/` before removing that prefix, so it produced `file://%3F/C:/...`: the leading `//`
+    /// made SQLite look for a URI authority, and `?` — absent from the safe-byte set — was
+    /// percent-encoded to `%3F`. Every scoped resolve then died with
+    /// `invalid uri authority: %3F`, `materialize_prior_overlay` never completed, and the view was
+    /// pinned at `converging` forever. Full resolves were unaffected because they clear
+    /// `prior_scope_state` and skip the overlay entirely, which is why the store still served data.
+    ///
+    /// The sibling test below builds its fixture path WITHOUT canonicalizing, which is why it passed
+    /// throughout. Keep this one canonicalizing: that is what production does.
+    #[test]
+    fn prior_overlay_attach_uris_survive_a_canonicalized_store_path() {
+        let temp = tempfile::tempdir().unwrap();
+        let canonical = temp.path().canonicalize().unwrap();
+        let store_path = canonical.join("prior store.db");
+        let base_path = canonical.join("prior base.db");
+        for path in [&store_path, &base_path] {
+            let connection = Connection::open(path).unwrap();
+            connection
+                .execute_batch("CREATE TABLE guarded(value INTEGER); INSERT INTO guarded VALUES (7);")
+                .unwrap();
+        }
+
+        let store_uri = sqlite_read_only_uri(&store_path, false).unwrap();
+        let base_uri = sqlite_read_only_uri(&base_path, true).unwrap();
+        assert!(
+            !store_uri.contains("%3F"),
+            "the verbatim prefix leaked into the URI authority: {store_uri}"
+        );
+
+        let scratch = Connection::open_in_memory().unwrap();
+        scratch
+            .execute("ATTACH DATABASE ?1 AS readonly_store", [store_uri])
+            .expect("a canonicalized store path must attach");
+        scratch
+            .execute("ATTACH DATABASE ?1 AS readonly_base", [base_uri])
+            .expect("a canonicalized base path must attach");
+
+        assert_eq!(
+            scratch
+                .query_row("SELECT value FROM readonly_store.guarded", [], |row| row
+                    .get::<_, i64>(0))
+                .unwrap(),
+            7
+        );
+        assert!(
+            scratch
+                .execute("UPDATE readonly_base.guarded SET value=8", [])
+                .is_err(),
+            "the base must stay read-only"
+        );
+    }
 
     #[test]
     fn prior_overlay_attach_uris_reject_store_and_base_writes() {
