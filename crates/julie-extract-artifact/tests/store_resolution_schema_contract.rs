@@ -8,8 +8,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use julie_extract_artifact::store::{
     ResolutionBaseBuilder, ResolutionBaseReader, ResolutionBaseWriter, ResolutionGapKind,
     ResolutionGapTable, ResolutionIdentifierRow, ResolutionPendingRow, ResolutionScratchDelta,
-    ResolutionScratchReader, ResolutionSemanticCounts, ResolutionValidationError, apply_base_delta,
-    resolution_base_catalog_hash, resolution_scratch_catalog_hash, stream_resolution_diff,
+    ResolutionScratchReader, ResolutionScratchWriter, ResolutionSemanticCounts,
+    ResolutionValidationError, apply_base_delta, resolution_base_catalog_hash,
+    resolution_scratch_catalog_hash, stream_resolution_diff,
 };
 use rusqlite::Connection;
 
@@ -168,6 +169,44 @@ fn pending(version_id: i64, pending_relationship_id: &str) -> ResolutionPendingR
         tier: 2,
         confidence: 0.85,
         method: "import_guided".to_string(),
+    }
+}
+
+#[test]
+fn dropping_an_unfinished_base_writer_removes_every_scratch_file() {
+    let temp = TempDir::new("base-writer-drop");
+    let path = temp.path().join("resolve-exact.db");
+    let mut writer = ResolutionBaseWriter::new(&path, "manifest-a", 6).unwrap();
+    writer.push_source_version(10).unwrap();
+    writer
+        .push_identifier_resolution(identifier(10, "identifier-1"))
+        .unwrap();
+    drop(writer);
+
+    assert_no_scratch_files("base writer", &path);
+}
+
+#[test]
+fn dropping_an_unfinished_scratch_writer_removes_every_scratch_file() {
+    let temp = TempDir::new("scratch-writer-drop");
+    let path = temp.path().join("resolve-delta.db");
+    let mut writer = ResolutionScratchWriter::new(&path, "manifest-a", 6).unwrap();
+    writer
+        .push_identifier_replacement(identifier(10, "identifier-1"))
+        .unwrap();
+    drop(writer);
+
+    assert_no_scratch_files("scratch writer", &path);
+}
+
+fn assert_no_scratch_files(label: &str, path: &Path) {
+    for suffix in ["", "-wal", "-shm"] {
+        let sidecar = PathBuf::from(format!("{}{}", path.display(), suffix));
+        assert!(
+            !sidecar.exists(),
+            "an unfinished {label} left {} behind",
+            sidecar.display()
+        );
     }
 }
 
@@ -1009,6 +1048,7 @@ fn scratch_paths_must_be_contained_and_readers_reject_incomplete_files() {
     assert!(error.is_path_error());
     assert!(!outside.exists());
 
+    #[cfg(unix)]
     let external = temp.path().join("external.db");
     fs::write(&outside, b"not sqlite").unwrap();
     assert!(ResolutionScratchDelta::new(&outside, "manifest-a", 6).is_err());
@@ -1032,6 +1072,7 @@ fn scratch_paths_must_be_contained_and_readers_reject_incomplete_files() {
         assert!(!child.exists());
     }
 
+    #[cfg(unix)]
     let dangling = temp.path().join("dangling.db");
     #[cfg(unix)]
     std::os::unix::fs::symlink(temp.path().join("missing.db"), &dangling).unwrap();

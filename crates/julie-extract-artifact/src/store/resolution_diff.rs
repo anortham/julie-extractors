@@ -492,6 +492,13 @@ impl Drop for ResolutionScratchWriter {
             return;
         }
         let _ = self.connection.execute_batch("ROLLBACK");
+        // Close the database BEFORE unlinking. Rust runs this body before it drops the
+        // fields, so the connection would still hold the file open here — and SQLite's
+        // Windows backend opens without FILE_SHARE_DELETE, so every remove_file below
+        // would fail with a sharing violation and leak the scratch database.
+        if let Ok(placeholder) = Connection::open_in_memory() {
+            drop(std::mem::replace(&mut self.connection, placeholder));
+        }
         for suffix in ["", "-wal", "-shm"] {
             let path = PathBuf::from(format!("{}{}", self.path.display(), suffix));
             if path.exists() {

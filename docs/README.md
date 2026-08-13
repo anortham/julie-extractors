@@ -20,8 +20,11 @@ Ph2b, Ph2c, and Ph2d implement the [store v1 contract](contracts/store-v1.md),
 published in v2.31.0 and patched through v2.31.4. Version 2.32.0 makes validated scoped resolution
 the default while retaining an explicit forced-full escape hatch. Version 2.32.1 hardens long
 artifact imports, bounds scope crossover before execution, reuses identical imports, and accelerates exact
-resolution publication without changing public contracts. The implementation
-plans and dogfood records are:
+resolution publication without changing public contracts. Version 2.33.0 keeps long batch work from being
+rolled back at the quantum cap, frees a store wedged by an abandoned resolve claim, makes incremental vacuum
+reclaim its whole page budget per call, and repairs three Windows defects: unknown process liveness, an
+import that never retried a blocked drain, and a failed resolve that leaked its scratch database. The
+implementation plans and dogfood records are:
 
 - [Ph2b store-kernel plan](plans/2026-08-07-index-store-ph2b-store-kernel-plan.md)
 - [Ph2b implementation evidence](release-evidence/2026-08-07-index-store-ph2b/README.md)
@@ -45,6 +48,7 @@ plans and dogfood records are:
 - [v2.32.0 release evidence](release-evidence/2026-08-11-v2-32-0-release.md)
 - [v2.32.1 release notes](release-notes/v2.32.1.md)
 - [v2.32.1 release evidence](release-evidence/2026-08-12-v2-32-1-release.md)
+- [v2.33.0 release notes](release-notes/v2.33.0.md)
 
 ## Evidence and historical material
 

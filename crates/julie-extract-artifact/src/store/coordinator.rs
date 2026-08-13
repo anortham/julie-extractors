@@ -2173,7 +2173,7 @@ pub fn compare_versions(left: &str, right: &str) -> Result<Ordering, Coordinator
 }
 
 #[cfg(unix)]
-pub(crate) fn process_status(pid: u32) -> PidStatus {
+pub fn process_status(pid: u32) -> PidStatus {
     let kill_status = std::process::Command::new("kill")
         .args(["-0", &pid.to_string()])
         .stdout(std::process::Stdio::null())
@@ -2199,8 +2199,65 @@ pub(crate) fn process_status(pid: u32) -> PidStatus {
     }
 }
 
-#[cfg(not(unix))]
-pub(crate) fn process_status(_pid: u32) -> PidStatus {
+/// How long a Windows probe result is reused. `tasklist` costs about 100 ms per
+/// call, and the lease paths probe from retry loops that tick every 10 ms, so an
+/// uncached probe would spawn a process per tick and starve the very work it is
+/// waiting for. Reusing a result for one tick window only delays a takeover by
+/// the same window.
+#[cfg(windows)]
+const PROCESS_STATUS_TTL: std::time::Duration = std::time::Duration::from_millis(250);
+
+#[cfg(windows)]
+static PROCESS_STATUS_CACHE: std::sync::LazyLock<
+    std::sync::Mutex<std::collections::HashMap<u32, (std::time::Instant, PidStatus)>>,
+> = std::sync::LazyLock::new(|| std::sync::Mutex::new(std::collections::HashMap::new()));
+
+/// Windows liveness through `tasklist`. The lease path reported `Unknown` for
+/// every pid on Windows, so a crashed holder was never provably dead there and
+/// every reclaim had to wait out its staleness timer instead of firing at once.
+#[cfg(windows)]
+pub fn process_status(pid: u32) -> PidStatus {
+    if let Ok(cache) = PROCESS_STATUS_CACHE.lock()
+        && let Some((probed_at, status)) = cache.get(&pid)
+        && probed_at.elapsed() < PROCESS_STATUS_TTL
+    {
+        return *status;
+    }
+    let status = probe_process_status(pid);
+    if let Ok(mut cache) = PROCESS_STATUS_CACHE.lock() {
+        cache.retain(|_, (probed_at, _)| probed_at.elapsed() < PROCESS_STATUS_TTL);
+        cache.insert(pid, (std::time::Instant::now(), status));
+    }
+    status
+}
+
+#[cfg(windows)]
+fn probe_process_status(pid: u32) -> PidStatus {
+    let pid = pid.to_string();
+    let output = std::process::Command::new("tasklist")
+        .args(["/FI", &format!("PID eq {pid}"), "/FO", "CSV", "/NH"])
+        .output();
+    match output {
+        // `tasklist` prints one CSV row per match and an informational line when
+        // nothing matches, exiting 0 either way. Only a row whose PID column is
+        // the requested pid proves the process is alive.
+        Ok(output) if output.status.success() => {
+            if String::from_utf8_lossy(&output.stdout).lines().any(|line| {
+                line.split(',')
+                    .nth(1)
+                    .is_some_and(|value| value.trim().trim_matches('"') == pid)
+            }) {
+                PidStatus::Alive
+            } else {
+                PidStatus::Dead
+            }
+        }
+        _ => PidStatus::Unknown,
+    }
+}
+
+#[cfg(not(any(unix, windows)))]
+pub fn process_status(_pid: u32) -> PidStatus {
     PidStatus::Unknown
 }
 
@@ -2911,6 +2968,46 @@ mod tests {
 
         drop(connection);
         let _ = fs::remove_file(path);
+    }
+
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn process_status_separates_a_live_process_from_an_exited_one() {
+        assert_eq!(process_status(std::process::id()), PidStatus::Alive);
+
+        #[cfg(unix)]
+        let mut child = std::process::Command::new("sh")
+            .args(["-c", "exit 0"])
+            .spawn()
+            .unwrap();
+        #[cfg(windows)]
+        let mut child = std::process::Command::new("cmd")
+            .args(["/C", "exit 0"])
+            .spawn()
+            .unwrap();
+
+        let pid = child.id();
+        child.wait().unwrap();
+        assert_eq!(process_status(pid), PidStatus::Dead);
+    }
+
+    /// The Windows probe reuses a result for `PROCESS_STATUS_TTL`, so a process
+    /// that exits reads as alive for at most that window and correct after it.
+    #[cfg(windows)]
+    #[test]
+    fn windows_process_status_is_correct_again_once_its_cached_result_expires() {
+        let mut child = std::process::Command::new("ping")
+            .args(["-n", "30", "127.0.0.1"])
+            .stdout(std::process::Stdio::null())
+            .spawn()
+            .unwrap();
+        let pid = child.id();
+        assert_eq!(process_status(pid), PidStatus::Alive);
+
+        child.kill().unwrap();
+        child.wait().unwrap();
+        std::thread::sleep(PROCESS_STATUS_TTL + std::time::Duration::from_millis(50));
+        assert_eq!(process_status(pid), PidStatus::Dead);
     }
 
     fn pragma_integer(connection: &Connection, name: &str) -> i64 {

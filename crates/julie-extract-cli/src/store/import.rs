@@ -481,64 +481,69 @@ fn execute_import(
         own_request_id: Some(canonical_request_id.clone()),
         ..CoordinatorPolicy::default()
     };
-    if let Err(error) = coordinator.drain(&mut executor, &policy) {
-        if !matches!(error, CoordinatorError::LeaseUnavailable) {
-            return Err(error.to_string());
+    // Re-attempt the drain for as long as the lease is held elsewhere. Waiting
+    // passively for another process to finish burned the whole request budget
+    // whenever the lease was released without our request being executed — the
+    // crash-resume case. A retry inherits the ORIGINAL requester deadline, so a
+    // resumed request gets what remains of the crashed process's window.
+    loop {
+        match coordinator.drain(&mut executor, &policy) {
+            Ok(_) => break,
+            Err(CoordinatorError::LeaseUnavailable) => {}
+            Err(error) => return Err(error.to_string()),
         }
-        loop {
-            let observed = coordinator
-                .request(&canonical_request_id)
-                .map_err(|error| error.to_string())?;
-            if matches!(
-                observed.state,
-                RequestState::Committed | RequestState::Acknowledged | RequestState::Failed
-            ) {
-                break;
-            }
-            if now_millis()
-                >= canonical_request
-                    .requester_deadline
-                    .unwrap_or(observe_started)
-            {
-                let canonical_payload: ImportRequestPayload =
-                    serde_json::from_str(&observed.payload_json)
-                        .map_err(|_| "invalid_import_request".to_string())?;
-                let state = match observed.state {
-                    RequestState::Queued => StoreRequestState::Queued,
-                    RequestState::Claimed => StoreRequestState::Claimed,
-                    _ => StoreRequestState::Queued,
-                };
-                let mut report = StoreReport::new(
-                    &observed.request_id,
-                    &canonical_payload.family_id,
-                    &canonical_payload.view_id,
-                    state,
-                )
-                .with_idempotency_key(&observed.idempotency_key)
-                .with_root(&canonical_payload.root)
-                .with_requested_level(match canonical_payload.requested_level {
-                    RequestedLevel::L1 => StoreRequestedLevel::L1,
-                    RequestedLevel::Full => StoreRequestedLevel::Full,
-                })
-                .with_failure(StoreFailureClass::RequestTimeout, "request_timeout");
-                report.state = state;
-                report.coordinator = match state {
-                    StoreRequestState::Claimed => StoreCoordinatorDisposition::Claimed,
-                    _ => StoreCoordinatorDisposition::Queued,
-                };
-                populate_durable_projection(
-                    &mut report,
-                    &layout,
-                    &canonical_payload.view_id,
-                    &observed.request_id,
-                    "store_import_l1_published",
-                    canonical_payload.requested_level,
-                    false,
-                )?;
-                return Ok(report);
-            }
-            std::thread::sleep(std::time::Duration::from_millis(10));
+        let observed = coordinator
+            .request(&canonical_request_id)
+            .map_err(|error| error.to_string())?;
+        if matches!(
+            observed.state,
+            RequestState::Committed | RequestState::Acknowledged | RequestState::Failed
+        ) {
+            break;
         }
+        if now_millis()
+            >= canonical_request
+                .requester_deadline
+                .unwrap_or(observe_started)
+        {
+            let canonical_payload: ImportRequestPayload =
+                serde_json::from_str(&observed.payload_json)
+                    .map_err(|_| "invalid_import_request".to_string())?;
+            let state = match observed.state {
+                RequestState::Queued => StoreRequestState::Queued,
+                RequestState::Claimed => StoreRequestState::Claimed,
+                _ => StoreRequestState::Queued,
+            };
+            let mut report = StoreReport::new(
+                &observed.request_id,
+                &canonical_payload.family_id,
+                &canonical_payload.view_id,
+                state,
+            )
+            .with_idempotency_key(&observed.idempotency_key)
+            .with_root(&canonical_payload.root)
+            .with_requested_level(match canonical_payload.requested_level {
+                RequestedLevel::L1 => StoreRequestedLevel::L1,
+                RequestedLevel::Full => StoreRequestedLevel::Full,
+            })
+            .with_failure(StoreFailureClass::RequestTimeout, "request_timeout");
+            report.state = state;
+            report.coordinator = match state {
+                StoreRequestState::Claimed => StoreCoordinatorDisposition::Claimed,
+                _ => StoreCoordinatorDisposition::Queued,
+            };
+            populate_durable_projection(
+                &mut report,
+                &layout,
+                &canonical_payload.view_id,
+                &observed.request_id,
+                "store_import_l1_published",
+                canonical_payload.requested_level,
+                false,
+            )?;
+            return Ok(report);
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
     }
     let request = coordinator
         .request(&canonical_request_id)

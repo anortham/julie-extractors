@@ -709,6 +709,79 @@ fn nonholder_times_out_without_removing_the_durable_queued_request() {
 }
 
 #[test]
+fn import_drains_as_soon_as_a_blocking_lease_is_released() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("lib.rs"), "pub fn value() {}\n").unwrap();
+    let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
+    let mut blocker = StoreCoordinator::open(&layout).unwrap();
+    let blocker_holder =
+        LeaseHolder::new("live-holder", env!("CARGO_PKG_VERSION"), std::process::id());
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as i64;
+    let LeaseDisposition::Acquired { fencing_token } = blocker
+        .try_acquire_or_takeover(blocker_holder.clone(), now)
+        .unwrap()
+    else {
+        panic!("blocking lease was not acquired");
+    };
+
+    let started = Instant::now();
+    let child = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--request-id",
+            "request-blocked",
+            "--idempotency-key",
+            "idem-blocked",
+            "--request-timeout-seconds",
+            "30",
+            "--json",
+        ])
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+
+    std::thread::sleep(Duration::from_millis(500));
+    assert!(
+        blocker
+            .release_lease(&blocker_holder, fencing_token)
+            .unwrap()
+    );
+
+    let output = child.wait_with_output().unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["state"], "committed");
+    // The import must re-attempt the drain, not wait out its whole request
+    // budget while the lease sits free.
+    assert!(
+        elapsed < Duration::from_secs(15),
+        "the import took {elapsed:?} to finish a lease that was released after 500ms"
+    );
+}
+
+#[test]
 fn successor_process_completes_a_queued_request_after_the_submitters_parent_exits() {
     let fixture = tempfile::tempdir().unwrap();
     let root = fixture.path().join("root");

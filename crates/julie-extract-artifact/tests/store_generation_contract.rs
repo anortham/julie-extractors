@@ -4,10 +4,12 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use julie_extract_artifact::store::{
     CapacityProvider, GenerationFence, GenerationLifecycle, GenerationPolicy, MaintenanceAction,
-    MaintenanceClock, MaintenanceInspector, MaintenanceRun, PartialGenerationOwner,
-    StoreConnectionError, StoreConnectionFactory, StoreLayout, StoreLayoutError,
-    write_partial_generation_owner,
+    MaintenanceClock, MaintenanceInspector, MaintenanceRun, StoreConnectionError,
+    StoreConnectionFactory, StoreLayout, StoreLayoutError,
 };
+// Only the `#[cfg(unix)]` partial-ownership test uses these.
+#[cfg(unix)]
+use julie_extract_artifact::store::{PartialGenerationOwner, write_partial_generation_owner};
 use rusqlite::Connection;
 
 static NEXT_TEMP_ID: AtomicU64 = AtomicU64::new(1);

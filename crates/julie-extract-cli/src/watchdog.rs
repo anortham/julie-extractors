@@ -119,34 +119,12 @@ pub(crate) fn process_status(pid: u32) -> julie_extract_artifact::store::PidStat
     process_status_other(pid)
 }
 
-#[cfg(unix)]
+/// Delegates to the one liveness probe in the artifact crate. A second copy here
+/// went out of step with the lease path: it reported `Unknown` for every pid on
+/// Windows long after a working Windows probe existed elsewhere in the repo.
 #[allow(dead_code)]
 fn process_status_other(pid: u32) -> julie_extract_artifact::store::PidStatus {
-    let status = std::process::Command::new("kill")
-        .args(["-0", &pid.to_string()])
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status();
-    if status.is_ok_and(|status| status.success()) {
-        return julie_extract_artifact::store::PidStatus::Alive;
-    }
-    let status = std::process::Command::new("ps")
-        .args(["-p", &pid.to_string(), "-o", "pid="])
-        .output();
-    match status {
-        Ok(output)
-            if output.status.success() && output.stdout.iter().all(u8::is_ascii_whitespace) =>
-        {
-            julie_extract_artifact::store::PidStatus::Dead
-        }
-        Ok(output) if !output.status.success() => julie_extract_artifact::store::PidStatus::Dead,
-        _ => julie_extract_artifact::store::PidStatus::Unknown,
-    }
-}
-
-#[cfg(not(unix))]
-fn process_status_other(_pid: u32) -> julie_extract_artifact::store::PidStatus {
-    julie_extract_artifact::store::PidStatus::Unknown
+    julie_extract_artifact::store::process_status(pid)
 }
 
 #[cfg(test)]

@@ -1272,38 +1272,12 @@ fn partial_lock_path(output: &Path) -> PathBuf {
     PathBuf::from(name)
 }
 
-#[cfg(unix)]
+/// Delegates to the one liveness probe in the artifact crate. Only a proven-dead
+/// process releases the partial lock: `Unknown` must read as alive here, because
+/// stealing the lock from a live writer would corrupt its output.
 fn process_is_alive(pid: u32) -> bool {
-    let pid = pid.to_string();
-    std::process::Command::new("kill")
-        .args(["-0", &pid])
-        .status()
-        .is_ok_and(|status| status.success())
-        || std::process::Command::new("ps")
-            .args(["-p", &pid, "-o", "pid="])
-            .output()
-            .is_ok_and(|output| output.status.success() && !output.stdout.is_empty())
-}
-
-#[cfg(windows)]
-fn process_is_alive(pid: u32) -> bool {
-    let pid = pid.to_string();
-    std::process::Command::new("tasklist")
-        .args(["/FI", &format!("PID eq {pid}"), "/FO", "CSV", "/NH"])
-        .output()
-        .map_or(true, |output| {
-            !output.status.success()
-                || String::from_utf8_lossy(&output.stdout).lines().any(|line| {
-                    line.split(',')
-                        .nth(1)
-                        .is_some_and(|value| value.trim_matches('"') == pid)
-                })
-        })
-}
-
-#[cfg(not(any(unix, windows)))]
-fn process_is_alive(_pid: u32) -> bool {
-    true
+    julie_extract_artifact::store::process_status(pid)
+        != julie_extract_artifact::store::PidStatus::Dead
 }
 
 fn publish_partial(partial: &Path, output: &Path) -> Result<(), String> {

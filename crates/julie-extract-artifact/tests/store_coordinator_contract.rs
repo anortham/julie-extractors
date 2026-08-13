@@ -328,8 +328,8 @@ fn abandoned_resolve_claim_is_reaped_instead_of_wedging_the_family() {
     let temp = TempDir::new();
     let layout = layout(temp.path());
     // FixedLiveness(true) on purpose: this proves the STALENESS arm reaps with no dead-PID signal at all.
-    // That is the arm that matters, because `process_status` is `PidStatus::Unknown` on every non-Unix
-    // target — a liveness-only reaper would be inert on Windows, the very platform this stranded on.
+    // That arm has to carry the reap on its own wherever liveness cannot answer — `process_status` returns
+    // `PidStatus::Unknown` on any target with no probe, and on Windows whenever `tasklist` cannot run.
     let mut coordinator =
         StoreCoordinator::open_with_liveness(&layout, FixedLiveness(true)).unwrap();
     for (id, key, sequence) in [
