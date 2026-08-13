@@ -317,6 +317,118 @@ fn dead_resolve_claimant_is_taken_over_before_the_heartbeat_stales() {
     assert!(dead.lease().unwrap().is_none());
 }
 
+/// Regression for the 2026-08-12 Miller incident: resolve `06c5e45b` sat `claimed` by a long-dead
+/// `cli-36084` with two later resolves stuck `queued` behind it. `uidx_coord_one_claimed_resolve` permits
+/// ONE claimed resolve per family, so that single row blocked every future resolve permanently — the store
+/// could never leave `resolution=unbound`, derived sidecars never converged, and `store gc` / `store repair`
+/// were refused too (both key on `EXISTS(... state='claimed')`), so the repair verb could not repair it.
+/// Recovery meant hand-editing coord.db.
+#[test]
+fn abandoned_resolve_claim_is_reaped_instead_of_wedging_the_family() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    // FixedLiveness(true) on purpose: this proves the STALENESS arm reaps with no dead-PID signal at all.
+    // That is the arm that matters, because `process_status` is `PidStatus::Unknown` on every non-Unix
+    // target — a liveness-only reaper would be inert on Windows, the very platform this stranded on.
+    let mut coordinator =
+        StoreCoordinator::open_with_liveness(&layout, FixedLiveness(true)).unwrap();
+    for (id, key, sequence) in [
+        ("resolve-1", "resolve-key-1", 1),
+        ("resolve-2", "resolve-key-2", 2),
+    ] {
+        coordinator
+            .enqueue(CoordinatorRequest::new(
+                id,
+                key,
+                RequestKind::Resolve,
+                "{}",
+                "requester",
+                30_000,
+                sequence,
+            ))
+            .unwrap();
+    }
+    assert!(
+        coordinator
+            .claim_resolve("resolve-1", "cli-36084", 10, 5_000)
+            .unwrap()
+    );
+
+    // A HEALTHY holder must still block — the reaper must not free a claim that is merely slow.
+    assert!(
+        !coordinator
+            .claim_resolve("resolve-2", "resolver-b", 20, 5_000)
+            .unwrap()
+    );
+    assert_eq!(
+        coordinator.request("resolve-1").unwrap().state.as_str(),
+        "claimed"
+    );
+
+    // Once the holder stops heartbeating past the window, the blocker is reaped and the family moves again.
+    assert!(
+        coordinator
+            .claim_resolve("resolve-2", "resolver-b", 6_000, 5_000)
+            .unwrap()
+    );
+
+    let reaped = coordinator.request("resolve-1").unwrap();
+    assert_eq!(reaped.state.as_str(), "failed");
+    assert_eq!(reaped.claim_owner, None);
+    assert_eq!(reaped.claim_heartbeat_at, None);
+    // Terminal, so `store gc` can reclaim the abandoned `resolve-*.db` scratch and `pending_request_ids`
+    // stops reporting it. A reap to `queued` would leak the scratch forever AND permanently degrade every
+    // later `drain` to snapshot-only.
+    assert!(reaped.error_json.is_some());
+    assert!(reaped.result_json.is_none());
+
+    let claimed = coordinator.request("resolve-2").unwrap();
+    assert_eq!(claimed.state.as_str(), "claimed");
+    assert_eq!(claimed.claim_owner.as_deref(), Some("resolver-b"));
+    assert!(coordinator.lease().unwrap().is_none());
+}
+
+/// The dead-owner arm frees a BLOCKING claim before its heartbeat stales, mirroring
+/// `dead_resolve_claimant_is_taken_over_before_the_heartbeat_stales` for the same-row case.
+#[test]
+fn dead_owner_blocking_a_different_resolve_is_reaped_before_the_heartbeat_stales() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let mut live = StoreCoordinator::open_with_liveness(&layout, FixedLiveness(true)).unwrap();
+    for (id, key, sequence) in [
+        ("resolve-1", "resolve-key-1", 1),
+        ("resolve-2", "resolve-key-2", 2),
+    ] {
+        live.enqueue(CoordinatorRequest::new(
+            id,
+            key,
+            RequestKind::Resolve,
+            "{}",
+            "requester",
+            30_000,
+            sequence,
+        ))
+        .unwrap();
+    }
+    assert!(
+        live.claim_resolve("resolve-1", "cli-41", 10, 5_000)
+            .unwrap()
+    );
+
+    // Heartbeat is still fresh (11 is nowhere near the 5 s window), so only the liveness arm can free this.
+    let dead = StoreCoordinator::open_with_liveness(&layout, FixedLiveness(false)).unwrap();
+    assert!(
+        dead.claim_resolve("resolve-2", "cli-42", 11, 5_000)
+            .unwrap()
+    );
+    assert_eq!(dead.request("resolve-1").unwrap().state.as_str(), "failed");
+    assert!(
+        dead.resolve_claim_is_current("resolve-2", "cli-42")
+            .unwrap()
+    );
+    assert!(dead.lease().unwrap().is_none());
+}
+
 #[test]
 fn terminal_log_reconciles_a_coord_tear_without_reexecution() {
     let temp = TempDir::new();
@@ -599,7 +711,7 @@ fn live_holder_is_not_displaced_but_dead_or_expired_holder_is_fenced() {
 }
 
 #[test]
-fn dead_lease_takeover_transfers_only_the_prior_holders_claims() {
+fn dead_lease_takeover_requeues_only_the_prior_holders_claims() {
     let temp = TempDir::new();
     let layout = layout(temp.path());
     let mut owner = StoreCoordinator::open_with_liveness(&layout, FixedLiveness(true)).unwrap();
@@ -652,12 +764,25 @@ fn dead_lease_takeover_transfers_only_the_prior_holders_claims() {
             .unwrap()
             .acquired()
     );
-    let transferred = dead.request("request-a").unwrap();
+    let released = dead.request("request-a").unwrap();
     let preserved = dead.request("request-x").unwrap();
-    assert_eq!(transferred.claim_owner.as_deref(), Some("holder-b"));
-    assert_eq!(transferred.claim_heartbeat_at, Some(11));
+
+    // The dead holder's in-flight request is REQUEUED, not adopted as still-claimed.
+    //
+    // Adopting it (claim_owner = holder-b, claim_heartbeat_at = now) made the row immortal: the new
+    // holder never executes a request it did not submit, so the row stayed 'claimed' forever, and every
+    // later takeover refreshed the heartbeat again so the staleness steal in claim_request could never
+    // fire. With `uidx_coord_one_claimed_resolve` permitting at most one claimed resolve per family, a
+    // single killed CLI then blocked EVERY future resolve permanently — the store could not leave
+    // `resolution=unbound`, so consumers' derived sidecars never converged.
+    assert_eq!(released.state.as_str(), "queued");
+    assert_eq!(released.claim_owner, None);
+    assert_eq!(released.claim_heartbeat_at, None);
+
+    // Still scoped to the prior holder: a DIFFERENT holder's claim is untouched.
     assert_eq!(preserved.claim_owner.as_deref(), Some("holder-x"));
     assert_eq!(preserved.claim_heartbeat_at, Some(10));
+    assert_eq!(preserved.state.as_str(), "claimed");
 }
 
 #[test]
@@ -1634,9 +1759,17 @@ fn drain_caps_the_interactive_burst_at_32_before_a_batch_quantum() {
         advance_ms: 0,
     };
 
-    let report = coordinator
-        .drain(&mut executor, &CoordinatorPolicy::default())
-        .unwrap();
+    // This test asserts SCHEDULING (burst cap, ordering, quanta counts) and nothing about lease expiry, but
+    // the default 5 s `lease_duration_ms` is real wall-clock while every other clock here is the injected
+    // `TestClock`. On a loaded host the drain's real elapsed time can outrun that lease and the test dies
+    // with `LeaseLost` having tested nothing it was written to test. A long lease removes the incidental
+    // coupling; lease renewal has its own dedicated coverage in
+    // `long_running_quantum_heartbeats_writer_lease_and_commits_once`.
+    let policy = CoordinatorPolicy {
+        lease_duration_ms: 600_000,
+        ..CoordinatorPolicy::default()
+    };
+    let report = coordinator.drain(&mut executor, &policy).unwrap();
 
     assert_eq!(executor.order[32], "request-100");
     assert_eq!(report.interactive_quanta, 33);
@@ -2037,6 +2170,10 @@ fn batch_progresses_under_a_sustained_interactive_producer() {
     let policy = CoordinatorPolicy {
         interactive_burst_ms: 10_000,
         service_window_ms: 40,
+        // Wall-clock lease, TestClock everywhere else — see the note in
+        // `drain_caps_the_interactive_burst_at_32_before_a_batch_quantum`. Observed failing here as
+        // `LeaseLost` at line `coordinator.drain(...)` under parallel load, testing nothing it asserts.
+        lease_duration_ms: 600_000,
         ..CoordinatorPolicy::default()
     };
 
@@ -2296,7 +2433,16 @@ fn long_running_quantum_heartbeats_writer_lease_and_commits_once() {
     let (entered_sender, entered_receiver) = mpsc::channel();
     let (resume_sender, resume_receiver) = mpsc::channel();
     let policy = CoordinatorPolicy {
-        lease_duration_ms: 120,
+        // 120 ms here was not survivable under the parallel `default` tier. `lease_duration_ms` is REAL wall
+        // clock while `maximum_quantum_ms` is compared against the injected `TestClock`, so on a loaded host
+        // the lease could lapse during drain start-up — before `execute_quantum` was ever reached. The
+        // worker thread then returned `LeaseLost` and dropped its `entered` sender, and this test failed
+        // with a `Disconnected` receive that looked like a scheduling stall and said nothing about the real
+        // cause. 2 s gives start-up ~17x more slack while keeping the lease far shorter than the test's own
+        // patience, so the renewal assertion below still means what it says.
+        lease_duration_ms: 2_000,
+        // Unchanged, and deliberately still tiny: this is compared against the TestClock, which the test
+        // advances by 101 below to push the quantum past the cap and prove a renewable kind is NOT requeued.
         maximum_quantum_ms: 100,
         ..CoordinatorPolicy::default()
     };
@@ -2309,9 +2455,17 @@ fn long_running_quantum_heartbeats_writer_lease_and_commits_once() {
             &policy,
         )
     });
+    // Liveness guard, NOT a timing assertion — so keep it generous.
+    //
+    // At 2 s this was the single flakiest assertion in the harness: it only has to observe the worker thread
+    // reach `execute_quantum`, but under the parallel `default` tier (`cargo test -p julie-extract-artifact`,
+    // ~60 tests in this binary plus every other harness) a loaded host does not always schedule that thread
+    // inside two seconds, and the test failed here before touching a single lease. Verified failing this way
+    // at pristine HEAD. A long timeout costs nothing when the code is correct and still fails the test — just
+    // later — if the worker genuinely never runs.
     entered_receiver
-        .recv_timeout(std::time::Duration::from_secs(2))
-        .unwrap();
+        .recv_timeout(std::time::Duration::from_secs(120))
+        .expect("worker thread never entered execute_quantum");
     let connection = Connection::open(layout.coordinator_db()).unwrap();
     let initial_expiry = connection
         .query_row(

@@ -28,6 +28,10 @@ const DEFAULT_INTERACTIVE_BURST_COUNT: usize = 32;
 const DEFAULT_INTERACTIVE_BURST_MS: i64 = 250;
 const DEFAULT_SERVICE_WINDOW_MS: i64 = 1_000;
 const COORDINATOR_BUSY_TIMEOUT: Duration = Duration::from_secs(5);
+/// Attempts a single heartbeat tick makes before declaring the writer lease lost. One transient failure must
+/// not collect a whole scan's work (see the retry loop in [`LeaseHeartbeatGuard::start`]).
+const HEARTBEAT_RENEWAL_ATTEMPTS: u32 = 3;
+const HEARTBEAT_RENEWAL_RETRY_DELAY: Duration = Duration::from_millis(100);
 static LAST_FENCING_TOKEN: AtomicI64 = AtomicI64::new(0);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -56,8 +60,27 @@ impl RequestKind {
         matches!(self, Self::Import | Self::FromArtifact)
     }
 
+    /// Kinds whose single quantum may legitimately outrun `maximum_quantum_ms`.
+    ///
+    /// Import/Resolve are whole-repo batch work — the L3 store-import phase alone measures 71-85 s on a
+    /// 1,628-file workspace. With only `FromArtifact` listed here, every such request was requeued at the 4 s
+    /// cap and the caller got `LeaseLost`, surfaced to users as "store-writer lease fencing check failed":
+    /// the work ran IN FULL and was then rolled back, so a repository whose scan exceeded 4 s could never
+    /// converge, its derived sidecars stayed stale forever, and the scan-failure backoff climbed to its
+    /// 30-minute ceiling.
+    ///
+    /// Widening this list is only safe TOGETHER WITH [`LeaseHeartbeatGuard`], which already renews the writer
+    /// lease for the whole drain. Without a live renewal the quantum outlives its own 5 s lease and the
+    /// commit's `validate_writer_lease` rejects the work — verified: that combination fails
+    /// `batch_progresses_under_a_sustained_interactive_producer` with `WriterLeaseLost`.
+    ///
+    /// Do NOT add a second renewal scoped to the quantum. One was written (`QuantumLeaseRenewal`) and deleted
+    /// as pure duplication — [`LeaseHeartbeatGuard`] already covers this window.
+    ///
+    /// `Update`/`Delete` stay capped on purpose: they are the single-file interactive paths, and the cap plus
+    /// `interactive_burst_ms` is what stops a long batch starving them.
     fn permits_renewable_quantum(self) -> bool {
-        matches!(self, Self::FromArtifact)
+        matches!(self, Self::FromArtifact | Self::Import | Self::Resolve)
     }
 
     fn parse(value: &str) -> Result<Self, CoordinatorError> {
@@ -693,16 +716,84 @@ impl StoreCoordinator {
         {
             return Ok(false);
         }
-        let other_claimed: bool = transaction.query_row(
-            "SELECT EXISTS(
-               SELECT 1 FROM requests
-               WHERE kind='resolve' AND state='claimed' AND request_id<>?1
-             )",
-            [request_id],
-            |row| row.get(0),
-        )?;
-        if other_claimed {
-            return Ok(false);
+        // A stranded claim must not block every future resolve in the family.
+        //
+        // `uidx_coord_one_claimed_resolve` permits at most ONE claimed resolve per family, so a claim whose
+        // owner died holds the whole family hostage: the store can never leave `resolution=unbound`, derived
+        // sidecars never converge, and `store gc` / `store repair` are refused as well because both key on
+        // `EXISTS(SELECT 1 FROM requests WHERE state='claimed')` — the repair verb cannot repair it. Observed
+        // 2026-08-12 on the Miller workspace: resolve `06c5e45b` claimed by a long-dead `cli-36084` with two
+        // later resolves stuck `queued` behind it, recoverable only by hand-editing coord.db.
+        //
+        // The rule that frees it is NOT new — it is the same `eligible` test applied below to the row being
+        // claimed. The defect was purely one of ORDER: the old `other_claimed` EXISTS probe returned early,
+        // so staleness and owner-liveness were only ever evaluated for OUR row and never for the row doing
+        // the blocking. Applying the already-shipping rule consistently is the whole fix.
+        //
+        // Heartbeat staleness is a sound abandonment signal for `resolve` specifically, because a live
+        // holder's `ResolveHeartbeat` refreshes `claim_heartbeat_at` every 250 ms against a 5 s window — a
+        // 20x margin. It would NOT be sound for drain-claimed kinds, whose `claim_heartbeat_at` is only
+        // stamped between quanta and so looks stale for the whole of a legitimately long quantum (the L3
+        // import phase alone measures 71-85 s). That is why this stays scoped to `kind='resolve'`.
+        //
+        // At most one row can match, by the unique index above.
+        let blocker = transaction
+            .query_row(
+                "SELECT request_id, claim_owner, claim_heartbeat_at FROM requests
+                 WHERE kind='resolve' AND state='claimed' AND request_id<>?1",
+                [request_id],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, Option<String>>(1)?,
+                        row.get::<_, Option<i64>>(2)?,
+                    ))
+                },
+            )
+            .optional()?;
+        if let Some((blocker_id, blocker_owner, blocker_heartbeat)) = blocker {
+            let blocker_abandoned = blocker_heartbeat.is_some_and(|beat| beat <= stale_before)
+                || blocker_owner
+                    .as_deref()
+                    .and_then(resolve_owner_pid)
+                    .is_some_and(|pid| self.pid_liveness.status(pid) == PidStatus::Dead);
+            if !blocker_abandoned {
+                return Ok(false);
+            }
+            // `failed`, not `queued`.
+            //
+            // `reconcile` promotes from ('queued','claimed','failed') alike, so a holder that DID append its
+            // terminal store-log entry before dying still reconciles to `committed` either way. But only a
+            // TERMINAL state lets `store gc` reclaim the abandoned `resolve-*.db` scratch —
+            // `terminal_request_scratch_files` keys on ('failed','committed','acknowledged') — and only a
+            // terminal state keeps the row out of `pending_request_ids`, which selects ('queued','claimed')
+            // and whose permanent non-emptiness would degrade every later `drain` to snapshot-only. A row
+            // reaped to `queued` would leak its scratch forever and never be re-claimed, because each
+            // `store resolve` mints a fresh request id rather than adopting an existing one.
+            //
+            // This is the same transition `fail_resolve` performs, made by a third party rather than by the
+            // dead owner. The CAS on the exact observed (owner, heartbeat) pins the write to the row version
+            // this decision was made from.
+            let error_json = serde_json::json!({
+                "message": format!(
+                    "resolve claim reaped: owner {} stopped heartbeating",
+                    blocker_owner.as_deref().unwrap_or("<unknown>")
+                )
+            })
+            .to_string();
+            transaction.execute(
+                "UPDATE requests SET state='failed',claim_owner=NULL,
+                        claim_heartbeat_at=NULL,result_json=NULL,error_json=?1,updated_at=?2
+                 WHERE request_id=?3 AND kind='resolve' AND state='claimed'
+                   AND claim_owner IS ?4 AND claim_heartbeat_at IS ?5",
+                params![
+                    error_json,
+                    now,
+                    blocker_id,
+                    blocker_owner,
+                    blocker_heartbeat
+                ],
+            )?;
         }
         let prior_owner_dead = request
             .claim_owner
@@ -716,6 +807,11 @@ impl StoreCoordinator {
                 .is_some_and(|heartbeat| heartbeat <= stale_before)
             || prior_owner_dead;
         if !eligible {
+            // COMMIT, do not drop. Dropping the transaction rolls back — which would silently undo a reap
+            // performed above. Unreachable today (a reap implies the blocker held the family's one claimed
+            // slot, so OUR row must have been `queued`, which is itself `eligible`), but that coupling is
+            // invisible from here and must not become a latent trap for a future edit.
+            transaction.commit()?;
             return Ok(false);
         }
         let changed = transaction.execute(
@@ -976,10 +1072,27 @@ impl StoreCoordinator {
                         fencing_token,
                     ],
                 )?;
+                // REQUEUE the dead holder's in-flight requests; do NOT adopt them as still-claimed.
+                //
+                // Adopting them (claim_owner = new holder, claim_heartbeat_at = now) made an abandoned
+                // request IMMORTAL: the new holder never executes a request it did not submit, so the row
+                // stays 'claimed' forever, and because every subsequent lease takeover refreshed the
+                // heartbeat again, the staleness steal in claim_request (claim_heartbeat_at <= now - lease)
+                // could never fire either. With `uidx_coord_one_claimed_resolve` allowing at most ONE
+                // claimed resolve per family, a single killed CLI permanently blocked every future resolve:
+                // the store could never leave `resolution=unbound`, so consumers' derived sidecars never
+                // converged and search stayed stale until someone hand-edited coord.db.
+                // Observed 2026-08-12 on the Miller workspace: resolve 06c5e45b claimed by a long-dead
+                // `cli-36084`, two later resolves stuck 'queued' behind it.
+                //
+                // Requeueing is safe and is what `requeue_request` already does on quantum overrun: requests
+                // are idempotent by `idempotency_key`, so the work is simply re-claimed and re-executed by
+                // whoever holds the lease next.
                 transaction.execute(
-                    "UPDATE requests SET claim_owner = ?1, claim_heartbeat_at = ?2, updated_at = ?2
-                     WHERE state = 'claimed' AND claim_owner = ?3",
-                    params![holder.holder_id, now, old_holder_id],
+                    "UPDATE requests SET state = 'queued', claim_owner = NULL,
+                     claim_heartbeat_at = NULL, result_json = NULL, error_json = NULL, updated_at = ?1
+                     WHERE state = 'claimed' AND claim_owner = ?2",
+                    params![now, old_holder_id],
                 )?;
                 LeaseDisposition::Acquired {
                     fencing_token: owner.fencing_token,
@@ -1010,10 +1123,27 @@ impl StoreCoordinator {
                         fencing_token,
                     ],
                 )?;
+                // REQUEUE the dead holder's in-flight requests; do NOT adopt them as still-claimed.
+                //
+                // Adopting them (claim_owner = new holder, claim_heartbeat_at = now) made an abandoned
+                // request IMMORTAL: the new holder never executes a request it did not submit, so the row
+                // stays 'claimed' forever, and because every subsequent lease takeover refreshed the
+                // heartbeat again, the staleness steal in claim_request (claim_heartbeat_at <= now - lease)
+                // could never fire either. With `uidx_coord_one_claimed_resolve` allowing at most ONE
+                // claimed resolve per family, a single killed CLI permanently blocked every future resolve:
+                // the store could never leave `resolution=unbound`, so consumers' derived sidecars never
+                // converged and search stayed stale until someone hand-edited coord.db.
+                // Observed 2026-08-12 on the Miller workspace: resolve 06c5e45b claimed by a long-dead
+                // `cli-36084`, two later resolves stuck 'queued' behind it.
+                //
+                // Requeueing is safe and is what `requeue_request` already does on quantum overrun: requests
+                // are idempotent by `idempotency_key`, so the work is simply re-claimed and re-executed by
+                // whoever holds the lease next.
                 transaction.execute(
-                    "UPDATE requests SET claim_owner = ?1, claim_heartbeat_at = ?2, updated_at = ?2
-                     WHERE state = 'claimed' AND claim_owner = ?3",
-                    params![holder.holder_id, now, old_holder_id],
+                    "UPDATE requests SET state = 'queued', claim_owner = NULL,
+                     claim_heartbeat_at = NULL, result_json = NULL, error_json = NULL, updated_at = ?1
+                     WHERE state = 'claimed' AND claim_owner = ?2",
+                    params![now, old_holder_id],
                 )?;
                 LeaseDisposition::Acquired {
                     fencing_token: next_token,
@@ -2448,25 +2578,68 @@ impl LeaseHeartbeatGuard {
         let current = Arc::new(AtomicBool::new(true));
         let worker_current = Arc::clone(&current);
         let interval_ms = u64::try_from((lease_duration_ms / 3).max(1)).unwrap_or(1);
+        // Cap the retry backoff by the tick interval so the ladder can never outlast the lease it defends.
+        // At the production 5 s lease the interval is ~1.67 s and this is the flat 100 ms. But a short lease
+        // — the contract tests use 120 ms, giving a 40 ms interval — would otherwise sleep 2 x 100 ms between
+        // attempts, so one tick's ladder (200 ms) exceeded the entire 120 ms lease and the retry meant to
+        // SAVE the lease was what let it lapse.
+        let retry_delay = HEARTBEAT_RENEWAL_RETRY_DELAY
+            .min(Duration::from_millis(interval_ms / 2).max(Duration::from_millis(1)));
         let worker = std::thread::spawn(move || {
             loop {
                 match receiver.recv_timeout(Duration::from_millis(interval_ms)) {
                     Ok(()) | Err(mpsc::RecvTimeoutError::Disconnected) => return,
                     Err(mpsc::RecvTimeoutError::Timeout) => {}
                 }
-                let now = system_now_ms();
-                match heartbeat_lease_at(
-                    &coordinator_db,
-                    &holder,
-                    fencing_token,
-                    now,
-                    lease_duration_ms,
-                ) {
-                    Ok(true) => {}
-                    Ok(false) | Err(_) => {
-                        worker_current.store(false, AtomicOrdering::Release);
-                        return;
+                // Giving up on the FIRST unhappy result made a whole scan's work collectible by a single
+                // momentary SQLITE_BUSY or one late tick: the thread returned, nothing renewed the lease
+                // again, it lapsed ~lease_duration_ms later, and the commit's validate_writer_lease then
+                // rejected everything the executor had just done. That is the "store-writer lease fencing
+                // check failed" users hit, and it bites hardest under load — precisely when scans are slow.
+                //
+                // Err   => transient (busy/locked coordinator). Retry briefly before concluding anything.
+                // false => the guarded UPDATE matched nothing, meaning the row lapsed or was taken over.
+                //          Re-extend it ONLY if it still carries our fencing token, which proves no takeover.
+                let mut renewed = false;
+                for attempt in 0..HEARTBEAT_RENEWAL_ATTEMPTS {
+                    // Sample `now` per attempt, after any blocking open inside the helper.
+                    match heartbeat_lease_at(
+                        &coordinator_db,
+                        &holder,
+                        fencing_token,
+                        system_now_ms(),
+                        lease_duration_ms,
+                    ) {
+                        Ok(true) => {
+                            renewed = true;
+                            break;
+                        }
+                        Ok(false) => {
+                            // Lapsed or stolen — the token check distinguishes them.
+                            match reclaim_lapsed_lease_at(
+                                &coordinator_db,
+                                &holder,
+                                fencing_token,
+                                lease_duration_ms,
+                            ) {
+                                Ok(true) => {
+                                    renewed = true;
+                                    break;
+                                }
+                                // Genuinely lost: the row is gone or another holder minted a new token.
+                                Ok(false) => break,
+                                Err(_) => {}
+                            }
+                        }
+                        Err(_) => {}
                     }
+                    if attempt + 1 < HEARTBEAT_RENEWAL_ATTEMPTS {
+                        std::thread::sleep(retry_delay);
+                    }
+                }
+                if !renewed {
+                    worker_current.store(false, AtomicOrdering::Release);
+                    return;
                 }
             }
         });
@@ -2640,6 +2813,43 @@ fn release_lease_at(
         "DELETE FROM writer_lease
          WHERE resource = ?1 AND holder_id = ?2 AND holder_pid = ?3 AND fencing_token = ?4",
         params![
+            STORE_WRITER_RESOURCE,
+            holder.holder_id,
+            holder.holder_pid,
+            fencing_token,
+        ],
+    )? == 1)
+}
+
+/// Re-extends a lease this holder still owns even though its `expires_at` has lapsed.
+///
+/// [`heartbeat_lease_at`] deliberately refuses a lapsed row (`AND expires_at > ?1`) so it can never
+/// resurrect a lease somebody else took over. But a heartbeat tick that is merely LATE — the renewal thread
+/// starved behind the extractor's own rayon pool, which is exactly what happens during a big scan — leaves
+/// the row lapsed while it is still ours and untaken. Treating that as a lost lease threw away the whole
+/// scan's work.
+///
+/// Ownership is proven by the fencing token: a takeover mints a strictly greater one
+/// ([`try_acquire_with_intent_policy`]), so a row still carrying OUR token means no takeover has occurred and
+/// re-extending is safe. If the row is gone or the token moved on, this reports false and the caller must
+/// treat the lease as genuinely lost.
+fn reclaim_lapsed_lease_at(
+    coordinator_db: &Path,
+    holder: &LeaseHolder,
+    fencing_token: i64,
+    lease_duration_ms: i64,
+) -> Result<bool, CoordinatorError> {
+    let connection = open_coordinator(coordinator_db)?;
+    // Sample the clock AFTER opening: opening can block on a busy coordinator, and a stale `now` would both
+    // shorten the new expiry and misjudge the lapse.
+    let now = system_now_ms();
+    let expires_at = checked_lease_expiry(now, lease_duration_ms)?;
+    Ok(connection.execute(
+        "UPDATE writer_lease SET heartbeat_at = ?1, expires_at = ?2
+         WHERE resource = ?3 AND holder_id = ?4 AND holder_pid = ?5 AND fencing_token = ?6",
+        params![
+            now,
+            expires_at,
             STORE_WRITER_RESOURCE,
             holder.holder_id,
             holder.holder_pid,

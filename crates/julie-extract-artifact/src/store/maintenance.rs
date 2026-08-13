@@ -1720,7 +1720,27 @@ impl MaintenanceExecutor {
                 return Ok(vacuum_pages);
             }
             let requested = before.min(page_budget - vacuum_pages);
-            connection.execute_batch(&format!("PRAGMA incremental_vacuum({requested});"))?;
+            // Drive the pragma to completion rather than stepping it once.
+            //
+            // `PRAGMA incremental_vacuum(N)` compiles to a VDBE loop that yields a row after EACH page it
+            // reclaims, and `Connection::execute_batch` steps a statement exactly once and discards the row.
+            // So the `N` argument was inert: one call reclaimed exactly ONE page and returned, and this outer
+            // loop re-drove it once per page. Because the connection is in autocommit here, every one of those
+            // iterations was a separate implicit write transaction under `synchronous = FULL` — one fsync per
+            // page, plus two `PRAGMA freelist_count` round-trips.
+            //
+            // Measured on the 4,608-page fixture in `gc_steps_incremental_vacuum_until_the_freelist_is_empty`:
+            // 4,608 iterations at 1-3 ms each = 11.3 s of the 11.5 s total apply, against the 5 s writer lease
+            // minted in `acquire_for_action`. The lease lapsed mid-vacuum and the next `open_writer` — inside
+            // `finish()` -> `restore_serving_source_floor_and_clear_coord` — failed the
+            // `validate_writer_lease` expiry check with `WriterLeaseLost`. Draining the rows makes the whole
+            // reclaim ONE transaction and one fsync.
+            let mut statement =
+                connection.prepare(&format!("PRAGMA incremental_vacuum({requested})"))?;
+            let mut rows = statement.query([])?;
+            while rows.next()?.is_some() {}
+            drop(rows);
+            drop(statement);
             let after = sqlite_u64(connection, "PRAGMA freelist_count", "freelist_count")?;
             if after >= before {
                 return Err(MaintenanceError::InvalidMetadata {
