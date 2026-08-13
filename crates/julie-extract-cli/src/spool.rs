@@ -672,7 +672,12 @@ mod tests {
         let spool = create_scan_spool(Some(temp.path())).unwrap();
         let path = spool.path().to_path_buf();
         let sentinel = spool.sentinel_path().unwrap().to_path_buf();
-        std::fs::File::open(&sentinel)
+        // Windows needs write access to set a timestamp; a read-only handle fails with
+        // PermissionDenied. Unix allows it on a read-only handle, which is why this only ever
+        // failed on Windows.
+        std::fs::OpenOptions::new()
+            .write(true)
+            .open(&sentinel)
             .unwrap()
             .set_modified(SystemTime::now() - SPOOL_REAP_MIN_AGE * 100)
             .unwrap();

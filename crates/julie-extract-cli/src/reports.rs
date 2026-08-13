@@ -115,6 +115,23 @@ pub(crate) fn slow_file_skipped_diagnostic(error: &DiscoveryError) -> ReportDiag
 /// bound dropped files. The write already committed: the first site row won and
 /// per-row attribution is intact, so this reports an extractor bug rather than a
 /// failure.
+/// Joins a root with a root-relative report path.
+///
+/// `Path::join` inserts the PLATFORM separator, so on Windows a `/`-separated relative path came
+/// back as `/repo\scripts/install.ps1` — one string with both separators, from a contract that
+/// specifies `/` (docs/contracts/reports.md). The relative side is always `/`-separated, so the
+/// separator between the two sides is written explicitly. The root keeps whatever form the caller
+/// gave it; rewriting an absolute Windows root here would change a value consumers already match on.
+fn join_root_relative(root: &Path, relative: &str) -> String {
+    let root = root.display().to_string();
+    let trimmed = root.trim_end_matches(['/', '\\']);
+    let relative = relative.trim_start_matches('/');
+    if trimmed.is_empty() {
+        return format!("/{relative}");
+    }
+    format!("{trimmed}/{relative}")
+}
+
 pub(crate) fn reference_site_conflict_diagnostics(
     conflicts: &ReferenceSiteConflicts,
     root: Option<&Path>,
@@ -134,7 +151,7 @@ pub(crate) fn reference_site_conflict_diagnostics(
                      first write kept",
                     file.conflicts
                 ),
-                root.map(|root| root.join(&file.path).display().to_string()),
+                root.map(|root| join_root_relative(root, &file.path)),
                 Some(file.path.clone()),
                 true,
                 json!({

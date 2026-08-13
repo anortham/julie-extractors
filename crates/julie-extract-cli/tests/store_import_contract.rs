@@ -781,6 +781,13 @@ fn import_drains_as_soon_as_a_blocking_lease_is_released() {
     );
 }
 
+/// Unix-only, for two independent reasons, both of them properties of the platform rather than of
+/// this test: it needs a POSIX shell to get a parent pid from `$$` (`sh` is simply absent on
+/// Windows, where the test failed with "program not found"), and the scenario it builds depends on
+/// `--parent-pid` aborting the submitter, which is documented as Unix-only and ignored elsewhere
+/// (docs/contracts/cli.md). Without the abort there is no orphaned request for a successor to
+/// complete, so there is nothing to assert off Unix.
+#[cfg(unix)]
 #[test]
 fn successor_process_completes_a_queued_request_after_the_submitters_parent_exits() {
     let fixture = tempfile::tempdir().unwrap();
@@ -2303,12 +2310,37 @@ fn import_honors_ignore_spool_progress_jobs_and_parent_supervision_controls() {
         ])
         .output()
         .unwrap();
-    assert_eq!(supervised.status.code(), Some(1));
     let connection = rusqlite::Connection::open(supervised_store.join("gen-001/store.db")).unwrap();
     let versions: i64 = connection
         .query_row("SELECT COUNT(*) FROM file_versions", [], |row| row.get(0))
         .unwrap();
-    assert_eq!(versions, 0);
+
+    // `--parent-pid` is Unix-only: std exposes no Windows equivalent, so the flag is accepted and
+    // ignored elsewhere on purpose, which is what lets ONE caller argv work on every platform
+    // (docs/contracts/cli.md). Asserting the Unix abort everywhere claimed a supervision guarantee
+    // Windows does not make, and failed there on every run.
+    if cfg!(unix) {
+        assert_eq!(
+            supervised.status.code(),
+            Some(1),
+            "a dead parent must abort the import on Unix; stdout={} stderr={}",
+            String::from_utf8_lossy(&supervised.stdout),
+            String::from_utf8_lossy(&supervised.stderr)
+        );
+        assert_eq!(versions, 0, "an aborted import must write no file versions");
+    } else {
+        assert_eq!(
+            supervised.status.code(),
+            Some(0),
+            "the flag must be accepted and ignored off Unix, not rejected; stdout={} stderr={}",
+            String::from_utf8_lossy(&supervised.stdout),
+            String::from_utf8_lossy(&supervised.stderr)
+        );
+        assert!(
+            versions > 0,
+            "an ignored supervision flag must leave the import itself intact"
+        );
+    }
 }
 
 #[test]
