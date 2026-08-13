@@ -3577,7 +3577,9 @@ mod tests {
         for path in [&store_path, &base_path] {
             let connection = Connection::open(path).unwrap();
             connection
-                .execute_batch("CREATE TABLE guarded(value INTEGER); INSERT INTO guarded VALUES (7);")
+                .execute_batch(
+                    "CREATE TABLE guarded(value INTEGER); INSERT INTO guarded VALUES (7);",
+                )
                 .unwrap();
         }
 
