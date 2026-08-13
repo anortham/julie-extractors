@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, mpsc};
+use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -249,10 +249,7 @@ fn execute_resolve(
         &payload,
         &heartbeat,
     );
-    let heartbeat_current = heartbeat.stop();
-    if !heartbeat_current {
-        return Err("resolution_failed: resolve claim lost".to_string());
-    }
+    heartbeat.stop()?;
     if let Err(message) = result {
         if coordinator
             .reconcile(&canonical.request_id)
@@ -322,6 +319,7 @@ fn resolve_claimed(
     if !has_ready_base {
         let created_at = store_timestamp(layout, "now")?;
         let begin = with_writer_lease(
+            layout,
             coordinator,
             holder,
             deadline,
@@ -342,6 +340,7 @@ fn resolve_claimed(
             ResolutionBaseBegin::Ready(_) => None,
             ResolutionBaseBegin::Building(_) => {
                 let recovery = with_writer_lease(
+                    layout,
                     coordinator,
                     holder,
                     deadline,
@@ -395,6 +394,7 @@ fn resolve_claimed(
                 .map_err(|error| format!("resolution_failed: {error}"))?;
             heartbeat.ensure_current(coordinator, request, holder)?;
             with_writer_lease(
+                layout,
                 coordinator,
                 holder,
                 deadline,
@@ -427,6 +427,7 @@ fn resolve_claimed(
     };
     heartbeat.ensure_current(coordinator, request, holder)?;
     let (binding, _) = with_writer_lease(
+        layout,
         coordinator,
         holder,
         deadline,
@@ -465,6 +466,7 @@ fn resolve_claimed(
         }
         heartbeat.ensure_current(coordinator, request, holder)?;
         with_writer_lease(
+            layout,
             coordinator,
             holder,
             deadline,
@@ -608,6 +610,7 @@ fn resolve_claimed(
             &exact_path,
         )?;
         with_writer_lease(
+            layout,
             coordinator,
             holder,
             deadline,
@@ -674,6 +677,7 @@ fn resolve_claimed(
         return Ok(());
     }
     with_writer_lease(
+        layout,
         coordinator,
         holder,
         deadline,
@@ -755,6 +759,7 @@ fn prepare_rebased_base(
     exact_path: &Path,
 ) -> Result<String, String> {
     let begin = with_writer_lease(
+        layout,
         coordinator,
         holder,
         deadline,
@@ -777,6 +782,7 @@ fn prepare_rebased_base(
         ResolutionBaseBegin::Ready(record) => return Ok(record.base_id),
         ResolutionBaseBegin::Building(_) => {
             let recovery = with_writer_lease(
+                layout,
                 coordinator,
                 holder,
                 deadline,
@@ -818,6 +824,7 @@ fn prepare_rebased_base(
         .map_err(|error| format!("resolution_failed: {error}"))?;
     heartbeat.ensure_current(coordinator, request, holder)?;
     with_writer_lease(
+        layout,
         coordinator,
         holder,
         deadline,
@@ -901,7 +908,70 @@ fn fenced_factory(
         ))
 }
 
+/// How often a held writer lease is renewed while its operation runs. Well inside the lease TTL so a
+/// scheduling delay costs a renewal, not the lease.
+const WRITER_LEASE_HEARTBEAT_INTERVAL: Duration = Duration::from_millis(1_000);
+
+/// Keeps a held writer lease alive for as long as its operation is still running.
+///
+/// The lease TTL is a liveness backstop for a holder that DIED, not a budget for how long honest work
+/// may take. `with_writer_lease` renewed once on acquire and then ran the whole operation with no
+/// further renewal, so any step that outran the TTL expired its OWN lease and failed the resolve with
+/// `writer lease was lost` / `fence lost`. That is not a rare race: it is certain for a large enough
+/// repository, and it reproduces on a busy machine, which is exactly when a resolve is slowest.
+///
+/// A live holder now renews while it works. A dead one still loses the lease on the TTL, and
+/// dead-process takeover is unchanged, so the fencing guarantee is intact.
+struct WriterLeaseHeartbeat {
+    stop: mpsc::Sender<()>,
+    worker: Option<thread::JoinHandle<()>>,
+}
+
+impl WriterLeaseHeartbeat {
+    fn start(layout: StoreLayout, holder: LeaseHolder, fencing_token: i64) -> Self {
+        let (stop, receiver) = mpsc::channel();
+        let worker = thread::spawn(move || {
+            let Ok(mut coordinator) = StoreCoordinator::open(&layout) else {
+                return;
+            };
+            loop {
+                match receiver.recv_timeout(WRITER_LEASE_HEARTBEAT_INTERVAL) {
+                    Ok(()) | Err(mpsc::RecvTimeoutError::Disconnected) => return,
+                    Err(mpsc::RecvTimeoutError::Timeout) => {}
+                }
+                // A lost or unreadable lease stops the renewal here. The operation's own fence check
+                // reports it; a second report from this thread would only hide the real error.
+                match coordinator.heartbeat_lease(&holder, fencing_token, now_millis()) {
+                    Ok(true) => {}
+                    _ => return,
+                }
+            }
+        });
+        Self {
+            stop,
+            worker: Some(worker),
+        }
+    }
+
+    fn stop(mut self) {
+        let _ = self.stop.send(());
+        if let Some(worker) = self.worker.take() {
+            let _ = worker.join();
+        }
+    }
+}
+
+impl Drop for WriterLeaseHeartbeat {
+    fn drop(&mut self) {
+        let _ = self.stop.send(());
+        if let Some(worker) = self.worker.take() {
+            let _ = worker.join();
+        }
+    }
+}
+
 fn with_writer_lease<T>(
+    layout: &StoreLayout,
     coordinator: &mut StoreCoordinator,
     holder: &LeaseHolder,
     deadline: i64,
@@ -925,7 +995,10 @@ fn with_writer_lease<T>(
         let _ = coordinator.release_lease(holder, fencing_token);
         return Err(format!("resolution_failed: {error}"));
     }
+    let heartbeat = WriterLeaseHeartbeat::start(layout.clone(), holder.clone(), fencing_token);
     let result = operation(coordinator, fencing_token);
+    // Stop renewing BEFORE the release so a renewal cannot race it.
+    heartbeat.stop();
     let release = coordinator
         .release_lease(holder, fencing_token)
         .map_err(|error| error.to_string());
@@ -1546,32 +1619,62 @@ fn pause_on_env_file(env_var: &str, ready_bytes: &[u8]) -> Result<(), String> {
 struct ResolveHeartbeat {
     stop: mpsc::Sender<()>,
     current: Arc<AtomicBool>,
+    lost_reason: Arc<Mutex<Option<String>>>,
     worker: Option<thread::JoinHandle<()>>,
 }
 
 impl ResolveHeartbeat {
+    /// Starts the claim heartbeat.
+    ///
+    /// A coordinator ERROR is not evidence that the claim was taken. Every heartbeat opens a fresh
+    /// coordinator connection, so a busy database — the normal state under concurrent store work —
+    /// surfaces here as an error, and treating the first one as fatal failed honest resolves with
+    /// `resolve claim lost` while the claim was still held. Errors are therefore retried.
+    ///
+    /// They cannot be retried forever: a claim nobody refreshes really does go stale, and another
+    /// resolver may take it. So a run of errors that outlasts the staleness window IS a loss. Only
+    /// `Ok(false)` — the claim row is no longer owned by this resolver — is an immediate one.
     fn start(layout: StoreLayout, request_id: String, owner_id: String) -> Self {
         let (stop, receiver) = mpsc::channel();
         let current = Arc::new(AtomicBool::new(true));
+        let lost_reason: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
         let worker_current = current.clone();
+        let worker_reason = lost_reason.clone();
         let worker = thread::spawn(move || {
+            let lose = |reason: String| {
+                if let Ok(mut slot) = worker_reason.lock() {
+                    *slot = Some(reason);
+                }
+                worker_current.store(false, Ordering::Release);
+            };
             let coordinator = match StoreCoordinator::open(&layout) {
                 Ok(coordinator) => coordinator,
-                Err(_) => {
-                    worker_current.store(false, Ordering::Release);
+                Err(error) => {
+                    lose(format!("the coordinator could not be opened: {error}"));
                     return;
                 }
             };
+            let mut failing_since: Option<i64> = None;
             loop {
                 match receiver.recv_timeout(Duration::from_millis(250)) {
                     Ok(()) | Err(mpsc::RecvTimeoutError::Disconnected) => return,
                     Err(mpsc::RecvTimeoutError::Timeout) => {}
                 }
                 match coordinator.heartbeat_resolve(&request_id, &owner_id, now_millis()) {
-                    Ok(true) => {}
-                    _ => {
-                        worker_current.store(false, Ordering::Release);
+                    Ok(true) => failing_since = None,
+                    Ok(false) => {
+                        lose("the claim row is no longer owned by this resolver".to_string());
                         return;
+                    }
+                    Err(error) => {
+                        let now = now_millis();
+                        let since = *failing_since.get_or_insert(now);
+                        if now.saturating_sub(since) >= RESOLVE_CLAIM_STALE_MS {
+                            lose(format!(
+                                "the claim could not be refreshed for {RESOLVE_CLAIM_STALE_MS}ms: {error}"
+                            ));
+                            return;
+                        }
                     }
                 }
             }
@@ -1579,7 +1682,19 @@ impl ResolveHeartbeat {
         Self {
             stop,
             current,
+            lost_reason,
             worker: Some(worker),
+        }
+    }
+
+    /// The recorded reason the claim was lost, for an error a person can act on.
+    fn lost_message(&self) -> String {
+        match self.lost_reason.lock() {
+            Ok(slot) => match slot.as_deref() {
+                Some(reason) => format!("resolution_failed: resolve claim lost — {reason}"),
+                None => "resolution_failed: resolve claim lost".to_string(),
+            },
+            Err(_) => "resolution_failed: resolve claim lost".to_string(),
         }
     }
 
@@ -1594,7 +1709,7 @@ impl ResolveHeartbeat {
                 .resolve_claim_is_current(&request.request_id, &holder.holder_id)
                 .map_err(|error| error.to_string())?
         {
-            return Err("resolution_failed: resolve claim lost".to_string());
+            return Err(self.lost_message());
         }
         Ok(())
     }
@@ -1603,15 +1718,20 @@ impl ResolveHeartbeat {
         if self.current.load(Ordering::Acquire) {
             Ok(())
         } else {
-            Err("resolution_failed: resolve claim lost".to_string())
+            Err(self.lost_message())
         }
     }
 
-    fn stop(mut self) -> bool {
+    /// Stops the heartbeat and reports whether the claim survived, with the reason if it did not.
+    fn stop(mut self) -> Result<(), String> {
         let _ = self.stop.send(());
         if let Some(worker) = self.worker.take() {
             let _ = worker.join();
         }
-        self.current.load(Ordering::Acquire)
+        if self.current.load(Ordering::Acquire) {
+            Ok(())
+        } else {
+            Err(self.lost_message())
+        }
     }
 }

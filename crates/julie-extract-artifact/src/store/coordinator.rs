@@ -5,7 +5,7 @@ use std::fs;
 use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicI64, Ordering as AtomicOrdering};
-use std::sync::{Arc, mpsc};
+use std::sync::{Arc, Mutex, MutexGuard, mpsc};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use rusqlite::{Connection, OptionalExtension, Transaction, TransactionBehavior, params};
@@ -539,6 +539,9 @@ impl From<StoreConnectionError> for CoordinatorError {
 }
 
 pub struct StoreCoordinator {
+    /// One connection for the life of this instance. See [`StoreCoordinator::coordinator`] for why
+    /// this is held rather than opened per call.
+    connection: Mutex<Connection>,
     layout: StoreLayout,
     family_id: String,
     coordinator_db: PathBuf,
@@ -574,6 +577,41 @@ impl PidLiveness for SystemPidLiveness {
 }
 
 impl StoreCoordinator {
+    /// Borrows this instance's long-lived coordinator connection.
+    ///
+    /// Every method used to call `open_coordinator` for itself, so a resolve opened and closed
+    /// `coord.db` constantly — the claim heartbeat alone did it four times a second. That is not
+    /// merely wasteful. When the number of open connections falls to zero, the last one out
+    /// checkpoints and unlinks `coord.db-wal` and `coord.db-shm`; the next open rebuilds them and
+    /// every other connection must then re-run WAL-index recovery. Enough of that and SQLite gives
+    /// up on the read-transaction retry ladder and returns SQLITE_PROTOCOL ("locking protocol"),
+    /// which `open_coordinator` reported as a corrupt coordinator and callers reported as
+    /// `resolve claim lost`. Holding one connection per instance keeps the count off zero.
+    ///
+    /// This is why the failure got WORSE as the tests were made more serial: fewer overlapping
+    /// connections means more moments at zero. It is measured, not theoretical — the store
+    /// resolution contract suite went from failing on most runs to 0 failures in 8, and from about
+    /// 90 seconds to about 45.
+    ///
+    /// Three paths deliberately still open their own connection, and must keep doing so: the
+    /// `LeaseReleaseGuard` drop path and the drain's lease-heartbeat thread need a connection while
+    /// `self` is already borrowed, and `Connection` is not `Sync`.
+    ///
+    /// A poisoned lock is recovered rather than propagated: the mutex guards a connection, not an
+    /// invariant, and a panic elsewhere must not make the coordinator permanently unusable. The
+    /// autocommit check is a safety net for a transaction abandoned by a panic between `BEGIN` and
+    /// `COMMIT`, so the next borrower does not inherit an open write transaction.
+    fn coordinator(&self) -> MutexGuard<'_, Connection> {
+        let guard = self
+            .connection
+            .lock()
+            .unwrap_or_else(|poison| poison.into_inner());
+        if !guard.is_autocommit() {
+            let _ = guard.execute_batch("ROLLBACK");
+        }
+        guard
+    }
+
     pub fn open(layout: &StoreLayout) -> Result<Self, CoordinatorError> {
         Self::open_with_liveness(layout, SystemPidLiveness)
     }
@@ -582,9 +620,10 @@ impl StoreCoordinator {
         layout: &StoreLayout,
         pid_liveness: impl PidLiveness + 'static,
     ) -> Result<Self, CoordinatorError> {
-        open_coordinator(layout.coordinator_db())?;
+        let connection = open_coordinator(layout.coordinator_db())?;
         let family_id = coordinator_store_family(layout)?;
         Ok(Self {
+            connection: Mutex::new(connection),
             layout: layout.clone(),
             family_id,
             coordinator_db: layout.coordinator_db().to_path_buf(),
@@ -606,9 +645,10 @@ impl StoreCoordinator {
         C: UnixMillisClock + 'static,
         L: PidLiveness + 'static,
     {
-        open_coordinator(layout.coordinator_db())?;
+        let connection = open_coordinator(layout.coordinator_db())?;
         let family_id = coordinator_store_family(layout)?;
         Ok(Self {
+            connection: Mutex::new(connection),
             layout: layout.clone(),
             family_id,
             coordinator_db: layout.coordinator_db().to_path_buf(),
@@ -625,8 +665,8 @@ impl StoreCoordinator {
         request: CoordinatorRequest,
     ) -> Result<EnqueueResult, CoordinatorError> {
         validate_request(&request)?;
-        let mut connection = open_coordinator(&self.coordinator_db)?;
-        let transaction = begin_coordinator(&mut connection)?;
+        let mut connection = self.coordinator();
+        let transaction = begin_coordinator(&mut *connection)?;
         if receipt_by_id(&transaction, &request.request_id)?
             .is_some_and(|receipt| receipt.idempotency_key != request.idempotency_key)
         {
@@ -703,8 +743,8 @@ impl StoreCoordinator {
             return Err(CoordinatorError::InvalidRequest);
         }
         let stale_before = now.saturating_sub(stale_after_ms);
-        let mut connection = open_coordinator(&self.coordinator_db)?;
-        let transaction = begin_coordinator(&mut connection)?;
+        let mut connection = self.coordinator();
+        let transaction = begin_coordinator(&mut *connection)?;
         if foreign_live_maintenance_intent(&transaction, now)?.is_some() {
             return Ok(false);
         }
@@ -833,7 +873,7 @@ impl StoreCoordinator {
         if request_id.is_empty() || owner_id.is_empty() || now < 0 {
             return Err(CoordinatorError::InvalidRequest);
         }
-        let connection = open_coordinator(&self.coordinator_db)?;
+        let connection = self.coordinator();
         Ok(connection.execute(
             "UPDATE requests SET claim_heartbeat_at=?1,updated_at=?1
              WHERE request_id=?2 AND kind='resolve' AND state='claimed'
@@ -850,7 +890,7 @@ impl StoreCoordinator {
         if request_id.is_empty() || owner_id.is_empty() {
             return Err(CoordinatorError::InvalidRequest);
         }
-        let connection = open_coordinator(&self.coordinator_db)?;
+        let connection = self.coordinator();
         Ok(connection.query_row(
             "SELECT EXISTS(
                SELECT 1 FROM requests
@@ -873,7 +913,7 @@ impl StoreCoordinator {
             return Err(CoordinatorError::InvalidRequest);
         }
         let error_json = serde_json::json!({ "message": detail }).to_string();
-        let connection = open_coordinator(&self.coordinator_db)?;
+        let connection = self.coordinator();
         Ok(connection.execute(
             "UPDATE requests SET state='failed',claim_owner=NULL,
                     claim_heartbeat_at=NULL,result_json=NULL,error_json=?1,updated_at=?2
@@ -943,8 +983,8 @@ impl StoreCoordinator {
             return Err(CoordinatorError::InvalidRequest);
         }
         self.ensure_writer_eligible(&holder.holder_version)?;
-        let mut connection = open_coordinator(&self.coordinator_db)?;
-        let transaction = begin_coordinator(&mut connection)?;
+        let mut connection = self.coordinator();
+        let transaction = begin_coordinator(&mut *connection)?;
         let live_intent = foreign_live_maintenance_intent(&transaction, now)?;
         match (&maintenance_owner, live_intent) {
             (Some(owner), Some(intent)) if owner.matches_intent(&intent) => {}
@@ -1152,6 +1192,7 @@ impl StoreCoordinator {
             (Some(_), _) => LeaseDisposition::HeldByOther,
         };
         transaction.commit()?;
+        drop(connection);
         if let LeaseDisposition::Acquired { fencing_token } = disposition {
             self.held_fencing_token = Some(fencing_token);
         }
@@ -1163,17 +1204,18 @@ impl StoreCoordinator {
         holder: &LeaseHolder,
         fencing_token: i64,
     ) -> Result<bool, CoordinatorError> {
-        let connection = open_coordinator(&self.coordinator_db)?;
-        let released = connection.execute(
-            "DELETE FROM writer_lease
+        let released = {
+            self.coordinator().execute(
+                "DELETE FROM writer_lease
              WHERE resource = ?1 AND holder_id = ?2 AND holder_pid = ?3 AND fencing_token = ?4",
-            params![
-                STORE_WRITER_RESOURCE,
-                holder.holder_id,
-                holder.holder_pid,
-                fencing_token,
-            ],
-        )? == 1;
+                params![
+                    STORE_WRITER_RESOURCE,
+                    holder.holder_id,
+                    holder.holder_pid,
+                    fencing_token,
+                ],
+            )? == 1
+        };
         if released && self.held_fencing_token == Some(fencing_token) {
             self.held_fencing_token = None;
         }
@@ -1218,7 +1260,7 @@ impl StoreCoordinator {
     }
 
     pub fn lease(&self) -> Result<Option<LeaseRecord>, CoordinatorError> {
-        let connection = open_coordinator(&self.coordinator_db)?;
+        let connection = self.coordinator();
         Ok(connection
             .query_row(
                 "SELECT holder_id, holder_version, holder_pid, heartbeat_at, expires_at,
@@ -1603,8 +1645,8 @@ impl StoreCoordinator {
             self.reconcile(&request.request_id)?;
         } else {
             let maxima = read_family_allocator_maxima(&store)?;
-            let mut connection = open_coordinator(&self.coordinator_db)?;
-            let transaction = begin_coordinator(&mut connection)?;
+            let mut connection = self.coordinator();
+            let transaction = begin_coordinator(&mut *connection)?;
             advance_family_allocator_marks(&transaction, &maxima, service_now)?;
             let changed = transaction.execute(
                 "UPDATE requests SET claim_heartbeat_at = ?1, updated_at = ?1
@@ -1633,7 +1675,7 @@ impl StoreCoordinator {
     }
 
     fn pending_request_ids(&self) -> Result<Vec<String>, CoordinatorError> {
-        let connection = open_coordinator(&self.coordinator_db)?;
+        let connection = self.coordinator();
         let mut statement = connection.prepare(
             "SELECT request_id FROM requests WHERE state IN ('queued', 'claimed')
              ORDER BY created_at, request_id",
@@ -1652,14 +1694,16 @@ impl StoreCoordinator {
         now: i64,
         lease_duration_ms: i64,
     ) -> Result<Option<CoordinatorRequest>, CoordinatorError> {
-        let connection = open_coordinator(&self.coordinator_db)?;
-        let mut statement = connection.prepare(
-            "SELECT request_id
+        let request_ids = {
+            let connection = self.coordinator();
+            let mut statement = connection.prepare(
+                "SELECT request_id
              FROM requests WHERE state IN ('queued', 'claimed') ORDER BY created_at, request_id",
-        )?;
-        let request_ids = statement
-            .query_map([], |row| row.get::<_, String>(0))?
-            .collect::<Result<Vec<_>, _>>()?;
+            )?;
+            statement
+                .query_map([], |row| row.get::<_, String>(0))?
+                .collect::<Result<Vec<_>, _>>()?
+        };
         let mut interactive = None;
         let mut batch = None;
         for request_id in request_ids {
@@ -1699,7 +1743,7 @@ impl StoreCoordinator {
         now: i64,
         lease_duration_ms: i64,
     ) -> Result<bool, CoordinatorError> {
-        let connection = open_coordinator(&self.coordinator_db)?;
+        let connection = self.coordinator();
         Ok(connection.execute(
             "UPDATE requests SET state = 'claimed', claim_owner = ?1,
              claim_heartbeat_at = ?2, updated_at = ?2
@@ -1733,7 +1777,7 @@ impl StoreCoordinator {
         now: i64,
     ) -> Result<bool, CoordinatorError> {
         let error_json = serde_json::json!({ "message": detail }).to_string();
-        let connection = open_coordinator(&self.coordinator_db)?;
+        let connection = self.coordinator();
         Ok(connection.execute(
             "UPDATE requests SET state = 'failed', claim_owner = NULL,
              claim_heartbeat_at = NULL, result_json = NULL, error_json = ?1, updated_at = ?2
@@ -1762,7 +1806,7 @@ impl StoreCoordinator {
         fencing_token: i64,
         now: i64,
     ) -> Result<bool, CoordinatorError> {
-        let connection = open_coordinator(&self.coordinator_db)?;
+        let connection = self.coordinator();
         Ok(connection.execute(
             "UPDATE requests SET state = 'queued', claim_owner = NULL,
              claim_heartbeat_at = NULL, result_json = NULL, error_json = NULL, updated_at = ?1
@@ -1793,8 +1837,8 @@ impl StoreCoordinator {
         )?;
         let maxima = read_family_allocator_maxima(&store)?;
         drop(store);
-        let mut connection = open_coordinator(&self.coordinator_db)?;
-        let transaction = begin_coordinator(&mut connection)?;
+        let mut connection = self.coordinator();
+        let transaction = begin_coordinator(&mut *connection)?;
         let coordinator_request = request_by_id(&transaction, request_id)?.ok_or_else(|| {
             CoordinatorError::RequestNotFound {
                 request_id: request_id.to_string(),
@@ -1868,7 +1912,7 @@ impl StoreCoordinator {
     }
 
     pub fn request(&self, request_id: &str) -> Result<CoordinatorRequest, CoordinatorError> {
-        let connection = open_coordinator(&self.coordinator_db)?;
+        let connection = self.coordinator();
         if let Some(request) = request_by_id(&connection, request_id)? {
             return Ok(request);
         }
@@ -1883,7 +1927,7 @@ impl StoreCoordinator {
         &self,
         idempotency_key: &str,
     ) -> Result<Option<CoordinatorRequest>, CoordinatorError> {
-        let connection = open_coordinator(&self.coordinator_db)?;
+        let connection = self.coordinator();
         if let Some(request) = request_by_idempotency(&connection, idempotency_key)? {
             return Ok(Some(request));
         }
@@ -1907,8 +1951,8 @@ impl StoreCoordinator {
         if limit == 0 {
             return Err(CoordinatorError::InvalidPolicy);
         }
-        let mut connection = open_coordinator(&self.coordinator_db)?;
-        let transaction = begin_coordinator(&mut connection)?;
+        let mut connection = self.coordinator();
+        let transaction = begin_coordinator(&mut *connection)?;
         let candidates = {
             let mut statement = transaction.prepare(
                 "SELECT request_id,idempotency_key,kind,payload_json,result_json,
@@ -2008,8 +2052,8 @@ impl StoreCoordinator {
                 value: store_log_sequence.min(updated_at),
             });
         }
-        let mut connection = open_coordinator(&self.coordinator_db)?;
-        let transaction = begin_coordinator(&mut connection)?;
+        let mut connection = self.coordinator();
+        let transaction = begin_coordinator(&mut *connection)?;
         refuse_foreign_live_maintenance_intent(&transaction, self.clock.now_ms())?;
         let high_water = transaction
             .query_row(
@@ -2078,8 +2122,8 @@ impl StoreCoordinator {
         if consumer_id.is_empty() || consumer_id.len() > 128 {
             return Err(CoordinatorError::InvalidRequest);
         }
-        let mut connection = open_coordinator(&self.coordinator_db)?;
-        let transaction = begin_coordinator(&mut connection)?;
+        let mut connection = self.coordinator();
+        let transaction = begin_coordinator(&mut *connection)?;
         refuse_foreign_live_maintenance_intent(&transaction, self.clock.now_ms())?;
         let changed = transaction.execute(
             "DELETE FROM consumer_cursors WHERE consumer_id=?1",
@@ -2096,8 +2140,8 @@ impl StoreCoordinator {
                 value: now,
             });
         }
-        let mut connection = open_coordinator(&self.coordinator_db)?;
-        let transaction = begin_coordinator(&mut connection)?;
+        let mut connection = self.coordinator();
+        let transaction = begin_coordinator(&mut *connection)?;
         let changed = transaction.execute(
             "UPDATE requests SET state = 'acknowledged', updated_at = ?1
              WHERE request_id = ?2 AND state = 'committed'

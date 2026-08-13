@@ -61,9 +61,51 @@ fn julie_extract_with_resolution_delta(args: &[&str], value: &str) -> std::proce
         .expect("julie-extract should start")
 }
 
-fn wait_for_path(path: &Path) {
-    let deadline = Instant::now() + Duration::from_secs(10);
+#[track_caller]
+fn assert_ran(output: std::process::Output) {
+    assert!(
+        output.status.success(),
+        "command failed with {}
+stdout={}
+stderr={}",
+        output.status,
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+fn read_child_stream<S: std::io::Read>(stream: Option<S>) -> String {
+    let Some(mut stream) = stream else {
+        return "<not captured>".to_string();
+    };
+    let mut text = String::new();
+    match std::io::Read::read_to_string(&mut stream, &mut text) {
+        Ok(_) => text,
+        Err(error) => format!("<unreadable: {error}>"),
+    }
+}
+
+/// Waits for a spawned resolve to reach its fault-injection pause point.
+///
+/// The deadline is a liveness backstop, not a performance budget. The child runs
+/// a whole store resolve before it writes the marker, and a four-core hosted
+/// runner needs much more time than a developer machine. A child that exits
+/// without pausing fails at once, so the long deadline costs nothing in the
+/// common failure.
+fn wait_for_pause(child: &mut std::process::Child, path: &Path) {
+    let deadline = Instant::now() + Duration::from_secs(180);
     while !path.exists() {
+        if let Some(status) = child.try_wait().expect("child status should be readable") {
+            if path.exists() {
+                return;
+            }
+            panic!(
+                "child exited with {status} before it wrote {}\nstdout={}\nstderr={}",
+                path.display(),
+                read_child_stream(child.stdout.take()),
+                read_child_stream(child.stderr.take())
+            );
+        }
         assert!(
             Instant::now() < deadline,
             "timed out waiting for {}",
@@ -248,11 +290,11 @@ fn resolve_rejects_invalid_delta_escape_hatch_values() {
 fn resolve_unset_delta_uses_planner_and_reports_dense_scope_fallback() {
     let temp = TempDir::new();
     let (root, store) = create_full_store(&temp);
-    assert!(
-        resolve_output(&store, "resolve-scope-base", "resolve-scope-base-key")
-            .status
-            .success()
-    );
+    assert_ran(resolve_output(
+        &store,
+        "resolve-scope-base",
+        "resolve-scope-base-key",
+    ));
     fs::write(
         root.join("lib.rs"),
         "pub fn answer() -> i32 { helper() }\nfn helper() -> i32 { 2 }\n",
@@ -340,25 +382,21 @@ fn forced_full_resolve_ignores_unreadable_incremental_state() {
         "pub fn answer() -> i32 { helper() }\nfn helper() -> i32 { 2 }\n",
     )
     .unwrap();
-    assert!(
-        julie_extract(&[
-            "store",
-            "update",
-            "--store",
-            store.to_str().unwrap(),
-            "--root",
-            root.to_str().unwrap(),
-            "--view",
-            "view-main",
-            "--file",
-            "lib.rs",
-            "--level",
-            "full",
-            "--json",
-        ])
-        .status
-        .success()
-    );
+    assert_ran(julie_extract(&[
+        "store",
+        "update",
+        "--store",
+        store.to_str().unwrap(),
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--file",
+        "lib.rs",
+        "--level",
+        "full",
+        "--json",
+    ]));
     Connection::open(store.join("gen-001/store.db"))
         .unwrap()
         .execute(
@@ -415,42 +453,7 @@ fn retry_after_exact_publish_crash_replays_the_actual_scoped_telemetry() {
             ),
         )
         .unwrap();
-        assert!(
-            julie_extract(&[
-                "store",
-                "update",
-                "--store",
-                store.to_str().unwrap(),
-                "--root",
-                root.to_str().unwrap(),
-                "--view",
-                "view-main",
-                "--file",
-                &file,
-                "--level",
-                "full",
-                "--json",
-            ])
-            .status
-            .success()
-        );
-    }
-    assert!(
-        resolve_output(
-            &store,
-            "resolve-telemetry-seed",
-            "resolve-telemetry-seed-key"
-        )
-        .status
-        .success()
-    );
-    fs::write(
-        root.join("lib.rs"),
-        "pub fn answer() -> i32 { helper() }\nfn helper() -> i32 { 2 }\n",
-    )
-    .unwrap();
-    assert!(
-        julie_extract(&[
+        assert_ran(julie_extract(&[
             "store",
             "update",
             "--store",
@@ -460,14 +463,37 @@ fn retry_after_exact_publish_crash_replays_the_actual_scoped_telemetry() {
             "--view",
             "view-main",
             "--file",
-            "lib.rs",
+            &file,
             "--level",
             "full",
             "--json",
-        ])
-        .status
-        .success()
-    );
+        ]));
+    }
+    assert_ran(resolve_output(
+        &store,
+        "resolve-telemetry-seed",
+        "resolve-telemetry-seed-key",
+    ));
+    fs::write(
+        root.join("lib.rs"),
+        "pub fn answer() -> i32 { helper() }\nfn helper() -> i32 { 2 }\n",
+    )
+    .unwrap();
+    assert_ran(julie_extract(&[
+        "store",
+        "update",
+        "--store",
+        store.to_str().unwrap(),
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--file",
+        "lib.rs",
+        "--level",
+        "full",
+        "--json",
+    ]));
 
     let crashed = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
         .args([
@@ -806,11 +832,11 @@ fn public_resolve_builds_an_exact_binding_without_extracting_again() {
 fn from_artifact_exact_publication_clears_scope_atomically_after_retry() {
     let temp = TempDir::new();
     let (root, store) = create_full_store(&temp);
-    assert!(
-        resolve_output(&store, "resolve-predecessor", "resolve-predecessor-key")
-            .status
-            .success()
-    );
+    assert_ran(resolve_output(
+        &store,
+        "resolve-predecessor",
+        "resolve-predecessor-key",
+    ));
     fs::write(
         root.join("lib.rs"),
         "pub fn answer() -> i32 { helper() }\nfn helper() -> i32 { 2 }\n",
@@ -1126,11 +1152,11 @@ fn changed_manifest_resolves_against_the_ready_base_and_publishes_a_cumulative_d
 fn replacement_rows_over_one_quarter_rebase_to_the_current_manifest_base() {
     let temp = TempDir::new();
     let (root, store) = create_full_store(&temp);
-    assert!(
-        resolve_output(&store, "resolve-rebase-seed", "resolve-rebase-seed-key")
-            .status
-            .success()
-    );
+    assert_ran(resolve_output(
+        &store,
+        "resolve-rebase-seed",
+        "resolve-rebase-seed-key",
+    ));
     let store_db = store.join("gen-001/store.db");
     let old_base: String = Connection::open(&store_db)
         .unwrap()
@@ -1145,25 +1171,21 @@ fn replacement_rows_over_one_quarter_rebase_to_the_current_manifest_base() {
         "pub fn answer() -> i32 { replacement() }\nfn replacement() -> i32 { 9 }\n",
     )
     .unwrap();
-    assert!(
-        julie_extract(&[
-            "store",
-            "update",
-            "--store",
-            store.to_str().unwrap(),
-            "--root",
-            root.to_str().unwrap(),
-            "--view",
-            "view-main",
-            "--file",
-            "lib.rs",
-            "--level",
-            "full",
-            "--json",
-        ])
-        .status
-        .success()
-    );
+    assert_ran(julie_extract(&[
+        "store",
+        "update",
+        "--store",
+        store.to_str().unwrap(),
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--file",
+        "lib.rs",
+        "--level",
+        "full",
+        "--json",
+    ]));
 
     let resolved = resolve_output(
         &store,
@@ -1222,15 +1244,11 @@ fn cumulative_gap_threshold_keeps_equality_and_rebases_the_first_byte_over() {
     for extra_byte in [0, 1] {
         let temp = TempDir::new();
         let (root, store) = create_full_store(&temp);
-        assert!(
-            resolve_output(
-                &store,
-                &format!("resolve-gap-seed-{extra_byte}"),
-                &format!("resolve-gap-seed-key-{extra_byte}")
-            )
-            .status
-            .success()
-        );
+        assert_ran(resolve_output(
+            &store,
+            &format!("resolve-gap-seed-{extra_byte}"),
+            &format!("resolve-gap-seed-key-{extra_byte}"),
+        ));
         let store_db = store.join("gen-001/store.db");
         let old_base: String = Connection::open(&store_db)
             .unwrap()
@@ -1249,25 +1267,21 @@ fn cumulative_gap_threshold_keeps_equality_and_rebases_the_first_byte_over() {
             LIMIT - current_payload_bytes * 2 + extra_byte,
         );
         fs::write(root.join("extra.rs"), "// structural-only addition\n").unwrap();
-        assert!(
-            julie_extract(&[
-                "store",
-                "update",
-                "--store",
-                store.to_str().unwrap(),
-                "--root",
-                root.to_str().unwrap(),
-                "--view",
-                "view-main",
-                "--file",
-                "extra.rs",
-                "--level",
-                "full",
-                "--json",
-            ])
-            .status
-            .success()
-        );
+        assert_ran(julie_extract(&[
+            "store",
+            "update",
+            "--store",
+            store.to_str().unwrap(),
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--file",
+            "extra.rs",
+            "--level",
+            "full",
+            "--json",
+        ]));
 
         let resolved = resolve_output(
             &store,
@@ -1308,11 +1322,11 @@ fn cumulative_gap_threshold_keeps_equality_and_rebases_the_first_byte_over() {
 fn changes_below_both_rebase_thresholds_keep_the_cumulative_delta_path() {
     let temp = TempDir::new();
     let (root, store) = create_full_store(&temp);
-    assert!(
-        resolve_output(&store, "resolve-below-seed", "resolve-below-seed-key")
-            .status
-            .success()
-    );
+    assert_ran(resolve_output(
+        &store,
+        "resolve-below-seed",
+        "resolve-below-seed-key",
+    ));
     let store_db = store.join("gen-001/store.db");
     let connection = Connection::open(&store_db).unwrap();
     let old_base: String = connection
@@ -1324,25 +1338,21 @@ fn changes_below_both_rebase_thresholds_keep_the_cumulative_delta_path() {
         .unwrap();
     drop(connection);
     fs::write(root.join("small.rs"), "// structural-only addition\n").unwrap();
-    assert!(
-        julie_extract(&[
-            "store",
-            "update",
-            "--store",
-            store.to_str().unwrap(),
-            "--root",
-            root.to_str().unwrap(),
-            "--view",
-            "view-main",
-            "--file",
-            "small.rs",
-            "--level",
-            "full",
-            "--json",
-        ])
-        .status
-        .success()
-    );
+    assert_ran(julie_extract(&[
+        "store",
+        "update",
+        "--store",
+        store.to_str().unwrap(),
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--file",
+        "small.rs",
+        "--level",
+        "full",
+        "--json",
+    ]));
 
     let resolved = resolve_output(
         &store,
@@ -1390,25 +1400,21 @@ fn resolve_idempotency_replay_observes_the_original_terminal_without_reexecution
     fs::create_dir_all(&root).unwrap();
     fs::write(root.join("lib.rs"), "pub fn answer() -> i32 { 42 }\n").unwrap();
     let family = "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11";
-    assert!(
-        julie_extract(&[
-            "store",
-            "import",
-            "--store",
-            store.to_str().unwrap(),
-            "--family",
-            family,
-            "--root",
-            root.to_str().unwrap(),
-            "--view",
-            "view-main",
-            "--level",
-            "full",
-            "--json",
-        ])
-        .status
-        .success()
-    );
+    assert_ran(julie_extract(&[
+        "store",
+        "import",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        family,
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--level",
+        "full",
+        "--json",
+    ]));
     let first = julie_extract(&[
         "store",
         "resolve",
@@ -1473,28 +1479,24 @@ fn claimed_resolve_holds_no_writer_lease_and_a_short_update_completes() {
     fs::create_dir_all(&root).unwrap();
     fs::write(root.join("lib.rs"), "pub fn answer() -> i32 { 1 }\n").unwrap();
     let family = "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11";
-    assert!(
-        julie_extract(&[
-            "store",
-            "import",
-            "--store",
-            store.to_str().unwrap(),
-            "--family",
-            family,
-            "--root",
-            root.to_str().unwrap(),
-            "--view",
-            "view-main",
-            "--level",
-            "full",
-            "--json",
-        ])
-        .status
-        .success()
-    );
+    assert_ran(julie_extract(&[
+        "store",
+        "import",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        family,
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--level",
+        "full",
+        "--json",
+    ]));
 
     let pause = temp.path().join("resolve.pause");
-    let child = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+    let mut child = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
         .args([
             "store",
             "resolve",
@@ -1513,7 +1515,7 @@ fn claimed_resolve_holds_no_writer_lease_and_a_short_update_completes() {
         .stderr(std::process::Stdio::piped())
         .spawn()
         .unwrap();
-    wait_for_path(&pause);
+    wait_for_pause(&mut child, &pause);
     let coord = Connection::open(store.join("coord.db")).unwrap();
     assert_eq!(
         coord
@@ -1633,7 +1635,7 @@ fn same_view_resolves_serialize_and_the_waiter_reuses_its_durable_request() {
     let temp = TempDir::new();
     let (_, store) = create_full_store(&temp);
     let pause = temp.path().join("first-resolve.pause");
-    let first = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+    let mut first = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
         .args([
             "store",
             "resolve",
@@ -1652,7 +1654,7 @@ fn same_view_resolves_serialize_and_the_waiter_reuses_its_durable_request() {
         .stderr(std::process::Stdio::piped())
         .spawn()
         .unwrap();
-    wait_for_path(&pause);
+    wait_for_pause(&mut first, &pause);
 
     let waiter = julie_extract(&[
         "store",
@@ -1727,27 +1729,23 @@ fn resolve_claim_loss_stops_before_base_or_exact_publication() {
     fs::create_dir_all(&root).unwrap();
     fs::write(root.join("lib.rs"), "pub fn answer() -> i32 { 1 }\n").unwrap();
     let family = "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11";
-    assert!(
-        julie_extract(&[
-            "store",
-            "import",
-            "--store",
-            store.to_str().unwrap(),
-            "--family",
-            family,
-            "--root",
-            root.to_str().unwrap(),
-            "--view",
-            "view-main",
-            "--level",
-            "full",
-            "--json",
-        ])
-        .status
-        .success()
-    );
+    assert_ran(julie_extract(&[
+        "store",
+        "import",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        family,
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--level",
+        "full",
+        "--json",
+    ]));
     let pause = temp.path().join("lost.pause");
-    let child = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+    let mut child = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
         .args([
             "store",
             "resolve",
@@ -1766,7 +1764,7 @@ fn resolve_claim_loss_stops_before_base_or_exact_publication() {
         .stderr(std::process::Stdio::piped())
         .spawn()
         .unwrap();
-    wait_for_path(&pause);
+    wait_for_pause(&mut child, &pause);
     let coord = Connection::open(store.join("coord.db")).unwrap();
     coord
         .execute(
@@ -1802,38 +1800,30 @@ fn resolve_claim_loss_stops_before_base_or_exact_publication() {
 fn failed_resolve_releases_live_pin_when_writer_ownership_can_be_reacquired() {
     let temp = TempDir::new();
     let (root, store) = create_full_store(&temp);
-    assert!(
-        resolve_output(&store, "resolve-seed", "resolve-seed-key")
-            .status
-            .success()
-    );
+    assert_ran(resolve_output(&store, "resolve-seed", "resolve-seed-key"));
     fs::write(
         root.join("lib.rs"),
         "pub fn answer() -> i32 { helper() }\nfn helper() -> i32 { 2 }\n",
     )
     .unwrap();
-    assert!(
-        julie_extract(&[
-            "store",
-            "update",
-            "--store",
-            store.to_str().unwrap(),
-            "--root",
-            root.to_str().unwrap(),
-            "--view",
-            "view-main",
-            "--file",
-            "lib.rs",
-            "--level",
-            "full",
-            "--json",
-        ])
-        .status
-        .success()
-    );
+    assert_ran(julie_extract(&[
+        "store",
+        "update",
+        "--store",
+        store.to_str().unwrap(),
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--file",
+        "lib.rs",
+        "--level",
+        "full",
+        "--json",
+    ]));
 
     let pause = temp.path().join("pin-release.pause");
-    let child = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+    let mut child = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
         .args([
             "store",
             "resolve",
@@ -1855,7 +1845,7 @@ fn failed_resolve_releases_live_pin_when_writer_ownership_can_be_reacquired() {
         .stderr(std::process::Stdio::piped())
         .spawn()
         .unwrap();
-    wait_for_path(&pause);
+    wait_for_pause(&mut child, &pause);
 
     // Expire the held writer lease so the post-exact terminal append fails closed.
     // Claim ownership remains; Drop can reacquire a writer lease and release the pin.
@@ -1892,11 +1882,11 @@ fn failed_resolve_releases_live_pin_when_writer_ownership_can_be_reacquired() {
 fn successful_resolve_leaves_no_live_resolve_pin() {
     let temp = TempDir::new();
     let (_, store) = create_full_store(&temp);
-    assert!(
-        resolve_output(&store, "resolve-clean-pin", "resolve-clean-pin-key")
-            .status
-            .success()
-    );
+    assert_ran(resolve_output(
+        &store,
+        "resolve-clean-pin",
+        "resolve-clean-pin-key",
+    ));
     let db = Connection::open(store.join("gen-001/store.db")).unwrap();
     assert_eq!(
         db.query_row(
@@ -1913,38 +1903,30 @@ fn successful_resolve_leaves_no_live_resolve_pin() {
 fn resolve_terminal_append_fails_closed_under_foreign_live_maintenance_intent() {
     let temp = TempDir::new();
     let (root, store) = create_full_store(&temp);
-    assert!(
-        resolve_output(&store, "resolve-seed", "resolve-seed-key")
-            .status
-            .success()
-    );
+    assert_ran(resolve_output(&store, "resolve-seed", "resolve-seed-key"));
     fs::write(
         root.join("lib.rs"),
         "pub fn answer() -> i32 { helper() }\nfn helper() -> i32 { 2 }\n",
     )
     .unwrap();
-    assert!(
-        julie_extract(&[
-            "store",
-            "update",
-            "--store",
-            store.to_str().unwrap(),
-            "--root",
-            root.to_str().unwrap(),
-            "--view",
-            "view-main",
-            "--file",
-            "lib.rs",
-            "--level",
-            "full",
-            "--json",
-        ])
-        .status
-        .success()
-    );
+    assert_ran(julie_extract(&[
+        "store",
+        "update",
+        "--store",
+        store.to_str().unwrap(),
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--file",
+        "lib.rs",
+        "--level",
+        "full",
+        "--json",
+    ]));
 
     let pause = temp.path().join("after-exact.pause");
-    let child = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+    let mut child = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
         .args([
             "store",
             "resolve",
@@ -1966,7 +1948,7 @@ fn resolve_terminal_append_fails_closed_under_foreign_live_maintenance_intent() 
         .stderr(std::process::Stdio::piped())
         .spawn()
         .unwrap();
-    wait_for_path(&pause);
+    wait_for_pause(&mut child, &pause);
 
     // Foreign live maintenance intent is durable before the terminal append.
     // Unfenced Connection::open(store.db) would still write the terminal row;
@@ -2051,35 +2033,27 @@ fn hard_kill_boundaries_resume_one_resolve_without_duplicate_terminal_state() {
     ] {
         let temp = TempDir::new();
         let (root, store) = create_full_store(&temp);
-        assert!(
-            resolve_output(&store, "resolve-seed", "resolve-seed-key")
-                .status
-                .success()
-        );
+        assert_ran(resolve_output(&store, "resolve-seed", "resolve-seed-key"));
         fs::write(
             root.join("lib.rs"),
             "pub fn answer() -> i32 { helper() }\nfn helper() -> i32 { 2 }\n",
         )
         .unwrap();
-        assert!(
-            julie_extract(&[
-                "store",
-                "update",
-                "--store",
-                store.to_str().unwrap(),
-                "--root",
-                root.to_str().unwrap(),
-                "--view",
-                "view-main",
-                "--file",
-                "lib.rs",
-                "--level",
-                "full",
-                "--json",
-            ])
-            .status
-            .success()
-        );
+        assert_ran(julie_extract(&[
+            "store",
+            "update",
+            "--store",
+            store.to_str().unwrap(),
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--file",
+            "lib.rs",
+            "--level",
+            "full",
+            "--json",
+        ]));
         let crashed = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
             .args([
                 "store",
@@ -2193,11 +2167,11 @@ fn rebase_crash_boundaries_retry_with_one_ready_base_and_one_empty_delta() {
     ] {
         let temp = TempDir::new();
         let (root, store) = create_full_store(&temp);
-        assert!(
-            resolve_output(&store, "resolve-rebase-seed", "resolve-rebase-seed-key")
-                .status
-                .success()
-        );
+        assert_ran(resolve_output(
+            &store,
+            "resolve-rebase-seed",
+            "resolve-rebase-seed-key",
+        ));
         let store_db = store.join("gen-001/store.db");
         let old_base: String = Connection::open(&store_db)
             .unwrap()
@@ -2219,25 +2193,21 @@ fn rebase_crash_boundaries_retry_with_one_ready_base_and_one_empty_delta() {
             "pub fn answer() -> i32 { retry_target() }\nfn retry_target() -> i32 { 12 }\n",
         )
         .unwrap();
-        assert!(
-            julie_extract(&[
-                "store",
-                "update",
-                "--store",
-                store.to_str().unwrap(),
-                "--root",
-                root.to_str().unwrap(),
-                "--view",
-                "view-main",
-                "--file",
-                "lib.rs",
-                "--level",
-                "full",
-                "--json",
-            ])
-            .status
-            .success()
-        );
+        assert_ran(julie_extract(&[
+            "store",
+            "update",
+            "--store",
+            store.to_str().unwrap(),
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--file",
+            "lib.rs",
+            "--level",
+            "full",
+            "--json",
+        ]));
         let crashed = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
             .args([
                 "store",
