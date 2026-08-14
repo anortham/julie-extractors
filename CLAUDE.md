@@ -80,6 +80,42 @@ The default test suite must stay fast enough for agents to run repeatedly.
 - Negative claims about unsupported languages or unavailable features require
   source verification.
 
+## Windows Compatibility
+
+Windows is a first-class target. Every release ships a Windows binary, and a
+long series of real Windows defects has already been fixed here. Check Windows
+behavior explicitly whenever work touches paths, file lifecycles, process
+supervision, durability, or platform-gated tests.
+
+Pitfalls this repo has already hit:
+
+- `Path::join` inserts the platform separator. Contract outputs that specify
+  `/` (reports, JSONL, diagnostics paths) must join with an explicit `/`,
+  never with `Path::join`.
+- `std::fs::canonicalize` returns verbatim paths (`\\?\C:\...`,
+  `\\?\UNC\...`) on Windows. Strip the prefix before building URIs or doing
+  string work on paths. Tests must canonicalize fixture paths the way
+  production code does, or they never see the prefix.
+- Windows cannot delete or rename a file while another handle is open, and
+  SQLite opens without `FILE_SHARE_DELETE`. Close connections and handles
+  before unlink or rename. In `Drop` impls the `drop` body runs before the
+  fields drop, so close explicitly before any cleanup that unlinks.
+- Metadata writes need write-access handles. `File::open` is read-only, so
+  `sync_all` (`FlushFileBuffers`) and timestamp updates fail with "Access is
+  denied". Open with `OpenOptions::new().write(true)`.
+- Directories cannot be opened as files, so Unix-style directory fsync does
+  not exist on Windows. Use the shared store sync helpers instead of raw
+  `File::open(dir)?.sync_all()`.
+- Path text is not file identity. Case folding, hard links, and verbatim
+  spellings all alias the same file. Compare files by handle identity
+  (`same-file`), not by path string.
+- There is no cheap pid liveness probe. `tasklist` costs ~100 ms per call, so
+  memoize verdicts on hot retry loops. `--parent-pid` supervision is
+  Unix-only by contract: accepted and ignored elsewhere.
+- Gate Unix-only test assertions with `#[cfg(unix)]` and assert the
+  documented per-platform contract on every platform. `cargo test` stops at
+  the first failing target, so one Windows failure can mask others.
+
 ## Documentation
 
 Every major product or architecture decision should be captured in:
