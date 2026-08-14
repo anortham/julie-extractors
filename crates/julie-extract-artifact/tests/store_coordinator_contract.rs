@@ -628,6 +628,22 @@ fn two_concurrent_submitters_create_one_request_and_one_effect() {
 #[derive(Debug)]
 struct FixedLiveness(bool);
 
+fn claim_request_for_test(
+    coordinator_db: &Path,
+    request_id: &str,
+    claim_owner: &str,
+    claim_heartbeat_at: i64,
+) {
+    let connection = Connection::open(coordinator_db).unwrap();
+    connection
+        .execute(
+            "UPDATE requests SET state = 'claimed', claim_owner = ?1, claim_heartbeat_at = ?2
+             WHERE request_id = ?3",
+            rusqlite::params![claim_owner, claim_heartbeat_at, request_id],
+        )
+        .unwrap();
+}
+
 impl PidLiveness for FixedLiveness {
     fn status(&self, _pid: u32) -> PidStatus {
         if self.0 {
@@ -760,21 +776,8 @@ fn dead_lease_takeover_requeues_only_the_prior_holders_claims() {
     owner
         .try_acquire_or_takeover(LeaseHolder::new("holder-a", "2.30.0", 41), 10)
         .unwrap();
-    let connection = Connection::open(layout.coordinator_db()).unwrap();
-    connection
-        .execute(
-            "UPDATE requests SET state = 'claimed', claim_owner = 'holder-a', claim_heartbeat_at = 10
-             WHERE request_id = 'request-a'",
-            [],
-        )
-        .unwrap();
-    connection
-        .execute(
-            "UPDATE requests SET state = 'claimed', claim_owner = 'holder-x', claim_heartbeat_at = 10
-             WHERE request_id = 'request-x'",
-            [],
-        )
-        .unwrap();
+    claim_request_for_test(layout.coordinator_db(), "request-a", "holder-a", 10);
+    claim_request_for_test(layout.coordinator_db(), "request-x", "holder-x", 10);
 
     let mut live = StoreCoordinator::open_with_liveness(&layout, FixedLiveness(true)).unwrap();
     assert_eq!(
@@ -812,6 +815,54 @@ fn dead_lease_takeover_requeues_only_the_prior_holders_claims() {
     assert_eq!(preserved.claim_owner.as_deref(), Some("holder-x"));
     assert_eq!(preserved.claim_heartbeat_at, Some(10));
     assert_eq!(preserved.state.as_str(), "claimed");
+}
+
+#[test]
+fn dead_import_owner_with_expired_writer_lease_is_requeued_and_fenced() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let mut owner = StoreCoordinator::open_with_liveness(&layout, FixedLiveness(true)).unwrap();
+    let owner_holder = LeaseHolder::new("holder-a", "2.33.2", 41);
+    owner
+        .enqueue(CoordinatorRequest::new(
+            "request-a",
+            "idem-a",
+            RequestKind::Import,
+            "{}",
+            "requester",
+            10_000,
+            1,
+        ))
+        .unwrap();
+    let LeaseDisposition::Acquired {
+        fencing_token: owner_token,
+    } = owner
+        .try_acquire_or_takeover(owner_holder.clone(), 10)
+        .unwrap()
+    else {
+        panic!("owner lease was not acquired");
+    };
+    claim_request_for_test(layout.coordinator_db(), "request-a", "holder-a", 10);
+
+    let mut replacement =
+        StoreCoordinator::open_with_liveness(&layout, FixedLiveness(false)).unwrap();
+    let replacement_holder = LeaseHolder::new("holder-b", "2.33.2", 42);
+    let LeaseDisposition::Acquired {
+        fencing_token: replacement_token,
+    } = replacement
+        .try_acquire_or_takeover(replacement_holder, 5_011)
+        .unwrap()
+    else {
+        panic!("expired owner lease was not taken over");
+    };
+    assert!(replacement_token > owner_token);
+    assert!(!owner
+        .heartbeat_lease(&owner_holder, owner_token, 5_012)
+        .unwrap());
+    let recovered = replacement.request("request-a").unwrap();
+    assert_eq!(recovered.state.as_str(), "queued");
+    assert_eq!(recovered.claim_owner, None);
+    assert_eq!(recovered.claim_heartbeat_at, None);
 }
 
 #[test]
