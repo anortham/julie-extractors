@@ -711,6 +711,29 @@ impl StoreRequestExecutor {
             .collect()
     }
 
+    fn all_planned_versions_complete(
+        transaction: &Transaction<'_>,
+        payload: &ImportRequestPayload,
+        requested_full: bool,
+    ) -> Result<bool, String> {
+        let required_level = if requested_full {
+            StoreLevel::L3
+        } else {
+            StoreLevel::L1
+        };
+        payload.files.iter().try_fold(true, |complete, file| {
+            StoreWriter::lookup_version_in_transaction(
+                transaction,
+                &file.root_relative_path,
+                &file.content_hash,
+                EXTRACTION_IDENTITY_EPOCH,
+                required_level,
+            )
+            .map(|version| complete && version.is_some())
+            .map_err(|error| format!("store_import_lookup_version:{error}"))
+        })
+    }
+
     fn result(
         transaction: &Transaction<'_>,
         payload: ImportRequestPayload,
@@ -1608,6 +1631,33 @@ impl CoordinatorExecutor for StoreRequestExecutor {
                 published.manifest_hash,
                 requested_full,
                 manifest_disposition(published.disposition),
+                operation,
+            );
+        }
+        if operation == FilePlanOperation::Import
+            && chunk_index == 0
+            && failures.is_empty()
+            && Self::all_planned_versions_complete(transaction, &payload, requested_full)?
+        {
+            let published = Self::publish_file_plan(
+                transaction,
+                &payload,
+                &failures,
+                &indexed_at,
+                &request.request_id,
+                operation,
+            )?;
+            let disposition = manifest_disposition(published.disposition);
+            if let Some(progress) = progress.as_deref() {
+                progress.enter_phase("complete");
+            }
+            return Self::result(
+                transaction,
+                payload,
+                published.generation,
+                published.manifest_hash,
+                requested_full,
+                disposition,
                 operation,
             );
         }

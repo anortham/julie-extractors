@@ -7,7 +7,7 @@ use julie_extract_artifact::store::{
     CoordinatorError, CoordinatorPolicy, CoordinatorRequest, LeaseHolder, RequestKind,
     RequestState, StoreCoordinator, StoreLayout,
 };
-use rusqlite::OptionalExtension;
+use rusqlite::{Connection, OptionalExtension, params};
 
 use super::args::{StoreImportArgs, StoreLevelArg};
 use super::executor::{
@@ -17,7 +17,8 @@ use super::executor::{
 use super::report::{
     StoreCommandOutcome, StoreCoordinatorDisposition, StoreErrorReport, StoreFailureClass,
     StoreLevelCompletion, StoreManifestDisposition, StoreOperation, StoreOutputFormat,
-    StoreOutputStream, StoreReport, StoreRequestState, StoreRequestedLevel, StoreRowCounts,
+    StoreOutputStream, StoreReport, StoreRequestState, StoreRequestedLevel, StoreResolutionState,
+    StoreRowCounts,
 };
 
 pub struct StoreExecutionOutcome {
@@ -541,6 +542,7 @@ fn execute_import(
                 canonical_payload.requested_level,
                 false,
             )?;
+            populate_current_resolution(&layout, &canonical_payload.view_id, &mut report)?;
             return Ok(report);
         }
         std::thread::sleep(std::time::Duration::from_millis(10));
@@ -583,6 +585,7 @@ fn execute_import(
             canonical_payload.requested_level,
             false,
         )?;
+        populate_current_resolution(&layout, &canonical_payload.view_id, &mut report)?;
         return Ok(report.with_failure(classify_failure(&message), message));
     }
     let result: serde_json::Value = serde_json::from_str(
@@ -625,6 +628,7 @@ fn execute_import(
         canonical_payload.requested_level,
         true,
     )?;
+    populate_current_resolution(&layout, &canonical_payload.view_id, &mut report)?;
     Ok(report)
 }
 
@@ -750,6 +754,62 @@ pub(crate) fn populate_durable_projection(
         l2: u64::try_from(counts.2).map_err(|_| "invalid_row_count")?,
         l3: u64::try_from(counts.3).map_err(|_| "invalid_row_count")?,
     };
+    Ok(())
+}
+
+fn populate_current_resolution(
+    layout: &StoreLayout,
+    view_id: &str,
+    report: &mut StoreReport,
+) -> Result<(), String> {
+    let connection = Connection::open(layout.store_db()).map_err(|error| error.to_string())?;
+    let row = connection
+        .query_row(
+            "SELECT resolution_state,resolution_base_id,resolution_delta_generation,
+                    resolution_exact_at,current_generation
+             FROM views WHERE view_id=?1",
+            [view_id],
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, Option<String>>(1)?,
+                    row.get::<_, Option<i64>>(2)?,
+                    row.get::<_, Option<i64>>(3)?,
+                    row.get::<_, Option<i64>>(4)?,
+                ))
+            },
+        )
+        .optional()
+        .map_err(|error| error.to_string())?;
+    let Some((state, base_id, delta_generation, exact_at, current_generation)) = row else {
+        return Ok(());
+    };
+    report.resolution.state = match state.as_str() {
+        "converging" => StoreResolutionState::Converging,
+        "exact" => StoreResolutionState::Exact,
+        _ => StoreResolutionState::Unbound,
+    };
+    report.resolution.base_id = base_id;
+    report.resolution.delta_generation =
+        delta_generation.and_then(|value| u64::try_from(value).ok());
+    report.resolution.exact_at_generation = exact_at.and_then(|value| u64::try_from(value).ok());
+    report.resolution.exact_at_matches = exact_at.is_some() && exact_at == current_generation;
+    if let Some(delta_generation) = delta_generation {
+        let (gap_rows, gap_files) = connection
+            .query_row(
+                "SELECT exact_gap_rows,exact_gap_files FROM resolution_deltas
+                 WHERE view_id=?1 AND delta_generation=?2",
+                params![view_id, delta_generation],
+                |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)),
+            )
+            .map_err(|error| error.to_string())?;
+        if report.resolution.state == StoreResolutionState::Exact {
+            report.resolution.exact_gap_rows = u64::try_from(gap_rows).ok();
+            report.resolution.exact_gap_files = u64::try_from(gap_files).ok();
+        } else {
+            report.resolution.gap_lower_bound = u64::try_from(gap_rows).ok();
+        }
+    }
     Ok(())
 }
 

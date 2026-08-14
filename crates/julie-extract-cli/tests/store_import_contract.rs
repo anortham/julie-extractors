@@ -1090,45 +1090,63 @@ fn unchanged_completed_full_import_reuses_without_extraction_or_new_level_effect
     std::fs::create_dir(&root).unwrap();
     std::fs::write(root.join("lib.rs"), "pub fn answer() -> u32 { 42 }\n").unwrap();
 
-    for (request_id, idempotency_key, progress_file) in [
-        ("request-reuse-first", "idem-reuse-first", None),
-        (
-            "request-reuse-second",
-            "idem-reuse-second",
-            Some(progress.as_path()),
-        ),
-    ] {
-        let mut command = Command::new(env!("CARGO_BIN_EXE_julie-extract"));
-        command.args([
+    let run_import =
+        |request_id: &str, idempotency_key: &str, progress_file: Option<&std::path::Path>| {
+            let mut command = Command::new(env!("CARGO_BIN_EXE_julie-extract"));
+            command.args([
+                "store",
+                "import",
+                "--store",
+                store.to_str().unwrap(),
+                "--family",
+                "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11",
+                "--root",
+                root.to_str().unwrap(),
+                "--view",
+                "view-main",
+                "--level",
+                "full",
+                "--request-id",
+                request_id,
+                "--idempotency-key",
+                idempotency_key,
+                "--json",
+            ]);
+            if let Some(progress_file) = progress_file {
+                command.args(["--progress-file", progress_file.to_str().unwrap()]);
+            }
+            let output = command.output().unwrap();
+            assert_eq!(
+                output.status.code(),
+                Some(0),
+                "stderr: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            serde_json::from_slice::<serde_json::Value>(&output.stdout).unwrap()
+        };
+    let first = run_import("request-reuse-first", "idem-reuse-first", None);
+    let resolve = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
             "store",
-            "import",
+            "resolve",
             "--store",
             store.to_str().unwrap(),
-            "--family",
-            "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11",
-            "--root",
-            root.to_str().unwrap(),
             "--view",
             "view-main",
-            "--level",
-            "full",
             "--request-id",
-            request_id,
+            "request-reuse-resolve",
             "--idempotency-key",
-            idempotency_key,
+            "idem-reuse-resolve",
             "--json",
-        ]);
-        if let Some(progress_file) = progress_file {
-            command.args(["--progress-file", progress_file.to_str().unwrap()]);
-        }
-        let output = command.output().unwrap();
-        assert_eq!(
-            output.status.code(),
-            Some(0),
-            "stderr: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(resolve.status.code(), Some(0));
+    let second = run_import(
+        "request-reuse-second",
+        "idem-reuse-second",
+        Some(progress.as_path()),
+    );
     let repeated = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
         .args([
             "store",
@@ -1154,6 +1172,18 @@ fn unchanged_completed_full_import_reuses_without_extraction_or_new_level_effect
         .output()
         .unwrap();
     assert_eq!(repeated.status.code(), Some(0));
+    let repeated_report: serde_json::Value = serde_json::from_slice(&repeated.stdout).unwrap();
+    assert_eq!(
+        second["manifest"]["generation"],
+        first["manifest"]["generation"]
+    );
+    assert_eq!(second["manifest"]["hash"], first["manifest"]["hash"]);
+    assert_eq!(second["manifest"]["disposition"], "reused");
+    assert_eq!(second["row_counts"], first["row_counts"]);
+    assert_eq!(second["completion"], first["completion"]);
+    assert_eq!(second["resolution"]["state"], "exact");
+    assert_eq!(second["resolution"]["exact_at_matches"], true);
+    assert_eq!(repeated_report["manifest"], second["manifest"]);
 
     let connection = rusqlite::Connection::open(store.join("gen-001/store.db")).unwrap();
     let version_count: i64 = connection
@@ -1177,6 +1207,15 @@ fn unchanged_completed_full_import_reuses_without_extraction_or_new_level_effect
         )
         .unwrap();
     assert_eq!(repeated_terminal, 1);
+    let repeated_chunks: i64 = connection
+        .query_row(
+            "SELECT COUNT(*) FROM request_chunks
+             WHERE request_id = 'request-reuse-second'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(repeated_chunks, 0);
 
     let progress = std::fs::read_to_string(progress).unwrap();
     let final_record: serde_json::Value =
