@@ -93,6 +93,7 @@ fn lifecycle_scale_worker() {
     assert!(plan.max_observed_window <= 64);
 }
 
+#[cfg(not(unix))]
 fn run_scale_worker(rows: i64) -> std::process::Output {
     let output = std::process::Command::new(std::env::current_exe().unwrap())
         .args([
