@@ -40,6 +40,11 @@ const MILLER_RESOLVED_PENDING_ROWS: usize = 10_412;
 const MILLER_DISTINCT_IDENTIFIER_NAMES: usize = 20_109;
 const MILLER_CHANGED_FILES: usize = 98;
 const REBASE_GAP_BYTES: usize = 64 * 1024 * 1024 + 1;
+const ONE_FILE_IDENTIFIER_ROWS: usize = 10_000;
+const ONE_FILE_STABLE_IDENTIFIER_ROWS: usize = 40_000;
+const ONE_FILE_STABLE_PENDING_ROWS: usize = 8_000;
+const ONE_FILE_STABLE_RESOLVED_PENDING_ROWS: usize = 1_000;
+const ONE_FILE_SCOPED_MAX_MS: u64 = 5_000;
 const TARGET_VALIDATION_DISTINCT_TARGETS: usize = 2_048;
 const TARGET_VALIDATION_MAX: Duration = Duration::from_secs(2);
 const CANDIDATE_RESOLUTION_DISTINCT_NAMES: usize = 20_000;
@@ -86,6 +91,111 @@ fn replay_mode(pair: &str) -> ReplayMode {
 fn replay_pair_contract_runs_forced_full_before_scoped() {
     assert_eq!(replay_mode(PAIRS[0]), ReplayMode::ForcedFull);
     assert_eq!(replay_mode(PAIRS[1]), ReplayMode::Scoped);
+}
+
+#[test]
+fn one_file_default_incremental_matches_full_escape_hatch() {
+    let fixture = tempfile::tempdir().unwrap();
+    let full_store_root = fixture.path().join("full-store");
+    let scoped_store_root = fixture.path().join("scoped-store");
+    let changed_file_shape = Some(ResolutionRowShape {
+        identifiers: ONE_FILE_IDENTIFIER_ROWS,
+        pending: scaled_pending_rows(ONE_FILE_IDENTIFIER_ROWS),
+        resolved_pending: scaled_resolved_pending_rows(ONE_FILE_IDENTIFIER_ROWS),
+        distinct_target_names: MILLER_DISTINCT_IDENTIFIER_NAMES
+            .saturating_sub(1)
+            .min(ONE_FILE_IDENTIFIER_ROWS.max(1)),
+    });
+    build_store_fixture_with_changed_file_rows(
+        &full_store_root,
+        ONE_FILE_IDENTIFIER_ROWS,
+        scaled_pending_rows(ONE_FILE_IDENTIFIER_ROWS),
+        scaled_resolved_pending_rows(ONE_FILE_IDENTIFIER_ROWS),
+        1,
+        changed_file_shape,
+        Some(ResolutionRowShape {
+            identifiers: ONE_FILE_STABLE_IDENTIFIER_ROWS,
+            pending: ONE_FILE_STABLE_PENDING_ROWS,
+            resolved_pending: ONE_FILE_STABLE_RESOLVED_PENDING_ROWS,
+            distinct_target_names: 1,
+        }),
+    );
+    build_store_fixture_with_changed_file_rows(
+        &scoped_store_root,
+        ONE_FILE_IDENTIFIER_ROWS,
+        scaled_pending_rows(ONE_FILE_IDENTIFIER_ROWS),
+        scaled_resolved_pending_rows(ONE_FILE_IDENTIFIER_ROWS),
+        1,
+        changed_file_shape,
+        Some(ResolutionRowShape {
+            identifiers: ONE_FILE_STABLE_IDENTIFIER_ROWS,
+            pending: ONE_FILE_STABLE_PENDING_ROWS,
+            resolved_pending: ONE_FILE_STABLE_RESOLVED_PENDING_ROWS,
+            distinct_target_names: 1,
+        }),
+    );
+    let full_layout = StoreLayout::open(full_store_root.join("family")).unwrap();
+    let scoped_layout = StoreLayout::open(scoped_store_root.join("family")).unwrap();
+    let full_view = "one-file-full";
+    let scoped_view = "one-file-default";
+    prepare_replay_view_with_changed_files(
+        &full_layout,
+        full_view,
+        ReplayMode::ForcedFull,
+        1,
+        false,
+        Some(ONE_FILE_IDENTIFIER_ROWS),
+    );
+    prepare_replay_view_with_changed_files(
+        &scoped_layout,
+        scoped_view,
+        ReplayMode::Scoped,
+        1,
+        false,
+        Some(ONE_FILE_IDENTIFIER_ROWS),
+    );
+
+    let full = run_resolve_with_instant(
+        &full_store_root.join("family"),
+        full_view,
+        "one-file-full-resolve",
+        Some("off"),
+    );
+    let scoped = run_resolve_with_instant(
+        &scoped_store_root.join("family"),
+        scoped_view,
+        "one-file-default-resolve",
+        None,
+    );
+    assert_eq!(full.report["resolution"]["resolution_mode"], "full");
+    assert_eq!(scoped.report["resolution"]["resolution_mode"], "scoped");
+    assert_eq!(scoped.report["resolution"]["fallback_reason"], Value::Null);
+    assert_eq!(scoped.report["resolution"]["scope_file_count"], 1);
+    eprintln!(
+        "one_file_resolution full_mode={} full_wall_ms={} scoped_mode={} scoped_wall_ms={}",
+        full.report["resolution"]["resolution_mode"],
+        full.wall_ms,
+        scoped.report["resolution"]["resolution_mode"],
+        scoped.wall_ms
+    );
+    assert!(
+        scoped.wall_ms <= ONE_FILE_SCOPED_MAX_MS,
+        "default-on one-file resolution exceeded the 5s observation: {} ms",
+        scoped.wall_ms
+    );
+
+    let full_artifact = fixture.path().join("one-file-full.sqlite");
+    let scoped_artifact = fixture.path().join("one-file-scoped.sqlite");
+    export_view(&full_store_root.join("family"), full_view, &full_artifact);
+    export_view(
+        &scoped_store_root.join("family"),
+        scoped_view,
+        &scoped_artifact,
+    );
+    assert_eq!(
+        artifact_semantic_digest(&full_artifact),
+        artifact_semantic_digest(&scoped_artifact)
+    );
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1516,6 +1626,7 @@ struct ResolutionStorage {
     delta_rows: u64,
 }
 
+#[derive(Clone, Copy)]
 struct ResolutionRowShape {
     identifiers: usize,
     pending: usize,
@@ -1524,6 +1635,17 @@ struct ResolutionRowShape {
 }
 
 fn prepare_replay_view(layout: &StoreLayout, view_id: &str, mode: ReplayMode) -> ResolutionStorage {
+    prepare_replay_view_with_changed_files(layout, view_id, mode, MILLER_CHANGED_FILES, true, None)
+}
+
+fn prepare_replay_view_with_changed_files(
+    layout: &StoreLayout,
+    view_id: &str,
+    mode: ReplayMode,
+    changed_files: usize,
+    install_gap: bool,
+    minimum_scope_rows: Option<usize>,
+) -> ResolutionStorage {
     let factory = StoreConnectionFactory::new(layout.clone(), FAMILY_ID, env!("CARGO_PKG_VERSION"));
     let mut connection = factory.open_writer().unwrap();
     let mut manifests = ManifestStore::new(&mut connection);
@@ -1551,7 +1673,7 @@ fn prepare_replay_view(layout: &StoreLayout, view_id: &str, mode: ReplayMode) ->
         )
         .unwrap();
     assert_eq!(bound.state.as_str(), "exact");
-    if mode == ReplayMode::Scoped {
+    if mode == ReplayMode::Scoped && install_gap {
         install_canonical_gap_payload(layout, view_id, REBASE_GAP_BYTES);
     }
     let before = current_resolution_storage(layout, view_id);
@@ -1574,8 +1696,67 @@ fn prepare_replay_view(layout: &StoreLayout, view_id: &str, mode: ReplayMode) ->
             |row| Ok((row.get(0)?, row.get(1)?)),
         )
         .unwrap();
-    assert_eq!(scope, (MILLER_CHANGED_FILES as i64, true));
+    assert_eq!(scope, (changed_files as i64, true));
+    if let Some(minimum_scope_rows) = minimum_scope_rows {
+        let changed_path = format!("src/file-{:04}.cs", MILLER_FILE_ROWS - changed_files);
+        assert_changed_scope_rows(layout, view_id, &changed_path, minimum_scope_rows);
+    }
     before
+}
+
+fn assert_changed_scope_rows(
+    layout: &StoreLayout,
+    view_id: &str,
+    changed_path: &str,
+    minimum_rows: usize,
+) {
+    let connection = Connection::open(layout.store_db()).unwrap();
+    let (scope_file_count, predecessor_version, replacement_version): (
+        i64,
+        Option<i64>,
+        Option<i64>,
+    ) = connection
+        .query_row(
+            "SELECT COUNT(*),MIN(journal.old_version_id),MIN(journal.new_version_id)
+             FROM resolution_scope_journal AS journal
+             JOIN resolution_scope_batches AS batch
+               ON batch.transition_id=journal.transition_id
+             WHERE batch.view_id=?1
+               AND batch.to_manifest_generation=2
+               AND journal.path=?2",
+            [view_id, changed_path],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .unwrap();
+    assert_eq!(scope_file_count, 1);
+    let predecessor_version = predecessor_version.expect("scope predecessor version missing");
+    let replacement_version = replacement_version.expect("scope replacement version missing");
+    let expected_identifiers = i64::try_from(minimum_rows).unwrap();
+    let expected_pending = i64::try_from(scaled_pending_rows(minimum_rows)).unwrap();
+    let expected_scope_rows = expected_identifiers + expected_pending;
+    for (label, version_id) in [
+        ("predecessor", predecessor_version),
+        ("replacement", replacement_version),
+    ] {
+        let (identifier_rows, pending_rows, relationship_rows): (i64, i64, i64) = connection
+            .query_row(
+                "SELECT
+                    (SELECT COUNT(*) FROM identifiers WHERE version_id=?1),
+                    (SELECT COUNT(*) FROM pending_relationships WHERE version_id=?1),
+                    (SELECT COUNT(*) FROM relationships WHERE version_id=?1)",
+                [version_id],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .unwrap();
+        assert_eq!(identifier_rows, expected_identifiers, "{label} identifiers");
+        assert_eq!(pending_rows, expected_pending, "{label} pending rows");
+        assert_eq!(relationship_rows, 0, "{label} relationship rows");
+        assert_eq!(
+            identifier_rows + pending_rows + relationship_rows,
+            expected_scope_rows,
+            "{label} scope rows"
+        );
+    }
 }
 
 fn install_canonical_gap_payload(layout: &StoreLayout, view_id: &str, bytes: usize) {
@@ -1606,8 +1787,25 @@ fn run_timed_resolve(
     request_id: &str,
     mode: ReplayMode,
 ) -> TimedResolve {
+    run_timed_resolve_with_delta(store_root, view_id, request_id, Some(mode.env_value()))
+}
+
+fn run_timed_resolve_with_delta(
+    store_root: &Path,
+    view_id: &str,
+    request_id: &str,
+    delta: Option<&str>,
+) -> TimedResolve {
     let mut command = timed_worker_command();
     let started = Instant::now();
+    match delta {
+        Some(value) => {
+            command.env("JULIE_STORE_RESOLUTION_DELTA", value);
+        }
+        None => {
+            command.env_remove("JULIE_STORE_RESOLUTION_DELTA");
+        }
+    }
     let output = command
         .arg(env!("CARGO_BIN_EXE_julie-extract"))
         .args([
@@ -1623,7 +1821,6 @@ fn run_timed_resolve(
             request_id,
             "--json",
         ])
-        .env("JULIE_STORE_RESOLUTION_DELTA", mode.env_value())
         .output()
         .unwrap();
     let wall_ms = elapsed_ms(started.elapsed());
@@ -1639,6 +1836,54 @@ fn run_timed_resolve(
         cpu_user_ms: parse_cpu_ms(&output.stderr, "User time"),
         cpu_system_ms: parse_cpu_ms(&output.stderr, "System time"),
         peak_rss_bytes: parse_peak_rss(&output.stderr),
+    }
+}
+
+fn run_resolve_with_instant(
+    store_root: &Path,
+    view_id: &str,
+    request_id: &str,
+    delta: Option<&str>,
+) -> TimedResolve {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_julie-extract"));
+    match delta {
+        Some(value) => {
+            command.env("JULIE_STORE_RESOLUTION_DELTA", value);
+        }
+        None => {
+            command.env_remove("JULIE_STORE_RESOLUTION_DELTA");
+        }
+    }
+    let started = Instant::now();
+    let output = command
+        .args([
+            "store",
+            "resolve",
+            "--store",
+            store_root.to_str().unwrap(),
+            "--view",
+            view_id,
+            "--request-id",
+            request_id,
+            "--idempotency-key",
+            request_id,
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    let wall_ms = elapsed_ms(started.elapsed());
+    assert!(
+        output.status.success(),
+        "stdout={} stderr={}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    TimedResolve {
+        report: serde_json::from_slice(&output.stdout).unwrap(),
+        wall_ms,
+        cpu_user_ms: 0,
+        cpu_system_ms: 0,
+        peak_rss_bytes: 0,
     }
 }
 
@@ -1870,6 +2115,46 @@ fn build_store_fixture(
     pending_rows: usize,
     resolved_pending_rows: usize,
 ) {
+    build_store_fixture_with_changed_files(
+        store_root,
+        identifier_rows,
+        pending_rows,
+        resolved_pending_rows,
+        MILLER_CHANGED_FILES,
+    );
+}
+
+fn build_store_fixture_with_changed_files(
+    store_root: &Path,
+    identifier_rows: usize,
+    pending_rows: usize,
+    resolved_pending_rows: usize,
+    changed_files: usize,
+) {
+    build_store_fixture_with_changed_file_rows(
+        store_root,
+        identifier_rows,
+        pending_rows,
+        resolved_pending_rows,
+        changed_files,
+        None,
+        None,
+    );
+}
+
+fn build_store_fixture_with_changed_file_rows(
+    store_root: &Path,
+    identifier_rows: usize,
+    pending_rows: usize,
+    resolved_pending_rows: usize,
+    changed_files: usize,
+    changed_file_shape: Option<ResolutionRowShape>,
+    stable_file_shape: Option<ResolutionRowShape>,
+) {
+    assert!(changed_files > 0 && changed_files <= MILLER_FILE_ROWS);
+    if changed_file_shape.is_some() {
+        assert_eq!(changed_files, 1);
+    }
     let layout = StoreLayout::create(
         store_root.join("family"),
         FAMILY_ID,
@@ -1895,22 +2180,34 @@ fn build_store_fixture(
             &format!("hash-{index:04}"),
         ));
     }
+    let dense_shape = ResolutionRowShape {
+        identifiers: identifier_rows,
+        pending: pending_rows,
+        resolved_pending: resolved_pending_rows,
+        distinct_target_names: MILLER_DISTINCT_IDENTIFIER_NAMES
+            .saturating_sub(1)
+            .min(identifier_rows.max(1)),
+    };
+    let sparse_shape = ResolutionRowShape {
+        identifiers: 1,
+        pending: 1,
+        resolved_pending: 1,
+        distinct_target_names: 1,
+    };
+    let stable_shape = match (stable_file_shape, changed_file_shape) {
+        (Some(shape), _) => shape,
+        (None, Some(_)) => sparse_shape,
+        (None, None) => dense_shape,
+    };
     insert_resolution_rows(
         &transaction,
         versions[0],
         "src/miller-scale.cs",
         "target",
-        ResolutionRowShape {
-            identifiers: identifier_rows,
-            pending: pending_rows,
-            resolved_pending: resolved_pending_rows,
-            distinct_target_names: MILLER_DISTINCT_IDENTIFIER_NAMES
-                .saturating_sub(1)
-                .min(identifier_rows.max(1)),
-        },
+        stable_shape,
     );
-    let changed_start = MILLER_FILE_ROWS - MILLER_CHANGED_FILES;
-    let mut changed_versions = Vec::with_capacity(MILLER_CHANGED_FILES);
+    let changed_start = MILLER_FILE_ROWS - changed_files;
+    let mut changed_versions = Vec::with_capacity(changed_files);
     for (index, version) in versions.iter().copied().enumerate().skip(changed_start) {
         let path = format!("src/file-{index:04}.cs");
         insert_resolution_rows(
@@ -1918,12 +2215,7 @@ fn build_store_fixture(
             version,
             &path,
             &format!("target-base-{index:04}"),
-            ResolutionRowShape {
-                identifiers: 4,
-                pending: 4,
-                resolved_pending: 4,
-                distinct_target_names: 1,
-            },
+            changed_file_shape.unwrap_or(sparse_shape),
         );
         let changed = insert_version(&transaction, &path, &format!("hash-changed-{index:04}"));
         insert_resolution_rows(
@@ -1931,12 +2223,7 @@ fn build_store_fixture(
             changed,
             &path,
             &format!("target-changed-{index:04}"),
-            ResolutionRowShape {
-                identifiers: 4,
-                pending: 4,
-                resolved_pending: 4,
-                distinct_target_names: 1,
-            },
+            changed_file_shape.unwrap_or(sparse_shape),
         );
         changed_versions.push(changed);
     }

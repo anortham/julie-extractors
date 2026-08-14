@@ -33,7 +33,7 @@ impl StorePair {
         }
         for (root, store) in [(&full_root, &full_store), (&scoped_root, &scoped_store)] {
             assert_success(&import(root, store));
-            assert_success(&resolve(store, "off", "seed"));
+            assert_success(&resolve(store, Some("off"), "seed"));
         }
         Self {
             temp,
@@ -58,10 +58,15 @@ impl StorePair {
         expected_mode: &str,
         expected_fallback: Option<&str>,
     ) -> (PathBuf, Value) {
-        let full = resolve(&self.full_store, "off", "oracle");
-        let scoped = resolve(&self.scoped_store, "on", "candidate");
+        let full = resolve(&self.full_store, Some("off"), "oracle");
+        let scoped = resolve(&self.scoped_store, None, "candidate");
         assert_success(&full);
         assert_success(&scoped);
+        let full_report: Value = serde_json::from_slice(&full.stdout).unwrap();
+        assert_eq!(
+            full_report["resolution"]["resolution_mode"], "full",
+            "{full_report}"
+        );
         let report: Value = serde_json::from_slice(&scoped.stdout).unwrap();
         assert_eq!(
             report["resolution"]["resolution_mode"], expected_mode,
@@ -118,7 +123,34 @@ fn import(root: &Path, store: &Path) -> Output {
     )
 }
 
-fn resolve(store: &Path, delta: &str, suffix: &str) -> Output {
+fn import_request(root: &Path, store: &Path, request_id: &str, idempotency_key: &str) -> Value {
+    let output = run(
+        &[
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY,
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--level",
+            "full",
+            "--request-id",
+            request_id,
+            "--idempotency-key",
+            idempotency_key,
+            "--json",
+        ],
+        None,
+    );
+    assert_success(&output);
+    serde_json::from_slice(&output.stdout).unwrap()
+}
+
+fn resolve(store: &Path, delta: Option<&str>, suffix: &str) -> Output {
     run(
         &[
             "store",
@@ -133,7 +165,7 @@ fn resolve(store: &Path, delta: &str, suffix: &str) -> Output {
             &format!("resolve-{suffix}-key"),
             "--json",
         ],
-        Some(delta),
+        delta,
     )
 }
 
@@ -259,7 +291,7 @@ fn curated_add_delete_rename_module_repoint_and_sibling_rows_match_full() {
 }
 
 #[test]
-fn curated_receiver_and_tier4_uniqueness_flips_match_full() {
+fn curated_receiver_and_tier4_uniqueness_flips_cross_over_and_match_full() {
     let pair = StorePair::new(&[
         (
             "src/model.ts",
@@ -280,6 +312,107 @@ fn curated_receiver_and_tier4_uniqueness_flips_match_full() {
     }
     pair.rescan();
     let _ = pair.resolve_and_compare("full", Some("resolution_scope_crossover"));
+}
+
+#[test]
+fn rust_source_and_test_partitions_match_full_after_one_file_change() {
+    let pair = StorePair::new(&[
+        (
+            "src/lib.rs",
+            "pub fn target() -> i32 { 1 }\npub fn run() -> i32 { target() }\n",
+        ),
+        (
+            "tests/lib_test.rs",
+            "use crate::target;\n#[test]\nfn target_is_stable() { target(); }\n",
+        ),
+        ("src/stable.rs", "pub fn stable() -> i32 { 7 }\n"),
+    ]);
+    for root in pair.roots() {
+        write_source(
+            root,
+            "src/lib.rs",
+            "pub fn target() -> i32 { 2 }\npub fn run() -> i32 { target() }\n",
+        );
+    }
+    pair.rescan();
+    let (scoped_artifact, _) = pair.resolve_and_compare("full", Some("resolution_scope_crossover"));
+    let connection = Connection::open(scoped_artifact).unwrap();
+    for (partition, expected) in [("src/%", 2_i64), ("tests/%", 1_i64)] {
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM files WHERE language='rust' AND path LIKE ?1",
+                    [partition],
+                    |row| row.get::<_, i64>(0),
+                )
+                .unwrap(),
+            expected,
+            "expected rust files in {partition}"
+        );
+    }
+    let resolved_test_rows: i64 = connection
+        .query_row(
+            "SELECT COUNT(*)
+             FROM identifier_resolutions AS resolution
+             JOIN identifiers AS identifier
+               ON identifier.identifier_id=resolution.identifier_id
+             JOIN files AS source ON source.file_id=identifier.file_id
+             JOIN symbols AS target ON target.symbol_id=resolution.target_symbol_id
+             JOIN files AS target_file ON target_file.file_id=target.file_id
+             WHERE source.path='tests/lib_test.rs'
+               AND target_file.path='src/lib.rs'
+               AND resolution.outcome='resolved'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert!(
+        resolved_test_rows >= 1,
+        "the rust test partition must retain a resolved row into src/lib.rs"
+    );
+}
+
+#[test]
+fn one_file_import_alias_repoint_matches_full() {
+    let pair = StorePair::new(&[
+        ("src/target.ts", "export function target() { return 1; }\n"),
+        ("src/other.ts", "export function target() { return 2; }\n"),
+        (
+            "src/use.ts",
+            "import { target as selected } from './target';\nexport function run() { return selected(); }\n",
+        ),
+        ("src/stable.ts", "export function stable() { return 7; }\n"),
+    ]);
+    for root in pair.roots() {
+        write_source(
+            root,
+            "src/use.ts",
+            "import { target as selected } from './other';\nexport function run() { return selected(); }\n",
+        );
+    }
+    pair.rescan();
+    let (scoped_artifact, _) = pair.resolve_and_compare("full", Some("resolution_scope_crossover"));
+    let connection = Connection::open(scoped_artifact).unwrap();
+    let resolved_alias_rows: i64 = connection
+        .query_row(
+            "SELECT COUNT(*)
+             FROM identifier_resolutions AS resolution
+             JOIN identifiers AS identifier
+               ON identifier.identifier_id=resolution.identifier_id
+             JOIN files AS source ON source.file_id=identifier.file_id
+             JOIN symbols AS target ON target.symbol_id=resolution.target_symbol_id
+             JOIN files AS target_file ON target_file.file_id=target.file_id
+             WHERE source.path='src/use.ts'
+               AND target_file.path='src/other.ts'
+               AND resolution.outcome='resolved'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert!(
+        resolved_alias_rows >= 1,
+        "the aliased import must resolve to the repointed target file"
+    );
 }
 
 #[test]
@@ -376,7 +509,7 @@ fn crossover_fallback_matches_full() {
 }
 
 #[test]
-fn one_file_broad_name_crossover_matches_full() {
+fn one_file_broad_name_collision_crosses_over_and_matches_full() {
     let mut files = vec![(
         "src/target.ts".to_string(),
         "export function shared() { return 1; }\n".to_string(),
@@ -404,4 +537,70 @@ fn one_file_broad_name_crossover_matches_full() {
     pair.rescan();
     let (_, report) = pair.resolve_and_compare("full", Some("resolution_scope_crossover"));
     assert_eq!(report["resolution"]["scope_file_count"], 10);
+}
+
+#[test]
+fn identical_manifest_round_trip_reuses_generation_after_changed_manifest() {
+    let original = "export function value() { return 1; }\n";
+    let pair = StorePair::new(&[
+        ("src/value.ts", original),
+        ("src/stable.ts", "export function stable() { return 7; }\n"),
+    ]);
+    let initial = import_request(
+        &pair.full_root,
+        &pair.full_store,
+        "manifest-sequence-initial",
+        "manifest-sequence-initial-key",
+    );
+    assert_eq!(initial["manifest"]["generation"], 1);
+    assert_eq!(initial["manifest"]["disposition"], "reused");
+    let initial_hash = initial["manifest"]["hash"].as_str().unwrap().to_string();
+
+    write_source(
+        &pair.full_root,
+        "src/value.ts",
+        "export function value() { return 2; }\n",
+    );
+    let changed = import_request(
+        &pair.full_root,
+        &pair.full_store,
+        "manifest-sequence-changed",
+        "manifest-sequence-changed-key",
+    );
+    assert_eq!(changed["manifest"]["generation"], 2);
+    assert_eq!(changed["manifest"]["disposition"], "created");
+    assert_ne!(changed["manifest"]["hash"], initial["manifest"]["hash"]);
+
+    write_source(&pair.full_root, "src/value.ts", original);
+    let restored = import_request(
+        &pair.full_root,
+        &pair.full_store,
+        "manifest-sequence-restored",
+        "manifest-sequence-restored-key",
+    );
+    assert_eq!(restored["manifest"]["generation"], 1);
+    assert_eq!(restored["manifest"]["hash"], initial_hash);
+    assert_eq!(restored["manifest"]["disposition"], "reused");
+
+    let connection = Connection::open(pair.full_store.join("gen-001/store.db")).unwrap();
+    assert_eq!(
+        connection
+            .query_row(
+                "SELECT current_generation FROM views WHERE view_id='view-main'",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        1
+    );
+    assert_eq!(
+        connection
+            .query_row(
+                "SELECT COUNT(*) FROM manifests WHERE view_id='view-main'",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        2
+    );
 }

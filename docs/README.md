@@ -53,6 +53,7 @@ The implementation plans and dogfood records are:
 - [Store resolution performance repair plan](plans/2026-08-10-store-resolution-performance-repair.md)
 - [Store resolution performance evidence](findings/2026-08-10-store-resolution-performance-repair.md)
 - [Incremental-resolution dogfood and verification ledger](findings/2026-08-11-store-incremental-resolution-dogfood.md)
+- [Incremental-resolution crossover recovery](findings/2026-08-14-store-incremental-resolution-recovery.md)
 - [v2.32.0 release notes](release-notes/v2.32.0.md)
 - [v2.32.0 release evidence](release-evidence/2026-08-11-v2-32-0-release.md)
 - [v2.32.1 release notes](release-notes/v2.32.1.md)

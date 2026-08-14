@@ -147,7 +147,6 @@ pub(crate) fn build_store_delta_scope(
     if scope_crosses_over(
         connection,
         request,
-        changed_paths.len(),
         logical_recheck_paths.len(),
         &recheck_names,
         &selected_versions,
@@ -446,14 +445,10 @@ fn versions_matching_names(
 fn scope_crosses_over(
     connection: &Connection,
     request: StoreDeltaScopeRequest<'_>,
-    changed_path_count: usize,
     logical_recheck_file_count: usize,
     recheck_names: &BTreeSet<String>,
     selected_versions: &BTreeSet<i64>,
 ) -> Result<bool, ResolutionScopeError> {
-    if changed_path_count <= 1 {
-        return Ok(false);
-    }
     if selected_versions.is_empty() && logical_recheck_file_count == 0 {
         return Ok(false);
     }
