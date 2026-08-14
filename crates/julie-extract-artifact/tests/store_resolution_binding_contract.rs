@@ -1353,6 +1353,124 @@ fn cleanup_removes_only_unpinned_superseded_deltas_and_reaps_expired_pins() {
 }
 
 #[test]
+fn temporary_rebase_pin_protects_a_building_base_until_release_or_expiry() {
+    let temp = TempDir::new();
+    let layout = StoreLayout::create(&temp.0, FAMILY_ID, VERSION).unwrap();
+    let (manifest_hash, version_id) =
+        publish_manifest(&layout, "view-rebase-pin", None, "src/a.rs", "a");
+    let factory = StoreConnectionFactory::new(layout.clone(), FAMILY_ID, VERSION);
+    let catalog = ResolutionBaseCatalog::new(factory.clone());
+    let build = match catalog
+        .begin_build(&manifest_hash, 7, "request-rebase-pin", NOW)
+        .unwrap()
+    {
+        ResolutionBaseBegin::Build(build) => build,
+        other => panic!("expected build, got {other:?}"),
+    };
+    let bindings = ResolutionBindingStore::new(factory.clone());
+    let pin = bindings
+        .open_pin_for_base(
+            "pin-rebase-building",
+            ResolutionPinOwnerKind::Resolve,
+            "request-rebase-pin",
+            "view-rebase-pin",
+            1,
+            &manifest_hash,
+            &build.record.base_id,
+            7,
+            "2026-08-08T20:40:00Z",
+            NOW,
+        )
+        .unwrap();
+    assert_eq!(pin.delta_generation, None);
+    assert_eq!(pin.base_id, build.record.base_id);
+    assert_eq!(
+        Connection::open(layout.store_db())
+            .unwrap()
+            .query_row(
+                "SELECT COUNT(*) FROM resolution_pins
+                 WHERE pin_id='pin-rebase-building' AND delta_generation IS NULL",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        1
+    );
+
+    let mut writer = ResolutionBaseWriter::new(&build.scratch_path, &manifest_hash, 7).unwrap();
+    writer.push_source_version(version_id).unwrap();
+    writer.finish_with_target_lookup(|_, _| Ok(true)).unwrap();
+    catalog.publish_scratch(&build).unwrap();
+    catalog.mark_ready(&build, "2026-08-08T20:31:00Z").unwrap();
+    assert_eq!(
+        Connection::open(layout.store_db())
+            .unwrap()
+            .query_row(
+                "SELECT state FROM resolution_bases WHERE base_id=?1",
+                [&build.record.base_id],
+                |row| row.get::<_, String>(0),
+            )
+            .unwrap(),
+        "ready"
+    );
+
+    assert!(
+        bindings
+            .release_pin(
+                "pin-rebase-building",
+                ResolutionPinOwnerKind::Resolve,
+                "request-rebase-pin",
+            )
+            .unwrap()
+    );
+    let expired = bindings
+        .open_pin_for_base(
+            "pin-rebase-expiring",
+            ResolutionPinOwnerKind::Resolve,
+            "request-rebase-pin",
+            "view-rebase-pin",
+            1,
+            &manifest_hash,
+            &build.record.base_id,
+            7,
+            "2026-08-08T20:32:00Z",
+            "2026-08-08T20:31:00Z",
+        )
+        .unwrap();
+    assert_eq!(expired.delta_generation, None);
+    let reopened = bindings
+        .open_pin_for_base(
+            "pin-rebase-expiring",
+            ResolutionPinOwnerKind::Resolve,
+            "request-rebase-pin",
+            "view-rebase-pin",
+            1,
+            &manifest_hash,
+            &build.record.base_id,
+            7,
+            "2026-08-08T20:40:00Z",
+            "2026-08-08T20:33:00Z",
+        )
+        .unwrap();
+    assert_eq!(reopened.expires_at, "2026-08-08T20:40:00Z");
+    bindings
+        .cleanup_superseded_deltas("view-rebase-pin", "2026-08-08T20:41:00Z")
+        .unwrap();
+    assert_eq!(
+        Connection::open(layout.store_db())
+            .unwrap()
+            .query_row(
+                "SELECT COUNT(*) FROM resolution_pins
+                 WHERE pin_id='pin-rebase-expiring'",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        0
+    );
+}
+
+#[test]
 fn binding_never_reuses_an_exact_head_from_another_resolver_epoch() {
     let temp = TempDir::new();
     let layout = StoreLayout::create(&temp.0, FAMILY_ID, VERSION).unwrap();

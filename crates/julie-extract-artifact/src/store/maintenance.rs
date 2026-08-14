@@ -5,7 +5,11 @@ use std::fmt;
 use std::fs;
 use std::io;
 use std::path::{Component, Path, PathBuf};
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering as AtomicOrdering};
+use std::sync::mpsc::{self, Receiver, Sender};
+use std::thread;
+use std::time::Duration;
 
 use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior, params};
 use serde::{Deserialize, Serialize};
@@ -405,11 +409,106 @@ impl Default for MaintenanceApplyPolicy {
 pub struct MaintenanceExecutor {
     factory: StoreConnectionFactory,
     run: MaintenanceRun,
+    action: MaintenanceAction,
     fencing_token: i64,
     source_min_writer_version: String,
     capacity: Box<dyn CapacityProvider + Send + Sync>,
     /// Disarmed only after a successful finish/restore so Drop cannot leave a raised floor.
     finished: AtomicBool,
+}
+
+struct MaintenanceActionHeartbeat {
+    stop: Option<Sender<()>>,
+    lost: Arc<AtomicBool>,
+    worker: Option<thread::JoinHandle<()>>,
+}
+
+impl MaintenanceActionHeartbeat {
+    fn start(
+        factory: &StoreConnectionFactory,
+        run: &MaintenanceRun,
+        action: MaintenanceAction,
+        fencing_token: i64,
+        plan: &MaintenancePlan,
+    ) -> Result<Self, MaintenanceError> {
+        let interval_ms = run.lease_duration_ms.saturating_div(3).max(1);
+        let interval = Duration::from_millis(u64::try_from(interval_ms).map_err(|_| {
+            MaintenanceError::InvalidMetadata {
+                field: "maintenance_heartbeat_interval",
+                value: interval_ms.to_string(),
+            }
+        })?);
+        let (stop, receiver) = mpsc::channel();
+        let lost = Arc::new(AtomicBool::new(false));
+        let worker_lost = Arc::clone(&lost);
+        let coordinator_db = factory.layout().coordinator_db().to_path_buf();
+        let generation_name = factory.layout().generation_name().to_string();
+        let holder_version = factory.binary_version().to_string();
+        let run_id = run.run_id.clone();
+        let owner_id = run.owner_id.clone();
+        let owner_pid = run.owner_pid;
+        let lease_duration_ms = run.lease_duration_ms;
+        let plan_fingerprint = plan.fingerprint.clone();
+        let worker = thread::Builder::new()
+            .name("maintenance-action-heartbeat".to_string())
+            .spawn(move || {
+                run_action_heartbeat(
+                    receiver,
+                    interval,
+                    &coordinator_db,
+                    &run_id,
+                    action,
+                    &generation_name,
+                    &plan_fingerprint,
+                    &owner_id,
+                    owner_pid,
+                    &holder_version,
+                    fencing_token,
+                    lease_duration_ms,
+                    worker_lost,
+                );
+            })
+            .map_err(|error| MaintenanceError::InvalidMetadata {
+                field: "maintenance_heartbeat",
+                value: error.to_string(),
+            })?;
+        Ok(Self {
+            stop: Some(stop),
+            lost,
+            worker: Some(worker),
+        })
+    }
+
+    fn check(&self) -> Result<(), MaintenanceError> {
+        if self.lost.load(AtomicOrdering::Acquire) {
+            Err(MaintenanceError::MaintenanceFenceLost)
+        } else {
+            Ok(())
+        }
+    }
+
+    fn stop(mut self) -> Result<(), MaintenanceError> {
+        if let Some(stop) = self.stop.take() {
+            let _ = stop.send(());
+        }
+        if let Some(worker) = self.worker.take()
+            && worker.join().is_err()
+        {
+            self.lost.store(true, AtomicOrdering::Release);
+        }
+        self.check()
+    }
+}
+
+impl Drop for MaintenanceActionHeartbeat {
+    fn drop(&mut self) {
+        if let Some(stop) = self.stop.take() {
+            let _ = stop.send(());
+        }
+        if let Some(worker) = self.worker.take() {
+            let _ = worker.join();
+        }
+    }
 }
 
 impl Drop for MaintenanceExecutor {
@@ -912,6 +1011,8 @@ impl<C: MaintenanceClock, P: CapacityProvider> MaintenanceInspector<C, P> {
             capacity: read_capacity(&store, &self.factory, &self.capacity)?,
             ..MaintenanceSnapshot::default()
         };
+        let coordinator_physical_fingerprint =
+            snapshot.binding.coordinator_root_fingerprint.clone();
         read_versions(
             &store,
             self.window_size,
@@ -978,9 +1079,25 @@ impl<C: MaintenanceClock, P: CapacityProvider> MaintenanceInspector<C, P> {
             });
         }
         if data_version(&coord)? != coordinator_data_version {
-            return Err(MaintenanceError::InspectionRaced {
-                database: "coord.db",
-            });
+            let mut current = MaintenanceSnapshot {
+                binding: read_binding(&store, &coord, &self.factory)?,
+                ..MaintenanceSnapshot::default()
+            };
+            let mut verification_window = 0;
+            read_coordinator_objects(
+                &coord,
+                self.window_size,
+                &mut verification_window,
+                &mut current,
+            )?;
+            current.binding.coordinator_root_fingerprint = coordinator_physical_fingerprint;
+            if coordinator_root_fingerprint(&current)?
+                != snapshot.binding.coordinator_root_fingerprint
+            {
+                return Err(MaintenanceError::InspectionRaced {
+                    database: "coord.db",
+                });
+            }
         }
         let mut plan = plan_maintenance(&snapshot, &read_policy(&store)?)?;
         plan.max_observed_window = max_observed_window;
@@ -1158,6 +1275,7 @@ impl MaintenanceExecutor {
         let executor = Self {
             factory,
             run,
+            action,
             fencing_token,
             source_min_writer_version,
             capacity,
@@ -1352,10 +1470,43 @@ impl MaintenanceExecutor {
                 field: "maintenance_apply_policy",
             });
         }
-        self.validate_ownership(plan)?;
-        self.validate_plan_binding(plan)?;
+        let heartbeat = MaintenanceActionHeartbeat::start(
+            &self.factory,
+            &self.run,
+            self.action,
+            self.fencing_token,
+            plan,
+        )?;
+        let validation = self
+            .validate_ownership(plan)
+            .and_then(|()| self.validate_plan_binding(plan));
+        if let Err(error) = validation {
+            return match heartbeat.stop() {
+                Ok(()) => Err(error),
+                Err(heartbeat_error) => Err(heartbeat_error),
+            };
+        }
+        let result = self.apply_with_action_heartbeat(plan, policy, &heartbeat);
+        let heartbeat_result = heartbeat.stop();
+        match result {
+            Err(error) => Err(error),
+            Ok(report) => {
+                heartbeat_result?;
+                self.finish()?;
+                Ok(report)
+            }
+        }
+    }
+
+    fn apply_with_action_heartbeat(
+        &mut self,
+        plan: &MaintenancePlan,
+        policy: &MaintenanceApplyPolicy,
+        heartbeat: &MaintenanceActionHeartbeat,
+    ) -> Result<MaintenanceApplyReport, MaintenanceError> {
         // Live free-bytes re-probe before first mutative step (scratch purge).
         self.ensure_gc_capacity(plan)?;
+        heartbeat.check()?;
         let scratch_files = terminal_request_scratch_files(self.factory.layout())?;
         let mut report = MaintenanceApplyReport::default();
         for path in scratch_files {
@@ -1557,13 +1708,16 @@ impl MaintenanceExecutor {
                 [cursor.to_string()],
             )?;
         }
+        heartbeat.check()?;
         self.validate_ownership(plan)?;
         self.validate_coordinator_binding(plan)?;
+        heartbeat.check()?;
         #[cfg(feature = "test-store-crash")]
         super::test_hooks::crash_if("maintenance_store_before_commit");
         transaction.commit()?;
         #[cfg(feature = "test-store-crash")]
         super::test_hooks::crash_if("maintenance_store_after_commit");
+        heartbeat.check()?;
         for path in base_files {
             #[cfg(feature = "test-store-crash")]
             super::test_hooks::crash_if("maintenance_base_before_remove");
@@ -1580,6 +1734,7 @@ impl MaintenanceExecutor {
             #[cfg(feature = "test-store-crash")]
             super::test_hooks::crash_if("maintenance_base_after_remove");
         }
+        heartbeat.check()?;
         let (safe_sequence, _high_water) = self.safe_log_sequence(plan)?;
         let completed_before = self.run.now_ms.saturating_sub(policy.request_safety_ms);
         let mut coordinator = StoreCoordinator::open(self.factory.layout())?;
@@ -1599,6 +1754,7 @@ impl MaintenanceExecutor {
             policy.receipt_limit,
         )?;
         if !receipt_ids.is_empty() {
+            heartbeat.check()?;
             self.validate_ownership(plan)?;
             let fence = GenerationFence::maintenance(
                 self.factory.layout(),
@@ -1624,11 +1780,13 @@ impl MaintenanceExecutor {
             }
             #[cfg(feature = "test-store-crash")]
             super::test_hooks::crash_if("maintenance_log_before_commit");
+            heartbeat.check()?;
             log_transaction.commit()?;
             #[cfg(feature = "test-store-crash")]
             super::test_hooks::crash_if("maintenance_log_after_commit");
             drop(log_writer);
         }
+        heartbeat.check()?;
         report.checkpoint_order.push("checkpoint".to_string());
         writer.execute_batch("PRAGMA wal_checkpoint(PASSIVE);")?;
         let store_bytes_before_vacuum = file_len(self.factory.layout().store_db())?;
@@ -1677,6 +1835,7 @@ impl MaintenanceExecutor {
             0
         };
         let compaction_required = physical_breach_streak >= plan.retention.physical_breach_limit;
+        heartbeat.check()?;
         let metadata = writer.transaction_with_behavior(TransactionBehavior::Immediate)?;
         metadata.execute(
             "INSERT INTO store_meta(key,value)
@@ -1690,6 +1849,7 @@ impl MaintenanceExecutor {
              ON CONFLICT(key) DO UPDATE SET value=excluded.value",
             [physical_breach_streak.to_string()],
         )?;
+        heartbeat.check()?;
         metadata.commit()?;
         report.physical_bytes_before = plan.retention.physical_current_bytes;
         report.physical_bytes_after = physical_bytes_after;
@@ -1701,7 +1861,6 @@ impl MaintenanceExecutor {
         report.physical_breach_streak = physical_breach_streak;
         report.compaction_required = compaction_required;
         drop(writer);
-        self.finish()?;
         Ok(report)
     }
 
@@ -2088,6 +2247,112 @@ fn ensure_live_capacity(
     if free_bytes < required_bytes {
         return Err(MaintenanceError::CapacityInsufficient);
     }
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn run_action_heartbeat(
+    receiver: Receiver<()>,
+    interval: Duration,
+    coordinator_db: &Path,
+    run_id: &str,
+    action: MaintenanceAction,
+    generation_name: &str,
+    plan_fingerprint: &str,
+    owner_id: &str,
+    owner_pid: u32,
+    holder_version: &str,
+    fencing_token: i64,
+    lease_duration_ms: i64,
+    lost: Arc<AtomicBool>,
+) {
+    loop {
+        match receiver.recv_timeout(interval) {
+            Ok(()) | Err(mpsc::RecvTimeoutError::Disconnected) => return,
+            Err(mpsc::RecvTimeoutError::Timeout) => {}
+        }
+        let renewed = wall_now_ms()
+            .and_then(|wall_now| {
+                let expires_at = wall_now.checked_add(lease_duration_ms).ok_or(
+                    MaintenanceError::InvalidMetadata {
+                        field: "maintenance_expiry",
+                        value: "overflow".to_string(),
+                    },
+                )?;
+                renew_action_lease(
+                    coordinator_db,
+                    run_id,
+                    action,
+                    generation_name,
+                    plan_fingerprint,
+                    owner_id,
+                    owner_pid,
+                    holder_version,
+                    fencing_token,
+                    wall_now,
+                    expires_at,
+                )
+            })
+            .is_ok();
+        if !renewed {
+            lost.store(true, AtomicOrdering::Release);
+            return;
+        }
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn renew_action_lease(
+    coordinator_db: &Path,
+    run_id: &str,
+    action: MaintenanceAction,
+    generation_name: &str,
+    plan_fingerprint: &str,
+    owner_id: &str,
+    owner_pid: u32,
+    holder_version: &str,
+    fencing_token: i64,
+    heartbeat_at: i64,
+    expires_at: i64,
+) -> Result<(), MaintenanceError> {
+    let mut coordinator = open_maintenance_coordinator(coordinator_db)?;
+    let transaction = coordinator.transaction_with_behavior(TransactionBehavior::Immediate)?;
+    let intent_changed = transaction.execute(
+        "UPDATE maintenance_intent
+         SET heartbeat_at=?1,expires_at=?2
+         WHERE resource='store-maintenance' AND run_id=?3 AND action=?4
+           AND source_generation_name=?5 AND owner_id=?6 AND owner_pid=?7
+           AND fencing_token=?8 AND plan_fingerprint=?9 AND expires_at>?1",
+        params![
+            heartbeat_at,
+            expires_at,
+            run_id,
+            action.as_str(),
+            generation_name,
+            owner_id,
+            owner_pid,
+            fencing_token,
+            plan_fingerprint,
+        ],
+    )?;
+    let lease_changed = transaction.execute(
+        "UPDATE writer_lease
+         SET heartbeat_at=?1,expires_at=?2
+         WHERE resource='store-writer' AND holder_id=?3 AND holder_version=?4
+           AND holder_pid=?5 AND fencing_token=?6 AND expires_at>?1",
+        params![
+            heartbeat_at,
+            expires_at,
+            owner_id,
+            holder_version,
+            owner_pid,
+            fencing_token,
+        ],
+    )?;
+    if intent_changed != 1 || lease_changed != 1 {
+        return Err(MaintenanceError::MaintenanceFenceLost);
+    }
+    transaction.commit()?;
     Ok(())
 }
 

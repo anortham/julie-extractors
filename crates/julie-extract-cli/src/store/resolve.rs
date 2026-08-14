@@ -455,6 +455,7 @@ fn resolve_claimed(
         .scratch_dir()
         .join(format!("resolve-delta-{}.db", request.request_id));
     if binding.state == ViewResolutionState::Exact {
+        let rebase_published = resolution_rebase_published(layout, &request.request_id)?;
         if let Some(durable) = ResolutionBindingStore::new(factory.clone())
             .exact_publication_telemetry(
                 &request.request_id,
@@ -474,6 +475,31 @@ fn resolve_claimed(
             |_coordinator, fencing_token| {
                 heartbeat.ensure_live()?;
                 ensure_resolve_claim(layout, request, holder)?;
+                let fenced_bindings = ResolutionBindingStore::new(fenced_factory(
+                    &factory,
+                    layout,
+                    holder,
+                    fencing_token,
+                ));
+                fenced_bindings
+                    .release_pin(
+                        &rebase_pin_id(&request.request_id),
+                        ResolutionPinOwnerKind::Resolve,
+                        &request.request_id,
+                    )
+                    .map_err(|error| format!("resolution_failed: {error}"))?;
+                fenced_bindings
+                    .release_pin(&pin_id, ResolutionPinOwnerKind::Resolve, &holder.holder_id)
+                    .map_err(|error| format!("resolution_failed: {error}"))?;
+                pin_guard.disarm();
+                if rebase_published {
+                    fenced_bindings
+                        .cleanup_superseded_deltas(
+                            &binding.view_id,
+                            &store_timestamp(layout, "now")?,
+                        )
+                        .map_err(|error| format!("resolution_failed: {error}"))?;
+                }
                 append_resolution_terminal(
                     &factory,
                     layout,
@@ -483,15 +509,6 @@ fn resolve_claimed(
                     &binding,
                     &telemetry,
                 )?;
-                ResolutionBindingStore::new(fenced_factory(
-                    &factory,
-                    layout,
-                    holder,
-                    fencing_token,
-                ))
-                .release_pin(&pin_id, ResolutionPinOwnerKind::Resolve, &holder.holder_id)
-                .map_err(|error| format!("resolution_failed: {error}"))?;
-                pin_guard.disarm();
                 Ok(())
             },
         )?;
@@ -599,7 +616,7 @@ fn resolve_claimed(
         drop(exact);
         drop(base);
         remove_sqlite_if_exists(&delta_path)?;
-        let rebased_base_id = prepare_rebased_base(
+        let (rebased_base_id, mut rebased_pin_guard) = prepare_rebased_base(
             layout,
             &factory,
             coordinator,
@@ -610,6 +627,7 @@ fn resolve_claimed(
             &publication,
             &exact_path,
         )?;
+        let rebased_pin_id = rebased_pin_guard.pin_id.clone();
         with_writer_lease(
             layout,
             coordinator,
@@ -632,6 +650,8 @@ fn resolve_claimed(
                     fencing_token,
                 ));
                 let durable_telemetry = telemetry.durable_payload();
+                #[cfg(feature = "test-store-resolution-contract")]
+                fail_before_rebase_view_cas_for_test()?;
                 let published = fenced_bindings
                     .publish_rebased_exact(
                         &publication,
@@ -658,6 +678,21 @@ fn resolve_claimed(
                 );
                 #[cfg(feature = "test-store-resolution-contract")]
                 pause_after_exact_publish_for_test()?;
+                fenced_bindings
+                    .release_pin(
+                        &rebased_pin_id,
+                        ResolutionPinOwnerKind::Resolve,
+                        &request.request_id,
+                    )
+                    .map_err(|error| format!("resolution_failed: {error}"))?;
+                rebased_pin_guard.disarm();
+                fenced_bindings
+                    .release_pin(&pin_id, ResolutionPinOwnerKind::Resolve, &holder.holder_id)
+                    .map_err(|error| format!("resolution_failed: {error}"))?;
+                pin_guard.disarm();
+                fenced_bindings
+                    .cleanup_superseded_deltas(&published.view_id, &store_timestamp(layout, "now")?)
+                    .map_err(|error| format!("resolution_failed: {error}"))?;
                 append_resolution_terminal(
                     &factory,
                     layout,
@@ -667,10 +702,6 @@ fn resolve_claimed(
                     &published,
                     &telemetry,
                 )?;
-                fenced_bindings
-                    .release_pin(&pin_id, ResolutionPinOwnerKind::Resolve, &holder.holder_id)
-                    .map_err(|error| format!("resolution_failed: {error}"))?;
-                pin_guard.disarm();
                 Ok(())
             },
         )?;
@@ -723,6 +754,10 @@ fn resolve_claimed(
             );
             #[cfg(feature = "test-store-resolution-contract")]
             pause_after_exact_publish_for_test()?;
+            fenced_bindings
+                .release_pin(&pin_id, ResolutionPinOwnerKind::Resolve, &holder.holder_id)
+                .map_err(|error| format!("resolution_failed: {error}"))?;
+            pin_guard.disarm();
             append_resolution_terminal(
                 &factory,
                 layout,
@@ -732,10 +767,6 @@ fn resolve_claimed(
                 &published,
                 &telemetry,
             )?;
-            fenced_bindings
-                .release_pin(&pin_id, ResolutionPinOwnerKind::Resolve, &holder.holder_id)
-                .map_err(|error| format!("resolution_failed: {error}"))?;
-            pin_guard.disarm();
             Ok(())
         },
     )?;
@@ -758,7 +789,8 @@ fn prepare_rebased_base(
     deadline: i64,
     publication: &ResolutionExactPublish,
     exact_path: &Path,
-) -> Result<String, String> {
+) -> Result<(String, ResolvePinGuard), String> {
+    let pin_id = rebase_pin_id(&publication.request_id);
     let begin = with_writer_lease(
         layout,
         coordinator,
@@ -780,7 +812,21 @@ fn prepare_rebased_base(
     let catalog = ResolutionBaseCatalog::new(factory.clone());
     let build = match begin {
         ResolutionBaseBegin::Build(build) => Some(build),
-        ResolutionBaseBegin::Ready(record) => return Ok(record.base_id),
+        ResolutionBaseBegin::Ready(record) => {
+            let pin_guard = open_rebase_pin(
+                layout,
+                factory,
+                coordinator,
+                holder,
+                request,
+                heartbeat,
+                deadline,
+                publication,
+                &record.base_id,
+                &pin_id,
+            )?;
+            return Ok((record.base_id, pin_guard));
+        }
         ResolutionBaseBegin::Building(_) => {
             let recovery = with_writer_lease(
                 layout,
@@ -807,7 +853,21 @@ fn prepare_rebased_base(
                 },
             )?;
             match recovery {
-                ResolutionBaseRecovery::Ready(record) => return Ok(record.base_id),
+                ResolutionBaseRecovery::Ready(record) => {
+                    let pin_guard = open_rebase_pin(
+                        layout,
+                        factory,
+                        coordinator,
+                        holder,
+                        request,
+                        heartbeat,
+                        deadline,
+                        publication,
+                        &record.base_id,
+                        &pin_id,
+                    )?;
+                    return Ok((record.base_id, pin_guard));
+                }
                 ResolutionBaseRecovery::Rebuild(build) => Some(build),
                 ResolutionBaseRecovery::LiveOwner(_) => {
                     return Err(
@@ -818,13 +878,44 @@ fn prepare_rebased_base(
         }
     };
     let build = build.expect("rebase build is present");
-    promote_exact_scratch_for_rebase(exact_path, &build)?;
-    heartbeat.ensure_current(coordinator, request, holder)?;
-    catalog
-        .publish_scratch(&build)
-        .map_err(|error| format!("resolution_failed: {error}"))?;
-    heartbeat.ensure_current(coordinator, request, holder)?;
-    with_writer_lease(
+    let mut pin_guard = open_rebase_pin(
+        layout,
+        factory,
+        coordinator,
+        holder,
+        request,
+        heartbeat,
+        deadline,
+        publication,
+        &build.record.base_id,
+        &pin_id,
+    )?;
+    if let Err(error) = (|| {
+        promote_exact_scratch_for_rebase(exact_path, &build)?;
+        heartbeat.ensure_current(coordinator, request, holder)?;
+        catalog
+            .publish_scratch(&build)
+            .map_err(|error| format!("resolution_failed: {error}"))?;
+        heartbeat.ensure_current(coordinator, request, holder)?;
+        Ok::<(), String>(())
+    })() {
+        if release_rebase_pin_after_error(
+            layout,
+            factory,
+            coordinator,
+            holder,
+            request,
+            heartbeat,
+            deadline,
+            &pin_id,
+        )
+        .is_ok()
+        {
+            pin_guard.disarm();
+        }
+        return Err(error);
+    }
+    let base_id = with_writer_lease(
         layout,
         coordinator,
         holder,
@@ -837,7 +928,86 @@ fn prepare_rebased_base(
                 .map(|record| record.base_id)
                 .map_err(|error| format!("resolution_failed: {error}"))
         },
+    )?;
+    Ok((base_id, pin_guard))
+}
+
+#[allow(clippy::too_many_arguments)]
+fn open_rebase_pin(
+    layout: &StoreLayout,
+    factory: &StoreConnectionFactory,
+    coordinator: &mut StoreCoordinator,
+    holder: &LeaseHolder,
+    request: &CoordinatorRequest,
+    heartbeat: &ResolveHeartbeat,
+    deadline: i64,
+    publication: &ResolutionExactPublish,
+    base_id: &str,
+    pin_id: &str,
+) -> Result<ResolvePinGuard, String> {
+    let expires_at = store_timestamp(layout, "+1 hour")?;
+    let now = store_timestamp(layout, "now")?;
+    with_writer_lease(
+        layout,
+        coordinator,
+        holder,
+        deadline,
+        |_coordinator, fencing_token| {
+            heartbeat.ensure_live()?;
+            ensure_resolve_claim(layout, request, holder)?;
+            let fenced_factory = fenced_factory(factory, layout, holder, fencing_token);
+            ResolutionBindingStore::new(fenced_factory.clone())
+                .open_pin_for_base(
+                    pin_id,
+                    ResolutionPinOwnerKind::Resolve,
+                    &publication.request_id,
+                    &publication.view_id,
+                    publication.manifest_generation,
+                    &publication.manifest_hash,
+                    base_id,
+                    publication.resolver_output_epoch,
+                    &expires_at,
+                    &now,
+                )
+                .map_err(|error| format!("resolution_failed: {error}"))?;
+            Ok(ResolvePinGuard::armed(
+                fenced_factory,
+                pin_id.to_string(),
+                publication.request_id.clone(),
+            ))
+        },
     )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn release_rebase_pin_after_error(
+    layout: &StoreLayout,
+    factory: &StoreConnectionFactory,
+    coordinator: &mut StoreCoordinator,
+    holder: &LeaseHolder,
+    request: &CoordinatorRequest,
+    heartbeat: &ResolveHeartbeat,
+    deadline: i64,
+    pin_id: &str,
+) -> Result<(), String> {
+    with_writer_lease(
+        layout,
+        coordinator,
+        holder,
+        deadline,
+        |_coordinator, fencing_token| {
+            heartbeat.ensure_live()?;
+            ensure_resolve_claim(layout, request, holder)?;
+            ResolutionBindingStore::new(fenced_factory(factory, layout, holder, fencing_token))
+                .release_pin(pin_id, ResolutionPinOwnerKind::Resolve, &request.request_id)
+                .map(|_| ())
+                .map_err(|error| format!("resolution_failed: {error}"))
+        },
+    )
+}
+
+fn rebase_pin_id(request_id: &str) -> String {
+    format!("resolve-rebase-{request_id}")
 }
 
 fn promote_exact_scratch_for_rebase(
@@ -1535,6 +1705,20 @@ fn store_timestamp(layout: &StoreLayout, modifier: &str) -> Result<String, Strin
     }
 }
 
+fn resolution_rebase_published(layout: &StoreLayout, request_id: &str) -> Result<bool, String> {
+    Connection::open(layout.store_db())
+        .map_err(|error| error.to_string())?
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1 FROM store_log
+               WHERE request_id=?1 AND event_kind='resolution_exact_rebased'
+             )",
+            [request_id],
+            |row| row.get(0),
+        )
+        .map_err(|error| error.to_string())
+}
+
 fn classify_resolution_error(error: impl std::fmt::Display) -> String {
     let detail = error.to_string();
     if detail.contains("not L2-complete") || detail.contains("input") {
@@ -1598,6 +1782,16 @@ fn pause_after_exact_publish_for_test() -> Result<(), String> {
         "JULIE_EXTRACT_STORE_RESOLUTION_PAUSE_AFTER_EXACT_FILE",
         b"exact",
     )
+}
+
+#[cfg(feature = "test-store-resolution-contract")]
+fn fail_before_rebase_view_cas_for_test() -> Result<(), String> {
+    if std::env::var("JULIE_EXTRACT_STORE_TEST_FAIL_AT").as_deref()
+        == Ok("resolution_rebase_before_view_cas")
+    {
+        return Err("resolution_failed: test failure before rebase view CAS".to_string());
+    }
+    Ok(())
 }
 
 #[cfg(feature = "test-store-resolution-contract")]

@@ -3,6 +3,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::thread;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use julie_extract_artifact::store::{
     CapacityProvider, CoordinatorRequest, DeltaVersionFact, MaintenanceApplyPolicy,
@@ -480,6 +482,382 @@ fn dead_maintenance_owner_is_replaced_before_its_expiry() {
         "successor-run"
     );
     drop(executor);
+}
+
+#[test]
+fn short_maintenance_lease_heartbeats_intent_and_writer_during_apply() {
+    let temp = TempStore::new("short-lease-heartbeat");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    seed_gc_level_matrix(&layout);
+    let plan = inspect_plan(&layout, 30 * DAY_MS);
+    let calls = Arc::new(AtomicU64::new(0));
+    let block_after = Arc::new(AtomicU64::new(0));
+    let entered = Arc::new(AtomicU64::new(0));
+    let release = Arc::new(AtomicU64::new(0));
+    let capacity = BlockingCapacity {
+        calls: Arc::clone(&calls),
+        block_after: Arc::clone(&block_after),
+        entered: Arc::clone(&entered),
+        release: Arc::clone(&release),
+    };
+    let owner_pid = std::process::id();
+    let mut executor = MaintenanceExecutor::acquire(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0"),
+        MaintenanceRun::new(
+            "short-lease-heartbeat",
+            "heartbeat-owner",
+            owner_pid,
+            30 * DAY_MS,
+            100,
+        ),
+        &plan,
+        capacity,
+    )
+    .unwrap();
+    let before: (String, String, i64, i64, i64, i64, i64, i64) =
+        Connection::open(layout.coordinator_db())
+            .unwrap()
+            .query_row(
+                "SELECT i.run_id,i.owner_id,i.owner_pid,i.fencing_token,
+                    i.heartbeat_at,i.expires_at,l.heartbeat_at,l.expires_at
+             FROM maintenance_intent AS i
+             JOIN writer_lease AS l ON l.resource='store-writer'
+             WHERE i.resource='store-maintenance'",
+                [],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                        row.get(5)?,
+                        row.get(6)?,
+                        row.get(7)?,
+                    ))
+                },
+            )
+            .unwrap();
+    block_after.store(calls.load(Ordering::SeqCst) + 2, Ordering::SeqCst);
+    let apply_plan = plan.clone();
+    let apply_thread = thread::spawn(move || executor.apply(&apply_plan));
+    let entered_deadline = std::time::Instant::now() + Duration::from_secs(5);
+    while entered.load(Ordering::SeqCst) == 0 && std::time::Instant::now() < entered_deadline {
+        thread::sleep(Duration::from_millis(5));
+    }
+    if entered.load(Ordering::SeqCst) == 0 {
+        release.store(1, Ordering::SeqCst);
+        let _ = apply_thread.join();
+        panic!("maintenance apply did not enter the lease window");
+    }
+    thread::sleep(Duration::from_millis(350));
+    let current: (String, String, i64, i64, i64, i64, i64, i64) =
+        Connection::open(layout.coordinator_db())
+            .unwrap()
+            .query_row(
+                "SELECT i.run_id,i.owner_id,i.owner_pid,i.fencing_token,
+                        i.heartbeat_at,i.expires_at,l.heartbeat_at,l.expires_at
+                 FROM maintenance_intent AS i
+                 JOIN writer_lease AS l ON l.resource='store-writer'
+                 WHERE i.resource='store-maintenance'",
+                [],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                        row.get(5)?,
+                        row.get(6)?,
+                        row.get(7)?,
+                    ))
+                },
+            )
+            .unwrap();
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as i64;
+    release.store(1, Ordering::SeqCst);
+    let result = apply_thread.join().unwrap();
+    assert_eq!(
+        (current.0, current.1, current.2, current.3,),
+        (
+            "short-lease-heartbeat".to_string(),
+            "heartbeat-owner".to_string(),
+            i64::from(owner_pid),
+            before.3,
+        )
+    );
+    assert!(current.4 > before.4);
+    assert!(current.6 > before.6);
+    assert!(current.5 > now);
+    assert!(current.7 > now);
+    assert!(result.is_ok(), "short lease apply failed: {result:?}");
+}
+
+#[test]
+fn short_maintenance_lease_heartbeats_during_plan_validation() {
+    let temp = TempStore::new("short-lease-validation-heartbeat");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    seed_gc_level_matrix(&layout);
+    let plan = inspect_plan(&layout, 30 * DAY_MS);
+    let calls = Arc::new(AtomicU64::new(0));
+    let block_after = Arc::new(AtomicU64::new(0));
+    let entered = Arc::new(AtomicU64::new(0));
+    let release = Arc::new(AtomicU64::new(0));
+    let capacity = BlockingCapacity {
+        calls: Arc::clone(&calls),
+        block_after: Arc::clone(&block_after),
+        entered: Arc::clone(&entered),
+        release: Arc::clone(&release),
+    };
+    let owner_pid = std::process::id();
+    let mut executor = MaintenanceExecutor::acquire(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0"),
+        MaintenanceRun::new(
+            "short-lease-validation-heartbeat",
+            "heartbeat-owner",
+            owner_pid,
+            30 * DAY_MS,
+            100,
+        ),
+        &plan,
+        capacity,
+    )
+    .unwrap();
+    let before: (String, String, i64, i64, i64, i64, i64, i64) =
+        Connection::open(layout.coordinator_db())
+            .unwrap()
+            .query_row(
+                "SELECT i.run_id,i.owner_id,i.owner_pid,i.fencing_token,
+                        i.heartbeat_at,i.expires_at,l.heartbeat_at,l.expires_at
+                 FROM maintenance_intent AS i
+                 JOIN writer_lease AS l ON l.resource='store-writer'
+                 WHERE i.resource='store-maintenance'",
+                [],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                        row.get(5)?,
+                        row.get(6)?,
+                        row.get(7)?,
+                    ))
+                },
+            )
+            .unwrap();
+    block_after.store(calls.load(Ordering::SeqCst) + 1, Ordering::SeqCst);
+    let apply_plan = plan.clone();
+    let apply_thread = thread::spawn(move || executor.apply(&apply_plan));
+    let entered_deadline = std::time::Instant::now() + Duration::from_secs(5);
+    while entered.load(Ordering::SeqCst) == 0 && std::time::Instant::now() < entered_deadline {
+        thread::sleep(Duration::from_millis(5));
+    }
+    if entered.load(Ordering::SeqCst) == 0 {
+        release.store(1, Ordering::SeqCst);
+        let _ = apply_thread.join();
+        panic!("maintenance validation did not enter the lease window");
+    }
+    thread::sleep(Duration::from_millis(350));
+    let current: (String, String, i64, i64, i64, i64, i64, i64) =
+        Connection::open(layout.coordinator_db())
+            .unwrap()
+            .query_row(
+                "SELECT i.run_id,i.owner_id,i.owner_pid,i.fencing_token,
+                        i.heartbeat_at,i.expires_at,l.heartbeat_at,l.expires_at
+                 FROM maintenance_intent AS i
+                 JOIN writer_lease AS l ON l.resource='store-writer'
+                 WHERE i.resource='store-maintenance'",
+                [],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                        row.get(5)?,
+                        row.get(6)?,
+                        row.get(7)?,
+                    ))
+                },
+            )
+            .unwrap();
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as i64;
+    release.store(1, Ordering::SeqCst);
+    let result = apply_thread.join().unwrap();
+    assert_eq!(
+        (current.0, current.1, current.2, current.3,),
+        (
+            "short-lease-validation-heartbeat".to_string(),
+            "heartbeat-owner".to_string(),
+            i64::from(owner_pid),
+            before.3,
+        )
+    );
+    assert!(current.4 > before.4);
+    assert!(current.6 > before.6);
+    assert!(current.5 > now);
+    assert!(current.7 > now);
+    assert!(
+        result.is_ok(),
+        "short validation lease apply failed: {result:?}"
+    );
+}
+
+#[test]
+fn maintenance_heartbeat_fails_closed_after_lease_takeover() {
+    let temp = TempStore::new("heartbeat-takeover");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    seed_gc_level_matrix(&layout);
+    let plan = inspect_plan(&layout, 30 * DAY_MS);
+    let calls = Arc::new(AtomicU64::new(0));
+    let block_after = Arc::new(AtomicU64::new(0));
+    let entered = Arc::new(AtomicU64::new(0));
+    let release = Arc::new(AtomicU64::new(0));
+    let capacity = BlockingCapacity {
+        calls: Arc::clone(&calls),
+        block_after: Arc::clone(&block_after),
+        entered: Arc::clone(&entered),
+        release: Arc::clone(&release),
+    };
+    let owner_pid = std::process::id();
+    let mut executor = MaintenanceExecutor::acquire(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0"),
+        MaintenanceRun::new(
+            "heartbeat-takeover",
+            "old-owner",
+            owner_pid,
+            30 * DAY_MS,
+            100,
+        ),
+        &plan,
+        capacity,
+    )
+    .unwrap();
+    block_after.store(calls.load(Ordering::SeqCst) + 2, Ordering::SeqCst);
+    let apply_plan = plan.clone();
+    let apply_thread = thread::spawn(move || executor.apply(&apply_plan));
+    let entered_deadline = std::time::Instant::now() + Duration::from_secs(5);
+    while entered.load(Ordering::SeqCst) == 0 && std::time::Instant::now() < entered_deadline {
+        thread::sleep(Duration::from_millis(5));
+    }
+    if entered.load(Ordering::SeqCst) == 0 {
+        release.store(1, Ordering::SeqCst);
+        let _ = apply_thread.join();
+        panic!("maintenance apply did not enter the takeover window");
+    }
+    thread::sleep(Duration::from_millis(150));
+
+    let successor_pid = owner_pid.saturating_add(1);
+    let successor_token = 9_999_999_i64;
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as i64;
+    let mut coordinator = Connection::open(layout.coordinator_db()).unwrap();
+    let transaction = coordinator
+        .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+        .unwrap();
+    transaction
+        .execute("DELETE FROM writer_lease WHERE resource='store-writer'", [])
+        .unwrap();
+    transaction
+        .execute(
+            "DELETE FROM maintenance_intent WHERE resource='store-maintenance'",
+            [],
+        )
+        .unwrap();
+    transaction
+        .execute(
+            "INSERT INTO maintenance_intent
+             (resource,run_id,action,source_generation_name,owner_id,owner_pid,fencing_token,
+              heartbeat_at,expires_at,started_at,plan_fingerprint,source_min_writer_version)
+             VALUES ('store-maintenance','successor-run','gc','gen-001','successor-owner',?1,?2,
+                     ?3,?4,?3,'successor-plan','2.30.0')",
+            params![successor_pid, successor_token, now, now + 10_000],
+        )
+        .unwrap();
+    transaction
+        .execute(
+            "INSERT INTO writer_lease
+             (resource,holder_id,holder_version,holder_pid,heartbeat_at,expires_at,fencing_token)
+             VALUES ('store-writer','successor-owner','2.30.0',?1,?2,?3,?4)",
+            params![successor_pid, now, now + 10_000, successor_token],
+        )
+        .unwrap();
+    transaction.commit().unwrap();
+    thread::sleep(Duration::from_millis(100));
+
+    let successor_rows: (String, String, i64, i64, String, i64) =
+        Connection::open(layout.coordinator_db())
+            .unwrap()
+            .query_row(
+                "SELECT i.run_id,i.owner_id,i.owner_pid,i.fencing_token,
+                        l.holder_id,l.fencing_token
+                 FROM maintenance_intent AS i
+                 JOIN writer_lease AS l ON l.resource='store-writer'
+                 WHERE i.resource='store-maintenance'",
+                [],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                        row.get(5)?,
+                    ))
+                },
+            )
+            .unwrap();
+    release.store(1, Ordering::SeqCst);
+    let result = apply_thread.join().unwrap();
+    assert!(
+        matches!(result, Err(MaintenanceError::MaintenanceFenceLost)),
+        "result={result:?}"
+    );
+    assert_eq!(
+        successor_rows,
+        (
+            "successor-run".to_string(),
+            "successor-owner".to_string(),
+            i64::from(successor_pid),
+            successor_token,
+            "successor-owner".to_string(),
+            successor_token,
+        )
+    );
+    let unchanged = Connection::open(layout.coordinator_db())
+        .unwrap()
+        .query_row(
+            "SELECT i.run_id,i.owner_id,i.owner_pid,i.fencing_token,
+                    l.holder_id,l.fencing_token
+             FROM maintenance_intent AS i
+             JOIN writer_lease AS l ON l.resource='store-writer'
+             WHERE i.resource='store-maintenance'",
+            [],
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, i64>(2)?,
+                    row.get::<_, i64>(3)?,
+                    row.get::<_, String>(4)?,
+                    row.get::<_, i64>(5)?,
+                ))
+            },
+        )
+        .unwrap();
+    assert_eq!(unchanged, successor_rows);
 }
 
 #[test]
@@ -1766,6 +2144,31 @@ struct ControllableCapacity {
 impl CapacityProvider for ControllableCapacity {
     fn free_bytes(&self, _path: &Path) -> Result<u64, std::io::Error> {
         Ok(self.free_bytes.load(Ordering::SeqCst))
+    }
+
+    fn staged_generation_bytes(&self, _path: &Path) -> Result<u64, std::io::Error> {
+        Ok(64 * 1024 * 1024)
+    }
+}
+
+#[derive(Clone)]
+struct BlockingCapacity {
+    calls: Arc<AtomicU64>,
+    block_after: Arc<AtomicU64>,
+    entered: Arc<AtomicU64>,
+    release: Arc<AtomicU64>,
+}
+
+impl CapacityProvider for BlockingCapacity {
+    fn free_bytes(&self, _path: &Path) -> Result<u64, std::io::Error> {
+        let call = self.calls.fetch_add(1, Ordering::SeqCst) + 1;
+        let block_after = self.block_after.load(Ordering::SeqCst);
+        if block_after != 0 && call >= block_after && self.entered.swap(1, Ordering::SeqCst) == 0 {
+            while self.release.load(Ordering::SeqCst) == 0 {
+                thread::sleep(Duration::from_millis(5));
+            }
+        }
+        Ok(512 * 1024 * 1024)
     }
 
     fn staged_generation_bytes(&self, _path: &Path) -> Result<u64, std::io::Error> {

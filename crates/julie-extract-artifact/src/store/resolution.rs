@@ -2220,6 +2220,144 @@ impl ResolutionBindingStore {
         Ok(record)
     }
 
+    #[allow(clippy::too_many_arguments)]
+    pub fn open_pin_for_base(
+        &self,
+        pin_id: &str,
+        owner_kind: ResolutionPinOwnerKind,
+        owner_id: &str,
+        view_id: &str,
+        manifest_generation: i64,
+        manifest_hash: &str,
+        base_id: &str,
+        resolver_output_epoch: i64,
+        expires_at: &str,
+        now: &str,
+    ) -> Result<ResolutionPinRecord, ResolutionBindingError> {
+        if owner_kind != ResolutionPinOwnerKind::Resolve
+            || pin_id.is_empty()
+            || owner_id.is_empty()
+            || view_id.is_empty()
+            || manifest_generation <= 0
+            || manifest_hash.is_empty()
+            || base_id.is_empty()
+            || resolver_output_epoch <= 0
+        {
+            return Err(ResolutionBindingError::InvalidPublication {
+                detail: "temporary base pin identity is invalid".to_string(),
+            });
+        }
+
+        let mut connection = self.factory.open_writer()?;
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        if !timestamp_is_later(&transaction, expires_at, now)? {
+            return Err(ResolutionBindingError::InvalidPublication {
+                detail: "pin expiry must be later than its creation time".to_string(),
+            });
+        }
+        let current = transaction
+            .query_row(
+                "SELECT view.current_generation,manifest.manifest_hash
+                 FROM views AS view
+                 JOIN manifests AS manifest
+                   ON manifest.view_id=view.view_id
+                  AND manifest.generation=view.current_generation
+                 WHERE view.view_id=?1",
+                [view_id],
+                |row| Ok((row.get::<_, Option<i64>>(0)?, row.get::<_, String>(1)?)),
+            )
+            .optional()?
+            .ok_or_else(|| ResolutionBindingError::ViewNotFound {
+                view_id: view_id.to_string(),
+            })?;
+        if current != (Some(manifest_generation), manifest_hash.to_string()) {
+            return Err(ResolutionBindingError::InvalidPublication {
+                detail: "temporary base pin manifest is not the current view identity".to_string(),
+            });
+        }
+        let base = transaction
+            .query_row(
+                "SELECT manifest_hash,resolver_output_epoch,state
+                 FROM resolution_bases WHERE base_id=?1",
+                [base_id],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, i64>(1)?,
+                        row.get::<_, String>(2)?,
+                    ))
+                },
+            )
+            .optional()?
+            .ok_or_else(|| ResolutionBindingError::InvalidPublication {
+                detail: "temporary base pin base does not exist".to_string(),
+            })?;
+        if base
+            != (
+                manifest_hash.to_string(),
+                resolver_output_epoch,
+                "building".to_string(),
+            )
+            && base
+                != (
+                    manifest_hash.to_string(),
+                    resolver_output_epoch,
+                    "ready".to_string(),
+                )
+        {
+            return Err(ResolutionBindingError::InvalidPublication {
+                detail: "temporary base pin base identity is incoherent".to_string(),
+            });
+        }
+
+        if let Some(existing) = pin_record_by_id(&transaction, pin_id)? {
+            if existing.owner_kind != owner_kind || existing.owner_id != owner_id {
+                return Err(ResolutionBindingError::PinOwnerMismatch {
+                    pin_id: pin_id.to_string(),
+                });
+            }
+            if existing.view_id != view_id
+                || existing.manifest_generation != manifest_generation
+                || existing.base_id != base_id
+                || existing.delta_generation.is_some()
+            {
+                return Err(ResolutionBindingError::InvalidPublication {
+                    detail: "temporary base pin identity conflicts with an existing pin"
+                        .to_string(),
+                });
+            }
+            if timestamp_is_later(&transaction, &existing.expires_at, now)? {
+                transaction.commit()?;
+                return Ok(existing);
+            }
+            transaction.execute("DELETE FROM resolution_pins WHERE pin_id=?1", [pin_id])?;
+        }
+
+        transaction.execute(
+            "INSERT INTO resolution_pins
+             (pin_id,owner_kind,owner_id,view_id,manifest_generation,base_id,
+              delta_generation,expires_at,created_at)
+             VALUES (?1,?2,?3,?4,?5,?6,NULL,?7,?8)",
+            params![
+                pin_id,
+                owner_kind.as_str(),
+                owner_id,
+                view_id,
+                manifest_generation,
+                base_id,
+                expires_at,
+                now,
+            ],
+        )?;
+        let record = pin_record_by_id(&transaction, pin_id)?.ok_or_else(|| {
+            ResolutionBindingError::PinNotFound {
+                pin_id: pin_id.to_string(),
+            }
+        })?;
+        transaction.commit()?;
+        Ok(record)
+    }
+
     pub fn renew_pin(
         &self,
         pin_id: &str,

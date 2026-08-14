@@ -7,6 +7,10 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use clap::Parser;
+use julie_extract_artifact::store::{
+    GenerationFence, LeaseDisposition, LeaseHolder, ResolutionBindingStore, ResolutionPinOwnerKind,
+    StoreConnectionFactory, StoreCoordinator, StoreLayout,
+};
 use julie_extract_cli::store::args::{StoreCli, StoreCommand, StoreRootCommand};
 use julie_extract_cli::store::report::{
     StoreCommandOutcome, StoreFailureClass, StoreOperation, StoreReport, StoreRequestState,
@@ -287,7 +291,7 @@ fn resolve_rejects_invalid_delta_escape_hatch_values() {
 }
 
 #[test]
-fn resolve_unset_delta_uses_planner_and_reports_scoped_telemetry() {
+fn resolve_unset_delta_promotes_crossover_and_reports_full_telemetry() {
     let temp = TempDir::new();
     let (root, store) = create_full_store(&temp);
     assert_ran(resolve_output(
@@ -325,7 +329,6 @@ fn resolve_unset_delta_uses_planner_and_reports_scoped_telemetry() {
         String::from_utf8_lossy(&update.stdout),
         String::from_utf8_lossy(&update.stderr)
     );
-
     let resolve = resolve_output(&store, "resolve-scoped", "resolve-scoped-key");
 
     assert!(
@@ -335,10 +338,13 @@ fn resolve_unset_delta_uses_planner_and_reports_scoped_telemetry() {
         String::from_utf8_lossy(&resolve.stderr)
     );
     let report: Value = serde_json::from_slice(&resolve.stdout).unwrap();
-    assert_eq!(report["resolution"]["resolution_mode"], "scoped");
-    assert!(report["resolution"]["fallback_reason"].is_null());
+    assert_eq!(report["resolution"]["resolution_mode"], "full");
+    assert_eq!(
+        report["resolution"]["fallback_reason"],
+        "resolution_scope_crossover"
+    );
     assert!(report["resolution"]["scope_file_count"].as_u64().unwrap() >= 1);
-    assert!(report["resolution"]["scope_name_count"].as_u64().unwrap() >= 1);
+    assert_eq!(report["resolution"]["scope_name_count"], 0);
     assert!(report["resolution"]["scope_row_count"].as_u64().unwrap() >= 1);
     assert!(report["resolution"]["phase_timings_ms"]["scope"].is_u64());
 }
@@ -1231,6 +1237,701 @@ fn replacement_rows_over_one_quarter_rebase_to_the_current_manifest_base() {
             )
             .unwrap(),
         1
+    );
+    assert_eq!(
+        connection
+            .query_row(
+                "SELECT COUNT(*) FROM resolution_deltas WHERE view_id='view-main'",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        1,
+        "successful rebase must collect superseded deltas",
+    );
+}
+
+#[test]
+fn rebase_publication_failure_before_view_cas_keeps_ready_base_pinned() {
+    let temp = TempDir::new();
+    let (root, store) = create_full_store(&temp);
+    assert_ran(resolve_output(
+        &store,
+        "resolve-pre-cas-seed",
+        "resolve-pre-cas-seed-key",
+    ));
+    fs::write(
+        root.join("lib.rs"),
+        "pub fn answer() -> i32 { replacement() }\nfn replacement() -> i32 { 9 }\n",
+    )
+    .unwrap();
+    assert_ran(julie_extract(&[
+        "store",
+        "update",
+        "--store",
+        store.to_str().unwrap(),
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--file",
+        "lib.rs",
+        "--level",
+        "full",
+        "--json",
+    ]));
+
+    let request_id = "resolve-pre-cas-failure";
+    let failed = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
+            "store",
+            "resolve",
+            "--store",
+            store.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--request-id",
+            request_id,
+            "--idempotency-key",
+            "resolve-pre-cas-failure-key",
+            "--json",
+        ])
+        .env(
+            "JULIE_EXTRACT_STORE_TEST_FAIL_AT",
+            "resolution_rebase_before_view_cas",
+        )
+        .output()
+        .unwrap();
+    assert_eq!(failed.status.code(), Some(1));
+    let report: Value = serde_json::from_slice(&failed.stdout).unwrap();
+    assert_eq!(report["failure_class"], "resolution_failed");
+
+    let store_db = store.join("gen-001/store.db");
+    let db = Connection::open(&store_db).unwrap();
+    let (resolution_state, bound_base, manifest_hash): (String, String, String) = db
+        .query_row(
+            "SELECT view.resolution_state,view.resolution_base_id,manifest.manifest_hash
+             FROM views AS view
+             JOIN manifests AS manifest
+               ON manifest.view_id=view.view_id AND manifest.generation=view.current_generation
+             WHERE view.view_id='view-main'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .unwrap();
+    assert_eq!(resolution_state, "converging");
+    let ready_base: String = db
+        .query_row(
+            "SELECT base.base_id
+             FROM resolution_bases AS base
+             WHERE base.state='ready' AND base.manifest_hash=?1 AND base.base_id<>?2
+             ORDER BY base.updated_at DESC",
+            rusqlite::params![manifest_hash, bound_base],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        db.query_row(
+            "SELECT COUNT(*) FROM resolution_pins
+             WHERE pin_id=?1 AND owner_kind='resolve' AND owner_id=?2
+               AND base_id=?3 AND delta_generation IS NULL",
+            rusqlite::params![
+                format!("resolve-rebase-{request_id}"),
+                request_id,
+                ready_base,
+            ],
+            |row| row.get::<_, i64>(0),
+        )
+        .unwrap(),
+        1,
+        "a ready but unbound base must remain protected after pre-CAS failure",
+    );
+}
+
+#[test]
+fn conflicting_rebase_pin_survives_open_failure() {
+    let temp = TempDir::new();
+    let (root, store) = create_full_store(&temp);
+    assert_ran(resolve_output(
+        &store,
+        "resolve-conflict-seed",
+        "resolve-conflict-seed-key",
+    ));
+    let store_db = store.join("gen-001/store.db");
+    let (old_base, old_generation): (String, i64) = Connection::open(&store_db)
+        .unwrap()
+        .query_row(
+            "SELECT resolution_base_id,current_generation
+             FROM views WHERE view_id='view-main'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .unwrap();
+    let conflicting_pin_id = "resolve-rebase-resolve-conflict";
+    Connection::open(&store_db)
+        .unwrap()
+        .execute(
+            "INSERT INTO resolution_pins
+             (pin_id,owner_kind,owner_id,view_id,manifest_generation,base_id,
+              delta_generation,expires_at,created_at)
+             VALUES (?1,'resolve',?2,'view-main',?3,?4,NULL,?5,?6)",
+            rusqlite::params![
+                conflicting_pin_id,
+                "resolve-conflict",
+                old_generation,
+                old_base,
+                "2099-01-01T00:00:00Z",
+                "2026-08-14T00:00:00Z",
+            ],
+        )
+        .unwrap();
+
+    fs::write(
+        root.join("lib.rs"),
+        "pub fn answer() -> i32 { replacement() }\nfn replacement() -> i32 { 9 }\n",
+    )
+    .unwrap();
+    assert_ran(julie_extract(&[
+        "store",
+        "update",
+        "--store",
+        store.to_str().unwrap(),
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--file",
+        "lib.rs",
+        "--level",
+        "full",
+        "--json",
+    ]));
+
+    let failed = resolve_output(&store, "resolve-conflict", "resolve-conflict-key");
+    assert_eq!(failed.status.code(), Some(1));
+    let report: Value = serde_json::from_slice(&failed.stdout).unwrap();
+    assert_eq!(report["failure_class"], "resolution_failed");
+    assert!(
+        report["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("temporary base pin identity conflicts with an existing pin")
+    );
+
+    let db = Connection::open(&store_db).unwrap();
+    assert_eq!(
+        db.query_row(
+            "SELECT COUNT(*) FROM resolution_pins WHERE pin_id=?1",
+            [conflicting_pin_id],
+            |row| row.get::<_, i64>(0),
+        )
+        .unwrap(),
+        1,
+        "the pre-existing conflicting pin must survive the failed open",
+    );
+    let preserved: (String, String, String, i64, String, Option<i64>) = db
+        .query_row(
+            "SELECT pin_id,owner_kind,owner_id,manifest_generation,base_id,delta_generation
+             FROM resolution_pins WHERE pin_id=?1",
+            [conflicting_pin_id],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                ))
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        preserved,
+        (
+            conflicting_pin_id.to_string(),
+            "resolve".to_string(),
+            "resolve-conflict".to_string(),
+            old_generation,
+            old_base,
+            None,
+        )
+    );
+}
+
+#[test]
+fn stale_rebase_pin_cleanup_cannot_delete_a_successor_reuse() {
+    let temp = TempDir::new();
+    let (root, store) = create_full_store(&temp);
+    assert_ran(resolve_output(
+        &store,
+        "resolve-fenced-seed",
+        "resolve-fenced-seed-key",
+    ));
+    fs::write(
+        root.join("lib.rs"),
+        "pub fn answer() -> i32 { replacement() }\nfn replacement() -> i32 { 9 }\n",
+    )
+    .unwrap();
+    assert_ran(julie_extract(&[
+        "store",
+        "update",
+        "--store",
+        store.to_str().unwrap(),
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--file",
+        "lib.rs",
+        "--level",
+        "full",
+        "--json",
+    ]));
+
+    let pause = temp.path().join("fenced-rebase.pause");
+    let mut child = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
+            "store",
+            "resolve",
+            "--store",
+            store.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--request-id",
+            "resolve-fenced-stale",
+            "--idempotency-key",
+            "resolve-fenced-stale-key",
+            "--json",
+        ])
+        .env(
+            "JULIE_EXTRACT_STORE_RESOLUTION_PAUSE_AFTER_EXACT_FILE",
+            &pause,
+        )
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
+    wait_for_pause(&mut child, &pause);
+
+    let store_db = store.join("gen-001/store.db");
+    let pin_id = "resolve-rebase-resolve-fenced-stale";
+    let db = Connection::open(&store_db).unwrap();
+    let current: (i64, String, String, i64) = db
+        .query_row(
+            "SELECT view.current_generation,manifest.manifest_hash,
+                    view.resolution_base_id,base.resolver_output_epoch
+             FROM views AS view
+             JOIN manifests AS manifest
+               ON manifest.view_id=view.view_id AND manifest.generation=view.current_generation
+             JOIN resolution_bases AS base ON base.base_id=view.resolution_base_id
+             WHERE view.view_id='view-main'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        )
+        .unwrap();
+    assert_eq!(
+        db.query_row(
+            "SELECT COUNT(*) FROM resolution_pins
+             WHERE pin_id=?1 AND owner_kind='resolve' AND owner_id='resolve-fenced-stale'
+               AND delta_generation IS NULL",
+            [pin_id],
+            |row| row.get::<_, i64>(0),
+        )
+        .unwrap(),
+        1,
+        "the paused resolver must hold the temporary rebase pin",
+    );
+    drop(db);
+
+    let coordinator_db = store.join("coord.db");
+    assert_eq!(
+        Connection::open(&coordinator_db)
+            .unwrap()
+            .execute(
+                "UPDATE writer_lease
+                 SET expires_at=0,heartbeat_at=0,fencing_token=fencing_token+1",
+                [],
+            )
+            .unwrap(),
+        1
+    );
+    std::thread::sleep(Duration::from_millis(300));
+
+    let layout = StoreLayout::open(&store).unwrap();
+    let family_id = "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11";
+    let successor_holder = LeaseHolder::new(
+        "successor-fenced-reuse",
+        env!("CARGO_PKG_VERSION"),
+        std::process::id(),
+    );
+    let mut successor_coordinator = StoreCoordinator::open(&layout).unwrap();
+    let LeaseDisposition::Acquired {
+        fencing_token: successor_token,
+    } = successor_coordinator
+        .try_acquire_or_takeover_now(successor_holder.clone())
+        .unwrap()
+    else {
+        panic!("successor must take over the expired writer lease");
+    };
+    let successor_fence = GenerationFence::writer(
+        &layout,
+        successor_holder.holder_id.clone(),
+        successor_holder.holder_pid,
+        successor_token,
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as i64,
+    );
+    let successor_factory =
+        StoreConnectionFactory::new(layout.clone(), family_id, env!("CARGO_PKG_VERSION"))
+            .with_generation_fence(successor_fence);
+    let reused = ResolutionBindingStore::new(successor_factory.clone())
+        .open_pin_for_base(
+            pin_id,
+            ResolutionPinOwnerKind::Resolve,
+            "resolve-fenced-stale",
+            "view-main",
+            current.0,
+            &current.1,
+            &current.2,
+            current.3,
+            "2099-01-01T00:00:00Z",
+            "2026-08-14T00:00:00Z",
+        )
+        .unwrap();
+    assert_eq!(reused.base_id, current.2);
+    assert!(
+        successor_coordinator
+            .release_lease(&successor_holder, successor_token)
+            .unwrap()
+    );
+
+    fs::write(pause.with_extension("resume"), b"resume").unwrap();
+    let output = child.wait_with_output().unwrap();
+    assert!(!output.status.success());
+    let db = Connection::open(&store_db).unwrap();
+    assert_eq!(
+        db.query_row(
+            "SELECT COUNT(*) FROM resolution_pins WHERE pin_id=?1",
+            [pin_id],
+            |row| row.get::<_, i64>(0),
+        )
+        .unwrap(),
+        1,
+        "a stale fenced guard must not delete the successor's reused pin",
+    );
+    drop(db);
+
+    let cleanup_holder = LeaseHolder::new(
+        "successor-fenced-cleanup",
+        env!("CARGO_PKG_VERSION"),
+        std::process::id(),
+    );
+    let mut cleanup_coordinator = StoreCoordinator::open(&layout).unwrap();
+    let LeaseDisposition::Acquired {
+        fencing_token: cleanup_token,
+    } = cleanup_coordinator
+        .try_acquire_or_takeover_now(cleanup_holder.clone())
+        .unwrap()
+    else {
+        panic!("same-fence cleanup must reacquire the writer lease");
+    };
+    let cleanup_fence = GenerationFence::writer(
+        &layout,
+        cleanup_holder.holder_id.clone(),
+        cleanup_holder.holder_pid,
+        cleanup_token,
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as i64,
+    );
+    let cleanup_factory = StoreConnectionFactory::new(layout, family_id, env!("CARGO_PKG_VERSION"))
+        .with_generation_fence(cleanup_fence);
+    assert!(
+        ResolutionBindingStore::new(cleanup_factory)
+            .release_pin(
+                pin_id,
+                ResolutionPinOwnerKind::Resolve,
+                "resolve-fenced-stale"
+            )
+            .unwrap()
+    );
+    assert!(
+        cleanup_coordinator
+            .release_lease(&cleanup_holder, cleanup_token)
+            .unwrap()
+    );
+    assert_eq!(
+        Connection::open(&store_db)
+            .unwrap()
+            .query_row(
+                "SELECT COUNT(*) FROM resolution_pins WHERE pin_id=?1",
+                [pin_id],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        0,
+    );
+}
+
+#[test]
+fn rebase_crash_after_ready_keeps_the_new_base_pinned_until_retry() {
+    let temp = TempDir::new();
+    let (root, store) = create_full_store(&temp);
+    assert_ran(resolve_output(
+        &store,
+        "resolve-ready-seed",
+        "resolve-ready-seed-key",
+    ));
+    fs::write(
+        root.join("lib.rs"),
+        "pub fn answer() -> i32 { replacement() }\nfn replacement() -> i32 { 9 }\n",
+    )
+    .unwrap();
+    assert_ran(julie_extract(&[
+        "store",
+        "update",
+        "--store",
+        store.to_str().unwrap(),
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--file",
+        "lib.rs",
+        "--level",
+        "full",
+        "--json",
+    ]));
+
+    let crashed = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
+            "store",
+            "resolve",
+            "--store",
+            store.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--request-id",
+            "resolve-ready-crash",
+            "--idempotency-key",
+            "resolve-ready-crash-key",
+            "--json",
+        ])
+        .env(
+            "JULIE_EXTRACT_STORE_TEST_CRASH_AT",
+            "resolution_base_after_ready_commit",
+        )
+        .output()
+        .unwrap();
+    assert!(!crashed.status.success());
+
+    let db_path = store.join("gen-001/store.db");
+    let db = Connection::open(&db_path).unwrap();
+    let rebased_base: String = db
+        .query_row(
+            "SELECT base.base_id
+             FROM resolution_bases AS base
+             JOIN views AS view ON view.view_id='view-main'
+             JOIN manifests AS manifest
+               ON manifest.view_id=view.view_id AND manifest.generation=view.current_generation
+             WHERE base.state='ready' AND base.manifest_hash=manifest.manifest_hash
+               AND base.base_id<>view.resolution_base_id",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        db.query_row(
+            "SELECT COUNT(*) FROM resolution_pins
+             WHERE owner_kind='resolve' AND delta_generation IS NULL AND base_id=?1",
+            [&rebased_base],
+            |row| row.get::<_, i64>(0),
+        )
+        .unwrap(),
+        1,
+        "a ready but unbound rebase base must remain protected after a crash",
+    );
+    db.execute(
+        "UPDATE resolution_pins SET expires_at='1970-01-02T00:00:00Z'
+         WHERE owner_kind='resolve' AND delta_generation IS NULL AND base_id=?1",
+        [&rebased_base],
+    )
+    .unwrap();
+    assert_eq!(
+        db.query_row(
+            "SELECT resolution_state FROM views WHERE view_id='view-main'",
+            [],
+            |row| row.get::<_, String>(0),
+        )
+        .unwrap(),
+        "converging"
+    );
+    drop(db);
+
+    let retry = resolve_output(&store, "resolve-ready-retry", "resolve-ready-crash-key");
+    assert!(
+        retry.status.success(),
+        "stdout={} stderr={}",
+        String::from_utf8_lossy(&retry.stdout),
+        String::from_utf8_lossy(&retry.stderr)
+    );
+    let db = Connection::open(&db_path).unwrap();
+    assert_eq!(
+        db.query_row(
+            "SELECT resolution_state FROM views WHERE view_id='view-main'",
+            [],
+            |row| row.get::<_, String>(0),
+        )
+        .unwrap(),
+        "exact"
+    );
+    assert_eq!(
+        db.query_row(
+            "SELECT COUNT(*) FROM resolution_deltas WHERE view_id='view-main'",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .unwrap(),
+        1,
+        "retry must converge to one current delta",
+    );
+    assert_eq!(
+        db.query_row(
+            "SELECT COUNT(*) FROM resolution_pins
+             WHERE owner_kind='resolve' AND delta_generation IS NULL AND base_id=?1",
+            [&rebased_base],
+            |row| row.get::<_, i64>(0),
+        )
+        .unwrap(),
+        0,
+        "retry must release the temporary rebase pin",
+    );
+}
+
+#[test]
+fn rebase_crash_after_view_cas_retries_cleanup_before_reporting_success() {
+    let temp = TempDir::new();
+    let (root, store) = create_full_store(&temp);
+    assert_ran(resolve_output(
+        &store,
+        "resolve-cas-seed",
+        "resolve-cas-seed-key",
+    ));
+    fs::write(
+        root.join("lib.rs"),
+        "pub fn answer() -> i32 { replacement() }\nfn replacement() -> i32 { 9 }\n",
+    )
+    .unwrap();
+    assert_ran(julie_extract(&[
+        "store",
+        "update",
+        "--store",
+        store.to_str().unwrap(),
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--file",
+        "lib.rs",
+        "--level",
+        "full",
+        "--json",
+    ]));
+
+    let crashed = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
+            "store",
+            "resolve",
+            "--store",
+            store.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--request-id",
+            "resolve-cas-crash",
+            "--idempotency-key",
+            "resolve-cas-crash-key",
+            "--json",
+        ])
+        .env(
+            "JULIE_EXTRACT_STORE_TEST_CRASH_AT",
+            "resolution_rebase_after_store_commit",
+        )
+        .output()
+        .unwrap();
+    assert!(!crashed.status.success());
+
+    let db_path = store.join("gen-001/store.db");
+    let db = Connection::open(&db_path).unwrap();
+    let state: (String, i64, i64) = db
+        .query_row(
+            "SELECT resolution_state,resolution_delta_generation,
+                    (SELECT COUNT(*) FROM resolution_deltas WHERE view_id='view-main')
+             FROM views WHERE view_id='view-main'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .unwrap();
+    assert_eq!(state.0, "exact");
+    assert!(state.1 > 0);
+    assert!(state.2 > 1, "crash must leave cleanup owed for retry");
+    let rebased_base: String = db
+        .query_row(
+            "SELECT resolution_base_id FROM views WHERE view_id='view-main'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    drop(db);
+
+    let retry = resolve_output(&store, "resolve-cas-retry", "resolve-cas-crash-key");
+    assert!(
+        retry.status.success(),
+        "stdout={} stderr={}",
+        String::from_utf8_lossy(&retry.stdout),
+        String::from_utf8_lossy(&retry.stderr)
+    );
+    let db = Connection::open(&db_path).unwrap();
+    assert_eq!(
+        db.query_row(
+            "SELECT COUNT(*) FROM resolution_deltas WHERE view_id='view-main'",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .unwrap(),
+        1,
+        "retry must finish superseded-delta cleanup",
+    );
+    let current_delta: i64 = db
+        .query_row(
+            "SELECT resolution_delta_generation FROM views WHERE view_id='view-main'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        db.query_row(
+            "SELECT COUNT(*) FROM resolution_deltas
+             WHERE view_id='view-main' AND delta_generation=?1",
+            [current_delta],
+            |row| row.get::<_, i64>(0),
+        )
+        .unwrap(),
+        1,
+        "the surviving delta must be the exact current view delta",
+    );
+    assert_eq!(
+        db.query_row(
+            "SELECT COUNT(*) FROM resolution_pins
+             WHERE owner_kind='resolve' AND delta_generation IS NULL AND base_id=?1",
+            [&rebased_base],
+            |row| row.get::<_, i64>(0),
+        )
+        .unwrap(),
+        0,
     );
 }
 
