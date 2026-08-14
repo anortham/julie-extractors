@@ -856,9 +856,11 @@ fn dead_import_owner_with_expired_writer_lease_is_requeued_and_fenced() {
         panic!("expired owner lease was not taken over");
     };
     assert!(replacement_token > owner_token);
-    assert!(!owner
-        .heartbeat_lease(&owner_holder, owner_token, 5_012)
-        .unwrap());
+    assert!(
+        !owner
+            .heartbeat_lease(&owner_holder, owner_token, 5_012)
+            .unwrap()
+    );
     let recovered = replacement.request("request-a").unwrap();
     assert_eq!(recovered.state.as_str(), "queued");
     assert_eq!(recovered.claim_owner, None);

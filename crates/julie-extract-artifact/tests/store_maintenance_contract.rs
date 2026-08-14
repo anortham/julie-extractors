@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -494,10 +495,12 @@ fn short_maintenance_lease_heartbeats_intent_and_writer_during_apply() {
     let block_after = Arc::new(AtomicU64::new(0));
     let entered = Arc::new(AtomicU64::new(0));
     let release = Arc::new(AtomicU64::new(0));
+    let (entered_sender, entered_receiver) = mpsc::channel();
     let capacity = BlockingCapacity {
         calls: Arc::clone(&calls),
         block_after: Arc::clone(&block_after),
         entered: Arc::clone(&entered),
+        entered_signal: entered_sender,
         release: Arc::clone(&release),
     };
     let owner_pid = std::process::id();
@@ -508,7 +511,7 @@ fn short_maintenance_lease_heartbeats_intent_and_writer_during_apply() {
             "heartbeat-owner",
             owner_pid,
             30 * DAY_MS,
-            100,
+            1_000,
         ),
         &plan,
         capacity,
@@ -541,16 +544,15 @@ fn short_maintenance_lease_heartbeats_intent_and_writer_during_apply() {
     block_after.store(calls.load(Ordering::SeqCst) + 2, Ordering::SeqCst);
     let apply_plan = plan.clone();
     let apply_thread = thread::spawn(move || executor.apply(&apply_plan));
-    let entered_deadline = std::time::Instant::now() + Duration::from_secs(5);
-    while entered.load(Ordering::SeqCst) == 0 && std::time::Instant::now() < entered_deadline {
-        thread::sleep(Duration::from_millis(5));
-    }
-    if entered.load(Ordering::SeqCst) == 0 {
+    if entered_receiver
+        .recv_timeout(Duration::from_secs(5))
+        .is_err()
+    {
         release.store(1, Ordering::SeqCst);
         let _ = apply_thread.join();
         panic!("maintenance apply did not enter the lease window");
     }
-    thread::sleep(Duration::from_millis(350));
+    thread::sleep(Duration::from_millis(3_500));
     let current: (String, String, i64, i64, i64, i64, i64, i64) =
         Connection::open(layout.coordinator_db())
             .unwrap()
@@ -607,10 +609,12 @@ fn short_maintenance_lease_heartbeats_during_plan_validation() {
     let block_after = Arc::new(AtomicU64::new(0));
     let entered = Arc::new(AtomicU64::new(0));
     let release = Arc::new(AtomicU64::new(0));
+    let (entered_sender, entered_receiver) = mpsc::channel();
     let capacity = BlockingCapacity {
         calls: Arc::clone(&calls),
         block_after: Arc::clone(&block_after),
         entered: Arc::clone(&entered),
+        entered_signal: entered_sender,
         release: Arc::clone(&release),
     };
     let owner_pid = std::process::id();
@@ -621,7 +625,7 @@ fn short_maintenance_lease_heartbeats_during_plan_validation() {
             "heartbeat-owner",
             owner_pid,
             30 * DAY_MS,
-            100,
+            1_000,
         ),
         &plan,
         capacity,
@@ -654,16 +658,15 @@ fn short_maintenance_lease_heartbeats_during_plan_validation() {
     block_after.store(calls.load(Ordering::SeqCst) + 1, Ordering::SeqCst);
     let apply_plan = plan.clone();
     let apply_thread = thread::spawn(move || executor.apply(&apply_plan));
-    let entered_deadline = std::time::Instant::now() + Duration::from_secs(5);
-    while entered.load(Ordering::SeqCst) == 0 && std::time::Instant::now() < entered_deadline {
-        thread::sleep(Duration::from_millis(5));
-    }
-    if entered.load(Ordering::SeqCst) == 0 {
+    if entered_receiver
+        .recv_timeout(Duration::from_secs(5))
+        .is_err()
+    {
         release.store(1, Ordering::SeqCst);
         let _ = apply_thread.join();
         panic!("maintenance validation did not enter the lease window");
     }
-    thread::sleep(Duration::from_millis(350));
+    thread::sleep(Duration::from_millis(3_500));
     let current: (String, String, i64, i64, i64, i64, i64, i64) =
         Connection::open(layout.coordinator_db())
             .unwrap()
@@ -723,10 +726,12 @@ fn maintenance_heartbeat_fails_closed_after_lease_takeover() {
     let block_after = Arc::new(AtomicU64::new(0));
     let entered = Arc::new(AtomicU64::new(0));
     let release = Arc::new(AtomicU64::new(0));
+    let (entered_sender, entered_receiver) = mpsc::channel();
     let capacity = BlockingCapacity {
         calls: Arc::clone(&calls),
         block_after: Arc::clone(&block_after),
         entered: Arc::clone(&entered),
+        entered_signal: entered_sender,
         release: Arc::clone(&release),
     };
     let owner_pid = std::process::id();
@@ -737,7 +742,7 @@ fn maintenance_heartbeat_fails_closed_after_lease_takeover() {
             "old-owner",
             owner_pid,
             30 * DAY_MS,
-            100,
+            1_000,
         ),
         &plan,
         capacity,
@@ -746,11 +751,10 @@ fn maintenance_heartbeat_fails_closed_after_lease_takeover() {
     block_after.store(calls.load(Ordering::SeqCst) + 2, Ordering::SeqCst);
     let apply_plan = plan.clone();
     let apply_thread = thread::spawn(move || executor.apply(&apply_plan));
-    let entered_deadline = std::time::Instant::now() + Duration::from_secs(5);
-    while entered.load(Ordering::SeqCst) == 0 && std::time::Instant::now() < entered_deadline {
-        thread::sleep(Duration::from_millis(5));
-    }
-    if entered.load(Ordering::SeqCst) == 0 {
+    if entered_receiver
+        .recv_timeout(Duration::from_secs(5))
+        .is_err()
+    {
         release.store(1, Ordering::SeqCst);
         let _ = apply_thread.join();
         panic!("maintenance apply did not enter the takeover window");
@@ -795,7 +799,7 @@ fn maintenance_heartbeat_fails_closed_after_lease_takeover() {
         )
         .unwrap();
     transaction.commit().unwrap();
-    thread::sleep(Duration::from_millis(100));
+    thread::sleep(Duration::from_millis(500));
 
     let successor_rows: (String, String, i64, i64, String, i64) =
         Connection::open(layout.coordinator_db())
@@ -2156,6 +2160,7 @@ struct BlockingCapacity {
     calls: Arc<AtomicU64>,
     block_after: Arc<AtomicU64>,
     entered: Arc<AtomicU64>,
+    entered_signal: mpsc::Sender<()>,
     release: Arc<AtomicU64>,
 }
 
@@ -2164,6 +2169,7 @@ impl CapacityProvider for BlockingCapacity {
         let call = self.calls.fetch_add(1, Ordering::SeqCst) + 1;
         let block_after = self.block_after.load(Ordering::SeqCst);
         if block_after != 0 && call >= block_after && self.entered.swap(1, Ordering::SeqCst) == 0 {
+            let _ = self.entered_signal.send(());
             while self.release.load(Ordering::SeqCst) == 0 {
                 thread::sleep(Duration::from_millis(5));
             }
