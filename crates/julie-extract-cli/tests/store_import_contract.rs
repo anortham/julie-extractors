@@ -1223,6 +1223,299 @@ fn unchanged_completed_full_import_reuses_without_extraction_or_new_level_effect
     assert_eq!(final_record["files_extracted"], 0);
 }
 
+fn run_full_import(
+    store: &std::path::Path,
+    root: &std::path::Path,
+    request_id: &str,
+    idempotency_key: &str,
+    crash_boundary: Option<&str>,
+) -> serde_json::Value {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_julie-extract"));
+    command.args([
+        "store",
+        "import",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        FAMILY_ID,
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--level",
+        "full",
+        "--request-id",
+        request_id,
+        "--idempotency-key",
+        idempotency_key,
+        "--json",
+    ]);
+    if let Some(crash_boundary) = crash_boundary {
+        command.env("JULIE_EXTRACT_STORE_TEST_CRASH_AT", crash_boundary);
+    }
+    let output = command.output().unwrap();
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    serde_json::from_slice(&output.stdout).unwrap()
+}
+
+fn seeded_full_import() -> (
+    tempfile::TempDir,
+    std::path::PathBuf,
+    std::path::PathBuf,
+    serde_json::Value,
+) {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("lib.rs"), "pub fn answer() -> u32 { 42 }\n").unwrap();
+    let first = run_full_import(
+        &store,
+        &root,
+        "request-prior-counts",
+        "idem-prior-counts",
+        None,
+    );
+    (fixture, root, store, first)
+}
+
+fn sentinel_row_counts() -> serde_json::Value {
+    serde_json::json!({
+        "file_versions": 101,
+        "l1": 202,
+        "l2": 303,
+        "l3": 404,
+    })
+}
+
+fn rewrite_prior_terminal_payload(
+    database: &std::path::Path,
+    request_id: &str,
+    rewrite: impl FnOnce(&mut serde_json::Value),
+) {
+    let connection = rusqlite::Connection::open(database).unwrap();
+    let payload: String = connection
+        .query_row(
+            "SELECT payload_json FROM store_log
+             WHERE request_id = ?1 AND terminal = 1",
+            [request_id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let mut payload: serde_json::Value = serde_json::from_str(&payload).unwrap();
+    rewrite(&mut payload);
+    connection
+        .execute(
+            "UPDATE store_log SET payload_json = ?1
+             WHERE request_id = ?2 AND terminal = 1",
+            rusqlite::params![payload.to_string(), request_id],
+        )
+        .unwrap();
+}
+
+fn assert_import_was_noop(database: &std::path::Path, request_id: &str) {
+    let connection = rusqlite::Connection::open(database).unwrap();
+    let terminal_count: i64 = connection
+        .query_row(
+            "SELECT COUNT(*) FROM store_log
+             WHERE request_id = ?1 AND event_kind = 'store_import_completed'",
+            [request_id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let chunk_count: i64 = connection
+        .query_row(
+            "SELECT COUNT(*) FROM request_chunks WHERE request_id = ?1",
+            [request_id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let extraction_count: i64 = connection
+        .query_row(
+            "SELECT COUNT(*) FROM store_log
+             WHERE request_id = ?1 AND event_kind = 'version_level_completed'",
+            [request_id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(terminal_count, 1);
+    assert_eq!(chunk_count, 0);
+    assert_eq!(extraction_count, 0);
+}
+
+fn assert_reused_counts(
+    database: &std::path::Path,
+    first: &serde_json::Value,
+    second: &serde_json::Value,
+    request_id: &str,
+) {
+    assert_eq!(
+        second["manifest"]["generation"],
+        first["manifest"]["generation"]
+    );
+    assert_eq!(second["manifest"]["hash"], first["manifest"]["hash"]);
+    assert_eq!(second["manifest"]["disposition"], "reused");
+    assert_eq!(second["row_counts"], first["row_counts"]);
+    assert_import_was_noop(database, request_id);
+}
+
+#[test]
+fn unchanged_full_import_reuses_valid_prior_terminal_row_counts() {
+    let (_fixture, root, store, mut first) = seeded_full_import();
+    let database = store.join("gen-001/store.db");
+    let expected_counts = sentinel_row_counts();
+    first["row_counts"] = expected_counts.clone();
+    rewrite_prior_terminal_payload(&database, "request-prior-counts", |payload| {
+        payload["row_counts"] = expected_counts.clone();
+    });
+    let second = run_full_import(
+        &store,
+        &root,
+        "request-prior-counts-reuse",
+        "idem-prior-counts-reuse",
+        None,
+    );
+    assert_eq!(second["row_counts"], expected_counts);
+    assert_reused_counts(&database, &first, &second, "request-prior-counts-reuse");
+}
+
+#[cfg(feature = "test-store-contract")]
+#[test]
+fn unchanged_full_import_reuses_prior_counts_without_count_query() {
+    let (_fixture, root, store, mut first) = seeded_full_import();
+    let database = store.join("gen-001/store.db");
+    let expected_counts = sentinel_row_counts();
+    first["row_counts"] = expected_counts.clone();
+    rewrite_prior_terminal_payload(&database, "request-prior-counts", |payload| {
+        payload["row_counts"] = expected_counts.clone();
+    });
+    let second = run_full_import(
+        &store,
+        &root,
+        "request-prior-counts-crash-proof",
+        "idem-prior-counts-crash-proof",
+        Some("terminal_row_counts"),
+    );
+    assert_eq!(second["row_counts"], expected_counts);
+    assert_reused_counts(
+        &database,
+        &first,
+        &second,
+        "request-prior-counts-crash-proof",
+    );
+}
+
+#[test]
+fn unchanged_full_import_falls_back_for_invalid_prior_terminal_row_counts() {
+    for mutation in [
+        "missing",
+        "malformed",
+        "identity_family",
+        "identity_view",
+        "identity_generation",
+        "identity_hash",
+        "completion",
+        "numeric",
+    ] {
+        let (_fixture, root, store, first) = seeded_full_import();
+        let database = store.join("gen-001/store.db");
+        match mutation {
+            "missing" => {
+                rusqlite::Connection::open(&database)
+                    .unwrap()
+                    .execute(
+                        "DELETE FROM store_log
+                         WHERE request_id = 'request-prior-counts' AND terminal = 1",
+                        [],
+                    )
+                    .unwrap();
+            }
+            "malformed" => {
+                rusqlite::Connection::open(&database)
+                    .unwrap()
+                    .execute(
+                        "UPDATE store_log SET payload_json = 'malformed'
+                         WHERE request_id = 'request-prior-counts' AND terminal = 1",
+                        [],
+                    )
+                    .unwrap();
+            }
+            "identity_family" => {
+                rewrite_prior_terminal_payload(&database, "request-prior-counts", |payload| {
+                    payload["family_id"] = serde_json::json!("wrong-family");
+                })
+            }
+            "identity_view" => {
+                rewrite_prior_terminal_payload(&database, "request-prior-counts", |payload| {
+                    payload["view_id"] = serde_json::json!("wrong-view");
+                })
+            }
+            "identity_generation" => {
+                rewrite_prior_terminal_payload(&database, "request-prior-counts", |payload| {
+                    payload["manifest_generation"] = serde_json::json!(999);
+                })
+            }
+            "identity_hash" => {
+                rewrite_prior_terminal_payload(&database, "request-prior-counts", |payload| {
+                    payload["manifest_hash"] = serde_json::json!("wrong-hash");
+                })
+            }
+            "completion" => {
+                rewrite_prior_terminal_payload(&database, "request-prior-counts", |payload| {
+                    payload["l3"] = serde_json::json!(false);
+                })
+            }
+            "numeric" => {
+                rewrite_prior_terminal_payload(&database, "request-prior-counts", |payload| {
+                    payload["row_counts"]["l1"] = serde_json::json!("not-a-number");
+                })
+            }
+            _ => unreachable!(),
+        }
+        let request_id = format!("request-fallback-{mutation}");
+        let idempotency_key = format!("idem-fallback-{mutation}");
+        let second = run_full_import(&store, &root, &request_id, &idempotency_key, None);
+        assert_reused_counts(&database, &first, &second, &request_id);
+    }
+}
+
+#[test]
+fn unchanged_full_import_rejects_duplicate_prior_terminal_rows() {
+    let (_fixture, root, store, first) = seeded_full_import();
+    let database = store.join("gen-001/store.db");
+    rewrite_prior_terminal_payload(&database, "request-prior-counts", |payload| {
+        payload["row_counts"] = sentinel_row_counts();
+    });
+    let connection = rusqlite::Connection::open(&database).unwrap();
+    connection
+        .execute("DROP INDEX uidx_read_store_log_terminal_request", [])
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO store_log
+             (request_id, event_kind, terminal, payload_json, created_at)
+             SELECT request_id, event_kind, terminal, payload_json, created_at
+             FROM store_log
+             WHERE request_id = 'request-prior-counts' AND terminal = 1",
+            [],
+        )
+        .unwrap();
+    drop(connection);
+    let second = run_full_import(
+        &store,
+        &root,
+        "request-duplicate-fallback",
+        "idem-duplicate-fallback",
+        None,
+    );
+    assert_reused_counts(&database, &first, &second, "request-duplicate-fallback");
+}
+
 #[test]
 fn full_deepening_refuses_a_persisted_l1_natural_key_mismatch() {
     let fixture = tempfile::tempdir().unwrap();

@@ -255,6 +255,11 @@ enum FilePlanOperation {
     Update,
 }
 
+struct ResultOptions {
+    operation: FilePlanOperation,
+    reused_counts: Option<(u64, u64, u64, u64)>,
+}
+
 impl FilePlanOperation {
     fn event(self, suffix: &str) -> String {
         let operation = match self {
@@ -741,13 +746,20 @@ impl StoreRequestExecutor {
         hash: String,
         full: bool,
         manifest_disposition: &str,
-        operation: FilePlanOperation,
+        options: ResultOptions,
     ) -> Result<ExecutionQuantum, String> {
-        let counts = terminal_row_counts(
-            transaction,
-            &payload.view_id,
-            i64::try_from(generation).map_err(|_| "invalid_manifest_generation")?,
-        )?;
+        let ResultOptions {
+            operation,
+            reused_counts,
+        } = options;
+        let counts = match reused_counts {
+            Some(counts) => counts,
+            None => terminal_row_counts(
+                transaction,
+                &payload.view_id,
+                i64::try_from(generation).map_err(|_| "invalid_manifest_generation")?,
+            )?,
+        };
         Ok(ExecutionQuantum::Complete {
             event_kind: operation.event("completed"),
             result_json: serde_json::json!({
@@ -769,6 +781,101 @@ impl StoreRequestExecutor {
             })
             .to_string(),
         })
+    }
+
+    fn prior_terminal_row_counts(
+        transaction: &Transaction<'_>,
+        payload: &ImportRequestPayload,
+        generation: u64,
+        hash: &str,
+        full: bool,
+    ) -> Result<Option<(u64, u64, u64, u64)>, String> {
+        let generation = i64::try_from(generation).map_err(|_| "invalid_manifest_generation")?;
+        let request_id = transaction
+            .query_row(
+                "SELECT request_id FROM manifests
+                 WHERE view_id = ?1 AND generation = ?2 AND manifest_hash = ?3",
+                rusqlite::params![payload.view_id, generation, hash],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()
+            .map_err(|error| error.to_string())?;
+        let Some(request_id) = request_id else {
+            return Ok(None);
+        };
+        if !full
+            && transaction
+                .query_row(
+                    "SELECT EXISTS(
+                       SELECT 1
+                       FROM manifest_entries AS entry
+                       JOIN file_versions AS version ON version.version_id = entry.version_id
+                       WHERE entry.view_id = ?1 AND entry.generation = ?2
+                         AND (version.complete_l2 IS NOT NULL OR version.complete_l3 IS NOT NULL)
+                     )",
+                    rusqlite::params![payload.view_id, generation],
+                    |row| row.get::<_, i64>(0),
+                )
+                .map_err(|error| error.to_string())?
+                != 0
+        {
+            return Ok(None);
+        }
+        let mut statement = transaction
+            .prepare(
+                "SELECT payload_json FROM store_log
+                 WHERE request_id = ?1 AND terminal = 1 LIMIT 2",
+            )
+            .map_err(|error| error.to_string())?;
+        let payloads = statement
+            .query_map(rusqlite::params![request_id], |row| row.get::<_, String>(0))
+            .map_err(|error| error.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|error| error.to_string())?;
+        let [payload_json] = payloads.as_slice() else {
+            return Ok(None);
+        };
+        let Ok(value) = serde_json::from_str::<serde_json::Value>(payload_json) else {
+            return Ok(None);
+        };
+        if !matches!(
+            value
+                .get("manifest_disposition")
+                .and_then(serde_json::Value::as_str),
+            Some("created" | "reused")
+        ) || value.get("family_id").and_then(serde_json::Value::as_str)
+            != Some(payload.family_id.as_str())
+            || value.get("view_id").and_then(serde_json::Value::as_str)
+                != Some(payload.view_id.as_str())
+            || value
+                .get("manifest_generation")
+                .and_then(serde_json::Value::as_u64)
+                != Some(generation as u64)
+            || value
+                .get("manifest_hash")
+                .and_then(serde_json::Value::as_str)
+                != Some(hash)
+            || value.get("l1").and_then(serde_json::Value::as_bool) != Some(true)
+            || value.get("l2").and_then(serde_json::Value::as_bool) != Some(full)
+            || value.get("l3").and_then(serde_json::Value::as_bool) != Some(full)
+        {
+            return Ok(None);
+        }
+        let Some(row_counts) = value.get("row_counts") else {
+            return Ok(None);
+        };
+        let counts = match (
+            row_counts
+                .get("file_versions")
+                .and_then(serde_json::Value::as_u64),
+            row_counts.get("l1").and_then(serde_json::Value::as_u64),
+            row_counts.get("l2").and_then(serde_json::Value::as_u64),
+            row_counts.get("l3").and_then(serde_json::Value::as_u64),
+        ) {
+            (Some(file_versions), Some(l1), Some(l2), Some(l3)) => (file_versions, l1, l2, l3),
+            _ => return Ok(None),
+        };
+        Ok(Some(counts))
     }
 
     fn require_existing_view(
@@ -1319,6 +1426,7 @@ fn terminal_row_counts(
     view_id: &str,
     generation: i64,
 ) -> Result<(u64, u64, u64, u64), String> {
+    store_test_crash!("terminal_row_counts");
     let counts: (i64, i64, i64, i64) = transaction
         .query_row(
             "WITH request_versions AS (
@@ -1631,7 +1739,10 @@ impl CoordinatorExecutor for StoreRequestExecutor {
                 published.manifest_hash,
                 requested_full,
                 manifest_disposition(published.disposition),
-                operation,
+                ResultOptions {
+                    operation,
+                    reused_counts: None,
+                },
             );
         }
         if operation == FilePlanOperation::Import
@@ -1648,6 +1759,17 @@ impl CoordinatorExecutor for StoreRequestExecutor {
                 operation,
             )?;
             let disposition = manifest_disposition(published.disposition);
+            let reused_counts = if published.disposition == ManifestPublishDisposition::Reused {
+                Self::prior_terminal_row_counts(
+                    transaction,
+                    &payload,
+                    published.generation,
+                    &published.manifest_hash,
+                    requested_full,
+                )?
+            } else {
+                None
+            };
             if let Some(progress) = progress.as_deref() {
                 progress.enter_phase("complete");
             }
@@ -1658,7 +1780,10 @@ impl CoordinatorExecutor for StoreRequestExecutor {
                 published.manifest_hash,
                 requested_full,
                 disposition,
-                operation,
+                ResultOptions {
+                    operation,
+                    reused_counts,
+                },
             );
         }
         let chunk = chunks
@@ -1810,7 +1935,10 @@ impl CoordinatorExecutor for StoreRequestExecutor {
                     published.manifest_hash,
                     false,
                     persisted_manifest_disposition,
-                    operation,
+                    ResultOptions {
+                        operation,
+                        reused_counts: None,
+                    },
                 );
             }
             return Ok(ExecutionQuantum::Progress {
@@ -1850,7 +1978,10 @@ impl CoordinatorExecutor for StoreRequestExecutor {
             hash,
             true,
             persisted_manifest_disposition,
-            operation,
+            ResultOptions {
+                operation,
+                reused_counts: None,
+            },
         )
     }
 }
