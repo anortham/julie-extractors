@@ -12,6 +12,7 @@ use sha2::{Digest, Sha256};
 
 use super::layout::{sync_directory, sync_file};
 use super::pragmas::{WriterPragmaProfile, configure_writer_pragmas};
+use super::wal_retry::{is_locking_protocol, with_locking_protocol_retry};
 use super::{
     GenerationFence, ResolutionBaseRecord, ResolutionBaseState, ResolutionDeltaRecord,
     ResolutionGapFact, ResolutionGapKind, ResolutionGapTable, ResolutionIdentifierDeltaRecord,
@@ -3517,6 +3518,14 @@ pub struct ResolutionBaseReader {
 impl ResolutionBaseReader {
     pub fn open(path: impl AsRef<Path>) -> Result<Self, ResolutionValidationError> {
         let path = path.as_ref().to_path_buf();
+        with_locking_protocol_retry(
+            || Self::open_once(&path),
+            |error| matches!(error, ResolutionValidationError::Sqlite(inner) if is_locking_protocol(inner)),
+        )
+    }
+
+    fn open_once(path: &Path) -> Result<Self, ResolutionValidationError> {
+        let path = path.to_path_buf();
         validate_existing_path(&path)?;
         let connection = Connection::open_with_flags(
             &path,

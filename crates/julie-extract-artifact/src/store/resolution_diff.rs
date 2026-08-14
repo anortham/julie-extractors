@@ -12,6 +12,7 @@ use super::resolution::{
     ensure_parent, file_identity, reject_existing_file, sync_path, validate_existing_path,
     validate_output_path,
 };
+use super::wal_retry::{is_locking_protocol, with_locking_protocol_retry};
 
 pub const RESOLUTION_SCRATCH_USER_VERSION: i64 = 1;
 pub const RESOLUTION_SCRATCH_FORMAT_VERSION: &str = "1";
@@ -1213,6 +1214,14 @@ impl<'a> ScratchPendingChangeCursor<'a> {
 impl ResolutionScratchReader {
     pub fn open(path: impl AsRef<Path>) -> Result<Self, ResolutionValidationError> {
         let path = path.as_ref().to_path_buf();
+        with_locking_protocol_retry(
+            || Self::open_once(&path),
+            |error| matches!(error, ResolutionValidationError::Sqlite(inner) if is_locking_protocol(inner)),
+        )
+    }
+
+    fn open_once(path: &Path) -> Result<Self, ResolutionValidationError> {
+        let path = path.to_path_buf();
         validate_existing_path(&path)?;
         let connection = Connection::open_with_flags(
             &path,

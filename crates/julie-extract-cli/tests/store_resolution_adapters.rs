@@ -1449,6 +1449,7 @@ fn retry_reuses_matching_output_and_regular_stale_partial_without_store_effects(
     );
 }
 
+#[cfg(unix)]
 #[test]
 fn nonmatching_or_symlink_output_is_never_overwritten() {
     let temp = TempDir::new();

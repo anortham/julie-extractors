@@ -4,6 +4,7 @@ use std::process::{Command, Output};
 #[cfg(feature = "test-store-contract")]
 use std::time::{Duration, Instant};
 
+#[cfg(unix)]
 use julie_extract_artifact::store::{
     CoordinatorRequest, RequestKind, RequestState, StoreCoordinator, StoreLayout,
 };

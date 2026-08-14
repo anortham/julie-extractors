@@ -287,7 +287,7 @@ fn resolve_rejects_invalid_delta_escape_hatch_values() {
 }
 
 #[test]
-fn resolve_unset_delta_uses_planner_and_reports_dense_scope_fallback() {
+fn resolve_unset_delta_uses_planner_and_reports_scoped_telemetry() {
     let temp = TempDir::new();
     let (root, store) = create_full_store(&temp);
     assert_ran(resolve_output(
@@ -335,15 +335,12 @@ fn resolve_unset_delta_uses_planner_and_reports_dense_scope_fallback() {
         String::from_utf8_lossy(&resolve.stderr)
     );
     let report: Value = serde_json::from_slice(&resolve.stdout).unwrap();
-    assert_eq!(report["resolution"]["resolution_mode"], "full");
-    assert_eq!(
-        report["resolution"]["fallback_reason"],
-        "resolution_scope_crossover"
-    );
+    assert_eq!(report["resolution"]["resolution_mode"], "scoped");
+    assert!(report["resolution"]["fallback_reason"].is_null());
     assert!(report["resolution"]["scope_file_count"].as_u64().unwrap() >= 1);
-    assert_eq!(report["resolution"]["scope_name_count"], 0);
+    assert!(report["resolution"]["scope_name_count"].as_u64().unwrap() >= 1);
     assert!(report["resolution"]["scope_row_count"].as_u64().unwrap() >= 1);
-    assert!(report["resolution"]["phase_timings_ms"]["resolution"].is_u64());
+    assert!(report["resolution"]["phase_timings_ms"]["scope"].is_u64());
 }
 
 #[test]
@@ -2250,7 +2247,17 @@ fn rebase_crash_boundaries_retry_with_one_ready_base_and_one_empty_delta() {
                     .unwrap();
                 assert_eq!(Some(bound_base), before_retry.1);
             }
-            state => panic!("boundary={boundary} left unexpected state {state}"),
+            // `assert!(!crashed.status.success())` above passes for ANY failure, including one
+            // that never reached the injected boundary. When that happens the view is still
+            // `unbound` and this arm fires, so it must print the crashed child's own report —
+            // otherwise the real cause is discarded and the state is all that is left to guess
+            // from.
+            state => panic!(
+                "boundary={boundary} left unexpected state {state}; the crashed resolve may have \
+                 failed before reaching the boundary. crashed stdout={} crashed stderr={}",
+                String::from_utf8_lossy(&crashed.stdout),
+                String::from_utf8_lossy(&crashed.stderr)
+            ),
         }
 
         let retry = resolve_output(&store, "resolve-rebase-retry", "resolve-rebase-crash-key");

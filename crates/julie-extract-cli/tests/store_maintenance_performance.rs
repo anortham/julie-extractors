@@ -6,6 +6,7 @@ use julie_extract_artifact::store::{
     VersionFact, plan_maintenance,
 };
 use rusqlite::{Connection, params};
+#[cfg(unix)]
 use std::process::Command;
 
 #[test]
@@ -28,16 +29,24 @@ fn lifecycle_cohorts_obey_exact_version_wal_and_capacity_bounds_at_scale() {
 
 #[test]
 fn lifecycle_sqlite_windows_and_rss_remain_bounded_at_miller_scale() {
-    if std::env::var_os("JULIE_MAINTENANCE_SCALE_ROWS").is_some() {
-        return;
+    if std::env::var_os("JULIE_MAINTENANCE_SCALE_ROWS").is_none() {
+        #[cfg(unix)]
+        let small = timed_worker(2_000);
+        #[cfg(unix)]
+        let large = timed_worker(20_000);
+
+        #[cfg(not(unix))]
+        {
+            run_scale_worker(2_000);
+            run_scale_worker(20_000);
+        }
+
+        #[cfg(unix)]
+        assert!(
+            large <= small + 64 * 1024 * 1024,
+            "small={small} large={large}"
+        );
     }
-    let small = timed_worker(2_000);
-    let large = timed_worker(20_000);
-    #[cfg(unix)]
-    assert!(
-        large <= small + 64 * 1024 * 1024,
-        "small={small} large={large}"
-    );
 }
 
 #[test]
@@ -84,18 +93,38 @@ fn lifecycle_scale_worker() {
     assert!(plan.max_observed_window <= 64);
 }
 
+fn run_scale_worker(rows: i64) -> std::process::Output {
+    let output = std::process::Command::new(std::env::current_exe().unwrap())
+        .args([
+            "--exact",
+            "lifecycle_scale_worker",
+            "--nocapture",
+            "--test-threads=1",
+        ])
+        .env("JULIE_MAINTENANCE_SCALE_ROWS", rows.to_string())
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    output
+}
+
+#[cfg(unix)]
 fn timed_worker(rows: i64) -> u64 {
-    let mut command = if cfg!(unix) {
-        let mut command = Command::new("/usr/bin/time");
-        #[cfg(target_os = "macos")]
-        command.arg("-l");
-        #[cfg(all(unix, not(target_os = "macos")))]
-        command.arg("-v");
-        command.arg(std::env::current_exe().unwrap());
-        command
-    } else {
-        Command::new(std::env::current_exe().unwrap())
-    };
+    let mut command = Command::new("/usr/bin/time");
+    #[cfg(target_os = "macos")]
+    command.arg("-l");
+    #[cfg(all(unix, not(target_os = "macos")))]
+    command.arg("-v");
+    command.arg(std::env::current_exe().unwrap());
+    parse_peak_rss(&run_scale_worker_with_command(&mut command, rows).stderr)
+}
+
+#[cfg(unix)]
+fn run_scale_worker_with_command(command: &mut Command, rows: i64) -> std::process::Output {
     let output = command
         .args([
             "--exact",
@@ -111,10 +140,7 @@ fn timed_worker(rows: i64) -> u64 {
         "{}",
         String::from_utf8_lossy(&output.stderr)
     );
-    #[cfg(unix)]
-    return parse_peak_rss(&output.stderr);
-    #[cfg(not(unix))]
-    return 0;
+    output
 }
 
 #[cfg(unix)]

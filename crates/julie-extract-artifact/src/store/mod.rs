@@ -15,6 +15,7 @@ mod scope;
 #[cfg(feature = "test-store-crash")]
 #[doc(hidden)]
 pub mod test_hooks;
+mod wal_retry;
 mod writer;
 
 pub use connection::{
@@ -26,6 +27,7 @@ pub use coordinator::{
     LeaseDisposition, LeaseHolder, LeaseRecord, MaintenanceOwnerFence, PidLiveness, PidStatus,
     ReconcileOutcome, RequestKind, RequestReceipt, RequestState, StoreCoordinator, UnixMillisClock,
     compare_versions, foreign_live_maintenance_intent, process_status,
+    renew_writer_lease_with_retry,
 };
 pub use generation::{
     GenerationApplyReport, GenerationError, GenerationLifecycle, GenerationPolicy,

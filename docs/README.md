@@ -26,7 +26,14 @@ reclaim its whole page budget per call, and repairs three Windows defects: unkno
 import that never retried a blocked drain, and a failed resolve that leaked its scratch database.
 Version 2.33.1 repairs a fourth Windows defect that broke every scoped store resolution since 2.32.0: a
 verbatim `\\?\` path prefix reached a SQLite URI and became an invalid authority, so a view could never
-leave `converging`. The implementation plans and dogfood records are:
+leave `converging`. The v2.33.2 candidate is prepared but pending publication. It reuses one coordinator
+connection and retries transient `SQLITE_PROTOCOL` failures for the `coord.db`/`store.db` construction
+reads plus the read-only reconcile, base-reader, scratch-reader, and `open_reader` paths; writer/lease
+mutation opens remain non-retried. It samples lease time after `BEGIN IMMEDIATE`; renews leases with
+transient-error retries and fencing-token checks; restores the single-changed-path scoped-delta
+exemption; normalizes Windows diagnostic paths; and corrects the serial CI/zero-test guard. The
+exact-tree release-prep gates are green, while v2.33.1 remains the current published release.
+The implementation plans and dogfood records are:
 
 - [Ph2b store-kernel plan](plans/2026-08-07-index-store-ph2b-store-kernel-plan.md)
 - [Ph2b implementation evidence](release-evidence/2026-08-07-index-store-ph2b/README.md)
@@ -50,6 +57,8 @@ leave `converging`. The implementation plans and dogfood records are:
 - [v2.32.0 release evidence](release-evidence/2026-08-11-v2-32-0-release.md)
 - [v2.32.1 release notes](release-notes/v2.32.1.md)
 - [v2.32.1 release evidence](release-evidence/2026-08-12-v2-32-1-release.md)
+- [v2.33.2 release notes](release-notes/v2.33.2.md)
+- [v2.33.2 coordinator and lease finding](findings/2026-08-13-coordinator-connection-reuse.md)
 - [v2.33.1 release notes](release-notes/v2.33.1.md)
 - [v2.33.0 release notes](release-notes/v2.33.0.md)
 

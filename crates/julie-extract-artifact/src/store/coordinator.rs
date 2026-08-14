@@ -15,7 +15,8 @@ use super::connection::{
     required_writer_version, system_now_ms,
 };
 use super::layout::valid_generation_name;
-use super::pragmas::{WriterPragmaProfile, configure_writer_pragmas};
+use super::pragmas::{PragmaError, WriterPragmaProfile, configure_writer_pragmas};
+use super::wal_retry::{is_locking_protocol, with_locking_protocol_retry};
 use super::{
     GenerationFence, StoreConnectionError, StoreConnectionFactory, StoreLayout, StoreLog,
     StoreLogEntry,
@@ -259,10 +260,65 @@ pub enum LeaseDisposition {
     HeldByOther,
 }
 
+enum LeaseAcquireTime {
+    Wall,
+    Logical(i64),
+}
+
+impl LeaseAcquireTime {
+    fn sample(self) -> i64 {
+        match self {
+            Self::Wall => system_now_ms(),
+            Self::Logical(now) => now,
+        }
+    }
+}
+
 impl LeaseDisposition {
     pub fn acquired(self) -> bool {
         matches!(self, Self::Acquired { .. })
     }
+}
+
+/// Renews a writer lease, retrying transient coordinator failures within one heartbeat tick.
+///
+/// A lease that lapsed while its fencing token stayed unchanged is re-extended safely. A row
+/// owned by a successor has a different token and returns `Ok(false)` instead.
+pub fn renew_writer_lease_with_retry(
+    coordinator_db: &Path,
+    holder: &LeaseHolder,
+    fencing_token: i64,
+) -> Result<bool, CoordinatorError> {
+    renew_writer_lease_with_retry_for_duration(
+        coordinator_db,
+        holder,
+        fencing_token,
+        DEFAULT_LEASE_DURATION_MS,
+    )
+}
+
+fn renew_writer_lease_with_retry_for_duration(
+    coordinator_db: &Path,
+    holder: &LeaseHolder,
+    fencing_token: i64,
+    lease_duration_ms: i64,
+) -> Result<bool, CoordinatorError> {
+    let interval_ms = u64::try_from((lease_duration_ms / 3).max(1)).unwrap_or(1);
+    let retry_delay = HEARTBEAT_RENEWAL_RETRY_DELAY
+        .min(Duration::from_millis(interval_ms / 2).max(Duration::from_millis(1)));
+    renew_writer_lease_with_retry_using(
+        || {
+            heartbeat_lease_at(
+                coordinator_db,
+                holder,
+                fencing_token,
+                system_now_ms(),
+                lease_duration_ms,
+            )
+        },
+        || reclaim_lapsed_lease_at(coordinator_db, holder, fencing_token, lease_duration_ms),
+        retry_delay,
+    )
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -666,7 +722,7 @@ impl StoreCoordinator {
     ) -> Result<EnqueueResult, CoordinatorError> {
         validate_request(&request)?;
         let mut connection = self.coordinator();
-        let transaction = begin_coordinator(&mut *connection)?;
+        let transaction = begin_coordinator(&mut connection)?;
         if receipt_by_id(&transaction, &request.request_id)?
             .is_some_and(|receipt| receipt.idempotency_key != request.idempotency_key)
         {
@@ -744,7 +800,7 @@ impl StoreCoordinator {
         }
         let stale_before = now.saturating_sub(stale_after_ms);
         let mut connection = self.coordinator();
-        let transaction = begin_coordinator(&mut *connection)?;
+        let transaction = begin_coordinator(&mut connection)?;
         if foreign_live_maintenance_intent(&transaction, now)?.is_some() {
             return Ok(false);
         }
@@ -945,7 +1001,15 @@ impl StoreCoordinator {
         holder: LeaseHolder,
         now: i64,
     ) -> Result<LeaseDisposition, CoordinatorError> {
-        self.try_acquire_with_intent_policy(holder, None, now)
+        self.try_acquire_with_intent_policy(holder, None, LeaseAcquireTime::Logical(now))
+    }
+
+    /// Acquires the store-writer lease using wall time sampled after `BEGIN IMMEDIATE` succeeds.
+    pub fn try_acquire_or_takeover_now(
+        &mut self,
+        holder: LeaseHolder,
+    ) -> Result<LeaseDisposition, CoordinatorError> {
+        self.try_acquire_with_intent_policy(holder, None, LeaseAcquireTime::Wall)
     }
 
     /// Acquires the store-writer lease under an explicit maintenance-owner fence.
@@ -969,14 +1033,33 @@ impl StoreCoordinator {
         if holder.holder_id != owner.owner_id || holder.holder_pid != owner.owner_pid {
             return Err(CoordinatorError::InvalidRequest);
         }
-        self.try_acquire_with_intent_policy(holder, Some(owner), now)
+        self.try_acquire_with_intent_policy(holder, Some(owner), LeaseAcquireTime::Logical(now))
+    }
+
+    /// Acquires the maintenance-owned lease using wall time sampled after `BEGIN IMMEDIATE` succeeds.
+    pub fn try_acquire_for_maintenance_now(
+        &mut self,
+        holder: LeaseHolder,
+        owner: MaintenanceOwnerFence,
+    ) -> Result<LeaseDisposition, CoordinatorError> {
+        if owner.run_id.is_empty()
+            || owner.owner_id.is_empty()
+            || owner.owner_pid == 0
+            || owner.fencing_token <= 0
+        {
+            return Err(CoordinatorError::InvalidRequest);
+        }
+        if holder.holder_id != owner.owner_id || holder.holder_pid != owner.owner_pid {
+            return Err(CoordinatorError::InvalidRequest);
+        }
+        self.try_acquire_with_intent_policy(holder, Some(owner), LeaseAcquireTime::Wall)
     }
 
     fn try_acquire_with_intent_policy(
         &mut self,
         holder: LeaseHolder,
         maintenance_owner: Option<MaintenanceOwnerFence>,
-        now: i64,
+        acquire_time: LeaseAcquireTime,
     ) -> Result<LeaseDisposition, CoordinatorError> {
         if holder.holder_id.is_empty() || holder.holder_version.is_empty() || holder.holder_pid == 0
         {
@@ -984,7 +1067,8 @@ impl StoreCoordinator {
         }
         self.ensure_writer_eligible(&holder.holder_version)?;
         let mut connection = self.coordinator();
-        let transaction = begin_coordinator(&mut *connection)?;
+        let transaction = begin_coordinator(&mut connection)?;
+        let now = acquire_time.sample();
         let live_intent = foreign_live_maintenance_intent(&transaction, now)?;
         match (&maintenance_owner, live_intent) {
             (Some(owner), Some(intent)) if owner.matches_intent(&intent) => {}
@@ -1309,8 +1393,7 @@ impl StoreCoordinator {
         // lease rows always live in the wall-clock domain so open_writer fence
         // checks cannot accept wall-expired leases.
         let started_at = self.clock.now_ms();
-        let wall_now = system_now_ms();
-        let lease = self.try_acquire_or_takeover(holder.clone(), wall_now)?;
+        let lease = self.try_acquire_or_takeover_now(holder.clone())?;
         let LeaseDisposition::Acquired { fencing_token } = lease else {
             return Err(CoordinatorError::LeaseUnavailable);
         };
@@ -1646,7 +1729,7 @@ impl StoreCoordinator {
         } else {
             let maxima = read_family_allocator_maxima(&store)?;
             let mut connection = self.coordinator();
-            let transaction = begin_coordinator(&mut *connection)?;
+            let transaction = begin_coordinator(&mut connection)?;
             advance_family_allocator_marks(&transaction, &maxima, service_now)?;
             let changed = transaction.execute(
                 "UPDATE requests SET claim_heartbeat_at = ?1, updated_at = ?1
@@ -1828,17 +1911,22 @@ impl StoreCoordinator {
     }
 
     pub fn reconcile(&mut self, request_id: &str) -> Result<ReconcileOutcome, CoordinatorError> {
-        let store = Connection::open(&self.store_db)?;
-        let terminal = StoreLog::committed_in_fact(&store, request_id)?;
-        let next_chunk_index = store.query_row(
-            "SELECT COALESCE(MAX(chunk_index), -1) + 1 FROM request_chunks WHERE request_id = ?1",
-            [request_id],
-            |row| row.get::<_, i64>(0),
+        let (terminal, next_chunk_index, maxima) = with_locking_protocol_retry(
+            || {
+                let store = Connection::open(&self.store_db)?;
+                let terminal = StoreLog::committed_in_fact(&store, request_id)?;
+                let next_chunk_index = store.query_row(
+                    "SELECT COALESCE(MAX(chunk_index), -1) + 1 FROM request_chunks WHERE request_id = ?1",
+                    [request_id],
+                    |row| row.get::<_, i64>(0),
+                )?;
+                let maxima = read_family_allocator_maxima(&store)?;
+                Ok((terminal, next_chunk_index, maxima))
+            },
+            coordinator_error_is_locking_protocol,
         )?;
-        let maxima = read_family_allocator_maxima(&store)?;
-        drop(store);
         let mut connection = self.coordinator();
-        let transaction = begin_coordinator(&mut *connection)?;
+        let transaction = begin_coordinator(&mut connection)?;
         let coordinator_request = request_by_id(&transaction, request_id)?.ok_or_else(|| {
             CoordinatorError::RequestNotFound {
                 request_id: request_id.to_string(),
@@ -1952,7 +2040,7 @@ impl StoreCoordinator {
             return Err(CoordinatorError::InvalidPolicy);
         }
         let mut connection = self.coordinator();
-        let transaction = begin_coordinator(&mut *connection)?;
+        let transaction = begin_coordinator(&mut connection)?;
         let candidates = {
             let mut statement = transaction.prepare(
                 "SELECT request_id,idempotency_key,kind,payload_json,result_json,
@@ -2053,7 +2141,7 @@ impl StoreCoordinator {
             });
         }
         let mut connection = self.coordinator();
-        let transaction = begin_coordinator(&mut *connection)?;
+        let transaction = begin_coordinator(&mut connection)?;
         refuse_foreign_live_maintenance_intent(&transaction, self.clock.now_ms())?;
         let high_water = transaction
             .query_row(
@@ -2123,7 +2211,7 @@ impl StoreCoordinator {
             return Err(CoordinatorError::InvalidRequest);
         }
         let mut connection = self.coordinator();
-        let transaction = begin_coordinator(&mut *connection)?;
+        let transaction = begin_coordinator(&mut connection)?;
         refuse_foreign_live_maintenance_intent(&transaction, self.clock.now_ms())?;
         let changed = transaction.execute(
             "DELETE FROM consumer_cursors WHERE consumer_id=?1",
@@ -2141,7 +2229,7 @@ impl StoreCoordinator {
             });
         }
         let mut connection = self.coordinator();
-        let transaction = begin_coordinator(&mut *connection)?;
+        let transaction = begin_coordinator(&mut connection)?;
         let changed = transaction.execute(
             "UPDATE requests SET state = 'acknowledged', updated_at = ?1
              WHERE request_id = ?2 AND state = 'committed'
@@ -2163,6 +2251,13 @@ impl StoreCoordinator {
     }
 
     fn ensure_writer_eligible(&self, running: &str) -> Result<(), CoordinatorError> {
+        with_locking_protocol_retry(
+            || self.ensure_writer_eligible_once(running),
+            coordinator_error_is_locking_protocol,
+        )
+    }
+
+    fn ensure_writer_eligible_once(&self, running: &str) -> Result<(), CoordinatorError> {
         let store = Connection::open(&self.store_db)?;
         let min_reader_version = store.query_row(
             "SELECT value FROM store_meta WHERE key = 'min_reader_version'",
@@ -2679,68 +2774,23 @@ impl LeaseHeartbeatGuard {
         let current = Arc::new(AtomicBool::new(true));
         let worker_current = Arc::clone(&current);
         let interval_ms = u64::try_from((lease_duration_ms / 3).max(1)).unwrap_or(1);
-        // Cap the retry backoff by the tick interval so the ladder can never outlast the lease it defends.
-        // At the production 5 s lease the interval is ~1.67 s and this is the flat 100 ms. But a short lease
-        // — the contract tests use 120 ms, giving a 40 ms interval — would otherwise sleep 2 x 100 ms between
-        // attempts, so one tick's ladder (200 ms) exceeded the entire 120 ms lease and the retry meant to
-        // SAVE the lease was what let it lapse.
-        let retry_delay = HEARTBEAT_RENEWAL_RETRY_DELAY
-            .min(Duration::from_millis(interval_ms / 2).max(Duration::from_millis(1)));
         let worker = std::thread::spawn(move || {
             loop {
                 match receiver.recv_timeout(Duration::from_millis(interval_ms)) {
                     Ok(()) | Err(mpsc::RecvTimeoutError::Disconnected) => return,
                     Err(mpsc::RecvTimeoutError::Timeout) => {}
                 }
-                // Giving up on the FIRST unhappy result made a whole scan's work collectible by a single
-                // momentary SQLITE_BUSY or one late tick: the thread returned, nothing renewed the lease
-                // again, it lapsed ~lease_duration_ms later, and the commit's validate_writer_lease then
-                // rejected everything the executor had just done. That is the "store-writer lease fencing
-                // check failed" users hit, and it bites hardest under load — precisely when scans are slow.
-                //
-                // Err   => transient (busy/locked coordinator). Retry briefly before concluding anything.
-                // false => the guarded UPDATE matched nothing, meaning the row lapsed or was taken over.
-                //          Re-extend it ONLY if it still carries our fencing token, which proves no takeover.
-                let mut renewed = false;
-                for attempt in 0..HEARTBEAT_RENEWAL_ATTEMPTS {
-                    // Sample `now` per attempt, after any blocking open inside the helper.
-                    match heartbeat_lease_at(
-                        &coordinator_db,
-                        &holder,
-                        fencing_token,
-                        system_now_ms(),
-                        lease_duration_ms,
-                    ) {
-                        Ok(true) => {
-                            renewed = true;
-                            break;
-                        }
-                        Ok(false) => {
-                            // Lapsed or stolen — the token check distinguishes them.
-                            match reclaim_lapsed_lease_at(
-                                &coordinator_db,
-                                &holder,
-                                fencing_token,
-                                lease_duration_ms,
-                            ) {
-                                Ok(true) => {
-                                    renewed = true;
-                                    break;
-                                }
-                                // Genuinely lost: the row is gone or another holder minted a new token.
-                                Ok(false) => break,
-                                Err(_) => {}
-                            }
-                        }
-                        Err(_) => {}
+                match renew_writer_lease_with_retry_for_duration(
+                    &coordinator_db,
+                    &holder,
+                    fencing_token,
+                    lease_duration_ms,
+                ) {
+                    Ok(true) => {}
+                    Ok(false) | Err(_) => {
+                        worker_current.store(false, AtomicOrdering::Release);
+                        return;
                     }
-                    if attempt + 1 < HEARTBEAT_RENEWAL_ATTEMPTS {
-                        std::thread::sleep(retry_delay);
-                    }
-                }
-                if !renewed {
-                    worker_current.store(false, AtomicOrdering::Release);
-                    return;
                 }
             }
         });
@@ -2768,6 +2818,33 @@ impl Drop for LeaseHeartbeatGuard {
             let _ = worker.join();
         }
     }
+}
+
+fn renew_writer_lease_with_retry_using<H, R>(
+    mut heartbeat: H,
+    mut reclaim: R,
+    retry_delay: Duration,
+) -> Result<bool, CoordinatorError>
+where
+    H: FnMut() -> Result<bool, CoordinatorError>,
+    R: FnMut() -> Result<bool, CoordinatorError>,
+{
+    let mut last_error = None;
+    for attempt in 0..HEARTBEAT_RENEWAL_ATTEMPTS {
+        match heartbeat() {
+            Ok(true) => return Ok(true),
+            Ok(false) => match reclaim() {
+                Ok(true) => return Ok(true),
+                Ok(false) => return Ok(false),
+                Err(error) => last_error = Some(error),
+            },
+            Err(error) => last_error = Some(error),
+        }
+        if attempt + 1 < HEARTBEAT_RENEWAL_ATTEMPTS {
+            std::thread::sleep(retry_delay);
+        }
+    }
+    Err(last_error.unwrap_or(CoordinatorError::LeaseLost))
 }
 
 impl LeaseReleaseGuard {
@@ -2877,18 +2954,58 @@ fn advance_family_allocator_marks(
     Ok(())
 }
 
+/// Whether a coordinator error is carrying SQLite's transient WAL locking-protocol signal.
+fn coordinator_error_is_locking_protocol(error: &CoordinatorError) -> bool {
+    match error {
+        CoordinatorError::Sqlite(inner) => is_locking_protocol(inner),
+        CoordinatorError::StoreLog(super::StoreLogError::Sqlite(inner)) => {
+            is_locking_protocol(inner)
+        }
+        _ => false,
+    }
+}
+
 fn open_coordinator(path: &Path) -> Result<Connection, CoordinatorError> {
+    with_locking_protocol_retry(
+        || open_coordinator_once(path),
+        coordinator_error_is_locking_protocol,
+    )
+}
+
+fn open_coordinator_once(path: &Path) -> Result<Connection, CoordinatorError> {
     let connection = Connection::open(path)?;
     connection.busy_timeout(COORDINATOR_BUSY_TIMEOUT)?;
     configure_writer_pragmas(&connection, WriterPragmaProfile::Routine).map_err(|error| {
-        CoordinatorError::CorruptRequest {
-            detail: format!("coordinator writer pragma configuration failed: {error:?}"),
+        match error {
+            // A locking-protocol failure is transient and must stay recognizable, so the retry
+            // above can absorb it. Reporting it as a corrupt coordinator is what reached users
+            // as `resolve claim lost`.
+            PragmaError::Sqlite(inner) if is_locking_protocol(&inner) => {
+                CoordinatorError::Sqlite(inner)
+            }
+            other => CoordinatorError::CorruptRequest {
+                detail: format!("coordinator writer pragma configuration failed: {other:?}"),
+            },
         }
     })?;
     Ok(connection)
 }
 
+/// Reads the family id every coordinator instance is pinned to.
+///
+/// This runs on EVERY `StoreCoordinator` construction, so it opens `store.db` as often as the
+/// coordinator is built — including from the resolve claim heartbeat's own thread, which needs its
+/// own connection because `Connection` is not `Sync`. That made it the last unretried open on the
+/// resolve path, and the one that kept reporting `resolve claim lost — the coordinator could not be
+/// opened: locking protocol` about once in seven runs after the coordinator itself was retried.
 fn coordinator_store_family(layout: &StoreLayout) -> Result<String, CoordinatorError> {
+    with_locking_protocol_retry(
+        || coordinator_store_family_once(layout),
+        coordinator_error_is_locking_protocol,
+    )
+}
+
+fn coordinator_store_family_once(layout: &StoreLayout) -> Result<String, CoordinatorError> {
     let store = Connection::open_with_flags(
         layout.store_db(),
         rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX,
@@ -3012,6 +3129,44 @@ mod tests {
 
         drop(connection);
         let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn writer_lease_renewal_retries_transient_errors() {
+        let mut attempts = 0;
+        let renewed = renew_writer_lease_with_retry_using(
+            || {
+                attempts += 1;
+                if attempts < 3 {
+                    Err(CoordinatorError::LeaseLost)
+                } else {
+                    Ok(true)
+                }
+            },
+            || panic!("reclaim is not needed after a transient error"),
+            Duration::ZERO,
+        )
+        .unwrap();
+
+        assert!(renewed);
+        assert_eq!(attempts, 3);
+    }
+
+    #[test]
+    fn writer_lease_renewal_reclaims_a_lapsed_lease_with_the_same_token() {
+        let renewed =
+            renew_writer_lease_with_retry_using(|| Ok(false), || Ok(true), Duration::ZERO).unwrap();
+
+        assert!(renewed);
+    }
+
+    #[test]
+    fn writer_lease_renewal_rejects_a_stolen_token() {
+        let renewed =
+            renew_writer_lease_with_retry_using(|| Ok(false), || Ok(false), Duration::ZERO)
+                .unwrap();
+
+        assert!(!renewed);
     }
 
     #[cfg(any(unix, windows))]

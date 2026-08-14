@@ -12,7 +12,8 @@ use julie_extract_artifact::store::{
     ResolutionBaseRecovery, ResolutionBindingStore, ResolutionConvergenceBegin,
     ResolutionExactPublish, ResolutionGapFact, ResolutionPinOwnerKind, ResolutionPublicationFence,
     ResolutionScratchReader, ResolutionViewBinding, StoreConnectionFactory, StoreCoordinator,
-    StoreLayout, StoreLog, StoreLogEntry, ViewResolutionState, stream_resolution_diff,
+    StoreLayout, StoreLog, StoreLogEntry, ViewResolutionState, renew_writer_lease_with_retry,
+    stream_resolution_diff,
 };
 use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
@@ -930,20 +931,17 @@ struct WriterLeaseHeartbeat {
 impl WriterLeaseHeartbeat {
     fn start(layout: StoreLayout, holder: LeaseHolder, fencing_token: i64) -> Self {
         let (stop, receiver) = mpsc::channel();
+        let coordinator_db = layout.coordinator_db().to_path_buf();
         let worker = thread::spawn(move || {
-            let Ok(mut coordinator) = StoreCoordinator::open(&layout) else {
-                return;
-            };
             loop {
                 match receiver.recv_timeout(WRITER_LEASE_HEARTBEAT_INTERVAL) {
                     Ok(()) | Err(mpsc::RecvTimeoutError::Disconnected) => return,
                     Err(mpsc::RecvTimeoutError::Timeout) => {}
                 }
-                // A lost or unreadable lease stops the renewal here. The operation's own fence check
-                // reports it; a second report from this thread would only hide the real error.
-                match coordinator.heartbeat_lease(&holder, fencing_token, now_millis()) {
+                match renew_writer_lease_with_retry(&coordinator_db, &holder, fencing_token) {
                     Ok(true) => {}
-                    _ => return,
+                    Ok(false) => return,
+                    Err(_) => {}
                 }
             }
         });
@@ -979,7 +977,7 @@ fn with_writer_lease<T>(
 ) -> Result<T, String> {
     let fencing_token = loop {
         match coordinator
-            .try_acquire_or_takeover(holder.clone(), now_millis())
+            .try_acquire_or_takeover_now(holder.clone())
             .map_err(|error| error.to_string())?
         {
             LeaseDisposition::Acquired { fencing_token } => break fencing_token,
@@ -1067,7 +1065,7 @@ fn normalize_dead_writer_lease(
         return Ok(());
     }
     match coordinator
-        .try_acquire_or_takeover(holder.clone(), now_millis())
+        .try_acquire_or_takeover_now(holder.clone())
         .map_err(|error| error.to_string())?
     {
         LeaseDisposition::Acquired { fencing_token } => {

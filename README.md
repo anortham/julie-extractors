@@ -95,11 +95,17 @@ Version 2.32.0 made validated scoped resolution the default while retaining an e
 escape hatch. Version 2.33.0 keeps long batch work from being rolled back at the quantum
 cap, frees a store wedged by an abandoned resolve claim, makes incremental vacuum reclaim its whole page
 budget per call, and repairs three Windows defects: unknown process liveness, an import that never
-retried a blocked drain, and a failed resolve that leaked its scratch database. The current v2.33.1
-release repairs a Windows defect that broke every scoped store resolution since v2.32.0: a verbatim
+retried a blocked drain, and a failed resolve that leaked its scratch database. Version 2.33.1
+repaired a Windows defect that broke every scoped store resolution since v2.32.0: a verbatim
 `\\?\` path prefix reached a SQLite URI and became an invalid authority, so a view could never leave
-`converging`. **Windows users on v2.32.0 through v2.33.0 should upgrade.** See the
-[v2.33.1 release notes](docs/release-notes/v2.33.1.md).
+`converging`. The prepared v2.33.2 candidate is a Windows reliability release, pending publication. The
+coordinator reuses one connection; transient `SQLITE_PROTOCOL` failures are retried for the
+coordinator/store construction reads and the other read-only store, base, scratch, and reader opens,
+while writer/lease mutation opens remain non-retried. Lease acquisition samples time after SQLite
+grants the transaction and renewal is token-checked and resilient to transient errors; single-file
+deltas stay scoped; and report paths use the contract's `/` separator. The exact-tree release-prep gates
+are green, but v2.33.1 remains the current published release. See the
+[v2.33.2 release notes](docs/release-notes/v2.33.2.md) for candidate details and verification status.
 
 ```bash
 julie-extract store import --store target/family --family <uuid> \

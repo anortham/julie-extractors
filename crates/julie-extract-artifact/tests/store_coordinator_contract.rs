@@ -666,6 +666,35 @@ fn unknown_pid_liveness_never_authorizes_takeover() {
 }
 
 #[test]
+fn delayed_acquisition_cannot_create_an_immediately_expired_lease() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let coordinator = StoreCoordinator::open(&layout).unwrap();
+    let locker = Connection::open(layout.coordinator_db()).unwrap();
+    locker.execute_batch("BEGIN IMMEDIATE").unwrap();
+    let worker = std::thread::spawn(move || {
+        let mut coordinator = coordinator;
+        coordinator.try_acquire_or_takeover_now(LeaseHolder::new("holder", "2.30.0", 41))
+    });
+    std::thread::sleep(std::time::Duration::from_millis(50));
+    let released_at = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as i64;
+    locker.execute_batch("COMMIT").unwrap();
+
+    let disposition = worker.join().unwrap().unwrap();
+    assert!(disposition.acquired());
+    let lease = StoreCoordinator::open(&layout)
+        .unwrap()
+        .lease()
+        .unwrap()
+        .unwrap();
+    assert!(lease.heartbeat_at >= released_at);
+    assert!(lease.expires_at > lease.heartbeat_at);
+}
+
+#[test]
 fn live_holder_is_not_displaced_but_dead_or_expired_holder_is_fenced() {
     let temp = TempDir::new();
     let layout = layout(temp.path());
@@ -1428,6 +1457,20 @@ fn writer_below_the_store_floor_is_typed_and_never_acquires() {
         CoordinatorError::WriterVersionTooOld { running, required }
             if running == "2.30.0" && required == "2.31.0"
     ));
+}
+
+#[test]
+fn writer_eligibility_wraps_the_complete_store_read_in_protocol_retry() {
+    let source = include_str!("../src/store/coordinator.rs");
+    let start = source
+        .find("fn ensure_writer_eligible(&self, running: &str)")
+        .unwrap();
+    let end = source[start..].find("\n    }\n}").unwrap() + start;
+    let function = &source[start..end];
+
+    assert!(function.contains("with_locking_protocol_retry("));
+    assert!(function.contains("self.ensure_writer_eligible_once(running)"));
+    assert!(source.contains("fn ensure_writer_eligible_once(&self, running: &str)"));
 }
 
 #[test]

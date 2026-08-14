@@ -197,6 +197,23 @@ Current release notes and published evidence:
 - `docs/release-notes/v2.31.1.md`
 - `docs/release-notes/v2.31.0.md`
 - `docs/release-notes/v2.30.0.md`
+
+Prepared release candidate (not published): `v2.33.2`.
+
+- `docs/release-notes/v2.33.2.md`
+- `docs/findings/2026-08-13-coordinator-connection-reuse.md`
+
+The exact v2.33.2 source tree passed the release-prep gates on 2026-08-13: format check, `cargo test
+-p xtask`, default tests (exit 0 in 96.6 seconds), and contract tests (exit 0 in 713.2 seconds, including
+the serial feature-enabled 24-test resolution target, which passed 24/24 tests in 101.54 seconds); strict
+workspace all-target/all-feature Clippy with
+`-D warnings`; release preflight for 4 targets and 32 inputs; package-list generation; and
+`git diff --check`. This records source-tree evidence only. v2.33.1 remains current until the live
+v2.33.2 release and its assets are verified.
+
+Do not move the current-published pointer or describe the candidate as current until the live GitHub
+release and its assets have been verified in the same session as the source push.
+
 - `docs/release-notes/v2.29.0.md`
 - `docs/release-evidence/v2.29.0/` (save-shape A/B probe + 40-save shadow dogfood)
 - `docs/release-notes/v2.28.0.md`

@@ -297,7 +297,7 @@ fn crossover_promotes_multi_file_scope() {
 }
 
 #[test]
-fn one_changed_file_with_broad_name_collisions_crosses_over_before_resolution() {
+fn one_changed_file_with_broad_name_collisions_remains_scoped() {
     let (connection, manifest) = broad_name_collision_scope();
     let total_identifiers = connection
         .query_row(
@@ -322,12 +322,12 @@ fn one_changed_file_with_broad_name_collisions_crosses_over_before_resolution() 
     assert_eq!(total_identifiers, 100);
 
     let decision = scope_decision(&connection, &manifest, 7);
-    let StoreDeltaScopeDecision::Full { reason, .. } = decision else {
+    let StoreDeltaScopeDecision::Scoped(worklists) = decision else {
         panic!(
-            "one changed path selected all {total_identifiers} identifier rows through a common name"
+            "one changed path must remain scoped even when its name arm selects all {total_identifiers} identifier rows"
         );
     };
-    assert_eq!(reason, StoreDeltaScopeFullReason::Crossover);
+    assert!(!worklists.effective_full);
 }
 
 #[test]

@@ -10,6 +10,7 @@ use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior};
 
 use super::coordinator::{CoordinatorError, LeaseDisposition, LeaseHolder, StoreCoordinator};
 use super::pragmas::{PragmaError, WriterPragmaProfile, configure_writer_pragmas};
+use super::wal_retry::{is_locking_protocol, with_locking_protocol_retry};
 use super::{
     STORE_SQLITE_SCHEMA_VERSION, StoreLayout, StoreLayoutError, StoreSchemaError,
     ensure_resolution_scope_feature,
@@ -170,6 +171,13 @@ impl StoreConnectionFactory {
 
     /// Opens a query-only connection after enforcing the reader floor.
     pub fn open_reader(&self) -> Result<Connection, StoreConnectionError> {
+        with_locking_protocol_retry(
+            || self.open_reader_once(),
+            store_connection_error_is_locking_protocol,
+        )
+    }
+
+    fn open_reader_once(&self) -> Result<Connection, StoreConnectionError> {
         let connection = Connection::open_with_flags(
             self.layout.store_db(),
             OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
@@ -213,11 +221,11 @@ impl StoreConnectionFactory {
                     StoreCoordinator::open(&self.layout).map_err(map_coordinator_lease_error)?;
                 let deadline = Instant::now() + Duration::from_secs(5);
                 let (fencing_token, checked_at) = loop {
-                    let checked_at = system_now_ms();
                     let disposition = coordinator
-                        .try_acquire_or_takeover(holder.clone(), checked_at)
+                        .try_acquire_or_takeover_now(holder.clone())
                         .map_err(map_coordinator_lease_error)?;
                     if let LeaseDisposition::Acquired { fencing_token } = disposition {
+                        let checked_at = system_now_ms();
                         if let Err(error) = self.validate_generation_write_fence(&connection) {
                             let _ = coordinator.release_lease(&holder, fencing_token);
                             return Err(error);
@@ -604,6 +612,18 @@ fn map_coordinator_lease_error(error: CoordinatorError) -> StoreConnectionError 
         other => StoreConnectionError::WriterLeaseUnavailable {
             detail: other.to_string(),
         },
+    }
+}
+
+fn store_connection_error_is_locking_protocol(error: &StoreConnectionError) -> bool {
+    match error {
+        StoreConnectionError::Sqlite(inner) => is_locking_protocol(inner),
+        StoreConnectionError::Schema(StoreSchemaError::Sqlite(inner)) => is_locking_protocol(inner),
+        StoreConnectionError::Layout(StoreLayoutError::Sqlite(inner)) => is_locking_protocol(inner),
+        StoreConnectionError::Layout(StoreLayoutError::Schema(StoreSchemaError::Sqlite(inner))) => {
+            is_locking_protocol(inner)
+        }
+        _ => false,
     }
 }
 

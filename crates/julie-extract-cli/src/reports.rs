@@ -110,21 +110,11 @@ pub(crate) fn slow_file_skipped_diagnostic(error: &DiscoveryError) -> ReportDiag
     )
 }
 
-/// One recoverable warning per file whose extraction passes disagreed about a
-/// shared reference site, plus a trailing summary when the writer's sample
-/// bound dropped files. The write already committed: the first site row won and
-/// per-row attribution is intact, so this reports an extractor bug rather than a
-/// failure.
-/// Joins a root with a root-relative report path.
-///
-/// `Path::join` inserts the PLATFORM separator, so on Windows a `/`-separated relative path came
-/// back as `/repo\scripts/install.ps1` — one string with both separators, from a contract that
-/// specifies `/` (docs/contracts/reports.md). The relative side is always `/`-separated, so the
-/// separator between the two sides is written explicitly. The root keeps whatever form the caller
-/// gave it; rewriting an absolute Windows root here would change a value consumers already match on.
+/// Joins a root with a root-relative report path using the contract's `/` separator.
 fn join_root_relative(root: &Path, relative: &str) -> String {
-    let root = root.display().to_string();
-    let trimmed = root.trim_end_matches(['/', '\\']);
+    let root = root.display().to_string().replace('\\', "/");
+    let trimmed = root.trim_end_matches('/');
+    let relative = relative.replace('\\', "/");
     let relative = relative.trim_start_matches('/');
     if trimmed.is_empty() {
         return format!("/{relative}");
@@ -132,6 +122,11 @@ fn join_root_relative(root: &Path, relative: &str) -> String {
     format!("{trimmed}/{relative}")
 }
 
+/// Emits one recoverable warning per file whose extraction passes disagreed about
+/// a shared reference site, plus a trailing summary when the writer's sample
+/// bound dropped files. The write already committed: the first site row won and
+/// per-row attribution is intact, so this reports an extractor bug rather than a
+/// failure.
 pub(crate) fn reference_site_conflict_diagnostics(
     conflicts: &ReferenceSiteConflicts,
     root: Option<&Path>,
@@ -886,6 +881,24 @@ mod tests {
             diagnostics[0].details["sites"][0]["fields"][0],
             "containing_symbol_id"
         );
+    }
+
+    #[test]
+    fn reference_site_conflicts_normalize_windows_root_separators() {
+        let conflicts = ReferenceSiteConflicts {
+            total: 1,
+            files_affected: 1,
+            files: vec![conflict_file(r"scripts\install.ps1", 1)],
+        };
+
+        let diagnostics =
+            reference_site_conflict_diagnostics(&conflicts, Some(Path::new(r"C:\repo\")));
+
+        assert_eq!(
+            diagnostics[0].path.as_deref(),
+            Some("C:/repo/scripts/install.ps1")
+        );
+        assert!(!diagnostics[0].path.as_deref().unwrap().contains('\\'));
     }
 
     #[test]
