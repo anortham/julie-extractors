@@ -1,5 +1,5 @@
 use std::cell::{Cell, RefCell};
-use std::collections::{BTreeMap, BTreeSet, HashMap, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 use std::fmt::{self, Write as _};
 use std::path::{Path, PathBuf};
 use std::time::Instant;
@@ -72,6 +72,24 @@ impl CandidateQueryFamily {
 pub struct CandidateQueryTelemetry {
     pub executions: usize,
     pub rows_read: usize,
+}
+
+#[cfg(feature = "test-store-resolution-contract")]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct PropagationCoverageTelemetry {
+    pub reader_opens: usize,
+    pub pending_query_executions: usize,
+    pub pending_candidate_rows_read: usize,
+    pub materialized_query_executions: usize,
+    pub materialized_candidate_rows_read: usize,
+}
+
+#[derive(Debug, Clone)]
+struct PropagationLocator {
+    name: String,
+    start_line: i64,
+    start_byte: i64,
+    end_byte: i64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -350,6 +368,21 @@ fn incremental_error(detail: impl Into<String>) -> StoreResolutionError {
     })
 }
 
+fn propagation_locator_matches(
+    locator: &PropagationLocator,
+    start_line: i64,
+    start_byte: Option<i64>,
+    end_byte: Option<i64>,
+) -> bool {
+    if let (Some(start_byte), Some(end_byte)) = (start_byte, end_byte) {
+        locator.start_byte >= start_byte
+            && locator.start_byte <= end_byte
+            && locator.end_byte <= end_byte
+    } else {
+        locator.start_line == start_line
+    }
+}
+
 #[derive(Debug)]
 pub struct StoreScratchResolutionSession {
     reader_factory: StoreConnectionFactory,
@@ -367,6 +400,8 @@ pub struct StoreScratchResolutionSession {
     phase_reader_opens: Cell<usize>,
     max_candidate_cache_entries: Cell<usize>,
     candidate_query_telemetry: Cell<[CandidateQueryTelemetry; CandidateQueryFamily::COUNT]>,
+    #[cfg(feature = "test-store-resolution-contract")]
+    propagation_coverage_telemetry: Cell<PropagationCoverageTelemetry>,
     visible_root_batches: usize,
     candidate_reader: RefCell<Option<Connection>>,
     candidate_window: RefCell<CandidateWindow>,
@@ -424,6 +459,8 @@ impl StoreScratchResolutionSession {
             candidate_query_telemetry: Cell::new(
                 [CandidateQueryTelemetry::default(); CandidateQueryFamily::COUNT],
             ),
+            #[cfg(feature = "test-store-resolution-contract")]
+            propagation_coverage_telemetry: Cell::new(PropagationCoverageTelemetry::default()),
             visible_root_batches: 0,
             candidate_reader: RefCell::new(None),
             candidate_window: RefCell::new(CandidateWindow::default()),
@@ -544,6 +581,11 @@ impl StoreScratchResolutionSession {
         family: CandidateQueryFamily,
     ) -> CandidateQueryTelemetry {
         self.candidate_query_telemetry.get()[family.index()]
+    }
+
+    #[cfg(feature = "test-store-resolution-contract")]
+    pub fn propagation_coverage_telemetry(&self) -> PropagationCoverageTelemetry {
+        self.propagation_coverage_telemetry.get()
     }
 
     #[cfg(feature = "test-store-resolution-contract")]
@@ -728,6 +770,52 @@ impl StoreScratchResolutionSession {
 
     fn open_reader(&self) -> Result<Connection, StoreResolutionError> {
         Ok(self.reader_factory.open_reader()?)
+    }
+
+    fn open_propagation_coverage_reader(&self) -> Result<Connection, StoreResolutionError> {
+        #[cfg(feature = "test-store-resolution-contract")]
+        self.propagation_coverage_telemetry.update(|mut telemetry| {
+            telemetry.reader_opens = telemetry.reader_opens.saturating_add(1);
+            telemetry
+        });
+        self.open_reader()
+    }
+
+    #[cfg(feature = "test-store-resolution-contract")]
+    fn record_propagation_pending_query(&self) {
+        self.propagation_coverage_telemetry.update(|mut telemetry| {
+            telemetry.pending_query_executions =
+                telemetry.pending_query_executions.saturating_add(1);
+            telemetry
+        });
+    }
+
+    #[cfg(feature = "test-store-resolution-contract")]
+    fn record_propagation_pending_candidate_rows(&self, rows: usize) {
+        self.propagation_coverage_telemetry.update(|mut telemetry| {
+            telemetry.pending_candidate_rows_read =
+                telemetry.pending_candidate_rows_read.saturating_add(rows);
+            telemetry
+        });
+    }
+
+    #[cfg(feature = "test-store-resolution-contract")]
+    fn record_propagation_materialized_query(&self) {
+        self.propagation_coverage_telemetry.update(|mut telemetry| {
+            telemetry.materialized_query_executions =
+                telemetry.materialized_query_executions.saturating_add(1);
+            telemetry
+        });
+    }
+
+    #[cfg(feature = "test-store-resolution-contract")]
+    fn record_propagation_materialized_candidate_rows(&self, rows: usize) {
+        self.propagation_coverage_telemetry.update(|mut telemetry| {
+            telemetry.materialized_candidate_rows_read = telemetry
+                .materialized_candidate_rows_read
+                .saturating_add(rows);
+            telemetry
+        });
     }
 
     fn sql_window_limit(&self) -> Result<i64, StoreResolutionError> {
@@ -1920,6 +2008,52 @@ impl ResolutionSession for StoreScratchResolutionSession {
             || self.materialized_relationship_covers(identifier_id)?)
     }
 
+    fn propagation_is_covered_batch(
+        &mut self,
+        identifiers: &[SemanticIdentifierId],
+    ) -> Result<HashSet<SemanticIdentifierId>, Self::Error> {
+        if identifiers.is_empty() {
+            return Ok(HashSet::new());
+        }
+        let mut key_indices = HashMap::<(i64, String), Vec<usize>>::new();
+        let mut unique_keys = BTreeSet::new();
+        for (index, identifier) in identifiers.iter().enumerate() {
+            let key = (
+                store_version(&identifier.version)?,
+                identifier.local_id.clone(),
+            );
+            key_indices.entry(key.clone()).or_default().push(index);
+            unique_keys.insert(key);
+        }
+        let unique_keys = unique_keys.into_iter().collect::<Vec<_>>();
+        let mut covered = vec![false; identifiers.len()];
+        let connection = self.open_propagation_coverage_reader()?;
+        self.propagating_pending_covers_batch(
+            &connection,
+            &unique_keys,
+            &key_indices,
+            &mut covered,
+        )?;
+        let uncovered = unique_keys
+            .iter()
+            .filter(|key| key_indices[*key].iter().any(|index| !covered[*index]))
+            .cloned()
+            .collect::<Vec<_>>();
+        if !uncovered.is_empty() {
+            self.materialized_relationship_covers_batch(
+                &connection,
+                &uncovered,
+                &key_indices,
+                &mut covered,
+            )?;
+        }
+        Ok(identifiers
+            .iter()
+            .zip(covered)
+            .filter_map(|(identifier, is_covered)| is_covered.then(|| identifier.clone()))
+            .collect())
+    }
+
     fn propagation_is_owned(
         &mut self,
         identifier_id: &SemanticIdentifierId,
@@ -2346,7 +2480,7 @@ impl StoreScratchResolutionSession {
         identifier_id: &SemanticIdentifierId,
     ) -> Result<bool, StoreResolutionError> {
         let version_id = store_version(&identifier_id.version)?;
-        let connection = self.open_reader()?;
+        let connection = self.open_propagation_coverage_reader()?;
         let sql = "SELECT pr.pending_relationship_id
              FROM identifiers AS i
              JOIN pending_relationships AS pr
@@ -2361,6 +2495,8 @@ impl StoreScratchResolutionSession {
              ORDER BY pr.pending_relationship_id COLLATE BINARY LIMIT ?4";
         let mut after = String::new();
         loop {
+            #[cfg(feature = "test-store-resolution-contract")]
+            self.record_propagation_pending_query();
             let ids = connection
                 .prepare(sql)?
                 .query_map(
@@ -2421,7 +2557,7 @@ impl StoreScratchResolutionSession {
         identifier_id: &SemanticIdentifierId,
     ) -> Result<bool, StoreResolutionError> {
         let version_id = store_version(&identifier_id.version)?;
-        let connection = self.open_reader()?;
+        let connection = self.open_propagation_coverage_reader()?;
         let sql = "SELECT r.relationship_id,r.kind,target.name,r.start_line,r.start_byte,r.end_byte
                    FROM identifiers AS i
                    JOIN relationships AS r ON r.version_id=i.version_id
@@ -2438,6 +2574,8 @@ impl StoreScratchResolutionSession {
                    ORDER BY r.relationship_id COLLATE BINARY LIMIT ?6";
         let mut after = String::new();
         loop {
+            #[cfg(feature = "test-store-resolution-contract")]
+            self.record_propagation_materialized_query();
             let rows = connection
                 .prepare(sql)?
                 .query_map(
@@ -2461,6 +2599,8 @@ impl StoreScratchResolutionSession {
                     },
                 )?
                 .collect::<Result<Vec<_>, _>>()?;
+            #[cfg(feature = "test-store-resolution-contract")]
+            self.record_propagation_materialized_candidate_rows(rows.len());
             self.max_store_read_page
                 .set(self.max_store_read_page.get().max(rows.len()));
             if rows.is_empty() {
@@ -2486,6 +2626,366 @@ impl StoreScratchResolutionSession {
                 .clone();
         }
         Ok(false)
+    }
+
+    fn propagating_pending_covers_batch(
+        &self,
+        connection: &Connection,
+        keys: &[(i64, String)],
+        key_indices: &HashMap<(i64, String), Vec<usize>>,
+        covered: &mut [bool],
+    ) -> Result<(), StoreResolutionError> {
+        let identifier_locators = self.propagation_locators(connection, keys)?;
+        let mut locators_by_name =
+            BTreeMap::<(i64, String), Vec<(String, PropagationLocator)>>::new();
+        for key in keys {
+            let Some(locator) = identifier_locators.get(key) else {
+                continue;
+            };
+            locators_by_name
+                .entry((key.0, locator.name.clone()))
+                .or_default()
+                .push((key.1.clone(), locator.clone()));
+        }
+        let sql = format!(
+            "WITH wanted(version_id,identifier_id) AS (VALUES {}),
+             requested_names(version_id,name) AS (
+               SELECT DISTINCT i.version_id,i.name
+               FROM wanted
+               JOIN identifiers AS i
+                 ON i.version_id=wanted.version_id AND i.identifier_id=wanted.identifier_id
+             )
+             SELECT pr.version_id,requested_names.name,pr.pending_relationship_id,
+                    COALESCE(pr.start_line,0),pr.start_byte,pr.end_byte
+             FROM requested_names
+             JOIN pending_relationships AS pr
+               ON pr.version_id=requested_names.version_id
+              AND pr.target_terminal_name=requested_names.name
+             WHERE (pr.version_id,pr.pending_relationship_id)>(?,?)
+             ORDER BY pr.version_id,pr.pending_relationship_id COLLATE BINARY
+             LIMIT ?",
+            key_values_clause(keys.len())
+        );
+        let mut after = (0_i64, String::new());
+        loop {
+            let mut bind = key_params(keys);
+            bind.extend([
+                after.0.into(),
+                after.1.clone().into(),
+                self.sql_window_limit()?.into(),
+            ]);
+            #[cfg(feature = "test-store-resolution-contract")]
+            self.record_propagation_pending_query();
+            let rows = connection
+                .prepare(&sql)?
+                .query_map(rusqlite::params_from_iter(bind), |row| {
+                    Ok((
+                        row.get::<_, i64>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, String>(2)?,
+                        row.get::<_, i64>(3)?,
+                        row.get::<_, Option<i64>>(4)?,
+                        row.get::<_, Option<i64>>(5)?,
+                    ))
+                })?
+                .collect::<Result<Vec<_>, _>>()?;
+            #[cfg(feature = "test-store-resolution-contract")]
+            self.record_propagation_pending_candidate_rows(rows.len());
+            self.max_store_read_page
+                .set(self.max_store_read_page.get().max(rows.len()));
+            if rows.is_empty() {
+                break;
+            }
+            let page_len = rows.len();
+            let last_cursor = rows
+                .last()
+                .map(|row| (row.0, row.2.clone()))
+                .expect("non-empty pending coverage page");
+            let matched_rows = rows
+                .into_iter()
+                .filter(|(version_id, name, _, start_line, start_byte, end_byte)| {
+                    locators_by_name
+                        .get(&(*version_id, name.clone()))
+                        .is_some_and(|locators| {
+                            locators.iter().any(|(_, locator)| {
+                                propagation_locator_matches(
+                                    locator,
+                                    *start_line,
+                                    *start_byte,
+                                    *end_byte,
+                                )
+                            })
+                        })
+                })
+                .collect::<Vec<_>>();
+            let pending_keys = matched_rows
+                .iter()
+                .map(|(version_id, _, pending_id, _, _, _)| (*version_id, pending_id.clone()))
+                .collect::<BTreeSet<_>>()
+                .into_iter()
+                .collect::<Vec<_>>();
+            let scratch_states = self.scratch_pending_states(&pending_keys)?;
+            let prior_covered = self.prior_pending_coverage(&pending_keys, &scratch_states)?;
+            for (version_id, name, pending_id, start_line, start_byte, end_byte) in matched_rows {
+                let pending_key = (version_id, pending_id);
+                let is_covered = match scratch_states.get(&pending_key) {
+                    Some((true, resolved)) => *resolved,
+                    Some((false, _)) | None => prior_covered.contains(&pending_key),
+                };
+                if is_covered {
+                    if let Some(locators) = locators_by_name.get(&(version_id, name)) {
+                        for (identifier_id, _) in locators.iter().filter(|(_, locator)| {
+                            propagation_locator_matches(locator, start_line, start_byte, end_byte)
+                        }) {
+                            let identifier_key = (version_id, identifier_id.clone());
+                            for index in key_indices
+                                .get(&identifier_key)
+                                .expect("pending coverage identifier is in the input chunk")
+                            {
+                                covered[*index] = true;
+                            }
+                        }
+                    }
+                }
+            }
+            if keys.iter().all(|key| {
+                key_indices
+                    .get(key)
+                    .expect("coverage key is in the input chunk")
+                    .iter()
+                    .all(|index| covered[*index])
+            }) {
+                break;
+            }
+            if page_len < self.window_size {
+                break;
+            }
+            after = last_cursor;
+        }
+        Ok(())
+    }
+
+    fn propagation_locators(
+        &self,
+        connection: &Connection,
+        keys: &[(i64, String)],
+    ) -> Result<HashMap<(i64, String), PropagationLocator>, StoreResolutionError> {
+        let sql = format!(
+            "WITH wanted(version_id,identifier_id) AS (VALUES {})
+             SELECT i.version_id,i.identifier_id,i.name,i.start_line,i.start_byte,i.end_byte
+             FROM wanted
+             JOIN identifiers AS i
+               ON i.version_id=wanted.version_id AND i.identifier_id=wanted.identifier_id
+             ORDER BY i.version_id,i.identifier_id COLLATE BINARY",
+            key_values_clause(keys.len())
+        );
+        let rows = connection
+            .prepare(&sql)?
+            .query_map(rusqlite::params_from_iter(key_params(keys)), |row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, String>(1)?,
+                    PropagationLocator {
+                        name: row.get(2)?,
+                        start_line: row.get(3)?,
+                        start_byte: row.get(4)?,
+                        end_byte: row.get(5)?,
+                    },
+                ))
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(rows
+            .into_iter()
+            .map(|(version_id, identifier_id, locator)| ((version_id, identifier_id), locator))
+            .collect())
+    }
+
+    fn scratch_pending_states(
+        &self,
+        keys: &[(i64, String)],
+    ) -> Result<HashMap<(i64, String), (bool, bool)>, StoreResolutionError> {
+        if keys.is_empty() {
+            return Ok(HashMap::new());
+        }
+        let sql = format!(
+            "WITH wanted(version_id,local_id) AS (VALUES {})
+             SELECT wanted.version_id,wanted.local_id,
+                    EXISTS(
+                      SELECT 1 FROM pending_touched AS touched
+                      WHERE touched.version_id=wanted.version_id
+                        AND touched.pending_relationship_id=wanted.local_id
+                    ),
+                    EXISTS(
+                      SELECT 1 FROM pending_resolutions AS resolved
+                      WHERE resolved.version_id=wanted.version_id
+                        AND resolved.pending_relationship_id=wanted.local_id
+                    )
+             FROM wanted",
+            key_values_clause(keys.len())
+        );
+        let rows = self
+            .scratch
+            .prepare(&sql)?
+            .query_map(rusqlite::params_from_iter(key_params(keys)), |row| {
+                Ok((
+                    (row.get::<_, i64>(0)?, row.get::<_, String>(1)?),
+                    (row.get::<_, bool>(2)?, row.get::<_, bool>(3)?),
+                ))
+            })?
+            .collect::<Result<HashMap<_, _>, _>>()?;
+        Ok(rows)
+    }
+
+    fn prior_pending_coverage(
+        &self,
+        keys: &[(i64, String)],
+        scratch_states: &HashMap<(i64, String), (bool, bool)>,
+    ) -> Result<BTreeSet<(i64, String)>, StoreResolutionError> {
+        let Some(prior) = self.prior_overlay.as_ref() else {
+            return Ok(BTreeSet::new());
+        };
+        let mut untouched = keys
+            .iter()
+            .filter(|key| {
+                !scratch_states
+                    .get(*key)
+                    .is_some_and(|(touched, _)| *touched)
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        let mut covered = BTreeSet::new();
+        let chunk_size = self.window_size.min(256);
+        for chunk in untouched.chunks_mut(chunk_size) {
+            let prior_keys = chunk
+                .iter()
+                .map(|(version_id, local_id)| PriorOverlayKey::new(*version_id, local_id.clone()))
+                .collect::<Vec<_>>();
+            match prior
+                .pending_by_keys(&prior_keys)
+                .map_err(|error| incremental_error(error.to_string()))?
+            {
+                PriorOverlayAccess::Ready(rows) => {
+                    covered.extend(
+                        rows.into_iter()
+                            .map(|row| (row.version_id, row.pending_relationship_id)),
+                    );
+                }
+                PriorOverlayAccess::FullFallback(fallback) => {
+                    return Err(incremental_error(format!(
+                        "prior overlay changed during resolution: {fallback:?}"
+                    )));
+                }
+            }
+        }
+        untouched.clear();
+        Ok(covered)
+    }
+
+    fn materialized_relationship_covers_batch(
+        &self,
+        connection: &Connection,
+        keys: &[(i64, String)],
+        key_indices: &HashMap<(i64, String), Vec<usize>>,
+        covered: &mut [bool],
+    ) -> Result<(), StoreResolutionError> {
+        let sql = format!(
+            "WITH wanted(version_id,identifier_id) AS (VALUES {})
+             SELECT wanted.version_id,wanted.identifier_id,r.relationship_id,r.kind
+             FROM wanted
+             JOIN identifiers AS i
+               ON i.version_id=wanted.version_id AND i.identifier_id=wanted.identifier_id
+             JOIN relationships AS r ON r.version_id=i.version_id
+             JOIN symbols AS target
+               ON target.version_id=r.version_id AND target.symbol_id=r.to_symbol_id
+              AND target.name=i.name
+              AND ((r.start_byte IS NOT NULL AND r.end_byte IS NOT NULL
+                    AND i.start_byte>=r.start_byte AND i.start_byte<=r.end_byte
+                    AND i.end_byte<=r.end_byte)
+                   OR ((r.start_byte IS NULL OR r.end_byte IS NULL)
+                       AND i.start_line=COALESCE(r.start_line,0)))
+             WHERE (r.version_id,r.relationship_id,wanted.identifier_id)>(?,?,?)
+               AND EXISTS (
+                 SELECT 1 FROM manifest_entries AS manifest
+                 WHERE manifest.view_id=? AND manifest.generation=?
+                   AND manifest.status IN ('indexed','failed_preserved')
+                   AND manifest.version_id=r.version_id
+               )
+               AND NOT EXISTS (
+                 SELECT 1 FROM identifiers AS second
+                 WHERE second.version_id=i.version_id
+                   AND second.identifier_id<>i.identifier_id
+                   AND second.name=i.name
+                   AND ((r.start_byte IS NOT NULL AND r.end_byte IS NOT NULL
+                         AND second.start_byte>=r.start_byte
+                         AND second.start_byte<=r.end_byte
+                         AND second.end_byte<=r.end_byte)
+                        OR ((r.start_byte IS NULL OR r.end_byte IS NULL)
+                            AND second.start_line=COALESCE(r.start_line,0)))
+               )
+             ORDER BY r.version_id,r.relationship_id COLLATE BINARY,
+                      wanted.identifier_id COLLATE BINARY
+             LIMIT ?",
+            key_values_clause(keys.len())
+        );
+        let mut after = (0_i64, String::new(), String::new());
+        loop {
+            let mut bind = key_params(keys);
+            bind.extend([
+                after.0.into(),
+                after.1.clone().into(),
+                after.2.clone().into(),
+                self.identity.view_id.clone().into(),
+                self.identity.generation.into(),
+                self.sql_window_limit()?.into(),
+            ]);
+            #[cfg(feature = "test-store-resolution-contract")]
+            self.record_propagation_materialized_query();
+            let rows = connection
+                .prepare(&sql)?
+                .query_map(rusqlite::params_from_iter(bind), |row| {
+                    Ok((
+                        row.get::<_, i64>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, String>(2)?,
+                        row.get::<_, String>(3)?,
+                    ))
+                })?
+                .collect::<Result<Vec<_>, _>>()?;
+            #[cfg(feature = "test-store-resolution-contract")]
+            self.record_propagation_materialized_candidate_rows(rows.len());
+            self.max_store_read_page
+                .set(self.max_store_read_page.get().max(rows.len()));
+            if rows.is_empty() {
+                break;
+            }
+            for (version_id, identifier_id, _relationship_id, kind) in &rows {
+                if ReferenceKind::from_relationship_kind(kind).is_none() {
+                    continue;
+                }
+                let identifier_key = (*version_id, identifier_id.clone());
+                for index in key_indices
+                    .get(&identifier_key)
+                    .expect("materialized coverage identifier is in the input chunk")
+                {
+                    covered[*index] = true;
+                }
+            }
+            if keys.iter().all(|key| {
+                key_indices
+                    .get(key)
+                    .expect("coverage key is in the input chunk")
+                    .iter()
+                    .all(|index| covered[*index])
+            }) {
+                break;
+            }
+            if rows.len() < self.window_size {
+                break;
+            }
+            let last = rows.last().expect("non-empty materialized coverage page");
+            after = (last.0, last.2.clone(), last.1.clone());
+        }
+        Ok(())
     }
 
     fn freeze_prior_phase(

@@ -477,6 +477,13 @@ impl PriorOverlayReader {
         self.pending_page(Filter::Versions(version_ids), after, limit)
     }
 
+    pub(crate) fn pending_by_keys(
+        &self,
+        keys: &[PriorOverlayKey],
+    ) -> Result<PriorOverlayAccess<Vec<ResolutionPendingRow>>, PriorOverlayError> {
+        self.pending_keys(keys)
+    }
+
     fn identifier_page(
         &self,
         filter: Filter<'_>,
@@ -634,6 +641,68 @@ impl PriorOverlayReader {
         let next = page_next(&scanned, limit);
         rows.truncate(limit);
         Ok(PriorOverlayAccess::Ready(PriorOverlayPage { rows, next }))
+    }
+
+    fn pending_keys(
+        &self,
+        keys: &[PriorOverlayKey],
+    ) -> Result<PriorOverlayAccess<Vec<ResolutionPendingRow>>, PriorOverlayError> {
+        if keys.is_empty() {
+            return Ok(PriorOverlayAccess::Ready(Vec::new()));
+        }
+        for key in keys {
+            validate_key(key.version_id, &key.local_id)?;
+        }
+        let values = key_values_clause(keys.len())?;
+        let sql = format!(
+            "WITH wanted(version_id,local_id) AS (VALUES {values})
+             SELECT source.version_id,source.pending_relationship_id,
+                    delta.operation,
+                    CASE WHEN delta.operation='replace' THEN delta.target_version_id ELSE base.target_version_id END,
+                    CASE WHEN delta.operation='replace' THEN delta.target_symbol_id ELSE base.target_symbol_id END,
+                    CASE WHEN delta.operation='replace' THEN delta.tier ELSE base.tier END,
+                    CASE WHEN delta.operation='replace' THEN delta.confidence ELSE base.confidence END,
+                    CASE WHEN delta.operation='replace' THEN delta.method ELSE base.method END
+             FROM wanted
+             JOIN pending_relationships AS source
+               ON source.version_id=wanted.version_id
+              AND source.pending_relationship_id=wanted.local_id
+             JOIN manifest_entries AS manifest
+               ON manifest.view_id=? AND manifest.generation=?
+              AND manifest.version_id=source.version_id
+             LEFT JOIN prior_base.pending_resolutions AS base
+               ON base.version_id=source.version_id
+              AND base.pending_relationship_id=source.pending_relationship_id
+             LEFT JOIN resolution_pending_deltas AS delta
+               ON delta.view_id=? AND delta.delta_generation=?
+              AND delta.version_id=source.version_id
+              AND delta.pending_relationship_id=source.pending_relationship_id
+             WHERE delta.operation='replace'
+                OR (delta.operation IS NULL AND base.version_id IS NOT NULL)
+             ORDER BY source.version_id,source.pending_relationship_id COLLATE BINARY"
+        );
+        let mut values = key_params(keys);
+        values.extend([
+            Value::Text(self.state.view_id.clone()),
+            Value::Integer(self.state.predecessor_manifest_generation),
+            Value::Text(self.state.view_id.clone()),
+            Value::Integer(self.state.delta_generation),
+        ]);
+        let mut statement = self.connection.prepare(&sql)?;
+        let mut query = statement.query(params_from_iter(values.iter()))?;
+        let mut rows = Vec::with_capacity(keys.len());
+        while let Some(row) = query.next()? {
+            rows.push(ResolutionPendingRow {
+                version_id: row.get(0)?,
+                pending_relationship_id: row.get(1)?,
+                target_version_id: row.get(3)?,
+                target_symbol_id: row.get(4)?,
+                tier: row.get(5)?,
+                confidence: row.get(6)?,
+                method: row.get(7)?,
+            });
+        }
+        Ok(PriorOverlayAccess::Ready(rows))
     }
 
     fn identifier_belongs_to_predecessor(
@@ -1057,6 +1126,26 @@ fn placeholders(count: usize) -> Result<String, PriorOverlayError> {
     Ok(std::iter::repeat_n("?", count)
         .collect::<Vec<_>>()
         .join(","))
+}
+
+fn key_values_clause(count: usize) -> Result<String, PriorOverlayError> {
+    if count > PRIOR_OVERLAY_MAX_FILTER_VALUES {
+        return Err(PriorOverlayError::InvalidArgument("overlay filter"));
+    }
+    Ok(std::iter::repeat_n("(?,?)", count)
+        .collect::<Vec<_>>()
+        .join(","))
+}
+
+fn key_params(keys: &[PriorOverlayKey]) -> Vec<Value> {
+    keys.iter()
+        .flat_map(|key| {
+            [
+                Value::Integer(key.version_id),
+                Value::Text(key.local_id.clone()),
+            ]
+        })
+        .collect()
 }
 
 fn text_filter_values(values: &[&str]) -> Result<Vec<Value>, PriorOverlayError> {

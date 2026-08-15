@@ -35,7 +35,7 @@
 pub mod session;
 
 use std::cell::RefCell;
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 use julie_extract_artifact::resolution_store::{IdentifierWorkItem, PendingWorkItem};
 use julie_extractors::SymbolKind;
@@ -1894,7 +1894,6 @@ fn tier4_compatible_kinds(kind: ReferenceKind) -> &'static [SymbolKind] {
 // policy crate owns these read queries — keeping language semantics out of the
 // storage crate per design §"Module placement & interface").
 
-use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use self::session::{
@@ -2392,12 +2391,19 @@ fn recheck_resolved_identifier_items<S: ResolutionSession>(
     counts: &mut ResolutionCounts,
     gated: &mut BTreeSet<String>,
 ) -> Result<(), S::Error> {
-    for resolved in items {
-        if session.propagation_is_covered(&semantic_identifier_id(
-            session,
-            resolved.identifier.source_key(),
-            &resolved.identifier.identifier_id,
-        )?)? {
+    let identifiers = items
+        .iter()
+        .map(|resolved| {
+            semantic_identifier_id(
+                session,
+                resolved.identifier.source_key(),
+                &resolved.identifier.identifier_id,
+            )
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let coverage = session.propagation_is_covered_batch(&identifiers)?;
+    for (resolved, identifier) in items.iter().zip(&identifiers) {
+        if coverage.contains(identifier) {
             continue;
         }
         record_identifier_edge(session, buf, &resolved.identifier, revision, counts, gated)?;

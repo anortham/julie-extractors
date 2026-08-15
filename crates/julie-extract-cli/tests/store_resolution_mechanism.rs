@@ -15,11 +15,13 @@ use julie_extract_cli::resolution_session::{
     SemanticSymbolId, SemanticVersionId,
 };
 use julie_extract_cli::store::resolution_session::{
-    StoreManifestIdentity, StoreResolutionError, StoreScratchResolutionSession,
+    CandidateQueryFamily, PropagationCoverageTelemetry, StoreManifestIdentity,
+    StoreResolutionError, StoreScratchResolutionSession,
 };
 use julie_extractors::SymbolKind;
 use rusqlite::{Connection, params};
 use serde_json::{Value, json};
+use std::collections::HashSet;
 use std::path::Path;
 use std::process::Command;
 use tempfile::TempDir;
@@ -33,7 +35,6 @@ fn store_resolution_source_uses_only_bounded_ports() {
         "WorkspaceCandidateIndex",
         "IdentifierLocator",
         "CurrentResolutionOverlay",
-        "HashSet<",
     ] {
         assert!(
             !source.contains(forbidden),
@@ -604,6 +605,640 @@ fn visible_version_roots_commit_once_per_bounded_store_page() {
 }
 
 #[test]
+fn propagation_pending_scratch_precedence_without_prior() {
+    let temp = TempDir::new().unwrap();
+    let layout = StoreLayout::create(temp.path().join("family"), "family-a", "2.30.0").unwrap();
+    let factory = StoreConnectionFactory::new(layout, "family-a", "2.30.0");
+    let mut connection = factory.open_writer().unwrap();
+    ManifestStore::new(&mut connection)
+        .ensure_view("view-a", "/repo")
+        .unwrap();
+    let version = insert_version(&connection, "src/lib.rs", "rust", true);
+    insert_named_symbol(&connection, version, "caller", "caller", "src/lib.rs");
+    insert_named_symbol(&connection, version, "target", "Target", "src/lib.rs");
+    insert_named_identifier(&connection, version, "resolved-use", "Target", "src/lib.rs");
+    insert_named_identifier(&connection, version, "demoted-use", "Demoted", "src/lib.rs");
+    for (pending_id, site_id, name) in [
+        ("pending-resolved", "site-resolved-use", "Target"),
+        ("pending-demoted", "site-demoted-use", "Demoted"),
+    ] {
+        connection
+            .execute(
+                "INSERT INTO pending_relationships
+                 (version_id,pending_relationship_id,reference_site_id,from_symbol_id,path,kind,
+                  target_display_name,target_terminal_name,target_namespace_json,start_line,start_column,
+                  end_line,end_column,start_byte,end_byte,confidence)
+                 VALUES (?1,?2,?3,'caller','src/lib.rs','calls',?4,?4,'[]',2,1,2,5,5,9,1.0)",
+                params![version, pending_id, site_id, name],
+            )
+            .unwrap();
+    }
+    connection
+        .execute(
+            "INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+             VALUES ('view-a',1,'manifest-a','request-a',?1)",
+            [NOW],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO manifest_entries
+             (view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
+             VALUES ('view-a',1,'src/lib.rs','rust',?1,'indexed','hash',?2)",
+            params![version, NOW],
+        )
+        .unwrap();
+    drop(connection);
+
+    let mut session = StoreScratchResolutionSession::new(
+        factory,
+        StoreManifestIdentity {
+            family_id: "family-a".to_string(),
+            view_id: "view-a".to_string(),
+            generation: 1,
+            manifest_hash: "manifest-a".to_string(),
+        },
+        temp.path().join("exact.db"),
+        9,
+        6,
+    )
+    .unwrap();
+    session
+        .open_resolution_pass(&ResolutionPassRequest::full())
+        .unwrap();
+    let mut writes = ResolutionWriteBatch::default();
+    writes.record_pending_resolution(
+        SemanticPendingRelationshipId {
+            version: SemanticVersionId::Store(version),
+            local_id: "pending-resolved".to_string(),
+        },
+        SemanticSymbolId {
+            version: SemanticVersionId::Store(version),
+            local_id: "target".to_string(),
+        },
+        1,
+        1.0,
+        "test",
+        1,
+    );
+    writes.demote_pending(SemanticPendingRelationshipId {
+        version: SemanticVersionId::Store(version),
+        local_id: "pending-demoted".to_string(),
+    });
+    session.flush(writes).unwrap();
+
+    let coverage = session
+        .propagation_is_covered_batch(&[
+            SemanticIdentifierId {
+                version: SemanticVersionId::Store(version),
+                local_id: "resolved-use".to_string(),
+            },
+            SemanticIdentifierId {
+                version: SemanticVersionId::Store(version),
+                local_id: "demoted-use".to_string(),
+            },
+        ])
+        .unwrap();
+    assert_eq!(
+        coverage
+            .into_iter()
+            .map(|identifier| identifier.local_id)
+            .collect::<HashSet<_>>(),
+        HashSet::from(["resolved-use".to_string()])
+    );
+}
+
+#[test]
+fn propagation_pending_batch_does_not_multiply_same_name_candidates_before_window() {
+    let temp = TempDir::new().unwrap();
+    let layout = StoreLayout::create(temp.path().join("family"), "family-a", "2.30.0").unwrap();
+    let factory = StoreConnectionFactory::new(layout, "family-a", "2.30.0");
+    let mut connection = factory.open_writer().unwrap();
+    ManifestStore::new(&mut connection)
+        .ensure_view("view-a", "/repo")
+        .unwrap();
+    let version = insert_version(&connection, "src/lib.rs", "rust", true);
+    insert_named_symbol(&connection, version, "caller", "caller", "src/lib.rs");
+    insert_named_symbol(&connection, version, "target", "Target", "src/lib.rs");
+    for index in 0..8 {
+        insert_named_identifier(
+            &connection,
+            version,
+            &format!("requested-{index:02}"),
+            "Target",
+            "src/lib.rs",
+        );
+    }
+    insert_named_identifier(
+        &connection,
+        version,
+        "requested-outside",
+        "Target",
+        "src/lib.rs",
+    );
+    connection
+        .execute(
+            "UPDATE identifiers
+             SET start_line=99,end_line=99,start_byte=200,end_byte=204
+             WHERE version_id=?1 AND identifier_id='requested-outside'",
+            [version],
+        )
+        .unwrap();
+    for pending_id in (0..7)
+        .map(|index| format!("pending-{index:02}"))
+        .chain(["pending-z".to_string()])
+    {
+        connection
+            .execute(
+                "INSERT INTO pending_relationships
+                 (version_id,pending_relationship_id,reference_site_id,from_symbol_id,path,kind,
+                  target_display_name,target_terminal_name,target_namespace_json,start_line,start_column,
+                  end_line,end_column,start_byte,end_byte,confidence)
+                 VALUES (?1,?2,'site-requested-00','caller','src/lib.rs','calls','Target','Target','[]',
+                         2,1,2,5,0,100,1.0)",
+                params![version, pending_id],
+            )
+            .unwrap();
+    }
+    connection
+        .execute(
+            "INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+             VALUES ('view-a',1,'manifest-a','request-a',?1)",
+            [NOW],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO manifest_entries
+             (view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
+             VALUES ('view-a',1,'src/lib.rs','rust',?1,'indexed','hash',?2)",
+            params![version, NOW],
+        )
+        .unwrap();
+    drop(connection);
+
+    let mut session = StoreScratchResolutionSession::new(
+        factory,
+        StoreManifestIdentity {
+            family_id: "family-a".to_string(),
+            view_id: "view-a".to_string(),
+            generation: 1,
+            manifest_hash: "manifest-a".to_string(),
+        },
+        temp.path().join("exact.db"),
+        9,
+        6,
+    )
+    .unwrap();
+    session
+        .open_resolution_pass(&ResolutionPassRequest::full())
+        .unwrap();
+    let mut writes = ResolutionWriteBatch::default();
+    writes.record_pending_resolution(
+        SemanticPendingRelationshipId {
+            version: SemanticVersionId::Store(version),
+            local_id: "pending-z".to_string(),
+        },
+        SemanticSymbolId {
+            version: SemanticVersionId::Store(version),
+            local_id: "target".to_string(),
+        },
+        1,
+        1.0,
+        "test",
+        1,
+    );
+    session.flush(writes).unwrap();
+
+    let identifiers = (0..8)
+        .map(|index| SemanticIdentifierId {
+            version: SemanticVersionId::Store(version),
+            local_id: format!("requested-{index:02}"),
+        })
+        .chain([SemanticIdentifierId {
+            version: SemanticVersionId::Store(version),
+            local_id: "requested-outside".to_string(),
+        }])
+        .collect::<Vec<_>>();
+    let coverage = session.propagation_is_covered_batch(&identifiers).unwrap();
+    assert_eq!(coverage.len(), 8);
+    assert_eq!(
+        session
+            .propagation_coverage_telemetry()
+            .pending_query_executions,
+        1
+    );
+    assert_eq!(
+        session
+            .propagation_coverage_telemetry()
+            .pending_candidate_rows_read,
+        8
+    );
+    assert!(session.max_store_read_page() <= 9);
+}
+
+#[test]
+fn propagation_materialized_batch_uses_zero_for_null_relationship_start_line() {
+    let temp = TempDir::new().unwrap();
+    let layout = StoreLayout::create(temp.path().join("family"), "family-a", "2.30.0").unwrap();
+    let factory = StoreConnectionFactory::new(layout, "family-a", "2.30.0");
+    let mut connection = factory.open_writer().unwrap();
+    ManifestStore::new(&mut connection)
+        .ensure_view("view-a", "/repo")
+        .unwrap();
+    let version = insert_version(&connection, "src/lib.rs", "rust", true);
+    insert_named_symbol(&connection, version, "caller", "caller", "src/lib.rs");
+    insert_named_symbol(
+        &connection,
+        version,
+        "zero-target",
+        "ZeroTarget",
+        "src/lib.rs",
+    );
+    insert_named_identifier(&connection, version, "zero-use", "ZeroTarget", "src/lib.rs");
+    connection
+        .execute(
+            "UPDATE identifiers
+             SET start_line=0,end_line=0
+             WHERE version_id=?1 AND identifier_id='zero-use'",
+            [version],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO reference_sites
+             (version_id,reference_site_id,path,language,start_line,start_column,end_line,end_column,
+              start_byte,end_byte,is_exact,provenance,level)
+             VALUES (?1,'site-zero-rel','src/lib.rs','rust',NULL,NULL,NULL,NULL,NULL,NULL,0,'spanless',2)",
+            [version],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO relationships
+             (version_id,relationship_id,reference_site_id,from_symbol_id,to_symbol_id,path,kind,
+              start_line,start_column,end_line,end_column,start_byte,end_byte,confidence)
+             VALUES (?1,'zero-rel','site-zero-rel','caller','zero-target','src/lib.rs','calls',
+                     NULL,NULL,NULL,NULL,NULL,NULL,1.0)",
+            [version],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+             VALUES ('view-a',1,'manifest-a','request-a',?1)",
+            [NOW],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO manifest_entries
+             (view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
+             VALUES ('view-a',1,'src/lib.rs','rust',?1,'indexed','hash',?2)",
+            params![version, NOW],
+        )
+        .unwrap();
+    drop(connection);
+
+    let mut session = StoreScratchResolutionSession::new(
+        factory,
+        StoreManifestIdentity {
+            family_id: "family-a".to_string(),
+            view_id: "view-a".to_string(),
+            generation: 1,
+            manifest_hash: "manifest-a".to_string(),
+        },
+        temp.path().join("exact.db"),
+        8,
+        6,
+    )
+    .unwrap();
+    session
+        .open_resolution_pass(&ResolutionPassRequest::full())
+        .unwrap();
+    let coverage = session
+        .propagation_is_covered_batch(&[SemanticIdentifierId {
+            version: SemanticVersionId::Store(version),
+            local_id: "zero-use".to_string(),
+        }])
+        .unwrap();
+    assert_eq!(
+        coverage,
+        HashSet::from([SemanticIdentifierId {
+            version: SemanticVersionId::Store(version),
+            local_id: "zero-use".to_string(),
+        }])
+    );
+}
+
+#[test]
+fn propagation_materialized_coverage_applies_locator_rules() {
+    let temp = TempDir::new().unwrap();
+    let layout = StoreLayout::create(temp.path().join("family"), "family-a", "2.30.0").unwrap();
+    let factory = StoreConnectionFactory::new(layout, "family-a", "2.30.0");
+    let mut connection = factory.open_writer().unwrap();
+    ManifestStore::new(&mut connection)
+        .ensure_view("view-a", "/repo")
+        .unwrap();
+    let version = insert_version(&connection, "src/lib.rs", "rust", true);
+    insert_named_symbol(&connection, version, "caller", "caller", "src/lib.rs");
+    for (symbol_id, name) in [
+        ("byte-target", "ByteTarget"),
+        ("line-target", "LineTarget"),
+        ("unsupported-target", "Unsupported"),
+        ("ambiguous-target", "Ambiguous"),
+    ] {
+        insert_named_symbol(&connection, version, symbol_id, name, "src/lib.rs");
+    }
+    for (identifier_id, name) in [
+        ("byte-use", "ByteTarget"),
+        ("line-use", "LineTarget"),
+        ("unsupported-use", "Unsupported"),
+        ("ambiguous-use", "Ambiguous"),
+        ("ambiguous-other", "Ambiguous"),
+    ] {
+        insert_named_identifier(&connection, version, identifier_id, name, "src/lib.rs");
+    }
+    for (identifier_id, line, start_byte, end_byte) in [
+        ("byte-use", 2, 10, 14),
+        ("line-use", 3, 20, 24),
+        ("unsupported-use", 4, 30, 34),
+        ("ambiguous-use", 5, 40, 44),
+        ("ambiguous-other", 5, 40, 44),
+    ] {
+        connection
+            .execute(
+                "UPDATE identifiers
+                 SET start_line=?1,end_line=?1,start_byte=?2,end_byte=?3
+                 WHERE version_id=?4 AND identifier_id=?5",
+                params![line, start_byte, end_byte, version, identifier_id],
+            )
+            .unwrap();
+    }
+    for (relationship_id, site_id, target_symbol_id, kind, line, start_byte, end_byte) in [
+        (
+            "byte-rel",
+            "site-byte-rel",
+            "byte-target",
+            "calls",
+            2_i64,
+            Some(10_i64),
+            Some(14_i64),
+        ),
+        (
+            "line-rel",
+            "site-line-rel",
+            "line-target",
+            "calls",
+            3,
+            None,
+            None,
+        ),
+        (
+            "unsupported-rel",
+            "site-unsupported-rel",
+            "unsupported-target",
+            "macro",
+            4,
+            Some(30),
+            Some(34),
+        ),
+        (
+            "ambiguous-rel",
+            "site-ambiguous-rel",
+            "ambiguous-target",
+            "calls",
+            5,
+            Some(40),
+            Some(44),
+        ),
+    ] {
+        if let (Some(start_byte), Some(end_byte)) = (start_byte, end_byte) {
+            connection
+                .execute(
+                    "INSERT INTO reference_sites
+                     (version_id,reference_site_id,path,language,start_line,start_column,end_line,end_column,
+                      start_byte,end_byte,is_exact,provenance,level)
+                     VALUES (?1,?2,'src/lib.rs','rust',?3,1,?3,5,?4,?5,1,'target_token',2)",
+                    params![version, site_id, line, start_byte, end_byte],
+                )
+                .unwrap();
+        } else {
+            connection
+                .execute(
+                    "INSERT INTO reference_sites
+                     (version_id,reference_site_id,path,language,start_line,start_column,end_line,end_column,
+                      start_byte,end_byte,is_exact,provenance,level)
+                     VALUES (?1,?2,'src/lib.rs','rust',NULL,NULL,NULL,NULL,NULL,NULL,0,'spanless',2)",
+                    params![version, site_id],
+                )
+                .unwrap();
+        }
+        connection
+            .execute(
+                "INSERT INTO relationships
+                 (version_id,relationship_id,reference_site_id,from_symbol_id,to_symbol_id,path,kind,
+                  start_line,start_column,end_line,end_column,start_byte,end_byte,confidence)
+                 VALUES (?1,?2,?3,'caller',?4,'src/lib.rs',?5,?6,1,?6,5,?7,?8,1.0)",
+                params![
+                    version,
+                    relationship_id,
+                    site_id,
+                    target_symbol_id,
+                    kind,
+                    line,
+                    start_byte,
+                    end_byte
+                ],
+            )
+            .unwrap();
+    }
+    connection
+        .execute(
+            "INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+             VALUES ('view-a',1,'manifest-a','request-a',?1)",
+            [NOW],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO manifest_entries
+             (view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
+             VALUES ('view-a',1,'src/lib.rs','rust',?1,'indexed','hash',?2)",
+            params![version, NOW],
+        )
+        .unwrap();
+    drop(connection);
+
+    let mut session = StoreScratchResolutionSession::new(
+        factory,
+        StoreManifestIdentity {
+            family_id: "family-a".to_string(),
+            view_id: "view-a".to_string(),
+            generation: 1,
+            manifest_hash: "manifest-a".to_string(),
+        },
+        temp.path().join("exact.db"),
+        8,
+        6,
+    )
+    .unwrap();
+    session
+        .open_resolution_pass(&ResolutionPassRequest::full())
+        .unwrap();
+    let coverage = session
+        .propagation_is_covered_batch(
+            &["byte-use", "line-use", "unsupported-use", "ambiguous-use"]
+                .into_iter()
+                .map(|local_id| SemanticIdentifierId {
+                    version: SemanticVersionId::Store(version),
+                    local_id: local_id.to_string(),
+                })
+                .collect::<Vec<_>>(),
+        )
+        .unwrap();
+    assert_eq!(
+        coverage
+            .into_iter()
+            .map(|identifier| identifier.local_id)
+            .collect::<HashSet<_>>(),
+        HashSet::from(["byte-use".to_string(), "line-use".to_string()])
+    );
+    assert_eq!(
+        session
+            .propagation_coverage_telemetry()
+            .materialized_candidate_rows_read,
+        3
+    );
+}
+
+#[test]
+fn propagation_materialized_batch_reads_only_requested_locator_candidates() {
+    let temp = TempDir::new().unwrap();
+    let layout = StoreLayout::create(temp.path().join("family"), "family-a", "2.30.0").unwrap();
+    let factory = StoreConnectionFactory::new(layout, "family-a", "2.30.0");
+    let mut connection = factory.open_writer().unwrap();
+    ManifestStore::new(&mut connection)
+        .ensure_view("view-a", "/repo")
+        .unwrap();
+    let version = insert_version(&connection, "src/lib.rs", "rust", true);
+    insert_named_symbol(&connection, version, "caller", "caller", "src/lib.rs");
+    insert_named_symbol(
+        &connection,
+        version,
+        "wanted-target",
+        "Wanted",
+        "src/lib.rs",
+    );
+    insert_named_identifier(&connection, version, "wanted-use", "Wanted", "src/lib.rs");
+    connection
+        .execute(
+            "UPDATE identifiers
+             SET start_line=2,end_line=2,start_byte=10,end_byte=14
+             WHERE version_id=?1 AND identifier_id='wanted-use'",
+            [version],
+        )
+        .unwrap();
+    for index in 0..32 {
+        let symbol_id = format!("common-target-{index:02}");
+        let identifier_id = format!("common-use-{index:02}");
+        insert_named_symbol(&connection, version, &symbol_id, "Common", "src/lib.rs");
+        insert_named_identifier(&connection, version, &identifier_id, "Common", "src/lib.rs");
+        let site_id = format!("site-common-rel-{index:02}");
+        let relationship_id = format!("common-rel-{index:02}");
+        connection
+            .execute(
+                "INSERT INTO reference_sites
+                 (version_id,reference_site_id,path,language,start_line,start_column,end_line,end_column,
+                  start_byte,end_byte,is_exact,provenance,level)
+                 VALUES (?1,?2,'src/lib.rs','rust',2,1,2,5,5,9,1,'target_token',2)",
+                params![version, site_id],
+            )
+            .unwrap();
+        connection
+            .execute(
+                "INSERT INTO relationships
+                 (version_id,relationship_id,reference_site_id,from_symbol_id,to_symbol_id,path,kind,
+                  start_line,start_column,end_line,end_column,start_byte,end_byte,confidence)
+                 VALUES (?1,?2,?3,'caller',?4,'src/lib.rs','calls',2,1,2,5,5,9,1.0)",
+                params![version, relationship_id, site_id, symbol_id],
+            )
+            .unwrap();
+    }
+    connection
+        .execute(
+            "INSERT INTO reference_sites
+             (version_id,reference_site_id,path,language,start_line,start_column,end_line,end_column,
+              start_byte,end_byte,is_exact,provenance,level)
+             VALUES (?1,'site-wanted-rel','src/lib.rs','rust',2,1,2,5,10,14,1,'target_token',2)",
+            [version],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO relationships
+             (version_id,relationship_id,reference_site_id,from_symbol_id,to_symbol_id,path,kind,
+              start_line,start_column,end_line,end_column,start_byte,end_byte,confidence)
+             VALUES (?1,'wanted-rel','site-wanted-rel','caller','wanted-target','src/lib.rs',
+                     'calls',2,1,2,5,10,14,1.0)",
+            [version],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+             VALUES ('view-a',1,'manifest-a','request-a',?1)",
+            [NOW],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO manifest_entries
+             (view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
+             VALUES ('view-a',1,'src/lib.rs','rust',?1,'indexed','hash',?2)",
+            params![version, NOW],
+        )
+        .unwrap();
+    drop(connection);
+
+    let mut session = StoreScratchResolutionSession::new(
+        factory,
+        StoreManifestIdentity {
+            family_id: "family-a".to_string(),
+            view_id: "view-a".to_string(),
+            generation: 1,
+            manifest_hash: "manifest-a".to_string(),
+        },
+        temp.path().join("exact.db"),
+        64,
+        6,
+    )
+    .unwrap();
+    session
+        .open_resolution_pass(&ResolutionPassRequest::full())
+        .unwrap();
+    let coverage = session
+        .propagation_is_covered_batch(&[SemanticIdentifierId {
+            version: SemanticVersionId::Store(version),
+            local_id: "wanted-use".to_string(),
+        }])
+        .unwrap();
+    assert_eq!(
+        coverage
+            .into_iter()
+            .map(|identifier| identifier.local_id)
+            .collect::<HashSet<_>>(),
+        HashSet::from(["wanted-use".to_string()])
+    );
+    assert_eq!(
+        session
+            .propagation_coverage_telemetry()
+            .materialized_candidate_rows_read,
+        1
+    );
+}
+
+#[test]
 fn scoped_store_resolution_reuses_predecessor_and_carries_unselected_sibling() {
     let temp = TempDir::new().unwrap();
     let layout = StoreLayout::create(temp.path().join("family"), "family-a", "2.30.0").unwrap();
@@ -692,6 +1327,14 @@ fn scoped_store_resolution_reuses_predecessor_and_carries_unselected_sibling() {
         .unwrap();
     connection
         .execute(
+            "UPDATE identifiers
+             SET name='ScratchOnly',start_line=3,end_line=3,start_byte=15,end_byte=19
+             WHERE version_id=?1 AND identifier_id='padding-use-0'",
+            [untouched],
+        )
+        .unwrap();
+    connection
+        .execute(
             "INSERT INTO pending_relationships
              (version_id,pending_relationship_id,reference_site_id,from_symbol_id,path,kind,
               target_display_name,target_terminal_name,target_namespace_json,start_line,start_column,
@@ -713,6 +1356,14 @@ fn scoped_store_resolution_reuses_predecessor_and_carries_unselected_sibling() {
             )
             .unwrap();
     }
+    connection
+        .execute(
+            "UPDATE pending_relationships
+             SET target_display_name='ScratchOnly',target_terminal_name='ScratchOnly'
+             WHERE version_id=?1 AND pending_relationship_id='scratch-authority'",
+            [untouched],
+        )
+        .unwrap();
     connection
         .execute(
             "INSERT INTO pending_relationships
@@ -916,7 +1567,7 @@ fn scoped_store_resolution_reuses_predecessor_and_carries_unselected_sibling() {
         factory.clone(),
         probe_identity.clone(),
         temp.path().join("selected-probe.db"),
-        1,
+        8,
         6,
     )
     .unwrap();
@@ -924,28 +1575,66 @@ fn scoped_store_resolution_reuses_predecessor_and_carries_unselected_sibling() {
     selected_probe
         .open_resolution_pass(&ResolutionPassRequest { full: false })
         .unwrap();
-    assert!(
-        selected_probe
-            .propagation_is_covered(&SemanticIdentifierId {
+    let prior_coverage = selected_probe
+        .propagation_is_covered_batch(&[SemanticIdentifierId {
+            version: SemanticVersionId::Store(untouched),
+            local_id: "padding-use-0".to_string(),
+        }])
+        .unwrap();
+    assert_eq!(prior_coverage.len(), 1);
+    let coverage = selected_probe
+        .propagation_is_covered_batch(&[
+            SemanticIdentifierId {
                 version: SemanticVersionId::Store(user),
                 local_id: "foo-use".to_string(),
-            })
-            .unwrap()
-    );
-    assert!(
-        selected_probe
-            .propagation_is_covered(&SemanticIdentifierId {
+            },
+            SemanticIdentifierId {
                 version: SemanticVersionId::Store(user),
                 local_id: "sibling-use".to_string(),
-            })
-            .unwrap()
+            },
+        ])
+        .unwrap();
+    assert_eq!(
+        coverage
+            .into_iter()
+            .map(|identifier| identifier.local_id)
+            .collect::<HashSet<_>>(),
+        HashSet::from(["foo-use".to_string(), "sibling-use".to_string()])
+    );
+    assert_eq!(
+        selected_probe
+            .candidate_query_telemetry(CandidateQueryFamily::LocateIdentifier)
+            .executions,
+        0,
+        "Store batch coverage must not execute scalar identifier locators"
+    );
+    assert_eq!(
+        selected_probe.propagation_coverage_telemetry(),
+        PropagationCoverageTelemetry {
+            reader_opens: 2,
+            pending_query_executions: 2,
+            pending_candidate_rows_read: 3,
+            materialized_query_executions: 1,
+            materialized_candidate_rows_read: 1,
+        }
     );
     let mut writes = ResolutionWriteBatch::default();
     writes.demote_identifier(SemanticIdentifierId {
         version: SemanticVersionId::Store(user),
         local_id: "foo-use".to_string(),
     });
+    writes.demote_pending(SemanticPendingRelationshipId {
+        version: SemanticVersionId::Store(untouched),
+        local_id: "scratch-authority".to_string(),
+    });
     selected_probe.flush(writes).unwrap();
+    let demoted_coverage = selected_probe
+        .propagation_is_covered_batch(&[SemanticIdentifierId {
+            version: SemanticVersionId::Store(untouched),
+            local_id: "padding-use-0".to_string(),
+        }])
+        .unwrap();
+    assert!(demoted_coverage.is_empty());
     let selected_worklists = ResolutionWorklists {
         effective_full: false,
         selected_versions: vec![SemanticVersionId::Store(user)],

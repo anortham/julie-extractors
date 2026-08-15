@@ -1,6 +1,6 @@
 #![cfg(feature = "test-store-resolution-contract")]
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashSet};
 use std::path::Path;
 
 use julie_extract_artifact::resolution_store::{read_resolution_metadata, resolution_report};
@@ -9,7 +9,7 @@ use julie_extract_cli::resolution_session::{
     LegacyResolutionSession, ResolutionCorpusIdentity, ResolutionPassRequest, ResolutionPhase,
     ResolutionSession, ResolutionWorklists, ResolutionWrite, ResolutionWriteBatch,
     SemanticIdentifierId, SemanticSymbolId, SemanticVersionId, SessionRelationship,
-    SessionResolutionState,
+    SessionResolutionState, SessionResolvedIdentifierWorkItem,
 };
 use rusqlite::Connection;
 use serde_json::{Value, json};
@@ -525,7 +525,13 @@ struct FakeResolutionSession {
     writes: Vec<ResolutionWriteBatch>,
     index: Option<julie_extract_cli::resolution::WorkspaceCandidateIndex>,
     emitted_phases: Vec<ResolutionPhase>,
+    current_phase: Option<ResolutionPhase>,
     effective_full: bool,
+    propagation_coverage_calls: usize,
+    propagation_coverage_batch_calls: usize,
+    propagation_coverage_batch_inputs: Vec<Vec<String>>,
+    resolved_identifier_resolve_calls: usize,
+    resolved_identifier_chunk: usize,
 }
 
 impl ResolutionSession for FakeResolutionSession {
@@ -647,6 +653,9 @@ impl ResolutionSession for FakeResolutionSession {
         &mut self,
         edge: &julie_extract_cli::resolution::UnresolvedEdge,
     ) -> Result<julie_extract_cli::resolution::TierOutcome, Self::Error> {
+        if self.current_phase == Some(ResolutionPhase::ResolvedIdentifiers) {
+            self.resolved_identifier_resolve_calls += 1;
+        }
         Ok(julie_extract_cli::resolution::resolve_one(
             edge,
             self.index.as_ref().expect("fake pass is open"),
@@ -685,7 +694,31 @@ impl ResolutionSession for FakeResolutionSession {
         &mut self,
         _identifier_id: &SemanticIdentifierId,
     ) -> Result<bool, Self::Error> {
+        self.propagation_coverage_calls += 1;
         Ok(false)
+    }
+
+    fn propagation_is_covered_batch(
+        &mut self,
+        identifiers: &[SemanticIdentifierId],
+    ) -> Result<HashSet<SemanticIdentifierId>, Self::Error> {
+        self.propagation_coverage_batch_calls += 1;
+        self.propagation_coverage_batch_inputs.push(
+            identifiers
+                .iter()
+                .map(|identifier| identifier.local_id.clone())
+                .collect(),
+        );
+        Ok(identifiers
+            .iter()
+            .filter(|identifier| {
+                matches!(
+                    identifier.local_id.as_str(),
+                    "covered-one" | "covered-two" | "duplicate"
+                )
+            })
+            .cloned()
+            .collect())
     }
 
     fn propagation_is_owned(
@@ -700,6 +733,33 @@ impl ResolutionSession for FakeResolutionSession {
         worklists: &ResolutionWorklists,
     ) -> Result<Option<julie_extract_cli::resolution_session::ResolutionPhaseChunk>, Self::Error>
     {
+        self.current_phase = Some(worklists.phase);
+        if worklists.phase == ResolutionPhase::ResolvedIdentifiers && self.effective_full {
+            let chunks = [
+                vec![
+                    fake_resolved_identifier("covered-one"),
+                    fake_resolved_identifier("uncovered-one"),
+                    fake_resolved_identifier("duplicate"),
+                    fake_resolved_identifier("duplicate"),
+                ],
+                vec![
+                    fake_resolved_identifier("covered-two"),
+                    fake_resolved_identifier("uncovered-two"),
+                ],
+            ];
+            if let Some(chunk) = chunks.get(self.resolved_identifier_chunk) {
+                self.resolved_identifier_chunk += 1;
+                return Ok(Some(
+                    julie_extract_cli::resolution_session::ResolutionPhaseChunk::ResolvedIdentifiers(
+                        chunk.clone(),
+                    ),
+                ));
+            }
+            if !self.emitted_phases.contains(&worklists.phase) {
+                self.emitted_phases.push(worklists.phase);
+            }
+            return Ok(None);
+        }
         if self.emitted_phases.contains(&worklists.phase) {
             return Ok(None);
         }
@@ -745,6 +805,11 @@ impl ResolutionSession for FakeResolutionSession {
             Vec::new()
         };
         Ok(match worklists.phase {
+            ResolutionPhase::ResolvedIdentifiers => Some(
+                julie_extract_cli::resolution_session::ResolutionPhaseChunk::ResolvedIdentifiers(
+                    Vec::new(),
+                ),
+            ),
             ResolutionPhase::Identifiers => Some(
                 julie_extract_cli::resolution_session::ResolutionPhaseChunk::Identifiers(
                     identifiers,
@@ -773,6 +838,65 @@ impl ResolutionSession for FakeResolutionSession {
     {
         Ok(vec![])
     }
+}
+
+fn fake_resolved_identifier(identifier_id: &str) -> SessionResolvedIdentifierWorkItem {
+    SessionResolvedIdentifierWorkItem {
+        identifier: julie_extract_artifact::resolution_store::IdentifierWorkItem {
+            identifier_id: identifier_id.to_string(),
+            file_id: "caller".to_string(),
+            path: "caller.rs".to_string(),
+            language: "rust".to_string(),
+            name: "launch".to_string(),
+            kind: "variable_ref".to_string(),
+            containing_symbol_id: Some("scope".to_string()),
+            start_line: 1,
+            start_byte: 0,
+            end_byte: 6,
+            receiver: None,
+            receiver_qualifier: None,
+            import_context: None,
+            confidence: 1.0,
+        },
+        target_symbol_id: Some(SemanticSymbolId {
+            version: SemanticVersionId::Store(10),
+            local_id: "target".to_string(),
+        }),
+        tier: Some(1),
+        confidence: Some(0.95),
+        method: Some("tier1_local".to_string()),
+        outcome: julie_extract_artifact::resolution_store::Outcome::Resolved,
+        candidates: None,
+    }
+}
+
+#[test]
+fn resolved_identifier_propagation_coverage_batches_chunks_and_deduplicates() {
+    let mut session = FakeResolutionSession {
+        effective_full: true,
+        ..Default::default()
+    };
+
+    run_resolution_session(&mut session, true, true).unwrap();
+
+    assert_eq!(
+        session.propagation_coverage_batch_calls, 2,
+        "propagation coverage must run once per ResolvedIdentifiers chunk"
+    );
+    assert_eq!(session.propagation_coverage_calls, 0);
+    assert_eq!(
+        session.propagation_coverage_batch_inputs,
+        vec![
+            vec![
+                "covered-one".to_string(),
+                "uncovered-one".to_string(),
+                "duplicate".to_string(),
+                "duplicate".to_string(),
+            ],
+            vec!["covered-two".to_string(), "uncovered-two".to_string()],
+        ]
+    );
+    assert_eq!(session.resolved_identifier_resolve_calls, 2);
 }
 
 #[test]
@@ -883,7 +1007,6 @@ fn generic_resolution_session_contract_exposes_only_bounded_ports() {
     for forbidden in [
         "WorkspaceCandidateIndex",
         "IdentifierLocator",
-        "HashSet<SemanticIdentifierId>",
         "CurrentResolutionOverlay",
         "Vec<PendingWorkItem>",
         "Vec<IdentifierWorkItem>",

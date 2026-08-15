@@ -320,6 +320,18 @@ pub trait ResolutionSession {
         &mut self,
         identifier_id: &SemanticIdentifierId,
     ) -> Result<bool, Self::Error>;
+    fn propagation_is_covered_batch(
+        &mut self,
+        identifiers: &[SemanticIdentifierId],
+    ) -> Result<HashSet<SemanticIdentifierId>, Self::Error> {
+        let mut covered = HashSet::new();
+        for identifier_id in identifiers {
+            if self.propagation_is_covered(identifier_id)? {
+                covered.insert(identifier_id.clone());
+            }
+        }
+        Ok(covered)
+    }
     fn propagation_is_owned(
         &mut self,
         identifier_id: &SemanticIdentifierId,

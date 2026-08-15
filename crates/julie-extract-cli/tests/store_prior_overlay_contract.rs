@@ -96,6 +96,34 @@ fn by_name_and_by_file_reads_are_bounded_and_deterministic() {
 }
 
 #[test]
+fn exact_pending_key_reads_preserve_overlay_precedence() {
+    let fixture = Fixture::new();
+    let reader = fixture.reader();
+    let rows = ready(
+        reader
+            .pending_by_keys(&[
+                PriorOverlayKey::new(fixture.v1, "pending-base"),
+                PriorOverlayKey::new(fixture.v1, "pending-replaced"),
+                PriorOverlayKey::new(fixture.v1, "pending-removed"),
+                PriorOverlayKey::new(fixture.v2, "pending-new"),
+            ])
+            .unwrap(),
+    );
+
+    assert_eq!(
+        rows.iter()
+            .map(|row| (row.version_id, row.pending_relationship_id.as_str()))
+            .collect::<Vec<_>>(),
+        vec![
+            (fixture.v1, "pending-base"),
+            (fixture.v1, "pending-replaced"),
+            (fixture.v2, "pending-new"),
+        ]
+    );
+    assert_eq!(rows[1].method, "delta-pending");
+}
+
+#[test]
 fn pending_cursor_walk_emits_visible_rows_once_across_tombstones() {
     let fixture = Fixture::new();
     let reader = fixture.reader();
