@@ -1,6 +1,8 @@
 use std::cell::{Cell, RefCell};
+use std::collections::hash_map::DefaultHasher;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 use std::fmt::{self, Write as _};
+use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 #[cfg(feature = "test-store-resolution-contract")]
 use std::rc::Rc;
@@ -27,8 +29,12 @@ use rusqlite::{
 use serde::{Deserialize, Serialize};
 
 use crate::resolution::{
-    self, CandidateEvidence, CandidateHit, CandidateLookup, CandidateSummary, CandidateSymbol,
-    EdgeOrigin, ImportRecord, ReferenceKind, TierOutcome, TypeFact, UnresolvedEdge,
+    self, CandidateCacheAttribution, CandidateEvidence, CandidateHit, CandidateLookup,
+    CandidateLookupAttribution, CandidatePageFamily, CandidateSummary, CandidateSymbol,
+    ChildLookupCacheState, ChildLookupReason, EdgeOrigin, FilteredNameLookupAttribution,
+    FilteredNameLookupReason, ImportRecord, PrimeWindowAttribution, ReferenceKind,
+    SameWindowFingerprintCounts, TierOutcome, TopLevelLookupAttribution, TopLevelLookupReason,
+    TypeFact, TypeFactsLookupAttribution, TypeFactsLookupReason, UnresolvedEdge,
 };
 use crate::resolution_session::{
     ResolutionCorpusIdentity, ResolutionPassRequest, ResolutionPhase, ResolutionPhaseChunk,
@@ -89,6 +95,215 @@ impl CandidateQueryFamily {
 pub struct CandidateQueryTelemetry {
     pub executions: usize,
     pub rows_read: usize,
+    pub elapsed_micros: u64,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum CandidatePageAttribution {
+    Children {
+        reason: Option<ChildLookupReason>,
+        page_limit: Option<usize>,
+        had_prior_page: bool,
+    },
+    FilteredByName {
+        reason: Option<FilteredNameLookupReason>,
+        page_limit: Option<usize>,
+        had_prior_page: bool,
+    },
+    TopLevel {
+        reason: Option<TopLevelLookupReason>,
+        page_limit: Option<usize>,
+        had_prior_page: bool,
+    },
+    TypeFacts {
+        reason: Option<TypeFactsLookupReason>,
+        page_limit: Option<usize>,
+        had_prior_page: bool,
+    },
+}
+
+pub(crate) fn candidate_lookup_attribution_json(
+    attribution: &CandidateLookupAttribution,
+) -> serde_json::Value {
+    serde_json::json!({
+        "logical_lookups": attribution.logical_lookups,
+        "empty_first": attribution.empty_first,
+        "trailing_empty": attribution.trailing_empty,
+        "short_positive": attribution.short_positive,
+        "full_page": attribution.full_page,
+        "page_limit": attribution.page_limit,
+        "same_window_fingerprints": {
+            "first_seen": attribution.same_window_fingerprints.first_seen,
+            "repeat_same_window": attribution.same_window_fingerprints.repeat_same_window,
+            "probe_overflow": attribution.same_window_fingerprints.probe_overflow,
+        },
+    })
+}
+
+pub(crate) fn prime_window_attribution_json(
+    attribution: &PrimeWindowAttribution,
+) -> serde_json::Value {
+    serde_json::json!({
+        "windows": attribution.windows,
+        "windows_hit_row_limit": attribution.windows_hit_row_limit,
+        "names_wanted": attribution.names_wanted,
+        "names_complete": attribution.names_complete,
+        "names_skipped_cutoff": attribution.names_skipped_cutoff,
+        "names_rejected_capacity": attribution.names_rejected_capacity,
+        "rows_admitted": attribution.rows_admitted,
+    })
+}
+
+impl TopLevelLookupAttribution {
+    pub(crate) fn record_lookup(
+        &mut self,
+        reason: Option<TopLevelLookupReason>,
+        fingerprint: SameWindowFingerprintCounts,
+    ) {
+        self.aggregate.record_lookup(fingerprint);
+        if let Some(reason) = reason {
+            self.reasons[reason.index()].record_lookup(fingerprint);
+        }
+    }
+
+    pub(crate) fn record_page(
+        &mut self,
+        reason: Option<TopLevelLookupReason>,
+        row_count: usize,
+        page_limit: Option<usize>,
+        had_prior_page: bool,
+    ) {
+        self.aggregate
+            .record_page(row_count, page_limit, had_prior_page);
+        if let Some(reason) = reason {
+            self.reasons[reason.index()].record_page(row_count, page_limit, had_prior_page);
+        }
+    }
+}
+
+impl FilteredNameLookupAttribution {
+    pub(crate) fn record_lookup(
+        &mut self,
+        reason: Option<FilteredNameLookupReason>,
+        fingerprint: SameWindowFingerprintCounts,
+    ) {
+        self.aggregate.record_lookup(fingerprint);
+        if let Some(reason) = reason {
+            self.reasons[reason.index()].record_lookup(fingerprint);
+        }
+    }
+
+    pub(crate) fn record_page(
+        &mut self,
+        reason: Option<FilteredNameLookupReason>,
+        row_count: usize,
+        page_limit: Option<usize>,
+        had_prior_page: bool,
+    ) {
+        self.aggregate
+            .record_page(row_count, page_limit, had_prior_page);
+        if let Some(reason) = reason {
+            self.reasons[reason.index()].record_page(row_count, page_limit, had_prior_page);
+        }
+    }
+}
+
+impl TypeFactsLookupAttribution {
+    pub(crate) fn record_lookup(
+        &mut self,
+        reason: Option<TypeFactsLookupReason>,
+        fingerprint: SameWindowFingerprintCounts,
+    ) {
+        self.aggregate.record_lookup(fingerprint);
+        if let Some(reason) = reason {
+            self.reasons[reason.index()].record_lookup(fingerprint);
+        }
+    }
+
+    pub(crate) fn record_page(
+        &mut self,
+        reason: Option<TypeFactsLookupReason>,
+        row_count: usize,
+        page_limit: Option<usize>,
+        had_prior_page: bool,
+    ) {
+        self.aggregate
+            .record_page(row_count, page_limit, had_prior_page);
+        if let Some(reason) = reason {
+            self.reasons[reason.index()].record_page(row_count, page_limit, had_prior_page);
+        }
+    }
+}
+
+#[derive(Debug)]
+struct SameWindowFingerprintTracker {
+    capacity: usize,
+    slots: Vec<u64>,
+}
+
+impl SameWindowFingerprintTracker {
+    fn new(capacity: usize) -> Self {
+        Self {
+            capacity,
+            slots: vec![0; capacity.saturating_mul(CandidatePageFamily::COUNT)],
+        }
+    }
+
+    fn reset(&mut self) {
+        self.slots.fill(0);
+    }
+
+    fn observe(
+        &mut self,
+        family: CandidatePageFamily,
+        fingerprint: u64,
+    ) -> SameWindowFingerprintCounts {
+        let base = family.index().saturating_mul(self.capacity);
+        let start = (fingerprint as usize % self.capacity).saturating_add(base);
+        for offset in 0..self.capacity {
+            let index = base + ((start - base + offset) % self.capacity);
+            match self.slots[index] {
+                value if value == fingerprint => {
+                    return SameWindowFingerprintCounts {
+                        repeat_same_window: 1,
+                        ..SameWindowFingerprintCounts::default()
+                    };
+                }
+                0 => {
+                    self.slots[index] = fingerprint;
+                    return SameWindowFingerprintCounts {
+                        first_seen: 1,
+                        ..SameWindowFingerprintCounts::default()
+                    };
+                }
+                _ => {}
+            }
+        }
+        SameWindowFingerprintCounts {
+            probe_overflow: 1,
+            ..SameWindowFingerprintCounts::default()
+        }
+    }
+}
+
+fn logical_fingerprint<T: Hash>(family: CandidatePageFamily, key: &T) -> u64 {
+    let mut hasher = DefaultHasher::new();
+    family.index().hash(&mut hasher);
+    key.hash(&mut hasher);
+    let fingerprint = hasher.finish();
+    if fingerprint == 0 { 1 } else { fingerprint }
+}
+
+fn accumulate_candidate_query_telemetry(
+    telemetry: &mut [CandidateQueryTelemetry; CandidateQueryFamily::COUNT],
+    family: CandidateQueryFamily,
+    rows_read: usize,
+    elapsed_micros: u64,
+) {
+    let family = &mut telemetry[family.index()];
+    family.executions = family.executions.saturating_add(1);
+    family.rows_read = family.rows_read.saturating_add(rows_read);
+    family.elapsed_micros = family.elapsed_micros.saturating_add(elapsed_micros);
 }
 
 #[cfg(feature = "test-store-resolution-contract")]
@@ -190,19 +405,39 @@ pub(crate) struct StoreResolutionDecisionTelemetry {
     pub(crate) elapsed_millis: u64,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+struct ChildrenNamedKey {
+    version_id: i64,
+    parent_symbol_id: String,
+    name: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct ScopeFrontierKey {
+    version_id: i64,
+    symbol_id: String,
+}
+
 #[derive(Debug, Default)]
 struct CandidateWindow {
     primed_names: BTreeSet<String>,
     by_name: HashMap<String, Vec<CandidateHit>>,
     by_id: HashMap<SemanticSymbolId, Option<CandidateHit>>,
+    children_named: BTreeMap<ChildrenNamedKey, Vec<CandidateHit>>,
     module_versions: HashMap<(Vec<String>, String), Option<String>>,
 }
 
 impl CandidateWindow {
-    fn entry_count(&self) -> usize {
+    fn non_by_id_entry_count(&self) -> usize {
         self.by_name.values().map(Vec::len).sum::<usize>()
-            + self.by_id.len()
+            + self.children_named.len()
+            + self.children_named.values().map(Vec::len).sum::<usize>()
             + self.module_versions.len()
+    }
+
+    fn entry_count(&self) -> usize {
+        self.non_by_id_entry_count()
+            .saturating_add(self.by_id.len())
     }
 }
 
@@ -441,6 +676,9 @@ pub struct StoreScratchResolutionSession {
     phase_reader_opens: Cell<usize>,
     max_candidate_cache_entries: Cell<usize>,
     candidate_query_telemetry: Cell<[CandidateQueryTelemetry; CandidateQueryFamily::COUNT]>,
+    candidate_cache_attribution: Cell<CandidateCacheAttribution>,
+    candidate_query_timing_enabled: bool,
+    same_window_fingerprints: RefCell<Option<SameWindowFingerprintTracker>>,
     #[cfg(feature = "test-store-resolution-contract")]
     propagation_coverage_telemetry: Cell<PropagationCoverageTelemetry>,
     #[cfg(feature = "test-store-resolution-contract")]
@@ -503,6 +741,9 @@ impl StoreScratchResolutionSession {
             candidate_query_telemetry: Cell::new(
                 [CandidateQueryTelemetry::default(); CandidateQueryFamily::COUNT],
             ),
+            candidate_cache_attribution: Cell::new(CandidateCacheAttribution::default()),
+            candidate_query_timing_enabled: false,
+            same_window_fingerprints: RefCell::new(None),
             #[cfg(feature = "test-store-resolution-contract")]
             propagation_coverage_telemetry: Cell::new(PropagationCoverageTelemetry::default()),
             #[cfg(feature = "test-store-resolution-contract")]
@@ -607,6 +848,114 @@ impl StoreScratchResolutionSession {
 
     pub(crate) fn force_full_without_prior_state(&mut self) {
         self.forced_full_without_prior_state = true;
+    }
+
+    pub(crate) fn enable_candidate_query_timing(&mut self) {
+        self.candidate_query_timing_enabled = true;
+        if self.same_window_fingerprints.get_mut().is_none() {
+            *self.same_window_fingerprints.get_mut() =
+                Some(SameWindowFingerprintTracker::new(self.window_size));
+        }
+    }
+
+    #[cfg(feature = "test-store-resolution-contract")]
+    pub fn enable_candidate_query_timing_for_test(&mut self) {
+        self.enable_candidate_query_timing();
+    }
+
+    #[cfg(feature = "test-store-resolution-contract")]
+    pub fn same_window_fingerprint_tracker_allocated_for_test(&self) -> bool {
+        self.same_window_fingerprints.borrow().is_some()
+    }
+
+    #[cfg(feature = "test-store-resolution-contract")]
+    pub fn candidate_cache_attribution_for_test(&self) -> serde_json::Value {
+        let attribution = self.candidate_cache_attribution.get();
+        let child_calls = attribution
+            .children_named
+            .buckets
+            .iter()
+            .map(|states| states.iter().map(|bucket| bucket.calls).collect::<Vec<_>>())
+            .collect::<Vec<_>>();
+        let child_sql_pages = attribution
+            .children_named
+            .buckets
+            .iter()
+            .map(|states| {
+                states
+                    .iter()
+                    .map(|bucket| bucket.sql_pages)
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
+        let reasoned = |aggregate: &CandidateLookupAttribution,
+                        reasons: &[CandidateLookupAttribution],
+                        names: &[&str]| {
+            let mut value = candidate_lookup_attribution_json(aggregate);
+            let reason_json = names
+                .iter()
+                .zip(reasons.iter())
+                .map(|(name, attribution)| {
+                    (
+                        (*name).to_string(),
+                        candidate_lookup_attribution_json(attribution),
+                    )
+                })
+                .collect::<serde_json::Map<_, _>>();
+            value["reasons"] = serde_json::Value::Object(reason_json);
+            value
+        };
+        let page_attribution = serde_json::json!({
+            "children_named": reasoned(
+                &attribution.children_named.aggregate,
+                &attribution.children_named.reasons,
+                &[
+                    "static_member",
+                    "static_receiver_shadow_check",
+                    "tier1_scope_terminal",
+                    "tier3_typed_member",
+                    "tier3_receiver_scope",
+                ],
+            ),
+            "filtered_by_name": reasoned(
+                &attribution.filtered_by_name.aggregate,
+                &attribution.filtered_by_name.reasons,
+                &["tier2_import", "unique_type", "unique_static"],
+            ),
+            "top_level_named": reasoned(
+                &attribution.top_level_named.aggregate,
+                &attribution.top_level_named.reasons,
+                &["tier1_terminal", "tier3_receiver"],
+            ),
+            "type_facts": reasoned(
+                &attribution.type_facts.aggregate,
+                &attribution.type_facts.reasons,
+                &["tier3_receiver"],
+            ),
+        });
+        serde_json::json!({
+            "prime_window": prime_window_attribution_json(&attribution.prime_window),
+            "page_attribution": page_attribution,
+            "child_calls": child_calls,
+            "child_sql_pages": child_sql_pages,
+            "batch_count_statements": attribution.children_named.batch_count_statements,
+            "batch_fetch_statements": attribution.children_named.batch_fetch_statements,
+            "by_id": {
+                "cache_hits": attribution.by_id.cache_hits,
+                "sql_misses": attribution.by_id.sql_misses,
+                "accepted_insertions": attribution.by_id.accepted_insertions,
+                "rejected_by_id_cap": attribution.by_id.rejected_by_id_cap,
+                "rejected_by_aggregate_cap": attribution.by_id.rejected_by_aggregate_cap,
+                "max_entries": attribution.by_id.max_entries,
+                "max_non_by_id_entries": attribution.by_id.max_non_by_id_entries,
+                "max_aggregate_entries": attribution.by_id.max_aggregate_entries,
+                "phase_reset_count": attribution.by_id.phase_reset_count,
+                "phase_reset_by_id_entries": attribution.by_id.phase_reset_by_id_entries,
+                "phase_reset_aggregate_entries": attribution.by_id.phase_reset_aggregate_entries,
+                "phase_reset_by_id_entries_total": attribution.by_id.phase_reset_by_id_entries_total,
+                "phase_reset_aggregate_entries_total": attribution.by_id.phase_reset_aggregate_entries_total,
+            },
+        })
     }
 
     pub(crate) fn set_validated_base(&mut self, proof: ResolutionValidatedBase) {
@@ -1335,7 +1684,9 @@ impl StoreScratchResolutionSession {
     fn open_phase_reader(&self) -> Result<Connection, StoreResolutionError> {
         self.phase_reader_opens
             .set(self.phase_reader_opens.get() + 1);
-        self.open_reader()
+        let connection = self.open_reader()?;
+        connection.set_prepared_statement_cache_capacity(32);
+        Ok(connection)
     }
 
     fn with_candidate_reader<T>(
@@ -1349,19 +1700,328 @@ impl StoreScratchResolutionSession {
         read(reader.as_ref().expect("candidate reader initialized"))
     }
 
-    fn record_candidate_query(&self, family: CandidateQueryFamily, rows_read: usize) {
+    fn candidate_query_started(&self) -> Option<Instant> {
+        self.candidate_query_timing_enabled.then(Instant::now)
+    }
+
+    fn record_candidate_query(
+        &self,
+        family: CandidateQueryFamily,
+        rows_read: usize,
+        started: Option<Instant>,
+    ) {
+        let elapsed_micros = started
+            .map(|started| u64::try_from(started.elapsed().as_micros()).unwrap_or(u64::MAX))
+            .unwrap_or(0);
+        self.record_candidate_query_elapsed(family, rows_read, elapsed_micros);
+    }
+
+    fn record_candidate_query_elapsed(
+        &self,
+        family: CandidateQueryFamily,
+        rows_read: usize,
+        elapsed_micros: u64,
+    ) {
         let mut telemetry = self.candidate_query_telemetry.get();
-        let family = &mut telemetry[family.index()];
-        family.executions = family.executions.saturating_add(1);
-        family.rows_read = family.rows_read.saturating_add(rows_read);
+        accumulate_candidate_query_telemetry(&mut telemetry, family, rows_read, elapsed_micros);
         self.candidate_query_telemetry.set(telemetry);
+    }
+
+    fn observe_logical_lookup<T: Hash>(
+        &self,
+        family: CandidatePageFamily,
+        key: &T,
+    ) -> SameWindowFingerprintCounts {
+        if !self.candidate_query_timing_enabled {
+            return SameWindowFingerprintCounts::default();
+        }
+        let fingerprint = logical_fingerprint(family, key);
+        self.same_window_fingerprints
+            .borrow_mut()
+            .as_mut()
+            .map_or_else(SameWindowFingerprintCounts::default, |tracker| {
+                tracker.observe(family, fingerprint)
+            })
+    }
+
+    fn record_child_lookup_attribution(
+        &self,
+        reason: Option<ChildLookupReason>,
+        fingerprint: SameWindowFingerprintCounts,
+    ) {
+        if !self.candidate_query_timing_enabled {
+            return;
+        }
+        let mut attribution = self.candidate_cache_attribution.get();
+        attribution
+            .children_named
+            .record_lookup(reason, fingerprint);
+        self.candidate_cache_attribution.set(attribution);
+    }
+
+    fn record_filtered_lookup_attribution(
+        &self,
+        reason: Option<FilteredNameLookupReason>,
+        fingerprint: SameWindowFingerprintCounts,
+    ) {
+        if !self.candidate_query_timing_enabled {
+            return;
+        }
+        let mut attribution = self.candidate_cache_attribution.get();
+        attribution
+            .filtered_by_name
+            .record_lookup(reason, fingerprint);
+        self.candidate_cache_attribution.set(attribution);
+    }
+
+    fn record_top_level_lookup_attribution(
+        &self,
+        reason: Option<TopLevelLookupReason>,
+        fingerprint: SameWindowFingerprintCounts,
+    ) {
+        if !self.candidate_query_timing_enabled {
+            return;
+        }
+        let mut attribution = self.candidate_cache_attribution.get();
+        attribution
+            .top_level_named
+            .record_lookup(reason, fingerprint);
+        self.candidate_cache_attribution.set(attribution);
+    }
+
+    fn record_type_facts_lookup_attribution(
+        &self,
+        reason: Option<TypeFactsLookupReason>,
+        fingerprint: SameWindowFingerprintCounts,
+    ) {
+        if !self.candidate_query_timing_enabled {
+            return;
+        }
+        let mut attribution = self.candidate_cache_attribution.get();
+        attribution.type_facts.record_lookup(reason, fingerprint);
+        self.candidate_cache_attribution.set(attribution);
+    }
+
+    fn record_candidate_page_attribution(
+        &self,
+        attribution_kind: CandidatePageAttribution,
+        row_count: usize,
+    ) {
+        if !self.candidate_query_timing_enabled {
+            return;
+        }
+        let mut attribution = self.candidate_cache_attribution.get();
+        match attribution_kind {
+            CandidatePageAttribution::Children {
+                reason,
+                page_limit,
+                had_prior_page,
+            } => attribution.children_named.record_page(
+                reason,
+                row_count,
+                page_limit,
+                had_prior_page,
+            ),
+            CandidatePageAttribution::FilteredByName {
+                reason,
+                page_limit,
+                had_prior_page,
+            } => attribution.filtered_by_name.record_page(
+                reason,
+                row_count,
+                page_limit,
+                had_prior_page,
+            ),
+            CandidatePageAttribution::TopLevel {
+                reason,
+                page_limit,
+                had_prior_page,
+            } => attribution.top_level_named.record_page(
+                reason,
+                row_count,
+                page_limit,
+                had_prior_page,
+            ),
+            CandidatePageAttribution::TypeFacts {
+                reason,
+                page_limit,
+                had_prior_page,
+            } => attribution
+                .type_facts
+                .record_page(reason, row_count, page_limit, had_prior_page),
+        }
+        self.candidate_cache_attribution.set(attribution);
+        if let CandidatePageAttribution::Children {
+            reason: Some(reason),
+            ..
+        } = attribution_kind
+        {
+            self.record_child_lookup_sql_page(reason);
+        }
+    }
+
+    fn record_children_named_batch_page(&self, row_count: usize) {
+        self.record_candidate_page_attribution(
+            CandidatePageAttribution::Children {
+                reason: None,
+                page_limit: None,
+                had_prior_page: false,
+            },
+            row_count,
+        );
+    }
+
+    fn record_child_lookup(&self, reason: ChildLookupReason, state: ChildLookupCacheState) {
+        if !self.candidate_query_timing_enabled {
+            return;
+        }
+        let mut attribution = self.candidate_cache_attribution.get();
+        attribution.children_named.record_call(reason, state);
+        self.candidate_cache_attribution.set(attribution);
+    }
+
+    fn record_child_lookup_sql_page(&self, reason: ChildLookupReason) {
+        if !self.candidate_query_timing_enabled {
+            return;
+        }
+        let mut attribution = self.candidate_cache_attribution.get();
+        attribution.children_named.record_sql_page(reason);
+        self.candidate_cache_attribution.set(attribution);
+    }
+
+    fn record_children_named_batch_count(&self) {
+        if !self.candidate_query_timing_enabled {
+            return;
+        }
+        let mut attribution = self.candidate_cache_attribution.get();
+        attribution.children_named.batch_count_statements = attribution
+            .children_named
+            .batch_count_statements
+            .saturating_add(1);
+        self.candidate_cache_attribution.set(attribution);
+    }
+
+    fn record_children_named_batch_fetch(&self) {
+        if !self.candidate_query_timing_enabled {
+            return;
+        }
+        let mut attribution = self.candidate_cache_attribution.get();
+        attribution.children_named.batch_fetch_statements = attribution
+            .children_named
+            .batch_fetch_statements
+            .saturating_add(1);
+        self.candidate_cache_attribution.set(attribution);
+    }
+
+    fn record_by_id_cache_hit(&self) {
+        if !self.candidate_query_timing_enabled {
+            return;
+        }
+        let mut attribution = self.candidate_cache_attribution.get();
+        attribution.by_id.cache_hits = attribution.by_id.cache_hits.saturating_add(1);
+        self.candidate_cache_attribution.set(attribution);
+    }
+
+    fn record_by_id_sql_miss(&self) {
+        if !self.candidate_query_timing_enabled {
+            return;
+        }
+        let mut attribution = self.candidate_cache_attribution.get();
+        attribution.by_id.sql_misses = attribution.by_id.sql_misses.saturating_add(1);
+        self.candidate_cache_attribution.set(attribution);
+    }
+
+    fn record_by_id_accepted_insertion(&self) {
+        if !self.candidate_query_timing_enabled {
+            return;
+        }
+        let mut attribution = self.candidate_cache_attribution.get();
+        attribution.by_id.accepted_insertions =
+            attribution.by_id.accepted_insertions.saturating_add(1);
+        self.candidate_cache_attribution.set(attribution);
+    }
+
+    fn record_by_id_rejected_by_id_cap(&self) {
+        if !self.candidate_query_timing_enabled {
+            return;
+        }
+        let mut attribution = self.candidate_cache_attribution.get();
+        attribution.by_id.rejected_by_id_cap =
+            attribution.by_id.rejected_by_id_cap.saturating_add(1);
+        self.candidate_cache_attribution.set(attribution);
+    }
+
+    fn record_by_id_rejected_by_aggregate_cap(&self, count: usize) {
+        if !self.candidate_query_timing_enabled {
+            return;
+        }
+        let mut attribution = self.candidate_cache_attribution.get();
+        attribution.by_id.rejected_by_aggregate_cap = attribution
+            .by_id
+            .rejected_by_aggregate_cap
+            .saturating_add(u64::try_from(count).unwrap_or(u64::MAX));
+        self.candidate_cache_attribution.set(attribution);
+    }
+
+    fn record_candidate_cache_occupancy(&self, window: &CandidateWindow) {
+        self.max_candidate_cache_entries.set(
+            self.max_candidate_cache_entries
+                .get()
+                .max(window.entry_count()),
+        );
+        if !self.candidate_query_timing_enabled {
+            return;
+        }
+        let mut attribution = self.candidate_cache_attribution.get();
+        attribution.by_id.max_entries = attribution
+            .by_id
+            .max_entries
+            .max(u64::try_from(window.by_id.len()).unwrap_or(u64::MAX));
+        attribution.by_id.max_non_by_id_entries = attribution
+            .by_id
+            .max_non_by_id_entries
+            .max(u64::try_from(window.non_by_id_entry_count()).unwrap_or(u64::MAX));
+        attribution.by_id.max_aggregate_entries = attribution
+            .by_id
+            .max_aggregate_entries
+            .max(u64::try_from(window.entry_count()).unwrap_or(u64::MAX));
+        self.candidate_cache_attribution.set(attribution);
+    }
+
+    fn record_candidate_cache_phase_reset(&self, by_id_len: usize, aggregate_len: usize) {
+        if !self.candidate_query_timing_enabled {
+            return;
+        }
+        let by_id_entries = u64::try_from(by_id_len).unwrap_or(u64::MAX);
+        let aggregate_entries = u64::try_from(aggregate_len).unwrap_or(u64::MAX);
+        let mut attribution = self.candidate_cache_attribution.get();
+        attribution.by_id.phase_reset_count = attribution.by_id.phase_reset_count.saturating_add(1);
+        attribution.by_id.phase_reset_by_id_entries = by_id_entries;
+        attribution.by_id.phase_reset_aggregate_entries = aggregate_entries;
+        attribution.by_id.phase_reset_by_id_entries_total = attribution
+            .by_id
+            .phase_reset_by_id_entries_total
+            .saturating_add(by_id_entries);
+        attribution.by_id.phase_reset_aggregate_entries_total = attribution
+            .by_id
+            .phase_reset_aggregate_entries_total
+            .saturating_add(aggregate_entries);
+        self.candidate_cache_attribution.set(attribution);
     }
 
     fn reset_candidate_window(&mut self) -> Result<(), StoreResolutionError> {
         let reader = self.open_phase_reader()?;
+        let (by_id_len, aggregate_len) = {
+            let window = self.candidate_window.get_mut();
+            (window.by_id.len(), window.entry_count())
+        };
+        self.record_candidate_cache_phase_reset(by_id_len, aggregate_len);
         *self.candidate_reader.get_mut() = Some(reader);
         *self.candidate_window.get_mut() = CandidateWindow::default();
         self.resolution_cache.get_mut().clear();
+        if let Some(tracker) = self.same_window_fingerprints.get_mut().as_mut() {
+            tracker.reset();
+        }
         Ok(())
     }
 
@@ -2928,12 +3588,14 @@ impl CandidateLookup for StoreScratchResolutionSession {
             local_id: local_id.to_string(),
         };
         if let Some(hit) = self.candidate_window.borrow().by_id.get(&semantic_id) {
+            self.record_by_id_cache_hit();
             return Ok(hit.clone());
         }
+        self.record_by_id_sql_miss();
+        let started = self.candidate_query_started();
         let row = self.with_candidate_reader(|connection| {
-            Ok(connection
-                .query_row(
-                    "SELECT s.version_id, s.symbol_id, s.language, s.name, s.kind,
+            let mut statement = connection.prepare_cached(
+                "SELECT s.version_id, s.symbol_id, s.language, s.name, s.kind,
                         s.parent_symbol_id, s.visibility, s.signature, s.metadata_json
                  FROM symbols AS s
                  WHERE s.version_id = ?1 AND s.symbol_id = ?2
@@ -2943,6 +3605,9 @@ impl CandidateLookup for StoreScratchResolutionSession {
                        AND me.status IN ('indexed', 'failed_preserved')
                        AND me.version_id = s.version_id
                    )",
+            )?;
+            Ok(statement
+                .query_row(
                     params![
                         version_id,
                         local_id,
@@ -2953,17 +3618,26 @@ impl CandidateLookup for StoreScratchResolutionSession {
                 )
                 .optional()?)
         })?;
-        self.record_candidate_query(CandidateQueryFamily::SymbolById, usize::from(row.is_some()));
+        self.record_candidate_query(
+            CandidateQueryFamily::SymbolById,
+            usize::from(row.is_some()),
+            started,
+        );
         let hit = row.flatten();
         let mut window = self.candidate_window.borrow_mut();
-        if window.by_id.len() < self.window_size {
-            window.by_id.insert(semantic_id, hit.clone());
+        let by_id_cap_reached = window.by_id.len() >= self.window_size;
+        let aggregate_cap_reached = window.entry_count() >= self.candidate_cache_capacity();
+        if by_id_cap_reached {
+            self.record_by_id_rejected_by_id_cap();
         }
-        self.max_candidate_cache_entries.set(
-            self.max_candidate_cache_entries
-                .get()
-                .max(window.entry_count()),
-        );
+        if aggregate_cap_reached {
+            self.record_by_id_rejected_by_aggregate_cap(1);
+        }
+        if !by_id_cap_reached && !aggregate_cap_reached {
+            window.by_id.insert(semantic_id, hit.clone());
+            self.record_by_id_accepted_insertion();
+        }
+        self.record_candidate_cache_occupancy(&window);
         Ok(hit)
     }
 
@@ -3004,15 +3678,17 @@ impl CandidateLookup for StoreScratchResolutionSession {
                     after.1.clone().into(),
                     self.sql_window_limit()?.into(),
                 ],
+                self.window_size,
+                None,
             )?;
-            let Some(next) = next else {
-                break;
-            };
             for hit in page {
                 if !visitor(self, hit)? {
                     return Ok(());
                 }
             }
+            let Some(next) = next else {
+                break;
+            };
             after = next;
         }
         Ok(())
@@ -3024,91 +3700,27 @@ impl CandidateLookup for StoreScratchResolutionSession {
         language: &str,
         kinds: &[SymbolKind],
         source_key: Option<&str>,
-        mut visitor: F,
+        visitor: F,
     ) -> Result<(), Self::Error>
     where
         F: FnMut(&Self, CandidateHit) -> Result<bool, Self::Error>,
     {
-        if let Some(hits) = self.cached_name_hits(name) {
-            for hit in hits.into_iter().filter(|candidate| {
-                candidate.symbol.language == language
-                    && kinds.contains(&candidate.symbol.kind)
-                    && source_key.is_none_or(|source_key| candidate.symbol.file_id == source_key)
-            }) {
-                if !visitor(self, hit)? {
-                    break;
-                }
-            }
-            return Ok(());
-        }
-        let version_id = source_key.map(parse_source_key).transpose()?;
-        let kind_values = (0..kinds.len()).map(|_| "?").collect::<Vec<_>>().join(",");
-        let version_filter = version_id.map_or("", |_| "AND s.version_id=?");
-        let sql = format!(
-            "SELECT s.version_id,s.symbol_id,s.language,s.name,s.kind,
-                    s.parent_symbol_id,s.visibility,s.signature,s.metadata_json
-             FROM symbols AS s
-             WHERE s.name=? AND s.language=? AND s.kind IN ({kind_values})
-               {version_filter}
-               AND EXISTS (
-                 SELECT 1 FROM manifest_entries AS me
-                 WHERE me.view_id=? AND me.generation=?
-                   AND me.status IN ('indexed','failed_preserved')
-                   AND me.version_id=s.version_id
-               )
-               AND (s.version_id,s.symbol_id)>(?,?)
-             ORDER BY s.version_id,s.symbol_id COLLATE BINARY LIMIT ?"
-        );
-        let mut after = (0, String::new());
-        loop {
-            let mut bind = vec![name.to_string().into(), language.to_string().into()];
-            bind.extend(
-                kinds
-                    .iter()
-                    .map(|kind| rusqlite::types::Value::Text(kind.to_string())),
-            );
-            if let Some(version_id) = version_id {
-                bind.push(version_id.into());
-            }
-            bind.push(self.identity.view_id.clone().into());
-            bind.push(self.identity.generation.into());
-            bind.push(after.0.into());
-            bind.push(after.1.clone().into());
-            bind.push(self.sql_window_limit()?.into());
-            let rows = self.with_candidate_reader(|connection| {
-                let mut statement = connection.prepare(&sql)?;
-                statement
-                    .query_map(rusqlite::params_from_iter(bind), |row| {
-                        Ok((
-                            row.get::<_, i64>(0)?,
-                            row.get::<_, String>(1)?,
-                            candidate_hit(row)?,
-                        ))
-                    })?
-                    .collect::<Result<Vec<_>, _>>()
-                    .map_err(StoreResolutionError::from)
-            })?;
-            self.record_candidate_query(CandidateQueryFamily::FilteredByName, rows.len());
-            self.max_store_read_page
-                .set(self.max_store_read_page.get().max(rows.len()));
-            if rows.is_empty() {
-                break;
-            }
-            let mut last = None;
-            for (version_id, symbol_id, hit) in rows {
-                last = Some((version_id, symbol_id));
-                if let Some(hit) = hit
-                    && !visitor(self, hit)?
-                {
-                    return Ok(());
-                }
-            }
-            let Some(next) = last else {
-                break;
-            };
-            after = next;
-        }
-        Ok(())
+        self.visit_filtered_by_name_inner(None, name, language, kinds, source_key, visitor)
+    }
+
+    fn visit_filtered_by_name_with_reason<F>(
+        &self,
+        reason: FilteredNameLookupReason,
+        name: &str,
+        language: &str,
+        kinds: &[SymbolKind],
+        source_key: Option<&str>,
+        visitor: F,
+    ) -> Result<(), Self::Error>
+    where
+        F: FnMut(&Self, CandidateHit) -> Result<bool, Self::Error>,
+    {
+        self.visit_filtered_by_name_inner(Some(reason), name, language, kinds, source_key, visitor)
     }
 
     fn filtered_name_summary(
@@ -3180,8 +3792,9 @@ impl CandidateLookup for StoreScratchResolutionSession {
         }
         bind.push(self.identity.view_id.clone().into());
         bind.push(self.identity.generation.into());
+        let started = self.candidate_query_started();
         let rows = self.with_candidate_reader(|connection| {
-            let mut statement = connection.prepare(&sql)?;
+            let mut statement = connection.prepare_cached(&sql)?;
             statement
                 .query_map(rusqlite::params_from_iter(bind), |row| {
                     Ok((
@@ -3195,7 +3808,11 @@ impl CandidateLookup for StoreScratchResolutionSession {
                 .collect::<Result<Vec<_>, _>>()
                 .map_err(StoreResolutionError::from)
         })?;
-        self.record_candidate_query(CandidateQueryFamily::FilteredNameSummary, rows.len());
+        self.record_candidate_query(
+            CandidateQueryFamily::FilteredNameSummary,
+            rows.len(),
+            started,
+        );
         self.max_store_read_page
             .set(self.max_store_read_page.get().max(rows.len()));
         let summary = CandidateSummary {
@@ -3219,183 +3836,74 @@ impl CandidateLookup for StoreScratchResolutionSession {
         source_key: &str,
         parent_id: &str,
         name: &str,
-        mut visitor: F,
+        visitor: F,
     ) -> Result<(), Self::Error>
     where
         F: FnMut(&Self, CandidateHit) -> Result<bool, Self::Error>,
     {
-        let version_id = parse_source_key(source_key)?;
-        if let Some(hits) = self.cached_name_hits(name) {
-            for hit in hits.into_iter().filter(|hit| {
-                hit.semantic_id.version == SemanticVersionId::Store(version_id)
-                    && hit.symbol.parent_symbol_id.as_deref() == Some(parent_id)
-            }) {
-                if !visitor(self, hit)? {
-                    break;
-                }
-            }
-            return Ok(());
-        }
-        let sql = "SELECT s.version_id, s.symbol_id, s.language, s.name, s.kind,
-                    s.parent_symbol_id, s.visibility, s.signature, s.metadata_json
-             FROM symbols AS s
-             WHERE s.version_id = ?1 AND s.parent_symbol_id = ?2 AND s.name = ?3
-               AND EXISTS (
-                 SELECT 1 FROM manifest_entries AS me
-                 WHERE me.view_id = ?4 AND me.generation = ?5
-                   AND me.status IN ('indexed', 'failed_preserved')
-                   AND me.version_id = s.version_id
-               ) AND s.symbol_id>?6
-             ORDER BY s.symbol_id COLLATE BINARY LIMIT ?7";
-        let mut after = String::new();
-        loop {
-            let (page, next) = self.candidate_page(
-                CandidateQueryFamily::ChildrenNamed,
-                sql,
-                vec![
-                    version_id.into(),
-                    parent_id.to_string().into(),
-                    name.to_string().into(),
-                    self.identity.view_id.clone().into(),
-                    self.identity.generation.into(),
-                    after.clone().into(),
-                    self.sql_window_limit()?.into(),
-                ],
-            )?;
-            let Some(next) = next else {
-                break;
-            };
-            for hit in page {
-                if !visitor(self, hit)? {
-                    return Ok(());
-                }
-            }
-            after = next.1;
-        }
-        Ok(())
+        self.visit_children_named_inner(None, source_key, parent_id, name, visitor)
+    }
+
+    fn visit_children_named_with_reason<F>(
+        &self,
+        reason: ChildLookupReason,
+        source_key: &str,
+        parent_id: &str,
+        name: &str,
+        visitor: F,
+    ) -> Result<(), Self::Error>
+    where
+        F: FnMut(&Self, CandidateHit) -> Result<bool, Self::Error>,
+    {
+        self.visit_children_named_inner(Some(reason), source_key, parent_id, name, visitor)
     }
 
     fn visit_top_level_named<F>(
         &self,
         source_key: &str,
         name: &str,
-        mut visitor: F,
+        visitor: F,
     ) -> Result<(), Self::Error>
     where
         F: FnMut(&Self, CandidateHit) -> Result<bool, Self::Error>,
     {
-        let version_id = parse_source_key(source_key)?;
-        if let Some(hits) = self.cached_name_hits(name) {
-            for hit in hits.into_iter().filter(|hit| {
-                hit.semantic_id.version == SemanticVersionId::Store(version_id)
-                    && hit.symbol.parent_symbol_id.is_none()
-            }) {
-                if !visitor(self, hit)? {
-                    break;
-                }
-            }
-            return Ok(());
-        }
-        let sql = "SELECT s.version_id, s.symbol_id, s.language, s.name, s.kind,
-                    s.parent_symbol_id, s.visibility, s.signature, s.metadata_json
-             FROM symbols AS s
-             WHERE s.version_id = ?1 AND s.parent_symbol_id IS NULL AND s.name = ?2
-               AND EXISTS (
-                 SELECT 1 FROM manifest_entries AS me
-                 WHERE me.view_id = ?3 AND me.generation = ?4
-                   AND me.status IN ('indexed', 'failed_preserved')
-                   AND me.version_id = s.version_id
-               ) AND s.symbol_id>?5
-             ORDER BY s.symbol_id COLLATE BINARY LIMIT ?6";
-        let mut after = String::new();
-        loop {
-            let (page, next) = self.candidate_page(
-                CandidateQueryFamily::TopLevelNamed,
-                sql,
-                vec![
-                    version_id.into(),
-                    name.to_string().into(),
-                    self.identity.view_id.clone().into(),
-                    self.identity.generation.into(),
-                    after.clone().into(),
-                    self.sql_window_limit()?.into(),
-                ],
-            )?;
-            let Some(next) = next else {
-                break;
-            };
-            for hit in page {
-                if !visitor(self, hit)? {
-                    return Ok(());
-                }
-            }
-            after = next.1;
-        }
-        Ok(())
+        self.visit_top_level_named_inner(None, source_key, name, visitor)
+    }
+
+    fn visit_top_level_named_with_reason<F>(
+        &self,
+        reason: TopLevelLookupReason,
+        source_key: &str,
+        name: &str,
+        visitor: F,
+    ) -> Result<(), Self::Error>
+    where
+        F: FnMut(&Self, CandidateHit) -> Result<bool, Self::Error>,
+    {
+        self.visit_top_level_named_inner(Some(reason), source_key, name, visitor)
     }
 
     fn visit_type_facts<F>(
         &self,
         symbol_id: &SemanticSymbolId,
-        mut visitor: F,
+        visitor: F,
     ) -> Result<(), Self::Error>
     where
         F: FnMut(&Self, TypeFact) -> Result<bool, Self::Error>,
     {
-        let SemanticVersionId::Store(version_id) = symbol_id.version else {
-            return Ok(());
-        };
-        let sql = "SELECT tf.type_fact_id, tf.symbol_id, tf.resolved_type, tf.is_inferred
-             FROM type_facts AS tf
-             WHERE tf.version_id = ?1 AND tf.symbol_id = ?2
-               AND EXISTS (
-                 SELECT 1 FROM manifest_entries AS me
-                 WHERE me.view_id = ?3 AND me.generation = ?4
-                   AND me.status IN ('indexed', 'failed_preserved')
-                   AND me.version_id = tf.version_id
-               ) AND tf.type_fact_id>?5
-             ORDER BY tf.type_fact_id COLLATE BINARY LIMIT ?6";
-        let mut after = String::new();
-        loop {
-            let page = self.with_candidate_reader(|connection| {
-                let mut statement = connection.prepare(sql)?;
-                Ok(statement
-                    .query_map(
-                        params![
-                            version_id,
-                            symbol_id.local_id,
-                            self.identity.view_id,
-                            self.identity.generation,
-                            after,
-                            self.sql_window_limit()?
-                        ],
-                        |row| {
-                            Ok((
-                                row.get::<_, String>(0)?,
-                                TypeFact {
-                                    symbol_id: row.get(1)?,
-                                    resolved_type: row.get(2)?,
-                                    is_inferred: row.get::<_, i64>(3)? != 0,
-                                },
-                            ))
-                        },
-                    )?
-                    .collect::<Result<Vec<_>, _>>()?)
-            })?;
-            self.record_candidate_query(CandidateQueryFamily::TypeFacts, page.len());
-            self.max_store_read_page
-                .set(self.max_store_read_page.get().max(page.len()));
-            if page.is_empty() {
-                break;
-            }
-            for (_, fact) in &page {
-                if !visitor(self, fact.clone())? {
-                    return Ok(());
-                }
-            }
-            after = page.last().expect("non-empty type fact page").0.clone();
-        }
-        Ok(())
+        self.visit_type_facts_inner(None, symbol_id, visitor)
+    }
+
+    fn visit_type_facts_with_reason<F>(
+        &self,
+        reason: TypeFactsLookupReason,
+        symbol_id: &SemanticSymbolId,
+        visitor: F,
+    ) -> Result<(), Self::Error>
+    where
+        F: FnMut(&Self, TypeFact) -> Result<bool, Self::Error>,
+    {
+        self.visit_type_facts_inner(Some(reason), symbol_id, visitor)
     }
 
     fn visit_imports<F>(&self, source_key: &str, mut visitor: F) -> Result<(), Self::Error>
@@ -3415,6 +3923,7 @@ impl CandidateLookup for StoreScratchResolutionSession {
              ORDER BY s.symbol_id COLLATE BINARY LIMIT ?5";
         let mut after = String::new();
         loop {
+            let started = self.candidate_query_started();
             let page = self.with_candidate_reader(|connection| {
                 let mut statement = connection.prepare(sql)?;
                 Ok(statement
@@ -3438,7 +3947,7 @@ impl CandidateLookup for StoreScratchResolutionSession {
                     )?
                     .collect::<Result<Vec<_>, _>>()?)
             })?;
-            self.record_candidate_query(CandidateQueryFamily::Imports, page.len());
+            self.record_candidate_query(CandidateQueryFamily::Imports, page.len(), started);
             self.max_store_read_page
                 .set(self.max_store_read_page.get().max(page.len()));
             if page.is_empty() {
@@ -3728,6 +4237,7 @@ impl ResolutionSession for StoreScratchResolutionSession {
         let SemanticVersionId::Store(version_id) = version else {
             return Ok(None);
         };
+        let started = self.candidate_query_started();
         let (identifier_id, rows_read) = self.with_candidate_reader(|connection| {
             let ids = if let (Some(start_byte), Some(end_byte)) = (start_byte, end_byte) {
                 connection
@@ -3756,7 +4266,7 @@ impl ResolutionSession for StoreScratchResolutionSession {
             let identifier_id = (ids.len() == 1).then(|| ids[0].clone());
             Ok((identifier_id, ids.len()))
         })?;
-        self.record_candidate_query(CandidateQueryFamily::LocateIdentifier, rows_read);
+        self.record_candidate_query(CandidateQueryFamily::LocateIdentifier, rows_read, started);
         Ok(identifier_id)
     }
 
@@ -4020,12 +4530,456 @@ impl ResolutionSession for StoreScratchResolutionSession {
 }
 
 impl StoreScratchResolutionSession {
+    fn visit_filtered_by_name_inner<F>(
+        &self,
+        reason: Option<FilteredNameLookupReason>,
+        name: &str,
+        language: &str,
+        kinds: &[SymbolKind],
+        source_key: Option<&str>,
+        mut visitor: F,
+    ) -> Result<(), StoreResolutionError>
+    where
+        F: FnMut(&Self, CandidateHit) -> Result<bool, StoreResolutionError>,
+    {
+        let fingerprint = self.observe_logical_lookup(
+            CandidatePageFamily::FilteredByName,
+            &(name, language, kinds, source_key),
+        );
+        self.record_filtered_lookup_attribution(reason, fingerprint);
+        if let Some(hits) = self.cached_name_hits(name) {
+            for hit in hits.into_iter().filter(|candidate| {
+                candidate.symbol.language == language
+                    && kinds.contains(&candidate.symbol.kind)
+                    && source_key.is_none_or(|source_key| candidate.symbol.file_id == source_key)
+            }) {
+                if !visitor(self, hit)? {
+                    break;
+                }
+            }
+            return Ok(());
+        }
+        let version_id = source_key.map(parse_source_key).transpose()?;
+        let kind_values = (0..kinds.len()).map(|_| "?").collect::<Vec<_>>().join(",");
+        let version_filter = version_id.map_or("", |_| "AND s.version_id=?");
+        let sql = format!(
+            "SELECT s.version_id,s.symbol_id,s.language,s.name,s.kind,
+                    s.parent_symbol_id,s.visibility,s.signature,s.metadata_json
+             FROM symbols AS s
+             WHERE s.name=? AND s.language=? AND s.kind IN ({kind_values})
+               {version_filter}
+               AND EXISTS (
+                 SELECT 1 FROM manifest_entries AS me
+                 WHERE me.view_id=? AND me.generation=?
+                   AND me.status IN ('indexed','failed_preserved')
+                   AND me.version_id=s.version_id
+               )
+               AND (s.version_id,s.symbol_id)>(?,?)
+             ORDER BY s.version_id,s.symbol_id COLLATE BINARY LIMIT ?"
+        );
+        let mut after = (0, String::new());
+        let mut had_prior_page = false;
+        loop {
+            let sql_page_limit = self.sql_window_limit()?;
+            let page_limit = usize::try_from(sql_page_limit).map_err(|_| {
+                StoreResolutionError::InvalidWindowSize {
+                    requested: self.window_size,
+                    maximum: MAX_STORE_RESOLUTION_WINDOW,
+                }
+            })?;
+            let mut bind = vec![name.to_string().into(), language.to_string().into()];
+            bind.extend(
+                kinds
+                    .iter()
+                    .map(|kind| rusqlite::types::Value::Text(kind.to_string())),
+            );
+            if let Some(version_id) = version_id {
+                bind.push(version_id.into());
+            }
+            bind.push(self.identity.view_id.clone().into());
+            bind.push(self.identity.generation.into());
+            bind.push(after.0.into());
+            bind.push(after.1.clone().into());
+            bind.push(sql_page_limit.into());
+            let started = self.candidate_query_started();
+            let (row_count, page, last) = self.with_candidate_reader(|connection| {
+                let mut statement = connection.prepare_cached(&sql)?;
+                let mut rows = statement.query(rusqlite::params_from_iter(bind))?;
+                let mut hits = Vec::new();
+                let mut row_count = 0usize;
+                let mut last = None;
+                while let Some(row) = rows.next()? {
+                    row_count += 1;
+                    last = Some((row.get::<_, i64>(0)?, row.get::<_, String>(1)?));
+                    if let Some(hit) = candidate_hit(row)? {
+                        hits.push(hit);
+                    }
+                }
+                Ok((row_count, hits, last))
+            })?;
+            self.max_store_read_page
+                .set(self.max_store_read_page.get().max(row_count));
+            self.record_candidate_query(CandidateQueryFamily::FilteredByName, row_count, started);
+            self.record_candidate_page_attribution(
+                CandidatePageAttribution::FilteredByName {
+                    reason,
+                    page_limit: Some(page_limit),
+                    had_prior_page,
+                },
+                row_count,
+            );
+            for hit in page {
+                if !visitor(self, hit)? {
+                    return Ok(());
+                }
+            }
+            if row_count < page_limit {
+                break;
+            }
+            let Some(next) = last else {
+                break;
+            };
+            after = next;
+            had_prior_page = true;
+        }
+        Ok(())
+    }
+
+    fn visit_top_level_named_inner<F>(
+        &self,
+        reason: Option<TopLevelLookupReason>,
+        source_key: &str,
+        name: &str,
+        mut visitor: F,
+    ) -> Result<(), StoreResolutionError>
+    where
+        F: FnMut(&Self, CandidateHit) -> Result<bool, StoreResolutionError>,
+    {
+        let version_id = parse_source_key(source_key)?;
+        let fingerprint =
+            self.observe_logical_lookup(CandidatePageFamily::TopLevelNamed, &(version_id, name));
+        self.record_top_level_lookup_attribution(reason, fingerprint);
+        if let Some(hits) = self.cached_name_hits(name) {
+            for hit in hits.into_iter().filter(|hit| {
+                hit.semantic_id.version == SemanticVersionId::Store(version_id)
+                    && hit.symbol.parent_symbol_id.is_none()
+            }) {
+                if !visitor(self, hit)? {
+                    break;
+                }
+            }
+            return Ok(());
+        }
+        let sql = "SELECT s.version_id, s.symbol_id, s.language, s.name, s.kind,
+                    s.parent_symbol_id, s.visibility, s.signature, s.metadata_json
+             FROM symbols AS s
+             WHERE s.version_id = ?1 AND s.parent_symbol_id IS NULL AND s.name = ?2
+               AND EXISTS (
+                 SELECT 1 FROM manifest_entries AS me
+                 WHERE me.view_id = ?3 AND me.generation = ?4
+                   AND me.status IN ('indexed', 'failed_preserved')
+                   AND me.version_id = s.version_id
+               ) AND s.symbol_id>?5
+             ORDER BY s.symbol_id COLLATE BINARY LIMIT ?6";
+        let mut after = String::new();
+        let mut had_prior_page = false;
+        loop {
+            let page_limit = self.window_size;
+            let sql_page_limit = self.sql_window_limit()?;
+            let (page, next) = self.candidate_page(
+                CandidateQueryFamily::TopLevelNamed,
+                sql,
+                vec![
+                    version_id.into(),
+                    name.to_string().into(),
+                    self.identity.view_id.clone().into(),
+                    self.identity.generation.into(),
+                    after.clone().into(),
+                    sql_page_limit.into(),
+                ],
+                page_limit,
+                Some(CandidatePageAttribution::TopLevel {
+                    reason,
+                    page_limit: Some(page_limit),
+                    had_prior_page,
+                }),
+            )?;
+            for hit in page {
+                if !visitor(self, hit)? {
+                    return Ok(());
+                }
+            }
+            let Some(next) = next else {
+                break;
+            };
+            after = next.1;
+            had_prior_page = true;
+        }
+        Ok(())
+    }
+
+    fn visit_children_named_inner<F>(
+        &self,
+        reason: Option<ChildLookupReason>,
+        source_key: &str,
+        parent_id: &str,
+        name: &str,
+        mut visitor: F,
+    ) -> Result<(), StoreResolutionError>
+    where
+        F: FnMut(&Self, CandidateHit) -> Result<bool, StoreResolutionError>,
+    {
+        let version_id = parse_source_key(source_key)?;
+        let key = ChildrenNamedKey {
+            version_id,
+            parent_symbol_id: parent_id.to_string(),
+            name: name.to_string(),
+        };
+        let fingerprint = self.observe_logical_lookup(CandidatePageFamily::ChildrenNamed, &key);
+        self.record_child_lookup_attribution(reason, fingerprint);
+        if let Some(hits) = self.cached_children_named_hits(&key) {
+            if let Some(reason) = reason {
+                self.record_child_lookup(reason, ChildLookupCacheState::ExactCacheHit);
+            }
+            for hit in hits {
+                if !visitor(self, hit)? {
+                    break;
+                }
+            }
+            return Ok(());
+        }
+        if let Some(hits) = self.cached_name_hits(name) {
+            if let Some(reason) = reason {
+                self.record_child_lookup(reason, ChildLookupCacheState::NameCacheHit);
+            }
+            for hit in hits.into_iter().filter(|hit| {
+                hit.semantic_id.version == SemanticVersionId::Store(version_id)
+                    && hit.symbol.parent_symbol_id.as_deref() == Some(parent_id)
+            }) {
+                if !visitor(self, hit)? {
+                    break;
+                }
+            }
+            return Ok(());
+        }
+        if let Some(reason) = reason {
+            self.record_child_lookup(reason, ChildLookupCacheState::ScalarMiss);
+        }
+        let hit_capacity = {
+            let window = self.candidate_window.borrow();
+            let headroom = self
+                .non_by_id_cache_capacity()
+                .saturating_sub(window.non_by_id_entry_count());
+            (headroom > 0).then(|| self.window_size.min(headroom.saturating_sub(1)))
+        };
+        let mut buffered_hits = Vec::new();
+        let mut buffer_enabled = hit_capacity.is_some();
+        let sql = "SELECT s.version_id, s.symbol_id, s.language, s.name, s.kind,
+                    s.parent_symbol_id, s.visibility, s.signature, s.metadata_json
+             FROM symbols AS s
+             WHERE s.version_id = ?1 AND s.parent_symbol_id = ?2 AND s.name = ?3
+               AND EXISTS (
+                 SELECT 1 FROM manifest_entries AS me
+                 WHERE me.view_id = ?4 AND me.generation = ?5
+                   AND me.status IN ('indexed', 'failed_preserved')
+                   AND me.version_id = s.version_id
+               ) AND s.symbol_id>?6
+             ORDER BY s.symbol_id COLLATE BINARY LIMIT ?7";
+        let mut after = String::new();
+        let mut had_prior_page = false;
+        loop {
+            let page_limit = self.window_size;
+            let sql_page_limit = self.sql_window_limit()?;
+            let (page, next) = self.candidate_page(
+                CandidateQueryFamily::ChildrenNamed,
+                sql,
+                vec![
+                    version_id.into(),
+                    parent_id.to_string().into(),
+                    name.to_string().into(),
+                    self.identity.view_id.clone().into(),
+                    self.identity.generation.into(),
+                    after.clone().into(),
+                    sql_page_limit.into(),
+                ],
+                page_limit,
+                Some(CandidatePageAttribution::Children {
+                    reason,
+                    page_limit: Some(page_limit),
+                    had_prior_page,
+                }),
+            )?;
+            if buffer_enabled {
+                let capacity = hit_capacity.expect("cache capacity exists while buffering");
+                if buffered_hits.len().saturating_add(page.len()) <= capacity {
+                    buffered_hits.extend(page.iter().cloned());
+                } else {
+                    buffered_hits.clear();
+                    buffer_enabled = false;
+                }
+            }
+            for hit in page {
+                if !visitor(self, hit)? {
+                    return Ok(());
+                }
+            }
+            let Some(next) = next else {
+                if buffer_enabled {
+                    let mut window = self.candidate_window.borrow_mut();
+                    self.cache_exact_children(&mut window, key, buffered_hits);
+                    self.record_candidate_cache_occupancy(&window);
+                }
+                break;
+            };
+            after = next.1;
+            had_prior_page = true;
+        }
+        Ok(())
+    }
+
+    fn visit_type_facts_inner<F>(
+        &self,
+        reason: Option<TypeFactsLookupReason>,
+        symbol_id: &SemanticSymbolId,
+        mut visitor: F,
+    ) -> Result<(), StoreResolutionError>
+    where
+        F: FnMut(&Self, TypeFact) -> Result<bool, StoreResolutionError>,
+    {
+        let SemanticVersionId::Store(version_id) = symbol_id.version else {
+            return Ok(());
+        };
+        let fingerprint = self.observe_logical_lookup(
+            CandidatePageFamily::TypeFacts,
+            &(version_id, &symbol_id.local_id),
+        );
+        self.record_type_facts_lookup_attribution(reason, fingerprint);
+        let sql = "SELECT tf.type_fact_id, tf.symbol_id, tf.resolved_type, tf.is_inferred
+             FROM type_facts AS tf
+             WHERE tf.version_id = ?1 AND tf.symbol_id = ?2
+               AND EXISTS (
+                 SELECT 1 FROM manifest_entries AS me
+                 WHERE me.view_id = ?3 AND me.generation = ?4
+                   AND me.status IN ('indexed', 'failed_preserved')
+                   AND me.version_id = tf.version_id
+               ) AND tf.type_fact_id>?5
+             ORDER BY tf.type_fact_id COLLATE BINARY LIMIT ?6";
+        let mut after = String::new();
+        let mut had_prior_page = false;
+        loop {
+            let sql_page_limit = self.sql_window_limit()?;
+            let page_limit = usize::try_from(sql_page_limit).map_err(|_| {
+                StoreResolutionError::InvalidWindowSize {
+                    requested: self.window_size,
+                    maximum: MAX_STORE_RESOLUTION_WINDOW,
+                }
+            })?;
+            let started = self.candidate_query_started();
+            let page = self.with_candidate_reader(|connection| {
+                let mut statement = connection.prepare_cached(sql)?;
+                Ok(statement
+                    .query_map(
+                        params![
+                            version_id,
+                            symbol_id.local_id,
+                            self.identity.view_id,
+                            self.identity.generation,
+                            after,
+                            sql_page_limit
+                        ],
+                        |row| {
+                            Ok((
+                                row.get::<_, String>(0)?,
+                                TypeFact {
+                                    symbol_id: row.get(1)?,
+                                    resolved_type: row.get(2)?,
+                                    is_inferred: row.get::<_, i64>(3)? != 0,
+                                },
+                            ))
+                        },
+                    )?
+                    .collect::<Result<Vec<_>, _>>()?)
+            })?;
+            self.record_candidate_query(CandidateQueryFamily::TypeFacts, page.len(), started);
+            self.max_store_read_page
+                .set(self.max_store_read_page.get().max(page.len()));
+            self.record_candidate_page_attribution(
+                CandidatePageAttribution::TypeFacts {
+                    reason,
+                    page_limit: Some(page_limit),
+                    had_prior_page,
+                },
+                page.len(),
+            );
+            if page.is_empty() {
+                break;
+            }
+            for (_, fact) in &page {
+                if !visitor(self, fact.clone())? {
+                    return Ok(());
+                }
+            }
+            if page.len() < page_limit {
+                break;
+            }
+            after = page.last().expect("non-empty type fact page").0.clone();
+            had_prior_page = true;
+        }
+        Ok(())
+    }
+
+    fn candidate_cache_capacity(&self) -> usize {
+        self.window_size.saturating_mul(3)
+    }
+
+    fn non_by_id_cache_capacity(&self) -> usize {
+        self.window_size.saturating_mul(2)
+    }
+
     fn cached_name_hits(&self, name: &str) -> Option<Vec<CandidateHit>> {
         let window = self.candidate_window.borrow();
         window
             .primed_names
             .contains(name)
             .then(|| window.by_name.get(name).cloned().unwrap_or_default())
+    }
+
+    fn cached_children_named_hits(&self, key: &ChildrenNamedKey) -> Option<Vec<CandidateHit>> {
+        let window = self.candidate_window.borrow();
+        window.children_named.get(key).cloned()
+    }
+
+    fn cache_complete_name(
+        &self,
+        window: &mut CandidateWindow,
+        name: String,
+        hits: Vec<CandidateHit>,
+    ) -> bool {
+        let additions = hits.len();
+        if window.non_by_id_entry_count().saturating_add(additions)
+            > self.non_by_id_cache_capacity()
+        {
+            return false;
+        }
+        window.primed_names.insert(name.clone());
+        window.by_name.insert(name, hits);
+        true
+    }
+
+    fn cache_exact_children(
+        &self,
+        window: &mut CandidateWindow,
+        key: ChildrenNamedKey,
+        hits: Vec<CandidateHit>,
+    ) {
+        let key_addition = usize::from(!window.children_named.contains_key(&key));
+        let additions = key_addition.saturating_add(hits.len());
+        if window.non_by_id_entry_count().saturating_add(additions)
+            > self.non_by_id_cache_capacity()
+        {
+            return;
+        }
+        window.children_named.insert(key, hits);
     }
 
     fn flush_tier_candidate_buffer(
@@ -4068,19 +5022,18 @@ impl StoreScratchResolutionSession {
         &self,
         chunk: &ResolutionPhaseChunk,
     ) -> Result<(), StoreResolutionError> {
+        if let ResolutionPhaseChunk::Identifiers(items) = chunk {
+            return self.prime_identifier_children(items);
+        }
         let names = match chunk {
             ResolutionPhaseChunk::Pending(items) => items
                 .iter()
                 .map(|item| item.target_terminal_name.clone())
                 .collect::<BTreeSet<_>>(),
-            ResolutionPhaseChunk::Identifiers(items) => items
-                .iter()
-                .map(|item| item.name.clone())
-                .collect::<BTreeSet<_>>(),
             _ => BTreeSet::new(),
         };
         if names.is_empty() {
-            return Ok(());
+            return self.prime_exact_children(chunk);
         }
         let values = (0..names.len())
             .map(|_| "(?)")
@@ -4108,7 +5061,10 @@ impl StoreScratchResolutionSession {
             .collect::<Vec<_>>();
         bind.push(self.identity.view_id.clone().into());
         bind.push(self.identity.generation.into());
-        bind.push(self.sql_window_limit()?.into());
+        let page_limit = self.window_size;
+        let sql_page_limit = self.sql_window_limit()?;
+        bind.push(sql_page_limit.into());
+        let started = self.candidate_query_started();
         let rows = self.with_candidate_reader(|connection| {
             let mut statement = connection.prepare(&sql)?;
             statement
@@ -4118,33 +5074,440 @@ impl StoreScratchResolutionSession {
                 .collect::<Result<Vec<_>, _>>()
                 .map_err(StoreResolutionError::from)
         })?;
-        self.record_candidate_query(CandidateQueryFamily::PrimeWindow, rows.len());
+        self.record_candidate_query(CandidateQueryFamily::PrimeWindow, rows.len(), started);
         self.max_store_read_page
             .set(self.max_store_read_page.get().max(rows.len()));
-        let cutoff = (rows.len() == self.window_size)
-            .then(|| rows.last().expect("full candidate page").0.clone());
+        let windows_hit_row_limit = u64::from(rows.len() == page_limit);
+        let cutoff =
+            (rows.len() == page_limit).then(|| rows.last().expect("full candidate page").0.clone());
+        let mut hits_by_name = HashMap::<String, Vec<CandidateHit>>::new();
+        for (name, hit) in rows {
+            if let Some(hit) = hit {
+                hits_by_name.entry(name).or_default().push(hit);
+            }
+        }
+        let mut names_complete = 0_u64;
+        let mut names_skipped_cutoff = 0_u64;
+        let mut names_rejected_capacity = 0_u64;
+        let mut rows_admitted = 0_u64;
         let mut window = self.candidate_window.borrow_mut();
         for name in names {
-            if cutoff.as_ref().is_none_or(|cutoff| name < *cutoff) {
-                window.primed_names.insert(name);
-            }
-        }
-        for (name, hit) in rows {
-            if !window.primed_names.contains(&name) {
+            if cutoff.as_ref().is_some_and(|cutoff| name >= *cutoff) {
+                names_skipped_cutoff = names_skipped_cutoff.saturating_add(1);
                 continue;
             }
-            if let Some(hit) = hit {
-                window
-                    .by_id
-                    .insert(hit.semantic_id.clone(), Some(hit.clone()));
-                window.by_name.entry(name).or_default().push(hit);
+            let hits = hits_by_name.remove(&name).unwrap_or_default();
+            if self.cache_complete_name(&mut window, name, hits.clone()) {
+                names_complete = names_complete.saturating_add(1);
+                rows_admitted =
+                    rows_admitted.saturating_add(u64::try_from(hits.len()).unwrap_or(u64::MAX));
+            } else {
+                names_rejected_capacity = names_rejected_capacity.saturating_add(1);
             }
         }
-        self.max_candidate_cache_entries.set(
-            self.max_candidate_cache_entries
-                .get()
-                .max(window.entry_count()),
+        if self.candidate_query_timing_enabled {
+            let mut attribution = self.candidate_cache_attribution.get();
+            attribution.prime_window.windows = attribution.prime_window.windows.saturating_add(1);
+            attribution.prime_window.windows_hit_row_limit = attribution
+                .prime_window
+                .windows_hit_row_limit
+                .saturating_add(windows_hit_row_limit);
+            attribution.prime_window.names_wanted =
+                attribution.prime_window.names_wanted.saturating_add(
+                    names_complete
+                        .saturating_add(names_skipped_cutoff)
+                        .saturating_add(names_rejected_capacity),
+                );
+            attribution.prime_window.names_complete = attribution
+                .prime_window
+                .names_complete
+                .saturating_add(names_complete);
+            attribution.prime_window.names_skipped_cutoff = attribution
+                .prime_window
+                .names_skipped_cutoff
+                .saturating_add(names_skipped_cutoff);
+            attribution.prime_window.names_rejected_capacity = attribution
+                .prime_window
+                .names_rejected_capacity
+                .saturating_add(names_rejected_capacity);
+            attribution.prime_window.rows_admitted = attribution
+                .prime_window
+                .rows_admitted
+                .saturating_add(rows_admitted);
+            self.candidate_cache_attribution.set(attribution);
+        }
+        self.record_candidate_cache_occupancy(&window);
+        drop(window);
+        self.prime_exact_children(chunk)
+    }
+
+    fn exact_children_keys(
+        &self,
+        chunk: &ResolutionPhaseChunk,
+    ) -> Result<Vec<ChildrenNamedKey>, StoreResolutionError> {
+        let mut keys = BTreeSet::new();
+        match chunk {
+            ResolutionPhaseChunk::Pending(items) => {
+                for item in items {
+                    let Some(parent_symbol_id) = item.caller_scope_symbol_id.as_deref() else {
+                        continue;
+                    };
+                    let version_id = parse_source_key(&item.file_id)?;
+                    for name in [
+                        Some(item.target_terminal_name.as_str()),
+                        item.target_receiver.as_deref(),
+                    ] {
+                        let Some(name) = name.filter(|name| !name.is_empty()) else {
+                            continue;
+                        };
+                        keys.insert(ChildrenNamedKey {
+                            version_id,
+                            parent_symbol_id: parent_symbol_id.to_string(),
+                            name: name.to_string(),
+                        });
+                    }
+                }
+            }
+            ResolutionPhaseChunk::Identifiers(items) => {
+                for item in items {
+                    let Some(parent_symbol_id) = item.containing_symbol_id.as_deref() else {
+                        continue;
+                    };
+                    let version_id = parse_source_key(&item.file_id)?;
+                    for name in [Some(item.name.as_str()), item.receiver.as_deref()] {
+                        let Some(name) = name.filter(|name| !name.is_empty()) else {
+                            continue;
+                        };
+                        keys.insert(ChildrenNamedKey {
+                            version_id,
+                            parent_symbol_id: parent_symbol_id.to_string(),
+                            name: name.to_string(),
+                        });
+                    }
+                }
+            }
+            _ => {}
+        }
+        Ok(keys.into_iter().take(self.window_size).collect())
+    }
+
+    fn prime_identifier_children(
+        &self,
+        items: &[IdentifierWorkItem],
+    ) -> Result<(), StoreResolutionError> {
+        let planning_capacity = self.candidate_cache_capacity();
+        let mut frontier = Vec::<(ScopeFrontierKey, Vec<String>)>::new();
+        for item in items {
+            if ReferenceKind::from_identifier_kind(&item.kind).is_none() {
+                continue;
+            }
+            let Some(scope_id) = item.containing_symbol_id.as_deref() else {
+                continue;
+            };
+            let key = ScopeFrontierKey {
+                version_id: parse_source_key(&item.file_id)?,
+                symbol_id: scope_id.to_string(),
+            };
+            let mut names = Vec::new();
+            for name in [Some(item.name.as_str()), item.receiver.as_deref()] {
+                let Some(name) = name.filter(|name| !name.is_empty()) else {
+                    continue;
+                };
+                if !names.iter().any(|existing| existing == name) {
+                    names.push(name.to_string());
+                }
+            }
+            if !names.is_empty() && frontier.len() < planning_capacity {
+                frontier.push((key, names));
+            }
+        }
+        let mut emitted = HashSet::<ChildrenNamedKey>::new();
+        while !frontier.is_empty() {
+            let mut keys = Vec::new();
+            let mut planning_exhausted = false;
+            for (scope, names) in &frontier {
+                for name in names {
+                    let key = ChildrenNamedKey {
+                        version_id: scope.version_id,
+                        parent_symbol_id: scope.symbol_id.clone(),
+                        name: name.clone(),
+                    };
+                    if emitted.contains(&key) {
+                        continue;
+                    }
+                    if emitted.len() >= planning_capacity {
+                        planning_exhausted = true;
+                        break;
+                    }
+                    emitted.insert(key.clone());
+                    keys.push(key);
+                }
+                if planning_exhausted {
+                    break;
+                }
+            }
+            if keys.is_empty() {
+                break;
+            }
+            for batch in keys.chunks(self.window_size) {
+                self.prime_exact_children_keys(batch)?;
+            }
+            if planning_exhausted {
+                break;
+            }
+
+            let parents = self.load_scope_parents(&frontier)?;
+            let mut next = Vec::<(ScopeFrontierKey, Vec<String>)>::new();
+            for (scope, names) in &frontier {
+                let Some(Some(parent_symbol_id)) = parents.get(scope) else {
+                    continue;
+                };
+                let parent = ScopeFrontierKey {
+                    version_id: scope.version_id,
+                    symbol_id: parent_symbol_id.clone(),
+                };
+                if next.len() >= planning_capacity {
+                    break;
+                }
+                next.push((parent, names.clone()));
+            }
+            frontier = next
+        }
+        Ok(())
+    }
+
+    fn load_scope_parents(
+        &self,
+        frontier: &[(ScopeFrontierKey, Vec<String>)],
+    ) -> Result<HashMap<ScopeFrontierKey, Option<String>>, StoreResolutionError> {
+        let planning_capacity = self.candidate_cache_capacity();
+        let mut parents = HashMap::new();
+        let mut unique_frontier = Vec::with_capacity(frontier.len());
+        let mut seen = HashSet::new();
+        for (scope, _) in frontier {
+            if seen.contains(scope) {
+                continue;
+            }
+            if seen.len() >= planning_capacity {
+                break;
+            }
+            seen.insert(scope.clone());
+            unique_frontier.push(scope.clone());
+        }
+        for batch in unique_frontier.chunks(self.window_size) {
+            let values = (0..batch.len())
+                .map(|_| "(?,?,?)".to_string())
+                .collect::<Vec<_>>()
+                .join(",");
+            let sql = format!(
+                "WITH wanted(ordinal,version_id,symbol_id) AS (VALUES {values})
+                 SELECT wanted.ordinal,wanted.version_id,wanted.symbol_id,s.parent_symbol_id
+                 FROM wanted
+                 JOIN symbols AS s
+                   ON s.version_id=wanted.version_id AND s.symbol_id=wanted.symbol_id
+                 WHERE EXISTS (
+                   SELECT 1 FROM manifest_entries AS me
+                   WHERE me.view_id=? AND me.generation=?
+                     AND me.status IN ('indexed', 'failed_preserved')
+                     AND me.version_id=s.version_id
+                 )
+                 ORDER BY wanted.ordinal"
+            );
+            let mut reordered: Vec<Value> = Vec::with_capacity(batch.len() * 3 + 2);
+            for (ordinal, scope) in batch.iter().enumerate() {
+                reordered.push((ordinal as i64).into());
+                reordered.push(scope.version_id.into());
+                reordered.push(scope.symbol_id.clone().into());
+            }
+            reordered.push(self.identity.view_id.clone().into());
+            reordered.push(self.identity.generation.into());
+            let started = self.candidate_query_started();
+            let rows = self.with_candidate_reader(|connection| {
+                let mut statement = connection.prepare(&sql)?;
+                statement
+                    .query_map(params_from_iter(reordered), |row| {
+                        Ok((
+                            row.get::<_, i64>(0)? as usize,
+                            row.get::<_, i64>(1)?,
+                            row.get::<_, String>(2)?,
+                            row.get::<_, Option<String>>(3)?,
+                        ))
+                    })?
+                    .collect::<Result<Vec<_>, _>>()
+                    .map_err(StoreResolutionError::from)
+            })?;
+            self.record_candidate_query(CandidateQueryFamily::SymbolById, rows.len(), started);
+            self.max_store_read_page
+                .set(self.max_store_read_page.get().max(rows.len()));
+            for (_, version_id, symbol_id, parent_symbol_id) in rows {
+                parents.insert(
+                    ScopeFrontierKey {
+                        version_id,
+                        symbol_id,
+                    },
+                    parent_symbol_id,
+                );
+            }
+        }
+        Ok(parents)
+    }
+
+    fn prime_exact_children(
+        &self,
+        chunk: &ResolutionPhaseChunk,
+    ) -> Result<(), StoreResolutionError> {
+        let keys = self.exact_children_keys(chunk)?;
+        self.prime_exact_children_keys(&keys)
+    }
+
+    fn prime_exact_children_keys(
+        &self,
+        keys: &[ChildrenNamedKey],
+    ) -> Result<(), StoreResolutionError> {
+        if keys.is_empty() {
+            return Ok(());
+        }
+        let values = keys
+            .iter()
+            .enumerate()
+            .map(|(ordinal, _)| format!("({ordinal},?,?,?)"))
+            .collect::<Vec<_>>()
+            .join(",");
+        let count_sql = format!(
+            "WITH wanted(ordinal,version_id,parent_symbol_id,name) AS (VALUES {values})
+             SELECT wanted.ordinal,COUNT(s.symbol_id)
+             FROM wanted
+             LEFT JOIN symbols AS s
+               ON s.version_id=wanted.version_id
+              AND s.parent_symbol_id=wanted.parent_symbol_id
+              AND s.name=wanted.name
+              AND EXISTS (
+                SELECT 1 FROM manifest_entries AS me
+                WHERE me.view_id=? AND me.generation=?
+                  AND me.status IN ('indexed','failed_preserved')
+                  AND me.version_id=s.version_id
+              )
+             GROUP BY wanted.ordinal
+             ORDER BY wanted.ordinal"
         );
+        let mut bind: Vec<rusqlite::types::Value> = Vec::with_capacity(keys.len() * 3 + 2);
+        for key in keys {
+            bind.push(key.version_id.into());
+            bind.push(key.parent_symbol_id.clone().into());
+            bind.push(key.name.clone().into());
+        }
+        bind.push(self.identity.view_id.clone().into());
+        bind.push(self.identity.generation.into());
+        let started = self.candidate_query_started();
+        let counts = self.with_candidate_reader(|connection| {
+            let mut statement = connection.prepare(&count_sql)?;
+            statement
+                .query_map(params_from_iter(bind), |row| {
+                    Ok((
+                        row.get::<_, i64>(0)? as usize,
+                        row.get::<_, i64>(1)? as usize,
+                    ))
+                })?
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(StoreResolutionError::from)
+        })?;
+        self.record_candidate_query(CandidateQueryFamily::ChildrenNamed, counts.len(), started);
+        self.record_children_named_batch_count();
+        self.record_children_named_batch_page(counts.len());
+        self.max_store_read_page
+            .set(self.max_store_read_page.get().max(counts.len()));
+
+        let mut remaining_rows = self.window_size;
+        let mut selected = Vec::new();
+        {
+            let window = self.candidate_window.borrow();
+            let mut remaining_entries = self
+                .non_by_id_cache_capacity()
+                .saturating_sub(window.non_by_id_entry_count());
+            for (ordinal, raw_count) in counts {
+                let key_cost = 1;
+                let admission_cost = raw_count.saturating_add(key_cost);
+                if raw_count > remaining_rows || admission_cost > remaining_entries {
+                    continue;
+                }
+                selected.push((ordinal, raw_count));
+                remaining_rows = remaining_rows.saturating_sub(raw_count);
+                remaining_entries = remaining_entries.saturating_sub(admission_cost);
+            }
+        }
+        if selected.is_empty() {
+            return Ok(());
+        }
+        let positive = selected
+            .iter()
+            .filter(|(_, raw_count)| *raw_count > 0)
+            .collect::<Vec<_>>();
+        let mut hits_by_ordinal = BTreeMap::new();
+        if !positive.is_empty() {
+            let values = positive
+                .iter()
+                .map(|(ordinal, _)| format!("({ordinal},?,?,?)", ordinal = ordinal))
+                .collect::<Vec<_>>()
+                .join(",");
+            let fetch_sql = format!(
+                "WITH wanted(ordinal,version_id,parent_symbol_id,name) AS (VALUES {values})
+                 SELECT s.version_id,s.symbol_id,s.language,s.name,s.kind,
+                        s.parent_symbol_id,s.visibility,s.signature,s.metadata_json,wanted.ordinal
+                 FROM wanted
+                 JOIN symbols AS s INDEXED BY idx_read_symbols_parent
+                   ON s.version_id=wanted.version_id
+                  AND s.parent_symbol_id=wanted.parent_symbol_id
+                  AND s.name=wanted.name
+                 WHERE EXISTS (
+                   SELECT 1 FROM manifest_entries AS me
+                   WHERE me.view_id=? AND me.generation=?
+                     AND me.status IN ('indexed','failed_preserved')
+                     AND me.version_id=s.version_id
+                 )
+                 ORDER BY wanted.ordinal,s.symbol_id COLLATE BINARY"
+            );
+            let mut bind: Vec<rusqlite::types::Value> = Vec::with_capacity(positive.len() * 3 + 2);
+            for (ordinal, _) in &positive {
+                let key = &keys[*ordinal];
+                bind.push(key.version_id.into());
+                bind.push(key.parent_symbol_id.clone().into());
+                bind.push(key.name.clone().into());
+            }
+            bind.push(self.identity.view_id.clone().into());
+            bind.push(self.identity.generation.into());
+            let started = self.candidate_query_started();
+            let rows = self.with_candidate_reader(|connection| {
+                let mut statement = connection.prepare(&fetch_sql)?;
+                let mut rows = statement.query(params_from_iter(bind))?;
+                let mut hits = Vec::new();
+                let mut page_rows = 0usize;
+                while let Some(row) = rows.next()? {
+                    page_rows += 1;
+                    hits.push((row.get::<_, i64>(9)? as usize, candidate_hit(row)?));
+                }
+                Ok((page_rows, hits))
+            })?;
+            let (page_rows, rows) = rows;
+            self.record_candidate_query(CandidateQueryFamily::ChildrenNamed, page_rows, started);
+            self.record_children_named_batch_fetch();
+            self.record_children_named_batch_page(page_rows);
+            self.max_store_read_page
+                .set(self.max_store_read_page.get().max(page_rows));
+            for (ordinal, hit) in rows {
+                if let Some(hit) = hit {
+                    hits_by_ordinal
+                        .entry(ordinal)
+                        .or_insert_with(Vec::new)
+                        .push(hit);
+                }
+            }
+        }
+        let mut window = self.candidate_window.borrow_mut();
+        for (ordinal, _) in selected {
+            let hits = hits_by_ordinal.remove(&ordinal).unwrap_or_default();
+            self.cache_exact_children(&mut window, keys[ordinal].clone(), hits);
+        }
+        self.record_candidate_cache_occupancy(&window);
         Ok(())
     }
 
@@ -4153,7 +5516,10 @@ impl StoreScratchResolutionSession {
         family: CandidateQueryFamily,
         sql: &str,
         bind: Vec<rusqlite::types::Value>,
+        page_limit: usize,
+        attribution: Option<CandidatePageAttribution>,
     ) -> Result<CandidatePage, StoreResolutionError> {
+        let started = self.candidate_query_started();
         self.with_candidate_reader(|connection| {
             let mut statement = connection.prepare_cached(sql)?;
             let mut rows = statement.query(rusqlite::params_from_iter(bind))?;
@@ -4169,8 +5535,12 @@ impl StoreScratchResolutionSession {
             }
             self.max_store_read_page
                 .set(self.max_store_read_page.get().max(page_rows));
-            self.record_candidate_query(family, page_rows);
-            Ok((hits, last))
+            self.record_candidate_query(family, page_rows, started);
+            if let Some(attribution) = attribution {
+                self.record_candidate_page_attribution(attribution, page_rows);
+            }
+            let next = (page_rows == page_limit).then_some(last).flatten();
+            Ok((hits, next))
         })
     }
 
@@ -5126,6 +6496,7 @@ impl StoreScratchResolutionSession {
              ORDER BY pr.version_id,pr.pending_relationship_id COLLATE BINARY",
             key_values_clause(keys.len())
         );
+        let started = self.candidate_query_started();
         let keyed_rows = self.with_candidate_reader(|connection| {
             let mut statement = connection.prepare(&sql)?;
             Ok(statement
@@ -5154,7 +6525,11 @@ impl StoreScratchResolutionSession {
                 })?
                 .collect::<Result<Vec<_>, _>>()?)
         })?;
-        self.record_candidate_query(CandidateQueryFamily::PendingHydration, keyed_rows.len());
+        self.record_candidate_query(
+            CandidateQueryFamily::PendingHydration,
+            keyed_rows.len(),
+            started,
+        );
         self.validate_hydrated_keys("pending", keys, &keyed_rows)?;
         Ok(keyed_rows.into_iter().map(|(_, row)| row).collect())
     }
@@ -5224,6 +6599,7 @@ impl StoreScratchResolutionSession {
              ORDER BY r.version_id,r.relationship_id COLLATE BINARY",
             key_values_clause(keys.len())
         );
+        let started = self.candidate_query_started();
         let keyed_rows = self.with_candidate_reader(|connection| {
             let mut statement = connection.prepare(&sql)?;
             Ok(statement
@@ -5251,6 +6627,7 @@ impl StoreScratchResolutionSession {
         self.record_candidate_query(
             CandidateQueryFamily::RelationshipHydration,
             keyed_rows.len(),
+            started,
         );
         self.validate_hydrated_keys("relationships", keys, &keyed_rows)?;
         Ok(keyed_rows.into_iter().map(|(_, row)| row).collect())
@@ -5273,6 +6650,7 @@ impl StoreScratchResolutionSession {
              ORDER BY i.version_id,i.identifier_id COLLATE BINARY",
             key_values_clause(keys.len())
         );
+        let started = self.candidate_query_started();
         let keyed_rows = self.with_candidate_reader(|connection| {
             let mut statement = connection.prepare(&sql)?;
             Ok(statement
@@ -5299,7 +6677,11 @@ impl StoreScratchResolutionSession {
                 })?
                 .collect::<Result<Vec<_>, _>>()?)
         })?;
-        self.record_candidate_query(CandidateQueryFamily::IdentifierHydration, keyed_rows.len());
+        self.record_candidate_query(
+            CandidateQueryFamily::IdentifierHydration,
+            keyed_rows.len(),
+            started,
+        );
         self.validate_hydrated_keys("identifiers", keys, &keyed_rows)?;
         Ok(keyed_rows.into_iter().map(|(_, row)| row).collect())
     }
@@ -5412,6 +6794,7 @@ impl StoreScratchResolutionSession {
         }
         let version = self.with_candidate_reader(|connection| {
             for candidate in candidates {
+                let started = self.candidate_query_started();
                 let version_id = connection
                     .query_row(
                         "SELECT me.version_id
@@ -5433,6 +6816,7 @@ impl StoreScratchResolutionSession {
                 self.record_candidate_query(
                     CandidateQueryFamily::ModuleVersion,
                     usize::from(version_id.is_some()),
+                    started,
                 );
                 if let Some(version_id) = version_id {
                     return Ok(Some(version_id.to_string()));
@@ -5441,7 +6825,9 @@ impl StoreScratchResolutionSession {
             Ok(None)
         })?;
         let mut window = self.candidate_window.borrow_mut();
-        if window.module_versions.len() < self.window_size {
+        if window.module_versions.len() < self.window_size
+            && window.non_by_id_entry_count() < self.non_by_id_cache_capacity()
+        {
             window.module_versions.insert(cache_key, version.clone());
         }
         self.max_candidate_cache_entries.set(
@@ -5834,6 +7220,238 @@ impl Drop for StoreScratchResolutionSession {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn candidate_query_timing_is_zero_when_disabled_and_accumulates_when_enabled() {
+        let mut telemetry = [CandidateQueryTelemetry::default(); CandidateQueryFamily::COUNT];
+        accumulate_candidate_query_telemetry(
+            &mut telemetry,
+            CandidateQueryFamily::IdentifierHydration,
+            2,
+            0,
+        );
+        assert_eq!(
+            telemetry[CandidateQueryFamily::IdentifierHydration.index()].elapsed_micros,
+            0
+        );
+        accumulate_candidate_query_telemetry(
+            &mut telemetry,
+            CandidateQueryFamily::IdentifierHydration,
+            3,
+            17,
+        );
+        accumulate_candidate_query_telemetry(
+            &mut telemetry,
+            CandidateQueryFamily::IdentifierHydration,
+            4,
+            23,
+        );
+        assert_eq!(
+            telemetry[CandidateQueryFamily::IdentifierHydration.index()],
+            CandidateQueryTelemetry {
+                executions: 3,
+                rows_read: 9,
+                elapsed_micros: 40,
+            }
+        );
+    }
+
+    #[cfg(feature = "test-store-resolution-contract")]
+    #[test]
+    fn fixed_candidate_statements_reuse_across_fixed_families() {
+        use julie_extract_artifact::store::ManifestStore;
+        use rusqlite::hooks::{AuthAction, AuthContext, Authorization};
+        use std::sync::Arc;
+        use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+
+        let temp = tempfile::tempdir().unwrap();
+        let layout = StoreLayout::create(temp.path().join("family"), "family-a", "2.30.0").unwrap();
+        let factory = StoreConnectionFactory::new(layout, "family-a", "2.30.0");
+        let mut connection = factory.open_writer().unwrap();
+        ManifestStore::new(&mut connection)
+            .ensure_view("view-a", "/repo")
+            .unwrap();
+        connection
+            .execute(
+                "INSERT INTO file_versions(path,content_hash,extraction_epoch,language,content_bytes,complete_l1,complete_l2)
+                 VALUES ('src/lib.rs','hash-src/lib.rs',1,'rust',1,1,1)",
+                [],
+            )
+            .unwrap();
+        let version = connection.last_insert_rowid();
+        for (symbol_id, name) in [
+            ("a-1", "summary-a"),
+            ("a-2", "summary-a"),
+            ("b-1", "summary-b"),
+            ("b-2", "summary-b"),
+        ] {
+            connection
+                .execute(
+                    "INSERT INTO symbols(version_id,symbol_id,path,language,name,kind,
+                     start_line,start_column,end_line,end_column,start_byte,end_byte,is_test,test_container,test_lifecycle)
+                     VALUES (?1,?2,'src/lib.rs','rust',?3,'function',1,1,1,1,0,1,0,0,0)",
+                    params![version, symbol_id, name],
+                )
+                .unwrap();
+        }
+        for (type_fact_id, symbol_id, resolved_type, is_inferred) in
+            [("fact-a", "a-1", "TypeA", 0), ("fact-b", "b-1", "TypeB", 1)]
+        {
+            connection
+                .execute(
+                    "INSERT INTO type_facts(version_id,type_fact_id,symbol_id,language,resolved_type,is_inferred)
+                     VALUES (?1,?2,?3,'rust',?4,?5)",
+                    params![version, type_fact_id, symbol_id, resolved_type, is_inferred],
+                )
+                .unwrap();
+        }
+        connection
+            .execute(
+                "INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+                 VALUES ('view-a',1,'manifest-a','request-a',?1)",
+                ["2026-08-08T12:00:00Z"],
+            )
+            .unwrap();
+        connection
+            .execute(
+                "INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
+                 VALUES ('view-a',1,'src/lib.rs','rust',?1,'indexed','hash-src/lib.rs',?2)",
+                params![version, "2026-08-08T12:00:00Z"],
+            )
+            .unwrap();
+        drop(connection);
+
+        let session = StoreScratchResolutionSession::new(
+            factory,
+            StoreManifestIdentity {
+                family_id: "family-a".to_string(),
+                view_id: "view-a".to_string(),
+                generation: 1,
+                manifest_hash: "manifest-a".to_string(),
+            },
+            temp.path().join("exact.db"),
+            6,
+            6,
+        )
+        .unwrap();
+        let prepare_count = Arc::new(AtomicUsize::new(0));
+        let hook_count = Arc::clone(&prepare_count);
+        let type_outer_read = Arc::new(AtomicBool::new(false));
+        let type_nested_selects = Arc::new(AtomicUsize::new(0));
+        let hook_type_outer_read = Arc::clone(&type_outer_read);
+        let hook_type_nested_selects = Arc::clone(&type_nested_selects);
+        let reader = session.open_phase_reader().unwrap();
+        reader
+            .authorizer(Some(move |context: AuthContext<'_>| {
+                match context.action {
+                    AuthAction::Read {
+                        table_name: "type_facts",
+                        ..
+                    } => {
+                        hook_type_outer_read.store(true, Ordering::Relaxed);
+                    }
+                    AuthAction::Select if hook_type_outer_read.swap(false, Ordering::Relaxed) => {
+                        hook_type_nested_selects.fetch_add(1, Ordering::Relaxed);
+                    }
+                    _ => {}
+                }
+                if matches!(context.action, AuthAction::Select) {
+                    hook_count.fetch_add(1, Ordering::Relaxed);
+                }
+                Authorization::Allow
+            }))
+            .unwrap();
+        *session.candidate_reader.borrow_mut() = Some(reader);
+
+        let source_key = version.to_string();
+        let first_symbol = session.symbol_by_id(&source_key, "a-1").unwrap().unwrap();
+        assert_eq!(first_symbol.symbol.symbol_id, "a-1");
+        assert!(prepare_count.load(Ordering::Relaxed) > 0);
+
+        let first_facts = {
+            let mut facts = Vec::new();
+            let symbol_id = SemanticSymbolId {
+                version: SemanticVersionId::Store(version),
+                local_id: "a-1".to_string(),
+            };
+            session
+                .visit_type_facts(&symbol_id, |_, fact| {
+                    facts.push(fact);
+                    Ok(true)
+                })
+                .unwrap();
+            facts
+        };
+        assert_eq!(
+            first_facts,
+            vec![TypeFact {
+                symbol_id: "a-1".to_string(),
+                resolved_type: "TypeA".to_string(),
+                is_inferred: false,
+            }]
+        );
+        let eight_kinds = (0..8).map(|_| SymbolKind::Function).collect::<Vec<_>>();
+        let first_summary = session
+            .filtered_name_summary("summary-a", "rust", &eight_kinds, None, 0.5)
+            .unwrap();
+        assert_eq!(
+            first_summary
+                .evidence
+                .iter()
+                .map(|evidence| evidence.semantic_id.local_id.as_str())
+                .collect::<Vec<_>>(),
+            ["a-1", "a-2"]
+        );
+        assert_eq!(first_summary.exact_count, 2);
+
+        let symbol_prepares_before = prepare_count.load(Ordering::Relaxed);
+        let second_symbol = session.symbol_by_id(&source_key, "b-1").unwrap().unwrap();
+        assert_eq!(second_symbol.symbol.symbol_id, "b-1");
+        let symbol_prepare_delta = prepare_count.load(Ordering::Relaxed) - symbol_prepares_before;
+
+        type_outer_read.store(false, Ordering::Relaxed);
+        let fact_prepares_before = type_nested_selects.load(Ordering::Relaxed);
+        let second_facts = {
+            let mut facts = Vec::new();
+            let symbol_id = SemanticSymbolId {
+                version: SemanticVersionId::Store(version),
+                local_id: "a-1".to_string(),
+            };
+            session
+                .visit_type_facts(&symbol_id, |_, fact| {
+                    facts.push(fact);
+                    Ok(true)
+                })
+                .unwrap();
+            facts
+        };
+        let fact_prepare_delta = type_nested_selects.load(Ordering::Relaxed) - fact_prepares_before;
+        assert_eq!(second_facts, first_facts);
+
+        type_outer_read.store(false, Ordering::Relaxed);
+        let summary_prepares_before = prepare_count.load(Ordering::Relaxed);
+        let second_summary = session
+            .filtered_name_summary("summary-b", "rust", &eight_kinds, None, 0.5)
+            .unwrap();
+        let summary_prepare_delta = prepare_count.load(Ordering::Relaxed) - summary_prepares_before;
+        assert_eq!(
+            second_summary
+                .evidence
+                .iter()
+                .map(|evidence| evidence.semantic_id.local_id.as_str())
+                .collect::<Vec<_>>(),
+            ["b-1", "b-2"]
+        );
+        assert_eq!(second_summary.exact_count, 2);
+        assert_eq!(
+            (
+                symbol_prepare_delta,
+                fact_prepare_delta,
+                summary_prepare_delta
+            ),
+            (0, 0, 0)
+        );
+    }
 
     /// A CANONICALIZED store path must still produce an attachable URI.
     ///

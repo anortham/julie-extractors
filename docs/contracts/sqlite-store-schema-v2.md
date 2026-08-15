@@ -13,7 +13,7 @@ each non-internal `sqlite_master` row with non-null SQL as
 hashes the UTF-8 bytes with SHA-256.
 
 ```text catalog-authority
-store-catalog-sha256: f3b4d998023613d853b4ce6d246ce16f95ec4b3e2dec0d7f4f79063cb0e1331a
+store-catalog-sha256: 8e3c0f254f06824c93307104063b0fef3dc7dc1eedec49d3665807942d410a2e
 coordinator-catalog-sha256: 633e93a3a5d162b56248656410c6e4ce849795e067bff02a31dc85ce4328c02d
 ```
 
@@ -111,6 +111,8 @@ The schema-v2-only explicit indexes are:
 ```text
 read: uidx_read_resolution_bases_identity(manifest_hash, resolver_output_epoch)
 read: idx_read_symbols_symbol(symbol_id, version_id)
+read: idx_read_symbols_parent_name(version_id, parent_symbol_id, name, symbol_id)
+read: idx_read_type_facts_symbol(version_id, symbol_id, type_fact_id)
 read: idx_read_resolution_base_versions_version(version_id, base_id)
 read: idx_read_resolution_deltas_base(base_id, view_id, delta_generation)
 read: idx_read_resolution_identifier_deltas_target(target_version_id, target_symbol_id, view_id, delta_generation)

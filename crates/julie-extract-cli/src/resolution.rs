@@ -34,11 +34,10 @@
 #[allow(dead_code)]
 pub mod session;
 
-use std::cell::RefCell;
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
-
 use julie_extract_artifact::resolution_store::{IdentifierWorkItem, PendingWorkItem};
 use julie_extractors::SymbolKind;
+use std::cell::RefCell;
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 // ---------------------------------------------------------------------------
 // Confidence + method constants (contract — see the design's tier table)
@@ -369,6 +368,291 @@ pub struct CandidateSummary {
     pub exact_count: u64,
 }
 
+#[allow(dead_code)]
+#[doc(hidden)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(usize)]
+pub enum ChildLookupReason {
+    StaticMember,
+    StaticReceiverShadowCheck,
+    Tier1ScopeTerminal,
+    Tier3TypedMember,
+    Tier3ReceiverScope,
+}
+
+#[allow(dead_code)]
+impl ChildLookupReason {
+    pub(crate) const COUNT: usize = 5;
+
+    pub(crate) const fn index(self) -> usize {
+        self as usize
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(usize)]
+pub(crate) enum ChildLookupCacheState {
+    ExactCacheHit,
+    NameCacheHit,
+    ScalarMiss,
+}
+
+#[allow(dead_code)]
+impl ChildLookupCacheState {
+    pub(crate) const COUNT: usize = 3;
+
+    pub(crate) const fn index(self) -> usize {
+        self as usize
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(usize)]
+pub enum TopLevelLookupReason {
+    Tier1Terminal,
+    Tier3Receiver,
+}
+
+#[allow(dead_code)]
+impl TopLevelLookupReason {
+    pub(crate) const COUNT: usize = 2;
+
+    pub(crate) const fn index(self) -> usize {
+        self as usize
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(usize)]
+pub enum FilteredNameLookupReason {
+    Tier2Import,
+    UniqueType,
+    UniqueStatic,
+}
+
+#[allow(dead_code)]
+impl FilteredNameLookupReason {
+    pub(crate) const COUNT: usize = 3;
+
+    pub(crate) const fn index(self) -> usize {
+        self as usize
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(usize)]
+pub enum TypeFactsLookupReason {
+    Tier3Receiver,
+}
+
+#[allow(dead_code)]
+impl TypeFactsLookupReason {
+    pub(crate) const COUNT: usize = 1;
+
+    pub(crate) const fn index(self) -> usize {
+        self as usize
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(usize)]
+pub(crate) enum CandidatePageFamily {
+    ChildrenNamed,
+    FilteredByName,
+    TopLevelNamed,
+    TypeFacts,
+}
+
+#[allow(dead_code)]
+impl CandidatePageFamily {
+    pub(crate) const COUNT: usize = 4;
+
+    pub(crate) const fn index(self) -> usize {
+        self as usize
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) struct SameWindowFingerprintCounts {
+    pub(crate) first_seen: u64,
+    pub(crate) repeat_same_window: u64,
+    pub(crate) probe_overflow: u64,
+}
+
+impl SameWindowFingerprintCounts {
+    pub(crate) fn merge(&mut self, other: Self) {
+        self.first_seen = self.first_seen.saturating_add(other.first_seen);
+        self.repeat_same_window = self
+            .repeat_same_window
+            .saturating_add(other.repeat_same_window);
+        self.probe_overflow = self.probe_overflow.saturating_add(other.probe_overflow);
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) struct CandidateLookupAttribution {
+    pub(crate) logical_lookups: u64,
+    pub(crate) empty_first: u64,
+    pub(crate) trailing_empty: u64,
+    pub(crate) short_positive: u64,
+    pub(crate) full_page: u64,
+    pub(crate) page_limit: u64,
+    pub(crate) same_window_fingerprints: SameWindowFingerprintCounts,
+}
+
+impl CandidateLookupAttribution {
+    pub(crate) fn record_lookup(&mut self, fingerprint: SameWindowFingerprintCounts) {
+        self.logical_lookups = self.logical_lookups.saturating_add(1);
+        self.same_window_fingerprints.merge(fingerprint);
+    }
+
+    pub(crate) fn record_page(
+        &mut self,
+        row_count: usize,
+        page_limit: Option<usize>,
+        had_prior_page: bool,
+    ) {
+        if let Some(page_limit) = page_limit {
+            self.page_limit = self
+                .page_limit
+                .max(u64::try_from(page_limit).unwrap_or(u64::MAX));
+        }
+        match (row_count, had_prior_page, page_limit) {
+            (0, false, _) => self.empty_first = self.empty_first.saturating_add(1),
+            (0, true, _) => self.trailing_empty = self.trailing_empty.saturating_add(1),
+            (_, _, Some(limit)) if row_count >= limit => {
+                self.full_page = self.full_page.saturating_add(1)
+            }
+            (_, _, _) => self.short_positive = self.short_positive.saturating_add(1),
+        }
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) struct PrimeWindowAttribution {
+    pub(crate) windows: u64,
+    pub(crate) windows_hit_row_limit: u64,
+    pub(crate) names_wanted: u64,
+    pub(crate) names_complete: u64,
+    pub(crate) names_skipped_cutoff: u64,
+    pub(crate) names_rejected_capacity: u64,
+    pub(crate) rows_admitted: u64,
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) struct ChildLookupBucket {
+    pub(crate) calls: u64,
+    pub(crate) sql_pages: u64,
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) struct ChildLookupAttribution {
+    pub(crate) buckets:
+        [[ChildLookupBucket; ChildLookupCacheState::COUNT]; ChildLookupReason::COUNT],
+    pub(crate) aggregate: CandidateLookupAttribution,
+    pub(crate) reasons: [CandidateLookupAttribution; ChildLookupReason::COUNT],
+    pub(crate) batch_count_statements: u64,
+    pub(crate) batch_fetch_statements: u64,
+}
+
+#[allow(dead_code)]
+impl ChildLookupAttribution {
+    pub(crate) fn record_call(&mut self, reason: ChildLookupReason, state: ChildLookupCacheState) {
+        let bucket = &mut self.buckets[reason.index()][state.index()];
+        bucket.calls = bucket.calls.saturating_add(1);
+    }
+
+    pub(crate) fn record_sql_page(&mut self, reason: ChildLookupReason) {
+        let bucket = &mut self.buckets[reason.index()][ChildLookupCacheState::ScalarMiss.index()];
+        bucket.sql_pages = bucket.sql_pages.saturating_add(1);
+    }
+
+    pub(crate) fn record_lookup(
+        &mut self,
+        reason: Option<ChildLookupReason>,
+        fingerprint: SameWindowFingerprintCounts,
+    ) {
+        self.aggregate.record_lookup(fingerprint);
+        if let Some(reason) = reason {
+            self.reasons[reason.index()].record_lookup(fingerprint);
+        }
+    }
+
+    pub(crate) fn record_page(
+        &mut self,
+        reason: Option<ChildLookupReason>,
+        row_count: usize,
+        page_limit: Option<usize>,
+        had_prior_page: bool,
+    ) {
+        self.aggregate
+            .record_page(row_count, page_limit, had_prior_page);
+        if let Some(reason) = reason {
+            self.reasons[reason.index()].record_page(row_count, page_limit, had_prior_page);
+        }
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) struct ByIdCacheAttribution {
+    pub(crate) cache_hits: u64,
+    pub(crate) sql_misses: u64,
+    pub(crate) accepted_insertions: u64,
+    pub(crate) rejected_by_id_cap: u64,
+    pub(crate) rejected_by_aggregate_cap: u64,
+    pub(crate) max_entries: u64,
+    pub(crate) max_non_by_id_entries: u64,
+    pub(crate) max_aggregate_entries: u64,
+    pub(crate) phase_reset_count: u64,
+    pub(crate) phase_reset_by_id_entries: u64,
+    pub(crate) phase_reset_aggregate_entries: u64,
+    pub(crate) phase_reset_by_id_entries_total: u64,
+    pub(crate) phase_reset_aggregate_entries_total: u64,
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) struct TopLevelLookupAttribution {
+    pub(crate) aggregate: CandidateLookupAttribution,
+    pub(crate) reasons: [CandidateLookupAttribution; TopLevelLookupReason::COUNT],
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) struct FilteredNameLookupAttribution {
+    pub(crate) aggregate: CandidateLookupAttribution,
+    pub(crate) reasons: [CandidateLookupAttribution; FilteredNameLookupReason::COUNT],
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) struct TypeFactsLookupAttribution {
+    pub(crate) aggregate: CandidateLookupAttribution,
+    pub(crate) reasons: [CandidateLookupAttribution; TypeFactsLookupReason::COUNT],
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) struct CandidateCacheAttribution {
+    pub(crate) prime_window: PrimeWindowAttribution,
+    pub(crate) children_named: ChildLookupAttribution,
+    pub(crate) filtered_by_name: FilteredNameLookupAttribution,
+    pub(crate) top_level_named: TopLevelLookupAttribution,
+    pub(crate) type_facts: TypeFactsLookupAttribution,
+    pub(crate) by_id: ByIdCacheAttribution,
+}
+
 pub trait CandidateLookup {
     type Error;
 
@@ -402,6 +686,21 @@ pub trait CandidateLookup {
             }
             Ok(true)
         })
+    }
+
+    fn visit_filtered_by_name_with_reason<F>(
+        &self,
+        _reason: FilteredNameLookupReason,
+        name: &str,
+        language: &str,
+        kinds: &[SymbolKind],
+        source_key: Option<&str>,
+        visitor: F,
+    ) -> Result<(), Self::Error>
+    where
+        F: FnMut(&Self, CandidateHit) -> Result<bool, Self::Error>,
+    {
+        self.visit_filtered_by_name(name, language, kinds, source_key, visitor)
     }
 
     fn filtered_name_summary(
@@ -445,6 +744,20 @@ pub trait CandidateLookup {
     where
         F: FnMut(&Self, CandidateHit) -> Result<bool, Self::Error>;
 
+    fn visit_children_named_with_reason<F>(
+        &self,
+        _reason: ChildLookupReason,
+        source_key: &str,
+        parent_id: &str,
+        name: &str,
+        visitor: F,
+    ) -> Result<(), Self::Error>
+    where
+        F: FnMut(&Self, CandidateHit) -> Result<bool, Self::Error>,
+    {
+        self.visit_children_named(source_key, parent_id, name, visitor)
+    }
+
     fn visit_top_level_named<F>(
         &self,
         source_key: &str,
@@ -454,6 +767,19 @@ pub trait CandidateLookup {
     where
         F: FnMut(&Self, CandidateHit) -> Result<bool, Self::Error>;
 
+    fn visit_top_level_named_with_reason<F>(
+        &self,
+        _reason: TopLevelLookupReason,
+        source_key: &str,
+        name: &str,
+        visitor: F,
+    ) -> Result<(), Self::Error>
+    where
+        F: FnMut(&Self, CandidateHit) -> Result<bool, Self::Error>,
+    {
+        self.visit_top_level_named(source_key, name, visitor)
+    }
+
     fn visit_type_facts<F>(
         &self,
         symbol_id: &session::SemanticSymbolId,
@@ -461,6 +787,18 @@ pub trait CandidateLookup {
     ) -> Result<(), Self::Error>
     where
         F: FnMut(&Self, TypeFact) -> Result<bool, Self::Error>;
+
+    fn visit_type_facts_with_reason<F>(
+        &self,
+        _reason: TypeFactsLookupReason,
+        symbol_id: &session::SemanticSymbolId,
+        visitor: F,
+    ) -> Result<(), Self::Error>
+    where
+        F: FnMut(&Self, TypeFact) -> Result<bool, Self::Error>,
+    {
+        self.visit_type_facts(symbol_id, visitor)
+    }
 
     fn visit_imports<F>(&self, source_key: &str, visitor: F) -> Result<(), Self::Error>
     where
@@ -1151,7 +1489,8 @@ fn static_type_candidates<L: CandidateLookup>(
 
     let member_kinds = tier123_compatible_kinds(edge.kind);
     let cross_file = type_symbol.symbol.file_id != edge.file_id;
-    lookup.visit_children_named(
+    lookup.visit_children_named_with_reason(
+        ChildLookupReason::StaticMember,
         &type_symbol.symbol.file_id,
         &type_symbol.symbol.symbol_id,
         &edge.terminal_name,
@@ -1351,10 +1690,16 @@ fn scope_binds_receiver_name<L: CandidateLookup>(
             return Ok(false);
         }
         let mut bound = false;
-        lookup.visit_children_named(&scope.symbol.file_id, &scope_id, receiver, |_, child| {
-            bound = child.symbol.kind == SymbolKind::Variable;
-            Ok(!bound)
-        })?;
+        lookup.visit_children_named_with_reason(
+            ChildLookupReason::StaticReceiverShadowCheck,
+            &scope.symbol.file_id,
+            &scope_id,
+            receiver,
+            |_, child| {
+                bound = child.symbol.kind == SymbolKind::Variable;
+                Ok(!bound)
+            },
+        )?;
         if bound {
             return Ok(true);
         }
@@ -1463,7 +1808,8 @@ fn tier1_candidates<L: CandidateLookup>(
     let mut source_key = edge.file_id.clone();
     while let Some(scope_id) = scope {
         lookup.reset_tier_candidates()?;
-        lookup.visit_children_named(
+        lookup.visit_children_named_with_reason(
+            ChildLookupReason::Tier1ScopeTerminal,
             &source_key,
             &scope_id,
             &edge.terminal_name,
@@ -1488,12 +1834,18 @@ fn tier1_candidates<L: CandidateLookup>(
     }
 
     lookup.reset_tier_candidates()?;
-    lookup.visit_top_level_named(&edge.file_id, &edge.terminal_name, |_, candidate| {
-        if candidate.symbol.language == edge.language && kinds.contains(&candidate.symbol.kind) {
-            lookup.record_tier_candidate(candidate.semantic_id, CONFIDENCE_TIER1)?;
-        }
-        Ok(true)
-    })?;
+    lookup.visit_top_level_named_with_reason(
+        TopLevelLookupReason::Tier1Terminal,
+        &edge.file_id,
+        &edge.terminal_name,
+        |_, candidate| {
+            if candidate.symbol.language == edge.language && kinds.contains(&candidate.symbol.kind)
+            {
+                lookup.record_tier_candidate(candidate.semantic_id, CONFIDENCE_TIER1)?;
+            }
+            Ok(true)
+        },
+    )?;
     lookup.tier_candidate_summary()
 }
 
@@ -1534,7 +1886,8 @@ fn tier2_candidates<L: CandidateLookup>(
             (Some(_), None) => return Ok(true),
             (None, None) => None,
         };
-        lookup.visit_filtered_by_name(
+        lookup.visit_filtered_by_name_with_reason(
+            FilteredNameLookupReason::Tier2Import,
             target_name,
             &edge.language,
             kinds,
@@ -1567,33 +1920,38 @@ fn tier3_candidates<L: CandidateLookup>(
     let member_kinds = tier123_compatible_kinds(edge.kind);
     let found_receiver =
         visit_receiver_symbols(edge, lookup, receiver, |lookup, receiver_symbol| {
-            lookup.visit_type_facts(&receiver_symbol.semantic_id, |lookup, fact| {
-                if let Some(type_symbol) =
-                    unique_type_symbol(lookup, &fact.resolved_type, &edge.language)?
-                {
-                    lookup.visit_children_named(
-                        &type_symbol.symbol.file_id,
-                        &type_symbol.symbol.symbol_id,
-                        &edge.terminal_name,
-                        |_, member| {
-                            if member.symbol.language == edge.language
-                                && member_kinds.contains(&member.symbol.kind)
-                            {
-                                lookup.record_tier_candidate(
-                                    member.semantic_id,
-                                    if fact.is_inferred {
-                                        CONFIDENCE_TIER3_INFERRED
-                                    } else {
-                                        CONFIDENCE_TIER3
-                                    },
-                                )?;
-                            }
-                            Ok(true)
-                        },
-                    )?;
-                }
-                Ok(true)
-            })
+            lookup.visit_type_facts_with_reason(
+                TypeFactsLookupReason::Tier3Receiver,
+                &receiver_symbol.semantic_id,
+                |lookup, fact| {
+                    if let Some(type_symbol) =
+                        unique_type_symbol(lookup, &fact.resolved_type, &edge.language)?
+                    {
+                        lookup.visit_children_named_with_reason(
+                            ChildLookupReason::Tier3TypedMember,
+                            &type_symbol.symbol.file_id,
+                            &type_symbol.symbol.symbol_id,
+                            &edge.terminal_name,
+                            |_, member| {
+                                if member.symbol.language == edge.language
+                                    && member_kinds.contains(&member.symbol.kind)
+                                {
+                                    lookup.record_tier_candidate(
+                                        member.semantic_id,
+                                        if fact.is_inferred {
+                                            CONFIDENCE_TIER3_INFERRED
+                                        } else {
+                                            CONFIDENCE_TIER3
+                                        },
+                                    )?;
+                                }
+                                Ok(true)
+                            },
+                        )?;
+                    }
+                    Ok(true)
+                },
+            )
         })?;
     if !found_receiver {
         return lookup.tier_candidate_summary();
@@ -1647,13 +2005,19 @@ where
     let mut source_key = edge.file_id.clone();
     while let Some(scope_id) = scope {
         let mut found = false;
-        lookup.visit_children_named(&source_key, &scope_id, receiver, |lookup, hit| {
-            if hit.symbol.language == edge.language {
-                found = true;
-                visitor(lookup, hit)?;
-            }
-            Ok(true)
-        })?;
+        lookup.visit_children_named_with_reason(
+            ChildLookupReason::Tier3ReceiverScope,
+            &source_key,
+            &scope_id,
+            receiver,
+            |lookup, hit| {
+                if hit.symbol.language == edge.language {
+                    found = true;
+                    visitor(lookup, hit)?;
+                }
+                Ok(true)
+            },
+        )?;
         if found {
             return Ok(true);
         }
@@ -1665,13 +2029,18 @@ where
     }
 
     let mut found = false;
-    lookup.visit_top_level_named(&edge.file_id, receiver, |lookup, hit| {
-        if hit.symbol.language == edge.language {
-            found = true;
-            visitor(lookup, hit)?;
-        }
-        Ok(true)
-    })?;
+    lookup.visit_top_level_named_with_reason(
+        TopLevelLookupReason::Tier3Receiver,
+        &edge.file_id,
+        receiver,
+        |lookup, hit| {
+            if hit.symbol.language == edge.language {
+                found = true;
+                visitor(lookup, hit)?;
+            }
+            Ok(true)
+        },
+    )?;
     Ok(found)
 }
 
@@ -1683,7 +2052,13 @@ fn unique_type_symbol<L: CandidateLookup>(
     type_name: &str,
     language: &str,
 ) -> Result<Option<CandidateHit>, L::Error> {
-    unique_named_type_symbol(lookup, type_name, language, TYPE_LIKE_KINDS)
+    unique_named_type_symbol(
+        lookup,
+        type_name,
+        language,
+        TYPE_LIKE_KINDS,
+        FilteredNameLookupReason::UniqueType,
+    )
 }
 
 /// Type-name receiver for the static tier. Module languages only accept runtime
@@ -1699,7 +2074,13 @@ fn unique_static_type_symbol<L: CandidateLookup>(
     } else {
         TYPE_LIKE_KINDS
     };
-    unique_named_type_symbol(lookup, type_name, language, kinds)
+    unique_named_type_symbol(
+        lookup,
+        type_name,
+        language,
+        kinds,
+        FilteredNameLookupReason::UniqueStatic,
+    )
 }
 
 fn unique_named_type_symbol<L: CandidateLookup>(
@@ -1707,16 +2088,24 @@ fn unique_named_type_symbol<L: CandidateLookup>(
     type_name: &str,
     language: &str,
     kinds: &[SymbolKind],
+    reason: FilteredNameLookupReason,
 ) -> Result<Option<CandidateHit>, L::Error> {
     let mut found: Option<CandidateHit> = None;
-    lookup.visit_filtered_by_name(type_name, language, kinds, None, |_, cand| {
-        if found.is_some() {
-            found = None;
-            return Ok(false);
-        }
-        found = Some(cand);
-        Ok(true)
-    })?;
+    lookup.visit_filtered_by_name_with_reason(
+        reason,
+        type_name,
+        language,
+        kinds,
+        None,
+        |_, cand| {
+            if found.is_some() {
+                found = None;
+                return Ok(false);
+            }
+            found = Some(cand);
+            Ok(true)
+        },
+    )?;
     Ok(found)
 }
 

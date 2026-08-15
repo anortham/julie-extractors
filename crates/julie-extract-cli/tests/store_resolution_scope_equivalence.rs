@@ -339,6 +339,49 @@ fn curated_receiver_and_tier4_uniqueness_flips_cross_over_and_match_full() {
 }
 
 #[test]
+fn children_named_scoped_resolution_matches_forced_full_digest() {
+    const UNRELATED_PING_CLASSES: usize = 301;
+    let mut ping_noise = String::new();
+    for index in 0..UNRELATED_PING_CLASSES {
+        ping_noise.push_str(&format!(
+            "export class Noise{index:03} {{ ping() {{ return {index}; }} }}\n"
+        ));
+    }
+    let pair = StorePair::new(&[
+        (
+            "src/model.ts",
+            "export class Model { ping() { return 1; } }
+             export function stable() { return 9; }
+             ",
+        ),
+        (
+            "src/use.ts",
+            "import { Model } from './model';
+             export function call(m: Model) {
+                 return m.ping() + m.ping() + m.ping() + m.ping()
+                     + m.ping() + m.ping() + m.ping() + m.ping();
+             }
+             ",
+        ),
+        ("src/ping-noise.ts", &ping_noise),
+        (
+            "src/padding.ts",
+            "export function padding() { return 7; }\n",
+        ),
+    ]);
+    for root in pair.roots() {
+        write_source(
+            root,
+            "src/padding.ts",
+            "export function padding() { return 8; }\n",
+        );
+    }
+    pair.rescan();
+    let (_, report) = pair.resolve_and_compare("scoped", None);
+    assert_eq!(report["resolution"]["resolution_mode"], "scoped");
+}
+
+#[test]
 fn rust_source_and_test_partitions_match_full_after_one_file_change() {
     let pair = StorePair::new(&[
         (

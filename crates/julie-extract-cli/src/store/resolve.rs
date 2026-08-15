@@ -305,18 +305,21 @@ fn resolve_claimed(
     let factory = StoreConnectionFactory::new(layout.clone(), family_id, env!("CARGO_PKG_VERSION"));
     let identity = require_view_identity(layout, &payload.view_id, true)?;
     let catalog = ResolutionBaseCatalog::new(factory.clone());
-    let has_ready_base: bool = factory
-        .open_reader()
-        .map_err(|error| format!("resolution_failed: {error}"))?
-        .query_row(
-            "SELECT EXISTS(
-               SELECT 1 FROM resolution_bases
-               WHERE state='ready' AND resolver_output_epoch=?1
-             )",
-            [payload.resolver_output_epoch],
-            |row| row.get(0),
-        )
-        .map_err(|error| format!("resolution_failed: {error}"))?;
+    let has_ready_base: bool = {
+        let ready_base_connection = factory
+            .open_reader()
+            .map_err(|error| format!("resolution_failed: {error}"))?;
+        ready_base_connection
+            .query_row(
+                "SELECT EXISTS(
+                   SELECT 1 FROM resolution_bases
+                   WHERE state='ready' AND resolver_output_epoch=?1
+                 )",
+                [payload.resolver_output_epoch],
+                |row| row.get(0),
+            )
+            .map_err(|error| format!("resolution_failed: {error}"))?
+    };
     if !has_ready_base {
         let created_at = store_timestamp(layout, "now")?;
         let begin = with_writer_lease(
@@ -563,15 +566,18 @@ fn resolve_claimed(
     telemetry
         .phase_timings_ms
         .insert("scope".to_string(), decision.elapsed_millis);
-    let base_relative_path = factory
-        .open_reader()
-        .map_err(|error| format!("resolution_failed: {error}"))?
-        .query_row(
-            "SELECT relative_path FROM resolution_bases WHERE base_id=?1 AND state='ready'",
-            [&binding.base_id],
-            |row| row.get::<_, String>(0),
-        )
-        .map_err(|error| format!("resolution_failed: {error}"))?;
+    let base_relative_path = {
+        let base_path_connection = factory
+            .open_reader()
+            .map_err(|error| format!("resolution_failed: {error}"))?;
+        base_path_connection
+            .query_row(
+                "SELECT relative_path FROM resolution_bases WHERE base_id=?1 AND state='ready'",
+                [&binding.base_id],
+                |row| row.get::<_, String>(0),
+            )
+            .map_err(|error| format!("resolution_failed: {error}"))?
+    };
     let base_path = layout.generation_dir().join(base_relative_path);
     remove_sqlite_if_exists(&delta_path)?;
     let mut gaps = Vec::<ResolutionGapFact>::new();

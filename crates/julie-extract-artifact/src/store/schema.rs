@@ -1052,6 +1052,8 @@ CREATE INDEX IF NOT EXISTS idx_gc_symbols_test_lifecycle ON symbols(version_id, 
 CREATE INDEX IF NOT EXISTS idx_read_symbols_name_kind ON symbols(name, kind, version_id);
 CREATE INDEX IF NOT EXISTS idx_read_symbols_symbol ON symbols(symbol_id, version_id);
 CREATE INDEX IF NOT EXISTS idx_read_symbols_parent ON symbols(parent_symbol_id, version_id);
+CREATE INDEX IF NOT EXISTS idx_read_symbols_parent_name
+  ON symbols(version_id, parent_symbol_id, name, symbol_id);
 CREATE INDEX IF NOT EXISTS idx_gc_symbol_annotations_symbol
   ON symbol_annotations(version_id, symbol_id);
 CREATE INDEX IF NOT EXISTS idx_read_reference_sites_containing_symbol
@@ -1084,6 +1086,8 @@ CREATE INDEX IF NOT EXISTS idx_read_pending_reference_site
   ON pending_relationships(reference_site_id, version_id);
 CREATE INDEX IF NOT EXISTS idx_read_type_argument_usages_identifier
   ON type_argument_usages(identifier_id, version_id);
+CREATE INDEX IF NOT EXISTS idx_read_type_facts_symbol
+  ON type_facts(version_id, symbol_id, type_fact_id);
 CREATE INDEX IF NOT EXISTS idx_gc_type_arguments_usage
   ON type_arguments(version_id, usage_id);
 CREATE INDEX IF NOT EXISTS idx_gc_type_arguments_parent

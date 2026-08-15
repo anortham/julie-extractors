@@ -47,6 +47,7 @@ test-store-maintenance-contract = [
 test-store-resolution-contract = [
     "test-store-contract",
     "julie-extract-artifact/test-store-resolution",
+    "rusqlite/hooks",
 ]
 
 [lints]

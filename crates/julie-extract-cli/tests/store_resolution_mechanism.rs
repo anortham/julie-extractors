@@ -6,8 +6,9 @@ use julie_extract_artifact::store::{
     StoreLayout, ensure_resolution_scope_feature, stream_resolution_diff,
 };
 use julie_extract_cli::resolution::{
-    CandidateSymbol, EdgeOrigin, ReferenceKind, TierOutcome, TypeFact, UnresolvedEdge,
-    WorkspaceCandidateIndex, resolve_one, resolve_with_candidate_lookup, run_resolution_session,
+    CandidateLookup, CandidateSymbol, EdgeOrigin, ReferenceKind, TierOutcome, TypeFact,
+    UnresolvedEdge, WorkspaceCandidateIndex, resolve_one, resolve_with_candidate_lookup,
+    run_resolution_session,
 };
 use julie_extract_cli::resolution_session::{
     ResolutionPassRequest, ResolutionPhase, ResolutionPhaseChunk, ResolutionSession,
@@ -49,6 +50,171 @@ fn store_resolution_source_uses_only_bounded_ports() {
     assert_eq!(source.matches("DETACH DATABASE prior_").count(), 2);
     assert!(!source.contains("Incremental(String)"));
     assert!(!source.contains("IdentifierTotalityMissing"));
+}
+
+#[test]
+fn exact_children_batch_count_releases_parent_index_hint_but_fetch_keeps_it() {
+    let source = include_str!("../src/store/resolution_session.rs");
+    let method_start = source
+        .find("    fn prime_exact_children_keys(\n")
+        .expect("exact-child batch method should exist");
+    let method_end = source[method_start..]
+        .find("\n    fn candidate_page(")
+        .map(|offset| method_start + offset)
+        .expect("exact-child batch method should end");
+    let method = &source[method_start..method_end];
+    let count_start = method
+        .find("        let count_sql = format!(")
+        .expect("exact-child count SQL should exist");
+    let fetch_start = method
+        .find("            let fetch_sql = format!(")
+        .expect("exact-child fetch SQL should exist");
+    let count = &method[count_start..fetch_start];
+    let fetch_end = method[fetch_start..]
+        .find("            );\n            let mut bind")
+        .map(|offset| fetch_start + offset)
+        .expect("exact-child fetch SQL should end");
+    let fetch = &method[fetch_start..fetch_end];
+    assert!(
+        !count.contains("INDEXED BY idx_read_symbols_parent"),
+        "COUNT must not force the parent-only index"
+    );
+    assert!(
+        fetch.contains("INDEXED BY idx_read_symbols_parent\n"),
+        "FETCH must retain the parent-only index hint"
+    );
+    assert!(
+        !fetch.contains("INDEXED BY idx_read_symbols_parent_name"),
+        "FETCH must not use the parent/name index hint"
+    );
+}
+
+#[test]
+fn exact_children_batch_count_plans_parent_name_and_survives_missing_index() {
+    let temp = TempDir::new().unwrap();
+    let layout = StoreLayout::create(temp.path().join("family"), "family-a", "2.30.0").unwrap();
+    let factory = StoreConnectionFactory::new(layout, "family-a", "2.30.0");
+    let mut connection = factory.open_writer().unwrap();
+    ManifestStore::new(&mut connection)
+        .ensure_view("view-a", "/repo")
+        .unwrap();
+    assert_eq!(
+        connection
+            .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+            .unwrap(),
+        2
+    );
+    let version = insert_version(&connection, "src/lib.rs", "rust", true);
+    connection
+        .execute(
+            "INSERT INTO symbols(version_id,symbol_id,path,language,name,kind,
+             start_line,start_column,end_line,end_column,start_byte,end_byte,is_test,test_container,test_lifecycle)
+             VALUES (?1,'parent','src/lib.rs','rust','parent','function',1,1,1,5,0,4,0,0,0)",
+            [version],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO symbols(version_id,symbol_id,path,language,name,kind,parent_symbol_id,
+             start_line,start_column,end_line,end_column,start_byte,end_byte,is_test,test_container,test_lifecycle)
+             VALUES (?1,'child-000','src/lib.rs','rust','ChildName','function','parent',1,1,1,5,0,4,0,0,0)",
+            [version],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+             VALUES ('view-a',1,'manifest-a','request-a',?1)",
+            [NOW],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
+             VALUES ('view-a',1,'src/lib.rs','rust',?1,'indexed','hash-src/lib.rs',?2)",
+            params![version, NOW],
+        )
+        .unwrap();
+
+    let count_sql = |batch_size: usize| {
+        let values = (0..batch_size)
+            .map(|ordinal| format!("({ordinal},?,?,?)"))
+            .collect::<Vec<_>>()
+            .join(",");
+        format!(
+            "WITH wanted(ordinal,version_id,parent_symbol_id,name) AS (VALUES {values})
+             SELECT wanted.ordinal,COUNT(s.symbol_id)
+             FROM wanted
+             LEFT JOIN symbols AS s
+               ON s.version_id=wanted.version_id
+              AND s.parent_symbol_id=wanted.parent_symbol_id
+              AND s.name=wanted.name
+              AND EXISTS (
+                SELECT 1 FROM manifest_entries AS me
+                WHERE me.view_id=? AND me.generation=?
+                  AND me.status IN ('indexed','failed_preserved')
+                  AND me.version_id=s.version_id
+              )
+             GROUP BY wanted.ordinal
+             ORDER BY wanted.ordinal"
+        )
+    };
+    let bind = |batch_size: usize| {
+        let mut bind: Vec<rusqlite::types::Value> = Vec::with_capacity(batch_size * 3 + 2);
+        for _ in 0..batch_size {
+            bind.push(version.into());
+            bind.push("parent".to_string().into());
+            bind.push("ChildName".to_string().into());
+        }
+        bind.push("view-a".to_string().into());
+        bind.push(1_i64.into());
+        bind
+    };
+    let explain = |sql: &str, bind: Vec<rusqlite::types::Value>| {
+        connection
+            .prepare(&format!("EXPLAIN QUERY PLAN {sql}"))
+            .unwrap()
+            .query_map(rusqlite::params_from_iter(bind), |row| {
+                row.get::<_, String>(3)
+            })
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap()
+            .join("\n")
+    };
+    let execute = |sql: &str, bind: Vec<rusqlite::types::Value>| {
+        connection
+            .prepare(sql)
+            .unwrap()
+            .query_map(rusqlite::params_from_iter(bind), |row| {
+                Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?))
+            })
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap()
+    };
+
+    for batch_size in [1, 300] {
+        let sql = count_sql(batch_size);
+        let plan = explain(&sql, bind(batch_size));
+        assert!(
+            plan.contains("idx_read_symbols_parent_name"),
+            "batch size {batch_size} did not use the parent/name index. Plan:\n{plan}"
+        );
+        let rows = execute(&sql, bind(batch_size));
+        assert_eq!(rows.len(), batch_size);
+        assert!(rows.iter().all(|(_, count)| *count == 1));
+    }
+
+    connection
+        .execute("DROP INDEX idx_read_symbols_parent_name", [])
+        .unwrap();
+    for batch_size in [1, 300] {
+        let sql = count_sql(batch_size);
+        let rows = execute(&sql, bind(batch_size));
+        assert_eq!(rows.len(), batch_size);
+        assert!(rows.iter().all(|(_, count)| *count == 1));
+    }
 }
 
 #[test]
@@ -107,6 +273,263 @@ fn store_resolution_rejects_windows_above_sqlite_parameter_budget() {
             maximum: 300
         }
     ));
+}
+
+#[test]
+fn store_children_named_preserve_binary_order_and_early_stop() {
+    let temp = TempDir::new().unwrap();
+    let layout = StoreLayout::create(temp.path().join("family"), "family-a", "2.30.0").unwrap();
+    let factory = StoreConnectionFactory::new(layout, "family-a", "2.30.0");
+    let mut connection = factory.open_writer().unwrap();
+    ManifestStore::new(&mut connection)
+        .ensure_view("view-a", "/repo")
+        .unwrap();
+    let version = insert_version(&connection, "src/lib.rs", "rust", true);
+    connection
+        .execute(
+            "INSERT INTO symbols(version_id,symbol_id,path,language,name,kind,
+             start_line,start_column,end_line,end_column,start_byte,end_byte,is_test,test_container,test_lifecycle)
+             VALUES (?1,'scope','src/lib.rs','rust','scope','function',1,1,20,1,0,200,0,0,0)",
+            [version],
+        )
+        .unwrap();
+    for symbol_id in ["z-child", "a-child", "b-child"] {
+        connection
+            .execute(
+                "INSERT INTO symbols(version_id,symbol_id,path,language,name,kind,parent_symbol_id,
+                 start_line,start_column,end_line,end_column,start_byte,end_byte,is_test,test_container,test_lifecycle)
+                 VALUES (?1,?2,'src/lib.rs','rust','target','function','scope',2,1,2,10,10,20,0,0,0)",
+                params![version, symbol_id],
+            )
+            .unwrap();
+    }
+    connection
+        .execute(
+            "INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+             VALUES ('view-a',1,'manifest-a','request-a',?1)",
+            [NOW],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
+             VALUES ('view-a',1,'src/lib.rs','rust',?1,'indexed','hash-src/lib.rs',?2)",
+            params![version, NOW],
+        )
+        .unwrap();
+    drop(connection);
+
+    let session = StoreScratchResolutionSession::new(
+        factory,
+        StoreManifestIdentity {
+            family_id: "family-a".to_string(),
+            view_id: "view-a".to_string(),
+            generation: 1,
+            manifest_hash: "manifest-a".to_string(),
+        },
+        temp.path().join("exact.db"),
+        2,
+        6,
+    )
+    .unwrap();
+    let mut delivered = Vec::new();
+    session
+        .visit_children_named(&version.to_string(), "scope", "target", |_, hit| {
+            delivered.push(hit.symbol.symbol_id);
+            Ok(delivered.len() < 2)
+        })
+        .unwrap();
+    assert_eq!(delivered, ["a-child", "b-child"]);
+    let telemetry = session.candidate_query_telemetry(CandidateQueryFamily::ChildrenNamed);
+    assert_eq!(telemetry.executions, 1);
+    assert_eq!(telemetry.rows_read, 2);
+}
+
+#[test]
+fn store_children_named_reuses_complete_scalar_positive_and_empty_keys() {
+    let temp = TempDir::new().unwrap();
+    let layout = StoreLayout::create(temp.path().join("family"), "family-a", "2.30.0").unwrap();
+    let factory = StoreConnectionFactory::new(layout, "family-a", "2.30.0");
+    let mut connection = factory.open_writer().unwrap();
+    ManifestStore::new(&mut connection)
+        .ensure_view("view-a", "/repo")
+        .unwrap();
+    let version = insert_version(&connection, "src/lib.rs", "rust", true);
+    connection
+        .execute(
+            "INSERT INTO symbols(version_id,symbol_id,path,language,name,kind,
+             start_line,start_column,end_line,end_column,start_byte,end_byte,is_test,test_container,test_lifecycle)
+             VALUES (?1,'scope','src/lib.rs','rust','scope','function',1,1,20,1,0,200,0,0,0)",
+            [version],
+        )
+        .unwrap();
+    for symbol_id in ["b-child", "a-child"] {
+        connection
+            .execute(
+                "INSERT INTO symbols(version_id,symbol_id,path,language,name,kind,parent_symbol_id,
+                 start_line,start_column,end_line,end_column,start_byte,end_byte,is_test,test_container,test_lifecycle)
+                 VALUES (?1,?2,'src/lib.rs','rust','target','function','scope',2,1,2,10,10,20,0,0,0)",
+                params![version, symbol_id],
+            )
+            .unwrap();
+    }
+    connection
+        .execute(
+            "INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+             VALUES ('view-a',1,'manifest-a','request-a',?1)",
+            [NOW],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
+             VALUES ('view-a',1,'src/lib.rs','rust',?1,'indexed','hash-src/lib.rs',?2)",
+            params![version, NOW],
+        )
+        .unwrap();
+    drop(connection);
+
+    let session = StoreScratchResolutionSession::new(
+        factory,
+        StoreManifestIdentity {
+            family_id: "family-a".to_string(),
+            view_id: "view-a".to_string(),
+            generation: 1,
+            manifest_hash: "manifest-a".to_string(),
+        },
+        temp.path().join("exact.db"),
+        6,
+        6,
+    )
+    .unwrap();
+    let mut stopped = Vec::new();
+    session
+        .visit_children_named(&version.to_string(), "scope", "target", |_, hit| {
+            let keep_going = !stopped.is_empty();
+            stopped.push(hit.symbol.symbol_id);
+            Ok(keep_going)
+        })
+        .unwrap();
+    assert_eq!(stopped, ["a-child"]);
+    let mut first_positive = Vec::new();
+    session
+        .visit_children_named(&version.to_string(), "scope", "target", |_, hit| {
+            first_positive.push(hit.symbol.symbol_id);
+            Ok(true)
+        })
+        .unwrap();
+    let mut second_positive = Vec::new();
+    session
+        .visit_children_named(&version.to_string(), "scope", "target", |_, hit| {
+            second_positive.push(hit.symbol.symbol_id);
+            Ok(true)
+        })
+        .unwrap();
+    let mut first_empty = Vec::new();
+    session
+        .visit_children_named(&version.to_string(), "scope", "missing", |_, hit| {
+            first_empty.push(hit.symbol.symbol_id);
+            Ok(true)
+        })
+        .unwrap();
+    let mut second_empty = Vec::new();
+    session
+        .visit_children_named(&version.to_string(), "scope", "missing", |_, hit| {
+            second_empty.push(hit.symbol.symbol_id);
+            Ok(true)
+        })
+        .unwrap();
+
+    assert_eq!(first_positive, ["a-child", "b-child"]);
+    assert_eq!(second_positive, ["a-child", "b-child"]);
+    assert!(first_empty.is_empty());
+    assert!(second_empty.is_empty());
+    let telemetry = session.candidate_query_telemetry(CandidateQueryFamily::ChildrenNamed);
+    assert_eq!(telemetry.executions, 3);
+    assert_eq!(telemetry.rows_read, 4);
+}
+
+#[test]
+fn store_children_named_unknown_kind_does_not_truncate_cached_scalar_pages() {
+    let temp = TempDir::new().unwrap();
+    let layout = StoreLayout::create(temp.path().join("family"), "family-a", "2.30.0").unwrap();
+    let factory = StoreConnectionFactory::new(layout, "family-a", "2.30.0");
+    let mut connection = factory.open_writer().unwrap();
+    ManifestStore::new(&mut connection)
+        .ensure_view("view-a", "/repo")
+        .unwrap();
+    let version = insert_version(&connection, "src/lib.rs", "rust", true);
+    connection
+        .execute(
+            "INSERT INTO symbols(version_id,symbol_id,path,language,name,kind,
+             start_line,start_column,end_line,end_column,start_byte,end_byte,is_test,test_container,test_lifecycle)
+             VALUES (?1,'scope','src/lib.rs','rust','scope','function',1,1,20,1,0,200,0,0,0)",
+            [version],
+        )
+        .unwrap();
+    for (symbol_id, kind) in [
+        ("a-unknown", "not-a-symbol-kind"),
+        ("b-known", "function"),
+        ("c-known", "function"),
+    ] {
+        connection
+            .execute(
+                "INSERT INTO symbols(version_id,symbol_id,path,language,name,kind,parent_symbol_id,
+                 start_line,start_column,end_line,end_column,start_byte,end_byte,is_test,test_container,test_lifecycle)
+                 VALUES (?1,?2,'src/lib.rs','rust','target',?3,'scope',2,1,2,10,10,20,0,0,0)",
+                params![version, symbol_id, kind],
+            )
+            .unwrap();
+    }
+    connection
+        .execute(
+            "INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+             VALUES ('view-a',1,'manifest-a','request-a',?1)",
+            [NOW],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
+             VALUES ('view-a',1,'src/lib.rs','rust',?1,'indexed','hash-src/lib.rs',?2)",
+            params![version, NOW],
+        )
+        .unwrap();
+    drop(connection);
+
+    let session = StoreScratchResolutionSession::new(
+        factory,
+        StoreManifestIdentity {
+            family_id: "family-a".to_string(),
+            view_id: "view-a".to_string(),
+            generation: 1,
+            manifest_hash: "manifest-a".to_string(),
+        },
+        temp.path().join("exact.db"),
+        2,
+        6,
+    )
+    .unwrap();
+    let mut first = Vec::new();
+    session
+        .visit_children_named(&version.to_string(), "scope", "target", |_, hit| {
+            first.push(hit.symbol.symbol_id);
+            Ok(true)
+        })
+        .unwrap();
+    let mut second = Vec::new();
+    session
+        .visit_children_named(&version.to_string(), "scope", "target", |_, hit| {
+            second.push(hit.symbol.symbol_id);
+            Ok(true)
+        })
+        .unwrap();
+
+    assert_eq!(first, ["b-known", "c-known"]);
+    assert_eq!(second, ["b-known", "c-known"]);
+    let telemetry = session.candidate_query_telemetry(CandidateQueryFamily::ChildrenNamed);
+    assert_eq!(telemetry.executions, 2);
+    assert_eq!(telemetry.rows_read, 3);
 }
 
 #[cfg(unix)]

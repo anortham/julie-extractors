@@ -13,7 +13,9 @@ use julie_extract_artifact::store::{
     ResolutionBaseWriter, ResolutionBindingStore, ResolutionDiffMarker, ResolutionFileIdentity,
     StoreConnectionFactory, StoreLayout,
 };
-use julie_extract_cli::resolution::{self, run_resolution_session};
+use julie_extract_cli::resolution::{
+    self, CandidateLookup, ChildLookupReason, FilteredNameLookupReason, run_resolution_session,
+};
 use julie_extract_cli::resolution_session::{
     ResolutionCorpusIdentity, ResolutionPassRequest, ResolutionPhase, ResolutionPhaseChunk,
     ResolutionSession, ResolutionWorklists, ResolutionWriteBatch, SemanticIdentifierId,
@@ -26,6 +28,7 @@ use julie_extract_cli::store::resolution_session::{
 use julie_extract_cli::store::{
     StoreArgs, StoreCommand, StoreRequestControls, StoreResolveArgs, dispatch,
 };
+use julie_extractors::SymbolKind;
 use rusqlite::{Connection, params};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -859,6 +862,416 @@ fn repeated_name_high_fanout_reports_candidate_query_families_and_exact_output()
         REPEATED_NAME_IDENTIFIERS,
         REPEATED_NAME_CANDIDATES
     );
+}
+
+#[test]
+fn children_named_query_executions_scale_with_resolution_windows() {
+    const IDENTIFIER_COUNT: usize = 4 * WINDOW_SIZE + 1;
+    let temp = tempfile::tempdir().unwrap();
+    let layout = build_children_named_batch_fixture(temp.path(), IDENTIFIER_COUNT);
+    let identity = manifest_identity(&layout, 1);
+    let factory = StoreConnectionFactory::new(layout, FAMILY_ID, env!("CARGO_PKG_VERSION"));
+    let exact_path = temp.path().join("exact.db");
+    let mut session = StoreScratchResolutionSession::new(
+        factory,
+        identity,
+        &exact_path,
+        WINDOW_SIZE,
+        RESOLVER_OUTPUT_EPOCH,
+    )
+    .unwrap();
+
+    run_resolution_session(&mut session, true, true).unwrap();
+    let children_named = session.candidate_query_telemetry(CandidateQueryFamily::ChildrenNamed);
+    let chunks = IDENTIFIER_COUNT.div_ceil(WINDOW_SIZE);
+    assert!(session.max_store_read_page() <= WINDOW_SIZE);
+    assert!(session.max_candidate_cache_entries() <= WINDOW_SIZE * 3);
+    assert!(
+        children_named.executions <= 2 * chunks + 2,
+        "children_named executions were {}, expected at most {} for {} identifiers in {} windows",
+        children_named.executions,
+        2 * chunks + 2,
+        IDENTIFIER_COUNT,
+        chunks
+    );
+
+    let exact = session.finish_exact().unwrap();
+    assert_eq!(exact.counts.identifiers, IDENTIFIER_COUNT as u64);
+    let rows = ResolutionBaseReader::open(&exact_path)
+        .unwrap()
+        .identifiers()
+        .unwrap();
+    assert_eq!(rows.len(), IDENTIFIER_COUNT);
+    for (index, row) in rows.iter().enumerate() {
+        assert_eq!(row.identifier_id, format!("identifier-{index:04}"));
+        assert_eq!(
+            row.target_symbol_id.as_deref(),
+            Some(format!("child-{index:04}").as_str())
+        );
+    }
+}
+
+#[test]
+fn nested_scope_chain_resolution_bounds_children_named_queries() {
+    const IDENTIFIER_COUNT: usize = 2 * WINDOW_SIZE + 1;
+    let temp = tempfile::tempdir().unwrap();
+    let layout = build_nested_scope_chain_fixture(temp.path(), IDENTIFIER_COUNT);
+    let identity = manifest_identity(&layout, 1);
+    let factory = StoreConnectionFactory::new(layout, FAMILY_ID, env!("CARGO_PKG_VERSION"));
+    let exact_path = temp.path().join("exact.db");
+    let mut session = StoreScratchResolutionSession::new(
+        factory,
+        identity,
+        &exact_path,
+        WINDOW_SIZE,
+        RESOLVER_OUTPUT_EPOCH,
+    )
+    .unwrap();
+    run_resolution_session(&mut session, true, true).unwrap();
+    let children_named = session.candidate_query_telemetry(CandidateQueryFamily::ChildrenNamed);
+    let prime = session.candidate_query_telemetry(CandidateQueryFamily::PrimeWindow);
+    let exact = session.finish_exact().unwrap();
+    assert_eq!(exact.counts.identifiers, IDENTIFIER_COUNT as u64);
+    let rows = ResolutionBaseReader::open(&exact_path)
+        .unwrap()
+        .identifiers()
+        .unwrap();
+    assert_eq!(rows.len(), IDENTIFIER_COUNT);
+    assert!(rows.iter().all(|row| {
+        row.target_symbol_id.as_deref() == Some("outer-target") && row.outcome == "resolved"
+    }));
+
+    let chunks = IDENTIFIER_COUNT.div_ceil(WINDOW_SIZE);
+    assert!(
+        children_named.executions <= 8 * chunks + 8,
+        "children_named executions were {}; expected at most {} for {} identifiers across {} windows; broad prime executions were {}",
+        children_named.executions,
+        8 * chunks + 8,
+        IDENTIFIER_COUNT,
+        chunks,
+        prime.executions
+    );
+    assert_eq!(
+        prime.executions, 0,
+        "broad prime executions were {}; expected zero for {} identifiers across {} windows",
+        prime.executions, IDENTIFIER_COUNT, chunks
+    );
+}
+
+#[test]
+fn candidate_cache_partition_bounds_explicit_by_id_growth() {
+    let temp = tempfile::tempdir().unwrap();
+    let layout = build_target_validation_fixture(temp.path(), 2 * WINDOW_SIZE);
+    add_exact_receiver_children(&layout, 2);
+    let identity = manifest_identity(&layout, 1);
+    let factory = StoreConnectionFactory::new(layout, FAMILY_ID, env!("CARGO_PKG_VERSION"));
+    let exact_path = temp.path().join("exact.db");
+    let mut session = StoreScratchResolutionSession::new(
+        factory,
+        identity,
+        &exact_path,
+        WINDOW_SIZE,
+        RESOLVER_OUTPUT_EPOCH,
+    )
+    .unwrap();
+    session.enable_candidate_query_timing_for_test();
+
+    run_resolution_session(&mut session, true, true).unwrap();
+    let attribution = session.candidate_cache_attribution_for_test();
+    let max_by_id = attribution["by_id"]["max_entries"].as_u64().unwrap();
+    assert!(
+        max_by_id <= WINDOW_SIZE as u64,
+        "max_by_id={max_by_id} exceeded window_size={WINDOW_SIZE}"
+    );
+    assert!(
+        attribution["by_id"]["max_aggregate_entries"]
+            .as_u64()
+            .unwrap()
+            <= (WINDOW_SIZE * 3) as u64
+    );
+    assert!(
+        attribution["by_id"]["max_non_by_id_entries"]
+            .as_u64()
+            .unwrap()
+            <= (WINDOW_SIZE * 2) as u64
+    );
+    assert!(session.max_store_read_page() <= WINDOW_SIZE);
+}
+
+#[test]
+fn profiled_candidate_cache_attribution_reconciles_queries_and_occupancy() {
+    const IDENTIFIER_COUNT: usize = 2 * WINDOW_SIZE;
+    let temp = tempfile::tempdir().unwrap();
+    let layout = build_children_named_batch_fixture(temp.path(), IDENTIFIER_COUNT);
+    let identity = manifest_identity(&layout, 1);
+    let factory = StoreConnectionFactory::new(layout, FAMILY_ID, env!("CARGO_PKG_VERSION"));
+    let writer = factory.open_writer().unwrap();
+    let version_id: i64 = writer
+        .query_row(
+            "SELECT version_id FROM file_versions WHERE path='src/children-named.cs'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    writer
+        .execute(
+            "INSERT INTO type_facts(version_id,type_fact_id,symbol_id,language,resolved_type,is_inferred)
+             VALUES (?1,'fact-shared-target','child-0599','csharp','ReceiverType',0)",
+            params![version_id],
+        )
+        .unwrap();
+    drop(writer);
+    let exact_path = temp.path().join("exact.db");
+    let mut session = StoreScratchResolutionSession::new(
+        factory,
+        identity,
+        &exact_path,
+        WINDOW_SIZE,
+        RESOLVER_OUTPUT_EPOCH,
+    )
+    .unwrap();
+    session.enable_candidate_query_timing_for_test();
+
+    run_resolution_session(&mut session, true, true).unwrap();
+
+    let mut filtered_hits = Vec::new();
+    session
+        .visit_filtered_by_name_with_reason(
+            FilteredNameLookupReason::UniqueType,
+            "shared_target",
+            "csharp",
+            &[SymbolKind::Function],
+            None,
+            |_, hit| {
+                filtered_hits.push(hit.symbol.symbol_id);
+                Ok(true)
+            },
+        )
+        .unwrap();
+    assert_eq!(filtered_hits.len(), WINDOW_SIZE + 1);
+    assert_eq!(
+        filtered_hits.first().map(String::as_str),
+        Some("extra-0000")
+    );
+    assert_eq!(filtered_hits.last().map(String::as_str), Some("extra-0300"));
+
+    session
+        .visit_children_named_with_reason(
+            ChildLookupReason::Tier3TypedMember,
+            "1",
+            "scope-0599",
+            "shared_target",
+            |_, _| Ok(true),
+        )
+        .unwrap();
+    session
+        .visit_type_facts(
+            &SemanticSymbolId {
+                version: SemanticVersionId::Store(version_id),
+                local_id: "child-0599".to_string(),
+            },
+            |_, _| Ok(true),
+        )
+        .unwrap();
+    session
+        .visit_children_named_with_reason(
+            ChildLookupReason::Tier1ScopeTerminal,
+            "1",
+            "missing-scope",
+            "never-cached",
+            |_, _| Ok(true),
+        )
+        .unwrap();
+    session.symbol_by_id("1", "child-0599").unwrap();
+    for index in 0..=WINDOW_SIZE {
+        session
+            .symbol_by_id("1", &format!("missing-symbol-{index}"))
+            .unwrap();
+    }
+
+    let attribution = session.candidate_cache_attribution_for_test();
+    let prime = &attribution["prime_window"];
+    for field in [
+        "windows",
+        "windows_hit_row_limit",
+        "names_wanted",
+        "names_complete",
+        "names_skipped_cutoff",
+        "names_rejected_capacity",
+        "rows_admitted",
+    ] {
+        assert!(
+            prime[field].is_u64(),
+            "missing prime attribution field {field}"
+        );
+    }
+    assert_eq!(
+        prime["names_wanted"],
+        prime["names_complete"]
+            .as_u64()
+            .unwrap()
+            .saturating_add(prime["names_skipped_cutoff"].as_u64().unwrap())
+            .saturating_add(prime["names_rejected_capacity"].as_u64().unwrap())
+    );
+    for family in [
+        "children_named",
+        "filtered_by_name",
+        "top_level_named",
+        "type_facts",
+    ] {
+        let pages = &attribution["page_attribution"][family];
+        let executions = session
+            .candidate_query_telemetry(match family {
+                "children_named" => CandidateQueryFamily::ChildrenNamed,
+                "filtered_by_name" => CandidateQueryFamily::FilteredByName,
+                "top_level_named" => CandidateQueryFamily::TopLevelNamed,
+                "type_facts" => CandidateQueryFamily::TypeFacts,
+                _ => unreachable!(),
+            })
+            .executions as u64;
+        assert_eq!(
+            executions,
+            pages["empty_first"]
+                .as_u64()
+                .unwrap()
+                .saturating_add(pages["trailing_empty"].as_u64().unwrap())
+                .saturating_add(pages["short_positive"].as_u64().unwrap())
+                .saturating_add(pages["full_page"].as_u64().unwrap())
+        );
+        let fingerprints = &pages["same_window_fingerprints"];
+        assert_eq!(
+            pages["logical_lookups"],
+            fingerprints["first_seen"]
+                .as_u64()
+                .unwrap()
+                .saturating_add(fingerprints["repeat_same_window"].as_u64().unwrap())
+                .saturating_add(fingerprints["probe_overflow"].as_u64().unwrap())
+        );
+    }
+    let filtered_by_name = &attribution["page_attribution"]["filtered_by_name"];
+    assert!(filtered_by_name["logical_lookups"].as_u64().unwrap() > 0);
+    assert_eq!(filtered_by_name["trailing_empty"], 0);
+    assert!(filtered_by_name["short_positive"].as_u64().unwrap() > 0);
+    let type_facts = &attribution["page_attribution"]["type_facts"];
+    assert!(type_facts["logical_lookups"].as_u64().unwrap() > 0);
+    assert_eq!(type_facts["trailing_empty"], 0);
+    assert!(type_facts["short_positive"].as_u64().unwrap() > 0);
+    let child_calls = attribution["child_calls"].as_array().unwrap();
+    let child_sql_pages = attribution["child_sql_pages"].as_array().unwrap();
+    assert_eq!(child_calls.len(), 5);
+    assert!(
+        child_calls
+            .iter()
+            .all(|states| states.as_array().unwrap().len() == 3)
+    );
+    assert!(child_calls[2][0].as_u64().unwrap() > 0);
+    assert!(child_calls[2][2].as_u64().unwrap() > 0);
+    assert!(child_sql_pages[2][2].as_u64().unwrap() > 0);
+    assert_eq!(
+        session
+            .candidate_query_telemetry(CandidateQueryFamily::ChildrenNamed)
+            .executions as u64,
+        attribution["batch_count_statements"].as_u64().unwrap()
+            + attribution["batch_fetch_statements"].as_u64().unwrap()
+            + child_sql_pages
+                .iter()
+                .flat_map(|states| states.as_array().unwrap())
+                .map(|bucket| bucket.as_u64().unwrap())
+                .sum::<u64>()
+    );
+    assert_eq!(attribution["by_id"]["cache_hits"], 0);
+    assert!(attribution["by_id"]["sql_misses"].as_u64().unwrap() > 0);
+    assert!(attribution["by_id"]["rejected_by_id_cap"].as_u64().unwrap() > 0);
+    assert!(
+        attribution["by_id"]["rejected_by_aggregate_cap"]
+            .as_u64()
+            .unwrap()
+            > 0
+    );
+    assert!(
+        attribution["by_id"]["accepted_insertions"]
+            .as_u64()
+            .unwrap()
+            > 0
+    );
+    assert_eq!(attribution["by_id"]["max_entries"], WINDOW_SIZE);
+    assert_eq!(
+        attribution["by_id"]["max_aggregate_entries"],
+        WINDOW_SIZE * 3
+    );
+    assert_eq!(
+        attribution["by_id"]["max_non_by_id_entries"],
+        WINDOW_SIZE * 2
+    );
+    assert!(attribution["by_id"]["phase_reset_count"].as_u64().unwrap() > 0);
+
+    let wide_layout = build_children_named_batch_fixture(&temp.path().join("wide"), 1);
+    let wide_factory =
+        StoreConnectionFactory::new(wide_layout.clone(), FAMILY_ID, env!("CARGO_PKG_VERSION"));
+    wide_factory
+        .open_writer()
+        .unwrap()
+        .execute(
+            "DELETE FROM symbols WHERE name='shared_target' AND parent_symbol_id IS NULL",
+            [],
+        )
+        .unwrap();
+    let wide_identity = manifest_identity(&wide_layout, 1);
+    let wide_exact_path = temp.path().join("wide-exact.db");
+    let mut wide = StoreScratchResolutionSession::new(
+        wide_factory,
+        wide_identity,
+        &wide_exact_path,
+        WINDOW_SIZE,
+        RESOLVER_OUTPUT_EPOCH,
+    )
+    .unwrap();
+    wide.enable_candidate_query_timing_for_test();
+    run_resolution_session(&mut wide, true, true).unwrap();
+    wide.visit_children_named_with_reason(
+        ChildLookupReason::Tier3ReceiverScope,
+        "1",
+        "missing-scope",
+        "shared_target",
+        |_, _| Ok(true),
+    )
+    .unwrap();
+    let wide_attribution = wide.candidate_cache_attribution_for_test();
+    assert!(wide_attribution["child_calls"][4][2].as_u64().unwrap() > 0);
+
+    let disabled_layout = build_children_named_batch_fixture(&temp.path().join("disabled"), 1);
+    let disabled_identity = manifest_identity(&disabled_layout, 1);
+    let disabled_factory =
+        StoreConnectionFactory::new(disabled_layout, FAMILY_ID, env!("CARGO_PKG_VERSION"));
+    let disabled = StoreScratchResolutionSession::new(
+        disabled_factory,
+        disabled_identity,
+        temp.path().join("disabled-exact.db"),
+        WINDOW_SIZE,
+        RESOLVER_OUTPUT_EPOCH,
+    )
+    .unwrap();
+    let disabled_attribution = disabled.candidate_cache_attribution_for_test();
+    assert_eq!(disabled_attribution["by_id"]["cache_hits"], 0);
+    assert_eq!(disabled_attribution["by_id"]["sql_misses"], 0);
+    assert_eq!(disabled_attribution["by_id"]["max_non_by_id_entries"], 0);
+    assert_eq!(disabled_attribution["by_id"]["phase_reset_count"], 0);
+    assert_eq!(disabled_attribution["prime_window"]["windows"], 0);
+    for family in [
+        "children_named",
+        "filtered_by_name",
+        "top_level_named",
+        "type_facts",
+    ] {
+        assert_eq!(
+            disabled_attribution["page_attribution"][family]["logical_lookups"],
+            0
+        );
+        assert_eq!(
+            disabled_attribution["page_attribution"][family]["same_window_fingerprints"]["first_seen"],
+            0
+        );
+    }
 }
 
 #[test]
@@ -2490,6 +2903,270 @@ fn build_target_validation_fixture(root: &Path, target_count: usize) -> StoreLay
         .unwrap();
     transaction.commit().unwrap();
     layout
+}
+
+fn build_children_named_batch_fixture(root: &Path, identifier_count: usize) -> StoreLayout {
+    let layout =
+        StoreLayout::create(root.join("family"), FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
+    let factory = StoreConnectionFactory::new(layout.clone(), FAMILY_ID, env!("CARGO_PKG_VERSION"));
+    let mut connection = factory.open_writer().unwrap();
+    ManifestStore::new(&mut connection)
+        .ensure_view(VIEW_ID, ROOT)
+        .unwrap();
+    let transaction = connection.transaction().unwrap();
+    let path = "src/children-named.cs";
+    let version = insert_version(&transaction, path, "children-named-hash");
+    let mut top_level_insert = transaction
+        .prepare(
+            "INSERT INTO symbols(version_id,symbol_id,path,language,name,kind,
+             start_line,start_column,end_line,end_column,start_byte,end_byte,is_test,test_container,test_lifecycle)
+             VALUES (?1,?2,?3,'csharp','shared_target','function',?4,1,?4,10,?5,?6,0,0,0)",
+        )
+        .unwrap();
+    for index in 0..(WINDOW_SIZE + 1) {
+        let line = i64::try_from(index).unwrap() + 2;
+        let start = i64::try_from(index).unwrap() * 20 + 100;
+        top_level_insert
+            .execute(params![
+                version,
+                format!("extra-{index:04}"),
+                path,
+                line,
+                start,
+                start + 10
+            ])
+            .unwrap();
+    }
+    let mut scope_insert = transaction
+        .prepare(
+            "INSERT INTO symbols(version_id,symbol_id,path,language,name,kind,
+             start_line,start_column,end_line,end_column,start_byte,end_byte,is_test,test_container,test_lifecycle)
+             VALUES (?1,?2,?3,'csharp','scope','function',?4,1,?4,10,?5,?6,0,0,0)",
+        )
+        .unwrap();
+    let mut child_insert = transaction
+        .prepare(
+            "INSERT INTO symbols(version_id,symbol_id,path,language,name,kind,parent_symbol_id,
+             start_line,start_column,end_line,end_column,start_byte,end_byte,is_test,test_container,test_lifecycle)
+             VALUES (?1,?2,?3,'csharp','shared_target','variable',?4,?5,1,?5,10,?6,?7,0,0,0)",
+        )
+        .unwrap();
+    let mut site_insert = transaction
+        .prepare(
+            "INSERT INTO reference_sites(version_id,reference_site_id,path,language,containing_symbol_id,
+             start_line,start_column,end_line,end_column,start_byte,end_byte,is_exact,provenance,level)
+             VALUES (?1,?2,?3,'csharp',?4,?5,1,?5,7,?6,?7,1,'target_token',2)",
+        )
+        .unwrap();
+    let mut identifier_insert = transaction
+        .prepare(
+            "INSERT INTO identifiers(version_id,identifier_id,reference_site_id,path,language,name,kind,
+             containing_symbol_id,start_line,start_column,end_line,end_column,start_byte,end_byte,confidence)
+             VALUES (?1,?2,?3,?4,'csharp','shared_target','variable_ref',?5,?6,1,?6,7,?7,?8,1.0)",
+        )
+        .unwrap();
+    for index in 0..identifier_count {
+        let scope_id = format!("scope-{index:04}");
+        let child_id = format!("child-{index:04}");
+        let site_id = format!("site-{index:04}");
+        let identifier_id = format!("identifier-{index:04}");
+        let line = i64::try_from(WINDOW_SIZE + index).unwrap() + 2;
+        let start = i64::try_from(WINDOW_SIZE + index).unwrap() * 20 + 100;
+        scope_insert
+            .execute(params![version, scope_id, path, line, start, start + 10])
+            .unwrap();
+        child_insert
+            .execute(params![
+                version,
+                child_id,
+                path,
+                scope_id,
+                line,
+                start,
+                start + 10
+            ])
+            .unwrap();
+        site_insert
+            .execute(params![
+                version,
+                site_id,
+                path,
+                scope_id,
+                line,
+                start + 11,
+                start + 17
+            ])
+            .unwrap();
+        identifier_insert
+            .execute(params![
+                version,
+                identifier_id,
+                site_id,
+                path,
+                scope_id,
+                line,
+                start + 11,
+                start + 17
+            ])
+            .unwrap();
+    }
+    drop(identifier_insert);
+    drop(site_insert);
+    drop(child_insert);
+    drop(scope_insert);
+    drop(top_level_insert);
+    transaction
+        .execute(
+            "INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+             VALUES (?1,1,?2,'children-named',?3)",
+            params![VIEW_ID, "6".repeat(64), NOW],
+        )
+        .unwrap();
+    transaction
+        .execute(
+            "INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
+             VALUES (?1,1,?2,'csharp',?3,'indexed','children-named-hash',?4)",
+            params![VIEW_ID, path, version, NOW],
+        )
+        .unwrap();
+    transaction
+        .execute(
+            "UPDATE views SET current_generation=1 WHERE view_id=?1",
+            [VIEW_ID],
+        )
+        .unwrap();
+    transaction.commit().unwrap();
+    layout
+}
+
+fn build_nested_scope_chain_fixture(root: &Path, identifier_count: usize) -> StoreLayout {
+    let layout = build_children_named_batch_fixture(root, identifier_count);
+    let factory = StoreConnectionFactory::new(layout.clone(), FAMILY_ID, env!("CARGO_PKG_VERSION"));
+    let mut connection = factory.open_writer().unwrap();
+    let transaction = connection.transaction().unwrap();
+    let path = "src/children-named.cs";
+    let version: i64 = transaction
+        .query_row(
+            "SELECT version_id FROM file_versions WHERE path=?1",
+            [path],
+            |row| row.get(0),
+        )
+        .unwrap();
+    transaction
+        .execute(
+            "INSERT INTO symbols(version_id,symbol_id,path,language,name,kind,
+             start_line,start_column,end_line,end_column,start_byte,end_byte,is_test,test_container,test_lifecycle)
+             VALUES (?1,'outer-scope',?2,'csharp','scope','function',1,1,100000,1,0,1000000,0,0,0)",
+            params![version, path],
+        )
+        .unwrap();
+    transaction
+        .execute(
+            "INSERT INTO symbols(version_id,symbol_id,path,language,name,kind,parent_symbol_id,
+             start_line,start_column,end_line,end_column,start_byte,end_byte,is_test,test_container,test_lifecycle)
+             VALUES (?1,'outer-target',?2,'csharp','outer_target','variable','outer-scope',2,1,2,10,20,30,0,0,0)",
+            params![version, path],
+        )
+        .unwrap();
+    transaction
+        .execute(
+            "UPDATE symbols SET name='outer_target' WHERE version_id=?1 AND symbol_id LIKE 'extra-%'",
+            [version],
+        )
+        .unwrap();
+    transaction
+        .execute(
+            "UPDATE identifiers SET name='outer_target' WHERE version_id=?1",
+            [version],
+        )
+        .unwrap();
+    let mut scope_insert = transaction
+        .prepare(
+            "INSERT INTO symbols(version_id,symbol_id,path,language,name,kind,parent_symbol_id,
+             start_line,start_column,end_line,end_column,start_byte,end_byte,is_test,test_container,test_lifecycle)
+             VALUES (?1,?2,?3,'csharp','scope','function',?4,?5,1,?5,10,?6,?7,0,0,0)",
+        )
+        .unwrap();
+    let mut parent_update = transaction
+        .prepare("UPDATE symbols SET parent_symbol_id=?1 WHERE version_id=?2 AND symbol_id=?3")
+        .unwrap();
+    let middle = "scope-middle";
+    scope_insert
+        .execute(params![
+            version,
+            middle,
+            path,
+            "outer-scope",
+            3_i64,
+            100_i64,
+            1000000_i64
+        ])
+        .unwrap();
+    let inner = "scope-inner";
+    scope_insert
+        .execute(params![
+            version,
+            inner,
+            path,
+            middle,
+            4_i64,
+            100_i64,
+            1000000_i64
+        ])
+        .unwrap();
+    for index in 0..identifier_count {
+        let leaf = format!("scope-{index:04}");
+        parent_update
+            .execute(params![inner, version, leaf])
+            .unwrap();
+    }
+    drop(parent_update);
+    drop(scope_insert);
+    transaction.commit().unwrap();
+    layout
+}
+
+fn add_exact_receiver_children(layout: &StoreLayout, row_count: usize) {
+    let factory = StoreConnectionFactory::new(layout.clone(), FAMILY_ID, env!("CARGO_PKG_VERSION"));
+    let mut connection = factory.open_writer().unwrap();
+    let transaction = connection.transaction().unwrap();
+    let version_id: i64 = transaction
+        .query_row(
+            "SELECT version_id FROM file_versions WHERE path='src/high-cardinality.cs'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let mut child_insert = transaction
+        .prepare(
+            "INSERT INTO symbols(version_id,symbol_id,path,language,name,kind,parent_symbol_id,
+             start_line,start_column,end_line,end_column,start_byte,end_byte,is_test,test_container,test_lifecycle)
+             VALUES (?1,?2,'src/high-cardinality.cs','csharp','receiver','variable','caller',?3,1,?3,10,?4,?5,0,0,0)",
+        )
+        .unwrap();
+    for index in 0..row_count {
+        let line = i64::try_from(index).unwrap() + 2;
+        let start = i64::try_from(index).unwrap() * 20 + 100;
+        child_insert
+            .execute(params![
+                version_id,
+                format!("receiver-child-{index:08}"),
+                line,
+                start,
+                start + 10
+            ])
+            .unwrap();
+    }
+    drop(child_insert);
+    transaction
+        .execute(
+            r#"UPDATE identifiers
+             SET metadata_json='{"receiver":"receiver"}'
+             WHERE path='src/high-cardinality.cs'"#,
+            [],
+        )
+        .unwrap();
+    transaction.commit().unwrap();
 }
 
 fn build_repeated_name_candidate_fixture(

@@ -692,6 +692,39 @@ fn explicit_secondary_indexes_are_exhaustive_and_classified() {
 }
 
 #[test]
+fn fresh_store_contains_type_facts_symbol_index_in_declared_order() {
+    let store = open_store();
+
+    assert_eq!(
+        explicit_indexes(&store)
+            .get("idx_read_type_facts_symbol")
+            .cloned(),
+        Some(vec![
+            "version_id".to_string(),
+            "symbol_id".to_string(),
+            "type_fact_id".to_string(),
+        ])
+    );
+}
+
+#[test]
+fn fresh_store_contains_symbols_parent_name_keyset_index_in_declared_order() {
+    let store = open_store();
+
+    assert_eq!(
+        explicit_indexes(&store)
+            .get("idx_read_symbols_parent_name")
+            .cloned(),
+        Some(vec![
+            "version_id".to_string(),
+            "parent_symbol_id".to_string(),
+            "name".to_string(),
+            "symbol_id".to_string(),
+        ])
+    );
+}
+
+#[test]
 fn existing_store_schema_ensure_repairs_symbol_id_index_without_changing_rows_or_identity() {
     let store = open_store();
     store
@@ -799,6 +832,261 @@ fn existing_store_schema_ensure_repairs_symbol_id_index_without_changing_rows_or
 }
 
 #[test]
+fn existing_store_schema_ensure_repairs_type_facts_symbol_index_without_changing_rows_or_identity()
+{
+    let store = open_store();
+    store
+        .execute(
+            "INSERT INTO file_versions
+             (path, content_hash, extraction_epoch, language, content_bytes)
+             VALUES ('src/a.rs', 'blake3:a', 1, 'rust', 1)",
+            [],
+        )
+        .unwrap();
+    store
+        .execute(
+            "INSERT INTO symbols
+             (version_id, symbol_id, path, language, name, kind,
+              start_line, start_column, end_line, end_column, start_byte, end_byte)
+             VALUES (1, 'symbol-a', 'src/a.rs', 'rust', 'a', 'function',
+                     1, 1, 1, 2, 0, 1)",
+            [],
+        )
+        .unwrap();
+    store
+        .execute_batch(
+            "INSERT INTO type_facts
+             (version_id, type_fact_id, symbol_id, language, resolved_type, is_inferred)
+             VALUES
+               (1, 'fact-a', 'symbol-a', 'rust', 'TypeA', 0),
+               (1, 'fact-b', 'symbol-a', 'rust', 'TypeB', 1);",
+        )
+        .unwrap();
+
+    let before_version = user_version(&store);
+    let before_meta = store
+        .prepare("SELECT key, value FROM store_meta ORDER BY key")
+        .unwrap()
+        .query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    let before_type_facts: Vec<(i64, String, String, String, i64)> = store
+        .prepare(
+            "SELECT version_id, type_fact_id, symbol_id, resolved_type, is_inferred
+             FROM type_facts ORDER BY type_fact_id",
+        )
+        .unwrap()
+        .query_map([], |row| {
+            Ok((
+                row.get(0)?,
+                row.get(1)?,
+                row.get(2)?,
+                row.get(3)?,
+                row.get(4)?,
+            ))
+        })
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+
+    store
+        .execute("DROP INDEX IF EXISTS idx_read_type_facts_symbol", [])
+        .unwrap();
+    assert!(!explicit_indexes(&store).contains_key("idx_read_type_facts_symbol"));
+
+    create_store_schema(&store).unwrap();
+
+    assert_eq!(
+        explicit_indexes(&store)
+            .get("idx_read_type_facts_symbol")
+            .cloned(),
+        Some(vec![
+            "version_id".to_string(),
+            "symbol_id".to_string(),
+            "type_fact_id".to_string(),
+        ])
+    );
+    assert_eq!(user_version(&store), before_version);
+    assert_eq!(
+        store
+            .prepare("SELECT key, value FROM store_meta ORDER BY key")
+            .unwrap()
+            .query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            })
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap(),
+        before_meta
+    );
+    assert_eq!(
+        store
+            .prepare(
+                "SELECT version_id, type_fact_id, symbol_id, resolved_type, is_inferred
+                 FROM type_facts ORDER BY type_fact_id",
+            )
+            .unwrap()
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, String>(3)?,
+                    row.get::<_, i64>(4)?,
+                ))
+            })
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap(),
+        before_type_facts
+    );
+
+    create_store_schema(&store).unwrap();
+    assert_eq!(
+        explicit_indexes(&store)
+            .get("idx_read_type_facts_symbol")
+            .cloned(),
+        Some(vec![
+            "version_id".to_string(),
+            "symbol_id".to_string(),
+            "type_fact_id".to_string(),
+        ])
+    );
+}
+
+#[test]
+fn existing_store_schema_ensure_repairs_symbols_parent_name_index_without_changing_rows_or_identity()
+ {
+    let store = open_store();
+    store
+        .execute(
+            "INSERT INTO file_versions
+             (path, content_hash, extraction_epoch, language, content_bytes)
+             VALUES ('src/a.rs', 'blake3:a', 1, 'rust', 1)",
+            [],
+        )
+        .unwrap();
+    store
+        .execute_batch(
+            "INSERT INTO symbols
+             (version_id, symbol_id, path, language, name, kind,
+              parent_symbol_id, start_line, start_column, end_line, end_column, start_byte, end_byte)
+             VALUES
+               (1, 'parent-a', 'src/a.rs', 'rust', 'Parent', 'class',
+                NULL, 1, 1, 1, 2, 0, 1),
+               (1, 'child-a', 'src/a.rs', 'rust', 'Child', 'method',
+                'parent-a', 2, 1, 2, 2, 2, 3);",
+        )
+        .unwrap();
+
+    let before_version = user_version(&store);
+    let before_meta = store
+        .prepare("SELECT key, value FROM store_meta ORDER BY key")
+        .unwrap()
+        .query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    let before_symbols: Vec<(i64, String, String, Option<String>, String)> = store
+        .prepare(
+            "SELECT version_id, symbol_id, name, parent_symbol_id, kind
+             FROM symbols ORDER BY symbol_id",
+        )
+        .unwrap()
+        .query_map([], |row| {
+            Ok((
+                row.get(0)?,
+                row.get(1)?,
+                row.get(2)?,
+                row.get(3)?,
+                row.get(4)?,
+            ))
+        })
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+
+    store
+        .execute("DROP INDEX IF EXISTS idx_read_symbols_parent_name", [])
+        .unwrap();
+    assert!(!explicit_indexes(&store).contains_key("idx_read_symbols_parent_name"));
+
+    create_store_schema(&store).unwrap();
+
+    assert_eq!(
+        explicit_indexes(&store)
+            .get("idx_read_symbols_parent_name")
+            .cloned(),
+        Some(vec![
+            "version_id".to_string(),
+            "parent_symbol_id".to_string(),
+            "name".to_string(),
+            "symbol_id".to_string(),
+        ])
+    );
+    assert_eq!(user_version(&store), before_version);
+    assert_eq!(
+        store
+            .prepare("SELECT key, value FROM store_meta ORDER BY key")
+            .unwrap()
+            .query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            })
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap(),
+        before_meta
+    );
+    assert_eq!(
+        store
+            .prepare(
+                "SELECT version_id, symbol_id, name, parent_symbol_id, kind
+                 FROM symbols ORDER BY symbol_id",
+            )
+            .unwrap()
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, Option<String>>(3)?,
+                    row.get::<_, String>(4)?,
+                ))
+            })
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap(),
+        before_symbols
+    );
+    assert_parent_name_keyset_plan(
+        &top_level_named_keyset_plan(&store),
+        "repaired top-level named lookup",
+    );
+
+    create_store_schema(&store).unwrap();
+    assert_eq!(
+        explicit_indexes(&store)
+            .get("idx_read_symbols_parent_name")
+            .cloned(),
+        Some(vec![
+            "version_id".to_string(),
+            "parent_symbol_id".to_string(),
+            "name".to_string(),
+            "symbol_id".to_string(),
+        ])
+    );
+    assert_parent_name_keyset_plan(
+        &scalar_child_named_keyset_plan(&store),
+        "idempotent scalar-child named lookup",
+    );
+}
+
+#[test]
 fn symbol_id_read_index_supports_candidate_batches_and_symbol_exists() {
     let mut store = open_store();
     seed_symbol_lookup_fixture(&mut store);
@@ -835,6 +1123,33 @@ fn symbol_id_read_index_supports_candidate_batches_and_symbol_exists() {
         .unwrap()
         .join("\n");
     assert_symbol_lookup_plan(&symbol_exists_plan, "SymbolExists");
+}
+
+#[test]
+fn type_facts_symbol_read_index_supports_keyset_lookup() {
+    let mut store = open_store();
+    seed_type_facts_lookup_fixture(&mut store);
+
+    let plan = type_facts_lookup_plan(&store);
+    assert_type_facts_lookup_plan(&plan);
+}
+
+#[test]
+fn symbols_parent_name_read_index_supports_top_level_keyset_lookup() {
+    let mut store = open_store();
+    seed_parent_name_lookup_fixture(&mut store);
+
+    let plan = top_level_named_keyset_plan(&store);
+    assert_parent_name_keyset_plan(&plan, "top-level named lookup");
+}
+
+#[test]
+fn symbols_parent_name_read_index_supports_scalar_child_keyset_lookup() {
+    let mut store = open_store();
+    seed_parent_name_lookup_fixture(&mut store);
+
+    let plan = scalar_child_named_keyset_plan(&store);
+    assert_parent_name_keyset_plan(&plan, "scalar-child named lookup");
 }
 
 #[test]
@@ -1228,6 +1543,222 @@ fn seed_symbol_lookup_fixture(store: &mut Connection) {
     transaction.commit().unwrap();
 }
 
+fn seed_type_facts_lookup_fixture(store: &mut Connection) {
+    let transaction = store.transaction().unwrap();
+    for version_id in 1..=256_i64 {
+        transaction
+            .execute(
+                "INSERT INTO file_versions
+                 (path, content_hash, extraction_epoch, language, content_bytes)
+                 VALUES (?1, ?2, 1, 'rust', 1)",
+                params![
+                    format!("src/type-facts-{version_id}.rs"),
+                    format!("blake3:type-facts-{version_id}")
+                ],
+            )
+            .unwrap();
+        transaction
+            .execute(
+                "INSERT INTO symbols
+                 (version_id, symbol_id, path, language, name, kind,
+                  start_line, start_column, end_line, end_column, start_byte, end_byte)
+                 VALUES (?1, ?2, ?3, 'rust', ?2, 'function', 1, 1, 1, 2, 0, 1)",
+                params![
+                    version_id,
+                    format!("type-facts-symbol-{version_id}"),
+                    format!("src/type-facts-{version_id}.rs")
+                ],
+            )
+            .unwrap();
+        for type_fact_index in 0..128_i64 {
+            transaction
+                .execute(
+                    "INSERT INTO type_facts
+                     (version_id, type_fact_id, symbol_id, language, resolved_type, is_inferred)
+                     VALUES (?1, ?2, ?3, 'rust', 'ResolvedType', 0)",
+                    params![
+                        version_id,
+                        format!("type-fact-{version_id:03}-{type_fact_index:03}"),
+                        format!("type-facts-symbol-{version_id}")
+                    ],
+                )
+                .unwrap();
+        }
+    }
+    transaction.commit().unwrap();
+}
+
+fn seed_parent_name_lookup_fixture(store: &mut Connection) {
+    let transaction = store.transaction().unwrap();
+    for version_id in 1..=64_i64 {
+        transaction
+            .execute(
+                "INSERT INTO file_versions
+                 (path, content_hash, extraction_epoch, language, content_bytes)
+                 VALUES (?1, ?2, 1, 'rust', 1)",
+                params![
+                    format!("src/parent-name-{version_id}.rs"),
+                    format!("blake3:parent-name-{version_id}")
+                ],
+            )
+            .unwrap();
+        transaction
+            .execute(
+                "INSERT INTO symbols
+                 (version_id, symbol_id, path, language, name, kind,
+                  parent_symbol_id, start_line, start_column, end_line, end_column, start_byte, end_byte)
+                 VALUES (?1, ?2, ?3, 'rust', 'Parent', 'class',
+                         NULL, 1, 1, 1, 2, 0, 1)",
+                params![
+                    version_id,
+                    format!("parent-{version_id}"),
+                    format!("src/parent-name-{version_id}.rs")
+                ],
+            )
+            .unwrap();
+        for symbol_index in 0..128_i64 {
+            transaction
+                .execute(
+                    "INSERT INTO symbols
+                     (version_id, symbol_id, path, language, name, kind,
+                      parent_symbol_id, start_line, start_column, end_line, end_column, start_byte, end_byte)
+                     VALUES (?1, ?2, ?3, 'rust', 'TopName', 'function',
+                             NULL, 1, 1, 1, 2, 0, 1),
+                            (?1, ?4, ?3, 'rust', 'ChildName', 'method',
+                             ?5, 2, 1, 2, 2, 2, 3)",
+                    params![
+                        version_id,
+                        format!("top-{symbol_index:03}"),
+                        format!("src/parent-name-{version_id}.rs"),
+                        format!("child-{symbol_index:03}"),
+                        format!("parent-{version_id}")
+                    ],
+                )
+                .unwrap();
+        }
+    }
+    transaction.commit().unwrap();
+}
+
+fn top_level_named_keyset_plan(store: &Connection) -> String {
+    store
+        .prepare(
+            "EXPLAIN QUERY PLAN
+             SELECT s.version_id, s.symbol_id, s.language, s.name, s.kind,
+                    s.parent_symbol_id, s.visibility, s.signature, s.metadata_json
+             FROM symbols AS s
+             WHERE s.version_id = ?1 AND s.parent_symbol_id IS NULL AND s.name = ?2
+               AND EXISTS (
+                 SELECT 1 FROM manifest_entries AS me
+                 WHERE me.view_id = ?3 AND me.generation = ?4
+                   AND me.status IN ('indexed', 'failed_preserved')
+                   AND me.version_id = s.version_id
+               ) AND s.symbol_id > ?5
+             ORDER BY s.symbol_id COLLATE BINARY LIMIT ?6",
+        )
+        .unwrap()
+        .query_map(
+            params![1_i64, "TopName", "view-a", 1_i64, "top-000", 16_i64],
+            |row| row.get::<_, String>(3),
+        )
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap()
+        .join("\n")
+}
+
+fn scalar_child_named_keyset_plan(store: &Connection) -> String {
+    store
+        .prepare(
+            "EXPLAIN QUERY PLAN
+             SELECT s.version_id, s.symbol_id, s.language, s.name, s.kind,
+                    s.parent_symbol_id, s.visibility, s.signature, s.metadata_json
+             FROM symbols AS s
+             WHERE s.version_id = ?1 AND s.parent_symbol_id = ?2 AND s.name = ?3
+               AND EXISTS (
+                 SELECT 1 FROM manifest_entries AS me
+                 WHERE me.view_id = ?4 AND me.generation = ?5
+                   AND me.status IN ('indexed', 'failed_preserved')
+                   AND me.version_id = s.version_id
+               ) AND s.symbol_id > ?6
+             ORDER BY s.symbol_id COLLATE BINARY LIMIT ?7",
+        )
+        .unwrap()
+        .query_map(
+            params![
+                1_i64,
+                "parent-1",
+                "ChildName",
+                "view-a",
+                1_i64,
+                "child-000",
+                16_i64
+            ],
+            |row| row.get::<_, String>(3),
+        )
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap()
+        .join("\n")
+}
+
+fn assert_parent_name_keyset_plan(plan: &str, label: &str) {
+    assert!(
+        plan.contains(
+            "USING INDEX idx_read_symbols_parent_name (version_id=? AND parent_symbol_id=? AND name=? AND symbol_id>?)"
+        ),
+        "{label} did not use the exact parent/name keyset index path. Plan:\n{plan}"
+    );
+    assert!(
+        !plan.contains("sqlite_autoindex_symbols_1"),
+        "{label} used the symbols primary-key index. Plan:\n{plan}"
+    );
+    assert!(
+        !plan
+            .lines()
+            .any(|line| line.contains("SCAN s") || line.contains("SCAN symbols")),
+        "{label} scanned symbols. Plan:\n{plan}"
+    );
+}
+
+fn type_facts_lookup_plan(store: &Connection) -> String {
+    store
+        .prepare(
+            "EXPLAIN QUERY PLAN
+             SELECT tf.type_fact_id, tf.symbol_id, tf.resolved_type, tf.is_inferred
+             FROM type_facts AS tf
+             WHERE tf.version_id = ?1 AND tf.symbol_id = ?2
+               AND tf.type_fact_id > ?3
+             ORDER BY tf.type_fact_id COLLATE BINARY LIMIT ?4",
+        )
+        .unwrap()
+        .query_map(
+            params![1_i64, "type-facts-symbol-1", "type-fact-001-000", 16_i64],
+            |row| row.get::<_, String>(3),
+        )
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap()
+        .join("\n")
+}
+
+fn assert_type_facts_lookup_plan(plan: &str) {
+    assert!(
+        plan.contains("idx_read_type_facts_symbol"),
+        "type-facts keyset query did not use idx_read_type_facts_symbol. Plan:\n{plan}"
+    );
+    assert!(
+        !plan.contains("sqlite_autoindex_type_facts_1"),
+        "type-facts keyset query used the primary-key index. Plan:\n{plan}"
+    );
+    assert!(
+        !plan
+            .lines()
+            .any(|line| line.contains("SCAN tf") || line.contains("SCAN type_facts")),
+        "type-facts keyset query scanned type_facts. Plan:\n{plan}"
+    );
+}
+
 fn candidate_lookup_plan(store: &Connection, candidate_count: usize) -> String {
     let values = (1..=candidate_count)
         .map(|index| format!("(?{index})"))
@@ -1497,7 +2028,15 @@ fn expected_store_indexes() -> BTreeMap<String, Vec<String>> {
         ),
         ("idx_read_symbols_name_kind", "name,kind,version_id"),
         ("idx_read_symbols_parent", "parent_symbol_id,version_id"),
+        (
+            "idx_read_symbols_parent_name",
+            "version_id,parent_symbol_id,name,symbol_id",
+        ),
         ("idx_read_symbols_symbol", "symbol_id,version_id"),
+        (
+            "idx_read_type_facts_symbol",
+            "version_id,symbol_id,type_fact_id",
+        ),
         (
             "idx_read_type_argument_usages_identifier",
             "identifier_id,version_id",
