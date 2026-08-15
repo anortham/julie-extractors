@@ -425,6 +425,16 @@ fn touched_names_without_recoverable_language_fail_closed() {
 }
 
 #[test]
+fn alias_only_name_expansion_without_recoverable_language_fails_closed() {
+    let names = std::collections::BTreeSet::from(["Alias".to_string()]);
+    let languages = std::collections::BTreeSet::new();
+
+    assert!(delta_scope::name_expansion_requires_language_for_test(
+        &names, &languages
+    ));
+}
+
+#[test]
 fn empty_identifier_crossover_counts_deleted_logical_files() {
     let (connection, manifest) = deleted_paths_crossover_scope();
     let decision = scope_decision(&connection, &manifest, 7);

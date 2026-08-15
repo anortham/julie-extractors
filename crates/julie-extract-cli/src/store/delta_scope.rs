@@ -144,7 +144,7 @@ pub(crate) fn build_store_delta_scope(
     let mut logical_recheck_paths = changed_paths.clone();
     logical_recheck_paths.extend(module_repoints.paths);
     let affected_languages = affected_languages(connection, &affected_version_ids)?;
-    if !touched_names.is_empty() && affected_languages.is_empty() {
+    if name_expansion_requires_language(&recheck_names, &affected_languages) {
         return Ok(full(StoreDeltaScopeFullReason::JournalInvalid));
     }
     let mut selected_versions = recheck_versions.clone();
@@ -441,6 +441,21 @@ fn affected_languages(
         }
     }
     Ok(languages)
+}
+
+fn name_expansion_requires_language(
+    recheck_names: &BTreeSet<String>,
+    affected_languages: &BTreeSet<String>,
+) -> bool {
+    !recheck_names.is_empty() && affected_languages.is_empty()
+}
+
+#[cfg(test)]
+pub(crate) fn name_expansion_requires_language_for_test(
+    recheck_names: &BTreeSet<String>,
+    affected_languages: &BTreeSet<String>,
+) -> bool {
+    name_expansion_requires_language(recheck_names, affected_languages)
 }
 
 fn versions_matching_names(
