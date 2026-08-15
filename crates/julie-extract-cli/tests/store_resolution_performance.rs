@@ -47,7 +47,8 @@ const ONE_FILE_IDENTIFIER_ROWS: usize = 10_000;
 const ONE_FILE_STABLE_IDENTIFIER_ROWS: usize = 40_000;
 const ONE_FILE_STABLE_PENDING_ROWS: usize = 8_000;
 const ONE_FILE_STABLE_RESOLVED_PENDING_ROWS: usize = 1_000;
-const ONE_FILE_SCOPED_MAX_MS: u64 = 5_000;
+const ONE_FILE_SCOPED_MAX_RELEASE_MS: u64 = 5_000;
+const ONE_FILE_SCOPED_MAX_DEBUG_MS: u64 = 20_000;
 const TARGET_VALIDATION_DISTINCT_TARGETS: usize = 2_048;
 const TARGET_VALIDATION_MAX: Duration = Duration::from_secs(2);
 const CANDIDATE_RESOLUTION_DISTINCT_NAMES: usize = 20_000;
@@ -192,9 +193,19 @@ fn one_file_default_incremental_matches_full_escape_hatch() {
         scoped.report["resolution"]["resolution_mode"],
         scoped.wall_ms
     );
+    let ceiling_ms = if cfg!(debug_assertions) {
+        ONE_FILE_SCOPED_MAX_DEBUG_MS
+    } else {
+        ONE_FILE_SCOPED_MAX_RELEASE_MS
+    };
+    let profile = if cfg!(debug_assertions) {
+        "debug"
+    } else {
+        "release"
+    };
     assert!(
-        scoped.wall_ms <= ONE_FILE_SCOPED_MAX_MS,
-        "default-on one-file resolution exceeded the 5s observation: {} ms",
+        scoped.wall_ms <= ceiling_ms,
+        "default-on one-file resolution exceeded the {profile} {ceiling_ms}ms ceiling: {} ms",
         scoped.wall_ms
     );
 
