@@ -165,6 +165,11 @@ pub struct ResolutionFileIdentity {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Opaque proof that a ready resolution base passed full catalog and file validation.
+///
+/// The proof is request-local: convergence carries it with the lifecycle pin, and
+/// proof-aware consumers compare the current catalog identity before reuse. Any
+/// catalog drift uses the strict validation fallback.
 pub struct ResolutionValidatedBase {
     base_id: String,
     manifest_hash: String,
@@ -542,7 +547,7 @@ impl ResolutionBaseCatalog {
             .map(|(record, _)| record))
     }
 
-    pub fn find_ready_with_proof(
+    fn find_ready_with_proof(
         &self,
         manifest_hash: &str,
         resolver_output_epoch: i64,
@@ -564,6 +569,17 @@ impl ResolutionBaseCatalog {
         let proof =
             ResolutionValidatedBase::from_record_and_identity(&record, reader.file_identity());
         Ok(Some((record, proof)))
+    }
+
+    #[cfg(feature = "test-store-resolution")]
+    #[doc(hidden)]
+    pub fn find_ready_with_proof_for_test(
+        &self,
+        manifest_hash: &str,
+        resolver_output_epoch: i64,
+    ) -> Result<Option<(ResolutionBaseRecord, ResolutionValidatedBase)>, ResolutionBaseCatalogError>
+    {
+        self.find_ready_with_proof(manifest_hash, resolver_output_epoch)
     }
 
     pub fn recover(
@@ -1358,7 +1374,7 @@ impl ResolutionBindingStore {
             .0)
     }
 
-    pub fn bind_base_with_proof(
+    fn bind_base_with_proof(
         &self,
         view_id: &str,
         resolver_output_epoch: i64,
@@ -1481,6 +1497,10 @@ impl ResolutionBindingStore {
         self.exact_rebase_required_inner(publication, scratch, gaps, None)
     }
 
+    /// Applies rebase thresholds using a proof from full ready-base validation.
+    ///
+    /// The proof is carried with the convergence pin and reused only when the
+    /// current catalog identity matches; drift falls back to strict validation.
     pub fn exact_rebase_required_with_proof(
         &self,
         publication: &ResolutionExactPublish,
@@ -1651,6 +1671,10 @@ impl ResolutionBindingStore {
         Ok((binding, pin))
     }
 
+    /// Begins convergence and returns its lifecycle pin with the full-validation proof.
+    ///
+    /// Later proof-aware phases compare current catalog identity before reuse;
+    /// strict validation remains the fallback when the catalog drifts.
     pub fn begin_convergence_with_proof(
         &self,
         request: &ResolutionConvergenceBegin,

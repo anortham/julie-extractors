@@ -502,7 +502,7 @@ impl Fixture {
             FAMILY_ID,
             BINARY_VERSION,
         ))
-        .find_ready_with_proof(BASE_MANIFEST_HASH, RESOLVER_EPOCH)
+        .find_ready_with_proof_for_test(BASE_MANIFEST_HASH, RESOLVER_EPOCH)
         .unwrap()
         .unwrap()
         .1

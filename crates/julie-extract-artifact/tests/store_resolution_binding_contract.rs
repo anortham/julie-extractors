@@ -780,7 +780,7 @@ fn exact_rebase_policy_rejects_incoherent_bound_base_catalog_identity() {
         .unwrap();
     let scratch = ResolutionScratchReader::open(scratch_path).unwrap();
     let (_, proof) = ResolutionBaseCatalog::new(factory.clone())
-        .find_ready_with_proof(&manifest_hash, 7)
+        .find_ready_with_proof_for_test(&manifest_hash, 7)
         .unwrap()
         .unwrap();
     let publication = ResolutionExactPublish {
@@ -831,7 +831,7 @@ fn replacement_rebase_threshold_is_strict_at_one_quarter() {
         4,
     );
     let (_, proof) = ResolutionBaseCatalog::new(factory.clone())
-        .find_ready_with_proof(&manifest_hash, 7)
+        .find_ready_with_proof_for_test(&manifest_hash, 7)
         .unwrap()
         .unwrap();
     let publication = ResolutionExactPublish {
@@ -892,7 +892,7 @@ fn gap_rebase_threshold_is_strict_at_sixty_four_mib() {
         .bind_base("view-gap-boundary", 7, "request-gap-boundary-bind", NOW)
         .unwrap();
     let (_, proof) = ResolutionBaseCatalog::new(factory.clone())
-        .find_ready_with_proof(&manifest_hash, 7)
+        .find_ready_with_proof_for_test(&manifest_hash, 7)
         .unwrap()
         .unwrap();
     let scratch_path = temp.0.join("gap-boundary.db");
