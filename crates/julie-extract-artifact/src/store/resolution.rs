@@ -24,6 +24,11 @@ use super::{
 pub const RESOLUTION_BASE_USER_VERSION: i64 = 1;
 pub const RESOLUTION_BASE_FORMAT_VERSION: &str = "1";
 
+#[cfg(feature = "test-store-resolution")]
+std::thread_local! {
+    static TEST_RESOLUTION_BASE_OPEN_COUNT: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
 fn configure_resolution_scratch_connection(
     connection: &Connection,
 ) -> Result<(), ResolutionValidationError> {
@@ -157,6 +162,72 @@ pub struct ResolutionFileIdentity {
     pub file_bytes: u64,
     pub file_sha256: String,
     pub counts: ResolutionSemanticCounts,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResolutionValidatedBase {
+    base_id: String,
+    manifest_hash: String,
+    resolver_output_epoch: i64,
+    relative_path: String,
+    state: ResolutionBaseState,
+    identifier_count: i64,
+    pending_count: i64,
+    file_bytes: Option<i64>,
+    file_sha256: Option<String>,
+    counts: ResolutionSemanticCounts,
+}
+
+impl ResolutionValidatedBase {
+    fn from_record_and_identity(
+        record: &ResolutionBaseRecord,
+        identity: &ResolutionFileIdentity,
+    ) -> Self {
+        Self {
+            base_id: record.base_id.clone(),
+            manifest_hash: record.manifest_hash.clone(),
+            resolver_output_epoch: record.resolver_output_epoch,
+            relative_path: record.relative_path.clone(),
+            state: record.state,
+            identifier_count: record.identifier_count,
+            pending_count: record.pending_count,
+            file_bytes: record.file_bytes,
+            file_sha256: record.file_sha256.clone(),
+            counts: identity.counts,
+        }
+    }
+
+    pub fn matches_catalog_identity(
+        &self,
+        base_id: &str,
+        manifest_hash: &str,
+        resolver_output_epoch: i64,
+        state: &str,
+        relative_path: &str,
+    ) -> bool {
+        self.base_id == base_id
+            && self.manifest_hash == manifest_hash
+            && self.resolver_output_epoch == resolver_output_epoch
+            && self.state.as_str() == state
+            && self.relative_path == relative_path
+    }
+
+    pub fn matches_catalog_file(
+        &self,
+        identifier_count: i64,
+        pending_count: i64,
+        file_bytes: Option<i64>,
+        file_sha256: Option<&str>,
+    ) -> bool {
+        self.identifier_count == identifier_count
+            && self.pending_count == pending_count
+            && self.file_bytes == file_bytes
+            && self.file_sha256.as_deref() == file_sha256
+    }
+
+    pub fn semantic_counts(&self) -> ResolutionSemanticCounts {
+        self.counts
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -466,6 +537,17 @@ impl ResolutionBaseCatalog {
         manifest_hash: &str,
         resolver_output_epoch: i64,
     ) -> Result<Option<ResolutionBaseRecord>, ResolutionBaseCatalogError> {
+        Ok(self
+            .find_ready_with_proof(manifest_hash, resolver_output_epoch)?
+            .map(|(record, _)| record))
+    }
+
+    pub fn find_ready_with_proof(
+        &self,
+        manifest_hash: &str,
+        resolver_output_epoch: i64,
+    ) -> Result<Option<(ResolutionBaseRecord, ResolutionValidatedBase)>, ResolutionBaseCatalogError>
+    {
         let connection = self.factory.open_reader()?;
         let Some(record) =
             base_record_by_identity(&connection, manifest_hash, resolver_output_epoch)?
@@ -479,7 +561,9 @@ impl ResolutionBaseCatalog {
         let reader = ResolutionBaseReader::open(&build.final_path)?;
         self.validate_reader_for_catalog(&reader, &record)?;
         validate_ready_file_identity(&record, reader.file_identity())?;
-        Ok(Some(record))
+        let proof =
+            ResolutionValidatedBase::from_record_and_identity(&record, reader.file_identity());
+        Ok(Some((record, proof)))
     }
 
     pub fn recover(
@@ -1269,6 +1353,18 @@ impl ResolutionBindingStore {
         request_id: &str,
         now: &str,
     ) -> Result<ResolutionViewBinding, ResolutionBindingError> {
+        Ok(self
+            .bind_base_with_proof(view_id, resolver_output_epoch, request_id, now)?
+            .0)
+    }
+
+    pub fn bind_base_with_proof(
+        &self,
+        view_id: &str,
+        resolver_output_epoch: i64,
+        request_id: &str,
+        now: &str,
+    ) -> Result<(ResolutionViewBinding, ResolutionValidatedBase), ResolutionBindingError> {
         let reader = self.factory.open_reader()?;
         let current = current_view_manifest(&reader, view_id)?;
         let base = select_nearest_ready_base(&reader, view_id, current.0, resolver_output_epoch)?
@@ -1276,8 +1372,8 @@ impl ResolutionBindingStore {
             resolver_output_epoch,
         })?;
         drop(reader);
-        ResolutionBaseCatalog::new(self.factory.clone())
-            .find_ready(&base.manifest_hash, resolver_output_epoch)?
+        let (_, proof) = ResolutionBaseCatalog::new(self.factory.clone())
+            .find_ready_with_proof(&base.manifest_hash, resolver_output_epoch)?
             .ok_or(ResolutionBindingError::ReadyBaseMissing {
                 resolver_output_epoch,
             })?;
@@ -1294,7 +1390,7 @@ impl ResolutionBindingStore {
             current_binding(&transaction, view_id, &current, resolver_output_epoch)?
         {
             transaction.commit()?;
-            return Ok(binding);
+            return Ok((binding, proof));
         }
         let maximum: i64 = transaction.query_row(
             "SELECT COALESCE(MAX(delta_generation),0) FROM resolution_deltas WHERE view_id=?1",
@@ -1362,15 +1458,18 @@ impl ResolutionBindingStore {
                 })?),
         )?;
         transaction.commit()?;
-        Ok(ResolutionViewBinding {
-            view_id: view_id.to_string(),
-            manifest_generation: current.0,
-            manifest_hash: current.1,
-            base_id: base.base_id,
-            delta_generation,
-            state,
-            exact_at: exact.then_some(current.0),
-        })
+        Ok((
+            ResolutionViewBinding {
+                view_id: view_id.to_string(),
+                manifest_generation: current.0,
+                manifest_hash: current.1,
+                base_id: base.base_id,
+                delta_generation,
+                state,
+                exact_at: exact.then_some(current.0),
+            },
+            proof,
+        ))
     }
 
     pub fn exact_rebase_required(
@@ -1378,6 +1477,26 @@ impl ResolutionBindingStore {
         publication: &ResolutionExactPublish,
         scratch: &ResolutionScratchReader,
         gaps: &[ResolutionGapFact],
+    ) -> Result<bool, ResolutionBindingError> {
+        self.exact_rebase_required_inner(publication, scratch, gaps, None)
+    }
+
+    pub fn exact_rebase_required_with_proof(
+        &self,
+        publication: &ResolutionExactPublish,
+        scratch: &ResolutionScratchReader,
+        gaps: &[ResolutionGapFact],
+        proof: &ResolutionValidatedBase,
+    ) -> Result<bool, ResolutionBindingError> {
+        self.exact_rebase_required_inner(publication, scratch, gaps, Some(proof))
+    }
+
+    fn exact_rebase_required_inner(
+        &self,
+        publication: &ResolutionExactPublish,
+        scratch: &ResolutionScratchReader,
+        gaps: &[ResolutionGapFact],
+        proof: Option<&ResolutionValidatedBase>,
     ) -> Result<bool, ResolutionBindingError> {
         const REPLACEMENT_PERCENT_DENOMINATOR: u128 = 4;
         const CUMULATIVE_GAP_BYTES_LIMIT: u64 = 64 * 1024 * 1024;
@@ -1395,35 +1514,106 @@ impl ResolutionBindingStore {
             + u128::from(counts.pending_replacements)
             + u128::from(counts.pending_tombstones);
         let connection = self.factory.open_reader()?;
-        let bound_identity = connection
-            .query_row(
-                "SELECT manifest_hash,resolver_output_epoch
-                 FROM resolution_bases WHERE base_id=?1",
-                [&publication.base_id],
-                |row| Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?)),
-            )
-            .optional()?
-            .ok_or_else(|| ResolutionBindingError::InvalidPublication {
-                detail: "bound resolution base was not found".to_string(),
-            })?;
-        let ready = ResolutionBaseCatalog::new(self.factory.clone())
-            .find_ready(&bound_identity.0, bound_identity.1)?
-            .ok_or_else(|| ResolutionBindingError::InvalidPublication {
-                detail: "bound resolution base is not ready".to_string(),
-            })?;
-        if ready.base_id != publication.base_id
-            || ready.resolver_output_epoch != publication.resolver_output_epoch
-        {
-            return Err(ResolutionBindingError::InvalidPublication {
-                detail: "bound resolution base identity does not match the publication".to_string(),
-            });
-        }
-        let base_rows = ready
-            .identifier_count
-            .checked_add(ready.pending_count)
-            .ok_or_else(|| ResolutionBindingError::InvalidPublication {
-                detail: "bound resolution base semantic row count is out of range".to_string(),
-            })?;
+        let strict_base_rows = || -> Result<i64, ResolutionBindingError> {
+            let bound_identity = connection
+                .query_row(
+                    "SELECT manifest_hash,resolver_output_epoch
+                     FROM resolution_bases WHERE base_id=?1",
+                    [&publication.base_id],
+                    |row| Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?)),
+                )
+                .optional()?
+                .ok_or_else(|| ResolutionBindingError::InvalidPublication {
+                    detail: "bound resolution base was not found".to_string(),
+                })?;
+            let ready = ResolutionBaseCatalog::new(self.factory.clone())
+                .find_ready(&bound_identity.0, bound_identity.1)?
+                .ok_or_else(|| ResolutionBindingError::InvalidPublication {
+                    detail: "bound resolution base is not ready".to_string(),
+                })?;
+            if ready.base_id != publication.base_id
+                || ready.resolver_output_epoch != publication.resolver_output_epoch
+            {
+                return Err(ResolutionBindingError::InvalidPublication {
+                    detail: "bound resolution base identity does not match the publication"
+                        .to_string(),
+                });
+            }
+            ready
+                .identifier_count
+                .checked_add(ready.pending_count)
+                .ok_or_else(|| ResolutionBindingError::InvalidPublication {
+                    detail: "bound resolution base semantic row count is out of range".to_string(),
+                })
+        };
+        let base_rows = if let Some(proof) = proof {
+            let row = connection
+                .query_row(
+                    "SELECT base_id,manifest_hash,resolver_output_epoch,state,relative_path,
+                            identifier_count,pending_count,file_bytes,file_sha256
+                     FROM resolution_bases WHERE base_id=?1",
+                    [&publication.base_id],
+                    |row| {
+                        Ok((
+                            row.get::<_, String>(0)?,
+                            row.get::<_, String>(1)?,
+                            row.get::<_, i64>(2)?,
+                            row.get::<_, String>(3)?,
+                            row.get::<_, String>(4)?,
+                            row.get::<_, i64>(5)?,
+                            row.get::<_, i64>(6)?,
+                            row.get::<_, Option<i64>>(7)?,
+                            row.get::<_, Option<String>>(8)?,
+                        ))
+                    },
+                )
+                .optional()?;
+            let proof_matches = row.as_ref().is_some_and(
+                |(
+                    base_id,
+                    manifest_hash,
+                    resolver_output_epoch,
+                    state,
+                    relative_path,
+                    identifier_count,
+                    pending_count,
+                    file_bytes,
+                    file_sha256,
+                )| {
+                    proof.matches_catalog_identity(
+                        base_id,
+                        manifest_hash,
+                        *resolver_output_epoch,
+                        state,
+                        relative_path,
+                    ) && proof.matches_catalog_file(
+                        *identifier_count,
+                        *pending_count,
+                        *file_bytes,
+                        file_sha256.as_deref(),
+                    ) && *base_id == publication.base_id
+                        && *resolver_output_epoch == publication.resolver_output_epoch
+                },
+            );
+            if proof_matches {
+                let counts = proof.semantic_counts();
+                i64::try_from(counts.identifiers)
+                    .ok()
+                    .and_then(|identifiers| {
+                        i64::try_from(counts.pending)
+                            .ok()
+                            .and_then(|pending| identifiers.checked_add(pending))
+                    })
+                    .ok_or_else(|| ResolutionBindingError::InvalidPublication {
+                        detail: "bound resolution base semantic row count is out of range"
+                            .to_string(),
+                    })?
+            } else {
+                strict_base_rows()?
+            }
+        } else {
+            strict_base_rows()?
+        };
         if base_rows < 0 {
             return Err(ResolutionBindingError::InvalidPublication {
                 detail: "bound resolution base semantic row count is invalid".to_string(),
@@ -1457,7 +1647,22 @@ impl ResolutionBindingStore {
         &self,
         request: &ResolutionConvergenceBegin,
     ) -> Result<(ResolutionViewBinding, ResolutionPinRecord), ResolutionBindingError> {
-        let binding = self.bind_base(
+        let (binding, pin, _) = self.begin_convergence_with_proof(request)?;
+        Ok((binding, pin))
+    }
+
+    pub fn begin_convergence_with_proof(
+        &self,
+        request: &ResolutionConvergenceBegin,
+    ) -> Result<
+        (
+            ResolutionViewBinding,
+            ResolutionPinRecord,
+            ResolutionValidatedBase,
+        ),
+        ResolutionBindingError,
+    > {
+        let (binding, proof) = self.bind_base_with_proof(
             &request.view_id,
             request.resolver_output_epoch,
             &request.request_id,
@@ -1471,7 +1676,7 @@ impl ResolutionBindingStore {
             &request.expires_at,
             &request.created_at,
         )?;
-        Ok((binding, pin))
+        Ok((binding, pin, proof))
     }
 
     /// Publishes an already-stored exact delta inside the caller's transaction.
@@ -3655,11 +3860,25 @@ pub struct ResolutionBaseReader {
 
 impl ResolutionBaseReader {
     pub fn open(path: impl AsRef<Path>) -> Result<Self, ResolutionValidationError> {
+        #[cfg(feature = "test-store-resolution")]
+        TEST_RESOLUTION_BASE_OPEN_COUNT.with(|count| count.set(count.get() + 1));
         let path = path.as_ref().to_path_buf();
         with_locking_protocol_retry(
             || Self::open_once(&path),
             |error| matches!(error, ResolutionValidationError::Sqlite(inner) if is_locking_protocol(inner)),
         )
+    }
+
+    #[cfg(feature = "test-store-resolution")]
+    #[doc(hidden)]
+    pub fn reset_test_open_count() {
+        TEST_RESOLUTION_BASE_OPEN_COUNT.with(|count| count.set(0));
+    }
+
+    #[cfg(feature = "test-store-resolution")]
+    #[doc(hidden)]
+    pub fn test_open_count() -> usize {
+        TEST_RESOLUTION_BASE_OPEN_COUNT.with(std::cell::Cell::get)
     }
 
     fn open_once(path: &Path) -> Result<Self, ResolutionValidationError> {

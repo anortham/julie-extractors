@@ -427,7 +427,7 @@ fn resolve_claimed(
         created_at: store_timestamp(layout, "now")?,
     };
     heartbeat.ensure_current(coordinator, request, holder)?;
-    let (binding, _) = with_writer_lease(
+    let (binding, _, validated_base) = with_writer_lease(
         layout,
         coordinator,
         holder,
@@ -436,7 +436,7 @@ fn resolve_claimed(
             heartbeat.ensure_live()?;
             ensure_resolve_claim(layout, request, holder)?;
             ResolutionBindingStore::new(fenced_factory(&factory, layout, holder, fencing_token))
-                .begin_convergence(&convergence)
+                .begin_convergence_with_proof(&convergence)
                 .map_err(|error| format!("resolution_failed: {error}"))
         },
     )?;
@@ -527,6 +527,7 @@ fn resolve_claimed(
         payload.resolver_output_epoch,
     )
     .map_err(classify_resolution_error)?;
+    exact_session.set_validated_base(validated_base.clone());
     if !payload.resolution_delta_enabled {
         exact_session.force_full_without_prior_state();
     }
@@ -624,7 +625,7 @@ fn resolve_claimed(
         created_at: store_timestamp(layout, "now")?,
     };
     let rebase_required = ResolutionBindingStore::new(factory.clone())
-        .exact_rebase_required(&publication, &scratch, &gaps)
+        .exact_rebase_required_with_proof(&publication, &scratch, &gaps, &validated_base)
         .map_err(|error| format!("resolution_failed: {error}"))?;
     heartbeat.ensure_current(coordinator, request, holder)?;
     #[cfg(feature = "test-store-resolution-contract")]

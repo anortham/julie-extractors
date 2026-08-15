@@ -14,8 +14,8 @@ use julie_extract_artifact::store::{
     ResolutionBaseWriter, ResolutionDiffResult, ResolutionFileIdentity, ResolutionGapFact,
     ResolutionGapKind, ResolutionGapTable, ResolutionIdentifierRow, ResolutionPendingRow,
     ResolutionPendingTombstone, ResolutionScopeState, ResolutionScratchWriter,
-    ResolutionValidationError, StoreLayout, create_resolution_scratch_connection,
-    resolution_scope_state,
+    ResolutionValidatedBase, ResolutionValidationError, StoreLayout,
+    create_resolution_scratch_connection, resolution_scope_state,
 };
 use julie_extract_artifact::store::{StoreConnectionError, StoreConnectionFactory};
 use julie_extractors::SymbolKind;
@@ -443,6 +443,7 @@ pub struct StoreScratchResolutionSession {
     resolution_cache: RefCell<HashMap<ResolutionLookupKey, TierOutcome>>,
     prior_overlay: Option<PriorOverlayReader>,
     prior_scope_state: Option<ResolutionScopeState>,
+    validated_base: Option<ResolutionValidatedBase>,
     decision_telemetry: Option<StoreResolutionDecisionTelemetry>,
     forced_full_without_prior_state: bool,
 }
@@ -506,6 +507,7 @@ impl StoreScratchResolutionSession {
             resolution_cache: RefCell::new(HashMap::new()),
             prior_overlay: None,
             prior_scope_state: None,
+            validated_base: None,
             decision_telemetry: None,
             forced_full_without_prior_state: false,
         };
@@ -595,6 +597,10 @@ impl StoreScratchResolutionSession {
 
     pub(crate) fn force_full_without_prior_state(&mut self) {
         self.forced_full_without_prior_state = true;
+    }
+
+    pub(crate) fn set_validated_base(&mut self, proof: ResolutionValidatedBase) {
+        self.validated_base = Some(proof);
     }
 
     pub fn max_emitted_chunk_size(&self) -> usize {
@@ -4189,9 +4195,13 @@ impl StoreScratchResolutionSession {
         {
             return Ok(None);
         }
-        match PriorOverlayReader::open(&self.layout, &state)
-            .map_err(|error| incremental_error(error.to_string()))?
-        {
+        let access = match self.validated_base.as_ref() {
+            Some(proof) => {
+                PriorOverlayReader::open_with_validated_base(&self.layout, &state, proof)
+            }
+            None => PriorOverlayReader::open(&self.layout, &state),
+        };
+        match access.map_err(|error| incremental_error(error.to_string()))? {
             PriorOverlayAccess::Ready(reader) => {
                 self.prior_overlay = Some(reader);
                 self.prior_scope_state = Some(state.clone());

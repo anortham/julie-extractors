@@ -4,7 +4,7 @@ use std::path::{Component, Path, PathBuf};
 
 use julie_extract_artifact::store::{
     ResolutionBaseReader, ResolutionIdentifierRow, ResolutionPendingRow, ResolutionScopeState,
-    StoreLayout,
+    ResolutionValidatedBase, StoreLayout,
 };
 use rusqlite::types::Value;
 use rusqlite::{Connection, OpenFlags, OptionalExtension, params, params_from_iter};
@@ -151,6 +151,22 @@ impl PriorOverlayReader {
         layout: &StoreLayout,
         state: &ResolutionScopeState,
     ) -> Result<PriorOverlayAccess<Self>, PriorOverlayError> {
+        Self::open_inner(layout, state, None)
+    }
+
+    pub(crate) fn open_with_validated_base(
+        layout: &StoreLayout,
+        state: &ResolutionScopeState,
+        proof: &ResolutionValidatedBase,
+    ) -> Result<PriorOverlayAccess<Self>, PriorOverlayError> {
+        Self::open_inner(layout, state, Some(proof))
+    }
+
+    fn open_inner(
+        layout: &StoreLayout,
+        state: &ResolutionScopeState,
+        proof: Option<&ResolutionValidatedBase>,
+    ) -> Result<PriorOverlayAccess<Self>, PriorOverlayError> {
         let connection = Connection::open_with_flags(
             layout.store_db(),
             OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
@@ -226,33 +242,53 @@ impl PriorOverlayReader {
                 PriorOverlayFallback::BaseFileMissing { path: base_path },
             ));
         }
-        let base = match ResolutionBaseReader::open(&base_path) {
-            Ok(base) => base,
-            Err(error) => {
+        let proof_matches = proof.is_some_and(|proof| {
+            proof.matches_catalog_identity(
+                &state.base_id,
+                &base_catalog.manifest_hash,
+                base_catalog.resolver_output_epoch,
+                &base_catalog.state,
+                &base_catalog.relative_path,
+            ) && proof.matches_catalog_file(
+                base_catalog.identifier_count,
+                base_catalog.pending_count,
+                base_catalog.file_bytes,
+                base_catalog.file_sha256.as_deref(),
+            )
+        });
+        let base = if proof_matches {
+            None
+        } else {
+            let base = match ResolutionBaseReader::open(&base_path) {
+                Ok(base) => base,
+                Err(error) => {
+                    return Ok(PriorOverlayAccess::FullFallback(
+                        PriorOverlayFallback::BaseFileIncoherent {
+                            path: base_path,
+                            detail: error.to_string(),
+                        },
+                    ));
+                }
+            };
+            let base_identity = base.file_identity();
+            if base_identity.manifest_hash != base_catalog.manifest_hash
+                || base_identity.resolver_output_epoch != base_catalog.resolver_output_epoch
+                || i64::try_from(base_identity.counts.identifiers).ok()
+                    != Some(base_catalog.identifier_count)
+                || i64::try_from(base_identity.counts.pending).ok()
+                    != Some(base_catalog.pending_count)
+                || i64::try_from(base_identity.file_bytes).ok() != base_catalog.file_bytes
+                || Some(base_identity.file_sha256.as_str()) != base_catalog.file_sha256.as_deref()
+            {
                 return Ok(PriorOverlayAccess::FullFallback(
                     PriorOverlayFallback::BaseFileIncoherent {
                         path: base_path,
-                        detail: error.to_string(),
+                        detail: "file identity does not match the ready catalog row".to_string(),
                     },
                 ));
             }
+            Some(base)
         };
-        let base_identity = base.file_identity();
-        if base_identity.manifest_hash != base_catalog.manifest_hash
-            || base_identity.resolver_output_epoch != base_catalog.resolver_output_epoch
-            || i64::try_from(base_identity.counts.identifiers).ok()
-                != Some(base_catalog.identifier_count)
-            || i64::try_from(base_identity.counts.pending).ok() != Some(base_catalog.pending_count)
-            || i64::try_from(base_identity.file_bytes).ok() != base_catalog.file_bytes
-            || Some(base_identity.file_sha256.as_str()) != base_catalog.file_sha256.as_deref()
-        {
-            return Ok(PriorOverlayAccess::FullFallback(
-                PriorOverlayFallback::BaseFileIncoherent {
-                    path: base_path,
-                    detail: "file identity does not match the ready catalog row".to_string(),
-                },
-            ));
-        }
 
         let Some(delta) = read_delta_catalog(&connection, state)? else {
             return Ok(PriorOverlayAccess::FullFallback(

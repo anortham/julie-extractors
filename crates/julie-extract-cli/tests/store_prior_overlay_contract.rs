@@ -4,8 +4,8 @@ mod prior_overlay;
 use std::fs;
 
 use julie_extract_artifact::store::{
-    ResolutionBaseWriter, ResolutionIdentifierRow, ResolutionPendingRow, ResolutionScopeState,
-    StoreLayout, ensure_resolution_scope_feature,
+    ResolutionBaseCatalog, ResolutionBaseWriter, ResolutionIdentifierRow, ResolutionPendingRow,
+    ResolutionScopeState, StoreConnectionFactory, StoreLayout, ensure_resolution_scope_feature,
 };
 use prior_overlay::{
     PriorOverlayAccess, PriorOverlayFallback, PriorOverlayKey, PriorOverlayReader,
@@ -17,9 +17,9 @@ const NOW: &str = "2026-08-11T18:00:00Z";
 const FAMILY_ID: &str = "family-prior-overlay";
 const BINARY_VERSION: &str = "2.30.0";
 const VIEW_ID: &str = "view-a";
-const BASE_ID: &str = "base-a";
-const PREDECESSOR_HASH: &str = "manifest-predecessor";
-const BASE_MANIFEST_HASH: &str = "manifest-base";
+const BASE_ID: &str = "base-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-7";
+const PREDECESSOR_HASH: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+const BASE_MANIFEST_HASH: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 const RESOLVER_EPOCH: i64 = 7;
 
 #[test]
@@ -153,7 +153,7 @@ fn pending_cursor_walk_emits_visible_rows_once_across_tombstones() {
 #[test]
 fn missing_base_file_returns_typed_full_fallback() {
     let fixture = Fixture::new();
-    fs::remove_file(fixture.layout.bases_dir().join("base-a.db")).unwrap();
+    fs::remove_file(fixture.layout.bases_dir().join(format!("{BASE_ID}.db"))).unwrap();
 
     assert!(matches!(
         PriorOverlayReader::open(&fixture.layout, &fixture.state).unwrap(),
@@ -237,6 +237,28 @@ fn missing_source_and_overlay_rows_return_typed_full_fallback() {
             local_id,
             ..
         }) if local_id == "identifier-uncovered"
+    ));
+}
+
+#[test]
+fn validated_base_catalog_mismatch_falls_back_through_strict_reader() {
+    let fixture = Fixture::new();
+    let proof = fixture.validated_base();
+    Connection::open(fixture.layout.store_db())
+        .unwrap()
+        .execute(
+            "UPDATE resolution_bases SET identifier_count=99 WHERE base_id=?1",
+            [BASE_ID],
+        )
+        .unwrap();
+
+    assert!(matches!(
+        PriorOverlayReader::open_with_validated_base(&fixture.layout, &fixture.state, &proof)
+            .unwrap(),
+        PriorOverlayAccess::FullFallback(PriorOverlayFallback::BaseFileIncoherent {
+            detail,
+            ..
+        }) if detail.contains("file identity")
     ));
 }
 
@@ -327,7 +349,7 @@ impl Fixture {
         insert_pending(&connection, v1, "pending-replaced", "Replaced", "src/a.rs");
         insert_pending(&connection, v2, "pending-new", "New", "src/b.rs");
 
-        let base_path = layout.bases_dir().join("base-a.db");
+        let base_path = layout.bases_dir().join(format!("{BASE_ID}.db"));
         let mut base =
             ResolutionBaseWriter::new(&base_path, BASE_MANIFEST_HASH, RESOLVER_EPOCH).unwrap();
         base.push_source_version(v1).unwrap();
@@ -345,11 +367,12 @@ impl Fixture {
                 "INSERT INTO resolution_bases
                  (base_id,manifest_hash,resolver_output_epoch,state,relative_path,
                   identifier_count,pending_count,file_bytes,file_sha256,request_id,created_at,updated_at)
-                 VALUES (?1,?2,?3,'ready','bases/base-a.db',2,3,?4,?5,'request-base',?6,?6)",
+                 VALUES (?1,?2,?3,'ready',?4,2,3,?5,?6,'request-base',?7,?7)",
                 params![
                     BASE_ID,
                     BASE_MANIFEST_HASH,
                     RESOLVER_EPOCH,
+                    format!("bases/{BASE_ID}.db"),
                     i64::try_from(base_identity.file_bytes).unwrap(),
                     base_identity.file_sha256,
                     NOW
@@ -471,6 +494,18 @@ impl Fixture {
 
     fn reader(&self) -> PriorOverlayReader {
         ready(PriorOverlayReader::open(&self.layout, &self.state).unwrap())
+    }
+
+    fn validated_base(&self) -> julie_extract_artifact::store::ResolutionValidatedBase {
+        ResolutionBaseCatalog::new(StoreConnectionFactory::new(
+            self.layout.clone(),
+            FAMILY_ID,
+            BINARY_VERSION,
+        ))
+        .find_ready_with_proof(BASE_MANIFEST_HASH, RESOLVER_EPOCH)
+        .unwrap()
+        .unwrap()
+        .1
     }
 }
 

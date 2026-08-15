@@ -9,9 +9,9 @@ use std::time::{Duration, Instant};
 
 use julie_extract_artifact::resolution_store::{ResolutionCounts, ResolutionReportRow};
 use julie_extract_artifact::store::{
-    ManifestStore, ResolutionBaseBegin, ResolutionBaseCatalog, ResolutionBaseWriter,
-    ResolutionBindingStore, ResolutionDiffMarker, ResolutionFileIdentity, StoreConnectionFactory,
-    StoreLayout,
+    ManifestStore, ResolutionBaseBegin, ResolutionBaseCatalog, ResolutionBaseReader,
+    ResolutionBaseWriter, ResolutionBindingStore, ResolutionDiffMarker, ResolutionFileIdentity,
+    StoreConnectionFactory, StoreLayout,
 };
 use julie_extract_cli::resolution::{self, run_resolution_session};
 use julie_extract_cli::resolution_session::{
@@ -22,6 +22,9 @@ use julie_extract_cli::resolution_session::{
 use julie_extract_cli::store::resolution_session::{
     CandidateQueryFamily, CandidateQueryTelemetry, FinishExactPhase, FinishExactPhaseSample,
     StoreManifestIdentity, StoreScratchResolutionSession,
+};
+use julie_extract_cli::store::{
+    StoreArgs, StoreCommand, StoreRequestControls, StoreResolveArgs, dispatch,
 };
 use rusqlite::{Connection, params};
 use serde::{Deserialize, Serialize};
@@ -207,6 +210,61 @@ fn one_file_default_incremental_matches_full_escape_hatch() {
         artifact_semantic_digest(&full_artifact),
         artifact_semantic_digest(&scoped_artifact)
     );
+}
+
+#[test]
+fn scoped_non_rebase_resolve_opens_validated_base_once() {
+    let fixture = tempfile::tempdir().unwrap();
+    let store_root = fixture.path().join("scoped-store");
+    let changed_file_shape = Some(ResolutionRowShape {
+        identifiers: ONE_FILE_IDENTIFIER_ROWS,
+        pending: scaled_pending_rows(ONE_FILE_IDENTIFIER_ROWS),
+        resolved_pending: scaled_resolved_pending_rows(ONE_FILE_IDENTIFIER_ROWS),
+        distinct_target_names: MILLER_DISTINCT_IDENTIFIER_NAMES
+            .saturating_sub(1)
+            .min(ONE_FILE_IDENTIFIER_ROWS.max(1)),
+    });
+    build_store_fixture_with_changed_file_rows(
+        &store_root,
+        ONE_FILE_IDENTIFIER_ROWS,
+        scaled_pending_rows(ONE_FILE_IDENTIFIER_ROWS),
+        scaled_resolved_pending_rows(ONE_FILE_IDENTIFIER_ROWS),
+        1,
+        changed_file_shape,
+        Some(ResolutionRowShape {
+            identifiers: ONE_FILE_STABLE_IDENTIFIER_ROWS,
+            pending: ONE_FILE_STABLE_PENDING_ROWS,
+            resolved_pending: ONE_FILE_STABLE_RESOLVED_PENDING_ROWS,
+            distinct_target_names: 1,
+        }),
+    );
+    let layout = StoreLayout::open(store_root.join("family")).unwrap();
+    prepare_replay_view_with_changed_files(
+        &layout,
+        "one-file-default",
+        ReplayMode::Scoped,
+        1,
+        false,
+        Some(ONE_FILE_IDENTIFIER_ROWS),
+    );
+
+    ResolutionBaseReader::reset_test_open_count();
+    let outcome = dispatch(StoreArgs {
+        command: StoreCommand::Resolve(StoreResolveArgs {
+            store: store_root.join("family"),
+            family: Some(FAMILY_ID.to_string()),
+            view: "one-file-default".to_string(),
+            request: StoreRequestControls {
+                request_id: Some("one-file-open-count".to_string()),
+                idempotency_key: Some("one-file-open-count".to_string()),
+                request_timeout_seconds: 30,
+            },
+            json: true,
+        }),
+    });
+
+    assert_eq!(outcome.exit_code(), 0);
+    assert_eq!(ResolutionBaseReader::test_open_count(), 1);
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

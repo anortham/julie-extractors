@@ -779,10 +779,14 @@ fn exact_rebase_policy_rejects_incoherent_bound_base_catalog_identity() {
         .finish()
         .unwrap();
     let scratch = ResolutionScratchReader::open(scratch_path).unwrap();
+    let (_, proof) = ResolutionBaseCatalog::new(factory.clone())
+        .find_ready_with_proof(&manifest_hash, 7)
+        .unwrap()
+        .unwrap();
     let publication = ResolutionExactPublish {
         view_id: "view-policy-corrupt".to_string(),
         manifest_generation: 1,
-        manifest_hash,
+        manifest_hash: manifest_hash.clone(),
         base_id: base_id.clone(),
         previous_delta_generation: 1,
         resolver_output_epoch: 7,
@@ -797,8 +801,12 @@ fn exact_rebase_policy_rejects_incoherent_bound_base_catalog_identity() {
         )
         .unwrap();
 
-    let result =
-        ResolutionBindingStore::new(factory).exact_rebase_required(&publication, &scratch, &[]);
+    let result = ResolutionBindingStore::new(factory).exact_rebase_required_with_proof(
+        &publication,
+        &scratch,
+        &[],
+        &proof,
+    );
 
     assert!(matches!(
         result,
@@ -814,7 +822,7 @@ fn replacement_rebase_threshold_is_strict_at_one_quarter() {
     let layout = StoreLayout::create(&temp.0, FAMILY_ID, VERSION).unwrap();
     let (manifest_hash, version_id) =
         publish_manifest(&layout, "view-row-boundary", None, "src/a.rs", "a");
-    let factory = StoreConnectionFactory::new(layout, FAMILY_ID, VERSION);
+    let factory = StoreConnectionFactory::new(layout.clone(), FAMILY_ID, VERSION);
     let base_id = ready_base_with_identifiers(
         &factory,
         &manifest_hash,
@@ -822,6 +830,10 @@ fn replacement_rebase_threshold_is_strict_at_one_quarter() {
         "request-row-boundary-base",
         4,
     );
+    let (_, proof) = ResolutionBaseCatalog::new(factory.clone())
+        .find_ready_with_proof(&manifest_hash, 7)
+        .unwrap()
+        .unwrap();
     let publication = ResolutionExactPublish {
         view_id: "view-row-boundary".to_string(),
         manifest_generation: 1,
@@ -848,6 +860,16 @@ fn replacement_rebase_threshold_is_strict_at_one_quarter() {
             .exact_rebase_required(&publication, &over, &[])
             .unwrap()
     );
+    assert!(
+        !bindings
+            .exact_rebase_required_with_proof(&publication, &equal, &[], &proof)
+            .unwrap()
+    );
+    assert!(
+        bindings
+            .exact_rebase_required_with_proof(&publication, &over, &[], &proof)
+            .unwrap()
+    );
 }
 
 #[test]
@@ -865,8 +887,13 @@ fn gap_rebase_threshold_is_strict_at_sixty_four_mib() {
         version_id,
         "request-gap-boundary-base",
     );
-    let binding = ResolutionBindingStore::new(factory.clone())
+    let binding_store = ResolutionBindingStore::new(factory.clone());
+    let binding = binding_store
         .bind_base("view-gap-boundary", 7, "request-gap-boundary-bind", NOW)
+        .unwrap();
+    let (_, proof) = ResolutionBaseCatalog::new(factory.clone())
+        .find_ready_with_proof(&manifest_hash, 7)
+        .unwrap()
         .unwrap();
     let scratch_path = temp.0.join("gap-boundary.db");
     ResolutionScratchDelta::new(&scratch_path, &manifest_hash, 7)
@@ -899,6 +926,11 @@ fn gap_rebase_threshold_is_strict_at_sixty_four_mib() {
             .exact_rebase_required(&publication, &scratch, &[])
             .unwrap()
     );
+    assert!(
+        !bindings
+            .exact_rebase_required_with_proof(&publication, &scratch, &[], &proof)
+            .unwrap()
+    );
     install_canonical_gap_payload_bytes(
         &layout,
         "view-gap-boundary",
@@ -907,6 +939,11 @@ fn gap_rebase_threshold_is_strict_at_sixty_four_mib() {
     assert!(
         bindings
             .exact_rebase_required(&publication, &scratch, &[])
+            .unwrap()
+    );
+    assert!(
+        bindings
+            .exact_rebase_required_with_proof(&publication, &scratch, &[], &proof)
             .unwrap()
     );
 }
