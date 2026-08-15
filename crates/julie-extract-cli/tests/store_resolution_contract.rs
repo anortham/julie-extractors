@@ -2129,7 +2129,7 @@ fn cumulative_gap_threshold_keeps_equality_and_rebases_the_first_byte_over() {
         install_canonical_gap_payload_bytes(
             &store_db,
             "view-main",
-            LIMIT - current_payload_bytes * 2 + extra_byte,
+            (LIMIT - current_payload_bytes) / 2 + extra_byte,
         );
         fs::write(root.join("extra.rs"), "// structural-only addition\n").unwrap();
         assert_ran(julie_extract(&[
@@ -2180,6 +2180,18 @@ fn cumulative_gap_threshold_keeps_equality_and_rebases_the_first_byte_over() {
             assert_ne!(current.0, old_base);
         }
         assert_eq!((current.1, current.2, current.3), (0, 0, 0));
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM store_log
+                     WHERE request_id=?1
+                       AND event_kind='resolution_exact_rebased'",
+                    [format!("resolve-gap-threshold-{extra_byte}")],
+                    |row| row.get::<_, i64>(0),
+                )
+                .unwrap(),
+            extra_byte as i64,
+        );
     }
 }
 
