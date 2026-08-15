@@ -5,7 +5,7 @@ use julie_extract_artifact::store::{
     STORE_FORMAT_EPOCH, STORE_SQLITE_SCHEMA_VERSION, StoreSchemaError, ViewResolutionState,
     create_coordinator_schema, create_store_schema,
 };
-use rusqlite::Connection;
+use rusqlite::{Connection, params};
 use sha2::{Digest, Sha256};
 
 const AUTHORITY: &str = include_str!("../../../docs/contracts/sqlite-store-schema-v2.md");
@@ -692,6 +692,152 @@ fn explicit_secondary_indexes_are_exhaustive_and_classified() {
 }
 
 #[test]
+fn existing_store_schema_ensure_repairs_symbol_id_index_without_changing_rows_or_identity() {
+    let store = open_store();
+    store
+        .execute(
+            "INSERT INTO file_versions
+             (path, content_hash, extraction_epoch, language, content_bytes)
+             VALUES ('src/a.rs', 'blake3:a', 1, 'rust', 1)",
+            [],
+        )
+        .unwrap();
+    store
+        .execute(
+            "INSERT INTO symbols
+             (version_id, symbol_id, path, language, name, kind,
+              start_line, start_column, end_line, end_column, start_byte, end_byte)
+             VALUES (1, 'symbol-a', 'src/a.rs', 'rust', 'a', 'function',
+                     1, 1, 1, 2, 0, 1)",
+            [],
+        )
+        .unwrap();
+
+    let before_version = user_version(&store);
+    let before_meta = store
+        .prepare("SELECT key, value FROM store_meta ORDER BY key")
+        .unwrap()
+        .query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    let before_symbol: (i64, String, String, String, String, String) = store
+        .query_row(
+            "SELECT version_id, symbol_id, path, language, name, kind
+             FROM symbols",
+            [],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                ))
+            },
+        )
+        .unwrap();
+
+    store
+        .execute("DROP INDEX IF EXISTS idx_read_symbols_symbol", [])
+        .unwrap();
+    assert!(!explicit_indexes(&store).contains_key("idx_read_symbols_symbol"));
+
+    create_store_schema(&store).unwrap();
+
+    assert_eq!(
+        explicit_indexes(&store)
+            .get("idx_read_symbols_symbol")
+            .cloned(),
+        Some(vec!["symbol_id".to_string(), "version_id".to_string()])
+    );
+    assert_eq!(user_version(&store), before_version);
+    assert_eq!(
+        store
+            .prepare("SELECT key, value FROM store_meta ORDER BY key")
+            .unwrap()
+            .query_map([], |row| Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?
+            )))
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap(),
+        before_meta
+    );
+    assert_eq!(
+        store
+            .query_row(
+                "SELECT version_id, symbol_id, path, language, name, kind
+                 FROM symbols",
+                [],
+                |row| {
+                    Ok((
+                        row.get::<_, i64>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, String>(2)?,
+                        row.get::<_, String>(3)?,
+                        row.get::<_, String>(4)?,
+                        row.get::<_, String>(5)?,
+                    ))
+                },
+            )
+            .unwrap(),
+        before_symbol
+    );
+
+    create_store_schema(&store).unwrap();
+    assert_eq!(
+        explicit_indexes(&store)
+            .get("idx_read_symbols_symbol")
+            .cloned(),
+        Some(vec!["symbol_id".to_string(), "version_id".to_string()])
+    );
+}
+
+#[test]
+fn symbol_id_read_index_supports_candidate_batches_and_symbol_exists() {
+    let mut store = open_store();
+    seed_symbol_lookup_fixture(&mut store);
+    store
+        .execute_batch(
+            "CREATE TEMP TABLE _miller_visible_entries (
+                 version_id INTEGER PRIMARY KEY
+             );",
+        )
+        .unwrap();
+    for version_id in 1..=128_i64 {
+        store
+            .execute(
+                "INSERT INTO _miller_visible_entries(version_id) VALUES (?1)",
+                [version_id],
+            )
+            .unwrap();
+    }
+
+    for candidate_count in [63_usize, 16] {
+        let plan = candidate_lookup_plan(&store, candidate_count);
+        assert_symbol_lookup_plan(&plan, &format!("candidate batch {candidate_count}"));
+    }
+
+    let symbol_exists_plan = store
+        .prepare(
+            "EXPLAIN QUERY PLAN
+             SELECT 1 FROM symbols WHERE symbol_id = ?1 LIMIT 1",
+        )
+        .unwrap()
+        .query_map(["symbol-0"], |row| row.get::<_, String>(3))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap()
+        .join("\n");
+    assert_symbol_lookup_plan(&symbol_exists_plan, "SymbolExists");
+}
+
+#[test]
 fn ph2c_keeps_semantic_rows_in_immutable_base_and_delta_artifacts() {
     let store = open_store();
     let coordinator = open_coordinator();
@@ -1049,6 +1195,86 @@ fn table_columns(conn: &Connection, table: &str) -> Vec<String> {
         .unwrap()
 }
 
+fn seed_symbol_lookup_fixture(store: &mut Connection) {
+    let transaction = store.transaction().unwrap();
+    for version_id in 1..=256_i64 {
+        transaction
+            .execute(
+                "INSERT INTO file_versions
+                 (path, content_hash, extraction_epoch, language, content_bytes)
+                 VALUES (?1, ?2, 1, 'rust', 1)",
+                params![
+                    format!("src/file-{version_id}.rs"),
+                    format!("blake3:{version_id}")
+                ],
+            )
+            .unwrap();
+        for symbol_index in 0..128_i64 {
+            transaction
+                .execute(
+                    "INSERT INTO symbols
+                     (version_id, symbol_id, path, language, name, kind,
+                      start_line, start_column, end_line, end_column, start_byte, end_byte)
+                     VALUES (?1, ?2, ?3, 'rust', ?2, 'function', 1, 1, 1, 2, 0, 1)",
+                    params![
+                        version_id,
+                        format!("symbol-{symbol_index}"),
+                        format!("src/file-{version_id}.rs")
+                    ],
+                )
+                .unwrap();
+        }
+    }
+    transaction.commit().unwrap();
+}
+
+fn candidate_lookup_plan(store: &Connection, candidate_count: usize) -> String {
+    let values = (1..=candidate_count)
+        .map(|index| format!("(?{index})"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let sql = format!(
+        "EXPLAIN QUERY PLAN
+         WITH candidate_ids(id) AS (VALUES {values})
+         SELECT candidate_ids.id, s.version_id
+         FROM candidate_ids
+         JOIN _miller_visible_entries AS visible
+         JOIN main.symbols AS s
+           ON s.version_id = visible.version_id
+          AND s.symbol_id = candidate_ids.id"
+    );
+    let ids = (0..candidate_count)
+        .map(|index| format!("symbol-{index}"))
+        .collect::<Vec<_>>();
+    store
+        .prepare(&sql)
+        .unwrap()
+        .query_map(rusqlite::params_from_iter(ids.iter()), |row| {
+            row.get::<_, String>(3)
+        })
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap()
+        .join("\n")
+}
+
+fn assert_symbol_lookup_plan(plan: &str, label: &str) {
+    assert!(
+        plan.contains("idx_read_symbols_symbol"),
+        "{label} did not use idx_read_symbols_symbol. Plan:\n{plan}"
+    );
+    assert!(
+        !plan.contains("AUTOMATIC COVERING INDEX"),
+        "{label} used an automatic index. Plan:\n{plan}"
+    );
+    assert!(
+        !plan
+            .lines()
+            .any(|line| line.contains("SCAN s") || line.contains("SCAN symbols")),
+        "{label} scanned symbols. Plan:\n{plan}"
+    );
+}
+
 #[derive(Debug)]
 struct ForeignKey {
     target_table: String,
@@ -1271,6 +1497,7 @@ fn expected_store_indexes() -> BTreeMap<String, Vec<String>> {
         ),
         ("idx_read_symbols_name_kind", "name,kind,version_id"),
         ("idx_read_symbols_parent", "parent_symbol_id,version_id"),
+        ("idx_read_symbols_symbol", "symbol_id,version_id"),
         (
             "idx_read_type_argument_usages_identifier",
             "identifier_id,version_id",

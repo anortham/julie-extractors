@@ -1050,6 +1050,7 @@ CREATE INDEX IF NOT EXISTS idx_gc_symbols_is_test ON symbols(version_id, is_test
 CREATE INDEX IF NOT EXISTS idx_gc_symbols_test_container ON symbols(version_id, test_container);
 CREATE INDEX IF NOT EXISTS idx_gc_symbols_test_lifecycle ON symbols(version_id, test_lifecycle);
 CREATE INDEX IF NOT EXISTS idx_read_symbols_name_kind ON symbols(name, kind, version_id);
+CREATE INDEX IF NOT EXISTS idx_read_symbols_symbol ON symbols(symbol_id, version_id);
 CREATE INDEX IF NOT EXISTS idx_read_symbols_parent ON symbols(parent_symbol_id, version_id);
 CREATE INDEX IF NOT EXISTS idx_gc_symbol_annotations_symbol
   ON symbol_annotations(version_id, symbol_id);
