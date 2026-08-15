@@ -2819,8 +2819,6 @@ fn scoped_delta_finalizer_matches_full_diff_and_emits_pending_tombstones() {
         for suffix in ["", ".work", ".work-wal", ".work-shm", "-wal", "-shm"] {
             let candidate = if suffix.is_empty() {
                 path.to_path_buf()
-            } else if suffix.starts_with('.') {
-                Path::new(&format!("{}{}", path.display(), suffix)).to_path_buf()
             } else {
                 Path::new(&format!("{}{}", path.display(), suffix)).to_path_buf()
             };

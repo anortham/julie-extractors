@@ -451,11 +451,12 @@ fn name_expansion_requires_language(
 }
 
 #[cfg(test)]
-pub(crate) fn name_expansion_requires_language_for_test(
-    recheck_names: &BTreeSet<String>,
-    affected_languages: &BTreeSet<String>,
-) -> bool {
-    name_expansion_requires_language(recheck_names, affected_languages)
+#[test]
+fn alias_only_name_expansion_without_recoverable_language_fails_closed() {
+    let names = BTreeSet::from(["Alias".to_string()]);
+    let languages = BTreeSet::new();
+
+    assert!(name_expansion_requires_language(&names, &languages));
 }
 
 fn versions_matching_names(

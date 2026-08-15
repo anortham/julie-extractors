@@ -47,6 +47,16 @@ const MAX_STORE_RESOLUTION_WINDOW: usize = 300;
 type CandidatePage = (Vec<CandidateHit>, Option<(i64, String)>);
 type PriorPhaseKeys = (Vec<(i64, String)>, Option<PriorOverlayKey>);
 type PriorPhaseAccess = PriorOverlayAccess<PriorPhaseKeys>;
+type VersionQualifiedKey = (i64, String);
+type VersionQualifiedMap<T> = BTreeMap<VersionQualifiedKey, T>;
+type PriorIdentifierDeltas = (VersionQualifiedMap<ResolutionIdentifierRow>, usize);
+type PriorPendingDeltas = (VersionQualifiedMap<ScopedPendingDelta>, usize);
+type PriorGapFacts = (
+    VersionQualifiedMap<ResolutionGapKind>,
+    VersionQualifiedMap<ResolutionGapKind>,
+);
+type ScratchPendingState = (bool, bool);
+type ScratchPendingStates = HashMap<VersionQualifiedKey, ScratchPendingState>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(usize)]
@@ -1044,9 +1054,11 @@ impl StoreScratchResolutionSession {
                     identifier_changes.insert(key, row.clone());
                     identifier_gaps.insert(
                         (*version_id, identifier_id.clone()),
-                        base.is_some()
-                            .then_some(ResolutionGapKind::Replaced)
-                            .unwrap_or(ResolutionGapKind::Added),
+                        if base.is_some() {
+                            ResolutionGapKind::Replaced
+                        } else {
+                            ResolutionGapKind::Added
+                        },
                     );
                 }
             }
@@ -1123,9 +1135,11 @@ impl StoreScratchResolutionSession {
                         pending_changes.insert(key, ScopedPendingDelta::Replacement(row.clone()));
                         pending_gaps.insert(
                             (*version_id, pending_relationship_id.clone()),
-                            base.is_some()
-                                .then_some(ResolutionGapKind::Replaced)
-                                .unwrap_or(ResolutionGapKind::Added),
+                            if base.is_some() {
+                                ResolutionGapKind::Replaced
+                            } else {
+                                ResolutionGapKind::Added
+                            },
                         );
                     }
                     (None, Some(_)) => {
@@ -2304,7 +2318,7 @@ fn load_prior_identifier_deltas(
     connection: &Connection,
     state: &ResolutionScopeState,
     window_size: usize,
-) -> Result<(BTreeMap<(i64, String), ResolutionIdentifierRow>, usize), StoreResolutionError> {
+) -> Result<PriorIdentifierDeltas, StoreResolutionError> {
     let limit =
         i64::try_from(window_size).map_err(|_| StoreResolutionError::InvalidWindowSize {
             requested: window_size,
@@ -2362,7 +2376,7 @@ fn load_prior_pending_deltas(
     connection: &Connection,
     state: &ResolutionScopeState,
     window_size: usize,
-) -> Result<(BTreeMap<(i64, String), ScopedPendingDelta>, usize), StoreResolutionError> {
+) -> Result<PriorPendingDeltas, StoreResolutionError> {
     let limit =
         i64::try_from(window_size).map_err(|_| StoreResolutionError::InvalidWindowSize {
             requested: window_size,
@@ -2435,13 +2449,7 @@ fn load_prior_pending_deltas(
 fn load_prior_gap_facts(
     connection: &Connection,
     state: &ResolutionScopeState,
-) -> Result<
-    (
-        BTreeMap<(i64, String), ResolutionGapKind>,
-        BTreeMap<(i64, String), ResolutionGapKind>,
-    ),
-    StoreResolutionError,
-> {
+) -> Result<PriorGapFacts, StoreResolutionError> {
     let (declared_rows, declared_files, payload) = connection.query_row(
         "SELECT exact_gap_rows,exact_gap_files,exact_gap_json
          FROM resolution_deltas
@@ -3809,7 +3817,8 @@ impl ResolutionSession for StoreScratchResolutionSession {
         Ok(identifiers
             .iter()
             .zip(covered)
-            .filter_map(|(identifier, is_covered)| is_covered.then(|| identifier.clone()))
+            .filter(|(_, is_covered)| *is_covered)
+            .map(|(identifier, _)| identifier.clone())
             .collect())
     }
 
@@ -4495,18 +4504,16 @@ impl StoreScratchResolutionSession {
                     Some((true, resolved)) => *resolved,
                     Some((false, _)) | None => prior_covered.contains(&pending_key),
                 };
-                if is_covered {
-                    if let Some(locators) = locators_by_name.get(&(version_id, name)) {
-                        for (identifier_id, _) in locators.iter().filter(|(_, locator)| {
-                            propagation_locator_matches(locator, start_line, start_byte, end_byte)
-                        }) {
-                            let identifier_key = (version_id, identifier_id.clone());
-                            for index in key_indices
-                                .get(&identifier_key)
-                                .expect("pending coverage identifier is in the input chunk")
-                            {
-                                covered[*index] = true;
-                            }
+                if is_covered && let Some(locators) = locators_by_name.get(&(version_id, name)) {
+                    for (identifier_id, _) in locators.iter().filter(|(_, locator)| {
+                        propagation_locator_matches(locator, start_line, start_byte, end_byte)
+                    }) {
+                        let identifier_key = (version_id, identifier_id.clone());
+                        for index in key_indices
+                            .get(&identifier_key)
+                            .expect("pending coverage identifier is in the input chunk")
+                        {
+                            covered[*index] = true;
                         }
                     }
                 }
@@ -4566,7 +4573,7 @@ impl StoreScratchResolutionSession {
     fn scratch_pending_states(
         &self,
         keys: &[(i64, String)],
-    ) -> Result<HashMap<(i64, String), (bool, bool)>, StoreResolutionError> {
+    ) -> Result<ScratchPendingStates, StoreResolutionError> {
         if keys.is_empty() {
             return Ok(HashMap::new());
         }
