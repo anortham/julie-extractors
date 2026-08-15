@@ -332,6 +332,99 @@ fn one_changed_file_with_broad_name_collisions_crosses_over() {
 }
 
 #[test]
+fn cross_language_name_collisions_are_not_selected_or_promoted() {
+    let (connection, manifest, changed_version, cross_language_versions) =
+        cross_language_name_collision_scope();
+    let decision = scope_decision(&connection, &manifest, 7);
+    let StoreDeltaScopeDecision::Scoped(worklists) = decision else {
+        panic!("cross-language collisions must not promote a one-file scope");
+    };
+
+    assert_eq!(
+        worklists.selected_versions,
+        [SemanticVersionId::Store(changed_version)]
+    );
+    for version_id in cross_language_versions {
+        assert!(
+            !worklists
+                .selected_versions
+                .contains(&SemanticVersionId::Store(version_id))
+        );
+    }
+}
+
+#[test]
+fn cross_language_name_arm_remains_conservative() {
+    let (connection, manifest) = cross_language_name_arm_scope();
+    let decision = scope_decision(&connection, &manifest, 7);
+    let StoreDeltaScopeDecision::Full { reason, .. } = decision else {
+        panic!("the broad conservative name arm must still cross over");
+    };
+    assert_eq!(reason, StoreDeltaScopeFullReason::Crossover);
+}
+
+#[test]
+fn all_supported_languages_keep_old_and_new_replacement_languages_eligible() {
+    let supported = julie_extractors::language::supported_languages();
+    assert!(!supported.is_empty());
+
+    for (index, old_language) in supported.iter().enumerate() {
+        let new_language = supported[(index + 1) % supported.len()];
+        let (replacement_connection, replacement_manifest, old_collision, new_collision) =
+            language_changing_replacement_scope(old_language, new_language);
+        let replacement_decision =
+            scope_decision(&replacement_connection, &replacement_manifest, 7);
+        let StoreDeltaScopeDecision::Scoped(replacement_worklists) = replacement_decision else {
+            panic!(
+                "language-changing replacement must remain scoped: {old_language}->{new_language}"
+            );
+        };
+        assert!(
+            replacement_worklists
+                .selected_versions
+                .contains(&SemanticVersionId::Store(old_collision))
+        );
+        assert!(
+            replacement_worklists
+                .selected_versions
+                .contains(&SemanticVersionId::Store(new_collision))
+        );
+
+        let (deletion_connection, deletion_manifest, collision) =
+            deleted_language_scope(old_language);
+        let deletion_decision = scope_decision(&deletion_connection, &deletion_manifest, 7);
+        let StoreDeltaScopeDecision::Scoped(deletion_worklists) = deletion_decision else {
+            panic!("language deletion must remain scoped: {old_language}");
+        };
+        assert!(
+            deletion_worklists
+                .selected_versions
+                .contains(&SemanticVersionId::Store(collision))
+        );
+    }
+}
+
+#[test]
+fn touched_names_without_recoverable_language_fail_closed() {
+    let (connection, manifest) = replacement_scope();
+    connection
+        .execute("UPDATE symbols SET language=''", [])
+        .unwrap();
+    connection
+        .execute("UPDATE reference_sites SET language=''", [])
+        .unwrap();
+    connection
+        .execute("UPDATE file_versions SET language=''", [])
+        .unwrap();
+
+    let decision = scope_decision(&connection, &manifest, 7);
+    let StoreDeltaScopeDecision::Full { reason, .. } = decision else {
+        panic!("untyped touched names must fail closed to full resolution");
+    };
+    assert_eq!(reason, StoreDeltaScopeFullReason::JournalInvalid);
+}
+
+#[test]
 fn empty_identifier_crossover_counts_deleted_logical_files() {
     let (connection, manifest) = deleted_paths_crossover_scope();
     let decision = scope_decision(&connection, &manifest, 7);
@@ -477,6 +570,309 @@ fn broad_name_collision_scope() -> (Connection, ManifestPublishResult) {
     (connection, second)
 }
 
+fn cross_language_name_collision_scope() -> (Connection, ManifestPublishResult, i64, Vec<i64>) {
+    let mut connection = scope_store();
+    let old_target =
+        insert_version_with_language(&connection, "src/target.ts", "old-target", "typescript");
+    let new_target =
+        insert_version_with_language(&connection, "src/target.ts", "new-target", "typescript");
+    insert_symbol(
+        &connection,
+        old_target,
+        "old-shared",
+        "Shared",
+        "function",
+        None,
+    );
+    insert_symbol(
+        &connection,
+        new_target,
+        "new-shared",
+        "Shared",
+        "function",
+        None,
+    );
+
+    let mut old_entries = vec![entry(&connection, old_target)];
+    let mut new_entries = vec![entry(&connection, new_target)];
+    let mut cross_language_versions = Vec::new();
+    for file in 0..8 {
+        let version = insert_version_with_language(
+            &connection,
+            &format!("src/collision-{file}.cs"),
+            &format!("collision-{file}"),
+            "csharp",
+        );
+        insert_symbol(
+            &connection,
+            version,
+            &format!("collision-symbol-{file}"),
+            &format!("Collision{file}"),
+            "function",
+            None,
+        );
+        if file < 4 {
+            insert_pending(
+                &connection,
+                version,
+                &format!("pending-shared-{file}"),
+                &format!("collision-symbol-{file}"),
+                "Shared",
+                None,
+            );
+        } else {
+            insert_identifier(
+                &connection,
+                version,
+                &format!("shared-{file}"),
+                "Shared",
+                None,
+            );
+            for identifier in 0..9 {
+                insert_identifier(
+                    &connection,
+                    version,
+                    &format!("padding-{file}-{identifier}"),
+                    &format!("Padding{file}{identifier}"),
+                    None,
+                );
+            }
+        }
+        old_entries.push(entry(&connection, version));
+        new_entries.push(entry(&connection, version));
+        cross_language_versions.push(version);
+    }
+
+    let first = publish(&mut connection, None, old_entries, "request-first");
+    let first_generation = i64::try_from(first.generation).unwrap();
+    bind_exact(&connection, &first.manifest_hash, first_generation, 11, 7);
+    let second = publish(
+        &mut connection,
+        Some(first_generation),
+        new_entries,
+        "request-second",
+    );
+    (connection, second, new_target, cross_language_versions)
+}
+
+fn cross_language_name_arm_scope() -> (Connection, ManifestPublishResult) {
+    let mut connection = scope_store();
+    let old_target =
+        insert_version_with_language(&connection, "src/target.ts", "old-target", "typescript");
+    let new_target =
+        insert_version_with_language(&connection, "src/target.ts", "new-target", "typescript");
+    insert_symbol(
+        &connection,
+        old_target,
+        "old-shared",
+        "Shared",
+        "function",
+        None,
+    );
+    insert_symbol(
+        &connection,
+        new_target,
+        "new-shared",
+        "Shared",
+        "function",
+        None,
+    );
+    let mut old_entries = vec![entry(&connection, old_target)];
+    let mut new_entries = vec![entry(&connection, new_target)];
+    for file in 0..8 {
+        let version = insert_version_with_language(
+            &connection,
+            &format!("src/collision-{file}.cs"),
+            &format!("collision-{file}"),
+            "csharp",
+        );
+        insert_symbol(
+            &connection,
+            version,
+            &format!("collision-symbol-{file}"),
+            &format!("Collision{file}"),
+            "function",
+            None,
+        );
+        for identifier in 0..10 {
+            insert_identifier(
+                &connection,
+                version,
+                &format!("collision-{file}-{identifier}"),
+                "Shared",
+                None,
+            );
+        }
+        old_entries.push(entry(&connection, version));
+        new_entries.push(entry(&connection, version));
+    }
+    let first = publish(&mut connection, None, old_entries, "request-first");
+    let first_generation = i64::try_from(first.generation).unwrap();
+    bind_exact(&connection, &first.manifest_hash, first_generation, 11, 7);
+    let second = publish(
+        &mut connection,
+        Some(first_generation),
+        new_entries,
+        "request-second",
+    );
+    (connection, second)
+}
+
+fn language_changing_replacement_scope(
+    old_language: &str,
+    new_language: &str,
+) -> (Connection, ManifestPublishResult, i64, i64) {
+    let mut connection = scope_store();
+    let old_target =
+        insert_version_with_language(&connection, "src/target.old", "old", old_language);
+    let new_target =
+        insert_version_with_language(&connection, "src/target.new", "new", new_language);
+    insert_symbol(
+        &connection,
+        old_target,
+        "old-shared",
+        "Shared",
+        "function",
+        None,
+    );
+    insert_symbol(
+        &connection,
+        new_target,
+        "new-shared",
+        "Shared",
+        "function",
+        None,
+    );
+
+    let old_collision = insert_version_with_language(
+        &connection,
+        "src/old-collision",
+        "old-collision",
+        old_language,
+    );
+    let new_collision = insert_version_with_language(
+        &connection,
+        "src/new-collision",
+        "new-collision",
+        new_language,
+    );
+    insert_language_collision_rows(&connection, old_collision, "old-collision");
+    insert_language_collision_rows(&connection, new_collision, "new-collision");
+    let stable = insert_version_with_language(&connection, "src/stable", "stable", old_language);
+    insert_symbol(&connection, stable, "stable", "Stable", "function", None);
+    for identifier in 0..100 {
+        insert_identifier(
+            &connection,
+            stable,
+            &format!("stable-{identifier}"),
+            &format!("Stable{identifier}"),
+            None,
+        );
+    }
+
+    let first_entries = [
+        entry(&connection, old_target),
+        entry(&connection, old_collision),
+        entry(&connection, stable),
+    ];
+    let first = publish(&mut connection, None, first_entries, "request-first");
+    let first_generation = i64::try_from(first.generation).unwrap();
+    bind_exact(&connection, &first.manifest_hash, first_generation, 11, 7);
+    let second_entries = [
+        entry(&connection, new_target),
+        entry(&connection, old_collision),
+        entry(&connection, new_collision),
+        entry(&connection, stable),
+    ];
+    let second = publish(
+        &mut connection,
+        Some(first_generation),
+        second_entries,
+        "request-second",
+    );
+    (connection, second, old_collision, new_collision)
+}
+
+fn deleted_language_scope(language: &str) -> (Connection, ManifestPublishResult, i64) {
+    let mut connection = scope_store();
+    let deleted = insert_version_with_language(&connection, "src/deleted", "deleted", language);
+    insert_symbol(
+        &connection,
+        deleted,
+        "deleted-shared",
+        "Shared",
+        "function",
+        None,
+    );
+    let collision =
+        insert_version_with_language(&connection, "src/collision", "collision", language);
+    insert_language_collision_rows(&connection, collision, "collision");
+    let stable = insert_version_with_language(&connection, "src/stable", "stable", language);
+    insert_symbol(&connection, stable, "stable", "Stable", "function", None);
+    for identifier in 0..100 {
+        insert_identifier(
+            &connection,
+            stable,
+            &format!("stable-{identifier}"),
+            &format!("Stable{identifier}"),
+            None,
+        );
+    }
+
+    let first_entries = [
+        entry(&connection, deleted),
+        entry(&connection, collision),
+        entry(&connection, stable),
+    ];
+    let first = publish(&mut connection, None, first_entries, "request-first");
+    let first_generation = i64::try_from(first.generation).unwrap();
+    bind_exact(&connection, &first.manifest_hash, first_generation, 11, 7);
+    let second_entries = [entry(&connection, collision), entry(&connection, stable)];
+    let second = publish(
+        &mut connection,
+        Some(first_generation),
+        second_entries,
+        "request-second",
+    );
+    (connection, second, collision)
+}
+
+fn insert_language_collision_rows(connection: &Connection, version_id: i64, prefix: &str) {
+    let symbol_id = format!("{prefix}-symbol");
+    insert_symbol(
+        connection,
+        version_id,
+        &symbol_id,
+        "Collision",
+        "function",
+        None,
+    );
+    insert_pending(
+        connection,
+        version_id,
+        &format!("{prefix}-pending"),
+        &symbol_id,
+        "Shared",
+        None,
+    );
+    insert_identifier(
+        connection,
+        version_id,
+        &format!("{prefix}-shared"),
+        "Shared",
+        None,
+    );
+    for identifier in 0..9 {
+        insert_identifier(
+            connection,
+            version_id,
+            &format!("{prefix}-padding-{identifier}"),
+            &format!("Padding{identifier}"),
+            None,
+        );
+    }
+}
+
 fn deleted_paths_crossover_scope() -> (Connection, ManifestPublishResult) {
     let mut connection = scope_store();
     let retained = insert_version(&connection, "src/retained.ts", "retained");
@@ -597,12 +993,21 @@ fn scope_store() -> Connection {
 }
 
 fn insert_version(connection: &Connection, path: &str, hash: &str) -> i64 {
+    insert_version_with_language(connection, path, hash, "typescript")
+}
+
+fn insert_version_with_language(
+    connection: &Connection,
+    path: &str,
+    hash: &str,
+    language: &str,
+) -> i64 {
     connection
         .execute(
             "INSERT INTO file_versions
              (path,content_hash,extraction_epoch,language,content_bytes,complete_l1,complete_l2)
-             VALUES (?1,?2,1,'typescript',1,1,1)",
-            params![path, hash],
+             VALUES (?1,?2,1,?3,1,1,1)",
+            params![path, hash, language],
         )
         .unwrap();
     connection.last_insert_rowid()

@@ -4,6 +4,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
+use julie_extract_cli::store::test_support::write_all_language_fixture;
 use rusqlite::Connection;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -21,15 +22,32 @@ struct StorePair {
 
 impl StorePair {
     fn new(files: &[(&str, &str)]) -> Self {
+        Self::new_with_setup(|root| {
+            for (path, content) in files {
+                write_source(root, path, content);
+            }
+        })
+    }
+
+    fn new_all_languages() -> Self {
+        Self::new_with_setup(|root| {
+            write_all_language_fixture(root).unwrap();
+            write_source(
+                root,
+                "README.md",
+                "Initial documentation without symbols.\n",
+            );
+        })
+    }
+
+    fn new_with_setup(setup: impl Fn(&Path)) -> Self {
         let temp = tempfile::tempdir().unwrap();
         let full_root = temp.path().join("full-source");
         let scoped_root = temp.path().join("scoped-source");
         let full_store = temp.path().join("full-store");
         let scoped_store = temp.path().join("scoped-store");
         for root in [&full_root, &scoped_root] {
-            for (path, content) in files {
-                write_source(root, path, content);
-            }
+            setup(root);
         }
         for (root, store) in [(&full_root, &full_store), (&scoped_root, &scoped_store)] {
             assert_success(&import(root, store));
@@ -224,6 +242,12 @@ fn semantic_digest(path: &Path) -> String {
          JOIN symbols AS target ON target.symbol_id=r.target_symbol_id
          JOIN files AS target_file ON target_file.file_id=target.file_id
          ORDER BY source.path COLLATE BINARY,p.start_byte,p.pending_relationship_id COLLATE BINARY",
+        "SELECT r.path,r.relationship_id,r.kind,r.start_byte,r.end_byte,
+                target_file.path,target.name,r.confidence
+         FROM relationships AS r
+         JOIN symbols AS target ON target.symbol_id=r.to_symbol_id
+         JOIN files AS target_file ON target_file.file_id=target.file_id
+         ORDER BY r.path COLLATE BINARY,r.start_byte,r.relationship_id COLLATE BINARY",
     ] {
         let mut statement = connection.prepare(query).unwrap();
         let column_count = statement.column_count();
@@ -537,6 +561,21 @@ fn one_file_broad_name_collision_crosses_over_and_matches_full() {
     pair.rescan();
     let (_, report) = pair.resolve_and_compare("full", Some("resolution_scope_crossover"));
     assert_eq!(report["resolution"]["scope_file_count"], 10);
+}
+
+#[test]
+fn no_symbol_markdown_replacement_in_all_languages_matches_full_without_crossover() {
+    let pair = StorePair::new_all_languages();
+    for root in pair.roots() {
+        write_source(
+            root,
+            "README.md",
+            "Updated documentation without symbols.\n",
+        );
+    }
+    pair.rescan();
+    let (_, report) = pair.resolve_and_compare("scoped", None);
+    assert_eq!(report["resolution"]["fallback_reason"], Value::Null);
 }
 
 #[test]

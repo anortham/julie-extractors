@@ -4,7 +4,7 @@ use julie_extract_artifact::store::{
     ResolutionScopeChangeKind, ResolutionScopeError, ResolutionScopeState, resolution_scope_batch,
     resolution_scope_state, validate_resolution_scope_batch,
 };
-use rusqlite::{Connection, params};
+use rusqlite::{Connection, OptionalExtension, params};
 
 use crate::resolution::DELTA_SCOPE_CROSSOVER;
 #[cfg(not(test))]
@@ -110,13 +110,18 @@ pub(crate) fn build_store_delta_scope(
     let mut changed_paths = BTreeSet::new();
     let mut structural_paths = BTreeSet::new();
     let mut changed_versions = BTreeSet::new();
+    let mut affected_version_ids = BTreeSet::new();
     for change in changes {
         changed_paths.insert(change.path.clone());
         let Ok(names) = serde_json::from_str::<Vec<String>>(&change.touched_names_json) else {
             return Ok(full(StoreDeltaScopeFullReason::JournalInvalid));
         };
         touched_names.extend(names);
+        if let Some(version_id) = change.old_version_id {
+            affected_version_ids.insert(version_id);
+        }
         if let Some(version_id) = change.new_version_id {
+            affected_version_ids.insert(version_id);
             changed_versions.insert(version_id);
         }
         if matches!(
@@ -138,11 +143,16 @@ pub(crate) fn build_store_delta_scope(
     recheck_versions.extend(module_repoints.versions);
     let mut logical_recheck_paths = changed_paths.clone();
     logical_recheck_paths.extend(module_repoints.paths);
+    let affected_languages = affected_languages(connection, &affected_version_ids)?;
+    if !touched_names.is_empty() && affected_languages.is_empty() {
+        return Ok(full(StoreDeltaScopeFullReason::JournalInvalid));
+    }
     let mut selected_versions = recheck_versions.clone();
     selected_versions.extend(versions_matching_names(
         connection,
         request,
         &recheck_names,
+        &affected_languages,
     )?);
     if scope_crosses_over(
         connection,
@@ -397,22 +407,66 @@ fn module_repoint_scope(
     Ok(ModuleRepointScope { versions, paths })
 }
 
+fn affected_languages(
+    connection: &Connection,
+    version_ids: &BTreeSet<i64>,
+) -> Result<BTreeSet<String>, ResolutionScopeError> {
+    let mut language_facts = connection.prepare(
+        "SELECT language FROM symbols
+         WHERE version_id=?1 AND language <> ''
+         UNION
+         SELECT language FROM reference_sites
+         WHERE version_id=?1 AND language <> ''
+         ORDER BY language COLLATE BINARY",
+    )?;
+    let mut file_language =
+        connection.prepare("SELECT language FROM file_versions WHERE version_id=?1")?;
+    let mut languages = BTreeSet::new();
+    for version_id in version_ids {
+        let mut recovered = false;
+        for row in language_facts.query_map([version_id], |row| row.get::<_, String>(0))? {
+            let language = row?;
+            if !language.is_empty() {
+                languages.insert(language);
+                recovered = true;
+            }
+        }
+        if !recovered
+            && let Some(language) = file_language
+                .query_row([version_id], |row| row.get::<_, String>(0))
+                .optional()?
+            && !language.is_empty()
+        {
+            languages.insert(language);
+        }
+    }
+    Ok(languages)
+}
+
 fn versions_matching_names(
     connection: &Connection,
     request: StoreDeltaScopeRequest<'_>,
     names: &BTreeSet<String>,
+    affected_languages: &BTreeSet<String>,
 ) -> Result<BTreeSet<i64>, ResolutionScopeError> {
     let mut versions = BTreeSet::new();
     for chunk in string_chunks(names) {
-        let placeholders = placeholders(chunk.len());
+        let name_placeholders = placeholders(chunk.len());
+        let language_placeholders = placeholders(affected_languages.len());
         let pending_sql = format!(
             "SELECT DISTINCT pending.version_id
              FROM manifest_entries AS entry
              JOIN pending_relationships AS pending ON pending.version_id=entry.version_id
+             LEFT JOIN reference_sites AS edge
+               ON edge.version_id=pending.version_id
+              AND edge.reference_site_id=pending.reference_site_id
+             JOIN file_versions AS version ON version.version_id=pending.version_id
              WHERE entry.view_id=? AND entry.generation=?
                AND entry.status IN ('indexed','failed_preserved')
-               AND (pending.target_terminal_name IN ({placeholders})
-                    OR pending.target_receiver IN ({placeholders}))"
+               AND (pending.target_terminal_name IN ({name_placeholders})
+                    OR pending.target_receiver IN ({name_placeholders}))
+               AND (edge.language IN ({language_placeholders})
+                    OR version.language IN ({language_placeholders}))"
         );
         let identifier_sql = format!(
             "SELECT DISTINCT identifier.version_id
@@ -420,16 +474,31 @@ fn versions_matching_names(
              JOIN identifiers AS identifier ON identifier.version_id=entry.version_id
              WHERE entry.view_id=? AND entry.generation=?
                AND entry.status IN ('indexed','failed_preserved')
-               AND (identifier.name IN ({placeholders})
-                    OR json_extract(identifier.metadata_json,'$.receiver') IN ({placeholders}))"
+               AND (identifier.name IN ({name_placeholders})
+                    OR json_extract(identifier.metadata_json,'$.receiver') IN ({name_placeholders}))
+               AND identifier.language IN ({language_placeholders})"
         );
-        for sql in [pending_sql, identifier_sql] {
+        for (sql, pending_language) in [(pending_sql, true), (identifier_sql, false)] {
             let mut bind = vec![
                 rusqlite::types::Value::Text(request.view_id.to_string()),
                 rusqlite::types::Value::Integer(request.manifest_generation),
             ];
             bind.extend(chunk.iter().cloned().map(rusqlite::types::Value::Text));
             bind.extend(chunk.iter().cloned().map(rusqlite::types::Value::Text));
+            bind.extend(
+                affected_languages
+                    .iter()
+                    .cloned()
+                    .map(rusqlite::types::Value::Text),
+            );
+            if pending_language {
+                bind.extend(
+                    affected_languages
+                        .iter()
+                        .cloned()
+                        .map(rusqlite::types::Value::Text),
+                );
+            }
             let mut statement = connection.prepare(&sql)?;
             for row in statement.query_map(rusqlite::params_from_iter(bind), |row| row.get(0))? {
                 versions.insert(row?);
