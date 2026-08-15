@@ -65,6 +65,48 @@ fn julie_extract_with_resolution_delta(args: &[&str], value: &str) -> std::proce
         .expect("julie-extract should start")
 }
 
+fn julie_extract_with_resolution_finalization_hook(
+    store: &Path,
+    request_id: &str,
+    idempotency_key: &str,
+    delta: Option<&str>,
+    delay_ms: Option<u64>,
+) -> std::process::Output {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_julie-extract"));
+    command
+        .args([
+            "store",
+            "resolve",
+            "--store",
+            store.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--request-id",
+            request_id,
+            "--idempotency-key",
+            idempotency_key,
+            "--json",
+        ])
+        .env(
+            "JULIE_EXTRACT_STORE_RESOLUTION_FAIL_BEFORE_EXACT_FINALIZE",
+            "1",
+        );
+    if let Some(delay_ms) = delay_ms {
+        command.env(
+            "JULIE_EXTRACT_STORE_RESOLUTION_DELAY_SCOPED_FINALIZE_MS",
+            delay_ms.to_string(),
+        );
+    } else {
+        command.env_remove("JULIE_EXTRACT_STORE_RESOLUTION_DELAY_SCOPED_FINALIZE_MS");
+    }
+    if let Some(delta) = delta {
+        command.env("JULIE_STORE_RESOLUTION_DELTA", delta);
+    } else {
+        command.env_remove("JULIE_STORE_RESOLUTION_DELTA");
+    }
+    command.output().expect("julie-extract should start")
+}
+
 #[track_caller]
 fn assert_ran(output: std::process::Output) {
     assert!(
@@ -152,6 +194,86 @@ fn create_full_store(temp: &TempDir) -> (PathBuf, PathBuf) {
     (root, store)
 }
 
+fn create_ready_store_with_below_crossover_change(temp: &TempDir) -> (PathBuf, PathBuf) {
+    let root = temp.path().join("scoped-source");
+    let store = temp.path().join("scoped-family");
+    let source = root.join("src");
+    fs::create_dir_all(&source).unwrap();
+    fs::write(
+        source.join("changed.rs"),
+        "pub fn changed_target() -> i32 { 1 }\npub fn changed_use() -> i32 { changed_target() }\n",
+    )
+    .unwrap();
+    for index in 0..8 {
+        fs::write(
+            source.join(format!("stable-{index}.rs")),
+            format!(
+                "pub fn stable_target_{index}() -> i32 {{ {index} }}\npub fn stable_use_{index}() -> i32 {{ stable_target_{index}() }}\n"
+            ),
+        )
+        .unwrap();
+    }
+    let import = julie_extract(&[
+        "store",
+        "import",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11",
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--level",
+        "full",
+        "--json",
+    ]);
+    assert_ran(import);
+    let seed = julie_extract_with_resolution_delta(
+        &[
+            "store",
+            "resolve",
+            "--store",
+            store.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--request-id",
+            "resolve-seeded-ready-base",
+            "--idempotency-key",
+            "resolve-seeded-ready-base-key",
+            "--json",
+        ],
+        "off",
+    );
+    assert_ran(seed);
+    fs::write(
+        source.join("changed.rs"),
+        "pub fn changed_target() -> i32 { 2 }\npub fn changed_use() -> i32 { changed_target() }\n",
+    )
+    .unwrap();
+    let update = julie_extract(&[
+        "store",
+        "update",
+        "--store",
+        store.to_str().unwrap(),
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--file",
+        "src/changed.rs",
+        "--level",
+        "full",
+        "--request-id",
+        "update-below-crossover",
+        "--idempotency-key",
+        "update-below-crossover-key",
+        "--json",
+    ]);
+    assert_ran(update);
+    (root, store)
+}
+
 fn install_canonical_gap_payload_bytes(store_db: &Path, view_id: &str, bytes: usize) {
     let prefix = r#"{"files":[1],"rows":[{"kind":"added","local_id":""#;
     let suffix = r#"","table":"identifier","version_id":1}]}"#;
@@ -217,6 +339,51 @@ fn resolve_output(store: &Path, request_id: &str, key: &str) -> std::process::Ou
         key,
         "--json",
     ])
+}
+
+#[test]
+fn scoped_resolution_streams_delta_without_full_exact_materialization() {
+    let temp = TempDir::new();
+    let (_root, store) = create_ready_store_with_below_crossover_change(&temp);
+
+    let forced = julie_extract_with_resolution_finalization_hook(
+        &store,
+        "resolve-hook-forced-full",
+        "resolve-hook-forced-full-key",
+        Some("off"),
+        None,
+    );
+    assert_eq!(forced.status.code(), Some(1));
+    let forced_report: Value = serde_json::from_slice(&forced.stdout).unwrap();
+    assert_eq!(forced_report["failure_class"], "resolution_failed");
+    assert_eq!(
+        forced_report["error"]["message"],
+        "resolution_failed: test hook before exact finalization"
+    );
+
+    let scoped = julie_extract_with_resolution_finalization_hook(
+        &store,
+        "resolve-hook-scoped-default",
+        "resolve-hook-scoped-default-key",
+        None,
+        Some(100),
+    );
+    assert!(
+        scoped.status.success(),
+        "stdout={} stderr={}",
+        String::from_utf8_lossy(&scoped.stdout),
+        String::from_utf8_lossy(&scoped.stderr)
+    );
+    let report: Value = serde_json::from_slice(&scoped.stdout).unwrap();
+    assert_eq!(report["resolution"]["resolution_mode"], "scoped");
+    assert!(report["resolution"]["fallback_reason"].is_null());
+    assert!(report["resolution"]["phase_timings_ms"]["resolution"].is_u64());
+    assert!(
+        report["resolution"]["phase_timings_ms"]["diff"]
+            .as_u64()
+            .unwrap()
+            >= 50
+    );
 }
 
 #[test]

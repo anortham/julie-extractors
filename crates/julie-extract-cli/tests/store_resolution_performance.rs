@@ -94,6 +94,17 @@ fn replay_pair_contract_runs_forced_full_before_scoped() {
 }
 
 #[test]
+fn performance_residual_subtracts_resolution_and_diff_without_scope_twice() {
+    let phase_timings_ms = BTreeMap::from([
+        ("resolution".to_string(), 200),
+        ("scope".to_string(), 50),
+        ("diff".to_string(), 100),
+    ]);
+
+    assert_eq!(derived_residual_ms(1_000, &phase_timings_ms), 700);
+}
+
+#[test]
 fn one_file_default_incremental_matches_full_escape_hatch() {
     let fixture = tempfile::tempdir().unwrap();
     let full_store_root = fixture.path().join("full-store");
@@ -1490,6 +1501,12 @@ fn parse_peak_rss(stderr: &[u8]) -> u64 {
     }
 }
 
+fn derived_residual_ms(wall_ms: u64, phase_timings_ms: &BTreeMap<String, u64>) -> u64 {
+    let resolution_ms = phase_timings_ms.get("resolution").copied().unwrap_or(0);
+    let diff_ms = phase_timings_ms.get("diff").copied().unwrap_or(0);
+    wall_ms.saturating_sub(resolution_ms.saturating_add(diff_ms))
+}
+
 fn measure_pair(store_root: &Path, pair: &str, run: usize, out_dir: &Path) -> Sample {
     assert!(PAIRS.contains(&pair));
     let layout = StoreLayout::open(store_root).unwrap();
@@ -1563,9 +1580,7 @@ fn measure_pair(store_root: &Path, pair: &str, run: usize, out_dir: &Path) -> Sa
     let resolution_compute_ms = phase_timings_ms.get("resolution").copied().unwrap_or(0);
     let diff_ms = phase_timings_ms.get("diff").copied().unwrap_or(0);
     let scoped_ms = phase_timings_ms.get("scope").copied().unwrap_or(0);
-    let publish_ms = timed
-        .wall_ms
-        .saturating_sub(resolution_compute_ms + diff_ms + scoped_ms);
+    let publish_ms = derived_residual_ms(timed.wall_ms, &phase_timings_ms);
     let base_bytes = current_resolution_base_bytes(&layout, &view_id);
 
     Sample {

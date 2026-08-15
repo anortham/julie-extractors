@@ -2,8 +2,8 @@
 
 use julie_extract_artifact::store::{
     ManifestEntry, ManifestStore, ResolutionBaseReader, ResolutionBaseWriter,
-    ResolutionIdentifierRow, ResolutionPendingRow, StoreConnectionFactory, StoreLayout,
-    ensure_resolution_scope_feature,
+    ResolutionIdentifierRow, ResolutionPendingRow, ResolutionScratchReader, StoreConnectionFactory,
+    StoreLayout, ensure_resolution_scope_feature, stream_resolution_diff,
 };
 use julie_extract_cli::resolution::{
     CandidateSymbol, EdgeOrigin, ReferenceKind, TierOutcome, TypeFact, UnresolvedEdge,
@@ -49,6 +49,38 @@ fn store_resolution_source_uses_only_bounded_ports() {
     assert_eq!(source.matches("DETACH DATABASE prior_").count(), 2);
     assert!(!source.contains("Incremental(String)"));
     assert!(!source.contains("IdentifierTotalityMissing"));
+}
+
+#[test]
+fn scoped_delta_finalizer_has_no_full_base_or_effective_walk() {
+    let source = include_str!("../src/store/resolution_session.rs");
+    let start = source
+        .find("    fn finish_scoped_delta_inner")
+        .expect("scoped finalizer should exist");
+    let helper_start = source
+        .find("const SCOPED_TARGET_BATCH")
+        .expect("scoped helper region should exist");
+    let end = source[helper_start..]
+        .find("impl CandidateLookup for StoreScratchResolutionSession")
+        .map(|offset| helper_start + offset)
+        .expect("scoped helper region should end before candidate lookup");
+    let finalizer = &source[start..end];
+    for forbidden in [
+        "ResolutionBaseReader::open",
+        "ResolutionBaseReader",
+        "PRAGMA integrity_check",
+        "integrity_check",
+        "ScopedBaseIdentifierCursor",
+        "ScopedBasePendingCursor",
+        "ScopedEffectiveIdentifierCursor",
+        "ScopedEffectivePendingCursor",
+        "validate_effective_identifier_totality",
+    ] {
+        assert!(
+            !finalizer.contains(forbidden),
+            "scoped finalizer retains unbounded path {forbidden}"
+        );
+    }
 }
 
 #[test]
@@ -2013,6 +2045,878 @@ fn scoped_store_resolution_reuses_predecessor_and_carries_unselected_sibling() {
 }
 
 #[test]
+fn scoped_delta_finalizer_matches_full_diff_and_emits_pending_tombstones() {
+    let temp = TempDir::new().unwrap();
+    let layout = StoreLayout::create(temp.path().join("family"), "family-a", "2.30.0").unwrap();
+    let factory = StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0");
+    let mut connection = factory.open_writer().unwrap();
+    ensure_resolution_scope_feature(&connection).unwrap();
+    ManifestStore::new(&mut connection)
+        .ensure_view("view-a", "/repo")
+        .unwrap();
+
+    let old_version = insert_version(&connection, "src/changed-old.rs", "rust", true);
+    let new_version = insert_version(&connection, "src/changed-new.rs", "rust", true);
+    connection
+        .execute(
+            "UPDATE file_versions SET path='src/changed.rs' WHERE version_id=?1",
+            [old_version],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "UPDATE file_versions SET path='src/changed.rs' WHERE version_id=?1",
+            [new_version],
+        )
+        .unwrap();
+    let untouched_version = insert_version(&connection, "src/untouched.rs", "rust", true);
+    let cold_version = insert_version(&connection, "src/cold.rs", "rust", true);
+    insert_named_symbol(
+        &connection,
+        old_version,
+        "old-target",
+        "OldTarget",
+        "src/changed.rs",
+    );
+    insert_named_symbol(
+        &connection,
+        new_version,
+        "new-target",
+        "NewTarget",
+        "src/changed.rs",
+    );
+    insert_named_symbol(
+        &connection,
+        untouched_version,
+        "stable-target",
+        "StableTarget",
+        "src/untouched.rs",
+    );
+    insert_named_symbol(
+        &connection,
+        cold_version,
+        "cold-target",
+        "ColdTarget",
+        "src/cold.rs",
+    );
+    insert_named_symbol(
+        &connection,
+        old_version,
+        "caller",
+        "caller",
+        "src/changed.rs",
+    );
+    insert_named_symbol(
+        &connection,
+        new_version,
+        "caller",
+        "caller",
+        "src/changed.rs",
+    );
+    insert_named_symbol(
+        &connection,
+        untouched_version,
+        "caller",
+        "caller",
+        "src/untouched.rs",
+    );
+    insert_named_symbol(&connection, cold_version, "caller", "caller", "src/cold.rs");
+    insert_named_identifier(
+        &connection,
+        old_version,
+        "old-use",
+        "OldTarget",
+        "src/changed.rs",
+    );
+    insert_named_identifier(
+        &connection,
+        new_version,
+        "new-use",
+        "NewTarget",
+        "src/changed.rs",
+    );
+    insert_named_identifier(
+        &connection,
+        untouched_version,
+        "stable-use",
+        "StableTarget",
+        "src/untouched.rs",
+    );
+    for index in 0..256 {
+        insert_named_identifier(
+            &connection,
+            untouched_version,
+            &format!("stable-zpadding-{index:03}"),
+            "StableTarget",
+            "src/untouched.rs",
+        );
+    }
+    insert_named_identifier(
+        &connection,
+        cold_version,
+        "cold-use",
+        "ColdTarget",
+        "src/cold.rs",
+    );
+    for index in 0..512 {
+        insert_named_identifier(
+            &connection,
+            cold_version,
+            &format!("cold-zpadding-{index:03}"),
+            "ColdTarget",
+            "src/cold.rs",
+        );
+    }
+    insert_named_pending(
+        &connection,
+        old_version,
+        "old-pending",
+        "OldTarget",
+        "src/changed.rs",
+    );
+    insert_named_pending(
+        &connection,
+        new_version,
+        "new-pending",
+        "NewTarget",
+        "src/changed.rs",
+    );
+    insert_named_pending(
+        &connection,
+        untouched_version,
+        "stable-pending",
+        "StableTarget",
+        "src/untouched.rs",
+    );
+    insert_named_pending(
+        &connection,
+        untouched_version,
+        "stable-carried-pending",
+        "StableTarget",
+        "src/untouched.rs",
+    );
+    insert_named_pending(
+        &connection,
+        cold_version,
+        "cold-pending",
+        "ColdTarget",
+        "src/cold.rs",
+    );
+
+    let first_entries = [
+        manifest_entry(&connection, old_version),
+        manifest_entry(&connection, untouched_version),
+        manifest_entry(&connection, cold_version),
+    ];
+    let first = publish_manifest(&mut connection, None, first_entries, "request-first");
+    let base_path = layout.bases_dir().join("base-a.db");
+    let mut base = ResolutionBaseWriter::new(&base_path, &first.manifest_hash, 6).unwrap();
+    base.push_source_version(old_version).unwrap();
+    base.push_source_version(untouched_version).unwrap();
+    base.push_source_version(cold_version).unwrap();
+    base.push_identifier_resolution(ResolutionIdentifierRow {
+        version_id: old_version,
+        identifier_id: "old-use".to_string(),
+        target_version_id: Some(old_version),
+        target_symbol_id: Some("old-target".to_string()),
+        tier: Some(4),
+        confidence: Some(0.55),
+        method: Some("base-old".to_string()),
+        outcome: "resolved".to_string(),
+        candidates: Some(1),
+    })
+    .unwrap();
+    base.push_identifier_resolution(ResolutionIdentifierRow {
+        version_id: untouched_version,
+        identifier_id: "stable-use".to_string(),
+        target_version_id: Some(untouched_version),
+        target_symbol_id: Some("stable-target".to_string()),
+        tier: Some(4),
+        confidence: Some(0.55),
+        method: Some("tier4_global".to_string()),
+        outcome: "resolved".to_string(),
+        candidates: None,
+    })
+    .unwrap();
+    for index in 0..256 {
+        base.push_identifier_resolution(ResolutionIdentifierRow {
+            version_id: untouched_version,
+            identifier_id: format!("stable-zpadding-{index:03}"),
+            target_version_id: Some(untouched_version),
+            target_symbol_id: Some("stable-target".to_string()),
+            tier: Some(4),
+            confidence: Some(0.55),
+            method: Some(if index == 0 {
+                "base-zpadding".to_string()
+            } else {
+                "tier4_global".to_string()
+            }),
+            outcome: "resolved".to_string(),
+            candidates: None,
+        })
+        .unwrap();
+    }
+    base.push_identifier_resolution(ResolutionIdentifierRow {
+        version_id: cold_version,
+        identifier_id: "cold-use".to_string(),
+        target_version_id: Some(cold_version),
+        target_symbol_id: Some("cold-target".to_string()),
+        tier: Some(4),
+        confidence: Some(0.55),
+        method: Some("tier4_global".to_string()),
+        outcome: "resolved".to_string(),
+        candidates: None,
+    })
+    .unwrap();
+    for index in 0..512 {
+        base.push_identifier_resolution(ResolutionIdentifierRow {
+            version_id: cold_version,
+            identifier_id: format!("cold-zpadding-{index:03}"),
+            target_version_id: Some(cold_version),
+            target_symbol_id: Some("cold-target".to_string()),
+            tier: Some(4),
+            confidence: Some(0.55),
+            method: Some("tier4_global".to_string()),
+            outcome: "resolved".to_string(),
+            candidates: None,
+        })
+        .unwrap();
+    }
+    base.push_pending_resolution(ResolutionPendingRow {
+        version_id: old_version,
+        pending_relationship_id: "old-pending".to_string(),
+        target_version_id: old_version,
+        target_symbol_id: "old-target".to_string(),
+        tier: 4,
+        confidence: 0.55,
+        method: "base-old".to_string(),
+    })
+    .unwrap();
+    base.push_pending_resolution(ResolutionPendingRow {
+        version_id: untouched_version,
+        pending_relationship_id: "stable-carried-pending".to_string(),
+        target_version_id: untouched_version,
+        target_symbol_id: "stable-target".to_string(),
+        tier: 4,
+        confidence: 0.55,
+        method: "tier4_global".to_string(),
+    })
+    .unwrap();
+    base.push_pending_resolution(ResolutionPendingRow {
+        version_id: untouched_version,
+        pending_relationship_id: "stable-pending".to_string(),
+        target_version_id: untouched_version,
+        target_symbol_id: "stable-target".to_string(),
+        tier: 4,
+        confidence: 0.55,
+        method: "tier4_global".to_string(),
+    })
+    .unwrap();
+    base.push_pending_resolution(ResolutionPendingRow {
+        version_id: cold_version,
+        pending_relationship_id: "cold-pending".to_string(),
+        target_version_id: cold_version,
+        target_symbol_id: "cold-target".to_string(),
+        tier: 4,
+        confidence: 0.55,
+        method: "tier4_global".to_string(),
+    })
+    .unwrap();
+    let base_identity = base.finish_with_target_lookup(|_, _| Ok(true)).unwrap();
+    connection
+        .execute(
+            "INSERT INTO resolution_bases
+             (base_id,manifest_hash,resolver_output_epoch,state,relative_path,identifier_count,
+              pending_count,file_bytes,file_sha256,request_id,created_at,updated_at)
+             VALUES ('base-a',?1,6,'ready','bases/base-a.db',771,4,?2,?3,'request-base',?4,?4)",
+            params![
+                first.manifest_hash,
+                i64::try_from(base_identity.file_bytes).unwrap(),
+                base_identity.file_sha256,
+                NOW
+            ],
+        )
+        .unwrap();
+    for version_id in [old_version, untouched_version, cold_version] {
+        connection
+            .execute(
+                "INSERT INTO resolution_base_versions(base_id,version_id) VALUES ('base-a',?1)",
+                [version_id],
+            )
+            .unwrap();
+    }
+    let prior_gap_json = format!(
+        r#"{{"files":[{untouched_version}],"rows":[{{"kind":"replaced","local_id":"stable-use","table":"identifier","version_id":{untouched_version}}},{{"kind":"replaced","local_id":"stable-zpadding-000","table":"identifier","version_id":{untouched_version}}},{{"kind":"replaced","local_id":"stable-pending","table":"pending","version_id":{untouched_version}}},{{"kind":"replaced","local_id":"stable-carried-pending","table":"pending","version_id":{untouched_version}}}]}}"#
+    );
+    let valid_gap_json = prior_gap_json.clone();
+    connection
+        .execute(
+            "INSERT INTO resolution_deltas
+             (view_id,delta_generation,base_id,manifest_generation,manifest_hash,resolver_output_epoch,
+              identifier_replacements,pending_replacements,pending_tombstones,exact_gap_rows,
+              exact_gap_files,exact_gap_json,request_id,created_at)
+             VALUES ('view-a',1,'base-a',?1,?2,6,2,2,0,4,1,?3,'request-base',?4)",
+            params![
+                i64::try_from(first.generation).unwrap(),
+                first.manifest_hash,
+                prior_gap_json,
+                NOW
+            ],
+        )
+        .unwrap();
+    for identifier_id in ["stable-use", "stable-zpadding-000"] {
+        connection
+            .execute(
+                "INSERT INTO resolution_identifier_deltas
+                 (view_id,delta_generation,version_id,identifier_id,target_version_id,target_symbol_id,
+                  tier,confidence,method,outcome,candidates)
+                 VALUES ('view-a',1,?1,?2,?1,'stable-target',4,0.55,?3,'resolved',NULL)",
+                params![untouched_version, identifier_id, "tier4_global"],
+            )
+            .unwrap();
+    }
+    connection
+        .execute(
+            "INSERT INTO resolution_pending_deltas
+             (view_id,delta_generation,version_id,pending_relationship_id,operation,
+              target_version_id,target_symbol_id,tier,confidence,method)
+             VALUES ('view-a',1,?1,'stable-pending','replace',?1,'stable-target',4,0.8,
+                     'prior-pending')",
+            [untouched_version],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO resolution_pending_deltas
+             (view_id,delta_generation,version_id,pending_relationship_id,operation,
+              target_version_id,target_symbol_id,tier,confidence,method)
+             VALUES ('view-a',1,?1,'stable-carried-pending','replace',?1,'stable-target',4,0.8,
+                     'prior-carried-pending')",
+            [untouched_version],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "UPDATE views SET resolution_state='exact',resolution_base_id='base-a',
+             resolution_delta_generation=1,resolution_exact_at=?1 WHERE view_id='view-a'",
+            [i64::try_from(first.generation).unwrap()],
+        )
+        .unwrap();
+    let second_entries = [
+        manifest_entry(&connection, new_version),
+        manifest_entry(&connection, untouched_version),
+        manifest_entry(&connection, cold_version),
+    ];
+    let second = publish_manifest(
+        &mut connection,
+        Some(i64::try_from(first.generation).unwrap()),
+        second_entries,
+        "request-second",
+    );
+    drop(connection);
+
+    let current_identity = StoreManifestIdentity {
+        family_id: "family-a".to_string(),
+        view_id: "view-a".to_string(),
+        generation: i64::try_from(second.generation).unwrap(),
+        manifest_hash: second.manifest_hash.clone(),
+    };
+    let forced_path = temp.path().join("forced-exact.db");
+    let mut forced = StoreScratchResolutionSession::new(
+        factory.clone(),
+        current_identity.clone(),
+        &forced_path,
+        2,
+        6,
+    )
+    .unwrap();
+    run_resolution_session(&mut forced, true, true).unwrap();
+    let mut touched_over_prior = ResolutionWriteBatch::default();
+    touched_over_prior.record_identifier_outcome(
+        SemanticIdentifierId {
+            version: SemanticVersionId::Store(untouched_version),
+            local_id: "stable-use".to_string(),
+        },
+        julie_extract_artifact::resolution_store::Outcome::Resolved,
+        Some(SemanticSymbolId {
+            version: SemanticVersionId::Store(untouched_version),
+            local_id: "stable-target".to_string(),
+        }),
+        Some(4),
+        Some(0.99),
+        Some("touched-over-prior"),
+        Some(1),
+        6,
+    );
+    touched_over_prior.record_pending_resolution(
+        SemanticPendingRelationshipId {
+            version: SemanticVersionId::Store(untouched_version),
+            local_id: "stable-pending".to_string(),
+        },
+        SemanticSymbolId {
+            version: SemanticVersionId::Store(untouched_version),
+            local_id: "stable-target".to_string(),
+        },
+        4,
+        0.99,
+        "touched-pending",
+        6,
+    );
+    let mut forced_overrides = touched_over_prior.clone();
+    forced_overrides.record_pending_resolution(
+        SemanticPendingRelationshipId {
+            version: SemanticVersionId::Store(untouched_version),
+            local_id: "stable-carried-pending".to_string(),
+        },
+        SemanticSymbolId {
+            version: SemanticVersionId::Store(untouched_version),
+            local_id: "stable-target".to_string(),
+        },
+        4,
+        0.8,
+        "prior-carried-pending",
+        6,
+    );
+    forced.flush(forced_overrides).unwrap();
+    forced.finish_exact().unwrap();
+
+    let base_reader = ResolutionBaseReader::open(&base_path).unwrap();
+    let forced_reader = ResolutionBaseReader::open(&forced_path).unwrap();
+    let oracle_path = temp.path().join("oracle-delta.db");
+    let mut oracle_gaps = Vec::new();
+    let oracle_result =
+        stream_resolution_diff(&base_reader, &forced_reader, &oracle_path, 2, |gap| {
+            oracle_gaps.push(gap);
+            Ok(())
+        })
+        .unwrap();
+    let oracle = ResolutionScratchReader::open(&oracle_path).unwrap();
+    let oracle_identifiers = oracle.identifier_replacements().unwrap();
+    let oracle_pending = oracle.pending_replacements().unwrap();
+    let oracle_tombstones = oracle.pending_tombstones().unwrap();
+    assert!(
+        oracle_identifiers
+            .iter()
+            .any(|row| { row.version_id == new_version && row.identifier_id == "new-use" })
+    );
+    assert!(oracle_identifiers.iter().any(|row| {
+        row.version_id == untouched_version
+            && row.identifier_id == "stable-zpadding-000"
+            && row.method.as_deref() == Some("tier4_global")
+    }));
+    assert!(oracle_identifiers.iter().any(|row| {
+        row.version_id == untouched_version
+            && row.identifier_id == "stable-use"
+            && row.method.as_deref() == Some("touched-over-prior")
+    }));
+    assert!(oracle_pending.iter().any(|row| {
+        row.version_id == untouched_version
+            && row.pending_relationship_id == "stable-pending"
+            && row.method == "touched-pending"
+    }));
+    assert!(oracle_pending.iter().any(|row| {
+        row.version_id == untouched_version
+            && row.pending_relationship_id == "stable-carried-pending"
+            && row.method == "prior-carried-pending"
+    }));
+    assert!(oracle_tombstones.iter().any(|row| {
+        row.version_id == old_version && row.pending_relationship_id == "old-pending"
+    }));
+
+    let direct_exact_path = temp.path().join("direct-exact.db");
+    let direct_delta_path = temp.path().join("direct-delta.db");
+    let mut direct =
+        StoreScratchResolutionSession::new(factory, current_identity, &direct_exact_path, 2, 6)
+            .unwrap();
+    run_resolution_session(&mut direct, false, true).unwrap();
+    direct.flush(touched_over_prior).unwrap();
+    let mut direct_gaps = Vec::new();
+    let (_, finalization_telemetry) = direct
+        .finish_scoped_delta_observing(&direct_delta_path, |gap| {
+            direct_gaps.push(gap);
+            Ok(())
+        })
+        .unwrap();
+    assert!(finalization_telemetry.current_identifier_queries <= 2);
+    assert!(finalization_telemetry.current_identifier_rows <= 4);
+    assert!(finalization_telemetry.current_pending_queries <= 2);
+    assert!(finalization_telemetry.current_pending_rows <= 4);
+    assert!(finalization_telemetry.prior_identifier_queries <= 2);
+    assert!(finalization_telemetry.prior_identifier_rows <= 4);
+    assert!(finalization_telemetry.prior_pending_queries <= 2);
+    assert!(finalization_telemetry.prior_pending_rows <= 4);
+    assert!(finalization_telemetry.base_identifier_queries <= 4);
+    assert!(finalization_telemetry.base_identifier_rows <= 4);
+    assert!(finalization_telemetry.base_pending_queries <= 4);
+    assert!(finalization_telemetry.base_pending_rows <= 4);
+    assert_eq!(finalization_telemetry.base_keyed_reader_opens, 1);
+    assert_eq!(finalization_telemetry.base_identifier_target_queries, 1);
+    assert_eq!(finalization_telemetry.base_pending_target_queries, 1);
+    assert_eq!(finalization_telemetry.base_identifier_target_rows, 1);
+    assert_eq!(finalization_telemetry.base_pending_target_rows, 1);
+    assert_eq!(finalization_telemetry.target_validation_queries, 1);
+    assert!(finalization_telemetry.target_validation_targets >= 2);
+    assert!(finalization_telemetry.target_validation_targets <= 8);
+    let direct_reader = ResolutionScratchReader::open(&direct_delta_path).unwrap();
+    assert!(!direct_exact_path.exists());
+    assert_eq!(
+        direct_reader.identifier_replacements().unwrap(),
+        oracle_identifiers
+    );
+    assert_eq!(
+        direct_reader.pending_replacements().unwrap(),
+        oracle_pending
+    );
+    assert_eq!(
+        direct_reader.pending_tombstones().unwrap(),
+        oracle_tombstones
+    );
+    assert_eq!(direct_gaps, oracle_gaps);
+    assert_eq!(oracle_result.gaps as usize, direct_gaps.len());
+    drop(base_reader);
+    drop(forced_reader);
+
+    let duplicate_gap_json = format!(
+        r#"{{"files":[{untouched_version}],"rows":[{{"kind":"replaced","local_id":"stable-use","table":"identifier","version_id":{untouched_version}}},{{"kind":"replaced","local_id":"stable-use","table":"identifier","version_id":{untouched_version}}},{{"kind":"replaced","local_id":"stable-zpadding-000","table":"identifier","version_id":{untouched_version}}},{{"kind":"replaced","local_id":"stable-pending","table":"pending","version_id":{untouched_version}}}]}}"#
+    );
+    let corruption_connection = Connection::open(layout.store_db()).unwrap();
+    corruption_connection
+        .execute(
+            "UPDATE resolution_deltas
+             SET exact_gap_rows=4,exact_gap_files=1,exact_gap_json=?1
+             WHERE view_id='view-a' AND delta_generation=1",
+            [&duplicate_gap_json],
+        )
+        .unwrap();
+    let duplicate_exact_path = temp.path().join("duplicate-gap-exact.db");
+    let duplicate_delta_path = temp.path().join("duplicate-gap-delta.db");
+    let mut duplicate = StoreScratchResolutionSession::new(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0"),
+        StoreManifestIdentity {
+            family_id: "family-a".to_string(),
+            view_id: "view-a".to_string(),
+            generation: i64::try_from(second.generation).unwrap(),
+            manifest_hash: second.manifest_hash.clone(),
+        },
+        &duplicate_exact_path,
+        2,
+        6,
+    )
+    .unwrap();
+    run_resolution_session(&mut duplicate, false, true).unwrap();
+    assert!(matches!(
+        duplicate
+            .finish_scoped_delta(&duplicate_delta_path, |_| Ok(()))
+            .unwrap_err(),
+        StoreResolutionError::Artifact(
+            julie_extract_artifact::store::ResolutionValidationError::InvalidMetadata {
+                key,
+                ..
+            }
+        ) if key == "exact_gap_json"
+    ));
+    corruption_connection
+        .execute(
+            "UPDATE resolution_deltas
+             SET exact_gap_rows=99,exact_gap_files=1,exact_gap_json=?1
+             WHERE view_id='view-a' AND delta_generation=1",
+            [&valid_gap_json],
+        )
+        .unwrap();
+    let count_exact_path = temp.path().join("count-gap-exact.db");
+    let count_delta_path = temp.path().join("count-gap-delta.db");
+    let mut count_mismatch = StoreScratchResolutionSession::new(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0"),
+        StoreManifestIdentity {
+            family_id: "family-a".to_string(),
+            view_id: "view-a".to_string(),
+            generation: i64::try_from(second.generation).unwrap(),
+            manifest_hash: second.manifest_hash.clone(),
+        },
+        &count_exact_path,
+        2,
+        6,
+    )
+    .unwrap();
+    run_resolution_session(&mut count_mismatch, false, true).unwrap();
+    assert!(matches!(
+        count_mismatch
+            .finish_scoped_delta(&count_delta_path, |_| Ok(()))
+            .unwrap_err(),
+        StoreResolutionError::Artifact(
+            julie_extract_artifact::store::ResolutionValidationError::InvalidMetadata {
+                key,
+                ..
+            }
+        ) if key == "exact_gap_rows"
+    ));
+    corruption_connection
+        .execute(
+            "UPDATE resolution_deltas
+             SET exact_gap_rows=4,exact_gap_files=1,exact_gap_json=?1
+             WHERE view_id='view-a' AND delta_generation=1",
+            [&valid_gap_json],
+        )
+        .unwrap();
+    drop(corruption_connection);
+
+    let set_base_target = |target_version_id: i64, target_symbol_id: &str, method: &str| {
+        let base_connection = Connection::open(&base_path).unwrap();
+        base_connection
+            .execute(
+                "UPDATE identifier_resolutions
+                 SET target_version_id=?1,target_symbol_id=?2,method=?3
+                 WHERE version_id=?4 AND identifier_id='stable-zpadding-001'",
+                params![
+                    target_version_id,
+                    target_symbol_id,
+                    method,
+                    untouched_version
+                ],
+            )
+            .unwrap();
+        base_connection
+            .execute_batch("PRAGMA wal_checkpoint(TRUNCATE)")
+            .unwrap();
+        drop(base_connection);
+        let reader = ResolutionBaseReader::open(&base_path).unwrap();
+        let identity = reader.file_identity();
+        let catalog = Connection::open(layout.store_db()).unwrap();
+        catalog
+            .execute(
+                "UPDATE resolution_bases
+                 SET file_bytes=?1,file_sha256=?2 WHERE base_id='base-a'",
+                params![
+                    i64::try_from(identity.file_bytes).unwrap(),
+                    identity.file_sha256
+                ],
+            )
+            .unwrap();
+    };
+    set_base_target(old_version, "old-target", "stale-implicit-base");
+    let implicit_exact_path = temp.path().join("stale-implicit-exact.db");
+    let implicit_delta_path = temp.path().join("stale-implicit-delta.db");
+    let mut implicit = StoreScratchResolutionSession::new(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0"),
+        StoreManifestIdentity {
+            family_id: "family-a".to_string(),
+            view_id: "view-a".to_string(),
+            generation: i64::try_from(second.generation).unwrap(),
+            manifest_hash: second.manifest_hash.clone(),
+        },
+        &implicit_exact_path,
+        2,
+        6,
+    )
+    .unwrap();
+    run_resolution_session(&mut implicit, false, true).unwrap();
+    assert!(matches!(
+        implicit
+            .finish_scoped_delta(&implicit_delta_path, |_| Ok(()))
+            .unwrap_err(),
+        StoreResolutionError::Artifact(
+            julie_extract_artifact::store::ResolutionValidationError::TargetMissing {
+                version_id,
+                symbol_id
+            }
+        ) if version_id == old_version && symbol_id == "old-target"
+    ));
+    set_base_target(untouched_version, "stable-target", "tier4_global");
+
+    let stale_connection = Connection::open(layout.store_db()).unwrap();
+    stale_connection
+        .execute(
+            "UPDATE resolution_pending_deltas
+             SET target_version_id=?1,target_symbol_id='old-target',method='stale-carried-pending'
+             WHERE view_id='view-a' AND delta_generation=1
+               AND version_id=?2 AND pending_relationship_id='stable-carried-pending'",
+            params![old_version, untouched_version],
+        )
+        .unwrap();
+    let stale_pending_exact_path = temp.path().join("stale-pending-exact.db");
+    let stale_pending_delta_path = temp.path().join("stale-pending-delta.db");
+    let mut stale_pending = StoreScratchResolutionSession::new(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0"),
+        StoreManifestIdentity {
+            family_id: "family-a".to_string(),
+            view_id: "view-a".to_string(),
+            generation: i64::try_from(second.generation).unwrap(),
+            manifest_hash: second.manifest_hash.clone(),
+        },
+        &stale_pending_exact_path,
+        2,
+        6,
+    )
+    .unwrap();
+    run_resolution_session(&mut stale_pending, false, true).unwrap();
+    assert!(matches!(
+        stale_pending
+            .finish_scoped_delta(&stale_pending_delta_path, |_| Ok(()))
+            .unwrap_err(),
+        StoreResolutionError::Artifact(
+            julie_extract_artifact::store::ResolutionValidationError::TargetMissing {
+                version_id,
+                symbol_id
+            }
+        ) if version_id == old_version && symbol_id == "old-target"
+    ));
+    stale_connection
+        .execute(
+            "UPDATE resolution_pending_deltas
+             SET target_version_id=?1,target_symbol_id='stable-target',method='prior-carried-pending'
+             WHERE view_id='view-a' AND delta_generation=1
+               AND version_id=?2 AND pending_relationship_id='stable-carried-pending'",
+            params![untouched_version, untouched_version],
+        )
+        .unwrap();
+    stale_connection
+        .execute(
+            "UPDATE resolution_identifier_deltas
+             SET target_version_id=?1,target_symbol_id='old-target',method='stale-carried'
+             WHERE view_id='view-a' AND delta_generation=1
+               AND version_id=?2 AND identifier_id='stable-use'",
+            params![old_version, untouched_version],
+        )
+        .unwrap();
+    let stale_exact_path = temp.path().join("stale-carried-exact.db");
+    let stale_delta_path = temp.path().join("stale-carried-delta.db");
+    let mut stale = StoreScratchResolutionSession::new(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0"),
+        StoreManifestIdentity {
+            family_id: "family-a".to_string(),
+            view_id: "view-a".to_string(),
+            generation: i64::try_from(second.generation).unwrap(),
+            manifest_hash: second.manifest_hash.clone(),
+        },
+        &stale_exact_path,
+        2,
+        6,
+    )
+    .unwrap();
+    run_resolution_session(&mut stale, false, true).unwrap();
+    assert!(matches!(
+        stale
+            .finish_scoped_delta(&stale_delta_path, |_| Ok(()))
+            .unwrap_err(),
+        StoreResolutionError::Artifact(
+            julie_extract_artifact::store::ResolutionValidationError::TargetMissing {
+                version_id,
+                symbol_id
+            }
+        ) if version_id == old_version && symbol_id == "old-target"
+    ));
+    stale_connection
+        .execute(
+            "UPDATE resolution_identifier_deltas
+             SET target_version_id=?1,target_symbol_id='stable-target',method='tier4_global'
+             WHERE view_id='view-a' AND delta_generation=1
+               AND version_id=?2 AND identifier_id='stable-use'",
+            params![untouched_version, untouched_version],
+        )
+        .unwrap();
+
+    let assert_scratch_clean = |path: &Path| {
+        for suffix in ["", ".work", ".work-wal", ".work-shm", "-wal", "-shm"] {
+            let candidate = if suffix.is_empty() {
+                path.to_path_buf()
+            } else if suffix.starts_with('.') {
+                Path::new(&format!("{}{}", path.display(), suffix)).to_path_buf()
+            } else {
+                Path::new(&format!("{}{}", path.display(), suffix)).to_path_buf()
+            };
+            assert!(
+                !candidate.exists(),
+                "scratch artifact remains: {}",
+                candidate.display()
+            );
+        }
+    };
+
+    let totality_path = temp.path().join("direct-totality-exact.db");
+    let totality_delta_path = temp.path().join("direct-totality-delta.db");
+    let mut totality = StoreScratchResolutionSession::new(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0"),
+        StoreManifestIdentity {
+            family_id: "family-a".to_string(),
+            view_id: "view-a".to_string(),
+            generation: i64::try_from(second.generation).unwrap(),
+            manifest_hash: second.manifest_hash.clone(),
+        },
+        &totality_path,
+        2,
+        6,
+    )
+    .unwrap();
+    run_resolution_session(&mut totality, false, true).unwrap();
+    totality
+        .remove_identifier_resolution_without_touch_for_test(new_version, "new-use")
+        .unwrap();
+    let error = totality
+        .finish_scoped_delta(&totality_delta_path, |_| Ok(()))
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        StoreResolutionError::Artifact(
+            julie_extract_artifact::store::ResolutionValidationError::IdentifierTotalityViolation {
+                version_id,
+                identifier_id
+            }
+        ) if version_id == new_version && identifier_id == "new-use"
+    ));
+    assert_scratch_clean(&totality_path);
+    assert_scratch_clean(&totality_delta_path);
+
+    let target_path = temp.path().join("direct-target-exact.db");
+    let target_delta_path = temp.path().join("direct-target-delta.db");
+    let mut target = StoreScratchResolutionSession::new(
+        StoreConnectionFactory::new(layout, "family-a", "2.30.0"),
+        StoreManifestIdentity {
+            family_id: "family-a".to_string(),
+            view_id: "view-a".to_string(),
+            generation: i64::try_from(second.generation).unwrap(),
+            manifest_hash: second.manifest_hash,
+        },
+        &target_path,
+        2,
+        6,
+    )
+    .unwrap();
+    run_resolution_session(&mut target, false, true).unwrap();
+    let mut stale_target = ResolutionWriteBatch::default();
+    stale_target.record_identifier_outcome(
+        SemanticIdentifierId {
+            version: SemanticVersionId::Store(new_version),
+            local_id: "new-use".to_string(),
+        },
+        julie_extract_artifact::resolution_store::Outcome::Resolved,
+        Some(SemanticSymbolId {
+            version: SemanticVersionId::Store(new_version),
+            local_id: "stale-target".to_string(),
+        }),
+        Some(4),
+        Some(1.0),
+        Some("stale-target"),
+        Some(1),
+        6,
+    );
+    target.flush(stale_target).unwrap();
+    let error = target
+        .finish_scoped_delta(&target_delta_path, |_| Ok(()))
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        StoreResolutionError::Artifact(
+            julie_extract_artifact::store::ResolutionValidationError::TargetMissing {
+                version_id,
+                symbol_id
+            }
+        ) if version_id == new_version && symbol_id == "stale-target"
+    ));
+    assert_scratch_clean(&target_path);
+    assert_scratch_clean(&target_delta_path);
+}
+
+#[test]
 fn pinned_fixture_store_session_matches_legacy_semantics() {
     let temp = TempDir::new().unwrap();
     let root = temp.path().join("repo");
@@ -2416,4 +3320,39 @@ fn insert_named_identifier(
          VALUES (?1,?2,?3,?4,'rust',?5,'call',2,1,2,5,5,9,1.0)",
         params![version_id, identifier_id, site_id, path, name],
     ).unwrap();
+}
+
+fn insert_named_pending(
+    connection: &Connection,
+    version_id: i64,
+    pending_relationship_id: &str,
+    target_name: &str,
+    path: &str,
+) {
+    let site_id = format!("site-pending-{pending_relationship_id}");
+    connection
+        .execute(
+            "INSERT INTO reference_sites(version_id,reference_site_id,path,language,
+         start_line,start_column,end_line,end_column,start_byte,end_byte,is_exact,provenance,level)
+         VALUES (?1,?2,?3,'rust',2,1,2,5,5,9,1,'target_token',2)",
+            params![version_id, site_id, path],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO pending_relationships
+             (version_id,pending_relationship_id,reference_site_id,from_symbol_id,
+              caller_scope_symbol_id,path,kind,target_display_name,target_terminal_name,
+              target_namespace_json,start_line,start_column,end_line,end_column,start_byte,end_byte,
+              confidence)
+             VALUES (?1,?2,?3,'caller','caller',?4,'calls',?5,?5,'[]',2,1,2,5,5,9,1.0)",
+            params![
+                version_id,
+                pending_relationship_id,
+                site_id,
+                path,
+                target_name
+            ],
+        )
+        .unwrap();
 }

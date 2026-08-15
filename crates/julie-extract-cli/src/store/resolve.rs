@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -9,11 +9,11 @@ use std::time::{Duration, Instant};
 use julie_extract_artifact::store::{
     CoordinatorRequest, GenerationFence, LeaseDisposition, LeaseHolder, RequestKind, RequestState,
     ResolutionBaseBegin, ResolutionBaseBuild, ResolutionBaseCatalog, ResolutionBaseReader,
-    ResolutionBaseRecovery, ResolutionBindingStore, ResolutionConvergenceBegin,
-    ResolutionExactPublish, ResolutionGapFact, ResolutionPinOwnerKind, ResolutionPublicationFence,
-    ResolutionScratchReader, ResolutionViewBinding, StoreConnectionFactory, StoreCoordinator,
-    StoreLayout, StoreLog, StoreLogEntry, ViewResolutionState, renew_writer_lease_with_retry,
-    stream_resolution_diff,
+    ResolutionBaseRecovery, ResolutionBaseWriter, ResolutionBindingStore,
+    ResolutionConvergenceBegin, ResolutionExactPublish, ResolutionGapFact, ResolutionPinOwnerKind,
+    ResolutionPublicationFence, ResolutionScratchReader, ResolutionViewBinding,
+    StoreConnectionFactory, StoreCoordinator, StoreLayout, StoreLog, StoreLogEntry,
+    ViewResolutionState, apply_base_delta, renew_writer_lease_with_retry, stream_resolution_diff,
 };
 use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
@@ -537,6 +537,9 @@ fn resolve_claimed(
         true,
     )
     .map_err(classify_resolution_error)?;
+    telemetry
+        .phase_timings_ms
+        .insert("resolution".to_string(), elapsed_millis(resolution_started));
     let decision = exact_session
         .decision_telemetry()
         .cloned()
@@ -559,14 +562,6 @@ fn resolve_claimed(
     telemetry
         .phase_timings_ms
         .insert("scope".to_string(), decision.elapsed_millis);
-    exact_session
-        .finish_exact()
-        .map_err(classify_resolution_error)?;
-    telemetry
-        .phase_timings_ms
-        .insert("resolution".to_string(), elapsed_millis(resolution_started));
-    heartbeat.ensure_current(coordinator, request, holder)?;
-
     let base_relative_path = factory
         .open_reader()
         .map_err(|error| format!("resolution_failed: {error}"))?
@@ -576,21 +571,46 @@ fn resolve_claimed(
             |row| row.get::<_, String>(0),
         )
         .map_err(|error| format!("resolution_failed: {error}"))?;
-    let base = ResolutionBaseReader::open(layout.generation_dir().join(base_relative_path))
-        .map_err(|error| format!("resolution_failed: {error}"))?;
-    let exact = ResolutionBaseReader::open(&exact_path)
-        .map_err(|error| format!("resolution_failed: {error}"))?;
+    let base_path = layout.generation_dir().join(base_relative_path);
     remove_sqlite_if_exists(&delta_path)?;
     let mut gaps = Vec::<ResolutionGapFact>::new();
-    let diff_started = Instant::now();
-    stream_resolution_diff(&base, &exact, &delta_path, RESOLUTION_WINDOW_SIZE, |gap| {
-        gaps.push(gap);
-        Ok(())
-    })
-    .map_err(|error| format!("resolution_failed: {error}"))?;
-    telemetry
-        .phase_timings_ms
-        .insert("diff".to_string(), elapsed_millis(diff_started));
+    let mut base_reader = None;
+    let mut exact_reader = None;
+    if decision.effective_full {
+        #[cfg(feature = "test-store-resolution-contract")]
+        fail_before_exact_finalize_for_test()?;
+        exact_session
+            .finish_exact()
+            .map_err(classify_resolution_error)?;
+        heartbeat.ensure_current(coordinator, request, holder)?;
+        let base = ResolutionBaseReader::open(&base_path)
+            .map_err(|error| format!("resolution_failed: {error}"))?;
+        let exact = ResolutionBaseReader::open(&exact_path)
+            .map_err(|error| format!("resolution_failed: {error}"))?;
+        let diff_started = Instant::now();
+        stream_resolution_diff(&base, &exact, &delta_path, RESOLUTION_WINDOW_SIZE, |gap| {
+            gaps.push(gap);
+            Ok(())
+        })
+        .map_err(|error| format!("resolution_failed: {error}"))?;
+        telemetry
+            .phase_timings_ms
+            .insert("diff".to_string(), elapsed_millis(diff_started));
+        base_reader = Some(base);
+        exact_reader = Some(exact);
+    } else {
+        let diff_started = Instant::now();
+        exact_session
+            .finish_scoped_delta(&delta_path, |gap| {
+                gaps.push(gap);
+                Ok(())
+            })
+            .map_err(classify_resolution_error)?;
+        telemetry
+            .phase_timings_ms
+            .insert("diff".to_string(), elapsed_millis(diff_started));
+        heartbeat.ensure_current(coordinator, request, holder)?;
+    }
     let scratch = ResolutionScratchReader::open(&delta_path)
         .map_err(|error| format!("resolution_failed: {error}"))?;
     let publication = ResolutionExactPublish {
@@ -613,8 +633,19 @@ fn resolve_claimed(
     julie_extract_artifact::store::test_hooks::crash_if("resolution_before_exact_publish");
     if rebase_required {
         drop(scratch);
-        drop(exact);
-        drop(base);
+        drop(exact_reader.take());
+        drop(base_reader.take());
+        if !exact_path.exists() {
+            materialize_exact_for_rebase(
+                &factory,
+                &identity,
+                payload.resolver_output_epoch,
+                &base_path,
+                &delta_path,
+                &exact_path,
+                RESOLUTION_WINDOW_SIZE,
+            )?;
+        }
         remove_sqlite_if_exists(&delta_path)?;
         let (rebased_base_id, mut rebased_pin_guard) = prepare_rebased_base(
             layout,
@@ -771,10 +802,92 @@ fn resolve_claimed(
         },
     )?;
     drop(scratch);
-    drop(exact);
-    drop(base);
+    drop(exact_reader);
+    drop(base_reader);
     remove_sqlite_if_exists(&delta_path)?;
     remove_sqlite_if_exists(&exact_path)?;
+    Ok(())
+}
+
+fn materialize_exact_for_rebase(
+    factory: &StoreConnectionFactory,
+    identity: &StoreManifestIdentity,
+    resolver_output_epoch: i64,
+    base_path: &Path,
+    delta_path: &Path,
+    exact_path: &Path,
+    window_size: usize,
+) -> Result<(), String> {
+    remove_sqlite_if_exists(exact_path)?;
+    let connection = factory
+        .open_reader()
+        .map_err(|error| format!("resolution_failed: {error}"))?;
+    let visible_versions = connection
+        .prepare(
+            "SELECT version_id
+             FROM manifest_entries
+             WHERE view_id=?1 AND generation=?2
+               AND status IN ('indexed','failed_preserved')
+             ORDER BY version_id",
+        )
+        .map_err(|error| format!("resolution_failed: {error}"))?
+        .query_map(params![identity.view_id, identity.generation], |row| {
+            row.get::<_, i64>(0)
+        })
+        .map_err(|error| format!("resolution_failed: {error}"))?
+        .collect::<Result<BTreeSet<_>, _>>()
+        .map_err(|error| format!("resolution_failed: {error}"))?;
+    let base = ResolutionBaseReader::open(base_path)
+        .map_err(|error| format!("resolution_failed: {error}"))?;
+    let delta = ResolutionScratchReader::open(delta_path)
+        .map_err(|error| format!("resolution_failed: {error}"))?;
+    let mut writer = ResolutionBaseWriter::new(
+        exact_path,
+        identity.manifest_hash.clone(),
+        resolver_output_epoch,
+    )
+    .map_err(|error| format!("resolution_failed: {error}"))?;
+    for version_id in &visible_versions {
+        writer
+            .push_source_version(*version_id)
+            .map_err(|error| format!("resolution_failed: {error}"))?;
+    }
+    let writer = std::cell::RefCell::new(writer);
+    apply_base_delta(
+        &base,
+        &delta,
+        window_size,
+        |version_id| Ok(visible_versions.contains(&version_id)),
+        |row| writer.borrow_mut().push_identifier_resolution(row),
+        |row| writer.borrow_mut().push_pending_resolution(row),
+    )
+    .map_err(|error| format!("resolution_failed: {error}"))?;
+    let writer = writer.into_inner();
+    let mut target_exists = connection
+        .prepare(
+            "SELECT EXISTS(
+               SELECT 1 FROM symbols AS s
+               WHERE s.version_id = ?1 AND s.symbol_id = ?2
+                 AND EXISTS (
+                   SELECT 1 FROM manifest_entries AS me
+                   WHERE me.view_id = ?3 AND me.generation = ?4
+                     AND me.status IN ('indexed','failed_preserved')
+                     AND me.version_id = s.version_id
+                 )
+             )",
+        )
+        .map_err(|error| format!("resolution_failed: {error}"))?;
+    let identity = identity.clone();
+    writer
+        .finish_with_target_lookup(|version_id, symbol_id| {
+            target_exists
+                .query_row(
+                    params![version_id, symbol_id, identity.view_id, identity.generation],
+                    |row| row.get::<_, bool>(0),
+                )
+                .map_err(julie_extract_artifact::store::ResolutionValidationError::Sqlite)
+        })
+        .map_err(|error| format!("resolution_failed: {error}"))?;
     Ok(())
 }
 
@@ -1774,6 +1887,14 @@ fn pause_before_exact_publish_for_test() -> Result<(), String> {
         "JULIE_EXTRACT_STORE_RESOLUTION_PAUSE_BEFORE_EXACT_FILE",
         b"exact",
     )
+}
+
+#[cfg(feature = "test-store-resolution-contract")]
+fn fail_before_exact_finalize_for_test() -> Result<(), String> {
+    if std::env::var_os("JULIE_EXTRACT_STORE_RESOLUTION_FAIL_BEFORE_EXACT_FINALIZE").is_some() {
+        return Err("resolution_failed: test hook before exact finalization".to_string());
+    }
+    Ok(())
 }
 
 #[cfg(feature = "test-store-resolution-contract")]

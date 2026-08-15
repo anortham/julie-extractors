@@ -2,6 +2,8 @@ use std::cell::{Cell, RefCell};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 use std::fmt::{self, Write as _};
 use std::path::{Path, PathBuf};
+#[cfg(feature = "test-store-resolution-contract")]
+use std::rc::Rc;
 use std::time::Instant;
 
 use julie_extract_artifact::resolution_store::{
@@ -9,13 +11,18 @@ use julie_extract_artifact::resolution_store::{
     ResolutionStatus,
 };
 use julie_extract_artifact::store::{
-    ResolutionBaseWriter, ResolutionFileIdentity, ResolutionIdentifierRow, ResolutionPendingRow,
-    ResolutionScopeState, ResolutionValidationError, StoreLayout,
-    create_resolution_scratch_connection, resolution_scope_state,
+    ResolutionBaseWriter, ResolutionDiffResult, ResolutionFileIdentity, ResolutionGapFact,
+    ResolutionGapKind, ResolutionGapTable, ResolutionIdentifierRow, ResolutionPendingRow,
+    ResolutionPendingTombstone, ResolutionScopeState, ResolutionScratchWriter,
+    ResolutionValidationError, StoreLayout, create_resolution_scratch_connection,
+    resolution_scope_state,
 };
 use julie_extract_artifact::store::{StoreConnectionError, StoreConnectionFactory};
 use julie_extractors::SymbolKind;
-use rusqlite::{Connection, OptionalExtension, Row, Transaction, params};
+use rusqlite::types::Value;
+use rusqlite::{
+    Connection, OpenFlags, OptionalExtension, Row, Transaction, params, params_from_iter,
+};
 #[cfg(feature = "test-store-resolution-contract")]
 use serde::{Deserialize, Serialize};
 
@@ -82,6 +89,30 @@ pub struct PropagationCoverageTelemetry {
     pub pending_candidate_rows_read: usize,
     pub materialized_query_executions: usize,
     pub materialized_candidate_rows_read: usize,
+}
+
+#[cfg(feature = "test-store-resolution-contract")]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct ScopedFinalizationTelemetry {
+    pub current_identifier_queries: usize,
+    pub current_identifier_rows: usize,
+    pub current_pending_queries: usize,
+    pub current_pending_rows: usize,
+    pub prior_identifier_queries: usize,
+    pub prior_identifier_rows: usize,
+    pub prior_pending_queries: usize,
+    pub prior_pending_rows: usize,
+    pub base_identifier_queries: usize,
+    pub base_identifier_rows: usize,
+    pub base_pending_queries: usize,
+    pub base_pending_rows: usize,
+    pub base_identifier_target_queries: usize,
+    pub base_identifier_target_rows: usize,
+    pub base_pending_target_queries: usize,
+    pub base_pending_target_rows: usize,
+    pub base_keyed_reader_opens: usize,
+    pub target_validation_queries: usize,
+    pub target_validation_targets: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -402,6 +433,8 @@ pub struct StoreScratchResolutionSession {
     candidate_query_telemetry: Cell<[CandidateQueryTelemetry; CandidateQueryFamily::COUNT]>,
     #[cfg(feature = "test-store-resolution-contract")]
     propagation_coverage_telemetry: Cell<PropagationCoverageTelemetry>,
+    #[cfg(feature = "test-store-resolution-contract")]
+    scoped_finalization_telemetry: Rc<Cell<ScopedFinalizationTelemetry>>,
     visible_root_batches: usize,
     candidate_reader: RefCell<Option<Connection>>,
     candidate_window: RefCell<CandidateWindow>,
@@ -461,6 +494,10 @@ impl StoreScratchResolutionSession {
             ),
             #[cfg(feature = "test-store-resolution-contract")]
             propagation_coverage_telemetry: Cell::new(PropagationCoverageTelemetry::default()),
+            #[cfg(feature = "test-store-resolution-contract")]
+            scoped_finalization_telemetry: Rc::new(Cell::new(
+                ScopedFinalizationTelemetry::default(),
+            )),
             visible_root_batches: 0,
             candidate_reader: RefCell::new(None),
             candidate_window: RefCell::new(CandidateWindow::default()),
@@ -634,8 +671,52 @@ impl StoreScratchResolutionSession {
         Ok(())
     }
 
+    #[cfg(feature = "test-store-resolution-contract")]
+    pub fn remove_identifier_resolution_without_touch_for_test(
+        &mut self,
+        version_id: i64,
+        identifier_id: &str,
+    ) -> Result<(), StoreResolutionError> {
+        self.scratch.execute(
+            "DELETE FROM identifier_resolutions
+             WHERE version_id=?1 AND identifier_id=?2",
+            params![version_id, identifier_id],
+        )?;
+        self.scratch.execute(
+            "DELETE FROM identifier_touched
+             WHERE version_id=?1 AND identifier_id=?2",
+            params![version_id, identifier_id],
+        )?;
+        Ok(())
+    }
+
     pub fn finish_exact(self) -> Result<ResolutionFileIdentity, StoreResolutionError> {
         self.finish_exact_inner(|_| {})
+    }
+
+    pub fn finish_scoped_delta<F>(
+        self,
+        delta_path: impl AsRef<Path>,
+        emit_gap: F,
+    ) -> Result<ResolutionDiffResult, StoreResolutionError>
+    where
+        F: FnMut(ResolutionGapFact) -> Result<(), ResolutionValidationError>,
+    {
+        self.finish_scoped_delta_inner(delta_path.as_ref(), emit_gap)
+    }
+
+    #[cfg(feature = "test-store-resolution-contract")]
+    pub fn finish_scoped_delta_observing<F>(
+        self,
+        delta_path: impl AsRef<Path>,
+        emit_gap: F,
+    ) -> Result<(ResolutionDiffResult, ScopedFinalizationTelemetry), StoreResolutionError>
+    where
+        F: FnMut(ResolutionGapFact) -> Result<(), ResolutionValidationError>,
+    {
+        let telemetry = self.scoped_finalization_telemetry.clone();
+        let result = self.finish_scoped_delta_inner(delta_path.as_ref(), emit_gap)?;
+        Ok((result, telemetry.get()))
     }
 
     #[cfg(feature = "test-store-resolution-contract")]
@@ -766,6 +847,412 @@ impl StoreScratchResolutionSession {
         self.remove_scratch()?;
         completed(FinishExactBoundary::ScratchCleanup);
         Ok(result)
+    }
+
+    fn finish_scoped_delta_inner<F>(
+        mut self,
+        delta_path: &Path,
+        mut emit_gap: F,
+    ) -> Result<ResolutionDiffResult, StoreResolutionError>
+    where
+        F: FnMut(ResolutionGapFact) -> Result<(), ResolutionValidationError>,
+    {
+        let result = (|| {
+            #[cfg(feature = "test-store-resolution-contract")]
+            scoped_finalize_delay_for_test();
+            let state = self
+                .prior_scope_state
+                .clone()
+                .ok_or_else(|| incremental_error("scoped resolution has no frozen prior state"))?;
+            if self.prior_overlay.is_none() {
+                return Err(incremental_error(
+                    "scoped resolution prior overlay unavailable",
+                ));
+            }
+            let selected_versions = scoped_selected_versions(self.decision_telemetry.as_ref())?;
+            let target_connection = self.reader_factory.open_reader()?;
+            let removed_versions =
+                removed_resolution_versions(&target_connection, &state, &self.identity)?;
+            let removed_set = removed_versions.iter().copied().collect::<BTreeSet<_>>();
+            let (prior_identifier_deltas, identifier_delta_page) =
+                load_prior_identifier_deltas(&target_connection, &state, self.window_size)?;
+            let (prior_pending_deltas, pending_delta_page) =
+                load_prior_pending_deltas(&target_connection, &state, self.window_size)?;
+            let (mut identifier_gaps, mut pending_gaps) =
+                load_prior_gap_facts(&target_connection, &state)?;
+            let mut prior_delta_versions = BTreeSet::new();
+            prior_delta_versions.extend(
+                prior_identifier_deltas
+                    .keys()
+                    .map(|(version_id, _)| *version_id),
+            );
+            prior_delta_versions.extend(
+                prior_pending_deltas
+                    .keys()
+                    .map(|(version_id, _)| *version_id),
+            );
+            let visible_delta_versions = visible_versions_for_keys(
+                &target_connection,
+                &self.identity,
+                &prior_delta_versions,
+            )?;
+            let mut prior_gap_versions = BTreeSet::new();
+            prior_gap_versions.extend(identifier_gaps.keys().map(|(version_id, _)| *version_id));
+            prior_gap_versions.extend(pending_gaps.keys().map(|(version_id, _)| *version_id));
+            let base_gap_versions =
+                base_versions_for_keys(&target_connection, &state, &prior_gap_versions)?;
+            identifier_gaps.retain(|(version_id, _), _| {
+                visible_delta_versions.contains(version_id)
+                    || removed_set.contains(version_id)
+                    || base_gap_versions.contains(version_id)
+            });
+            pending_gaps.retain(|(version_id, _), _| {
+                visible_delta_versions.contains(version_id)
+                    || removed_set.contains(version_id)
+                    || base_gap_versions.contains(version_id)
+            });
+            let prior_identifier_keys: BTreeSet<(i64, String)> =
+                prior_identifier_deltas.keys().cloned().collect();
+            let prior_pending_keys: BTreeSet<(i64, String)> =
+                prior_pending_deltas.keys().cloned().collect();
+            let mut touched_identifiers =
+                ScopedTouchedIdentifierCursor::new(&self.scratch, self.window_size);
+            let mut touched_identifier_rows = Vec::new();
+            while let Some(touched) = touched_identifiers.next()? {
+                touched_identifier_rows.push(touched);
+            }
+            let mut touched_pending =
+                ScopedTouchedPendingCursor::new(&self.scratch, self.window_size);
+            let mut touched_pending_rows = Vec::new();
+            while let Some(touched) = touched_pending.next()? {
+                touched_pending_rows.push(touched);
+            }
+            let touched_identifier_values = touched_identifier_rows
+                .into_iter()
+                .map(|touched| ((touched.version_id, touched.identifier_id), touched.row))
+                .collect::<BTreeMap<_, _>>();
+            let touched_pending_values = touched_pending_rows
+                .into_iter()
+                .map(|touched| {
+                    (
+                        (touched.version_id, touched.pending_relationship_id),
+                        touched.row,
+                    )
+                })
+                .collect::<BTreeMap<_, _>>();
+            let identifier_keys = touched_identifier_values
+                .keys()
+                .cloned()
+                .collect::<Vec<_>>();
+            let pending_keys = touched_pending_values.keys().cloned().collect::<Vec<_>>();
+            let current_keys =
+                load_scoped_current_keys(&target_connection, &self.identity, &selected_versions)?;
+            let prior_selected = load_scoped_prior_rows(
+                self.prior_overlay
+                    .as_ref()
+                    .expect("scoped prior overlay checked above"),
+                &selected_versions,
+                self.window_size,
+            )?;
+            let base_rows = load_scoped_base_rows(
+                &self.layout,
+                &state,
+                &identifier_keys,
+                &pending_keys,
+                &removed_versions,
+            )?;
+            #[cfg(feature = "test-store-resolution-contract")]
+            {
+                let mut telemetry = self.scoped_finalization_telemetry.get();
+                telemetry.current_identifier_queries = telemetry
+                    .current_identifier_queries
+                    .saturating_add(current_keys.identifier_queries);
+                telemetry.current_identifier_rows = telemetry
+                    .current_identifier_rows
+                    .saturating_add(current_keys.identifier_rows);
+                telemetry.current_pending_queries = telemetry
+                    .current_pending_queries
+                    .saturating_add(current_keys.pending_queries);
+                telemetry.current_pending_rows = telemetry
+                    .current_pending_rows
+                    .saturating_add(current_keys.pending_rows);
+                telemetry.prior_identifier_queries = telemetry
+                    .prior_identifier_queries
+                    .saturating_add(prior_selected.identifier_queries);
+                telemetry.prior_identifier_rows = telemetry
+                    .prior_identifier_rows
+                    .saturating_add(prior_selected.identifier_rows);
+                telemetry.prior_pending_queries = telemetry
+                    .prior_pending_queries
+                    .saturating_add(prior_selected.pending_queries);
+                telemetry.prior_pending_rows = telemetry
+                    .prior_pending_rows
+                    .saturating_add(prior_selected.pending_rows);
+                telemetry.base_identifier_queries = telemetry
+                    .base_identifier_queries
+                    .saturating_add(base_rows.identifier_queries);
+                telemetry.base_identifier_rows = telemetry
+                    .base_identifier_rows
+                    .saturating_add(base_rows.identifier_rows);
+                telemetry.base_pending_queries = telemetry
+                    .base_pending_queries
+                    .saturating_add(base_rows.pending_queries);
+                telemetry.base_pending_rows = telemetry
+                    .base_pending_rows
+                    .saturating_add(base_rows.pending_rows);
+                telemetry.base_identifier_target_queries = telemetry
+                    .base_identifier_target_queries
+                    .saturating_add(base_rows.identifier_target_queries);
+                telemetry.base_identifier_target_rows = telemetry
+                    .base_identifier_target_rows
+                    .saturating_add(base_rows.identifier_target_rows);
+                telemetry.base_pending_target_queries = telemetry
+                    .base_pending_target_queries
+                    .saturating_add(base_rows.pending_target_queries);
+                telemetry.base_pending_target_rows = telemetry
+                    .base_pending_target_rows
+                    .saturating_add(base_rows.pending_target_rows);
+                telemetry.base_keyed_reader_opens =
+                    telemetry.base_keyed_reader_opens.saturating_add(1);
+                self.scoped_finalization_telemetry.set(telemetry);
+            }
+            let identity = self.identity.clone();
+            let mut target_validator = ScopedTargetValidator::new(&target_connection, &identity);
+            let mut identifier_touched = BTreeSet::new();
+            let mut identifier_changes = BTreeMap::new();
+            for ((version_id, identifier_id), touched_row) in &touched_identifier_values {
+                let key = (*version_id, identifier_id.clone());
+                identifier_touched.insert(key.clone());
+                let row = touched_row.as_ref().ok_or_else(|| {
+                    StoreResolutionError::Artifact(
+                        ResolutionValidationError::IdentifierTotalityViolation {
+                            version_id: *version_id,
+                            identifier_id: identifier_id.clone(),
+                        },
+                    )
+                })?;
+                target_validator.push(row.target_version_id, row.target_symbol_id.as_deref())?;
+                let base = base_rows.identifiers.get(&key);
+                identifier_gaps.remove(&key);
+                if base != Some(row) {
+                    identifier_changes.insert(key, row.clone());
+                    identifier_gaps.insert(
+                        (*version_id, identifier_id.clone()),
+                        base.is_some()
+                            .then_some(ResolutionGapKind::Replaced)
+                            .unwrap_or(ResolutionGapKind::Added),
+                    );
+                }
+            }
+
+            let mut identifiers = BTreeMap::new();
+            for (key, row) in prior_identifier_deltas {
+                if !identifier_touched.contains(&key)
+                    && !removed_set.contains(&key.0)
+                    && visible_delta_versions.contains(&key.0)
+                {
+                    target_validator
+                        .push(row.target_version_id, row.target_symbol_id.as_deref())?;
+                    identifiers.insert(key, row);
+                }
+            }
+            identifiers.extend(identifier_changes);
+
+            for key in &current_keys.identifiers {
+                let row = if identifier_touched.contains(key) {
+                    touched_identifier_values.get(key).and_then(Option::as_ref)
+                } else {
+                    prior_selected.identifiers.get(key)
+                };
+                let row = row.ok_or_else(|| {
+                    StoreResolutionError::Artifact(
+                        ResolutionValidationError::IdentifierTotalityViolation {
+                            version_id: key.0,
+                            identifier_id: key.1.clone(),
+                        },
+                    )
+                })?;
+                target_validator.push(row.target_version_id, row.target_symbol_id.as_deref())?;
+            }
+
+            let max_window_rows = identifier_delta_page
+                .max(pending_delta_page)
+                .max(touched_identifiers.max_page)
+                .max(touched_pending.max_page)
+                .max(current_keys.max_page)
+                .max(prior_selected.max_page)
+                .max(base_rows.max_page);
+            for row in base_rows.identifiers.values() {
+                if removed_set.contains(&row.version_id) {
+                    identifier_gaps.insert(
+                        (row.version_id, row.identifier_id.clone()),
+                        ResolutionGapKind::Removed,
+                    );
+                } else if row
+                    .target_version_id
+                    .is_some_and(|version_id| removed_set.contains(&version_id))
+                    && !identifier_touched.contains(&(row.version_id, row.identifier_id.clone()))
+                    && !prior_identifier_keys.contains(&(row.version_id, row.identifier_id.clone()))
+                {
+                    target_validator
+                        .push(row.target_version_id, row.target_symbol_id.as_deref())?;
+                }
+            }
+
+            let mut pending_touched = BTreeSet::new();
+            let mut pending_changes = BTreeMap::new();
+            for ((version_id, pending_relationship_id), touched_row) in &touched_pending_values {
+                let key = (*version_id, pending_relationship_id.clone());
+                pending_touched.insert(key.clone());
+                let base = base_rows.pending.get(&key);
+                pending_gaps.remove(&key);
+                match (touched_row.as_ref(), base) {
+                    (Some(row), Some(base)) if row == base => {
+                        target_validator
+                            .push(Some(row.target_version_id), Some(&row.target_symbol_id))?;
+                    }
+                    (Some(row), base) => {
+                        target_validator
+                            .push(Some(row.target_version_id), Some(&row.target_symbol_id))?;
+                        pending_changes.insert(key, ScopedPendingDelta::Replacement(row.clone()));
+                        pending_gaps.insert(
+                            (*version_id, pending_relationship_id.clone()),
+                            base.is_some()
+                                .then_some(ResolutionGapKind::Replaced)
+                                .unwrap_or(ResolutionGapKind::Added),
+                        );
+                    }
+                    (None, Some(_)) => {
+                        pending_changes.insert(key, ScopedPendingDelta::Tombstone);
+                        pending_gaps.insert(
+                            (*version_id, pending_relationship_id.clone()),
+                            ResolutionGapKind::Removed,
+                        );
+                    }
+                    (None, None) => {}
+                }
+            }
+
+            let mut pending = BTreeMap::new();
+            for (key, action) in prior_pending_deltas {
+                if !pending_touched.contains(&key)
+                    && !removed_set.contains(&key.0)
+                    && visible_delta_versions.contains(&key.0)
+                {
+                    if let ScopedPendingDelta::Replacement(row) = &action {
+                        target_validator
+                            .push(Some(row.target_version_id), Some(&row.target_symbol_id))?;
+                    }
+                    pending.insert(key, action);
+                }
+            }
+            for row in base_rows.pending.values() {
+                if removed_set.contains(&row.version_id) {
+                    let key = (row.version_id, row.pending_relationship_id.clone());
+                    pending.insert(key, ScopedPendingDelta::Tombstone);
+                    pending_gaps.insert(
+                        (row.version_id, row.pending_relationship_id.clone()),
+                        ResolutionGapKind::Removed,
+                    );
+                }
+            }
+            pending.extend(pending_changes);
+
+            for key in &current_keys.pending {
+                let row = if pending_touched.contains(key) {
+                    touched_pending_values.get(key).and_then(Option::as_ref)
+                } else {
+                    prior_selected.pending.get(key)
+                };
+                if let Some(row) = row {
+                    target_validator
+                        .push(Some(row.target_version_id), Some(&row.target_symbol_id))?;
+                }
+            }
+            for row in base_rows.pending.values() {
+                if row.target_version_id.gt(&0)
+                    && removed_set.contains(&row.target_version_id)
+                    && !removed_set.contains(&row.version_id)
+                    && !pending_touched
+                        .contains(&(row.version_id, row.pending_relationship_id.clone()))
+                    && !prior_pending_keys
+                        .contains(&(row.version_id, row.pending_relationship_id.clone()))
+                {
+                    target_validator
+                        .push(Some(row.target_version_id), Some(&row.target_symbol_id))?;
+                }
+            }
+
+            target_validator.finish()?;
+            #[cfg(feature = "test-store-resolution-contract")]
+            {
+                let mut telemetry = self.scoped_finalization_telemetry.get();
+                telemetry.target_validation_queries = telemetry
+                    .target_validation_queries
+                    .saturating_add(target_validator.query_count);
+                telemetry.target_validation_targets = telemetry
+                    .target_validation_targets
+                    .saturating_add(target_validator.target_count);
+                self.scoped_finalization_telemetry.set(telemetry);
+            }
+            let mut writer = ResolutionScratchWriter::new(
+                delta_path,
+                self.identity.manifest_hash.clone(),
+                self.resolver_output_epoch,
+            )?;
+            for row in identifiers.into_values() {
+                writer.push_identifier_replacement(row)?;
+            }
+            for ((version_id, pending_relationship_id), action) in pending {
+                match action {
+                    ScopedPendingDelta::Replacement(row) => {
+                        writer.push_pending_replacement(row)?;
+                    }
+                    ScopedPendingDelta::Tombstone => {
+                        writer.push_pending_tombstone(ResolutionPendingTombstone {
+                            version_id,
+                            pending_relationship_id,
+                        })?;
+                    }
+                }
+            }
+            let mut gaps = 0_u64;
+            for ((version_id, local_id), kind) in identifier_gaps {
+                emit_gap(ResolutionGapFact {
+                    table: ResolutionGapTable::Identifier,
+                    version_id,
+                    local_id,
+                    kind,
+                })?;
+                gaps = gaps.saturating_add(1);
+            }
+            for ((version_id, local_id), kind) in pending_gaps {
+                emit_gap(ResolutionGapFact {
+                    table: ResolutionGapTable::Pending,
+                    version_id,
+                    local_id,
+                    kind,
+                })?;
+                gaps = gaps.saturating_add(1);
+            }
+            let delta = writer.finish()?;
+            Ok(ResolutionDiffResult {
+                delta,
+                gaps,
+                max_window_rows,
+            })
+        })();
+        let cleanup = self.remove_scratch();
+        match result {
+            Ok(result) => {
+                cleanup?;
+                Ok(result)
+            }
+            Err(error) => {
+                let _ = cleanup;
+                Err(error)
+            }
+        }
     }
 
     fn open_reader(&self) -> Result<Connection, StoreResolutionError> {
@@ -1144,6 +1631,1272 @@ impl StoreScratchResolutionSession {
             after = keys.last().cloned().expect("non-empty identifier page");
         }
         Ok(())
+    }
+}
+
+const SCOPED_TARGET_BATCH: usize = 256;
+const SCOPED_DELTA_QUERY_BATCH: usize = 256;
+
+#[derive(Debug)]
+enum ScopedPendingDelta {
+    Replacement(ResolutionPendingRow),
+    Tombstone,
+}
+
+#[derive(Default)]
+struct ScopedBaseRows {
+    identifiers: BTreeMap<(i64, String), ResolutionIdentifierRow>,
+    pending: BTreeMap<(i64, String), ResolutionPendingRow>,
+    max_page: usize,
+    #[cfg(feature = "test-store-resolution-contract")]
+    identifier_queries: usize,
+    #[cfg(feature = "test-store-resolution-contract")]
+    identifier_rows: usize,
+    #[cfg(feature = "test-store-resolution-contract")]
+    pending_queries: usize,
+    #[cfg(feature = "test-store-resolution-contract")]
+    pending_rows: usize,
+    #[cfg(feature = "test-store-resolution-contract")]
+    identifier_target_queries: usize,
+    #[cfg(feature = "test-store-resolution-contract")]
+    identifier_target_rows: usize,
+    #[cfg(feature = "test-store-resolution-contract")]
+    pending_target_queries: usize,
+    #[cfg(feature = "test-store-resolution-contract")]
+    pending_target_rows: usize,
+}
+
+#[derive(Default)]
+struct ScopedCurrentKeys {
+    identifiers: BTreeSet<(i64, String)>,
+    pending: BTreeSet<(i64, String)>,
+    max_page: usize,
+    #[cfg(feature = "test-store-resolution-contract")]
+    identifier_queries: usize,
+    #[cfg(feature = "test-store-resolution-contract")]
+    identifier_rows: usize,
+    #[cfg(feature = "test-store-resolution-contract")]
+    pending_queries: usize,
+    #[cfg(feature = "test-store-resolution-contract")]
+    pending_rows: usize,
+}
+
+#[derive(Default)]
+struct ScopedPriorRows {
+    identifiers: BTreeMap<(i64, String), ResolutionIdentifierRow>,
+    pending: BTreeMap<(i64, String), ResolutionPendingRow>,
+    max_page: usize,
+    #[cfg(feature = "test-store-resolution-contract")]
+    identifier_queries: usize,
+    #[cfg(feature = "test-store-resolution-contract")]
+    identifier_rows: usize,
+    #[cfg(feature = "test-store-resolution-contract")]
+    pending_queries: usize,
+    #[cfg(feature = "test-store-resolution-contract")]
+    pending_rows: usize,
+}
+
+fn scoped_selected_versions(
+    telemetry: Option<&StoreResolutionDecisionTelemetry>,
+) -> Result<BTreeSet<i64>, StoreResolutionError> {
+    let telemetry = telemetry
+        .ok_or_else(|| incremental_error("scoped resolution decision telemetry missing"))?;
+    let mut versions = BTreeSet::new();
+    for version in telemetry
+        .worklists
+        .selected_versions
+        .iter()
+        .chain(telemetry.worklists.changed_versions.iter())
+    {
+        if let SemanticVersionId::Store(version_id) = version {
+            versions.insert(*version_id);
+        }
+    }
+    Ok(versions)
+}
+
+fn load_scoped_current_keys(
+    connection: &Connection,
+    identity: &StoreManifestIdentity,
+    versions: &BTreeSet<i64>,
+) -> Result<ScopedCurrentKeys, StoreResolutionError> {
+    let mut keys = ScopedCurrentKeys::default();
+    let versions = versions.iter().copied().collect::<Vec<_>>();
+    for chunk in versions.chunks(SCOPED_DELTA_QUERY_BATCH) {
+        if chunk.is_empty() {
+            continue;
+        }
+        let placeholders = std::iter::repeat_n("?", chunk.len())
+            .collect::<Vec<_>>()
+            .join(",");
+        let mut values = vec![
+            Value::Text(identity.view_id.clone()),
+            Value::Integer(identity.generation),
+        ];
+        values.extend(chunk.iter().copied().map(Value::Integer));
+        let identifier_sql = format!(
+            "SELECT i.version_id,i.identifier_id
+             FROM identifiers AS i
+             JOIN manifest_entries AS manifest
+               ON manifest.view_id=?1 AND manifest.generation=?2
+              AND manifest.status IN ('indexed','failed_preserved')
+              AND manifest.version_id=i.version_id
+             WHERE i.version_id IN ({placeholders})
+             ORDER BY i.version_id,i.identifier_id COLLATE BINARY"
+        );
+        let page = connection
+            .prepare(&identifier_sql)?
+            .query_map(params_from_iter(values.iter()), |row| {
+                Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?))
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        #[cfg(feature = "test-store-resolution-contract")]
+        {
+            keys.identifier_queries = keys.identifier_queries.saturating_add(1);
+            keys.identifier_rows = keys.identifier_rows.saturating_add(page.len());
+        }
+        keys.max_page = keys.max_page.max(page.len());
+        keys.identifiers.extend(page);
+
+        let mut pending_values = vec![
+            Value::Text(identity.view_id.clone()),
+            Value::Integer(identity.generation),
+        ];
+        pending_values.extend(chunk.iter().copied().map(Value::Integer));
+        let pending_sql = format!(
+            "SELECT pending.version_id,pending.pending_relationship_id
+             FROM pending_relationships AS pending
+             JOIN manifest_entries AS manifest
+               ON manifest.view_id=?1 AND manifest.generation=?2
+              AND manifest.status IN ('indexed','failed_preserved')
+              AND manifest.version_id=pending.version_id
+             WHERE pending.version_id IN ({placeholders})
+             ORDER BY pending.version_id,pending.pending_relationship_id COLLATE BINARY"
+        );
+        let page = connection
+            .prepare(&pending_sql)?
+            .query_map(params_from_iter(pending_values.iter()), |row| {
+                Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?))
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        #[cfg(feature = "test-store-resolution-contract")]
+        {
+            keys.pending_queries = keys.pending_queries.saturating_add(1);
+            keys.pending_rows = keys.pending_rows.saturating_add(page.len());
+        }
+        keys.max_page = keys.max_page.max(page.len());
+        keys.pending.extend(page);
+    }
+    Ok(keys)
+}
+
+fn load_scoped_prior_rows(
+    prior: &PriorOverlayReader,
+    versions: &BTreeSet<i64>,
+    window_size: usize,
+) -> Result<ScopedPriorRows, StoreResolutionError> {
+    let mut rows = ScopedPriorRows::default();
+    let versions = versions.iter().copied().collect::<Vec<_>>();
+    for chunk in versions.chunks(SCOPED_DELTA_QUERY_BATCH) {
+        if chunk.is_empty() {
+            continue;
+        }
+        let mut after = None;
+        loop {
+            let page = match prior
+                .identifiers_by_files(chunk, after.as_ref(), window_size)
+                .map_err(|error| incremental_error(error.to_string()))?
+            {
+                PriorOverlayAccess::Ready(page) => page,
+                PriorOverlayAccess::FullFallback(fallback) => {
+                    return Err(incremental_error(format!(
+                        "prior overlay changed during scoped validation: {fallback:?}"
+                    )));
+                }
+            };
+            #[cfg(feature = "test-store-resolution-contract")]
+            {
+                rows.identifier_queries = rows.identifier_queries.saturating_add(1);
+                rows.identifier_rows = rows.identifier_rows.saturating_add(page.rows.len());
+            }
+            rows.max_page = rows.max_page.max(page.rows.len());
+            for row in page.rows {
+                rows.identifiers
+                    .insert((row.version_id, row.identifier_id.clone()), row);
+            }
+            let Some(next) = page.next else { break };
+            after = Some(next);
+        }
+
+        let mut after = None;
+        loop {
+            let page = match prior
+                .pending_by_files(chunk, after.as_ref(), window_size)
+                .map_err(|error| incremental_error(error.to_string()))?
+            {
+                PriorOverlayAccess::Ready(page) => page,
+                PriorOverlayAccess::FullFallback(fallback) => {
+                    return Err(incremental_error(format!(
+                        "prior overlay changed during scoped validation: {fallback:?}"
+                    )));
+                }
+            };
+            #[cfg(feature = "test-store-resolution-contract")]
+            {
+                rows.pending_queries = rows.pending_queries.saturating_add(1);
+                rows.pending_rows = rows.pending_rows.saturating_add(page.rows.len());
+            }
+            rows.max_page = rows.max_page.max(page.rows.len());
+            for row in page.rows {
+                rows.pending
+                    .insert((row.version_id, row.pending_relationship_id.clone()), row);
+            }
+            let Some(next) = page.next else { break };
+            after = Some(next);
+        }
+    }
+    Ok(rows)
+}
+
+fn load_scoped_base_rows(
+    layout: &StoreLayout,
+    state: &ResolutionScopeState,
+    identifier_keys: &[(i64, String)],
+    pending_keys: &[(i64, String)],
+    removed_versions: &[i64],
+) -> Result<ScopedBaseRows, StoreResolutionError> {
+    let base_path = layout
+        .generation_dir()
+        .join("bases")
+        .join(format!("{}.db", state.base_id));
+    let connection = Connection::open_with_flags(
+        base_path,
+        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+    )?;
+    connection.execute_batch("PRAGMA query_only=ON")?;
+    let mut rows = ScopedBaseRows::default();
+    load_scoped_base_identifier_keys(&connection, identifier_keys, &mut rows)?;
+    load_scoped_base_pending_keys(&connection, pending_keys, &mut rows)?;
+    load_scoped_base_identifier_versions(&connection, removed_versions, &mut rows)?;
+    load_scoped_base_pending_versions(&connection, removed_versions, &mut rows)?;
+    load_scoped_base_identifier_targets(&connection, removed_versions, &mut rows)?;
+    load_scoped_base_pending_targets(&connection, removed_versions, &mut rows)?;
+    Ok(rows)
+}
+
+fn load_scoped_base_identifier_keys(
+    connection: &Connection,
+    keys: &[(i64, String)],
+    rows: &mut ScopedBaseRows,
+) -> Result<(), StoreResolutionError> {
+    for chunk in keys.chunks(SCOPED_DELTA_QUERY_BATCH) {
+        if chunk.is_empty() {
+            continue;
+        }
+        let values = key_values_clause(chunk.len());
+        let sql = format!(
+            "WITH wanted(version_id,identifier_id) AS (VALUES {values})
+             SELECT source.version_id,source.identifier_id,source.target_version_id,
+                    source.target_symbol_id,source.tier,source.confidence,source.method,
+                    source.outcome,source.candidates
+             FROM wanted
+             JOIN identifier_resolutions AS source
+               ON source.version_id=wanted.version_id
+              AND source.identifier_id=wanted.identifier_id
+             ORDER BY source.version_id,source.identifier_id COLLATE BINARY"
+        );
+        let page = connection
+            .prepare(&sql)?
+            .query_map(params_from_iter(key_params(chunk)), |row| {
+                Ok(ResolutionIdentifierRow {
+                    version_id: row.get(0)?,
+                    identifier_id: row.get(1)?,
+                    target_version_id: row.get(2)?,
+                    target_symbol_id: row.get(3)?,
+                    tier: row.get(4)?,
+                    confidence: row.get(5)?,
+                    method: row.get(6)?,
+                    outcome: row.get(7)?,
+                    candidates: row.get(8)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        #[cfg(feature = "test-store-resolution-contract")]
+        {
+            rows.identifier_queries = rows.identifier_queries.saturating_add(1);
+            rows.identifier_rows = rows.identifier_rows.saturating_add(page.len());
+        }
+        rows.max_page = rows.max_page.max(page.len());
+        for row in page {
+            rows.identifiers
+                .insert((row.version_id, row.identifier_id.clone()), row);
+        }
+    }
+    Ok(())
+}
+
+fn load_scoped_base_pending_keys(
+    connection: &Connection,
+    keys: &[(i64, String)],
+    rows: &mut ScopedBaseRows,
+) -> Result<(), StoreResolutionError> {
+    for chunk in keys.chunks(SCOPED_DELTA_QUERY_BATCH) {
+        if chunk.is_empty() {
+            continue;
+        }
+        let values = key_values_clause(chunk.len());
+        let sql = format!(
+            "WITH wanted(version_id,pending_relationship_id) AS (VALUES {values})
+             SELECT source.version_id,source.pending_relationship_id,source.target_version_id,
+                    source.target_symbol_id,source.tier,source.confidence,source.method
+             FROM wanted
+             JOIN pending_resolutions AS source
+               ON source.version_id=wanted.version_id
+              AND source.pending_relationship_id=wanted.pending_relationship_id
+             ORDER BY source.version_id,source.pending_relationship_id COLLATE BINARY"
+        );
+        let page = connection
+            .prepare(&sql)?
+            .query_map(params_from_iter(key_params(chunk)), |row| {
+                Ok(ResolutionPendingRow {
+                    version_id: row.get(0)?,
+                    pending_relationship_id: row.get(1)?,
+                    target_version_id: row.get(2)?,
+                    target_symbol_id: row.get(3)?,
+                    tier: row.get(4)?,
+                    confidence: row.get(5)?,
+                    method: row.get(6)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        #[cfg(feature = "test-store-resolution-contract")]
+        {
+            rows.pending_queries = rows.pending_queries.saturating_add(1);
+            rows.pending_rows = rows.pending_rows.saturating_add(page.len());
+        }
+        rows.max_page = rows.max_page.max(page.len());
+        for row in page {
+            rows.pending
+                .insert((row.version_id, row.pending_relationship_id.clone()), row);
+        }
+    }
+    Ok(())
+}
+
+fn load_scoped_base_identifier_versions(
+    connection: &Connection,
+    versions: &[i64],
+    rows: &mut ScopedBaseRows,
+) -> Result<(), StoreResolutionError> {
+    for chunk in versions.chunks(SCOPED_DELTA_QUERY_BATCH) {
+        if chunk.is_empty() {
+            continue;
+        }
+        let placeholders = std::iter::repeat_n("?", chunk.len())
+            .collect::<Vec<_>>()
+            .join(",");
+        let sql = format!(
+            "SELECT version_id,identifier_id,target_version_id,target_symbol_id,tier,
+                    confidence,method,outcome,candidates
+             FROM identifier_resolutions
+             WHERE version_id IN ({placeholders})
+             ORDER BY version_id,identifier_id COLLATE BINARY"
+        );
+        let page = connection
+            .prepare(&sql)?
+            .query_map(params_from_iter(chunk.iter().copied()), |row| {
+                Ok(ResolutionIdentifierRow {
+                    version_id: row.get(0)?,
+                    identifier_id: row.get(1)?,
+                    target_version_id: row.get(2)?,
+                    target_symbol_id: row.get(3)?,
+                    tier: row.get(4)?,
+                    confidence: row.get(5)?,
+                    method: row.get(6)?,
+                    outcome: row.get(7)?,
+                    candidates: row.get(8)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        #[cfg(feature = "test-store-resolution-contract")]
+        {
+            rows.identifier_queries = rows.identifier_queries.saturating_add(1);
+            rows.identifier_rows = rows.identifier_rows.saturating_add(page.len());
+        }
+        rows.max_page = rows.max_page.max(page.len());
+        for row in page {
+            rows.identifiers
+                .insert((row.version_id, row.identifier_id.clone()), row);
+        }
+    }
+    Ok(())
+}
+
+fn load_scoped_base_pending_versions(
+    connection: &Connection,
+    versions: &[i64],
+    rows: &mut ScopedBaseRows,
+) -> Result<(), StoreResolutionError> {
+    for chunk in versions.chunks(SCOPED_DELTA_QUERY_BATCH) {
+        if chunk.is_empty() {
+            continue;
+        }
+        let placeholders = std::iter::repeat_n("?", chunk.len())
+            .collect::<Vec<_>>()
+            .join(",");
+        let sql = format!(
+            "SELECT version_id,pending_relationship_id,target_version_id,target_symbol_id,
+                    tier,confidence,method
+             FROM pending_resolutions
+             WHERE version_id IN ({placeholders})
+             ORDER BY version_id,pending_relationship_id COLLATE BINARY"
+        );
+        let page = connection
+            .prepare(&sql)?
+            .query_map(params_from_iter(chunk.iter().copied()), |row| {
+                Ok(ResolutionPendingRow {
+                    version_id: row.get(0)?,
+                    pending_relationship_id: row.get(1)?,
+                    target_version_id: row.get(2)?,
+                    target_symbol_id: row.get(3)?,
+                    tier: row.get(4)?,
+                    confidence: row.get(5)?,
+                    method: row.get(6)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        #[cfg(feature = "test-store-resolution-contract")]
+        {
+            rows.pending_queries = rows.pending_queries.saturating_add(1);
+            rows.pending_rows = rows.pending_rows.saturating_add(page.len());
+        }
+        rows.max_page = rows.max_page.max(page.len());
+        for row in page {
+            rows.pending
+                .insert((row.version_id, row.pending_relationship_id.clone()), row);
+        }
+    }
+    Ok(())
+}
+
+fn load_scoped_base_identifier_targets(
+    connection: &Connection,
+    target_versions: &[i64],
+    rows: &mut ScopedBaseRows,
+) -> Result<(), StoreResolutionError> {
+    for chunk in target_versions.chunks(SCOPED_DELTA_QUERY_BATCH) {
+        if chunk.is_empty() {
+            continue;
+        }
+        let placeholders = std::iter::repeat_n("?", chunk.len())
+            .collect::<Vec<_>>()
+            .join(",");
+        let sql = format!(
+            "SELECT version_id,identifier_id,target_version_id,target_symbol_id,tier,
+                    confidence,method,outcome,candidates
+             FROM identifier_resolutions
+             WHERE target_version_id IN ({placeholders})
+             ORDER BY version_id,identifier_id COLLATE BINARY"
+        );
+        let page = connection
+            .prepare(&sql)?
+            .query_map(params_from_iter(chunk.iter().copied()), |row| {
+                Ok(ResolutionIdentifierRow {
+                    version_id: row.get(0)?,
+                    identifier_id: row.get(1)?,
+                    target_version_id: row.get(2)?,
+                    target_symbol_id: row.get(3)?,
+                    tier: row.get(4)?,
+                    confidence: row.get(5)?,
+                    method: row.get(6)?,
+                    outcome: row.get(7)?,
+                    candidates: row.get(8)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        #[cfg(feature = "test-store-resolution-contract")]
+        {
+            rows.identifier_target_queries = rows.identifier_target_queries.saturating_add(1);
+            rows.identifier_target_rows = rows.identifier_target_rows.saturating_add(page.len());
+        }
+        rows.max_page = rows.max_page.max(page.len());
+        for row in page {
+            rows.identifiers
+                .insert((row.version_id, row.identifier_id.clone()), row);
+        }
+    }
+    Ok(())
+}
+
+fn load_scoped_base_pending_targets(
+    connection: &Connection,
+    target_versions: &[i64],
+    rows: &mut ScopedBaseRows,
+) -> Result<(), StoreResolutionError> {
+    for chunk in target_versions.chunks(SCOPED_DELTA_QUERY_BATCH) {
+        if chunk.is_empty() {
+            continue;
+        }
+        let placeholders = std::iter::repeat_n("?", chunk.len())
+            .collect::<Vec<_>>()
+            .join(",");
+        let sql = format!(
+            "SELECT version_id,pending_relationship_id,target_version_id,target_symbol_id,
+                    tier,confidence,method
+             FROM pending_resolutions
+             WHERE target_version_id IN ({placeholders})
+             ORDER BY version_id,pending_relationship_id COLLATE BINARY"
+        );
+        let page = connection
+            .prepare(&sql)?
+            .query_map(params_from_iter(chunk.iter().copied()), |row| {
+                Ok(ResolutionPendingRow {
+                    version_id: row.get(0)?,
+                    pending_relationship_id: row.get(1)?,
+                    target_version_id: row.get(2)?,
+                    target_symbol_id: row.get(3)?,
+                    tier: row.get(4)?,
+                    confidence: row.get(5)?,
+                    method: row.get(6)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        #[cfg(feature = "test-store-resolution-contract")]
+        {
+            rows.pending_target_queries = rows.pending_target_queries.saturating_add(1);
+            rows.pending_target_rows = rows.pending_target_rows.saturating_add(page.len());
+        }
+        rows.max_page = rows.max_page.max(page.len());
+        for row in page {
+            rows.pending
+                .insert((row.version_id, row.pending_relationship_id.clone()), row);
+        }
+    }
+    Ok(())
+}
+
+fn removed_resolution_versions(
+    connection: &Connection,
+    state: &ResolutionScopeState,
+    identity: &StoreManifestIdentity,
+) -> Result<Vec<i64>, StoreResolutionError> {
+    let mut statement = connection.prepare(
+        "WITH RECURSIVE chain(
+             transition_id,previous_transition_id,from_manifest_generation,
+             from_manifest_hash,to_manifest_generation,to_manifest_hash
+         ) AS (
+             SELECT transition_id,previous_transition_id,from_manifest_generation,
+                    from_manifest_hash,to_manifest_generation,to_manifest_hash
+             FROM resolution_scope_batches
+             WHERE view_id=?1 AND transition_id=?2
+             UNION ALL
+             SELECT previous.transition_id,previous.previous_transition_id,
+                    previous.from_manifest_generation,previous.from_manifest_hash,
+                    previous.to_manifest_generation,previous.to_manifest_hash
+             FROM resolution_scope_batches AS previous
+             JOIN chain AS current
+               ON current.previous_transition_id=previous.transition_id
+              AND previous.view_id=?1
+             WHERE NOT (
+                 current.from_manifest_generation=?3
+                 AND current.from_manifest_hash=?4
+             )
+         )
+         SELECT DISTINCT journal.old_version_id
+         FROM chain
+         JOIN resolution_scope_journal AS journal
+           ON journal.transition_id=chain.transition_id
+         JOIN resolution_base_versions AS roots
+           ON roots.base_id=?5 AND roots.version_id=journal.old_version_id
+         LEFT JOIN manifest_entries AS current
+           ON current.view_id=?6 AND current.generation=?7
+          AND current.version_id=journal.old_version_id
+          AND current.status IN ('indexed','failed_preserved')
+         WHERE journal.old_version_id IS NOT NULL
+           AND current.version_id IS NULL
+         ORDER BY journal.old_version_id",
+    )?;
+    Ok(statement
+        .query_map(
+            params![
+                state.view_id,
+                state.journal_through_transition_id,
+                state.predecessor_manifest_generation,
+                state.predecessor_manifest_hash,
+                state.base_id,
+                identity.view_id,
+                identity.generation,
+            ],
+            |row| row.get::<_, i64>(0),
+        )?
+        .collect::<Result<Vec<_>, _>>()?)
+}
+
+fn visible_versions_for_keys(
+    connection: &Connection,
+    identity: &StoreManifestIdentity,
+    versions: &BTreeSet<i64>,
+) -> Result<BTreeSet<i64>, StoreResolutionError> {
+    let mut visible = BTreeSet::new();
+    let versions = versions.iter().copied().collect::<Vec<_>>();
+    for chunk in versions.chunks(SCOPED_DELTA_QUERY_BATCH) {
+        let placeholders = std::iter::repeat_n("?", chunk.len())
+            .collect::<Vec<_>>()
+            .join(",");
+        let sql = format!(
+            "SELECT version_id
+             FROM manifest_entries
+             WHERE view_id=?1 AND generation=?2
+               AND status IN ('indexed','failed_preserved')
+               AND version_id IN ({placeholders})"
+        );
+        let mut values = vec![
+            Value::Text(identity.view_id.clone()),
+            Value::Integer(identity.generation),
+        ];
+        values.extend(chunk.iter().copied().map(Value::Integer));
+        let rows = connection
+            .prepare(&sql)?
+            .query_map(params_from_iter(values), |row| row.get::<_, i64>(0))?
+            .collect::<Result<Vec<_>, _>>()?;
+        visible.extend(rows);
+    }
+    Ok(visible)
+}
+
+fn base_versions_for_keys(
+    connection: &Connection,
+    state: &ResolutionScopeState,
+    versions: &BTreeSet<i64>,
+) -> Result<BTreeSet<i64>, StoreResolutionError> {
+    let mut base_versions = BTreeSet::new();
+    let versions = versions.iter().copied().collect::<Vec<_>>();
+    for chunk in versions.chunks(SCOPED_DELTA_QUERY_BATCH) {
+        if chunk.is_empty() {
+            continue;
+        }
+        let placeholders = std::iter::repeat_n("?", chunk.len())
+            .collect::<Vec<_>>()
+            .join(",");
+        let sql = format!(
+            "SELECT version_id
+             FROM resolution_base_versions
+             WHERE base_id=?1 AND version_id IN ({placeholders})"
+        );
+        let mut values = vec![Value::Text(state.base_id.clone())];
+        values.extend(chunk.iter().copied().map(Value::Integer));
+        let rows = connection
+            .prepare(&sql)?
+            .query_map(params_from_iter(values), |row| row.get::<_, i64>(0))?
+            .collect::<Result<Vec<_>, _>>()?;
+        base_versions.extend(rows);
+    }
+    Ok(base_versions)
+}
+
+fn load_prior_identifier_deltas(
+    connection: &Connection,
+    state: &ResolutionScopeState,
+    window_size: usize,
+) -> Result<(BTreeMap<(i64, String), ResolutionIdentifierRow>, usize), StoreResolutionError> {
+    let limit =
+        i64::try_from(window_size).map_err(|_| StoreResolutionError::InvalidWindowSize {
+            requested: window_size,
+            maximum: MAX_STORE_RESOLUTION_WINDOW,
+        })?;
+    let mut rows_by_key = BTreeMap::new();
+    let mut after = (0, String::new());
+    let mut max_page = 0;
+    loop {
+        let mut statement = connection.prepare(
+            "SELECT version_id,identifier_id,target_version_id,target_symbol_id,tier,
+                    confidence,method,outcome,candidates
+             FROM resolution_identifier_deltas
+             WHERE view_id=?1 AND delta_generation=?2
+               AND (version_id,identifier_id)>(?3,?4)
+             ORDER BY version_id,identifier_id COLLATE BINARY LIMIT ?5",
+        )?;
+        let page = statement
+            .query_map(
+                params![
+                    state.view_id,
+                    state.delta_generation,
+                    after.0,
+                    after.1,
+                    limit
+                ],
+                |row| {
+                    Ok(ResolutionIdentifierRow {
+                        version_id: row.get(0)?,
+                        identifier_id: row.get(1)?,
+                        target_version_id: row.get(2)?,
+                        target_symbol_id: row.get(3)?,
+                        tier: row.get(4)?,
+                        confidence: row.get(5)?,
+                        method: row.get(6)?,
+                        outcome: row.get(7)?,
+                        candidates: row.get(8)?,
+                    })
+                },
+            )?
+            .collect::<Result<Vec<_>, _>>()?;
+        if page.is_empty() {
+            break;
+        }
+        max_page = max_page.max(page.len());
+        for row in page {
+            after = (row.version_id, row.identifier_id.clone());
+            rows_by_key.insert((row.version_id, row.identifier_id.clone()), row);
+        }
+    }
+    Ok((rows_by_key, max_page))
+}
+
+fn load_prior_pending_deltas(
+    connection: &Connection,
+    state: &ResolutionScopeState,
+    window_size: usize,
+) -> Result<(BTreeMap<(i64, String), ScopedPendingDelta>, usize), StoreResolutionError> {
+    let limit =
+        i64::try_from(window_size).map_err(|_| StoreResolutionError::InvalidWindowSize {
+            requested: window_size,
+            maximum: MAX_STORE_RESOLUTION_WINDOW,
+        })?;
+    let mut rows_by_key = BTreeMap::new();
+    let mut after = (0, String::new());
+    let mut max_page = 0;
+    loop {
+        let mut statement = connection.prepare(
+            "SELECT version_id,pending_relationship_id,operation,target_version_id,
+                    target_symbol_id,tier,confidence,method
+             FROM resolution_pending_deltas
+             WHERE view_id=?1 AND delta_generation=?2
+               AND (version_id,pending_relationship_id)>(?3,?4)
+             ORDER BY version_id,pending_relationship_id COLLATE BINARY LIMIT ?5",
+        )?;
+        let page = statement
+            .query_map(
+                params![
+                    state.view_id,
+                    state.delta_generation,
+                    after.0,
+                    after.1,
+                    limit
+                ],
+                |row| {
+                    let version_id = row.get::<_, i64>(0)?;
+                    let pending_relationship_id = row.get::<_, String>(1)?;
+                    let operation = row.get::<_, String>(2)?;
+                    let action = match operation.as_str() {
+                        "replace" => ScopedPendingDelta::Replacement(ResolutionPendingRow {
+                            version_id,
+                            pending_relationship_id: pending_relationship_id.clone(),
+                            target_version_id: row
+                                .get::<_, Option<i64>>(3)?
+                                .ok_or(rusqlite::Error::InvalidQuery)?,
+                            target_symbol_id: row
+                                .get::<_, Option<String>>(4)?
+                                .ok_or(rusqlite::Error::InvalidQuery)?,
+                            tier: row
+                                .get::<_, Option<i64>>(5)?
+                                .ok_or(rusqlite::Error::InvalidQuery)?,
+                            confidence: row
+                                .get::<_, Option<f64>>(6)?
+                                .ok_or(rusqlite::Error::InvalidQuery)?,
+                            method: row
+                                .get::<_, Option<String>>(7)?
+                                .ok_or(rusqlite::Error::InvalidQuery)?,
+                        }),
+                        "tombstone" => ScopedPendingDelta::Tombstone,
+                        _ => return Err(rusqlite::Error::InvalidQuery),
+                    };
+                    Ok(((version_id, pending_relationship_id), action))
+                },
+            )?
+            .collect::<Result<Vec<_>, _>>()?;
+        if page.is_empty() {
+            break;
+        }
+        max_page = max_page.max(page.len());
+        for (key, action) in page {
+            after = key.clone();
+            rows_by_key.insert(key, action);
+        }
+    }
+    Ok((rows_by_key, max_page))
+}
+
+fn load_prior_gap_facts(
+    connection: &Connection,
+    state: &ResolutionScopeState,
+) -> Result<
+    (
+        BTreeMap<(i64, String), ResolutionGapKind>,
+        BTreeMap<(i64, String), ResolutionGapKind>,
+    ),
+    StoreResolutionError,
+> {
+    let (declared_rows, declared_files, payload) = connection.query_row(
+        "SELECT exact_gap_rows,exact_gap_files,exact_gap_json
+         FROM resolution_deltas
+         WHERE view_id=?1 AND delta_generation=?2",
+        params![state.view_id, state.delta_generation],
+        |row| {
+            Ok((
+                row.get::<_, i64>(0)?,
+                row.get::<_, i64>(1)?,
+                row.get::<_, String>(2)?,
+            ))
+        },
+    )?;
+    let declared_rows = usize::try_from(declared_rows).map_err(|_| {
+        StoreResolutionError::Artifact(ResolutionValidationError::InvalidMetadata {
+            key: "exact_gap_rows".to_string(),
+            value: "declared prior gap row count is negative or out of range".to_string(),
+        })
+    })?;
+    let declared_files = usize::try_from(declared_files).map_err(|_| {
+        StoreResolutionError::Artifact(ResolutionValidationError::InvalidMetadata {
+            key: "exact_gap_files".to_string(),
+            value: "declared prior gap file count is negative or out of range".to_string(),
+        })
+    })?;
+    let value = serde_json::from_str::<serde_json::Value>(&payload).map_err(|_| {
+        StoreResolutionError::Artifact(ResolutionValidationError::InvalidMetadata {
+            key: "exact_gap_json".to_string(),
+            value: "prior gap payload is not valid JSON".to_string(),
+        })
+    })?;
+    let rows = value
+        .get("rows")
+        .and_then(serde_json::Value::as_array)
+        .or_else(|| value.as_array())
+        .cloned()
+        .ok_or_else(|| {
+            StoreResolutionError::Artifact(ResolutionValidationError::InvalidMetadata {
+                key: "exact_gap_json".to_string(),
+                value: "prior gap payload is not an object with rows".to_string(),
+            })
+        })?;
+    let declared_file_ids = value
+        .get("files")
+        .map(|files| {
+            let files = files.as_array().ok_or_else(|| {
+                StoreResolutionError::Artifact(ResolutionValidationError::InvalidMetadata {
+                    key: "exact_gap_json".to_string(),
+                    value: "prior gap files is not an array".to_string(),
+                })
+            })?;
+            let mut ids = BTreeSet::new();
+            for file in files {
+                let file_id = file.as_i64().ok_or_else(|| {
+                    StoreResolutionError::Artifact(ResolutionValidationError::InvalidMetadata {
+                        key: "exact_gap_json".to_string(),
+                        value: "prior gap file id is not an integer".to_string(),
+                    })
+                })?;
+                if file_id <= 0 || !ids.insert(file_id) {
+                    return Err(StoreResolutionError::Artifact(
+                        ResolutionValidationError::InvalidMetadata {
+                            key: "exact_gap_json".to_string(),
+                            value: "prior gap files contains an invalid or duplicate id"
+                                .to_string(),
+                        },
+                    ));
+                }
+            }
+            Ok(ids)
+        })
+        .transpose()?
+        .unwrap_or_default();
+    let mut identifiers = BTreeMap::new();
+    let mut pending = BTreeMap::new();
+    let mut parsed_file_ids = BTreeSet::new();
+    for row in rows {
+        let table = row.get("table").and_then(serde_json::Value::as_str);
+        let kind = row.get("kind").and_then(serde_json::Value::as_str);
+        let version_id = row.get("version_id").and_then(serde_json::Value::as_i64);
+        let local_id = row
+            .get("local_id")
+            .and_then(serde_json::Value::as_str)
+            .map(str::to_string);
+        let (Some(table), Some(kind), Some(version_id), Some(local_id)) =
+            (table, kind, version_id, local_id)
+        else {
+            return Err(StoreResolutionError::Artifact(
+                ResolutionValidationError::InvalidMetadata {
+                    key: "exact_gap_json".to_string(),
+                    value: "prior gap row is incomplete".to_string(),
+                },
+            ));
+        };
+        if version_id <= 0 {
+            return Err(StoreResolutionError::Artifact(
+                ResolutionValidationError::InvalidMetadata {
+                    key: "exact_gap_json".to_string(),
+                    value: "prior gap row has an invalid version id".to_string(),
+                },
+            ));
+        }
+        parsed_file_ids.insert(version_id);
+        let kind = match kind {
+            "added" => ResolutionGapKind::Added,
+            "replaced" => ResolutionGapKind::Replaced,
+            "removed" => ResolutionGapKind::Removed,
+            _ => {
+                return Err(StoreResolutionError::Artifact(
+                    ResolutionValidationError::InvalidMetadata {
+                        key: "exact_gap_json".to_string(),
+                        value: format!("unknown prior gap kind {kind:?}"),
+                    },
+                ));
+            }
+        };
+        match table {
+            "identifier" => {
+                if identifiers.insert((version_id, local_id), kind).is_some() {
+                    return Err(StoreResolutionError::Artifact(
+                        ResolutionValidationError::InvalidMetadata {
+                            key: "exact_gap_json".to_string(),
+                            value: "prior gap rows contain a duplicate identifier key".to_string(),
+                        },
+                    ));
+                }
+            }
+            "pending" => {
+                if pending.insert((version_id, local_id), kind).is_some() {
+                    return Err(StoreResolutionError::Artifact(
+                        ResolutionValidationError::InvalidMetadata {
+                            key: "exact_gap_json".to_string(),
+                            value: "prior gap rows contain a duplicate pending key".to_string(),
+                        },
+                    ));
+                }
+            }
+            _ => {
+                return Err(StoreResolutionError::Artifact(
+                    ResolutionValidationError::InvalidMetadata {
+                        key: "exact_gap_json".to_string(),
+                        value: format!("unknown prior gap table {table:?}"),
+                    },
+                ));
+            }
+        }
+    }
+    let parsed_rows = identifiers.len().saturating_add(pending.len());
+    if parsed_rows != declared_rows {
+        return Err(StoreResolutionError::Artifact(
+            ResolutionValidationError::InvalidMetadata {
+                key: "exact_gap_rows".to_string(),
+                value: format!(
+                    "declared prior gap row count {declared_rows} does not match parsed {parsed_rows}"
+                ),
+            },
+        ));
+    }
+    if parsed_file_ids.len() != declared_files {
+        return Err(StoreResolutionError::Artifact(
+            ResolutionValidationError::InvalidMetadata {
+                key: "exact_gap_files".to_string(),
+                value: format!(
+                    "declared prior gap file count {declared_files} does not match parsed {}",
+                    parsed_file_ids.len()
+                ),
+            },
+        ));
+    }
+    if !declared_file_ids.is_empty() && declared_file_ids != parsed_file_ids {
+        return Err(StoreResolutionError::Artifact(
+            ResolutionValidationError::InvalidMetadata {
+                key: "exact_gap_json".to_string(),
+                value: "declared prior gap files do not match row versions".to_string(),
+            },
+        ));
+    }
+    Ok((identifiers, pending))
+}
+
+struct ScopedTargetValidator<'a> {
+    connection: &'a Connection,
+    identity: &'a StoreManifestIdentity,
+    targets: BTreeSet<(i64, String)>,
+    #[cfg(feature = "test-store-resolution-contract")]
+    query_count: usize,
+    #[cfg(feature = "test-store-resolution-contract")]
+    target_count: usize,
+}
+
+impl<'a> ScopedTargetValidator<'a> {
+    fn new(connection: &'a Connection, identity: &'a StoreManifestIdentity) -> Self {
+        Self {
+            connection,
+            identity,
+            targets: BTreeSet::new(),
+            #[cfg(feature = "test-store-resolution-contract")]
+            query_count: 0,
+            #[cfg(feature = "test-store-resolution-contract")]
+            target_count: 0,
+        }
+    }
+
+    fn push(
+        &mut self,
+        target_version_id: Option<i64>,
+        target_symbol_id: Option<&str>,
+    ) -> Result<(), StoreResolutionError> {
+        let (Some(target_version_id), Some(target_symbol_id)) =
+            (target_version_id, target_symbol_id)
+        else {
+            return Ok(());
+        };
+        let inserted = self
+            .targets
+            .insert((target_version_id, target_symbol_id.to_string()));
+        #[cfg(feature = "test-store-resolution-contract")]
+        if inserted {
+            self.target_count = self.target_count.saturating_add(1);
+        }
+        #[cfg(not(feature = "test-store-resolution-contract"))]
+        let _ = inserted;
+        if self.targets.len() >= SCOPED_TARGET_BATCH {
+            self.flush()?;
+        }
+        Ok(())
+    }
+
+    fn finish(&mut self) -> Result<(), StoreResolutionError> {
+        self.flush()
+    }
+
+    fn flush(&mut self) -> Result<(), StoreResolutionError> {
+        if self.targets.is_empty() {
+            return Ok(());
+        }
+        let targets = std::mem::take(&mut self.targets);
+        #[cfg(feature = "test-store-resolution-contract")]
+        {
+            self.query_count = self.query_count.saturating_add(1);
+        }
+        let values = std::iter::repeat_n("(?,?)", targets.len())
+            .collect::<Vec<_>>()
+            .join(",");
+        let sql = format!(
+            "WITH targets(version_id,symbol_id) AS (VALUES {values})
+             SELECT targets.version_id,targets.symbol_id
+             FROM targets
+             WHERE NOT EXISTS (
+               SELECT 1 FROM symbols AS s
+               WHERE s.version_id=targets.version_id
+                 AND s.symbol_id=targets.symbol_id
+                 AND EXISTS (
+                   SELECT 1 FROM manifest_entries AS me
+                   WHERE me.view_id=?
+                     AND me.generation=?
+                     AND me.status IN ('indexed','failed_preserved')
+                     AND me.version_id=s.version_id
+                 )
+             )
+             ORDER BY targets.version_id,targets.symbol_id COLLATE BINARY
+             LIMIT 1"
+        );
+        let mut bind = Vec::with_capacity(targets.len() * 2 + 2);
+        for (version_id, symbol_id) in targets {
+            bind.push(Value::Integer(version_id));
+            bind.push(Value::Text(symbol_id));
+        }
+        bind.push(Value::Text(self.identity.view_id.clone()));
+        bind.push(Value::Integer(self.identity.generation));
+        let missing = self
+            .connection
+            .query_row(&sql, params_from_iter(bind), |row| {
+                Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?))
+            })
+            .optional()?;
+        if let Some((version_id, symbol_id)) = missing {
+            return Err(StoreResolutionError::Artifact(
+                ResolutionValidationError::TargetMissing {
+                    version_id,
+                    symbol_id,
+                },
+            ));
+        }
+        Ok(())
+    }
+}
+
+struct ScopedTouchedIdentifier {
+    version_id: i64,
+    identifier_id: String,
+    row: Option<ResolutionIdentifierRow>,
+}
+
+struct ScopedTouchedIdentifierCursor<'a> {
+    scratch: &'a Connection,
+    window_size: usize,
+    rows: VecDeque<ScopedTouchedIdentifier>,
+    after: Option<(i64, String)>,
+    max_page: usize,
+}
+
+impl<'a> ScopedTouchedIdentifierCursor<'a> {
+    fn new(scratch: &'a Connection, window_size: usize) -> Self {
+        Self {
+            scratch,
+            window_size,
+            rows: VecDeque::new(),
+            after: None,
+            max_page: 0,
+        }
+    }
+
+    fn next(&mut self) -> Result<Option<ScopedTouchedIdentifier>, StoreResolutionError> {
+        if self.rows.is_empty() {
+            let limit = i64::try_from(self.window_size).map_err(|_| {
+                StoreResolutionError::InvalidWindowSize {
+                    requested: self.window_size,
+                    maximum: MAX_STORE_RESOLUTION_WINDOW,
+                }
+            })?;
+            let (after_version, after_id) = self
+                .after
+                .as_ref()
+                .map_or((0, ""), |(version, id)| (*version, id.as_str()));
+            let mut statement = self.scratch.prepare(
+                "SELECT touched.version_id,touched.identifier_id,
+                        resolved.version_id,resolved.identifier_id,resolved.target_version_id,
+                        resolved.target_symbol_id,resolved.tier,resolved.confidence,
+                        resolved.method,resolved.outcome,resolved.candidates
+                 FROM identifier_touched AS touched
+                 JOIN visible_versions AS visible ON visible.version_id=touched.version_id
+                 LEFT JOIN identifier_resolutions AS resolved
+                   ON resolved.version_id=touched.version_id
+                  AND resolved.identifier_id=touched.identifier_id
+                 WHERE (touched.version_id,touched.identifier_id)>(?1,?2)
+                 ORDER BY touched.version_id,touched.identifier_id COLLATE BINARY LIMIT ?3",
+            )?;
+            let page = statement
+                .query_map(params![after_version, after_id, limit], |row| {
+                    let version_id = row.get(0)?;
+                    let identifier_id = row.get(1)?;
+                    let row = row
+                        .get::<_, Option<i64>>(2)?
+                        .map(|resolved_version| {
+                            Ok::<ResolutionIdentifierRow, rusqlite::Error>(
+                                ResolutionIdentifierRow {
+                                    version_id: resolved_version,
+                                    identifier_id: row.get(3)?,
+                                    target_version_id: row.get(4)?,
+                                    target_symbol_id: row.get(5)?,
+                                    tier: row.get(6)?,
+                                    confidence: row.get(7)?,
+                                    method: row.get(8)?,
+                                    outcome: row.get(9)?,
+                                    candidates: row.get(10)?,
+                                },
+                            )
+                        })
+                        .transpose()?;
+                    Ok(ScopedTouchedIdentifier {
+                        version_id,
+                        identifier_id,
+                        row,
+                    })
+                })?
+                .collect::<Result<Vec<_>, _>>()?;
+            self.max_page = self.max_page.max(page.len());
+            self.rows = page.into();
+        }
+        let row = self.rows.pop_front();
+        if let Some(row) = &row {
+            self.after = Some((row.version_id, row.identifier_id.clone()));
+        }
+        Ok(row)
+    }
+}
+
+struct ScopedTouchedPending {
+    version_id: i64,
+    pending_relationship_id: String,
+    row: Option<ResolutionPendingRow>,
+}
+
+struct ScopedTouchedPendingCursor<'a> {
+    scratch: &'a Connection,
+    window_size: usize,
+    rows: VecDeque<ScopedTouchedPending>,
+    after: Option<(i64, String)>,
+    max_page: usize,
+}
+
+impl<'a> ScopedTouchedPendingCursor<'a> {
+    fn new(scratch: &'a Connection, window_size: usize) -> Self {
+        Self {
+            scratch,
+            window_size,
+            rows: VecDeque::new(),
+            after: None,
+            max_page: 0,
+        }
+    }
+
+    fn next(&mut self) -> Result<Option<ScopedTouchedPending>, StoreResolutionError> {
+        if self.rows.is_empty() {
+            let limit = i64::try_from(self.window_size).map_err(|_| {
+                StoreResolutionError::InvalidWindowSize {
+                    requested: self.window_size,
+                    maximum: MAX_STORE_RESOLUTION_WINDOW,
+                }
+            })?;
+            let (after_version, after_id) = self
+                .after
+                .as_ref()
+                .map_or((0, ""), |(version, id)| (*version, id.as_str()));
+            let mut statement = self.scratch.prepare(
+                "SELECT touched.version_id,touched.pending_relationship_id,
+                        resolved.version_id,resolved.pending_relationship_id,
+                        resolved.target_version_id,resolved.target_symbol_id,
+                        resolved.tier,resolved.confidence,resolved.method
+                 FROM pending_touched AS touched
+                 JOIN visible_versions AS visible ON visible.version_id=touched.version_id
+                 LEFT JOIN pending_resolutions AS resolved
+                   ON resolved.version_id=touched.version_id
+                  AND resolved.pending_relationship_id=touched.pending_relationship_id
+                 WHERE (touched.version_id,touched.pending_relationship_id)>(?1,?2)
+                 ORDER BY touched.version_id,touched.pending_relationship_id COLLATE BINARY LIMIT ?3",
+            )?;
+            let page = statement
+                .query_map(params![after_version, after_id, limit], |row| {
+                    let version_id = row.get(0)?;
+                    let pending_relationship_id = row.get(1)?;
+                    let row = row
+                        .get::<_, Option<i64>>(2)?
+                        .map(|resolved_version| {
+                            Ok::<ResolutionPendingRow, rusqlite::Error>(ResolutionPendingRow {
+                                version_id: resolved_version,
+                                pending_relationship_id: row.get(3)?,
+                                target_version_id: row.get(4)?,
+                                target_symbol_id: row.get(5)?,
+                                tier: row.get(6)?,
+                                confidence: row.get(7)?,
+                                method: row.get(8)?,
+                            })
+                        })
+                        .transpose()?;
+                    Ok(ScopedTouchedPending {
+                        version_id,
+                        pending_relationship_id,
+                        row,
+                    })
+                })?
+                .collect::<Result<Vec<_>, _>>()?;
+            self.max_page = self.max_page.max(page.len());
+            self.rows = page.into();
+        }
+        let row = self.rows.pop_front();
+        if let Some(row) = &row {
+            self.after = Some((row.version_id, row.pending_relationship_id.clone()));
+        }
+        Ok(row)
     }
 }
 
@@ -4014,6 +5767,16 @@ fn key_params(keys: &[(i64, String)]) -> Vec<rusqlite::types::Value> {
 
 fn elapsed_millis(started: Instant) -> u64 {
     u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX)
+}
+
+#[cfg(feature = "test-store-resolution-contract")]
+fn scoped_finalize_delay_for_test() {
+    if let Some(delay_ms) =
+        std::env::var_os("JULIE_EXTRACT_STORE_RESOLUTION_DELAY_SCOPED_FINALIZE_MS")
+            .and_then(|value| value.to_str()?.parse::<u64>().ok())
+    {
+        std::thread::sleep(std::time::Duration::from_millis(delay_ms));
+    }
 }
 
 fn candidate_hit(row: &Row<'_>) -> rusqlite::Result<Option<CandidateHit>> {
