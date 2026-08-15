@@ -4,8 +4,8 @@ mod prior_overlay;
 use std::fs;
 
 use julie_extract_artifact::store::{
-    ResolutionBaseCatalog, ResolutionBaseWriter, ResolutionIdentifierRow, ResolutionPendingRow,
-    ResolutionScopeState, StoreConnectionFactory, StoreLayout, ensure_resolution_scope_feature,
+    ResolutionBaseWriter, ResolutionIdentifierRow, ResolutionPendingRow, ResolutionScopeState,
+    StoreLayout, ensure_resolution_scope_feature,
 };
 use prior_overlay::{
     PriorOverlayAccess, PriorOverlayFallback, PriorOverlayKey, PriorOverlayReader,
@@ -241,6 +241,7 @@ fn missing_source_and_overlay_rows_return_typed_full_fallback() {
 }
 
 #[test]
+#[cfg(feature = "test-store-resolution-contract")]
 fn validated_base_catalog_mismatch_falls_back_through_strict_reader() {
     let fixture = Fixture::new();
     let proof = fixture.validated_base();
@@ -496,12 +497,15 @@ impl Fixture {
         ready(PriorOverlayReader::open(&self.layout, &self.state).unwrap())
     }
 
+    #[cfg(feature = "test-store-resolution-contract")]
     fn validated_base(&self) -> julie_extract_artifact::store::ResolutionValidatedBase {
-        ResolutionBaseCatalog::new(StoreConnectionFactory::new(
-            self.layout.clone(),
-            FAMILY_ID,
-            BINARY_VERSION,
-        ))
+        julie_extract_artifact::store::ResolutionBaseCatalog::new(
+            julie_extract_artifact::store::StoreConnectionFactory::new(
+                self.layout.clone(),
+                FAMILY_ID,
+                BINARY_VERSION,
+            ),
+        )
         .find_ready_with_proof_for_test(BASE_MANIFEST_HASH, RESOLVER_EPOCH)
         .unwrap()
         .unwrap()
