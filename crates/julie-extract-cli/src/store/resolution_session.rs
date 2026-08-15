@@ -30,12 +30,14 @@ use serde::{Deserialize, Serialize};
 
 use crate::resolution::{
     self, CandidateCacheAttribution, CandidateEvidence, CandidateHit, CandidateLookup,
-    CandidateLookupAttribution, CandidatePageFamily, CandidateSummary, CandidateSymbol,
-    ChildLookupCacheState, ChildLookupReason, EdgeOrigin, FilteredNameLookupAttribution,
-    FilteredNameLookupReason, ImportRecord, PrimeWindowAttribution, ReferenceKind,
-    SameWindowFingerprintCounts, TierOutcome, TopLevelLookupAttribution, TopLevelLookupReason,
-    TypeFact, TypeFactsLookupAttribution, TypeFactsLookupReason, UnresolvedEdge,
+    CandidatePageFamily, CandidateSummary, CandidateSymbol, ChildLookupCacheState,
+    ChildLookupReason, EdgeOrigin, FilteredNameLookupAttribution, FilteredNameLookupReason,
+    ImportRecord, ReferenceKind, SameWindowFingerprintCounts, TierOutcome,
+    TopLevelLookupAttribution, TopLevelLookupReason, TypeFact, TypeFactsLookupAttribution,
+    TypeFactsLookupReason, UnresolvedEdge,
 };
+#[cfg(feature = "test-store-resolution-contract")]
+use crate::resolution::{CandidateLookupAttribution, PrimeWindowAttribution};
 use crate::resolution_session::{
     ResolutionCorpusIdentity, ResolutionPassRequest, ResolutionPhase, ResolutionPhaseChunk,
     ResolutionSession, ResolutionWorklists, ResolutionWrite, ResolutionWriteBatch,
@@ -122,6 +124,7 @@ enum CandidatePageAttribution {
     },
 }
 
+#[cfg(feature = "test-store-resolution-contract")]
 pub(crate) fn candidate_lookup_attribution_json(
     attribution: &CandidateLookupAttribution,
 ) -> serde_json::Value {
@@ -140,6 +143,7 @@ pub(crate) fn candidate_lookup_attribution_json(
     })
 }
 
+#[cfg(feature = "test-store-resolution-contract")]
 pub(crate) fn prime_window_attribution_json(
     attribution: &PrimeWindowAttribution,
 ) -> serde_json::Value {
@@ -242,6 +246,7 @@ struct SameWindowFingerprintTracker {
 }
 
 impl SameWindowFingerprintTracker {
+    #[cfg(feature = "test-store-resolution-contract")]
     fn new(capacity: usize) -> Self {
         Self {
             capacity,
@@ -850,6 +855,7 @@ impl StoreScratchResolutionSession {
         self.forced_full_without_prior_state = true;
     }
 
+    #[cfg(feature = "test-store-resolution-contract")]
     pub(crate) fn enable_candidate_query_timing(&mut self) {
         self.candidate_query_timing_enabled = true;
         if self.same_window_fingerprints.get_mut().is_none() {
