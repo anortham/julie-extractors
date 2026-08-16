@@ -2766,7 +2766,7 @@ fn committed_resolve_waiter_reports_durable_success_before_request_timeout() {
         .unwrap();
     wait_for_pause(&mut first, &pause);
 
-    let waiter = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+    let mut waiter = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
         .args([
             "store",
             "resolve",
@@ -2786,8 +2786,34 @@ fn committed_resolve_waiter_reports_durable_success_before_request_timeout() {
         .stderr(std::process::Stdio::piped())
         .spawn()
         .unwrap();
-    let transitioned = std::time::Instant::now();
+    let coord = Connection::open(store.join("coord.db")).unwrap();
     fs::write(pause.with_extension("resume"), b"resume").unwrap();
+    let observe_deadline = std::time::Instant::now() + std::time::Duration::from_secs(30);
+    loop {
+        let state = coord
+            .query_row(
+                "SELECT state FROM requests WHERE request_id='resolve-committed-waiter'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .ok();
+        if state.as_deref() == Some("committed") {
+            break;
+        }
+        if let Some(status) = waiter.try_wait().unwrap() {
+            panic!(
+                "waiter exited before its request was committed: {status}\nstdout={}\nstderr={}",
+                read_child_stream(waiter.stdout.take()),
+                read_child_stream(waiter.stderr.take())
+            );
+        }
+        assert!(
+            std::time::Instant::now() < observe_deadline,
+            "timed out waiting for the resolve request to commit"
+        );
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    let transitioned = std::time::Instant::now();
     let waiter_output = waiter.wait_with_output().unwrap();
     let waiter_elapsed = transitioned.elapsed();
     let first_output = first.wait_with_output().unwrap();
