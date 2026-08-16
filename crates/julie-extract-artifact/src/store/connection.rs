@@ -10,10 +10,11 @@ use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior};
 
 use super::coordinator::{CoordinatorError, LeaseDisposition, LeaseHolder, StoreCoordinator};
 use super::pragmas::{PragmaError, WriterPragmaProfile, configure_writer_pragmas};
+use super::schema::ensure_read_symbol_indexes;
 use super::wal_retry::{is_locking_protocol, with_locking_protocol_retry};
 use super::{
     STORE_SQLITE_SCHEMA_VERSION, StoreLayout, StoreLayoutError, StoreSchemaError,
-    create_store_schema,
+    ensure_resolution_scope_feature,
 };
 
 static NEXT_DIRECT_WRITER: AtomicU64 = AtomicU64::new(1);
@@ -258,7 +259,8 @@ impl StoreConnectionFactory {
         };
         self.validate_writer_lease(&writer.fence)?;
         configure_writer_pragmas(&writer, WriterPragmaProfile::Routine)?;
-        create_store_schema(&writer)?;
+        ensure_read_symbol_indexes(&writer)?;
+        ensure_resolution_scope_feature(&writer).map_err(StoreSchemaError::from)?;
         Ok(writer)
     }
 

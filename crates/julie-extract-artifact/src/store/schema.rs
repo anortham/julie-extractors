@@ -77,7 +77,13 @@ impl From<ResolutionScopeError> for StoreSchemaError {
 /// Creates or validates the independently versioned `store.db` catalog.
 pub fn create_store_schema(conn: &Connection) -> Result<(), StoreSchemaError> {
     create_schema(conn, "store.db", STORE_SCHEMA_SQL)?;
+    ensure_read_symbol_indexes(conn)?;
     ensure_resolution_scope_feature(conn)?;
+    Ok(())
+}
+
+pub(crate) fn ensure_read_symbol_indexes(conn: &Connection) -> Result<(), StoreSchemaError> {
+    conn.execute_batch(READ_SYMBOL_INDEXES_SQL)?;
     Ok(())
 }
 
@@ -1050,10 +1056,7 @@ CREATE INDEX IF NOT EXISTS idx_gc_symbols_is_test ON symbols(version_id, is_test
 CREATE INDEX IF NOT EXISTS idx_gc_symbols_test_container ON symbols(version_id, test_container);
 CREATE INDEX IF NOT EXISTS idx_gc_symbols_test_lifecycle ON symbols(version_id, test_lifecycle);
 CREATE INDEX IF NOT EXISTS idx_read_symbols_name_kind ON symbols(name, kind, version_id);
-CREATE INDEX IF NOT EXISTS idx_read_symbols_symbol ON symbols(symbol_id, version_id);
 CREATE INDEX IF NOT EXISTS idx_read_symbols_parent ON symbols(parent_symbol_id, version_id);
-CREATE INDEX IF NOT EXISTS idx_read_symbols_parent_name
-  ON symbols(version_id, parent_symbol_id, name, symbol_id);
 CREATE INDEX IF NOT EXISTS idx_gc_symbol_annotations_symbol
   ON symbol_annotations(version_id, symbol_id);
 CREATE INDEX IF NOT EXISTS idx_read_reference_sites_containing_symbol
@@ -1266,6 +1269,12 @@ END;
 
 PRAGMA user_version = 2;
 COMMIT;
+"#;
+
+const READ_SYMBOL_INDEXES_SQL: &str = r#"
+CREATE INDEX IF NOT EXISTS idx_read_symbols_symbol ON symbols(symbol_id, version_id);
+CREATE INDEX IF NOT EXISTS idx_read_symbols_parent_name
+  ON symbols(version_id, parent_symbol_id, name, symbol_id);
 "#;
 
 const COORDINATOR_SCHEMA_SQL: &str = r#"
