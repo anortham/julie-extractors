@@ -49,7 +49,7 @@ pub use maintenance::{
 pub use manifest::{
     BuiltManifest, MANIFEST_HASH_ALGORITHM, MANIFEST_PUBLISH_MAX_RETRIES, ManifestBuilder,
     ManifestEntry, ManifestEntryStatus, ManifestPublishDisposition, ManifestPublishResult,
-    ManifestStore, ManifestStoreError, ViewEnsureDisposition,
+    ManifestStore, ManifestStoreError, ViewEnsureDisposition, same_path_identity,
 };
 pub use model::{
     FamilyAllocatorKind, GenerationState, MaintenanceAction, ResolutionBaseRecord,

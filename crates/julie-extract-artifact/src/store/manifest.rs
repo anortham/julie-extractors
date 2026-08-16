@@ -374,7 +374,7 @@ impl<'connection> ManifestStore<'connection> {
             [view_id],
             |row| row.get::<_, String>(0),
         )?;
-        if found == root {
+        if same_path_identity(&found, root) {
             Ok(if inserted == 1 {
                 ViewEnsureDisposition::Created
             } else {
@@ -408,7 +408,7 @@ impl<'connection> ManifestStore<'connection> {
             [view_id],
             |row| row.get::<_, String>(0),
         )?;
-        if found == root {
+        if same_path_identity(&found, root) {
             Ok(if inserted == 1 {
                 ViewEnsureDisposition::Created
             } else {
@@ -436,7 +436,7 @@ impl<'connection> ManifestStore<'connection> {
             .ok_or_else(|| ManifestStoreError::ViewNotFound {
                 view_id: view_id.to_string(),
             })?;
-        if found == root {
+        if same_path_identity(&found, root) {
             Ok(())
         } else {
             Err(ManifestStoreError::ViewRootMismatch {
@@ -1057,6 +1057,51 @@ fn validate_view_identity(view_id: &str, root: &str) -> Result<(), ManifestStore
         return Err(ManifestStoreError::EmptyRoot);
     }
     Ok(())
+}
+
+pub fn same_path_identity(left: &str, right: &str) -> bool {
+    #[cfg(windows)]
+    {
+        return normalize_windows_path_identity(left) == normalize_windows_path_identity(right);
+    }
+
+    #[cfg(not(windows))]
+    {
+        left == right
+    }
+}
+
+#[cfg(windows)]
+fn normalize_windows_path_identity(path: &str) -> String {
+    let path = path.replace('/', "\\");
+    let lower = path.to_ascii_lowercase();
+    let path = if lower.starts_with(r"\\?\unc\") {
+        format!(r"\\{}", &path[8..])
+    } else if lower.starts_with(r"\\?\") {
+        path[4..].to_string()
+    } else {
+        path
+    };
+    let drive_root =
+        path.as_bytes().get(1) == Some(&b':') && path.as_bytes().get(2) == Some(&b'\\');
+
+    let mut normalized = String::with_capacity(path.len());
+    for (index, component) in path.split('\\').enumerate() {
+        if component.is_empty() {
+            if index < 2 && path.starts_with(r"\\") {
+                normalized.push('\\');
+            }
+            continue;
+        }
+        if !normalized.is_empty() && !normalized.ends_with('\\') {
+            normalized.push('\\');
+        }
+        normalized.push_str(component);
+    }
+    if drive_root && normalized.ends_with(':') {
+        normalized.push('\\');
+    }
+    normalized.to_lowercase()
 }
 
 fn canonical_path(path: &str) -> Result<String, ManifestStoreError> {

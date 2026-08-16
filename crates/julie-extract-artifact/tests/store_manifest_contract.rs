@@ -8,7 +8,7 @@ use julie_extract_artifact::store::{
     ManifestEntry, ManifestPublishDisposition, ManifestStore, ManifestStoreError,
     RESOLUTION_SCOPE_MAX_CHANGES, ResolutionScopeChangeKind, ResolutionScopeError,
     StoreConnectionFactory, StoreLayout, StoreLevel, StoreLog, StoreLogEntry, StoreLogError,
-    StoreWriterConnection, ViewEnsureDisposition, create_store_schema,
+    StoreWriterConnection, ViewEnsureDisposition, create_store_schema, same_path_identity,
     validate_resolution_scope_batch,
 };
 use rusqlite::{Connection, params};
@@ -1056,6 +1056,41 @@ fn import_create_and_update_require_are_distinct_and_identical_sets_reuse() {
             .unwrap(),
         1
     );
+}
+
+#[cfg(windows)]
+#[test]
+fn view_root_identity_accepts_drive_and_unc_verbatim_spellings_but_rejects_mismatches() {
+    assert!(same_path_identity(r"C:\", r"\\?\C:\"));
+    assert!(same_path_identity(r"C:\", r"C:\\"));
+    assert!(!same_path_identity(r"C:\", r"C:"));
+    assert!(!same_path_identity(r"C:\", r"D:\"));
+    assert!(same_path_identity(r"C:\Repo\Source", r"\\?\c:/repo/source",));
+    assert!(same_path_identity(
+        r"\\Server\Share\Repo",
+        r"\\?\UNC\server/share/repo",
+    ));
+    assert!(!same_path_identity(
+        r"\\Server\Share\Repo",
+        r"\\Server\OtherShare\Repo",
+    ));
+
+    let mut connection = Connection::open_in_memory().unwrap();
+    create_store_schema(&connection).unwrap();
+    let mut manifests = ManifestStore::new(&mut connection);
+    manifests
+        .ensure_view("view-drive", r"C:\Repo\Source")
+        .unwrap();
+    assert_eq!(
+        manifests
+            .ensure_view("view-drive", r"\\?\c:/repo/source")
+            .unwrap(),
+        ViewEnsureDisposition::Existing
+    );
+    let mismatch = manifests
+        .require_view("view-drive", r"C:\Repo\Other")
+        .unwrap_err();
+    assert_eq!(mismatch.code(), "view_root_mismatch");
 }
 
 #[test]

@@ -7,7 +7,7 @@ use julie_extract_artifact::store::{
     ManifestEntryStatus, ManifestPublishDisposition, ManifestPublishResult, ManifestStore,
     RequestKind, ResolutionBindingError, ResolutionBindingStore, ResolutionViewBinding,
     StoreFileVersion, StoreLevel, StoreLog, StoreLogEntry, StoreWriteRequest, StoreWriter,
-    ViewResolutionState,
+    ViewResolutionState, same_path_identity,
 };
 use julie_extractors::{
     EXTRACTION_IDENTITY_EPOCH, ExtractionLevel, detect_language_from_extension,
@@ -892,7 +892,7 @@ impl StoreRequestExecutor {
             .optional()
             .map_err(|error| error.to_string())?
             .ok_or_else(|| "view_not_found".to_string())?;
-        if stored != root {
+        if !same_path_identity(&stored, root) {
             return Err("view_root_mismatch".to_string());
         }
         Ok(())

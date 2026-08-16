@@ -5,7 +5,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use julie_extract_artifact::store::{
     CoordinatorError, CoordinatorPolicy, CoordinatorRequest, LeaseHolder, RequestKind,
-    RequestState, StoreCoordinator, StoreLayout,
+    RequestState, StoreCoordinator, StoreLayout, same_path_identity,
 };
 use rusqlite::{Connection, OptionalExtension, params};
 
@@ -124,7 +124,7 @@ pub(crate) fn require_existing_view(
         .optional()
         .map_err(|error| error.to_string())?
         .ok_or_else(|| "view_not_found".to_string())?;
-    if stored != root {
+    if !same_path_identity(&stored, &root) {
         return Err("view_root_mismatch".to_string());
     }
     Ok(root)
@@ -814,11 +814,13 @@ fn populate_current_resolution(
 }
 
 pub(crate) fn root_scope_matches(requested: &std::path::Path, stored: &str) -> bool {
-    if requested == std::path::Path::new(stored) {
+    if same_path_identity(&requested.to_string_lossy(), stored) {
         return true;
     }
     if let Ok(canonical) = requested.canonicalize() {
-        return canonical == std::path::Path::new(stored);
+        if same_path_identity(&canonical.to_string_lossy(), stored) {
+            return true;
+        }
     }
     let Some(name) = requested.file_name() else {
         return false;
@@ -826,7 +828,7 @@ pub(crate) fn root_scope_matches(requested: &std::path::Path, stored: &str) -> b
     requested
         .parent()
         .and_then(|parent| parent.canonicalize().ok())
-        .is_some_and(|parent| parent.join(name) == std::path::Path::new(stored))
+        .is_some_and(|parent| same_path_identity(&parent.join(name).to_string_lossy(), stored))
 }
 
 pub(crate) fn absolute_runtime_path(path: &std::path::Path) -> Result<String, String> {

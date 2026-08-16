@@ -16,7 +16,7 @@ use julie_extract_cli::store::report::{
     StoreCommandOutcome, StoreFailureClass, StoreOperation, StoreReport, StoreRequestState,
     StoreRequestedLevel, StoreResolutionState,
 };
-use rusqlite::Connection;
+use rusqlite::{Connection, OpenFlags};
 use serde_json::Value;
 
 struct TempDir(PathBuf);
@@ -129,6 +129,14 @@ fn read_child_stream<S: std::io::Read>(stream: Option<S>) -> String {
         Ok(_) => text,
         Err(error) => format!("<unreadable: {error}>"),
     }
+}
+
+fn open_store_read_only(path: &Path) -> Connection {
+    Connection::open_with_flags(
+        path,
+        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+    )
+    .unwrap()
 }
 
 /// Waits for a spawned resolve to reach its fault-injection pause point.
@@ -1897,8 +1905,7 @@ fn rebase_crash_after_ready_keeps_the_new_base_pinned_until_retry() {
     assert!(!crashed.status.success());
 
     let db_path = store.join("gen-001/store.db");
-    let db = Connection::open(&db_path).unwrap();
-    let rebased_base: String = db
+    let rebased_base: String = open_store_read_only(&db_path)
         .query_row(
             "SELECT base.base_id
              FROM resolution_bases AS base
@@ -1911,6 +1918,7 @@ fn rebase_crash_after_ready_keeps_the_new_base_pinned_until_retry() {
             |row| row.get(0),
         )
         .unwrap();
+    let db = open_store_read_only(&db_path);
     assert_eq!(
         db.query_row(
             "SELECT COUNT(*) FROM resolution_pins
@@ -1922,6 +1930,8 @@ fn rebase_crash_after_ready_keeps_the_new_base_pinned_until_retry() {
         1,
         "a ready but unbound rebase base must remain protected after a crash",
     );
+    drop(db);
+    let db = Connection::open(&db_path).unwrap();
     db.execute(
         "UPDATE resolution_pins SET expires_at='1970-01-02T00:00:00Z'
          WHERE owner_kind='resolve' AND delta_generation IS NULL AND base_id=?1",
@@ -1946,7 +1956,7 @@ fn rebase_crash_after_ready_keeps_the_new_base_pinned_until_retry() {
         String::from_utf8_lossy(&retry.stdout),
         String::from_utf8_lossy(&retry.stderr)
     );
-    let db = Connection::open(&db_path).unwrap();
+    let db = open_store_read_only(&db_path);
     assert_eq!(
         db.query_row(
             "SELECT resolution_state FROM views WHERE view_id='view-main'",
@@ -2032,7 +2042,7 @@ fn rebase_crash_after_view_cas_retries_cleanup_before_reporting_success() {
     assert!(!crashed.status.success());
 
     let db_path = store.join("gen-001/store.db");
-    let db = Connection::open(&db_path).unwrap();
+    let db = open_store_read_only(&db_path);
     let state: (String, i64, i64) = db
         .query_row(
             "SELECT resolution_state,resolution_delta_generation,
@@ -2953,8 +2963,7 @@ fn hard_kill_boundaries_resume_one_resolve_without_duplicate_terminal_state() {
             "boundary {boundary} returned normally"
         );
         let store_db = store.join("gen-001/store.db");
-        let scope_rows = Connection::open(&store_db)
-            .unwrap()
+        let scope_rows = open_store_read_only(&store_db)
             .query_row("SELECT COUNT(*) FROM resolution_scope_state", [], |row| {
                 row.get::<_, i64>(0)
             })
@@ -2979,7 +2988,7 @@ fn hard_kill_boundaries_resume_one_resolve_without_duplicate_terminal_state() {
         let report: Value = serde_json::from_slice(&retry.stdout).unwrap();
         assert_eq!(report["request"]["id"], "resolve-crash");
         assert_eq!(report["resolution"]["state"], "exact");
-        let db = Connection::open(store_db).unwrap();
+        let db = open_store_read_only(&store_db);
         assert_eq!(
             db.query_row(
                 "SELECT COUNT(*) FROM store_log
@@ -2998,7 +3007,7 @@ fn hard_kill_boundaries_resume_one_resolve_without_duplicate_terminal_state() {
             0,
             "boundary={boundary}"
         );
-        let coord = Connection::open(store.join("coord.db")).unwrap();
+        let coord = open_store_read_only(&store.join("coord.db"));
         assert_eq!(
             coord
                 .query_row(
@@ -3050,8 +3059,7 @@ fn rebase_crash_boundaries_retry_with_one_ready_base_and_one_empty_delta() {
             "resolve-rebase-seed-key",
         ));
         let store_db = store.join("gen-001/store.db");
-        let old_base: String = Connection::open(&store_db)
-            .unwrap()
+        let old_base: String = open_store_read_only(&store_db)
             .query_row(
                 "SELECT resolution_base_id FROM views WHERE view_id='view-main'",
                 [],
@@ -3103,8 +3111,7 @@ fn rebase_crash_boundaries_retry_with_one_ready_base_and_one_empty_delta() {
             .output()
             .unwrap();
         assert!(!crashed.status.success(), "boundary={boundary}");
-        let before_retry: (String, Option<String>, Option<i64>) = Connection::open(&store_db)
-            .unwrap()
+        let before_retry: (String, Option<String>, Option<i64>) = open_store_read_only(&store_db)
             .query_row(
                 "SELECT resolution_state,resolution_base_id,resolution_delta_generation
                  FROM views WHERE view_id='view-main'",
@@ -3116,8 +3123,7 @@ fn rebase_crash_boundaries_retry_with_one_ready_base_and_one_empty_delta() {
             "converging" => assert_eq!(before_retry.1.as_deref(), Some(old_base.as_str())),
             "exact" => {
                 assert_ne!(before_retry.1.as_deref(), Some(old_base.as_str()));
-                let bound_base: String = Connection::open(&store_db)
-                    .unwrap()
+                let bound_base: String = open_store_read_only(&store_db)
                     .query_row(
                         "SELECT base_id FROM resolution_deltas
                          WHERE view_id='view-main' AND delta_generation=?1",
@@ -3151,7 +3157,7 @@ fn rebase_crash_boundaries_retry_with_one_ready_base_and_one_empty_delta() {
         let report: Value = serde_json::from_slice(&retry.stdout).unwrap();
         assert_eq!(report["request"]["id"], "resolve-rebase-crash");
         assert_eq!(report["resolution"]["state"], "exact");
-        let connection = Connection::open(&store_db).unwrap();
+        let connection = open_store_read_only(&store_db);
         let final_state: (String, String, i64, String) = connection
             .query_row(
                 "SELECT view.resolution_state,view.resolution_base_id,
