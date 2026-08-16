@@ -312,6 +312,107 @@ fn below_writer_floor_can_open_read_only_but_not_for_writes() {
 }
 
 #[test]
+fn writer_open_repairs_missing_read_index_without_changing_rows_or_identity() {
+    let temp = TempStore::new("writer-schema-repair");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let store = Connection::open(layout.store_db()).unwrap();
+    store
+        .execute(
+            "INSERT INTO file_versions
+             (path, content_hash, extraction_epoch, language, content_bytes)
+             VALUES ('src/a.rs', 'blake3:a', 1, 'rust', 1)",
+            [],
+        )
+        .unwrap();
+    store
+        .execute(
+            "INSERT INTO symbols
+             (version_id, symbol_id, path, language, name, kind,
+              start_line, start_column, end_line, end_column, start_byte, end_byte)
+             VALUES (1, 'symbol-a', 'src/a.rs', 'rust', 'a', 'function',
+                     1, 1, 1, 2, 0, 1)",
+            [],
+        )
+        .unwrap();
+
+    let before_version = pragma_i64(&store, "user_version");
+    let before_metadata = store_metadata(layout.store_db());
+    let before_symbol: (i64, String, String, String, String, String) = store
+        .query_row(
+            "SELECT version_id, symbol_id, path, language, name, kind
+             FROM symbols",
+            [],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                ))
+            },
+        )
+        .unwrap();
+
+    store
+        .execute("DROP INDEX IF EXISTS idx_read_symbols_symbol", [])
+        .unwrap();
+    assert_eq!(
+        store
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_schema
+                 WHERE type='index' AND name='idx_read_symbols_symbol'",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        0
+    );
+    drop(store);
+
+    let factory = StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0");
+    let writer = factory.open_writer().unwrap();
+
+    assert_eq!(
+        writer
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_schema
+                 WHERE type='index' AND name='idx_read_symbols_symbol'",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        1
+    );
+    drop(writer);
+
+    let reopened = Connection::open(layout.store_db()).unwrap();
+    assert_eq!(pragma_i64(&reopened, "user_version"), before_version);
+    assert_eq!(store_metadata(layout.store_db()), before_metadata);
+    assert_eq!(
+        reopened
+            .query_row(
+                "SELECT version_id, symbol_id, path, language, name, kind
+                 FROM symbols",
+                [],
+                |row| {
+                    Ok((
+                        row.get::<_, i64>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, String>(2)?,
+                        row.get::<_, String>(3)?,
+                        row.get::<_, String>(4)?,
+                        row.get::<_, String>(5)?,
+                    ))
+                },
+            )
+            .unwrap(),
+        before_symbol
+    );
+}
+
+#[test]
 fn writer_reasserts_and_reads_back_required_pragmas() {
     let temp = TempStore::new("writer-pragmas");
     let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();

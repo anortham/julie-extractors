@@ -2621,6 +2621,209 @@ fn same_view_resolves_serialize_and_the_waiter_reuses_its_durable_request() {
 }
 
 #[test]
+fn failed_resolve_waiter_returns_durable_failure_before_request_timeout() {
+    let temp = TempDir::new();
+    let (_, store) = create_full_store(&temp);
+    let pause = temp.path().join("first-resolve.pause");
+    let mut first = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
+            "store",
+            "resolve",
+            "--store",
+            store.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--request-id",
+            "resolve-first",
+            "--idempotency-key",
+            "resolve-first-key",
+            "--json",
+        ])
+        .env("JULIE_EXTRACT_STORE_RESOLUTION_PAUSE_FILE", &pause)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
+    wait_for_pause(&mut first, &pause);
+
+    let mut waiter = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
+            "store",
+            "resolve",
+            "--store",
+            store.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--request-id",
+            "resolve-failed-waiter",
+            "--idempotency-key",
+            "resolve-failed-waiter-key",
+            "--request-timeout-seconds",
+            "2",
+            "--json",
+        ])
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
+    let coord = Connection::open(store.join("coord.db")).unwrap();
+    let observe_deadline = std::time::Instant::now() + std::time::Duration::from_secs(30);
+    loop {
+        if let Some(status) = waiter.try_wait().unwrap() {
+            panic!(
+                "waiter exited before its queued request was observed: {status}\nstdout={}\nstderr={}",
+                read_child_stream(waiter.stdout.take()),
+                read_child_stream(waiter.stderr.take())
+            );
+        }
+        let state = coord
+            .query_row(
+                "SELECT state FROM requests WHERE request_id='resolve-failed-waiter'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .ok();
+        if state.as_deref() == Some("queued") {
+            break;
+        }
+        assert!(
+            std::time::Instant::now() < observe_deadline,
+            "timed out waiting for the resolve waiter request"
+        );
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    coord
+        .execute(
+            "UPDATE requests SET state='failed',claim_owner=NULL,
+             claim_heartbeat_at=NULL,result_json=NULL,error_json=?1,
+             updated_at=updated_at+1
+             WHERE request_id=?2 AND state='queued'",
+            rusqlite::params![
+                r#"{"message":"resolution_failed: injected durable failure"}"#,
+                "resolve-failed-waiter"
+            ],
+        )
+        .unwrap();
+
+    let transitioned = std::time::Instant::now();
+    let waiter_output = waiter.wait_with_output().unwrap();
+    let waiter_elapsed = transitioned.elapsed();
+    fs::write(pause.with_extension("resume"), b"resume").unwrap();
+    let first_output = first.wait_with_output().unwrap();
+    assert!(
+        first_output.status.success(),
+        "stdout={} stderr={}",
+        String::from_utf8_lossy(&first_output.stdout),
+        String::from_utf8_lossy(&first_output.stderr)
+    );
+    assert_eq!(waiter_output.status.code(), Some(1));
+    let report: Value = serde_json::from_slice(&waiter_output.stdout).unwrap();
+    assert_eq!(report["failure_class"], "resolution_failed");
+    assert!(
+        waiter_elapsed < std::time::Duration::from_secs(1),
+        "waiter did not return promptly: elapsed={:?}",
+        waiter_elapsed
+    );
+    assert_eq!(
+        report["error"]["message"],
+        "resolution_failed: injected durable failure"
+    );
+    assert_eq!(report["state"], "failed");
+
+    let waiter_state: (String, Option<String>) = coord
+        .query_row(
+            "SELECT state,claim_owner FROM requests WHERE request_id='resolve-failed-waiter'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!(waiter_state, ("failed".to_string(), None));
+}
+
+#[test]
+fn committed_resolve_waiter_reports_durable_success_before_request_timeout() {
+    let temp = TempDir::new();
+    let (_, store) = create_full_store(&temp);
+    let pause = temp.path().join("first-resolve.pause");
+    let mut first = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
+            "store",
+            "resolve",
+            "--store",
+            store.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--request-id",
+            "resolve-committed-waiter",
+            "--idempotency-key",
+            "resolve-committed-waiter-key",
+            "--json",
+        ])
+        .env("JULIE_EXTRACT_STORE_RESOLUTION_PAUSE_FILE", &pause)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
+    wait_for_pause(&mut first, &pause);
+
+    let waiter = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
+            "store",
+            "resolve",
+            "--store",
+            store.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--request-id",
+            "resolve-committed-waiter",
+            "--idempotency-key",
+            "resolve-committed-waiter-key",
+            "--request-timeout-seconds",
+            "2",
+            "--json",
+        ])
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
+    let transitioned = std::time::Instant::now();
+    fs::write(pause.with_extension("resume"), b"resume").unwrap();
+    let waiter_output = waiter.wait_with_output().unwrap();
+    let waiter_elapsed = transitioned.elapsed();
+    let first_output = first.wait_with_output().unwrap();
+    assert!(
+        first_output.status.success(),
+        "stdout={} stderr={}",
+        String::from_utf8_lossy(&first_output.stdout),
+        String::from_utf8_lossy(&first_output.stderr)
+    );
+    assert!(
+        waiter_output.status.success(),
+        "stdout={} stderr={}",
+        String::from_utf8_lossy(&waiter_output.stdout),
+        String::from_utf8_lossy(&waiter_output.stderr)
+    );
+    assert!(
+        waiter_elapsed < std::time::Duration::from_secs(1),
+        "waiter did not return promptly: elapsed={:?}",
+        waiter_elapsed
+    );
+    let report: Value = serde_json::from_slice(&waiter_output.stdout).unwrap();
+    assert_eq!(report["state"], "committed");
+    assert_eq!(report["resolution"]["state"], "exact");
+
+    let coord = Connection::open(store.join("coord.db")).unwrap();
+    let waiter_state: (String, Option<String>) = coord
+        .query_row(
+            "SELECT state,claim_owner FROM requests WHERE request_id='resolve-committed-waiter'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!(waiter_state, ("committed".to_string(), None));
+}
+
+#[test]
 fn resolve_claim_loss_stops_before_base_or_exact_publication() {
     let temp = TempDir::new();
     let root = temp.path().join("source");

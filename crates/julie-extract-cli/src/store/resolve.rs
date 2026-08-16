@@ -233,7 +233,16 @@ fn execute_resolve(
         return report_resolve(&layout, &canonical, &payload);
     }
 
-    claim_until_deadline(&coordinator, &canonical, &holder.holder_id)?;
+    if let Some(request) = claim_until_deadline(&coordinator, &canonical, &holder.holder_id)? {
+        if matches!(
+            request.state,
+            RequestState::Committed | RequestState::Acknowledged
+        ) {
+            normalize_dead_writer_lease(&layout, &mut coordinator, &holder)?;
+        }
+        remove_resolution_request_scratch(&layout, &canonical.request_id)?;
+        return report_resolve(&layout, &request, &payload);
+    }
     let heartbeat = ResolveHeartbeat::start(
         layout.clone(),
         canonical.request_id.clone(),
@@ -1463,14 +1472,23 @@ fn claim_until_deadline(
     coordinator: &StoreCoordinator,
     request: &CoordinatorRequest,
     owner_id: &str,
-) -> Result<(), String> {
+) -> Result<Option<CoordinatorRequest>, String> {
     loop {
         let now = now_millis();
         if coordinator
             .claim_resolve(&request.request_id, owner_id, now, RESOLVE_CLAIM_STALE_MS)
             .map_err(|error| error.to_string())?
         {
-            return Ok(());
+            return Ok(None);
+        }
+        let observed = coordinator
+            .request(&request.request_id)
+            .map_err(|error| error.to_string())?;
+        if matches!(
+            observed.state,
+            RequestState::Committed | RequestState::Acknowledged | RequestState::Failed
+        ) {
+            return Ok(Some(observed));
         }
         if request
             .requester_deadline
