@@ -179,10 +179,12 @@ Historical v0.1.0 dogfood evidence: `docs/release-evidence/v0.1.0-dogfood.md`.
 Historical v0.1.0 release-candidate audit evidence:
 `docs/release-evidence/2026-06-01-v0-1-0-release-candidate-audit.md`.
 
-Current published release: `v2.33.1`.
+Current published release: `v2.33.2`.
 
 Current release notes and published evidence:
 
+- `docs/release-notes/v2.33.2.md`
+- `docs/findings/2026-08-13-coordinator-connection-reuse.md`
 - `docs/release-notes/v2.33.1.md`
 - `docs/release-notes/v2.33.0.md`
 - `docs/release-notes/v2.32.1.md`
@@ -198,20 +200,20 @@ Current release notes and published evidence:
 - `docs/release-notes/v2.31.0.md`
 - `docs/release-notes/v2.30.0.md`
 
-Prepared release candidate (not published): `v2.33.2`.
-
-- `docs/release-notes/v2.33.2.md`
-- `docs/findings/2026-08-13-coordinator-connection-reuse.md`
-
 The exact v2.33.2 source tree passed the release-prep gates on 2026-08-13: format check, `cargo test
 -p xtask`, default tests (exit 0 in 96.6 seconds), and contract tests (exit 0 in 713.2 seconds, including
 the serial feature-enabled 24-test resolution target, which passed 24/24 tests in 101.54 seconds); strict
 workspace all-target/all-feature Clippy with
 `-D warnings`; release preflight for 4 targets and 32 inputs; package-list generation; and
-`git diff --check`. This records source-tree evidence only. v2.33.1 remains current until the live
-v2.33.2 release and its assets are verified.
+`git diff --check`. These source-tree gates were followed by publication and live asset verification;
+v2.33.2 is the current published release.
 
-Do not move the current-published pointer or describe the candidate as current until the live GitHub
+Prepared release candidate (not published): `v2.33.3`.
+
+- `docs/release-notes/v2.33.3.md`
+- `docs/findings/2026-08-14-store-incremental-resolution-recovery.md`
+
+Keep the current-published pointer at v2.33.2 and describe v2.33.3 as prepared until the live GitHub
 release and its assets have been verified in the same session as the source push.
 
 - `docs/release-notes/v2.29.0.md`
