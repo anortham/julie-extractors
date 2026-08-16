@@ -3,12 +3,14 @@ use std::path::PathBuf;
 use std::sync::{Arc, Barrier};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+#[cfg(windows)]
+use julie_extract_artifact::store::same_path_identity;
 use julie_extract_artifact::store::{
     GenerationFence, MANIFEST_HASH_ALGORITHM, MANIFEST_PUBLISH_MAX_RETRIES, ManifestBuilder,
     ManifestEntry, ManifestPublishDisposition, ManifestStore, ManifestStoreError,
     RESOLUTION_SCOPE_MAX_CHANGES, ResolutionScopeChangeKind, ResolutionScopeError,
     StoreConnectionFactory, StoreLayout, StoreLevel, StoreLog, StoreLogEntry, StoreLogError,
-    StoreWriterConnection, ViewEnsureDisposition, create_store_schema, same_path_identity,
+    StoreWriterConnection, ViewEnsureDisposition, create_store_schema,
     validate_resolution_scope_batch,
 };
 use rusqlite::{Connection, params};

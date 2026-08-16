@@ -817,10 +817,10 @@ pub(crate) fn root_scope_matches(requested: &std::path::Path, stored: &str) -> b
     if same_path_identity(&requested.to_string_lossy(), stored) {
         return true;
     }
-    if let Ok(canonical) = requested.canonicalize() {
-        if same_path_identity(&canonical.to_string_lossy(), stored) {
-            return true;
-        }
+    if let Ok(canonical) = requested.canonicalize()
+        && same_path_identity(&canonical.to_string_lossy(), stored)
+    {
+        return true;
     }
     let Some(name) = requested.file_name() else {
         return false;
