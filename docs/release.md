@@ -179,10 +179,12 @@ Historical v0.1.0 dogfood evidence: `docs/release-evidence/v0.1.0-dogfood.md`.
 Historical v0.1.0 release-candidate audit evidence:
 `docs/release-evidence/2026-06-01-v0-1-0-release-candidate-audit.md`.
 
-Current published release: `v2.33.2`.
+Current published release: `v2.33.3`.
 
 Current release notes and published evidence:
 
+- `docs/release-notes/v2.33.3.md`
+- `docs/release-evidence/2026-08-16-v2-33-3-release.md`
 - `docs/release-notes/v2.33.2.md`
 - `docs/findings/2026-08-13-coordinator-connection-reuse.md`
 - `docs/release-notes/v2.33.1.md`
@@ -206,15 +208,15 @@ the serial feature-enabled 24-test resolution target, which passed 24/24 tests i
 workspace all-target/all-feature Clippy with
 `-D warnings`; release preflight for 4 targets and 32 inputs; package-list generation; and
 `git diff --check`. These source-tree gates were followed by publication and live asset verification;
-v2.33.2 is the current published release.
-
-Prepared release candidate (not published): `v2.33.3`.
-
-- `docs/release-notes/v2.33.3.md`
-- `docs/findings/2026-08-14-store-incremental-resolution-recovery.md`
-
-Keep the current-published pointer at v2.33.2 and describe v2.33.3 as prepared until the live GitHub
-release and its assets have been verified in the same session as the source push.
+The exact v2.33.3 source tree passed the release-prep gates on 2026-08-16: formatting, `cargo test -p
+xtask`, default tests, contract tests, strict workspace Clippy with warnings denied, release preflight
+for four targets and 32 inputs, package-list generation, agent-doc synchronization, and `git diff --check`.
+The source CI run [#31947439306](https://github.com/anortham/julie-extractors/actions/runs/31947439306) and
+release workflow run [#31948256383](https://github.com/anortham/julie-extractors/actions/runs/31948256383)
+passed. The stable release was published at
+<https://github.com/anortham/julie-extractors/releases/tag/v2.33.3> from
+`39572be89fdb7497e6d13da1e265d746773e3906`; exact live asset digests are in the linked evidence above.
+The release improves bounded incremental resolution, but a cold full index remains expensive.
 
 - `docs/release-notes/v2.29.0.md`
 - `docs/release-evidence/v2.29.0/` (save-shape A/B probe + 40-save shadow dogfood)
