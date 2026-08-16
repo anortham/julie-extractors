@@ -781,6 +781,18 @@ fn resolve_has_one_store_scope_planner_seam_and_reports_its_actual_decision() {
 }
 
 #[test]
+fn artifact_rebase_validation_precedes_private_accumulated_work_trigger() {
+    let resolve = include_str!("../src/store/resolve.rs");
+    let validation = resolve
+        .find("exact_rebase_required_with_proof")
+        .expect("resolve must validate artifact rebase requirements");
+    let fold = resolve
+        .find("artifact_rebase_required || decision.rebase_after_exact")
+        .expect("resolve must fold the private trigger after validation");
+    assert!(validation < fold);
+}
+
+#[test]
 fn resolve_parser_and_report_vocabulary_are_stable() {
     let parsed = StoreCli::try_parse_from([
         "julie-extract",

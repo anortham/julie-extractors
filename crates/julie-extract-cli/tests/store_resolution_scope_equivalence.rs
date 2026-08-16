@@ -264,6 +264,17 @@ fn semantic_digest(path: &Path) -> String {
     format!("{:x}", digest.finalize())
 }
 
+fn resolution_base_id(store: &Path) -> String {
+    Connection::open(store.join("gen-001/store.db"))
+        .unwrap()
+        .query_row(
+            "SELECT resolution_base_id FROM views WHERE view_id='view-main'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap()
+}
+
 #[test]
 fn curated_add_delete_rename_module_repoint_and_sibling_rows_match_full() {
     let pair = StorePair::new(&[
@@ -685,4 +696,111 @@ fn identical_manifest_round_trip_reuses_generation_after_changed_manifest() {
             .unwrap(),
         2
     );
+}
+
+#[test]
+fn accumulated_scoped_work_rebases_and_matches_full_exact_output() {
+    let pair = StorePair::new_with_setup(|root| {
+        write_source(
+            root,
+            "src/target.ts",
+            "export function shared() { return 1; }\n",
+        );
+        write_source(
+            root,
+            "src/changed-a.ts",
+            "export function changed_a() { return shared() + 1; }\n",
+        );
+        write_source(
+            root,
+            "src/changed-b.ts",
+            "export function changed_b() { return shared() + 1; }\n",
+        );
+        for index in 0..30 {
+            write_source(
+                root,
+                &format!("src/shared-{index}.ts"),
+                &format!("export function stable_{index}() {{ return shared(); }}\n"),
+            );
+        }
+        write_source(
+            root,
+            "src/padding-target.ts",
+            "export function padding_target() { return 1; }\n",
+        );
+        for index in 0..70 {
+            write_source(
+                root,
+                &format!("src/padding-{index}.ts"),
+                &format!("export function padding_{index}() {{ return padding_target(); }}\n"),
+            );
+        }
+    });
+    let old_base = resolution_base_id(&pair.scoped_store);
+
+    for (path, content) in [
+        ("src/target.ts", "export function shared() { return 2; }\n"),
+        ("src/target.ts", "export function shared() { return 3; }\n"),
+    ] {
+        for root in pair.roots() {
+            write_source(root, path, content);
+        }
+        pair.rescan();
+    }
+
+    let (_scoped_artifact, report) = pair.resolve_and_compare("scoped", None);
+    assert_eq!(report["resolution"]["resolution_mode"], "scoped");
+    assert!(report["resolution"].get("rebase_after_exact").is_none());
+    let rebased_base = resolution_base_id(&pair.scoped_store);
+    assert_ne!(rebased_base, old_base, "{report}");
+
+    let store_db = pair.scoped_store.join("gen-001/store.db");
+    let connection = Connection::open(&store_db).unwrap();
+    let delta: (i64, i64, i64, i64, i64) = connection
+        .query_row(
+            "SELECT identifier_replacements,pending_replacements,pending_tombstones,
+                    exact_gap_rows,exact_gap_files
+             FROM resolution_deltas
+             WHERE view_id='view-main'
+             ORDER BY delta_generation DESC LIMIT 1",
+            [],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                ))
+            },
+        )
+        .unwrap();
+    assert_eq!(delta, (0, 0, 0, 0, 0));
+    assert_eq!(
+        connection
+            .query_row("SELECT COUNT(*) FROM resolution_scope_state", [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .unwrap(),
+        0
+    );
+    let terminal: Value = serde_json::from_str(
+        &connection
+            .query_row(
+                "SELECT payload_json FROM store_log
+                 WHERE request_id='resolve-candidate' AND terminal=1",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(terminal["resolution_mode"], "scoped");
+    assert!(terminal.get("rebase_after_exact").is_none());
+
+    let replay = resolve(&pair.scoped_store, None, "candidate");
+    assert_success(&replay);
+    let replay_report: Value = serde_json::from_slice(&replay.stdout).unwrap();
+    assert_eq!(replay_report["request"]["id"], "resolve-candidate");
+    assert_eq!(resolution_base_id(&pair.scoped_store), rebased_base);
 }

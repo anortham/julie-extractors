@@ -9,7 +9,7 @@ use std::time::{Duration, Instant};
 
 use julie_extract_artifact::resolution_store::{ResolutionCounts, ResolutionReportRow};
 use julie_extract_artifact::store::{
-    ManifestStore, ResolutionBaseBegin, ResolutionBaseCatalog, ResolutionBaseReader,
+    ManifestEntry, ManifestStore, ResolutionBaseBegin, ResolutionBaseCatalog, ResolutionBaseReader,
     ResolutionBaseWriter, ResolutionBindingStore, ResolutionDiffMarker, ResolutionFileIdentity,
     StoreConnectionFactory, StoreLayout,
 };
@@ -63,6 +63,11 @@ const IDENTIFIER_WRITER_ROWS: usize = 100_000;
 const IDENTIFIER_WRITER_MAX: Duration = Duration::from_millis(2_500);
 const PAIRS: [&str; 2] = ["miller-unchanged", "miller-mutated"];
 const NOW: &str = "2026-08-08T12:00:00.000Z";
+const ACCUMULATED_RESOLUTION_TRANSITIONS: usize = 79;
+const ACCUMULATED_RESOLUTION_STABLE_FILES: usize = 1;
+const ACCUMULATED_RESOLUTION_STABLE_IDENTIFIERS: usize = 3_200;
+const ACCUMULATED_RESOLUTION_CHANGED_IDENTIFIERS: usize = 20;
+const ACCUMULATED_RESOLUTION_WARM_UPDATES: usize = 3;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ReplayMode {
@@ -321,6 +326,62 @@ struct Sample {
     cumulative_delta_rows_before: u64,
     cumulative_delta_rows_after: u64,
     rebased: bool,
+}
+
+struct AccumulatedResolutionPhaseInput {
+    validated_transition_count: usize,
+    base_id_before: String,
+    base_id_after: String,
+    before: ResolutionStorage,
+    after: ResolutionStorage,
+    rebase_count: u64,
+    exact_digest: String,
+    oracle_digest: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct AccumulatedResolutionPhaseSample {
+    resolution_mode: String,
+    validated_transition_count: usize,
+    scope_file_count: u64,
+    scope_name_count: u64,
+    scope_row_count: u64,
+    base_id_before: String,
+    base_id_after: String,
+    delta_rows_before: u64,
+    delta_rows_after: u64,
+    gap_bytes_before: u64,
+    gap_bytes_after: u64,
+    rebase_count: u64,
+    exact_digest: String,
+    oracle_digest: String,
+    wall_ms: u64,
+    peak_rss_bytes: u64,
+    phase_timings_ms: BTreeMap<String, u64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct AccumulatedResolutionRunSample {
+    run: usize,
+    fixture_snapshot_digest: String,
+    transition_count: usize,
+    unique_selected_identifiers: u64,
+    total_identifiers: u64,
+    unique_coverage_percent: f64,
+    broad: AccumulatedResolutionPhaseSample,
+    warm: Vec<AccumulatedResolutionPhaseSample>,
+    warm_p95_ms: u64,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct AccumulatedFixtureMetadata {
+    current_generation: i64,
+    journal_batch_count: usize,
+    transition_count: usize,
+    usable_one_change_transitions: usize,
+    latest_change_count: usize,
+    unique_selected_identifiers: u64,
+    total_identifiers: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1763,6 +1824,110 @@ fn live_candidate_query_snapshot_persists_before_resolution_finishes() {
 }
 
 #[test]
+fn accumulated_resolution_work_rebase_performance_gate() {
+    let Ok(out_dir) = std::env::var("JULIE_ACCUMULATED_REBASE_PERF_OUT_DIR") else {
+        return;
+    };
+    let runs = std::env::var("JULIE_ACCUMULATED_REBASE_PERF_RUNS")
+        .ok()
+        .map(|value| value.parse().unwrap())
+        .unwrap_or(1);
+    assert!(runs > 0);
+    let out_dir = PathBuf::from(out_dir);
+    fs::create_dir_all(&out_dir).unwrap();
+    let mut samples = Vec::with_capacity(runs);
+
+    for run in 1..=runs {
+        let run_dir = out_dir.join(format!("run-{run:03}"));
+        reset_owned_directory(&run_dir);
+        let fixture_root = run_dir.join("fixture");
+        build_accumulated_resolution_fixture(&fixture_root);
+        let worker_output = run_dir.join("worker.json");
+        let mut command = timed_worker_command();
+        let output = command
+            .arg(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "accumulated_resolution_work_rebase_performance_worker",
+                "--nocapture",
+                "--test-threads=1",
+            ])
+            .env(
+                "JULIE_ACCUMULATED_REBASE_PERF_WORKER_STORE",
+                fixture_root.join("family"),
+            )
+            .env("JULIE_ACCUMULATED_REBASE_PERF_WORKER_RUN", run.to_string())
+            .env(
+                "JULIE_ACCUMULATED_REBASE_PERF_WORKER_OUTPUT",
+                &worker_output,
+            )
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "stdout={} stderr={}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let mut sample: AccumulatedResolutionRunSample =
+            serde_json::from_slice(&fs::read(&worker_output).unwrap()).unwrap();
+        let peak_rss_bytes = parse_peak_rss(&output.stderr);
+        sample.broad.peak_rss_bytes = sample.broad.peak_rss_bytes.max(peak_rss_bytes);
+        for warm in &mut sample.warm {
+            warm.peak_rss_bytes = warm.peak_rss_bytes.max(peak_rss_bytes);
+        }
+        fs::write(
+            run_dir.join("accumulated-resolution.json"),
+            serde_json::to_vec_pretty(&sample).unwrap(),
+        )
+        .unwrap();
+        println!("{}", serde_json::to_string_pretty(&sample).unwrap());
+        samples.push(sample);
+        fs::remove_file(worker_output).unwrap();
+    }
+
+    let warm_wall_ms = samples
+        .iter()
+        .flat_map(|sample| sample.warm.iter().map(|warm| warm.wall_ms))
+        .collect::<Vec<_>>();
+    let before_wall_ms = samples
+        .iter()
+        .map(|sample| sample.broad.wall_ms)
+        .collect::<Vec<_>>();
+    let summary = serde_json::json!({
+        "runs": samples.len(),
+        "before_wall_ms": before_wall_ms,
+        "warm_p95_ms": nearest_rank_p95(&warm_wall_ms),
+        "warm_wall_ms": warm_wall_ms,
+    });
+    fs::write(
+        out_dir.join("summary.json"),
+        serde_json::to_vec_pretty(&summary).unwrap(),
+    )
+    .unwrap();
+    println!("{}", serde_json::to_string_pretty(&summary).unwrap());
+}
+
+#[test]
+fn accumulated_resolution_work_rebase_performance_worker() {
+    let Ok(store_root) = std::env::var("JULIE_ACCUMULATED_REBASE_PERF_WORKER_STORE") else {
+        return;
+    };
+    let run = std::env::var("JULIE_ACCUMULATED_REBASE_PERF_WORKER_RUN")
+        .unwrap()
+        .parse()
+        .unwrap();
+    let output =
+        PathBuf::from(std::env::var("JULIE_ACCUMULATED_REBASE_PERF_WORKER_OUTPUT").unwrap());
+    let sample = run_accumulated_resolution_performance(
+        Path::new(&store_root),
+        run,
+        output.parent().unwrap(),
+    );
+    fs::write(output, serde_json::to_vec_pretty(&sample).unwrap()).unwrap();
+}
+
+#[test]
 fn store_resolution_performance_worker() {
     let Ok(store_root) = std::env::var("JULIE_STORE_RESOLUTION_PERF_WORKER_STORE") else {
         return;
@@ -1940,6 +2105,476 @@ fn store_resolution_performance_gate() {
         assert!(scoped.time_to_exact_ms < 30_000);
         if rows == MILLER_IDENTIFIER_ROWS {
             assert!(scoped.time_to_exact_ms < forced_full.time_to_exact_ms);
+        }
+    }
+}
+
+fn run_accumulated_resolution_performance(
+    store_root: &Path,
+    run: usize,
+    out_dir: &Path,
+) -> AccumulatedResolutionRunSample {
+    let layout = StoreLayout::open(store_root).unwrap();
+    let metadata = accumulated_fixture_metadata(&layout, VIEW_ID);
+    assert_eq!(
+        metadata.current_generation,
+        i64::try_from(ACCUMULATED_RESOLUTION_TRANSITIONS + 1).unwrap()
+    );
+    assert_eq!(
+        metadata.journal_batch_count,
+        ACCUMULATED_RESOLUTION_TRANSITIONS
+    );
+    assert_eq!(
+        metadata.transition_count,
+        ACCUMULATED_RESOLUTION_TRANSITIONS
+    );
+    assert_eq!(
+        metadata.usable_one_change_transitions,
+        ACCUMULATED_RESOLUTION_TRANSITIONS
+    );
+    assert_eq!(metadata.latest_change_count, 1);
+    assert!(
+        u128::from(metadata.unique_selected_identifiers) * 4
+            > u128::from(metadata.total_identifiers)
+    );
+    assert!(
+        u128::from(metadata.unique_selected_identifiers) * 10
+            < u128::from(metadata.total_identifiers) * 7
+    );
+
+    let fixture_snapshot_digest = fixture_snapshot_digest(&layout);
+    let oracle_root = out_dir.join(format!("accumulated-oracle-{run}"));
+    reset_owned_directory(&oracle_root);
+    let oracle_store = oracle_root.join("family");
+    copy_directory_tree(store_root, &oracle_store);
+    let before = current_resolution_storage(&layout, VIEW_ID);
+    let base_id_before = current_resolution_base_id(&layout, VIEW_ID);
+    let request_id = format!("accumulated-broad-{run}");
+    let timed = run_timed_resolve_with_delta(store_root, VIEW_ID, &request_id, Some("on"));
+    assert_eq!(timed.report["resolution"]["resolution_mode"], "scoped");
+    assert_eq!(timed.report["resolution"]["state"], "exact");
+    assert_eq!(
+        timed.report["resolution"]["scope_file_count"],
+        u64::try_from(ACCUMULATED_RESOLUTION_TRANSITIONS).unwrap()
+    );
+    let after = current_resolution_storage(&layout, VIEW_ID);
+    let base_id_after = current_resolution_base_id(&layout, VIEW_ID);
+    let broad_rebase_count = resolution_rebase_count(&layout, VIEW_ID);
+    assert_eq!(broad_rebase_count, 1);
+    assert_ne!(base_id_before, base_id_after);
+    assert_eq!(after.delta_rows, 0);
+    assert_eq!(after.gap_rows, 0);
+    assert_eq!(after.gap_files, 0);
+
+    let broad_artifact = out_dir.join(format!("accumulated-broad-{run}.sqlite"));
+    export_view(store_root, VIEW_ID, &broad_artifact);
+    let broad_digest = artifact_semantic_digest(&broad_artifact);
+
+    let oracle_request_id = format!("accumulated-oracle-broad-{run}");
+    let oracle_timed =
+        run_resolve_with_instant(&oracle_store, VIEW_ID, &oracle_request_id, Some("off"));
+    assert_eq!(oracle_timed.report["resolution"]["resolution_mode"], "full");
+    let oracle_artifact = out_dir.join(format!("accumulated-oracle-broad-{run}.sqlite"));
+    export_view(&oracle_store, VIEW_ID, &oracle_artifact);
+    let oracle_digest = artifact_semantic_digest(&oracle_artifact);
+    assert_eq!(
+        artifact_semantic_differences(&broad_artifact, &oracle_artifact),
+        0
+    );
+    assert_eq!(broad_digest, oracle_digest);
+
+    let broad = accumulated_resolution_phase_sample(
+        &timed,
+        AccumulatedResolutionPhaseInput {
+            validated_transition_count: ACCUMULATED_RESOLUTION_TRANSITIONS,
+            base_id_before,
+            base_id_after,
+            before,
+            after,
+            rebase_count: broad_rebase_count,
+            exact_digest: broad_digest,
+            oracle_digest,
+        },
+    );
+
+    let mut warm = Vec::with_capacity(ACCUMULATED_RESOLUTION_WARM_UPDATES);
+    for update in 0..ACCUMULATED_RESOLUTION_WARM_UPDATES {
+        let candidate_before = current_resolution_storage(&layout, VIEW_ID);
+        let candidate_base_before = current_resolution_base_id(&layout, VIEW_ID);
+        publish_accumulated_warm_update(&layout, VIEW_ID, update);
+        let candidate_metadata = accumulated_fixture_metadata(&layout, VIEW_ID);
+        assert_eq!(candidate_metadata.journal_batch_count, 1);
+        assert_eq!(candidate_metadata.transition_count, 1);
+        assert_eq!(candidate_metadata.usable_one_change_transitions, 1);
+        assert_eq!(candidate_metadata.latest_change_count, 1);
+
+        let request_id = format!("accumulated-warm-{run}-{update}");
+        let timed = run_timed_resolve_with_delta(store_root, VIEW_ID, &request_id, Some("on"));
+        assert_eq!(timed.report["resolution"]["resolution_mode"], "scoped");
+        assert_eq!(timed.report["resolution"]["state"], "exact");
+        assert_eq!(timed.report["resolution"]["scope_file_count"], 1);
+        let candidate_after = current_resolution_storage(&layout, VIEW_ID);
+        let candidate_base_after = current_resolution_base_id(&layout, VIEW_ID);
+        assert_eq!(candidate_base_before, candidate_base_after);
+        assert_eq!(resolution_rebase_count(&layout, VIEW_ID), 1);
+
+        let oracle_layout = StoreLayout::open(&oracle_store).unwrap();
+        publish_accumulated_warm_update(&oracle_layout, VIEW_ID, update);
+        let oracle_request_id = format!("accumulated-oracle-warm-{run}-{update}");
+        let _oracle_timed =
+            run_resolve_with_instant(&oracle_store, VIEW_ID, &oracle_request_id, Some("off"));
+        let candidate_artifact = out_dir.join(format!("accumulated-warm-{run}-{update}.sqlite"));
+        let oracle_artifact =
+            out_dir.join(format!("accumulated-oracle-warm-{run}-{update}.sqlite"));
+        export_view(store_root, VIEW_ID, &candidate_artifact);
+        export_view(&oracle_store, VIEW_ID, &oracle_artifact);
+        let candidate_digest = artifact_semantic_digest(&candidate_artifact);
+        let oracle_digest = artifact_semantic_digest(&oracle_artifact);
+        assert_eq!(
+            artifact_semantic_differences(&candidate_artifact, &oracle_artifact),
+            0
+        );
+        assert_eq!(candidate_digest, oracle_digest);
+
+        warm.push(accumulated_resolution_phase_sample(
+            &timed,
+            AccumulatedResolutionPhaseInput {
+                validated_transition_count: 1,
+                base_id_before: candidate_base_before,
+                base_id_after: candidate_base_after,
+                before: candidate_before,
+                after: candidate_after,
+                rebase_count: 1,
+                exact_digest: candidate_digest,
+                oracle_digest,
+            },
+        ));
+    }
+    let warm_p95_ms =
+        nearest_rank_p95(&warm.iter().map(|sample| sample.wall_ms).collect::<Vec<_>>());
+
+    AccumulatedResolutionRunSample {
+        run,
+        fixture_snapshot_digest,
+        transition_count: metadata.transition_count,
+        unique_selected_identifiers: metadata.unique_selected_identifiers,
+        total_identifiers: metadata.total_identifiers,
+        unique_coverage_percent: metadata.unique_selected_identifiers as f64 * 100.0
+            / metadata.total_identifiers as f64,
+        broad,
+        warm,
+        warm_p95_ms,
+    }
+}
+
+fn accumulated_resolution_phase_sample(
+    timed: &TimedResolve,
+    input: AccumulatedResolutionPhaseInput,
+) -> AccumulatedResolutionPhaseSample {
+    let resolution = &timed.report["resolution"];
+    let phase_timings_ms = resolution["phase_timings_ms"]
+        .as_object()
+        .unwrap()
+        .iter()
+        .map(|(phase, value)| (phase.clone(), value.as_u64().unwrap()))
+        .collect();
+    AccumulatedResolutionPhaseSample {
+        resolution_mode: resolution["resolution_mode"].as_str().unwrap().to_string(),
+        validated_transition_count: input.validated_transition_count,
+        scope_file_count: resolution["scope_file_count"].as_u64().unwrap(),
+        scope_name_count: resolution["scope_name_count"].as_u64().unwrap(),
+        scope_row_count: resolution["scope_row_count"].as_u64().unwrap(),
+        base_id_before: input.base_id_before,
+        base_id_after: input.base_id_after,
+        delta_rows_before: input.before.delta_rows,
+        delta_rows_after: input.after.delta_rows,
+        gap_bytes_before: input.before.gap_bytes,
+        gap_bytes_after: input.after.gap_bytes,
+        rebase_count: input.rebase_count,
+        exact_digest: input.exact_digest,
+        oracle_digest: input.oracle_digest,
+        wall_ms: timed.wall_ms,
+        peak_rss_bytes: timed.peak_rss_bytes,
+        phase_timings_ms,
+    }
+}
+
+fn build_accumulated_resolution_fixture(store_root: &Path) {
+    let layout = StoreLayout::create(
+        store_root.join("family"),
+        FAMILY_ID,
+        env!("CARGO_PKG_VERSION"),
+    )
+    .unwrap();
+    let factory = StoreConnectionFactory::new(layout.clone(), FAMILY_ID, env!("CARGO_PKG_VERSION"));
+    let mut connection = factory.open_writer().unwrap();
+    {
+        let mut manifests = ManifestStore::new(&mut connection);
+        manifests.ensure_view(VIEW_ID, ROOT).unwrap();
+    }
+    let transaction = connection.transaction().unwrap();
+    let stable_shape = ResolutionRowShape {
+        identifiers: ACCUMULATED_RESOLUTION_STABLE_IDENTIFIERS,
+        pending: 0,
+        resolved_pending: 0,
+        distinct_target_names: ACCUMULATED_RESOLUTION_STABLE_IDENTIFIERS,
+    };
+    let changed_shape = ResolutionRowShape {
+        identifiers: ACCUMULATED_RESOLUTION_CHANGED_IDENTIFIERS,
+        pending: 0,
+        resolved_pending: 0,
+        distinct_target_names: ACCUMULATED_RESOLUTION_CHANGED_IDENTIFIERS,
+    };
+    let mut initial_entries = Vec::with_capacity(
+        ACCUMULATED_RESOLUTION_STABLE_FILES + ACCUMULATED_RESOLUTION_TRANSITIONS,
+    );
+    for index in 0..ACCUMULATED_RESOLUTION_STABLE_FILES {
+        let path = format!("src/stable-{index:03}.cs");
+        let hash = format!("accumulated-stable-{index:03}");
+        let version = insert_version(&transaction, &path, &hash);
+        insert_resolution_rows(
+            &transaction,
+            version,
+            &path,
+            &format!("accumulated-stable-target-{index:03}"),
+            stable_shape,
+        );
+        initial_entries.push(ManifestEntry::indexed(path, "csharp", version, hash, NOW));
+    }
+    for index in 0..ACCUMULATED_RESOLUTION_TRANSITIONS {
+        let path = accumulated_changed_path(index);
+        let hash = format!("accumulated-old-{index:03}");
+        let version = insert_version(&transaction, &path, &hash);
+        insert_resolution_rows(
+            &transaction,
+            version,
+            &path,
+            &accumulated_changed_target_name(index),
+            changed_shape,
+        );
+        initial_entries.push(ManifestEntry::indexed(path, "csharp", version, hash, NOW));
+    }
+    transaction.commit().unwrap();
+    let mut connection = factory.open_writer().unwrap();
+    {
+        let mut manifests = ManifestStore::new(&mut connection);
+        let published = manifests
+            .publish(VIEW_ID, None, initial_entries, "accumulated-seed")
+            .unwrap();
+        assert_eq!(published.generation, 1);
+    }
+    ensure_ready_replay_base(&layout, VIEW_ID);
+    let bindings = ResolutionBindingStore::new(factory.clone());
+    let bound = bindings
+        .bind_base(VIEW_ID, RESOLVER_OUTPUT_EPOCH, "accumulated-bind", NOW)
+        .unwrap();
+    assert_eq!(bound.state.as_str(), "exact");
+
+    let transaction = connection.transaction().unwrap();
+    let mut transition_versions = Vec::with_capacity(ACCUMULATED_RESOLUTION_TRANSITIONS);
+    for index in 0..ACCUMULATED_RESOLUTION_TRANSITIONS {
+        let path = accumulated_changed_path(index);
+        let hash = format!("accumulated-transition-{index:03}");
+        let version = insert_version(&transaction, &path, &hash);
+        insert_resolution_rows(
+            &transaction,
+            version,
+            &path,
+            &accumulated_changed_target_name(index),
+            changed_shape,
+        );
+        transition_versions.push((version, path, hash));
+    }
+    transaction.commit().unwrap();
+
+    let mut connection = factory.open_writer().unwrap();
+    let mut manifests = ManifestStore::new(&mut connection);
+    for (index, (version, path, hash)) in transition_versions.iter().enumerate() {
+        let generation = u64::try_from(index + 1).unwrap();
+        let mut entries = manifests.entries(VIEW_ID, generation).unwrap();
+        let entry = entries
+            .iter_mut()
+            .find(|entry| entry.path == *path)
+            .unwrap();
+        entry.version_id = Some(*version);
+        entry.observed_content_hash.clone_from(hash);
+        let published = manifests
+            .publish(
+                VIEW_ID,
+                Some(generation),
+                entries,
+                &format!("accumulated-transition-{index}"),
+            )
+            .unwrap();
+        assert_eq!(published.generation, generation + 1);
+    }
+}
+
+fn publish_accumulated_warm_update(layout: &StoreLayout, view_id: &str, update: usize) {
+    let path = accumulated_changed_path(ACCUMULATED_RESOLUTION_TRANSITIONS - 1);
+    let hash = format!("accumulated-warm-{update:03}");
+    let target_name = accumulated_changed_target_name(ACCUMULATED_RESOLUTION_TRANSITIONS - 1);
+    let factory = StoreConnectionFactory::new(layout.clone(), FAMILY_ID, env!("CARGO_PKG_VERSION"));
+    let version = {
+        let mut connection = factory.open_writer().unwrap();
+        let transaction = connection.transaction().unwrap();
+        let version = insert_version(&transaction, &path, &hash);
+        insert_resolution_rows(
+            &transaction,
+            version,
+            &path,
+            &target_name,
+            ResolutionRowShape {
+                identifiers: ACCUMULATED_RESOLUTION_CHANGED_IDENTIFIERS,
+                pending: 0,
+                resolved_pending: 0,
+                distinct_target_names: ACCUMULATED_RESOLUTION_CHANGED_IDENTIFIERS,
+            },
+        );
+        transaction.commit().unwrap();
+        version
+    };
+    let mut connection = factory.open_writer().unwrap();
+    let mut manifests = ManifestStore::new(&mut connection);
+    let generation = manifests.current_generation(view_id).unwrap().unwrap();
+    let mut entries = manifests.entries(view_id, generation).unwrap();
+    let entry = entries.iter_mut().find(|entry| entry.path == path).unwrap();
+    entry.version_id = Some(version);
+    entry.observed_content_hash = hash;
+    let published = manifests
+        .publish(
+            view_id,
+            Some(generation),
+            entries,
+            &format!("accumulated-warm-publish-{update}"),
+        )
+        .unwrap();
+    assert_eq!(published.generation, generation + 1);
+}
+
+fn accumulated_fixture_metadata(layout: &StoreLayout, view_id: &str) -> AccumulatedFixtureMetadata {
+    let connection = Connection::open(layout.store_db()).unwrap();
+    let current_generation: i64 = connection
+        .query_row(
+            "SELECT current_generation FROM views WHERE view_id=?1",
+            [view_id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let (journal_batch_count, usable_one_change_transitions): (i64, i64) = connection
+        .query_row(
+            "SELECT COUNT(*),
+                    COALESCE(SUM(CASE WHEN scope_usable=1 AND change_count=1 THEN 1 ELSE 0 END),0)
+             FROM resolution_scope_batches WHERE view_id=?1",
+            [view_id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .unwrap();
+    let latest_change_count: i64 = connection
+        .query_row(
+            "SELECT COALESCE(change_count,0)
+             FROM resolution_scope_batches
+             WHERE view_id=?1 ORDER BY transition_id DESC LIMIT 1",
+            [view_id],
+            |row| row.get(0),
+        )
+        .unwrap_or(0);
+    let total_identifiers: i64 = connection
+        .query_row(
+            "SELECT COUNT(*)
+             FROM manifest_entries AS entry
+             JOIN identifiers AS identifier ON identifier.version_id=entry.version_id
+             WHERE entry.view_id=?1 AND entry.generation=?2
+               AND entry.status IN ('indexed','failed_preserved')",
+            params![view_id, current_generation],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let unique_selected_identifiers: i64 = connection
+        .query_row(
+            "SELECT COUNT(*) FROM (
+                 SELECT identifier.version_id,identifier.identifier_id
+                 FROM manifest_entries AS entry
+                 JOIN identifiers AS identifier ON identifier.version_id=entry.version_id
+                 WHERE entry.view_id=?1 AND entry.generation=?2
+                   AND entry.path LIKE 'src/changed-%'
+                   AND entry.status IN ('indexed','failed_preserved')
+                 UNION
+                 SELECT identifier.version_id,identifier.identifier_id
+                 FROM manifest_entries AS entry
+                 JOIN identifiers AS identifier ON identifier.version_id=entry.version_id
+                 WHERE entry.view_id=?1 AND entry.generation=?2
+                   AND identifier.name LIKE 'accumulated-changed-target-%'
+                   AND entry.status IN ('indexed','failed_preserved')
+             )",
+            params![view_id, current_generation],
+            |row| row.get(0),
+        )
+        .unwrap();
+    AccumulatedFixtureMetadata {
+        current_generation,
+        journal_batch_count: usize::try_from(journal_batch_count).unwrap(),
+        transition_count: usize::try_from(usable_one_change_transitions).unwrap(),
+        usable_one_change_transitions: usize::try_from(usable_one_change_transitions).unwrap(),
+        latest_change_count: usize::try_from(latest_change_count).unwrap(),
+        unique_selected_identifiers: u64::try_from(unique_selected_identifiers).unwrap(),
+        total_identifiers: u64::try_from(total_identifiers).unwrap(),
+    }
+}
+
+fn current_resolution_base_id(layout: &StoreLayout, view_id: &str) -> String {
+    Connection::open(layout.store_db())
+        .unwrap()
+        .query_row(
+            "SELECT COALESCE(view.resolution_base_id,scope.base_id)
+             FROM views AS view
+             LEFT JOIN resolution_scope_state AS scope ON scope.view_id=view.view_id
+             WHERE view.view_id=?1",
+            [view_id],
+            |row| row.get(0),
+        )
+        .unwrap()
+}
+
+fn resolution_rebase_count(layout: &StoreLayout, view_id: &str) -> u64 {
+    let count: i64 = Connection::open(layout.store_db())
+        .unwrap()
+        .query_row(
+            "SELECT COUNT(*) FROM store_log
+             WHERE view_id=?1 AND event_kind='resolution_exact_rebased'",
+            [view_id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    u64::try_from(count).unwrap()
+}
+
+fn accumulated_changed_path(index: usize) -> String {
+    format!("src/changed-{index:03}.cs")
+}
+
+fn accumulated_changed_target_name(index: usize) -> String {
+    format!("accumulated-changed-target-{index:03}")
+}
+
+fn nearest_rank_p95(values: &[u64]) -> u64 {
+    assert!(!values.is_empty());
+    let mut sorted = values.to_vec();
+    sorted.sort_unstable();
+    let rank = (sorted.len() * 95).div_ceil(100).max(1);
+    sorted[rank - 1]
+}
+
+fn copy_directory_tree(source: &Path, destination: &Path) {
+    fs::create_dir_all(destination).unwrap();
+    for entry in fs::read_dir(source).unwrap() {
+        let entry = entry.unwrap();
+        let source_path = entry.path();
+        let destination_path = destination.join(entry.file_name());
+        if entry.file_type().unwrap().is_dir() {
+            copy_directory_tree(&source_path, &destination_path);
+        } else {
+            fs::copy(source_path, destination_path).unwrap();
         }
     }
 }

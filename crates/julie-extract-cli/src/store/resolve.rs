@@ -630,9 +630,10 @@ fn resolve_claimed(
         request_id: request.request_id.clone(),
         created_at: store_timestamp(layout, "now")?,
     };
-    let rebase_required = ResolutionBindingStore::new(factory.clone())
+    let artifact_rebase_required = ResolutionBindingStore::new(factory.clone())
         .exact_rebase_required_with_proof(&publication, &scratch, &gaps, &validated_base)
         .map_err(|error| format!("resolution_failed: {error}"))?;
+    let rebase_required = artifact_rebase_required || decision.rebase_after_exact;
     heartbeat.ensure_current(coordinator, request, holder)?;
     #[cfg(feature = "test-store-resolution-contract")]
     pause_before_exact_publish_for_test()?;

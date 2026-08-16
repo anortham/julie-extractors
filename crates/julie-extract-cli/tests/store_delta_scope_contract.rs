@@ -125,7 +125,7 @@ fn store_scope_matches_legacy_name_file_row_and_decision_expansion() {
         },
     )
     .unwrap();
-    let StoreDeltaScopeDecision::Scoped(worklists) = decision else {
+    let StoreDeltaScopeDecision::Scoped { worklists, .. } = decision else {
         panic!("legacy-equivalent fixture must remain scoped");
     };
 
@@ -180,7 +180,11 @@ fn disabled_incremental_scope_returns_named_full_fallback() {
 #[test]
 fn added_and_deleted_paths_recheck_module_importers() {
     let (added, added_target, added_importer) = structural_scope(false, true);
-    let StoreDeltaScopeDecision::Scoped(added_worklists) = added else {
+    let StoreDeltaScopeDecision::Scoped {
+        worklists: added_worklists,
+        ..
+    } = added
+    else {
         panic!("added-path fixture must remain scoped");
     };
     assert_eq!(
@@ -192,7 +196,11 @@ fn added_and_deleted_paths_recheck_module_importers() {
     );
 
     let (deleted, _deleted_target, deleted_importer) = structural_scope(true, false);
-    let StoreDeltaScopeDecision::Scoped(deleted_worklists) = deleted else {
+    let StoreDeltaScopeDecision::Scoped {
+        worklists: deleted_worklists,
+        ..
+    } = deleted
+    else {
         panic!("deleted-path fixture must remain scoped");
     };
     assert_eq!(
@@ -322,6 +330,7 @@ fn one_changed_file_with_broad_name_collisions_crosses_over() {
     assert_eq!(total_identifiers, 100);
 
     let decision = scope_decision(&connection, &manifest, 7);
+    assert!(!decision.rebase_after_exact());
     let StoreDeltaScopeDecision::Full { reason, worklists } = decision else {
         panic!(
             "one changed path must cross over when its name arm selects all {total_identifiers} identifier rows"
@@ -332,11 +341,50 @@ fn one_changed_file_with_broad_name_collisions_crosses_over() {
 }
 
 #[test]
+fn accumulated_scope_deduplicates_selected_name_and_receiver_arms_at_one_quarter() {
+    let (connection, manifest) = accumulated_unique_scope(3, 2);
+    let decision = scope_decision(&connection, &manifest, 7);
+    let StoreDeltaScopeDecision::Scoped {
+        rebase_after_exact, ..
+    } = decision
+    else {
+        panic!("exact-quarter accumulated scope must remain scoped");
+    };
+    assert!(!rebase_after_exact);
+}
+
+#[test]
+fn accumulated_scope_over_one_quarter_of_unique_identifiers_requires_rebase() {
+    let (connection, manifest) = accumulated_unique_scope(2, 2);
+    let decision = scope_decision(&connection, &manifest, 7);
+    let StoreDeltaScopeDecision::Scoped {
+        rebase_after_exact, ..
+    } = decision
+    else {
+        panic!("sub-crossover accumulated scope must remain scoped");
+    };
+    assert!(rebase_after_exact);
+}
+
+#[test]
+fn one_transition_does_not_trigger_accumulated_unique_identifier_rebase() {
+    let (connection, manifest) = accumulated_unique_scope(2, 1);
+    let decision = scope_decision(&connection, &manifest, 7);
+    let StoreDeltaScopeDecision::Scoped {
+        rebase_after_exact, ..
+    } = decision
+    else {
+        panic!("one-transition scope must remain scoped");
+    };
+    assert!(!rebase_after_exact);
+}
+
+#[test]
 fn cross_language_name_collisions_are_not_selected_or_promoted() {
     let (connection, manifest, changed_version, cross_language_versions) =
         cross_language_name_collision_scope();
     let decision = scope_decision(&connection, &manifest, 7);
-    let StoreDeltaScopeDecision::Scoped(worklists) = decision else {
+    let StoreDeltaScopeDecision::Scoped { worklists, .. } = decision else {
         panic!("cross-language collisions must not promote a one-file scope");
     };
 
@@ -374,7 +422,11 @@ fn all_supported_languages_keep_old_and_new_replacement_languages_eligible() {
             language_changing_replacement_scope(old_language, new_language);
         let replacement_decision =
             scope_decision(&replacement_connection, &replacement_manifest, 7);
-        let StoreDeltaScopeDecision::Scoped(replacement_worklists) = replacement_decision else {
+        let StoreDeltaScopeDecision::Scoped {
+            worklists: replacement_worklists,
+            ..
+        } = replacement_decision
+        else {
             panic!(
                 "language-changing replacement must remain scoped: {old_language}->{new_language}"
             );
@@ -393,7 +445,11 @@ fn all_supported_languages_keep_old_and_new_replacement_languages_eligible() {
         let (deletion_connection, deletion_manifest, collision) =
             deleted_language_scope(old_language);
         let deletion_decision = scope_decision(&deletion_connection, &deletion_manifest, 7);
-        let StoreDeltaScopeDecision::Scoped(deletion_worklists) = deletion_decision else {
+        let StoreDeltaScopeDecision::Scoped {
+            worklists: deletion_worklists,
+            ..
+        } = deletion_decision
+        else {
             panic!("language deletion must remain scoped: {old_language}");
         };
         assert!(
@@ -428,6 +484,7 @@ fn touched_names_without_recoverable_language_fail_closed() {
 fn empty_identifier_crossover_counts_deleted_logical_files() {
     let (connection, manifest) = deleted_paths_crossover_scope();
     let decision = scope_decision(&connection, &manifest, 7);
+    assert!(!decision.rebase_after_exact());
     let StoreDeltaScopeDecision::Full { reason, .. } = decision else {
         panic!("three deleted logical files must cross over against one current file");
     };
@@ -452,6 +509,69 @@ fn replacement_scope() -> (Connection, ManifestPublishResult) {
         "request-second",
     );
     (connection, second)
+}
+
+fn accumulated_unique_scope(
+    stable_identifier_count: usize,
+    transition_count: usize,
+) -> (Connection, ManifestPublishResult) {
+    assert!(matches!(transition_count, 1 | 2));
+    let mut connection = scope_store();
+    let old_target = insert_version(&connection, "src/target.ts", "old-target");
+    let new_target = insert_version(&connection, "src/target.ts", "new-target");
+    let newest_target = insert_version(&connection, "src/target.ts", "newest-target");
+    let stable = insert_version(&connection, "src/stable.ts", "stable");
+    for (version_id, symbol_id) in [
+        (old_target, "old-target"),
+        (new_target, "new-target"),
+        (newest_target, "newest-target"),
+    ] {
+        insert_symbol(
+            &connection,
+            version_id,
+            symbol_id,
+            "Target",
+            "function",
+            None,
+        );
+        insert_identifier(&connection, version_id, "target", "Target", Some("Target"));
+    }
+    insert_symbol(&connection, stable, "stable", "Stable", "function", None);
+    for index in 0..stable_identifier_count {
+        insert_identifier(
+            &connection,
+            stable,
+            &format!("stable-{index}"),
+            &format!("Stable{index}"),
+            None,
+        );
+    }
+
+    let first_entries = [entry(&connection, old_target), entry(&connection, stable)];
+    let first = publish(&mut connection, None, first_entries, "request-first");
+    let first_generation = i64::try_from(first.generation).unwrap();
+    bind_exact(&connection, &first.manifest_hash, first_generation, 11, 7);
+    let second_entries = [entry(&connection, new_target), entry(&connection, stable)];
+    let second = publish(
+        &mut connection,
+        Some(first_generation),
+        second_entries,
+        "request-second",
+    );
+    if transition_count == 1 {
+        return (connection, second);
+    }
+    let third_entries = [
+        entry(&connection, newest_target),
+        entry(&connection, stable),
+    ];
+    let third = publish(
+        &mut connection,
+        Some(i64::try_from(second.generation).unwrap()),
+        third_entries,
+        "request-third",
+    );
+    (connection, third)
 }
 
 fn multi_transition_scope() -> (Connection, ManifestPublishResult) {

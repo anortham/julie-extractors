@@ -407,6 +407,7 @@ pub(crate) struct StoreResolutionDecisionTelemetry {
     pub(crate) effective_full: bool,
     pub(crate) fallback_reason: Option<&'static str>,
     pub(crate) worklists: ResolutionWorklists,
+    pub(crate) rebase_after_exact: bool,
     pub(crate) elapsed_millis: u64,
 }
 
@@ -4149,6 +4150,7 @@ impl ResolutionSession for StoreScratchResolutionSession {
                 effective_full: true,
                 fallback_reason: Some("resolution_requested_full"),
                 worklists: worklists.clone(),
+                rebase_after_exact: false,
                 elapsed_millis: elapsed_millis(started),
             });
             return Ok(worklists);
@@ -4166,8 +4168,9 @@ impl ResolutionSession for StoreScratchResolutionSession {
         )
         .map_err(|error| incremental_error(error.to_string()))?;
         let _effective_full = decision.worklists().effective_full;
+        let decision_rebase_after_exact = decision.rebase_after_exact();
         match decision {
-            StoreDeltaScopeDecision::Scoped(worklists) => {
+            StoreDeltaScopeDecision::Scoped { worklists, .. } => {
                 let stored_state = resolution_scope_state(&connection, &self.identity.view_id)
                     .map_err(|error| incremental_error(error.to_string()))?;
                 if self.prepare_prior_overlay()?.is_some() && stored_state == self.prior_scope_state
@@ -4176,6 +4179,7 @@ impl ResolutionSession for StoreScratchResolutionSession {
                         effective_full: false,
                         fallback_reason: None,
                         worklists: worklists.clone(),
+                        rebase_after_exact: decision_rebase_after_exact,
                         elapsed_millis: elapsed_millis(started),
                     });
                     Ok(worklists)
@@ -4190,6 +4194,7 @@ impl ResolutionSession for StoreScratchResolutionSession {
                         effective_full: true,
                         fallback_reason: Some("resolution_prior_overlay_unavailable"),
                         worklists: worklists.clone(),
+                        rebase_after_exact: false,
                         elapsed_millis: elapsed_millis(started),
                     });
                     Ok(worklists)
@@ -4202,6 +4207,7 @@ impl ResolutionSession for StoreScratchResolutionSession {
                     effective_full: true,
                     fallback_reason: Some(reason.as_str()),
                     worklists: worklists.clone(),
+                    rebase_after_exact: false,
                     elapsed_millis: elapsed_millis(started),
                 });
                 Ok(worklists)

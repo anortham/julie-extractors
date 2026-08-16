@@ -63,7 +63,10 @@ impl StoreDeltaScopeFullReason {
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum StoreDeltaScopeDecision {
-    Scoped(ResolutionWorklists),
+    Scoped {
+        worklists: ResolutionWorklists,
+        rebase_after_exact: bool,
+    },
     Full {
         worklists: ResolutionWorklists,
         reason: StoreDeltaScopeFullReason,
@@ -73,7 +76,16 @@ pub(crate) enum StoreDeltaScopeDecision {
 impl StoreDeltaScopeDecision {
     pub(crate) fn worklists(&self) -> &ResolutionWorklists {
         match self {
-            Self::Scoped(worklists) | Self::Full { worklists, .. } => worklists,
+            Self::Scoped { worklists, .. } | Self::Full { worklists, .. } => worklists,
+        }
+    }
+
+    pub(crate) fn rebase_after_exact(&self) -> bool {
+        match self {
+            Self::Scoped {
+                rebase_after_exact, ..
+            } => *rebase_after_exact,
+            Self::Full { .. } => false,
         }
     }
 }
@@ -102,10 +114,11 @@ pub(crate) fn build_store_delta_scope(
         return Ok(full(StoreDeltaScopeFullReason::ResolverEpochMismatch));
     }
 
-    let changes = match validated_scope_changes(connection, request, &state)? {
-        Ok(changes) => changes,
-        Err(reason) => return Ok(full(reason)),
-    };
+    let (changes, validated_transition_count) =
+        match validated_scope_changes(connection, request, &state)? {
+            Ok(changes) => changes,
+            Err(reason) => return Ok(full(reason)),
+        };
     let mut touched_names = BTreeSet::new();
     let mut changed_paths = BTreeSet::new();
     let mut structural_paths = BTreeSet::new();
@@ -163,20 +176,30 @@ pub(crate) fn build_store_delta_scope(
     )? {
         return Ok(full(StoreDeltaScopeFullReason::Crossover));
     }
+    let rebase_after_exact = validated_transition_count > 1
+        && accumulated_scope_requires_rebase(
+            connection,
+            request,
+            &recheck_names,
+            &selected_versions,
+        )?;
 
     let recheck_versions = semantic_versions(recheck_versions);
     let selected_versions = semantic_versions(selected_versions);
     let changed_versions = semantic_versions(changed_versions);
-    Ok(StoreDeltaScopeDecision::Scoped(ResolutionWorklists {
-        scope: ResolutionWorklistScope::Versions(selected_versions.clone()),
-        effective_full: false,
-        recheck_names: recheck_names.into_iter().collect(),
-        recheck_versions,
-        selected_versions,
-        changed_versions,
-        phase: ResolutionPhase::ResolvedPending,
-        repair_identifiers: Vec::new(),
-    }))
+    Ok(StoreDeltaScopeDecision::Scoped {
+        worklists: ResolutionWorklists {
+            scope: ResolutionWorklistScope::Versions(selected_versions.clone()),
+            effective_full: false,
+            recheck_names: recheck_names.into_iter().collect(),
+            recheck_versions,
+            selected_versions,
+            changed_versions,
+            phase: ResolutionPhase::ResolvedPending,
+            repair_identifiers: Vec::new(),
+        },
+        rebase_after_exact,
+    })
 }
 
 fn validated_scope_changes(
@@ -184,13 +207,20 @@ fn validated_scope_changes(
     request: StoreDeltaScopeRequest<'_>,
     state: &ResolutionScopeState,
 ) -> Result<
-    Result<Vec<julie_extract_artifact::store::ResolutionScopeChange>, StoreDeltaScopeFullReason>,
+    Result<
+        (
+            Vec<julie_extract_artifact::store::ResolutionScopeChange>,
+            usize,
+        ),
+        StoreDeltaScopeFullReason,
+    >,
     ResolutionScopeError,
 > {
     let mut transition_id = state.journal_through_transition_id;
     let mut expected_generation = request.manifest_generation;
     let mut expected_hash = request.manifest_hash.to_string();
     let mut changes = Vec::new();
+    let mut validated_transition_count = 0;
     loop {
         let batch = match resolution_scope_batch(connection, transition_id) {
             Ok(Some(batch)) => batch,
@@ -223,7 +253,9 @@ fn validated_scope_changes(
             return Ok(Err(StoreDeltaScopeFullReason::JournalPredecessorMismatch));
         }
         match validate_resolution_scope_batch(connection, transition_id) {
-            Ok(Some(_)) => {}
+            Ok(Some(_)) => {
+                validated_transition_count += 1;
+            }
             Ok(None) => return Ok(Err(StoreDeltaScopeFullReason::JournalBatchMissing)),
             Err(ResolutionScopeError::InvalidBatch { detail, .. }) => {
                 return Ok(Err(invalid_batch_reason(&detail)));
@@ -250,7 +282,7 @@ fn validated_scope_changes(
         expected_generation = from_generation;
         expected_hash = from_hash;
     }
-    Ok(Ok(changes))
+    Ok(Ok((changes, validated_transition_count)))
 }
 
 fn invalid_batch_reason(detail: &str) -> StoreDeltaScopeFullReason {
@@ -593,6 +625,77 @@ fn scope_crosses_over(
             })?;
     }
     Ok(scoped_identifiers as f64 >= total_identifiers as f64 * DELTA_SCOPE_CROSSOVER)
+}
+
+fn accumulated_scope_requires_rebase(
+    connection: &Connection,
+    request: StoreDeltaScopeRequest<'_>,
+    recheck_names: &BTreeSet<String>,
+    selected_versions: &BTreeSet<i64>,
+) -> Result<bool, ResolutionScopeError> {
+    let total_identifiers: i64 = connection.query_row(
+        "SELECT COUNT(*)
+         FROM manifest_entries AS entry
+         JOIN identifiers AS identifier ON identifier.version_id=entry.version_id
+         WHERE entry.view_id=?1 AND entry.generation=?2
+           AND entry.status IN ('indexed','failed_preserved')",
+        params![request.view_id, request.manifest_generation],
+        |row| row.get(0),
+    )?;
+    if total_identifiers <= 0 {
+        return Ok(false);
+    }
+
+    let mut unique_identifiers = BTreeSet::new();
+    let version_values = selected_versions.iter().copied().collect::<Vec<_>>();
+    for chunk in version_values.chunks(SCOPE_QUERY_CHUNK) {
+        let sql = format!(
+            "SELECT identifier.version_id,identifier.identifier_id
+             FROM manifest_entries AS entry
+             JOIN identifiers AS identifier ON identifier.version_id=entry.version_id
+             WHERE entry.view_id=?1 AND entry.generation=?2
+               AND entry.status IN ('indexed','failed_preserved')
+               AND identifier.version_id IN ({})",
+            placeholders(chunk.len())
+        );
+        let mut bind = vec![
+            rusqlite::types::Value::Text(request.view_id.to_string()),
+            rusqlite::types::Value::Integer(request.manifest_generation),
+        ];
+        bind.extend(chunk.iter().copied().map(rusqlite::types::Value::Integer));
+        let mut statement = connection.prepare(&sql)?;
+        for row in statement.query_map(rusqlite::params_from_iter(bind), |row| {
+            Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?))
+        })? {
+            unique_identifiers.insert(row?);
+        }
+    }
+    for chunk in string_chunks(recheck_names) {
+        let sql = format!(
+            "SELECT identifier.version_id,identifier.identifier_id
+             FROM manifest_entries AS entry
+             JOIN identifiers AS identifier ON identifier.version_id=entry.version_id
+             WHERE entry.view_id=?1 AND entry.generation=?2
+               AND entry.status IN ('indexed','failed_preserved')
+               AND (identifier.name IN ({0})
+                    OR json_extract(identifier.metadata_json,'$.receiver') IN ({0}))",
+            placeholders(chunk.len())
+        );
+        let mut bind = vec![
+            rusqlite::types::Value::Text(request.view_id.to_string()),
+            rusqlite::types::Value::Integer(request.manifest_generation),
+        ];
+        bind.extend(chunk.iter().cloned().map(rusqlite::types::Value::Text));
+        bind.extend(chunk.into_iter().map(rusqlite::types::Value::Text));
+        let mut statement = connection.prepare(&sql)?;
+        for row in statement.query_map(rusqlite::params_from_iter(bind), |row| {
+            Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?))
+        })? {
+            unique_identifiers.insert(row?);
+        }
+    }
+
+    Ok((unique_identifiers.len() as u128).saturating_mul(4) > total_identifiers as u128)
 }
 
 #[cfg(test)]
