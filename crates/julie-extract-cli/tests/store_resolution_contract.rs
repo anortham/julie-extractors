@@ -466,7 +466,7 @@ fn resolve_rejects_invalid_delta_escape_hatch_values() {
 }
 
 #[test]
-fn resolve_unset_delta_promotes_crossover_and_reports_full_telemetry() {
+fn resolve_unset_delta_keeps_one_file_scoped_and_reports_telemetry() {
     let temp = TempDir::new();
     let (root, store) = create_full_store(&temp);
     assert_ran(resolve_output(
@@ -513,13 +513,10 @@ fn resolve_unset_delta_promotes_crossover_and_reports_full_telemetry() {
         String::from_utf8_lossy(&resolve.stderr)
     );
     let report: Value = serde_json::from_slice(&resolve.stdout).unwrap();
-    assert_eq!(report["resolution"]["resolution_mode"], "full");
-    assert_eq!(
-        report["resolution"]["fallback_reason"],
-        "resolution_scope_crossover"
-    );
+    assert_eq!(report["resolution"]["resolution_mode"], "scoped");
+    assert!(report["resolution"]["fallback_reason"].is_null());
     assert!(report["resolution"]["scope_file_count"].as_u64().unwrap() >= 1);
-    assert_eq!(report["resolution"]["scope_name_count"], 0);
+    assert!(report["resolution"]["scope_name_count"].as_u64().unwrap() >= 1);
     assert!(report["resolution"]["scope_row_count"].as_u64().unwrap() >= 1);
     assert!(report["resolution"]["phase_timings_ms"]["scope"].is_u64());
 }
