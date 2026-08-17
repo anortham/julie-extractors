@@ -4207,7 +4207,7 @@ impl ResolutionSession for StoreScratchResolutionSession {
                     effective_full: true,
                     fallback_reason: Some(reason.as_str()),
                     worklists: worklists.clone(),
-                    rebase_after_exact: false,
+                    rebase_after_exact: decision_rebase_after_exact,
                     elapsed_millis: elapsed_millis(started),
                 });
                 Ok(worklists)

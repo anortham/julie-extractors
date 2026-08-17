@@ -85,7 +85,9 @@ impl StoreDeltaScopeDecision {
             Self::Scoped {
                 rebase_after_exact, ..
             } => *rebase_after_exact,
-            Self::Full { .. } => false,
+            // A crossover full pass already paid whole-corpus cost. Compact afterward so
+            // the next one-file update does not inherit the overlay and go full again.
+            Self::Full { reason, .. } => *reason == StoreDeltaScopeFullReason::Crossover,
         }
     }
 }
@@ -154,8 +156,6 @@ pub(crate) fn build_store_delta_scope(
     let module_repoints = module_repoint_scope(connection, request, &structural_paths)?;
     let mut recheck_versions = changed_versions.clone();
     recheck_versions.extend(module_repoints.versions);
-    let mut logical_recheck_paths = changed_paths.clone();
-    logical_recheck_paths.extend(module_repoints.paths);
     let affected_languages = affected_languages(connection, &affected_version_ids)?;
     if name_expansion_requires_language(&recheck_names, &affected_languages) {
         return Ok(full(StoreDeltaScopeFullReason::JournalInvalid));
@@ -170,7 +170,7 @@ pub(crate) fn build_store_delta_scope(
     if scope_crosses_over(
         connection,
         request,
-        logical_recheck_paths.len(),
+        changed_paths.len(),
         &recheck_names,
         &selected_versions,
     )? {
@@ -389,6 +389,7 @@ fn receiver_names(
 
 struct ModuleRepointScope {
     versions: BTreeSet<i64>,
+    #[allow(dead_code)]
     paths: BTreeSet<String>,
 }
 
@@ -557,16 +558,17 @@ fn versions_matching_names(
 }
 
 /// Promotes when the selected-version and name/receiver identifier reads reach the
-/// fixed crossover. Store predecessor phases execute both arms, including duplicate
-/// reads, so the journal's changed-path count is not a safe proxy for admitted work.
+/// fixed crossover. One journal-changed file never promotes: a single-file worklist
+/// has no overhead worth shedding, and promoting it rebuilds the whole exact overlay
+/// (70s+ on the Miller corpus) for a save that should stay scoped.
 fn scope_crosses_over(
     connection: &Connection,
     request: StoreDeltaScopeRequest<'_>,
-    logical_recheck_file_count: usize,
+    changed_file_count: usize,
     recheck_names: &BTreeSet<String>,
     selected_versions: &BTreeSet<i64>,
 ) -> Result<bool, ResolutionScopeError> {
-    if selected_versions.is_empty() && logical_recheck_file_count == 0 {
+    if changed_file_count <= 1 {
         return Ok(false);
     }
     let total_identifiers: i64 = connection.query_row(
@@ -587,7 +589,7 @@ fn scope_crosses_over(
             |row| row.get(0),
         )?;
         return Ok(total_versions > 0
-            && logical_recheck_file_count as f64 >= total_versions as f64 * DELTA_SCOPE_CROSSOVER);
+            && changed_file_count as f64 >= total_versions as f64 * DELTA_SCOPE_CROSSOVER);
     }
 
     let mut scoped_identifiers = 0i64;

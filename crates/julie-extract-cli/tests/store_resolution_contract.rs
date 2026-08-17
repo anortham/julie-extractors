@@ -781,6 +781,19 @@ fn resolve_has_one_store_scope_planner_seam_and_reports_its_actual_decision() {
 }
 
 #[test]
+fn full_crossover_telemetry_keeps_planner_rebase_after_exact() {
+    let session = include_str!("../src/store/resolution_session.rs");
+    let full_arm = session
+        .split("StoreDeltaScopeDecision::Full")
+        .nth(1)
+        .expect("session must match a Full scope decision");
+    assert!(
+        full_arm.contains("rebase_after_exact: decision_rebase_after_exact"),
+        "Full+Crossover must carry the planner rebase flag into resolve telemetry"
+    );
+}
+
+#[test]
 fn artifact_rebase_validation_precedes_private_accumulated_work_trigger() {
     let resolve = include_str!("../src/store/resolve.rs");
     let validation = resolve

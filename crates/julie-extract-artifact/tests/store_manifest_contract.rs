@@ -678,6 +678,89 @@ fn scope_journal_records_add_delete_replacement_and_old_new_names() {
 }
 
 #[test]
+fn scope_journal_omits_private_locals_and_imports_from_touched_names() {
+    let mut connection = Connection::open_in_memory().unwrap();
+    create_store_schema(&connection).unwrap();
+    let old_version = insert_version(&connection, "src/filter.rs", "blake3:old");
+    let new_version = insert_version(&connection, "src/filter.rs", "blake3:new");
+    insert_symbol_named(&connection, old_version, "WatchPath", "class", None);
+    insert_symbol_named(
+        &connection,
+        old_version,
+        "path",
+        "variable",
+        Some("private"),
+    );
+    insert_symbol_named(&connection, old_version, "Path", "import", Some("public"));
+    insert_symbol_named(
+        &connection,
+        old_version,
+        "exportedPath",
+        "variable",
+        Some("public"),
+    );
+    insert_symbol_named(&connection, new_version, "WatchPath", "class", None);
+    insert_symbol_named(
+        &connection,
+        new_version,
+        "path",
+        "variable",
+        Some("private"),
+    );
+    insert_symbol_named(&connection, new_version, "Path", "import", Some("public"));
+    insert_symbol_named(
+        &connection,
+        new_version,
+        "exportedPath",
+        "variable",
+        Some("public"),
+    );
+    let first = {
+        let mut store = ManifestStore::new(&mut connection);
+        store.ensure_view("view-a", "/repo").unwrap();
+        store
+            .publish(
+                "view-a",
+                None,
+                [ManifestEntry::indexed(
+                    "src/filter.rs",
+                    "rust",
+                    old_version,
+                    "blake3:old",
+                    INDEXED_AT,
+                )],
+                "request-first",
+            )
+            .unwrap()
+    };
+    bind_exact(&connection, &first.manifest_hash, 1, 11, 7);
+
+    ManifestStore::new(&mut connection)
+        .publish(
+            "view-a",
+            Some(1),
+            [ManifestEntry::indexed(
+                "src/filter.rs",
+                "rust",
+                new_version,
+                "blake3:new",
+                INDEXED_AT,
+            )],
+            "request-second",
+        )
+        .unwrap();
+
+    let batch = validate_resolution_scope_batch(&connection, 2)
+        .unwrap()
+        .unwrap();
+    assert_eq!(batch.changes.len(), 1);
+    assert_eq!(
+        batch.changes[0].touched_names_json,
+        r#"["WatchPath","exportedPath"]"#
+    );
+}
+
+#[test]
 fn same_version_semantic_change_records_content_replacement() {
     let mut connection = Connection::open_in_memory().unwrap();
     create_store_schema(&connection).unwrap();
@@ -2077,17 +2160,27 @@ fn insert_version(connection: &Connection, path: &str, content_hash: &str) -> i6
 }
 
 fn insert_symbol_name(connection: &Connection, version_id: i64, name: &str) {
+    insert_symbol_named(connection, version_id, name, "function", None);
+}
+
+fn insert_symbol_named(
+    connection: &Connection,
+    version_id: i64,
+    name: &str,
+    kind: &str,
+    visibility: Option<&str>,
+) {
     connection
         .execute(
             "INSERT INTO symbols
-             (version_id,symbol_id,path,language,name,kind,start_line,start_column,
+             (version_id,symbol_id,path,language,name,kind,visibility,start_line,start_column,
               end_line,end_column,start_byte,end_byte)
              SELECT ?1,printf('symbol-%d-%d',?1,
                               (SELECT COUNT(*) FROM symbols WHERE version_id=?1)),
-                    path,language,?2,'function',
+                    path,language,?2,?3,?4,
                     1,0,1,1,0,1
              FROM file_versions WHERE version_id=?1",
-            params![version_id, name],
+            params![version_id, name, kind, visibility],
         )
         .unwrap();
 }

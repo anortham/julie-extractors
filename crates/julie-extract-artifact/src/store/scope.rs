@@ -657,7 +657,12 @@ fn hydrate_scope_changes(
 ) -> Result<Vec<ResolutionScopeChange>, ResolutionScopeError> {
     let mut statement = connection.prepare(
         "SELECT DISTINCT name FROM symbols
-         WHERE version_id=?1 OR version_id=?2
+         WHERE (version_id=?1 OR version_id=?2)
+           AND kind <> 'import'
+           AND NOT (
+             kind = 'variable'
+             AND IFNULL(visibility, 'private') = 'private'
+           )
          ORDER BY name COLLATE BINARY",
     )?;
     deltas

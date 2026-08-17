@@ -305,19 +305,8 @@ fn crossover_promotes_multi_file_scope() {
 }
 
 #[test]
-fn one_changed_file_with_broad_name_collisions_crosses_over() {
+fn one_changed_file_with_broad_name_collisions_stays_scoped() {
     let (connection, manifest) = broad_name_collision_scope();
-    let total_identifiers = connection
-        .query_row(
-            "SELECT COUNT(*)
-             FROM identifiers AS identifier
-             JOIN manifest_entries AS entry ON entry.version_id=identifier.version_id
-             WHERE entry.view_id='view-a' AND entry.generation=?1
-               AND entry.status IN ('indexed','failed_preserved')",
-            [i64::try_from(manifest.generation).unwrap()],
-            |row| row.get::<_, i64>(0),
-        )
-        .unwrap();
     let changed_paths = connection
         .query_row(
             "SELECT change_count FROM resolution_scope_batches
@@ -327,17 +316,12 @@ fn one_changed_file_with_broad_name_collisions_crosses_over() {
         )
         .unwrap();
     assert_eq!(changed_paths, 1);
-    assert_eq!(total_identifiers, 100);
 
     let decision = scope_decision(&connection, &manifest, 7);
-    assert!(!decision.rebase_after_exact());
-    let StoreDeltaScopeDecision::Full { reason, worklists } = decision else {
-        panic!(
-            "one changed path must cross over when its name arm selects all {total_identifiers} identifier rows"
-        );
+    let StoreDeltaScopeDecision::Scoped { worklists, .. } = decision else {
+        panic!("one journal-changed file must stay scoped even when its name arm is dense");
     };
-    assert_eq!(reason, StoreDeltaScopeFullReason::Crossover);
-    assert!(worklists.effective_full);
+    assert!(!worklists.effective_full);
 }
 
 #[test]
@@ -405,10 +389,10 @@ fn cross_language_name_collisions_are_not_selected_or_promoted() {
 fn cross_language_name_arm_remains_conservative() {
     let (connection, manifest) = cross_language_name_arm_scope();
     let decision = scope_decision(&connection, &manifest, 7);
-    let StoreDeltaScopeDecision::Full { reason, .. } = decision else {
-        panic!("the broad conservative name arm must still cross over");
+    let StoreDeltaScopeDecision::Scoped { worklists, .. } = decision else {
+        panic!("one journal-changed file must stay scoped even when the name arm is conservative");
     };
-    assert_eq!(reason, StoreDeltaScopeFullReason::Crossover);
+    assert!(!worklists.effective_full);
 }
 
 #[test]
@@ -484,11 +468,11 @@ fn touched_names_without_recoverable_language_fail_closed() {
 fn empty_identifier_crossover_counts_deleted_logical_files() {
     let (connection, manifest) = deleted_paths_crossover_scope();
     let decision = scope_decision(&connection, &manifest, 7);
-    assert!(!decision.rebase_after_exact());
     let StoreDeltaScopeDecision::Full { reason, .. } = decision else {
         panic!("three deleted logical files must cross over against one current file");
     };
     assert_eq!(reason, StoreDeltaScopeFullReason::Crossover);
+    assert!(decision.rebase_after_exact());
 }
 
 fn replacement_scope() -> (Connection, ManifestPublishResult) {
