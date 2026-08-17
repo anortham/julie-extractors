@@ -655,3 +655,27 @@ is rejected.
   reference-resolution input, fix the producer path, and add an integration
   regression proving missing family store → Miller refresh/`RootRebind` →
   complete resolution → readable workspace.
+
+## 18. Store resolve still has three measured follow-ups — open
+
+- **Where:** `crates/julie-extract-cli/src/store/resolution_session.rs`
+  (`prime_identifier_children`, `prime_exact_children_keys`,
+  `load_version_mini_index`, `symbol_by_id`, `effective_identifier_exists`).
+- **Status:** `open`. v2.33.6 ships the file mini-index and whole-pass name
+  cache. These three items stay out of that tag on purpose.
+- **Measured leftover (Miller family-store copy, 2026-08-17):** after the
+  mini-index and name cache, a full resolve still does about 9.6k child-name
+  queries that read ~1M rows, 2,409 whole-file mini-index loads, and 441k
+  in-memory identifier-exists checks.
+- **Proposed next work, in this order:**
+  1. Skip the child-name warmup SQL when that file is already in the
+     mini-index. The leftover 9.6k / 1M-row cost is the warmup, not the later
+     lookups. Measure before and after. Do not skip when the file is too large
+     for the index.
+  2. Do not load a whole file just to answer one `symbol_by_id` probe. A
+     single-id SQL read is enough until the same file is used again.
+  3. Batch the 441k identifier-exists checks. They are cheap in-memory SQLite
+     today; batching is only worth it if a later profile still shows them on
+     the wall-time path.
+- **Do not:** re-add identifier name-prime (measured slower), change crossover
+  first, or raise timeouts to hide the leftover cost.

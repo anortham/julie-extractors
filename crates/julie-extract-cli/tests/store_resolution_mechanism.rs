@@ -341,8 +341,10 @@ fn store_children_named_preserve_binary_order_and_early_stop() {
         .unwrap();
     assert_eq!(delivered, ["a-child", "b-child"]);
     let telemetry = session.candidate_query_telemetry(CandidateQueryFamily::ChildrenNamed);
-    assert_eq!(telemetry.executions, 1);
-    assert_eq!(telemetry.rows_read, 2);
+    assert_eq!(telemetry.executions, 0);
+    let mini = session.candidate_query_telemetry(CandidateQueryFamily::VersionMiniIndex);
+    assert_eq!(mini.executions, 1);
+    assert!(mini.rows_read >= 4);
 }
 
 #[test]
@@ -445,8 +447,9 @@ fn store_children_named_reuses_complete_scalar_positive_and_empty_keys() {
     assert!(first_empty.is_empty());
     assert!(second_empty.is_empty());
     let telemetry = session.candidate_query_telemetry(CandidateQueryFamily::ChildrenNamed);
-    assert_eq!(telemetry.executions, 3);
-    assert_eq!(telemetry.rows_read, 4);
+    assert_eq!(telemetry.executions, 0);
+    let mini = session.candidate_query_telemetry(CandidateQueryFamily::VersionMiniIndex);
+    assert_eq!(mini.executions, 1);
 }
 
 #[test]
@@ -528,8 +531,542 @@ fn store_children_named_unknown_kind_does_not_truncate_cached_scalar_pages() {
     assert_eq!(first, ["b-known", "c-known"]);
     assert_eq!(second, ["b-known", "c-known"]);
     let telemetry = session.candidate_query_telemetry(CandidateQueryFamily::ChildrenNamed);
-    assert_eq!(telemetry.executions, 2);
-    assert_eq!(telemetry.rows_read, 3);
+    assert_eq!(telemetry.executions, 0);
+    let mini = session.candidate_query_telemetry(CandidateQueryFamily::VersionMiniIndex);
+    assert_eq!(mini.executions, 1);
+}
+
+#[test]
+fn store_version_mini_index_serves_file_local_lookups() {
+    let temp = TempDir::new().unwrap();
+    let layout = StoreLayout::create(temp.path().join("family"), "family-a", "2.30.0").unwrap();
+    let factory = StoreConnectionFactory::new(layout, "family-a", "2.30.0");
+    let mut connection = factory.open_writer().unwrap();
+    ManifestStore::new(&mut connection)
+        .ensure_view("view-a", "/repo")
+        .unwrap();
+    let version = insert_version(&connection, "src/lib.rs", "rust", true);
+    connection
+        .execute(
+            "INSERT INTO symbols(version_id,symbol_id,path,language,name,kind,parent_symbol_id,
+             start_line,start_column,end_line,end_column,start_byte,end_byte,is_test,test_container,test_lifecycle)
+             VALUES (?1,'scope','src/lib.rs','rust','scope','function',NULL,1,1,20,1,0,200,0,0,0)",
+            [version],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO symbols(version_id,symbol_id,path,language,name,kind,parent_symbol_id,
+             start_line,start_column,end_line,end_column,start_byte,end_byte,is_test,test_container,test_lifecycle)
+             VALUES (?1,'child','src/lib.rs','rust','target','function','scope',2,1,2,10,10,20,0,0,0)",
+            [version],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO type_facts(version_id,type_fact_id,symbol_id,language,resolved_type,is_inferred)
+             VALUES (?1,'fact-child','child','rust','TypeC',0)",
+            [version],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+             VALUES ('view-a',1,'manifest-a','request-a',?1)",
+            [NOW],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
+             VALUES ('view-a',1,'src/lib.rs','rust',?1,'indexed','hash-src/lib.rs',?2)",
+            params![version, NOW],
+        )
+        .unwrap();
+    drop(connection);
+
+    let session = StoreScratchResolutionSession::new(
+        factory,
+        StoreManifestIdentity {
+            family_id: "family-a".to_string(),
+            view_id: "view-a".to_string(),
+            generation: 1,
+            manifest_hash: "manifest-a".to_string(),
+        },
+        temp.path().join("exact.db"),
+        8,
+        6,
+    )
+    .unwrap();
+    let source_key = version.to_string();
+    let by_id = session.symbol_by_id(&source_key, "child").unwrap().unwrap();
+    assert_eq!(by_id.symbol.name, "target");
+    let mut top_level = Vec::new();
+    session
+        .visit_top_level_named(&source_key, "scope", |_, hit| {
+            top_level.push(hit.symbol.symbol_id);
+            Ok(true)
+        })
+        .unwrap();
+    assert_eq!(top_level, ["scope"]);
+    let mut children = Vec::new();
+    session
+        .visit_children_named(&source_key, "scope", "target", |_, hit| {
+            children.push(hit.symbol.symbol_id);
+            Ok(true)
+        })
+        .unwrap();
+    assert_eq!(children, ["child"]);
+    let mut facts = Vec::new();
+    session
+        .visit_type_facts(
+            &SemanticSymbolId {
+                version: SemanticVersionId::Store(version),
+                local_id: "child".to_string(),
+            },
+            |_, fact| {
+                facts.push(fact.resolved_type);
+                Ok(true)
+            },
+        )
+        .unwrap();
+    assert_eq!(facts, ["TypeC"]);
+    let mut filtered = Vec::new();
+    session
+        .visit_filtered_by_name(
+            "target",
+            "rust",
+            &[SymbolKind::Function],
+            Some(&source_key),
+            |_, hit| {
+                filtered.push(hit.symbol.symbol_id);
+                Ok(true)
+            },
+        )
+        .unwrap();
+    assert_eq!(filtered, ["child"]);
+    let summary = session
+        .filtered_name_summary(
+            "target",
+            "rust",
+            &[SymbolKind::Function],
+            Some(&source_key),
+            0.9,
+        )
+        .unwrap();
+    assert_eq!(summary.exact_count, 1);
+
+    assert_eq!(
+        session
+            .candidate_query_telemetry(CandidateQueryFamily::SymbolById)
+            .executions,
+        0
+    );
+    assert_eq!(
+        session
+            .candidate_query_telemetry(CandidateQueryFamily::TopLevelNamed)
+            .executions,
+        0
+    );
+    assert_eq!(
+        session
+            .candidate_query_telemetry(CandidateQueryFamily::ChildrenNamed)
+            .executions,
+        0
+    );
+    assert_eq!(
+        session
+            .candidate_query_telemetry(CandidateQueryFamily::TypeFacts)
+            .executions,
+        0
+    );
+    assert_eq!(
+        session
+            .candidate_query_telemetry(CandidateQueryFamily::FilteredByName)
+            .executions,
+        0
+    );
+    assert_eq!(
+        session
+            .candidate_query_telemetry(CandidateQueryFamily::FilteredNameSummary)
+            .executions,
+        0
+    );
+    assert_eq!(
+        session
+            .candidate_query_telemetry(CandidateQueryFamily::VersionMiniIndex)
+            .executions,
+        1
+    );
+}
+
+#[test]
+fn store_version_mini_index_too_large_stays_on_sql() {
+    let temp = TempDir::new().unwrap();
+    let layout = StoreLayout::create(temp.path().join("family"), "family-a", "2.30.0").unwrap();
+    let factory = StoreConnectionFactory::new(layout, "family-a", "2.30.0");
+    let mut connection = factory.open_writer().unwrap();
+    ManifestStore::new(&mut connection)
+        .ensure_view("view-a", "/repo")
+        .unwrap();
+    let version = insert_version(&connection, "src/lib.rs", "rust", true);
+    for index in 0..=2048 {
+        connection
+            .execute(
+                "INSERT INTO symbols(version_id,symbol_id,path,language,name,kind,
+                 start_line,start_column,end_line,end_column,start_byte,end_byte,is_test,test_container,test_lifecycle)
+                 VALUES (?1,?2,'src/lib.rs','rust',?2,'function',1,1,1,1,0,1,0,0,0)",
+                params![version, format!("sym-{index:04}")],
+            )
+            .unwrap();
+    }
+    connection
+        .execute(
+            "INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+             VALUES ('view-a',1,'manifest-a','request-a',?1)",
+            [NOW],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
+             VALUES ('view-a',1,'src/lib.rs','rust',?1,'indexed','hash-src/lib.rs',?2)",
+            params![version, NOW],
+        )
+        .unwrap();
+    drop(connection);
+
+    let session = StoreScratchResolutionSession::new(
+        factory,
+        StoreManifestIdentity {
+            family_id: "family-a".to_string(),
+            view_id: "view-a".to_string(),
+            generation: 1,
+            manifest_hash: "manifest-a".to_string(),
+        },
+        temp.path().join("exact.db"),
+        8,
+        6,
+    )
+    .unwrap();
+    let hit = session
+        .symbol_by_id(&version.to_string(), "sym-0000")
+        .unwrap()
+        .unwrap();
+    assert_eq!(hit.symbol.name, "sym-0000");
+    let mini = session.candidate_query_telemetry(CandidateQueryFamily::VersionMiniIndex);
+    assert_eq!(mini.executions, 1);
+    assert_eq!(mini.rows_read, 0);
+    let by_id = session.candidate_query_telemetry(CandidateQueryFamily::SymbolById);
+    assert_eq!(by_id.executions, 1);
+    assert_eq!(by_id.rows_read, 1);
+}
+
+#[test]
+fn store_filtered_name_pass_cache_reuses_complete_workspace_scan() {
+    let temp = TempDir::new().unwrap();
+    let layout = StoreLayout::create(temp.path().join("family"), "family-a", "2.30.0").unwrap();
+    let factory = StoreConnectionFactory::new(layout, "family-a", "2.30.0");
+    let mut connection = factory.open_writer().unwrap();
+    ManifestStore::new(&mut connection)
+        .ensure_view("view-a", "/repo")
+        .unwrap();
+    let version = insert_version(&connection, "src/lib.rs", "rust", true);
+    for symbol_id in ["a-hit", "b-hit"] {
+        connection
+            .execute(
+                "INSERT INTO symbols(version_id,symbol_id,path,language,name,kind,
+                 start_line,start_column,end_line,end_column,start_byte,end_byte,is_test,test_container,test_lifecycle)
+                 VALUES (?1,?2,'src/lib.rs','rust','target','function',1,1,1,1,0,1,0,0,0)",
+                params![version, symbol_id],
+            )
+            .unwrap();
+    }
+    connection
+        .execute(
+            "INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+             VALUES ('view-a',1,'manifest-a','request-a',?1)",
+            [NOW],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
+             VALUES ('view-a',1,'src/lib.rs','rust',?1,'indexed','hash-src/lib.rs',?2)",
+            params![version, NOW],
+        )
+        .unwrap();
+    drop(connection);
+
+    let session = StoreScratchResolutionSession::new(
+        factory,
+        StoreManifestIdentity {
+            family_id: "family-a".to_string(),
+            view_id: "view-a".to_string(),
+            generation: 1,
+            manifest_hash: "manifest-a".to_string(),
+        },
+        temp.path().join("exact.db"),
+        8,
+        6,
+    )
+    .unwrap();
+    let mut first = Vec::new();
+    session
+        .visit_filtered_by_name("target", "rust", &[SymbolKind::Function], None, |_, hit| {
+            first.push(hit.symbol.symbol_id);
+            Ok(true)
+        })
+        .unwrap();
+    let mut second = Vec::new();
+    session
+        .visit_filtered_by_name("target", "rust", &[SymbolKind::Function], None, |_, hit| {
+            second.push(hit.symbol.symbol_id);
+            Ok(true)
+        })
+        .unwrap();
+    assert_eq!(first, ["a-hit", "b-hit"]);
+    assert_eq!(second, ["a-hit", "b-hit"]);
+    let visit = session.candidate_query_telemetry(CandidateQueryFamily::FilteredByName);
+    assert_eq!(visit.executions, 1);
+    let summary = session
+        .filtered_name_summary("target", "rust", &[SymbolKind::Function], None, 0.9)
+        .unwrap();
+    assert_eq!(summary.exact_count, 2);
+    assert_eq!(
+        session
+            .candidate_query_telemetry(CandidateQueryFamily::FilteredNameSummary)
+            .executions,
+        0
+    );
+}
+
+#[test]
+fn store_filtered_name_pass_cache_rejects_lists_over_hit_cap() {
+    let temp = TempDir::new().unwrap();
+    let layout = StoreLayout::create(temp.path().join("family"), "family-a", "2.30.0").unwrap();
+    let factory = StoreConnectionFactory::new(layout, "family-a", "2.30.0");
+    let mut connection = factory.open_writer().unwrap();
+    ManifestStore::new(&mut connection)
+        .ensure_view("view-a", "/repo")
+        .unwrap();
+    let version = insert_version(&connection, "src/lib.rs", "rust", true);
+    for index in 0..33 {
+        connection
+            .execute(
+                "INSERT INTO symbols(version_id,symbol_id,path,language,name,kind,
+                 start_line,start_column,end_line,end_column,start_byte,end_byte,is_test,test_container,test_lifecycle)
+                 VALUES (?1,?2,'src/lib.rs','rust','target','function',1,1,1,1,0,1,0,0,0)",
+                params![version, format!("hit-{index:02}")],
+            )
+            .unwrap();
+    }
+    connection
+        .execute(
+            "INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+             VALUES ('view-a',1,'manifest-a','request-a',?1)",
+            [NOW],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
+             VALUES ('view-a',1,'src/lib.rs','rust',?1,'indexed','hash-src/lib.rs',?2)",
+            params![version, NOW],
+        )
+        .unwrap();
+    drop(connection);
+
+    let session = StoreScratchResolutionSession::new(
+        factory,
+        StoreManifestIdentity {
+            family_id: "family-a".to_string(),
+            view_id: "view-a".to_string(),
+            generation: 1,
+            manifest_hash: "manifest-a".to_string(),
+        },
+        temp.path().join("exact.db"),
+        40,
+        6,
+    )
+    .unwrap();
+    let mut first = 0usize;
+    session
+        .visit_filtered_by_name("target", "rust", &[SymbolKind::Function], None, |_, _| {
+            first += 1;
+            Ok(true)
+        })
+        .unwrap();
+    let mut second = 0usize;
+    session
+        .visit_filtered_by_name("target", "rust", &[SymbolKind::Function], None, |_, _| {
+            second += 1;
+            Ok(true)
+        })
+        .unwrap();
+    assert_eq!(first, 33);
+    assert_eq!(second, 33);
+    let visit = session.candidate_query_telemetry(CandidateQueryFamily::FilteredByName);
+    assert_eq!(visit.executions, 2);
+}
+
+#[test]
+fn store_filtered_name_pass_cache_does_not_store_early_stop() {
+    let temp = TempDir::new().unwrap();
+    let layout = StoreLayout::create(temp.path().join("family"), "family-a", "2.30.0").unwrap();
+    let factory = StoreConnectionFactory::new(layout, "family-a", "2.30.0");
+    let mut connection = factory.open_writer().unwrap();
+    ManifestStore::new(&mut connection)
+        .ensure_view("view-a", "/repo")
+        .unwrap();
+    let version = insert_version(&connection, "src/lib.rs", "rust", true);
+    for symbol_id in ["a-hit", "b-hit"] {
+        connection
+            .execute(
+                "INSERT INTO symbols(version_id,symbol_id,path,language,name,kind,
+                 start_line,start_column,end_line,end_column,start_byte,end_byte,is_test,test_container,test_lifecycle)
+                 VALUES (?1,?2,'src/lib.rs','rust','target','function',1,1,1,1,0,1,0,0,0)",
+                params![version, symbol_id],
+            )
+            .unwrap();
+    }
+    connection
+        .execute(
+            "INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+             VALUES ('view-a',1,'manifest-a','request-a',?1)",
+            [NOW],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
+             VALUES ('view-a',1,'src/lib.rs','rust',?1,'indexed','hash-src/lib.rs',?2)",
+            params![version, NOW],
+        )
+        .unwrap();
+    drop(connection);
+
+    let session = StoreScratchResolutionSession::new(
+        factory,
+        StoreManifestIdentity {
+            family_id: "family-a".to_string(),
+            view_id: "view-a".to_string(),
+            generation: 1,
+            manifest_hash: "manifest-a".to_string(),
+        },
+        temp.path().join("exact.db"),
+        8,
+        6,
+    )
+    .unwrap();
+    let mut first = Vec::new();
+    session
+        .visit_filtered_by_name("target", "rust", &[SymbolKind::Function], None, |_, hit| {
+            first.push(hit.symbol.symbol_id);
+            Ok(false)
+        })
+        .unwrap();
+    let mut second = Vec::new();
+    session
+        .visit_filtered_by_name("target", "rust", &[SymbolKind::Function], None, |_, hit| {
+            second.push(hit.symbol.symbol_id);
+            Ok(true)
+        })
+        .unwrap();
+    assert_eq!(first, ["a-hit"]);
+    assert_eq!(second, ["a-hit", "b-hit"]);
+    let visit = session.candidate_query_telemetry(CandidateQueryFamily::FilteredByName);
+    assert_eq!(visit.executions, 2);
+}
+
+#[test]
+fn store_mini_index_keeps_excess_type_facts_on_sql() {
+    let temp = TempDir::new().unwrap();
+    let layout = StoreLayout::create(temp.path().join("family"), "family-a", "2.30.0").unwrap();
+    let factory = StoreConnectionFactory::new(layout, "family-a", "2.30.0");
+    let mut connection = factory.open_writer().unwrap();
+    ManifestStore::new(&mut connection)
+        .ensure_view("view-a", "/repo")
+        .unwrap();
+    let version = insert_version(&connection, "src/lib.rs", "rust", true);
+    connection
+        .execute(
+            "INSERT INTO symbols(version_id,symbol_id,path,language,name,kind,
+             start_line,start_column,end_line,end_column,start_byte,end_byte,is_test,test_container,test_lifecycle)
+             VALUES (?1,'zeta','src/lib.rs','rust','zeta','variable',1,1,1,1,0,1,0,0,0)",
+            [version],
+        )
+        .unwrap();
+    for index in 0..=4096 {
+        connection
+            .execute(
+                "INSERT INTO type_facts(version_id,type_fact_id,symbol_id,language,resolved_type,is_inferred)
+                 VALUES (?1,?2,'zeta','rust','TypeC',0)",
+                params![version, format!("fact-{index:04}")],
+            )
+            .unwrap();
+    }
+    connection
+        .execute(
+            "INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+             VALUES ('view-a',1,'manifest-a','request-a',?1)",
+            [NOW],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO manifest_entries(view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
+             VALUES ('view-a',1,'src/lib.rs','rust',?1,'indexed','hash-src/lib.rs',?2)",
+            params![version, NOW],
+        )
+        .unwrap();
+    drop(connection);
+
+    let session = StoreScratchResolutionSession::new(
+        factory,
+        StoreManifestIdentity {
+            family_id: "family-a".to_string(),
+            view_id: "view-a".to_string(),
+            generation: 1,
+            manifest_hash: "manifest-a".to_string(),
+        },
+        temp.path().join("exact.db"),
+        8,
+        6,
+    )
+    .unwrap();
+    assert!(
+        session
+            .symbol_by_id(&version.to_string(), "zeta")
+            .unwrap()
+            .is_some()
+    );
+    let mut facts = 0usize;
+    session
+        .visit_type_facts(
+            &SemanticSymbolId {
+                version: SemanticVersionId::Store(version),
+                local_id: "zeta".to_string(),
+            },
+            |_, _| {
+                facts += 1;
+                Ok(true)
+            },
+        )
+        .unwrap();
+    assert_eq!(facts, 4097);
+    assert_eq!(
+        session
+            .candidate_query_telemetry(CandidateQueryFamily::SymbolById)
+            .executions,
+        0
+    );
+    assert!(
+        session
+            .candidate_query_telemetry(CandidateQueryFamily::TypeFacts)
+            .executions
+            > 0
+    );
 }
 
 #[cfg(unix)]
@@ -920,7 +1457,7 @@ fn third_same_name_receiver_contributes_type_fact_in_legacy_and_store() {
             TierOutcome::Resolved { target_symbol_id, .. } if target_symbol_id.local_id == "member"
         ));
     }
-    assert_eq!(session.max_store_read_page(), 2);
+    assert!(session.max_store_read_page() <= 2);
 }
 
 #[test]

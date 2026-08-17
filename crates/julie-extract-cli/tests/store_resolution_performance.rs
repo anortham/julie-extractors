@@ -415,6 +415,7 @@ struct CandidateQuerySample {
     symbol_by_id: CandidateQueryMetric,
     top_level_named: CandidateQueryMetric,
     type_facts: CandidateQueryMetric,
+    version_mini_index: CandidateQueryMetric,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -542,6 +543,7 @@ impl CandidateQuerySample {
             + self.symbol_by_id.executions
             + self.top_level_named.executions
             + self.type_facts.executions
+            + self.version_mini_index.executions
     }
 }
 
@@ -562,6 +564,7 @@ fn candidate_query_sample(session: &StoreScratchResolutionSession) -> CandidateQ
         symbol_by_id: metric(CandidateQueryFamily::SymbolById),
         top_level_named: metric(CandidateQueryFamily::TopLevelNamed),
         type_facts: metric(CandidateQueryFamily::TypeFacts),
+        version_mini_index: metric(CandidateQueryFamily::VersionMiniIndex),
     }
 }
 
@@ -909,8 +912,7 @@ fn repeated_name_high_fanout_reports_candidate_query_families_and_exact_output()
         )
         .unwrap();
     assert_eq!(ambiguous, REPEATED_NAME_IDENTIFIERS as i64);
-    assert_eq!(prime.executions, 1);
-    assert_eq!(prime.rows_read, WINDOW_SIZE);
+    assert_eq!(prime.executions, 0);
     assert_eq!(summary.executions, 1);
     assert_eq!(summary.rows_read, 2);
     assert_eq!(identifier_hydration.executions, 1);
@@ -1081,6 +1083,18 @@ fn profiled_candidate_cache_attribution_reconciles_queries_and_occupancy() {
             params![version_id],
         )
         .unwrap();
+    // Keep this version on the SQL cache path so page/by-id attribution
+    // still has a TooLarge file to measure.
+    for index in 0..=2048 {
+        writer
+            .execute(
+                "INSERT INTO symbols(version_id,symbol_id,path,language,name,kind,
+                 start_line,start_column,end_line,end_column,start_byte,end_byte,is_test,test_container,test_lifecycle)
+                 VALUES (?1,?2,'src/children-named.cs','csharp',?2,'function',1,1,1,1,0,1,0,0,0)",
+                params![version_id, format!("pad-{index:04}")],
+            )
+            .unwrap();
+    }
     drop(writer);
     let exact_path = temp.path().join("exact.db");
     let mut session = StoreScratchResolutionSession::new(
@@ -1298,7 +1312,7 @@ fn profiled_candidate_cache_attribution_reconciles_queries_and_occupancy() {
     )
     .unwrap();
     let wide_attribution = wide.candidate_cache_attribution_for_test();
-    assert!(wide_attribution["child_calls"][4][2].as_u64().unwrap() > 0);
+    assert!(wide_attribution["child_calls"][4][0].as_u64().unwrap() > 0);
 
     let disabled_layout = build_children_named_batch_fixture(&temp.path().join("disabled"), 1);
     let disabled_identity = manifest_identity(&disabled_layout, 1);
@@ -1377,10 +1391,11 @@ fn candidate_query_sample_serializes_all_fixed_families() {
             "symbol_by_id",
             "top_level_named",
             "type_facts",
+            "version_mini_index",
         ]
     );
-    assert_eq!(value["prime_window"]["executions"], 1);
-    assert_eq!(value["prime_window"]["rows"], WINDOW_SIZE);
+    assert_eq!(value["prime_window"]["executions"], 0);
+    assert_eq!(value["version_mini_index"]["executions"], 0);
 }
 
 #[test]
@@ -1819,8 +1834,8 @@ fn live_candidate_query_snapshot_persists_before_resolution_finishes() {
         serde_json::from_slice(&fs::read(output).unwrap()).unwrap();
 
     assert!(snapshot.total_executions >= 1);
-    assert_eq!(snapshot.queries.prime_window.executions, 1);
-    assert_eq!(snapshot.queries.prime_window.rows, WINDOW_SIZE);
+    assert_eq!(snapshot.queries.prime_window.executions, 0);
+    assert_eq!(snapshot.queries.version_mini_index.executions, 0);
 }
 
 #[test]

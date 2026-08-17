@@ -52,6 +52,21 @@ use crate::store::prior_overlay::{
 };
 
 const MAX_STORE_RESOLUTION_WINDOW: usize = 300;
+/// Measured on the Miller family store: every version that has identifier rows
+/// has ≤2048 symbols. Larger versions are symbol-only (0 identifiers) and stay on SQL.
+const VERSION_MINI_INDEX_SYMBOL_CAP: usize = 2048;
+/// One slot thrashed: a Miller full resolve reloaded 72k times / 37M rows.
+/// Keep a bounded LRU so file-local work stays in RAM when lookups hop files.
+const VERSION_MINI_INDEX_SLOT_CAP: usize = 256;
+/// Survives the 300-row window reset. Miller has ~23k distinct names; this
+/// holds the repeated uniqueness probes without keeping every name.
+const FILTERED_SUMMARY_PASS_CACHE_KEYS: usize = 16_384;
+const FILTERED_NAME_PASS_CACHE_KEYS: usize = 8_192;
+/// Do not keep huge same-name lists (Assert-style). Empty and small lists stay.
+const FILTERED_NAME_PASS_CACHE_HIT_CAP: usize = 32;
+/// A file can have many type facts per symbol. Above this, keep symbols in RAM
+/// and read type facts from SQL. Do not truncate a loaded fact list.
+const VERSION_MINI_INDEX_TYPE_FACT_CAP: usize = 4096;
 type CandidatePage = (Vec<CandidateHit>, Option<(i64, String)>);
 type PriorPhaseKeys = (Vec<(i64, String)>, Option<PriorOverlayKey>);
 type PriorPhaseAccess = PriorOverlayAccess<PriorPhaseKeys>;
@@ -83,10 +98,11 @@ pub enum CandidateQueryFamily {
     PendingHydration,
     RelationshipHydration,
     IdentifierHydration,
+    VersionMiniIndex,
 }
 
 impl CandidateQueryFamily {
-    const COUNT: usize = 14;
+    const COUNT: usize = 15;
 
     const fn index(self) -> usize {
         self as usize
@@ -456,6 +472,14 @@ struct FilteredSummaryKey {
     confidence_bits: u64,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct FilteredNamePassKey {
+    name: String,
+    language: String,
+    kinds: Vec<String>,
+    version_id: Option<i64>,
+}
+
 #[derive(Debug, Default)]
 struct TierCandidateAccumulator {
     buffered: BTreeMap<SemanticSymbolId, f64>,
@@ -486,8 +510,8 @@ where
     }
 
     fn insert(&mut self, key: K, value: V) {
-        if let Some(existing) = self.values.get_mut(&key) {
-            *existing = value;
+        if self.values.contains_key(&key) {
+            self.values.insert(key, value);
             return;
         }
         if self.values.len() == self.capacity
@@ -682,6 +706,7 @@ pub struct StoreScratchResolutionSession {
     phase_reader_opens: Cell<usize>,
     max_candidate_cache_entries: Cell<usize>,
     candidate_query_telemetry: Cell<[CandidateQueryTelemetry; CandidateQueryFamily::COUNT]>,
+    scratch_lookup_queries: Cell<usize>,
     candidate_cache_attribution: Cell<CandidateCacheAttribution>,
     candidate_query_timing_enabled: bool,
     same_window_fingerprints: RefCell<Option<SameWindowFingerprintTracker>>,
@@ -693,6 +718,7 @@ pub struct StoreScratchResolutionSession {
     candidate_reader: RefCell<Option<Connection>>,
     candidate_window: RefCell<CandidateWindow>,
     filtered_summaries: RefCell<BoundedCache<FilteredSummaryKey, CandidateSummary>>,
+    filtered_name_hits: RefCell<BoundedCache<FilteredNamePassKey, Vec<CandidateHit>>>,
     tier_candidates: RefCell<TierCandidateAccumulator>,
     resolution_cache: RefCell<HashMap<ResolutionLookupKey, TierOutcome>>,
     prior_overlay: Option<PriorOverlayReader>,
@@ -700,6 +726,73 @@ pub struct StoreScratchResolutionSession {
     validated_base: Option<ResolutionValidatedBase>,
     decision_telemetry: Option<StoreResolutionDecisionTelemetry>,
     forced_full_without_prior_state: bool,
+    version_mini_indexes: RefCell<VersionMiniIndexCache>,
+}
+
+#[derive(Debug, Default)]
+struct VersionMiniIndexCache {
+    slots: HashMap<i64, VersionMiniIndexSlot>,
+    order: VecDeque<i64>,
+}
+
+impl VersionMiniIndexCache {
+    fn get_mut(&mut self, version_id: i64) -> Option<&VersionMiniIndexSlot> {
+        if self.slots.contains_key(&version_id) {
+            self.touch(version_id);
+            self.slots.get(&version_id)
+        } else {
+            None
+        }
+    }
+
+    fn insert(&mut self, version_id: i64, slot: VersionMiniIndexSlot) {
+        if self.slots.contains_key(&version_id) {
+            self.slots.insert(version_id, slot);
+            self.touch(version_id);
+            return;
+        }
+        while self.slots.len() >= VERSION_MINI_INDEX_SLOT_CAP {
+            if let Some(evicted) = self.order.pop_front() {
+                self.slots.remove(&evicted);
+            } else {
+                break;
+            }
+        }
+        self.slots.insert(version_id, slot);
+        self.order.push_back(version_id);
+    }
+
+    fn touch(&mut self, version_id: i64) {
+        if let Some(index) = self.order.iter().position(|id| *id == version_id) {
+            self.order.remove(index);
+        }
+        self.order.push_back(version_id);
+    }
+}
+
+#[derive(Debug)]
+enum VersionMiniIndexSlot {
+    TooLarge,
+    Ready(VersionMiniIndex),
+}
+
+#[derive(Debug)]
+struct VersionMiniIndex {
+    by_id: HashMap<String, CandidateHit>,
+    by_name: HashMap<String, Vec<CandidateHit>>,
+    top_level_by_name: HashMap<String, Vec<CandidateHit>>,
+    children_by_parent_name: HashMap<(String, String), Vec<CandidateHit>>,
+    type_facts: HashMap<String, Vec<TypeFact>>,
+    type_facts_complete: bool,
+    imports: Vec<MiniImportRow>,
+}
+
+#[derive(Clone, Debug)]
+struct MiniImportRow {
+    path: String,
+    language: String,
+    name: String,
+    metadata_json: Option<String>,
 }
 
 impl StoreScratchResolutionSession {
@@ -747,6 +840,7 @@ impl StoreScratchResolutionSession {
             candidate_query_telemetry: Cell::new(
                 [CandidateQueryTelemetry::default(); CandidateQueryFamily::COUNT],
             ),
+            scratch_lookup_queries: Cell::new(0),
             candidate_cache_attribution: Cell::new(CandidateCacheAttribution::default()),
             candidate_query_timing_enabled: false,
             same_window_fingerprints: RefCell::new(None),
@@ -759,7 +853,8 @@ impl StoreScratchResolutionSession {
             visible_root_batches: 0,
             candidate_reader: RefCell::new(None),
             candidate_window: RefCell::new(CandidateWindow::default()),
-            filtered_summaries: RefCell::new(BoundedCache::new(window_size)),
+            filtered_summaries: RefCell::new(BoundedCache::new(FILTERED_SUMMARY_PASS_CACHE_KEYS)),
+            filtered_name_hits: RefCell::new(BoundedCache::new(FILTERED_NAME_PASS_CACHE_KEYS)),
             tier_candidates: RefCell::new(TierCandidateAccumulator::default()),
             resolution_cache: RefCell::new(HashMap::new()),
             prior_overlay: None,
@@ -767,6 +862,7 @@ impl StoreScratchResolutionSession {
             validated_base: None,
             decision_telemetry: None,
             forced_full_without_prior_state: false,
+            version_mini_indexes: RefCell::new(VersionMiniIndexCache::default()),
         };
         session.validate_manifest()?;
         session.initialize_scratch()?;
@@ -990,6 +1086,14 @@ impl StoreScratchResolutionSession {
         family: CandidateQueryFamily,
     ) -> CandidateQueryTelemetry {
         self.candidate_query_telemetry.get()[family.index()]
+    }
+
+    pub fn scratch_lookup_queries(&self) -> usize {
+        self.scratch_lookup_queries.get()
+    }
+
+    pub fn resolution_cache_entries(&self) -> usize {
+        self.resolution_cache.borrow().len()
     }
 
     #[cfg(feature = "test-store-resolution-contract")]
@@ -1705,6 +1809,207 @@ impl StoreScratchResolutionSession {
         }
         let reader = self.candidate_reader.borrow();
         read(reader.as_ref().expect("candidate reader initialized"))
+    }
+
+    fn ensure_version_mini_index(&self, version_id: i64) -> Result<bool, StoreResolutionError> {
+        {
+            let mut cache = self.version_mini_indexes.borrow_mut();
+            match cache.get_mut(version_id) {
+                Some(VersionMiniIndexSlot::Ready(_)) => return Ok(true),
+                Some(VersionMiniIndexSlot::TooLarge) => return Ok(false),
+                None => {}
+            }
+        }
+        let loaded = self.load_version_mini_index(version_id)?;
+        let ready = matches!(loaded, VersionMiniIndexSlot::Ready(_));
+        self.version_mini_indexes
+            .borrow_mut()
+            .insert(version_id, loaded);
+        Ok(ready)
+    }
+
+    fn with_ready_mini_index<T>(
+        &self,
+        version_id: i64,
+        read: impl FnOnce(&VersionMiniIndex) -> T,
+    ) -> Result<Option<T>, StoreResolutionError> {
+        if !self.ensure_version_mini_index(version_id)? {
+            return Ok(None);
+        }
+        let cache = self.version_mini_indexes.borrow();
+        match cache.slots.get(&version_id) {
+            Some(VersionMiniIndexSlot::Ready(index)) => Ok(Some(read(index))),
+            _ => Ok(None),
+        }
+    }
+
+    fn load_version_mini_index(
+        &self,
+        version_id: i64,
+    ) -> Result<VersionMiniIndexSlot, StoreResolutionError> {
+        let started = self.candidate_query_started();
+        let (slot, rows_read) = self.with_candidate_reader(|connection| {
+            let count: i64 = connection.query_row(
+                "SELECT COUNT(*)
+                 FROM symbols AS s
+                 WHERE s.version_id = ?1
+                   AND EXISTS (
+                     SELECT 1 FROM manifest_entries AS me
+                     WHERE me.view_id = ?2 AND me.generation = ?3
+                       AND me.status IN ('indexed', 'failed_preserved')
+                       AND me.version_id = s.version_id
+                   )",
+                params![version_id, self.identity.view_id, self.identity.generation],
+                |row| row.get(0),
+            )?;
+            let count = usize::try_from(count).unwrap_or(usize::MAX);
+            if count > VERSION_MINI_INDEX_SYMBOL_CAP {
+                return Ok((VersionMiniIndexSlot::TooLarge, 0));
+            }
+
+            let mut by_id = HashMap::with_capacity(count);
+            let mut by_name: HashMap<String, Vec<CandidateHit>> = HashMap::new();
+            let mut top_level_by_name: HashMap<String, Vec<CandidateHit>> = HashMap::new();
+            let mut children_by_parent_name: HashMap<(String, String), Vec<CandidateHit>> =
+                HashMap::new();
+            let mut symbol_statement = connection.prepare(
+                "SELECT s.version_id, s.symbol_id, s.language, s.name, s.kind,
+                        s.parent_symbol_id, s.visibility, s.signature, s.metadata_json
+                 FROM symbols AS s
+                 WHERE s.version_id = ?1
+                   AND EXISTS (
+                     SELECT 1 FROM manifest_entries AS me
+                     WHERE me.view_id = ?2 AND me.generation = ?3
+                       AND me.status IN ('indexed', 'failed_preserved')
+                       AND me.version_id = s.version_id
+                   )
+                 ORDER BY s.symbol_id COLLATE BINARY",
+            )?;
+            let mut symbol_rows = symbol_statement.query(params![
+                version_id,
+                self.identity.view_id,
+                self.identity.generation
+            ])?;
+            let mut symbol_row_count = 0usize;
+            while let Some(row) = symbol_rows.next()? {
+                symbol_row_count += 1;
+                let Some(hit) = candidate_hit(row)? else {
+                    continue;
+                };
+                by_name
+                    .entry(hit.symbol.name.clone())
+                    .or_default()
+                    .push(hit.clone());
+                if let Some(parent) = hit.symbol.parent_symbol_id.clone() {
+                    children_by_parent_name
+                        .entry((parent, hit.symbol.name.clone()))
+                        .or_default()
+                        .push(hit.clone());
+                } else {
+                    top_level_by_name
+                        .entry(hit.symbol.name.clone())
+                        .or_default()
+                        .push(hit.clone());
+                }
+                by_id.insert(hit.symbol.symbol_id.clone(), hit);
+            }
+
+            let type_fact_count: i64 = connection.query_row(
+                "SELECT COUNT(*)
+                 FROM type_facts AS tf
+                 WHERE tf.version_id = ?1
+                   AND EXISTS (
+                     SELECT 1 FROM manifest_entries AS me
+                     WHERE me.view_id = ?2 AND me.generation = ?3
+                       AND me.status IN ('indexed', 'failed_preserved')
+                       AND me.version_id = tf.version_id
+                   )",
+                params![version_id, self.identity.view_id, self.identity.generation],
+                |row| row.get(0),
+            )?;
+            let type_fact_count = usize::try_from(type_fact_count).unwrap_or(usize::MAX);
+            let type_facts_complete = type_fact_count <= VERSION_MINI_INDEX_TYPE_FACT_CAP;
+            let mut type_facts: HashMap<String, Vec<TypeFact>> = HashMap::new();
+            if type_facts_complete && type_fact_count > 0 {
+                let mut fact_statement = connection.prepare(
+                    "SELECT tf.symbol_id, tf.resolved_type, tf.is_inferred
+                     FROM type_facts AS tf
+                     WHERE tf.version_id = ?1
+                       AND EXISTS (
+                         SELECT 1 FROM manifest_entries AS me
+                         WHERE me.view_id = ?2 AND me.generation = ?3
+                           AND me.status IN ('indexed', 'failed_preserved')
+                           AND me.version_id = tf.version_id
+                       )
+                     ORDER BY tf.type_fact_id COLLATE BINARY",
+                )?;
+                let mut fact_rows = fact_statement.query(params![
+                    version_id,
+                    self.identity.view_id,
+                    self.identity.generation
+                ])?;
+                while let Some(row) = fact_rows.next()? {
+                    let symbol_id: String = row.get(0)?;
+                    type_facts
+                        .entry(symbol_id.clone())
+                        .or_default()
+                        .push(TypeFact {
+                            symbol_id,
+                            resolved_type: row.get(1)?,
+                            is_inferred: row.get::<_, i64>(2)? != 0,
+                        });
+                }
+            }
+
+            let mut import_statement = connection.prepare(
+                "SELECT s.path, s.language, s.name, s.metadata_json
+                 FROM symbols AS s
+                 WHERE s.version_id = ?1 AND s.kind = 'import'
+                   AND EXISTS (
+                     SELECT 1 FROM manifest_entries AS me
+                     WHERE me.view_id = ?2 AND me.generation = ?3
+                       AND me.status IN ('indexed', 'failed_preserved')
+                       AND me.version_id = s.version_id
+                   )
+                 ORDER BY s.symbol_id COLLATE BINARY",
+            )?;
+            let imports = import_statement
+                .query_map(
+                    params![version_id, self.identity.view_id, self.identity.generation],
+                    |row| {
+                        Ok(MiniImportRow {
+                            path: row.get(0)?,
+                            language: row.get(1)?,
+                            name: row.get(2)?,
+                            metadata_json: row.get(3)?,
+                        })
+                    },
+                )?
+                .collect::<Result<Vec<_>, _>>()?;
+
+            let loaded_facts = if type_facts_complete {
+                type_fact_count
+            } else {
+                0
+            };
+            let rows_read = symbol_row_count
+                .saturating_add(loaded_facts)
+                .saturating_add(imports.len());
+            Ok((
+                VersionMiniIndexSlot::Ready(VersionMiniIndex {
+                    by_id,
+                    by_name,
+                    top_level_by_name,
+                    children_by_parent_name,
+                    type_facts,
+                    type_facts_complete,
+                    imports,
+                }),
+                rows_read,
+            ))
+        })?;
+        self.record_candidate_query(CandidateQueryFamily::VersionMiniIndex, rows_read, started);
+        Ok(slot)
     }
 
     fn candidate_query_started(&self) -> Option<Instant> {
@@ -3590,6 +3895,11 @@ impl CandidateLookup for StoreScratchResolutionSession {
         local_id: &str,
     ) -> Result<Option<CandidateHit>, Self::Error> {
         let version_id = parse_source_key(source_key)?;
+        if let Some(hit) =
+            self.with_ready_mini_index(version_id, |index| index.by_id.get(local_id).cloned())?
+        {
+            return Ok(hit);
+        }
         let semantic_id = SemanticSymbolId {
             version: SemanticVersionId::Store(version_id),
             local_id: local_id.to_string(),
@@ -3738,6 +4048,39 @@ impl CandidateLookup for StoreScratchResolutionSession {
         source_key: Option<&str>,
         confidence: f64,
     ) -> Result<CandidateSummary, Self::Error> {
+        if let Some(source_key) = source_key {
+            let version_id = parse_source_key(source_key)?;
+            if let Some(summary) = self.with_ready_mini_index(version_id, |index| {
+                let candidates = index
+                    .by_name
+                    .get(name)
+                    .into_iter()
+                    .flatten()
+                    .filter(|hit| {
+                        hit.symbol.language == language && kinds.contains(&hit.symbol.kind)
+                    })
+                    .map(|hit| (hit.semantic_id.clone(), confidence))
+                    .collect::<BTreeMap<_, _>>();
+                CandidateSummary {
+                    evidence: candidates
+                        .iter()
+                        .take(2)
+                        .map(|(semantic_id, confidence)| CandidateEvidence {
+                            semantic_id: semantic_id.clone(),
+                            confidence: *confidence,
+                        })
+                        .collect(),
+                    exact_count: candidates.len() as u64,
+                }
+            })? {
+                return Ok(summary);
+            }
+        }
+        if source_key.is_none() {
+            if let Some(hits) = self.cached_filtered_name_hits(None, name, language, kinds) {
+                return Ok(summary_from_cached_hits(&hits, confidence));
+            }
+        }
         if let Some(hits) = self.cached_name_hits(name) {
             let candidates = hits
                 .into_iter()
@@ -3918,6 +4261,36 @@ impl CandidateLookup for StoreScratchResolutionSession {
         F: FnMut(&Self, ImportRecord) -> Result<bool, Self::Error>,
     {
         let version_id = parse_source_key(source_key)?;
+        if let Some(imports) =
+            self.with_ready_mini_index(version_id, |index| index.imports.clone())?
+        {
+            for row in imports {
+                let (local_name, imported_name, source, is_type_only, is_default, is_namespace) =
+                    resolution::import_binding(&row.name, row.metadata_json.as_deref());
+                let module_file_id = self.select_module_version(
+                    &resolution::import_module_candidates(
+                        &row.path,
+                        source.as_deref(),
+                        &row.language,
+                    ),
+                    &row.language,
+                )?;
+                let import = ImportRecord {
+                    file_id: source_key.to_string(),
+                    local_name,
+                    imported_name,
+                    source,
+                    module_file_id,
+                    is_type_only,
+                    is_default,
+                    is_namespace,
+                };
+                if !visitor(self, import)? {
+                    return Ok(());
+                }
+            }
+            return Ok(());
+        }
         let sql = "SELECT s.symbol_id, s.path, s.language, s.name, s.metadata_json
              FROM symbols AS s
              WHERE s.version_id = ?1 AND s.kind = 'import'
@@ -4559,6 +4932,38 @@ impl StoreScratchResolutionSession {
             &(name, language, kinds, source_key),
         );
         self.record_filtered_lookup_attribution(reason, fingerprint);
+        if let Some(source_key) = source_key {
+            let version_id = parse_source_key(source_key)?;
+            if let Some(hits) = self.with_ready_mini_index(version_id, |index| {
+                index
+                    .by_name
+                    .get(name)
+                    .into_iter()
+                    .flatten()
+                    .filter(|hit| {
+                        hit.symbol.language == language && kinds.contains(&hit.symbol.kind)
+                    })
+                    .cloned()
+                    .collect::<Vec<_>>()
+            })? {
+                for hit in hits {
+                    if !visitor(self, hit)? {
+                        break;
+                    }
+                }
+                return Ok(());
+            }
+        }
+        if source_key.is_none() {
+            if let Some(hits) = self.cached_filtered_name_hits(None, name, language, kinds) {
+                for hit in hits {
+                    if !visitor(self, hit)? {
+                        break;
+                    }
+                }
+                return Ok(());
+            }
+        }
         if let Some(hits) = self.cached_name_hits(name) {
             for hit in hits.into_iter().filter(|candidate| {
                 candidate.symbol.language == language
@@ -4591,6 +4996,7 @@ impl StoreScratchResolutionSession {
         );
         let mut after = (0, String::new());
         let mut had_prior_page = false;
+        let mut collected = source_key.is_none().then(Vec::new);
         loop {
             let sql_page_limit = self.sql_window_limit()?;
             let page_limit = usize::try_from(sql_page_limit).map_err(|_| {
@@ -4641,6 +5047,13 @@ impl StoreScratchResolutionSession {
                 row_count,
             );
             for hit in page {
+                if let Some(buffer) = collected.as_mut() {
+                    if buffer.len() < FILTERED_NAME_PASS_CACHE_HIT_CAP {
+                        buffer.push(hit.clone());
+                    } else {
+                        collected = None;
+                    }
+                }
                 if !visitor(self, hit)? {
                     return Ok(());
                 }
@@ -4653,6 +5066,9 @@ impl StoreScratchResolutionSession {
             };
             after = next;
             had_prior_page = true;
+        }
+        if let Some(hits) = collected {
+            self.store_filtered_name_hits(None, name, language, kinds, hits);
         }
         Ok(())
     }
@@ -4671,6 +5087,20 @@ impl StoreScratchResolutionSession {
         let fingerprint =
             self.observe_logical_lookup(CandidatePageFamily::TopLevelNamed, &(version_id, name));
         self.record_top_level_lookup_attribution(reason, fingerprint);
+        if let Some(hits) = self.with_ready_mini_index(version_id, |index| {
+            index
+                .top_level_by_name
+                .get(name)
+                .cloned()
+                .unwrap_or_default()
+        })? {
+            for hit in hits {
+                if !visitor(self, hit)? {
+                    break;
+                }
+            }
+            return Ok(());
+        }
         if let Some(hits) = self.cached_name_hits(name) {
             for hit in hits.into_iter().filter(|hit| {
                 hit.semantic_id.version == SemanticVersionId::Store(version_id)
@@ -4749,6 +5179,23 @@ impl StoreScratchResolutionSession {
         };
         let fingerprint = self.observe_logical_lookup(CandidatePageFamily::ChildrenNamed, &key);
         self.record_child_lookup_attribution(reason, fingerprint);
+        if let Some(hits) = self.with_ready_mini_index(version_id, |index| {
+            index
+                .children_by_parent_name
+                .get(&(parent_id.to_string(), name.to_string()))
+                .cloned()
+                .unwrap_or_default()
+        })? {
+            if let Some(reason) = reason {
+                self.record_child_lookup(reason, ChildLookupCacheState::ExactCacheHit);
+            }
+            for hit in hits {
+                if !visitor(self, hit)? {
+                    break;
+                }
+            }
+            return Ok(());
+        }
         if let Some(hits) = self.cached_children_named_hits(&key) {
             if let Some(reason) = reason {
                 self.record_child_lookup(reason, ChildLookupCacheState::ExactCacheHit);
@@ -4866,6 +5313,24 @@ impl StoreScratchResolutionSession {
             &(version_id, &symbol_id.local_id),
         );
         self.record_type_facts_lookup_attribution(reason, fingerprint);
+        if let Some(facts) = self.with_ready_mini_index(version_id, |index| {
+            index.type_facts_complete.then(|| {
+                index
+                    .type_facts
+                    .get(&symbol_id.local_id)
+                    .cloned()
+                    .unwrap_or_default()
+            })
+        })? {
+            if let Some(facts) = facts {
+                for fact in facts {
+                    if !visitor(self, fact)? {
+                        break;
+                    }
+                }
+                return Ok(());
+            }
+        }
         let sql = "SELECT tf.type_fact_id, tf.symbol_id, tf.resolved_type, tf.is_inferred
              FROM type_facts AS tf
              WHERE tf.version_id = ?1 AND tf.symbol_id = ?2
@@ -4959,6 +5424,43 @@ impl StoreScratchResolutionSession {
     fn cached_children_named_hits(&self, key: &ChildrenNamedKey) -> Option<Vec<CandidateHit>> {
         let window = self.candidate_window.borrow();
         window.children_named.get(key).cloned()
+    }
+
+    fn filtered_name_pass_key(
+        name: &str,
+        language: &str,
+        kinds: &[SymbolKind],
+        version_id: Option<i64>,
+    ) -> FilteredNamePassKey {
+        FilteredNamePassKey {
+            name: name.to_string(),
+            language: language.to_string(),
+            kinds: kinds.iter().map(ToString::to_string).collect(),
+            version_id,
+        }
+    }
+
+    fn cached_filtered_name_hits(
+        &self,
+        version_id: Option<i64>,
+        name: &str,
+        language: &str,
+        kinds: &[SymbolKind],
+    ) -> Option<Vec<CandidateHit>> {
+        let key = Self::filtered_name_pass_key(name, language, kinds, version_id);
+        self.filtered_name_hits.borrow().get(&key).cloned()
+    }
+
+    fn store_filtered_name_hits(
+        &self,
+        version_id: Option<i64>,
+        name: &str,
+        language: &str,
+        kinds: &[SymbolKind],
+        hits: Vec<CandidateHit>,
+    ) {
+        let key = Self::filtered_name_pass_key(name, language, kinds, version_id);
+        self.filtered_name_hits.borrow_mut().insert(key, hits);
     }
 
     fn cache_complete_name(
@@ -5561,6 +6063,8 @@ impl StoreScratchResolutionSession {
         identifier_id: &SemanticIdentifierId,
     ) -> Result<bool, StoreResolutionError> {
         let version_id = store_version(&identifier_id.version)?;
+        self.scratch_lookup_queries
+            .set(self.scratch_lookup_queries.get().saturating_add(1));
         Ok(self.scratch.query_row(
             "SELECT EXISTS(SELECT 1 FROM identifier_resolutions WHERE version_id=?1 AND identifier_id=?2)",
             params![version_id, identifier_id.local_id],
@@ -5607,6 +6111,8 @@ impl StoreScratchResolutionSession {
         identifier_id: &SemanticIdentifierId,
     ) -> Result<bool, StoreResolutionError> {
         let version_id = store_version(&identifier_id.version)?;
+        self.scratch_lookup_queries
+            .set(self.scratch_lookup_queries.get().saturating_add(1));
         let touched: bool = self.scratch.query_row(
             "SELECT EXISTS(SELECT 1 FROM identifier_touched WHERE version_id=?1 AND identifier_id=?2)",
             params![version_id, identifier_id.local_id],
@@ -6848,6 +7354,24 @@ impl StoreScratchResolutionSession {
                 .max(window.entry_count()),
         );
         Ok(version)
+    }
+}
+
+fn summary_from_cached_hits(hits: &[CandidateHit], confidence: f64) -> CandidateSummary {
+    let candidates = hits
+        .iter()
+        .map(|hit| (hit.semantic_id.clone(), confidence))
+        .collect::<BTreeMap<_, _>>();
+    CandidateSummary {
+        evidence: candidates
+            .iter()
+            .take(2)
+            .map(|(semantic_id, confidence)| CandidateEvidence {
+                semantic_id: semantic_id.clone(),
+                confidence: *confidence,
+            })
+            .collect(),
+        exact_count: candidates.len() as u64,
     }
 }
 

@@ -27,11 +27,54 @@ use super::report::{
     StoreCoordinatorDisposition, StoreOperation, StoreOutputFormat, StoreReport, StoreRequestState,
     StoreRequestedLevel, StoreResolutionState,
 };
-use super::resolution_session::{StoreManifestIdentity, StoreScratchResolutionSession};
+use super::resolution_session::{
+    CandidateQueryFamily, StoreManifestIdentity, StoreScratchResolutionSession,
+};
 use crate::resolution_session::{ResolutionWorklists, SemanticVersionId};
 
 const RESOLVE_CLAIM_STALE_MS: i64 = 5_000;
 const RESOLUTION_WINDOW_SIZE: usize = 300;
+
+fn dump_resolution_query_profile(session: &StoreScratchResolutionSession) {
+    if !matches!(
+        std::env::var("JULIE_RESOLUTION_PROFILE").as_deref(),
+        Ok("1") | Ok("on")
+    ) {
+        return;
+    }
+    use CandidateQueryFamily::*;
+    eprintln!(
+        "resolution_profile scratch_lookups={} resolution_cache={}",
+        session.scratch_lookup_queries(),
+        session.resolution_cache_entries()
+    );
+    for family in [
+        PrimeWindow,
+        SymbolById,
+        ByName,
+        FilteredByName,
+        FilteredNameSummary,
+        ChildrenNamed,
+        TopLevelNamed,
+        TypeFacts,
+        Imports,
+        ModuleVersion,
+        LocateIdentifier,
+        PendingHydration,
+        RelationshipHydration,
+        IdentifierHydration,
+        VersionMiniIndex,
+    ] {
+        let telemetry = session.candidate_query_telemetry(family);
+        if telemetry.executions == 0 {
+            continue;
+        }
+        eprintln!(
+            "resolution_query family={family:?} exec={} rows={}",
+            telemetry.executions, telemetry.rows_read
+        );
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 struct ResolveRequestPayload {
@@ -550,6 +593,7 @@ fn resolve_claimed(
         true,
     )
     .map_err(classify_resolution_error)?;
+    dump_resolution_query_profile(&exact_session);
     telemetry
         .phase_timings_ms
         .insert("resolution".to_string(), elapsed_millis(resolution_started));

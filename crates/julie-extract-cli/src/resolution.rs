@@ -38,6 +38,7 @@ use julie_extract_artifact::resolution_store::{IdentifierWorkItem, PendingWorkIt
 use julie_extractors::SymbolKind;
 use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::time::Instant;
 
 // ---------------------------------------------------------------------------
 // Confidence + method constants (contract — see the design's tier table)
@@ -2088,25 +2089,20 @@ fn unique_named_type_symbol<L: CandidateLookup>(
     type_name: &str,
     language: &str,
     kinds: &[SymbolKind],
-    reason: FilteredNameLookupReason,
+    _reason: FilteredNameLookupReason,
 ) -> Result<Option<CandidateHit>, L::Error> {
-    let mut found: Option<CandidateHit> = None;
-    lookup.visit_filtered_by_name_with_reason(
-        reason,
-        type_name,
-        language,
-        kinds,
-        None,
-        |_, cand| {
-            if found.is_some() {
-                found = None;
-                return Ok(false);
-            }
-            found = Some(cand);
-            Ok(true)
-        },
-    )?;
-    Ok(found)
+    let summary = lookup.filtered_name_summary(type_name, language, kinds, None, 0.0)?;
+    if summary.exact_count != 1 {
+        return Ok(None);
+    }
+    let Some(evidence) = summary.evidence.first() else {
+        return Ok(None);
+    };
+    let source_key = match &evidence.semantic_id.version {
+        session::SemanticVersionId::Store(version_id) => version_id.to_string(),
+        session::SemanticVersionId::LegacyFile(file_id) => file_id.clone(),
+    };
+    lookup.symbol_by_id(&source_key, &evidence.semantic_id.local_id)
 }
 
 /// Resolve the type symbol named by a static-type receiver, including aliased
@@ -2455,11 +2451,15 @@ pub fn run_resolution_session<S: ResolutionSession>(
     // (design §"Contract & rollout" item 2 — the WRITE path).
     let requested_full = is_full_scan || prior.is_none();
 
+    let pass_started = Instant::now();
     let worklists = session.open_resolution_pass(&ResolutionPassRequest {
         full: requested_full,
     })?;
+    profile_note("open_pass", pass_started, 0, 0);
     let effective_full = worklists.effective_full;
+    let shadow_started = Instant::now();
     session.prepare_shadow(&worklists, revision)?;
+    profile_note("prepare_shadow", shadow_started, 0, 0);
 
     let mut counts = ResolutionCounts::default();
     let mut gated: BTreeSet<String> = BTreeSet::new();
@@ -2470,12 +2470,17 @@ pub fn run_resolution_session<S: ResolutionSession>(
         resolve_delta(session, &worklists, revision, &mut counts, &mut gated)?;
     }
 
+    let verify_started = Instant::now();
     session.verify_shadow()?;
+    profile_note("verify_shadow", verify_started, 0, 0);
 
     // The workspace-wide aggregate only runs on passes that re-derived the whole
     // workspace; a scoped delta would pay O(workspace) for rows it did not change.
     let rows = if effective_full {
-        Some(session.aggregate_report()?)
+        let aggregate_started = Instant::now();
+        let rows = Some(session.aggregate_report()?);
+        profile_note("aggregate_report", aggregate_started, 0, 0);
+        rows
     } else {
         None
     };
@@ -2581,43 +2586,90 @@ fn resolve_full<S: ResolutionSession>(
     // identifier from `worklist_full_identifiers`, so they need no separate repair.
     let mut phase = worklists.clone();
     phase.phase = ResolutionPhase::ResolvedPending;
+    let mut started = Instant::now();
+    let mut chunks = 0u64;
+    let mut items_n = 0u64;
     while let Some(ResolutionPhaseChunk::ResolvedPending(items)) =
         session.next_phase_chunk(&phase)?
     {
+        chunks += 1;
+        items_n += items.len() as u64;
         let _ = recheck_resolved_pending_items(session, &mut buf, &items, gated)?;
         session.flush(std::mem::take(&mut buf))?;
     }
+    profile_note("resolved_pending", started, chunks, items_n);
     // Flush demotions so the next worklist SELECT (resolved identifiers, then the
     // unresolved-pending fill) sees the demoted rows as unresolved — matches the
     // original immediate-demote ordering.
     phase.phase = ResolutionPhase::ResolvedIdentifiers;
+    started = Instant::now();
+    chunks = 0;
+    items_n = 0;
     while let Some(ResolutionPhaseChunk::ResolvedIdentifiers(items)) =
         session.next_phase_chunk(&phase)?
     {
+        chunks += 1;
+        items_n += items.len() as u64;
         recheck_resolved_identifier_items(session, &mut buf, &items, revision, counts, gated)?;
         session.flush(std::mem::take(&mut buf))?;
     }
+    profile_note("resolved_identifiers", started, chunks, items_n);
     // 1. Resolve every unresolved pending row; propagate resolved ones.
     phase.phase = ResolutionPhase::Pending;
+    started = Instant::now();
+    chunks = 0;
+    items_n = 0;
     while let Some(ResolutionPhaseChunk::Pending(items)) = session.next_phase_chunk(&phase)? {
+        chunks += 1;
+        items_n += items.len() as u64;
         resolve_pending_items(session, &mut buf, &items, revision, counts, gated)?;
         session.flush(std::mem::take(&mut buf))?;
     }
+    profile_note("pending", started, chunks, items_n);
     // Flush pending resolutions + their co-located identifier writes before the
     // tier-1 propagation and the generic identifier worklist read them.
     // 2. Propagate tier-1 (extraction-time, same-file) relationships workspace-wide.
     phase.phase = ResolutionPhase::Relationships;
+    started = Instant::now();
+    chunks = 0;
+    items_n = 0;
     while let Some(ResolutionPhaseChunk::Relationships(items)) = session.next_phase_chunk(&phase)? {
+        chunks += 1;
+        items_n += items.len() as u64;
         propagate_relationship_items(session, &items, &mut buf, revision, counts)?;
         session.flush(std::mem::take(&mut buf))?;
     }
+    profile_note("relationships", started, chunks, items_n);
     // 3. Generic identifier chain for every identifier propagation did not resolve.
     phase.phase = ResolutionPhase::Identifiers;
+    started = Instant::now();
+    chunks = 0;
+    items_n = 0;
     while let Some(ResolutionPhaseChunk::Identifiers(items)) = session.next_phase_chunk(&phase)? {
+        chunks += 1;
+        items_n += items.len() as u64;
         resolve_identifier_items(session, &mut buf, &items, revision, counts, gated)?;
         session.flush(std::mem::take(&mut buf))?;
     }
+    profile_note("identifiers", started, chunks, items_n);
     Ok(())
+}
+
+fn resolution_profile_enabled() -> bool {
+    matches!(
+        std::env::var("JULIE_RESOLUTION_PROFILE").as_deref(),
+        Ok("1") | Ok("on")
+    )
+}
+
+fn profile_note(phase: &str, started: Instant, chunks: u64, items: u64) {
+    if !resolution_profile_enabled() {
+        return;
+    }
+    eprintln!(
+        "resolution_profile phase={phase} ms={} chunks={chunks} items={items}",
+        started.elapsed().as_millis()
+    );
 }
 
 /// Union two worklists, keeping the first occurrence of each key and restoring the
