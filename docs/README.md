@@ -38,9 +38,10 @@ keeps unchanged imports on their no-op/idempotent paths, and hardens cross-platf
 preserving the existing recovery and fencing boundaries. A cold full index remains expensive; the
 release improves the bounded incremental path rather than promising fast first-time whole-repository
 extraction. No public CLI, report, schema, or store contract version changes.
-Version 2.33.4 is the current published release; it compacts genuinely accumulated scoped
-resolution work, repairs missing read indexes on writer open, and lets queued resolve waiters return durable
-terminal results promptly without changing public contracts.
+Version 2.33.5 is the current published release; it keeps one-file store resolve scoped, omits private
+locals from resolve keys, and carries Full+Crossover compact into the resolve pipeline. Version 2.33.4
+compacted accumulated scoped work, repaired missing read indexes on writer open, and let queued resolve
+waiters return durable terminal results promptly without changing public contracts.
 The implementation plans and dogfood records are:
 
 - [Ph2b store-kernel plan](plans/2026-08-07-index-store-ph2b-store-kernel-plan.md)
@@ -66,6 +67,8 @@ The implementation plans and dogfood records are:
 - [v2.32.0 release evidence](release-evidence/2026-08-11-v2-32-0-release.md)
 - [v2.32.1 release notes](release-notes/v2.32.1.md)
 - [v2.32.1 release evidence](release-evidence/2026-08-12-v2-32-1-release.md)
+- [v2.33.5 release notes](release-notes/v2.33.5.md)
+- [v2.33.5 release evidence](release-evidence/2026-08-17-v2-33-5-release.md)
 - [v2.33.4 release notes](release-notes/v2.33.4.md)
 - [v2.33.4 release evidence](release-evidence/2026-08-16-v2-33-4-release.md)
 - [v2.33.3 release notes](release-notes/v2.33.3.md)
