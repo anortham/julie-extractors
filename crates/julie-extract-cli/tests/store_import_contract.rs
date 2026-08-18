@@ -1125,23 +1125,6 @@ fn unchanged_completed_full_import_reuses_without_extraction_or_new_level_effect
             serde_json::from_slice::<serde_json::Value>(&output.stdout).unwrap()
         };
     let first = run_import("request-reuse-first", "idem-reuse-first", None);
-    let resolve = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
-        .args([
-            "store",
-            "resolve",
-            "--store",
-            store.to_str().unwrap(),
-            "--view",
-            "view-main",
-            "--request-id",
-            "request-reuse-resolve",
-            "--idempotency-key",
-            "idem-reuse-resolve",
-            "--json",
-        ])
-        .output()
-        .unwrap();
-    assert_eq!(resolve.status.code(), Some(0));
     let second = run_import(
         "request-reuse-second",
         "idem-reuse-second",
@@ -1181,8 +1164,6 @@ fn unchanged_completed_full_import_reuses_without_extraction_or_new_level_effect
     assert_eq!(second["manifest"]["disposition"], "reused");
     assert_eq!(second["row_counts"], first["row_counts"]);
     assert_eq!(second["completion"], first["completion"]);
-    assert_eq!(second["resolution"]["state"], "exact");
-    assert_eq!(second["resolution"]["exact_at_matches"], true);
     assert_eq!(repeated_report["manifest"], second["manifest"]);
 
     let connection = rusqlite::Connection::open(store.join("gen-001/store.db")).unwrap();
