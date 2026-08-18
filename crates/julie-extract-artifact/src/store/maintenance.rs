@@ -2393,10 +2393,28 @@ fn wall_now_ms() -> Result<i64, MaintenanceError> {
     })
 }
 
+fn leftover_retired_resolve_rows(coordinator_db: &Path) -> Result<bool, MaintenanceError> {
+    let coord = Connection::open_with_flags(
+        coordinator_db,
+        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+    )?;
+    coord.pragma_update(None, "query_only", true)?;
+    let leftover: i64 = coord.query_row(
+        "SELECT COUNT(*) FROM requests
+         WHERE kind = 'resolve' AND state IN ('queued', 'claimed')",
+        [],
+        |row| row.get(0),
+    )?;
+    Ok(leftover > 0)
+}
+
 fn reap_retired_resolve_before_inspection(
     coordinator_db: &Path,
     now: i64,
 ) -> Result<(), MaintenanceError> {
+    if !leftover_retired_resolve_rows(coordinator_db)? {
+        return Ok(());
+    }
     let mut coord = open_maintenance_coordinator(coordinator_db)?;
     let transaction = coord.transaction_with_behavior(TransactionBehavior::Immediate)?;
     super::coordinator::reap_retired_resolve_rows(&transaction, now)?;
