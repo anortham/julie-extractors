@@ -549,10 +549,7 @@ fn update_content_change_appends_a_version_and_publishes_the_new_entry() {
     let report: Value = serde_json::from_slice(&updated.stdout).unwrap();
     assert_eq!(report["operation"], "update");
     assert_eq!(report["state"], "committed");
-    assert_eq!(
-        report["resolution"],
-        serde_json::json!({"state": "unbound", "exact_at_matches": false})
-    );
+    assert!(report.get("resolution").is_none());
 
     let connection = Connection::open(store.join("gen-001/store.db")).unwrap();
     let (generation, version_count, path): (i64, i64, String) = connection
@@ -630,10 +627,7 @@ fn delete_existing_path_publishes_without_removing_versions() {
     );
     let report: Value = serde_json::from_slice(&deleted.stdout).unwrap();
     assert_eq!(report["operation"], "delete");
-    assert_eq!(
-        report["resolution"],
-        serde_json::json!({"state": "unbound", "exact_at_matches": false})
-    );
+    assert!(report.get("resolution").is_none());
 
     let connection = Connection::open(store.join("gen-001/store.db")).unwrap();
     let (generation, manifest_entries, version_count): (i64, i64, i64) = connection
@@ -1020,10 +1014,7 @@ fn failed_update_preserves_the_prior_version_and_invalidates_resolution() {
         String::from_utf8_lossy(&updated.stderr)
     );
     let report: Value = serde_json::from_slice(&updated.stdout).unwrap();
-    assert_eq!(
-        report["resolution"],
-        serde_json::json!({"state": "unbound", "exact_at_matches": false})
-    );
+    assert!(report.get("resolution").is_none());
     let connection = Connection::open(database).unwrap();
     let (status, version_id, version_count): (String, Option<i64>, i64) = connection
         .query_row(

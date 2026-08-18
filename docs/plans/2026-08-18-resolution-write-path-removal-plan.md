@@ -135,11 +135,11 @@ Plan-package commit ownership: this plan file is currently UNTRACKED in the main
 **What to build:** Export: remove the exact-state refusals, resolution copying, and resolution metadata — AND replace the retiring pin-based snapshot safety with a SINGLE READ TRANSACTION held on one connection from manifest selection through every fact-table copy (the pin machinery was what kept a multi-query export from mixing generations or racing GC; without it, snapshot isolation must come from the transaction). From-artifact import: remove the exact-view reuse predicate, `validate_resolution` and its overlay requirements, base materialization, delta seeding, and the `resolution_bound` binding step (views bind the same way a cold import binds them). Import: remove `populate_current_resolution` and its failure classes.
 
 **Acceptance criteria:**
-- [ ] Export → re-import round trip green on a store that never resolved
-- [ ] Export under a CONCURRENT update/GC run produces a consistent single-generation artifact (test)
-- [ ] `--from-artifact` succeeds on a fact-complete artifact carrying NO resolution metadata; binds without creating anything under `bases/`
-- [ ] `StoreResolutionReport`/`StoreResolutionState` and the `test-store-resolution-contract` feature no longer exist
-- [ ] Worker scope green; worker commits (serial-worker-commit)
+- [x] Export → re-import round trip green on a store that never resolved
+- [x] Export under a CONCURRENT update/GC run produces a consistent single-generation artifact (test)
+- [x] `--from-artifact` succeeds on a fact-complete artifact carrying NO resolution metadata; binds without creating anything under `bases/`
+- [x] `StoreResolutionReport`/`StoreResolutionState` and the `test-store-resolution-contract` feature no longer exist
+- [x] Worker scope green; worker commits (serial-worker-commit)
 
 ### Task 4: Remove artifact-level resolution and the auto-resolve/upgrade hooks
 

@@ -44,6 +44,5 @@ pub use report::{
     StoreErrorReport, StoreExportDisposition, StoreExportReport, StoreFailureClass,
     StoreLevelCompletion, StoreManifestDisposition, StoreManifestReport, StoreOperation,
     StoreOutputFormat, StoreOutputPlan, StoreOutputStream, StoreReport, StoreRequestReport,
-    StoreRequestState, StoreRequestedLevel, StoreResolutionReport, StoreResolutionState,
-    StoreRowCounts,
+    StoreRequestState, StoreRequestedLevel, StoreRowCounts,
 };

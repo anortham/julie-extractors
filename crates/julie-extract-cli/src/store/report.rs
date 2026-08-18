@@ -1,4 +1,3 @@
-use std::collections::BTreeMap;
 use std::io::{self, Write};
 
 use serde::{Deserialize, Serialize};
@@ -72,44 +71,6 @@ pub struct StoreRowCounts {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum StoreResolutionState {
-    Unbound,
-    Converging,
-    Exact,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct StoreResolutionReport {
-    pub state: StoreResolutionState,
-    pub exact_at_matches: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub base_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub delta_generation: Option<u64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub exact_at_generation: Option<u64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub gap_lower_bound: Option<u64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub exact_gap_rows: Option<u64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub exact_gap_files: Option<u64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub resolution_mode: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub scope_file_count: Option<u64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub scope_name_count: Option<u64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub scope_row_count: Option<u64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub fallback_reason: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub phase_timings_ms: Option<BTreeMap<String, u64>>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
 pub enum StoreExportDisposition {
     Created,
     Reused,
@@ -119,27 +80,6 @@ pub enum StoreExportDisposition {
 pub struct StoreExportReport {
     pub output: String,
     pub disposition: StoreExportDisposition,
-}
-
-impl Default for StoreResolutionReport {
-    fn default() -> Self {
-        Self {
-            state: StoreResolutionState::Unbound,
-            exact_at_matches: false,
-            base_id: None,
-            delta_generation: None,
-            exact_at_generation: None,
-            gap_lower_bound: None,
-            exact_gap_rows: None,
-            exact_gap_files: None,
-            resolution_mode: None,
-            scope_file_count: None,
-            scope_name_count: None,
-            scope_row_count: None,
-            fallback_reason: None,
-            phase_timings_ms: None,
-        }
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -181,9 +121,6 @@ pub enum StoreFailureClass {
     IdempotencyConflict,
     RequestTimeout,
     Busy,
-    ResolutionInputIncomplete,
-    ResolutionFailed,
-    ResolutionNotExact,
     OutputIdentityMismatch,
     CapacityInsufficient,
     Internal,
@@ -206,9 +143,6 @@ impl StoreFailureClass {
             Self::IdempotencyConflict => "idempotency_conflict",
             Self::RequestTimeout => "request_timeout",
             Self::Busy => "busy",
-            Self::ResolutionInputIncomplete => "resolution_input_incomplete",
-            Self::ResolutionFailed => "resolution_failed",
-            Self::ResolutionNotExact => "resolution_not_exact",
             Self::OutputIdentityMismatch => "output_identity_mismatch",
             Self::CapacityInsufficient => "capacity_insufficient",
             Self::Internal => "internal",
@@ -241,7 +175,6 @@ pub struct StoreReport {
     pub completion: StoreLevelCompletion,
     pub manifest: StoreManifestReport,
     pub row_counts: StoreRowCounts,
-    pub resolution: StoreResolutionReport,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub export: Option<StoreExportReport>,
     pub coordinator: StoreCoordinatorDisposition,
@@ -272,7 +205,6 @@ impl StoreReport {
             completion: StoreLevelCompletion::default(),
             manifest: StoreManifestReport::default(),
             row_counts: StoreRowCounts::default(),
-            resolution: StoreResolutionReport::default(),
             export: None,
             coordinator: match state {
                 StoreRequestState::Queued => StoreCoordinatorDisposition::Queued,
@@ -479,34 +411,6 @@ impl StoreCommandOutcome {
         output.push_str("root: ");
         output.push_str(&self.report.root);
         output.push('\n');
-        output.push_str("resolution: state=");
-        output.push_str(match self.report.resolution.state {
-            StoreResolutionState::Unbound => "unbound",
-            StoreResolutionState::Converging => "converging",
-            StoreResolutionState::Exact => "exact",
-        });
-        output.push_str(" exact_at_matches=");
-        output.push_str(if self.report.resolution.exact_at_matches {
-            "true"
-        } else {
-            "false"
-        });
-        output.push('\n');
-        if self.report.operation == StoreOperation::Resolve {
-            output.push_str("resolution_detail: base=");
-            output.push_str(self.report.resolution.base_id.as_deref().unwrap_or("none"));
-            output.push_str(" delta_generation=");
-            push_optional_u64(&mut output, self.report.resolution.delta_generation);
-            output.push_str(" exact_at_generation=");
-            push_optional_u64(&mut output, self.report.resolution.exact_at_generation);
-            output.push_str(" gap_lower_bound=");
-            push_optional_u64(&mut output, self.report.resolution.gap_lower_bound);
-            output.push_str(" exact_gap_rows=");
-            push_optional_u64(&mut output, self.report.resolution.exact_gap_rows);
-            output.push_str(" exact_gap_files=");
-            push_optional_u64(&mut output, self.report.resolution.exact_gap_files);
-            output.push('\n');
-        }
         if let Some(export) = &self.report.export {
             output.push_str("export: output=");
             output.push_str(&export.output);
@@ -604,13 +508,6 @@ impl StoreCommandOutcome {
 
     pub fn write_json<W: Write>(&self, mut writer: W) -> io::Result<()> {
         writer.write_all(self.render_json().as_bytes())
-    }
-}
-
-fn push_optional_u64(output: &mut String, value: Option<u64>) {
-    match value {
-        Some(value) => output.push_str(&value.to_string()),
-        None => output.push_str("none"),
     }
 }
 

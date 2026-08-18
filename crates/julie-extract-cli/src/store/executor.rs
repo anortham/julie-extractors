@@ -5,9 +5,7 @@ use julie_extract_artifact::model::FileStatus;
 use julie_extract_artifact::store::{
     CoordinatorExecutor, CoordinatorRequest, ExecutionContext, ExecutionQuantum, ManifestEntry,
     ManifestEntryStatus, ManifestPublishDisposition, ManifestPublishResult, ManifestStore,
-    RequestKind, ResolutionBindingError, ResolutionBindingStore, ResolutionViewBinding,
-    StoreFileVersion, StoreLevel, StoreLog, StoreLogEntry, StoreWriteRequest, StoreWriter,
-    ViewResolutionState, same_path_identity,
+    RequestKind, StoreFileVersion, StoreLevel, StoreWriteRequest, StoreWriter, same_path_identity,
 };
 use julie_extractors::{
     EXTRACTION_IDENTITY_EPOCH, ExtractionLevel, detect_language_from_extension,
@@ -444,7 +442,6 @@ impl StoreRequestExecutor {
                 .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
             || payload.source.file_bytes == 0
             || payload.source.extraction_epoch != EXTRACTION_IDENTITY_EPOCH
-            || payload.source.resolver_output_epoch != crate::resolution::RESOLUTION_VERSION
             || (root.exists() && root.canonicalize().ok().as_deref() != Some(root))
         {
             return Err("invalid_from_artifact_request_payload:identity".to_string());
@@ -1074,9 +1071,7 @@ impl StoreRequestExecutor {
                      FROM views AS view JOIN manifests AS manifest
                        ON manifest.view_id=view.view_id
                       AND manifest.generation=view.current_generation
-                     WHERE view.view_id=?1
-                       AND view.resolution_state='exact'
-                       AND view.resolution_exact_at=view.current_generation",
+                     WHERE view.view_id=?1",
                     [&payload.view_id],
                     |row| Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?)),
                 )
@@ -1251,173 +1246,29 @@ impl StoreRequestExecutor {
                 |row| Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?)),
             )
             .map_err(|error| error.to_string())?;
-        let base = super::from_artifact::materialize_resolution_base(
-            transaction,
-            &self.store_db,
-            &payload,
-            generation,
-            &manifest_hash,
-            &request.request_id,
-            &indexed_at,
-        )?;
-        // Same-quantum constraint: if later steps fail, roll back the catalog and
-        // remove any final base file this call published so the FS does not outlive
-        // the uncommitted ready/building rows.
-        let published_cleanup = if base.published_new_file {
-            self.store_db
-                .parent()
-                .map(|generation_dir| generation_dir.join(format!("bases/{}.db", base.base_id)))
-        } else {
-            None
-        };
-        let cleanup_published = |keep: bool| {
-            if keep {
-                return;
-            }
-            if let Some(path) = published_cleanup.as_ref() {
-                let _ = super::from_artifact::remove_base_file_set_for_cleanup(path);
-            }
-        };
-        let complete = (|| {
-            store_test_crash!("from_artifact_base_before_catalog");
-            let identifier_count = i64::try_from(base.identity.counts.identifiers)
-                .map_err(|_| "resolution_identifier_count_out_of_range".to_string())?;
-            let pending_count = i64::try_from(base.identity.counts.pending)
-                .map_err(|_| "resolution_pending_count_out_of_range".to_string())?;
-            let registered: (String, i64, String, i64, i64) = transaction
-                .query_row(
-                    "SELECT manifest_hash,resolver_output_epoch,file_sha256,
-                        identifier_count,pending_count
-                 FROM resolution_bases WHERE base_id=?1 AND state='ready'",
-                    [&base.base_id],
-                    |row| {
-                        Ok((
-                            row.get(0)?,
-                            row.get(1)?,
-                            row.get(2)?,
-                            row.get(3)?,
-                            row.get(4)?,
-                        ))
-                    },
-                )
-                .map_err(|error| error.to_string())?;
-            if registered
-                != (
-                    manifest_hash.clone(),
-                    payload.source.resolver_output_epoch,
-                    base.identity.file_sha256.clone(),
-                    identifier_count,
-                    pending_count,
-                )
-            {
-                return Err("resolution_base_catalog_identity_mismatch".to_string());
-            }
-            debug_assert!(base.already_ready || registered.2 == base.identity.file_sha256);
-            let delta_generation: i64 = transaction
-            .query_row(
-                "SELECT COALESCE(MAX(delta_generation),0) FROM resolution_deltas WHERE view_id=?1",
-                [&payload.view_id],
-                |row| row.get::<_, i64>(0),
-            )
-            .map_err(|error| error.to_string())?
-            .checked_add(1)
-            .ok_or_else(|| "resolution_delta_generation_out_of_range".to_string())?;
-            transaction
-                .execute(
-                    "INSERT INTO resolution_deltas
-                 (view_id,delta_generation,base_id,manifest_generation,manifest_hash,
-                  resolver_output_epoch,identifier_replacements,pending_replacements,
-                  pending_tombstones,exact_gap_rows,exact_gap_files,exact_gap_json,
-                  request_id,created_at)
-                 VALUES (?1,?2,?3,?4,?5,?6,0,0,0,0,0,
-                         '{\"files\":[],\"rows\":[]}',?7,?8)",
-                    rusqlite::params![
-                        payload.view_id,
-                        delta_generation,
-                        base.base_id,
-                        generation,
-                        manifest_hash,
-                        payload.source.resolver_output_epoch,
-                        request.request_id,
-                        indexed_at,
-                    ],
-                )
-                .map_err(|error| error.to_string())?;
-            store_test_crash!("from_artifact_exact_before_cas");
-            ResolutionBindingStore::publish_exact_binding_in_transaction(
-                transaction,
-                &ResolutionViewBinding {
-                    view_id: payload.view_id.clone(),
-                    manifest_generation: generation,
-                    manifest_hash: manifest_hash.clone(),
-                    base_id: base.base_id.clone(),
-                    delta_generation,
-                    state: ViewResolutionState::Exact,
-                    exact_at: Some(generation),
+        let counts = terminal_row_counts(transaction, &payload.view_id, generation)?;
+        let state = load_durable_request_state(transaction, &request.request_id)?;
+        Ok(ExecutionQuantum::Complete {
+            event_kind: "store_from_artifact_completed".to_string(),
+            result_json: serde_json::json!({
+                "family_id": payload.family_id,
+                "l1": true,
+                "l2": true,
+                "l3": true,
+                "manifest_generation": generation,
+                "manifest_hash": manifest_hash,
+                "manifest_disposition": state.manifest_disposition,
+                "row_counts": {
+                    "file_versions": counts.0,
+                    "l1": counts.1,
+                    "l2": counts.2,
+                    "l3": counts.3,
                 },
-                payload.source.resolver_output_epoch,
-                &indexed_at,
-            )
-            .map_err(|error| match error {
-                ResolutionBindingError::CasLost { .. } => "resolution_binding_cas_lost".to_string(),
-                error => error.to_string(),
-            })?;
-            store_test_crash!("from_artifact_exact_after_cas_before_commit");
-            StoreLog::append_effect(
-                transaction,
-                &StoreLogEntry::new(
-                    &request.request_id,
-                    "resolution_bound",
-                    serde_json::json!({
-                        "base_id": base.base_id,
-                        "delta_generation": delta_generation,
-                        "manifest_generation": generation,
-                        "state": "exact",
-                    })
-                    .to_string(),
-                    &indexed_at,
-                )
-                .with_view(&payload.view_id)
-                .with_generation(
-                    u64::try_from(generation)
-                        .map_err(|_| "invalid_manifest_generation".to_string())?,
-                ),
-            )
-            .map_err(|error| error.to_string())?;
-            let counts = terminal_row_counts(transaction, &payload.view_id, generation)?;
-            let state = load_durable_request_state(transaction, &request.request_id)?;
-            Ok(ExecutionQuantum::Complete {
-                event_kind: "store_from_artifact_completed".to_string(),
-                result_json: serde_json::json!({
-                    "family_id": payload.family_id,
-                    "l1": true,
-                    "l2": true,
-                    "l3": true,
-                    "manifest_generation": generation,
-                    "manifest_hash": manifest_hash,
-                    "manifest_disposition": state.manifest_disposition,
-                    "row_counts": {
-                        "file_versions": counts.0,
-                        "l1": counts.1,
-                        "l2": counts.2,
-                        "l3": counts.3,
-                    },
-                    "root": payload.root,
-                    "view_id": payload.view_id,
-                })
-                .to_string(),
+                "root": payload.root,
+                "view_id": payload.view_id,
             })
-        })();
-        match complete {
-            Ok(quantum) => {
-                cleanup_published(true);
-                Ok(quantum)
-            }
-            Err(error) => {
-                cleanup_published(false);
-                Err(error)
-            }
-        }
+            .to_string(),
+        })
     }
 }
 

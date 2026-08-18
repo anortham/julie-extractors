@@ -1,5 +1,6 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::time::{Duration, Instant};
 
 use clap::Parser;
 use julie_extract_cli::store::args::{StoreCli, StoreCommand, StoreLevelArg, StoreRootCommand};
@@ -10,7 +11,10 @@ use julie_extract_cli::store::report::{
     StoreOutputFormat, StoreOutputStream, StoreReport, StoreRequestState, StoreRequestedLevel,
     StoreRowCounts,
 };
+use rusqlite::{Connection, OptionalExtension};
 use serde_json::{Value, json};
+
+const FAMILY_ID: &str = "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11";
 
 fn julie_extract(args: &[&str]) -> std::process::Output {
     Command::new(env!("CARGO_BIN_EXE_julie-extract"))
@@ -239,7 +243,6 @@ fn report_json_snapshot_locks_the_complete_v1_shape() {
             "hash": "sha256:abcd",
             "disposition": "created"
         },
-        "resolution": {"state": "unbound", "exact_at_matches": false},
         "row_counts": {"file_versions": 3, "l1": 4, "l2": 5, "l3": 6},
         "coordinator": "queued",
         "failure_class": "none",
@@ -254,7 +257,7 @@ fn report_human_output_is_stable_and_failures_stay_on_stderr() {
     let outcome = StoreCommandOutcome::queued(report);
     assert_eq!(
         outcome.render_human(),
-        "queued\noperation: import\nrequest: request-1\nidempotency_key: none\nfamily: family-1\nview: view-1\nroot: \nresolution: state=unbound exact_at_matches=false\nstate: queued\nrequested_level: full\ncompletion: - - -\nmanifest: generation=none hash=none disposition=not_published\nrows: file_versions=0 l1=0 l2=0 l3=0\ncoordinator: queued\nfailure_class: none\n"
+        "queued\noperation: import\nrequest: request-1\nidempotency_key: none\nfamily: family-1\nview: view-1\nroot: \nstate: queued\nrequested_level: full\ncompletion: - - -\nmanifest: generation=none hash=none disposition=not_published\nrows: file_versions=0 l1=0 l2=0 l3=0\ncoordinator: queued\nfailure_class: none\n"
     );
     let success_plan = outcome.output_plan(false);
     assert_eq!(success_plan.format, StoreOutputFormat::Human);
@@ -555,4 +558,407 @@ fn help_exposes_store_while_legacy_json_contract_stays_unchanged() {
     let report: Value = serde_json::from_slice(&languages.stdout).expect("legacy JSON report");
     assert_eq!(report["report_schema_version"], 3);
     assert_eq!(report["operation"], "languages");
+}
+
+#[test]
+fn export_succeeds_on_a_store_that_never_resolved() {
+    let fixture = tempfile::tempdir().unwrap();
+    let (store, _root) = seed_unresolved_store(&fixture, "view-main", "request-export-unresolved");
+    let artifact = fixture.path().join("export.db");
+
+    let output = julie_extract(&[
+        "store",
+        "export",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        FAMILY_ID,
+        "--view",
+        "view-main",
+        "--out",
+        artifact.to_str().unwrap(),
+        "--json",
+    ]);
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["operation"], "export");
+    assert_eq!(report["state"], "committed");
+    assert!(report.get("resolution").is_none());
+    assert_artifact_has_facts_and_no_resolution(&artifact);
+}
+
+#[test]
+fn export_then_from_artifact_round_trip_works_without_resolution() {
+    let fixture = tempfile::tempdir().unwrap();
+    let (store, root) = seed_unresolved_store(&fixture, "view-main", "request-round-trip-seed");
+    let artifact = fixture.path().join("export.db");
+    let imported = fixture.path().join("imported-store");
+
+    let exported = julie_extract(&[
+        "store",
+        "export",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        FAMILY_ID,
+        "--view",
+        "view-main",
+        "--out",
+        artifact.to_str().unwrap(),
+        "--json",
+    ]);
+    assert_eq!(
+        exported.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&exported.stdout),
+        String::from_utf8_lossy(&exported.stderr)
+    );
+    assert_artifact_has_facts_and_no_resolution(&artifact);
+
+    let reimported = julie_extract(&[
+        "store",
+        "import",
+        "--from-artifact",
+        artifact.to_str().unwrap(),
+        "--store",
+        imported.to_str().unwrap(),
+        "--family",
+        FAMILY_ID,
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--request-id",
+        "request-round-trip-import",
+        "--idempotency-key",
+        "idem-round-trip-import",
+        "--json",
+    ]);
+    assert_eq!(
+        reimported.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&reimported.stdout),
+        String::from_utf8_lossy(&reimported.stderr)
+    );
+    let report: Value = serde_json::from_slice(&reimported.stdout).unwrap();
+    assert_eq!(report["operation"], "from_artifact");
+    assert_eq!(report["state"], "committed");
+    assert!(report.get("resolution").is_none());
+    assert_store_has_no_bases(&imported);
+}
+
+#[test]
+fn export_under_concurrent_update_and_gc_keeps_one_generation() {
+    let fixture = tempfile::tempdir().unwrap();
+    let (store, root) =
+        seed_unresolved_store(&fixture, "view-main", "request-export-snapshot-seed");
+    let first_hashes = visible_content_hashes(&store, "view-main");
+    assert_eq!(first_hashes.len(), 2);
+    let artifact = fixture.path().join("snapshot.db");
+    let pause = fixture.path().join("export-pause");
+    std::fs::create_dir(&pause).unwrap();
+
+    let store_path = store.clone();
+    let artifact_path = artifact.clone();
+    let pause_path = pause.clone();
+    let export = std::thread::spawn(move || {
+        Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+            .args([
+                "store",
+                "export",
+                "--store",
+                store_path.to_str().unwrap(),
+                "--family",
+                FAMILY_ID,
+                "--view",
+                "view-main",
+                "--out",
+                artifact_path.to_str().unwrap(),
+                "--json",
+            ])
+            .env("JULIE_EXTRACT_STORE_EXPORT_TEST_PAUSE_DIR", &pause_path)
+            .output()
+            .expect("export should start")
+    });
+
+    let ready = pause.join("ready");
+    let started = Instant::now();
+    while !ready.exists() && started.elapsed() < Duration::from_secs(5) {
+        if export.is_finished() {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    }
+
+    if ready.exists() {
+        std::fs::write(root.join("a.rs"), "pub fn a() -> u32 { 2 }\n").unwrap();
+        std::fs::write(root.join("b.rs"), "pub fn b() -> u32 { 4 }\n").unwrap();
+        for (file, request) in [("a.rs", "request-snap-a"), ("b.rs", "request-snap-b")] {
+            let updated = julie_extract(&[
+                "store",
+                "update",
+                "--store",
+                store.to_str().unwrap(),
+                "--family",
+                FAMILY_ID,
+                "--root",
+                root.to_str().unwrap(),
+                "--view",
+                "view-main",
+                "--file",
+                file,
+                "--request-id",
+                request,
+                "--idempotency-key",
+                request,
+                "--json",
+            ]);
+            assert_eq!(
+                updated.status.code(),
+                Some(0),
+                "stdout: {} stderr: {}",
+                String::from_utf8_lossy(&updated.stdout),
+                String::from_utf8_lossy(&updated.stderr)
+            );
+        }
+        let gc = julie_extract(&[
+            "store",
+            "maintain",
+            "gc",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--apply",
+            "--json",
+        ]);
+        assert_eq!(
+            gc.status.code(),
+            Some(0),
+            "stdout: {} stderr: {}",
+            String::from_utf8_lossy(&gc.stdout),
+            String::from_utf8_lossy(&gc.stderr)
+        );
+        std::fs::write(pause.join("continue"), b"continue").unwrap();
+    }
+
+    let output = export.join().expect("export thread");
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_artifact_has_facts_and_no_resolution(&artifact);
+    let exported_hashes = artifact_content_hashes(&artifact);
+    assert_eq!(
+        exported_hashes, first_hashes,
+        "export must keep the snapshot generation, not mix later updates"
+    );
+}
+
+#[test]
+fn from_artifact_binds_a_fact_complete_artifact_without_resolution_metadata() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    let artifact = fixture.path().join("scanned.db");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("lib.rs"), "pub fn answer() -> u32 { 7 }\n").unwrap();
+
+    let scanned = julie_extract(&[
+        "scan",
+        "--root",
+        root.to_str().unwrap(),
+        "--db",
+        artifact.to_str().unwrap(),
+        "--json",
+    ]);
+    assert_eq!(
+        scanned.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&scanned.stdout),
+        String::from_utf8_lossy(&scanned.stderr)
+    );
+    strip_artifact_resolution(&artifact);
+    assert_artifact_has_facts_and_no_resolution(&artifact);
+
+    let imported = julie_extract(&[
+        "store",
+        "import",
+        "--from-artifact",
+        artifact.to_str().unwrap(),
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        FAMILY_ID,
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--request-id",
+        "request-from-artifact-no-res",
+        "--idempotency-key",
+        "idem-from-artifact-no-res",
+        "--json",
+    ]);
+    assert_eq!(
+        imported.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&imported.stdout),
+        String::from_utf8_lossy(&imported.stderr)
+    );
+    let report: Value = serde_json::from_slice(&imported.stdout).unwrap();
+    assert_eq!(report["operation"], "from_artifact");
+    assert_eq!(report["state"], "committed");
+    assert!(report.get("resolution").is_none());
+    assert_store_has_no_bases(&store);
+    let connection = Connection::open(store.join("gen-001/store.db")).unwrap();
+    let generation: i64 = connection
+        .query_row(
+            "SELECT current_generation FROM views WHERE view_id = 'view-main'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(generation, 1);
+}
+
+fn seed_unresolved_store(
+    fixture: &tempfile::TempDir,
+    view: &str,
+    request_id: &str,
+) -> (PathBuf, PathBuf) {
+    let root = fixture.path().join(format!("{request_id}-root"));
+    let store = fixture.path().join(format!("{request_id}-store"));
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("a.rs"), "pub fn a() -> u32 { 1 }\n").unwrap();
+    std::fs::write(root.join("b.rs"), "pub fn b() -> u32 { 3 }\n").unwrap();
+    let imported = julie_extract(&[
+        "store",
+        "import",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        FAMILY_ID,
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        view,
+        "--request-id",
+        request_id,
+        "--idempotency-key",
+        request_id,
+        "--json",
+    ]);
+    assert_eq!(
+        imported.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&imported.stdout),
+        String::from_utf8_lossy(&imported.stderr)
+    );
+    (store, root)
+}
+
+fn assert_artifact_has_facts_and_no_resolution(path: &Path) {
+    let connection = Connection::open(path).unwrap();
+    let files: i64 = connection
+        .query_row("SELECT COUNT(*) FROM files", [], |row| row.get(0))
+        .unwrap();
+    let symbols: i64 = connection
+        .query_row("SELECT COUNT(*) FROM symbols", [], |row| row.get(0))
+        .unwrap();
+    let identifiers: i64 = connection
+        .query_row("SELECT COUNT(*) FROM identifier_resolutions", [], |row| {
+            row.get(0)
+        })
+        .unwrap();
+    let pending: i64 = connection
+        .query_row("SELECT COUNT(*) FROM pending_resolutions", [], |row| {
+            row.get(0)
+        })
+        .unwrap();
+    let resolution_version: Option<String> = connection
+        .query_row(
+            "SELECT value FROM artifact_metadata WHERE key = 'reference_resolution_version'",
+            [],
+            |row| row.get(0),
+        )
+        .optional()
+        .unwrap();
+    assert!(files > 0, "exported artifact must keep fact files");
+    assert!(symbols > 0, "exported artifact must keep fact symbols");
+    assert_eq!(identifiers, 0);
+    assert_eq!(pending, 0);
+    assert_eq!(resolution_version, None);
+}
+
+fn assert_store_has_no_bases(store: &Path) {
+    let bases = store.join("gen-001/bases");
+    if !bases.exists() {
+        return;
+    }
+    let entries = std::fs::read_dir(&bases)
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    assert!(
+        entries.is_empty(),
+        "from-artifact must not create resolution bases, found {entries:?}"
+    );
+}
+
+fn visible_content_hashes(store: &Path, view: &str) -> Vec<(String, String)> {
+    let connection = Connection::open(store.join("gen-001/store.db")).unwrap();
+    let mut statement = connection
+        .prepare(
+            "SELECT entry.path, version.content_hash
+             FROM views AS view
+             JOIN manifest_entries AS entry
+               ON entry.view_id = view.view_id AND entry.generation = view.current_generation
+             JOIN file_versions AS version ON version.version_id = entry.version_id
+             WHERE view.view_id = ?1
+             ORDER BY entry.path",
+        )
+        .unwrap();
+    statement
+        .query_map([view], |row| Ok((row.get(0)?, row.get(1)?)))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap()
+}
+
+fn artifact_content_hashes(path: &Path) -> Vec<(String, String)> {
+    let connection = Connection::open(path).unwrap();
+    let mut statement = connection
+        .prepare("SELECT path, content_hash FROM files ORDER BY path")
+        .unwrap();
+    statement
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap()
+}
+
+fn strip_artifact_resolution(path: &Path) {
+    let connection = Connection::open(path).unwrap();
+    connection
+        .execute_batch(
+            "DELETE FROM identifier_resolutions;
+             DELETE FROM pending_resolutions;
+             DELETE FROM artifact_metadata WHERE key LIKE 'reference_resolution_%';",
+        )
+        .unwrap();
 }
