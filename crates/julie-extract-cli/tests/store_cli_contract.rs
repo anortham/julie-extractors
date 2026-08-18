@@ -561,6 +561,112 @@ fn help_exposes_store_while_legacy_json_contract_stays_unchanged() {
 }
 
 #[test]
+fn export_succeeds_on_an_empty_import() {
+    let fixture = tempfile::tempdir().unwrap();
+    let (store, _root) = seed_empty_store(&fixture, "view-empty", "request-export-empty");
+    let artifact = fixture.path().join("empty-export.db");
+
+    let output = julie_extract(&[
+        "store",
+        "export",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        FAMILY_ID,
+        "--view",
+        "view-empty",
+        "--out",
+        artifact.to_str().unwrap(),
+        "--json",
+    ]);
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["operation"], "export");
+    assert_eq!(report["state"], "committed");
+    assert_exported_capability_rows_match_current_fingerprint(&artifact);
+}
+
+#[test]
+fn export_succeeds_on_an_all_unsupported_import() {
+    let fixture = tempfile::tempdir().unwrap();
+    let (store, _root) =
+        seed_unsupported_store(&fixture, "view-unsupported", "request-export-unsupported");
+    let artifact = fixture.path().join("unsupported-export.db");
+
+    let output = julie_extract(&[
+        "store",
+        "export",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        FAMILY_ID,
+        "--view",
+        "view-unsupported",
+        "--out",
+        artifact.to_str().unwrap(),
+        "--json",
+    ]);
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["operation"], "export");
+    assert_eq!(report["state"], "committed");
+    assert_exported_capability_rows_match_current_fingerprint(&artifact);
+}
+
+#[test]
+fn export_omits_legacy_reference_resolution_capability_gaps() {
+    let fixture = tempfile::tempdir().unwrap();
+    let (store, _root) = seed_unresolved_store(&fixture, "view-main", "request-export-legacy-gaps");
+    let store_db = store.join("gen-001/store.db");
+    let connection = Connection::open(&store_db).unwrap();
+    connection
+        .execute(
+            "INSERT INTO language_capability_gaps
+             (extraction_epoch,gap_id,language,capability,status,reason,required_closure,evidence_json)
+             VALUES (1,'rust:reference_resolution.tier2_import','rust',
+                     'reference_resolution.tier2_import','open','legacy','none','{}')",
+            [],
+        )
+        .unwrap();
+    drop(connection);
+
+    let artifact = fixture.path().join("legacy-gaps-export.db");
+    let output = julie_extract(&[
+        "store",
+        "export",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        FAMILY_ID,
+        "--view",
+        "view-main",
+        "--out",
+        artifact.to_str().unwrap(),
+        "--json",
+    ]);
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_exported_capability_rows_match_current_fingerprint(&artifact);
+}
+
+#[test]
 fn export_succeeds_on_a_store_that_never_resolved() {
     let fixture = tempfile::tempdir().unwrap();
     let (store, _root) = seed_unresolved_store(&fixture, "view-main", "request-export-unresolved");
@@ -835,7 +941,7 @@ fn from_artifact_binds_a_fact_complete_artifact_without_resolution_metadata() {
     assert_eq!(generation, 1);
 }
 
-fn seed_unresolved_store(
+fn seed_empty_store(
     fixture: &tempfile::TempDir,
     view: &str,
     request_id: &str,
@@ -843,8 +949,24 @@ fn seed_unresolved_store(
     let root = fixture.path().join(format!("{request_id}-root"));
     let store = fixture.path().join(format!("{request_id}-store"));
     std::fs::create_dir(&root).unwrap();
-    std::fs::write(root.join("a.rs"), "pub fn a() -> u32 { 1 }\n").unwrap();
-    std::fs::write(root.join("b.rs"), "pub fn b() -> u32 { 3 }\n").unwrap();
+    import_store(&store, &root, view, request_id);
+    (store, root)
+}
+
+fn seed_unsupported_store(
+    fixture: &tempfile::TempDir,
+    view: &str,
+    request_id: &str,
+) -> (PathBuf, PathBuf) {
+    let root = fixture.path().join(format!("{request_id}-root"));
+    let store = fixture.path().join(format!("{request_id}-store"));
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("notes.txt"), "not a supported language\n").unwrap();
+    import_store(&store, &root, view, request_id);
+    (store, root)
+}
+
+fn import_store(store: &Path, root: &Path, view: &str, request_id: &str) {
     let imported = julie_extract(&[
         "store",
         "import",
@@ -869,7 +991,48 @@ fn seed_unresolved_store(
         String::from_utf8_lossy(&imported.stdout),
         String::from_utf8_lossy(&imported.stderr)
     );
+}
+
+fn seed_unresolved_store(
+    fixture: &tempfile::TempDir,
+    view: &str,
+    request_id: &str,
+) -> (PathBuf, PathBuf) {
+    let root = fixture.path().join(format!("{request_id}-root"));
+    let store = fixture.path().join(format!("{request_id}-store"));
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("a.rs"), "pub fn a() -> u32 { 1 }\n").unwrap();
+    std::fs::write(root.join("b.rs"), "pub fn b() -> u32 { 3 }\n").unwrap();
+    import_store(&store, &root, view, request_id);
     (store, root)
+}
+
+fn assert_exported_capability_rows_match_current_fingerprint(path: &Path) {
+    let connection = Connection::open(path).unwrap();
+    let parser_inventory: i64 = connection
+        .query_row("SELECT COUNT(*) FROM parser_inventory", [], |row| {
+            row.get(0)
+        })
+        .unwrap();
+    let languages: i64 = connection
+        .query_row("SELECT COUNT(*) FROM language_capabilities", [], |row| {
+            row.get(0)
+        })
+        .unwrap();
+    let reference_resolution_gaps: i64 = connection
+        .query_row(
+            "SELECT COUNT(*) FROM language_capability_gaps
+             WHERE capability LIKE 'reference_resolution.%'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert!(
+        parser_inventory > 0,
+        "export must emit current parser inventory rows"
+    );
+    assert_eq!(parser_inventory, languages);
+    assert_eq!(reference_resolution_gaps, 0);
 }
 
 fn assert_artifact_has_facts_and_no_resolution(path: &Path) {

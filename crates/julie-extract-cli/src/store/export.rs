@@ -9,6 +9,7 @@ use julie_extract_artifact::schema::{
     EXTRACT_CONTRACT_VERSION, SQLITE_SCHEMA_VERSION, create_schema,
 };
 use julie_extract_artifact::store::StoreConnectionFactory;
+use julie_extractors::EXTRACTION_IDENTITY_EPOCH;
 use rusqlite::types::Value;
 use rusqlite::{Connection, OpenFlags, OptionalExtension, Transaction, params_from_iter};
 
@@ -482,7 +483,8 @@ fn copy_global_tables(
             |row| row.get::<_, Option<i64>>(0),
         )
         .map_err(|error| error.to_string())?
-        .ok_or_else(|| "store export has no visible extraction epoch".to_string())?;
+        .unwrap_or(i64::from(EXTRACTION_IDENTITY_EPOCH));
+    let mut copied_capability_rows = false;
     for table in GLOBAL_TABLES {
         let target_columns = table_columns(target, table)?;
         let select = target_columns
@@ -490,10 +492,18 @@ fn copy_global_tables(
             .map(|column| quote_identifier(column))
             .collect::<Vec<_>>()
             .join(",");
-        let query = format!(
-            "SELECT {select} FROM {} WHERE extraction_epoch=?1",
-            quote_identifier(table)
-        );
+        let query = if *table == "language_capability_gaps" {
+            format!(
+                "SELECT {select} FROM {} WHERE extraction_epoch=?1
+                 AND capability NOT LIKE 'reference_resolution.%'",
+                quote_identifier(table)
+            )
+        } else {
+            format!(
+                "SELECT {select} FROM {} WHERE extraction_epoch=?1",
+                quote_identifier(table)
+            )
+        };
         let insert = format!(
             "INSERT INTO {} ({select}) VALUES ({})",
             quote_identifier(table),
@@ -513,6 +523,112 @@ fn copy_global_tables(
                 .map_err(|error| error.to_string())?;
             target
                 .execute(&insert, params_from_iter(values))
+                .map_err(|error| error.to_string())?;
+            if *table == "language_capabilities" {
+                copied_capability_rows = true;
+            }
+        }
+    }
+    if !copied_capability_rows {
+        write_current_capability_rows(target)?;
+    }
+    Ok(())
+}
+
+fn write_current_capability_rows(target: &Transaction<'_>) -> Result<(), String> {
+    let snapshot = crate::capability_snapshot::artifact_capability_snapshot();
+    for row in &snapshot.parser_inventory {
+        let metadata_json = row
+            .metadata
+            .as_ref()
+            .map(serde_json::to_string)
+            .transpose()
+            .map_err(|error| error.to_string())?;
+        target
+            .execute(
+                "INSERT INTO parser_inventory
+                 (language, parser_package, parser_version, grammar_version, source, metadata_json)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                rusqlite::params![
+                    row.language,
+                    row.parser_package,
+                    row.parser_version,
+                    row.grammar_version,
+                    row.source,
+                    metadata_json,
+                ],
+            )
+            .map_err(|error| error.to_string())?;
+    }
+    for row in &snapshot.languages {
+        let extensions_json =
+            serde_json::to_string(&row.extensions).map_err(|error| error.to_string())?;
+        let kind_coverage_json =
+            serde_json::to_string(&row.kind_coverage).map_err(|error| error.to_string())?;
+        target
+            .execute(
+                "INSERT INTO language_capabilities
+                 (language, parser_package, extensions_json, dependency_status,
+                  target_symbols, target_relationships, target_pending_relationships,
+                  target_identifiers, target_types, actual_symbols, actual_relationships,
+                  actual_pending_relationships, actual_identifiers, actual_types,
+                  kind_coverage_json)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
+                rusqlite::params![
+                    row.language,
+                    row.parser_package,
+                    extensions_json,
+                    row.dependency_status,
+                    i64::from(row.target_capabilities.symbols),
+                    i64::from(row.target_capabilities.relationships),
+                    i64::from(row.target_capabilities.pending_relationships),
+                    i64::from(row.target_capabilities.identifiers),
+                    i64::from(row.target_capabilities.types),
+                    i64::from(row.actual_capabilities.symbols),
+                    i64::from(row.actual_capabilities.relationships),
+                    i64::from(row.actual_capabilities.pending_relationships),
+                    i64::from(row.actual_capabilities.identifiers),
+                    i64::from(row.actual_capabilities.types),
+                    kind_coverage_json,
+                ],
+            )
+            .map_err(|error| error.to_string())?;
+        for fixture in &row.fixtures {
+            target
+                .execute(
+                    "INSERT INTO language_capability_fixtures
+                     (language, fixture_name, source_path, expected_path)
+                     VALUES (?1, ?2, ?3, ?4)",
+                    rusqlite::params![
+                        row.language,
+                        fixture.fixture_name,
+                        fixture.source_path,
+                        fixture.expected_path,
+                    ],
+                )
+                .map_err(|error| error.to_string())?;
+        }
+        for gap in &row.gaps {
+            if gap.capability.starts_with("reference_resolution.") {
+                continue;
+            }
+            let evidence_json =
+                serde_json::to_string(&gap.evidence).map_err(|error| error.to_string())?;
+            target
+                .execute(
+                    "INSERT INTO language_capability_gaps
+                     (gap_id, language, capability, status, reason, required_closure, evidence_json)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                    rusqlite::params![
+                        gap.gap_id,
+                        row.language,
+                        gap.capability,
+                        gap.status.as_str(),
+                        gap.reason,
+                        gap.required_closure,
+                        evidence_json,
+                    ],
+                )
                 .map_err(|error| error.to_string())?;
         }
     }

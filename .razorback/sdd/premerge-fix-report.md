@@ -1,69 +1,59 @@
-# Pre-merge fix report — store concurrent fencing
+# Pre-merge fix report — export and retirement gaps
 
-**Branch:** `fix/store-concurrent-fencing`  
-**Worktree:** `/home/murphy/source/julie-extractors/.worktrees/fix/store-concurrent-fencing`  
-**Date:** 2026-08-10
+**Branch:** `remove/resolution-write-path`  
+**Worktree:** `/home/murphy/source/julie-extractors/.worktrees/remove-resolution-write-path`  
+**HEAD before:** `98ad9b41`  
+**Date:** 2026-08-18
 
 ## Findings closed
 
-### Finding 1 HIGH — maintenance errors leave floor raised
+### Finding 1 — first applied maintenance on a legacy store StalePlans
 
-- `MaintenanceExecutor` now tracks `finished: AtomicBool`.
-- Successful `finish` / `finish_generation_action` restores floor, clears intent, then disarms.
-- `Drop` runs best-effort `restore_serving_source_floor_and_clear_coord` when not finished.
-- Failed M2 floor raise still restores then disarms so Drop does not double-clear.
-- Test: `apply_error_after_floor_raise_restores_floor_and_clears_intent_on_drop`.
+- Inspect no longer reads retired resolution tables or `bases/` bytes.
+- Scratch capacity ignores `resolve-*` / `resolution-*.partial.db` names.
+- A writer-open retirement now leaves the same inspect fingerprint.
+- Test: `first_gc_apply_on_unmigrated_legacy_store_does_not_stale_plan`.
 
-### Finding 2 HIGH — 10-minute fence heuristic bypasses wall-clock expiry
+### Finding 2 — empty / all-unsupported bound views cannot export
 
-- Removed `near_wall` heuristic in `validate_writer_lease`.
-- Lease validation always uses `system_now_ms()`.
-- Drain acquires the store-writer lease with wall clock.
-- Quantum path heartbeats the store-writer lease with wall clock before open/commit.
-- Injected clocks still drive service windows, claim heartbeats, and `store_log` timestamps.
-- Existing wall-expiry-despite-stale-`checked_at` contract still passes.
+- Export uses `EXTRACTION_IDENTITY_EPOCH` when no file version is visible.
+- Those views receive current global capability rows.
+- Tests: `export_succeeds_on_an_empty_import`, `export_succeeds_on_an_all_unsupported_import`.
 
-### Finding 3 MEDIUM — try_acquire_for_maintenance without live intent
+### Finding 3 — scratch reaper swallows read_dir errors
 
-- When `maintenance_owner` is `Some`, a live intent must match all owner fields.
-- Missing/expired intent → `CoordinatorError::InvalidRequest` (no lease insert with caller token).
-- Mismatched live intent still → `MaintenanceInProgress`.
-- Test: `maintenance_owner_acquire_without_live_intent_is_invalid`.
+- Scratch `read_dir` now matches file reap: `NotFound` is ok, other errors return.
+- Unix test: `reap_retired_resolution_scratch_propagates_read_dir_errors`.
 
-### Finding 4 MEDIUM — import steals live building
+### Finding 4 — legacy export copies retired capability gap rows
 
-- Building reclaim reassigns `request_id` only when prior owner is same request, absent, terminal (`failed`/`committed`/`acknowledged`), or receipted.
-- Live queued/claimed foreign owners return `resolution_base_building_busy:{request_id}`.
-
-### Finding 5 MEDIUM — T8 building not durable before file publish
-
-- True multi-txn T8a/T8d is not feasible inside one quantum: outer IMMEDIATE writer blocks a nested IMMEDIATE.
-- Documented on `materialize_resolution_base`.
-- Strongest same-quantum controls:
-  - reclaim safety (Finding 4)
-  - cleanup of newly published final base files on CAS/error paths
-  - `published_new_file` flag so post-materialize quantum failure cleans orphans without deleting reused files
+- Export skips `reference_resolution.%` gap rows.
+- Emitted rows match `current_capability_fingerprints()`.
+- Test: `export_omits_legacy_reference_resolution_capability_gaps`.
 
 ## Verification
 
 ```bash
-RUSTUP_TOOLCHAIN=1.97.1 cargo test -p julie-extract-artifact \
-  --test store_coordinator_contract --test store_connection_contract \
-  --test store_maintenance_contract --test store_generation_contract \
-  -- --test-threads=1
-# connection 26, coordinator 59, generation 8, maintenance 19 — all ok
+cargo test -p julie-extract-cli --test store_cli_contract
+# 21 passed
 
-RUSTUP_TOOLCHAIN=1.97.1 cargo test -p julie-extract-cli \
-  --features test-store-resolution-contract \
-  --test store_import_contract --test store_resolution_contract \
-  -- --test-threads=1
-# import 31, resolution 13 — all ok
+cargo test -p julie-extract-artifact --test store_maintenance_contract
+# 23 passed
+
+cargo test -p julie-extract-artifact --test store_resolution_retirement_contract
+# 3 passed
+
+cargo test -p julie-extract-artifact --lib store::layout::tests
+# 1 passed
+
+cargo test -p julie-extract-cli --tests --no-run
+cargo test -p julie-extract-artifact --tests --no-run
+# both compiled
 ```
-
-Coordinator suite is 59/59 (prior 58 + one new InvalidRequest case).
 
 ## Residual concerns
 
-1. Same-quantum T8: building and ready still commit together. Process kill after file publish and before quantum commit can leave an orphan base file with no durable ready/building row; reclaim path and maintenance scratch/base GC remain the recovery path.
-2. Drop restore is best-effort (`let _ =`); a second failure during Drop still leaves intent/floor for successor/expiry recovery.
-3. Claim/fail request rows still stamp service-clock times; only writer-lease `expires_at` is forced to wall domain on drain/quantum paths.
+1. Store.db physical fingerprint still uses file length. Retirement did not change it in the seeded apply test. A later writer that grows `store.db` can still StalePlan.
+2. Empty and all-unsupported exports write current-binary capability rows. The store never staged a snapshot for those views.
+3. Scratch permission test is Unix-only.
+4. Unused helpers remain in `maintenance.rs`: `parse_scoped_generation`, `checked_base_path`, `orphan_base_files`. They were already unused before this fix.

@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use julie_extract_artifact::store::{
+    CapacityProvider, MaintenanceClock, MaintenanceExecutor, MaintenanceInspector, MaintenanceRun,
     STORE_SQLITE_SCHEMA_VERSION, StoreConnectionFactory, StoreLayout, create_coordinator_schema,
     create_store_schema,
 };
@@ -78,6 +79,52 @@ fn legacy_store_reader_is_inert_and_writer_retires_resolution_objects() {
             .iter()
             .any(|name| name == "uidx_coord_one_claimed_resolve")
     );
+}
+
+#[test]
+fn first_gc_apply_on_unmigrated_legacy_store_does_not_stale_plan() {
+    let temp = TempStore::new("legacy-gc-apply");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    seed_legacy_resolution_world(&layout);
+    assert!(!leftover_resolution_files(&layout).is_empty());
+
+    let factory = StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0");
+    let plan = MaintenanceInspector::new(
+        factory.clone(),
+        FixedClock(1_700_000_000_000),
+        FixedCapacity,
+    )
+    .inspect()
+    .unwrap();
+    assert!(plan.protected_bases.is_empty());
+    assert!(plan.eligible_bases.is_empty());
+    assert!(plan.protected_deltas.is_empty());
+    assert!(plan.eligible_deltas.is_empty());
+    assert!(plan.protected_pins.is_empty());
+    assert!(plan.expired_pins.is_empty());
+    assert_eq!(plan.capacity.facts.base_bytes, 0);
+    assert!(
+        !plan
+            .protected_scratch
+            .iter()
+            .any(|name| name.starts_with("resolve-") || name.starts_with("resolution-"))
+    );
+
+    let mut executor = MaintenanceExecutor::acquire(
+        factory,
+        MaintenanceRun::new(
+            "legacy-gc",
+            "owner",
+            std::process::id(),
+            1_700_000_000_000,
+            5_000,
+        ),
+        &plan,
+        FixedCapacity,
+    )
+    .unwrap();
+    executor.apply(&plan).unwrap();
+    assert_eq!(leftover_resolution_files(&layout), Vec::<PathBuf>::new());
 }
 
 fn seed_legacy_resolution_world(layout: &StoreLayout) {
@@ -445,6 +492,28 @@ impl TempStore {
 impl Drop for TempStore {
     fn drop(&mut self) {
         let _ = fs::remove_dir_all(&self.path);
+    }
+}
+
+#[derive(Clone, Copy)]
+struct FixedClock(i64);
+
+impl MaintenanceClock for FixedClock {
+    fn now_ms(&self) -> i64 {
+        self.0
+    }
+}
+
+#[derive(Clone, Copy)]
+struct FixedCapacity;
+
+impl CapacityProvider for FixedCapacity {
+    fn free_bytes(&self, _path: &Path) -> Result<u64, std::io::Error> {
+        Ok(512 * 1024 * 1024)
+    }
+
+    fn staged_generation_bytes(&self, _path: &Path) -> Result<u64, std::io::Error> {
+        Ok(0)
     }
 }
 
