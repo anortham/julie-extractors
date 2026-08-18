@@ -1,7 +1,14 @@
 # SQLite Schema v6
 
-Schema version 6 is the only current SQLite artifact contract. Extraction contract 4 and JSONL
-contract 4 are its matching producer contracts — neither changed in this bump.
+> **Retired 2026-08-18 by [SQLite Schema v7](sqlite-schema-v7.md).** v7 removes
+> `pending_resolutions` and `identifier_resolutions`. This page stays as the
+> historical v6 authority. A v7 binary writing an artifact uses schema 7. A
+> v7 reader with `--strict-schema` refuses a leftover v6 artifact with
+> `schema_migration_required`; recovery is a whole-workspace `scan`.
+
+Schema version 6 was the current SQLite artifact contract through the resolution
+write-path era. Extraction contract 4 is its matching producer contract. JSONL
+moved to contract 5 independently.
 
 The complete catalog authority is the normalized `sqlite_master` SHA-256 in
 [`sqlite-schema-v6.catalog.sha256`](sqlite-schema-v6.catalog.sha256). The conformance test creates

@@ -2724,13 +2724,6 @@ fn read_family_allocator_maxima(
         "manifest_generation",
         &mut maxima,
     )?;
-    read_scoped_allocator_maxima(
-        store,
-        "SELECT view_id,MAX(delta_generation) FROM resolution_deltas
-         GROUP BY view_id ORDER BY view_id",
-        "resolution_delta_generation",
-        &mut maxima,
-    )?;
     Ok(maxima)
 }
 
@@ -2802,6 +2795,14 @@ fn open_coordinator_once(path: &Path) -> Result<Connection, CoordinatorError> {
             }
             other => CoordinatorError::CorruptRequest {
                 detail: format!("coordinator writer pragma configuration failed: {other:?}"),
+            },
+        }
+    })?;
+    super::schema::retire_coordinator_resolution_objects(&connection).map_err(|error| {
+        match error {
+            super::StoreSchemaError::Sqlite(inner) => CoordinatorError::Sqlite(inner),
+            other => CoordinatorError::CorruptRequest {
+                detail: other.to_string(),
             },
         }
     })?;

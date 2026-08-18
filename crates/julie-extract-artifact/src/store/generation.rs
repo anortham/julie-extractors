@@ -3,22 +3,24 @@ use std::error::Error;
 use std::fmt;
 use std::fs::{self, File};
 use std::io::{self, Write};
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 
 use rusqlite::types::{Value, ValueRef};
 use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior, params};
 
 use super::coordinator::process_status;
-use super::layout::{initialize_store_database, named_generations, sync_directory, sync_file};
+use super::layout::{
+    initialize_store_database, named_generations, reap_retired_resolution_files, sync_directory,
+    sync_file,
+};
+use super::schema::retire_resolution_store_objects;
 use super::maintenance::{
     CapacityProvider, MaintenanceError, MaintenanceExecutor, MaintenancePlan, MaintenanceRun,
 };
-use super::resolution::{
-    resolution_file_bytes, resolution_file_sha256, retire_resolution_scope_chain,
-};
 use super::{
     MaintenanceAction, PartialGenerationOwner, PidStatus, StoreConnectionError,
-    StoreConnectionFactory, StoreLayout, StoreLayoutError, write_partial_generation_owner,
+    StoreConnectionFactory, StoreLayout, StoreLayoutError, StoreSchemaError,
+    write_partial_generation_owner,
 };
 
 const DEFAULT_COPY_WINDOW: usize = 512;
@@ -184,6 +186,7 @@ impl GenerationLifecycle {
     ) -> Result<GenerationApplyReport, GenerationError> {
         validate_policy(policy)?;
         let source = self.executor.factory().layout().clone();
+        retire_source_resolution_objects(&source)?;
         let root = source.root();
         if let Some(report) = self.recover_current_publication(plan, policy, &source)? {
             return Ok(report);
@@ -237,11 +240,8 @@ impl GenerationLifecycle {
         #[cfg(feature = "test-store-crash")]
         super::test_hooks::crash_if("generation_after_logical_copy");
         raise_destination_allocators(&source, &partial_store)?;
-        let mut copied_base_files = copy_base_files(&source, &partial)?;
+        let copied_base_files = 0;
         self.executor.heartbeat_generation_build()?;
-        if let Some(selected) = selected.as_ref() {
-            copied_base_files += copy_missing_base_files(selected, &partial)?;
-        }
         validate_destination(&partial_store, &family_id, &partial)?;
         #[cfg(feature = "test-store-crash")]
         super::test_hooks::crash_if("generation_after_validation");
@@ -629,7 +629,7 @@ fn logical_copy_generation(
         executor.source_min_writer_version(),
     )?;
     let mut tables = table_names(&source_connection)?;
-    tables.retain(|table| table != "store_meta" && table != "resolution_pins");
+    tables.retain(|table| table != "store_meta" && !is_retired_resolution_table(table));
     let mut counts = CopyCounts::default();
     for table in tables {
         let copied = copy_table(
@@ -671,7 +671,7 @@ fn validate_logical_copy(
         });
     }
     for table in table_names(&source_connection)? {
-        if table == "resolution_pins" || table == "store_meta" {
+        if table == "store_meta" || is_retired_resolution_table(&table) {
             continue;
         }
         let source_count = table_count(&source_connection, &table)?;
@@ -694,12 +694,31 @@ fn validate_logical_copy(
             detail: "temporary intent mirrors must not remain on destination".to_string(),
         });
     }
-    if table_count(&destination, "resolution_pins")? != 0 {
-        return Err(GenerationError::Validation {
-            check: "generation_local_pins",
-            detail: "destination copied source pins".to_string(),
-        });
-    }
+    Ok(())
+}
+
+fn is_retired_resolution_table(table: &str) -> bool {
+    table.starts_with("resolution_")
+}
+
+fn table_exists(connection: &Connection, table: &str) -> Result<bool, GenerationError> {
+    Ok(connection.query_row(
+        "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name=?1)",
+        [table],
+        |row| row.get(0),
+    )?)
+}
+
+fn retire_source_resolution_objects(source: &StoreLayout) -> Result<(), GenerationError> {
+    let connection = Connection::open(source.store_db())?;
+    retire_resolution_store_objects(&connection).map_err(|error| match error {
+        StoreSchemaError::Sqlite(inner) => GenerationError::Sqlite(inner),
+        other => GenerationError::Validation {
+            check: "resolution_retirement",
+            detail: other.to_string(),
+        },
+    })?;
+    reap_retired_resolution_files(source)?;
     Ok(())
 }
 
@@ -967,16 +986,12 @@ fn merge_selected_immutable_rows(
         "views",
         "manifests",
         "manifest_entries",
-        "resolution_deltas",
-        "resolution_identifier_deltas",
-        "resolution_pending_deltas",
-        "resolution_pins",
         "store_log",
         "request_chunks",
     ]);
     let mut added_versions = 0;
     for table in table_names(&selected_connection)? {
-        if excluded.contains(table.as_str()) {
+        if excluded.contains(table.as_str()) || is_retired_resolution_table(&table) {
             continue;
         }
         let before = if table == "file_versions" {
@@ -1022,16 +1037,7 @@ fn apply_forward_rollback(
     for view in &views {
         let manifest_generation =
             allocate_scoped_mark(&coord_transaction, "manifest_generation", &view.view_id)?;
-        let delta_generation = if view.resolution_delta_generation.is_some() {
-            Some(allocate_scoped_mark(
-                &coord_transaction,
-                "resolution_delta_generation",
-                &view.view_id,
-            )?)
-        } else {
-            None
-        };
-        allocations.push((view.view_id.clone(), manifest_generation, delta_generation));
+        allocations.push((view.view_id.clone(), manifest_generation));
     }
     coord_transaction.commit()?;
 
@@ -1040,9 +1046,9 @@ fn apply_forward_rollback(
     let transaction = destination.transaction_with_behavior(TransactionBehavior::Immediate)?;
     transaction.execute_batch("PRAGMA defer_foreign_keys=ON;")?;
     for view in views {
-        let (_, manifest_generation, delta_generation) = allocations
+        let (_, manifest_generation) = allocations
             .iter()
-            .find(|(view_id, _, _)| view_id == &view.view_id)
+            .find(|(view_id, _)| view_id == &view.view_id)
             .ok_or_else(|| GenerationError::Validation {
                 check: "rollback_allocator",
                 detail: view.view_id.clone(),
@@ -1059,19 +1065,11 @@ fn apply_forward_rollback(
             params![view.view_id, selected_manifest],
             |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
         )?;
-        retire_resolution_scope_chain(&transaction, &view.view_id)?;
         transaction.execute(
             "UPDATE views SET current_generation=NULL,resolution_state='unbound',
                resolution_base_id=NULL,resolution_delta_generation=NULL,resolution_exact_at=NULL
              WHERE view_id=?1",
             [&view.view_id],
-        )?;
-        transaction.execute(
-            "DELETE FROM resolution_deltas
-             WHERE view_id=?1 AND manifest_generation IN (
-               SELECT generation FROM manifests WHERE view_id=?1 AND manifest_hash=?2
-             )",
-            params![view.view_id, manifest_hash],
         )?;
         transaction.execute(
             "DELETE FROM manifest_entries
@@ -1102,19 +1100,6 @@ fn apply_forward_rollback(
             selected_manifest,
             *manifest_generation,
         )?;
-        if let (Some(selected_delta), Some(new_delta)) =
-            (view.resolution_delta_generation, *delta_generation)
-        {
-            copy_resolution_delta(
-                &selected_connection,
-                &transaction,
-                &view.view_id,
-                selected_delta,
-                new_delta,
-                *manifest_generation,
-                request_id,
-            )?;
-        }
         let resolution_exact_at = if view.resolution_state == "exact" {
             Some(*manifest_generation)
         } else {
@@ -1131,7 +1116,7 @@ fn apply_forward_rollback(
                 manifest_generation,
                 view.resolution_state,
                 view.resolution_base_id,
-                delta_generation,
+                view.resolution_delta_generation,
                 resolution_exact_at,
                 view.created_at,
                 view.updated_at,
@@ -1252,129 +1237,6 @@ fn copy_manifest_entries(
     Ok(())
 }
 
-fn copy_resolution_delta(
-    selected: &Connection,
-    destination: &rusqlite::Transaction<'_>,
-    view_id: &str,
-    selected_generation: i64,
-    destination_generation: i64,
-    manifest_generation: i64,
-    request_id: &str,
-) -> Result<(), GenerationError> {
-    let row = selected.query_row(
-        "SELECT base_id,manifest_hash,resolver_output_epoch,identifier_replacements,
-                pending_replacements,pending_tombstones,exact_gap_rows,exact_gap_files,
-                exact_gap_json,created_at
-         FROM resolution_deltas WHERE view_id=?1 AND delta_generation=?2",
-        params![view_id, selected_generation],
-        |row| {
-            Ok((
-                row.get::<_, String>(0)?,
-                row.get::<_, String>(1)?,
-                row.get::<_, i64>(2)?,
-                row.get::<_, i64>(3)?,
-                row.get::<_, i64>(4)?,
-                row.get::<_, i64>(5)?,
-                row.get::<_, i64>(6)?,
-                row.get::<_, i64>(7)?,
-                row.get::<_, String>(8)?,
-                row.get::<_, String>(9)?,
-            ))
-        },
-    )?;
-    destination.execute(
-        "INSERT INTO resolution_deltas
-         (view_id,delta_generation,base_id,manifest_generation,manifest_hash,
-          resolver_output_epoch,identifier_replacements,pending_replacements,pending_tombstones,
-          exact_gap_rows,exact_gap_files,exact_gap_json,request_id,created_at)
-         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14)",
-        params![
-            view_id,
-            destination_generation,
-            row.0,
-            manifest_generation,
-            row.1,
-            row.2,
-            row.3,
-            row.4,
-            row.5,
-            row.6,
-            row.7,
-            row.8,
-            request_id,
-            row.9,
-        ],
-    )?;
-    copy_delta_child_table(
-        selected,
-        destination,
-        "resolution_identifier_deltas",
-        view_id,
-        selected_generation,
-        destination_generation,
-    )?;
-    copy_delta_child_table(
-        selected,
-        destination,
-        "resolution_pending_deltas",
-        view_id,
-        selected_generation,
-        destination_generation,
-    )?;
-    Ok(())
-}
-
-fn copy_delta_child_table(
-    selected: &Connection,
-    destination: &rusqlite::Transaction<'_>,
-    table: &str,
-    view_id: &str,
-    selected_generation: i64,
-    destination_generation: i64,
-) -> Result<(), GenerationError> {
-    let columns = table_columns(selected, table)?;
-    let names = columns
-        .iter()
-        .map(|column| quote_identifier(&column.name))
-        .collect::<Vec<_>>();
-    let select = format!(
-        "SELECT {} FROM {} WHERE view_id=?1 AND delta_generation=?2 ORDER BY {}",
-        names.join(","),
-        quote_identifier(table),
-        names.join(",")
-    );
-    let mut statement = selected.prepare(&select)?;
-    let rows = statement
-        .query_map(params![view_id, selected_generation], |row| {
-            (0..columns.len())
-                .map(|index| value_from_ref(row.get_ref(index)?))
-                .collect::<Result<Vec<_>, _>>()
-        })?
-        .collect::<Result<Vec<_>, _>>()?;
-    let placeholders = (1..=columns.len())
-        .map(|index| format!("?{index}"))
-        .collect::<Vec<_>>()
-        .join(",");
-    let insert = format!(
-        "INSERT INTO {}({}) VALUES ({})",
-        quote_identifier(table),
-        names.join(","),
-        placeholders
-    );
-    let generation_index = columns
-        .iter()
-        .position(|column| column.name == "delta_generation")
-        .ok_or_else(|| GenerationError::Validation {
-            check: "delta_generation_column",
-            detail: table.to_string(),
-        })?;
-    let mut insert_statement = destination.prepare(&insert)?;
-    for mut row in rows {
-        row[generation_index] = Value::Integer(destination_generation);
-        insert_statement.execute(rusqlite::params_from_iter(row))?;
-    }
-    Ok(())
-}
 
 fn advance_family_allocator_marks(layout: &StoreLayout) -> Result<(), GenerationError> {
     let mut scalar = BTreeMap::from([
@@ -1406,12 +1268,6 @@ fn advance_family_allocator_marks(layout: &StoreLayout) -> Result<(), Generation
             &connection,
             "SELECT view_id,MAX(generation) FROM manifests GROUP BY view_id",
             "manifest_generation",
-            &mut scoped,
-        )?;
-        merge_scoped_maxima(
-            &connection,
-            "SELECT view_id,MAX(delta_generation) FROM resolution_deltas GROUP BY view_id",
-            "resolution_delta_generation",
             &mut scoped,
         )?;
     }
@@ -1512,113 +1368,6 @@ fn raise_destination_allocators(
     Ok(())
 }
 
-fn copy_base_files(source: &StoreLayout, partial: &Path) -> Result<usize, GenerationError> {
-    let connection = Connection::open_with_flags(
-        source.store_db(),
-        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
-    )?;
-    let mut statement = connection.prepare(
-        "SELECT relative_path,file_bytes,file_sha256 FROM resolution_bases
-         WHERE state='ready' ORDER BY base_id",
-    )?;
-    let rows = statement
-        .query_map([], |row| {
-            Ok((
-                row.get::<_, String>(0)?,
-                row.get::<_, i64>(1)?,
-                row.get::<_, String>(2)?,
-            ))
-        })?
-        .collect::<Result<Vec<_>, _>>()?;
-    let mut copied = 0;
-    for (relative, expected_bytes, expected_sha) in rows {
-        validate_relative_base_path(&relative)?;
-        let source_path = source.generation_dir().join(&relative);
-        if resolution_file_bytes(&source_path)? != expected_bytes as u64
-            || resolution_file_sha256(&source_path)? != expected_sha
-        {
-            return Err(GenerationError::BaseIdentityMismatch { path: relative });
-        }
-        let destination = partial.join(&relative);
-        if let Some(parent) = destination.parent() {
-            fs::create_dir_all(parent)?;
-        }
-        #[cfg(feature = "test-store-crash")]
-        super::test_hooks::crash_if("generation_before_base_copy");
-        fs::copy(&source_path, &destination)?;
-        sync_file(&destination)?;
-        #[cfg(feature = "test-store-crash")]
-        super::test_hooks::crash_if("generation_after_base_copy");
-        copied += 1;
-    }
-    Ok(copied)
-}
-
-fn copy_missing_base_files(
-    selected: &StoreLayout,
-    partial: &Path,
-) -> Result<usize, GenerationError> {
-    let connection = Connection::open_with_flags(
-        selected.store_db(),
-        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
-    )?;
-    let mut statement = connection.prepare(
-        "SELECT relative_path,file_bytes,file_sha256 FROM resolution_bases
-         WHERE state='ready' ORDER BY base_id",
-    )?;
-    let rows = statement
-        .query_map([], |row| {
-            Ok((
-                row.get::<_, String>(0)?,
-                row.get::<_, i64>(1)?,
-                row.get::<_, String>(2)?,
-            ))
-        })?
-        .collect::<Result<Vec<_>, _>>()?;
-    let mut copied = 0;
-    for (relative, expected_bytes, expected_sha) in rows {
-        validate_relative_base_path(&relative)?;
-        let destination = partial.join(&relative);
-        if destination.exists() {
-            if resolution_file_bytes(&destination)? != expected_bytes as u64
-                || resolution_file_sha256(&destination)? != expected_sha
-            {
-                return Err(GenerationError::BaseIdentityMismatch { path: relative });
-            }
-            continue;
-        }
-        let source_path = selected.generation_dir().join(&relative);
-        if resolution_file_bytes(&source_path)? != expected_bytes as u64
-            || resolution_file_sha256(&source_path)? != expected_sha
-        {
-            return Err(GenerationError::BaseIdentityMismatch { path: relative });
-        }
-        if let Some(parent) = destination.parent() {
-            fs::create_dir_all(parent)?;
-        }
-        fs::copy(source_path, &destination)?;
-        sync_file(&destination)?;
-        copied += 1;
-    }
-    Ok(copied)
-}
-
-fn validate_relative_base_path(value: &str) -> Result<(), GenerationError> {
-    let path = Path::new(value);
-    if value.is_empty()
-        || value.contains(':')
-        || value.contains('\0')
-        || path.is_absolute()
-        || !path.starts_with("bases")
-        || path
-            .components()
-            .any(|component| !matches!(component, Component::Normal(_)))
-    {
-        return Err(GenerationError::InvalidBasePath(value.to_string()));
-    }
-    Ok(())
-}
-
 fn validate_destination(
     destination_path: &Path,
     family_id: &str,
@@ -1650,26 +1399,7 @@ fn validate_destination(
             detail,
         });
     }
-    let mut statement = connection.prepare(
-        "SELECT relative_path,file_bytes,file_sha256 FROM resolution_bases
-         WHERE state='ready' ORDER BY base_id",
-    )?;
-    let rows = statement
-        .query_map([], |row| {
-            Ok((
-                row.get::<_, String>(0)?,
-                row.get::<_, i64>(1)?,
-                row.get::<_, String>(2)?,
-            ))
-        })?
-        .collect::<Result<Vec<_>, _>>()?;
-    for (relative, bytes, sha) in rows {
-        validate_relative_base_path(&relative)?;
-        let path = partial.join(&relative);
-        if resolution_file_bytes(&path)? != bytes as u64 || resolution_file_sha256(&path)? != sha {
-            return Err(GenerationError::BaseIdentityMismatch { path: relative });
-        }
-    }
+    let _ = partial;
     Ok(())
 }
 
@@ -1778,11 +1508,15 @@ fn cleanup_retired_generations(
     for (_, name) in retired.drain(..remove_count) {
         let layout = StoreLayout::open_named_generation(root, &name)?;
         let connection = Connection::open(layout.store_db())?;
-        let live_pins = connection.query_row(
-            "SELECT COUNT(*) FROM resolution_pins WHERE expires_at>strftime('%Y-%m-%dT%H:%M:%fZ','now')",
-            [],
-            |row| row.get::<_, i64>(0),
-        )?;
+        let live_pins = if table_exists(&connection, "resolution_pins")? {
+            connection.query_row(
+                "SELECT COUNT(*) FROM resolution_pins WHERE expires_at>strftime('%Y-%m-%dT%H:%M:%fZ','now')",
+                [],
+                |row| row.get::<_, i64>(0),
+            )?
+        } else {
+            0
+        };
         let retired_at = connection
             .query_row(
                 "SELECT value FROM store_meta WHERE key='generation_retired_at_ms'",

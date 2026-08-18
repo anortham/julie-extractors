@@ -24,21 +24,19 @@ fn perf_gate_is_feature_gated_out_of_default_suite() {
 }
 
 #[test]
-fn legacy_resolution_feature_is_declared_for_the_cli_contract_tier() {
+fn legacy_resolution_feature_is_not_declared() {
     let crate_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let manifest = read(&crate_root.join("Cargo.toml"));
-    assert!(manifest.contains("test-store-resolution = []"));
-}
-
-#[test]
-fn resolution_base_lifecycle_contract_is_feature_gated_out_of_the_default_suite() {
-    let crate_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    assert!(!manifest.contains("test-store-resolution"));
     for harness in [
         "store_resolution_base_contract.rs",
         "store_resolution_binding_contract.rs",
+        "store_resolution_schema_contract.rs",
     ] {
-        let source = read(&crate_root.join("tests").join(harness));
-        assert!(source.starts_with("#![cfg(feature = \"test-store-resolution\")]"));
+        assert!(
+            !crate_root.join("tests").join(harness).exists(),
+            "{harness} must be deleted with the resolution write path"
+        );
     }
 }
 
@@ -110,11 +108,7 @@ fn store_crash_matrix_is_feature_gated_out_of_the_default_suite() {
     );
     let hook = read(&crate_root.join("src/store/test_hooks.rs"));
     assert!(hook.contains("JULIE_EXTRACT_STORE_TEST_CRASH_AT"));
-    for runtime in [
-        "src/store/coordinator.rs",
-        "src/store/resolution.rs",
-        "src/store/writer.rs",
-    ] {
+    for runtime in ["src/store/coordinator.rs", "src/store/writer.rs"] {
         let source = read(&crate_root.join(runtime));
         assert!(
             !source.contains("JULIE_EXTRACT_STORE_TEST_CRASH_AT"),

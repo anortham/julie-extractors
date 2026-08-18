@@ -70,7 +70,7 @@ fn promotion_streams_exact_rows_and_advances_current() {
 }
 
 #[test]
-fn promotion_copies_scope_journal_rows_and_metadata() {
+fn promotion_does_not_create_resolution_scope_objects() {
     let temp = TempStore::new("promotion-scope-journal");
     let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
     Connection::open(layout.store_db())
@@ -81,12 +81,6 @@ fn promotion_copies_scope_journal_rows_and_metadata() {
              VALUES ('view-a','/repo',1,'2026-01-01T00:00:00Z','2026-01-01T00:00:00Z');
              INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
              VALUES ('view-a',1,'sha256:m1','request-a','2026-01-01T00:00:00Z');
-             INSERT INTO resolution_scope_batches
-               (transition_id,view_id,to_manifest_generation,to_manifest_hash,scope_usable,
-                change_count,change_hash,request_id,completed_at)
-             VALUES (5,'view-a',1,'sha256:m1',0,0,
-                     'sha256:6fefdaedb46e55f2dd1f1852406cb565306739f79dd0a53de2acb50045069590',
-                     'request-a','2026-01-01T00:00:00Z');
              COMMIT;",
         )
         .unwrap();
@@ -98,95 +92,39 @@ fn promotion_copies_scope_journal_rows_and_metadata() {
         &GenerationPolicy::default(),
     );
     let destination = Connection::open(current.store_db()).unwrap();
-
-    assert_eq!(
-        metadata(&destination, "resolution_scope_journal_version"),
-        "1"
-    );
     assert_eq!(
         destination
             .query_row(
-                "SELECT transition_id,view_id,to_manifest_generation,scope_usable,change_count
-                 FROM resolution_scope_batches",
-                [],
-                |row| {
-                    Ok((
-                        row.get::<_, i64>(0)?,
-                        row.get::<_, String>(1)?,
-                        row.get::<_, i64>(2)?,
-                        row.get::<_, i64>(3)?,
-                        row.get::<_, i64>(4)?,
-                    ))
-                },
-            )
-            .unwrap(),
-        (5, "view-a".to_string(), 1, 0, 0)
-    );
-    assert_eq!(
-        destination
-            .query_row(
-                "SELECT seq FROM sqlite_sequence WHERE name='resolution_scope_batches'",
+                "SELECT COUNT(*) FROM sqlite_master WHERE name LIKE 'resolution_%'",
                 [],
                 |row| row.get::<_, i64>(0),
             )
             .unwrap(),
-        5
+        0
     );
 }
 
 #[test]
-fn promotion_refuses_a_base_file_identity_mismatch_without_moving_current() {
+fn promotion_ignores_leftover_base_files() {
     let temp = TempStore::new("base-identity");
     let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
     seed_source(&layout);
     seed_base(&layout, b"valid resolution base");
     fs::write(layout.bases_dir().join("base-a.db"), b"corrupt").unwrap();
-    let plan = inspect_plan(&layout, 1_000);
-    let mut lifecycle = GenerationLifecycle::acquire(
-        StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0"),
-        MaintenanceRun::new("promote-base", "owner", std::process::id(), 1_000, 30_000),
-        &plan,
-        MaintenanceAction::Promote,
-        FixedCapacity,
-    )
-    .unwrap();
-
-    let error = lifecycle
-        .promote(&plan, &GenerationPolicy::default())
-        .unwrap_err();
-
-    assert_eq!(error.code(), "generation_base_identity_mismatch");
-    assert_eq!(
-        StoreLayout::open(temp.path()).unwrap().generation_name(),
-        "gen-001"
+    let current = promote_once(
+        &layout,
+        "promote-base",
+        1_000,
+        &GenerationPolicy::default(),
     );
-    assert!(!temp.path().join("gen-002").exists());
-    assert_eq!(
-        metadata(
-            &Connection::open(layout.store_db()).unwrap(),
-            "generation_state"
-        ),
-        "serving"
-    );
+    assert_eq!(current.generation_name(), "gen-002");
 }
 
 #[test]
-fn retained_cleanup_reads_pins_from_each_retired_generation() {
+fn retained_cleanup_keeps_only_the_configured_retired_generations() {
     let temp = TempStore::new("generation-pins");
     let initial = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
     seed_source(&initial);
-    seed_base(&initial, b"valid resolution base");
-    Connection::open(initial.store_db())
-        .unwrap()
-        .execute(
-            "INSERT INTO resolution_pins
-             (pin_id,owner_kind,owner_id,view_id,manifest_generation,base_id,delta_generation,
-              expires_at,created_at)
-             VALUES ('pin-old','reader','reader-a','view-a',4,'base-a',NULL,
-                     '9999-12-31T23:59:59Z','2026-01-01T00:00:00Z')",
-            [],
-        )
-        .unwrap();
     let policy = GenerationPolicy {
         retained_generation_limit: 1,
         rollback_safety_ms: 0,
@@ -195,24 +133,6 @@ fn retained_cleanup_reads_pins_from_each_retired_generation() {
 
     let second = promote_once(&initial, "promote-pin-1", 1_000, &policy);
     let third = promote_once(&second, "promote-pin-2", 2_000, &policy);
-
-    assert_eq!(third.generation_name(), "gen-003");
-    assert!(temp.path().join("gen-001").exists());
-    assert!(temp.path().join("gen-002").exists());
-    assert_eq!(
-        Connection::open(temp.path().join("gen-001/store.db"))
-            .unwrap()
-            .query_row("SELECT COUNT(*) FROM resolution_pins", [], |row| {
-                row.get::<_, i64>(0)
-            })
-            .unwrap(),
-        1
-    );
-    Connection::open(temp.path().join("gen-001/store.db"))
-        .unwrap()
-        .execute("DELETE FROM resolution_pins WHERE pin_id='pin-old'", [])
-        .unwrap();
-
     let fourth = promote_once(&third, "promote-pin-3", 3_000, &policy);
 
     assert_eq!(fourth.generation_name(), "gen-004");
@@ -339,12 +259,6 @@ fn family_allocators_scan_all_named_generations_and_receipts() {
                (view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
              VALUES ('view-a',20,'src/retained.rs','rust',42,'indexed','blake3:retained',
                      '2026-01-03T00:00:00Z');
-             INSERT INTO resolution_deltas
-               (view_id,delta_generation,base_id,manifest_generation,manifest_hash,
-                resolver_output_epoch,identifier_replacements,pending_replacements,
-                pending_tombstones,exact_gap_rows,exact_gap_files,exact_gap_json,request_id,created_at)
-             VALUES ('view-a',30,'base-a',20,'sha256:m20',1,0,0,0,0,0,'{}',
-                     'request-retained','2026-01-03T00:00:00Z');
              INSERT INTO store_log
                (sequence,request_id,event_kind,terminal,payload_json,created_at)
              VALUES (40,'request-retained','store_import_completed',1,'{}',
@@ -365,10 +279,6 @@ fn family_allocators_scan_all_named_generations_and_receipts() {
     assert_eq!(allocator(&coord, "file_version", ""), 42);
     assert_eq!(allocator(&coord, "store_log", ""), 50);
     assert_eq!(allocator(&coord, "manifest_generation", "view-a"), 20);
-    assert_eq!(
-        allocator(&coord, "resolution_delta_generation", "view-a"),
-        30
-    );
     let store = Connection::open(third.store_db()).unwrap();
     assert_eq!(
         store
@@ -630,60 +540,20 @@ fn forward_rollback_rebinds_exact_resolution_with_fresh_manifest_and_delta_ids()
                 |row| row.get::<_, String>(0),
             )
             .unwrap(),
-        "9:exact:base-a:10:9"
+        "9:exact:base-a:9:9"
     );
     assert_eq!(
         store
             .query_row(
-                "SELECT manifest_generation || ':' || manifest_hash
-                 FROM resolution_deltas
-                 WHERE view_id='view-a' AND delta_generation=10",
-                [],
-                |row| row.get::<_, String>(0),
-            )
-            .unwrap(),
-        "9:sha256:m4"
-    );
-    assert_eq!(
-        store
-            .query_row(
-                "SELECT COUNT(*) FROM resolution_identifier_deltas
-                 WHERE view_id='view-a' AND delta_generation=10",
+                "SELECT COUNT(*) FROM sqlite_master WHERE name LIKE 'resolution_%'",
                 [],
                 |row| row.get::<_, i64>(0),
             )
             .unwrap(),
-        1
-    );
-    assert_eq!(
-        fs::read(current.bases_dir().join("base-a.db")).unwrap(),
-        b"valid resolution base"
-    );
-    assert_eq!(
-        store
-            .query_row(
-                "SELECT
-                   (SELECT COUNT(*) FROM resolution_scope_state),
-                   (SELECT COUNT(*) FROM resolution_scope_batches),
-                   (SELECT COUNT(*) FROM resolution_scope_journal)",
-                [],
-                |row| {
-                    Ok((
-                        row.get::<_, i64>(0)?,
-                        row.get::<_, i64>(1)?,
-                        row.get::<_, i64>(2)?,
-                    ))
-                },
-            )
-            .unwrap(),
-        (0, 0, 0)
+        0
     );
     let coord = Connection::open(current.coordinator_db()).unwrap();
     assert_eq!(allocator(&coord, "manifest_generation", "view-a"), 9);
-    assert_eq!(
-        allocator(&coord, "resolution_delta_generation", "view-a"),
-        10
-    );
 }
 
 fn seed_source(layout: &StoreLayout) {
@@ -796,9 +666,12 @@ fn seed_base(layout: &StoreLayout, bytes: &[u8]) {
     let relative = "bases/base-a.db";
     let path = layout.generation_dir().join(relative);
     fs::write(&path, bytes).unwrap();
+    let store = Connection::open(layout.store_db()).unwrap();
+    if !table_exists(&store, "resolution_bases") {
+        return;
+    }
     let sha = format!("{:x}", Sha256::digest(bytes));
-    Connection::open(layout.store_db())
-        .unwrap()
+    store
         .execute(
             "INSERT INTO resolution_bases
              (base_id,manifest_hash,resolver_output_epoch,state,relative_path,identifier_count,
@@ -810,24 +683,44 @@ fn seed_base(layout: &StoreLayout, bytes: &[u8]) {
         .unwrap();
 }
 
-fn seed_exact_binding(layout: &StoreLayout) {
-    Connection::open(layout.store_db())
+fn table_exists(connection: &Connection, table: &str) -> bool {
+    connection
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name=?1)",
+            [table],
+            |row| row.get(0),
+        )
         .unwrap()
-        .execute_batch(
-            "BEGIN IMMEDIATE;
-             INSERT INTO resolution_deltas
-             (view_id,delta_generation,base_id,manifest_generation,manifest_hash,
-              resolver_output_epoch,identifier_replacements,pending_replacements,pending_tombstones,
-              exact_gap_rows,exact_gap_files,exact_gap_json,request_id,created_at)
-             VALUES ('view-a',9,'base-a',4,'sha256:m4',1,1,0,0,0,0,'{}','request-a',
-                     '2026-01-01T00:00:00Z');
-             INSERT INTO resolution_identifier_deltas
-             (view_id,delta_generation,version_id,identifier_id,target_version_id,target_symbol_id,
-              tier,confidence,method,outcome,candidates)
-             VALUES ('view-a',9,7,'identifier-a',7,'symbol-a',1,1.0,'exact','resolved',1);
-             UPDATE views SET resolution_state='exact',resolution_base_id='base-a',
-               resolution_delta_generation=9,resolution_exact_at=4 WHERE view_id='view-a';
-             COMMIT;",
+}
+
+fn seed_exact_binding(layout: &StoreLayout) {
+    let store = Connection::open(layout.store_db()).unwrap();
+    if table_exists(&store, "resolution_deltas") {
+        store
+            .execute_batch(
+                "BEGIN IMMEDIATE;
+                 INSERT INTO resolution_deltas
+                 (view_id,delta_generation,base_id,manifest_generation,manifest_hash,
+                  resolver_output_epoch,identifier_replacements,pending_replacements,pending_tombstones,
+                  exact_gap_rows,exact_gap_files,exact_gap_json,request_id,created_at)
+                 VALUES ('view-a',9,'base-a',4,'sha256:m4',1,1,0,0,0,0,'{}','request-a',
+                         '2026-01-01T00:00:00Z');
+                 INSERT INTO resolution_identifier_deltas
+                 (view_id,delta_generation,version_id,identifier_id,target_version_id,target_symbol_id,
+                  tier,confidence,method,outcome,candidates)
+                 VALUES ('view-a',9,7,'identifier-a',7,'symbol-a',1,1.0,'exact','resolved',1);
+                 UPDATE views SET resolution_state='exact',resolution_base_id='base-a',
+                   resolution_delta_generation=9,resolution_exact_at=4 WHERE view_id='view-a';
+                 COMMIT;",
+            )
+            .unwrap();
+        return;
+    }
+    store
+        .execute(
+            "UPDATE views SET resolution_state='exact',resolution_base_id='base-a',
+               resolution_delta_generation=9,resolution_exact_at=4 WHERE view_id='view-a'",
+            [],
         )
         .unwrap();
 }
@@ -850,22 +743,6 @@ fn seed_latest_unbound(layout: &StoreLayout) {
                (view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
              VALUES ('view-a',8,'src/c.rs','rust',19,'indexed','blake3:c',
                      '2026-01-02T00:00:00Z');
-             INSERT INTO resolution_scope_batches
-               (transition_id,view_id,from_manifest_generation,from_manifest_hash,
-                to_manifest_generation,to_manifest_hash,scope_usable,
-                predecessor_manifest_generation,predecessor_manifest_hash,base_id,
-                delta_generation,resolver_output_epoch,change_count,change_hash,request_id,
-                completed_at)
-             VALUES (1,'view-a',4,'sha256:m4',8,'sha256:m8',1,4,'sha256:m4','base-a',9,1,1,
-                     'sha256:changes','request-b','2026-01-02T00:00:00Z');
-             INSERT INTO resolution_scope_journal
-               (transition_id,path,change_kind,old_version_id,new_version_id,touched_names_json)
-             VALUES (1,'src/c.rs','content_replaced',7,19,'[]');
-             INSERT INTO resolution_scope_state
-               (view_id,predecessor_manifest_generation,predecessor_manifest_hash,base_id,
-                delta_generation,resolver_output_epoch,current_manifest_generation,
-                current_manifest_hash,journal_through_transition_id)
-             VALUES ('view-a',4,'sha256:m4','base-a',9,1,8,'sha256:m8',1);
              UPDATE views SET current_generation=8,updated_at='2026-01-02T00:00:00Z'
              WHERE view_id='view-a';
              INSERT INTO store_log

@@ -854,10 +854,9 @@ fn export_identifiers<W: Write>(
 ) -> JsonlExportResult<()> {
     let mut stmt = conn.prepare(
         "SELECT i.identifier_id, i.reference_site_id, i.file_id, i.path, i.language, i.name, i.kind,
-                i.containing_symbol_id, ir.target_symbol_id, i.start_line, i.start_column,
+                i.containing_symbol_id, CAST(NULL AS TEXT) AS target_symbol_id, i.start_line, i.start_column,
                 i.end_line, i.end_column, i.start_byte, i.end_byte, i.confidence, i.metadata_json
          FROM identifiers i
-         LEFT JOIN identifier_resolutions ir ON ir.identifier_id = i.identifier_id
          ORDER BY i.identifier_id",
     )?;
     let rows = stmt.query_map([], |row| {

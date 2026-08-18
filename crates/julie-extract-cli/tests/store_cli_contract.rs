@@ -880,16 +880,8 @@ fn assert_artifact_has_facts_and_no_resolution(path: &Path) {
     let symbols: i64 = connection
         .query_row("SELECT COUNT(*) FROM symbols", [], |row| row.get(0))
         .unwrap();
-    let identifiers: i64 = connection
-        .query_row("SELECT COUNT(*) FROM identifier_resolutions", [], |row| {
-            row.get(0)
-        })
-        .unwrap();
-    let pending: i64 = connection
-        .query_row("SELECT COUNT(*) FROM pending_resolutions", [], |row| {
-            row.get(0)
-        })
-        .unwrap();
+    let identifiers: i64 = table_count_if_exists(&connection, "identifier_resolutions");
+    let pending: i64 = table_count_if_exists(&connection, "pending_resolutions");
     let resolution_version: Option<String> = connection
         .query_row(
             "SELECT value FROM artifact_metadata WHERE key = 'reference_resolution_version'",
@@ -955,10 +947,22 @@ fn artifact_content_hashes(path: &Path) -> Vec<(String, String)> {
 fn strip_artifact_resolution(path: &Path) {
     let connection = Connection::open(path).unwrap();
     connection
-        .execute_batch(
-            "DELETE FROM identifier_resolutions;
-             DELETE FROM pending_resolutions;
-             DELETE FROM artifact_metadata WHERE key LIKE 'reference_resolution_%';",
+        .execute_batch("DELETE FROM artifact_metadata WHERE key LIKE 'reference_resolution_%';")
+        .unwrap();
+}
+
+fn table_count_if_exists(connection: &Connection, table: &str) -> i64 {
+    let exists: bool = connection
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name=?1)",
+            [table],
+            |row| row.get(0),
         )
         .unwrap();
+    if !exists {
+        return 0;
+    }
+    connection
+        .query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |row| row.get(0))
+        .unwrap()
 }

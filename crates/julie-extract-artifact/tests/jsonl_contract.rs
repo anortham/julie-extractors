@@ -157,7 +157,7 @@ fn identifier_export_emits_null_code_context_for_legacy_non_null_rows() {
             "name": "beta",
             "kind": "call",
             "containing_symbol_id": "sym-alpha",
-            "target_symbol_id": "sym-beta",
+            "target_symbol_id": null,
             "span": {
                 "start_line": 2,
                 "start_column": 4,
@@ -884,14 +884,6 @@ fn insert_extraction_rows(conn: &Connection) {
                  'sym-alpha', 2, 4, 2, 8, 16, 20, 0.95,
                  'beta();', ?1)",
         [r#"{"identifier":true}"#],
-    )
-    .unwrap();
-    conn.execute(
-        "INSERT INTO identifier_resolutions
-         (identifier_id, target_symbol_id, tier, confidence, method, outcome, candidates,
-          resolved_at_revision)
-         VALUES ('ident-beta', 'sym-beta', 1, 0.95, 'tier1_local', 'resolved', NULL, 1)",
-        [],
     )
     .unwrap();
     conn.execute(

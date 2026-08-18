@@ -224,6 +224,69 @@ impl StoreLayout {
     }
 }
 
+/// Removes leftover resolution base files and both scratch families.
+///
+/// The `bases/` directory itself stays so [`StoreLayout::open`] can resolve it.
+/// Callers must close any handles to those files first.
+pub(crate) fn reap_retired_resolution_files(layout: &StoreLayout) -> Result<(), StoreLayoutError> {
+    reap_directory_files(layout.bases_dir())?;
+    if let Ok(entries) = fs::read_dir(layout.scratch_dir()) {
+        for entry in entries {
+            let entry = entry?;
+            if is_retired_resolution_scratch_name(&entry.file_name().to_string_lossy()) {
+                remove_path_and_sidecars(&entry.path())?;
+            }
+        }
+    }
+    Ok(())
+}
+
+fn reap_directory_files(dir: &Path) -> Result<(), StoreLayoutError> {
+    let entries = match fs::read_dir(dir) {
+        Ok(entries) => entries,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => return Err(error.into()),
+    };
+    for entry in entries {
+        let entry = entry?;
+        let path = entry.path();
+        let metadata = fs::symlink_metadata(&path)?;
+        if metadata.is_dir() {
+            fs::remove_dir_all(&path)?;
+        } else {
+            fs::remove_file(&path)?;
+        }
+    }
+    Ok(())
+}
+
+pub(crate) fn is_retired_resolution_scratch_name(name: &str) -> bool {
+    let base = name
+        .strip_suffix("-wal")
+        .or_else(|| name.strip_suffix("-shm"))
+        .unwrap_or(name);
+    (base.starts_with("resolve-") && base.contains(".db"))
+        || (base.starts_with("resolution-") && base.contains(".partial.db"))
+}
+
+fn remove_path_and_sidecars(path: &Path) -> Result<(), StoreLayoutError> {
+    let metadata = match fs::symlink_metadata(path) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => return Err(error.into()),
+    };
+    if metadata.file_type().is_symlink() {
+        fs::remove_file(path)?;
+        return Ok(());
+    }
+    if metadata.is_dir() {
+        fs::remove_dir_all(path)?;
+        return Ok(());
+    }
+    fs::remove_file(path)?;
+    Ok(())
+}
+
 /// Failure to create or resolve a store layout.
 #[derive(Debug)]
 pub enum StoreLayoutError {

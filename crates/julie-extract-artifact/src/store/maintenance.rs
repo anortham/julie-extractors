@@ -17,13 +17,11 @@ use sha2::{Digest, Sha256};
 
 use super::connection::compare_versions;
 use super::layout::valid_generation_name;
+use super::layout::reap_retired_resolution_files;
 use super::pragmas::{WriterPragmaProfile, configure_writer_pragmas};
-use super::resolution::{
-    resolution_file_bytes, resolution_file_sha256, retire_resolution_base, retire_resolution_delta,
-};
 use super::{
     CoordinatorError, GenerationFence, MaintenanceAction, PidStatus, StoreConnectionError,
-    StoreConnectionFactory, StoreCoordinator, StoreLog, StoreLogError,
+    StoreConnectionFactory, StoreCoordinator, StoreLayoutError, StoreLog, StoreLogError,
 };
 
 const DAY_MS: i64 = 86_400_000;
@@ -649,6 +647,19 @@ impl From<rusqlite::Error> for MaintenanceError {
     }
 }
 
+impl From<StoreLayoutError> for MaintenanceError {
+    fn from(error: StoreLayoutError) -> Self {
+        match error {
+            StoreLayoutError::Io(error) => Self::Io(error),
+            StoreLayoutError::Sqlite(error) => Self::Sqlite(error),
+            other => Self::InvalidMetadata {
+                field: "store_layout",
+                value: other.to_string(),
+            },
+        }
+    }
+}
+
 impl From<io::Error> for MaintenanceError {
     fn from(error: io::Error) -> Self {
         Self::Io(error)
@@ -1074,7 +1085,10 @@ impl<C: MaintenanceClock, P: CapacityProvider> MaintenanceInspector<C, P> {
             &mut snapshot,
         )?;
         snapshot.protected_generations = named_generations(self.factory.layout().root())?;
-        snapshot.protected_scratch = named_files(self.factory.layout().scratch_dir())?;
+        snapshot.protected_scratch = named_files(self.factory.layout().scratch_dir())?
+            .into_iter()
+            .filter(|name| !super::layout::is_retired_resolution_scratch_name(name))
+            .collect();
         snapshot.binding.store_root_fingerprint = store_root_fingerprint(&snapshot)?;
         snapshot.binding.coordinator_root_fingerprint = coordinator_root_fingerprint(&snapshot)?;
         if data_version(&store)? != store_data_version {
@@ -1549,70 +1563,10 @@ impl MaintenanceExecutor {
             .unwrap_or(0);
         // Re-probe again immediately before first GC delete/demotion cohort.
         self.ensure_gc_capacity(plan)?;
-        if resolution_scope_state_available(&transaction)? {
-            transaction.execute(
-                "DELETE FROM resolution_scope_batches AS batch
-                 WHERE NOT EXISTS(
-                   SELECT 1 FROM resolution_scope_state AS state
-                   WHERE state.view_id=batch.view_id
-                 )",
-                [],
-            )?;
-        }
-        report.removed_pins = transaction.execute(
-            "DELETE FROM resolution_pins
-             WHERE CAST(strftime('%s',expires_at) AS INTEGER)<=?1",
-            [self.run.now_ms.div_euclid(1000)],
-        )?;
-        for delta in &plan.eligible_deltas {
-            let (view_id, generation) = parse_scoped_generation(delta)?;
-            report.removed_deltas += retire_resolution_delta(&transaction, view_id, generation)?;
-        }
-        let mut base_files = Vec::new();
-        for base_id in &plan.eligible_bases {
-            let candidate = transaction
-                .query_row(
-                    "SELECT relative_path,file_bytes,file_sha256 FROM resolution_bases
-                     WHERE base_id=?1 AND state='ready'
-                       AND NOT EXISTS(SELECT 1 FROM views WHERE resolution_base_id=?1)
-                       AND NOT EXISTS(SELECT 1 FROM resolution_scope_state WHERE base_id=?1)
-                       AND NOT EXISTS(SELECT 1 FROM resolution_pins WHERE base_id=?1)
-                       AND NOT EXISTS(SELECT 1 FROM resolution_deltas WHERE base_id=?1)",
-                    [base_id],
-                    |row| {
-                        Ok((
-                            row.get::<_, String>(0)?,
-                            row.get::<_, i64>(1)?,
-                            row.get::<_, String>(2)?,
-                        ))
-                    },
-                )
-                .optional()?;
-            let Some((relative_path, recorded_bytes, recorded_sha256)) = candidate else {
-                continue;
-            };
-            let path = checked_base_path(self.factory.layout(), &relative_path)?;
-            let actual_bytes = resolution_file_bytes(&path)?;
-            if actual_bytes
-                != u64::try_from(recorded_bytes).map_err(|_| MaintenanceError::InvalidMetadata {
-                    field: "resolution_base_bytes",
-                    value: recorded_bytes.to_string(),
-                })?
-            {
-                return Err(MaintenanceError::InvalidMetadata {
-                    field: "resolution_base_bytes",
-                    value: base_id.clone(),
-                });
-            }
-            if resolution_file_sha256(&path)? != recorded_sha256 {
-                return Err(MaintenanceError::InvalidMetadata {
-                    field: "resolution_base_sha256",
-                    value: base_id.clone(),
-                });
-            }
-            report.removed_bases += retire_resolution_base(&transaction, base_id)?;
-            base_files.push(path);
-        }
+        let _ = (
+            &plan.eligible_deltas,
+            &plan.eligible_bases,
+        );
         for (view_id, generation) in &plan.eligible_manifests {
             transaction.execute(
                 "DELETE FROM manifest_entries
@@ -1622,14 +1576,7 @@ impl MaintenanceExecutor {
                                 AND manifests.generation=manifest_entries.generation)
                    AND NOT EXISTS(SELECT 1 FROM views
                                   WHERE views.view_id=manifest_entries.view_id
-                                    AND views.current_generation=manifest_entries.generation)
-                   AND NOT EXISTS(SELECT 1 FROM resolution_pins
-                                  WHERE resolution_pins.view_id=manifest_entries.view_id
-                                    AND resolution_pins.manifest_generation=manifest_entries.generation)
-                   AND NOT EXISTS(SELECT 1 FROM resolution_scope_state
-                                  WHERE resolution_scope_state.view_id=manifest_entries.view_id
-                                    AND resolution_scope_state.predecessor_manifest_generation=
-                                        manifest_entries.generation)",
+                                    AND views.current_generation=manifest_entries.generation)",
                 params![view_id, generation],
             )?;
             report.removed_manifests += transaction.execute(
@@ -1637,14 +1584,7 @@ impl MaintenanceExecutor {
                  WHERE view_id=?1 AND generation=?2
                    AND NOT EXISTS(SELECT 1 FROM views
                                   WHERE views.view_id=manifests.view_id
-                                    AND views.current_generation=manifests.generation)
-                   AND NOT EXISTS(SELECT 1 FROM resolution_pins
-                                  WHERE resolution_pins.view_id=manifests.view_id
-                                    AND resolution_pins.manifest_generation=manifests.generation)
-                   AND NOT EXISTS(SELECT 1 FROM resolution_scope_state
-                                  WHERE resolution_scope_state.view_id=manifests.view_id
-                                    AND resolution_scope_state.predecessor_manifest_generation=
-                                        manifests.generation)",
+                                    AND views.current_generation=manifests.generation)",
                 params![view_id, generation],
             )?;
         }
@@ -1685,12 +1625,7 @@ impl MaintenanceExecutor {
                 let changed = transaction.execute(
                     "DELETE FROM file_versions
                      WHERE version_id=?1 AND complete_l2 IS NULL AND complete_l3 IS NULL
-                       AND NOT EXISTS(SELECT 1 FROM manifest_entries WHERE version_id=?1)
-                       AND NOT EXISTS(SELECT 1 FROM resolution_base_versions WHERE version_id=?1)
-                       AND NOT EXISTS(SELECT 1 FROM resolution_identifier_deltas
-                                      WHERE version_id=?1 OR target_version_id=?1)
-                       AND NOT EXISTS(SELECT 1 FROM resolution_pending_deltas
-                                      WHERE version_id=?1 OR target_version_id=?1)",
+                       AND NOT EXISTS(SELECT 1 FROM manifest_entries WHERE version_id=?1)",
                     [decision.version_id],
                 )?;
                 report.purged_versions += changed;
@@ -1722,23 +1657,6 @@ impl MaintenanceExecutor {
         transaction.commit()?;
         #[cfg(feature = "test-store-crash")]
         super::test_hooks::crash_if("maintenance_store_after_commit");
-        heartbeat.check()?;
-        for path in base_files {
-            #[cfg(feature = "test-store-crash")]
-            super::test_hooks::crash_if("maintenance_base_before_remove");
-            fs::remove_file(&path)?;
-            report.removed_base_files += 1;
-            #[cfg(feature = "test-store-crash")]
-            super::test_hooks::crash_if("maintenance_base_after_remove");
-        }
-        for path in orphan_base_files(self.factory.layout(), &writer)? {
-            #[cfg(feature = "test-store-crash")]
-            super::test_hooks::crash_if("maintenance_base_before_remove");
-            fs::remove_file(&path)?;
-            report.removed_base_files += 1;
-            #[cfg(feature = "test-store-crash")]
-            super::test_hooks::crash_if("maintenance_base_after_remove");
-        }
         heartbeat.check()?;
         let (safe_sequence, _high_water) = self.safe_log_sequence(plan)?;
         let completed_before = self.run.now_ms.saturating_sub(policy.request_safety_ms);
@@ -1807,6 +1725,7 @@ impl MaintenanceExecutor {
             .checkpoint_order
             .push("truncate_checkpoint".to_string());
         writer.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);")?;
+        reap_retired_resolution_files(self.factory.layout())?;
         report.store_bytes_before_vacuum = store_bytes_before_vacuum;
         report.store_bytes_after_vacuum = file_len(self.factory.layout().store_db())?;
         report.freelist_pages_before_vacuum = freelist_pages_before_vacuum;
@@ -3272,7 +3191,7 @@ fn directory_bytes(path: &Path) -> Result<u64, MaintenanceError> {
             });
         }
         if metadata.is_file() {
-            total = total.saturating_add(resolution_file_bytes(&entry.path())?);
+            total = total.saturating_add(metadata.len());
         }
     }
     Ok(total)
@@ -3368,6 +3287,14 @@ fn read_manifests(
     Ok(())
 }
 
+fn table_exists(connection: &Connection, table: &str) -> Result<bool, MaintenanceError> {
+    Ok(connection.query_row(
+        "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name=?1)",
+        [table],
+        |row| row.get(0),
+    )?)
+}
+
 fn resolution_scope_state_available(connection: &Connection) -> Result<bool, MaintenanceError> {
     let version = connection
         .query_row(
@@ -3458,6 +3385,9 @@ fn read_base_versions(
     peak: &mut usize,
     snapshot: &mut MaintenanceSnapshot,
 ) -> Result<(), MaintenanceError> {
+    if !table_exists(connection, "resolution_base_versions")? {
+        return Ok(());
+    }
     let mut key = (String::new(), 0_i64);
     loop {
         let mut statement = connection.prepare("SELECT bv.base_id,bv.version_id FROM resolution_base_versions bv JOIN resolution_bases b ON b.base_id=bv.base_id WHERE (bv.base_id,bv.version_id)>(?1,?2) ORDER BY bv.base_id,bv.version_id LIMIT ?3")?;
@@ -3485,6 +3415,11 @@ fn read_delta_versions(
     peak: &mut usize,
     snapshot: &mut MaintenanceSnapshot,
 ) -> Result<(), MaintenanceError> {
+    if !table_exists(connection, "resolution_identifier_deltas")?
+        && !table_exists(connection, "resolution_pending_deltas")?
+    {
+        return Ok(());
+    }
     read_one_delta_table(
         connection,
         "resolution_identifier_deltas",
@@ -3510,6 +3445,9 @@ fn read_additional_version_roots(
     peak: &mut usize,
     output: &mut Vec<VersionRootFact>,
 ) -> Result<(), MaintenanceError> {
+    if !table_exists(connection, "resolution_base_versions")? {
+        return Ok(());
+    }
     let mut after = String::new();
     let now_seconds = now_ms.div_euclid(1000);
     loop {
@@ -3751,6 +3689,10 @@ fn read_store_objects(
     peak: &mut usize,
     snapshot: &mut MaintenanceSnapshot,
 ) -> Result<(), MaintenanceError> {
+    if !table_exists(connection, "resolution_bases")? {
+        let _ = (now_ms, limit, peak);
+        return Ok(());
+    }
     let now_seconds = now_ms.div_euclid(1000);
     let scope_available = resolution_scope_state_available(connection)?;
     let protected_base_scope = if scope_available {

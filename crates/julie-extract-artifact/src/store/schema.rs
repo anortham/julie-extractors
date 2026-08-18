@@ -1,9 +1,7 @@
 use std::error::Error;
 use std::fmt;
 
-use rusqlite::Connection;
-
-use super::scope::{ResolutionScopeError, ensure_resolution_scope_feature};
+use rusqlite::{Connection, OptionalExtension};
 
 /// Physical SQLite catalog version shared by `store.db` and `coord.db`.
 pub const STORE_SQLITE_SCHEMA_VERSION: i64 = 2;
@@ -23,7 +21,7 @@ pub enum StoreSchemaError {
         found: i64,
         supported: i64,
     },
-    ResolutionScope(ResolutionScopeError),
+    Retirement { detail: String },
     Sqlite(rusqlite::Error),
 }
 
@@ -47,7 +45,7 @@ impl fmt::Display for StoreSchemaError {
                 "{database} schema version {found} requires migration to version {supported}"
             ),
             Self::Sqlite(error) => error.fmt(formatter),
-            Self::ResolutionScope(error) => error.fmt(formatter),
+            Self::Retirement { detail } => write!(formatter, "{detail}"),
         }
     }
 }
@@ -56,8 +54,7 @@ impl Error for StoreSchemaError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Sqlite(error) => Some(error),
-            Self::ResolutionScope(error) => Some(error),
-            Self::NewerSchema { .. } | Self::OlderSchema { .. } => None,
+            Self::NewerSchema { .. } | Self::OlderSchema { .. } | Self::Retirement { .. } => None,
         }
     }
 }
@@ -68,17 +65,11 @@ impl From<rusqlite::Error> for StoreSchemaError {
     }
 }
 
-impl From<ResolutionScopeError> for StoreSchemaError {
-    fn from(error: ResolutionScopeError) -> Self {
-        Self::ResolutionScope(error)
-    }
-}
-
 /// Creates or validates the independently versioned `store.db` catalog.
 pub fn create_store_schema(conn: &Connection) -> Result<(), StoreSchemaError> {
     create_schema(conn, "store.db", STORE_SCHEMA_SQL)?;
     ensure_read_symbol_indexes(conn)?;
-    ensure_resolution_scope_feature(conn)?;
+    retire_resolution_store_objects(conn)?;
     Ok(())
 }
 
@@ -89,7 +80,8 @@ pub(crate) fn ensure_read_symbol_indexes(conn: &Connection) -> Result<(), StoreS
 
 /// Creates or validates the independently versioned `coord.db` catalog.
 pub fn create_coordinator_schema(conn: &Connection) -> Result<(), StoreSchemaError> {
-    create_schema(conn, "coord.db", COORDINATOR_SCHEMA_SQL)
+    create_schema(conn, "coord.db", COORDINATOR_SCHEMA_SQL)?;
+    retire_coordinator_resolution_objects(conn)
 }
 
 pub(crate) fn validate_store_schema_version(conn: &Connection) -> Result<(), StoreSchemaError> {
@@ -129,6 +121,254 @@ fn validate_schema_version(
 
     Ok(())
 }
+
+/// Drops retired store resolution objects on a writer connection.
+///
+/// Idempotent. Read-only connections must not call this.
+pub(crate) fn retire_resolution_store_objects(
+    conn: &Connection,
+) -> Result<(), StoreSchemaError> {
+    if !store_has_retired_resolution_objects(conn)? {
+        return Ok(());
+    }
+
+    conn.execute_batch("PRAGMA foreign_keys = OFF;")?;
+    conn.execute_batch("BEGIN IMMEDIATE;")?;
+    if let Err(error) = retire_resolution_store_objects_in_open_transaction(conn) {
+        let _ = conn.execute_batch("ROLLBACK;");
+        let _ = conn.execute_batch("PRAGMA foreign_keys = ON;");
+        return Err(error);
+    }
+    conn.execute_batch("COMMIT;")?;
+    conn.execute_batch("PRAGMA foreign_keys = ON;")?;
+    Ok(())
+}
+
+fn retire_resolution_store_objects_in_open_transaction(
+    conn: &Connection,
+) -> Result<(), StoreSchemaError> {
+    if views_reference_resolution_tables(conn)? {
+        conn.execute_batch(RETIRED_VIEWS_REBUILD_SQL)?;
+    }
+    conn.execute_batch(DROP_RETIRED_STORE_RESOLUTION_OBJECTS_SQL)?;
+    let violations = conn
+        .prepare("PRAGMA foreign_key_check")?
+        .query_map([], |row| {
+            Ok(format!(
+                "{}:{}",
+                row.get::<_, String>(0)?,
+                row.get::<_, i64>(1)?
+            ))
+        })?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+    if !violations.is_empty() {
+        return Err(StoreSchemaError::Retirement {
+            detail: format!("foreign_key_check failed after resolution retirement: {violations:?}"),
+        });
+    }
+    Ok(())
+}
+
+/// Drops the retired one-claimed-resolve coordinator index.
+pub(crate) fn retire_coordinator_resolution_objects(
+    conn: &Connection,
+) -> Result<(), StoreSchemaError> {
+    conn.execute_batch("DROP INDEX IF EXISTS uidx_coord_one_claimed_resolve;")?;
+    Ok(())
+}
+
+fn store_has_retired_resolution_objects(conn: &Connection) -> Result<bool, StoreSchemaError> {
+    let present: bool = conn.query_row(
+        "SELECT EXISTS(
+           SELECT 1 FROM sqlite_master
+           WHERE name LIKE 'resolution_%'
+              OR name IN (
+                'trg_view_resolution_tuple_insert',
+                'trg_view_resolution_tuple_update'
+              )
+         )",
+        [],
+        |row| row.get(0),
+    )?;
+    Ok(present || views_reference_resolution_tables(conn)?)
+}
+
+fn views_reference_resolution_tables(conn: &Connection) -> Result<bool, StoreSchemaError> {
+    let sql: Option<String> = conn
+        .query_row(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='views'",
+            [],
+            |row| row.get(0),
+        )
+        .optional()?;
+    Ok(sql.is_some_and(|sql| {
+        sql.contains("resolution_bases") || sql.contains("resolution_deltas")
+    }))
+}
+
+const RETIRED_VIEWS_REBUILD_SQL: &str = r#"
+CREATE TABLE views__retired (
+  view_id TEXT PRIMARY KEY CHECK (length(view_id) > 0),
+  root TEXT NOT NULL CHECK (length(root) > 0),
+  current_generation INTEGER,
+  resolution_state TEXT NOT NULL DEFAULT 'unbound',
+  resolution_base_id TEXT,
+  resolution_delta_generation INTEGER,
+  resolution_exact_at INTEGER,
+  created_at TEXT NOT NULL CHECK (
+    length(created_at) BETWEEN 20 AND 30
+      AND substr(created_at, 5, 1) = '-'
+      AND substr(created_at, 8, 1) = '-'
+      AND substr(created_at, 11, 1) = 'T'
+      AND substr(created_at, 14, 1) = ':'
+      AND substr(created_at, 17, 1) = ':'
+      AND substr(created_at, -1, 1) = 'Z'
+      AND strftime('%Y-%m-%dT%H:%M:%S', created_at) = substr(created_at, 1, 19)
+      AND (
+        length(created_at) = 20
+        OR (
+          substr(created_at, 20, 1) = '.'
+          AND length(created_at) >= 22
+          AND substr(created_at, 21, length(created_at) - 21) NOT GLOB '*[^0-9]*'
+        )
+      )
+  ),
+  updated_at TEXT NOT NULL CHECK (
+    length(updated_at) BETWEEN 20 AND 30
+      AND substr(updated_at, 5, 1) = '-'
+      AND substr(updated_at, 8, 1) = '-'
+      AND substr(updated_at, 11, 1) = 'T'
+      AND substr(updated_at, 14, 1) = ':'
+      AND substr(updated_at, 17, 1) = ':'
+      AND substr(updated_at, -1, 1) = 'Z'
+      AND strftime('%Y-%m-%dT%H:%M:%S', updated_at) = substr(updated_at, 1, 19)
+      AND (
+        length(updated_at) = 20
+        OR (
+          substr(updated_at, 20, 1) = '.'
+          AND length(updated_at) >= 22
+          AND substr(updated_at, 21, length(updated_at) - 21) NOT GLOB '*[^0-9]*'
+        )
+      )
+  ),
+  CHECK (
+    (resolution_state = 'unbound'
+      AND resolution_base_id IS NULL
+      AND resolution_delta_generation IS NULL
+      AND resolution_exact_at IS NULL)
+    OR
+    (resolution_state = 'converging'
+      AND current_generation IS NOT NULL
+      AND resolution_base_id IS NOT NULL
+      AND resolution_delta_generation IS NOT NULL
+      AND resolution_exact_at IS NULL)
+    OR
+    (resolution_state = 'exact'
+      AND current_generation IS NOT NULL
+      AND resolution_base_id IS NOT NULL
+      AND resolution_delta_generation IS NOT NULL
+      AND resolution_exact_at = current_generation)
+  ),
+  FOREIGN KEY (view_id, current_generation)
+    REFERENCES manifests(view_id, generation)
+    ON DELETE NO ACTION DEFERRABLE INITIALLY DEFERRED
+) STRICT;
+INSERT INTO views__retired
+  (view_id, root, current_generation, resolution_state, resolution_base_id,
+   resolution_delta_generation, resolution_exact_at, created_at, updated_at)
+SELECT view_id, root, current_generation, resolution_state, resolution_base_id,
+       resolution_delta_generation, resolution_exact_at, created_at, updated_at
+FROM views;
+DROP TABLE views;
+CREATE TABLE IF NOT EXISTS views (
+  view_id TEXT PRIMARY KEY CHECK (length(view_id) > 0),
+  root TEXT NOT NULL CHECK (length(root) > 0),
+  current_generation INTEGER,
+  resolution_state TEXT NOT NULL DEFAULT 'unbound',
+  resolution_base_id TEXT,
+  resolution_delta_generation INTEGER,
+  resolution_exact_at INTEGER,
+  created_at TEXT NOT NULL CHECK (
+    length(created_at) BETWEEN 20 AND 30
+      AND substr(created_at, 5, 1) = '-'
+      AND substr(created_at, 8, 1) = '-'
+      AND substr(created_at, 11, 1) = 'T'
+      AND substr(created_at, 14, 1) = ':'
+      AND substr(created_at, 17, 1) = ':'
+      AND substr(created_at, -1, 1) = 'Z'
+      AND strftime('%Y-%m-%dT%H:%M:%S', created_at) = substr(created_at, 1, 19)
+      AND (
+        length(created_at) = 20
+        OR (
+          substr(created_at, 20, 1) = '.'
+          AND length(created_at) >= 22
+          AND substr(created_at, 21, length(created_at) - 21) NOT GLOB '*[^0-9]*'
+        )
+      )
+  ),
+  updated_at TEXT NOT NULL CHECK (
+    length(updated_at) BETWEEN 20 AND 30
+      AND substr(updated_at, 5, 1) = '-'
+      AND substr(updated_at, 8, 1) = '-'
+      AND substr(updated_at, 11, 1) = 'T'
+      AND substr(updated_at, 14, 1) = ':'
+      AND substr(updated_at, 17, 1) = ':'
+      AND substr(updated_at, -1, 1) = 'Z'
+      AND strftime('%Y-%m-%dT%H:%M:%S', updated_at) = substr(updated_at, 1, 19)
+      AND (
+        length(updated_at) = 20
+        OR (
+          substr(updated_at, 20, 1) = '.'
+          AND length(updated_at) >= 22
+          AND substr(updated_at, 21, length(updated_at) - 21) NOT GLOB '*[^0-9]*'
+        )
+      )
+  ),
+  CHECK (
+    (resolution_state = 'unbound'
+      AND resolution_base_id IS NULL
+      AND resolution_delta_generation IS NULL
+      AND resolution_exact_at IS NULL)
+    OR
+    (resolution_state = 'converging'
+      AND current_generation IS NOT NULL
+      AND resolution_base_id IS NOT NULL
+      AND resolution_delta_generation IS NOT NULL
+      AND resolution_exact_at IS NULL)
+    OR
+    (resolution_state = 'exact'
+      AND current_generation IS NOT NULL
+      AND resolution_base_id IS NOT NULL
+      AND resolution_delta_generation IS NOT NULL
+      AND resolution_exact_at = current_generation)
+  ),
+  FOREIGN KEY (view_id, current_generation)
+    REFERENCES manifests(view_id, generation)
+    ON DELETE NO ACTION DEFERRABLE INITIALLY DEFERRED
+) STRICT;
+INSERT INTO views
+  (view_id, root, current_generation, resolution_state, resolution_base_id,
+   resolution_delta_generation, resolution_exact_at, created_at, updated_at)
+SELECT view_id, root, current_generation, resolution_state, resolution_base_id,
+       resolution_delta_generation, resolution_exact_at, created_at, updated_at
+FROM views__retired;
+DROP TABLE views__retired;
+"#;
+
+const DROP_RETIRED_STORE_RESOLUTION_OBJECTS_SQL: &str = r#"
+DROP TRIGGER IF EXISTS trg_view_resolution_tuple_insert;
+DROP TRIGGER IF EXISTS trg_view_resolution_tuple_update;
+DROP TABLE IF EXISTS resolution_scope_journal;
+DROP TABLE IF EXISTS resolution_scope_batches;
+DROP TABLE IF EXISTS resolution_scope_state;
+DROP TABLE IF EXISTS resolution_identifier_deltas;
+DROP TABLE IF EXISTS resolution_pending_deltas;
+DROP TABLE IF EXISTS resolution_pins;
+DROP TABLE IF EXISTS resolution_deltas;
+DROP TABLE IF EXISTS resolution_base_versions;
+DROP TABLE IF EXISTS resolution_bases;
+DELETE FROM store_meta WHERE key = 'resolution_scope_journal_version';
+"#;
 
 const STORE_SCHEMA_SQL: &str = r#"
 BEGIN IMMEDIATE;
@@ -686,11 +926,6 @@ CREATE TABLE IF NOT EXISTS views (
   ),
   FOREIGN KEY (view_id, current_generation)
     REFERENCES manifests(view_id, generation)
-    ON DELETE NO ACTION DEFERRABLE INITIALLY DEFERRED,
-  FOREIGN KEY (resolution_base_id) REFERENCES resolution_bases(base_id)
-    ON DELETE NO ACTION DEFERRABLE INITIALLY DEFERRED,
-  FOREIGN KEY (view_id, resolution_delta_generation)
-    REFERENCES resolution_deltas(view_id, delta_generation)
     ON DELETE NO ACTION DEFERRABLE INITIALLY DEFERRED
 ) STRICT;
 
@@ -771,223 +1006,6 @@ CREATE TABLE IF NOT EXISTS manifest_entries (
       AND error_class IS NOT NULL
       AND error_json IS NOT NULL)
   )
-) STRICT;
-
-CREATE TABLE IF NOT EXISTS resolution_bases (
-  base_id TEXT PRIMARY KEY CHECK (length(base_id) > 0),
-  manifest_hash TEXT NOT NULL CHECK (length(manifest_hash) > 0),
-  resolver_output_epoch INTEGER NOT NULL CHECK (resolver_output_epoch > 0),
-  state TEXT NOT NULL CHECK (state IN ('building', 'ready')),
-  relative_path TEXT NOT NULL CHECK (length(relative_path) > 0),
-  identifier_count INTEGER NOT NULL CHECK (identifier_count >= 0),
-  pending_count INTEGER NOT NULL CHECK (pending_count >= 0),
-  file_bytes INTEGER,
-  file_sha256 TEXT,
-  request_id TEXT NOT NULL CHECK (length(request_id) > 0),
-  created_at TEXT NOT NULL CHECK (
-    length(created_at) BETWEEN 20 AND 30
-      AND substr(created_at, 5, 1) = '-'
-      AND substr(created_at, 8, 1) = '-'
-      AND substr(created_at, 11, 1) = 'T'
-      AND substr(created_at, 14, 1) = ':'
-      AND substr(created_at, 17, 1) = ':'
-      AND substr(created_at, -1, 1) = 'Z'
-      AND strftime('%Y-%m-%dT%H:%M:%S', created_at) = substr(created_at, 1, 19)
-      AND (
-        length(created_at) = 20
-        OR (
-          substr(created_at, 20, 1) = '.'
-          AND length(created_at) >= 22
-          AND substr(created_at, 21, length(created_at) - 21) NOT GLOB '*[^0-9]*'
-        )
-      )
-  ),
-  updated_at TEXT NOT NULL CHECK (
-    length(updated_at) BETWEEN 20 AND 30
-      AND substr(updated_at, 5, 1) = '-'
-      AND substr(updated_at, 8, 1) = '-'
-      AND substr(updated_at, 11, 1) = 'T'
-      AND substr(updated_at, 14, 1) = ':'
-      AND substr(updated_at, 17, 1) = ':'
-      AND substr(updated_at, -1, 1) = 'Z'
-      AND strftime('%Y-%m-%dT%H:%M:%S', updated_at) = substr(updated_at, 1, 19)
-      AND (
-        length(updated_at) = 20
-        OR (
-          substr(updated_at, 20, 1) = '.'
-          AND length(updated_at) >= 22
-          AND substr(updated_at, 21, length(updated_at) - 21) NOT GLOB '*[^0-9]*'
-        )
-      )
-  ),
-  CHECK (
-    (state = 'building' AND file_bytes IS NULL AND file_sha256 IS NULL)
-    OR
-    (state = 'ready' AND file_bytes > 0 AND file_sha256 IS NOT NULL AND length(file_sha256) > 0)
-  )
-) STRICT;
-
-CREATE TABLE IF NOT EXISTS resolution_base_versions (
-  base_id TEXT NOT NULL,
-  version_id INTEGER NOT NULL,
-  PRIMARY KEY (base_id, version_id),
-  FOREIGN KEY (base_id) REFERENCES resolution_bases(base_id) ON DELETE CASCADE,
-  FOREIGN KEY (version_id) REFERENCES file_versions(version_id) ON DELETE RESTRICT
-) STRICT;
-
-CREATE TABLE IF NOT EXISTS resolution_deltas (
-  view_id TEXT NOT NULL,
-  delta_generation INTEGER NOT NULL CHECK (delta_generation > 0),
-  base_id TEXT NOT NULL,
-  manifest_generation INTEGER NOT NULL CHECK (manifest_generation > 0),
-  manifest_hash TEXT NOT NULL CHECK (length(manifest_hash) > 0),
-  resolver_output_epoch INTEGER NOT NULL CHECK (resolver_output_epoch > 0),
-  identifier_replacements INTEGER NOT NULL CHECK (identifier_replacements >= 0),
-  pending_replacements INTEGER NOT NULL CHECK (pending_replacements >= 0),
-  pending_tombstones INTEGER NOT NULL CHECK (pending_tombstones >= 0),
-  exact_gap_rows INTEGER NOT NULL CHECK (exact_gap_rows >= 0),
-  exact_gap_files INTEGER NOT NULL CHECK (exact_gap_files >= 0),
-  exact_gap_json TEXT NOT NULL CHECK (length(exact_gap_json) > 0),
-  request_id TEXT NOT NULL CHECK (length(request_id) > 0),
-  created_at TEXT NOT NULL CHECK (
-    length(created_at) BETWEEN 20 AND 30
-      AND substr(created_at, 5, 1) = '-'
-      AND substr(created_at, 8, 1) = '-'
-      AND substr(created_at, 11, 1) = 'T'
-      AND substr(created_at, 14, 1) = ':'
-      AND substr(created_at, 17, 1) = ':'
-      AND substr(created_at, -1, 1) = 'Z'
-      AND strftime('%Y-%m-%dT%H:%M:%S', created_at) = substr(created_at, 1, 19)
-      AND (
-        length(created_at) = 20
-        OR (
-          substr(created_at, 20, 1) = '.'
-          AND length(created_at) >= 22
-          AND substr(created_at, 21, length(created_at) - 21) NOT GLOB '*[^0-9]*'
-        )
-      )
-  ),
-  PRIMARY KEY (view_id, delta_generation),
-  FOREIGN KEY (view_id) REFERENCES views(view_id)
-    ON DELETE NO ACTION DEFERRABLE INITIALLY DEFERRED,
-  FOREIGN KEY (base_id) REFERENCES resolution_bases(base_id)
-    ON DELETE NO ACTION DEFERRABLE INITIALLY DEFERRED,
-  FOREIGN KEY (view_id, manifest_generation)
-    REFERENCES manifests(view_id, generation)
-    ON DELETE NO ACTION DEFERRABLE INITIALLY DEFERRED
-) STRICT;
-
-CREATE TABLE IF NOT EXISTS resolution_identifier_deltas (
-  view_id TEXT NOT NULL,
-  delta_generation INTEGER NOT NULL,
-  version_id INTEGER NOT NULL,
-  identifier_id TEXT NOT NULL CHECK (length(identifier_id) > 0),
-  target_version_id INTEGER,
-  target_symbol_id TEXT,
-  tier INTEGER,
-  confidence REAL,
-  method TEXT,
-  outcome TEXT NOT NULL CHECK (length(outcome) > 0),
-  candidates INTEGER CHECK (candidates IS NULL OR candidates >= 0),
-  PRIMARY KEY (view_id, delta_generation, version_id, identifier_id),
-  FOREIGN KEY (view_id, delta_generation)
-    REFERENCES resolution_deltas(view_id, delta_generation) ON DELETE CASCADE,
-  FOREIGN KEY (version_id) REFERENCES file_versions(version_id) ON DELETE RESTRICT,
-  CHECK (
-    (outcome = 'resolved'
-      AND target_version_id IS NOT NULL
-      AND target_symbol_id IS NOT NULL
-      AND tier IS NOT NULL
-      AND confidence IS NOT NULL
-      AND method IS NOT NULL)
-    OR
-    (outcome <> 'resolved'
-      AND target_version_id IS NULL
-      AND target_symbol_id IS NULL)
-  )
-) STRICT;
-
-CREATE TABLE IF NOT EXISTS resolution_pending_deltas (
-  view_id TEXT NOT NULL,
-  delta_generation INTEGER NOT NULL,
-  version_id INTEGER NOT NULL,
-  pending_relationship_id TEXT NOT NULL CHECK (length(pending_relationship_id) > 0),
-  operation TEXT NOT NULL CHECK (operation IN ('replace', 'tombstone')),
-  target_version_id INTEGER,
-  target_symbol_id TEXT,
-  tier INTEGER,
-  confidence REAL,
-  method TEXT,
-  PRIMARY KEY (view_id, delta_generation, version_id, pending_relationship_id),
-  FOREIGN KEY (view_id, delta_generation)
-    REFERENCES resolution_deltas(view_id, delta_generation) ON DELETE CASCADE,
-  FOREIGN KEY (version_id) REFERENCES file_versions(version_id) ON DELETE RESTRICT,
-  CHECK (
-    (operation = 'replace'
-      AND target_version_id IS NOT NULL
-      AND target_symbol_id IS NOT NULL
-      AND tier IS NOT NULL
-      AND confidence IS NOT NULL
-      AND method IS NOT NULL)
-    OR
-    (operation = 'tombstone'
-      AND target_version_id IS NULL
-      AND target_symbol_id IS NULL
-      AND tier IS NULL
-      AND confidence IS NULL
-      AND method IS NULL)
-  )
-) STRICT;
-
-CREATE TABLE IF NOT EXISTS resolution_pins (
-  pin_id TEXT PRIMARY KEY CHECK (length(pin_id) > 0),
-  owner_kind TEXT NOT NULL CHECK (owner_kind IN ('reader', 'resolve')),
-  owner_id TEXT NOT NULL CHECK (length(owner_id) > 0),
-  view_id TEXT NOT NULL,
-  manifest_generation INTEGER NOT NULL CHECK (manifest_generation > 0),
-  base_id TEXT NOT NULL,
-  delta_generation INTEGER,
-  expires_at TEXT NOT NULL CHECK (
-    length(expires_at) BETWEEN 20 AND 30
-      AND substr(expires_at, 5, 1) = '-'
-      AND substr(expires_at, 8, 1) = '-'
-      AND substr(expires_at, 11, 1) = 'T'
-      AND substr(expires_at, 14, 1) = ':'
-      AND substr(expires_at, 17, 1) = ':'
-      AND substr(expires_at, -1, 1) = 'Z'
-      AND strftime('%Y-%m-%dT%H:%M:%S', expires_at) = substr(expires_at, 1, 19)
-      AND (
-        length(expires_at) = 20
-        OR (
-          substr(expires_at, 20, 1) = '.'
-          AND length(expires_at) >= 22
-          AND substr(expires_at, 21, length(expires_at) - 21) NOT GLOB '*[^0-9]*'
-        )
-      )
-  ),
-  created_at TEXT NOT NULL CHECK (
-    length(created_at) BETWEEN 20 AND 30
-      AND substr(created_at, 5, 1) = '-'
-      AND substr(created_at, 8, 1) = '-'
-      AND substr(created_at, 11, 1) = 'T'
-      AND substr(created_at, 14, 1) = ':'
-      AND substr(created_at, 17, 1) = ':'
-      AND substr(created_at, -1, 1) = 'Z'
-      AND strftime('%Y-%m-%dT%H:%M:%S', created_at) = substr(created_at, 1, 19)
-      AND (
-        length(created_at) = 20
-        OR (
-          substr(created_at, 20, 1) = '.'
-          AND length(created_at) >= 22
-          AND substr(created_at, 21, length(created_at) - 21) NOT GLOB '*[^0-9]*'
-        )
-      )
-  ),
-  FOREIGN KEY (view_id, manifest_generation)
-    REFERENCES manifests(view_id, generation) ON DELETE NO ACTION,
-  FOREIGN KEY (base_id) REFERENCES resolution_bases(base_id) ON DELETE NO ACTION,
-  FOREIGN KEY (view_id, delta_generation)
-    REFERENCES resolution_deltas(view_id, delta_generation) ON DELETE NO ACTION
 ) STRICT;
 
 CREATE TABLE IF NOT EXISTS store_log (
@@ -1127,145 +1145,12 @@ CREATE UNIQUE INDEX IF NOT EXISTS uidx_read_manifests_hash
   ON manifests(view_id, manifest_hash);
 CREATE INDEX IF NOT EXISTS idx_read_manifest_entries_version
   ON manifest_entries(version_id, view_id, generation);
-CREATE UNIQUE INDEX IF NOT EXISTS uidx_read_resolution_bases_identity
-  ON resolution_bases(manifest_hash, resolver_output_epoch);
-CREATE INDEX IF NOT EXISTS idx_read_resolution_base_versions_version
-  ON resolution_base_versions(version_id, base_id);
-CREATE INDEX IF NOT EXISTS idx_read_resolution_deltas_base
-  ON resolution_deltas(base_id, view_id, delta_generation);
-CREATE INDEX IF NOT EXISTS idx_read_resolution_identifier_deltas_target
-  ON resolution_identifier_deltas(target_version_id, target_symbol_id, view_id, delta_generation);
-CREATE INDEX IF NOT EXISTS idx_gc_resolution_identifier_deltas_version
-  ON resolution_identifier_deltas(version_id, view_id, delta_generation, identifier_id);
-CREATE INDEX IF NOT EXISTS idx_read_resolution_pending_deltas_target
-  ON resolution_pending_deltas(target_version_id, target_symbol_id, view_id, delta_generation);
-CREATE INDEX IF NOT EXISTS idx_gc_resolution_pending_deltas_version
-  ON resolution_pending_deltas(version_id, view_id, delta_generation, pending_relationship_id);
-CREATE INDEX IF NOT EXISTS idx_read_resolution_pins_owner_expiry
-  ON resolution_pins(owner_kind, owner_id, expires_at, pin_id);
-CREATE INDEX IF NOT EXISTS idx_read_resolution_pins_bound
-  ON resolution_pins(view_id, manifest_generation, base_id, delta_generation);
 CREATE UNIQUE INDEX IF NOT EXISTS uidx_read_store_log_terminal_request
   ON store_log(request_id) WHERE terminal = 1;
 CREATE INDEX IF NOT EXISTS idx_read_store_log_request
   ON store_log(request_id, sequence);
 CREATE UNIQUE INDEX IF NOT EXISTS uidx_read_request_chunks_log_sequence
   ON request_chunks(store_log_sequence);
-
-CREATE TRIGGER IF NOT EXISTS trg_resolution_delta_ready_base_insert
-BEFORE INSERT ON resolution_deltas
-WHEN NOT EXISTS (
-  SELECT 1 FROM resolution_bases AS base
-  WHERE base.base_id = NEW.base_id
-    AND base.state = 'ready'
-    AND base.resolver_output_epoch = NEW.resolver_output_epoch
-)
-BEGIN
-  SELECT RAISE(ABORT, 'resolution delta requires a ready base at the same resolver epoch');
-END;
-
-CREATE TRIGGER IF NOT EXISTS trg_resolution_delta_ready_base_update
-BEFORE UPDATE OF base_id, resolver_output_epoch ON resolution_deltas
-WHEN NOT EXISTS (
-  SELECT 1 FROM resolution_bases AS base
-  WHERE base.base_id = NEW.base_id
-    AND base.state = 'ready'
-    AND base.resolver_output_epoch = NEW.resolver_output_epoch
-)
-BEGIN
-  SELECT RAISE(ABORT, 'resolution delta requires a ready base at the same resolver epoch');
-END;
-
-CREATE TRIGGER IF NOT EXISTS trg_resolution_delta_manifest_insert
-BEFORE INSERT ON resolution_deltas
-WHEN NOT EXISTS (
-  SELECT 1 FROM manifests AS manifest
-  WHERE manifest.view_id = NEW.view_id
-    AND manifest.generation = NEW.manifest_generation
-    AND manifest.manifest_hash = NEW.manifest_hash
-)
-BEGIN
-  SELECT RAISE(ABORT, 'resolution delta manifest identity is incoherent');
-END;
-
-CREATE TRIGGER IF NOT EXISTS trg_resolution_delta_manifest_update
-BEFORE UPDATE OF view_id, manifest_generation, manifest_hash ON resolution_deltas
-WHEN NOT EXISTS (
-  SELECT 1 FROM manifests AS manifest
-  WHERE manifest.view_id = NEW.view_id
-    AND manifest.generation = NEW.manifest_generation
-    AND manifest.manifest_hash = NEW.manifest_hash
-)
-BEGIN
-  SELECT RAISE(ABORT, 'resolution delta manifest identity is incoherent');
-END;
-
-CREATE TRIGGER IF NOT EXISTS trg_resolution_base_referenced_ready_update
-BEFORE UPDATE OF state, resolver_output_epoch ON resolution_bases
-WHEN EXISTS (
-  SELECT 1 FROM resolution_deltas AS delta
-  WHERE delta.base_id = OLD.base_id
-    AND (NEW.state <> 'ready' OR NEW.resolver_output_epoch <> delta.resolver_output_epoch)
-)
-BEGIN
-  SELECT RAISE(ABORT, 'referenced resolution base must remain ready at its published epoch');
-END;
-
-CREATE TRIGGER IF NOT EXISTS trg_resolution_pin_tuple_insert
-BEFORE INSERT ON resolution_pins
-WHEN NEW.delta_generation IS NOT NULL AND NOT EXISTS (
-  SELECT 1 FROM resolution_deltas AS delta
-  WHERE delta.view_id = NEW.view_id
-    AND delta.delta_generation = NEW.delta_generation
-    AND delta.base_id = NEW.base_id
-    AND delta.manifest_generation = NEW.manifest_generation
-)
-BEGIN
-  SELECT RAISE(ABORT, 'resolution pin delta does not match its bound tuple');
-END;
-
-CREATE TRIGGER IF NOT EXISTS trg_resolution_pin_tuple_update
-BEFORE UPDATE OF view_id, manifest_generation, base_id, delta_generation ON resolution_pins
-WHEN NEW.delta_generation IS NOT NULL AND NOT EXISTS (
-  SELECT 1 FROM resolution_deltas AS delta
-  WHERE delta.view_id = NEW.view_id
-    AND delta.delta_generation = NEW.delta_generation
-    AND delta.base_id = NEW.base_id
-    AND delta.manifest_generation = NEW.manifest_generation
-)
-BEGIN
-  SELECT RAISE(ABORT, 'resolution pin delta does not match its bound tuple');
-END;
-
-CREATE TRIGGER IF NOT EXISTS trg_view_resolution_tuple_insert
-BEFORE INSERT ON views
-WHEN NEW.resolution_state <> 'unbound' AND NOT EXISTS (
-  SELECT 1 FROM resolution_deltas AS delta
-  JOIN resolution_bases AS base ON base.base_id = delta.base_id
-  WHERE delta.view_id = NEW.view_id
-    AND delta.delta_generation = NEW.resolution_delta_generation
-    AND delta.base_id = NEW.resolution_base_id
-    AND delta.manifest_generation = NEW.current_generation
-    AND base.state = 'ready'
-)
-BEGIN
-  SELECT RAISE(ABORT, 'view resolution binding is incoherent');
-END;
-
-CREATE TRIGGER IF NOT EXISTS trg_view_resolution_tuple_update
-BEFORE UPDATE OF current_generation, resolution_state, resolution_base_id, resolution_delta_generation ON views
-WHEN NEW.resolution_state <> 'unbound' AND NOT EXISTS (
-  SELECT 1 FROM resolution_deltas AS delta
-  JOIN resolution_bases AS base ON base.base_id = delta.base_id
-  WHERE delta.view_id = NEW.view_id
-    AND delta.delta_generation = NEW.resolution_delta_generation
-    AND delta.base_id = NEW.resolution_base_id
-    AND delta.manifest_generation = NEW.current_generation
-    AND base.state = 'ready'
-)
-BEGIN
-  SELECT RAISE(ABORT, 'view resolution binding is incoherent');
-END;
 
 PRAGMA user_version = 2;
 COMMIT;
@@ -1438,8 +1323,6 @@ CREATE INDEX IF NOT EXISTS idx_read_requests_queue
   ON requests(state, created_at, request_id);
 CREATE INDEX IF NOT EXISTS idx_read_requests_stale
   ON requests(state, claim_heartbeat_at, request_id);
-CREATE UNIQUE INDEX IF NOT EXISTS uidx_coord_one_claimed_resolve
-  ON requests(kind) WHERE kind = 'resolve' AND state = 'claimed';
 
 PRAGMA user_version = 2;
 COMMIT;

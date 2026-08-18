@@ -203,7 +203,7 @@ fn coordinator_store_transactions_obey_the_generation_write_fence() {
 }
 
 #[test]
-fn schema_v2_request_kinds_roundtrip_and_only_one_resolve_may_be_claimed() {
+fn schema_v2_request_kinds_roundtrip_and_historical_resolve_rows_remain_claimable() {
     let temp = TempDir::new();
     let layout = layout(temp.path());
     let mut coordinator = StoreCoordinator::open(&layout).unwrap();
@@ -268,15 +268,13 @@ fn schema_v2_request_kinds_roundtrip_and_only_one_resolve_may_be_claimed() {
             [],
         )
         .unwrap();
-    assert!(
-        connection
-            .execute(
-                "UPDATE requests SET state='claimed', claim_owner='owner-b', claim_heartbeat_at=10
-                 WHERE request_id='request-4'",
-                [],
-            )
-            .is_err()
-    );
+    connection
+        .execute(
+            "UPDATE requests SET state='claimed', claim_owner='owner-b', claim_heartbeat_at=10
+             WHERE request_id='request-4'",
+            [],
+        )
+        .unwrap();
     connection
         .execute(
             "UPDATE requests SET state='claimed', claim_owner='owner-b', claim_heartbeat_at=10

@@ -182,11 +182,11 @@ Plan-package commit ownership: this plan file is currently UNTRACKED in the main
 **What to build:** The retirement migration, correctly ordered. The `views` table holds FOREIGN KEYS into `resolution_bases`/`resolution_deltas` (`store/schema.rs:625/:690`) with `foreign_keys=ON` (`:99`), and triggers reference resolution tables (`:1240`) — a naive `DROP TABLE` fails for bound views. The migration is one transaction: rebuild `views` preserving every column and value while removing the two resolution FKs and retired triggers, then drop scope/pin/delta/base objects child-first, then run `PRAGMA foreign_key_check`. It runs on WRITER opens only (store connection + coordinator), is idempotent, and read-only opens never mutate. Then the maintenance retarget (reap instead of repair) and the regenerated schema catalogs with their conformance tests.
 
 **Acceptance criteria:**
-- [ ] Fresh store: `sqlite_master` has zero `resolution_*` / `*_scope_*` objects; coordinator has no resolve index; `foreign_key_check` clean
-- [ ] Legacy-store matrix green: read-only open mutates NOTHING; first writer open migrates (views column values preserved — asserted value-by-value; fact tables byte-identical; `bases/` + both scratch families reaped); second open is an idempotent no-op; migrated catalog equals the fresh-store catalog
-- [ ] Generation promotion/rollback, manifest publication, and coordinator reconcile green without resolution objects (targeted tests)
-- [ ] Schema contract tests green against the regenerated store catalog and the new artifact v7 catalog
-- [ ] Worker scope green; worker commits (serial-worker-commit)
+- [x] Fresh store: `sqlite_master` has zero `resolution_*` / `*_scope_*` objects; coordinator has no resolve index; `foreign_key_check` clean
+- [x] Legacy-store matrix green: read-only open mutates NOTHING; first writer open migrates (views column values preserved — asserted value-by-value; fact tables byte-identical; `bases/` + both scratch families reaped); second open is an idempotent no-op; migrated catalog equals the fresh-store catalog
+- [x] Generation promotion/rollback, manifest publication, and coordinator reconcile green without resolution objects (targeted tests)
+- [x] Schema contract tests green against the regenerated store catalog and the new artifact v7 catalog
+- [x] Worker scope green; worker commits (serial-worker-commit)
 
 ### Task 6: Documentation retirement, test tiers, release prep
 

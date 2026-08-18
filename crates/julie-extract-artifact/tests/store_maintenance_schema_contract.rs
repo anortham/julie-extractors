@@ -5,23 +5,22 @@ use julie_extract_artifact::store::{
 use rusqlite::Connection;
 
 #[test]
-fn resolution_delta_gc_indexes_start_with_version_id() {
+fn retired_resolution_gc_indexes_are_absent() {
     let connection = Connection::open_in_memory().unwrap();
     create_store_schema(&connection).unwrap();
-
-    assert_eq!(
-        index_columns(&connection, "idx_gc_resolution_identifier_deltas_version"),
-        vec!["version_id", "view_id", "delta_generation", "identifier_id"]
-    );
-    assert_eq!(
-        index_columns(&connection, "idx_gc_resolution_pending_deltas_version"),
-        vec![
-            "version_id",
-            "view_id",
-            "delta_generation",
-            "pending_relationship_id",
-        ]
-    );
+    for name in [
+        "idx_gc_resolution_identifier_deltas_version",
+        "idx_gc_resolution_pending_deltas_version",
+    ] {
+        let exists: bool = connection
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='index' AND name=?1)",
+                [name],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(!exists, "{name} must not exist after resolution retirement");
+    }
 }
 
 #[test]
@@ -235,10 +234,6 @@ fn lifecycle_catalog_enums_share_the_storage_vocabulary() {
     assert_eq!(
         FamilyAllocatorKind::ManifestGeneration.as_str(),
         "manifest_generation"
-    );
-    assert_eq!(
-        FamilyAllocatorKind::ResolutionDeltaGeneration.as_str(),
-        "resolution_delta_generation"
     );
 }
 

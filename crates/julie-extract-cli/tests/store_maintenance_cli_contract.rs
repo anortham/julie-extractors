@@ -478,32 +478,11 @@ fn repair_without_a_selectable_generation_reports_repair_unavailable() {
 }
 
 #[test]
-fn unknown_resolution_root_reports_integrity_failure_without_mutation() {
+fn inspect_of_a_store_without_resolution_objects_succeeds() {
     let fixture = tempfile::tempdir().unwrap();
     let store = fixture.path().join("store");
     StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
     let store_db = store.join("gen-001/store.db");
-    let connection = rusqlite::Connection::open(&store_db).unwrap();
-    connection
-        .execute_batch("PRAGMA foreign_keys=OFF;")
-        .unwrap();
-    connection
-        .execute(
-            "INSERT INTO resolution_bases
-             (base_id,manifest_hash,resolver_output_epoch,state,relative_path,
-              identifier_count,pending_count,file_bytes,file_sha256,request_id,created_at,updated_at)
-             VALUES ('missing-base','sha256:manifest',1,'building','bases/missing.db',
-                     0,0,NULL,NULL,'maintenance-test','2026-08-09T00:00:00Z','2026-08-09T00:00:00Z')",
-            [],
-        )
-        .unwrap();
-    connection
-        .execute(
-            "INSERT INTO resolution_base_versions(base_id,version_id) VALUES ('missing-base',999)",
-            [],
-        )
-        .unwrap();
-    drop(connection);
     let store_before = std::fs::read(&store_db).unwrap();
 
     let output = julie_extract(&[
@@ -515,12 +494,11 @@ fn unknown_resolution_root_reports_integrity_failure_without_mutation() {
         "--json",
     ]);
 
-    assert_eq!(output.status.code(), Some(1));
+    assert_eq!(output.status.code(), Some(0));
     assert!(output.stderr.is_empty());
-    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert_eq!(report["failure_class"], "integrity_failed");
-    assert_eq!(report["error"]["code"], "unknown_maintenance_root");
     assert_eq!(std::fs::read(&store_db).unwrap(), store_before);
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["failure_class"], "none");
 }
 
 #[test]
@@ -712,12 +690,12 @@ fn maintenance_report_json_and_human_snapshots_are_stable() {
                 "target_bytes": 0,
                 "ceiling_bytes": 0,
                 "pressure": false,
-                "physical_current_bytes": 593920,
-                "physical_bytes_before_gc": 593920,
+                "physical_current_bytes": 442368,
+                "physical_bytes_before_gc": 442368,
                 "physical_bytes_after_gc": 0,
-                "physical_baseline_bytes": 593920,
-                "physical_target_bytes": 712704,
-                "physical_ceiling_bytes": 742400,
+                "physical_baseline_bytes": 442368,
+                "physical_target_bytes": 530841,
+                "physical_ceiling_bytes": 552960,
                 "physical_target_breached": false,
                 "physical_ceiling_breached": false,
                 "physical_breach_limit": 3,

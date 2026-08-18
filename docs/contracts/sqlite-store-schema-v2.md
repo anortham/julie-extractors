@@ -2,6 +2,14 @@
 
 Status: frozen Ph2d lifecycle catalog authority.
 
+> **2026-08-18 retirement:** store/coord stay schema v2. Writer open rebuilds
+> `views` without the two resolution foreign keys, then drops every
+> `resolution_*` table, index, trigger, and scope-journal object. View
+> `resolution_state`, `resolution_base_id`, `resolution_delta_generation`, and
+> `resolution_exact_at` columns and values stay. `uidx_coord_one_claimed_resolve`
+> is dropped. The catalog fingerprints below are the post-retirement v2
+> authority. Historical resolution DDL below is no longer created.
+
 All ordinary tables are `STRICT`. `store.db` timestamps are canonical RFC 3339 UTC text
 (`YYYY-MM-DDTHH:MM:SS[.fraction]Z`, with one to nine fractional digits when present); `coord.db`
 times are injected Unix-millisecond integers. Both databases use `PRAGMA user_version = 2`.
@@ -13,8 +21,8 @@ each non-internal `sqlite_master` row with non-null SQL as
 hashes the UTF-8 bytes with SHA-256.
 
 ```text catalog-authority
-store-catalog-sha256: 8e3c0f254f06824c93307104063b0fef3dc7dc1eedec49d3665807942d410a2e
-coordinator-catalog-sha256: 633e93a3a5d162b56248656410c6e4ce849795e067bff02a31dc85ce4328c02d
+store-catalog-sha256: c3786c3d483dc554c6170efe7b5bb6d97360ca05f2713d1c04ed0f0c8111109c
+coordinator-catalog-sha256: 60268286b62c818b1137ddd06639bb63fd512b64d45d0a990c7737f993fe12f4
 ```
 
 ## Store catalog additions

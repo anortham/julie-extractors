@@ -50,7 +50,7 @@ For a spanless site, `span` and `containing_symbol_id` may be `null`; `is_exact`
 resolution tables empty, so that field is `null`. A prior artifact that still has overlay rows
 may still export a target through the leftover table join.
 
-The checked-in SQLite catalog fingerprint in `sqlite-schema-v6.catalog.sha256` is the authority
+The checked-in SQLite catalog fingerprint in `sqlite-schema-v7.catalog.sha256` is the authority
 for the corresponding artifact tables.
 
 ## Identifier `code_context`

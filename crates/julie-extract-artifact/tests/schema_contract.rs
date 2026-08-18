@@ -12,7 +12,7 @@ use rusqlite::Connection;
 use sha2::{Digest, Sha256};
 
 #[test]
-fn schema_creates_every_sqlite_v6_public_table_with_contract_columns() {
+fn schema_creates_every_sqlite_v7_public_table_with_contract_columns() {
     let conn = open_schema();
 
     let table_names: BTreeSet<_> = conn
@@ -35,7 +35,7 @@ fn schema_creates_every_sqlite_v6_public_table_with_contract_columns() {
         assert_eq!(
             table_columns(&conn, table.name),
             table.columns,
-            "{} columns drifted from sqlite-schema-v6.md",
+            "{} columns drifted from sqlite-schema-v7.md",
             table.name
         );
     }
@@ -57,13 +57,13 @@ fn schema_creates_every_sqlite_v6_public_table_with_contract_columns() {
 }
 
 #[test]
-fn schema_and_extract_contract_versions_are_v6_and_v4() {
-    assert_eq!(SQLITE_SCHEMA_VERSION, 6);
+fn schema_and_extract_contract_versions_are_v7_and_v4() {
+    assert_eq!(SQLITE_SCHEMA_VERSION, 7);
     assert_eq!(EXTRACT_CONTRACT_VERSION, 4);
 }
 
 #[test]
-fn sqlite_catalog_matches_checked_in_v6_authority() {
+fn sqlite_catalog_matches_checked_in_v7_authority() {
     let conn = open_schema();
     let mut statement = conn
         .prepare(
@@ -91,7 +91,7 @@ fn sqlite_catalog_matches_checked_in_v6_authority() {
 
     assert_eq!(
         fingerprint,
-        include_str!("../../../docs/contracts/sqlite-schema-v6.catalog.sha256").trim()
+        include_str!("../../../docs/contracts/sqlite-schema-v7.catalog.sha256").trim()
     );
 }
 
@@ -135,7 +135,7 @@ fn schema_rejects_nonexact_reference_sites_with_spans() {
         "INSERT INTO extraction_revisions
          (revision_id, operation, started_at, completed_at, binary_version,
           extract_contract_version, sqlite_schema_version, counts_json)
-         VALUES (1, 'scan', 't', 't', 'v', 4, 6, '{}');
+         VALUES (1, 'scan', 't', 't', 'v', 4, 7, '{}');
          INSERT INTO files
          (file_id, path, language, content_hash, content_bytes, indexed_at,
           last_revision_id, status)
@@ -154,37 +154,6 @@ fn schema_rejects_nonexact_reference_sites_with_spans() {
         .unwrap_err();
 
     assert!(error.to_string().contains("CHECK constraint failed"));
-}
-
-#[test]
-fn schema_creates_resolution_overlay_tables_with_contract_columns() {
-    // INVARIANT: both overlay tables exist with the exact design DDL columns.
-    let conn = open_schema();
-
-    assert_eq!(
-        table_columns(&conn, "pending_resolutions"),
-        vec![
-            "pending_relationship_id TEXT",
-            "target_symbol_id TEXT",
-            "tier INTEGER",
-            "confidence REAL",
-            "method TEXT",
-            "resolved_at_revision INTEGER",
-        ]
-    );
-    assert_eq!(
-        table_columns(&conn, "identifier_resolutions"),
-        vec![
-            "identifier_id TEXT",
-            "target_symbol_id TEXT",
-            "tier INTEGER",
-            "confidence REAL",
-            "method TEXT",
-            "outcome TEXT",
-            "candidates INTEGER",
-            "resolved_at_revision INTEGER",
-        ]
-    );
 }
 
 #[test]
@@ -234,7 +203,7 @@ fn schema_creates_required_indexes_with_contract_columns() {
         assert_eq!(
             index_columns(&conn, index.name),
             index.columns,
-            "{} columns drifted from sqlite-schema-v6.md",
+            "{} columns drifted from sqlite-schema-v7.md",
             index.name
         );
     }
@@ -418,7 +387,7 @@ fn metadata_required_keys_are_inserted_and_readable() {
     }
     assert_eq!(rows["artifact_id"], "artifact-test-1");
     assert_eq!(rows["root_path"], "/repo");
-    assert_eq!(rows["schema_version"], "6");
+    assert_eq!(rows["schema_version"], "7");
     assert_eq!(rows["extract_contract_version"], "4");
     assert_eq!(
         rows["sqlite_schema_version"],
@@ -996,34 +965,6 @@ fn expected_tables() -> Vec<ExpectedTable> {
             "evidence_json TEXT",
         ],
     );
-    // Resolution overlay (schema v4). Task 3 folds these into the row-domain
-    // contract so `report_row_domains_cover_every_sqlite_v3_public_table` and the
-    // column-contract test cover them.
-    tables.insert(
-        "pending_resolutions",
-        vec![
-            "pending_relationship_id TEXT",
-            "target_symbol_id TEXT",
-            "tier INTEGER",
-            "confidence REAL",
-            "method TEXT",
-            "resolved_at_revision INTEGER",
-        ],
-    );
-    tables.insert(
-        "identifier_resolutions",
-        vec![
-            "identifier_id TEXT",
-            "target_symbol_id TEXT",
-            "tier INTEGER",
-            "confidence REAL",
-            "method TEXT",
-            "outcome TEXT",
-            "candidates INTEGER",
-            "resolved_at_revision INTEGER",
-        ],
-    );
-
     tables
         .into_iter()
         .map(|(name, columns)| ExpectedTable { name, columns })
@@ -1280,16 +1221,6 @@ fn expected_indexes() -> Vec<ExpectedIndex> {
             name: "idx_diagnostics_file",
             table: "parse_diagnostics",
             columns: vec!["file_id"],
-        },
-        ExpectedIndex {
-            name: "idx_pending_resolutions_target",
-            table: "pending_resolutions",
-            columns: vec!["target_symbol_id"],
-        },
-        ExpectedIndex {
-            name: "idx_identifier_resolutions_target",
-            table: "identifier_resolutions",
-            columns: vec!["target_symbol_id"],
         },
         ExpectedIndex {
             name: "idx_language_capability_gaps_language",

@@ -619,8 +619,8 @@ fn scan_writes_facts_only_and_omits_resolution_metadata() {
 
     assert_success(scan(fixture.root_str(), &db));
 
-    assert_eq!(table_count(&db, "pending_resolutions"), 0);
-    assert_eq!(table_count(&db, "identifier_resolutions"), 0);
+    assert!(!table_exists(&db, "pending_resolutions"));
+    assert!(!table_exists(&db, "identifier_resolutions"));
     assert_eq!(
         metadata_optional(&db, "reference_resolution_version"),
         None
@@ -654,22 +654,6 @@ fn opening_a_prior_artifact_with_resolution_metadata_does_not_force_reextract() 
             "INSERT OR REPLACE INTO artifact_metadata (key, value)
              VALUES ('reference_resolution_status', 'complete')",
             [],
-        )
-        .unwrap();
-    let identifier_id: String = connection
-        .query_row(
-            "SELECT identifier_id FROM identifiers LIMIT 1",
-            [],
-            |row| row.get(0),
-        )
-        .unwrap();
-    connection
-        .execute(
-            "INSERT OR REPLACE INTO identifier_resolutions
-             (identifier_id, target_symbol_id, tier, confidence, method, outcome,
-              candidates, resolved_at_revision)
-             VALUES (?1, NULL, 1, 0.0, 'prior', 'missing', 0, 1)",
-            [&identifier_id],
         )
         .unwrap();
     drop(connection);
@@ -3581,7 +3565,20 @@ fn assert_success(output: Output) {
     );
 }
 
+fn table_exists(db: &Path, table: &str) -> bool {
+    let conn = Connection::open(db).unwrap();
+    conn.query_row(
+        "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name=?1)",
+        [table],
+        |row| row.get(0),
+    )
+    .unwrap()
+}
+
 fn table_count(db: &Path, table: &str) -> i64 {
+    if !table_exists(db, table) {
+        return 0;
+    }
     let conn = Connection::open(db).unwrap();
     conn.query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |row| {
         row.get(0)

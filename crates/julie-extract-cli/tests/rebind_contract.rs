@@ -134,9 +134,7 @@ fn drop_extraction_history(db: &Path) {
     let connection = Connection::open(db).unwrap();
     connection
         .execute_batch(
-            "DELETE FROM identifier_resolutions; \
-             DELETE FROM pending_resolutions; \
-             DELETE FROM files; \
+            "DELETE FROM files; \
              DELETE FROM revision_file_changes; \
              DELETE FROM extraction_revisions;",
         )

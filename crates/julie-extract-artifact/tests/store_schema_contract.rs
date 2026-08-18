@@ -1,8 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use julie_extract_artifact::store::{
-    ResolutionBaseRecord, ResolutionBaseState, ResolutionPendingOperation, ResolutionPinOwnerKind,
-    STORE_FORMAT_EPOCH, STORE_SQLITE_SCHEMA_VERSION, StoreSchemaError, ViewResolutionState,
+    STORE_FORMAT_EPOCH, STORE_SQLITE_SCHEMA_VERSION, StoreSchemaError,
     create_coordinator_schema, create_store_schema,
 };
 use rusqlite::{Connection, params};
@@ -23,6 +22,30 @@ fn store_and_coordinator_catalogs_match_the_checked_in_authority() {
 }
 
 #[test]
+fn views_keep_resolution_columns_without_resolution_foreign_keys() {
+    let store = open_store();
+    assert_eq!(
+        table_columns(&store, "views"),
+        vec![
+            "view_id TEXT",
+            "root TEXT",
+            "current_generation INTEGER",
+            "resolution_state TEXT",
+            "resolution_base_id TEXT",
+            "resolution_delta_generation INTEGER",
+            "resolution_exact_at INTEGER",
+            "created_at TEXT",
+            "updated_at TEXT",
+        ]
+    );
+    let fks = foreign_keys(&store, "views");
+    assert!(
+        fks.iter()
+            .all(|fk| fk.target_table != "resolution_bases" && fk.target_table != "resolution_deltas")
+    );
+}
+
+#[test]
 fn schemas_are_independent_strict_idempotent_version_two_catalogs() {
     assert_eq!(STORE_SQLITE_SCHEMA_VERSION, 2);
     assert_eq!(STORE_FORMAT_EPOCH, 1);
@@ -39,435 +62,6 @@ fn schemas_are_independent_strict_idempotent_version_two_catalogs() {
     assert_eq!(ordinary_tables(&coordinator), expected_coordinator_tables());
     assert_all_tables_strict(&store);
     assert_all_tables_strict(&coordinator);
-}
-
-#[test]
-fn resolution_scope_journal_is_an_additive_schema_v2_feature() {
-    let store = open_store();
-
-    assert_eq!(user_version(&store), 2);
-    assert_eq!(
-        store
-            .query_row(
-                "SELECT value FROM store_meta WHERE key='resolution_scope_journal_version'",
-                [],
-                |row| row.get::<_, String>(0),
-            )
-            .unwrap(),
-        "1"
-    );
-    assert_eq!(
-        table_columns(&store, "resolution_scope_state"),
-        vec![
-            "view_id TEXT",
-            "predecessor_manifest_generation INTEGER",
-            "predecessor_manifest_hash TEXT",
-            "base_id TEXT",
-            "delta_generation INTEGER",
-            "resolver_output_epoch INTEGER",
-            "current_manifest_generation INTEGER",
-            "current_manifest_hash TEXT",
-            "journal_through_transition_id INTEGER",
-        ]
-    );
-    assert_eq!(
-        table_columns(&store, "resolution_scope_batches"),
-        vec![
-            "transition_id INTEGER",
-            "view_id TEXT",
-            "previous_transition_id INTEGER",
-            "from_manifest_generation INTEGER",
-            "from_manifest_hash TEXT",
-            "to_manifest_generation INTEGER",
-            "to_manifest_hash TEXT",
-            "scope_usable INTEGER",
-            "predecessor_manifest_generation INTEGER",
-            "predecessor_manifest_hash TEXT",
-            "base_id TEXT",
-            "delta_generation INTEGER",
-            "resolver_output_epoch INTEGER",
-            "change_count INTEGER",
-            "change_hash TEXT",
-            "request_id TEXT",
-            "completed_at TEXT",
-        ]
-    );
-    assert_eq!(
-        table_columns(&store, "resolution_scope_journal"),
-        vec![
-            "transition_id INTEGER",
-            "path TEXT",
-            "change_kind TEXT",
-            "old_version_id INTEGER",
-            "new_version_id INTEGER",
-            "touched_names_json TEXT",
-        ]
-    );
-}
-
-#[test]
-fn resolution_scope_batches_reject_noncanonical_timestamps() {
-    let store = open_store();
-    store
-        .execute(
-            "INSERT INTO views(view_id,root,created_at,updated_at)
-             VALUES ('view-a','/repo','2026-08-11T12:00:00Z','2026-08-11T12:00:00Z')",
-            [],
-        )
-        .unwrap();
-    store
-        .execute(
-            "INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
-             VALUES ('view-a',1,'hash-a','request-a','2026-08-11T12:00:00Z')",
-            [],
-        )
-        .unwrap();
-
-    assert!(
-        store
-            .execute(
-                "INSERT INTO resolution_scope_batches
-                 (view_id,to_manifest_generation,to_manifest_hash,scope_usable,change_count,
-                  change_hash,request_id,completed_at)
-                 VALUES ('view-a',1,'hash-a',0,0,'sha256:empty','request-a','not-a-time')",
-                [],
-            )
-            .is_err()
-    );
-}
-
-#[test]
-fn resolution_scope_journal_change_kinds_constrain_absent_sides() {
-    let store = open_store();
-    store
-        .execute_batch(
-            "INSERT INTO file_versions
-             (version_id,path,content_hash,extraction_epoch,language,content_bytes,complete_l1)
-             VALUES (1,'src/a.rs','blake3:a',1,'rust',1,1);
-             INSERT INTO views(view_id,root,created_at,updated_at)
-             VALUES ('view-a','/repo','2026-08-11T12:00:00Z','2026-08-11T12:00:00Z');
-             INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
-             VALUES ('view-a',1,'hash-a','request-a','2026-08-11T12:00:00Z');
-             INSERT INTO resolution_scope_batches
-             (transition_id,view_id,to_manifest_generation,to_manifest_hash,scope_usable,
-              change_count,change_hash,request_id,completed_at)
-             VALUES (1,'view-a',1,'hash-a',0,0,'sha256:empty','request-a',
-                     '2026-08-11T12:00:00Z');",
-        )
-        .unwrap();
-
-    assert!(
-        store
-            .execute(
-                "INSERT INTO resolution_scope_journal
-                 (transition_id,path,change_kind,old_version_id,touched_names_json)
-                 VALUES (1,'src/a.rs','path_added',1,'[]')",
-                [],
-            )
-            .is_err()
-    );
-    assert!(
-        store
-            .execute(
-                "INSERT INTO resolution_scope_journal
-                 (transition_id,path,change_kind,new_version_id,touched_names_json)
-                 VALUES (1,'src/b.rs','path_deleted',1,'[]')",
-                [],
-            )
-            .is_err()
-    );
-}
-
-#[test]
-fn resolution_catalog_columns_are_frozen() {
-    let store = open_store();
-
-    assert_eq!(
-        table_columns(&store, "manifest_entries"),
-        vec![
-            "view_id TEXT",
-            "generation INTEGER",
-            "path TEXT",
-            "language TEXT",
-            "version_id INTEGER",
-            "status TEXT",
-            "observed_content_hash TEXT",
-            "indexed_at TEXT",
-            "error_class TEXT",
-            "error_json TEXT",
-        ]
-    );
-    assert_eq!(
-        table_columns(&store, "resolution_bases"),
-        vec![
-            "base_id TEXT",
-            "manifest_hash TEXT",
-            "resolver_output_epoch INTEGER",
-            "state TEXT",
-            "relative_path TEXT",
-            "identifier_count INTEGER",
-            "pending_count INTEGER",
-            "file_bytes INTEGER",
-            "file_sha256 TEXT",
-            "request_id TEXT",
-            "created_at TEXT",
-            "updated_at TEXT",
-        ]
-    );
-    assert_eq!(
-        table_columns(&store, "resolution_base_versions"),
-        vec!["base_id TEXT", "version_id INTEGER"]
-    );
-    assert_eq!(
-        table_columns(&store, "resolution_deltas"),
-        vec![
-            "view_id TEXT",
-            "delta_generation INTEGER",
-            "base_id TEXT",
-            "manifest_generation INTEGER",
-            "manifest_hash TEXT",
-            "resolver_output_epoch INTEGER",
-            "identifier_replacements INTEGER",
-            "pending_replacements INTEGER",
-            "pending_tombstones INTEGER",
-            "exact_gap_rows INTEGER",
-            "exact_gap_files INTEGER",
-            "exact_gap_json TEXT",
-            "request_id TEXT",
-            "created_at TEXT",
-        ]
-    );
-    assert_eq!(
-        table_columns(&store, "resolution_identifier_deltas"),
-        vec![
-            "view_id TEXT",
-            "delta_generation INTEGER",
-            "version_id INTEGER",
-            "identifier_id TEXT",
-            "target_version_id INTEGER",
-            "target_symbol_id TEXT",
-            "tier INTEGER",
-            "confidence REAL",
-            "method TEXT",
-            "outcome TEXT",
-            "candidates INTEGER",
-        ]
-    );
-    assert_eq!(
-        table_columns(&store, "resolution_pending_deltas"),
-        vec![
-            "view_id TEXT",
-            "delta_generation INTEGER",
-            "version_id INTEGER",
-            "pending_relationship_id TEXT",
-            "operation TEXT",
-            "target_version_id INTEGER",
-            "target_symbol_id TEXT",
-            "tier INTEGER",
-            "confidence REAL",
-            "method TEXT",
-        ]
-    );
-    assert_eq!(
-        table_columns(&store, "resolution_pins"),
-        vec![
-            "pin_id TEXT",
-            "owner_kind TEXT",
-            "owner_id TEXT",
-            "view_id TEXT",
-            "manifest_generation INTEGER",
-            "base_id TEXT",
-            "delta_generation INTEGER",
-            "expires_at TEXT",
-            "created_at TEXT",
-        ]
-    );
-}
-
-#[test]
-fn resolution_catalog_models_have_stable_storage_values() {
-    assert_eq!(ResolutionBaseState::Building.as_str(), "building");
-    assert_eq!(ResolutionBaseState::Ready.as_str(), "ready");
-    assert_eq!(ResolutionPendingOperation::Replace.as_str(), "replace");
-    assert_eq!(ResolutionPendingOperation::Tombstone.as_str(), "tombstone");
-    assert_eq!(ResolutionPinOwnerKind::Reader.as_str(), "reader");
-    assert_eq!(ResolutionPinOwnerKind::Resolve.as_str(), "resolve");
-    assert_eq!(ViewResolutionState::Unbound.as_str(), "unbound");
-    assert_eq!(ViewResolutionState::Converging.as_str(), "converging");
-    assert_eq!(ViewResolutionState::Exact.as_str(), "exact");
-
-    let row = ResolutionBaseRecord {
-        base_id: "base-a".to_string(),
-        manifest_hash: "hash-a".to_string(),
-        resolver_output_epoch: 1,
-        state: ResolutionBaseState::Building,
-        relative_path: "bases/base-a.db".to_string(),
-        identifier_count: 0,
-        pending_count: 0,
-        file_bytes: None,
-        file_sha256: None,
-        request_id: "request-a".to_string(),
-        created_at: "2026-08-08T12:00:00Z".to_string(),
-        updated_at: "2026-08-08T12:00:00Z".to_string(),
-    };
-    assert_eq!(row.state, ResolutionBaseState::Building);
-}
-
-#[test]
-fn resolution_catalog_state_and_binding_coherence_are_enforced() {
-    let store = open_store();
-    let timestamp = "2026-08-08T12:00:00Z";
-    store
-        .execute(
-            "INSERT INTO file_versions
-             (path,content_hash,extraction_epoch,language,content_bytes,complete_l1,complete_l2)
-             VALUES ('src/a.rs','blake3:a',1,'rust',1,1,2)",
-            [],
-        )
-        .unwrap();
-    store
-        .execute(
-            "INSERT INTO views(view_id,root,created_at,updated_at)
-             VALUES ('view-a','/repo',?1,?1)",
-            [timestamp],
-        )
-        .unwrap();
-    for generation in [1, 2] {
-        store
-            .execute(
-                "INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
-                 VALUES ('view-a',?1,?2,?3,?4)",
-                rusqlite::params![
-                    generation,
-                    format!("hash-{generation}"),
-                    format!("manifest-{generation}"),
-                    timestamp
-                ],
-            )
-            .unwrap();
-    }
-    store
-        .execute(
-            "INSERT INTO resolution_bases
-             (base_id,manifest_hash,resolver_output_epoch,state,relative_path,
-              identifier_count,pending_count,request_id,created_at,updated_at)
-             VALUES ('base-a','hash-1',1,'building','bases/base-a.db',0,0,'request-a',?1,?1)",
-            [timestamp],
-        )
-        .unwrap();
-    assert!(
-        store
-            .execute(
-                "INSERT INTO resolution_deltas
-                 (view_id,delta_generation,base_id,manifest_generation,manifest_hash,
-                  resolver_output_epoch,identifier_replacements,pending_replacements,
-                  pending_tombstones,exact_gap_rows,exact_gap_files,exact_gap_json,request_id,created_at)
-                 VALUES ('view-a',1,'base-a',1,'hash-1',1,0,0,0,0,0,'[]','request-a',?1)",
-                [timestamp],
-            )
-            .is_err()
-    );
-    store
-        .execute(
-            "UPDATE resolution_bases
-             SET state='ready',file_bytes=1,file_sha256='sha256:a',updated_at=?1
-             WHERE base_id='base-a'",
-            [timestamp],
-        )
-        .unwrap();
-    store
-        .execute(
-            "INSERT INTO resolution_base_versions(base_id,version_id) VALUES ('base-a',1)",
-            [],
-        )
-        .unwrap();
-    assert!(
-        store
-            .execute(
-                "INSERT INTO resolution_deltas
-                 (view_id,delta_generation,base_id,manifest_generation,manifest_hash,
-                  resolver_output_epoch,identifier_replacements,pending_replacements,
-                  pending_tombstones,exact_gap_rows,exact_gap_files,exact_gap_json,request_id,created_at)
-                 VALUES ('view-a',2,'base-a',2,'wrong-hash',1,0,0,0,0,0,'[]','request-b',?1)",
-                [timestamp],
-            )
-            .is_err()
-    );
-    store
-        .execute(
-            "INSERT INTO resolution_deltas
-             (view_id,delta_generation,base_id,manifest_generation,manifest_hash,
-              resolver_output_epoch,identifier_replacements,pending_replacements,
-              pending_tombstones,exact_gap_rows,exact_gap_files,exact_gap_json,request_id,created_at)
-             VALUES ('view-a',1,'base-a',1,'hash-1',1,0,0,0,0,0,'[]','request-a',?1)",
-            [timestamp],
-        )
-        .unwrap();
-    assert!(
-        store
-            .execute(
-                "UPDATE views SET current_generation=2,resolution_state='converging',
-                        resolution_base_id='base-a',resolution_delta_generation=1
-                 WHERE view_id='view-a'",
-                [],
-            )
-            .is_err()
-    );
-    assert!(
-        store
-            .execute(
-                "INSERT INTO resolution_pins
-                 (pin_id,owner_kind,owner_id,view_id,manifest_generation,base_id,
-                  delta_generation,expires_at,created_at)
-                 VALUES ('pin-bad','reader','reader-a','view-a',2,'base-a',1,?1,?1)",
-                [timestamp],
-            )
-            .is_err()
-    );
-    store
-        .execute(
-            "INSERT INTO resolution_pins
-             (pin_id,owner_kind,owner_id,view_id,manifest_generation,base_id,
-              delta_generation,expires_at,created_at)
-             VALUES ('pin-a','reader','reader-a','view-a',1,'base-a',1,?1,?1)",
-            [timestamp],
-        )
-        .unwrap();
-    store
-        .execute(
-            "UPDATE views SET current_generation=1,resolution_state='converging',
-                    resolution_base_id='base-a',resolution_delta_generation=1
-             WHERE view_id='view-a'",
-            [],
-        )
-        .unwrap();
-    assert!(
-        store
-            .execute(
-                "UPDATE views SET resolution_state='exact',resolution_exact_at=2
-                 WHERE view_id='view-a'",
-                [],
-            )
-            .is_err()
-    );
-    store
-        .execute(
-            "UPDATE views SET resolution_state='exact',resolution_exact_at=1
-             WHERE view_id='view-a'",
-            [],
-        )
-        .unwrap();
-    assert!(
-        store
-            .execute(
-                "UPDATE resolution_bases
-                 SET state='building',file_bytes=NULL,file_sha256=NULL
-                 WHERE base_id='base-a'",
-                [],
-            )
-            .is_err()
-    );
-    assert!(store.execute_batch("PRAGMA foreign_key_check").is_ok());
 }
 
 #[test]
@@ -498,10 +92,6 @@ fn store_meta_seeds_only_schema_and_retention_defaults() {
             (
                 "store_format_epoch".to_string(),
                 STORE_FORMAT_EPOCH.to_string(),
-            ),
-            (
-                "resolution_scope_journal_version".to_string(),
-                "1".to_string(),
             ),
             (
                 "store_sqlite_schema_version".to_string(),
@@ -1418,15 +1008,6 @@ fn expected_store_tables() -> BTreeSet<String> {
         "reference_sites",
         "relationships",
         "request_chunks",
-        "resolution_base_versions",
-        "resolution_bases",
-        "resolution_deltas",
-        "resolution_identifier_deltas",
-        "resolution_pending_deltas",
-        "resolution_pins",
-        "resolution_scope_batches",
-        "resolution_scope_journal",
-        "resolution_scope_state",
         "source_regions",
         "store_log",
         "store_meta",
@@ -1885,14 +1466,6 @@ fn expected_store_indexes() -> BTreeMap<String, Vec<String>> {
         ),
         ("idx_gc_diagnostics_path", "version_id,path"),
         (
-            "idx_gc_resolution_identifier_deltas_version",
-            "version_id,view_id,delta_generation,identifier_id",
-        ),
-        (
-            "idx_gc_resolution_pending_deltas_version",
-            "version_id,view_id,delta_generation,pending_relationship_id",
-        ),
-        (
             "idx_gc_source_regions_export_order",
             "version_id,path,start_byte,end_byte,kind,source_region_id",
         ),
@@ -1953,42 +1526,6 @@ fn expected_store_indexes() -> BTreeMap<String, Vec<String>> {
             "version_id,view_id,generation",
         ),
         (
-            "idx_read_resolution_base_versions_version",
-            "version_id,base_id",
-        ),
-        (
-            "idx_read_resolution_deltas_base",
-            "base_id,view_id,delta_generation",
-        ),
-        (
-            "idx_read_resolution_identifier_deltas_target",
-            "target_version_id,target_symbol_id,view_id,delta_generation",
-        ),
-        (
-            "idx_read_resolution_pending_deltas_target",
-            "target_version_id,target_symbol_id,view_id,delta_generation",
-        ),
-        (
-            "idx_read_resolution_pins_bound",
-            "view_id,manifest_generation,base_id,delta_generation",
-        ),
-        (
-            "idx_read_resolution_pins_owner_expiry",
-            "owner_kind,owner_id,expires_at,pin_id",
-        ),
-        (
-            "idx_read_resolution_scope_batches_view",
-            "view_id,transition_id",
-        ),
-        (
-            "idx_read_resolution_scope_journal_versions",
-            "old_version_id,new_version_id,transition_id",
-        ),
-        (
-            "idx_read_resolution_scope_journal_kind",
-            "change_kind,transition_id,path",
-        ),
-        (
             "idx_read_pending_caller_scope",
             "caller_scope_symbol_id,version_id",
         ),
@@ -2047,10 +1584,6 @@ fn expected_store_indexes() -> BTreeMap<String, Vec<String>> {
         ),
         ("uidx_read_manifests_hash", "view_id,manifest_hash"),
         (
-            "uidx_read_resolution_bases_identity",
-            "manifest_hash,resolver_output_epoch",
-        ),
-        (
             "uidx_read_request_chunks_log_sequence",
             "store_log_sequence",
         ),
@@ -2074,7 +1607,6 @@ fn expected_coordinator_indexes() -> BTreeMap<String, Vec<String>> {
             "state,claim_heartbeat_at,request_id",
         ),
         ("uidx_read_requests_idempotency_key", "idempotency_key"),
-        ("uidx_coord_one_claimed_resolve", "kind"),
     ]
     .into_iter()
     .map(|(name, columns)| {

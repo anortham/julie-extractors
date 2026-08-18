@@ -675,8 +675,6 @@ pub(crate) fn table_totals(connection: &Connection) -> RowDomainCounts {
         structural_facts: table_count(connection, "structural_facts"),
         complexity_metrics: table_count(connection, "complexity_metrics"),
         parse_diagnostics: table_count(connection, "parse_diagnostics"),
-        pending_resolutions: table_count(connection, "pending_resolutions"),
-        identifier_resolutions: table_count(connection, "identifier_resolutions"),
     }
 }
 

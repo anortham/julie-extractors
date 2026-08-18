@@ -874,7 +874,7 @@ enum WriteProbe {
     ForcedScan,
 }
 
-const ARTIFACT_ROW_TABLES: [&str; 16] = [
+const ARTIFACT_ROW_TABLES: [&str; 14] = [
     "files",
     "symbols",
     "symbol_annotations",
@@ -882,8 +882,7 @@ const ARTIFACT_ROW_TABLES: [&str; 16] = [
     "identifiers",
     "relationships",
     "pending_relationships",
-    "pending_resolutions",
-    "identifier_resolutions",
+
     "type_facts",
     "type_argument_usages",
     "type_arguments",
@@ -2625,15 +2624,8 @@ fn identifier_containing(conn: &Connection, identifier_id: &str) -> Option<Strin
     .unwrap()
 }
 
-fn identifier_resolution_target(conn: &Connection, identifier_id: &str) -> Option<String> {
-    conn.query_row(
-        "SELECT target_symbol_id FROM identifier_resolutions WHERE identifier_id = ?1",
-        [identifier_id],
-        |row| row.get(0),
-    )
-    .optional()
-    .unwrap()
-    .flatten()
+fn identifier_resolution_target(_conn: &Connection, _identifier_id: &str) -> Option<String> {
+    None
 }
 
 fn symbols_for_path(conn: &Connection, path: &str) -> Vec<String> {

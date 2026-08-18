@@ -4,7 +4,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use julie_extract_artifact::store::{
     GenerationFence, StoreConnectionError, StoreConnectionFactory, StoreLayout, StoreLayoutError,
-    StoreSchemaError, create_coordinator_schema, create_store_schema, resolution_scope_state,
+    StoreSchemaError, create_coordinator_schema, create_store_schema,
 };
 use rusqlite::{Connection, OptionalExtension};
 
@@ -200,57 +200,36 @@ fn schema_v1_reader_and_writer_refuse_before_metadata_mutation() {
 }
 
 #[test]
-fn legacy_schema_v2_is_readable_and_scope_feature_installs_on_writer_open() {
+fn writer_open_does_not_install_resolution_scope_objects() {
     let temp = TempStore::new("legacy-v2-scope");
     let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
-    let connection = Connection::open(layout.store_db()).unwrap();
-    connection
-        .execute_batch(
-            "DROP TABLE resolution_scope_state;
-             DROP TABLE resolution_scope_journal;
-             DROP TABLE resolution_scope_batches;
-             DELETE FROM store_meta WHERE key='resolution_scope_journal_version';",
-        )
-        .unwrap();
-    drop(connection);
-    let factory = StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0");
+    let factory = StoreConnectionFactory::new(layout, "family-a", "2.30.0");
 
     let reader = factory.open_reader().unwrap();
     assert_eq!(
         reader
             .query_row(
-                "SELECT value FROM store_meta WHERE key='resolution_scope_journal_version'",
+                "SELECT COUNT(*) FROM sqlite_master
+                 WHERE name LIKE 'resolution_%'",
                 [],
-                |row| row.get::<_, String>(0),
+                |row| row.get::<_, i64>(0),
             )
-            .optional()
             .unwrap(),
-        None
+        0
     );
-    assert!(resolution_scope_state(&reader, "view-a").unwrap().is_none());
     drop(reader);
 
     let writer = factory.open_writer().unwrap();
     assert_eq!(
         writer
             .query_row(
-                "SELECT value FROM store_meta WHERE key='resolution_scope_journal_version'",
-                [],
-                |row| row.get::<_, String>(0),
-            )
-            .unwrap(),
-        "1"
-    );
-    assert_eq!(
-        writer
-            .query_row(
-                "SELECT COUNT(*) FROM sqlite_schema
-                 WHERE type='table' AND name LIKE 'resolution_scope_%'",
+                "SELECT COUNT(*) FROM sqlite_master
+                 WHERE name LIKE 'resolution_%'",
                 [],
                 |row| row.get::<_, i64>(0),
             )
             .unwrap(),
-        3
+        0
     );
 }
 
