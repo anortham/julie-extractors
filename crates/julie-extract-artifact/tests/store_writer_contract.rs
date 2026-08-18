@@ -1046,7 +1046,10 @@ fn writer_open_reaps_retired_reference_resolution_gap_rows() {
         writer
             .write_level(&request("request-legacy"), &first, StoreLevel::L1)
             .unwrap();
-        assert_eq!(table_count(writer.connection(), "language_capability_gaps"), 2);
+        assert_eq!(
+            table_count(writer.connection(), "language_capability_gaps"),
+            2
+        );
     }
 
     let mut writer = store.writer();
