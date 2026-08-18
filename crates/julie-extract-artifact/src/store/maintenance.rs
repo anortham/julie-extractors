@@ -996,6 +996,10 @@ impl<C: MaintenanceClock, P: CapacityProvider> MaintenanceInspector<C, P> {
     }
 
     pub fn inspect(&self) -> Result<MaintenancePlan, MaintenanceError> {
+        reap_retired_resolve_before_inspection(
+            self.factory.layout().coordinator_db(),
+            self.clock.now_ms(),
+        )?;
         let store = self.factory.open_reader()?;
         let coord = Connection::open_with_flags(
             self.factory.layout().coordinator_db(),
@@ -2387,6 +2391,17 @@ fn wall_now_ms() -> Result<i64, MaintenanceError> {
         field: "system_clock",
         value: "overflow".to_string(),
     })
+}
+
+fn reap_retired_resolve_before_inspection(
+    coordinator_db: &Path,
+    now: i64,
+) -> Result<(), MaintenanceError> {
+    let mut coord = open_maintenance_coordinator(coordinator_db)?;
+    let transaction = coord.transaction_with_behavior(TransactionBehavior::Immediate)?;
+    super::coordinator::reap_retired_resolve_rows(&transaction, now)?;
+    transaction.commit()?;
+    Ok(())
 }
 
 fn open_maintenance_coordinator(path: &Path) -> Result<Connection, MaintenanceError> {

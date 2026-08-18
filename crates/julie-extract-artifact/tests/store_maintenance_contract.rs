@@ -1402,7 +1402,9 @@ fn terminal_request_scratch_is_reaped_while_live_request_scratch_is_preserved() 
               created_at,updated_at)
              VALUES ('failed-request','failed-idem','resolve','{}','failed','cli',NULL,NULL,NULL,
                      NULL,NULL,'{}',1,1),
-                    ('live-request','live-idem','resolve','{}','queued','cli',NULL,NULL,NULL,
+                    ('leftover-request','leftover-idem','resolve','{}','queued','cli',NULL,NULL,NULL,
+                     NULL,NULL,NULL,1,1),
+                    ('live-request','live-idem','update','{}','queued','cli',NULL,NULL,NULL,
                      NULL,NULL,NULL,1,1)",
             [],
         )
@@ -1431,6 +1433,15 @@ fn terminal_request_scratch_is_reaped_while_live_request_scratch_is_preserved() 
     .unwrap();
     let report = executor.apply(&plan).unwrap();
 
+    let leftover_state: String = Connection::open(layout.coordinator_db())
+        .unwrap()
+        .query_row(
+            "SELECT state FROM requests WHERE request_id='leftover-request'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(leftover_state, "failed");
     assert_eq!(report.removed_scratch_files, 2);
     assert!(
         !layout
@@ -1955,7 +1966,7 @@ fn seed_store_matrix(layout: &StoreLayout) {
         "INSERT INTO requests
          (request_id,idempotency_key,kind,payload_json,state,requester_id,requester_deadline,
           claim_owner,claim_heartbeat_at,terminal_log_sequence,result_json,error_json,created_at,updated_at)
-         VALUES ('request-b','idem-b','resolve','{}','claimed','cli',NULL,'worker-a',2,
+         VALUES ('request-b','idem-b','update','{}','claimed','cli',NULL,'worker-a',2,
                  NULL,NULL,NULL,2,2)",
         [],
     ).unwrap();
