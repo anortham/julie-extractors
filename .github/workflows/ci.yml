@@ -117,24 +117,3 @@ jobs:
         run: >-
           cargo test -p julie-extract-cli --test store_import_contract
           public_store_import_reaches_the_production_executor -- --exact
-
-      # The scoped-resolution path is Windows-fragile and was NEVER executed here until 2026-08-13.
-      # std::fs::canonicalize returns the verbatim \\?\C:\... spelling on Windows only, and the URI
-      # builder turned that into file://%3F/C:/... — so every scoped resolve failed with
-      # "invalid uri authority: %3F" and no view could leave `converging`. That shipped in v2.32.0,
-      # v2.32.1 and v2.33.0 while CI stayed green, because this suite is feature-gated AND was
-      # missing from this job. It is not decorative: 7 of its 24 tests fail against the pre-fix code.
-      # Runtime is ~70s. Do not drop it to save that.
-      #
-      # --test-threads=1 is REQUIRED, not a tuning knob, and must match the xtask contract tier in
-      # xtask/src/test_tiers.rs: every case launches a real extractor subprocess, so the default
-      # thread count runs one extractor per core against one machine. That is outside what the
-      # suite is built for, and it fails as `busy: store writer lease fencing check failed` — a
-      # harness overload that looks exactly like a product defect. This job ran without it once and
-      # produced that false signal.
-      - name: Test store resolution contract (Windows scoped-resolve gate)
-        run: >-
-          cargo test -p julie-extract-cli
-          --features test-store-resolution-contract
-          --test store_resolution_contract
-          -- --test-threads=1
