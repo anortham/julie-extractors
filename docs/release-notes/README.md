@@ -9,7 +9,7 @@ published.
 
 Current notes:
 
-- `vNEXT.md` (unreleased draft for the resolution write-path retirement)
+- `v2.34.0.md` (resolution write-path retirement)
 - `v2.33.7.md` (current published release)
 - `v2.33.6.md`
 - `v2.33.5.md`

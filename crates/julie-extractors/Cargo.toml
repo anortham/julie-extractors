@@ -1,6 +1,6 @@
 [package]
 name = "julie-extractors"
-version = "2.33.7"
+version = "2.34.0"
 edition = "2024"
 authors = ["Alan"]
 description = "Tree-sitter extraction engine for julie-extract artifacts"
