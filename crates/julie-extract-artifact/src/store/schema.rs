@@ -169,6 +169,21 @@ fn retire_resolution_store_objects_in_open_transaction(
     Ok(())
 }
 
+/// Deletes retired `reference_resolution.*` capability gap rows written by pre-2.34 binaries.
+///
+/// Idempotent. The capability snapshot sync verifies per-epoch row counts, so leaving these
+/// rows in place makes every import into a pre-2.34 store fail with a capability snapshot
+/// conflict; exports already filter them the same way.
+pub(crate) fn reap_retired_resolution_capability_gaps(
+    conn: &Connection,
+) -> Result<(), StoreSchemaError> {
+    conn.execute(
+        "DELETE FROM language_capability_gaps WHERE capability LIKE 'reference_resolution.%'",
+        [],
+    )?;
+    Ok(())
+}
+
 /// Drops the retired one-claimed-resolve coordinator index.
 pub(crate) fn retire_coordinator_resolution_objects(
     conn: &Connection,

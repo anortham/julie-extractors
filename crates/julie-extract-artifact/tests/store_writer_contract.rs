@@ -1022,6 +1022,50 @@ fn projection_applies_v3_validity_filters_and_spanless_normalization() {
 }
 
 #[test]
+fn writer_open_reaps_retired_reference_resolution_gap_rows() {
+    let store = TestStore::new("retired-resolution-gaps");
+    {
+        let mut writer = store.writer();
+        let mut legacy = capability_snapshot();
+        legacy.languages[0]
+            .gaps
+            .push(ArtifactLanguageCapabilityGapRow {
+                gap_id: "rust-tier3-receiver".to_string(),
+                capability: "reference_resolution.tier3_receiver".to_string(),
+                status: CapabilityGapStatus::Open,
+                reason: "legacy".to_string(),
+                required_closure: "none".to_string(),
+                evidence: serde_json::json!({}),
+            });
+        writer.stage_capability_snapshot(1, legacy);
+        let first = StoreFileVersion::try_from_artifact_file(
+            1,
+            &fixture_file("src/lib.rs", "rust", "blake3:aaa"),
+        )
+        .unwrap();
+        writer
+            .write_level(&request("request-legacy"), &first, StoreLevel::L1)
+            .unwrap();
+        assert_eq!(table_count(writer.connection(), "language_capability_gaps"), 2);
+    }
+
+    let mut writer = store.writer();
+    assert_eq!(
+        table_count(writer.connection(), "language_capability_gaps"),
+        1
+    );
+    writer.stage_capability_snapshot(1, capability_snapshot());
+    let second = StoreFileVersion::try_from_artifact_file(
+        1,
+        &fixture_file("src/other.rs", "rust", "blake3:bbb"),
+    )
+    .unwrap();
+    writer
+        .write_level(&request("request-current"), &second, StoreLevel::L1)
+        .unwrap();
+}
+
+#[test]
 fn conflicting_capability_snapshot_for_an_existing_epoch_is_rejected() {
     let store = TestStore::new("capability-conflict");
     let mut writer = store.writer();

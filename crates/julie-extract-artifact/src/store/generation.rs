@@ -16,7 +16,7 @@ use super::layout::{
 use super::maintenance::{
     CapacityProvider, MaintenanceError, MaintenanceExecutor, MaintenancePlan, MaintenanceRun,
 };
-use super::schema::retire_resolution_store_objects;
+use super::schema::{reap_retired_resolution_capability_gaps, retire_resolution_store_objects};
 use super::{
     MaintenanceAction, PartialGenerationOwner, PidStatus, StoreConnectionError,
     StoreConnectionFactory, StoreLayout, StoreLayoutError, StoreSchemaError,
@@ -712,6 +712,13 @@ fn table_exists(connection: &Connection, table: &str) -> Result<bool, Generation
 fn retire_source_resolution_objects(source: &StoreLayout) -> Result<(), GenerationError> {
     let connection = Connection::open(source.store_db())?;
     retire_resolution_store_objects(&connection).map_err(|error| match error {
+        StoreSchemaError::Sqlite(inner) => GenerationError::Sqlite(inner),
+        other => GenerationError::Validation {
+            check: "resolution_retirement",
+            detail: other.to_string(),
+        },
+    })?;
+    reap_retired_resolution_capability_gaps(&connection).map_err(|error| match error {
         StoreSchemaError::Sqlite(inner) => GenerationError::Sqlite(inner),
         other => GenerationError::Validation {
             check: "resolution_retirement",
