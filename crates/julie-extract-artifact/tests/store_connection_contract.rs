@@ -6,7 +6,7 @@ use julie_extract_artifact::store::{
     GenerationFence, StoreConnectionError, StoreConnectionFactory, StoreLayout, StoreLayoutError,
     StoreSchemaError, create_coordinator_schema, create_store_schema,
 };
-use rusqlite::{Connection, OptionalExtension};
+use rusqlite::Connection;
 
 #[test]
 fn store_layout_creation_publishes_a_reopenable_generation() {

@@ -9,7 +9,7 @@ use julie_extract_artifact::model::{
     FileStatus, ReferenceSiteProvenance, RevisionInput, WriteMode, WriteOperation,
 };
 use julie_extract_artifact::writer::{ArtifactFileSpool, ArtifactWriteError, ArtifactWriter};
-use rusqlite::{Connection, OptionalExtension, limits::Limit};
+use rusqlite::{Connection, limits::Limit};
 use serde_json::json;
 use std::path::PathBuf;
 use std::time::Duration;

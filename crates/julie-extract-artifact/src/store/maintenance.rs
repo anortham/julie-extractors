@@ -4,7 +4,7 @@ use std::error::Error;
 use std::fmt;
 use std::fs;
 use std::io;
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering as AtomicOrdering};
 use std::sync::mpsc::{self, Receiver, Sender};
@@ -2324,64 +2324,6 @@ fn open_maintenance_coordinator(path: &Path) -> Result<Connection, MaintenanceEr
     Ok(connection)
 }
 
-fn parse_scoped_generation(value: &str) -> Result<(&str, i64), MaintenanceError> {
-    let (view_id, generation) =
-        value
-            .rsplit_once(':')
-            .ok_or_else(|| MaintenanceError::InvalidMetadata {
-                field: "resolution_delta",
-                value: value.to_string(),
-            })?;
-    let generation = generation
-        .parse::<i64>()
-        .map_err(|_| MaintenanceError::InvalidMetadata {
-            field: "resolution_delta",
-            value: value.to_string(),
-        })?;
-    if view_id.is_empty() || generation <= 0 {
-        return Err(MaintenanceError::InvalidMetadata {
-            field: "resolution_delta",
-            value: value.to_string(),
-        });
-    }
-    Ok((view_id, generation))
-}
-
-fn checked_base_path(
-    layout: &super::StoreLayout,
-    relative_path: &str,
-) -> Result<PathBuf, MaintenanceError> {
-    let relative = Path::new(relative_path);
-    let mut components = relative.components();
-    if relative_path.contains(['\0', ':'])
-        || relative.is_absolute()
-        || components.next() != Some(Component::Normal("bases".as_ref()))
-        || components.any(|component| !matches!(component, Component::Normal(_)))
-    {
-        return Err(MaintenanceError::InvalidMetadata {
-            field: "resolution_base_path",
-            value: relative_path.to_string(),
-        });
-    }
-    let path = layout.generation_dir().join(relative);
-    let metadata = fs::symlink_metadata(&path)?;
-    if metadata.file_type().is_symlink() || !metadata.is_file() {
-        return Err(MaintenanceError::InvalidMetadata {
-            field: "resolution_base_path",
-            value: path.display().to_string(),
-        });
-    }
-    let canonical = path.canonicalize()?;
-    let bases = layout.bases_dir().canonicalize()?;
-    if !canonical.starts_with(&bases) {
-        return Err(MaintenanceError::InvalidMetadata {
-            field: "resolution_base_path",
-            value: canonical.display().to_string(),
-        });
-    }
-    Ok(canonical)
-}
-
 fn checked_generation_path(
     layout: &super::StoreLayout,
     generation_name: &str,
@@ -2493,41 +2435,6 @@ fn request_id_from_scratch_name(name: &str) -> Option<&str> {
         .or_else(|| base.strip_prefix("resolve-delta-"))?
         .strip_suffix(".db")?;
     (!request.is_empty()).then_some(request)
-}
-
-fn orphan_base_files(
-    layout: &super::StoreLayout,
-    store: &Connection,
-) -> Result<Vec<PathBuf>, MaintenanceError> {
-    let mut statement =
-        store.prepare("SELECT relative_path FROM resolution_bases ORDER BY base_id")?;
-    let registered = statement
-        .query_map([], |row| row.get::<_, String>(0))?
-        .collect::<Result<BTreeSet<_>, _>>()?;
-    let mut orphaned = Vec::new();
-    for entry in fs::read_dir(layout.bases_dir())? {
-        let entry = entry?;
-        let metadata = fs::symlink_metadata(entry.path())?;
-        if metadata.file_type().is_symlink() || !metadata.is_file() {
-            return Err(MaintenanceError::InvalidMetadata {
-                field: "resolution_base_path",
-                value: entry.path().display().to_string(),
-            });
-        }
-        let relative = format!("bases/{}", entry.file_name().to_string_lossy());
-        if !registered.contains(&relative) {
-            let canonical = entry.path().canonicalize()?;
-            if !canonical.starts_with(layout.bases_dir().canonicalize()?) {
-                return Err(MaintenanceError::InvalidMetadata {
-                    field: "resolution_base_path",
-                    value: canonical.display().to_string(),
-                });
-            }
-            orphaned.push(canonical);
-        }
-    }
-    orphaned.sort();
-    Ok(orphaned)
 }
 
 fn delete_level_rows(
@@ -3240,7 +3147,7 @@ fn read_manifests(
     let mut after_view = String::new();
     let mut after_generation = 0_i64;
     loop {
-        let mut statement = connection.prepare(&sql)?;
+        let mut statement = connection.prepare(sql)?;
         let page: Vec<_> = statement
             .query_map(params![after_view, after_generation, limit as i64], |row| {
                 Ok(ManifestFact {

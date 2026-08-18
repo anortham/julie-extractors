@@ -682,64 +682,6 @@ impl From<rusqlite::Error> for StoreLayoutError {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::sync::atomic::{AtomicU64, Ordering};
-    use std::time::{SystemTime, UNIX_EPOCH};
-
-    static NEXT_TEMP_ID: AtomicU64 = AtomicU64::new(1);
-
-    struct TempStore {
-        path: PathBuf,
-    }
-
-    impl TempStore {
-        fn new(name: &str) -> Self {
-            let nonce = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_nanos();
-            let id = NEXT_TEMP_ID.fetch_add(1, Ordering::Relaxed);
-            let path = std::env::temp_dir().join(format!(
-                "julie-store-layout-{name}-{}-{nonce}-{id}",
-                std::process::id()
-            ));
-            fs::create_dir_all(&path).unwrap();
-            Self { path }
-        }
-    }
-
-    impl Drop for TempStore {
-        fn drop(&mut self) {
-            let _ = fs::remove_dir_all(&self.path);
-        }
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn reap_retired_resolution_scratch_propagates_read_dir_errors() {
-        use std::os::unix::fs::PermissionsExt;
-
-        let temp = TempStore::new("scratch-reap-denied");
-        let layout = StoreLayout::create(&temp.path, "family-a", "2.30.0").unwrap();
-        fs::write(layout.scratch_dir().join("resolve-exact-request.db"), b"x").unwrap();
-        let original = fs::metadata(layout.scratch_dir()).unwrap().permissions();
-        let mut denied = original.clone();
-        denied.set_mode(0o000);
-        fs::set_permissions(layout.scratch_dir(), denied).unwrap();
-        let error = reap_retired_resolution_files(&layout);
-        fs::set_permissions(layout.scratch_dir(), original).unwrap();
-        let error = error.expect_err("scratch read_dir errors must propagate");
-        match error {
-            StoreLayoutError::Io(error) => {
-                assert_eq!(error.kind(), io::ErrorKind::PermissionDenied);
-            }
-            other => panic!("expected io permission denied, got {other}"),
-        }
-    }
-}
-
 pub(crate) fn initialize_store_database(
     path: &Path,
     family_id: &str,
@@ -814,4 +756,62 @@ pub(crate) fn sync_directory(path: &Path) -> io::Result<()> {
 #[cfg(not(unix))]
 pub(crate) fn sync_directory(_path: &Path) -> io::Result<()> {
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::atomic::{AtomicU64, Ordering};
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    static NEXT_TEMP_ID: AtomicU64 = AtomicU64::new(1);
+
+    struct TempStore {
+        path: PathBuf,
+    }
+
+    impl TempStore {
+        fn new(name: &str) -> Self {
+            let nonce = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let id = NEXT_TEMP_ID.fetch_add(1, Ordering::Relaxed);
+            let path = std::env::temp_dir().join(format!(
+                "julie-store-layout-{name}-{}-{nonce}-{id}",
+                std::process::id()
+            ));
+            fs::create_dir_all(&path).unwrap();
+            Self { path }
+        }
+    }
+
+    impl Drop for TempStore {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.path);
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn reap_retired_resolution_scratch_propagates_read_dir_errors() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let temp = TempStore::new("scratch-reap-denied");
+        let layout = StoreLayout::create(&temp.path, "family-a", "2.30.0").unwrap();
+        fs::write(layout.scratch_dir().join("resolve-exact-request.db"), b"x").unwrap();
+        let original = fs::metadata(layout.scratch_dir()).unwrap().permissions();
+        let mut denied = original.clone();
+        denied.set_mode(0o000);
+        fs::set_permissions(layout.scratch_dir(), denied).unwrap();
+        let error = reap_retired_resolution_files(&layout);
+        fs::set_permissions(layout.scratch_dir(), original).unwrap();
+        let error = error.expect_err("scratch read_dir errors must propagate");
+        match error {
+            StoreLayoutError::Io(error) => {
+                assert_eq!(error.kind(), io::ErrorKind::PermissionDenied);
+            }
+            other => panic!("expected io permission denied, got {other}"),
+        }
+    }
 }

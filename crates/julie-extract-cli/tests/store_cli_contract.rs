@@ -804,57 +804,59 @@ fn export_under_concurrent_update_and_gc_keeps_one_generation() {
         std::thread::sleep(Duration::from_millis(10));
     }
 
-    if ready.exists() {
-        std::fs::write(root.join("a.rs"), "pub fn a() -> u32 { 2 }\n").unwrap();
-        std::fs::write(root.join("b.rs"), "pub fn b() -> u32 { 4 }\n").unwrap();
-        for (file, request) in [("a.rs", "request-snap-a"), ("b.rs", "request-snap-b")] {
-            let updated = julie_extract(&[
-                "store",
-                "update",
-                "--store",
-                store.to_str().unwrap(),
-                "--family",
-                FAMILY_ID,
-                "--root",
-                root.to_str().unwrap(),
-                "--view",
-                "view-main",
-                "--file",
-                file,
-                "--request-id",
-                request,
-                "--idempotency-key",
-                request,
-                "--json",
-            ]);
-            assert_eq!(
-                updated.status.code(),
-                Some(0),
-                "stdout: {} stderr: {}",
-                String::from_utf8_lossy(&updated.stdout),
-                String::from_utf8_lossy(&updated.stderr)
-            );
-        }
-        let gc = julie_extract(&[
+    assert!(
+        ready.exists(),
+        "export must pause at its test hook before the concurrent update runs"
+    );
+    std::fs::write(root.join("a.rs"), "pub fn a() -> u32 { 2 }\n").unwrap();
+    std::fs::write(root.join("b.rs"), "pub fn b() -> u32 { 4 }\n").unwrap();
+    for (file, request) in [("a.rs", "request-snap-a"), ("b.rs", "request-snap-b")] {
+        let updated = julie_extract(&[
             "store",
-            "maintain",
-            "gc",
+            "update",
             "--store",
             store.to_str().unwrap(),
             "--family",
             FAMILY_ID,
-            "--apply",
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--file",
+            file,
+            "--request-id",
+            request,
+            "--idempotency-key",
+            request,
             "--json",
         ]);
         assert_eq!(
-            gc.status.code(),
+            updated.status.code(),
             Some(0),
             "stdout: {} stderr: {}",
-            String::from_utf8_lossy(&gc.stdout),
-            String::from_utf8_lossy(&gc.stderr)
+            String::from_utf8_lossy(&updated.stdout),
+            String::from_utf8_lossy(&updated.stderr)
         );
-        std::fs::write(pause.join("continue"), b"continue").unwrap();
     }
+    let gc = julie_extract(&[
+        "store",
+        "maintain",
+        "gc",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        FAMILY_ID,
+        "--apply",
+        "--json",
+    ]);
+    assert_eq!(
+        gc.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&gc.stdout),
+        String::from_utf8_lossy(&gc.stderr)
+    );
+    std::fs::write(pause.join("continue"), b"continue").unwrap();
 
     let output = export.join().expect("export thread");
     assert_eq!(

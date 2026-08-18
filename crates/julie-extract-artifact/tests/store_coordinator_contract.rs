@@ -17,6 +17,7 @@ fn layout(root: &Path) -> StoreLayout {
     StoreLayout::create(root, "family-a", "2.30.0").unwrap()
 }
 
+#[allow(clippy::too_many_arguments)]
 fn seed_historical_resolve(
     layout: &StoreLayout,
     request_id: &str,
@@ -203,7 +204,7 @@ fn coordinator_store_transactions_obey_the_generation_write_fence() {
 }
 
 #[test]
-fn schema_v2_request_kinds_roundtrip_and_historical_resolve_rows_remain_claimable() {
+fn schema_v2_request_kinds_roundtrip_and_historical_resolve_rows_parse() {
     let temp = TempDir::new();
     let layout = layout(temp.path());
     let mut coordinator = StoreCoordinator::open(&layout).unwrap();
@@ -259,29 +260,6 @@ fn schema_v2_request_kinds_roundtrip_and_historical_resolve_rows_remain_claimabl
         coordinator.request("request-4").unwrap().kind.as_str(),
         "resolve"
     );
-
-    let connection = Connection::open(layout.coordinator_db()).unwrap();
-    connection
-        .execute(
-            "UPDATE requests SET state='claimed', claim_owner='owner-a', claim_heartbeat_at=10
-             WHERE request_id='request-1'",
-            [],
-        )
-        .unwrap();
-    connection
-        .execute(
-            "UPDATE requests SET state='claimed', claim_owner='owner-b', claim_heartbeat_at=10
-             WHERE request_id='request-4'",
-            [],
-        )
-        .unwrap();
-    connection
-        .execute(
-            "UPDATE requests SET state='claimed', claim_owner='owner-b', claim_heartbeat_at=10
-             WHERE request_id='request-2'",
-            [],
-        )
-        .unwrap();
 }
 
 #[test]

@@ -283,13 +283,3 @@ fn table_columns(connection: &Connection, table: &str) -> Vec<String> {
         .collect::<Result<_, _>>()
         .unwrap()
 }
-
-fn index_columns(connection: &Connection, index: &str) -> Vec<String> {
-    connection
-        .prepare(&format!("PRAGMA index_info({index})"))
-        .unwrap()
-        .query_map([], |row| row.get(2))
-        .unwrap()
-        .collect::<Result<_, _>>()
-        .unwrap()
-}
