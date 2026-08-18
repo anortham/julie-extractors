@@ -305,6 +305,30 @@ fn crossover_promotes_multi_file_scope() {
 }
 
 #[test]
+fn three_changed_files_sharing_a_ubiquitous_name_stay_scoped() {
+    let (connection, manifest, changed_versions, padding_versions) =
+        three_file_ubiquitous_name_scope();
+    let decision = scope_decision(&connection, &manifest, 7);
+    let StoreDeltaScopeDecision::Scoped { worklists, .. } = decision else {
+        panic!("three files that only share a ubiquitous name must stay scoped");
+    };
+    assert!(!worklists.effective_full);
+    for version_id in changed_versions {
+        assert!(worklists
+            .selected_versions
+            .contains(&SemanticVersionId::Store(version_id)));
+    }
+    for version_id in padding_versions {
+        assert!(
+            !worklists
+                .selected_versions
+                .contains(&SemanticVersionId::Store(version_id)),
+            "ubiquitous name Scan must not select padding file {version_id}"
+        );
+    }
+}
+
+#[test]
 fn one_changed_file_with_broad_name_collisions_stays_scoped() {
     let (connection, manifest) = broad_name_collision_scope();
     let changed_paths = connection
@@ -594,6 +618,111 @@ fn two_file_replacement_scope() -> (Connection, ManifestPublishResult) {
         "request-second",
     );
     (connection, second)
+}
+
+fn three_file_ubiquitous_name_scope() -> (Connection, ManifestPublishResult, Vec<i64>, Vec<i64>) {
+    let mut connection = scope_store();
+    let mut old_changed = Vec::new();
+    let mut new_changed = Vec::new();
+    for (index, name) in ["Alpha", "Beta", "Gamma"].iter().enumerate() {
+        let path = format!("src/changed-{index}.ts");
+        let old_version = insert_version(&connection, &path, &format!("old-{index}"));
+        let new_version = insert_version(&connection, &path, &format!("new-{index}"));
+        insert_symbol(
+            &connection,
+            old_version,
+            &format!("old-{index}"),
+            name,
+            "function",
+            None,
+        );
+        insert_symbol(
+            &connection,
+            new_version,
+            &format!("new-{index}"),
+            name,
+            "function",
+            None,
+        );
+        insert_symbol(
+            &connection,
+            old_version,
+            &format!("old-scan-{index}"),
+            "Scan",
+            "function",
+            None,
+        );
+        insert_symbol(
+            &connection,
+            new_version,
+            &format!("new-scan-{index}"),
+            "Scan",
+            "function",
+            None,
+        );
+        insert_identifier(
+            &connection,
+            old_version,
+            &format!("old-scan-id-{index}"),
+            "Scan",
+            None,
+        );
+        insert_identifier(
+            &connection,
+            new_version,
+            &format!("new-scan-id-{index}"),
+            "Scan",
+            None,
+        );
+        old_changed.push(old_version);
+        new_changed.push(new_version);
+    }
+
+    let mut padding_versions = Vec::new();
+    let mut old_entries = old_changed
+        .iter()
+        .map(|version| entry(&connection, *version))
+        .collect::<Vec<_>>();
+    let mut new_entries = new_changed
+        .iter()
+        .map(|version| entry(&connection, *version))
+        .collect::<Vec<_>>();
+    for file in 0..20 {
+        let version = insert_version(
+            &connection,
+            &format!("src/padding-{file}.ts"),
+            &format!("padding-{file}"),
+        );
+        insert_symbol(
+            &connection,
+            version,
+            &format!("padding-symbol-{file}"),
+            &format!("Padding{file}"),
+            "function",
+            None,
+        );
+        insert_identifier(
+            &connection,
+            version,
+            &format!("padding-scan-{file}"),
+            "Scan",
+            None,
+        );
+        old_entries.push(entry(&connection, version));
+        new_entries.push(entry(&connection, version));
+        padding_versions.push(version);
+    }
+
+    let first = publish(&mut connection, None, old_entries, "request-first");
+    let first_generation = i64::try_from(first.generation).unwrap();
+    bind_exact(&connection, &first.manifest_hash, first_generation, 11, 7);
+    let second = publish(
+        &mut connection,
+        Some(first_generation),
+        new_entries,
+        "request-second",
+    );
+    (connection, second, new_changed, padding_versions)
 }
 
 fn broad_name_collision_scope() -> (Connection, ManifestPublishResult) {

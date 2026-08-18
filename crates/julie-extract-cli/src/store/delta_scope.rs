@@ -14,6 +14,11 @@ use crate::resolution_session::{
 };
 
 const SCOPE_QUERY_CHUNK: usize = 300;
+// Names that already appear in this many current-manifest files are not
+// expansion keys. A C# `Scan` or `Assert` would otherwise select the view
+// and trip crossover on a 3-file save. 16 stays above the small unique-name
+// fixtures (Foo/Bar/widget) and below a real corpus method name.
+const DISCRIMINATIVE_NAME_MAX_FILES: i64 = 16;
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct StoreDeltaScopeRequest<'a> {
@@ -150,6 +155,7 @@ pub(crate) fn build_store_delta_scope(
     let mut recheck_names = touched_names.clone();
     recheck_names.extend(import_alias_names(connection, request, &touched_names)?);
     recheck_names.extend(receiver_names(connection, request, &touched_names)?);
+    recheck_names = retain_discriminative_names(connection, request, recheck_names)?;
 
     let visible_versions = current_manifest_versions(connection, request)?;
     changed_versions.retain(|version_id| visible_versions.contains(version_id));
@@ -481,6 +487,51 @@ fn name_expansion_requires_language(
     affected_languages: &BTreeSet<String>,
 ) -> bool {
     !recheck_names.is_empty() && affected_languages.is_empty()
+}
+
+fn retain_discriminative_names(
+    connection: &Connection,
+    request: StoreDeltaScopeRequest<'_>,
+    names: BTreeSet<String>,
+) -> Result<BTreeSet<String>, ResolutionScopeError> {
+    if names.is_empty() {
+        return Ok(names);
+    }
+    let mut kept = BTreeSet::new();
+    for chunk in string_chunks(&names) {
+        let sql = format!(
+            "SELECT identifier.name, COUNT(DISTINCT entry.version_id)
+             FROM manifest_entries AS entry
+             JOIN identifiers AS identifier ON identifier.version_id=entry.version_id
+             WHERE entry.view_id=?1 AND entry.generation=?2
+               AND entry.status IN ('indexed','failed_preserved')
+               AND identifier.name IN ({})
+             GROUP BY identifier.name",
+            placeholders(chunk.len())
+        );
+        let mut bind = vec![
+            rusqlite::types::Value::Text(request.view_id.to_string()),
+            rusqlite::types::Value::Integer(request.manifest_generation),
+        ];
+        bind.extend(chunk.iter().cloned().map(rusqlite::types::Value::Text));
+        let mut statement = connection.prepare(&sql)?;
+        let mut seen = BTreeSet::new();
+        for row in statement.query_map(rusqlite::params_from_iter(bind), |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+        })? {
+            let (name, files) = row?;
+            seen.insert(name.clone());
+            if files <= DISCRIMINATIVE_NAME_MAX_FILES {
+                kept.insert(name);
+            }
+        }
+        for name in chunk {
+            if !seen.contains(&name) {
+                kept.insert(name);
+            }
+        }
+    }
+    Ok(kept)
 }
 
 #[cfg(test)]
