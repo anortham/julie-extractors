@@ -1175,6 +1175,7 @@ impl MaintenanceExecutor {
         drop(store);
         let mut coord = open_maintenance_coordinator(factory.layout().coordinator_db())?;
         let transaction = coord.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        super::coordinator::reap_retired_resolve_rows(&transaction, wall_now)?;
         let active_intent = transaction
             .query_row(
                 "SELECT run_id,owner_id,owner_pid,expires_at,source_min_writer_version

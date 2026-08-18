@@ -113,10 +113,10 @@ Plan-package commit ownership: this plan file is currently UNTRACKED in the main
 **What to build:** Delete the four modules and every dispatch/registration/re-export that names them (except the report types and Cargo feature deferred to Task 3). Implement the `RetiredResolve` + reaper design above. Keep every other kind's behavior byte-identical — the coordinator contract tests are the guard.
 
 **Acceptance criteria:**
-- [ ] `julie-extract store resolve` exits with the standard unknown-subcommand error
-- [ ] Coordinator state-matrix tests green for seeded historical resolve rows: queued, fresh-claimed, stale-claimed, committed, acknowledged, failed, terminal-log reconciliation, and receipts — all parse; queued/claimed get reaped to typed `failed`; nothing blocks other kinds
-- [ ] `cargo xtask test contract` no longer registers the three resolution targets; convention guards green
-- [ ] Worker scope green; worker commits (serial-worker-commit)
+- [x] `julie-extract store resolve` exits with the standard unknown-subcommand error
+- [x] Coordinator state-matrix tests green for seeded historical resolve rows: queued, fresh-claimed, stale-claimed, committed, acknowledged, failed, terminal-log reconciliation, and receipts — all parse; queued/claimed get reaped to typed `failed`; nothing blocks other kinds
+- [x] `cargo xtask test contract` no longer registers the three resolution targets; convention guards green
+- [x] Worker scope green; worker commits (serial-worker-commit)
 
 ### Task 3: Retarget `store export`, `store import --from-artifact`, and import internals
 

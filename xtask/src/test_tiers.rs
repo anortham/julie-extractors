@@ -278,20 +278,6 @@ fn contract_plan() -> TestPlan {
             "julie_extractors_works_as_path_dependency_in_downstream_crate",
         ],
     ));
-    commands.push(CommandSpec::new(
-        "cargo",
-        [
-            "test",
-            "-p",
-            "julie-extract-cli",
-            "--features",
-            "test-store-resolution-contract",
-            "--test",
-            "store_resolution_contract",
-            "--",
-            "--test-threads=1",
-        ],
-    ));
     for harness in [
         "store_maintenance_contract",
         "store_maintenance_property",
@@ -329,20 +315,6 @@ fn contract_plan() -> TestPlan {
             ],
         ));
     }
-    commands.push(CommandSpec::new(
-        "cargo",
-        [
-            "test",
-            "-p",
-            "julie-extract-cli",
-            "--features",
-            "test-store-resolution-contract",
-            "--test",
-            "store_resolution_adapters",
-            "--",
-            "--test-threads=1",
-        ],
-    ));
     commands.push(CommandSpec::new(
         "cargo",
         [
@@ -399,20 +371,6 @@ fn contract_plan() -> TestPlan {
             "julie-extract-cli",
             "--test",
             "determinism_contract",
-        ],
-    ));
-    commands.push(CommandSpec::new(
-        "cargo",
-        [
-            "test",
-            "-p",
-            "julie-extract-cli",
-            "--features",
-            "test-store-resolution-contract",
-            "--test",
-            "resolution_session_contract",
-            "--",
-            "--test-threads=1",
         ],
     ));
     commands.push(CommandSpec::new(

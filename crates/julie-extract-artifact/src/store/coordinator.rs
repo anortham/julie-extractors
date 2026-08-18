@@ -40,7 +40,12 @@ pub enum RequestKind {
     Import,
     Update,
     Delete,
-    Resolve,
+    /// Persisted-only leftover of the retired `store resolve` verb.
+    ///
+    /// Old coord.db files still contain `kind='resolve'` rows. Those rows must
+    /// decode so drain and maintenance can reap queued/claimed leftovers. New
+    /// resolve work cannot be enqueued or claimed.
+    RetiredResolve,
     Export,
     FromArtifact,
 }
@@ -51,7 +56,7 @@ impl RequestKind {
             Self::Import => "import",
             Self::Update => "update",
             Self::Delete => "delete",
-            Self::Resolve => "resolve",
+            Self::RetiredResolve => "resolve",
             Self::Export => "export",
             Self::FromArtifact => "from_artifact",
         }
@@ -63,7 +68,7 @@ impl RequestKind {
 
     /// Kinds whose single quantum may legitimately outrun `maximum_quantum_ms`.
     ///
-    /// Import/Resolve are whole-repo batch work — the L3 store-import phase alone measures 71-85 s on a
+    /// Import is whole-repo batch work — the L3 store-import phase alone measures 71-85 s on a
     /// 1,628-file workspace. With only `FromArtifact` listed here, every such request was requeued at the 4 s
     /// cap and the caller got `LeaseLost`, surfaced to users as "store-writer lease fencing check failed":
     /// the work ran IN FULL and was then rolled back, so a repository whose scan exceeded 4 s could never
@@ -81,7 +86,7 @@ impl RequestKind {
     /// `Update`/`Delete` stay capped on purpose: they are the single-file interactive paths, and the cap plus
     /// `interactive_burst_ms` is what stops a long batch starving them.
     fn permits_renewable_quantum(self) -> bool {
-        matches!(self, Self::FromArtifact | Self::Import | Self::Resolve)
+        matches!(self, Self::FromArtifact | Self::Import)
     }
 
     fn parse(value: &str) -> Result<Self, CoordinatorError> {
@@ -89,7 +94,7 @@ impl RequestKind {
             "import" => Ok(Self::Import),
             "update" => Ok(Self::Update),
             "delete" => Ok(Self::Delete),
-            "resolve" => Ok(Self::Resolve),
+            "resolve" => Ok(Self::RetiredResolve),
             "export" => Ok(Self::Export),
             "from_artifact" => Ok(Self::FromArtifact),
             _ => Err(CoordinatorError::CorruptRequest {
@@ -788,214 +793,6 @@ impl StoreCoordinator {
         })
     }
 
-    pub fn claim_resolve(
-        &self,
-        request_id: &str,
-        owner_id: &str,
-        now: i64,
-        stale_after_ms: i64,
-    ) -> Result<bool, CoordinatorError> {
-        if request_id.is_empty() || owner_id.is_empty() || now < 0 || stale_after_ms <= 0 {
-            return Err(CoordinatorError::InvalidRequest);
-        }
-        let stale_before = now.saturating_sub(stale_after_ms);
-        let mut connection = self.coordinator();
-        let transaction = begin_coordinator(&mut connection)?;
-        if foreign_live_maintenance_intent(&transaction, now)?.is_some() {
-            return Ok(false);
-        }
-        let Some(request) = request_by_id(&transaction, request_id)? else {
-            return Ok(false);
-        };
-        if request.kind != RequestKind::Resolve
-            || !matches!(request.state, RequestState::Queued | RequestState::Claimed)
-        {
-            return Ok(false);
-        }
-        // A stranded claim must not block every future resolve in the family.
-        //
-        // `uidx_coord_one_claimed_resolve` permits at most ONE claimed resolve per family, so a claim whose
-        // owner died holds the whole family hostage: the store can never leave `resolution=unbound`, derived
-        // sidecars never converge, and `store gc` / `store repair` are refused as well because both key on
-        // `EXISTS(SELECT 1 FROM requests WHERE state='claimed')` — the repair verb cannot repair it. Observed
-        // 2026-08-12 on the Miller workspace: resolve `06c5e45b` claimed by a long-dead `cli-36084` with two
-        // later resolves stuck `queued` behind it, recoverable only by hand-editing coord.db.
-        //
-        // The rule that frees it is NOT new — it is the same `eligible` test applied below to the row being
-        // claimed. The defect was purely one of ORDER: the old `other_claimed` EXISTS probe returned early,
-        // so staleness and owner-liveness were only ever evaluated for OUR row and never for the row doing
-        // the blocking. Applying the already-shipping rule consistently is the whole fix.
-        //
-        // Heartbeat staleness is a sound abandonment signal for `resolve` specifically, because a live
-        // holder's `ResolveHeartbeat` refreshes `claim_heartbeat_at` every 250 ms against a 5 s window — a
-        // 20x margin. It would NOT be sound for drain-claimed kinds, whose `claim_heartbeat_at` is only
-        // stamped between quanta and so looks stale for the whole of a legitimately long quantum (the L3
-        // import phase alone measures 71-85 s). That is why this stays scoped to `kind='resolve'`.
-        //
-        // At most one row can match, by the unique index above.
-        let blocker = transaction
-            .query_row(
-                "SELECT request_id, claim_owner, claim_heartbeat_at FROM requests
-                 WHERE kind='resolve' AND state='claimed' AND request_id<>?1",
-                [request_id],
-                |row| {
-                    Ok((
-                        row.get::<_, String>(0)?,
-                        row.get::<_, Option<String>>(1)?,
-                        row.get::<_, Option<i64>>(2)?,
-                    ))
-                },
-            )
-            .optional()?;
-        if let Some((blocker_id, blocker_owner, blocker_heartbeat)) = blocker {
-            let blocker_abandoned = blocker_heartbeat.is_some_and(|beat| beat <= stale_before)
-                || blocker_owner
-                    .as_deref()
-                    .and_then(resolve_owner_pid)
-                    .is_some_and(|pid| self.pid_liveness.status(pid) == PidStatus::Dead);
-            if !blocker_abandoned {
-                return Ok(false);
-            }
-            // `failed`, not `queued`.
-            //
-            // `reconcile` promotes from ('queued','claimed','failed') alike, so a holder that DID append its
-            // terminal store-log entry before dying still reconciles to `committed` either way. But only a
-            // TERMINAL state lets `store gc` reclaim the abandoned `resolve-*.db` scratch —
-            // `terminal_request_scratch_files` keys on ('failed','committed','acknowledged') — and only a
-            // terminal state keeps the row out of `pending_request_ids`, which selects ('queued','claimed')
-            // and whose permanent non-emptiness would degrade every later `drain` to snapshot-only. A row
-            // reaped to `queued` would leak its scratch forever and never be re-claimed, because each
-            // `store resolve` mints a fresh request id rather than adopting an existing one.
-            //
-            // This is the same transition `fail_resolve` performs, made by a third party rather than by the
-            // dead owner. The CAS on the exact observed (owner, heartbeat) pins the write to the row version
-            // this decision was made from.
-            let error_json = serde_json::json!({
-                "message": format!(
-                    "resolve claim reaped: owner {} stopped heartbeating",
-                    blocker_owner.as_deref().unwrap_or("<unknown>")
-                )
-            })
-            .to_string();
-            transaction.execute(
-                "UPDATE requests SET state='failed',claim_owner=NULL,
-                        claim_heartbeat_at=NULL,result_json=NULL,error_json=?1,updated_at=?2
-                 WHERE request_id=?3 AND kind='resolve' AND state='claimed'
-                   AND claim_owner IS ?4 AND claim_heartbeat_at IS ?5",
-                params![
-                    error_json,
-                    now,
-                    blocker_id,
-                    blocker_owner,
-                    blocker_heartbeat
-                ],
-            )?;
-        }
-        let prior_owner_dead = request
-            .claim_owner
-            .as_deref()
-            .and_then(resolve_owner_pid)
-            .is_some_and(|pid| self.pid_liveness.status(pid) == PidStatus::Dead);
-        let eligible = request.state == RequestState::Queued
-            || request.claim_owner.as_deref() == Some(owner_id)
-            || request
-                .claim_heartbeat_at
-                .is_some_and(|heartbeat| heartbeat <= stale_before)
-            || prior_owner_dead;
-        if !eligible {
-            // COMMIT, do not drop. Dropping the transaction rolls back — which would silently undo a reap
-            // performed above. Unreachable today (a reap implies the blocker held the family's one claimed
-            // slot, so OUR row must have been `queued`, which is itself `eligible`), but that coupling is
-            // invisible from here and must not become a latent trap for a future edit.
-            transaction.commit()?;
-            return Ok(false);
-        }
-        let changed = transaction.execute(
-            "UPDATE requests SET state='claimed',claim_owner=?1,
-                    claim_heartbeat_at=?2,updated_at=?2
-             WHERE request_id=?3 AND kind='resolve'",
-            params![owner_id, now, request_id],
-        )?;
-        transaction.commit()?;
-        Ok(changed == 1)
-    }
-
-    pub fn heartbeat_resolve(
-        &self,
-        request_id: &str,
-        owner_id: &str,
-        now: i64,
-    ) -> Result<bool, CoordinatorError> {
-        if request_id.is_empty() || owner_id.is_empty() || now < 0 {
-            return Err(CoordinatorError::InvalidRequest);
-        }
-        let connection = self.coordinator();
-        Ok(connection.execute(
-            "UPDATE requests SET claim_heartbeat_at=?1,updated_at=?1
-             WHERE request_id=?2 AND kind='resolve' AND state='claimed'
-               AND claim_owner=?3",
-            params![now, request_id, owner_id],
-        )? == 1)
-    }
-
-    pub fn resolve_claim_is_current(
-        &self,
-        request_id: &str,
-        owner_id: &str,
-    ) -> Result<bool, CoordinatorError> {
-        if request_id.is_empty() || owner_id.is_empty() {
-            return Err(CoordinatorError::InvalidRequest);
-        }
-        let connection = self.coordinator();
-        Ok(connection.query_row(
-            "SELECT EXISTS(
-               SELECT 1 FROM requests
-               WHERE request_id=?1 AND kind='resolve' AND state='claimed'
-                 AND claim_owner=?2
-             )",
-            params![request_id, owner_id],
-            |row| row.get(0),
-        )?)
-    }
-
-    pub fn fail_resolve(
-        &self,
-        request_id: &str,
-        owner_id: &str,
-        detail: &str,
-        now: i64,
-    ) -> Result<bool, CoordinatorError> {
-        if request_id.is_empty() || owner_id.is_empty() || detail.is_empty() || now < 0 {
-            return Err(CoordinatorError::InvalidRequest);
-        }
-        let error_json = serde_json::json!({ "message": detail }).to_string();
-        let connection = self.coordinator();
-        Ok(connection.execute(
-            "UPDATE requests SET state='failed',claim_owner=NULL,
-                    claim_heartbeat_at=NULL,result_json=NULL,error_json=?1,updated_at=?2
-             WHERE request_id=?3 AND kind='resolve' AND state='claimed'
-               AND claim_owner=?4",
-            params![error_json, now, request_id, owner_id],
-        )? == 1)
-    }
-
-    pub fn commit_resolve(
-        &mut self,
-        request_id: &str,
-        owner_id: &str,
-    ) -> Result<ReconcileOutcome, CoordinatorError> {
-        if !self.resolve_claim_is_current(request_id, owner_id)? {
-            return Err(CoordinatorError::LeaseLost);
-        }
-        let outcome = self.reconcile(request_id)?;
-        if !outcome.committed_in_fact {
-            return Err(CoordinatorError::CoordinatorAheadOfStore {
-                request_id: request_id.to_string(),
-            });
-        }
-        Ok(outcome)
-    }
-
     pub fn try_acquire_or_takeover(
         &mut self,
         holder: LeaseHolder,
@@ -1383,6 +1180,10 @@ impl StoreCoordinator {
             .holder
             .clone()
             .ok_or(CoordinatorError::MissingLeaseHolder)?;
+        {
+            let connection = self.coordinator();
+            reap_retired_resolve_rows(&connection, self.clock.now_ms())?;
+        }
         StoreConnectionFactory::new(
             self.layout.clone(),
             self.family_id.clone(),
@@ -1791,7 +1592,7 @@ impl StoreCoordinator {
         let mut batch = None;
         for request_id in request_ids {
             let request = self.request(&request_id)?;
-            if request.kind == RequestKind::Resolve {
+            if request.kind == RequestKind::RetiredResolve {
                 continue;
             }
             let claim_is_eligible = request.state == RequestState::Queued
@@ -2400,10 +2201,6 @@ pub fn process_status(_pid: u32) -> PidStatus {
     PidStatus::Unknown
 }
 
-fn resolve_owner_pid(owner_id: &str) -> Option<u32> {
-    owner_id.strip_prefix("cli-")?.parse().ok()
-}
-
 fn validate_request(request: &CoordinatorRequest) -> Result<(), CoordinatorError> {
     if request.created_at < 0 {
         return Err(CoordinatorError::InvalidTime {
@@ -2429,12 +2226,32 @@ fn validate_request(request: &CoordinatorRequest) -> Result<(), CoordinatorError
         || request.idempotency_key.is_empty()
         || request.requester_id.is_empty()
         || request.state != RequestState::Queued
+        || request.kind == RequestKind::RetiredResolve
         || serde_json::from_str::<serde_json::Value>(&request.payload_json).is_err()
     {
         Err(CoordinatorError::InvalidRequest)
     } else {
         Ok(())
     }
+}
+
+pub(crate) fn reap_retired_resolve_rows(
+    connection: &Connection,
+    now: i64,
+) -> Result<usize, CoordinatorError> {
+    if now < 0 {
+        return Err(CoordinatorError::InvalidTime {
+            field: "updated_at",
+            value: now,
+        });
+    }
+    let error_json = serde_json::json!({ "message": "retired_request_kind:resolve" }).to_string();
+    Ok(connection.execute(
+        "UPDATE requests SET state = 'failed', claim_owner = NULL,
+         claim_heartbeat_at = NULL, result_json = NULL, error_json = ?1, updated_at = ?2
+         WHERE kind = 'resolve' AND state IN ('queued', 'claimed')",
+        params![error_json, now],
+    )?)
 }
 
 /// Returns the live maintenance intent identity when `expires_at > now`.

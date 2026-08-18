@@ -96,11 +96,50 @@ fn import_requires_family_root_view_and_store_but_allows_create_family_paths() {
 
 #[test]
 fn unknown_store_verbs_are_rejected_without_a_public_command() {
-    for verb in ["export", "resolve"] {
-        let parsed =
-            StoreCli::try_parse_from(["julie-extract", "store", verb, "--store", "/tmp/family"]);
-        assert!(parsed.is_err(), "future store verb {verb} must not parse");
-    }
+    let unknown = StoreCli::try_parse_from(["julie-extract", "store", "not-a-store-verb"]);
+    assert!(
+        unknown.is_err(),
+        "a verb that is not a store command must not parse"
+    );
+    let unknown_message = unknown.unwrap_err().to_string();
+
+    let resolve = StoreCli::try_parse_from([
+        "julie-extract",
+        "store",
+        "resolve",
+        "--store",
+        "/tmp/family",
+        "--view",
+        "view-main",
+    ]);
+    assert!(
+        resolve.is_err(),
+        "store resolve must be an unknown subcommand"
+    );
+    let resolve_message = resolve.unwrap_err().to_string();
+    assert!(
+        resolve_message.contains("unrecognized subcommand"),
+        "store resolve must use the unknown-subcommand path, got {resolve_message}"
+    );
+    assert!(
+        unknown_message.contains("unrecognized subcommand"),
+        "unknown store verbs must use the same clap path, got {unknown_message}"
+    );
+
+    let output = julie_extract(&[
+        "store",
+        "resolve",
+        "--store",
+        "/tmp/family",
+        "--view",
+        "view-main",
+    ]);
+    assert_ne!(output.status.code(), Some(0));
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("unrecognized subcommand"),
+        "julie-extract store resolve must exit as an unknown subcommand, got {stderr}"
+    );
 }
 
 #[test]

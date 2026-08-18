@@ -8,9 +8,21 @@ fn legacy_resolution_oracle_is_feature_gated_out_of_default_suite() {
     assert!(manifest.contains("test-store-resolution-contract = ["));
     assert!(manifest.contains("\"julie-extract-artifact/test-store-crash\""));
     assert!(manifest.contains("\"julie-extract-artifact/test-store-resolution\""));
-
-    let harness = read(&crate_root.join("tests/resolution_session_contract.rs"));
-    assert!(harness.starts_with("#![cfg(feature = \"test-store-resolution-contract\")]"));
+    assert!(
+        !crate_root
+            .join("tests/resolution_session_contract.rs")
+            .exists()
+    );
+    assert!(
+        !crate_root
+            .join("tests/store_resolution_contract.rs")
+            .exists()
+    );
+    assert!(
+        !crate_root
+            .join("tests/store_resolution_adapters.rs")
+            .exists()
+    );
 }
 
 #[test]

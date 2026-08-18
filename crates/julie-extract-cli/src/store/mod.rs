@@ -1,16 +1,12 @@
 pub mod args;
 mod delete;
-mod delta_scope;
 mod executor;
 mod export;
 mod from_artifact;
 pub mod import;
 mod maintenance;
 pub mod maintenance_report;
-mod prior_overlay;
 pub mod report;
-pub mod resolution_session;
-mod resolve;
 #[cfg(feature = "test-store-contract")]
 pub mod test_support;
 mod update;
@@ -22,7 +18,6 @@ pub fn dispatch(args: args::StoreArgs) -> StoreExecutionOutcome {
         args::StoreCommand::Import(args) => import::run(args),
         args::StoreCommand::Update(args) => update::run(args),
         args::StoreCommand::Delete(args) => delete::run(args),
-        args::StoreCommand::Resolve(args) => resolve::run(args),
         args::StoreCommand::Export(args) => export::run(args),
         args::StoreCommand::Maintain(args) => maintenance::run(args),
     }
@@ -34,7 +29,7 @@ pub use args::{
     StoreImportArgs, StoreLevelArg, StoreMaintainArgs, StoreMaintenanceCommand,
     StoreMaintenanceCursorAdvanceArgs, StoreMaintenanceCursorArgs, StoreMaintenanceCursorCommand,
     StoreMaintenanceCursorReleaseArgs, StoreMaintenanceInspectArgs, StoreMaintenanceMutationArgs,
-    StoreRequestControls, StoreResolveArgs, StoreScanControls, StoreUpdateArgs,
+    StoreRequestControls, StoreScanControls, StoreUpdateArgs,
 };
 pub use maintenance_report::{
     STORE_MAINTENANCE_REPORT_SCHEMA_VERSION, StoreMaintenanceAction,

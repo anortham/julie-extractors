@@ -33,7 +33,6 @@ pub enum StoreCommand {
     Import(StoreImportArgs),
     Update(StoreUpdateArgs),
     Delete(StoreDeleteArgs),
-    Resolve(StoreResolveArgs),
     Export(StoreExportArgs),
     Maintain(StoreMaintainArgs),
 }
@@ -229,24 +228,6 @@ pub struct StoreDeleteArgs {
     /// Root-relative path to remove. Repeatable.
     #[arg(long = "file", required = true, value_parser = parse_store_path)]
     pub files: Vec<PathBuf>,
-    #[command(flatten)]
-    pub request: StoreRequestControls,
-    /// Emit the machine-readable store report.
-    #[arg(long)]
-    pub json: bool,
-}
-
-#[derive(Debug, Args)]
-pub struct StoreResolveArgs {
-    /// Existing family-store directory.
-    #[arg(long, value_parser = parse_store_path)]
-    pub store: PathBuf,
-    /// Expected family UUID. Defaults to the existing store family.
-    #[arg(long, value_parser = parse_family_id)]
-    pub family: Option<String>,
-    /// Existing stable view identifier.
-    #[arg(long, value_parser = parse_store_identifier)]
-    pub view: String,
     #[command(flatten)]
     pub request: StoreRequestControls,
     /// Emit the machine-readable store report.

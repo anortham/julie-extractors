@@ -1665,7 +1665,7 @@ impl CoordinatorExecutor for StoreRequestExecutor {
             RequestKind::FromArtifact => {
                 return self.execute_from_artifact(transaction, request, context);
             }
-            RequestKind::Resolve | RequestKind::Export => {
+            RequestKind::RetiredResolve | RequestKind::Export => {
                 return Err(format!(
                     "unsupported_request_kind:{}",
                     request.kind.as_str()

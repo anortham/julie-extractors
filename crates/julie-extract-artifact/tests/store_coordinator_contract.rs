@@ -17,6 +17,63 @@ fn layout(root: &Path) -> StoreLayout {
     StoreLayout::create(root, "family-a", "2.30.0").unwrap()
 }
 
+fn seed_historical_resolve(
+    layout: &StoreLayout,
+    request_id: &str,
+    state: &str,
+    created_at: i64,
+    claim_owner: Option<&str>,
+    claim_heartbeat_at: Option<i64>,
+    terminal_log_sequence: Option<i64>,
+    result_json: Option<&str>,
+    error_json: Option<&str>,
+) {
+    Connection::open(layout.coordinator_db())
+        .unwrap()
+        .execute(
+            "INSERT INTO requests
+             (request_id, idempotency_key, kind, payload_json, state, requester_id,
+              requester_deadline, claim_owner, claim_heartbeat_at, terminal_log_sequence,
+              result_json, error_json, created_at, updated_at)
+             VALUES (?1, ?2, 'resolve', '{}', ?3, 'requester', 30000, ?4, ?5, ?6, ?7, ?8, ?9, ?9)",
+            rusqlite::params![
+                request_id,
+                format!("{request_id}-key"),
+                state,
+                claim_owner,
+                claim_heartbeat_at,
+                terminal_log_sequence,
+                result_json,
+                error_json,
+                created_at,
+            ],
+        )
+        .unwrap();
+}
+
+fn seed_historical_resolve_receipt(layout: &StoreLayout, request_id: &str, sequence: i64) {
+    Connection::open(layout.coordinator_db())
+        .unwrap()
+        .execute(
+            "INSERT INTO request_receipts
+             (request_id, idempotency_key, kind, payload_json, terminal_result_json,
+              terminal_generation_name, terminal_log_sequence, completed_at)
+             VALUES (?1, ?2, 'resolve', '{}', '{\"resolved\":true}', 'gen-001', ?3, 10)",
+            rusqlite::params![request_id, format!("{request_id}-key"), sequence],
+        )
+        .unwrap();
+}
+
+fn retired_resolve_error_json(
+    request: &julie_extract_artifact::store::CoordinatorRequest,
+) -> String {
+    request
+        .error_json
+        .as_deref()
+        .expect("retired resolve must carry typed error_json")
+        .to_string()
+}
+
 fn append_terminal(layout: &StoreLayout, request_id: &str, result_json: &str) -> i64 {
     let mut connection = Connection::open(layout.store_db()).unwrap();
     let transaction = connection.transaction().unwrap();
@@ -151,10 +208,8 @@ fn schema_v2_request_kinds_roundtrip_and_only_one_resolve_may_be_claimed() {
     let layout = layout(temp.path());
     let mut coordinator = StoreCoordinator::open(&layout).unwrap();
     for (index, kind, expected) in [
-        (1, RequestKind::Resolve, "resolve"),
         (2, RequestKind::Export, "export"),
         (3, RequestKind::FromArtifact, "from_artifact"),
-        (4, RequestKind::Resolve, "resolve"),
     ] {
         let request_id = format!("request-{index}");
         coordinator
@@ -173,6 +228,37 @@ fn schema_v2_request_kinds_roundtrip_and_only_one_resolve_may_be_claimed() {
             expected
         );
     }
+
+    seed_historical_resolve(
+        &layout,
+        "request-1",
+        "queued",
+        1,
+        None,
+        None,
+        None,
+        None,
+        None,
+    );
+    seed_historical_resolve(
+        &layout,
+        "request-4",
+        "queued",
+        4,
+        None,
+        None,
+        None,
+        None,
+        None,
+    );
+    assert_eq!(
+        coordinator.request("request-1").unwrap().kind.as_str(),
+        "resolve"
+    );
+    assert_eq!(
+        coordinator.request("request-4").unwrap().kind.as_str(),
+        "resolve"
+    );
 
     let connection = Connection::open(layout.coordinator_db()).unwrap();
     connection
@@ -201,232 +287,233 @@ fn schema_v2_request_kinds_roundtrip_and_only_one_resolve_may_be_claimed() {
 }
 
 #[test]
-fn resolve_claim_heartbeats_and_stale_takeover_are_fenced_without_a_writer_lease() {
+fn historical_resolve_rows_parse_and_queued_claimed_are_reaped_on_drain() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let clock = Arc::new(TestClock::default());
+    clock.set(10);
+    let holder = LeaseHolder::new("holder", "2.30.0", std::process::id());
+    let mut coordinator = StoreCoordinator::open_with_runtime(
+        &layout,
+        holder,
+        Arc::clone(&clock),
+        Arc::new(FixedLiveness(true)),
+    )
+    .unwrap();
+
+    seed_historical_resolve(
+        &layout,
+        "resolve-queued",
+        "queued",
+        1,
+        None,
+        None,
+        None,
+        None,
+        None,
+    );
+    seed_historical_resolve(
+        &layout,
+        "resolve-fresh-claimed",
+        "claimed",
+        2,
+        Some("resolver-live"),
+        Some(9),
+        None,
+        None,
+        None,
+    );
+    seed_historical_resolve(
+        &layout,
+        "resolve-committed",
+        "committed",
+        4,
+        None,
+        None,
+        Some(11),
+        Some("{\"resolved\":true}"),
+        None,
+    );
+    seed_historical_resolve(
+        &layout,
+        "resolve-acknowledged",
+        "acknowledged",
+        5,
+        None,
+        None,
+        Some(12),
+        Some("{\"resolved\":true}"),
+        None,
+    );
+    seed_historical_resolve(
+        &layout,
+        "resolve-failed",
+        "failed",
+        6,
+        None,
+        None,
+        None,
+        None,
+        Some("{\"message\":\"already-failed\"}"),
+    );
+    seed_historical_resolve_receipt(&layout, "resolve-receipt", 13);
+    let terminal_sequence = append_terminal(&layout, "resolve-terminal", "{\"resolved\":true}");
+    seed_historical_resolve(
+        &layout,
+        "resolve-terminal",
+        "queued",
+        7,
+        None,
+        None,
+        None,
+        None,
+        None,
+    );
+    enqueue_request(&mut coordinator, 8, RequestKind::Update, 8);
+
+    for request_id in [
+        "resolve-queued",
+        "resolve-fresh-claimed",
+        "resolve-committed",
+        "resolve-acknowledged",
+        "resolve-failed",
+        "resolve-receipt",
+        "resolve-terminal",
+    ] {
+        let request = coordinator.request(request_id).unwrap();
+        assert_eq!(
+            request.kind.as_str(),
+            "resolve",
+            "{request_id} must stay parseable"
+        );
+    }
+
+    let mut executor = RecordingExecutor {
+        order: Vec::new(),
+        clock: Arc::clone(&clock),
+        advance_ms: 0,
+    };
+    coordinator
+        .drain(&mut executor, &CoordinatorPolicy::default())
+        .unwrap();
+
+    assert_eq!(executor.order, ["request-8"]);
+
+    for request_id in ["resolve-queued", "resolve-fresh-claimed"] {
+        let reaped = coordinator.request(request_id).unwrap();
+        assert_eq!(
+            reaped.state.as_str(),
+            "failed",
+            "{request_id} must be reaped"
+        );
+        assert_eq!(reaped.claim_owner, None);
+        assert_eq!(reaped.claim_heartbeat_at, None);
+        assert!(reaped.result_json.is_none());
+        let error_json = retired_resolve_error_json(&reaped);
+        assert!(
+            error_json.contains("retired_request_kind"),
+            "{request_id} must carry a typed failed payload, got {error_json}"
+        );
+    }
+
+    seed_historical_resolve(
+        &layout,
+        "resolve-stale-claimed",
+        "claimed",
+        9,
+        Some("resolver-dead"),
+        Some(1),
+        None,
+        None,
+        None,
+    );
+    assert_eq!(
+        coordinator
+            .request("resolve-stale-claimed")
+            .unwrap()
+            .kind
+            .as_str(),
+        "resolve"
+    );
+    executor.order.clear();
+    coordinator
+        .drain(&mut executor, &CoordinatorPolicy::default())
+        .unwrap();
+    assert!(executor.order.is_empty());
+    let stale = coordinator.request("resolve-stale-claimed").unwrap();
+    assert_eq!(stale.state.as_str(), "failed");
+    assert!(retired_resolve_error_json(&stale).contains("retired_request_kind"));
+
+    assert_eq!(
+        coordinator
+            .request("resolve-committed")
+            .unwrap()
+            .state
+            .as_str(),
+        "committed"
+    );
+    assert_eq!(
+        coordinator
+            .request("resolve-acknowledged")
+            .unwrap()
+            .state
+            .as_str(),
+        "acknowledged"
+    );
+    assert_eq!(
+        coordinator
+            .request("resolve-failed")
+            .unwrap()
+            .state
+            .as_str(),
+        "failed"
+    );
+    assert_eq!(
+        coordinator
+            .request("resolve-failed")
+            .unwrap()
+            .error_json
+            .as_deref(),
+        Some("{\"message\":\"already-failed\"}")
+    );
+    let receipt = coordinator.request("resolve-receipt").unwrap();
+    assert_eq!(receipt.kind.as_str(), "resolve");
+    assert_eq!(receipt.state.as_str(), "committed");
+
+    coordinator.reconcile("resolve-terminal").unwrap();
+    let reconciled = coordinator.request("resolve-terminal").unwrap();
+    assert_eq!(reconciled.state.as_str(), "committed");
+    assert_eq!(reconciled.terminal_log_sequence, Some(terminal_sequence));
+
+    let archived = coordinator
+        .archive_terminal_requests("gen-001", 10, 12, 10)
+        .unwrap();
+    assert!(
+        archived
+            .iter()
+            .any(|receipt| receipt.request_id == "resolve-committed"
+                && receipt.kind.as_str() == "resolve"),
+        "committed historical resolve receipts must stay parseable"
+    );
+}
+
+#[test]
+fn retired_resolve_cannot_be_enqueued() {
     let temp = TempDir::new();
     let layout = layout(temp.path());
     let mut coordinator = StoreCoordinator::open(&layout).unwrap();
-    coordinator
+    let error = coordinator
         .enqueue(CoordinatorRequest::new(
-            "resolve-1",
-            "resolve-key-1",
-            RequestKind::Resolve,
+            "resolve-new",
+            "resolve-new-key",
+            RequestKind::RetiredResolve,
             "{}",
             "requester",
-            30_000,
+            1_000,
             1,
         ))
-        .unwrap();
-    coordinator
-        .enqueue(CoordinatorRequest::new(
-            "resolve-2",
-            "resolve-key-2",
-            RequestKind::Resolve,
-            "{}",
-            "requester",
-            30_000,
-            2,
-        ))
-        .unwrap();
-
-    assert!(
-        coordinator
-            .claim_resolve("resolve-1", "resolver-a", 10, 5_000)
-            .unwrap()
-    );
-    assert!(
-        !coordinator
-            .claim_resolve("resolve-2", "resolver-b", 20, 5_000)
-            .unwrap()
-    );
-    assert!(
-        coordinator
-            .heartbeat_resolve("resolve-1", "resolver-a", 30)
-            .unwrap()
-    );
-    assert!(
-        coordinator
-            .resolve_claim_is_current("resolve-1", "resolver-a")
-            .unwrap()
-    );
-    assert!(coordinator.lease().unwrap().is_none());
-
-    assert!(
-        coordinator
-            .claim_resolve("resolve-1", "resolver-b", 5_031, 5_000)
-            .unwrap()
-    );
-    assert!(
-        !coordinator
-            .heartbeat_resolve("resolve-1", "resolver-a", 5_032)
-            .unwrap()
-    );
-    assert!(
-        !coordinator
-            .fail_resolve("resolve-1", "resolver-a", "stale", 5_033)
-            .unwrap()
-    );
-    assert!(
-        coordinator
-            .resolve_claim_is_current("resolve-1", "resolver-b")
-            .unwrap()
-    );
-    assert!(coordinator.lease().unwrap().is_none());
-    append_terminal(&layout, "resolve-1", "{\"resolved\":true}");
-    assert!(matches!(
-        coordinator.commit_resolve("resolve-1", "resolver-a"),
-        Err(CoordinatorError::LeaseLost)
-    ));
-    assert!(
-        coordinator
-            .commit_resolve("resolve-1", "resolver-b")
-            .unwrap()
-            .committed_in_fact
-    );
-}
-
-#[test]
-fn dead_resolve_claimant_is_taken_over_before_the_heartbeat_stales() {
-    let temp = TempDir::new();
-    let layout = layout(temp.path());
-    let mut live = StoreCoordinator::open_with_liveness(&layout, FixedLiveness(true)).unwrap();
-    live.enqueue(CoordinatorRequest::new(
-        "resolve-1",
-        "resolve-key-1",
-        RequestKind::Resolve,
-        "{}",
-        "requester",
-        30_000,
-        1,
-    ))
-    .unwrap();
-    assert!(
-        live.claim_resolve("resolve-1", "cli-41", 10, 5_000)
-            .unwrap()
-    );
-
-    let dead = StoreCoordinator::open_with_liveness(&layout, FixedLiveness(false)).unwrap();
-    assert!(
-        dead.claim_resolve("resolve-1", "cli-42", 11, 5_000)
-            .unwrap()
-    );
-    assert!(!dead.heartbeat_resolve("resolve-1", "cli-41", 12).unwrap());
-    assert!(
-        dead.resolve_claim_is_current("resolve-1", "cli-42")
-            .unwrap()
-    );
-    assert!(dead.lease().unwrap().is_none());
-}
-
-/// Regression for the 2026-08-12 Miller incident: resolve `06c5e45b` sat `claimed` by a long-dead
-/// `cli-36084` with two later resolves stuck `queued` behind it. `uidx_coord_one_claimed_resolve` permits
-/// ONE claimed resolve per family, so that single row blocked every future resolve permanently — the store
-/// could never leave `resolution=unbound`, derived sidecars never converged, and `store gc` / `store repair`
-/// were refused too (both key on `EXISTS(... state='claimed')`), so the repair verb could not repair it.
-/// Recovery meant hand-editing coord.db.
-#[test]
-fn abandoned_resolve_claim_is_reaped_instead_of_wedging_the_family() {
-    let temp = TempDir::new();
-    let layout = layout(temp.path());
-    // FixedLiveness(true) on purpose: this proves the STALENESS arm reaps with no dead-PID signal at all.
-    // That arm has to carry the reap on its own wherever liveness cannot answer — `process_status` returns
-    // `PidStatus::Unknown` on any target with no probe, and on Windows whenever `tasklist` cannot run.
-    let mut coordinator =
-        StoreCoordinator::open_with_liveness(&layout, FixedLiveness(true)).unwrap();
-    for (id, key, sequence) in [
-        ("resolve-1", "resolve-key-1", 1),
-        ("resolve-2", "resolve-key-2", 2),
-    ] {
-        coordinator
-            .enqueue(CoordinatorRequest::new(
-                id,
-                key,
-                RequestKind::Resolve,
-                "{}",
-                "requester",
-                30_000,
-                sequence,
-            ))
-            .unwrap();
-    }
-    assert!(
-        coordinator
-            .claim_resolve("resolve-1", "cli-36084", 10, 5_000)
-            .unwrap()
-    );
-
-    // A HEALTHY holder must still block — the reaper must not free a claim that is merely slow.
-    assert!(
-        !coordinator
-            .claim_resolve("resolve-2", "resolver-b", 20, 5_000)
-            .unwrap()
-    );
-    assert_eq!(
-        coordinator.request("resolve-1").unwrap().state.as_str(),
-        "claimed"
-    );
-
-    // Once the holder stops heartbeating past the window, the blocker is reaped and the family moves again.
-    assert!(
-        coordinator
-            .claim_resolve("resolve-2", "resolver-b", 6_000, 5_000)
-            .unwrap()
-    );
-
-    let reaped = coordinator.request("resolve-1").unwrap();
-    assert_eq!(reaped.state.as_str(), "failed");
-    assert_eq!(reaped.claim_owner, None);
-    assert_eq!(reaped.claim_heartbeat_at, None);
-    // Terminal, so `store gc` can reclaim the abandoned `resolve-*.db` scratch and `pending_request_ids`
-    // stops reporting it. A reap to `queued` would leak the scratch forever AND permanently degrade every
-    // later `drain` to snapshot-only.
-    assert!(reaped.error_json.is_some());
-    assert!(reaped.result_json.is_none());
-
-    let claimed = coordinator.request("resolve-2").unwrap();
-    assert_eq!(claimed.state.as_str(), "claimed");
-    assert_eq!(claimed.claim_owner.as_deref(), Some("resolver-b"));
-    assert!(coordinator.lease().unwrap().is_none());
-}
-
-/// The dead-owner arm frees a BLOCKING claim before its heartbeat stales, mirroring
-/// `dead_resolve_claimant_is_taken_over_before_the_heartbeat_stales` for the same-row case.
-#[test]
-fn dead_owner_blocking_a_different_resolve_is_reaped_before_the_heartbeat_stales() {
-    let temp = TempDir::new();
-    let layout = layout(temp.path());
-    let mut live = StoreCoordinator::open_with_liveness(&layout, FixedLiveness(true)).unwrap();
-    for (id, key, sequence) in [
-        ("resolve-1", "resolve-key-1", 1),
-        ("resolve-2", "resolve-key-2", 2),
-    ] {
-        live.enqueue(CoordinatorRequest::new(
-            id,
-            key,
-            RequestKind::Resolve,
-            "{}",
-            "requester",
-            30_000,
-            sequence,
-        ))
-        .unwrap();
-    }
-    assert!(
-        live.claim_resolve("resolve-1", "cli-41", 10, 5_000)
-            .unwrap()
-    );
-
-    // Heartbeat is still fresh (11 is nowhere near the 5 s window), so only the liveness arm can free this.
-    let dead = StoreCoordinator::open_with_liveness(&layout, FixedLiveness(false)).unwrap();
-    assert!(
-        dead.claim_resolve("resolve-2", "cli-42", 11, 5_000)
-            .unwrap()
-    );
-    assert_eq!(dead.request("resolve-1").unwrap().state.as_str(), "failed");
-    assert!(
-        dead.resolve_claim_is_current("resolve-2", "cli-42")
-            .unwrap()
-    );
-    assert!(dead.lease().unwrap().is_none());
+        .unwrap_err();
+    assert!(matches!(error, CoordinatorError::InvalidRequest));
 }
 
 #[test]
@@ -1232,37 +1319,47 @@ fn enqueue_idempotent_replay_still_returns_existing_under_foreign_live_intent() 
 }
 
 #[test]
-fn claim_resolve_returns_false_under_foreign_live_maintenance_intent() {
+fn drain_reaps_historical_resolve_before_foreign_maintenance_refuses_the_lease() {
     let temp = TempDir::new();
     let layout = layout(temp.path());
-    let mut coordinator = StoreCoordinator::open(&layout).unwrap();
-    coordinator
-        .enqueue(CoordinatorRequest::new(
-            "resolve-1",
-            "resolve-key-1",
-            RequestKind::Resolve,
-            "{}",
-            "requester",
-            30_000,
-            1,
-        ))
-        .unwrap();
+    let clock = Arc::new(TestClock::default());
+    clock.set(10);
+    let holder = LeaseHolder::new("holder", "2.30.0", std::process::id());
+    let mut coordinator =
+        StoreCoordinator::open_with_runtime(&layout, holder, clock, Arc::new(FixedLiveness(true)))
+            .unwrap();
+    seed_historical_resolve(
+        &layout,
+        "resolve-1",
+        "claimed",
+        1,
+        Some("resolver-a"),
+        Some(1),
+        None,
+        None,
+        None,
+    );
     insert_live_maintenance_intent(&layout, "run-a", "owner-a", 7, 41, i64::MAX);
 
-    assert!(
-        !coordinator
-            .claim_resolve("resolve-1", "resolver-a", 10, 5_000)
-            .unwrap()
-    );
-    let state: String = Connection::open(layout.coordinator_db())
-        .unwrap()
-        .query_row(
-            "SELECT state FROM requests WHERE request_id='resolve-1'",
-            [],
-            |row| row.get(0),
+    let error = coordinator
+        .drain(
+            &mut RecordingExecutor {
+                order: Vec::new(),
+                clock: Arc::new(TestClock::default()),
+                advance_ms: 0,
+            },
+            &CoordinatorPolicy::default(),
         )
-        .unwrap();
-    assert_eq!(state, "queued");
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        CoordinatorError::StoreConnection(
+            julie_extract_artifact::store::StoreConnectionError::MaintenanceInProgress { run_id }
+        ) if run_id == "run-a"
+    ));
+    let reaped = coordinator.request("resolve-1").unwrap();
+    assert_eq!(reaped.state.as_str(), "failed");
+    assert!(retired_resolve_error_json(&reaped).contains("retired_request_kind"));
 }
 
 #[test]
@@ -1904,7 +2001,7 @@ fn own_request_runs_exclusively_until_terminal_before_backlog_snapshot() {
 }
 
 #[test]
-fn generic_backlog_drain_leaves_resolves_to_the_off_lease_resolver() {
+fn generic_backlog_drain_reaps_historical_resolves_and_still_runs_other_kinds() {
     let temp = TempDir::new();
     let layout = layout(temp.path());
     let clock = Arc::new(TestClock::default());
@@ -1916,14 +2013,29 @@ fn generic_backlog_drain_leaves_resolves_to_the_off_lease_resolver() {
         Arc::new(FixedLiveness(true)),
     )
     .unwrap();
-    enqueue_request(&mut coordinator, 1, RequestKind::Resolve, 1);
-    enqueue_request(&mut coordinator, 2, RequestKind::Resolve, 2);
-    enqueue_request(&mut coordinator, 3, RequestKind::Update, 3);
-    assert!(
-        coordinator
-            .claim_resolve("request-1", "resolver-a", 10, 5_000)
-            .unwrap()
+    seed_historical_resolve(
+        &layout,
+        "request-1",
+        "claimed",
+        1,
+        Some("resolver-a"),
+        Some(1),
+        None,
+        None,
+        None,
     );
+    seed_historical_resolve(
+        &layout,
+        "request-2",
+        "queued",
+        2,
+        None,
+        None,
+        None,
+        None,
+        None,
+    );
+    enqueue_request(&mut coordinator, 3, RequestKind::Update, 3);
     let mut executor = RecordingExecutor {
         order: Vec::new(),
         clock,
@@ -1939,11 +2051,11 @@ fn generic_backlog_drain_leaves_resolves_to_the_off_lease_resolver() {
     assert_eq!(executor.order, ["request-3"]);
     assert_eq!(
         coordinator.request("request-1").unwrap().state.as_str(),
-        "claimed"
+        "failed"
     );
     assert_eq!(
         coordinator.request("request-2").unwrap().state.as_str(),
-        "queued"
+        "failed"
     );
 }
 
