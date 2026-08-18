@@ -314,9 +314,11 @@ fn three_changed_files_sharing_a_ubiquitous_name_stay_scoped() {
     };
     assert!(!worklists.effective_full);
     for version_id in changed_versions {
-        assert!(worklists
-            .selected_versions
-            .contains(&SemanticVersionId::Store(version_id)));
+        assert!(
+            worklists
+                .selected_versions
+                .contains(&SemanticVersionId::Store(version_id))
+        );
     }
     for version_id in padding_versions {
         assert!(
