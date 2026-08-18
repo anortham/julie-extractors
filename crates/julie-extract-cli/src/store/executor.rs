@@ -707,7 +707,7 @@ impl StoreRequestExecutor {
                 })?;
                 Ok(ManifestEntry::indexed(
                     &file.root_relative_path,
-                    file.language(),
+                    version.language,
                     version.version_id,
                     &file.content_hash,
                     indexed_at,
@@ -1841,25 +1841,25 @@ impl CoordinatorExecutor for StoreRequestExecutor {
                             }
                             let prior_version = transaction
                                 .query_row(
-                                    "SELECT me.version_id
+                                    "SELECT me.version_id, fv.language
                                      FROM views v JOIN manifest_entries me
                                        ON me.view_id = v.view_id
                                       AND me.generation = v.current_generation
+                                     JOIN file_versions fv ON fv.version_id = me.version_id
                                      WHERE v.view_id = ?1 AND me.path = ?2",
                                     rusqlite::params![
                                         payload.view_id,
                                         discovered.root_relative_path
                                     ],
-                                    |row| row.get::<_, Option<i64>>(0),
+                                    |row| Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?)),
                                 )
                                 .optional()
-                                .map_err(|error| error.to_string())?
-                                .flatten();
+                                .map_err(|error| error.to_string())?;
                             let error_json = serde_json::json!({ "message": message }).to_string();
                             let failure = match prior_version {
-                                Some(version_id) => ManifestEntry::failed_preserved(
+                                Some((version_id, language)) => ManifestEntry::failed_preserved(
                                     &discovered.root_relative_path,
-                                    discovered.language(),
+                                    language,
                                     version_id,
                                     &discovered.content_hash,
                                     &indexed_at,

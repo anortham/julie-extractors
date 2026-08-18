@@ -91,9 +91,9 @@ Plan-package commit ownership: this plan file is currently UNTRACKED in the main
 **Approach:** TDD: a store-import test over a fixture with a C++-flavored `.h` file (reuse the sniff fixtures from `julie-extractors/src/tests/pipeline.rs:340-414`) that asserts the import PUBLISHES and the manifest entry's language is `cpp`; plus a `failed_preserved` case. Both fail today with `file_version_language_mismatch`.
 
 **Acceptance criteria:**
-- [ ] Cold import of a mixed C/C++ `.h` corpus publishes; no `.julieignore` workaround needed
-- [ ] `failed_preserved` entries carry the prior version's stored language
-- [ ] Worker scope green; worker commits (serial-worker-commit)
+- [x] Cold import of a mixed C/C++ `.h` corpus publishes; no `.julieignore` workaround needed
+- [x] `failed_preserved` entries carry the prior version's stored language
+- [x] Worker scope green; worker commits (serial-worker-commit)
 
 ### Task 2: Remove the `store resolve` verb and the store resolution session
 

@@ -2914,3 +2914,182 @@ fn resumed_full_import_reports_its_l1_generation_after_an_intervening_flip() {
     assert_eq!(result["manifest_generation"], 2);
     assert_eq!(result["manifest_hash"], report["manifest"]["hash"]);
 }
+
+const CPP_HEADER: &str = r#"
+#pragma once
+
+namespace app {
+class Widget {
+public:
+    void run() const;
+};
+}
+"#;
+
+const C_HEADER: &str = r#"
+#ifndef WIDGET_H
+#define WIDGET_H
+
+typedef struct widget {
+    int id;
+} widget_t;
+
+void widget_init(widget_t *widget);
+
+#endif
+"#;
+
+#[test]
+fn cold_import_of_mixed_c_and_cpp_headers_publishes_sniffed_manifest_languages() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("widget.h"), CPP_HEADER).unwrap();
+    std::fs::write(root.join("types.h"), C_HEADER).unwrap();
+
+    let output = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--level",
+            "l1",
+            "--request-id",
+            "request-mixed-headers",
+            "--idempotency-key",
+            "idem-mixed-headers",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["state"], "committed");
+    assert_ne!(report["manifest"]["disposition"], "not_published");
+
+    let connection = rusqlite::Connection::open(store.join("gen-001/store.db")).unwrap();
+    let languages = |path: &str| -> (String, String) {
+        connection
+            .query_row(
+                "SELECT me.language, fv.language
+                 FROM views v
+                 JOIN manifest_entries me
+                   ON me.view_id = v.view_id AND me.generation = v.current_generation
+                 JOIN file_versions fv ON fv.version_id = me.version_id
+                 WHERE v.view_id = 'view-main' AND me.path = ?1",
+                [path],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap()
+    };
+    assert_eq!(
+        languages("widget.h"),
+        ("cpp".to_string(), "cpp".to_string())
+    );
+    assert_eq!(languages("types.h"), ("c".to_string(), "c".to_string()));
+}
+
+#[test]
+fn failed_preserved_cpp_header_keeps_the_prior_version_stored_language() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("widget.h"), CPP_HEADER).unwrap();
+
+    let run = |request: &str, idempotency: &str| {
+        Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+            .args([
+                "store",
+                "import",
+                "--store",
+                store.to_str().unwrap(),
+                "--family",
+                FAMILY_ID,
+                "--root",
+                root.to_str().unwrap(),
+                "--view",
+                "view-main",
+                "--level",
+                "l1",
+                "--request-id",
+                request,
+                "--idempotency-key",
+                idempotency,
+                "--json",
+            ])
+            .output()
+            .unwrap()
+    };
+
+    let first = run("request-cpp-header", "idem-cpp-header");
+    assert_eq!(
+        first.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&first.stdout),
+        String::from_utf8_lossy(&first.stderr)
+    );
+
+    let database = store.join("gen-001/store.db");
+    let connection = rusqlite::Connection::open(&database).unwrap();
+    let prior: (i64, String) = connection
+        .query_row(
+            "SELECT fv.version_id, fv.language
+             FROM views v
+             JOIN manifest_entries me
+               ON me.view_id = v.view_id AND me.generation = v.current_generation
+             JOIN file_versions fv ON fv.version_id = me.version_id
+             WHERE v.view_id = 'view-main' AND me.path = 'widget.h'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!(prior.1, "cpp");
+    drop(connection);
+
+    std::fs::write(root.join("widget.h"), [0xff, 0xfe, 0x00]).unwrap();
+    let failed = run("request-cpp-preserved", "idem-cpp-preserved");
+    assert_eq!(
+        failed.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&failed.stdout),
+        String::from_utf8_lossy(&failed.stderr)
+    );
+
+    let connection = rusqlite::Connection::open(database).unwrap();
+    let preserved: (String, Option<i64>, String) = connection
+        .query_row(
+            "SELECT me.status, me.version_id, me.language
+             FROM views v
+             JOIN manifest_entries me
+               ON me.view_id = v.view_id AND me.generation = v.current_generation
+             WHERE v.view_id = 'view-main' AND me.path = 'widget.h'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .unwrap();
+    assert_eq!(
+        preserved,
+        (
+            "failed_preserved".to_string(),
+            Some(prior.0),
+            "cpp".to_string()
+        )
+    );
+}

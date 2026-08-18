@@ -54,6 +54,7 @@ pub struct StoredFileVersion {
     pub path: String,
     pub content_hash: String,
     pub extraction_epoch: u32,
+    pub language: String,
     pub complete_l1: Option<i64>,
     pub complete_l2: Option<i64>,
     pub complete_l3: Option<i64>,
@@ -255,7 +256,7 @@ impl StoreWriter {
             StoreLevel::L3 => "complete_l3",
         };
         let sql = format!(
-            "SELECT version_id, path, content_hash, extraction_epoch,
+            "SELECT version_id, path, content_hash, extraction_epoch, language,
                     complete_l1, complete_l2, complete_l3
              FROM file_versions
              WHERE path = ?1 AND content_hash = ?2 AND extraction_epoch = ?3
@@ -268,9 +269,10 @@ impl StoreWriter {
                     path: row.get(1)?,
                     content_hash: row.get(2)?,
                     extraction_epoch: row.get(3)?,
-                    complete_l1: row.get(4)?,
-                    complete_l2: row.get(5)?,
-                    complete_l3: row.get(6)?,
+                    language: row.get(4)?,
+                    complete_l1: row.get(5)?,
+                    complete_l2: row.get(6)?,
+                    complete_l3: row.get(7)?,
                 })
             })
             .optional()
@@ -290,7 +292,7 @@ impl StoreWriter {
             StoreLevel::L3 => "complete_l3",
         };
         let sql = format!(
-            "SELECT version_id, path, content_hash, extraction_epoch,
+            "SELECT version_id, path, content_hash, extraction_epoch, language,
                     complete_l1, complete_l2, complete_l3
              FROM file_versions
              WHERE path = ?1 AND content_hash = ?2 AND extraction_epoch = ?3
@@ -303,9 +305,10 @@ impl StoreWriter {
                     path: row.get(1)?,
                     content_hash: row.get(2)?,
                     extraction_epoch: row.get(3)?,
-                    complete_l1: row.get(4)?,
-                    complete_l2: row.get(5)?,
-                    complete_l3: row.get(6)?,
+                    language: row.get(4)?,
+                    complete_l1: row.get(5)?,
+                    complete_l2: row.get(6)?,
+                    complete_l3: row.get(7)?,
                 })
             })
             .optional()
@@ -674,6 +677,7 @@ fn lookup_identity_in_tx(
                     path: row.get(1)?,
                     content_hash: row.get(2)?,
                     extraction_epoch: row.get(3)?,
+                    language: row.get(4)?,
                     complete_l1: row.get(8)?,
                     complete_l2: row.get(9)?,
                     complete_l3: row.get(10)?,
