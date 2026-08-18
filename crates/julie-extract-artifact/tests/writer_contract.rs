@@ -8,10 +8,8 @@ use julie_extract_artifact::model::{
     ArtifactTypeArgument, ArtifactTypeArgumentUsage, ArtifactTypeFact, CapabilityGapStatus,
     FileStatus, ReferenceSiteProvenance, RevisionInput, WriteMode, WriteOperation,
 };
-use julie_extract_artifact::resolution_store::{ResolutionCounts, record_pending_resolution};
 use julie_extract_artifact::writer::{
-    ArtifactFileSpool, ArtifactWriteError, ArtifactWriter, ResolutionHookError,
-    ResolutionScopeInput,
+    ArtifactFileSpool, ArtifactWriteError, ArtifactWriter,
 };
 use rusqlite::{Connection, OptionalExtension, limits::Limit};
 use serde_json::json;
@@ -363,10 +361,6 @@ fn writer_module_does_not_own_row_inserter_helpers() {
 }
 
 // --- fresh-artifact bulk load -------------------------------------------------
-//
-// The bulk load is invisible from outside the writer, so these tests observe it
-// from inside the write transaction through the resolution hook: that is the one
-// place a caller can see the schema and journal the inserts actually ran under.
 
 #[test]
 fn fresh_path_scan_inserts_without_secondary_indexes_and_restores_them() {
@@ -382,33 +376,13 @@ fn fresh_path_scan_inserts_without_secondary_indexes_and_restores_them() {
         "the schema should carry the full secondary-index catalog: {expected_indexes:?}"
     );
 
-    let mut in_transaction_indexes = Vec::new();
-    let mut in_transaction_journal = String::new();
-    let mut in_transaction_foreign_keys = -1;
     writer
-        .write_scan_with_resolution(
+        .write_scan(
             revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
             &[file_with_all_rows("file-a", "src/a.rs", "hash-a")],
-            |tx, _scope| {
-                in_transaction_indexes = secondary_index_names(tx);
-                in_transaction_journal = pragma_text(tx, "journal_mode").to_lowercase();
-                in_transaction_foreign_keys = pragma_i64(tx, "foreign_keys");
-                Ok(ResolutionCounts::default())
-            },
         )
         .unwrap();
 
-    assert!(
-        in_transaction_indexes.is_empty(),
-        "a fresh bulk load must insert with no secondary indexes present: \
-         {in_transaction_indexes:?}"
-    );
-    assert_eq!(
-        in_transaction_foreign_keys, 0,
-        "the bulk load must insert with foreign-key enforcement off, or the deferred \
-         parent-side searches scan every referencing table"
-    );
-    assert_eq!(in_transaction_journal, "memory");
     assert_eq!(secondary_index_names(writer.connection()), expected_indexes);
     assert_eq!(
         pragma_text(writer.connection(), "journal_mode").to_lowercase(),
@@ -497,26 +471,17 @@ fn bulk_load_never_activates_on_update_delete_or_populated_scan() {
             "{probe:?} opened a populated artifact and must not be bulk-load eligible"
         );
 
-        let mut in_transaction_indexes = Vec::new();
-        let mut in_transaction_journal = String::new();
-        let mut hook = |tx: &rusqlite::Transaction<'_>, _scope: &ResolutionScopeInput| {
-            in_transaction_indexes = secondary_index_names(tx);
-            in_transaction_journal = pragma_text(tx, "journal_mode").to_lowercase();
-            Ok(ResolutionCounts::default())
-        };
         let result = match probe {
             WriteProbe::Update => writer
-                .write_update_with_resolution(
+                .write_update(
                     revision(WriteOperation::Update, Some(WriteMode::SingleFile)),
                     &file_with_all_rows("file-a", "src/a.rs", "hash-a2"),
-                    &mut hook,
                 )
                 .unwrap(),
             WriteProbe::Delete => writer
-                .delete_file_with_resolution(
+                .delete_file(
                     revision(WriteOperation::Delete, Some(WriteMode::SingleFile)),
                     "src/b.rs",
-                    &mut hook,
                 )
                 .unwrap(),
             WriteProbe::Scan | WriteProbe::ForcedScan => {
@@ -526,25 +491,25 @@ fn bulk_load_never_activates_on_update_delete_or_populated_scan() {
                     WriteMode::Incremental
                 };
                 writer
-                    .write_scan_with_resolution(
+                    .write_scan(
                         revision(WriteOperation::Scan, Some(mode)),
                         &[
                             file_with_all_rows("file-a", "src/a.rs", "hash-a3"),
                             file_with_all_rows("file-b", "src/b.rs", "hash-b3"),
                         ],
-                        &mut hook,
                     )
                     .unwrap()
             }
         };
 
         assert_eq!(
-            in_transaction_indexes, expected_indexes,
-            "{probe:?} must keep every secondary index: delta resolution needs the \
-             file_id indexes"
+            secondary_index_names(writer.connection()),
+            expected_indexes,
+            "{probe:?} must keep every secondary index"
         );
         assert_eq!(
-            in_transaction_journal, "wal",
+            pragma_text(writer.connection(), "journal_mode").to_lowercase(),
+            "wal",
             "{probe:?} must stay on the durable journal"
         );
         assert!(
@@ -577,69 +542,15 @@ fn a_single_file_write_spends_bulk_load_eligibility() {
         "the update left rows behind, so a later scan must not bulk-load"
     );
 
-    let mut in_transaction_indexes = Vec::new();
     writer
-        .write_scan_with_resolution(
+        .write_scan(
             revision(WriteOperation::Scan, Some(WriteMode::Force)),
             &[file_with_all_rows("file-a", "src/a.rs", "hash-a2")],
-            |tx, _scope| {
-                in_transaction_indexes = secondary_index_names(tx);
-                Ok(ResolutionCounts::default())
-            },
         )
         .unwrap();
     assert!(
-        !in_transaction_indexes.is_empty(),
+        !secondary_index_names(writer.connection()).is_empty(),
         "a scan following a write must keep its secondary indexes"
-    );
-
-    drop(writer);
-    std::fs::remove_dir_all(temp_dir).unwrap();
-}
-
-#[test]
-fn bulk_load_rejects_and_rolls_back_a_foreign_key_violation() {
-    // The bulk load turns per-row enforcement off, so the pre-commit
-    // `foreign_key_check` is the only thing standing between a broken reference and
-    // a committed artifact. Forge one from inside the resolution hook, which is the
-    // one place a test holds the write transaction.
-    let temp_dir = unique_temp_dir("bulk-load-fk-violation");
-    std::fs::create_dir_all(&temp_dir).unwrap();
-    let db_path = temp_dir.join("artifact.sqlite");
-
-    let mut writer = ArtifactWriter::open_path(&db_path, artifact_metadata()).unwrap();
-    assert!(writer.bulk_load_eligible());
-
-    let error = writer
-        .write_scan_with_resolution(
-            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
-            &[file_with_all_rows("file-a", "src/a.rs", "hash-a")],
-            |tx, _scope| {
-                tx.execute(
-                    "INSERT INTO symbol_annotations
-                     (annotation_id, symbol_id, annotation, annotation_key)
-                     VALUES ('orphan', 'no-such-symbol', 'x', 'x')",
-                    [],
-                )
-                .expect("enforcement is off during the bulk load, so the orphan lands");
-                Ok(ResolutionCounts::default())
-            },
-        )
-        .expect_err("a dangling reference must fail the write");
-
-    assert!(
-        matches!(error, ArtifactWriteError::ForeignKeyViolation { .. }),
-        "expected a foreign-key violation, got {error:?}"
-    );
-    assert_eq!(
-        table_rows(writer.connection(), "symbols").len(),
-        0,
-        "the failed write must roll back to the empty artifact"
-    );
-    assert_eq!(
-        pragma_i64(writer.connection(), "foreign_keys"),
-        1,
-        "enforcement must be restored after a failed bulk load"
     );
 
     drop(writer);
@@ -659,25 +570,22 @@ fn bulk_load_and_indexed_path_write_identical_artifacts() {
     let mut bulk = ArtifactWriter::open_path(&db_path, artifact_metadata()).unwrap();
     assert!(bulk.bulk_load_eligible());
     let bulk_result = bulk
-        .write_scan_with_resolution(
+        .write_scan(
             revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
             &files,
-            resolve_every_pending_row,
         )
         .unwrap();
 
     let mut indexed = ArtifactWriter::open_in_memory(artifact_metadata()).unwrap();
     assert!(!indexed.bulk_load_eligible());
     let indexed_result = indexed
-        .write_scan_with_resolution(
+        .write_scan(
             revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
             &files,
-            resolve_every_pending_row,
         )
         .unwrap();
 
     assert_eq!(bulk_result.rows_written, indexed_result.rows_written);
-    assert_eq!(bulk_result.resolution, indexed_result.resolution);
     assert!(bulk_result.phases.index_build > Duration::ZERO);
     assert_eq!(indexed_result.phases.index_build, Duration::ZERO);
 
@@ -767,23 +675,18 @@ fn failed_bulk_load_restore_failure_surfaces_and_poisons_the_writer() {
     let mut writer = ArtifactWriter::open_path(&db_path, artifact_metadata()).unwrap();
     assert!(writer.bulk_load_eligible());
     writer.inject_journal_restore_failure("injected restore failure");
+    let mut spool = ArtifactFileSpool::create(temp_dir.join("scan.spool")).unwrap();
+    spool
+        .push(&file_with_all_rows("file-a", "src/a.rs", "hash-a"))
+        .unwrap();
 
     let error = writer
-        .write_scan_with_resolution(
+        .write_scan_spooled(
             revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
-            &[file_with_all_rows("file-a", "src/a.rs", "hash-a")],
-            |tx, _scope| {
-                tx.execute(
-                    "INSERT INTO symbol_annotations
-                     (annotation_id, symbol_id, annotation, annotation_key)
-                     VALUES ('orphan', 'no-such-symbol', 'x', 'x')",
-                    [],
-                )
-                .expect("enforcement is off during the bulk load, so the orphan lands");
-                Ok(ResolutionCounts::default())
-            },
+            &[],
+            &mut spool,
         )
-        .expect_err("a dangling reference must fail the write");
+        .expect_err("a pre-commit bulk-load failure plus restore failure must fail the write");
 
     let ArtifactWriteError::BulkLoadRestoreFailed {
         write_error,
@@ -795,7 +698,7 @@ fn failed_bulk_load_restore_failure_surfaces_and_poisons_the_writer() {
     assert!(
         matches!(
             **write_error,
-            ArtifactWriteError::ForeignKeyViolation { .. }
+            ArtifactWriteError::SnapshotMissingSpooledPath { .. }
         ),
         "the original write failure must survive inside the restore failure: {write_error:?}"
     );
@@ -947,19 +850,15 @@ fn bulk_load_never_reengages_after_a_scan_empties_the_artifact() {
          must not re-qualify for the non-durable bulk load"
     );
 
-    let mut in_transaction_journal = String::new();
     reopened
-        .write_scan_with_resolution(
+        .write_scan(
             revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
             &[file_with_all_rows("file-b", "src/b.rs", "hash-b")],
-            |tx, _scope| {
-                in_transaction_journal = pragma_text(tx, "journal_mode").to_lowercase();
-                Ok(ResolutionCounts::default())
-            },
         )
         .unwrap();
     assert_eq!(
-        in_transaction_journal, "wal",
+        pragma_text(reopened.connection(), "journal_mode").to_lowercase(),
+        "wal",
         "a live artifact must keep the durable journal"
     );
 
@@ -973,39 +872,6 @@ enum WriteProbe {
     Delete,
     Scan,
     ForcedScan,
-}
-
-/// A hook that does real overlay work, so the equivalence test compares a
-/// resolution pass that ran without secondary indexes against one that had them.
-fn resolve_every_pending_row(
-    tx: &rusqlite::Transaction<'_>,
-    _scope: &ResolutionScopeInput,
-) -> Result<ResolutionCounts, ResolutionHookError> {
-    let pending: Vec<(String, String)> = {
-        let mut statement = tx
-            .prepare("SELECT pending_relationship_id, from_symbol_id FROM pending_relationships")
-            .map_err(|error| ResolutionHookError::new(error.to_string()))?;
-        let rows = statement
-            .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
-            .map_err(|error| ResolutionHookError::new(error.to_string()))?;
-        rows.collect::<rusqlite::Result<Vec<_>>>()
-            .map_err(|error| ResolutionHookError::new(error.to_string()))?
-    };
-    let mut counts = ResolutionCounts::default();
-    for (pending_relationship_id, target_symbol_id) in pending {
-        record_pending_resolution(
-            tx,
-            &pending_relationship_id,
-            &target_symbol_id,
-            1,
-            1.0,
-            "test",
-            1,
-        )
-        .map_err(|error| ResolutionHookError::new(error.to_string()))?;
-        counts.pending_resolutions += 1;
-    }
-    Ok(counts)
 }
 
 const ARTIFACT_ROW_TABLES: [&str; 16] = [
@@ -2195,46 +2061,6 @@ fn data_loss_guard_preserves_known_good_rows_on_parser_failure_evidence() {
 }
 
 #[test]
-fn write_scan_attributes_hook_time_to_the_resolution_phase() {
-    let mut writer = open_writer();
-    let files = vec![file_with_symbols(
-        "file-a",
-        "src/a.rs",
-        "blake3:a",
-        ["alpha"],
-    )];
-    let hook_work = Duration::from_millis(60);
-
-    let result = writer
-        .write_scan_with_resolution(
-            revision(WriteOperation::Scan, Some(WriteMode::Force)),
-            &files,
-            |_tx, _scope| {
-                std::thread::sleep(hook_work);
-                Ok(ResolutionCounts::default())
-            },
-        )
-        .unwrap();
-
-    assert!(
-        result.phases.resolution >= hook_work,
-        "hook time must land in the resolution phase: {:?}",
-        result.phases
-    );
-    assert!(
-        result.phases.total() >= result.phases.resolution,
-        "the phase total must cover every segment: {:?}",
-        result.phases
-    );
-    assert_eq!(
-        result.phases.index_build,
-        Duration::ZERO,
-        "in-memory writers never take the deferred-index path: {:?}",
-        result.phases
-    );
-}
-
-#[test]
 fn capability_snapshot_sync_writes_static_rows_once() {
     let mut writer = open_writer();
     let snapshot = one_language_capability_snapshot();
@@ -2279,454 +2105,6 @@ fn capability_snapshot_sync_writes_static_rows_once() {
     );
     assert_eq!(count(writer.connection(), "language_capability_gaps"), 1);
     assert_eq!(count(writer.connection(), "extraction_revisions"), 0);
-}
-
-#[test]
-fn resolution_hook_runs_in_transaction_and_folds_counts() {
-    // INVARIANT: the hook fires inside the write transaction AFTER row writes (it
-    // can reference the pending row + target symbol just inserted this scan) and
-    // BEFORE the revision counts are finalized (its overlay writes fold into
-    // counts_json). write_scan is a Full-scope path.
-    let mut writer = open_writer();
-    let file = file_with_pending("file-a", "src/a.rs", "hash-a");
-
-    let mut fired = 0;
-    let result = writer
-        .write_scan_with_resolution(
-            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
-            std::slice::from_ref(&file),
-            |tx: &rusqlite::Transaction<'_>, scope: &ResolutionScopeInput| {
-                fired += 1;
-                assert!(scope.is_full_scan, "write_scan is a Full-scope path");
-                assert_eq!(scope.changed_file_ids, vec!["file-a".to_string()]);
-                record_pending_resolution(
-                    tx,
-                    "file-a-pending-1",
-                    "file-a-symbol-1",
-                    2,
-                    0.9,
-                    "test",
-                    current_revision(tx),
-                )
-                .map_err(|err| ResolutionHookError::new(err.to_string()))?;
-                Ok(ResolutionCounts {
-                    pending_resolutions: 1,
-                    identifier_resolutions: 0,
-                })
-            },
-        )
-        .unwrap();
-
-    assert_eq!(fired, 1, "the hook must fire exactly once");
-    assert_eq!(result.resolution.counts.pending_resolutions, 1);
-    assert!(result.resolution.failed.is_none());
-    // The overlay row persisted, proving the hook ran inside the committed tx and
-    // could see the pending/symbol rows written earlier in the same tx.
-    assert_eq!(count(writer.connection(), "pending_resolutions"), 1);
-    // Folded before update_revision_counts.
-    assert_eq!(
-        revision_counts_pending_resolutions(writer.connection()),
-        1,
-        "hook overlay writes must fold into the revision counts_json"
-    );
-}
-
-#[test]
-fn resolution_hook_scope_includes_old_names_on_full_rescan() {
-    // INVARIANT: touched_symbol_names carries OLD DB names of a rewritten file,
-    // including a symbol the rewrite removed (the incoming file cannot supply it).
-    let mut writer = open_writer();
-    writer
-        .write_scan(
-            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
-            &[file_with_symbols(
-                "file-a",
-                "src/a.rs",
-                "hash-a",
-                ["Foo", "Bar"],
-            )],
-        )
-        .unwrap();
-
-    let mut captured = None;
-    writer
-        .write_scan_with_resolution(
-            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
-            &[file_with_symbols("file-a", "src/a.rs", "hash-a2", ["Bar"])],
-            |_tx: &rusqlite::Transaction<'_>, scope: &ResolutionScopeInput| {
-                captured = Some(sorted_names(scope));
-                Ok(ResolutionCounts::default())
-            },
-        )
-        .unwrap();
-
-    let names = captured.expect("hook must fire on a rewrite");
-    assert!(
-        names.contains(&"Foo".to_string()),
-        "old removed symbol must be in the touched set, got {names:?}"
-    );
-    assert!(names.contains(&"Bar".to_string()), "got {names:?}");
-}
-
-#[test]
-fn resolution_hook_scope_includes_old_names_on_update_and_delete() {
-    // INVARIANT: update and delete (Delta paths) both seed touched_symbol_names
-    // from OLD DB rows of the affected file.
-    let mut writer = open_writer();
-    writer
-        .write_scan(
-            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
-            &[file_with_symbols(
-                "file-a",
-                "src/a.rs",
-                "hash-a",
-                ["Foo", "Bar"],
-            )],
-        )
-        .unwrap();
-
-    let mut updated = None;
-    writer
-        .write_update_with_resolution(
-            revision(WriteOperation::Update, Some(WriteMode::SingleFile)),
-            &file_with_symbols("file-a", "src/a.rs", "hash-a2", ["Bar"]),
-            |_tx: &rusqlite::Transaction<'_>, scope: &ResolutionScopeInput| {
-                assert!(!scope.is_full_scan, "write_update is a Delta path");
-                updated = Some(sorted_names(scope));
-                Ok(ResolutionCounts::default())
-            },
-        )
-        .unwrap();
-    let names = updated.expect("hook must fire on update");
-    assert!(names.contains(&"Foo".to_string()), "got {names:?}");
-    assert!(names.contains(&"Bar".to_string()), "got {names:?}");
-
-    let mut deleted = None;
-    writer
-        .delete_file_with_resolution(
-            revision(WriteOperation::Delete, Some(WriteMode::SingleFile)),
-            "src/a.rs",
-            |_tx: &rusqlite::Transaction<'_>, scope: &ResolutionScopeInput| {
-                assert!(!scope.is_full_scan, "delete_file is a Delta path");
-                assert_eq!(scope.changed_file_ids, vec!["file-a".to_string()]);
-                deleted = Some(sorted_names(scope));
-                Ok(ResolutionCounts::default())
-            },
-        )
-        .unwrap();
-    // After the update, the file holds only "Bar"; delete sees the old row names.
-    assert_eq!(
-        deleted.expect("hook must fire on delete"),
-        vec!["Bar".to_string()]
-    );
-}
-
-#[test]
-fn resolution_hook_error_is_non_fatal_and_rolls_back_overlay() {
-    // INVARIANT: a hook error never rolls back the scan. Its overlay writes are
-    // discarded (savepoint), the message is surfaced, and the counts stay zero.
-    let mut writer = open_writer();
-    let file = file_with_pending("file-a", "src/a.rs", "hash-a");
-
-    let result = writer
-        .write_scan_with_resolution(
-            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
-            std::slice::from_ref(&file),
-            |tx: &rusqlite::Transaction<'_>, _scope: &ResolutionScopeInput| {
-                // Write an overlay row, THEN fail — the savepoint must discard it.
-                record_pending_resolution(
-                    tx,
-                    "file-a-pending-1",
-                    "file-a-symbol-1",
-                    2,
-                    0.9,
-                    "test",
-                    current_revision(tx),
-                )
-                .map_err(|err| ResolutionHookError::new(err.to_string()))?;
-                Err(ResolutionHookError::new("resolver boom"))
-            },
-        )
-        .unwrap();
-
-    // The scan itself committed.
-    assert_eq!(count(writer.connection(), "extraction_revisions"), 1);
-    assert_eq!(
-        symbols_for_path(writer.connection(), "src/a.rs"),
-        vec!["alpha", "target"]
-    );
-    // The failure is surfaced and the counts are zeroed.
-    assert_eq!(result.resolution.failed.as_deref(), Some("resolver boom"));
-    assert_eq!(result.resolution.counts, ResolutionCounts::default());
-    // The hook's overlay write was rolled back — the row stays unresolved.
-    assert_eq!(count(writer.connection(), "pending_resolutions"), 0);
-    assert_eq!(
-        revision_counts_pending_resolutions(writer.connection()),
-        0,
-        "a failed hook must leave the revision counts truthful (zero)"
-    );
-}
-
-#[test]
-fn bulk_scan_resolution_error_aborts_the_scan_and_restores_the_empty_artifact() {
-    // INVARIANT: a bulk first build runs the hook WITHOUT the savepoint (whose
-    // in-memory sub-journal is quadratic at scale), so a hook error cannot be
-    // contained to the resolution overlay — the whole scan aborts, the empty
-    // artifact rolls back, and a rerun rebuilds from scratch.
-    let temp_dir = unique_temp_dir("bulk-resolution-error");
-    std::fs::create_dir_all(&temp_dir).unwrap();
-    let db_path = temp_dir.join("artifact.sqlite");
-
-    let mut writer = ArtifactWriter::open_path(&db_path, artifact_metadata()).unwrap();
-    assert!(writer.bulk_load_eligible());
-    let file = file_with_pending("file-a", "src/a.rs", "hash-a");
-
-    let failed = writer.write_scan_with_resolution(
-        revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
-        std::slice::from_ref(&file),
-        |_tx: &rusqlite::Transaction<'_>, _scope: &ResolutionScopeInput| {
-            Err(ResolutionHookError::new("resolver boom"))
-        },
-    );
-    assert!(matches!(
-        &failed,
-        Err(ArtifactWriteError::BulkResolutionFailed { message }) if message == "resolver boom"
-    ));
-    assert_eq!(
-        pragma_text(writer.connection(), "journal_mode").to_lowercase(),
-        "wal",
-        "the failed bulk scan must leave the connection durable again"
-    );
-    assert_eq!(count(writer.connection(), "files"), 0);
-    assert_eq!(count(writer.connection(), "extraction_revisions"), 0);
-    drop(writer);
-
-    let mut rerun = ArtifactWriter::open_path(&db_path, artifact_metadata()).unwrap();
-    assert!(
-        rerun.bulk_load_eligible(),
-        "the rolled-back artifact is still empty, so the rerun bulk-loads too"
-    );
-    let result = rerun
-        .write_scan_with_resolution(
-            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
-            std::slice::from_ref(&file),
-            |tx: &rusqlite::Transaction<'_>, _scope: &ResolutionScopeInput| {
-                record_pending_resolution(
-                    tx,
-                    "file-a-pending-1",
-                    "file-a-symbol-1",
-                    2,
-                    0.9,
-                    "test",
-                    current_revision(tx),
-                )
-                .map_err(|err| ResolutionHookError::new(err.to_string()))?;
-                Ok(ResolutionCounts {
-                    pending_resolutions: 1,
-                    identifier_resolutions: 0,
-                })
-            },
-        )
-        .unwrap();
-    assert!(result.resolution.failed.is_none());
-    assert_eq!(count(rerun.connection(), "files"), 1);
-    assert_eq!(count(rerun.connection(), "pending_resolutions"), 1);
-    assert_eq!(
-        revision_counts_pending_resolutions(rerun.connection()),
-        1,
-        "the rerun's hook writes must fold into the revision counts"
-    );
-}
-
-#[test]
-fn bulk_scan_resolution_success_matches_savepoint_path_semantics() {
-    // INVARIANT: on the savepoint-free bulk path a succeeding hook behaves
-    // exactly as on the WAL path — overlay writes persist and fold into the
-    // revision counts.
-    let temp_dir = unique_temp_dir("bulk-resolution-success");
-    std::fs::create_dir_all(&temp_dir).unwrap();
-    let db_path = temp_dir.join("artifact.sqlite");
-
-    let mut writer = ArtifactWriter::open_path(&db_path, artifact_metadata()).unwrap();
-    assert!(writer.bulk_load_eligible());
-    let file = file_with_pending("file-a", "src/a.rs", "hash-a");
-
-    let result = writer
-        .write_scan_with_resolution(
-            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
-            std::slice::from_ref(&file),
-            |tx: &rusqlite::Transaction<'_>, scope: &ResolutionScopeInput| {
-                assert!(scope.is_full_scan);
-                record_pending_resolution(
-                    tx,
-                    "file-a-pending-1",
-                    "file-a-symbol-1",
-                    2,
-                    0.9,
-                    "test",
-                    current_revision(tx),
-                )
-                .map_err(|err| ResolutionHookError::new(err.to_string()))?;
-                Ok(ResolutionCounts {
-                    pending_resolutions: 1,
-                    identifier_resolutions: 0,
-                })
-            },
-        )
-        .unwrap();
-
-    assert!(result.resolution.failed.is_none());
-    assert_eq!(result.resolution.counts.pending_resolutions, 1);
-    assert_eq!(count(writer.connection(), "pending_resolutions"), 1);
-    assert_eq!(revision_counts_pending_resolutions(writer.connection()), 1);
-}
-
-#[test]
-fn resolution_hook_fires_in_spooled_and_unsupported_paths() {
-    // INVARIANT: both spooled scan paths (Full) and remove_unsupported_file
-    // (Delta) run the hook with the correct scope.
-    let mut writer = open_writer();
-    let file = file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"]);
-    let snapshot_paths = vec![file.path.clone()];
-    let temp_dir = unique_temp_dir("resolution-spooled");
-    std::fs::create_dir_all(&temp_dir).unwrap();
-    let mut spool = ArtifactFileSpool::create(temp_dir.join("files.jsonl")).unwrap();
-    spool.push(&file).unwrap();
-
-    let mut spooled = None;
-    writer
-        .write_scan_spooled_with_resolution(
-            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
-            &snapshot_paths,
-            &mut spool,
-            |_tx: &rusqlite::Transaction<'_>, scope: &ResolutionScopeInput| {
-                spooled = Some((
-                    scope.is_full_scan,
-                    scope.changed_file_ids.clone(),
-                    sorted_names(scope),
-                ));
-                Ok(ResolutionCounts::default())
-            },
-        )
-        .unwrap();
-    let (full, ids, names) = spooled.expect("spooled hook must fire");
-    assert!(full, "inserting a path is a structure change, so Full");
-    assert_eq!(ids, vec!["file-a".to_string()]);
-    assert!(names.contains(&"alpha".to_string()), "got {names:?}");
-
-    // Preserving-missing spooled variant: a rewrite carries old + new names.
-    let file2 = file_with_symbols("file-a", "src/a.rs", "hash-a2", ["alpha_v2"]);
-    let snapshot_paths2 = vec![file2.path.clone()];
-    let mut spool2 = ArtifactFileSpool::create(temp_dir.join("files2.jsonl")).unwrap();
-    spool2.push(&file2).unwrap();
-    let mut preserved = None;
-    writer
-        .write_scan_spooled_preserving_missing_paths_with_resolution(
-            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
-            &snapshot_paths2,
-            &[],
-            &mut spool2,
-            |_tx: &rusqlite::Transaction<'_>, scope: &ResolutionScopeInput| {
-                // A pure rewrite adds and removes no path, so the scan scopes rather
-                // than re-deriving — while still reporting whole-corpus coverage.
-                assert!(!scope.is_full_scan);
-                assert!(scope.whole_corpus);
-                preserved = Some(sorted_names(scope));
-                Ok(ResolutionCounts::default())
-            },
-        )
-        .unwrap();
-    let names2 = preserved.expect("preserving-missing hook must fire");
-    assert!(
-        names2.contains(&"alpha".to_string()),
-        "old name, got {names2:?}"
-    );
-    assert!(
-        names2.contains(&"alpha_v2".to_string()),
-        "new name, got {names2:?}"
-    );
-
-    // remove_unsupported_file is a Delta path that seeds old names.
-    let mut unsupported = None;
-    writer
-        .remove_unsupported_file_with_resolution(
-            revision(WriteOperation::Update, Some(WriteMode::SingleFile)),
-            "src/a.rs",
-            |_tx: &rusqlite::Transaction<'_>, scope: &ResolutionScopeInput| {
-                unsupported = Some((scope.is_full_scan, sorted_names(scope)));
-                Ok(ResolutionCounts::default())
-            },
-        )
-        .unwrap();
-    let (full3, names3) = unsupported.expect("remove_unsupported hook must fire");
-    assert!(!full3, "remove_unsupported_file is a Delta path");
-    assert_eq!(names3, vec!["alpha_v2".to_string()]);
-
-    std::fs::remove_dir_all(temp_dir).unwrap();
-}
-
-#[test]
-fn hookless_write_leaves_resolution_outcome_empty() {
-    // INVARIANT: existing hookless callers see an empty resolution outcome and no
-    // overlay rows — the no-op delegation preserves current behavior.
-    let mut writer = open_writer();
-    let result = writer
-        .write_scan(
-            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
-            &[file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"])],
-        )
-        .unwrap();
-
-    assert_eq!(result.resolution.counts, ResolutionCounts::default());
-    assert!(result.resolution.failed.is_none());
-    assert_eq!(count(writer.connection(), "pending_resolutions"), 0);
-    assert_eq!(count(writer.connection(), "identifier_resolutions"), 0);
-}
-
-fn file_with_pending(file_id: &str, path: &str, hash: &str) -> ArtifactFile {
-    let mut file = file_with_symbols(file_id, path, hash, ["alpha", "target"]);
-    file.pending_relationships
-        .push(ArtifactPendingRelationship {
-            pending_relationship_id: format!("{file_id}-pending-1"),
-            reference_site_id: format!("{file_id}-pending-site-1"),
-            from_symbol_id: format!("{file_id}-symbol-0"),
-            kind: "uses".to_string(),
-            target_display_name: "target".to_string(),
-            target_terminal_name: "target".to_string(),
-            ..ArtifactPendingRelationship::default()
-        });
-    file
-}
-
-fn sorted_names(scope: &ResolutionScopeInput) -> Vec<String> {
-    let mut names = scope
-        .touched_symbol_names
-        .iter()
-        .cloned()
-        .collect::<Vec<_>>();
-    names.sort();
-    names
-}
-
-fn current_revision(tx: &rusqlite::Transaction<'_>) -> i64 {
-    tx.query_row(
-        "SELECT MAX(revision_id) FROM extraction_revisions",
-        [],
-        |row| row.get(0),
-    )
-    .unwrap()
-}
-
-fn revision_counts_pending_resolutions(conn: &Connection) -> i64 {
-    let counts_json: String = conn
-        .query_row(
-            "SELECT counts_json FROM extraction_revisions ORDER BY revision_id DESC LIMIT 1",
-            [],
-            |row| row.get(0),
-        )
-        .unwrap();
-    let value: serde_json::Value = serde_json::from_str(&counts_json).unwrap();
-    value["pending_resolutions"].as_i64().unwrap()
 }
 
 #[test]
@@ -3304,100 +2682,4 @@ fn index_exists(conn: &Connection, name: &str) -> bool {
         |_| Ok(()),
     )
     .is_ok()
-}
-
-/// The scope contract a whole-repo scan hands the resolver. `is_full_scan` answers
-/// "re-derive the whole overlay"; `whole_corpus` answers "every file was hash-checked".
-/// A whole-repo scan always satisfies the second and only sometimes needs the first.
-fn spooled_scan_scope(
-    writer: &mut ArtifactWriter,
-    temp_dir: &std::path::Path,
-    tag: &str,
-    files: &[ArtifactFile],
-    mode: WriteMode,
-) -> (bool, bool) {
-    let snapshot_paths: Vec<String> = files.iter().map(|f| f.path.clone()).collect();
-    let mut spool = ArtifactFileSpool::create(temp_dir.join(format!("{tag}.jsonl"))).unwrap();
-    for file in files {
-        spool.push(file).unwrap();
-    }
-    let mut seen = None;
-    writer
-        .write_scan_spooled_with_resolution(
-            revision(WriteOperation::Scan, Some(mode)),
-            &snapshot_paths,
-            &mut spool,
-            |_tx: &rusqlite::Transaction<'_>, scope: &ResolutionScopeInput| {
-                seen = Some((scope.is_full_scan, scope.whole_corpus));
-                Ok(ResolutionCounts::default())
-            },
-        )
-        .unwrap();
-    seen.expect("scan hook must fire")
-}
-
-#[test]
-fn whole_repo_scan_scopes_resolution_unless_a_path_changed_or_force() {
-    let temp_dir = unique_temp_dir("scan-scope-contract");
-    std::fs::create_dir_all(&temp_dir).unwrap();
-    let mut writer = open_writer();
-
-    let inserted = spooled_scan_scope(
-        &mut writer,
-        &temp_dir,
-        "insert",
-        &[file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"])],
-        WriteMode::Incremental,
-    );
-    assert_eq!(inserted, (true, true), "a new path can re-point a module");
-
-    let rewritten = spooled_scan_scope(
-        &mut writer,
-        &temp_dir,
-        "rewrite",
-        &[file_with_symbols(
-            "file-a",
-            "src/a.rs",
-            "hash-a2",
-            ["alpha_v2"],
-        )],
-        WriteMode::Incremental,
-    );
-    assert_eq!(
-        rewritten,
-        (false, true),
-        "a rewrite moves no path, so it scopes — and still covers the corpus"
-    );
-
-    let forced = spooled_scan_scope(
-        &mut writer,
-        &temp_dir,
-        "force",
-        &[file_with_symbols(
-            "file-a",
-            "src/a.rs",
-            "hash-a3",
-            ["alpha_v3"],
-        )],
-        WriteMode::Force,
-    );
-    assert_eq!(
-        forced,
-        (true, true),
-        "force skips nothing, so the delta scope already is the workspace"
-    );
-
-    // Dropping `src/a.rs` from the snapshot is how a whole-repo scan deletes it.
-    let deleted = spooled_scan_scope(
-        &mut writer,
-        &temp_dir,
-        "delete",
-        &[file_with_symbols("file-b", "src/b.rs", "hash-b", ["beta"])],
-        WriteMode::Incremental,
-    );
-    assert_eq!(
-        deleted,
-        (true, true),
-        "a removed path can re-point a module"
-    );
 }

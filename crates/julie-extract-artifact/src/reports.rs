@@ -383,14 +383,6 @@ pub enum ReportCode {
     MetadataMissing,
     CapabilityGap,
     SlowFileSkipped,
-    /// A whole-workspace scan re-extracted every supported file to advance the
-    /// durable reference-resolution evidence contract.
-    ResolutionUpgraded,
-    /// A resolver hook returned an error. Non-fatal: the scan still commits with
-    /// the affected rows left unresolved, and the scan report records the message
-    /// (design §"Failure semantics"). Not an `ERROR_CODES` member — it never fails
-    /// the write.
-    ResolutionFailed,
     /// Two extraction passes disagreed about the payload of a reference site they
     /// share for one source token. Non-fatal: the first row wins and the import
     /// commits. Not an `ERROR_CODES` member — per-row attribution lives in
@@ -431,7 +423,7 @@ pub enum ReportCode {
 }
 
 impl ReportCode {
-    pub const ALL: [Self; 29] = [
+    pub const ALL: [Self; 27] = [
         Self::UsageError,
         Self::InvalidPath,
         Self::FileOutsideRoot,
@@ -452,8 +444,6 @@ impl ReportCode {
         Self::MetadataMissing,
         Self::CapabilityGap,
         Self::SlowFileSkipped,
-        Self::ResolutionUpgraded,
-        Self::ResolutionFailed,
         Self::ReferenceSitePayloadConflict,
         Self::ParentExited,
         Self::SpoolDirExcluded,
@@ -510,8 +500,6 @@ impl ReportCode {
             Self::MetadataMissing => "metadata_missing",
             Self::CapabilityGap => "capability_gap",
             Self::SlowFileSkipped => "slow_file_skipped",
-            Self::ResolutionUpgraded => "resolution_upgraded",
-            Self::ResolutionFailed => "resolution_failed",
             Self::ReferenceSitePayloadConflict => "reference_site_payload_conflict",
             Self::ParentExited => "parent_exited",
             Self::SpoolDirExcluded => "spool_dir_excluded",

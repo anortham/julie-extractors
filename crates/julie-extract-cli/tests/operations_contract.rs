@@ -4,7 +4,6 @@ use std::process::{Command, Output};
 use std::time::{Duration, SystemTime};
 
 use julie_extract_cli::limits::MAX_SOURCE_FILE_BYTES;
-use julie_extract_cli::resolution::RESOLUTION_VERSION;
 use rusqlite::{Connection, OptionalExtension};
 use serde_json::{Value, json};
 use tempfile::TempDir;
@@ -143,7 +142,7 @@ fn scan_creates_sqlite_artifact_with_expected_rows() {
             |row| row.get::<_, i64>(0),
         )
         .unwrap();
-    assert_eq!(open_reference_resolution_gaps, 109);
+    assert_eq!(open_reference_resolution_gaps, 0);
     assert_eq!(unknown_gap_statuses, 0);
     let rust_kind_coverage = language_kind_coverage(&db, "rust");
     assert_eq!(
@@ -440,7 +439,6 @@ fn scan_profile_splits_artifact_write_into_additive_sub_phases() {
         "artifact_write_plan",
         "artifact_write_file_symbol_insert",
         "artifact_write_child_rows",
-        "artifact_write_resolution",
         "artifact_write_index_build",
         "artifact_write_foreign_key_check",
         "artifact_write_commit",
@@ -615,17 +613,63 @@ fn scan_with_no_changes_returns_no_change_without_new_revision() {
 }
 
 #[test]
-fn scan_reextracts_unchanged_files_when_resolution_version_is_stale() {
+fn scan_writes_facts_only_and_omits_resolution_metadata() {
+    let fixture = FixtureRoot::new();
+    let db = fixture.path("artifact.sqlite");
+
+    assert_success(scan(fixture.root_str(), &db));
+
+    assert_eq!(table_count(&db, "pending_resolutions"), 0);
+    assert_eq!(table_count(&db, "identifier_resolutions"), 0);
+    assert_eq!(
+        metadata_optional(&db, "reference_resolution_version"),
+        None
+    );
+    assert_eq!(
+        metadata_optional(&db, "reference_resolution_status"),
+        None
+    );
+    assert_eq!(
+        metadata_optional(&db, "reference_resolution_last_full_revision"),
+        None
+    );
+}
+
+#[test]
+fn opening_a_prior_artifact_with_resolution_metadata_does_not_force_reextract() {
     let fixture = FixtureRoot::new();
     let db = fixture.path("artifact.sqlite");
     assert_success(scan(fixture.root_str(), &db));
-    let expected_files = table_count(&db, "files");
 
     let connection = Connection::open(&db).unwrap();
     connection
         .execute(
-            "UPDATE artifact_metadata SET value = '1' WHERE key = 'reference_resolution_version'",
+            "INSERT OR REPLACE INTO artifact_metadata (key, value)
+             VALUES ('reference_resolution_version', '1')",
             [],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT OR REPLACE INTO artifact_metadata (key, value)
+             VALUES ('reference_resolution_status', 'complete')",
+            [],
+        )
+        .unwrap();
+    let identifier_id: String = connection
+        .query_row(
+            "SELECT identifier_id FROM identifiers LIMIT 1",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT OR REPLACE INTO identifier_resolutions
+             (identifier_id, target_symbol_id, tier, confidence, method, outcome,
+              candidates, resolved_at_revision)
+             VALUES (?1, NULL, 1, 0.0, 'prior', 'missing', 0, 1)",
+            [&identifier_id],
         )
         .unwrap();
     drop(connection);
@@ -641,119 +685,40 @@ fn scan_reextracts_unchanged_files_when_resolution_version_is_stale() {
 
     assert_eq!(output.status.code(), Some(0));
     let report = json_report(&output);
-    assert_eq!(report["status"], "ok");
-    assert_eq!(report["counts"]["files_changed"], expected_files);
-    assert_eq!(report["counts"]["files_unchanged"], 0);
-    assert_ne!(report["revision"]["created_revision_id"], Value::Null);
+    assert_eq!(report["status"], "no_change");
+    assert_eq!(report["revision"]["created_revision_id"], Value::Null);
+    assert_eq!(report["counts"]["files_unchanged"], 2);
     assert!(
         report["warnings"]
             .as_array()
             .unwrap()
             .iter()
-            .any(|warning| warning["code"] == "resolution_upgraded")
+            .all(|warning| warning["code"] != "resolution_upgraded")
     );
+    assert_eq!(table_count(&db, "extraction_revisions"), 1);
+
+    let update_output = update(fixture.root_str(), &db, "src/b.rs");
     assert_eq!(
-        metadata_value(&db, "reference_resolution_version"),
-        RESOLUTION_VERSION.to_string()
+        update_output.status.code(),
+        Some(0),
+        "stdout={}\nstderr={}",
+        String::from_utf8_lossy(&update_output.stdout),
+        String::from_utf8_lossy(&update_output.stderr)
     );
-}
-
-#[test]
-fn scan_upgrades_resolution_metadata_for_an_empty_artifact() {
-    let temp = TempDir::new().unwrap();
-    let root = temp.path().join("repo");
-    std::fs::create_dir_all(&root).unwrap();
-    let db = temp.path().join("artifact.sqlite");
-    assert_success(scan(path_str(&root), &db));
-
-    let connection = Connection::open(&db).unwrap();
-    connection
-        .execute(
-            "UPDATE artifact_metadata SET value = '1' WHERE key = 'reference_resolution_version'",
-            [],
-        )
-        .unwrap();
-    drop(connection);
-
-    let output = julie_extract(&[
-        "scan",
-        "--root",
-        path_str(&root),
-        "--db",
-        path_str(&db),
-        "--json",
-    ]);
-
-    assert_eq!(output.status.code(), Some(0));
-    let report = json_report(&output);
-    assert_eq!(report["status"], "ok");
-    assert!(
-        report["warnings"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|warning| warning["code"] == "resolution_upgraded")
+    assert_ne!(
+        json_report(&update_output)["errors"][0]["code"],
+        "schema_migration_required"
     );
+
+    let delete_output = delete(fixture.root_str(), &db, "src/b.rs");
     assert_eq!(
-        metadata_value(&db, "reference_resolution_status"),
-        "complete"
+        delete_output.status.code(),
+        Some(0),
+        "stdout={}\nstderr={}",
+        String::from_utf8_lossy(&delete_output.stdout),
+        String::from_utf8_lossy(&delete_output.stderr)
     );
-    assert_eq!(
-        metadata_value(&db, "reference_resolution_version"),
-        RESOLUTION_VERSION.to_string()
-    );
-}
-
-#[test]
-fn stale_resolution_version_requires_full_scan_before_delete() {
-    let fixture = FixtureRoot::new();
-    let db = fixture.path("artifact.sqlite");
-    assert_success(scan(fixture.root_str(), &db));
-
-    let connection = Connection::open(&db).unwrap();
-    connection
-        .execute(
-            "UPDATE artifact_metadata SET value = '1' WHERE key = 'reference_resolution_version'",
-            [],
-        )
-        .unwrap();
-    drop(connection);
-
-    let output = delete(fixture.root_str(), &db, "src/b.rs");
-
-    assert_eq!(output.status.code(), Some(3));
-    let report = json_report(&output);
-    assert_eq!(report["status"], "failed");
-    assert_eq!(report["errors"][0]["code"], "schema_migration_required");
-    assert_eq!(table_count(&db, "files"), 2);
-}
-
-#[test]
-fn failed_resolution_status_requires_full_scan_before_update() {
-    let fixture = FixtureRoot::new();
-    let db = fixture.path("artifact.sqlite");
-    assert_success(scan(fixture.root_str(), &db));
-
-    let connection = Connection::open(&db).unwrap();
-    connection
-        .execute(
-            "UPDATE artifact_metadata SET value = 'failed' WHERE key = 'reference_resolution_status'",
-            [],
-        )
-        .unwrap();
-    drop(connection);
-
-    let output = update(fixture.root_str(), &db, "src/b.rs");
-
-    assert_eq!(output.status.code(), Some(3));
-    let report = json_report(&output);
-    assert_eq!(report["status"], "failed");
-    assert_eq!(report["errors"][0]["code"], "schema_migration_required");
-    assert_eq!(report["errors"][0]["recoverable"], true);
-    assert_eq!(
-        report["errors"][0]["details"]["action"],
-        "julie-extract scan"
-    );
+    assert_eq!(json_report(&delete_output)["status"], "ok");
 }
 
 #[test]
@@ -1010,111 +975,6 @@ fn scan_preserves_existing_symbols_when_changed_file_becomes_unreadable() {
     assert_eq!(symbols_for_path(&db, "src/b.rs"), vec!["beta"]);
     assert_eq!(file_status_for_path(&db, "src/a.rs"), "failed_preserved");
     assert_eq!(diagnostics_for_path(&db, "src/a.rs"), vec!["error"]);
-}
-
-#[test]
-fn resolution_upgrade_remains_blocked_when_a_source_file_cannot_be_reextracted() {
-    let fixture = FixtureRoot::new();
-    let db = fixture.path("artifact.sqlite");
-    assert_success(scan(fixture.root_str(), &db));
-
-    let connection = Connection::open(&db).unwrap();
-    connection
-        .execute(
-            "UPDATE artifact_metadata SET value = '1' WHERE key = 'reference_resolution_version'",
-            [],
-        )
-        .unwrap();
-    drop(connection);
-    std::fs::write(fixture.root.join("src/a.rs"), [0xff, 0xfe, 0xfd]).unwrap();
-
-    let output = julie_extract(&[
-        "scan",
-        "--root",
-        fixture.root_str(),
-        "--db",
-        path_str(&db),
-        "--json",
-    ]);
-
-    assert_eq!(output.status.code(), Some(3));
-    let report = json_report(&output);
-    assert_eq!(report["status"], "failed");
-    assert!(
-        report["errors"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|error| error["code"] == "read_failed")
-    );
-    assert!(
-        report["errors"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|error| error["code"] == "schema_migration_required")
-    );
-    assert_eq!(metadata_value(&db, "reference_resolution_status"), "failed");
-
-    let update_output = update(fixture.root_str(), &db, "src/b.rs");
-    assert_eq!(update_output.status.code(), Some(3));
-    assert_eq!(
-        json_report(&update_output)["errors"][0]["code"],
-        "schema_migration_required"
-    );
-}
-
-#[test]
-fn forced_resolution_upgrade_remains_blocked_when_a_source_file_cannot_be_reextracted() {
-    let fixture = FixtureRoot::new();
-    let db = fixture.path("artifact.sqlite");
-    assert_success(scan(fixture.root_str(), &db));
-
-    let connection = Connection::open(&db).unwrap();
-    connection
-        .execute(
-            "UPDATE artifact_metadata SET value = '1' WHERE key = 'reference_resolution_version'",
-            [],
-        )
-        .unwrap();
-    drop(connection);
-    std::fs::write(fixture.root.join("src/a.rs"), [0xff, 0xfe, 0xfd]).unwrap();
-
-    let output = julie_extract(&[
-        "scan",
-        "--root",
-        fixture.root_str(),
-        "--db",
-        path_str(&db),
-        "--force",
-        "--json",
-    ]);
-
-    assert_eq!(output.status.code(), Some(3));
-    let report = json_report(&output);
-    assert_eq!(report["status"], "failed");
-    assert!(
-        report["errors"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|error| error["code"] == "read_failed")
-    );
-    assert!(
-        report["errors"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|error| error["code"] == "schema_migration_required")
-    );
-    assert_eq!(metadata_value(&db, "reference_resolution_status"), "failed");
-
-    let update_output = update(fixture.root_str(), &db, "src/b.rs");
-    assert_eq!(update_output.status.code(), Some(3));
-    assert_eq!(
-        json_report(&update_output)["errors"][0]["code"],
-        "schema_migration_required"
-    );
 }
 
 #[cfg(unix)]
@@ -1615,10 +1475,9 @@ fn info_reports_missing_noncritical_metadata_as_warning() {
     assert_eq!(table_count(&db, "extraction_revisions"), 1);
     assert_eq!(table_count(&db, "files"), 2);
     assert_eq!(table_count(&db, "symbols"), 3);
-    // 11 base metadata keys + 3 `reference_resolution_*` keys written by the
-    // resolution pass + the `index_level` key every scan stamps, minus the
+    // 11 base metadata keys + the `index_level` key every scan stamps, minus the
     // deleted `updated_at`.
-    assert_eq!(table_count(&db, "artifact_metadata"), 14);
+    assert_eq!(table_count(&db, "artifact_metadata"), 11);
     assert_eq!(before.len(), artifact_fingerprint(&db).len() + 1);
 }
 
@@ -1652,7 +1511,7 @@ fn export_jsonl_emits_valid_jsonl_records_from_scanned_artifact() {
     assert_eq!(report["status"], "ok");
     assert_eq!(report["operation"], "export");
     assert_eq!(report["mode"], "jsonl");
-    assert_eq!(report["artifact"]["jsonl_schema_version"], 4);
+    assert_eq!(report["artifact"]["jsonl_schema_version"], 5);
     assert_eq!(report["counts"]["rows_written"]["files"], 2);
     assert_eq!(report["counts"]["rows_written"]["symbols"], 3);
     let records = std::fs::read_to_string(&out).unwrap();
@@ -1662,7 +1521,7 @@ fn export_jsonl_emits_valid_jsonl_records_from_scanned_artifact() {
         .collect::<Vec<_>>();
     assert_eq!(parsed[0]["kind"], "artifact");
     assert_eq!(parsed[0]["op"], "snapshot");
-    assert_eq!(parsed[0]["jsonl_schema_version"], 4);
+    assert_eq!(parsed[0]["jsonl_schema_version"], 5);
     assert!(
         parsed
             .iter()
@@ -1910,57 +1769,6 @@ fn scan_skips_a_source_file_one_byte_over_the_size_limit() {
     assert_eq!(report["counts"]["files_unsupported"], 1);
     assert_eq!(report["warnings"][0]["code"], "slow_file_skipped");
     assert_eq!(rows_for_path(&db, "files", "src/over.rs"), 0);
-}
-
-#[test]
-fn resolution_upgrade_remains_blocked_when_a_source_file_is_oversized() {
-    let fixture = FixtureRoot::new();
-    let db = fixture.path("artifact.sqlite");
-    assert_success(scan(fixture.root_str(), &db));
-    assert!(!symbols_for_path(&db, "src/a.rs").is_empty());
-
-    let connection = Connection::open(&db).unwrap();
-    connection
-        .execute(
-            "UPDATE artifact_metadata SET value = '1' WHERE key = 'reference_resolution_version'",
-            [],
-        )
-        .unwrap();
-    drop(connection);
-    std::fs::write(
-        fixture.path("src/a.rs"),
-        "x".repeat(MAX_SOURCE_FILE_BYTES + 1),
-    )
-    .unwrap();
-
-    let output = scan(fixture.root_str(), &db);
-
-    assert_eq!(output.status.code(), Some(3));
-    let report = json_report(&output);
-    assert_eq!(report["status"], "failed");
-    assert!(
-        report["warnings"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|warning| warning["code"] == "slow_file_skipped")
-    );
-    assert!(
-        report["errors"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|error| error["code"] == "schema_migration_required")
-    );
-    assert_eq!(symbols_for_path(&db, "src/a.rs"), Vec::<String>::new());
-    assert_eq!(metadata_value(&db, "reference_resolution_status"), "failed");
-
-    let update_output = update(fixture.root_str(), &db, "src/b.rs");
-    assert_eq!(update_output.status.code(), Some(3));
-    assert_eq!(
-        json_report(&update_output)["errors"][0]["code"],
-        "schema_migration_required"
-    );
 }
 
 #[test]
@@ -2312,565 +2120,6 @@ fn delete(root: &str, db: &Path, file: &str) -> Output {
         file,
         "--json",
     ])
-}
-
-fn symbol_id_for(db: &Path, name: &str) -> Option<String> {
-    let conn = Connection::open(db).unwrap();
-    conn.query_row(
-        "SELECT symbol_id FROM symbols WHERE name = ?1",
-        [name],
-        |row| row.get(0),
-    )
-    .optional()
-    .unwrap()
-}
-
-fn identifier_target(db: &Path, name: &str) -> Option<String> {
-    let conn = Connection::open(db).unwrap();
-    conn.query_row(
-        "SELECT r.target_symbol_id FROM identifiers i \
-         JOIN identifier_resolutions r ON r.identifier_id = i.identifier_id \
-         WHERE i.name = ?1",
-        [name],
-        |row| row.get::<_, Option<String>>(0),
-    )
-    .optional()
-    .unwrap()
-    .flatten()
-}
-
-/// Serialize the two resolution overlay tables as ordered strings for a
-/// byte-for-byte determinism comparison.
-fn dump_resolution_tables(db: &Path) -> Vec<String> {
-    let conn = Connection::open(db).unwrap();
-    let mut dump = Vec::new();
-    let mut pending = conn
-        .prepare(
-            "SELECT pending_relationship_id, target_symbol_id, tier, confidence, method, \
-                    resolved_at_revision FROM pending_resolutions \
-             ORDER BY pending_relationship_id",
-        )
-        .unwrap();
-    let rows = pending
-        .query_map([], |row| {
-            Ok(format!(
-                "pending|{}|{}|{}|{}|{}|{}",
-                row.get::<_, String>(0)?,
-                row.get::<_, String>(1)?,
-                row.get::<_, i64>(2)?,
-                row.get::<_, f64>(3)?,
-                row.get::<_, String>(4)?,
-                row.get::<_, i64>(5)?,
-            ))
-        })
-        .unwrap()
-        .collect::<Result<Vec<_>, _>>()
-        .unwrap();
-    dump.extend(rows);
-    let mut identifiers = conn
-        .prepare(
-            "SELECT identifier_id, target_symbol_id, tier, confidence, method, outcome, \
-                    candidates, resolved_at_revision FROM identifier_resolutions \
-             ORDER BY identifier_id",
-        )
-        .unwrap();
-    let rows = identifiers
-        .query_map([], |row| {
-            Ok(format!(
-                "identifier|{}|{:?}|{:?}|{:?}|{}|{:?}|{}",
-                row.get::<_, String>(0)?,
-                row.get::<_, Option<String>>(1)?,
-                row.get::<_, Option<i64>>(2)?,
-                row.get::<_, Option<f64>>(3)?,
-                row.get::<_, String>(5)?,
-                row.get::<_, Option<i64>>(6)?,
-                row.get::<_, i64>(7)?,
-            ))
-        })
-        .unwrap()
-        .collect::<Result<Vec<_>, _>>()
-        .unwrap();
-    dump.extend(rows);
-    dump
-}
-
-/// Two-file fixture: a unique free function in `a.rs`, a cross-file caller in
-/// `b.rs`. The call is deferred to a `pending_relationships` row (cross-file), so
-/// the workspace pass must resolve it (tier 4 unique-global) and propagate the
-/// target onto the co-located identifier.
-fn cross_file_fixture() -> FixtureRoot {
-    let fixture = FixtureRoot::with_file("src/a.rs", "pub fn produce_widget() {}\n");
-    std::fs::write(
-        fixture.path("src/b.rs"),
-        "pub fn consume() { produce_widget(); }\n",
-    )
-    .unwrap();
-    fixture
-}
-
-fn identifiers_without_resolution(db: &Path) -> i64 {
-    let conn = Connection::open(db).expect("artifact opens");
-    conn.query_row(
-        "SELECT COUNT(*) FROM identifiers i \
-         LEFT JOIN identifier_resolutions r ON r.identifier_id = i.identifier_id \
-         WHERE r.identifier_id IS NULL",
-        [],
-        |row| row.get(0),
-    )
-    .expect("count query runs")
-}
-
-/// The workspace-relative path of the file defining what `name` resolves to.
-fn identifier_target_path(db: &Path, name: &str) -> Option<String> {
-    let conn = Connection::open(db).expect("artifact opens");
-    conn.query_row(
-        "SELECT s.path FROM identifiers i \
-         JOIN identifier_resolutions r ON r.identifier_id = i.identifier_id \
-         JOIN symbols s ON s.symbol_id = r.target_symbol_id \
-         WHERE i.name = ?1 LIMIT 1",
-        [name],
-        |row| row.get(0),
-    )
-    .optional()
-    .expect("target path query runs")
-}
-
-fn identifier_outcome(db: &Path, name: &str) -> Option<String> {
-    let conn = Connection::open(db).expect("artifact opens");
-    conn.query_row(
-        "SELECT r.outcome FROM identifiers i \
-         JOIN identifier_resolutions r ON r.identifier_id = i.identifier_id \
-         WHERE i.name = ?1 LIMIT 1",
-        [name],
-        |row| row.get(0),
-    )
-    .optional()
-    .expect("outcome query runs")
-}
-
-#[test]
-fn touching_only_the_receiver_type_name_rechecks_the_resolution() {
-    // A static-type resolution depends on the RECEIVER's name, not the member's.
-    // Delta invalidation therefore has to sweep resolved identifiers by receiver
-    // the way it already does for pending rows; keying on the member name alone
-    // leaves `Color.Red` claiming an exact target after a second `Color` appears.
-    let fixture = FixtureRoot::with_file(
-        "src/color.cs",
-        "namespace App { public enum Color { Red, Blue } }\n",
-    );
-    std::fs::write(
-        fixture.path("src/consumer.cs"),
-        "namespace App { public class Consumer { public int Run() { var c = Color.Red; return 0; } } }\n",
-    )
-    .unwrap();
-    let db = fixture.path("artifact.sqlite");
-    assert_success(scan(fixture.root_str(), &db));
-    assert!(
-        identifier_target(&db, "Red").is_some(),
-        "the enum member must resolve through its enum type before the collision"
-    );
-
-    // A second `Color` makes the receiver ambiguous. It deliberately does NOT
-    // declare `Red`, so the only touched names are `Color` and `Blue`. `update`
-    // is the delta path; `scan` always forces a full pass and would sweep the row
-    // for unrelated reasons.
-    std::fs::write(
-        fixture.path("src/other.cs"),
-        "namespace Other { public enum Color { Blue } }\n",
-    )
-    .unwrap();
-    assert_success(update(fixture.root_str(), &db, "src/other.cs"));
-    assert_eq!(
-        identifier_target(&db, "Red"),
-        None,
-        "an ambiguous receiver type must clear the target even though `Red` itself is untouched"
-    );
-}
-
-#[test]
-fn delta_repoints_an_aliased_import_when_a_new_file_shadows_its_module() {
-    // `./util` resolves to the directory module until `src/util.ts` shadows it.
-    // The reference is `h`, the export is `helper`, so the alias is again the only
-    // link — and here the stale overlay points at a symbol that is still alive, so
-    // no cascade fires and nothing else would clear it.
-    let fixture =
-        FixtureRoot::with_file("src/util/index.ts", "export function helper(): void {}\n");
-    std::fs::write(
-        fixture.path("src/consumer.ts"),
-        "import { helper as h } from './util';\nexport function run(): void { h(); }\n",
-    )
-    .unwrap();
-    let db = fixture.path("artifact.sqlite");
-    assert_success(scan(fixture.root_str(), &db));
-    assert_eq!(
-        identifier_target_path(&db, "h").as_deref(),
-        Some("src/util/index.ts"),
-        "the alias must resolve to the directory module before it is shadowed"
-    );
-
-    std::fs::write(
-        fixture.path("src/util.ts"),
-        "export function helper(): void {}\n",
-    )
-    .unwrap();
-    assert_success(update(fixture.root_str(), &db, "src/util.ts"));
-
-    assert_eq!(
-        identifier_target_path(&db, "h").as_deref(),
-        Some("src/util.ts"),
-        "a new file that shadows the module must re-point the import, not leave the old target"
-    );
-}
-
-#[test]
-fn delta_recheck_demotes_a_variable_typed_receiver_when_its_type_becomes_ambiguous() {
-    // The sibling test above uses a STATIC receiver, where the receiver token IS
-    // the type name and the by-receiver worklist already matches. Here the receiver
-    // token is the local `w`, so the only name tying this row to the change is the
-    // type fact `w: Widget` — a third name carried by neither `target_terminal_name`
-    // nor `target_receiver`.
-    let fixture = FixtureRoot::with_file(
-        "src/widget.cs",
-        "namespace App { public class Widget { public int Render() { return 1; } } }\n",
-    );
-    std::fs::write(
-        fixture.path("src/consumer.cs"),
-        "namespace App { public class Consumer { public int Run() { Widget w = new Widget(); return w.Render(); } } }\n",
-    )
-    .unwrap();
-    let db = fixture.path("artifact.sqlite");
-    assert_success(scan(fixture.root_str(), &db));
-    assert!(
-        identifier_target(&db, "Render").is_some(),
-        "the member must resolve through the local's declared type before the collision"
-    );
-
-    // A second `Widget` that does NOT declare `Render`, so the only touched name is
-    // `Widget` itself.
-    std::fs::write(
-        fixture.path("src/other.cs"),
-        "namespace Other { public class Widget { } }\n",
-    )
-    .unwrap();
-    assert_success(update(fixture.root_str(), &db, "src/other.cs"));
-
-    assert_eq!(
-        identifier_target(&db, "Render"),
-        None,
-        "an ambiguous receiver type must clear the target reached through a variable's type fact"
-    );
-}
-
-#[test]
-fn delta_fill_resolves_an_aliased_import_once_its_export_appears() {
-    // Tier 2 gates on the import's LOCAL name and looks the candidate up by its
-    // IMPORTED name, so the only names tying this edge to `src/b.ts` are `realName`
-    // (the export) and `localName` (the reference). The delta worklists match on
-    // `target_terminal_name`/`target_receiver` only, and the touched set carries
-    // just the changed file's own symbol names — so nothing connects the two.
-    // `update` is the delta path; `scan` forces a full pass and resolves this
-    // already (see resolution_contract's tier2_aliased_import_* cases).
-    let fixture = FixtureRoot::with_file("src/b.ts", "export function placeholder(): void {}\n");
-    std::fs::write(
-        fixture.path("src/a.ts"),
-        "import { realName as localName } from './b';\n\
-         \n\
-         export function caller(): void {\n\
-         \x20 localName();\n\
-         }\n",
-    )
-    .unwrap();
-    let db = fixture.path("artifact.sqlite");
-    assert_success(scan(fixture.root_str(), &db));
-    assert_eq!(
-        identifier_target(&db, "localName"),
-        None,
-        "the alias cannot resolve before its export exists"
-    );
-
-    std::fs::write(
-        fixture.path("src/b.ts"),
-        "export function placeholder(): void {}\nexport function realName(): void {}\n",
-    )
-    .unwrap();
-    assert_success(update(fixture.root_str(), &db, "src/b.ts"));
-
-    assert_eq!(
-        identifier_outcome(&db, "localName").as_deref(),
-        Some("resolved"),
-        "the delta pass must retry an outcome it previously recorded as `missing`"
-    );
-    assert!(
-        identifier_target(&db, "localName").is_some(),
-        "the aliased import must resolve once the export lands in a changed file"
-    );
-}
-
-#[test]
-fn ambiguous_receiver_type_clears_a_static_type_resolution() {
-    // Closing the reporting leak created a new class of resolved identifier: one
-    // written by the generic chain on a span whose covering pending edge failed.
-    // Nothing propagates those, so the recheck sweep has to own them or a stale
-    // target outlives the workspace change that invalidated it.
-    //
-    // This pins the end-to-end demotion. It does not isolate the recheck-ownership
-    // narrowing: it passes with that narrowing reverted, because both re-extraction
-    // and the delta sweep independently clear the row. A case that isolates it
-    // needs a full pass over an artifact whose identifier rows survive, which no
-    // current code path produces.
-    let fixture = FixtureRoot::with_file(
-        "src/fixture.cs",
-        "namespace App { public class Fixture { public static int Create() { return 1; } } }\n",
-    );
-    std::fs::write(
-        fixture.path("src/consumer.cs"),
-        "namespace App { public class Consumer { public int Run() { return Fixture.Create(); } } }\n",
-    )
-    .unwrap();
-    let db = fixture.path("artifact.sqlite");
-    assert_success(scan(fixture.root_str(), &db));
-    assert!(
-        identifier_target(&db, "Create").is_some(),
-        "the static-type receiver must resolve this call before the collision"
-    );
-
-    // A second `Fixture` makes the receiver type non-unique, so the tier must decline.
-    std::fs::write(
-        fixture.path("src/other.cs"),
-        "namespace Other { public class Fixture { public int Create() { return 2; } } }\n",
-    )
-    .unwrap();
-    assert_success(scan(fixture.root_str(), &db));
-    assert_eq!(
-        identifier_target(&db, "Create"),
-        None,
-        "an ambiguous receiver type must clear the previously resolved target"
-    );
-}
-
-#[test]
-fn scan_records_an_outcome_for_every_identifier() {
-    let fixture = FixtureRoot::with_file("src/a.rs", "pub fn produce_widget() {}\n");
-    std::fs::write(
-        fixture.path("src/b.rs"),
-        "pub fn consume() { produce_widget(); absent_external(); }\n",
-    )
-    .unwrap();
-    let db = fixture.path("artifact.sqlite");
-    scan(fixture.root_str(), &db);
-
-    assert_eq!(
-        identifiers_without_resolution(&db),
-        0,
-        "a reference site whose covering pending edge failed must still record an outcome"
-    );
-    assert_eq!(
-        identifier_outcome(&db, "absent_external").as_deref(),
-        Some("missing"),
-        "an unresolvable call belongs in the report as missing, not absent from it"
-    );
-}
-
-#[test]
-fn scan_resolves_cross_file_call_and_propagates_to_identifier() {
-    let fixture = cross_file_fixture();
-    let db = fixture.path("artifact.sqlite");
-    let report = json_report(&scan(fixture.root_str(), &db));
-    let resolution = &report["languages"]["reference_resolution"];
-    assert_eq!(resolution["status"], "partial");
-    assert_eq!(resolution["gated_languages"][0], "rust");
-    let origin_total = resolution["origin_totals"]
-        .as_object()
-        .expect("origin totals must expose each evidence-row domain")
-        .values()
-        .map(|totals| totals["total"].as_i64().unwrap())
-        .sum::<i64>();
-    assert_eq!(resolution["totals"]["total"].as_i64(), Some(origin_total));
-
-    assert_eq!(table_count(&db, "pending_resolutions"), 1);
-    let target = symbol_id_for(&db, "produce_widget").expect("produce_widget symbol exists");
-    assert_eq!(
-        identifier_target(&db, "produce_widget").as_deref(),
-        Some(target.as_str()),
-        "the co-located call identifier must be propagated to the definition"
-    );
-    assert_eq!(
-        metadata_value(&db, "reference_resolution_status"),
-        "partial"
-    );
-    assert_eq!(
-        metadata_value(&db, "reference_resolution_version"),
-        RESOLUTION_VERSION.to_string()
-    );
-}
-
-#[test]
-fn incremental_update_fk_demotes_then_re_resolves() {
-    // INVARIANT: rewriting the TARGET file so the callee disappears CASCADE-demotes
-    // the resolution while the pending context survives (FK-first invalidation);
-    // restoring the callee re-resolves it.
-    let fixture = cross_file_fixture();
-    let db = fixture.path("artifact.sqlite");
-    assert_success(scan(fixture.root_str(), &db));
-    assert_eq!(table_count(&db, "pending_resolutions"), 1);
-    assert!(identifier_target(&db, "produce_widget").is_some());
-
-    // Rename the callee away: the old symbol dies -> CASCADE removes the
-    // resolution; the pending row (unresolved context) stays.
-    std::fs::write(fixture.path("src/a.rs"), "pub fn produce_gadget() {}\n").unwrap();
-    assert_success(update(fixture.root_str(), &db, "src/a.rs"));
-    assert_eq!(
-        table_count(&db, "pending_resolutions"),
-        0,
-        "resolution must demote when the target symbol dies"
-    );
-    assert_eq!(
-        table_count(&db, "pending_relationships"),
-        1,
-        "the unresolved pending context must survive demotion"
-    );
-    assert_eq!(
-        identifier_target(&db, "produce_widget"),
-        None,
-        "the identifier target must be cleared when its resolution is gone"
-    );
-
-    // Restore the callee: the fill sweep re-resolves the pending edge.
-    std::fs::write(fixture.path("src/a.rs"), "pub fn produce_widget() {}\n").unwrap();
-    assert_success(update(fixture.root_str(), &db, "src/a.rs"));
-    assert_eq!(
-        table_count(&db, "pending_resolutions"),
-        1,
-        "restoring the target must re-resolve the pending edge"
-    );
-    let target = symbol_id_for(&db, "produce_widget").unwrap();
-    assert_eq!(
-        identifier_target(&db, "produce_widget").as_deref(),
-        Some(target.as_str())
-    );
-}
-
-#[test]
-fn uniqueness_regression_demotes_then_removal_re_resolves() {
-    // INVARIANT: adding a second same-name symbol makes the target ambiguous ->
-    // the previously resolved edge demotes; removing the collision re-resolves it.
-    let fixture = cross_file_fixture();
-    let db = fixture.path("artifact.sqlite");
-    assert_success(scan(fixture.root_str(), &db));
-    assert_eq!(table_count(&db, "pending_resolutions"), 1);
-
-    // Add a colliding produce_widget in a new file via update.
-    std::fs::write(fixture.path("src/c.rs"), "pub fn produce_widget() {}\n").unwrap();
-    assert_success(update(fixture.root_str(), &db, "src/c.rs"));
-    assert_eq!(
-        table_count(&db, "pending_resolutions"),
-        0,
-        "two same-name candidates must demote the resolved edge (no best-guess)"
-    );
-    assert_eq!(identifier_target(&db, "produce_widget"), None);
-
-    // Remove the collision: the edge resolves again (unique once more).
-    assert_success(delete(fixture.root_str(), &db, "src/c.rs"));
-    assert_eq!(
-        table_count(&db, "pending_resolutions"),
-        1,
-        "removing the collision must re-resolve the edge"
-    );
-    assert!(identifier_target(&db, "produce_widget").is_some());
-}
-
-#[test]
-fn incremental_scan_demotes_uniqueness_regression_from_skipped_file() {
-    // INVARIANT: a normal incremental scan can introduce a new same-name target
-    // while the caller file is skipped as unchanged. The resolved overlay must
-    // still be rechecked and demoted; otherwise `reference_resolution_status`
-    // overstates trust in stale rows.
-    let fixture = cross_file_fixture();
-    let db = fixture.path("artifact.sqlite");
-    assert_success(scan(fixture.root_str(), &db));
-    assert_eq!(table_count(&db, "pending_resolutions"), 1);
-
-    std::fs::write(fixture.path("src/c.rs"), "pub fn produce_widget() {}\n").unwrap();
-    let report = json_report(&scan(fixture.root_str(), &db));
-    assert_eq!(
-        table_count(&db, "pending_resolutions"),
-        0,
-        "scan must demote a previously resolved edge when a skipped caller becomes ambiguous"
-    );
-    assert_eq!(identifier_target(&db, "produce_widget"), None);
-    assert_eq!(
-        report["languages"]["reference_resolution"]["status"], "partial",
-        "the scan report must not mark stale or gated resolution data complete"
-    );
-    assert_eq!(
-        metadata_value(&db, "reference_resolution_status"),
-        "partial"
-    );
-}
-
-#[test]
-fn two_identical_scans_produce_byte_identical_resolution_tables() {
-    // INVARIANT: determinism — the same source scanned into two fresh artifacts
-    // produces byte-identical resolution overlay tables.
-    let fixture = cross_file_fixture();
-    let db_one = fixture.path("one.sqlite");
-    let db_two = fixture.path("two.sqlite");
-    assert_success(scan(fixture.root_str(), &db_one));
-    assert_success(scan(fixture.root_str(), &db_two));
-    assert_eq!(
-        dump_resolution_tables(&db_one),
-        dump_resolution_tables(&db_two),
-        "identical scans must produce identical resolution tables"
-    );
-    assert!(
-        !dump_resolution_tables(&db_one).is_empty(),
-        "the determinism comparison must be over non-empty resolution tables"
-    );
-}
-
-#[test]
-fn artifact_without_resolution_metadata_requires_full_scan_before_update() {
-    let fixture = cross_file_fixture();
-    let db = fixture.path("artifact.sqlite");
-    assert_success(scan(fixture.root_str(), &db));
-    assert_eq!(table_count(&db, "pending_resolutions"), 1);
-
-    {
-        let conn = Connection::open(&db).unwrap();
-        conn.execute_batch(
-            "DELETE FROM pending_resolutions; \
-             DELETE FROM identifier_resolutions; \
-             DELETE FROM artifact_metadata WHERE key LIKE 'reference_resolution%';",
-        )
-        .unwrap();
-    }
-    assert_eq!(table_count(&db, "pending_resolutions"), 0);
-
-    std::fs::write(
-        fixture.path("src/b.rs"),
-        "// touched\npub fn consume() { produce_widget(); }\n",
-    )
-    .unwrap();
-    let update_output = update(fixture.root_str(), &db, "src/b.rs");
-    assert_eq!(update_output.status.code(), Some(3));
-    let update_report = json_report(&update_output);
-    assert_eq!(update_report["status"], "failed");
-    assert_eq!(
-        update_report["errors"][0]["code"],
-        "schema_migration_required"
-    );
-
-    assert_success(scan(fixture.root_str(), &db));
-    assert_eq!(
-        table_count(&db, "pending_resolutions"),
-        1,
-        "a full scan must backfill the resolution overlay"
-    );
-    assert!(identifier_target(&db, "produce_widget").is_some());
-    assert_eq!(
-        metadata_value(&db, "reference_resolution_status"),
-        "partial"
-    );
 }
 
 #[test]
@@ -3968,11 +3217,7 @@ fn scan_level_symbols_builds_a_symbol_core_artifact() {
     }
     assert_eq!(table_count(&db, "identifier_resolutions"), 0);
     assert_eq!(index_level_metadata(&db).as_deref(), Some("symbols"));
-    assert_eq!(
-        resolution_status_metadata(&db).as_deref(),
-        Some("complete"),
-        "the resolution hook still runs at symbols level (pending relationships resolve)"
-    );
+    assert_eq!(resolution_status_metadata(&db), None);
 }
 
 #[test]
@@ -4605,14 +3850,19 @@ fn latest_revision_operation_and_change(db: &Path) -> Option<(String, String)> {
     .unwrap()
 }
 
-fn metadata_value(db: &Path, key: &str) -> String {
+fn metadata_optional(db: &Path, key: &str) -> Option<String> {
     let conn = Connection::open(db).unwrap();
     conn.query_row(
         "SELECT value FROM artifact_metadata WHERE key = ?1",
         [key],
         |row| row.get(0),
     )
+    .optional()
     .unwrap()
+}
+
+fn metadata_value(db: &Path, key: &str) -> String {
+    metadata_optional(db, key).unwrap_or_else(|| panic!("missing artifact metadata key {key}"))
 }
 
 fn latest_revision_counts(db: &Path) -> Value {
@@ -4868,68 +4118,4 @@ fn scan_canonicalizes_one_attested_token_across_identifier_and_relationship_evid
         .unwrap();
 
     assert_eq!(shared_exact_sites, 1);
-}
-
-#[test]
-fn a_scoped_whole_repo_scan_still_reports_whole_corpus_coverage() {
-    // What makes the overlay current workspace-wide is that the scan hash-checked
-    // every file, not that resolution re-derived every row. A rewrite-only rescan now
-    // takes the scoped branch, and it must still report `complete` and advance
-    // `last_full_revision` — pinning either to the dispatch switch would freeze both
-    // the moment whole-repo scans started scoping.
-    //
-    // Sized past the delta-scope crossover on purpose: below it every pass promotes to
-    // Full, and the single-file arm below would then advance for a legitimate reason
-    // that has nothing to do with what this test is pinning.
-    let fixture = FixtureRoot::with_file("src/b.ts", "export function shared(): void {}\n");
-    std::fs::write(
-        fixture.path("src/a.ts"),
-        "import { shared } from './b';\nexport function caller(): void { shared(); }\n",
-    )
-    .unwrap();
-    for i in 0..20 {
-        std::fs::write(
-            fixture.path(&format!("src/other{i}.ts")),
-            format!("export function helper{i}(): number {{ return {i}; }}\n"),
-        )
-        .unwrap();
-    }
-    let db = fixture.path("artifact.sqlite");
-    assert_success(scan(fixture.root_str(), &db));
-    assert_eq!(
-        metadata_value(&db, "reference_resolution_status"),
-        "complete"
-    );
-    let after_first = metadata_value(&db, "reference_resolution_last_full_revision");
-
-    // Rewrite only: no path added or removed, so this rescan scopes.
-    std::fs::write(
-        fixture.path("src/b.ts"),
-        "export function shared(): void {}\nexport function extra(): void {}\n",
-    )
-    .unwrap();
-    assert_success(scan(fixture.root_str(), &db));
-    assert_eq!(
-        metadata_value(&db, "reference_resolution_status"),
-        "complete",
-        "a rewrite-only rescan covers the corpus even though it scoped"
-    );
-    let after_rescan = metadata_value(&db, "reference_resolution_last_full_revision");
-    assert_ne!(
-        after_rescan, after_first,
-        "whole-corpus coverage must advance last_full_revision"
-    );
-
-    // A single-file update verifies nothing about the rest of the workspace.
-    std::fs::write(
-        fixture.path("src/b.ts"),
-        "export function shared(): void {}\nexport function extra2(): void {}\n",
-    )
-    .unwrap();
-    assert_success(update(fixture.root_str(), &db, "src/b.ts"));
-    assert_eq!(
-        metadata_value(&db, "reference_resolution_last_full_revision"),
-        after_rescan,
-        "a single-file update must not claim whole-corpus coverage"
-    );
 }

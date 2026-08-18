@@ -8,7 +8,7 @@ with the [CLI contract](contracts/cli.md), [report contract](contracts/reports.m
 
 - [Extraction contract v4](contracts/extracted-data-v4.md)
 - [SQLite artifact schema v6](contracts/sqlite-schema-v6.md)
-- [JSONL v4](contracts/jsonl-v4.md)
+- [JSONL v5](contracts/jsonl-v5.md)
 - [Progress file v1](contracts/progress-file-v1.md)
 - [Test evidence v1](contracts/test-evidence-v1.md)
 

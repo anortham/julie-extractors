@@ -163,8 +163,6 @@ pub struct WritePhaseDurations {
     /// Every other row domain: reference sites, identifiers, relationships,
     /// pending relationships, literals, regions, facts, metrics, diagnostics.
     pub child_rows: Duration,
-    /// The in-transaction resolution hook.
-    pub resolution: Duration,
     /// Secondary-index creation, non-zero only on the fresh-artifact bulk-load
     /// path where index building is deferred to the end of the write.
     pub index_build: Duration,
@@ -183,7 +181,6 @@ impl WritePhaseDurations {
         self.plan
             + self.file_symbol_insert
             + self.child_rows
-            + self.resolution
             + self.index_build
             + self.foreign_key_check
             + self.commit
@@ -199,10 +196,6 @@ pub struct WriteResult {
     pub files_deleted: usize,
     pub files_skipped: usize,
     pub transactions_committed: usize,
-    /// Outcome of the in-transaction resolution hook for this write. `Default`
-    /// (zero counts, no failure) when no hook ran or the hook was a no-op — every
-    /// existing hookless caller therefore sees an empty resolution outcome.
-    pub resolution: ResolutionWriteOutcome,
     /// Reference sites whose sharing passes disagreed about the site payload.
     /// `Default` (zero) for the overwhelmingly common agreeing case.
     pub reference_site_conflicts: ReferenceSiteConflicts,
@@ -241,18 +234,6 @@ pub struct ReferenceSiteConflictFile {
 pub struct ReferenceSiteConflictSite {
     pub reference_site_id: String,
     pub fields: Vec<&'static str>,
-}
-
-/// What the writer surfaces to callers about the resolution hook that ran inside
-/// this write's transaction. The writer consumes only `ResolutionCounts` for
-/// revision accounting; `failed` carries the hook's error message (design
-/// §"Failure semantics") so the caller can record `ResolutionFailed` in its
-/// report. The per-language `ResolutionReport` never travels through the writer —
-/// Task 5's closure keeps it in its own captured state.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct ResolutionWriteOutcome {
-    pub counts: crate::resolution_store::ResolutionCounts,
-    pub failed: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq)]

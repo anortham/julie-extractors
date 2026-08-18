@@ -357,7 +357,7 @@ impl DogfoodFixture {
         std::fs::write(
             path,
             format!(
-                r#"{{"report_schema_version":3,"status":"{status}","operation":"{operation}","mode":"{mode}","artifact":{{"jsonl_schema_version":4}},"counts":{{"files_scanned":2,"rows_written":{{"files":2,"symbols":3}},"totals":{{"files":2,"symbols":3}}}},"errors":[]}}"#
+                r#"{{"report_schema_version":3,"status":"{status}","operation":"{operation}","mode":"{mode}","artifact":{{"jsonl_schema_version":5}},"counts":{{"files_scanned":2,"rows_written":{{"files":2,"symbols":3}},"totals":{{"files":2,"symbols":3}}}},"errors":[]}}"#
             ),
         )
         .expect("write report");
@@ -464,7 +464,7 @@ impl DogfoodFixture {
         for index in 0..records {
             let kind = kinds.get(index).copied().unwrap_or("identifier");
             jsonl.push_str(&format!(
-                r#"{{"jsonl_schema_version":4,"extract_contract_version":4,"kind":"{kind}","op":"snapshot","artifact_id":"artifact","record_id":"{index}","record":{{}}}}"#
+                r#"{{"jsonl_schema_version":5,"extract_contract_version":4,"kind":"{kind}","op":"snapshot","artifact_id":"artifact","record_id":"{index}","record":{{}}}}"#
             ));
             jsonl.push('\n');
         }

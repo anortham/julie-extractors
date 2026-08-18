@@ -137,7 +137,7 @@ text should read the matching source tree directly.
 JSONL v4 is derived from SQLite and is not a separate source of truth. A full
 export writes deterministic `snapshot` records in a fixed order, with JSON text
 from SQLite decoded into JSON values. See
-[docs/contracts/jsonl-v4.md](docs/contracts/jsonl-v4.md).
+[docs/contracts/jsonl-v5.md](docs/contracts/jsonl-v5.md).
 
 ## Reports and exit status
 
@@ -233,7 +233,7 @@ Public contracts:
 - [Extracted data v4](docs/contracts/extracted-data-v4.md)
 - [SQLite schema v6](docs/contracts/sqlite-schema-v6.md)
 - [SQLite schema v5](docs/contracts/sqlite-schema-v5.md) (superseded)
-- [JSONL v4](docs/contracts/jsonl-v4.md)
+- [JSONL v5](docs/contracts/jsonl-v5.md)
 - [JSON reports](docs/contracts/reports.md)
 - [Progress file v1](docs/contracts/progress-file-v1.md)
 

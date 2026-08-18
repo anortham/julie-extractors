@@ -16,15 +16,10 @@ name = "julie_extract_cli"
 path = "src/lib.rs"
 
 [features]
-# Feature-gated performance harness (`tests/resolution_perf.rs`). Intentionally
-# slow / synthetic-scale, so it is kept out of the default suite by the test-tier
-# convention (guarded by `tests/perf_gate_convention.rs`). Run on demand with:
-#   cargo test -p julie-extract-cli --features test-perf --test resolution_perf -- --nocapture
-test-perf = []
 # Feature-gated real-world corpus gate (`tests/erlang_corpus.rs`). Scans the
 # vendored hex.pm Erlang packages under `fixtures/real-world/erlang/` with the real
-# CLI, so it is kept out of the default suite by the same test-tier convention as
-# `test-perf`. Feature name matches `julie-extractors`'s real-world gate. Run with:
+# CLI, so it is kept out of the default suite by the test-tier convention. Feature
+# name matches `julie-extractors`'s real-world gate. Run with:
 #   cargo test -p julie-extract-cli --features test-real-world --test erlang_corpus -- --nocapture
 test-real-world = []
 # Feature-gated heavy contract suites (`tests/deep_recursion_contract.rs`,

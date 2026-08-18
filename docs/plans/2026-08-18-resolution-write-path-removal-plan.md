@@ -159,9 +159,9 @@ Plan-package commit ownership: this plan file is currently UNTRACKED in the main
 **What to build:** Delete the resolver and its session; unhook the three write commands and both open-time gates; keep the write paths' non-resolution metadata finalization intact.
 
 **Acceptance criteria:**
-- [ ] `scan`/`update`/`delete` produce artifacts with empty resolution tables and no resolution metadata keys; opening a PRIOR artifact (with resolution rows + old metadata key) works and ignores both
-- [ ] No `JULIE_RESOLUTION*`/`JULIE_STORE_RESOLUTION*` reference remains in production code
-- [ ] Worker scope green; worker commits (serial-worker-commit)
+- [x] `scan`/`update`/`delete` produce artifacts with empty resolution tables and no resolution metadata keys; opening a PRIOR artifact (with resolution rows + old metadata key) works and ignores both
+- [x] No `JULIE_RESOLUTION*`/`JULIE_STORE_RESOLUTION*` reference remains in production code
+- [x] Worker scope green; worker commits (serial-worker-commit)
 
 ### Task 5: Drop the schema objects, delete the artifact-crate resolution modules, reap on open
 

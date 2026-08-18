@@ -39,10 +39,6 @@ use tempfile::TempDir;
 /// Excluded because they record the artifact's identity and when it was
 /// touched, which a retarget deliberately rewrites.
 ///
-/// `reference_resolution_last_full_revision` joins them as the one revision-id
-/// value that lives in `artifact_metadata` rather than in a column: it names a
-/// row of the excluded revision history, and a rebound artifact reaches its
-/// last full resolution at revision 2 where a fresh scan reaches it at 1.
 const RUN_VARIANT_METADATA_KEYS: &[&str] = &[
     "artifact_id",
     "created_at",
@@ -50,7 +46,6 @@ const RUN_VARIANT_METADATA_KEYS: &[&str] = &[
     "rebound_at",
     "rebound_from_root",
     "rebound_from_artifact_id",
-    "reference_resolution_last_full_revision",
 ];
 
 /// Append-only records of how an artifact was reached rather than what it
@@ -67,14 +62,9 @@ const HISTORY_TABLES: &[&str] = &["extraction_revisions", "revision_file_changes
 /// audit fact, not content, so no consumer answer depends on it.
 const RUN_VARIANT_FILE_COLUMNS: &[&str] = &["last_revision_id", "indexed_at"];
 
-/// The overlay tables record which revision derived a resolution. Contracted:
-/// revision-id columns on a compared table are normalized out, the table is not.
-const RUN_VARIANT_RESOLUTION_COLUMNS: &[&str] = &["resolved_at_revision"];
-
 fn excluded_columns(table: &str) -> &'static [&'static str] {
     match table {
         "files" => RUN_VARIANT_FILE_COLUMNS,
-        "pending_resolutions" | "identifier_resolutions" => RUN_VARIANT_RESOLUTION_COLUMNS,
         _ => &[],
     }
 }
@@ -148,8 +138,8 @@ fn rebind(db: &Path, root: &Path) -> Json {
 ///
 /// Multi-language by design: a rebind that worked for one grammar and silently
 /// dropped rows for another would pass a single-language gate. Each language
-/// carries a cross-file reference so the resolution overlay is non-empty and has
-/// something to disagree about, plus an attribute, a generic instantiation, and
+/// carries a cross-file reference so pending relationships stay non-empty, plus
+/// an attribute, a generic instantiation, and
 /// a URL-carrier call so `symbol_annotations`, `type_argument_usages`,
 /// `type_arguments`, `literals`, and `structural_facts` are non-empty too — a
 /// table that is empty on both sides proves nothing.
@@ -590,8 +580,6 @@ const TABLES_THE_FIXTURE_MUST_EXERCISE: &[&str] = &[
     "reference_sites",
     "identifiers",
     "pending_relationships",
-    "pending_resolutions",
-    "identifier_resolutions",
     "type_facts",
     "type_argument_usages",
     "type_arguments",

@@ -1,17 +1,14 @@
 use std::io::{self, Write};
 use std::path::Path;
 
-use julie_extract_artifact::model::{ReferenceSiteConflicts, WriteResult};
+use julie_extract_artifact::model::ReferenceSiteConflicts;
 use julie_extract_artifact::reports::{
     ArtifactReport, RebindReport, Report, ReportCode, ReportCounts, ReportDiagnostic, ReportInput,
     ReportMode, ReportOperation, ReportProfile, ReportRevision, ReportStatus, RowDomainCounts,
     ToolReport,
 };
-use julie_extract_artifact::resolution_store::ResolutionReportRow;
 use julie_extract_artifact::writer::{ArtifactSpoolError, ArtifactWriteError};
 use serde_json::{Value, json};
-
-use crate::resolution::ResolutionReport;
 
 use crate::discovery::DiscoveryError;
 use crate::extraction::{ExtractFileError, ExtractFileErrorKind};
@@ -252,15 +249,6 @@ pub(crate) fn write_error_outcome_with_profile(
                  (truncated spool)"
             ),
             json!({"spooled_paths": spooled_paths, "snapshot_paths": snapshot_paths}),
-        ),
-        ArtifactWriteError::BulkResolutionFailed { message } => (
-            1,
-            ReportCode::DbWriteFailed,
-            format!(
-                "resolution failed during the bulk first build and the scan was aborted: \
-                 {message}; the empty artifact was discarded — rerun the scan"
-            ),
-            json!({"resolution_error": message}),
         ),
         ArtifactWriteError::BulkLoadRestoreFailed {
             write_error,
@@ -656,142 +644,6 @@ pub(crate) fn display_path(path: &Path) -> String {
     path.display().to_string()
 }
 
-/// Build the `reference_resolution` scan-report section from the captured
-/// per-pass [`ResolutionReport`] (per-language/per-tier/per-outcome counts,
-/// durable status, gated languages) plus the writer's resolution outcome (the
-/// in-transaction row counts and any non-fatal failure message).
-///
-/// Returns `None` when neither a report nor a failure exists (a hookless write),
-/// so every other command's report shape is unchanged. When present it is attached
-/// under the report's `languages` section — the only additive value slot the
-/// committed `Report` struct exposes — namespaced under `reference_resolution`.
-pub(crate) fn resolution_report_section(
-    report: Option<&ResolutionReport>,
-    write_result: &WriteResult,
-) -> Option<Value> {
-    let failed = write_result.resolution.failed.clone();
-    if report.is_none() && failed.is_none() {
-        return None;
-    }
-    let counts = &write_result.resolution.counts;
-    // A scoped delta carries no aggregate rows (`ResolutionReport::rows` is `None`):
-    // the three whole-artifact aggregates render as JSON null rather than as empty
-    // (which would read as "zero rows in the artifact").
-    let aggregates = |rows: Option<&Vec<ResolutionReportRow>>| match rows {
-        Some(rows) => (
-            Value::Array(
-                rows.iter()
-                    .map(|row| {
-                        json!({
-                            "language": row.language,
-                            "origin": row.origin,
-                            "raw_kind": row.raw_kind,
-                            "canonical_kind": row.canonical_kind,
-                            "tier": row.tier,
-                            "method": row.method,
-                            "outcome": row.outcome,
-                            "span_present": row.span_present,
-                            "count": row.count,
-                        })
-                    })
-                    .collect(),
-            ),
-            resolution_totals(rows, None),
-            Value::Object(
-                rows.iter()
-                    .map(|row| row.origin.as_str())
-                    .collect::<std::collections::BTreeSet<_>>()
-                    .into_iter()
-                    .map(|origin| (origin.to_string(), resolution_totals(rows, Some(origin))))
-                    .collect(),
-            ),
-        ),
-        None => (Value::Null, Value::Null, Value::Null),
-    };
-    let (status, version, last_full_revision, gated, by_language, totals, origin_totals) =
-        match report {
-            Some(report) => {
-                let (by_language, totals, origin_totals) = aggregates(report.rows.as_ref());
-                (
-                    report.status.as_str().to_string(),
-                    report.version,
-                    report.last_full_revision,
-                    report
-                        .tier2_gated_languages
-                        .iter()
-                        .cloned()
-                        .collect::<Vec<_>>(),
-                    by_language,
-                    totals,
-                    origin_totals,
-                )
-            }
-            None => {
-                let (by_language, totals, origin_totals) = aggregates(Some(&Vec::new()));
-                (
-                    "failed".to_string(),
-                    0,
-                    0,
-                    Vec::new(),
-                    by_language,
-                    totals,
-                    origin_totals,
-                )
-            }
-        };
-    Some(json!({
-        "reference_resolution": {
-            "status": status,
-            "version": version,
-            "last_full_revision": last_full_revision,
-            "counts": {
-                "pending_resolutions": counts.pending_resolutions,
-                "identifier_resolutions": counts.identifier_resolutions,
-            },
-            "totals": totals,
-            "origin_totals": origin_totals,
-            "gated_languages": gated,
-            "failed": failed,
-            "by_language": by_language,
-        }
-    }))
-}
-
-fn resolution_totals(
-    rows: &[julie_extract_artifact::resolution_store::ResolutionReportRow],
-    origin: Option<&str>,
-) -> Value {
-    let matching = |row: &&julie_extract_artifact::resolution_store::ResolutionReportRow| {
-        origin.is_none_or(|expected| row.origin == expected)
-    };
-    let count = |outcome: &str| {
-        rows.iter()
-            .filter(matching)
-            .filter(|row| row.outcome == outcome)
-            .map(|row| row.count)
-            .sum::<i64>()
-    };
-    let total = rows
-        .iter()
-        .filter(matching)
-        .map(|row| row.count)
-        .sum::<i64>();
-    let no_context = count("no_context");
-    let unattempted = count("unattempted");
-    json!({
-        "total": total,
-        "attempted": total - no_context - unattempted,
-        "resolved": count("resolved"),
-        "ambiguous": count("ambiguous"),
-        "missing": count("missing"),
-        "no_context": no_context,
-        "unresolved_pending": count("unresolved_pending"),
-        "unattempted": unattempted,
-        "span_present": rows.iter().filter(matching).filter(|row| row.span_present).map(|row| row.count).sum::<i64>(),
-        "span_missing": rows.iter().filter(matching).filter(|row| !row.span_present).map(|row| row.count).sum::<i64>(),
-    })
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1013,49 +865,5 @@ mod tests {
             human_report(&report),
             "failed\nunsupported_format: export format is not supported\n"
         );
-    }
-
-    fn resolution_report_with_rows(
-        rows: Option<Vec<ResolutionReportRow>>,
-        status: julie_extract_artifact::resolution_store::ResolutionStatus,
-    ) -> ResolutionReport {
-        ResolutionReport {
-            rows,
-            status,
-            version: crate::resolution::RESOLUTION_VERSION,
-            last_full_revision: 7,
-            tier2_gated_languages: std::collections::BTreeSet::new(),
-        }
-    }
-
-    #[test]
-    fn delta_section_renders_null_aggregates_not_zeroes() {
-        let report = resolution_report_with_rows(
-            None,
-            julie_extract_artifact::resolution_store::ResolutionStatus::Partial,
-        );
-        let section = resolution_report_section(Some(&report), &WriteResult::default())
-            .expect("section present");
-        let section = &section["reference_resolution"];
-        assert!(section["totals"].is_null());
-        assert!(section["origin_totals"].is_null());
-        assert!(section["by_language"].is_null());
-        assert_eq!(section["status"], "partial");
-        assert_eq!(section["last_full_revision"], 7);
-    }
-
-    #[test]
-    fn full_section_renders_aggregates_even_when_empty() {
-        let report = resolution_report_with_rows(
-            Some(Vec::new()),
-            julie_extract_artifact::resolution_store::ResolutionStatus::Complete,
-        );
-        let section = resolution_report_section(Some(&report), &WriteResult::default())
-            .expect("section present");
-        let section = &section["reference_resolution"];
-        assert!(section["totals"].is_object());
-        assert!(section["origin_totals"].is_object());
-        assert!(section["by_language"].is_array());
-        assert_eq!(section["totals"]["total"], 0);
     }
 }

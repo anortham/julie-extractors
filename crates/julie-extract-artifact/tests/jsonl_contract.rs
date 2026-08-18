@@ -26,7 +26,7 @@ fn full_export_emits_every_kind_in_contract_order_with_snapshot_envelope() {
     assert_eq!(records[0]["record_id"], "artifact-jsonl-test");
 
     for record in &records {
-        assert_eq!(record["jsonl_schema_version"], 4);
+        assert_eq!(record["jsonl_schema_version"], 5);
         assert_eq!(record["extract_contract_version"], 4);
         assert_eq!(record["op"], "snapshot");
         assert_eq!(record["artifact_id"], "artifact-jsonl-test");
@@ -243,19 +243,13 @@ fn structural_fact_metadata_export_compacts_raw_object_whitespace() {
 }
 
 #[test]
-fn artifact_record_exports_reference_resolution_metadata() {
-    // Absent resolution metadata (resolution never ran) exports as null —
-    // JSONL consumers apply the same detection rule as SQLite consumers:
-    // gate on the status value, never on the schema version.
+fn artifact_record_omits_reference_resolution_metadata() {
     let conn = populated_artifact();
     let records = export_records(&conn);
     let artifact = record(&records, "artifact");
-    assert_eq!(artifact["reference_resolution_status"], Value::Null);
-    assert_eq!(artifact["reference_resolution_version"], Value::Null);
-    assert_eq!(
-        artifact["reference_resolution_last_full_revision"],
-        Value::Null
-    );
+    assert!(artifact.get("reference_resolution_status").is_none());
+    assert!(artifact.get("reference_resolution_version").is_none());
+    assert!(artifact.get("reference_resolution_last_full_revision").is_none());
 
     for (key, value) in [
         ("reference_resolution_status", "complete"),
@@ -270,9 +264,9 @@ fn artifact_record_exports_reference_resolution_metadata() {
     }
     let records = export_records(&conn);
     let artifact = record(&records, "artifact");
-    assert_eq!(artifact["reference_resolution_status"], "complete");
-    assert_eq!(artifact["reference_resolution_version"], 1);
-    assert_eq!(artifact["reference_resolution_last_full_revision"], 7);
+    assert!(artifact.get("reference_resolution_status").is_none());
+    assert!(artifact.get("reference_resolution_version").is_none());
+    assert!(artifact.get("reference_resolution_last_full_revision").is_none());
 }
 
 #[test]
@@ -295,9 +289,6 @@ fn every_record_kind_uses_exact_payload_keys() {
             "capability_snapshot_fingerprint",
             "created_at",
             "updated_at",
-            "reference_resolution_status",
-            "reference_resolution_version",
-            "reference_resolution_last_full_revision",
         ],
     );
     assert_record_keys(

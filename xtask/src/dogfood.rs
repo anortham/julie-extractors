@@ -13,7 +13,7 @@ use serde_json::Value;
 
 const REPORT_SCHEMA_VERSION: i64 = 3;
 const EXTRACT_CONTRACT_VERSION: i64 = 4;
-const JSONL_SCHEMA_VERSION: i64 = 4;
+const JSONL_SCHEMA_VERSION: i64 = 5;
 const REQUIRED_METADATA_KEYS: &[&str] = &[
     "artifact_id",
     "root_path",
@@ -308,7 +308,6 @@ pub fn run_repo(plan: DogfoodPlan) -> Result<DogfoodMetrics, DogfoodError> {
     )?;
     write_command_stdout(&plan.paths.scan_report_path, &scan_output)?;
     ensure_success("julie-extract scan", scan_output)?;
-    ensure_no_resolution_failure("julie-extract scan", &plan.paths.scan_report_path)?;
 
     let (rescan_duration, rescan_output) = run_julie_extract(
         &plan.binary,
@@ -323,7 +322,6 @@ pub fn run_repo(plan: DogfoodPlan) -> Result<DogfoodMetrics, DogfoodError> {
     )?;
     write_command_stdout(&plan.paths.rescan_report_path, &rescan_output)?;
     ensure_success("julie-extract rescan", rescan_output)?;
-    ensure_no_resolution_failure("julie-extract rescan", &plan.paths.rescan_report_path)?;
 
     let (info_duration, info_output) = run_julie_extract(
         &plan.binary,
@@ -556,37 +554,6 @@ fn command_failed(command: &str, output: Output) -> DogfoodError {
         code: output.status.code(),
         stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
     }
-}
-
-/// Fail the dogfood gate if a report surfaced a `resolution_failed` diagnostic.
-///
-/// Reference resolution is non-fatal to the scan by contract (affected rows stay
-/// unresolved, the scan still exits 0), so an exit-code check alone cannot catch a
-/// resolver regression. The release/dogfood gate must fail if `ResolutionFailed`
-/// appears on the fixture corpus (design §"Contract & rollout" item 2).
-fn ensure_no_resolution_failure(command: &str, report_path: &Path) -> Result<(), DogfoodError> {
-    let value = read_json(report_path)?;
-    if report_has_resolution_failure(&value) {
-        return Err(DogfoodError::InvalidEvidence(format!(
-            "{command} report contains a resolution_failed diagnostic; \
-             reference resolution regressed on the dogfood corpus"
-        )));
-    }
-    Ok(())
-}
-
-/// True when a report's `errors`/`warnings` carry a `resolution_failed` diagnostic.
-fn report_has_resolution_failure(report: &Value) -> bool {
-    ["errors", "warnings"].iter().any(|section| {
-        report
-            .get(*section)
-            .and_then(Value::as_array)
-            .is_some_and(|items| {
-                items.iter().any(|item| {
-                    item.get("code").and_then(Value::as_str) == Some("resolution_failed")
-                })
-            })
-    })
 }
 
 fn validate_report(

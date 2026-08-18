@@ -10,7 +10,6 @@ mod memory;
 pub mod metadata;
 pub mod model;
 pub mod reports;
-pub mod resolution_store;
 pub mod schema;
 pub mod store;
 pub mod writer;

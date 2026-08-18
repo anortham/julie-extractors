@@ -627,7 +627,7 @@ successful `julie-extract scan` of the whole workspace.
 - `operation`: `export`
 - `mode`: `jsonl`
 - Must include exported record counts by kind.
-- `artifact.jsonl_schema_version` is `4`.
+- `artifact.jsonl_schema_version` is `5`.
 
 ### `languages`
 

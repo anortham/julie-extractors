@@ -8,7 +8,6 @@ mod limits;
 mod paths;
 mod progress;
 mod reports;
-mod resolution;
 mod spool;
 mod watchdog;
 

@@ -22,6 +22,12 @@ fn legacy_resolution_oracle_is_feature_gated_out_of_default_suite() {
             .join("tests/store_resolution_adapters.rs")
             .exists()
     );
+    assert!(!crate_root.join("src/resolution.rs").exists());
+    assert!(!crate_root.join("src/resolution_session.rs").exists());
+    assert!(!crate_root.join("tests/resolution_contract.rs").exists());
+    assert!(!crate_root.join("tests/resolution_perf.rs").exists());
+    assert!(!crate_root.join("tests/resolution_shadow.rs").exists());
+    assert!(!manifest.contains("test-perf = []"));
 }
 
 #[test]

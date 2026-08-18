@@ -9,14 +9,12 @@ use julie_extract_artifact::metadata::{
 use julie_extract_artifact::reports::{
     ArtifactReport, ReportCode, ReportDiagnostic, ReportFileRows, RowDomainCounts,
 };
-use julie_extract_artifact::resolution_store::{ResolutionStatus, read_resolution_metadata};
 use julie_extract_artifact::schema::{EXTRACT_CONTRACT_VERSION, SQLITE_SCHEMA_VERSION};
 use rusqlite::{Connection, OpenFlags, OptionalExtension, params};
 use serde_json::json;
 
 use crate::capability_snapshot::current_capability_fingerprints;
 use crate::reports::{CommandError, command_error, diagnostic, display_path};
-use crate::resolution::RESOLUTION_VERSION;
 
 /// Whether the caller opens the artifact to read it or to write into it.
 ///
@@ -36,8 +34,6 @@ pub(crate) struct OpenArtifact {
     pub(crate) connection: Connection,
     pub(crate) report: ArtifactReport,
     pub(crate) write_metadata: ArtifactMetadata,
-    pub(crate) reference_resolution_version: Option<i64>,
-    pub(crate) reference_resolution_ready: bool,
     /// The recorded `index_level` metadata value, `"full"` when absent.
     pub(crate) index_level: String,
     /// Whether any extraction revision has committed. An artifact with no
@@ -130,16 +126,6 @@ pub(crate) fn open_artifact(
         )
     })?;
     check_versions(&metadata, strict_schema, access)?;
-    let resolution_metadata = read_resolution_metadata(&connection).ok().flatten();
-    let reference_resolution_version = resolution_metadata
-        .as_ref()
-        .map(|resolution| resolution.version);
-    let reference_resolution_ready = resolution_metadata.is_some_and(|resolution| {
-        matches!(
-            resolution.status,
-            ResolutionStatus::Complete | ResolutionStatus::Partial
-        )
-    });
     let write_metadata = artifact_metadata_from_rows(&metadata)?;
     let report = artifact_report(db_path, &metadata, jsonl_schema_version)?;
     let index_level = report.index_level.clone();
@@ -164,8 +150,6 @@ pub(crate) fn open_artifact(
         connection,
         report,
         write_metadata,
-        reference_resolution_version,
-        reference_resolution_ready,
         index_level,
         has_extraction_history,
     })
@@ -309,23 +293,6 @@ pub(crate) fn existing_artifact_for_root(
             json!({
                 "artifact_root": artifact.report.root_path,
                 "requested_root": display_path(root),
-            }),
-        ));
-    }
-    if artifact.reference_resolution_version != Some(RESOLUTION_VERSION)
-        || !artifact.reference_resolution_ready
-    {
-        return Err(command_error(
-            3,
-            ReportCode::SchemaMigrationRequired,
-            "artifact reference evidence requires a full scan before single-file operations",
-            Some(display_path(db_path)),
-            None,
-            true,
-            json!({
-                "artifact_reference_resolution_version": artifact.reference_resolution_version,
-                "required_reference_resolution_version": RESOLUTION_VERSION,
-                "action": "julie-extract scan",
             }),
         ));
     }
