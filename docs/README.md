@@ -69,6 +69,7 @@ The implementation plans and dogfood records are:
 - [v2.32.0 release evidence](release-evidence/2026-08-11-v2-32-0-release.md)
 - [v2.32.1 release notes](release-notes/v2.32.1.md)
 - [v2.32.1 release evidence](release-evidence/2026-08-12-v2-32-1-release.md)
+- [v2.33.7 release notes](release-notes/v2.33.7.md)
 - [v2.33.6 release notes](release-notes/v2.33.6.md)
 - [v2.33.6 release evidence](release-evidence/2026-08-17-v2-33-6-release.md)
 - [v2.33.5 release notes](release-notes/v2.33.5.md)

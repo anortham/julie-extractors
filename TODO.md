@@ -662,7 +662,8 @@ is rejected.
   (`prime_identifier_children`, `prime_exact_children_keys`,
   `load_version_mini_index`, `symbol_by_id`, `effective_identifier_exists`).
 - **Status:** `open`. v2.33.6 ships the file mini-index and whole-pass name
-  cache. These three items stay out of that tag on purpose.
+  cache. v2.33.7 ships the ubiquitous-name filter for scoped deltas. These
+  three items stay out of those tags on purpose.
 - **Measured leftover (Miller family-store copy, 2026-08-17):** after the
   mini-index and name cache, a full resolve still does about 9.6k child-name
   queries that read ~1M rows, 2,409 whole-file mini-index loads, and 441k
