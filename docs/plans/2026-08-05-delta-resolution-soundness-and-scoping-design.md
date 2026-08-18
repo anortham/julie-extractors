@@ -1,3 +1,5 @@
+> **Superseded 2026-08-18.** The resolution write path is retired. See [2026-08-18-resolution-write-path-retirement.md](../decisions/2026-08-18-resolution-write-path-retirement.md).
+
 # Delta resolution: soundness first, then scoping — design — 2026-08-05
 
 **Status:** design, awaiting approval. Two changes in one sequence, in this order: fix the incremental

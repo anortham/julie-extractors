@@ -48,28 +48,6 @@ fn store_demotions_are_atomic_on_both_sides_of_the_commit() {
             "boundary={boundary}: {}",
             String::from_utf8_lossy(&output.stderr)
         );
-        assert_eq!(
-            Connection::open(layout.store_db())
-                .unwrap()
-                .query_row(
-                    "SELECT
-                       (SELECT COUNT(*) FROM resolution_scope_state WHERE view_id='view-scope'),
-                       (SELECT COUNT(*) FROM resolution_bases WHERE base_id='base-scope'),
-                       (SELECT COUNT(*) FROM resolution_deltas
-                        WHERE view_id='view-scope' AND delta_generation=1)",
-                    [],
-                    |row| {
-                        Ok((
-                            row.get::<_, i64>(0)?,
-                            row.get::<_, i64>(1)?,
-                            row.get::<_, i64>(2)?,
-                        ))
-                    },
-                )
-                .unwrap(),
-            (1, 1, 1),
-            "boundary={boundary}"
-        );
     }
 }
 
@@ -134,97 +112,23 @@ fn coordinator_receipt_survives_death_before_store_log_pruning_and_retry_finishe
 }
 
 #[test]
-fn base_catalog_and_owned_file_boundaries_recover_without_false_ready_rows() {
-    for (boundary, catalog_before_retry, file_before_retry) in [
-        ("maintenance_store_before_commit", 1_i64, true),
-        ("maintenance_store_after_commit", 0_i64, true),
-        ("maintenance_base_before_remove", 0_i64, true),
-        ("maintenance_base_after_remove", 0_i64, false),
-    ] {
-        let temp = TempStore::new("base");
-        let output = run_worker(temp.path(), "maintenance_base_crash_worker", boundary);
-        assert!(
-            !output.status.success(),
-            "boundary={boundary}: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-        let layout = StoreLayout::open(temp.path()).unwrap();
-        assert_eq!(
-            count(
-                &Connection::open(layout.store_db()).unwrap(),
-                "resolution_bases"
-            ),
-            catalog_before_retry,
-            "boundary={boundary}"
-        );
-        assert_eq!(
-            layout.bases_dir().join("base-orphan.db").exists(),
-            file_before_retry,
-            "boundary={boundary}"
-        );
-
-        thread::sleep(Duration::from_millis(300));
-        let plan = inspect_plan(&layout);
-        let mut executor = MaintenanceExecutor::acquire(
-            factory(&layout),
-            MaintenanceRun::new(
-                format!("retry-{boundary}"),
-                "retry-owner",
-                std::process::id(),
-                30 * DAY_MS + 1,
-                5_000,
-            ),
-            &plan,
-            FixedCapacity,
-        )
-        .unwrap();
-        executor.apply(&plan).unwrap();
-        assert_eq!(
-            count(
-                &Connection::open(layout.store_db()).unwrap(),
-                "resolution_bases"
-            ),
-            0
-        );
-        assert!(!layout.bases_dir().join("base-orphan.db").exists());
-    }
-}
-
-#[test]
-fn request_scratch_removal_is_restartable_on_both_sides_of_unlink() {
-    for (boundary, exists_before_retry) in [
-        ("maintenance_scratch_before_remove", true),
-        ("maintenance_scratch_after_remove", false),
-    ] {
-        let temp = TempStore::new("scratch");
-        let output = run_worker(temp.path(), "maintenance_scratch_crash_worker", boundary);
-        assert!(
-            !output.status.success(),
-            "boundary={boundary}: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-        let layout = StoreLayout::open(temp.path()).unwrap();
-        let path = layout.scratch_dir().join("resolve-exact-failed-request.db");
-        assert_eq!(path.exists(), exists_before_retry, "boundary={boundary}");
-
-        thread::sleep(Duration::from_millis(300));
-        let plan = inspect_plan(&layout);
-        let mut executor = MaintenanceExecutor::acquire(
-            factory(&layout),
-            MaintenanceRun::new(
-                format!("retry-{boundary}"),
-                "retry-owner",
-                std::process::id(),
-                30 * DAY_MS + 1,
-                5_000,
-            ),
-            &plan,
-            FixedCapacity,
-        )
-        .unwrap();
-        executor.apply(&plan).unwrap();
-        assert!(!path.exists());
-    }
+fn leftover_resolution_files_are_gone_after_writer_open() {
+    let temp = TempStore::new("reap");
+    let layout = StoreLayout::create(temp.path(), "family-maintenance-crash", "2.30.0").unwrap();
+    fs::write(layout.bases_dir().join("base-orphan.db"), b"base-bytes").unwrap();
+    fs::write(
+        layout.scratch_dir().join("resolve-exact-failed-request.db"),
+        b"scratch",
+    )
+    .unwrap();
+    drop(factory(&layout).open_writer().unwrap());
+    assert!(!layout.bases_dir().join("base-orphan.db").exists());
+    assert!(
+        !layout
+            .scratch_dir()
+            .join("resolve-exact-failed-request.db")
+            .exists()
+    );
 }
 
 #[test]
@@ -246,57 +150,6 @@ fn maintenance_coordinator_crash_worker() {
     let layout = StoreLayout::create(root, "family-maintenance-crash", "2.30.0").unwrap();
     seed_terminal_request(&layout);
     run_gc(&layout, "gc-coordinator-crash");
-    panic!("worker passed crash boundary {boundary}");
-}
-
-#[test]
-fn maintenance_base_crash_worker() {
-    let Some((root, boundary)) = worker_context() else {
-        return;
-    };
-    let layout = StoreLayout::create(root, "family-maintenance-crash", "2.30.0").unwrap();
-    fs::write(layout.bases_dir().join("base-orphan.db"), b"base-bytes").unwrap();
-    Connection::open(layout.store_db())
-        .unwrap()
-        .execute(
-            "INSERT INTO resolution_bases
-             (base_id,manifest_hash,resolver_output_epoch,state,relative_path,identifier_count,
-              pending_count,file_bytes,file_sha256,request_id,created_at,updated_at)
-             VALUES ('base-orphan','sha256:orphan',1,'ready','bases/base-orphan.db',0,0,10,
-                     'b2d740389bda7fd1c65a311fa339e136e8dadfb46fbaacfb82237ae853d3c5d2',
-                     'request','1970-01-01T00:00:01Z',
-                     '1970-01-01T00:00:01Z')",
-            [],
-        )
-        .unwrap();
-    run_gc(&layout, "gc-base-crash");
-    panic!("worker passed crash boundary {boundary}");
-}
-
-#[test]
-fn maintenance_scratch_crash_worker() {
-    let Some((root, boundary)) = worker_context() else {
-        return;
-    };
-    let layout = StoreLayout::create(root, "family-maintenance-crash", "2.30.0").unwrap();
-    Connection::open(layout.coordinator_db())
-        .unwrap()
-        .execute(
-            "INSERT INTO requests
-             (request_id,idempotency_key,kind,payload_json,state,requester_id,requester_deadline,
-              claim_owner,claim_heartbeat_at,terminal_log_sequence,result_json,error_json,
-              created_at,updated_at)
-             VALUES ('failed-request','failed-idem','resolve','{}','failed','cli',NULL,NULL,NULL,
-                     NULL,NULL,'{}',1,1)",
-            [],
-        )
-        .unwrap();
-    fs::write(
-        layout.scratch_dir().join("resolve-exact-failed-request.db"),
-        b"scratch",
-    )
-    .unwrap();
-    run_gc(&layout, "gc-scratch-crash");
     panic!("worker passed crash boundary {boundary}");
 }
 
@@ -340,34 +193,6 @@ fn seed_l3_candidate(layout: &StoreLayout) {
              VALUES
                ('view-scope',1,'sha256:m1','request-1','2026-01-01T00:00:00Z'),
                ('view-scope',2,'sha256:m2','request-2','2026-01-02T00:00:00Z');
-             INSERT INTO resolution_bases
-               (base_id,manifest_hash,resolver_output_epoch,state,relative_path,identifier_count,
-                pending_count,file_bytes,file_sha256,request_id,created_at,updated_at)
-             VALUES ('base-scope','sha256:m1',1,'ready','bases/base-scope.db',0,0,1,
-                     'sha256:base','request-1','2026-01-01T00:00:00Z',
-                     '2026-01-01T00:00:00Z');
-             INSERT INTO resolution_base_versions(base_id,version_id) VALUES ('base-scope',1);
-             INSERT INTO resolution_deltas
-               (view_id,delta_generation,base_id,manifest_generation,manifest_hash,
-                resolver_output_epoch,identifier_replacements,pending_replacements,
-                pending_tombstones,exact_gap_rows,exact_gap_files,exact_gap_json,request_id,created_at)
-             VALUES ('view-scope',1,'base-scope',1,'sha256:m1',1,0,0,0,0,0,'{}','request-1',
-                     '2026-01-01T00:00:00Z');
-             INSERT INTO resolution_scope_batches
-               (transition_id,view_id,from_manifest_generation,from_manifest_hash,
-                to_manifest_generation,to_manifest_hash,scope_usable,
-                predecessor_manifest_generation,predecessor_manifest_hash,base_id,
-                delta_generation,resolver_output_epoch,change_count,change_hash,request_id,
-                completed_at)
-             VALUES (1,'view-scope',1,'sha256:m1',2,'sha256:m2',1,1,'sha256:m1','base-scope',
-                     1,1,0,
-                     'sha256:6fefdaedb46e55f2dd1f1852406cb565306739f79dd0a53de2acb50045069590',
-                     'request-2','2026-01-02T00:00:00Z');
-             INSERT INTO resolution_scope_state
-               (view_id,predecessor_manifest_generation,predecessor_manifest_hash,base_id,
-                delta_generation,resolver_output_epoch,current_manifest_generation,
-                current_manifest_hash,journal_through_transition_id)
-             VALUES ('view-scope',1,'sha256:m1','base-scope',1,1,2,'sha256:m2',1);
              COMMIT;",
         )
         .unwrap();

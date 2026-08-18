@@ -1,3 +1,5 @@
+> **Superseded 2026-08-18.** The resolution write path is retired. See [2026-08-18-resolution-write-path-retirement.md](../decisions/2026-08-18-resolution-write-path-retirement.md).
+
 # Accumulated Resolution Work Rebase Design
 
 **Status:** Approved 2026-08-16; implementation plan pending approval.

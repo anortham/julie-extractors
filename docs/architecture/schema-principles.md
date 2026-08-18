@@ -32,6 +32,10 @@ Initial schema design should cover:
 - artifact metadata
 - extraction revisions
 
+Workspace-global reference resolution is not an artifact domain. Miller
+computes it at query time from the fact tables. See
+[2026-08-18-resolution-write-path-retirement.md](../decisions/2026-08-18-resolution-write-path-retirement.md).
+
 ## Metadata Requirements
 
 Every database must expose:
@@ -55,8 +59,8 @@ The schema and writer must support:
 - full-repo scan without per-row transactions
 - single-file update/delete by indexed path
 - bulk replacement of one file's rows by indexed file id
-- downstream lookup by file path, symbol name/kind, parent symbol, identifier
-  target, relationship endpoints, pending target name, and test-role flags
+- downstream lookup by file path, symbol name/kind, parent symbol,
+  relationship endpoints, pending target name, and test-role flags
 - deterministic export without table scans that depend on incidental row order
 
 The SQLite writer should use explicit transactions, prepared statements, batched

@@ -9,8 +9,8 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior};
 
 use super::coordinator::{CoordinatorError, LeaseDisposition, LeaseHolder, StoreCoordinator};
-use super::pragmas::{PragmaError, WriterPragmaProfile, configure_writer_pragmas};
 use super::layout::reap_retired_resolution_files;
+use super::pragmas::{PragmaError, WriterPragmaProfile, configure_writer_pragmas};
 use super::schema::{ensure_read_symbol_indexes, retire_resolution_store_objects};
 use super::wal_retry::{is_locking_protocol, with_locking_protocol_retry};
 use super::{STORE_SQLITE_SCHEMA_VERSION, StoreLayout, StoreLayoutError, StoreSchemaError};

@@ -3,7 +3,14 @@
 Status: frozen Ph2d lifecycle contract. The exact physical catalog is
 [`sqlite-store-schema-v2.md`](sqlite-store-schema-v2.md).
 
-This contract defines the target-owned family store used after the legacy v3 artifact boundary. It does not change the v3 `ArtifactWriter`, SQLite schema version 6, or the standalone extraction artifact.
+This contract defines the target-owned family store used after the legacy v3 artifact boundary. It does not change the v3 `ArtifactWriter`, SQLite schema version 7, or the standalone extraction artifact.
+
+> **2026-08-18 retirement:** julie-extract no longer writes workspace-global
+> reference resolution. The former resolve verb, bases, deltas, pins, and
+> scope journal are gone. Writer open drops those objects in place. View
+> `resolution_*` columns stay for migrated stores; this product does not bind
+> them. Miller computes resolution at query time. See
+> [2026-08-18-resolution-write-path-retirement.md](../decisions/2026-08-18-resolution-write-path-retirement.md).
 
 ## Identity and compatibility
 
@@ -22,7 +29,6 @@ This contract defines the target-owned family store used after the legacy v3 art
 |---|---:|
 | `store_sqlite_schema_version` | `2` |
 | `store_format_epoch` | `1` |
-| `resolution_scope_journal_version` | `1` |
 | `retention_window_days` | `7` |
 | `retention_byte_target` | `1.20` |
 | `retention_byte_ceiling` | `1.25` |
@@ -55,9 +61,10 @@ floor.
 ## Views and manifests
 
 Each `views` row names a non-empty `view_id` and root, an optional current manifest generation,
-canonical creation/update times, and a coherent resolution state. `unbound` has no binding;
-`converging` binds a ready base and cumulative delta without an exact generation; `exact` requires
-`resolution_exact_at = current_generation`.
+and canonical creation/update times. The `resolution_state`, `resolution_base_id`,
+`resolution_delta_generation`, and `resolution_exact_at` columns remain so a migrated
+store keeps its prior values. New views stay `unbound`. This product does not bind
+or consume those columns.
 
 `manifests` is immutable and keyed by `(view_id, generation)`. `manifest_entries` is keyed by `(view_id, generation, path)`, records a required language that participates in manifest hash v2, and records one of:
 
@@ -67,22 +74,12 @@ canonical creation/update times, and a coherent resolution state. `unbound` has 
 
 A manifest entry's nullable version FK is `ON DELETE RESTRICT`; live and historical manifests are GC roots. Publication inserts the manifest before changing `views.current_generation` in one transaction.
 
-Every non-no-op manifest flip also appends one immutable resolution-scope transition identified by
-an `AUTOINCREMENT` transition ID. Manifest generation is payload, not transition identity, so a
-view may transition from generation 1 to 2 and later reuse generation 1 without reusing a scope
-transition. The per-view `previous_transition_id` chain records that order.
-
-When a view is exact, the first flip captures its manifest/base/delta/resolver-epoch tuple. Later
-flips preserve that predecessor until exact publication replaces the lifecycle. A usable batch
-contains binary-path-ordered touched names with old/new file-version IDs plus an exact child count
-and SHA-256 payload hash. More than 512 touched names, no predecessor tuple, absent feature history,
-or a journal/head discontinuity produces a scope-unusable header with zero children; consumers must
-run full resolution rather than interpreting partial scope. Re-publishing the current generation is
-a no-op and appends no transition.
+Re-publishing the current generation is a no-op. The retired scope journal is no
+longer written; writer open drops leftover journal tables.
 
 ## Durable log and progress
 
-`store_log.sequence` is the store catalog's monotonic `AUTOINCREMENT` log allocator. Each row has a non-empty request and event kind, optional view/generation/version/level coordinates, a checked terminal flag, a JSON payload, and canonical creation time. A partial unique index permits one terminal row per request. Root-owned family allocator marks prevent file-version, log, per-view manifest, and per-view resolution-delta identities from restarting after promotion or forward rollback.
+`store_log.sequence` is the store catalog's monotonic `AUTOINCREMENT` log allocator. Each row has a non-empty request and event kind, optional view/generation/version/level coordinates, a checked terminal flag, a JSON payload, and canonical creation time. A partial unique index permits one terminal row per request. Root-owned family allocator marks prevent file-version, log, and per-view manifest identities from restarting after promotion or forward rollback.
 
 `request_chunks` records global non-negative chunk indexes and the unique store-log sequence owned by each chunk. It deliberately has no FK to the prunable log, versions, or manifests. Ph2b does not prune `store_log`.
 
@@ -92,19 +89,20 @@ a no-op and appends no transition.
 `writer_lease`, immutable `request_receipts`, durable `consumer_cursors`, the optional singleton
 `maintenance_intent`, and scoped `family_allocator_marks`.
 
-- Request kinds are `import`, `update`, `delete`, `resolve`, `export`, or `from_artifact`.
+- Request kinds that can be enqueued are `import`, `update`, `delete`, `export`, or `from_artifact`.
+- Historical `resolve` rows still parse. The coordinator cannot enqueue or claim them.
+  A writer-open reaper moves leftover queued or claimed resolve rows to typed `failed`.
 - Request states are `queued`, `claimed`, `committed`, `acknowledged`, or `failed`.
 - Only claimed requests may carry claim owner and heartbeat fields.
 - Committed and acknowledged requests require a terminal log sequence and result with no error.
 - Failed requests require an error, prohibit a result, and may lack a terminal sequence.
 - The idempotency key is unique through its named classified index.
-- A partial unique index permits at most one claimed `resolve` request per family coordinator.
 - Coordinator clocks are Unix-millisecond integers.
 - The lease resource is exactly `store-writer`; holder identity/version are non-empty, PID and fencing token are positive, and release deletes the row.
 - Ordinary writer lease acquire refuses while a foreign live maintenance intent exists, even when no
   `writer_lease` row is present. Maintenance ownership is explicit
   (`run_id` + `owner_id` + `owner_pid` + `fencing_token`) and is not inferred from holder id/PID alone.
-- Enqueue of a new request, resolve claim, consumer cursor advance, and cursor release recheck
+- Enqueue of a new request, consumer cursor advance, and cursor release recheck
   foreign live intent inside the same IMMEDIATE coordinator transaction that would mutate. Idempotent
   enqueue replay of an existing request may return without insert under live intent.
 - A terminal request may age into one immutable receipt that independently reserves its request ID
@@ -113,52 +111,26 @@ a no-op and appends no transition.
 - The maintenance intent is resource `store-maintenance`, carries one coherent owner/heartbeat/fence,
   and blocks ordinary writer acquisition while live.
 
-`store.db` also catalogs immutable resolution bases, rooted source versions, cumulative per-view
-deltas, and bounded reader/resolve pins. Semantic result rows remain in immutable base and delta
-files; they are not copied into general Store tables.
-
-## Resolution publication
-
-- `JULIE_STORE_RESOLUTION_DELTA` defaults to scoped resolution when unset. `on` selects the same
-  behavior explicitly. `off` forces the pre-incremental full-resolution path without reading prior
-  scope state. Any unusable or incomplete scope journal falls back to full resolution before semantic
-  publication.
-- `store resolve` claims through `coord.db` without holding the store-writer lease during semantic
-  computation.
-- Durable resolve writes to `store.db` (exact publish and terminal log append) use a generation-fenced
-  writer; unfenced raw opens are not a production path.
-- The input manifest, resolver-output epoch, ready base, request claim, writer holder PID, and
-  fencing token are revalidated before and inside the final publication transaction.
-- Exact publication heartbeats the writer lease once immediately before `BEGIN IMMEDIATE`, revalidates
-  lease ownership against wall clock, inserts one cumulative delta, all replacement/tombstone rows,
-  the view binding, and one `resolution_exact_published` log effect in the same `store.db` transaction.
-- A CAS or fence loser publishes none of those rows. A store-committed/coordinator-uncommitted tear
-  reconciles from the terminal store fact without re-executing semantic work.
-- Resolve pins release on success and best-effort on failure while ownership still allows release.
-  Expired pins are not base-protection roots; only unexpired pins or existing delta rows protect a
-  ready base.
-- Import materializes resolution bases with catalog `building` before file publish and CAS
-  `building → ready` only after file identity and semantic counts match.
-- Only the dedicated resolver may claim `resolve` requests. Generic import/update/delete backlog
-  draining leaves them queued while another resolve is claimed.
-- Request-private exact/base scratch files are not catalog data. A successor that owns the same
-  durable request removes an abandoned private `.work` file before retrying.
+`store.db` does not catalog resolution bases, deltas, or pins. Writer open
+drops leftover `bases/` files and both scratch families.
 
 ## Public compatibility adapters
 
-- `store export --store <family> --view <id> --out <artifact.db>` requires an exact current view,
-  holds a reader pin through validation and atomic rename, and emits the current standalone v3
-  artifact contract. It has no coordinator request controls and never mutates store state.
+- `store export --store <family> --view <id> --out <artifact.db>` exports the
+  current view's fact tables into a standalone schema-v7 artifact. It does not
+  require a resolution binding. It holds one read transaction from manifest
+  selection through every fact-table copy, has no coordinator request controls,
+  and never mutates store state.
 - `store import --from-artifact <artifact.db>` is an import mode, not a database copy. It rejects
   scan/extraction controls, validates the artifact schema/root/hash/epoch/completeness before store
-  creation, enqueues one bounded typed plan, and resumes by request-global chunk index.
-- Both adapters preserve natural extraction and resolution keys. Idempotency replay returns the
+  creation, enqueues one bounded typed plan, and resumes by request-global chunk index. It does not
+  materialize resolution state.
+- Both adapters preserve natural extraction keys. Idempotency replay returns the
   original request-specific result even when the source or artifact path later disappears.
 
 ## Retention boundary
 
-Ph2d may reclaim only objects outside every current/historical manifest, ready-base version root,
-identifier and pending delta source/target root, unexpired resolution pin, current base/delta binding,
+Ph2d may reclaim only objects outside every current/historical manifest,
 active request/claim, scratch owner, consumer cursor window, and retained-generation safety window.
 Terminal request rows become durable receipts before coordinator deletion; orphan store logs are
 pruned only afterward and below every safe cursor. General maintenance behavior is specified by the
@@ -194,14 +166,6 @@ request and does not add request IDs, view IDs, or request-state fields to the r
 StoreReport. JSON always uses one stdout line, including failures; human failure uses stderr. Exit
 codes are 0 completed/no-change, 1 operational refusal, 2 usage, and 3 incompatible store.
 
-The scope journal is an additive schema-v2 feature. A schema-v2 store without
-`resolution_scope_journal_version` remains readable. Its first writer open or manifest publication
-atomically installs the three tables and metadata key before mutation; generation promotion performs
-that upgrade before comparing source and destination catalogs and copies every durable metadata key.
-`resolution_scope_batches` stores immutable transition headers with `change_hash` and
-`completed_at`; `resolution_scope_state` carries `journal_through_transition_id`; and
-`resolution_scope_journal` stores binary-path-ordered `path_added`, `path_deleted`, or
-`content_replaced` rows. Each row includes nullable old/new version IDs and canonical sorted,
-deduplicated `touched_names_json` derived from symbols in both versions. The header hash covers the
-complete child payload. Transitions without an exact predecessor or with more than 512 changed paths
-are valid scope-unusable header-only fallbacks.
+The retired scope journal is not an additive feature. Writer open deletes
+`resolution_scope_journal_version` and drops leftover journal tables. A store
+without those objects is the current catalog.

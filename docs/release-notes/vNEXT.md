@@ -1,0 +1,63 @@
+# julie-extract vNEXT (draft)
+
+Version number is chosen at release time. Do not treat this file as published.
+Do not move the `Current published release:` pointer from this draft.
+
+vNEXT retires the resolution write path and fixes manifest language agreement
+for sniffed `.h` files.
+
+## Manifest language follows the file version
+
+A C++-flavored `.h` file used to fail cold import. Discovery classified the
+path as `c`. Extraction sniffed the contents as `cpp`. Manifest publication
+then raised `file_version_language_mismatch` and wedged the store.
+
+Manifest entries now copy the stored file-version language. Mixed C/C++ header
+corpora publish without a `.julieignore` workaround.
+
+## Resolution write path is gone
+
+`julie-extract` no longer writes workspace-global reference resolution.
+
+- `store resolve` is an unknown subcommand.
+- Scan, update, delete, export, and import write facts only.
+- Exported artifacts are schema v7. JSONL is contract v5.
+- Family stores stay schema v2. The first writer open drops leftover
+  resolution objects and reaps `bases/` plus both scratch families.
+- View `resolution_*` columns stay. This product does not bind them.
+- `JULIE_RESOLUTION_*` and `JULIE_STORE_RESOLUTION_*` flags are gone.
+
+Miller computes resolution at query time from the fact tables. See
+[2026-08-18-resolution-write-path-retirement.md](../decisions/2026-08-18-resolution-write-path-retirement.md).
+
+## Store size
+
+A migrated family store sheds the retired base, delta, pin, and scratch files.
+Fact tables stay in place. No full re-extract is required for an existing
+store.
+
+## Compatibility
+
+classification: incompatible
+
+This is an intentional break against v2.33.7.
+
+- Standalone artifacts are schema 7. A v2.33.7 reader that queries
+  `identifier_resolutions` or `pending_resolutions` will not find those tables.
+- JSONL v5 omits the old overlay keys.
+- `store resolve` is gone.
+- Fact tables remain the compat-check comparison. The retired overlay tables
+  are excluded so their absence is classified, not discovered.
+
+Consumer action: rebuild standalone artifacts with this binary. Family stores
+migrate on first writer open. Point Miller at this binary only after Miller's
+query-time path is live.
+
+## Follow-up
+
+Release execution is approval-gated. This draft does not publish, tag, or move
+the current-release pointer. Miller's pin bump is a later Miller-repo change.
+
+## Verification
+
+Recorded at release time.

@@ -1,5 +1,8 @@
 # Index Store Ph2c Resolution Evidence
 
+> **Historical release evidence.** The resolution write path this evidence
+> records is retired. See [2026-08-18-resolution-write-path-retirement.md](../../decisions/2026-08-18-resolution-write-path-retirement.md).
+
 Status: historical Ph2c slice evidence, captured 2026-08-08. Store resolution shipped in v2.31.0
 and was hardened through v2.31.3. Miller still does not use the family-store resolution path in
 production (Ph3).

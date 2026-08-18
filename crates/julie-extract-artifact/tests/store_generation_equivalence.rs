@@ -111,12 +111,7 @@ fn promotion_ignores_leftover_base_files() {
     seed_source(&layout);
     seed_base(&layout, b"valid resolution base");
     fs::write(layout.bases_dir().join("base-a.db"), b"corrupt").unwrap();
-    let current = promote_once(
-        &layout,
-        "promote-base",
-        1_000,
-        &GenerationPolicy::default(),
-    );
+    let current = promote_once(&layout, "promote-base", 1_000, &GenerationPolicy::default());
     assert_eq!(current.generation_name(), "gen-002");
 }
 

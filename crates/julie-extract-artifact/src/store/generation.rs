@@ -13,10 +13,10 @@ use super::layout::{
     initialize_store_database, named_generations, reap_retired_resolution_files, sync_directory,
     sync_file,
 };
-use super::schema::retire_resolution_store_objects;
 use super::maintenance::{
     CapacityProvider, MaintenanceError, MaintenanceExecutor, MaintenancePlan, MaintenanceRun,
 };
+use super::schema::retire_resolution_store_objects;
 use super::{
     MaintenanceAction, PartialGenerationOwner, PidStatus, StoreConnectionError,
     StoreConnectionFactory, StoreLayout, StoreLayoutError, StoreSchemaError,
@@ -1236,7 +1236,6 @@ fn copy_manifest_entries(
     }
     Ok(())
 }
-
 
 fn advance_family_allocator_marks(layout: &StoreLayout) -> Result<(), GenerationError> {
     let mut scalar = BTreeMap::from([

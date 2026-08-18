@@ -7,45 +7,21 @@ with the [CLI contract](contracts/cli.md), [report contract](contracts/reports.m
 ## Current contracts
 
 - [Extraction contract v4](contracts/extracted-data-v4.md)
-- [SQLite artifact schema v6](contracts/sqlite-schema-v6.md)
+- [SQLite artifact schema v7](contracts/sqlite-schema-v7.md)
 - [JSONL v5](contracts/jsonl-v5.md)
 - [Progress file v1](contracts/progress-file-v1.md)
 - [Test evidence v1](contracts/test-evidence-v1.md)
 
 ## Versioned store
 
-Ph2b, Ph2c, and Ph2d implement the [store v1 contract](contracts/store-v1.md),
+Ph2b and Ph2d implement the [store v1 contract](contracts/store-v1.md),
 [SQLite store schema v2](contracts/sqlite-store-schema-v2.md), and
-[versioned-store architecture](architecture/versioned-index-store.md). The implementation is
-published in v2.31.0 and patched through v2.31.4. Version 2.32.0 makes validated scoped resolution
-the default while retaining an explicit forced-full escape hatch. Version 2.32.1 hardens long
-artifact imports, bounds scope crossover before execution, reuses identical imports, and accelerates exact
-resolution publication without changing public contracts. Version 2.33.0 keeps long batch work from being
-rolled back at the quantum cap, frees a store wedged by an abandoned resolve claim, makes incremental vacuum
-reclaim its whole page budget per call, and repairs three Windows defects: unknown process liveness, an
-import that never retried a blocked drain, and a failed resolve that leaked its scratch database.
-Version 2.33.1 repairs a fourth Windows defect that broke every scoped store resolution since 2.32.0: a
-verbatim `\\?\` path prefix reached a SQLite URI and became an invalid authority, so a view could never
-leave `converging`. Version 2.33.2 reused one coordinator
-connection and retries transient `SQLITE_PROTOCOL` failures for the `coord.db`/`store.db` construction
-reads plus the read-only reconcile, base-reader, scratch-reader, and `open_reader` paths; writer/lease
-mutation opens remain non-retried. It samples lease time after `BEGIN IMMEDIATE`; renews leases with
-transient-error retries and fencing-token checks; restores the single-changed-path scoped-delta
-exemption; normalizes Windows diagnostic paths; and corrects the serial CI/zero-test guard. The
-exact-tree release-prep gates were green. Version 2.33.3 was the previous published release. It bounds
-incremental resolution around changed state, reuses validated resolution proofs and fixed statements,
-keeps unchanged imports on their no-op/idempotent paths, and hardens cross-platform root identity while
-preserving the existing recovery and fencing boundaries. A cold full index remains expensive; the
-release improves the bounded incremental path rather than promising fast first-time whole-repository
-extraction. No public CLI, report, schema, or store contract version changes.
-Version 2.33.7 is the current published release; it drops ubiquitous names from
-store delta-scope expansion so a small C# save stays scoped. Version 2.33.6
-speeds store resolve with a bounded per-file mini-index and a whole-pass name
-cache, without changing public contracts. Version 2.33.5
-keeps one-file store resolve scoped, omits private locals from resolve keys, and carries
-Full+Crossover compact into the resolve pipeline. Version 2.33.4
-compacted accumulated scoped work, repaired missing read indexes on writer open, and let queued resolve
-waiters return durable terminal results promptly without changing public contracts.
+[versioned-store architecture](architecture/versioned-index-store.md). The former
+Ph2c resolution write path is retired; see
+[2026-08-18-resolution-write-path-retirement.md](decisions/2026-08-18-resolution-write-path-retirement.md).
+The store implementation was published in v2.31.0 and patched through v2.33.7.
+Version 2.33.7 is the current published release. Historical 2.31–2.33 notes
+remain in [release-notes](release-notes) and [release-evidence](release-evidence).
 The implementation plans and dogfood records are:
 
 - [Ph2b store-kernel plan](plans/2026-08-07-index-store-ph2b-store-kernel-plan.md)

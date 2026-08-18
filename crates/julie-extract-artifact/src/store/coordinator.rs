@@ -2798,14 +2798,14 @@ fn open_coordinator_once(path: &Path) -> Result<Connection, CoordinatorError> {
             },
         }
     })?;
-    super::schema::retire_coordinator_resolution_objects(&connection).map_err(|error| {
-        match error {
+    super::schema::retire_coordinator_resolution_objects(&connection).map_err(
+        |error| match error {
             super::StoreSchemaError::Sqlite(inner) => CoordinatorError::Sqlite(inner),
             other => CoordinatorError::CorruptRequest {
                 detail: other.to_string(),
             },
-        }
-    })?;
+        },
+    )?;
     Ok(connection)
 }
 

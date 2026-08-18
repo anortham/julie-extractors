@@ -1,3 +1,5 @@
+> **Superseded 2026-08-18.** The resolution write path is retired. See [2026-08-18-resolution-write-path-retirement.md](../decisions/2026-08-18-resolution-write-path-retirement.md).
+
 # Ph2c-a Store Resolution Mechanism Gate
 
 ## Verdict

@@ -1,8 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use julie_extract_artifact::store::{
-    STORE_FORMAT_EPOCH, STORE_SQLITE_SCHEMA_VERSION, StoreSchemaError,
-    create_coordinator_schema, create_store_schema,
+    STORE_FORMAT_EPOCH, STORE_SQLITE_SCHEMA_VERSION, StoreSchemaError, create_coordinator_schema,
+    create_store_schema,
 };
 use rusqlite::{Connection, params};
 use sha2::{Digest, Sha256};
@@ -41,7 +41,8 @@ fn views_keep_resolution_columns_without_resolution_foreign_keys() {
     let fks = foreign_keys(&store, "views");
     assert!(
         fks.iter()
-            .all(|fk| fk.target_table != "resolution_bases" && fk.target_table != "resolution_deltas")
+            .all(|fk| fk.target_table != "resolution_bases"
+                && fk.target_table != "resolution_deltas")
     );
 }
 

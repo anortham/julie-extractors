@@ -1,6 +1,13 @@
 # Extracted Data Contract v4
 
-Extraction contract 4 pairs only with SQLite schema 5 and JSONL contract 4.
+Extraction contract 4 now pairs with [SQLite schema 7](sqlite-schema-v7.md)
+and [JSONL contract 5](jsonl-v5.md). Schema 5/6 and JSONL 4 remain historical
+pairings.
+
+> **2026-08-18 retirement:** this product no longer writes workspace-global
+> reference resolution. Identifier `target_symbol_id` is not stored on the
+> artifact. Miller computes resolution at query time. See
+> [2026-08-18-resolution-write-path-retirement.md](../decisions/2026-08-18-resolution-write-path-retirement.md).
 
 ## Reference evidence
 
@@ -23,8 +30,6 @@ assertions by `(reference_site_id, target_symbol_id, canonical_kind)` and unreso
 
 ## Capability gaps
 
-Gap status is the closed vocabulary `open | exception`. The certified reference-resolution
-snapshot contains 103 open rows at resolution contract v6: 36 tier-3 receiver rows,
-34 tier-2 import rows, and 33 tier-3 static-type rows (every language outside
-`TIER3_STATIC_TYPE_LANGUAGES` = csharp, typescript, javascript). TypeScript and
-JavaScript tier-2 coverage is closed. Unknown statuses are invalid.
+Gap status is the closed vocabulary `open | exception`. Unknown statuses are
+invalid. Workspace-global reference-resolution coverage is no longer a
+julie-extract capability claim. Miller owns that policy.

@@ -249,7 +249,11 @@ fn artifact_record_omits_reference_resolution_metadata() {
     let artifact = record(&records, "artifact");
     assert!(artifact.get("reference_resolution_status").is_none());
     assert!(artifact.get("reference_resolution_version").is_none());
-    assert!(artifact.get("reference_resolution_last_full_revision").is_none());
+    assert!(
+        artifact
+            .get("reference_resolution_last_full_revision")
+            .is_none()
+    );
 
     for (key, value) in [
         ("reference_resolution_status", "complete"),
@@ -266,7 +270,11 @@ fn artifact_record_omits_reference_resolution_metadata() {
     let artifact = record(&records, "artifact");
     assert!(artifact.get("reference_resolution_status").is_none());
     assert!(artifact.get("reference_resolution_version").is_none());
-    assert!(artifact.get("reference_resolution_last_full_revision").is_none());
+    assert!(
+        artifact
+            .get("reference_resolution_last_full_revision")
+            .is_none()
+    );
 }
 
 #[test]

@@ -1,5 +1,9 @@
 # Resolution Write-Path Removal Implementation Plan
 
+> **Retirement plan (2026-08-18).** This plan removes the resolution write
+> path. Live contracts are the current CLI/store/schema docs and
+> [2026-08-18-resolution-write-path-retirement.md](../decisions/2026-08-18-resolution-write-path-retirement.md).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use razorback:subagent-driven-development when subagent delegation is available. Fall back to razorback:executing-plans for single-task, tightly-sequential, or no-delegation runs.
 
 **Goal:** julie-extract stops producing reference resolution entirely — the `store resolve` verb, the resolution sessions, bases/deltas/pins/scope journal, and the artifact-level auto-resolve hooks are deleted — and the manifest language-classification bug that breaks cold import on C++-flavored `.h` files is fixed.
@@ -208,11 +212,11 @@ Plan-package commit ownership: this plan file is currently UNTRACKED in the main
 **What to build:** The sweep above, then the branch gate.
 
 **Acceptance criteria:**
-- [ ] `grep -ri "store resolve\|resolution_bases\|RESOLUTION_VERSION"` over `docs/` finds only retirement notes, superseded banners, and release-note history
-- [ ] Compat policy updated (`extraction-output-changes.md`, compat tests/exclusions); `cargo xtask compat-check` against the v2.33.7 release binary passes with the removal classified as intentional
-- [ ] `scripts/check-agent-doc-sync.sh` and `scripts/check-release-state.sh` pass
-- [ ] Branch gate green (fmt, xtask tests, default tier, contract tier, clippy, `git diff --check`)
-- [ ] Worker scope green; worker commits (serial-worker-commit)
+- [x] `grep -ri "store resolve\|resolution_bases\|RESOLUTION_VERSION"` over `docs/` finds only retirement notes, superseded banners, and release-note history
+- [x] Compat policy updated (`extraction-output-changes.md`, compat tests/exclusions); `cargo xtask compat-check` against the v2.33.7 release binary passes with the removal classified as intentional
+- [x] `scripts/check-agent-doc-sync.sh` and `scripts/check-release-state.sh` pass
+- [x] Branch gate green (fmt, xtask tests, default tier, contract tier, clippy, `git diff --check`)
+- [x] Worker scope green; worker commits (serial-worker-commit)
 
 ---
 

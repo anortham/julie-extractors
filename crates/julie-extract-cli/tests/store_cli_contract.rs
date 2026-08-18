@@ -963,6 +963,8 @@ fn table_count_if_exists(connection: &Connection, table: &str) -> i64 {
         return 0;
     }
     connection
-        .query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |row| row.get(0))
+        .query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |row| {
+            row.get(0)
+        })
         .unwrap()
 }

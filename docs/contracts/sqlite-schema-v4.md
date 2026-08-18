@@ -1,5 +1,9 @@
 # SQLite Schema v4
 
+> **Historical.** Superseded by later schema versions. The resolution overlay
+> this page describes is retired. See [sqlite-schema-v7.md](sqlite-schema-v7.md)
+> and [2026-08-18-resolution-write-path-retirement.md](../decisions/2026-08-18-resolution-write-path-retirement.md).
+
 ## Scope
 
 SQLite is the primary durable artifact for `julie-extractors`.

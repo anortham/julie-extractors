@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+// Retired 2026-08-18 with docs/contracts/reference-resolution-coverage-v1.md.
+// julie-extract no longer writes workspace-global reference resolution.
 
 import crypto from "node:crypto";
 import fs from "node:fs";

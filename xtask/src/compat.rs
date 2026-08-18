@@ -19,10 +19,16 @@ const COLUMN_HEADER_PREFIX: &str = "#columns";
 
 /// `artifact_metadata`, `extraction_revisions` and `revision_file_changes` carry per-scan identity
 /// and timestamps, so two runs of the SAME binary already differ there.
+/// `identifier_resolutions` and `pending_resolutions` were removed in schema v7. The previous
+/// release still writes them; excluding them keeps the gate on fact-table identity and records
+/// the overlay removal as an intentional break in `docs/contracts/extraction-output-changes.md`.
 const EXCLUDED_TABLES: &[&str] = &[
     "artifact_metadata",
     "extraction_revisions",
     "revision_file_changes",
+    "identifier_resolutions",
+    "pending_resolutions",
+    "language_capability_gaps",
 ];
 
 const VOLATILE_COLUMNS: &[(&str, &[&str])] = &[("files", &["indexed_at", "last_revision_id"])];

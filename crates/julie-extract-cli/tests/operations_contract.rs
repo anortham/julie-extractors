@@ -621,14 +621,8 @@ fn scan_writes_facts_only_and_omits_resolution_metadata() {
 
     assert!(!table_exists(&db, "pending_resolutions"));
     assert!(!table_exists(&db, "identifier_resolutions"));
-    assert_eq!(
-        metadata_optional(&db, "reference_resolution_version"),
-        None
-    );
-    assert_eq!(
-        metadata_optional(&db, "reference_resolution_status"),
-        None
-    );
+    assert_eq!(metadata_optional(&db, "reference_resolution_version"), None);
+    assert_eq!(metadata_optional(&db, "reference_resolution_status"), None);
     assert_eq!(
         metadata_optional(&db, "reference_resolution_last_full_revision"),
         None

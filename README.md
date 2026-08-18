@@ -75,7 +75,7 @@ python3 examples/python/sqlite_consumer.py target/example/artifact.sqlite
 | `info` | Read artifact metadata and totals without mutating the database. | `--db`, `--strict-schema`, `--json` |
 | `export` | Export a SQLite artifact to JSONL. | `--db`, `--format jsonl`, `--out`, `--strict-schema`, `--json` |
 | `languages` | Emit parser inventory and capability snapshot metadata. | `--json` |
-| `store` | Create and maintain a versioned family store. | `import`, `update`, `delete`, `resolve`, `export`, `maintain` |
+| `store` | Create and maintain a versioned family store. | `import`, `update`, `delete`, `export`, `maintain` |
 
 Every command accepts `--json` for a stable machine-readable report. Human
 output is intentionally not part of the contract.
@@ -90,27 +90,17 @@ layering and precedence contract.
 
 The versioned family store is separate from legacy `scan`, `update`, `delete`, `info`, and `export`
 artifacts. It keeps immutable file versions, coherent per-view manifests, durable queued requests,
-exact resolution bases/deltas, and retained store generations behind an atomic `CURRENT` pointer.
-Version 2.32.0 made validated scoped resolution the default while retaining an explicit forced-full
-escape hatch. Version 2.33.0 keeps long batch work from being rolled back at the quantum
-cap, frees a store wedged by an abandoned resolve claim, makes incremental vacuum reclaim its whole page
-budget per call, and repairs three Windows defects: unknown process liveness, an import that never
-retried a blocked drain, and a failed resolve that leaked its scratch database. Version 2.33.1
-repaired a Windows defect that broke every scoped store resolution since v2.32.0: a verbatim
-`\\?\` path prefix reached a SQLite URI and became an invalid authority, so a view could never leave
-`converging`. The prepared v2.33.2 candidate is a Windows reliability release, pending publication. The
-coordinator reuses one connection; transient `SQLITE_PROTOCOL` failures are retried for the
-coordinator/store construction reads and the other read-only store, base, scratch, and reader opens,
-while writer/lease mutation opens remain non-retried. Lease acquisition samples time after SQLite
-grants the transaction and renewal is token-checked and resilient to transient errors; single-file
-deltas stay scoped; and report paths use the contract's `/` separator. The exact-tree release-prep gates
-are green, but v2.33.1 remains the current published release. See the
-[v2.33.2 release notes](docs/release-notes/v2.33.2.md) for candidate details and verification status.
+and retained store generations behind an atomic `CURRENT` pointer. This product no longer writes
+workspace-global reference resolution; Miller computes that at query time. See the
+[retirement decision](docs/decisions/2026-08-18-resolution-write-path-retirement.md).
+The current published release is v2.33.7. Historical 2.32/2.33 notes remain in
+[docs/release-notes](docs/release-notes).
 
 ```bash
 julie-extract store import --store target/family --family <uuid> \
   --root . --view main --level full --json
-julie-extract store resolve --store target/family --view main --json
+julie-extract store export --store target/family --view main \
+  --out target/example/exported.sqlite --json
 julie-extract store maintain inspect --store target/family --json
 ```
 
@@ -123,18 +113,18 @@ contract; Miller keeps store mode explicit until its own release and scale-defau
 
 ## Artifact contract
 
-SQLite schema v6 is the source of truth for legacy durable output. It stores artifact
+SQLite schema v7 is the source of truth for legacy durable output. It stores artifact
 metadata, parser inventory and capability snapshots, extraction revisions,
 per-file change records, and the extracted data itself: symbols, annotations,
 identifiers, relationships, type facts, literals, source regions, structural
 facts, complexity metrics, and parse diagnostics. The full table and index
 contract is in
-[docs/contracts/sqlite-schema-v6.md](docs/contracts/sqlite-schema-v6.md).
+[docs/contracts/sqlite-schema-v7.md](docs/contracts/sqlite-schema-v7.md).
 
 Artifacts do not store complete source file contents. Consumers that need full
 text should read the matching source tree directly.
 
-JSONL v4 is derived from SQLite and is not a separate source of truth. A full
+JSONL v5 is derived from SQLite and is not a separate source of truth. A full
 export writes deterministic `snapshot` records in a fixed order, with JSON text
 from SQLite decoded into JSON values. See
 [docs/contracts/jsonl-v5.md](docs/contracts/jsonl-v5.md).
@@ -231,7 +221,8 @@ Public contracts:
 
 - [CLI contract](docs/contracts/cli.md)
 - [Extracted data v4](docs/contracts/extracted-data-v4.md)
-- [SQLite schema v6](docs/contracts/sqlite-schema-v6.md)
+- [SQLite schema v7](docs/contracts/sqlite-schema-v7.md)
+- [SQLite schema v6](docs/contracts/sqlite-schema-v6.md) (superseded)
 - [SQLite schema v5](docs/contracts/sqlite-schema-v5.md) (superseded)
 - [JSONL v5](docs/contracts/jsonl-v5.md)
 - [JSON reports](docs/contracts/reports.md)

@@ -1,3 +1,5 @@
+> **Superseded 2026-08-18.** The resolution write path is retired. See [2026-08-18-resolution-write-path-retirement.md](../decisions/2026-08-18-resolution-write-path-retirement.md).
+
 # Index Store Ph2c Resolution Design
 
 **Status:** Completed 2026-08-08. Ph2d lifecycle completion is included in the v2.31.0 release

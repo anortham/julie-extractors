@@ -1,6 +1,11 @@
 # Versioned Index Store Architecture
 
-The versioned store is a separate persistence boundary inside `julie-extract-artifact`. The legacy v3 `ArtifactWriter` continues to own standalone schema-6 artifacts; it does not open or mutate the family store.
+The versioned store is a separate persistence boundary inside `julie-extract-artifact`. The legacy v3 `ArtifactWriter` continues to own standalone schema-7 artifacts; it does not open or mutate the family store.
+
+> **2026-08-18 retirement:** julie-extract no longer writes workspace-global
+> reference resolution. Family stores stay schema v2 and drop leftover
+> resolution objects on writer open. Miller computes resolution at query time.
+> See [2026-08-18-resolution-write-path-retirement.md](../decisions/2026-08-18-resolution-write-path-retirement.md).
 
 ## Database split
 
@@ -36,35 +41,28 @@ Only deletion of a `file_versions` row cascades into extraction children. Child-
 
 The store format epoch and extraction identity epoch are independent. The initial value of each is 1. A same-epoch extractor comparison must be byte-identical. A changed extraction result is accepted only when the extraction epoch increases and the existing compatibility ledger classifies the change.
 
-## Resolution model
+## Retired resolution model
 
-Ph2c stores exact resolution output in immutable SQLite base files under the family generation.
-Each base is keyed by manifest hash and resolver-output epoch, roots every source version it names,
-and becomes reusable only after its file identity and semantic row counts are durable. A view binds
-to the nearest ready base, computes outside the writer lease, and publishes one cumulative delta in
-a short fenced `store.db` transaction. The transaction copies replacement/tombstone rows, advances
-the view to `exact`, and appends the `resolution_exact_published` effect atomically.
-
-Reader and resolver pins hold one coherent `(view, manifest, base, delta)` tuple. Manifest movement
-invalidates exactness but does not mutate old bases or deltas. A crash before the exact publication
-commit leaves no visible delta; a crash after it is reconciled from the store log without repeating
-the effect. Private scratch databases are request-owned and may be removed by the successor of that
-same durable request.
+Ph2c used to store exact resolution output in immutable SQLite base files. That
+write path is retired. Writer open drops leftover base, delta, pin, and scope
+objects and reaps `bases/` plus both scratch families. View `resolution_*`
+columns stay for migrated stores and are not bound by this product.
 
 ## Compatibility adapters
 
-`store export` pins one exact generation and builds a standalone v3 artifact through the legacy
-writer contract. `store import --from-artifact` validates a complete current v3 artifact before it
-creates a family or enqueues work, then imports extraction rows, manifest state, and exact resolution
-through resumable store transactions. Neither adapter copies a SQLite database file, and ordinary
+`store export` builds a standalone schema-v7 artifact from the current view's
+fact tables. It does not require a resolution binding. `store import --from-artifact`
+validates a complete current artifact before it creates a family or enqueues work,
+then imports extraction rows and manifest state through resumable store
+transactions. Neither adapter copies a SQLite database file, and ordinary
 imports still run extraction from source.
 
 ## Lifecycle and generations
 
 Ph2d adds bounded lifecycle maintenance under one root-owned maintenance intent. The planner treats
-current and historical manifests, ready-base version roots, unexpired pins, current bindings, active
+current and historical manifests, active
 requests/claims, receipts, and consumer cursors as explicit roots before deleting or demoting any
-version, base, delta, scratch file, or log row. L3 is demoted before L2; whole immutable versions are
+version, scratch file, or log row. L3 is demoted before L2; whole immutable versions are
 purged only after every root is gone. Checkpoint, incremental vacuum, and truncate-checkpoint are
 ordered and restartable.
 
@@ -75,7 +73,7 @@ it selects historical visible state while preserving the latest immutable identi
 and cursors in a newly named generation.
 
 `coord.db` remains outside generations. Its family allocator marks cover file-version and store-log
-identities globally plus manifest and resolution-delta generations per view. Ordinary request
+identities globally plus manifest generations per view. Ordinary request
 progress and terminal reconciliation advance those marks monotonically; promotion and rollback scan
 all named generations and receipts before raising destination allocators. No published identity is
 reused after a generation transition.
@@ -90,7 +88,7 @@ remains Ph3 work and is not implied by those releases.
 
 ## Concurrent fencing (post-Ph2d hardening)
 
-Concurrent import, resolve, and maintain against one family store share `coord.db` and generation
+Concurrent import, update, delete, and maintain against one family store share `coord.db` and generation
 local `store.db` files. Fencing rules below keep foreign writers off a frozen source and keep every
 durable store mutation lease- and generation-checked.
 
@@ -106,7 +104,7 @@ Maintenance uses `try_acquire_for_maintenance` with a full identity fence
 Matching holder id or PID alone does not admit a writer under foreign intent. Expired intents and
 dead-owner takeover still follow the existing PID and expiry policy.
 
-Enqueue of a new request, resolve claim, consumer cursor advance, and cursor release recheck foreign
+Enqueue of a new request, consumer cursor advance, and cursor release recheck foreign
 live intent inside the same `BEGIN IMMEDIATE` transaction that would write. Pre-transaction checks
 alone are not enough. Idempotent enqueue replay of an existing request may return without insert.
 
@@ -123,33 +121,14 @@ before they delete lease and intent in `coord.db` (M7). Clearing intent first wh
 still holds a temporary raised floor is a defect. A retired source skips restore; the published
 destination already holds the pre-maintenance floor from M5.
 
-### Resolve publication and pins
-
-Resolve never opens `store.db` for durable writes without a generation fence and live writer lease.
-Terminal log append uses the same fenced writer path as exact publication. Exact publish always
-heartbeats the writer lease once immediately before `BEGIN IMMEDIATE`, revalidates lease ownership
-against wall clock (not only a stale fence capture), and rolls back the whole IMMEDIATE transaction
-if ownership is lost before the view CAS. There is no mid-transaction heartbeat and no partial exact
-binding.
-
-Resolve pins release on success and best-effort on failure while claim or lease ownership still
-allows release. Expired pins are not GC or rebuild roots for base protection; only unexpired pins
-(or existing delta rows) protect a ready base.
-
-### Maintenance apply capacity and import bases
+### Maintenance apply capacity
 
 Maintenance apply re-probes live free bytes immediately before the first mutative GC cohort, scratch
 purge batch, and generation staging create. Plan-time free-byte samples are not frozen for the whole
-apply.
-
-Import resolution bases follow building→ready CAS discipline: durable catalog `building`, materialize
-and publish the base file, then CAS `building → ready` only when file identity and semantic counts
-match. A crash leaves non-ready catalog state; retry may reclaim abandoned `building` or treat a
-ready identity hit as success after compare. Import and resolve share one `resolution_base_id`
-helper.
+apply. Writer open reaps leftover `bases/` contents and retired resolve/scratch files.
 
 ### Follow-ups intentionally deferred
 
-Cooperative cancel of off-lease resolve CPU work and unique scratch nonces remain deferred. This
+This
 hardening does not claim cross-database atomicity between `coord.db` and `store.db`; recovery follows
 the ordered multi-step state machines above.

@@ -16,8 +16,8 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use super::connection::compare_versions;
-use super::layout::valid_generation_name;
 use super::layout::reap_retired_resolution_files;
+use super::layout::valid_generation_name;
 use super::pragmas::{WriterPragmaProfile, configure_writer_pragmas};
 use super::{
     CoordinatorError, GenerationFence, MaintenanceAction, PidStatus, StoreConnectionError,
@@ -1563,10 +1563,7 @@ impl MaintenanceExecutor {
             .unwrap_or(0);
         // Re-probe again immediately before first GC delete/demotion cohort.
         self.ensure_gc_capacity(plan)?;
-        let _ = (
-            &plan.eligible_deltas,
-            &plan.eligible_bases,
-        );
+        let _ = (&plan.eligible_deltas, &plan.eligible_bases);
         for (view_id, generation) in &plan.eligible_manifests {
             transaction.execute(
                 "DELETE FROM manifest_entries

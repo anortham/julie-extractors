@@ -9,8 +9,8 @@ use rusqlite::{Connection, OptionalExtension, Transaction, params};
 use crate::metadata::{ArtifactMetadata, initialize_metadata};
 use crate::model::{
     ArtifactCapabilitySnapshot, ArtifactFile, FileStatus, ReferenceSiteConflicts,
-    RevisionChangeKind, RevisionInput, RowCounts, WriteMode, WriteOperation,
-    WritePhaseDurations, WriteResult,
+    RevisionChangeKind, RevisionInput, RowCounts, WriteMode, WriteOperation, WritePhaseDurations,
+    WriteResult,
 };
 use crate::reports::RowDomainCounts;
 use crate::schema::{

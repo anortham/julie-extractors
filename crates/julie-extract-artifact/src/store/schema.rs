@@ -21,7 +21,9 @@ pub enum StoreSchemaError {
         found: i64,
         supported: i64,
     },
-    Retirement { detail: String },
+    Retirement {
+        detail: String,
+    },
     Sqlite(rusqlite::Error),
 }
 
@@ -125,9 +127,7 @@ fn validate_schema_version(
 /// Drops retired store resolution objects on a writer connection.
 ///
 /// Idempotent. Read-only connections must not call this.
-pub(crate) fn retire_resolution_store_objects(
-    conn: &Connection,
-) -> Result<(), StoreSchemaError> {
+pub(crate) fn retire_resolution_store_objects(conn: &Connection) -> Result<(), StoreSchemaError> {
     if !store_has_retired_resolution_objects(conn)? {
         return Ok(());
     }
@@ -201,9 +201,11 @@ fn views_reference_resolution_tables(conn: &Connection) -> Result<bool, StoreSch
             |row| row.get(0),
         )
         .optional()?;
-    Ok(sql.is_some_and(|sql| {
-        sql.contains("resolution_bases") || sql.contains("resolution_deltas")
-    }))
+    Ok(
+        sql.is_some_and(|sql| {
+            sql.contains("resolution_bases") || sql.contains("resolution_deltas")
+        }),
+    )
 }
 
 const RETIRED_VIEWS_REBUILD_SQL: &str = r#"

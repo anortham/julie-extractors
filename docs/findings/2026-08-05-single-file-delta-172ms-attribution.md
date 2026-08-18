@@ -1,3 +1,5 @@
+> **Superseded 2026-08-18.** The resolution write path is retired. See [2026-08-18-resolution-write-path-retirement.md](../decisions/2026-08-18-resolution-write-path-retirement.md).
+
 # Single-file delta 81 ms → 172 ms: root-cause attribution
 
 **Date:** 2026-08-05 · **Machine:** M-series macOS (same host as all figures below) · **Toolchain:** rustc 1.97.1, `--release` · **Harness:** `resolution_perf.rs` `single_file_delta_is_within_budget`, default seed (2000 files / 92k identifiers)

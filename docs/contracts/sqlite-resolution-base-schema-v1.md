@@ -1,6 +1,11 @@
 # SQLite Resolution Base Schema v1
 
-Status: frozen Ph2c-a base-file authority.
+> **Retired 2026-08-18.** julie-extract no longer writes resolution bases.
+> Writer open reaps leftover `bases/` files. This page stays as historical
+> authority. See
+> [2026-08-18-resolution-write-path-retirement.md](../decisions/2026-08-18-resolution-write-path-retirement.md).
+
+Status: retired. Historical Ph2c-a base-file authority only.
 
 The production DDL is `julie_extract_artifact::store::RESOLUTION_BASE_SQL`. Base
 files are immutable after completion and use `PRAGMA user_version = 1`. The

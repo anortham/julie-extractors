@@ -1,5 +1,9 @@
 # JSONL v3
 
+> **Historical.** Superseded by [JSONL v5](jsonl-v5.md). Overlay keys such as
+> `reference_resolution_version` are retired. See
+> [2026-08-18-resolution-write-path-retirement.md](../decisions/2026-08-18-resolution-write-path-retirement.md).
+
 ## Scope
 
 JSONL is the secondary export and streaming format. It is derived from the same

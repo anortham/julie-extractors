@@ -1,3 +1,5 @@
+> **Superseded 2026-08-18.** The resolution write path is retired. See [2026-08-18-resolution-write-path-retirement.md](../decisions/2026-08-18-resolution-write-path-retirement.md).
+
 # Row-level resolution scoping — design brief — 2026-08-07
 
 **Status:** APPROVED direction (user, 2026-08-07). This brief is the input to a razorback

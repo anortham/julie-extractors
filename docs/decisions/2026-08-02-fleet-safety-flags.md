@@ -1,3 +1,5 @@
+> **Superseded 2026-08-18 for resolution flags.** `JULIE_RESOLUTION_SHADOW` and `JULIE_STORE_RESOLUTION_DELTA` are gone. The scan-lifecycle flags in this decision remain. See [2026-08-18-resolution-write-path-retirement.md](2026-08-18-resolution-write-path-retirement.md).
+
 # Fleet-safety scan flags: `--spool-dir`, `--progress-file`, `--parent-pid`
 
 Date: 2026-08-02

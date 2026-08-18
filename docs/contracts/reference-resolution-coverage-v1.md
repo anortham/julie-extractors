@@ -1,6 +1,12 @@
 # Reference resolution coverage v1
 
-`fixtures/extraction/reference-resolution-coverage.json` is the committed,
+> **Retired 2026-08-18.** julie-extract no longer writes workspace-global
+> reference resolution. This coverage contract and
+> `scripts/reference-resolution-coverage-report.mjs` are historical. Miller
+> owns query-time resolution policy. See
+> [2026-08-18-resolution-write-path-retirement.md](../decisions/2026-08-18-resolution-write-path-retirement.md).
+
+`fixtures/extraction/reference-resolution-coverage.json` is the historical,
 registry-driven coverage artifact for reference evidence.
 
 - Its `languages` array exactly equals the 36-language extractor registry.

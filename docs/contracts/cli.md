@@ -13,10 +13,10 @@ Contract version:
 
 - CLI contract: `1`
 - Extraction contract: `4`
-- SQLite schema: `6`
-- JSONL schema: `4`
-- Versioned store contract: `1` (published v2.31.0; concurrent fencing hardened through v2.31.3)
-- Versioned store SQLite schema: `2` (published v2.31.0)
+- SQLite schema: `7`
+- JSONL schema: `5`
+- Versioned store contract: `1` (published v2.31.0; concurrent fencing hardened through v2.31.3; resolution write path retired 2026-08-18)
+- Versioned store SQLite schema: `2` (published v2.31.0; resolution objects retired in place 2026-08-18)
 
 The legacy values mirror `EXTRACT_CONTRACT_VERSION` / `SQLITE_SCHEMA_VERSION` in
 `crates/julie-extract-artifact/src/schema.rs` and `JSONL_SCHEMA_VERSION` in
@@ -51,7 +51,6 @@ julie-extract rebind --root <dir> --db <path> [--strict-schema] [--json]
 julie-extract store import --store <family-dir> --family <uuid> --root <dir> --view <id> [--level <l1|full>] [--json]
 julie-extract store update --store <family-dir> [--family <uuid>] --root <dir> --view <id> --file <path> [--level <l1|full>] [--json]
 julie-extract store delete --store <family-dir> [--family <uuid>] --root <dir> --view <id> --file <path>... [--json]
-julie-extract store resolve --store <family-dir> [--family <uuid>] --view <id> [--json]
 julie-extract store export --store <family-dir> [--family <uuid>] --view <id> --out <artifact.db> [--json]
 julie-extract store import --from-artifact <artifact.db> --store <family-dir> --family <uuid> --root <dir> --view <id> [--json]
 julie-extract store maintain inspect --store <family-dir> [--family <uuid>] [--json]
@@ -63,11 +62,11 @@ julie-extract store maintain cursor release --store <family-dir> [--family <uuid
 ```
 
 The nested `store` surface is published (v2.31.0+; concurrent multi-worktree fencing through
-v2.31.3). Miller does not use it in production yet — Ph3 consumer wiring is separate.
-Ph2b owns request-oriented import/update/delete, Ph2c owns resolution bases/deltas and
-exact-generation binding, Ph2d owns the lifecycle-maintenance namespace documented below, and
-post-Ph2d fencing hardening owns intent-aware leases, temporary writer floors, and pin/publish
-safety under concurrent maintainers.
+v2.31.3). Miller is the sole consumer. The former `store resolve` verb and every
+resolution-base/delta/pin write path were retired on 2026-08-18; Miller computes
+resolution at query time. Ph2b owns request-oriented import/update/delete, Ph2d owns
+the lifecycle-maintenance namespace documented below, and post-Ph2d fencing hardening
+owns intent-aware leases, temporary writer floors, and concurrent-maintainer safety.
 
 ## Shared Flags
 
@@ -177,27 +176,17 @@ artifact never serves stale symbols for a file that grew past the limit.
 `scan --force` rebuilds the artifact contents in one SQLite transaction. It is
 the explicit path for a moved root or full re-extraction.
 
-A scan of an artifact with missing, stale, or failed reference-resolution
-metadata re-extracts every supported file before advancing the resolution
-contract. A successful upgrade emits `resolution_upgraded`. If any source file
-cannot be re-extracted, including an oversized file whose rows were removed, or
-if the resolver fails, the scan returns `failed` with
-`schema_migration_required` and exit code `3`. This applies to both incremental
-and `--force` scans.
-
 `--level <symbols|full>` chooses the extraction level for a NEW artifact.
 `full` (the default) is the complete extraction — every invocation without the
 flag behaves exactly as it did before the flag existed. `symbols` builds the
 progressive-indexing symbol core: the identifier walks and text/facts collectors
-never run, so `identifiers`, `identifier_resolutions`, `literals`,
-`type_argument_usages`, `type_arguments`, `source_regions`, and
-`structural_facts` stay empty, uniformly across every supported language, while
-`files`, `symbols`, `symbol_annotations`, `relationships`,
-`pending_relationships`, `type_facts`, `complexity_metrics`, and
-`parse_diagnostics` are identical to a full extraction. The resolution hook
-still runs (pending relationships resolve). The chosen level is recorded in the
-`index_level` artifact-metadata key and in `artifact.index_level` on every
-report.
+never run, so `identifiers`, `literals`, `type_argument_usages`,
+`type_arguments`, `source_regions`, and `structural_facts` stay empty,
+uniformly across every supported language, while `files`, `symbols`,
+`symbol_annotations`, `relationships`, `pending_relationships`, `type_facts`,
+`complexity_metrics`, and `parse_diagnostics` are identical to a full
+extraction. The chosen level is recorded in the `index_level` artifact-metadata
+key and in `artifact.index_level` on every report.
 
 An artifact's level is fixed when it is first built. A rescan or `update`
 without `--level` inherits the recorded level; passing a conflicting `--level`
@@ -321,18 +310,11 @@ Outcomes:
   `unsupported`.
 - missing file: returns `failed` with `file_not_found`; callers should use
   `delete`.
-- missing, stale, or failed reference-resolution metadata: returns `failed`
-  with `schema_migration_required` and exit code `3`; run
-  `julie-extract scan` for the whole workspace before retrying.
 
 ### `delete`
 
 Deletes rows for exactly one root-relative file path. Missing rows return
 `not_found` with exit code `0`.
-
-Missing, stale, or failed reference-resolution metadata returns `failed` with
-`schema_migration_required` and exit code `3`; run `julie-extract scan` for the
-whole workspace before retrying.
 
 File watcher integrations should model rename as:
 
@@ -398,8 +380,9 @@ Metadata effects of a successful retarget:
   was never rebound carries none of them, and a reader that does not know them
   reads the artifact exactly as before.
 - Everything else is untouched — `binary_version`, both capability
-  fingerprints, the reference-resolution keys, `index_level`, every other
-  metadata key, and every data table.
+  fingerprints, `index_level`, every other metadata key, and every data table.
+  A leftover `reference_resolution_*` metadata key from a prior artifact is
+  ignored and is not rewritten.
 
 All six writes land in one SQLite transaction, so an interrupted `rebind`
 leaves the artifact either fully retargeted or metadata-identical, never
@@ -474,8 +457,8 @@ manifest generation nor duplicates a version or terminal effect.
 
 `--level l1` publishes the symbol/relationship core before deep evidence. `--level full` requires
 L1, L2, and L3 completion. A later Full request may deepen immutable versions published by an L1
-request without creating a new manifest generation. Every content-changing Ph2b result reports
-`resolution.state: "unbound"` and `resolution.exact_at_matches: false`.
+request without creating a new manifest generation. Store reports do not carry a resolution
+section; Miller computes resolution at query time from the published fact tables.
 
 All three verbs enqueue a durable coordinator request and wait up to
 `--request-timeout-seconds` (default `30`) for acknowledgment. `--request-id` and
@@ -491,7 +474,7 @@ request, so a retry uses the original schedule even when a successor process has
 
 Store JSON uses its own `report_schema_version: 1`. Stable fields include `operation`, request
 identity, family/view/root identity, coordinator state, requested/completed levels, manifest
-generation/hash/disposition, row counts, resolution state, failure class, and a nullable error.
+generation/hash/disposition, row counts, failure class, and a nullable error.
 The physical format and recovery invariants are frozen in [store-v1.md](store-v1.md) and
 [sqlite-store-schema-v2.md](sqlite-store-schema-v2.md).
 
@@ -562,12 +545,6 @@ operation from committing, the command returns `failed`.
 An oversized file is a policy skip rather than a failure, so the guard does not
 apply: its rows are removed on both `scan` and `update`. Preserving them would
 serve symbols from a version of the file the extractor can no longer read.
-
-During a reference-resolution contract upgrade, preserved rows have not been
-re-extracted under the new contract. Any read failure, parse failure, extractor
-failure, or oversized-file skip therefore escalates the scan to `failed` with
-`schema_migration_required` and exit code `3`, leaving single-file mutations
-blocked until a complete whole-workspace scan succeeds.
 
 An intentional empty supported file may still produce zero symbols when the file
 hash changed and extraction completed successfully.

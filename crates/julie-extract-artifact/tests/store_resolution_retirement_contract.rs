@@ -73,9 +73,11 @@ fn legacy_store_reader_is_inert_and_writer_retires_resolution_objects() {
     );
 
     let coordinator = Connection::open(layout.coordinator_db()).unwrap();
-    assert!(!retired_schema_objects(&coordinator)
-        .iter()
-        .any(|name| name == "uidx_coord_one_claimed_resolve"));
+    assert!(
+        !retired_schema_objects(&coordinator)
+            .iter()
+            .any(|name| name == "uidx_coord_one_claimed_resolve")
+    );
 }
 
 fn seed_legacy_resolution_world(layout: &StoreLayout) {
@@ -83,7 +85,9 @@ fn seed_legacy_resolution_world(layout: &StoreLayout) {
     connection
         .execute_batch("PRAGMA foreign_keys=OFF; BEGIN IMMEDIATE;")
         .unwrap();
-    connection.execute_batch(LEGACY_RESOLUTION_OBJECTS_SQL).unwrap();
+    connection
+        .execute_batch(LEGACY_RESOLUTION_OBJECTS_SQL)
+        .unwrap();
     connection
         .execute_batch(
             "CREATE TABLE views__legacy (
@@ -133,7 +137,9 @@ DROP TABLE views;
 ALTER TABLE views__legacy RENAME TO views;",
         )
         .unwrap();
-    connection.execute_batch("COMMIT; PRAGMA foreign_keys=ON;").unwrap();
+    connection
+        .execute_batch("COMMIT; PRAGMA foreign_keys=ON;")
+        .unwrap();
 
     let timestamp = "2026-08-18T12:00:00Z";
     connection
@@ -195,9 +201,21 @@ ALTER TABLE views__legacy RENAME TO views;",
     drop(coordinator);
 
     fs::write(layout.bases_dir().join("base-a.db"), b"base").unwrap();
-    fs::write(layout.scratch_dir().join("resolve-exact-request.db"), b"scratch").unwrap();
-    fs::write(layout.scratch_dir().join("resolve-exact-request.db-wal"), b"wal").unwrap();
-    fs::write(layout.scratch_dir().join("resolve-exact-request.db-shm"), b"shm").unwrap();
+    fs::write(
+        layout.scratch_dir().join("resolve-exact-request.db"),
+        b"scratch",
+    )
+    .unwrap();
+    fs::write(
+        layout.scratch_dir().join("resolve-exact-request.db-wal"),
+        b"wal",
+    )
+    .unwrap();
+    fs::write(
+        layout.scratch_dir().join("resolve-exact-request.db-shm"),
+        b"shm",
+    )
+    .unwrap();
     fs::write(
         layout
             .scratch_dir()
@@ -304,7 +322,8 @@ fn fact_table_digest(connection: &Connection) -> String {
                         digest.update(2u8.to_be_bytes());
                         digest.update(value.to_be_bytes());
                     }
-                    rusqlite::types::ValueRef::Text(value) | rusqlite::types::ValueRef::Blob(value) => {
+                    rusqlite::types::ValueRef::Text(value)
+                    | rusqlite::types::ValueRef::Blob(value) => {
                         digest.update(3u8.to_be_bytes());
                         digest.update((value.len() as u64).to_be_bytes());
                         digest.update(value);

@@ -97,6 +97,8 @@ and operations contract tests for `julie-extract-cli`.
 The contract tier also registers the feature-gated Ph2b store equivalence and mixed-version
 matrices. The crash matrix remains an explicit artifact feature gate because it self-reexecutes and
 externally kills public CLI processes. Neither feature is enabled by the default tier.
+Retired resolution contract, performance, and coverage targets are not part of
+this tier.
 
 The Python SQLite consumer example is a downstream smoke check for non-Rust
 artifact readers:

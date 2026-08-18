@@ -24,11 +24,15 @@ Excluded from the comparison:
 - `artifact_metadata`, `extraction_revisions`, `revision_file_changes` — per-scan identity and
   timestamps, so two runs of the *same* binary already differ there.
 - `files.indexed_at` and `files.last_revision_id` — per-scan columns inside a compared table.
+- `identifier_resolutions` and `pending_resolutions` — schema v7 removed these overlay tables.
+  The previous release still writes them. Excluding them keeps the gate on fact-table identity
+  and classifies the removal as intentional.
+- `language_capability_gaps` — the previous release wrote `reference_resolution.*` gap rows.
+  This binary does not. The remaining extractor capability-gap rows stay in the artifact;
+  the gate excludes the table so that retired resolver snapshot is not an epoch bump.
 
-`pending_resolutions` and `identifier_resolutions` ARE compared, including `resolved_at_revision` —
-measured deterministic (a binary scanning the fixture twice produces byte-identical dumps for both
-tables with no normalization). Since schema v6 they are the sole consumer-visible source of resolved
-identifier targets, so a resolver regression must be a reported difference.
+The retired overlay tables are not a silent fact-table change. A v2.33.7 reader that joins
+them will not find them on a v7 artifact. That break is recorded below.
 
 Known blind spot: the enumeration filters `sqlite_master` to `type='table'`, so an index or trigger
 added or dropped by a schema change is NOT independently visible to the gate — declare such changes
@@ -84,6 +88,24 @@ In CI, the `Extractor Compatibility` job downloads the latest published release 
 ## Declared changes
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.
+
+## NEXT (unreleased)
+
+classification: incompatible
+
+The resolution write path is retired. Schema v7 removes `identifier_resolutions`
+and `pending_resolutions`. JSONL v5 drops the overlay keys. `store resolve` is
+gone. Family stores stay schema v2 and drop leftover resolution objects on
+writer open.
+
+The compat dump excludes the two overlay tables and `language_capability_gaps`
+so fact-table identity remains the gate against v2.33.7. Their absence is this
+classified break, not an undeclared table drop.
+
+Consumer action: rebuild standalone artifacts. Family stores migrate in place.
+Miller must use query-time resolution before pinning this binary.
+
+See [2026-08-18-resolution-write-path-retirement.md](../decisions/2026-08-18-resolution-write-path-retirement.md).
 
 ## 2.30.0
 

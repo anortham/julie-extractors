@@ -1698,107 +1698,107 @@ fn seed_store_matrix(layout: &StoreLayout) {
         )
         .unwrap();
     if table_exists(&store, "resolution_bases") {
-    store
-        .execute(
-            "INSERT INTO resolution_bases
+        store
+            .execute(
+                "INSERT INTO resolution_bases
          (base_id,manifest_hash,resolver_output_epoch,state,relative_path,identifier_count,
           pending_count,file_bytes,file_sha256,request_id,created_at,updated_at)
          VALUES ('base-a','sha256:m',1,'ready','bases/base-a.db',1,1,10,'sha256:b',
                  'request-a','2026-01-01T00:00:00Z','2026-01-01T00:00:00Z')",
-            [],
-        )
-        .unwrap();
-    store
-        .execute(
-            "INSERT INTO resolution_base_versions VALUES ('base-a',1)",
-            [],
-        )
-        .unwrap();
-    store
-        .execute(
-            "INSERT INTO resolution_bases
+                [],
+            )
+            .unwrap();
+        store
+            .execute(
+                "INSERT INTO resolution_base_versions VALUES ('base-a',1)",
+                [],
+            )
+            .unwrap();
+        store
+            .execute(
+                "INSERT INTO resolution_bases
          (base_id,manifest_hash,resolver_output_epoch,state,relative_path,identifier_count,
           pending_count,file_bytes,file_sha256,request_id,created_at,updated_at)
          VALUES ('base-orphan','sha256:orphan',1,'ready','bases/base-orphan.db',1,1,10,
                  'sha256:o','request-a','2026-01-01T00:00:00Z','2026-01-01T00:00:00Z')",
-            [],
-        )
-        .unwrap();
-    store
-        .execute(
-            "INSERT INTO resolution_deltas
+                [],
+            )
+            .unwrap();
+        store
+            .execute(
+                "INSERT INTO resolution_deltas
          (view_id,delta_generation,base_id,manifest_generation,manifest_hash,
           resolver_output_epoch,identifier_replacements,pending_replacements,pending_tombstones,
           exact_gap_rows,exact_gap_files,exact_gap_json,request_id,created_at)
          VALUES ('view-a',1,'base-a',1,'sha256:m',1,1,1,0,0,0,'{}','request-a',
                  '2026-01-01T00:00:00Z')",
-            [],
-        )
-        .unwrap();
-    store
-        .execute(
-            "INSERT INTO resolution_deltas
+                [],
+            )
+            .unwrap();
+        store
+            .execute(
+                "INSERT INTO resolution_deltas
          (view_id,delta_generation,base_id,manifest_generation,manifest_hash,
           resolver_output_epoch,identifier_replacements,pending_replacements,pending_tombstones,
           exact_gap_rows,exact_gap_files,exact_gap_json,request_id,created_at)
          VALUES ('view-a',2,'base-a',1,'sha256:m',1,0,0,0,0,0,'{}','request-a',
                  '2026-01-01T00:00:00Z')",
-            [],
-        )
-        .unwrap();
-    store
-        .execute(
-            "INSERT INTO resolution_identifier_deltas
+                [],
+            )
+            .unwrap();
+        store
+            .execute(
+                "INSERT INTO resolution_identifier_deltas
          (view_id,delta_generation,version_id,identifier_id,target_version_id,target_symbol_id,
           tier,confidence,method,outcome,candidates)
          VALUES ('view-a',1,1,'id-a',1,'symbol-a',1,1.0,'exact','resolved',1)",
-            [],
-        )
-        .unwrap();
-    store
-        .execute(
-            "INSERT INTO resolution_pins
+                [],
+            )
+            .unwrap();
+        store
+            .execute(
+                "INSERT INTO resolution_pins
          (pin_id,owner_kind,owner_id,view_id,manifest_generation,base_id,delta_generation,
           expires_at,created_at)
          VALUES ('pin-expired','reader','reader-old','view-a',1,'base-orphan',NULL,
                  '1970-01-02T00:00:00Z','1970-01-01T00:00:00Z')",
-            [],
-        )
-        .unwrap();
-    store
-        .execute(
-            "INSERT INTO resolution_pins
+                [],
+            )
+            .unwrap();
+        store
+            .execute(
+                "INSERT INTO resolution_pins
          (pin_id,owner_kind,owner_id,view_id,manifest_generation,base_id,delta_generation,
           expires_at,created_at)
          VALUES ('pin-expired-delta','reader','reader-old','view-a',1,'base-a',2,
                  '1970-01-02T00:00:00Z','1970-01-01T00:00:00Z')",
-            [],
-        )
-        .unwrap();
-    store
-        .execute(
-            "INSERT INTO resolution_pending_deltas
+                [],
+            )
+            .unwrap();
+        store
+            .execute(
+                "INSERT INTO resolution_pending_deltas
          (view_id,delta_generation,version_id,pending_relationship_id,operation,
           target_version_id,target_symbol_id,tier,confidence,method)
          VALUES ('view-a',1,1,'pending-a','replace',1,'symbol-a',1,1.0,'exact')",
-            [],
-        )
-        .unwrap();
-    store.execute(
+                [],
+            )
+            .unwrap();
+        store.execute(
         "UPDATE views SET current_generation=1,resolution_state='exact',resolution_base_id='base-a',
           resolution_delta_generation=1,resolution_exact_at=1 WHERE view_id='view-a'",
         [],
     ).unwrap();
-    store
-        .execute(
-            "INSERT INTO resolution_pins
+        store
+            .execute(
+                "INSERT INTO resolution_pins
          (pin_id,owner_kind,owner_id,view_id,manifest_generation,base_id,delta_generation,
           expires_at,created_at)
          VALUES ('pin-a','reader','reader-a','view-a',1,'base-a',1,
                  '2026-12-31T00:00:00Z','2026-01-01T00:00:00Z')",
-            [],
-        )
-        .unwrap();
+                [],
+            )
+            .unwrap();
     }
     store.execute(
         "UPDATE views SET current_generation=1,resolution_state='unbound',resolution_base_id=NULL,

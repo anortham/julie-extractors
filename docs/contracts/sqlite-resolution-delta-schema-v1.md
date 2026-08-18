@@ -1,6 +1,11 @@
 # SQLite Resolution Scratch Delta Schema v1
 
-Status: frozen Ph2c-a scratch-file authority.
+> **Retired 2026-08-18.** julie-extract no longer writes resolution deltas or
+> scratch files. Writer open reaps leftover scratch families. This page stays
+> as historical authority. See
+> [2026-08-18-resolution-write-path-retirement.md](../decisions/2026-08-18-resolution-write-path-retirement.md).
+
+Status: retired. Historical Ph2c-a scratch-file authority only.
 
 The production DDL is `julie_extract_artifact::store::RESOLUTION_SCRATCH_SQL`.
 Scratch files use `PRAGMA user_version = 1`, are caller-owned contained paths,

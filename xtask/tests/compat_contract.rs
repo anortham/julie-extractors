@@ -453,7 +453,7 @@ fn a_dump_drops_excluded_tables_and_volatile_file_columns() {
 }
 
 #[test]
-fn a_dump_compares_both_resolution_tables_including_the_resolving_revision() {
+fn a_dump_excludes_retired_resolution_tables() {
     let conn = database(
         "CREATE TABLE identifier_resolutions (
            identifier_id TEXT PRIMARY KEY,
@@ -466,29 +466,28 @@ fn a_dump_compares_both_resolution_tables_including_the_resolving_revision() {
            target_symbol_id TEXT NOT NULL,
            resolved_at_revision INTEGER NOT NULL
          );
+         CREATE TABLE language_capability_gaps (gap_id TEXT PRIMARY KEY);
+         CREATE TABLE symbols (symbol_id TEXT PRIMARY KEY, name TEXT);
          INSERT INTO identifier_resolutions VALUES ('i1', 's1', 'resolved', 1);
-         INSERT INTO pending_resolutions VALUES ('p1', 's1', 1);",
+         INSERT INTO pending_resolutions VALUES ('p1', 's1', 1);
+         INSERT INTO language_capability_gaps VALUES ('g1');
+         INSERT INTO symbols VALUES ('s1', 'alpha');",
     );
 
     let dumped = dump_connection(&conn).expect("dump should succeed");
 
     assert_eq!(
         dumped.table_names().collect::<Vec<_>>(),
-        vec!["identifier_resolutions", "pending_resolutions"],
-        "identifier_resolutions is the sole consumer-visible source of resolved targets since \
-         schema v6, so a resolver regression must reach the comparison"
+        vec!["symbols"],
+        "schema v7 retired identifier_resolutions and pending_resolutions; the compat dump \
+         must exclude them and the retired resolver capability-gap rows"
     );
+    assert_eq!(dumped.find("identifier_resolutions"), None);
+    assert_eq!(dumped.find("pending_resolutions"), None);
+    assert_eq!(dumped.find("language_capability_gaps"), None);
     assert_eq!(
-        dumped.find("identifier_resolutions"),
-        Some(
-            "#columns\tidentifier_id\ttarget_symbol_id\toutcome\tresolved_at_revision\ntext:i1\ttext:s1\ttext:resolved\tint:1\n"
-        )
-    );
-    assert_eq!(
-        dumped.find("pending_resolutions"),
-        Some(
-            "#columns\tpending_relationship_id\ttarget_symbol_id\tresolved_at_revision\ntext:p1\ttext:s1\tint:1\n"
-        )
+        dumped.find("symbols"),
+        Some("#columns\tsymbol_id\tname\ntext:s1\ttext:alpha\n")
     );
 }
 

@@ -1,3 +1,5 @@
+> **Superseded 2026-08-18.** The resolution write path is retired. See [2026-08-18-resolution-write-path-retirement.md](../decisions/2026-08-18-resolution-write-path-retirement.md).
+
 # Index Store Ph2c — Resolution and Adapters Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use razorback:subagent-driven-development when

@@ -8,9 +8,7 @@ use julie_extract_artifact::model::{
     ArtifactTypeArgument, ArtifactTypeArgumentUsage, ArtifactTypeFact, CapabilityGapStatus,
     FileStatus, ReferenceSiteProvenance, RevisionInput, WriteMode, WriteOperation,
 };
-use julie_extract_artifact::writer::{
-    ArtifactFileSpool, ArtifactWriteError, ArtifactWriter,
-};
+use julie_extract_artifact::writer::{ArtifactFileSpool, ArtifactWriteError, ArtifactWriter};
 use rusqlite::{Connection, OptionalExtension, limits::Limit};
 use serde_json::json;
 use std::path::PathBuf;
@@ -882,7 +880,6 @@ const ARTIFACT_ROW_TABLES: [&str; 14] = [
     "identifiers",
     "relationships",
     "pending_relationships",
-
     "type_facts",
     "type_argument_usages",
     "type_arguments",

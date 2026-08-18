@@ -13,7 +13,6 @@ use julie_extract_artifact::store::{
     StoreLayout,
 };
 use rusqlite::Connection;
-use sha2::{Digest, Sha256};
 
 static NEXT_TEMP_ID: AtomicU64 = AtomicU64::new(1);
 
@@ -23,8 +22,6 @@ fn every_promotion_boundary_recovers_the_same_generation_without_duplicates() {
         "maintenance_after_intent_before_floor",
         "generation_after_partial_owner",
         "generation_after_logical_copy",
-        "generation_before_base_copy",
-        "generation_after_base_copy",
         "generation_after_validation",
         "generation_before_directory_rename",
         "generation_after_directory_rename",
@@ -76,27 +73,8 @@ fn every_promotion_boundary_recovers_the_same_generation_without_duplicates() {
         assert_eq!(count(&store, "file_versions"), 1, "{boundary}");
         assert_eq!(count(&store, "manifests"), 2, "{boundary}");
         assert_eq!(count(&store, "store_log"), 1, "{boundary}");
-        assert_eq!(
-            store
-                .query_row(
-                    "SELECT predecessor_manifest_generation || ':' || base_id || ':' ||
-                            delta_generation || ':' || current_manifest_generation || ':' ||
-                            journal_through_transition_id
-                     FROM resolution_scope_state WHERE view_id='view-a'",
-                    [],
-                    |row| row.get::<_, String>(0),
-                )
-                .unwrap(),
-            "1:base-a:1:2:5",
-            "{boundary}"
-        );
         assert_eq!(count(&coord, "maintenance_intent"), 0, "{boundary}");
         assert_eq!(count(&coord, "writer_lease"), 0, "{boundary}");
-        assert_eq!(
-            fs::read(serving.bases_dir().join("base-a.db")).unwrap(),
-            b"resolution-base",
-            "{boundary}"
-        );
     }
 }
 
@@ -275,8 +253,8 @@ fn forward_rollback_crashes_recover_with_scope_explicitly_invalidated() {
         let serving = StoreLayout::open(temp.path()).unwrap();
         let store = Connection::open(serving.store_db()).unwrap();
         assert_valid(&store);
-        assert_eq!(count(&store, "resolution_scope_state"), 0, "{boundary}");
-        assert_eq!(count(&store, "resolution_scope_batches"), 0, "{boundary}");
+        assert_eq!(count(&store, "file_versions"), 1, "{boundary}");
+        assert_eq!(count(&store, "manifests"), 2, "{boundary}");
     }
 }
 
@@ -323,12 +301,9 @@ fn generation_promotion_crash_worker() {
 }
 
 fn seed_source(layout: &StoreLayout) {
-    let base = b"resolution-base";
-    fs::write(layout.bases_dir().join("base-a.db"), base).unwrap();
-    let sha = format!("{:x}", Sha256::digest(base));
     Connection::open(layout.store_db())
         .unwrap()
-        .execute_batch(&format!(
+        .execute_batch(
             "BEGIN IMMEDIATE;
              INSERT INTO file_versions
                (version_id,path,content_hash,extraction_epoch,language,content_bytes,line_count,
@@ -350,40 +325,12 @@ fn seed_source(layout: &StoreLayout) {
                 '2025-12-31T00:00:00Z'),
                ('view-a',2,'src/lib.rs','rust',5,'indexed','blake3:a',
                 '2026-01-01T00:00:00Z');
-             INSERT INTO resolution_bases
-               (base_id,manifest_hash,resolver_output_epoch,state,relative_path,identifier_count,
-                pending_count,file_bytes,file_sha256,request_id,created_at,updated_at)
-             VALUES ('base-a','sha256:m1',1,'ready','bases/base-a.db',0,0,{},{:?},
-                     'request-a','2026-01-01T00:00:00Z','2026-01-01T00:00:00Z');
-             INSERT INTO resolution_base_versions(base_id,version_id) VALUES ('base-a',5);
-             INSERT INTO resolution_deltas
-               (view_id,delta_generation,base_id,manifest_generation,manifest_hash,
-                resolver_output_epoch,identifier_replacements,pending_replacements,
-                pending_tombstones,exact_gap_rows,exact_gap_files,exact_gap_json,request_id,created_at)
-             VALUES ('view-a',1,'base-a',1,'sha256:m1',1,0,0,0,0,0,'{{}}','request-predecessor',
-                     '2025-12-31T00:00:00Z');
-             INSERT INTO resolution_scope_batches
-               (transition_id,view_id,from_manifest_generation,from_manifest_hash,
-                to_manifest_generation,to_manifest_hash,scope_usable,
-                predecessor_manifest_generation,predecessor_manifest_hash,base_id,
-                delta_generation,resolver_output_epoch,change_count,change_hash,request_id,
-                completed_at)
-             VALUES (5,'view-a',1,'sha256:m1',2,'sha256:m2',1,1,'sha256:m1','base-a',1,1,0,
-                     'sha256:6fefdaedb46e55f2dd1f1852406cb565306739f79dd0a53de2acb50045069590',
-                     'request-a','2026-01-01T00:00:00Z');
-             INSERT INTO resolution_scope_state
-               (view_id,predecessor_manifest_generation,predecessor_manifest_hash,base_id,
-                delta_generation,resolver_output_epoch,current_manifest_generation,
-                current_manifest_hash,journal_through_transition_id)
-             VALUES ('view-a',1,'sha256:m1','base-a',1,1,2,'sha256:m2',5);
              INSERT INTO store_log
                (sequence,request_id,event_kind,view_id,generation,terminal,payload_json,created_at)
-             VALUES (7,'request-a','store_import_completed','view-a',2,1,'{{}}',
+             VALUES (7,'request-a','store_import_completed','view-a',2,1,'{}',
                      '2026-01-01T00:00:00Z');
              COMMIT;",
-            base.len(),
-            sha
-        ))
+        )
         .unwrap();
 }
 

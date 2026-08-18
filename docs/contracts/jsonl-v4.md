@@ -1,5 +1,9 @@
 # JSONL Contract v4
 
+> **Retired 2026-08-18 by [JSONL Contract v5](jsonl-v5.md).** v5 removes the
+> reference-resolution overlay keys. This page stays as the historical v4
+> authority. Do not reinterpret v4 records as v5.
+
 Every record envelope has `jsonl_schema_version: 4` and `extract_contract_version: 4`. Version 4
 has no aliases or accepted version range.
 

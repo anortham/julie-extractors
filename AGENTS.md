@@ -28,6 +28,8 @@ and read SQLite or JSONL.
   tree-sitter or Julie internals.
 - Do not add MCP server, daemon, search, embedding, watcher-service, dashboard,
   or editing-tool behavior here.
+- Do not write workspace-global reference resolution. Miller computes that at
+  query time from the published fact tables.
 - `/Users/murphy/source/julie` is maintenance-only while this product is built.
   Do not back-port new extractor features into Julie unless explicitly asked.
 
