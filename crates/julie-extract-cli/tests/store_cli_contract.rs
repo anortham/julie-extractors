@@ -11,6 +11,7 @@ use julie_extract_cli::store::report::{
     StoreOutputFormat, StoreOutputStream, StoreReport, StoreRequestState, StoreRequestedLevel,
     StoreRowCounts,
 };
+use julie_extractors::EXTRACTION_IDENTITY_EPOCH;
 use rusqlite::{Connection, OptionalExtension};
 use serde_json::{Value, json};
 
@@ -635,9 +636,9 @@ fn export_omits_legacy_reference_resolution_capability_gaps() {
         .execute(
             "INSERT INTO language_capability_gaps
              (extraction_epoch,gap_id,language,capability,status,reason,required_closure,evidence_json)
-             VALUES (1,'rust:reference_resolution.tier2_import','rust',
+             VALUES (?1,'rust:reference_resolution.tier2_import','rust',
                      'reference_resolution.tier2_import','open','legacy','none','{}')",
-            [],
+            [EXTRACTION_IDENTITY_EPOCH],
         )
         .unwrap();
     drop(connection);
