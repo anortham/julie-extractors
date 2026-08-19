@@ -1,6 +1,6 @@
 [package]
 name = "julie-extract-cli"
-version = "2.34.1"
+version = "2.34.2"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
