@@ -95,6 +95,7 @@ pub fn is_test_symbol(
         "swift" => detect_swift(name, file_path),
         "dart" => detect_dart(name, file_path, annotation_keys),
         "gdscript" => detect_gdscript(name, file_path),
+        "qml" => detect_qml(name, file_path),
         "lua" => detect_lua(name, file_path),
         "r" => detect_r(name, file_path),
         _ => detect_generic(name, file_path),
@@ -137,9 +138,13 @@ fn detect_scala(name: &str, file_path: &str, annotation_keys: &[String]) -> bool
     if detect_java_kotlin(annotation_keys) {
         return true;
     }
+    // ScalaTest BeforeAndAfterEach / BeforeAndAfterAll overrides are
+    // language-native lifecycle names even outside a test/ path.
+    if is_scala_test_lifecycle_name(name) {
+        return true;
+    }
     // ScalaTest/MUnit/Specs2: tests are methods in test files —
     // no @Test annotation, but the file lives in a test directory.
-    // Also catch common ScalaTest lifecycle methods.
     if is_test_path(file_path) {
         return true;
     }
@@ -208,6 +213,10 @@ fn is_test_lifecycle(language: &str, name: &str, annotation_keys: &[String]) -> 
             .iter()
             .any(|annotation| is_dotnet_test_lifecycle_annotation(annotation)),
         "python" => is_python_test_lifecycle_name(name),
+        "bash" => is_bash_test_lifecycle_name(name),
+        "gdscript" => is_gdscript_test_lifecycle_name(name),
+        "qml" => is_qml_test_lifecycle_name(name),
+        "scala" => is_scala_test_lifecycle_name(name),
         _ => false,
     }
 }
@@ -235,6 +244,17 @@ pub(crate) fn apply_callable_test_metadata(
     metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
     if is_test_lifecycle(language, name, annotation_keys) {
         metadata.insert("test_lifecycle".to_string(), serde_json::Value::Bool(true));
+    }
+}
+
+pub(crate) fn mark_base_type_test_containers(symbols: &mut [Symbol], base_type: &str) {
+    for symbol in symbols
+        .iter_mut()
+        .filter(|symbol| symbol.kind == SymbolKind::Class)
+    {
+        if metadata_string_list_contains(symbol, "base_types", base_type) {
+            mark_class_test_container(symbol);
+        }
     }
 }
 
@@ -605,8 +625,37 @@ fn detect_dart(name: &str, file_path: &str, annotation_keys: &[String]) -> bool 
 /// is represented independently through `base_types` metadata. Path-guarded so a
 /// production method like `testConnection` isn't mis-flagged. Broader than the
 /// generic fallback, which only catches `test_`/`Test`.
+fn is_gdscript_test_lifecycle_name(name: &str) -> bool {
+    matches!(
+        name,
+        "before_each" | "after_each" | "before_all" | "after_all"
+    )
+}
+
 fn detect_gdscript(name: &str, file_path: &str) -> bool {
-    is_test_path(file_path) && name.starts_with("test")
+    is_test_path(file_path) && (name.starts_with("test") || is_gdscript_test_lifecycle_name(name))
+}
+
+fn is_qml_test_lifecycle_name(name: &str) -> bool {
+    matches!(
+        name,
+        "initTestCase" | "cleanupTestCase" | "init" | "cleanup"
+    )
+}
+
+fn detect_qml(name: &str, file_path: &str) -> bool {
+    is_test_path(file_path)
+        && (is_qml_test_lifecycle_name(name)
+            || name.starts_with("test_")
+            || name.starts_with("Test"))
+}
+
+fn is_bash_test_lifecycle_name(name: &str) -> bool {
+    matches!(name.to_ascii_lowercase().as_str(), "setup" | "teardown")
+}
+
+fn is_scala_test_lifecycle_name(name: &str) -> bool {
+    matches!(name, "beforeEach" | "afterEach" | "beforeAll" | "afterAll")
 }
 
 /// Lua luaunit: test functions/methods are `testXxx` (camelCase) or `test_xxx`.

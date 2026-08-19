@@ -44,6 +44,10 @@ use crate::bash::BashExtractor;
 use std::path::PathBuf;
 
 fn symbols(code: &str) -> Vec<Symbol> {
+    symbols_at(code, "test.bats")
+}
+
+fn symbols_at(code: &str, file_path: &str) -> Vec<Symbol> {
     let mut parser = tree_sitter::Parser::new();
     parser
         .set_language(&tree_sitter_bash::LANGUAGE.into())
@@ -51,7 +55,7 @@ fn symbols(code: &str) -> Vec<Symbol> {
     let tree = parser.parse(code, None).expect("parse Bash");
     let mut ext = BashExtractor::new(
         "bash".to_string(),
-        "test.bats".to_string(),
+        file_path.to_string(),
         code.to_string(),
         &PathBuf::from("/test/workspace"),
     );
@@ -173,4 +177,50 @@ curl "https://example.com/api"
         0,
         "plain Bash commands must not carry test-role metadata: {syms:?}"
     );
+}
+
+#[test]
+fn shellspec_setup_teardown_are_lifecycle() {
+    let code = r#"
+setup() {
+  :
+}
+
+teardown() {
+  :
+}
+
+helper() {
+  echo ok
+}
+
+Describe 'math module'
+  It 'adds two numbers'
+    When call expr 1 + 1
+    The output should eq 2
+  End
+End
+"#;
+    let syms = symbols_at(code, "spec/math_spec.sh");
+
+    let setup = syms
+        .iter()
+        .find(|s| s.name == "setup")
+        .unwrap_or_else(|| panic!("expected setup function, got {syms:?}"));
+    assert!(meta_bool(setup, "is_test"));
+    assert!(meta_bool(setup, "test_lifecycle"));
+
+    let teardown = syms
+        .iter()
+        .find(|s| s.name == "teardown")
+        .unwrap_or_else(|| panic!("expected teardown function, got {syms:?}"));
+    assert!(meta_bool(teardown, "is_test"));
+    assert!(meta_bool(teardown, "test_lifecycle"));
+
+    let helper = syms
+        .iter()
+        .find(|s| s.name == "helper")
+        .unwrap_or_else(|| panic!("expected helper function, got {syms:?}"));
+    assert!(!meta_bool(helper, "is_test"));
+    assert!(!meta_bool(helper, "test_lifecycle"));
 }

@@ -10,7 +10,7 @@ use crate::base::{
     BaseExtractor, Identifier, PendingRelationship, Relationship, StructuredPendingRelationship,
     Symbol,
 };
-use crate::test_detection::is_test_symbol;
+use crate::test_detection::{apply_callable_test_metadata, mark_base_type_test_containers};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::Tree;
@@ -39,6 +39,7 @@ impl QmlExtractor {
 
         // Start recursive traversal from root
         self.traverse_node(root_node, None, 0);
+        mark_base_type_test_containers(&mut self.symbols, "TestCase");
 
         self.symbols.clone()
     }
@@ -299,16 +300,15 @@ impl QmlExtractor {
                 if let Some(name_node) = node.child_by_field_name("name") {
                     let name = self.base.get_node_text(&name_node);
                     let mut metadata = std::collections::HashMap::new();
-                    if is_test_symbol(
+                    apply_callable_test_metadata(
                         "qml",
                         &name,
                         &self.base.file_path,
                         &SymbolKind::Function,
                         &[],
                         None,
-                    ) {
-                        metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
-                    }
+                        &mut metadata,
+                    );
                     let options = SymbolOptions {
                         parent_id: parent_id.clone(),
                         signature: Some(semantics::function_signature(

@@ -166,3 +166,53 @@ fn non_test_calls_are_not_materialized() {
         "no test-role metadata should appear for non-test code, got {syms:?}"
     );
 }
+
+#[test]
+fn scalatest_before_each_is_lifecycle() {
+    let code = r#"class LifecycleSpec extends AnyFunSuite with BeforeAndAfterEach {
+  override def beforeEach(): Unit = {
+    reset()
+  }
+
+  override def afterEach(): Unit = {
+    cleanup()
+  }
+
+  test("adds two numbers") {
+    assert(1 + 1 == 2)
+  }
+
+  def helper(): Unit = {
+    reset()
+  }
+}
+"#;
+    let syms = symbols(code, "src/test/scala/LifecycleSpec.scala");
+
+    let before = syms
+        .iter()
+        .find(|s| s.name == "beforeEach")
+        .unwrap_or_else(|| panic!("expected beforeEach, got {syms:?}"));
+    assert!(meta_bool(before, "is_test"));
+    assert!(meta_bool(before, "test_lifecycle"));
+
+    let after = syms
+        .iter()
+        .find(|s| s.name == "afterEach")
+        .unwrap_or_else(|| panic!("expected afterEach, got {syms:?}"));
+    assert!(meta_bool(after, "is_test"));
+    assert!(meta_bool(after, "test_lifecycle"));
+
+    let case = syms
+        .iter()
+        .find(|s| s.name == "adds two numbers")
+        .unwrap_or_else(|| panic!("expected test case, got {syms:?}"));
+    assert!(meta_bool(case, "is_test"));
+    assert!(!meta_bool(case, "test_lifecycle"));
+
+    let helper = syms
+        .iter()
+        .find(|s| s.name == "helper")
+        .unwrap_or_else(|| panic!("expected helper, got {syms:?}"));
+    assert!(!meta_bool(helper, "test_lifecycle"));
+}

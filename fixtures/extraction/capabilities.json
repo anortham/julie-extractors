@@ -3646,19 +3646,13 @@
           "open_gaps": []
         },
         "test_detection": {
-          "supported": [
-            "test_case",
-            "test_container"
-          ],
-          "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "test_lifecycle",
-              "reason": "The registered scala:test_roles golden emits ScalaTest describe and it roles, but SCALA_VOCAB has no lifecycle entries and ScalaTest lifecycle overrides are extracted as ordinary methods without test_lifecycle metadata.",
-              "required_closure": "confirm language-native applicability for ScalaTest and MUnit lifecycle overrides or calls, add supported lifecycle recognition that emits is_test=true plus test_lifecycle=true with negative controls, and update the registered scala:test_roles golden",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            }
-          ]
+              "supported": [
+                "test_case",
+                "test_container",
+                "test_lifecycle"
+              ],
+              "not_applicable": [],
+              "open_gaps": []
         }
       }
     },
@@ -4433,24 +4427,13 @@
           "open_gaps": []
         },
         "test_detection": {
-          "supported": [
-            "test_case"
-          ],
-          "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "test_container",
-              "reason": "The registered qml:test_roles golden emits the Qt Quick Test TestCase root as class test_source with base_types=[\"TestCase\"], but the extractor does not promote that stable framework evidence to test_container=true.",
-              "required_closure": "determine language-native applicability for test_container at the QML extractor boundary, classify a TestCase root while retaining the existing Rectangle/non-TestCase unit-test negative, then update the registered qml:test_roles golden",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
-              "kind": "test_lifecycle",
-              "reason": "The registered qml:test_roles golden emits the Qt Quick Test initTestCase function without test_lifecycle metadata; the current fallback marks only path-guarded test_* functions as test cases.",
-              "required_closure": "determine language-native applicability for test_lifecycle at the QML extractor boundary, classify supported Qt Quick Test initTestCase, cleanupTestCase, init, and cleanup hooks only inside a TestCase root, add nearby ordinary-function negatives, then update the registered qml:test_roles golden",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            }
-          ]
+              "supported": [
+                "test_case",
+                "test_container",
+                "test_lifecycle"
+              ],
+              "not_applicable": [],
+              "open_gaps": []
         }
       }
     },
@@ -4596,19 +4579,14 @@
           "open_gaps": []
         },
         "test_detection": {
-          "supported": [
-            "test_case",
-            "test_container"
-          ],
-          "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "test_lifecycle",
-              "reason": "The registered r:test_roles golden emits testthat test_that/it cases and a describe container, while R_VOCAB has an empty lifecycle vocabulary and no symbol carries test_lifecycle metadata.",
-              "required_closure": "determine language-native applicability for testthat or RUnit lifecycle constructs, materialize supported hooks with test_lifecycle=true plus ordinary-call negatives, and update the registered r:test_roles golden",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            }
-          ]
+              "supported": [
+                "test_case",
+                "test_container"
+              ],
+              "not_applicable": [
+                "test_lifecycle"
+              ],
+              "open_gaps": []
         }
       }
     },
@@ -4738,19 +4716,13 @@
           "open_gaps": []
         },
         "test_detection": {
-          "supported": [
-            "test_case",
-            "test_container"
-          ],
-          "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "test_lifecycle",
-              "reason": "The registered bash:test_roles golden emits ShellSpec cases and containers; its setup function is recognized only as is_test=true, and BASH_VOCAB has no lifecycle entries, so no symbol emits test_lifecycle metadata.",
-              "required_closure": "determine language-native applicability for Bats or ShellSpec setup/teardown functions, classify supported hooks as lifecycle roles with ordinary-function negatives, then update the registered bash:test_roles golden",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            }
-          ]
+              "supported": [
+                "test_case",
+                "test_container",
+                "test_lifecycle"
+              ],
+              "not_applicable": [],
+              "open_gaps": []
         }
       }
     },
@@ -5028,24 +5000,13 @@
           "open_gaps": []
         },
         "test_detection": {
-          "supported": [
-            "test_case"
-          ],
-          "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "test_container",
-              "reason": "The registered gdscript:test_roles golden emits the GUT script class test_source with base_types=[\"GutTest\"], but the extractor does not promote that stable framework evidence to test_container=true.",
-              "required_closure": "determine language-native applicability for test_container at the GDScript extractor boundary, classify a script extending GutTest while retaining the existing Node2D/non-GutTest unit-test negative, then update the registered gdscript:test_roles golden",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
-              "kind": "test_lifecycle",
-              "reason": "The registered gdscript:test_roles golden emits GUT before_each as an ordinary function without test_lifecycle metadata; the current detector recognizes only path-guarded test-prefixed functions.",
-              "required_closure": "determine language-native applicability for test_lifecycle at the GDScript extractor boundary, classify supported GUT before_each, after_each, before_all, and after_all hooks only in scripts extending GutTest, add nearby ordinary-function negatives, then update the registered gdscript:test_roles golden",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            }
-          ]
+              "supported": [
+                "test_case",
+                "test_container",
+                "test_lifecycle"
+              ],
+              "not_applicable": [],
+              "open_gaps": []
         }
       }
     },

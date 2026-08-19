@@ -6,7 +6,16 @@
 //! evidence but does not copy old Julie's test-container classifier.
 
 use super::{extract_symbols, extract_symbols_for_file};
-use crate::base::SymbolKind;
+use crate::base::{Symbol, SymbolKind};
+
+fn meta_bool(symbol: &Symbol, key: &str) -> bool {
+    symbol
+        .metadata
+        .as_ref()
+        .and_then(|m| m.get(key))
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false)
+}
 
 /// Pull the `base_types` metadata array (strings) off a symbol, if present.
 fn base_types(symbol: &crate::base::Symbol) -> Vec<String> {
@@ -42,6 +51,10 @@ func test_player_health():
         vec!["GutTest".to_string()],
         "implicit class must record its base type under `base_types` for the classifier"
     );
+    assert!(
+        meta_bool(implicit_class, "test_container"),
+        "a script extending GutTest is the GUT test container"
+    );
 }
 
 #[test]
@@ -58,6 +71,55 @@ func _ready():
         .find(|s| s.kind == SymbolKind::Class)
         .unwrap_or_else(|| panic!("expected an implicit file-class, got {symbols:?}"));
     assert_eq!(base_types(implicit_class), vec!["Node2D".to_string()]);
+    assert!(
+        !meta_bool(implicit_class, "test_container"),
+        "a Node2D script is not a test container"
+    );
+}
+
+#[test]
+fn gdscript_before_each_is_lifecycle_and_test_fn_is_case() {
+    let code = r#"extends GutTest
+
+func before_each():
+    pass
+
+func after_each():
+    pass
+
+func test_addition():
+    assert_eq(1, 1)
+
+func verify_addition():
+    pass
+"#;
+    let symbols = extract_symbols_for_file("test_source.gd", code);
+    let before = symbols
+        .iter()
+        .find(|s| s.name == "before_each")
+        .unwrap_or_else(|| panic!("expected before_each, got {symbols:?}"));
+    assert!(meta_bool(before, "is_test"));
+    assert!(meta_bool(before, "test_lifecycle"));
+
+    let after = symbols
+        .iter()
+        .find(|s| s.name == "after_each")
+        .unwrap_or_else(|| panic!("expected after_each, got {symbols:?}"));
+    assert!(meta_bool(after, "is_test"));
+    assert!(meta_bool(after, "test_lifecycle"));
+
+    let case = symbols
+        .iter()
+        .find(|s| s.name == "test_addition")
+        .unwrap_or_else(|| panic!("expected test_addition, got {symbols:?}"));
+    assert!(meta_bool(case, "is_test"));
+    assert!(!meta_bool(case, "test_lifecycle"));
+
+    let helper = symbols
+        .iter()
+        .find(|s| s.name == "verify_addition")
+        .unwrap_or_else(|| panic!("expected verify_addition, got {symbols:?}"));
+    assert!(!meta_bool(helper, "is_test"));
 }
 
 #[test]

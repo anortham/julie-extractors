@@ -3,7 +3,7 @@
 //! Handles extraction of function definitions and their positional parameters.
 
 use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility};
-use crate::test_detection::is_test_symbol;
+use crate::test_detection::apply_callable_test_metadata;
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::sync::LazyLock;
@@ -22,18 +22,16 @@ impl super::BashExtractor {
         let name = self.base.get_node_text(&name_node);
         let doc_comment = self.base.find_doc_comment(&node);
 
-        // Test detection
         let mut metadata = HashMap::new();
-        if is_test_symbol(
+        apply_callable_test_metadata(
             "bash",
             &name,
             &self.base.file_path,
             &SymbolKind::Function,
             &[],
             doc_comment.as_deref(),
-        ) {
-            metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
-        }
+            &mut metadata,
+        );
 
         let options = SymbolOptions {
             signature: self.extract_function_signature(node),
