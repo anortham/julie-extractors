@@ -89,6 +89,23 @@ In CI, the `Extractor Compatibility` job downloads the latest published release 
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
+## 2.34.2
+
+classification: compatible
+
+QML, GDScript, Bash, and Scala test-role flags are now emitted, and R
+`test_lifecycle` is recorded as `not_applicable`. The `language_capabilities`
+snapshot JSON changes for those languages. Fact tables on the compat fixture
+are otherwise unchanged.
+
+Extraction identity epoch is 2. A reader built for v2.34.1 still reads schema
+7 / JSONL v5 / store schema 2. Family-store file versions re-extract because
+identity is `(path, content_hash, extraction_epoch)`.
+
+Consumer action: replace the binary. Rebuild standalone artifacts or let the
+next extract rewrite them. Family stores write new epoch-2 file versions on
+the next import or update.
+
 ## NEXT (unreleased)
 
 classification: incompatible
