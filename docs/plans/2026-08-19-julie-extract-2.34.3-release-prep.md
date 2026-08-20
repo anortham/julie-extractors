@@ -91,4 +91,4 @@
 - [x] The ledger and release note classify the narrower test facts as compatible and give actionable consumer guidance.
 - [x] v2.34.2 remains the current published release; v2.34.3 is described only as a candidate.
 - [x] Worker gates pass and the release-prep task is checkpointed and committed locally.
-- [ ] Lead branch gate and compatibility comparison against the published v2.34.2 Linux binary pass.
+- [x] Lead branch gate and compatibility comparison against the published v2.34.2 Linux binary pass.
