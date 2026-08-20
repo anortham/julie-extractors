@@ -19,10 +19,9 @@ Ph2b and Ph2d implement the [store v1 contract](contracts/store-v1.md),
 [versioned-store architecture](architecture/versioned-index-store.md). The former
 Ph2c resolution write path is retired; see
 [2026-08-18-resolution-write-path-retirement.md](decisions/2026-08-18-resolution-write-path-retirement.md).
-The store implementation was published in v2.31.0 and patched through v2.34.3.
-Version 2.34.3 is the current published release. v2.34.4 is the compatible
-patch candidate until the release workflow succeeds. Historical notes remain
-in [release-notes](release-notes) and [release-evidence](release-evidence).
+The store implementation was published in v2.31.0 and patched through v2.34.4.
+Version 2.34.4 is the current published release. Historical notes remain in
+[release-notes](release-notes) and [release-evidence](release-evidence).
 The implementation plans and dogfood records are:
 
 - [Ph2b store-kernel plan](plans/2026-08-07-index-store-ph2b-store-kernel-plan.md)
@@ -48,6 +47,16 @@ The implementation plans and dogfood records are:
 - [v2.32.0 release evidence](release-evidence/2026-08-11-v2-32-0-release.md)
 - [v2.32.1 release notes](release-notes/v2.32.1.md)
 - [v2.32.1 release evidence](release-evidence/2026-08-12-v2-32-1-release.md)
+- [v2.34.4 release notes](release-notes/v2.34.4.md)
+- [v2.34.4 release evidence](release-evidence/2026-08-20-v2-34-4-release.md)
+- [v2.34.3 release notes](release-notes/v2.34.3.md)
+- [v2.34.3 release evidence](release-evidence/2026-08-20-v2-34-3-release.md)
+- [v2.34.2 release notes](release-notes/v2.34.2.md)
+- [v2.34.2 release evidence](release-evidence/2026-08-20-v2-34-2-release.md)
+- [v2.34.1 release notes](release-notes/v2.34.1.md)
+- [v2.34.1 release evidence](release-evidence/2026-08-18-v2-34-1-release.md)
+- [v2.34.0 release notes](release-notes/v2.34.0.md)
+- [v2.34.0 release evidence](release-evidence/2026-08-18-v2-34-0-release.md)
 - [v2.33.7 release notes](release-notes/v2.33.7.md)
 - [v2.33.7 release evidence](release-evidence/2026-08-18-v2-33-7-release.md)
 - [v2.33.6 release notes](release-notes/v2.33.6.md)
