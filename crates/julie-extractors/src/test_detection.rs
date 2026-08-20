@@ -117,7 +117,6 @@ fn is_python_test_lifecycle_name(name: &str) -> bool {
 }
 
 fn detect_python(name: &str, file_path: &str, annotation_keys: &[String]) -> bool {
-    // Annotation-key-based: pytest marks and unittest test-control decorators.
     if annotation_keys.iter().any(|annotation| {
         annotation.starts_with("pytest.mark.")
             || matches!(
@@ -130,26 +129,19 @@ fn detect_python(name: &str, file_path: &str, annotation_keys: &[String]) -> boo
     }) {
         return true;
     }
-    // unittest lifecycle methods (setUp/tearDown and class-level variants)
     if is_python_test_lifecycle_name(name) {
         return true;
     }
-    // Name-based: test_ prefix, but only in test paths. Source APIs like
-    // test_result_histories should not be flagged as tests.
     name.starts_with("test_") && is_test_path(file_path)
 }
 
 fn detect_scala(name: &str, annotation_keys: &[String]) -> bool {
-    // JUnit-style: @Test annotation (used by some Scala projects)
     if detect_java_kotlin(annotation_keys) {
         return true;
     }
-    // ScalaTest BeforeAndAfterEach / BeforeAndAfterAll overrides are
-    // language-native lifecycle names even outside a test/ path.
     if is_scala_test_lifecycle_name(name) {
         return true;
     }
-    // Name-based: test prefix (MUnit convention)
     name.starts_with("test")
 }
 
@@ -526,7 +518,6 @@ fn detect_swift(name: &str, file_path: &str) -> bool {
 }
 
 fn detect_elixir(name: &str) -> bool {
-    // ExUnit convention: test_ prefix or generated test names
     name.starts_with("test_") || name.starts_with("test ")
 }
 

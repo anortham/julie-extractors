@@ -1544,7 +1544,6 @@ fn test_is_test_symbol_dispatch_across_languages() {
             None,
             false,
         ),
-        // --- Scala: JUnit @Test OR test name prefix ---
         (
             "scala",
             "shouldCompute",
@@ -1554,7 +1553,6 @@ fn test_is_test_symbol_dispatch_across_languages() {
             None,
             true,
         ),
-        // Scala: path alone is not evidence
         (
             "scala",
             "compute",
@@ -1564,7 +1562,6 @@ fn test_is_test_symbol_dispatch_across_languages() {
             None,
             false,
         ),
-        // Scala: testX prefix (MUnit convention)
         (
             "scala",
             "testComputation",
@@ -1574,7 +1571,6 @@ fn test_is_test_symbol_dispatch_across_languages() {
             None,
             true,
         ),
-        // Scala: regular function outside test path, no test prefix
         (
             "scala",
             "compute",
@@ -1584,7 +1580,6 @@ fn test_is_test_symbol_dispatch_across_languages() {
             None,
             false,
         ),
-        // --- Elixir: test_ or "test " prefix ---
         (
             "elixir",
             "test_addition",
@@ -1594,7 +1589,6 @@ fn test_is_test_symbol_dispatch_across_languages() {
             None,
             true,
         ),
-        // Elixir: path alone is not evidence
         (
             "elixir",
             "setup_context",
@@ -1604,7 +1598,6 @@ fn test_is_test_symbol_dispatch_across_languages() {
             None,
             false,
         ),
-        // Elixir: "test " prefix (ExUnit macro naming)
         (
             "elixir",
             "test greets the world",
@@ -1614,7 +1607,6 @@ fn test_is_test_symbol_dispatch_across_languages() {
             None,
             true,
         ),
-        // Elixir: regular function outside test path
         (
             "elixir",
             "add",
