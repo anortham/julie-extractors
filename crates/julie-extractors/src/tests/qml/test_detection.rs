@@ -5,8 +5,17 @@
 //! the root component symbol. Artifact v1 preserves that metadata evidence but
 //! does not copy old Julie's test-container classifier.
 
-use super::extract_symbols;
-use crate::base::SymbolKind;
+use super::{extract_symbols, extract_symbols_with_path};
+use crate::base::{Symbol, SymbolKind};
+
+fn meta_bool(symbol: &Symbol, key: &str) -> bool {
+    symbol
+        .metadata
+        .as_ref()
+        .and_then(|m| m.get(key))
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false)
+}
 
 /// Pull the `base_types` metadata array (strings) off a symbol, if present.
 fn base_types(symbol: &crate::base::Symbol) -> Vec<String> {
@@ -48,6 +57,10 @@ TestCase {
         vec!["TestCase".to_string()],
         "root component must record its base type under `base_types` for the test-role classifier"
     );
+    assert!(
+        meta_bool(root, "test_container"),
+        "a TestCase root is the Qt Quick Test container"
+    );
 }
 
 #[test]
@@ -68,4 +81,60 @@ Rectangle {
         .find(|s| s.kind == SymbolKind::Class)
         .unwrap_or_else(|| panic!("expected a root component Class, got {symbols:?}"));
     assert_eq!(base_types(root), vec!["Rectangle".to_string()]);
+    assert!(
+        !meta_bool(root, "test_container"),
+        "a Rectangle root is not a test container"
+    );
+}
+
+#[test]
+fn qml_init_test_case_is_lifecycle_and_test_fn_is_case() {
+    let code = r#"
+import QtTest 1.0
+
+TestCase {
+    name: "CalculatorTests"
+
+    function initTestCase() {
+    }
+
+    function cleanupTestCase() {
+    }
+
+    function test_addition() {
+        compare(1 + 1, 2);
+    }
+
+    function verify_addition() {
+        compare(2, 2);
+    }
+}
+"#;
+    let symbols = extract_symbols_with_path(code, "test_source.qml");
+    let init = symbols
+        .iter()
+        .find(|s| s.name == "initTestCase")
+        .unwrap_or_else(|| panic!("expected initTestCase, got {symbols:?}"));
+    assert!(meta_bool(init, "is_test"));
+    assert!(meta_bool(init, "test_lifecycle"));
+
+    let cleanup = symbols
+        .iter()
+        .find(|s| s.name == "cleanupTestCase")
+        .unwrap_or_else(|| panic!("expected cleanupTestCase, got {symbols:?}"));
+    assert!(meta_bool(cleanup, "is_test"));
+    assert!(meta_bool(cleanup, "test_lifecycle"));
+
+    let case = symbols
+        .iter()
+        .find(|s| s.name == "test_addition")
+        .unwrap_or_else(|| panic!("expected test_addition, got {symbols:?}"));
+    assert!(meta_bool(case, "is_test"));
+    assert!(!meta_bool(case, "test_lifecycle"));
+
+    let helper = symbols
+        .iter()
+        .find(|s| s.name == "verify_addition")
+        .unwrap_or_else(|| panic!("expected verify_addition, got {symbols:?}"));
+    assert!(!meta_bool(helper, "is_test"));
 }

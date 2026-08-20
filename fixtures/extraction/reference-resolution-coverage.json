@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "source": "fixtures/extraction/capabilities.json registered canonical golden corpus",
-  "source_digest": "sha256:3ed411bfd1df3db7fe4887c1289cc6890ca104a0947467b7e82e1a6b6eaad58f",
+  "source_digest": "sha256:b844da4f6fe8220ab3bcb8034a1dfd9fbc3bfb03b75bf83b2314276afdee1ac4",
   "languages": [
     "rust",
     "c",
@@ -314,16 +314,16 @@
     },
     {
       "language": "scala",
-      "total": 65,
-      "attempted": 21,
+      "total": 68,
+      "attempted": 23,
       "resolved": 7,
       "ambiguous": 0,
       "missing": 0,
       "no_context": 0,
-      "unresolved_pending": 14,
-      "unattempted": 44,
-      "span_present": 58,
-      "span_missing": 7
+      "unresolved_pending": 16,
+      "unattempted": 45,
+      "span_present": 60,
+      "span_missing": 8
     },
     {
       "language": "dart",
@@ -6810,7 +6810,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 12
+      "count": 13
     },
     {
       "language": "scala",
@@ -6877,12 +6877,24 @@
       "origin": "pending_relationship",
       "raw_kind": "implements",
       "canonical_kind": "implements",
-      "outcome": "zero",
+      "outcome": "unresolved_pending",
       "tier": null,
       "method": null,
       "span_present": false,
-      "applicability": "zero",
-      "count": 0
+      "applicability": "observed",
+      "count": 1
+    },
+    {
+      "language": "scala",
+      "origin": "pending_relationship",
+      "raw_kind": "implements",
+      "canonical_kind": "implements",
+      "outcome": "unresolved_pending",
+      "tier": null,
+      "method": null,
+      "span_present": true,
+      "applicability": "observed",
+      "count": 1
     },
     {
       "language": "scala",

@@ -73,7 +73,10 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/qml/test_roles/test_source.qml:test_source:4:0",
-      "metadata": {},
+      "metadata": {
+        "is_test": true,
+        "test_lifecycle": true
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -166,7 +169,8 @@
       "metadata": {
         "base_types": [
           "TestCase"
-        ]
+        ],
+        "test_container": true
       },
       "annotations": [],
       "semantic_group": null,

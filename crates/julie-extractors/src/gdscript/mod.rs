@@ -121,6 +121,7 @@ impl GDScriptExtractor {
 
         // Second pass: extract symbols with implicit class context
         self.traverse_node(root_node, implicit_class_id.as_ref(), &mut symbols, 0);
+        crate::test_detection::mark_base_type_test_containers(&mut symbols, "GutTest");
 
         symbols
     }

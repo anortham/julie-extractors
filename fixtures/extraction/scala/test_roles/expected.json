@@ -8,20 +8,20 @@
       "file_path": "fixtures/extraction/scala/test_roles/source.scala",
       "start_line": 1,
       "start_column": 0,
-      "end_line": 14,
+      "end_line": 16,
       "end_column": 1,
       "start_byte": 0,
-      "end_byte": 257,
+      "end_byte": 321,
       "body_span": {
         "start_line": 1,
-        "start_column": 42,
-        "end_line": 14,
+        "start_column": 66,
+        "end_line": 16,
         "end_column": 1,
-        "start_byte": 42,
-        "end_byte": 257
+        "start_byte": 66,
+        "end_byte": 321
       },
-      "body_hash": "bbd2c943364d7919389ceb06e991d339",
-      "signature": "class ManagedTestRoles extends AnyFunSpec",
+      "body_hash": "5e71abf2021517239d25dda7f7fa6a84",
+      "signature": "class ManagedTestRoles extends AnyFunSpec with BeforeAndAfterEach",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
@@ -35,24 +35,61 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/scala/test_roles/source.scala:callOrdinaryMember:9:2",
-      "name": "callOrdinaryMember",
+      "key": "fixtures/extraction/scala/test_roles/source.scala:beforeEach:9:2",
+      "name": "beforeEach",
       "kind": "method",
       "language": "scala",
       "file_path": "fixtures/extraction/scala/test_roles/source.scala",
       "start_line": 9,
       "start_column": 2,
-      "end_line": 13,
-      "end_column": 3,
-      "start_byte": 157,
-      "end_byte": 255,
+      "end_line": 9,
+      "end_column": 38,
+      "start_byte": 181,
+      "end_byte": 217,
       "body_span": {
         "start_line": 9,
+        "start_column": 36,
+        "end_line": 9,
+        "end_column": 38,
+        "start_byte": 215,
+        "end_byte": 217
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "override def beforeEach(): Unit",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/scala/test_roles/source.scala:ManagedTestRoles:1:0",
+      "metadata": {
+        "is_test": true,
+        "modifiers": "override",
+        "returnType": "Unit",
+        "test_lifecycle": true,
+        "type": "method"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/scala/test_roles/source.scala:callOrdinaryMember:11:2",
+      "name": "callOrdinaryMember",
+      "kind": "method",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_roles/source.scala",
+      "start_line": 11,
+      "start_column": 2,
+      "end_line": 15,
+      "end_column": 3,
+      "start_byte": 221,
+      "end_byte": 319,
+      "body_span": {
+        "start_line": 11,
         "start_column": 35,
-        "end_line": 13,
+        "end_line": 15,
         "end_column": 3,
-        "start_byte": 190,
-        "end_byte": 255
+        "start_byte": 254,
+        "end_byte": 319
       },
       "body_hash": "8c41458afe1a4a4662b11f8fc5a24186",
       "signature": "def callOrdinaryMember(): Unit",
@@ -79,15 +116,15 @@
       "start_column": 4,
       "end_line": 4,
       "end_column": 5,
-      "start_byte": 76,
-      "end_byte": 116,
+      "start_byte": 100,
+      "end_byte": 140,
       "body_span": {
         "start_line": 3,
         "start_column": 37,
         "end_line": 4,
         "end_column": 5,
-        "start_byte": 109,
-        "end_byte": 116
+        "start_byte": 133,
+        "end_byte": 140
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "it(\"extracts a Scala test case\")",
@@ -112,15 +149,15 @@
       "start_column": 2,
       "end_line": 7,
       "end_column": 31,
-      "start_byte": 124,
-      "end_byte": 153,
+      "start_byte": 148,
+      "end_byte": 177,
       "body_span": {
         "start_line": 7,
         "start_column": 29,
         "end_line": 7,
         "end_column": 31,
-        "start_byte": 151,
-        "end_byte": 153
+        "start_byte": 175,
+        "end_byte": 177
       },
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
       "signature": "def ordinaryCase(): Unit",
@@ -147,15 +184,15 @@
       "start_column": 2,
       "end_line": 5,
       "end_column": 3,
-      "start_byte": 46,
-      "end_byte": 120,
+      "start_byte": 70,
+      "end_byte": 144,
       "body_span": {
         "start_line": 2,
         "start_column": 26,
         "end_line": 5,
         "end_column": 3,
-        "start_byte": 70,
-        "end_byte": 120
+        "start_byte": 94,
+        "end_byte": 144
       },
       "body_hash": "5f97b9be7cdb7ce545742bd0a926e19c",
       "signature": "describe(\"scala roles\")",
@@ -182,19 +219,27 @@
       "confidence": "0.900"
     },
     {
-      "from_key": "fixtures/extraction/scala/test_roles/source.scala:callOrdinaryMember:9:2",
+      "from_key": "fixtures/extraction/scala/test_roles/source.scala:ManagedTestRoles:1:0",
+      "callee_name": "BeforeAndAfterEach",
+      "kind": "implements",
+      "file_path": "fixtures/extraction/scala/test_roles/source.scala",
+      "line_number": 1,
+      "confidence": "0.900"
+    },
+    {
+      "from_key": "fixtures/extraction/scala/test_roles/source.scala:callOrdinaryMember:11:2",
       "callee_name": "feature.enable",
       "kind": "calls",
       "file_path": "fixtures/extraction/scala/test_roles/source.scala",
-      "line_number": 10,
+      "line_number": 12,
       "confidence": "0.700"
     },
     {
-      "from_key": "fixtures/extraction/scala/test_roles/source.scala:callOrdinaryMember:9:2",
+      "from_key": "fixtures/extraction/scala/test_roles/source.scala:callOrdinaryMember:11:2",
       "callee_name": "feature.enable",
       "kind": "calls",
       "file_path": "fixtures/extraction/scala/test_roles/source.scala",
-      "line_number": 10,
+      "line_number": 12,
       "confidence": "0.700"
     },
     {
@@ -235,19 +280,45 @@
       "span": {
         "start_line": 1,
         "start_column": 0,
-        "end_line": 14,
+        "end_line": 16,
         "end_column": 1,
         "start_byte": 0,
-        "end_byte": 257
+        "end_byte": 321
       }
     },
     {
       "pending": {
-        "from_key": "fixtures/extraction/scala/test_roles/source.scala:callOrdinaryMember:9:2",
+        "from_key": "fixtures/extraction/scala/test_roles/source.scala:ManagedTestRoles:1:0",
+        "callee_name": "BeforeAndAfterEach",
+        "kind": "implements",
+        "file_path": "fixtures/extraction/scala/test_roles/source.scala",
+        "line_number": 1,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "BeforeAndAfterEach",
+        "terminal_name": "BeforeAndAfterEach",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/scala/test_roles/source.scala:ManagedTestRoles:1:0",
+      "span": {
+        "start_line": 1,
+        "start_column": 0,
+        "end_line": 16,
+        "end_column": 1,
+        "start_byte": 0,
+        "end_byte": 321
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/scala/test_roles/source.scala:callOrdinaryMember:11:2",
         "callee_name": "feature.enable",
         "kind": "calls",
         "file_path": "fixtures/extraction/scala/test_roles/source.scala",
-        "line_number": 10,
+        "line_number": 12,
         "confidence": "0.700"
       },
       "target": {
@@ -257,23 +328,23 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/scala/test_roles/source.scala:callOrdinaryMember:9:2",
+      "caller_scope_key": "fixtures/extraction/scala/test_roles/source.scala:callOrdinaryMember:11:2",
       "span": {
-        "start_line": 10,
+        "start_line": 12,
         "start_column": 4,
-        "end_line": 10,
+        "end_line": 12,
         "end_column": 42,
-        "start_byte": 196,
-        "end_byte": 234
+        "start_byte": 260,
+        "end_byte": 298
       }
     },
     {
       "pending": {
-        "from_key": "fixtures/extraction/scala/test_roles/source.scala:callOrdinaryMember:9:2",
+        "from_key": "fixtures/extraction/scala/test_roles/source.scala:callOrdinaryMember:11:2",
         "callee_name": "feature.enable",
         "kind": "calls",
         "file_path": "fixtures/extraction/scala/test_roles/source.scala",
-        "line_number": 10,
+        "line_number": 12,
         "confidence": "0.700"
       },
       "target": {
@@ -283,14 +354,14 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/scala/test_roles/source.scala:callOrdinaryMember:9:2",
+      "caller_scope_key": "fixtures/extraction/scala/test_roles/source.scala:callOrdinaryMember:11:2",
       "span": {
-        "start_line": 10,
+        "start_line": 12,
         "start_column": 4,
-        "end_line": 10,
+        "end_line": 12,
         "end_column": 42,
-        "start_byte": 196,
-        "end_byte": 234
+        "start_byte": 260,
+        "end_byte": 298
       }
     },
     {
@@ -315,8 +386,8 @@
         "start_column": 4,
         "end_line": 3,
         "end_column": 36,
-        "start_byte": 76,
-        "end_byte": 108
+        "start_byte": 100,
+        "end_byte": 132
       }
     },
     {
@@ -341,8 +412,8 @@
         "start_column": 2,
         "end_line": 2,
         "end_column": 25,
-        "start_byte": 46,
-        "end_byte": 69
+        "start_byte": 70,
+        "end_byte": 93
       }
     }
   ],
@@ -364,6 +435,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/scala/test_roles/source.scala:BeforeAndAfterEach:type_usage:1:47",
+      "name": "BeforeAndAfterEach",
+      "kind": "type_usage",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_roles/source.scala",
+      "start_line": 1,
+      "start_column": 47,
+      "end_line": 1,
+      "end_column": 65,
+      "start_byte": 47,
+      "end_byte": 65,
+      "containing_key": "fixtures/extraction/scala/test_roles/source.scala:ManagedTestRoles:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/scala/test_roles/source.scala:describe:call:2:2",
       "name": "describe",
       "kind": "call",
@@ -373,41 +460,41 @@
       "start_column": 2,
       "end_line": 2,
       "end_column": 10,
-      "start_byte": 46,
-      "end_byte": 54,
+      "start_byte": 70,
+      "end_byte": 78,
       "containing_key": "fixtures/extraction/scala/test_roles/source.scala:scala roles:2:2",
       "target_key": null,
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/scala/test_roles/source.scala:enable:call:10:12",
+      "key": "fixtures/extraction/scala/test_roles/source.scala:enable:call:12:12",
       "name": "enable",
       "kind": "call",
       "language": "scala",
       "file_path": "fixtures/extraction/scala/test_roles/source.scala",
-      "start_line": 10,
+      "start_line": 12,
       "start_column": 12,
-      "end_line": 10,
+      "end_line": 12,
       "end_column": 18,
-      "start_byte": 204,
-      "end_byte": 210,
-      "containing_key": "fixtures/extraction/scala/test_roles/source.scala:callOrdinaryMember:9:2",
+      "start_byte": 268,
+      "end_byte": 274,
+      "containing_key": "fixtures/extraction/scala/test_roles/source.scala:callOrdinaryMember:11:2",
       "target_key": null,
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/scala/test_roles/source.scala:feature:variable_ref:10:4",
+      "key": "fixtures/extraction/scala/test_roles/source.scala:feature:variable_ref:12:4",
       "name": "feature",
       "kind": "variable_ref",
       "language": "scala",
       "file_path": "fixtures/extraction/scala/test_roles/source.scala",
-      "start_line": 10,
+      "start_line": 12,
       "start_column": 4,
-      "end_line": 10,
+      "end_line": 12,
       "end_column": 11,
-      "start_byte": 196,
-      "end_byte": 203,
-      "containing_key": "fixtures/extraction/scala/test_roles/source.scala:callOrdinaryMember:9:2",
+      "start_byte": 260,
+      "end_byte": 267,
+      "containing_key": "fixtures/extraction/scala/test_roles/source.scala:callOrdinaryMember:11:2",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -421,8 +508,8 @@
       "start_column": 4,
       "end_line": 3,
       "end_column": 6,
-      "start_byte": 76,
-      "end_byte": 78,
+      "start_byte": 100,
+      "end_byte": 102,
       "containing_key": "fixtures/extraction/scala/test_roles/source.scala:extracts a Scala test case:3:4",
       "target_key": null,
       "confidence": "1.000"
@@ -430,7 +517,16 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/scala/test_roles/source.scala:callOrdinaryMember:9:2",
+      "symbol_key": "fixtures/extraction/scala/test_roles/source.scala:beforeEach:9:2",
+      "resolved_type": "Unit",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "scala",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/scala/test_roles/source.scala:callOrdinaryMember:11:2",
       "resolved_type": "Unit",
       "generic_params": null,
       "constraints": null,
@@ -457,25 +553,47 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "scala",
       "file_path": "fixtures/extraction/scala/test_roles/source.scala",
-      "covered_lines": 15,
-      "covered_bytes": 258,
+      "covered_lines": 17,
+      "covered_bytes": 322,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 15,
+      "end_line": 17,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 258,
+      "end_byte": 322,
       "metadata": {
         "metric_version": 1
       }
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/scala/test_roles/source.scala:callOrdinaryMember:9:2",
+      "symbol_key": "fixtures/extraction/scala/test_roles/source.scala:beforeEach:9:2",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_roles/source.scala",
+      "covered_lines": 1,
+      "covered_bytes": 36,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 9,
+      "start_column": 2,
+      "end_line": 9,
+      "end_column": 38,
+      "start_byte": 181,
+      "end_byte": 217,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/scala/test_roles/source.scala:callOrdinaryMember:11:2",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "scala",
       "file_path": "fixtures/extraction/scala/test_roles/source.scala",
@@ -485,12 +603,12 @@
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 0,
-      "start_line": 9,
+      "start_line": 11,
       "start_column": 35,
-      "end_line": 13,
+      "end_line": 15,
       "end_column": 3,
-      "start_byte": 190,
-      "end_byte": 255,
+      "start_byte": 254,
+      "end_byte": 319,
       "metadata": {
         "metric_version": 1
       }
@@ -511,8 +629,8 @@
       "start_column": 4,
       "end_line": 4,
       "end_column": 5,
-      "start_byte": 76,
-      "end_byte": 116,
+      "start_byte": 100,
+      "end_byte": 140,
       "metadata": {
         "metric_version": 1
       }
@@ -533,8 +651,8 @@
       "start_column": 2,
       "end_line": 7,
       "end_column": 31,
-      "start_byte": 124,
-      "end_byte": 153,
+      "start_byte": 148,
+      "end_byte": 177,
       "metadata": {
         "metric_version": 1
       }
@@ -555,8 +673,8 @@
       "start_column": 26,
       "end_line": 5,
       "end_column": 3,
-      "start_byte": 70,
-      "end_byte": 120,
+      "start_byte": 94,
+      "end_byte": 144,
       "metadata": {
         "metric_version": 1
       }
@@ -574,8 +692,8 @@
       "start_column": 7,
       "end_line": 3,
       "end_column": 35,
-      "start_byte": 79,
-      "end_byte": 107,
+      "start_byte": 103,
+      "end_byte": 131,
       "containing_key": "fixtures/extraction/scala/test_roles/source.scala:extracts a Scala test case:3:4",
       "confidence": "1.000"
     },
@@ -586,13 +704,13 @@
       "arg_position": 0,
       "language": "scala",
       "file_path": "fixtures/extraction/scala/test_roles/source.scala",
-      "start_line": 10,
+      "start_line": 12,
       "start_column": 19,
-      "end_line": 10,
+      "end_line": 12,
       "end_column": 41,
-      "start_byte": 211,
-      "end_byte": 233,
-      "containing_key": "fixtures/extraction/scala/test_roles/source.scala:callOrdinaryMember:9:2",
+      "start_byte": 275,
+      "end_byte": 297,
+      "containing_key": "fixtures/extraction/scala/test_roles/source.scala:callOrdinaryMember:11:2",
       "confidence": "1.000"
     },
     {
@@ -606,8 +724,8 @@
       "start_column": 11,
       "end_line": 2,
       "end_column": 24,
-      "start_byte": 55,
-      "end_byte": 68,
+      "start_byte": 79,
+      "end_byte": 92,
       "containing_key": "fixtures/extraction/scala/test_roles/source.scala:scala roles:2:2",
       "confidence": "1.000"
     }
@@ -617,13 +735,13 @@
       "kind": "string_literal",
       "language": "scala",
       "file_path": "fixtures/extraction/scala/test_roles/source.scala",
-      "containing_key": "fixtures/extraction/scala/test_roles/source.scala:callOrdinaryMember:9:2",
-      "start_line": 10,
+      "containing_key": "fixtures/extraction/scala/test_roles/source.scala:callOrdinaryMember:11:2",
+      "start_line": 12,
       "start_column": 19,
-      "end_line": 10,
+      "end_line": 12,
       "end_column": 41,
-      "start_byte": 211,
-      "end_byte": 233,
+      "start_byte": 275,
+      "end_byte": 297,
       "metadata": null
     },
     {
@@ -635,8 +753,8 @@
       "start_column": 7,
       "end_line": 3,
       "end_column": 35,
-      "start_byte": 79,
-      "end_byte": 107,
+      "start_byte": 103,
+      "end_byte": 131,
       "metadata": null
     },
     {
@@ -648,8 +766,8 @@
       "start_column": 11,
       "end_line": 2,
       "end_column": 24,
-      "start_byte": 55,
-      "end_byte": 68,
+      "start_byte": 79,
+      "end_byte": 92,
       "metadata": null
     }
   ],

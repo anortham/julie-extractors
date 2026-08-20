@@ -135,7 +135,8 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
-        "is_test": true
+        "is_test": true,
+        "test_lifecycle": true
       },
       "annotations": [],
       "semantic_group": null,

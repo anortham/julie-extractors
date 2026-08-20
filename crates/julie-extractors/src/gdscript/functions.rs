@@ -1,7 +1,7 @@
 //! Function and constructor extraction for GDScript
 
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
-use crate::test_detection::is_test_symbol;
+use crate::test_detection::apply_callable_test_metadata;
 use std::collections::HashMap;
 use tree_sitter::Node;
 
@@ -104,18 +104,16 @@ pub(super) fn extract_function_definition(
     // Extract doc comment
     let doc_comment = base.find_doc_comment(&node);
 
-    // Test detection
     let mut metadata = HashMap::new();
-    if is_test_symbol(
+    apply_callable_test_metadata(
         "gdscript",
         &name,
         &base.file_path,
         &kind,
         &[],
         doc_comment.as_deref(),
-    ) {
-        metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
-    }
+        &mut metadata,
+    );
 
     Some(base.create_symbol(
         &node,
@@ -271,11 +269,16 @@ pub(super) fn try_recover_function_from_error(
     };
     let kind = determine_function_kind(base, &func_name, parent_id, symbols);
 
-    // Apply test-detection (same contract as `extract_function_definition`).
     let mut metadata = HashMap::new();
-    if is_test_symbol("gdscript", &func_name, &base.file_path, &kind, &[], None) {
-        metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
-    }
+    apply_callable_test_metadata(
+        "gdscript",
+        &func_name,
+        &base.file_path,
+        &kind,
+        &[],
+        None,
+        &mut metadata,
+    );
 
     Some(base.create_symbol(
         &node,

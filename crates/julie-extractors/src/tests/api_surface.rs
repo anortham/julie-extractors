@@ -17,7 +17,7 @@ fn test_public_contract_version_marks_current_fact_families() {
     let _structural_fact: Option<crate::StructuralFact> = None;
     let _complexity_metric: Option<crate::ComplexityMetric> = None;
 
-    assert_eq!(extraction_identity_epoch, 1);
+    assert_eq!(extraction_identity_epoch, 2);
 
     for marker in [
         "source-regions-v1",
