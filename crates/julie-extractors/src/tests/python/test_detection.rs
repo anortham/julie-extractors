@@ -84,3 +84,23 @@ def calculate_total():
             .any(|s| s.name == "ArithmeticTest" && s.kind == SymbolKind::Class)
     );
 }
+
+#[test]
+fn fixture_and_patch_helpers_are_not_test_symbols() {
+    let code = r#"
+import pytest
+import unittest
+
+@pytest.fixture
+def build_client():
+    return object()
+
+@unittest.mock.patch("module.target")
+def patch_client():
+    return object()
+"#;
+    let syms = symbols(code, "tests/test_helpers.py");
+
+    assert!(!role(&syms, "build_client", "is_test"));
+    assert!(!role(&syms, "patch_client", "is_test"));
+}

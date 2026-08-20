@@ -89,6 +89,27 @@ In CI, the `Extractor Compatibility` job downloads the latest published release 
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
+## 2.34.3
+
+classification: compatible
+
+The v2.34.3 release narrows `is_test` facts. Python decorator evidence is
+limited to `pytest.mark.*` and exact `unittest.skip`, `unittest.skipIf`,
+`unittest.skipUnless`, and `unittest.expectedFailure`; `pytest.fixture` and
+`unittest.mock.*` are not test evidence. Bare `test_` names still require
+test-path evidence. Scala and Elixir no longer treat a test path alone as
+callable test evidence; their test-name conventions and supported annotations
+remain active. The changed facts are otherwise within the existing schema 7
+extraction tables.
+
+Extraction identity epoch is 3. A reader built for v2.34.2 still reads schema
+7 / JSONL v5 / store schema 2. Family-store file versions re-extract because
+identity is `(path, content_hash, extraction_epoch)`.
+
+Consumer action: replace the binary and re-extract or rebuild standalone
+artifacts, or let epoch-3 family-store file versions populate on the next
+import or update.
+
 ## 2.34.2
 
 classification: compatible
