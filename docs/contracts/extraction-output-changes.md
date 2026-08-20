@@ -93,11 +93,14 @@ Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
 classification: compatible
 
-The v2.34.3 candidate narrows `is_test` facts. Python decorators remain
-path-independent, while bare `test_` names require test-path evidence. Scala
-and Elixir no longer treat a test path alone as callable test evidence; their
-test-name conventions and supported annotations remain active. The changed
-facts are otherwise within the existing schema 7 extraction tables.
+The v2.34.3 release narrows `is_test` facts. Python decorator evidence is
+limited to `pytest.mark.*` and exact `unittest.skip`, `unittest.skipIf`,
+`unittest.skipUnless`, and `unittest.expectedFailure`; `pytest.fixture` and
+`unittest.mock.*` are not test evidence. Bare `test_` names still require
+test-path evidence. Scala and Elixir no longer treat a test path alone as
+callable test evidence; their test-name conventions and supported annotations
+remain active. The changed facts are otherwise within the existing schema 7
+extraction tables.
 
 Extraction identity epoch is 3. A reader built for v2.34.2 still reads schema
 7 / JSONL v5 / store schema 2. Family-store file versions re-extract because
