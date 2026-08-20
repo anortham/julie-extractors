@@ -153,3 +153,18 @@ end
         "setup_all must be flagged test_lifecycle"
     );
 }
+
+#[test]
+fn ordinary_function_in_test_path_is_not_test() {
+    let code = r#"
+defmodule Helpers do
+  def helper(value), do: value
+end
+"#;
+    let syms = symbols(code, "test/helpers.exs");
+    let helper = syms
+        .iter()
+        .find(|s| s.name == "helper")
+        .unwrap_or_else(|| panic!("expected helper, got {syms:?}"));
+    assert!(!meta_bool(helper, "is_test"));
+}

@@ -81,11 +81,11 @@
 **Approach:** Introduce one private Python annotation predicate if it makes the allowlist clearer. Remove path-only positive branches from Scala and Elixir callable detection. Keep the implementation language-local inside the existing detector rather than adding framework configuration or changing extractor call sites.
 
 **Acceptance criteria:**
-- [ ] New regression tests were observed failing before production edits and the report records the expected failures.
-- [ ] Ordinary Scala methods in `src/test/scala/...` and ordinary Elixir functions in `test/...` remain symbols without `is_test = true`.
-- [ ] Existing Scala/Elixir DSL cases, containers, and lifecycle hooks retain their role metadata.
-- [ ] `pytest.mark.parametrize` remains positive outside a conventional test path.
-- [ ] `pytest.fixture` and `unittest.mock.patch` helpers remain non-test symbols in a conventional test file.
-- [ ] `unittest.skip`, `unittest.skipIf`, `unittest.skipUnless`, and `unittest.expectedFailure` remain positive annotation evidence.
-- [ ] No artifact schema, JSONL, capability, fixture registration, or public API shape changes.
-- [ ] Worker-scope verification passes and the worker commits the owned files with `serial-worker-commit`.
+- [x] New regression tests were observed failing before production edits and the report records the expected failures.
+- [x] Ordinary Scala methods in `src/test/scala/...` and ordinary Elixir functions in `test/...` remain symbols without `is_test = true`.
+- [x] Existing Scala/Elixir DSL cases, containers, and lifecycle hooks retain their role metadata.
+- [x] `pytest.mark.parametrize` remains positive outside a conventional test path.
+- [x] `pytest.fixture` and `unittest.mock.patch` helpers remain non-test symbols in a conventional test file.
+- [x] `unittest.skip`, `unittest.skipIf`, `unittest.skipUnless`, and `unittest.expectedFailure` remain positive annotation evidence.
+- [x] No artifact schema, JSONL, capability, fixture registration, or public API shape changes.
+- [x] Worker-scope verification passes and the worker commits the owned files with `serial-worker-commit`.

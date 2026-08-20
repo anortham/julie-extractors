@@ -100,6 +100,65 @@ fn python_pytest_decorator() {
 }
 
 #[test]
+fn python_fixture_and_mock_decorators_are_not_test_evidence() {
+    assert!(!check(
+        "python",
+        "build_client",
+        "tests/test_helpers.py",
+        &SymbolKind::Function,
+        &[s("pytest.fixture")],
+        None,
+    ));
+    assert!(!check(
+        "python",
+        "patch_client",
+        "tests/test_helpers.py",
+        &SymbolKind::Function,
+        &[s("unittest.mock.patch")],
+        None,
+    ));
+}
+
+#[test]
+fn python_fixture_and_mock_decorators_preserve_independent_test_evidence() {
+    assert!(check(
+        "python",
+        "test_fixture",
+        "tests/test_helpers.py",
+        &SymbolKind::Function,
+        &[s("pytest.fixture")],
+        None,
+    ));
+    assert!(check(
+        "python",
+        "test_patch",
+        "tests/test_helpers.py",
+        &SymbolKind::Function,
+        &[s("unittest.mock.patch")],
+        None,
+    ));
+}
+
+#[test]
+fn python_unittest_test_control_decorators_are_test_evidence() {
+    for annotation in [
+        "unittest.skip",
+        "unittest.skipIf",
+        "unittest.skipUnless",
+        "unittest.expectedFailure",
+    ] {
+        assert!(check(
+            "python",
+            "ordinary_helper",
+            "src/helpers.py",
+            &SymbolKind::Function,
+            &[s(annotation)],
+            None,
+        ));
+    }
+}
+
+#[test]
 fn python_unittest_decorator() {
     assert!(check(
         "python",
@@ -107,6 +166,30 @@ fn python_unittest_decorator() {
         "tests/test_thing.py",
         &SymbolKind::Method,
         &[s("unittest.skip")],
+        None,
+    ));
+}
+
+#[test]
+fn scala_test_path_is_not_callable_evidence() {
+    assert!(!check(
+        "scala",
+        "helper",
+        "src/test/scala/Helpers.scala",
+        &SymbolKind::Function,
+        &[],
+        None,
+    ));
+}
+
+#[test]
+fn elixir_test_path_is_not_callable_evidence() {
+    assert!(!check(
+        "elixir",
+        "helper",
+        "test/helpers.exs",
+        &SymbolKind::Function,
+        &[],
         None,
     ));
 }
@@ -1461,7 +1544,7 @@ fn test_is_test_symbol_dispatch_across_languages() {
             None,
             false,
         ),
-        // --- Scala: JUnit @Test OR test path OR test name prefix ---
+        // --- Scala: JUnit @Test OR test name prefix ---
         (
             "scala",
             "shouldCompute",
@@ -1471,7 +1554,7 @@ fn test_is_test_symbol_dispatch_across_languages() {
             None,
             true,
         ),
-        // Scala: in test path (no annotation needed)
+        // Scala: path alone is not evidence
         (
             "scala",
             "compute",
@@ -1479,7 +1562,7 @@ fn test_is_test_symbol_dispatch_across_languages() {
             SymbolKind::Method,
             vec![],
             None,
-            true,
+            false,
         ),
         // Scala: testX prefix (MUnit convention)
         (
@@ -1501,7 +1584,7 @@ fn test_is_test_symbol_dispatch_across_languages() {
             None,
             false,
         ),
-        // --- Elixir: test_ prefix, test path, or "test " prefix ---
+        // --- Elixir: test_ or "test " prefix ---
         (
             "elixir",
             "test_addition",
@@ -1511,7 +1594,7 @@ fn test_is_test_symbol_dispatch_across_languages() {
             None,
             true,
         ),
-        // Elixir: in test/ directory (any function)
+        // Elixir: path alone is not evidence
         (
             "elixir",
             "setup_context",
@@ -1519,7 +1602,7 @@ fn test_is_test_symbol_dispatch_across_languages() {
             SymbolKind::Function,
             vec![],
             None,
-            true,
+            false,
         ),
         // Elixir: "test " prefix (ExUnit macro naming)
         (

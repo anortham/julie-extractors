@@ -82,8 +82,8 @@ pub fn is_test_symbol(
             detect_java_kotlin(annotation_keys)
                 || (name.starts_with("test") && is_test_path(file_path))
         }
-        "scala" => detect_scala(name, file_path, annotation_keys),
-        "elixir" => detect_elixir(name, file_path),
+        "scala" => detect_scala(name, annotation_keys),
+        "elixir" => detect_elixir(name),
         "erlang" => detect_erlang(name),
         "csharp" | "vbnet" | "razor" => detect_csharp(annotation_keys),
         "go" => detect_go(name, file_path),
@@ -117,11 +117,17 @@ fn is_python_test_lifecycle_name(name: &str) -> bool {
 }
 
 fn detect_python(name: &str, file_path: &str, annotation_keys: &[String]) -> bool {
-    // Annotation-key-based: pytest.* or unittest.* (path-independent)
-    if annotation_keys
-        .iter()
-        .any(|d| d.starts_with("pytest") || d.starts_with("unittest"))
-    {
+    // Annotation-key-based: pytest marks and unittest test-control decorators.
+    if annotation_keys.iter().any(|annotation| {
+        annotation.starts_with("pytest.mark.")
+            || matches!(
+                annotation.as_str(),
+                "unittest.skip"
+                    | "unittest.skipIf"
+                    | "unittest.skipUnless"
+                    | "unittest.expectedFailure"
+            )
+    }) {
         return true;
     }
     // unittest lifecycle methods (setUp/tearDown and class-level variants)
@@ -133,7 +139,7 @@ fn detect_python(name: &str, file_path: &str, annotation_keys: &[String]) -> boo
     name.starts_with("test_") && is_test_path(file_path)
 }
 
-fn detect_scala(name: &str, file_path: &str, annotation_keys: &[String]) -> bool {
+fn detect_scala(name: &str, annotation_keys: &[String]) -> bool {
     // JUnit-style: @Test annotation (used by some Scala projects)
     if detect_java_kotlin(annotation_keys) {
         return true;
@@ -141,11 +147,6 @@ fn detect_scala(name: &str, file_path: &str, annotation_keys: &[String]) -> bool
     // ScalaTest BeforeAndAfterEach / BeforeAndAfterAll overrides are
     // language-native lifecycle names even outside a test/ path.
     if is_scala_test_lifecycle_name(name) {
-        return true;
-    }
-    // ScalaTest/MUnit/Specs2: tests are methods in test files —
-    // no @Test annotation, but the file lives in a test directory.
-    if is_test_path(file_path) {
         return true;
     }
     // Name-based: test prefix (MUnit convention)
@@ -524,9 +525,9 @@ fn detect_swift(name: &str, file_path: &str) -> bool {
             ))
 }
 
-fn detect_elixir(name: &str, file_path: &str) -> bool {
-    // ExUnit convention: test_ prefix or test/ directory
-    name.starts_with("test_") || name.starts_with("test ") || is_test_path(file_path)
+fn detect_elixir(name: &str) -> bool {
+    // ExUnit convention: test_ prefix or generated test names
+    name.starts_with("test_") || name.starts_with("test ")
 }
 
 /// EUnit discovers a test from its name alone: `sum_test/0` is a test case and

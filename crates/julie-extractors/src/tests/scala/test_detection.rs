@@ -216,3 +216,19 @@ fn scalatest_before_each_is_lifecycle() {
         .unwrap_or_else(|| panic!("expected helper, got {syms:?}"));
     assert!(!meta_bool(helper, "test_lifecycle"));
 }
+
+#[test]
+fn ordinary_method_in_test_path_is_not_test() {
+    let code = r#"class Helpers {
+  def helper(): Unit = {
+    reset()
+  }
+}
+"#;
+    let syms = symbols(code, "src/test/scala/Helpers.scala");
+    let helper = syms
+        .iter()
+        .find(|s| s.name == "helper")
+        .unwrap_or_else(|| panic!("expected helper, got {syms:?}"));
+    assert!(!meta_bool(helper, "is_test"));
+}
