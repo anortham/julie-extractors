@@ -2,6 +2,15 @@
 
 Date: 2026-07-09
 
+**Status update 2026-08-19 (v2.34.2):** seven leftover test-role cells
+from this ledger are closed. QML, GDScript, Bash, and Scala now have
+golden-backed `test_lifecycle` (and QML/GDScript `test_container`). R
+`test_lifecycle` is `not_applicable` — testthat has no per-call lifecycle
+DSL. Live leftover ranking is
+[2026-08-19-test-role-lifecycle-flags.md](2026-08-19-test-role-lifecycle-flags.md).
+The tables below keep the 2026-07-09 snapshot; the rows this release
+changed are marked `(closed v2.34.2)`.
+
 ## Outcome
 
 The fixed `test_detection` vocabulary is now fully classified for all 36
@@ -44,15 +53,15 @@ open-gap and not-applicable ledgers explain every such cell.
 | ruby | `ruby:test_roles` | `ruby:test_roles` | `ruby:test_roles` |
 | swift | `swift:test_roles` | `swift:test_roles` | `swift:test_roles` |
 | kotlin | `kotlin:test_roles` | `kotlin:test_roles` | `kotlin:test_roles` |
-| scala | `scala:test_roles` | `scala:test_roles` | — |
+| scala | `scala:test_roles` | `scala:test_roles` | `scala:test_roles` (closed v2.34.2) |
 | dart | `dart:test_roles` | `dart:test_roles` | `dart:test_roles` |
 | elixir | `elixir:test_roles` | `elixir:test_roles` | `elixir:test_roles` |
 | lua | `lua:test_roles` | `lua:test_roles` | `lua:test_roles` |
-| qml | `qml:test_roles` | — | — |
-| r | `r:test_roles` | `r:test_roles` | — |
-| bash | `bash:test_roles` | `bash:test_roles` | — |
+| qml | `qml:test_roles` | `qml:test_roles` (closed v2.34.2) | `qml:test_roles` (closed v2.34.2) |
+| r | `r:test_roles` | `r:test_roles` | not_applicable (closed v2.34.2) |
+| bash | `bash:test_roles` | `bash:test_roles` | `bash:test_roles` (closed v2.34.2) |
 | powershell | `powershell:test_roles` | `powershell:test_roles` | `powershell:test_roles` |
-| gdscript | `gdscript:test_roles` | — | — |
+| gdscript | `gdscript:test_roles` | `gdscript:test_roles` (closed v2.34.2) | `gdscript:test_roles` (closed v2.34.2) |
 | razor | `razor:test_roles` | — | — |
 | sql | — | — | — |
 | regex | — | — | — |
@@ -84,11 +93,11 @@ and registered golden proof before promotion.
 | java | `test_container`, `test_lifecycle` | Add type-level JUnit/TestNG containers and lifecycle-role promotion for supported annotations. |
 | csharp | `test_container`, `test_lifecycle` | Add xUnit/NUnit/MSTest type-level containers and lifecycle-role promotion. |
 | vbnet | `test_container`, `test_lifecycle` | Add VB.NET xUnit/NUnit/MSTest type-level containers and lifecycle-role promotion. |
-| scala | `test_lifecycle` | Add ScalaTest or MUnit lifecycle overrides/calls to the currently empty lifecycle vocabulary. |
-| qml | `test_container`, `test_lifecycle` | Promote a Qt Quick Test `TestCase` root and its supported init/cleanup hooks while preserving non-`TestCase` negatives. |
-| r | `test_lifecycle` | Prove and materialize testthat or RUnit lifecycle hooks. |
-| bash | `test_lifecycle` | Distinguish supported Bats/ShellSpec setup and teardown functions from ordinary functions. |
-| gdscript | `test_container`, `test_lifecycle` | Promote `GutTest` roots and supported GUT hooks while preserving non-GUT negatives. |
+| scala | `test_lifecycle` | Closed v2.34.2: ScalaTest `beforeEach` / `afterEach` / `beforeAll` / `afterAll`. |
+| qml | `test_container`, `test_lifecycle` | Closed v2.34.2: `TestCase` container; `initTestCase` / `cleanupTestCase` / `init` / `cleanup`. |
+| r | `test_lifecycle` | Closed v2.34.2 as `not_applicable`: testthat has no per-call lifecycle DSL. |
+| bash | `test_lifecycle` | Closed v2.34.2: `setup` / `teardown`. |
+| gdscript | `test_container`, `test_lifecycle` | Closed v2.34.2: `GutTest` container; `before_each` / `after_each` / `before_all` / `after_all`. |
 | razor | `test_container`, `test_lifecycle` | Extend the embedded-C# boundary to type-level containers and lifecycle-role promotion. |
 | sql | `test_case`, `test_container`, `test_lifecycle` | Select one named SQL testing framework contract and prove routines/schemas/hooks with negative controls. |
 | markdown | `test_case`, `test_container`, `test_lifecycle` | Select one named documentation-test contract for fences, sections, or metadata. |
@@ -102,6 +111,7 @@ and registered golden proof before promotion.
 | --- | --- | --- |
 | css | `test_case`, `test_container`, `test_lifecycle` | The complete pinned CSS grammar and language-local visitor model stylesheets, selectors, declarations, values, at-rules, and custom properties. None is an executable case, grouping construct, or setup/teardown hook. |
 | regex | `test_case`, `test_container`, `test_lifecycle` | The complete pinned regex grammar and visitor model patterns, groups, assertions, quantifiers, alternation, escapes, backreferences, properties, and conditionals. Test roles belong to a host language or schema, not regex syntax. |
+| r | `test_lifecycle` | Added v2.34.2. testthat has no per-call lifecycle DSL (`beforeEach` / `setup()` hooks). File-level `setup.R` / RUnit `.setUp` stay out of this classification. |
 
 The parser versions, complete node inventories, extractor surfaces, and
 registered-artifact scan supporting these six negative claims are recorded in
