@@ -24,6 +24,7 @@ mod relationships;
 mod routines;
 mod schema_relationships;
 mod schemas;
+mod test_detection;
 mod views;
 
 use crate::base::{
@@ -80,7 +81,9 @@ impl SqlExtractor {
 
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
-        self.visit_node(tree.root_node(), &mut symbols, None, 0);
+        let pgtap_context = test_detection::PgTapContext::from_tree(&self.base, tree);
+        self.visit_node(tree.root_node(), &mut symbols, None, 0, &pgtap_context);
+        test_detection::mark_pgtap_schema_containers(&pgtap_context, &mut symbols);
         self.walk_for_string_literals(tree.root_node(), &symbols, 0);
         symbols
     }
@@ -269,6 +272,7 @@ impl SqlExtractor {
         symbols: &mut Vec<Symbol>,
         parent_id: Option<&str>,
         depth: u32,
+        pgtap_context: &test_detection::PgTapContext,
     ) {
         if !should_visit_tree_depth(depth) {
             return;
@@ -281,7 +285,12 @@ impl SqlExtractor {
                 symbol = schemas::extract_table_definition(&mut self.base, node, parent_id);
             }
             "create_procedure" | "create_function" | "create_function_statement" => {
-                symbol = routines::extract_stored_procedure(&mut self.base, node, parent_id);
+                symbol = routines::extract_stored_procedure(
+                    &mut self.base,
+                    node,
+                    parent_id,
+                    pgtap_context,
+                );
             }
             "create_view" => {
                 symbol = schemas::extract_view(&mut self.base, node, parent_id);
@@ -410,7 +419,7 @@ impl SqlExtractor {
                 return;
             };
             for child in node.children(&mut node.walk()) {
-                self.visit_node(child, symbols, new_parent_id, child_depth);
+                self.visit_node(child, symbols, new_parent_id, child_depth, pgtap_context);
             }
         } else {
             // No symbol extracted, continue with current parent
@@ -418,7 +427,7 @@ impl SqlExtractor {
                 return;
             };
             for child in node.children(&mut node.walk()) {
-                self.visit_node(child, symbols, parent_id, child_depth);
+                self.visit_node(child, symbols, parent_id, child_depth, pgtap_context);
             }
         }
     }

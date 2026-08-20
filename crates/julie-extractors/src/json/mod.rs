@@ -14,6 +14,7 @@ use std::path::Path;
 use tree_sitter::Tree;
 
 mod relationships;
+mod test_detection;
 
 pub struct JsonExtractor {
     pub(crate) base: BaseExtractor,
@@ -138,9 +139,18 @@ impl JsonExtractor {
             ..Default::default()
         };
 
-        let symbol = self
+        let mut symbol = self
             .base
             .create_symbol(&node, key_name.clone(), symbol_kind, options);
+
+        if let Some(role) = test_detection::role_for_description_pair(&self.base, node, &key_name) {
+            let metadata = symbol.metadata.get_or_insert_with(HashMap::new);
+            let key = match role {
+                test_detection::JsonTestRole::Container => "test_container",
+                test_detection::JsonTestRole::Case => "is_test",
+            };
+            metadata.insert(key.to_string(), serde_json::Value::Bool(true));
+        }
 
         if value_node.kind() == "string" {
             let carrier = crate::base::config_literals::build_config_key_carrier(

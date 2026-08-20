@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="build">
+  <target name="test">
+    <junit fork="true">
+      <test name="unit.Test"/>
+      <test id="id-only-case"/>
+      <wrapper><test name="nested.Test"/></wrapper>
+      <testcase name="report.Test"/>
+    </junit>
+    <test name="outside.Test"/>
+  </target>
+  <target id="id-only-target">
+    <junit><test name="id.Target"/></junit>
+  </target>
+  <target name="no-junit"><test name="missing-junit"/></target>
+  <report>
+    <target name="nested-target">
+      <junit><test name="nested-lookalike"/></junit>
+    </target>
+  </report>
+</project>

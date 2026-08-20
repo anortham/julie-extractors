@@ -1,5 +1,11 @@
 # Capability Ledger Policy (2026-07-17)
 
+> Superseded for the 28 test-role cells by the [2026-08-20 named-contract
+> closure decision](2026-08-20-test-role-contract-closure.md). The governing
+> rule remains unchanged: external conventions require a named contract,
+> negative controls, and a registered golden before they become `supported`;
+> the contracts listed in that decision now satisfy that rule.
+
 ## Context
 
 The 2026-07-17 project review found that the language-data-quality gate can stay

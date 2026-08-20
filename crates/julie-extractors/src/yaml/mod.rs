@@ -111,7 +111,7 @@ impl YamlExtractor {
         // Check for anchor on the value side
         let anchor = self.extract_anchor(node);
         let signature = anchor.as_ref().map(|a| format!("{}: &{}", key_name, a));
-        let metadata = anchor.as_ref().map(|anchor_name| {
+        let mut metadata = anchor.as_ref().map(|anchor_name| {
             let mut metadata = HashMap::new();
             metadata.insert(
                 "yaml_anchor".to_string(),
@@ -119,6 +119,22 @@ impl YamlExtractor {
             );
             metadata
         });
+        if let Some(role) = self.test_role_for_mapping_pair(node, &key_name) {
+            let metadata = metadata.get_or_insert_with(HashMap::new);
+            match role {
+                "test_case" => {
+                    metadata.insert("is_test".to_string(), Value::Bool(true));
+                }
+                "test_lifecycle" => {
+                    metadata.insert("is_test".to_string(), Value::Bool(true));
+                    metadata.insert("test_lifecycle".to_string(), Value::Bool(true));
+                }
+                "test_container" => {
+                    metadata.insert("test_container".to_string(), Value::Bool(true));
+                }
+                _ => {}
+            }
+        }
 
         // Determine kind: container keys (with nested mappings) are Module, leaves are Variable
         let is_leaf_value = !self.has_nested_mapping(node);
@@ -242,6 +258,101 @@ impl YamlExtractor {
         }
 
         None
+    }
+
+    fn test_role_for_mapping_pair(
+        &self,
+        node: tree_sitter::Node,
+        key_name: &str,
+    ) -> Option<&'static str> {
+        if key_name == "commandTests"
+            && self.is_google_command_tests_root(node)
+            && mapping_pair_value_is_sequence(node)
+        {
+            return Some("test_container");
+        }
+        if !self.is_direct_command_test_pair(node) {
+            return None;
+        }
+
+        match key_name {
+            "name" if mapping_pair_has_string_value(&self.base, node) => Some("test_case"),
+            "setup" | "teardown" => Some("test_lifecycle"),
+            _ => None,
+        }
+    }
+
+    fn is_google_command_tests_root(&self, node: tree_sitter::Node) -> bool {
+        let Some(mapping) = node.parent() else {
+            return false;
+        };
+        if mapping.kind() != "block_mapping" {
+            return false;
+        }
+        let Some(block_node) = mapping.parent() else {
+            return false;
+        };
+        if block_node.kind() != "block_node" {
+            return false;
+        }
+        let Some(document) = block_node.parent() else {
+            return false;
+        };
+        document.kind() == "document" && self.document_has_schema_version(document)
+    }
+
+    fn document_has_schema_version(&self, document: tree_sitter::Node) -> bool {
+        let Some(block_node) = first_child_of_kind(document, "block_node") else {
+            return false;
+        };
+        let Some(mapping) = first_child_of_kind(block_node, "block_mapping") else {
+            return false;
+        };
+        let mut cursor = mapping.walk();
+        mapping.children(&mut cursor).any(|pair| {
+            pair.kind() == "block_mapping_pair"
+                && self.extract_mapping_key(pair).as_deref() == Some("schemaVersion")
+                && mapping_pair_value_text(&self.base, pair).as_deref() == Some("2.0.0")
+        })
+    }
+
+    fn is_direct_command_test_pair(&self, node: tree_sitter::Node) -> bool {
+        let Some(mapping) = node.parent() else {
+            return false;
+        };
+        if mapping.kind() != "block_mapping" {
+            return false;
+        }
+        let Some(item_block) = mapping.parent() else {
+            return false;
+        };
+        if item_block.kind() != "block_node" {
+            return false;
+        }
+        let Some(item) = item_block.parent() else {
+            return false;
+        };
+        if item.kind() != "block_sequence_item" {
+            return false;
+        }
+        let Some(sequence) = item.parent() else {
+            return false;
+        };
+        if sequence.kind() != "block_sequence" {
+            return false;
+        }
+        let Some(command_value) = sequence.parent() else {
+            return false;
+        };
+        if command_value.kind() != "block_node" {
+            return false;
+        }
+        let Some(command_pair) = command_value.parent() else {
+            return false;
+        };
+        command_pair.kind() == "block_mapping_pair"
+            && self.extract_mapping_key(command_pair).as_deref() == Some("commandTests")
+            && self.is_google_command_tests_root(command_pair)
     }
 
     pub fn get_type_argument_usages(&self) -> Vec<crate::base::TypeArgumentUsage> {
@@ -439,6 +550,120 @@ fn mapping_key_start_column(_base: &BaseExtractor, pair: tree_sitter::Node) -> O
         }
     }
     None
+}
+
+fn first_child_of_kind<'tree>(
+    node: tree_sitter::Node<'tree>,
+    kind: &str,
+) -> Option<tree_sitter::Node<'tree>> {
+    let mut cursor = node.walk();
+    node.children(&mut cursor)
+        .find(|child| child.kind() == kind)
+}
+
+fn mapping_pair_value_scalar<'tree>(
+    pair: tree_sitter::Node<'tree>,
+) -> Option<tree_sitter::Node<'tree>> {
+    let value_container = mapping_pair_value_container(pair)?;
+    first_scalar_descendant(value_container, 0)
+}
+
+fn mapping_pair_value_container<'tree>(
+    pair: tree_sitter::Node<'tree>,
+) -> Option<tree_sitter::Node<'tree>> {
+    let mut value_container = None;
+    let mut cursor = pair.walk();
+    for child in pair.children(&mut cursor) {
+        if !matches!(child.kind(), "flow_node" | "block_node") {
+            continue;
+        }
+        if value_container.is_some() {
+            value_container = Some(child);
+            break;
+        }
+        value_container = Some(child);
+    }
+    value_container
+}
+
+fn mapping_pair_value_is_sequence(pair: tree_sitter::Node<'_>) -> bool {
+    let Some(value_container) = mapping_pair_value_container(pair) else {
+        return false;
+    };
+    contains_node_kind(value_container, "block_sequence", 0)
+        || contains_node_kind(value_container, "flow_sequence", 0)
+}
+
+fn contains_node_kind(node: tree_sitter::Node<'_>, kind: &str, depth: u32) -> bool {
+    if !should_visit_tree_depth(depth) {
+        return false;
+    }
+    if node.kind() == kind {
+        return true;
+    }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return false;
+    };
+    let mut cursor = node.walk();
+    node.children(&mut cursor)
+        .any(|child| contains_node_kind(child, kind, child_depth))
+}
+
+fn first_scalar_descendant<'tree>(
+    node: tree_sitter::Node<'tree>,
+    depth: u32,
+) -> Option<tree_sitter::Node<'tree>> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
+    if matches!(
+        node.kind(),
+        "plain_scalar" | "single_quote_scalar" | "double_quote_scalar"
+    ) {
+        return Some(node);
+    }
+    let child_depth = child_tree_depth(depth)?;
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if let Some(scalar) = first_scalar_descendant(child, child_depth) {
+            return Some(scalar);
+        }
+    }
+    None
+}
+
+fn mapping_pair_value_text(base: &BaseExtractor, pair: tree_sitter::Node) -> Option<String> {
+    mapping_pair_value_scalar(pair).map(|scalar| {
+        base.get_node_text(&scalar)
+            .trim()
+            .trim_matches(|character| character == '\'' || character == '"')
+            .to_string()
+    })
+}
+
+fn mapping_pair_has_string_value(base: &BaseExtractor, pair: tree_sitter::Node) -> bool {
+    let Some(scalar) = mapping_pair_value_scalar(pair) else {
+        return false;
+    };
+    match scalar.kind() {
+        "single_quote_scalar" | "double_quote_scalar" => true,
+        "plain_scalar" => is_plain_yaml_string(&base.get_node_text(&scalar)),
+        _ => false,
+    }
+}
+
+fn is_plain_yaml_string(value: &str) -> bool {
+    let value = value.trim();
+    if value.is_empty()
+        || matches!(
+            value.to_ascii_lowercase().as_str(),
+            "null" | "~" | "true" | "false" | "yes" | "no" | "on" | "off"
+        )
+    {
+        return false;
+    }
+    let normalized = value.replace('_', "");
+    normalized.parse::<i64>().is_err() && normalized.parse::<f64>().is_err()
 }
 
 fn yaml_pair_has_nested_mapping(pair: tree_sitter::Node) -> bool {

@@ -23,6 +23,7 @@ pub use crate::base::{IdentifierKind, RelationshipKind};
 
 pub struct HTMLExtractor {
     pub(crate) base: BaseExtractor,
+    mocha_bdd_contract: bool,
 }
 
 impl HTMLExtractor {
@@ -34,11 +35,13 @@ impl HTMLExtractor {
     ) -> Self {
         Self {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
+            mocha_bdd_contract: false,
         }
     }
 
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
+        self.mocha_bdd_contract = self.document_has_mocha_bdd_contract(tree);
 
         // Check if tree is valid and has a root node - start from actual root standard format
         let root_node = tree.root_node();
@@ -64,6 +67,37 @@ impl HTMLExtractor {
         } else {
             symbols
         }
+    }
+
+    fn document_has_mocha_bdd_contract(&self, tree: &Tree) -> bool {
+        let mut nodes = vec![tree.root_node()];
+        let mut has_mocha_script = false;
+        let mut has_bdd_setup = false;
+
+        while let Some(node) = nodes.pop() {
+            if node.kind() == "script_element" {
+                let attributes = helpers::HTMLHelpers::extract_attributes(&self.base, node);
+                if scripts::is_javascript_script_type(&attributes)
+                    && attributes
+                        .get("src")
+                        .is_some_and(|src| scripts::is_mocha_script_source(src))
+                {
+                    has_mocha_script = true;
+                }
+                if !attributes.contains_key("src")
+                    && scripts::is_javascript_script_type(&attributes)
+                    && helpers::HTMLHelpers::extract_text_content(&self.base, node)
+                        .is_some_and(|content| scripts::contains_mocha_bdd_setup(&content))
+                {
+                    has_bdd_setup = true;
+                }
+            }
+
+            let mut cursor = node.walk();
+            nodes.extend(node.children(&mut cursor));
+        }
+
+        has_mocha_script && has_bdd_setup
     }
 
     fn visit_node(
@@ -113,6 +147,7 @@ impl HTMLExtractor {
                 &mut self.base,
                 node,
                 parent_id,
+                self.mocha_bdd_contract,
             ),
             "style_element" => scripts::ScriptStyleExtractor::extract_style_element(
                 &mut self.base,

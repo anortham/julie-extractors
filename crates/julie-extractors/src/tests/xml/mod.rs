@@ -5,6 +5,7 @@ mod parse_errors;
 mod routing;
 mod structural_facts;
 mod symbols;
+mod test_detection;
 
 #[cfg(test)]
 pub(crate) mod support {

@@ -50,6 +50,8 @@ pub(super) fn extract_function(
     let name_node = extract_function_name(func_node)?;
     let name = base.get_node_text(&name_node);
 
+    let google_test_lifecycle = is_google_test_fixture_lifecycle(base, node, &name, parent_id);
+
     // Skip if it's a field_identifier (should be handled as method)
     if name_node.kind() == "field_identifier" {
         return extract_method(base, node, func_node, &name, parent_id);
@@ -202,6 +204,10 @@ pub(super) fn extract_function(
     {
         metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
     }
+    if google_test_lifecycle {
+        metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
+        metadata.insert("test_lifecycle".to_string(), serde_json::Value::Bool(true));
+    }
 
     Some(base.create_symbol(
         &node,
@@ -291,6 +297,10 @@ fn extract_method(
     ) {
         metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
     }
+    if is_google_test_fixture_lifecycle(base, node, name, parent_id) {
+        metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
+        metadata.insert("test_lifecycle".to_string(), serde_json::Value::Bool(true));
+    }
 
     Some(base.create_symbol(
         &node,
@@ -336,6 +346,109 @@ fn extract_standard_attributes(base: &mut BaseExtractor, node: Node) -> Vec<Stri
     }
 
     attributes
+}
+
+fn is_google_test_fixture_lifecycle(
+    base: &BaseExtractor,
+    node: Node,
+    name: &str,
+    parent_id: Option<&str>,
+) -> bool {
+    let Some(method_name) = name.rsplit("::").next() else {
+        return false;
+    };
+    if !matches!(
+        method_name,
+        "SetUp" | "TearDown" | "SetUpTestSuite" | "TearDownTestSuite"
+    ) {
+        return false;
+    }
+
+    if let Some((qualifier, _)) = name.rsplit_once("::") {
+        let absolute = qualifier.starts_with("::");
+        let qualifier = qualifier.trim_start_matches("::");
+        let expected_qualified_name = if absolute {
+            qualifier.to_string()
+        } else if let Some(scope) = parent_id
+            .and_then(|id| base.symbol_map.get(id))
+            .map(|symbol| qualified_symbol_name(base, symbol))
+            .filter(|scope| !scope.is_empty())
+        {
+            if qualifier == scope || qualifier.starts_with(&format!("{scope}::")) {
+                qualifier.to_string()
+            } else {
+                format!("{scope}::{qualifier}")
+            }
+        } else {
+            qualifier.to_string()
+        };
+
+        return base.symbol_map.values().any(|symbol| {
+            matches!(symbol.kind, SymbolKind::Class | SymbolKind::Struct)
+                && qualified_symbol_name(base, symbol) == expected_qualified_name
+                && has_google_test_fixture_base(symbol)
+        });
+    }
+
+    let mut current = node.parent();
+    while let Some(parent) = current {
+        if matches!(parent.kind(), "class_specifier" | "struct_specifier") {
+            let Some(base_clause) = parent
+                .children(&mut parent.walk())
+                .find(|child| child.kind() == "base_class_clause")
+            else {
+                return false;
+            };
+            return helpers::extract_base_type_names(base, base_clause)
+                .iter()
+                .any(|base_type| {
+                    matches!(
+                        base_type.trim_start_matches(':'),
+                        "testing::Test" | "testing::TestWithParam"
+                    )
+                });
+        }
+        current = parent.parent();
+    }
+    false
+}
+
+fn has_google_test_fixture_base(symbol: &Symbol) -> bool {
+    symbol
+        .metadata
+        .as_ref()
+        .and_then(|metadata| metadata.get("base_types"))
+        .and_then(|value| value.as_array())
+        .is_some_and(|base_types| {
+            base_types
+                .iter()
+                .filter_map(|value| value.as_str())
+                .any(|base_type| {
+                    matches!(
+                        base_type.trim_start_matches(':'),
+                        "testing::Test" | "testing::TestWithParam"
+                    )
+                })
+        })
+}
+
+fn qualified_symbol_name(base: &BaseExtractor, symbol: &Symbol) -> String {
+    let mut segments = vec![symbol.name.as_str()];
+    let mut parent_id = symbol.parent_id.as_deref();
+    while let Some(id) = parent_id {
+        let Some(parent) = base.symbol_map.get(id) else {
+            break;
+        };
+        if matches!(
+            parent.kind,
+            SymbolKind::Namespace | SymbolKind::Class | SymbolKind::Struct
+        ) {
+            segments.push(parent.name.as_str());
+        }
+        parent_id = parent.parent_id.as_deref();
+    }
+    segments.reverse();
+    segments.join("::")
 }
 
 fn collect_standard_attributes_from_text(text: &str, attributes: &mut Vec<String>) {

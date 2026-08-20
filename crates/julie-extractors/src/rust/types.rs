@@ -1,6 +1,6 @@
 use super::helpers::{
     extract_attribute_texts, extract_derived_traits, extract_visibility, find_doc_comment,
-    get_preceding_attributes,
+    get_preceding_attributes, has_exact_cfg_test_attribute,
 };
 // Rust type definitions: structs, enums, fields, variants, traits,
 // unions, modules, consts, statics, macros, type aliases.
@@ -303,6 +303,11 @@ pub(super) fn extract_module(
 
     let visibility = extract_visibility(base, node);
     let signature = format!("{}mod {}", visibility, name);
+    let attributes = get_preceding_attributes(base, node);
+    let mut metadata = HashMap::new();
+    if has_exact_cfg_test_attribute(base, &attributes) {
+        metadata.insert("test_container".to_string(), serde_json::Value::Bool(true));
+    }
 
     let visibility_enum = if visibility.trim().is_empty() {
         Visibility::Private
@@ -319,7 +324,7 @@ pub(super) fn extract_module(
             visibility: Some(visibility_enum),
             parent_id,
             doc_comment: find_doc_comment(base, node),
-            metadata: Some(HashMap::new()),
+            metadata: Some(metadata),
             annotations: Vec::new(),
         },
     ))

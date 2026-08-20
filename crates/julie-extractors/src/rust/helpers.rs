@@ -129,6 +129,40 @@ pub(super) fn extract_attribute_texts(base: &BaseExtractor, attributes: &[Node])
         .collect()
 }
 
+pub(super) fn has_exact_cfg_test_attribute(base: &BaseExtractor, attributes: &[Node<'_>]) -> bool {
+    attributes
+        .iter()
+        .copied()
+        .any(|attribute_item| is_exact_cfg_test_attribute(base, attribute_item))
+}
+
+fn is_exact_cfg_test_attribute(base: &BaseExtractor, attribute_item: Node<'_>) -> bool {
+    let Some(attribute) = attribute_item.named_child(0) else {
+        return false;
+    };
+    if attribute.kind() != "attribute" {
+        return false;
+    }
+
+    let Some(name) = attribute
+        .named_children(&mut attribute.walk())
+        .find(|child| child.kind() == "identifier")
+    else {
+        return false;
+    };
+    if base.get_node_text(&name) != "cfg" {
+        return false;
+    }
+
+    let Some(arguments) = attribute.child_by_field_name("arguments") else {
+        return false;
+    };
+    let named_arguments: Vec<_> = arguments.named_children(&mut arguments.walk()).collect();
+    named_arguments.len() == 1
+        && named_arguments[0].kind() == "identifier"
+        && base.get_node_text(&named_arguments[0]) == "test"
+}
+
 /// Extract trait names from #[derive(...)] attributes
 pub(super) fn extract_derived_traits(base: &BaseExtractor, attributes: &[Node]) -> Vec<String> {
     let mut traits = Vec::new();

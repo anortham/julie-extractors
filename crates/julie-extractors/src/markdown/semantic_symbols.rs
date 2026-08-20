@@ -53,6 +53,9 @@ fn extract_fenced_code_block(
     if let Some(language) = &language {
         metadata.insert("language".to_string(), json!(language));
     }
+    if is_rustdoc_test_case(info_string.as_deref()) {
+        metadata.insert("is_test".to_string(), json!(true));
+    }
 
     let name = language
         .as_ref()
@@ -72,6 +75,28 @@ fn extract_fenced_code_block(
             annotations: Vec::new(),
         },
     ))
+}
+
+fn is_rustdoc_test_case(info_string: Option<&str>) -> bool {
+    let Some(info) = info_string else {
+        return true;
+    };
+
+    let tokens: Vec<_> = info
+        .split(|character: char| character == ',' || character.is_whitespace())
+        .filter(|token| !token.is_empty())
+        .collect();
+    if tokens.is_empty() || tokens.iter().any(|token| *token == "ignore") {
+        return false;
+    }
+
+    if tokens[0] == "rust" {
+        return true;
+    }
+
+    tokens
+        .iter()
+        .all(|token| matches!(*token, "no_run" | "compile_fail"))
 }
 
 fn extract_inline_link(

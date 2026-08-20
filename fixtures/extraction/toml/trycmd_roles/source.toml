@@ -1,0 +1,5 @@
+bin.name = "demo"
+args = ["--help"]
+status = 0
+stdout = "demo\n"
+stderr = ""

@@ -2,6 +2,13 @@
 
 Date: 2026-07-09
 
+> Superseded for named-contract test-role rows by the [2026-08-20 test-role
+> contract closure decision](../decisions/2026-08-20-test-role-contract-closure.md).
+> This audit remains the source record for the original grammar inventory and
+> for CSS/regex language-native absence; the named HTML, SQL, Markdown, JSON,
+> TOML, and YAML contracts are now closed only with registered fixtures and
+> explicit negative controls.
+
 ## Scope and method
 
 This audit classifies `test_case`, `test_container`, and `test_lifecycle` for

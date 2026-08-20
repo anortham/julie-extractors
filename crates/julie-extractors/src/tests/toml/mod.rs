@@ -13,6 +13,9 @@ mod literals;
 pub mod structural_facts;
 
 #[cfg(test)]
+mod test_detection;
+
+#[cfg(test)]
 mod toml_extractor_tests {
     #![allow(unused_imports)]
     #![allow(unused_variables)]

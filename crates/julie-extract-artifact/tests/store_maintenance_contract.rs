@@ -18,7 +18,74 @@ use julie_extract_artifact::store::{
 use rusqlite::{Connection, params};
 
 const DAY_MS: i64 = 86_400_000;
+const SHORT_LEASE_MS: i64 = 5_000;
+const SHORT_LEASE_HEARTBEAT_OBSERVATION_ATTEMPTS: usize = 40;
 static NEXT_TEMP_ID: AtomicU64 = AtomicU64::new(1);
+
+struct MaintenanceLeaseState {
+    run_id: String,
+    owner_id: String,
+    owner_pid: i64,
+    fencing_token: i64,
+    intent_heartbeat_at: i64,
+    intent_expires_at: i64,
+    writer_heartbeat_at: i64,
+    writer_expires_at: i64,
+}
+
+fn read_maintenance_lease_state(layout: &StoreLayout) -> MaintenanceLeaseState {
+    Connection::open(layout.coordinator_db())
+        .unwrap()
+        .query_row(
+            "SELECT i.run_id,i.owner_id,i.owner_pid,i.fencing_token,
+                    i.heartbeat_at,i.expires_at,l.heartbeat_at,l.expires_at
+             FROM maintenance_intent AS i
+             JOIN writer_lease AS l ON l.resource='store-writer'
+             WHERE i.resource='store-maintenance'",
+            [],
+            |row| {
+                Ok(MaintenanceLeaseState {
+                    run_id: row.get(0)?,
+                    owner_id: row.get(1)?,
+                    owner_pid: row.get(2)?,
+                    fencing_token: row.get(3)?,
+                    intent_heartbeat_at: row.get(4)?,
+                    intent_expires_at: row.get(5)?,
+                    writer_heartbeat_at: row.get(6)?,
+                    writer_expires_at: row.get(7)?,
+                })
+            },
+        )
+        .unwrap()
+}
+
+fn wait_for_maintenance_heartbeat(
+    layout: &StoreLayout,
+    before: &MaintenanceLeaseState,
+) -> (MaintenanceLeaseState, i64) {
+    for _ in 0..SHORT_LEASE_HEARTBEAT_OBSERVATION_ATTEMPTS {
+        let current = read_maintenance_lease_state(layout);
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as i64;
+        if current.run_id == before.run_id
+            && current.owner_id == before.owner_id
+            && current.owner_pid == before.owner_pid
+            && current.fencing_token == before.fencing_token
+            && now >= before.intent_expires_at
+            && now >= before.writer_expires_at
+            && current.intent_heartbeat_at > before.intent_heartbeat_at
+            && current.writer_heartbeat_at > before.writer_heartbeat_at
+            && current.intent_expires_at > now
+            && current.writer_expires_at > now
+        {
+            return (current, now);
+        }
+        thread::sleep(Duration::from_millis(250));
+    }
+    panic!("maintenance heartbeat observation timed out");
+}
 
 #[test]
 fn pure_plan_preserves_level_roots_and_time_before_path_cap() {
@@ -394,36 +461,13 @@ fn short_maintenance_lease_heartbeats_intent_and_writer_during_apply() {
             "heartbeat-owner",
             owner_pid,
             30 * DAY_MS,
-            1_000,
+            SHORT_LEASE_MS,
         ),
         &plan,
         capacity,
     )
     .unwrap();
-    let before: (String, String, i64, i64, i64, i64, i64, i64) =
-        Connection::open(layout.coordinator_db())
-            .unwrap()
-            .query_row(
-                "SELECT i.run_id,i.owner_id,i.owner_pid,i.fencing_token,
-                    i.heartbeat_at,i.expires_at,l.heartbeat_at,l.expires_at
-             FROM maintenance_intent AS i
-             JOIN writer_lease AS l ON l.resource='store-writer'
-             WHERE i.resource='store-maintenance'",
-                [],
-                |row| {
-                    Ok((
-                        row.get(0)?,
-                        row.get(1)?,
-                        row.get(2)?,
-                        row.get(3)?,
-                        row.get(4)?,
-                        row.get(5)?,
-                        row.get(6)?,
-                        row.get(7)?,
-                    ))
-                },
-            )
-            .unwrap();
+    let before = read_maintenance_lease_state(&layout);
     block_after.store(calls.load(Ordering::SeqCst) + 2, Ordering::SeqCst);
     let apply_plan = plan.clone();
     let apply_thread = thread::spawn(move || executor.apply(&apply_plan));
@@ -435,50 +479,17 @@ fn short_maintenance_lease_heartbeats_intent_and_writer_during_apply() {
         let _ = apply_thread.join();
         panic!("maintenance apply did not enter the lease window");
     }
-    thread::sleep(Duration::from_millis(3_500));
-    let current: (String, String, i64, i64, i64, i64, i64, i64) =
-        Connection::open(layout.coordinator_db())
-            .unwrap()
-            .query_row(
-                "SELECT i.run_id,i.owner_id,i.owner_pid,i.fencing_token,
-                        i.heartbeat_at,i.expires_at,l.heartbeat_at,l.expires_at
-                 FROM maintenance_intent AS i
-                 JOIN writer_lease AS l ON l.resource='store-writer'
-                 WHERE i.resource='store-maintenance'",
-                [],
-                |row| {
-                    Ok((
-                        row.get(0)?,
-                        row.get(1)?,
-                        row.get(2)?,
-                        row.get(3)?,
-                        row.get(4)?,
-                        row.get(5)?,
-                        row.get(6)?,
-                        row.get(7)?,
-                    ))
-                },
-            )
-            .unwrap();
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_millis() as i64;
+    let (current, now) = wait_for_maintenance_heartbeat(&layout, &before);
     release.store(1, Ordering::SeqCst);
     let result = apply_thread.join().unwrap();
-    assert_eq!(
-        (current.0, current.1, current.2, current.3,),
-        (
-            "short-lease-heartbeat".to_string(),
-            "heartbeat-owner".to_string(),
-            i64::from(owner_pid),
-            before.3,
-        )
-    );
-    assert!(current.4 > before.4);
-    assert!(current.6 > before.6);
-    assert!(current.5 > now);
-    assert!(current.7 > now);
+    assert_eq!(current.run_id, "short-lease-heartbeat");
+    assert_eq!(current.owner_id, "heartbeat-owner");
+    assert_eq!(current.owner_pid, i64::from(owner_pid));
+    assert_eq!(current.fencing_token, before.fencing_token);
+    assert!(current.intent_heartbeat_at > before.intent_heartbeat_at);
+    assert!(current.writer_heartbeat_at > before.writer_heartbeat_at);
+    assert!(current.intent_expires_at > now);
+    assert!(current.writer_expires_at > now);
     assert!(result.is_ok(), "short lease apply failed: {result:?}");
 }
 
@@ -508,36 +519,13 @@ fn short_maintenance_lease_heartbeats_during_plan_validation() {
             "heartbeat-owner",
             owner_pid,
             30 * DAY_MS,
-            1_000,
+            SHORT_LEASE_MS,
         ),
         &plan,
         capacity,
     )
     .unwrap();
-    let before: (String, String, i64, i64, i64, i64, i64, i64) =
-        Connection::open(layout.coordinator_db())
-            .unwrap()
-            .query_row(
-                "SELECT i.run_id,i.owner_id,i.owner_pid,i.fencing_token,
-                        i.heartbeat_at,i.expires_at,l.heartbeat_at,l.expires_at
-                 FROM maintenance_intent AS i
-                 JOIN writer_lease AS l ON l.resource='store-writer'
-                 WHERE i.resource='store-maintenance'",
-                [],
-                |row| {
-                    Ok((
-                        row.get(0)?,
-                        row.get(1)?,
-                        row.get(2)?,
-                        row.get(3)?,
-                        row.get(4)?,
-                        row.get(5)?,
-                        row.get(6)?,
-                        row.get(7)?,
-                    ))
-                },
-            )
-            .unwrap();
+    let before = read_maintenance_lease_state(&layout);
     block_after.store(calls.load(Ordering::SeqCst) + 1, Ordering::SeqCst);
     let apply_plan = plan.clone();
     let apply_thread = thread::spawn(move || executor.apply(&apply_plan));
@@ -549,50 +537,17 @@ fn short_maintenance_lease_heartbeats_during_plan_validation() {
         let _ = apply_thread.join();
         panic!("maintenance validation did not enter the lease window");
     }
-    thread::sleep(Duration::from_millis(3_500));
-    let current: (String, String, i64, i64, i64, i64, i64, i64) =
-        Connection::open(layout.coordinator_db())
-            .unwrap()
-            .query_row(
-                "SELECT i.run_id,i.owner_id,i.owner_pid,i.fencing_token,
-                        i.heartbeat_at,i.expires_at,l.heartbeat_at,l.expires_at
-                 FROM maintenance_intent AS i
-                 JOIN writer_lease AS l ON l.resource='store-writer'
-                 WHERE i.resource='store-maintenance'",
-                [],
-                |row| {
-                    Ok((
-                        row.get(0)?,
-                        row.get(1)?,
-                        row.get(2)?,
-                        row.get(3)?,
-                        row.get(4)?,
-                        row.get(5)?,
-                        row.get(6)?,
-                        row.get(7)?,
-                    ))
-                },
-            )
-            .unwrap();
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_millis() as i64;
+    let (current, now) = wait_for_maintenance_heartbeat(&layout, &before);
     release.store(1, Ordering::SeqCst);
     let result = apply_thread.join().unwrap();
-    assert_eq!(
-        (current.0, current.1, current.2, current.3,),
-        (
-            "short-lease-validation-heartbeat".to_string(),
-            "heartbeat-owner".to_string(),
-            i64::from(owner_pid),
-            before.3,
-        )
-    );
-    assert!(current.4 > before.4);
-    assert!(current.6 > before.6);
-    assert!(current.5 > now);
-    assert!(current.7 > now);
+    assert_eq!(current.run_id, "short-lease-validation-heartbeat");
+    assert_eq!(current.owner_id, "heartbeat-owner");
+    assert_eq!(current.owner_pid, i64::from(owner_pid));
+    assert_eq!(current.fencing_token, before.fencing_token);
+    assert!(current.intent_heartbeat_at > before.intent_heartbeat_at);
+    assert!(current.writer_heartbeat_at > before.writer_heartbeat_at);
+    assert!(current.intent_expires_at > now);
+    assert!(current.writer_expires_at > now);
     assert!(
         result.is_ok(),
         "short validation lease apply failed: {result:?}"

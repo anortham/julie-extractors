@@ -132,6 +132,7 @@
       "parent_key": "fixtures/extraction/markdown/basic/source.md:Usage:12:0",
       "metadata": {
         "info_string": "rust",
+        "is_test": true,
         "language": "rust",
         "markdown_kind": "code_block"
       },

@@ -479,11 +479,17 @@ fn changed_plan(args: &[String]) -> Result<TestPlan, CliError> {
         ));
     }
 
-    let changed_paths = args.iter().skip(2).map(String::as_str).collect::<Vec<_>>();
+    let changed_paths = args
+        .iter()
+        .skip(2)
+        .map(|path| normalize_changed_path(path))
+        .collect::<Vec<_>>();
     if changed_paths
         .iter()
         .any(|path| is_golden_expected_output_path(path))
-        && !changed_paths.contains(&"crates/julie-extractors/src/lib.rs")
+        && !changed_paths
+            .iter()
+            .any(|path| path == "crates/julie-extractors/src/lib.rs")
     {
         return Err(CliError::new(
             "golden expected output changed without extractor contract review; include \
@@ -509,13 +515,19 @@ fn is_golden_expected_output_path(path: &str) -> bool {
     path.starts_with("fixtures/extraction/") && path.ends_with("/expected.json")
 }
 
+fn normalize_changed_path(path: &str) -> String {
+    path.replace('\\', "/")
+        .trim_start_matches("./")
+        .to_ascii_lowercase()
+}
+
 fn is_xtask_path(path: &str) -> bool {
-    path == "xtask/Cargo.toml" || path.starts_with("xtask/src/") || path.starts_with("xtask/tests/")
+    path == "xtask/cargo.toml" || path.starts_with("xtask/src/") || path.starts_with("xtask/tests/")
 }
 
 fn is_parser_dependency_path(path: &str) -> bool {
-    path == "Cargo.lock"
-        || path == "crates/julie-extractors/Cargo.toml"
+    path == "cargo.lock"
+        || path == "crates/julie-extractors/cargo.toml"
         || path == "fixtures/extraction/capabilities.json"
         || path.starts_with("fixtures/extraction/")
         || path.starts_with("crates/julie-extractors/src/language_spec/")

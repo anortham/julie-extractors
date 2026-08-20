@@ -6,6 +6,7 @@
 
 pub mod cross_file_pending;
 pub mod structural_facts;
+pub mod test_detection;
 
 #[cfg(test)]
 mod literals;

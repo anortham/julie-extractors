@@ -2,6 +2,12 @@
 
 Date: 2026-07-09
 
+> Superseded for the 28 legacy test-role cells by the [2026-08-20 named-contract
+> closure decision](../decisions/2026-08-20-test-role-contract-closure.md).
+> The tables below remain a historical audit snapshot; the live capability
+> matrix and registered fixture keys are authoritative for the final
+> classifications.
+
 **Status update 2026-08-19 (v2.34.2):** seven leftover test-role cells
 from this ledger are closed. QML, GDScript, Bash, and Scala now have
 golden-backed `test_lifecycle` (and QML/GDScript `test_container`). R

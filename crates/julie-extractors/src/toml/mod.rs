@@ -15,6 +15,7 @@ use std::path::Path;
 use tree_sitter::Tree;
 
 mod relationships;
+mod test_detection;
 
 pub struct TomlExtractor {
     pub(crate) base: BaseExtractor,
@@ -33,7 +34,8 @@ impl TomlExtractor {
 
     pub fn extract_symbols(&mut self, tree: &tree_sitter::Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
-        self.walk_tree_for_symbols(tree.root_node(), &mut symbols, None, 0);
+        let test_context = test_detection::TomlTestContext::from_tree(tree, &self.base.content);
+        self.walk_tree_for_symbols(tree.root_node(), &mut symbols, None, 0, None, &test_context);
         symbols
     }
 
@@ -44,12 +46,20 @@ impl TomlExtractor {
         symbols: &mut Vec<Symbol>,
         parent_id: Option<String>,
         depth: u32,
+        table_name: Option<String>,
+        test_context: &test_detection::TomlTestContext,
     ) {
         if !should_visit_tree_depth(depth) {
             return;
         }
 
-        let symbol = self.extract_symbol_from_node(node, parent_id.as_deref(), symbols);
+        let symbol = self.extract_symbol_from_node(
+            node,
+            parent_id.as_deref(),
+            symbols,
+            table_name.as_deref(),
+            test_context,
+        );
         let mut current_parent_id = parent_id;
 
         if let Some(ref sym) = symbol {
@@ -57,13 +67,26 @@ impl TomlExtractor {
             current_parent_id = Some(sym.id.clone());
         }
 
-        // Recursively process child nodes
         let Some(child_depth) = child_tree_depth(depth) else {
             return;
         };
+        let child_table_name = if matches!(node.kind(), "table" | "table_array_element") {
+            let mut cursor = node.walk();
+            let children: Vec<_> = node.children(&mut cursor).collect();
+            self.extract_table_name(&children)
+        } else {
+            table_name
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_tree_for_symbols(child, symbols, current_parent_id.clone(), child_depth);
+            self.walk_tree_for_symbols(
+                child,
+                symbols,
+                current_parent_id.clone(),
+                child_depth,
+                child_table_name.clone(),
+                test_context,
+            );
         }
     }
 
@@ -73,11 +96,13 @@ impl TomlExtractor {
         node: tree_sitter::Node,
         parent_id: Option<&str>,
         symbols: &[Symbol],
+        table_name: Option<&str>,
+        test_context: &test_detection::TomlTestContext,
     ) -> Option<Symbol> {
         match node.kind() {
-            "table" => self.extract_table(node, parent_id, false),
-            "table_array_element" => self.extract_table(node, parent_id, true),
-            "pair" => self.extract_pair(node, parent_id, symbols),
+            "table" => self.extract_table(node, parent_id, false, test_context),
+            "table_array_element" => self.extract_table(node, parent_id, true, test_context),
+            "pair" => self.extract_pair(node, parent_id, symbols, table_name, test_context),
             _ => None,
         }
     }
@@ -88,6 +113,7 @@ impl TomlExtractor {
         node: tree_sitter::Node,
         parent_id: Option<&str>,
         _is_array: bool,
+        test_context: &test_detection::TomlTestContext,
     ) -> Option<Symbol> {
         use crate::base::SymbolOptions;
 
@@ -103,6 +129,7 @@ impl TomlExtractor {
             visibility: None,
             parent_id: parent_id.map(|s| s.to_string()),
             doc_comment: None,
+            metadata: test_detection::role_metadata(test_context.table_role(&table_name)),
             ..Default::default()
         };
 
@@ -122,6 +149,8 @@ impl TomlExtractor {
         node: tree_sitter::Node,
         parent_id: Option<&str>,
         symbols: &[Symbol],
+        table_name: Option<&str>,
+        test_context: &test_detection::TomlTestContext,
     ) -> Option<Symbol> {
         use crate::base::SymbolOptions;
 
@@ -190,6 +219,7 @@ impl TomlExtractor {
             visibility: None,
             parent_id: parent_id.map(|s| s.to_string()),
             doc_comment,
+            metadata: test_detection::role_metadata(test_context.pair_role(table_name, &key_name)),
             ..Default::default()
         };
 

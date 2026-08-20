@@ -54,9 +54,10 @@ that fail for any new language until they are updated:
   Add it to the separate `DOMAIN_LANGUAGES` set in
   `scripts/language-data-quality-report.mjs` as well, or the strict scorecard
   charges the language quality-bar debt for the code-only domains.
-- Regenerate `fixtures/extraction/reference-resolution-coverage.json` with
-  `node scripts/reference-resolution-coverage-report.mjs --write`. The artifact
-  is exact over the language registry, so a new language makes it stale.
+- Do not regenerate the historical `fixtures/extraction/reference-resolution-coverage.json`
+  artifact for new languages. Workspace-global reference resolution is owned by
+  Miller at query time; see the [retired coverage contract](../contracts/reference-resolution-coverage-v1.md)
+  and [retirement decision](../decisions/2026-08-18-resolution-write-path-retirement.md).
 
 ## 3. Implement Extraction By Data Domain
 

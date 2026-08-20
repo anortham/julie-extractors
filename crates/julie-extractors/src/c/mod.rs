@@ -88,6 +88,7 @@ impl CExtractor {
         // Post-process: Fix function pointer typedef names and struct alignment attributes
         typedefs::fix_function_pointer_typedef_names(&mut symbols);
         typedefs::fix_struct_alignment_attributes(&mut symbols);
+        test_calls::apply_criterion_lifecycle_metadata(&self.base, tree.root_node(), &mut symbols);
 
         symbols
     }

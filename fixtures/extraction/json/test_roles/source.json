@@ -1,0 +1,47 @@
+[
+  {
+    "description": "string schema",
+    "schema": {
+      "type": "string"
+    },
+    "tests": [
+      {
+        "description": "valid string",
+        "data": "ok",
+        "valid": true
+      },
+      {
+        "description": "invalid number",
+        "data": 3,
+        "valid": false
+      },
+      {
+        "description": "missing valid flag",
+        "data": "not-a-case"
+      }
+    ]
+  },
+  {
+    "description": "object schema",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "description": "nested lookalike",
+        "data": true,
+        "valid": true
+      }
+    },
+    "tests": [
+      {
+        "description": "valid object",
+        "data": {},
+        "valid": true
+      }
+    ]
+  },
+  {
+    "description": "not a group",
+    "data": true,
+    "valid": true
+  }
+]

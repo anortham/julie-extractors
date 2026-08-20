@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+  <script src="https://unpkg.com/mocha/mocha.js"></script>
+  <script>mocha.setup({ ui: "bdd" });</script>
+</head>
+<body>
+  <script>
+    describe("browser suite", () => {
+      context("nested suite", () => {
+        before(() => {});
+        beforeEach(() => {});
+        it("runs", () => {});
+        afterEach(() => {});
+        after(() => {});
+        test("jest-shaped", () => {});
+        it.skip("qualified", () => {});
+      });
+    });
+  </script>
+  <script>
+    function describe() {}
+    app.describe("member call", () => {});
+  </script>
+</body>
+</html>

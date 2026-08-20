@@ -13,6 +13,7 @@ pub mod identifiers;
 pub mod literals;
 pub mod relationships;
 pub mod signatures;
+pub mod test_detection;
 pub mod type_arguments;
 pub mod types;
 // This isImplementation of most comprehensive extractors with 2000+ lines of tests

@@ -19,6 +19,7 @@ impl ScriptStyleExtractor {
         base: &mut BaseExtractor,
         node: Node,
         parent_id: Option<&str>,
+        mocha_bdd_contract: bool,
     ) -> Vec<Symbol> {
         let attributes = HTMLHelpers::extract_attributes(base, node);
         let content = HTMLHelpers::extract_text_content(base, node);
@@ -27,21 +28,14 @@ impl ScriptStyleExtractor {
         // actually JavaScript.  Non-JS types (e.g. application/ld+json,
         // text/html, text/template) should produce a script-tag symbol so that
         // attributes like `type` are preserved in the symbol's signature.
-        let script_type = attributes.get("type").map(|s| s.as_str()).unwrap_or("");
-        let is_javascript = script_type.is_empty()
-            || matches!(
-                script_type,
-                "text/javascript"
-                    | "application/javascript"
-                    | "module"
-                    | "text/ecmascript"
-                    | "application/ecmascript"
-            );
+        let is_javascript = is_javascript_script_type(&attributes);
 
         if !attributes.contains_key("src") && is_javascript {
             let symbols = content
                 .as_deref()
-                .map(|content| extract_embedded_javascript_symbols(base, node, content))
+                .map(|content| {
+                    extract_embedded_javascript_symbols(base, node, content, mocha_bdd_contract)
+                })
                 .unwrap_or_default();
             if !symbols.is_empty() {
                 return symbols;
@@ -178,10 +172,109 @@ impl ScriptStyleExtractor {
     }
 }
 
+pub(super) fn is_javascript_script_type(attributes: &HashMap<String, String>) -> bool {
+    let script_type = attributes.get("type").map(String::as_str).unwrap_or("");
+    script_type.is_empty()
+        || matches!(
+            script_type,
+            "text/javascript"
+                | "application/javascript"
+                | "module"
+                | "text/ecmascript"
+                | "application/ecmascript"
+        )
+}
+
+pub(super) fn is_mocha_script_source(source: &str) -> bool {
+    let source = source.split(['?', '#']).next().unwrap_or(source);
+    source.rsplit('/').next() == Some("mocha.js")
+}
+
+pub(super) fn contains_mocha_bdd_setup(content: &str) -> bool {
+    let mut parser = tree_sitter::Parser::new();
+    if parser
+        .set_language(&tree_sitter_javascript::LANGUAGE.into())
+        .is_err()
+    {
+        return false;
+    }
+    let Some(tree) = parser.parse(content, None) else {
+        return false;
+    };
+
+    let mut nodes = vec![tree.root_node()];
+    while let Some(node) = nodes.pop() {
+        if node.kind() == "call_expression"
+            && let Some(function) = node.child_by_field_name("function")
+            && function.kind() == "member_expression"
+            && function
+                .child_by_field_name("object")
+                .is_some_and(|object| node_text(content, object) == "mocha")
+            && function
+                .child_by_field_name("property")
+                .is_some_and(|property| node_text(content, property) == "setup")
+        {
+            let arguments = node.child_by_field_name("arguments");
+            if !arguments.is_some_and(|arguments| {
+                arguments
+                    .named_child(0)
+                    .is_some_and(|argument| is_bdd_setup_argument(content, argument))
+            }) {
+                continue;
+            }
+            return true;
+        }
+
+        let mut cursor = node.walk();
+        nodes.extend(node.children(&mut cursor));
+    }
+
+    false
+}
+
+fn is_bdd_setup_argument(content: &str, argument: Node) -> bool {
+    if js_string_value(node_text(content, argument).as_str()) == Some("bdd") {
+        return true;
+    }
+    if argument.kind() != "object" {
+        return false;
+    }
+
+    let mut cursor = argument.walk();
+    argument.named_children(&mut cursor).any(|pair| {
+        pair.kind() == "pair"
+            && pair.child_by_field_name("key").is_some_and(|key| {
+                let key_text = node_text(content, key);
+                key_text.trim() == "ui" || js_string_value(key_text.as_str()) == Some("ui")
+            })
+            && pair.child_by_field_name("value").is_some_and(|value| {
+                js_string_value(node_text(content, value).as_str()) == Some("bdd")
+            })
+    })
+}
+
+fn node_text(content: &str, node: Node) -> String {
+    content[node.byte_range()].to_string()
+}
+
+fn js_string_value(text: &str) -> Option<&str> {
+    let text = text.trim();
+    let bytes = text.as_bytes();
+    if bytes.len() >= 2
+        && matches!(bytes[0], b'\'' | b'"' | b'`')
+        && bytes.last() == Some(&bytes[0])
+    {
+        Some(&text[1..text.len() - 1])
+    } else {
+        None
+    }
+}
+
 fn extract_embedded_javascript_symbols(
     base: &BaseExtractor,
     node: Node,
     content: &str,
+    mocha_bdd_contract: bool,
 ) -> Vec<Symbol> {
     let mut parser = tree_sitter::Parser::new();
     if parser
@@ -200,11 +293,48 @@ fn extract_embedded_javascript_symbols(
         std::path::Path::new(""),
     );
     let mut symbols = extractor.extract_symbols(&tree);
+    symbols.retain(|symbol| {
+        !has_test_role_metadata(symbol) || (mocha_bdd_contract && is_supported_mocha_role(symbol))
+    });
     let Some(offset) = embedded_content_offset(base, node, content) else {
         return Vec::new();
     };
     apply_embedded_offsets(&mut symbols, base, offset);
     symbols
+}
+
+fn has_test_role_metadata(symbol: &Symbol) -> bool {
+    symbol.metadata.as_ref().is_some_and(|metadata| {
+        metadata.contains_key("is_test") || metadata.contains_key("test_container")
+    })
+}
+
+fn is_supported_mocha_role(symbol: &Symbol) -> bool {
+    let Some(metadata) = symbol.metadata.as_ref() else {
+        return false;
+    };
+    let Some(signature) = symbol.signature.as_deref() else {
+        return false;
+    };
+    let Some(callee) = signature.split('(').next() else {
+        return false;
+    };
+
+    if metadata
+        .get("test_container")
+        .and_then(|value| value.as_bool())
+        == Some(true)
+    {
+        return matches!(callee, "describe" | "context");
+    }
+    if metadata
+        .get("test_lifecycle")
+        .and_then(|value| value.as_bool())
+        == Some(true)
+    {
+        return matches!(callee, "before" | "after" | "beforeEach" | "afterEach");
+    }
+    metadata.get("is_test").and_then(|value| value.as_bool()) == Some(true) && callee == "it"
 }
 
 fn extract_embedded_css_symbols(base: &BaseExtractor, node: Node, content: &str) -> Vec<Symbol> {

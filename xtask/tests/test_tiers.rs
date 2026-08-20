@@ -726,6 +726,55 @@ fn test_changed_xtask_paths_run_xtask_tests() {
 }
 
 #[test]
+fn test_changed_windows_xtask_paths_match_canonical_gate_selection() {
+    let canonical =
+        plan_from_args(["test", "changed", "xtask/src/test_tiers.rs"]).expect("canonical plan");
+    let windows = plan_from_args(["test", "changed", r".\XTASK\SRC\TEST_TIERS.RS"])
+        .expect("Windows-style plan");
+    assert_eq!(windows, canonical);
+}
+
+#[test]
+fn test_changed_windows_parser_paths_match_canonical_certification() {
+    let canonical = plan_from_args(["test", "changed", "Cargo.lock"]).expect("canonical plan");
+    let windows = plan_from_args(["test", "changed", r".\CARGO.LOCK"]).expect("Windows-style plan");
+    assert_eq!(windows, canonical);
+}
+
+#[test]
+fn test_changed_windows_golden_paths_preserve_contract_review() {
+    let canonical_error = plan_from_args([
+        "test",
+        "changed",
+        "fixtures/extraction/typescript/basic/expected.json",
+    ])
+    .expect_err("canonical golden output change should require review");
+    let windows_error = plan_from_args([
+        "test",
+        "changed",
+        r".\FIXTURES\EXTRACTION\TYPESCRIPT\BASIC\EXPECTED.JSON",
+    ])
+    .expect_err("Windows-style golden output change should require review");
+    assert_eq!(windows_error.message(), canonical_error.message());
+
+    let canonical_reviewed = plan_from_args([
+        "test",
+        "changed",
+        "fixtures/extraction/typescript/basic/expected.json",
+        "crates/julie-extractors/src/lib.rs",
+    ])
+    .expect("canonical reviewed plan");
+    let windows_reviewed = plan_from_args([
+        "test",
+        "changed",
+        r".\FIXTURES\EXTRACTION\TYPESCRIPT\BASIC\EXPECTED.JSON",
+        r".\CRATES\JULIE-EXTRACTORS\SRC\LIB.RS",
+    ])
+    .expect("Windows-style reviewed plan");
+    assert_eq!(windows_reviewed, canonical_reviewed);
+}
+
+#[test]
 fn test_changed_tier_combines_multiple_paths_and_requires_at_least_one_path() {
     let mixed_change = plan_from_args([
         "test",

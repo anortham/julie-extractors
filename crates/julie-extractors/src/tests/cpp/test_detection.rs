@@ -52,6 +52,14 @@ fn is_test(sym: &Symbol) -> bool {
         .unwrap_or(false)
 }
 
+fn is_lifecycle(sym: &Symbol) -> bool {
+    sym.metadata
+        .as_ref()
+        .and_then(|m| m.get("test_lifecycle"))
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false)
+}
+
 /// True if the symbol carries an annotation marker with the given (lowercased)
 /// key — the signal the role classifier consumes for GoogleTest macros.
 fn has_annotation_key(sym: &Symbol, key: &str) -> bool {
@@ -240,4 +248,182 @@ class ParameterizedMathTest : public ::testing::TestWithParam<int> {
         bases.iter().any(|b| last_segment(b) == "TestWithParam"),
         "parameterized fixture base_types must contain `::testing::TestWithParam`, got {bases:?}"
     );
+}
+
+#[test]
+fn googletest_fixture_lifecycle_requires_direct_known_base() {
+    let syms = symbols(
+        r#"
+class GoogleFixture : public ::testing::Test {
+protected:
+    void SetUp() override {}
+    void TearDown() override {}
+    static void SetUpTestSuite() {}
+    static void TearDownTestSuite() {}
+};
+
+class ParameterizedFixture : public ::testing::TestWithParam<int> {
+protected:
+    void SetUp() override {}
+    void TearDown() override {}
+    static void SetUpTestSuite() {}
+    static void TearDownTestSuite() {}
+};
+
+class IndirectFixture : public GoogleFixture {
+protected:
+    void SetUp() override {}
+    void TearDown() override {}
+    static void SetUpTestSuite() {}
+    static void TearDownTestSuite() {}
+};
+
+class UnrelatedFixture : public OtherBase {
+protected:
+    void SetUp() {}
+    void TearDown() {}
+    static void SetUpTestSuite() {}
+    static void TearDownTestSuite() {}
+};
+
+void SetUp() {}
+"#,
+    );
+    let lifecycle_names = ["SetUp", "TearDown", "SetUpTestSuite", "TearDownTestSuite"];
+
+    for class_name in ["GoogleFixture", "ParameterizedFixture"] {
+        let class = syms
+            .iter()
+            .find(|symbol| symbol.name == class_name && symbol.kind == SymbolKind::Class)
+            .unwrap_or_else(|| {
+                panic!("expected direct GoogleTest fixture {class_name}, got {syms:?}")
+            });
+        for method_name in lifecycle_names {
+            let method = syms
+                .iter()
+                .find(|symbol| {
+                    symbol.name == method_name
+                        && symbol.parent_id.as_deref() == Some(class.id.as_str())
+                })
+                .unwrap_or_else(|| panic!("expected {class_name}::{method_name}, got {syms:?}"));
+            assert!(
+                is_test(method),
+                "{class_name}::{method_name} must be is_test"
+            );
+            assert!(
+                is_lifecycle(method),
+                "{class_name}::{method_name} must be test_lifecycle"
+            );
+        }
+    }
+
+    for class_name in ["IndirectFixture", "UnrelatedFixture"] {
+        let class = syms
+            .iter()
+            .find(|symbol| symbol.name == class_name && symbol.kind == SymbolKind::Class)
+            .unwrap_or_else(|| panic!("expected negative fixture {class_name}, got {syms:?}"));
+        for method_name in lifecycle_names {
+            let method = syms
+                .iter()
+                .find(|symbol| {
+                    symbol.name == method_name
+                        && symbol.parent_id.as_deref() == Some(class.id.as_str())
+                })
+                .unwrap_or_else(|| panic!("expected {class_name}::{method_name}, got {syms:?}"));
+            assert!(
+                !is_test(method),
+                "{class_name}::{method_name} must not be is_test"
+            );
+            assert!(
+                !is_lifecycle(method),
+                "{class_name}::{method_name} must not be test_lifecycle"
+            );
+        }
+    }
+
+    let free_function = syms
+        .iter()
+        .find(|symbol| symbol.name == "SetUp" && symbol.parent_id.is_none())
+        .unwrap_or_else(|| panic!("expected free SetUp function, got {syms:?}"));
+    assert!(!is_test(free_function));
+    assert!(!is_lifecycle(free_function));
+}
+
+#[test]
+fn googletest_out_of_class_fixture_lifecycle_requires_direct_known_base() {
+    let syms = symbols(
+        r#"
+class DirectFixture : public ::testing::Test {
+public:
+    void SetUp() override;
+    void TearDown() override;
+    static void SetUpTestSuite();
+    static void TearDownTestSuite();
+};
+
+class ParameterizedDirectFixture : public ::testing::TestWithParam<int> {
+public:
+    void SetUp() override;
+    void TearDown() override;
+    static void SetUpTestSuite();
+    static void TearDownTestSuite();
+};
+
+class IndirectFixture : public DirectFixture {
+public:
+    void SetUp();
+};
+
+class UnrelatedFixture : public OtherBase {
+public:
+    void SetUp();
+};
+
+void DirectFixture::SetUp() {}
+void DirectFixture::TearDown() {}
+void DirectFixture::SetUpTestSuite() {}
+void DirectFixture::TearDownTestSuite() {}
+void ParameterizedDirectFixture::SetUp() {}
+void ParameterizedDirectFixture::TearDown() {}
+void ParameterizedDirectFixture::SetUpTestSuite() {}
+void ParameterizedDirectFixture::TearDownTestSuite() {}
+void IndirectFixture::SetUp() {}
+void UnrelatedFixture::SetUp() {}
+"#,
+    );
+
+    for fixture in ["DirectFixture", "ParameterizedDirectFixture"] {
+        for lifecycle_name in ["SetUp", "TearDown", "SetUpTestSuite", "TearDownTestSuite"] {
+            let qualified_name = format!("{fixture}::{lifecycle_name}");
+            let method = syms
+                .iter()
+                .find(|symbol| {
+                    symbol.name == qualified_name
+                        && symbol.kind == SymbolKind::Function
+                        && symbol.parent_id.is_none()
+                })
+                .unwrap_or_else(|| panic!("expected {qualified_name}, got {syms:?}"));
+            assert!(is_test(method), "{qualified_name} must be is_test");
+            assert!(
+                is_lifecycle(method),
+                "{qualified_name} must be test_lifecycle"
+            );
+        }
+    }
+
+    for qualified_name in ["IndirectFixture::SetUp", "UnrelatedFixture::SetUp"] {
+        let method = syms
+            .iter()
+            .find(|symbol| {
+                symbol.name == qualified_name
+                    && symbol.kind == SymbolKind::Function
+                    && symbol.parent_id.is_none()
+            })
+            .unwrap_or_else(|| panic!("expected {qualified_name}, got {syms:?}"));
+        assert!(!is_test(method), "{qualified_name} must not be is_test");
+        assert!(
+            !is_lifecycle(method),
+            "{qualified_name} must not be test_lifecycle"
+        );
+    }
 }

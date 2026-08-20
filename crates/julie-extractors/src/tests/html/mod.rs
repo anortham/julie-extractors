@@ -56,4 +56,5 @@ pub mod relationships;
 pub mod script_style;
 pub mod structural_facts;
 pub mod structure;
+pub mod test_detection;
 mod types; // Phase 4: Type extraction verification tests

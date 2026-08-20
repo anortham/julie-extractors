@@ -1,0 +1,494 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/markdown/test_roles/source.md:Rust Documentation Examples:1:0",
+      "name": "Rust Documentation Examples",
+      "kind": "module",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/test_roles/source.md",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 38,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 523,
+      "body_span": null,
+      "body_hash": null,
+      "signature": null,
+      "doc_comment": "An executable Rust example:\n\n\n```rust\nfn explicit_example() {}\n```\n\n\nThis example only compiles:\n\n\n```rust,no_run\nfn no_run_example() {}\n```\n\n\nThis example documents a compilation error:\n\n\n```rust,compile_fail\nlet value: i32 = \"not an integer\";\n```\n\n\nAn unspecified fence is Rust by default:\n\n\n```\nfn default_example() {}\n```\n\n\nIgnored examples are not doctests:\n\n\n```rust,ignore\nfn ignored_example() {}\n```\n\n\nOther languages are documentation snippets only:\n\n\n```python\nprint(\"not a Rust doctest\")\n```\n",
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "heading_level": 1,
+        "markdown_kind": "heading"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": "documentation"
+    },
+    {
+      "key": "fixtures/extraction/markdown/test_roles/source.md:code block:23:0",
+      "name": "code block",
+      "kind": "property",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/test_roles/source.md",
+      "start_line": 23,
+      "start_column": 0,
+      "end_line": 26,
+      "end_column": 0,
+      "start_byte": 318,
+      "end_byte": 350,
+      "body_span": {
+        "start_line": 24,
+        "start_column": 21,
+        "end_line": 24,
+        "end_column": 23,
+        "start_byte": 343,
+        "end_byte": 345
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": null,
+      "doc_comment": "fn default_example() {}",
+      "visibility": null,
+      "parent_key": "fixtures/extraction/markdown/test_roles/source.md:Rust Documentation Examples:1:0",
+      "metadata": {
+        "is_test": true,
+        "markdown_kind": "code_block"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": "documentation"
+    },
+    {
+      "key": "fixtures/extraction/markdown/test_roles/source.md:python code block:35:0",
+      "name": "python code block",
+      "kind": "property",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/test_roles/source.md",
+      "start_line": 35,
+      "start_column": 0,
+      "end_line": 38,
+      "end_column": 0,
+      "start_byte": 481,
+      "end_byte": 523,
+      "body_span": {
+        "start_line": 36,
+        "start_column": 5,
+        "end_line": 36,
+        "end_column": 27,
+        "start_byte": 496,
+        "end_byte": 518
+      },
+      "body_hash": "0ccfdebf5ada98810b47c1d2cccfa86f",
+      "signature": "```python",
+      "doc_comment": "print(\"not a Rust doctest\")",
+      "visibility": null,
+      "parent_key": "fixtures/extraction/markdown/test_roles/source.md:Rust Documentation Examples:1:0",
+      "metadata": {
+        "info_string": "python",
+        "language": "python",
+        "markdown_kind": "code_block"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": "documentation"
+    },
+    {
+      "key": "fixtures/extraction/markdown/test_roles/source.md:rust code block:5:0",
+      "name": "rust code block",
+      "kind": "property",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/test_roles/source.md",
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 8,
+      "end_column": 0,
+      "start_byte": 60,
+      "end_byte": 97,
+      "body_span": {
+        "start_line": 6,
+        "start_column": 22,
+        "end_line": 6,
+        "end_column": 24,
+        "start_byte": 90,
+        "end_byte": 92
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "```rust",
+      "doc_comment": "fn explicit_example() {}",
+      "visibility": null,
+      "parent_key": "fixtures/extraction/markdown/test_roles/source.md:Rust Documentation Examples:1:0",
+      "metadata": {
+        "info_string": "rust",
+        "is_test": true,
+        "language": "rust",
+        "markdown_kind": "code_block"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": "documentation"
+    },
+    {
+      "key": "fixtures/extraction/markdown/test_roles/source.md:rust,compile_fail code block:17:0",
+      "name": "rust,compile_fail code block",
+      "kind": "property",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/test_roles/source.md",
+      "start_line": 17,
+      "start_column": 0,
+      "end_line": 20,
+      "end_column": 0,
+      "start_byte": 215,
+      "end_byte": 275,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "```rust,compile_fail",
+      "doc_comment": "let value: i32 = \"not an integer\";",
+      "visibility": null,
+      "parent_key": "fixtures/extraction/markdown/test_roles/source.md:Rust Documentation Examples:1:0",
+      "metadata": {
+        "info_string": "rust,compile_fail",
+        "is_test": true,
+        "language": "rust,compile_fail",
+        "markdown_kind": "code_block"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": "documentation"
+    },
+    {
+      "key": "fixtures/extraction/markdown/test_roles/source.md:rust,ignore code block:29:0",
+      "name": "rust,ignore code block",
+      "kind": "property",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/test_roles/source.md",
+      "start_line": 29,
+      "start_column": 0,
+      "end_line": 32,
+      "end_column": 0,
+      "start_byte": 387,
+      "end_byte": 430,
+      "body_span": {
+        "start_line": 30,
+        "start_column": 21,
+        "end_line": 30,
+        "end_column": 23,
+        "start_byte": 423,
+        "end_byte": 425
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "```rust,ignore",
+      "doc_comment": "fn ignored_example() {}",
+      "visibility": null,
+      "parent_key": "fixtures/extraction/markdown/test_roles/source.md:Rust Documentation Examples:1:0",
+      "metadata": {
+        "info_string": "rust,ignore",
+        "language": "rust,ignore",
+        "markdown_kind": "code_block"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": "documentation"
+    },
+    {
+      "key": "fixtures/extraction/markdown/test_roles/source.md:rust,no_run code block:11:0",
+      "name": "rust,no_run code block",
+      "kind": "property",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/test_roles/source.md",
+      "start_line": 11,
+      "start_column": 0,
+      "end_line": 14,
+      "end_column": 0,
+      "start_byte": 127,
+      "end_byte": 169,
+      "body_span": {
+        "start_line": 12,
+        "start_column": 20,
+        "end_line": 12,
+        "end_column": 22,
+        "start_byte": 162,
+        "end_byte": 164
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "```rust,no_run",
+      "doc_comment": "fn no_run_example() {}",
+      "visibility": null,
+      "parent_key": "fixtures/extraction/markdown/test_roles/source.md:Rust Documentation Examples:1:0",
+      "metadata": {
+        "info_string": "rust,no_run",
+        "is_test": true,
+        "language": "rust,no_run",
+        "markdown_kind": "code_block"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": "documentation"
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
+  "identifiers": [],
+  "types": [],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "markdown.fenced_code_block.v1",
+      "capture_name": "fenced_code_block",
+      "node_kind": "fenced_code_block",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/test_roles/source.md",
+      "containing_key": "fixtures/extraction/markdown/test_roles/source.md:code block:23:0",
+      "start_line": 23,
+      "start_column": 0,
+      "end_line": 26,
+      "end_column": 0,
+      "start_byte": 318,
+      "end_byte": 350,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "document_structure"
+      }
+    },
+    {
+      "pattern_id": "markdown.fenced_code_block.v1",
+      "capture_name": "fenced_code_block",
+      "node_kind": "fenced_code_block",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/test_roles/source.md",
+      "containing_key": "fixtures/extraction/markdown/test_roles/source.md:python code block:35:0",
+      "start_line": 35,
+      "start_column": 0,
+      "end_line": 38,
+      "end_column": 0,
+      "start_byte": 481,
+      "end_byte": 523,
+      "confidence": "1.000",
+      "metadata": {
+        "info_string": "python",
+        "language": "python",
+        "pattern_version": 1,
+        "query_family": "document_structure"
+      }
+    },
+    {
+      "pattern_id": "markdown.fenced_code_block.v1",
+      "capture_name": "fenced_code_block",
+      "node_kind": "fenced_code_block",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/test_roles/source.md",
+      "containing_key": "fixtures/extraction/markdown/test_roles/source.md:rust code block:5:0",
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 8,
+      "end_column": 0,
+      "start_byte": 60,
+      "end_byte": 97,
+      "confidence": "1.000",
+      "metadata": {
+        "info_string": "rust",
+        "language": "rust",
+        "pattern_version": 1,
+        "query_family": "document_structure"
+      }
+    },
+    {
+      "pattern_id": "markdown.fenced_code_block.v1",
+      "capture_name": "fenced_code_block",
+      "node_kind": "fenced_code_block",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/test_roles/source.md",
+      "containing_key": "fixtures/extraction/markdown/test_roles/source.md:rust,compile_fail code block:17:0",
+      "start_line": 17,
+      "start_column": 0,
+      "end_line": 20,
+      "end_column": 0,
+      "start_byte": 215,
+      "end_byte": 275,
+      "confidence": "1.000",
+      "metadata": {
+        "info_string": "rust,compile_fail",
+        "language": "rust,compile_fail",
+        "pattern_version": 1,
+        "query_family": "document_structure"
+      }
+    },
+    {
+      "pattern_id": "markdown.fenced_code_block.v1",
+      "capture_name": "fenced_code_block",
+      "node_kind": "fenced_code_block",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/test_roles/source.md",
+      "containing_key": "fixtures/extraction/markdown/test_roles/source.md:rust,ignore code block:29:0",
+      "start_line": 29,
+      "start_column": 0,
+      "end_line": 32,
+      "end_column": 0,
+      "start_byte": 387,
+      "end_byte": 430,
+      "confidence": "1.000",
+      "metadata": {
+        "info_string": "rust,ignore",
+        "language": "rust,ignore",
+        "pattern_version": 1,
+        "query_family": "document_structure"
+      }
+    },
+    {
+      "pattern_id": "markdown.fenced_code_block.v1",
+      "capture_name": "fenced_code_block",
+      "node_kind": "fenced_code_block",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/test_roles/source.md",
+      "containing_key": "fixtures/extraction/markdown/test_roles/source.md:rust,no_run code block:11:0",
+      "start_line": 11,
+      "start_column": 0,
+      "end_line": 14,
+      "end_column": 0,
+      "start_byte": 127,
+      "end_byte": 169,
+      "confidence": "1.000",
+      "metadata": {
+        "info_string": "rust,no_run",
+        "language": "rust,no_run",
+        "pattern_version": 1,
+        "query_family": "document_structure"
+      }
+    },
+    {
+      "pattern_id": "markdown.heading.v1",
+      "capture_name": "heading",
+      "node_kind": "atx_heading",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/test_roles/source.md",
+      "containing_key": "fixtures/extraction/markdown/test_roles/source.md:Rust Documentation Examples:1:0",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 30,
+      "confidence": "1.000",
+      "metadata": {
+        "level": 1,
+        "pattern_version": 1,
+        "query_family": "document_structure",
+        "text": "Rust Documentation Examples"
+      }
+    }
+  ],
+  "complexity_metrics": [],
+  "literals": [],
+  "source_regions": [
+    {
+      "kind": "embedded",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/test_roles/source.md",
+      "containing_key": null,
+      "start_line": 11,
+      "start_column": 0,
+      "end_line": 14,
+      "end_column": 0,
+      "start_byte": 127,
+      "end_byte": 169,
+      "metadata": {
+        "embedded_language": "rust,no_run",
+        "host_node_kind": "fenced_code_block",
+        "info_string": "rust,no_run"
+      }
+    },
+    {
+      "kind": "embedded",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/test_roles/source.md",
+      "containing_key": null,
+      "start_line": 17,
+      "start_column": 0,
+      "end_line": 20,
+      "end_column": 0,
+      "start_byte": 215,
+      "end_byte": 275,
+      "metadata": {
+        "embedded_language": "rust,compile_fail",
+        "host_node_kind": "fenced_code_block",
+        "info_string": "rust,compile_fail"
+      }
+    },
+    {
+      "kind": "embedded",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/test_roles/source.md",
+      "containing_key": null,
+      "start_line": 23,
+      "start_column": 0,
+      "end_line": 26,
+      "end_column": 0,
+      "start_byte": 318,
+      "end_byte": 350,
+      "metadata": {
+        "host_node_kind": "fenced_code_block"
+      }
+    },
+    {
+      "kind": "embedded",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/test_roles/source.md",
+      "containing_key": null,
+      "start_line": 29,
+      "start_column": 0,
+      "end_line": 32,
+      "end_column": 0,
+      "start_byte": 387,
+      "end_byte": 430,
+      "metadata": {
+        "embedded_language": "rust,ignore",
+        "host_node_kind": "fenced_code_block",
+        "info_string": "rust,ignore"
+      }
+    },
+    {
+      "kind": "embedded",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/test_roles/source.md",
+      "containing_key": null,
+      "start_line": 35,
+      "start_column": 0,
+      "end_line": 38,
+      "end_column": 0,
+      "start_byte": 481,
+      "end_byte": 523,
+      "metadata": {
+        "embedded_language": "python",
+        "host_node_kind": "fenced_code_block",
+        "info_string": "python"
+      }
+    },
+    {
+      "kind": "embedded",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/test_roles/source.md",
+      "containing_key": null,
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 8,
+      "end_column": 0,
+      "start_byte": 60,
+      "end_byte": 97,
+      "metadata": {
+        "embedded_language": "rust",
+        "host_node_kind": "fenced_code_block",
+        "info_string": "rust"
+      }
+    }
+  ],
+  "type_argument_usages": []
+}

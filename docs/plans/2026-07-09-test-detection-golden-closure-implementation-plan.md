@@ -1,5 +1,10 @@
 # Test Detection Golden Closure Implementation Plan
 
+> Closure note (2026-08-20): the remaining 28 test-role cells from Tasks 6 and
+> 7 are superseded by the [named-contract closure decision](../decisions/2026-08-20-test-role-contract-closure.md).
+> Registered goldens and the capability matrix now provide the required
+> evidence; this document remains the historical implementation record.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use razorback:subagent-driven-development when subagent delegation is available. Fall back to razorback:executing-plans for single-task, tightly-sequential, or no-delegation runs.
 
 **Goal:** Add registered golden fixtures for test-role extraction across every executable supported language, resolve applicability for non-executable languages, and promote `test_detection` into the strict language quality bar.

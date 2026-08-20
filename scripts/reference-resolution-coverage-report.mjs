@@ -6,8 +6,10 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
+const MODULE_PATH = fileURLToPath(import.meta.url);
 const CAPABILITIES_PATH = path.join(ROOT, "fixtures/extraction/capabilities.json");
 const REPORT_PATH = path.join(
   ROOT,
@@ -65,13 +67,19 @@ function fixtures(capabilities) {
   );
 }
 
-function sourceDigest(capabilities) {
+export function normalizeContractPath(value) {
+  return value.replaceAll("\\", "/");
+}
+
+export function sourceDigest(capabilities) {
   const hash = crypto.createHash("sha256");
   hash.update(fs.readFileSync(CAPABILITIES_PATH));
   for (const fixture of fixtures(capabilities).sort((left, right) =>
     left.expectedPath.localeCompare(right.expectedPath),
   )) {
-    hash.update(path.relative(ROOT, fixture.expectedPath));
+    hash.update(
+      normalizeContractPath(path.relative(ROOT, fixture.expectedPath)),
+    );
     hash.update(fs.readFileSync(fixture.expectedPath));
   }
   return `sha256:${hash.digest("hex")}`;
@@ -335,25 +343,34 @@ function validate(report) {
   return problems;
 }
 
-const write = process.argv.includes("--write");
-const strict = process.argv.includes("--strict");
-if (write) {
-  fs.writeFileSync(REPORT_PATH, `${JSON.stringify(generate(), null, 2)}\n`);
+function run() {
+  const write = process.argv.includes("--write");
+  const strict = process.argv.includes("--strict");
+  if (write) {
+    fs.writeFileSync(REPORT_PATH, `${JSON.stringify(generate(), null, 2)}\n`);
+  }
+  if (!fs.existsSync(REPORT_PATH)) {
+    process.stderr.write(
+      `missing ${path.relative(ROOT, REPORT_PATH)}; run with --write\n`,
+    );
+    process.exit(1);
+  }
+  const report = JSON.parse(fs.readFileSync(REPORT_PATH, "utf8"));
+  const problems = validate(report);
+  const result = {
+    languages: report.languages.length,
+    cells: report.cells.length,
+    silent_cells: problems.filter((problem) => problem.endsWith("silent cell"))
+      .length,
+    quality_bar_debts: problems.length,
+  };
+  process.stdout.write(`${JSON.stringify(result)}\n`);
+  if (strict && problems.length > 0) {
+    process.stderr.write(`${problems.join("\n")}\n`);
+    process.exit(1);
+  }
 }
-if (!fs.existsSync(REPORT_PATH)) {
-  process.stderr.write(`missing ${path.relative(ROOT, REPORT_PATH)}; run with --write\n`);
-  process.exit(1);
-}
-const report = JSON.parse(fs.readFileSync(REPORT_PATH, "utf8"));
-const problems = validate(report);
-const result = {
-  languages: report.languages.length,
-  cells: report.cells.length,
-  silent_cells: problems.filter((problem) => problem.endsWith("silent cell")).length,
-  quality_bar_debts: problems.length,
-};
-process.stdout.write(`${JSON.stringify(result)}\n`);
-if (strict && problems.length > 0) {
-  process.stderr.write(`${problems.join("\n")}\n`);
-  process.exit(1);
+
+if (process.argv[1] && path.resolve(process.argv[1]) === MODULE_PATH) {
+  run();
 }

@@ -4,6 +4,7 @@ use serde_json::Value;
 use tree_sitter::Node;
 
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 /// Attributes that promote an element to a symbol, in priority order.
 const NAME_ATTRIBUTES: [&str; 2] = ["name", "id"];
@@ -107,9 +108,13 @@ fn extract_from_tag(
         SymbolKind::Variable
     };
 
+    let role = test_role(base, span_node, &tag_name, &name_attribute);
     let mut metadata = HashMap::new();
     metadata.insert("tag".to_string(), Value::String(tag_name));
     metadata.insert("name_attribute".to_string(), Value::String(name_attribute));
+    if let Some(role) = role {
+        metadata.insert(role.to_string(), Value::Bool(true));
+    }
 
     Some(base.create_symbol(
         &span_node,
@@ -124,6 +129,94 @@ fn extract_from_tag(
             annotations: Vec::new(),
         },
     ))
+}
+
+fn test_role(
+    base: &BaseExtractor,
+    element: Node<'_>,
+    tag_name: &str,
+    name_attribute: &str,
+) -> Option<&'static str> {
+    if element.kind() != "element" {
+        return None;
+    }
+
+    match tag_name {
+        "target" if is_ant_target(base, element) => Some("test_container"),
+        "test" if name_attribute == "name" && is_ant_test_case(base, element) => Some("is_test"),
+        _ => None,
+    }
+}
+
+fn is_ant_target(base: &BaseExtractor, target: Node<'_>) -> bool {
+    is_direct_child_of_ant_project(base, target) && contains_element_named(base, target, "junit", 0)
+}
+
+fn is_ant_test_case(base: &BaseExtractor, test: Node<'_>) -> bool {
+    let Some(junit) = nearest_element_parent(test) else {
+        return false;
+    };
+    if !element_has_tag(base, junit, "junit") {
+        return false;
+    }
+
+    nearest_element_parent(junit).is_some_and(|target| is_ant_target(base, target))
+}
+
+fn is_direct_child_of_ant_project(base: &BaseExtractor, element: Node<'_>) -> bool {
+    let Some(project) = nearest_element_parent(element) else {
+        return false;
+    };
+
+    element_has_tag(base, project, "project") && is_document_root(project)
+}
+
+fn is_document_root(element: Node<'_>) -> bool {
+    let mut current = element.parent();
+    while let Some(node) = current {
+        if node.kind() == "document" {
+            return node
+                .child_by_field_name("root")
+                .is_some_and(|root| root.start_byte() == element.start_byte());
+        }
+        current = node.parent();
+    }
+
+    false
+}
+
+fn nearest_element_parent(node: Node<'_>) -> Option<Node<'_>> {
+    let mut current = node.parent();
+    while let Some(parent) = current {
+        if parent.kind() == "element" {
+            return Some(parent);
+        }
+        current = parent.parent();
+    }
+
+    None
+}
+
+fn contains_element_named(base: &BaseExtractor, node: Node<'_>, wanted: &str, depth: u32) -> bool {
+    if !should_visit_tree_depth(depth) {
+        return false;
+    }
+    if node.kind() == "element" && element_has_tag(base, node, wanted) {
+        return true;
+    }
+
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return false;
+    };
+    let mut cursor = node.walk();
+    node.children(&mut cursor)
+        .any(|child| contains_element_named(base, child, wanted, child_depth))
+}
+
+fn element_has_tag(base: &BaseExtractor, element: Node<'_>, wanted: &str) -> bool {
+    tag_node(element)
+        .and_then(|tag| tag_name(base, tag))
+        .is_some_and(|name| name == wanted)
 }
 
 pub(super) fn is_orphan_tag(node: Node<'_>) -> bool {
