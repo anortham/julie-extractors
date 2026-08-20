@@ -86,7 +86,7 @@ fn is_rustdoc_test_case(info_string: Option<&str>) -> bool {
         .split(|character: char| character == ',' || character.is_whitespace())
         .filter(|token| !token.is_empty())
         .collect();
-    if tokens.is_empty() || tokens.iter().any(|token| *token == "ignore") {
+    if tokens.is_empty() || tokens.contains(&"ignore") {
         return false;
     }
 

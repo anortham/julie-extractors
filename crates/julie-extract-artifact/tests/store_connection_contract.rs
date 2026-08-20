@@ -29,7 +29,7 @@ fn store_layout_creation_publishes_a_reopenable_generation() {
 
     let metadata = store_metadata(created.store_db());
     assert_eq!(metadata_value(&metadata, "family_id"), "family-a");
-    assert_eq!(metadata_value(&metadata, "extraction_identity_epoch"), "3");
+    assert_eq!(metadata_value(&metadata, "extraction_identity_epoch"), "4");
     assert_eq!(metadata_value(&metadata, "min_reader_version"), "2.30.0");
     assert_eq!(metadata_value(&metadata, "min_writer_version"), "2.30.0");
     assert_eq!(metadata_value(&metadata, "created_by_version"), "2.30.0");

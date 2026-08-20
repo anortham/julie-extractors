@@ -1,6 +1,6 @@
 use super::extract_symbols;
 
-fn role<'a>(symbols: &'a [crate::base::Symbol], name: &str, key: &str) -> bool {
+fn role(symbols: &[crate::base::Symbol], name: &str, key: &str) -> bool {
     symbols
         .iter()
         .find(|symbol| symbol.name == name)

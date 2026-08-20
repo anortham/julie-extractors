@@ -693,7 +693,7 @@ pub(crate) fn initialize_store_database(
     let transaction = connection.transaction()?;
     for (key, value) in [
         ("family_id", family_id),
-        ("extraction_identity_epoch", "3"),
+        ("extraction_identity_epoch", "4"),
         ("min_reader_version", creator_version),
         ("min_writer_version", creator_version),
         ("created_by_version", creator_version),
@@ -758,7 +758,7 @@ pub(crate) fn sync_directory(_path: &Path) -> io::Result<()> {
     Ok(())
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests {
     use super::*;
     use std::sync::atomic::{AtomicU64, Ordering};
@@ -792,7 +792,6 @@ mod tests {
         }
     }
 
-    #[cfg(unix)]
     #[test]
     fn reap_retired_resolution_scratch_propagates_read_dir_errors() {
         use std::os::unix::fs::PermissionsExt;

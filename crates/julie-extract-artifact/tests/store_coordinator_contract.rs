@@ -2617,16 +2617,7 @@ fn long_running_quantum_heartbeats_writer_lease_and_commits_once() {
     let (entered_sender, entered_receiver) = mpsc::channel();
     let (resume_sender, resume_receiver) = mpsc::channel();
     let policy = CoordinatorPolicy {
-        // 120 ms here was not survivable under the parallel `default` tier. `lease_duration_ms` is REAL wall
-        // clock while `maximum_quantum_ms` is compared against the injected `TestClock`, so on a loaded host
-        // the lease could lapse during drain start-up — before `execute_quantum` was ever reached. The
-        // worker thread then returned `LeaseLost` and dropped its `entered` sender, and this test failed
-        // with a `Disconnected` receive that looked like a scheduling stall and said nothing about the real
-        // cause. 2 s gives start-up ~17x more slack while keeping the lease far shorter than the test's own
-        // patience, so the renewal assertion below still means what it says.
         lease_duration_ms: 2_000,
-        // Unchanged, and deliberately still tiny: this is compared against the TestClock, which the test
-        // advances by 101 below to push the quantum past the cap and prove a renewable kind is NOT requeued.
         maximum_quantum_ms: 100,
         ..CoordinatorPolicy::default()
     };
@@ -2639,14 +2630,6 @@ fn long_running_quantum_heartbeats_writer_lease_and_commits_once() {
             &policy,
         )
     });
-    // Liveness guard, NOT a timing assertion — so keep it generous.
-    //
-    // At 2 s this was the single flakiest assertion in the harness: it only has to observe the worker thread
-    // reach `execute_quantum`, but under the parallel `default` tier (`cargo test -p julie-extract-artifact`,
-    // ~60 tests in this binary plus every other harness) a loaded host does not always schedule that thread
-    // inside two seconds, and the test failed here before touching a single lease. Verified failing this way
-    // at pristine HEAD. A long timeout costs nothing when the code is correct and still fails the test — just
-    // later — if the worker genuinely never runs.
     entered_receiver
         .recv_timeout(std::time::Duration::from_secs(120))
         .expect("worker thread never entered execute_quantum");
@@ -2658,21 +2641,25 @@ fn long_running_quantum_heartbeats_writer_lease_and_commits_once() {
             |row| row.get::<_, i64>(0),
         )
         .unwrap();
-    while SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_millis() as i64
-        <= initial_expiry
-    {
-        std::thread::sleep(std::time::Duration::from_millis(5));
-    }
-    let renewed_expiry = connection
-        .query_row(
-            "SELECT expires_at FROM writer_lease WHERE resource='store-writer'",
-            [],
-            |row| row.get::<_, i64>(0),
-        )
-        .unwrap();
+    let renewed_expiry = (0..1_000)
+        .find_map(|attempt| {
+            let expiry = connection
+                .query_row(
+                    "SELECT expires_at FROM writer_lease WHERE resource='store-writer'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .unwrap();
+            if expiry > initial_expiry {
+                Some(expiry)
+            } else {
+                if attempt + 1 < 1_000 {
+                    std::thread::sleep(std::time::Duration::from_millis(5));
+                }
+                None
+            }
+        })
+        .expect("writer lease was not renewed after 1000 polling attempts");
     clock.advance(101);
     resume_sender.send(()).unwrap();
     let outcome = worker.join().unwrap();

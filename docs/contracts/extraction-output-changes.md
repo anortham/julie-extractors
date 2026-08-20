@@ -89,6 +89,27 @@ In CI, the `Extractor Compatibility` job downloads the latest published release 
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
+## 2.34.4
+
+classification: compatible
+
+The v2.34.4 release expands `is_test` facts across the supported language
+extractors. Test-role closure records 21 supported capability cells and 7
+source-backed `not_applicable` entries across C, C++, Rust, Zig, HTML, SQL,
+Markdown, JSON, TOML, YAML, and XML. Additional framework, annotation,
+naming, and test-lifecycle evidence is emitted where the grammar and language
+conventions support it; existing test-role facts remain schema-compatible.
+The changed facts are otherwise within the existing schema 7 extraction
+tables.
+
+Extraction identity epoch is 4. A reader built for v2.34.3 still reads schema
+7 / JSONL v5 / store schema 2. Family-store file versions re-extract because
+identity is `(path, content_hash, extraction_epoch)`.
+
+Consumer action: replace the binary and re-extract or rebuild standalone
+artifacts, or let epoch-4 family-store file versions populate on the next
+import or update.
+
 ## 2.34.3
 
 classification: compatible

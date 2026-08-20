@@ -105,6 +105,7 @@ fn writer_scan_and_export_throughput() {
     );
     assert!(exported_records > 0);
 
+    drop(connection);
     std::fs::remove_dir_all(&temp_dir).unwrap();
 }
 

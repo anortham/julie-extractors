@@ -92,34 +92,32 @@ struct Scan {
 impl Scan {
     fn visit(&mut self, node: Node<'_>, source: &str, current_table: Option<&str>) {
         let mut table_name = current_table.map(str::to_owned);
-        if matches!(node.kind(), "table" | "table_array_element") {
-            if let Some(name) = key_text(node, source) {
-                if current_table.is_none() && name == "experimental" {
-                    self.nextest_marker = true;
-                }
-                table_name = Some(name);
+        if matches!(node.kind(), "table" | "table_array_element")
+            && let Some(name) = key_text(node, source)
+        {
+            if current_table.is_none() && name == "experimental" {
+                self.nextest_marker = true;
             }
+            table_name = Some(name);
         }
 
-        if node.kind() == "pair" {
-            if let Some((key_name, value_kind)) = pair_data(node, source) {
-                let table = table_name.as_deref();
-                if table.is_none()
-                    && matches!(key_name.as_str(), "nextest-version" | "experimental")
-                {
-                    self.nextest_marker = true;
-                }
-                match (table, key_name.as_str(), value_kind) {
-                    (None, "bin.name", ValueKind::String) => self.root_bin_name = true,
-                    (None, "status", ValueKind::Integer) => self.root_status = true,
-                    (None, "stdout", ValueKind::String) => self.root_stdout = true,
-                    (None, "stderr", ValueKind::String) => self.root_stderr = true,
-                    (Some("bin"), "name", ValueKind::String) => self.table_bin_name = true,
-                    (Some("bin"), "status", ValueKind::Integer) => self.table_status = true,
-                    (Some("bin"), "stdout", ValueKind::String) => self.table_stdout = true,
-                    (Some("bin"), "stderr", ValueKind::String) => self.table_stderr = true,
-                    _ => {}
-                }
+        if node.kind() == "pair"
+            && let Some((key_name, value_kind)) = pair_data(node, source)
+        {
+            let table = table_name.as_deref();
+            if table.is_none() && matches!(key_name.as_str(), "nextest-version" | "experimental") {
+                self.nextest_marker = true;
+            }
+            match (table, key_name.as_str(), value_kind) {
+                (None, "bin.name", ValueKind::String) => self.root_bin_name = true,
+                (None, "status", ValueKind::Integer) => self.root_status = true,
+                (None, "stdout", ValueKind::String) => self.root_stdout = true,
+                (None, "stderr", ValueKind::String) => self.root_stderr = true,
+                (Some("bin"), "name", ValueKind::String) => self.table_bin_name = true,
+                (Some("bin"), "status", ValueKind::Integer) => self.table_status = true,
+                (Some("bin"), "stdout", ValueKind::String) => self.table_stdout = true,
+                (Some("bin"), "stderr", ValueKind::String) => self.table_stderr = true,
+                _ => {}
             }
         }
 

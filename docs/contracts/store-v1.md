@@ -16,7 +16,7 @@ This contract defines the target-owned family store used after the legacy v3 art
 
 - `STORE_SQLITE_SCHEMA_VERSION = 2` identifies the physical `store.db` and `coord.db` catalogs.
 - `STORE_FORMAT_EPOCH = 1` identifies the store generation format.
-- `EXTRACTION_IDENTITY_EPOCH = 3` participates in file-version identity.
+- `EXTRACTION_IDENTITY_EPOCH = 4` participates in file-version identity.
 - File-version identity is `(path, content_hash, extraction_epoch)`; extracted output bytes are not identity inputs.
 - Byte-identical extractor output may remain in the same extraction epoch. Any output difference requires a strictly newer epoch and a classified extraction-output ledger entry.
 - Both databases record `PRAGMA user_version = 2`. An uninitialized database may be created at version 2. Schema-v1 files are not migrated in place and return a typed older-schema refusal before mutation; a newer version also returns a typed refusal.

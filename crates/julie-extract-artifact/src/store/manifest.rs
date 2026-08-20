@@ -1034,7 +1034,7 @@ fn validate_view_identity(view_id: &str, root: &str) -> Result<(), ManifestStore
 pub fn same_path_identity(left: &str, right: &str) -> bool {
     #[cfg(windows)]
     {
-        return normalize_windows_path_identity(left) == normalize_windows_path_identity(right);
+        normalize_windows_path_identity(left) == normalize_windows_path_identity(right)
     }
 
     #[cfg(not(windows))]
