@@ -7,8 +7,8 @@ use std::process::{Command, ExitCode, Output};
 use rusqlite::types::ValueRef;
 use rusqlite::{Connection, OpenFlags};
 
-const COMPAT_BASELINE_EXTRACTION_IDENTITY_EPOCH: u32 = 1;
-const CURRENT_EXTRACTION_IDENTITY_EPOCH: u32 = 2;
+const COMPAT_BASELINE_EXTRACTION_IDENTITY_EPOCH: u32 = 2;
+const CURRENT_EXTRACTION_IDENTITY_EPOCH: u32 = 3;
 
 const DEFAULT_FIXTURE: &str = "fixtures/extraction/resolution_contract";
 const LEDGER_PATH: &str = "docs/contracts/extraction-output-changes.md";
