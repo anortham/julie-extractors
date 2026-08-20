@@ -40,10 +40,11 @@ Only deletion of a `file_versions` row cascades into extraction children. Child-
 ## Epoch boundary
 
 The store format epoch and extraction identity epoch are independent. The
-store format epoch is still 1. The extraction identity epoch is 2 as of
-v2.34.2. A same-epoch extractor comparison must be byte-identical. A changed
-extraction result is accepted only when the extraction epoch increases and
-the existing compatibility ledger classifies the change.
+store format epoch is still 1. The published v2.34.2 release used extraction
+identity epoch 2; the v2.34.3 candidate uses epoch 3. A same-epoch extractor
+comparison must be byte-identical. A changed extraction result is accepted
+only when the extraction epoch increases and the existing compatibility ledger
+classifies the change.
 
 ## Retired resolution model
 
