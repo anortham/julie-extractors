@@ -137,17 +137,15 @@ fn decode_utf16_content(
     bytes: &[u8],
     decode_unit: fn([u8; 2]) -> u16,
 ) -> Result<String, SourceDecodeError> {
-    let chunks = bytes.chunks_exact(2);
-    if !chunks.remainder().is_empty() {
+    let (chunks, remainder) = bytes.as_chunks::<2>();
+    if !remainder.is_empty() {
         return Err(SourceDecodeError::Utf16 {
             encoding,
             message: "odd byte length after UTF-16 byte order mark".to_string(),
         });
     }
 
-    let units = chunks
-        .map(|chunk| decode_unit([chunk[0], chunk[1]]))
-        .collect::<Vec<_>>();
+    let units = chunks.iter().copied().map(decode_unit).collect::<Vec<_>>();
     String::from_utf16(&units).map_err(|error| SourceDecodeError::Utf16 {
         encoding,
         message: error.to_string(),
