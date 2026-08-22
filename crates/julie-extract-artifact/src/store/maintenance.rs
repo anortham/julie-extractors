@@ -404,6 +404,24 @@ impl Default for MaintenanceApplyPolicy {
     }
 }
 
+/// Read-only account of what one view's retirement removes from `store.db`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct RetireViewPlan {
+    pub view_id: String,
+    pub current_generation: Option<i64>,
+    pub manifests: usize,
+    pub manifest_entries: usize,
+}
+
+/// Rows the fenced retirement actually deleted, in one store transaction.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct RetireViewApplied {
+    pub view_id: String,
+    pub retired_views: usize,
+    pub retired_manifests: usize,
+    pub retired_manifest_entries: usize,
+}
+
 pub struct MaintenanceExecutor {
     factory: StoreConnectionFactory,
     run: MaintenanceRun,
@@ -537,6 +555,7 @@ impl MaintenancePlan {
 pub enum MaintenanceError {
     InspectionRaced { database: &'static str },
     UnknownRoot { kind: &'static str, id: String },
+    ViewNotFound { view_id: String },
     InvalidPolicy { field: &'static str },
     InvalidMetadata { field: &'static str, value: String },
     StalePlan,
@@ -556,6 +575,7 @@ impl MaintenanceError {
         match self {
             Self::InspectionRaced { .. } => "maintenance_inspection_raced",
             Self::UnknownRoot { .. } => "unknown_maintenance_root",
+            Self::ViewNotFound { .. } => "view_not_found",
             Self::InvalidPolicy { .. } => "invalid_maintenance_policy",
             Self::InvalidMetadata { .. } => "invalid_maintenance_metadata",
             Self::StalePlan => "maintenance_plan_stale",
@@ -582,6 +602,9 @@ impl fmt::Display for MaintenanceError {
                 )
             }
             Self::UnknownRoot { kind, id } => write!(formatter, "unknown {kind} root {id}"),
+            Self::ViewNotFound { view_id } => {
+                write!(formatter, "store has no view {view_id}")
+            }
             Self::InvalidPolicy { field } => {
                 write!(formatter, "invalid maintenance policy {field}")
             }
@@ -670,6 +693,58 @@ impl From<serde_json::Error> for MaintenanceError {
     fn from(error: serde_json::Error) -> Self {
         Self::Serialization(error)
     }
+}
+
+/// Count what retiring `view_id` would delete. This reads `store.db` and writes nothing.
+///
+/// The caller names the view. Retirement is never inferred from a missing root: a dead
+/// workspace's root is already gone, so root existence proves nothing either way.
+pub fn plan_view_retirement(
+    factory: &StoreConnectionFactory,
+    view_id: &str,
+) -> Result<RetireViewPlan, MaintenanceError> {
+    let store = factory.open_reader()?;
+    let plan = read_view_retirement(&store, view_id)?;
+    drop(store);
+    Ok(plan)
+}
+
+fn read_view_retirement(
+    store: &Connection,
+    view_id: &str,
+) -> Result<RetireViewPlan, MaintenanceError> {
+    let current_generation = store
+        .query_row(
+            "SELECT current_generation FROM views WHERE view_id=?1",
+            [view_id],
+            |row| row.get::<_, Option<i64>>(0),
+        )
+        .optional()?
+        .ok_or_else(|| MaintenanceError::ViewNotFound {
+            view_id: view_id.to_string(),
+        })?;
+    Ok(RetireViewPlan {
+        view_id: view_id.to_string(),
+        current_generation,
+        manifests: view_row_count(
+            store,
+            "SELECT COUNT(*) FROM manifests WHERE view_id=?1",
+            view_id,
+        )?,
+        manifest_entries: view_row_count(
+            store,
+            "SELECT COUNT(*) FROM manifest_entries WHERE view_id=?1",
+            view_id,
+        )?,
+    })
+}
+
+fn view_row_count(store: &Connection, sql: &str, view_id: &str) -> Result<usize, MaintenanceError> {
+    let rows = store.query_row(sql, [view_id], |row| row.get::<_, i64>(0))?;
+    usize::try_from(rows).map_err(|_| MaintenanceError::InvalidMetadata {
+        field: "retire_view_row_count",
+        value: rows.to_string(),
+    })
 }
 
 pub fn plan_maintenance(
@@ -1488,6 +1563,111 @@ impl MaintenanceExecutor {
                 self.finish()?;
                 Ok(report)
             }
+        }
+    }
+
+    /// Permanently retire one view: its manifest entries, its manifests, and its `views` row.
+    ///
+    /// The three deletes commit in ONE store transaction. Deleting only the `views` row would
+    /// orphan its manifests and brick every later maintenance verb with `UnknownRoot`.
+    /// Freed `file_versions` are left behind as ordinary GC candidates for a later `gc --apply`.
+    pub fn retire_view(
+        &mut self,
+        plan: &MaintenancePlan,
+        view_id: &str,
+    ) -> Result<RetireViewApplied, MaintenanceError> {
+        let heartbeat = MaintenanceActionHeartbeat::start(
+            &self.factory,
+            &self.run,
+            self.action,
+            self.fencing_token,
+            plan,
+        )?;
+        let validation = self
+            .validate_ownership(plan)
+            .and_then(|()| self.validate_plan_binding(plan));
+        if let Err(error) = validation {
+            return match heartbeat.stop() {
+                Ok(()) => Err(error),
+                Err(heartbeat_error) => Err(heartbeat_error),
+            };
+        }
+        let result = self.retire_view_with_action_heartbeat(plan, view_id, &heartbeat);
+        let heartbeat_result = heartbeat.stop();
+        match result {
+            Err(error) => Err(error),
+            Ok(applied) => {
+                heartbeat_result?;
+                self.finish()?;
+                Ok(applied)
+            }
+        }
+    }
+
+    fn retire_view_with_action_heartbeat(
+        &mut self,
+        plan: &MaintenancePlan,
+        view_id: &str,
+        heartbeat: &MaintenanceActionHeartbeat,
+    ) -> Result<RetireViewApplied, MaintenanceError> {
+        self.refuse_live_view_requests(view_id)?;
+        heartbeat.check()?;
+        let fence = GenerationFence::maintenance(
+            self.factory.layout(),
+            &self.run.run_id,
+            &self.run.owner_id,
+            self.run.owner_pid,
+            self.fencing_token,
+            wall_now_ms()?,
+        );
+        let mut writer = self
+            .factory
+            .clone()
+            .with_generation_fence(fence)
+            .open_writer()?;
+        let transaction = writer.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        read_view_retirement(&transaction, view_id)?;
+        let retired_manifest_entries = transaction.execute(
+            "DELETE FROM manifest_entries WHERE view_id=?1",
+            params![view_id],
+        )?;
+        let retired_manifests =
+            transaction.execute("DELETE FROM manifests WHERE view_id=?1", params![view_id])?;
+        let retired_views =
+            transaction.execute("DELETE FROM views WHERE view_id=?1", params![view_id])?;
+        heartbeat.check()?;
+        self.validate_ownership(plan)?;
+        self.validate_coordinator_binding(plan)?;
+        heartbeat.check()?;
+        transaction.commit()?;
+        heartbeat.check()?;
+        drop(writer);
+        Ok(RetireViewApplied {
+            view_id: view_id.to_string(),
+            retired_views,
+            retired_manifests,
+            retired_manifest_entries,
+        })
+    }
+
+    /// A queued or claimed request that names this view is still live work. Refuse as busy.
+    fn refuse_live_view_requests(&self, view_id: &str) -> Result<(), MaintenanceError> {
+        let coord = Connection::open_with_flags(
+            self.factory.layout().coordinator_db(),
+            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )?;
+        let live = coord.query_row(
+            "SELECT EXISTS(
+               SELECT 1 FROM requests
+               WHERE state IN ('queued','claimed')
+                 AND json_extract(payload_json,'$.view_id')=?1)",
+            [view_id],
+            |row| row.get::<_, bool>(0),
+        )?;
+        if live {
+            Err(MaintenanceError::MaintenanceBusy)
+        } else {
+            Ok(())
         }
     }
 

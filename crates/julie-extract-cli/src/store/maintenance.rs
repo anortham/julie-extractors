@@ -627,7 +627,9 @@ fn maintenance_failure_class(error: &MaintenanceError) -> StoreMaintenanceFailur
         MaintenanceError::UnknownRoot { .. } | MaintenanceError::InvalidMetadata { .. } => {
             StoreMaintenanceFailureClass::IntegrityFailed
         }
-        MaintenanceError::InvalidPolicy { .. } => StoreMaintenanceFailureClass::InvalidArguments,
+        MaintenanceError::InvalidPolicy { .. } | MaintenanceError::ViewNotFound { .. } => {
+            StoreMaintenanceFailureClass::InvalidArguments
+        }
         MaintenanceError::Coordinator(_)
         | MaintenanceError::Log(_)
         | MaintenanceError::Sqlite(_)

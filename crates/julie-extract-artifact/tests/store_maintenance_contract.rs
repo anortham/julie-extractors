@@ -13,7 +13,7 @@ use julie_extract_artifact::store::{
     MaintenanceExecutor, MaintenanceInspector, MaintenanceLevel, MaintenancePolicy,
     MaintenanceRootKind, MaintenanceRun, MaintenanceSnapshot, ManifestFact, ManifestVersionFact,
     PlanBinding, RequestKind, StoreConnectionError, StoreConnectionFactory, StoreCoordinator,
-    StoreLayout, VersionFact, plan_maintenance,
+    StoreLayout, VersionFact, plan_maintenance, plan_view_retirement,
 };
 use rusqlite::{Connection, params};
 
@@ -1516,6 +1516,338 @@ fn finish_restores_serving_source_floor_and_clears_intent_mirrors() {
             .unwrap(),
         0
     );
+}
+
+#[test]
+fn view_retirement_plan_counts_the_dead_view_without_writing() {
+    let temp = TempStore::new("retire-plan");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    seed_two_view_matrix(&layout);
+    let store_before = fs::read(layout.store_db()).unwrap();
+    let coord_before = fs::read(layout.coordinator_db()).unwrap();
+
+    let factory = StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0");
+    let planned = plan_view_retirement(&factory, "view-a").unwrap();
+
+    assert_eq!(planned.view_id, "view-a");
+    assert_eq!(planned.current_generation, Some(1));
+    assert_eq!(planned.manifests, 1);
+    assert_eq!(planned.manifest_entries, 1);
+    assert_eq!(fs::read(layout.store_db()).unwrap(), store_before);
+    assert_eq!(fs::read(layout.coordinator_db()).unwrap(), coord_before);
+}
+
+#[test]
+fn view_retirement_plan_refuses_an_absent_view() {
+    let temp = TempStore::new("retire-plan-absent");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    seed_two_view_matrix(&layout);
+
+    let factory = StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0");
+    let error = plan_view_retirement(&factory, "view-missing").unwrap_err();
+
+    assert_eq!(error.code(), "view_not_found");
+    assert!(matches!(error, MaintenanceError::ViewNotFound { .. }));
+}
+
+#[test]
+fn retire_view_deletes_the_whole_view_and_leaves_maintenance_working() {
+    let temp = TempStore::new("retire-apply");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    seed_two_view_matrix(&layout);
+
+    let plan = inspect_plan(&layout, 30 * DAY_MS);
+    let mut executor = MaintenanceExecutor::acquire(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0"),
+        MaintenanceRun::new("retire-1", "owner", std::process::id(), 30 * DAY_MS, 5_000),
+        &plan,
+        FixedCapacity,
+    )
+    .unwrap();
+    let applied = executor.retire_view(&plan, "view-a").unwrap();
+
+    assert_eq!(applied.view_id, "view-a");
+    assert_eq!(applied.retired_views, 1);
+    assert_eq!(applied.retired_manifests, 1);
+    assert_eq!(applied.retired_manifest_entries, 1);
+
+    let store = Connection::open(layout.store_db()).unwrap();
+    assert_eq!(count(&store, "SELECT COUNT(*) FROM views"), 1);
+    assert_eq!(
+        count(&store, "SELECT COUNT(*) FROM views WHERE view_id='view-b'"),
+        1
+    );
+    assert_eq!(
+        count(
+            &store,
+            "SELECT COUNT(*) FROM manifests WHERE view_id='view-a'"
+        ),
+        0
+    );
+    assert_eq!(
+        count(
+            &store,
+            "SELECT COUNT(*) FROM manifest_entries WHERE view_id='view-a'"
+        ),
+        0
+    );
+    assert_eq!(
+        count(
+            &store,
+            "SELECT COUNT(*) FROM manifests WHERE view_id='view-b'"
+        ),
+        1
+    );
+    assert_eq!(
+        count(
+            &store,
+            "SELECT COUNT(*) FROM manifest_entries WHERE view_id='view-b'"
+        ),
+        1
+    );
+    // The retired view's file version survives retirement as an ordinary GC candidate.
+    assert_eq!(count(&store, "SELECT COUNT(*) FROM file_versions"), 2);
+    assert_eq!(count(&store, "SELECT COUNT(*) FROM store_log"), 1);
+    // No orphan manifest survives the retirement.
+    assert_eq!(
+        count(&store, "SELECT COUNT(*) FROM pragma_foreign_key_check"),
+        0
+    );
+
+    let coord = Connection::open(layout.coordinator_db()).unwrap();
+    assert_eq!(
+        count(&coord, "SELECT COUNT(*) FROM family_allocator_marks"),
+        3
+    );
+    assert_eq!(
+        count(
+            &coord,
+            "SELECT COUNT(*) FROM family_allocator_marks
+             WHERE allocator_kind='manifest_generation' AND scope_id='view-a'"
+        ),
+        1
+    );
+    assert_eq!(count(&coord, "SELECT COUNT(*) FROM request_receipts"), 1);
+    assert_eq!(count(&coord, "SELECT COUNT(*) FROM consumer_cursors"), 1);
+
+    // The decisive check: maintenance still inspects and plans after the retirement.
+    let after = inspect_plan(&layout, 30 * DAY_MS);
+    assert!(
+        after
+            .eligible_manifests
+            .iter()
+            .all(|(view_id, _)| view_id != "view-a")
+    );
+    let mut executor = MaintenanceExecutor::acquire(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0"),
+        MaintenanceRun::new(
+            "retire-gc",
+            "owner",
+            std::process::id(),
+            30 * DAY_MS + 1,
+            5_000,
+        ),
+        &after,
+        FixedCapacity,
+    )
+    .unwrap();
+    executor.apply(&after).unwrap();
+}
+
+#[test]
+fn retire_view_refuses_an_absent_view_and_a_live_request_for_that_view() {
+    let temp = TempStore::new("retire-refusals");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    seed_two_view_matrix(&layout);
+
+    let plan = inspect_plan(&layout, 30 * DAY_MS);
+    let mut executor = MaintenanceExecutor::acquire(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0"),
+        MaintenanceRun::new(
+            "retire-absent",
+            "owner",
+            std::process::id(),
+            30 * DAY_MS,
+            5_000,
+        ),
+        &plan,
+        FixedCapacity,
+    )
+    .unwrap();
+    let error = executor.retire_view(&plan, "view-missing").unwrap_err();
+    assert_eq!(error.code(), "view_not_found");
+    drop(executor);
+
+    Connection::open(layout.coordinator_db())
+        .unwrap()
+        .execute(
+            "INSERT INTO requests
+             (request_id,idempotency_key,kind,payload_json,state,requester_id,created_at,updated_at)
+             VALUES ('request-live','idem-live','update','{\"view_id\":\"view-a\"}','queued',
+                     'cli',1,1)",
+            [],
+        )
+        .unwrap();
+    let plan = inspect_plan(&layout, 30 * DAY_MS);
+    let mut executor = MaintenanceExecutor::acquire(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0"),
+        MaintenanceRun::new(
+            "retire-busy",
+            "owner",
+            std::process::id(),
+            30 * DAY_MS,
+            5_000,
+        ),
+        &plan,
+        FixedCapacity,
+    )
+    .unwrap();
+    let error = executor.retire_view(&plan, "view-a").unwrap_err();
+    assert_eq!(error.code(), "maintenance_busy");
+    drop(executor);
+
+    let store = Connection::open(layout.store_db()).unwrap();
+    assert_eq!(count(&store, "SELECT COUNT(*) FROM views"), 2);
+    assert_eq!(count(&store, "SELECT COUNT(*) FROM manifests"), 2);
+    assert_eq!(count(&store, "SELECT COUNT(*) FROM manifest_entries"), 2);
+}
+
+#[test]
+fn retire_view_refuses_while_a_live_writer_holds_the_store() {
+    let temp = TempStore::new("retire-live-writer");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    seed_two_view_matrix(&layout);
+    let plan = inspect_plan(&layout, 30 * DAY_MS);
+    Connection::open(layout.coordinator_db())
+        .unwrap()
+        .execute(
+            "INSERT INTO writer_lease
+             (resource,holder_id,holder_version,holder_pid,heartbeat_at,expires_at,fencing_token)
+             VALUES ('store-writer','other','2.30.0',4242,1,?1,1)",
+            [i64::MAX / 2],
+        )
+        .unwrap();
+
+    let error = MaintenanceExecutor::acquire(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0"),
+        MaintenanceRun::new(
+            "retire-fenced",
+            "owner",
+            std::process::id(),
+            30 * DAY_MS,
+            5_000,
+        ),
+        &plan,
+        FixedCapacity,
+    )
+    .err()
+    .unwrap();
+
+    assert_eq!(error.code(), "maintenance_busy");
+    let store = Connection::open(layout.store_db()).unwrap();
+    assert_eq!(count(&store, "SELECT COUNT(*) FROM views"), 2);
+}
+
+fn count(connection: &Connection, sql: &str) -> i64 {
+    connection.query_row(sql, [], |row| row.get(0)).unwrap()
+}
+
+fn seed_two_view_matrix(layout: &StoreLayout) {
+    let store = Connection::open(layout.store_db()).unwrap();
+    store
+        .execute_batch("PRAGMA foreign_keys=ON; BEGIN IMMEDIATE;")
+        .unwrap();
+    for (view_id, version_id, path) in [("view-a", 1_i64, "src/a.rs"), ("view-b", 2, "src/b.rs")] {
+        store
+            .execute(
+                "INSERT INTO file_versions
+                 (version_id,path,content_hash,extraction_epoch,language,content_bytes,line_count,
+                  complete_l1,complete_l2,complete_l3)
+                 VALUES (?1,?2,?3,1,'rust',100,2,1,2,3)",
+                params![version_id, path, format!("blake3:{version_id}")],
+            )
+            .unwrap();
+        store
+            .execute(
+                "INSERT INTO views
+                 (view_id,root,current_generation,resolution_state,resolution_base_id,
+                  resolution_delta_generation,resolution_exact_at,created_at,updated_at)
+                 VALUES (?1,?2,NULL,'unbound',NULL,NULL,NULL,
+                         '2026-01-01T00:00:00Z','2026-01-01T00:00:00Z')",
+                params![view_id, format!("/repo/{view_id}")],
+            )
+            .unwrap();
+        store
+            .execute(
+                "INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+                 VALUES (?1,1,?2,?3,'2026-01-01T00:00:00Z')",
+                params![
+                    view_id,
+                    format!("sha256:{view_id}"),
+                    format!("request-{view_id}")
+                ],
+            )
+            .unwrap();
+        store
+            .execute(
+                "INSERT INTO manifest_entries
+                 (view_id,generation,path,language,version_id,status,observed_content_hash,
+                  indexed_at,error_class,error_json)
+                 VALUES (?1,1,?2,'rust',?3,'indexed',?4,'2026-01-01T00:00:00Z',NULL,NULL)",
+                params![view_id, path, version_id, format!("blake3:{version_id}")],
+            )
+            .unwrap();
+        store
+            .execute(
+                "UPDATE views SET current_generation=1 WHERE view_id=?1",
+                params![view_id],
+            )
+            .unwrap();
+    }
+    store.execute(
+        "INSERT INTO store_log
+         (sequence,request_id,event_kind,view_id,generation,version_id,level,terminal,payload_json,created_at)
+         VALUES (11,'request-view-a','store_import_completed','view-a',1,1,3,1,'{}',
+                 '2026-01-01T00:00:00Z')",
+        [],
+    ).unwrap();
+    store.execute_batch("COMMIT;").unwrap();
+
+    let coord = Connection::open(layout.coordinator_db()).unwrap();
+    coord
+        .execute(
+            "INSERT INTO request_receipts
+             (request_id,idempotency_key,kind,payload_json,terminal_result_json,
+              terminal_generation_name,terminal_log_sequence,completed_at)
+             VALUES ('request-view-a','idem-view-a','import','{\"view_id\":\"view-a\"}','{}',
+                     'gen-001',11,1)",
+            [],
+        )
+        .unwrap();
+    coord
+        .execute(
+            "INSERT INTO consumer_cursors VALUES ('consumer-a','gen-001',0,1)",
+            [],
+        )
+        .unwrap();
+    coord
+        .execute(
+            "INSERT INTO family_allocator_marks VALUES ('file_version','',2,1)",
+            [],
+        )
+        .unwrap();
+    coord
+        .execute(
+            "INSERT INTO family_allocator_marks VALUES ('store_log','',11,1)",
+            [],
+        )
+        .unwrap();
+    coord
+        .execute(
+            "INSERT INTO family_allocator_marks VALUES ('manifest_generation','view-a',1,1)",
+            [],
+        )
+        .unwrap();
 }
 
 fn meta(connection: &Connection, key: &str) -> String {
