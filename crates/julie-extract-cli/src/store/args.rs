@@ -49,6 +49,7 @@ pub enum StoreMaintenanceCommand {
     Gc(StoreMaintenanceMutationArgs),
     Repair(StoreMaintenanceMutationArgs),
     Promote(StoreMaintenanceMutationArgs),
+    RetireView(StoreMaintenanceRetireViewArgs),
     Cursor(StoreMaintenanceCursorArgs),
 }
 
@@ -74,6 +75,25 @@ pub struct StoreMaintenanceMutationArgs {
     #[arg(long, value_parser = parse_family_id)]
     pub family: Option<String>,
     /// Apply the inspected plan. Without this flag the command is read-only.
+    #[arg(long)]
+    pub apply: bool,
+    /// Emit the machine-readable maintenance report.
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct StoreMaintenanceRetireViewArgs {
+    /// Existing family-store directory.
+    #[arg(long, value_parser = parse_store_path)]
+    pub store: PathBuf,
+    /// Expected family UUID. Defaults to the existing store family.
+    #[arg(long, value_parser = parse_family_id)]
+    pub family: Option<String>,
+    /// View identifier to retire. The view's root is never read.
+    #[arg(long, value_parser = parse_store_identifier)]
+    pub view: String,
+    /// Retire the view. Without this flag the command is read-only.
     #[arg(long)]
     pub apply: bool,
     /// Emit the machine-readable maintenance report.

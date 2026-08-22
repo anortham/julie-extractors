@@ -7,12 +7,12 @@ use julie_extract_artifact::store::{
     CapacityProvider, GenerationError, GenerationLifecycle, GenerationPolicy, MaintenanceAction,
     MaintenanceClock, MaintenanceError, MaintenanceExecutor, MaintenanceInspector, MaintenancePlan,
     MaintenanceRun, StoreConnectionError, StoreConnectionFactory, StoreCoordinator, StoreLayout,
-    StoreLayoutError,
+    StoreLayoutError, plan_view_retirement,
 };
 
 use super::args::{
     StoreMaintainArgs, StoreMaintenanceCommand, StoreMaintenanceInspectArgs,
-    StoreMaintenanceMutationArgs,
+    StoreMaintenanceMutationArgs, StoreMaintenanceRetireViewArgs,
 };
 use super::import::{ExistingStoreContext, StoreExecutionOutcome, open_existing_store};
 use super::maintenance_report::{
@@ -31,7 +31,56 @@ pub(crate) fn run(args: StoreMaintainArgs) -> StoreExecutionOutcome {
         StoreMaintenanceCommand::Promote(args) => {
             plan_mutation(StoreMaintenanceAction::Promote, args)
         }
+        StoreMaintenanceCommand::RetireView(args) => retire_view(args),
         StoreMaintenanceCommand::Cursor(args) => cursor(args),
+    }
+}
+
+fn retire_view(args: StoreMaintenanceRetireViewArgs) -> StoreExecutionOutcome {
+    let action = StoreMaintenanceAction::RetireView;
+    let format = output_format(args.json);
+    let mode = if args.apply {
+        StoreMaintenanceMode::Apply
+    } else {
+        StoreMaintenanceMode::Plan
+    };
+    let context = match inspect_context(&args.store, args.family.as_deref(), action, mode) {
+        Ok(context) => context,
+        Err(report) => return failure(*report, format),
+    };
+    let planned = match plan_view_retirement(&context.factory, &args.view) {
+        Ok(planned) => planned,
+        Err(error) => {
+            return failure(
+                maintenance_error_report(action, &context.plan, mode, &error),
+                format,
+            );
+        }
+    };
+    let report =
+        StoreMaintenanceReport::planned(action, &context.plan).with_view_retirement_plan(&planned);
+    if !args.apply {
+        return success(report, format);
+    }
+    pause_after_plan_if_requested();
+    let run = maintenance_run();
+    let run_id = run.run_id.clone();
+    let mut executor =
+        match MaintenanceExecutor::acquire(context.factory, run, &context.plan, CliCapacity) {
+            Ok(executor) => executor,
+            Err(error) => {
+                return failure(
+                    maintenance_error_report(action, &context.plan, mode, &error),
+                    format,
+                );
+            }
+        };
+    match executor.retire_view(&context.plan, &args.view) {
+        Ok(applied) => success(report.with_view_retirement(run_id, &applied), format),
+        Err(error) => failure(
+            maintenance_error_report(action, &context.plan, mode, &error),
+            format,
+        ),
     }
 }
 
@@ -489,8 +538,17 @@ fn maintenance_error_report_from_plan(
     plan: &MaintenancePlan,
     error: &MaintenanceError,
 ) -> StoreMaintenanceReport {
+    maintenance_error_report(action, plan, StoreMaintenanceMode::Apply, error)
+}
+
+fn maintenance_error_report(
+    action: StoreMaintenanceAction,
+    plan: &MaintenancePlan,
+    mode: StoreMaintenanceMode,
+    error: &MaintenanceError,
+) -> StoreMaintenanceReport {
     StoreMaintenanceReport::planned(action, plan).with_failure(
-        StoreMaintenanceMode::Apply,
+        mode,
         maintenance_failure_class(error),
         maintenance_error_code(error),
         error.to_string(),

@@ -31,9 +31,244 @@ fn maintenance_namespace_exposes_the_approved_nested_commands() {
     );
     assert!(output.stderr.is_empty());
     let stdout = String::from_utf8(output.stdout).unwrap();
-    for command in ["inspect", "gc", "repair", "promote"] {
+    for command in ["inspect", "gc", "repair", "promote", "retire-view"] {
         assert!(stdout.contains(command), "missing {command} in {stdout}");
     }
+}
+
+#[test]
+fn retire_view_plans_without_apply_and_retires_only_with_apply() {
+    let fixture = tempfile::tempdir().unwrap();
+    let store = fixture.path().join("store");
+    import_view(fixture.path(), &store, "view-dead", "request-dead");
+    import_view(fixture.path(), &store, "view-live", "request-live");
+    let store_db = store.join("gen-001/store.db");
+    let store_before = std::fs::read(&store_db).unwrap();
+
+    let planned = julie_extract(&[
+        "store",
+        "maintain",
+        "retire-view",
+        "--store",
+        store.to_str().unwrap(),
+        "--view",
+        "view-dead",
+        "--json",
+    ]);
+    assert_eq!(
+        planned.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&planned.stdout),
+        String::from_utf8_lossy(&planned.stderr)
+    );
+    assert!(planned.stderr.is_empty());
+    assert_eq!(
+        planned.stdout.iter().filter(|&&byte| byte == b'\n').count(),
+        1
+    );
+    let planned_report: Value = serde_json::from_slice(&planned.stdout).unwrap();
+    assert_eq!(planned_report["action"], "retire_view");
+    assert_eq!(planned_report["mode"], "plan");
+    assert_eq!(planned_report["disposition"], "planned");
+    assert_eq!(planned_report["failure_class"], "none");
+    assert_eq!(planned_report["counts"]["retired_views"], 1);
+    assert_eq!(planned_report["counts"]["retired_manifests"], 1);
+    assert_eq!(planned_report["counts"]["retired_manifest_entries"], 1);
+    assert_eq!(std::fs::read(&store_db).unwrap(), store_before);
+
+    let applied = julie_extract(&[
+        "store",
+        "maintain",
+        "retire-view",
+        "--store",
+        store.to_str().unwrap(),
+        "--view",
+        "view-dead",
+        "--apply",
+        "--json",
+    ]);
+    assert_eq!(
+        applied.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&applied.stdout),
+        String::from_utf8_lossy(&applied.stderr)
+    );
+    assert!(applied.stderr.is_empty());
+    let applied_report: Value = serde_json::from_slice(&applied.stdout).unwrap();
+    assert_eq!(applied_report["action"], "retire_view");
+    assert_eq!(applied_report["mode"], "apply");
+    assert_eq!(applied_report["disposition"], "applied");
+    assert_eq!(applied_report["counts"]["retired_views"], 1);
+    assert_eq!(applied_report["counts"]["retired_manifests"], 1);
+    assert_eq!(applied_report["counts"]["retired_manifest_entries"], 1);
+
+    let connection = rusqlite::Connection::open(&store_db).unwrap();
+    assert_eq!(view_count(&connection, "view-dead"), 0);
+    assert_eq!(view_count(&connection, "view-live"), 1);
+
+    // The decisive check: maintenance still works on the store after the retirement.
+    let inspected = julie_extract(&[
+        "store",
+        "maintain",
+        "inspect",
+        "--store",
+        store.to_str().unwrap(),
+        "--json",
+    ]);
+    assert_eq!(
+        inspected.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&inspected.stdout),
+        String::from_utf8_lossy(&inspected.stderr)
+    );
+    let inspected_report: Value = serde_json::from_slice(&inspected.stdout).unwrap();
+    assert_eq!(inspected_report["failure_class"], "none");
+}
+
+#[test]
+fn retire_view_refuses_an_unknown_view_without_mutation() {
+    let fixture = tempfile::tempdir().unwrap();
+    let store = fixture.path().join("store");
+    StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
+    let store_db = store.join("gen-001/store.db");
+    let before = std::fs::read(&store_db).unwrap();
+
+    let output = julie_extract(&[
+        "store",
+        "maintain",
+        "retire-view",
+        "--store",
+        store.to_str().unwrap(),
+        "--view",
+        "view-absent",
+        "--apply",
+        "--json",
+    ]);
+
+    assert_eq!(output.status.code(), Some(1));
+    assert!(output.stderr.is_empty());
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["action"], "retire_view");
+    assert_eq!(report["mode"], "apply");
+    assert_eq!(report["failure_class"], "invalid_arguments");
+    assert_eq!(report["error"]["class"], "invalid_arguments");
+    assert_eq!(report["error"]["code"], "view_not_found");
+    assert_eq!(std::fs::read(&store_db).unwrap(), before);
+    let coordinator = rusqlite::Connection::open(store.join("coord.db")).unwrap();
+    assert_eq!(
+        coordinator
+            .query_row("SELECT COUNT(*) FROM maintenance_intent", [], |row| row
+                .get::<_, i64>(0))
+            .unwrap(),
+        0
+    );
+}
+
+#[test]
+fn retire_view_refuses_a_live_writer_and_a_live_request_as_busy() {
+    let fixture = tempfile::tempdir().unwrap();
+    let store = fixture.path().join("store");
+    import_view(fixture.path(), &store, "view-dead", "request-dead");
+    let coordinator = rusqlite::Connection::open(store.join("coord.db")).unwrap();
+    coordinator
+        .execute(
+            "INSERT INTO writer_lease
+             (resource,holder_id,holder_version,holder_pid,heartbeat_at,expires_at,fencing_token)
+             VALUES ('store-writer','other','2.30.0',4242,1,?1,1)",
+            [i64::MAX / 2],
+        )
+        .unwrap();
+
+    let fenced = julie_extract(&[
+        "store",
+        "maintain",
+        "retire-view",
+        "--store",
+        store.to_str().unwrap(),
+        "--view",
+        "view-dead",
+        "--apply",
+        "--json",
+    ]);
+    assert_eq!(fenced.status.code(), Some(1));
+    assert!(fenced.stderr.is_empty());
+    let fenced_report: Value = serde_json::from_slice(&fenced.stdout).unwrap();
+    assert_eq!(fenced_report["failure_class"], "busy");
+    assert_eq!(fenced_report["error"]["code"], "maintenance_busy");
+
+    coordinator.execute("DELETE FROM writer_lease", []).unwrap();
+    coordinator
+        .execute(
+            "INSERT INTO requests
+             (request_id,idempotency_key,kind,payload_json,state,requester_id,created_at,updated_at)
+             VALUES ('queued-for-view','queued-key','update','{\"view_id\":\"view-dead\"}',
+                     'queued','test',1,1)",
+            [],
+        )
+        .unwrap();
+
+    let claimed = julie_extract(&[
+        "store",
+        "maintain",
+        "retire-view",
+        "--store",
+        store.to_str().unwrap(),
+        "--view",
+        "view-dead",
+        "--apply",
+        "--json",
+    ]);
+    assert_eq!(claimed.status.code(), Some(1));
+    assert!(claimed.stderr.is_empty());
+    let claimed_report: Value = serde_json::from_slice(&claimed.stdout).unwrap();
+    assert_eq!(claimed_report["failure_class"], "busy");
+    assert_eq!(claimed_report["error"]["code"], "maintenance_busy");
+
+    let connection = rusqlite::Connection::open(store.join("gen-001/store.db")).unwrap();
+    assert_eq!(view_count(&connection, "view-dead"), 1);
+}
+
+fn view_count(connection: &rusqlite::Connection, view_id: &str) -> i64 {
+    connection
+        .query_row(
+            "SELECT COUNT(*) FROM views WHERE view_id=?1",
+            [view_id],
+            |row| row.get(0),
+        )
+        .unwrap()
+}
+
+fn import_view(fixture: &std::path::Path, store: &std::path::Path, view: &str, request_id: &str) {
+    let root = fixture.join(format!("{request_id}-root"));
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("lib.rs"), "pub fn answer() -> u32 { 7 }\n").unwrap();
+    let imported = julie_extract(&[
+        "store",
+        "import",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        FAMILY_ID,
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        view,
+        "--request-id",
+        request_id,
+        "--idempotency-key",
+        request_id,
+        "--json",
+    ]);
+    assert_eq!(
+        imported.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&imported.stdout),
+        String::from_utf8_lossy(&imported.stderr)
+    );
 }
 
 #[test]
@@ -681,7 +916,10 @@ fn maintenance_report_json_and_human_snapshots_are_stable() {
                 "copied_file_versions": 0,
                 "copied_rows": 0,
                 "copied_base_files": 0,
-                "removed_generations": 0
+                "removed_generations": 0,
+                "retired_views": 0,
+                "retired_manifests": 0,
+                "retired_manifest_entries": 0
             },
             "retention": {
                 "protected_current_bytes": 0,

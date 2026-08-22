@@ -1,5 +1,6 @@
 use julie_extract_artifact::store::{
     CapacityPlan, GenerationApplyReport, MaintenanceApplyReport, MaintenancePlan, RetentionPlan,
+    RetireViewApplied, RetireViewPlan,
 };
 use serde::{Deserialize, Serialize};
 
@@ -17,6 +18,7 @@ pub enum StoreMaintenanceAction {
     Gc,
     Repair,
     Promote,
+    RetireView,
     CursorAdvance,
     CursorRelease,
 }
@@ -97,6 +99,9 @@ pub struct StoreMaintenanceCounts {
     pub copied_rows: usize,
     pub copied_base_files: usize,
     pub removed_generations: usize,
+    pub retired_views: usize,
+    pub retired_manifests: usize,
+    pub retired_manifest_entries: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -307,6 +312,27 @@ impl StoreMaintenanceReport {
             self.escalation = Some("compaction_required".to_string());
         }
         self.last_version_cursor = applied.last_version_cursor;
+        self
+    }
+
+    pub fn with_view_retirement_plan(mut self, planned: &RetireViewPlan) -> Self {
+        self.counts.retired_views = 1;
+        self.counts.retired_manifests = planned.manifests;
+        self.counts.retired_manifest_entries = planned.manifest_entries;
+        self
+    }
+
+    pub fn with_view_retirement(mut self, run_id: String, applied: &RetireViewApplied) -> Self {
+        self.mode = StoreMaintenanceMode::Apply;
+        self.run_id = Some(run_id);
+        self.disposition = if applied.retired_views == 0 {
+            StoreMaintenanceDisposition::NoChange
+        } else {
+            StoreMaintenanceDisposition::Applied
+        };
+        self.counts.retired_views = applied.retired_views;
+        self.counts.retired_manifests = applied.retired_manifests;
+        self.counts.retired_manifest_entries = applied.retired_manifest_entries;
         self
     }
 
