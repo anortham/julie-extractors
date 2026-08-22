@@ -74,6 +74,14 @@ or consume those columns.
 
 A manifest entry's nullable version FK is `ON DELETE RESTRICT`; live and historical manifests are GC roots. Publication inserts the manifest before changing `views.current_generation` in one transaction.
 
+A view ends its life only when a caller names it. `store maintain retire-view --view <id> --apply`
+deletes that view's manifest entries, its manifests, and its `views` row in one store transaction,
+so no orphan manifest can survive to fail a later maintenance root check. Retirement is never
+inferred from a missing root: the root of a dead workspace is already gone, so its absence proves
+nothing. The verb keeps every family allocator mark, store-log row, request receipt, and consumer
+cursor, which is what stops a later view from reusing a retired identity. The versions the view
+released are not deleted here; they become ordinary GC candidates for a later `gc --apply` run.
+
 Re-publishing the current generation is a no-op. The retired scope journal is no
 longer written; writer open drops leftover journal tables.
 
@@ -132,6 +140,8 @@ drops leftover `bases/` files and both scratch families.
 
 Ph2d may reclaim only objects outside every current/historical manifest,
 active request/claim, scratch owner, consumer cursor window, and retained-generation safety window.
+`store maintain retire-view` is the one path that removes manifest roots themselves; it removes
+them for one named view and leaves the versions they held to ordinary reclaim.
 Terminal request rows become durable receipts before coordinator deletion; orphan store logs are
 pruned only afterward and below every safe cursor. General maintenance behavior is specified by the
 Ph2d lifecycle design and is implemented behind `store maintain`.
@@ -139,8 +149,8 @@ Ph2d lifecycle design and is implemented behind `store maintain`.
 ## Lifecycle maintenance interface
 
 The published CLI exposes lifecycle work only under `store maintain`. `inspect` is read-only.
-`gc`, `repair`, `promote`, and consumer-cursor mutations require `--apply`; without it they return a
-pure plan and do not modify `store.db`, `coord.db`, generation files, or `CURRENT`.
+`gc`, `repair`, `promote`, `retire-view`, and consumer-cursor mutations require `--apply`; without it
+they return a pure plan and do not modify `store.db`, `coord.db`, generation files, or `CURRENT`.
 
 Every mutation validates the inspected plan fingerprint, store and coordinator root fingerprints,
 family, serving generation, capacity, maintenance intent, writer lease, and fencing token before
@@ -155,7 +165,10 @@ Promotion builds a sibling generation, validates catalogs and identities, fsyncs
 and replaces `CURRENT` only after the generation is ready. Repair may checkpoint a valid current
 generation, select one unambiguous valid named generation after a torn publication, or rebuild
 under the frozen generation policy. Ambiguous or unselectable state is reported honestly as
-`recovery_required` or `repair_unavailable`; repair never fabricates catalog state.
+`recovery_required` or `repair_unavailable`; repair never fabricates catalog state. Retire-view
+takes the same fence and the same plan validation, then commits its three deletes together. A view
+the store does not hold is `invalid_arguments` with code `view_not_found`; a queued or claimed
+request that names the view is `busy`.
 
 Consumer cursor advance is monotonic, cannot pass the durable log high-water mark, and remains
 bound to the serving generation. Release removes only the exact consumer row. Consumer IDs are

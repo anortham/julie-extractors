@@ -480,15 +480,19 @@ The physical format and recovery invariants are frozen in [store-v1.md](store-v1
 
 ### `store maintain`
 
-`store maintain inspect` is always read-only. `gc`, `repair`, `promote`, `cursor advance`, and
-`cursor release` are also read-only unless `--apply` is present. Their plan result is computed from
-the current immutable store and coordinator roots. Apply reacquires the maintenance fence and
-refuses a stale plan before mutation.
+`store maintain inspect` is always read-only. `gc`, `repair`, `promote`, `retire-view`,
+`cursor advance`, and `cursor release` are also read-only unless `--apply` is present. Their plan
+result is computed from the current immutable store and coordinator roots. Apply reacquires the
+maintenance fence and refuses a stale plan before mutation.
 
 `gc` applies the bounded retention plan. `promote` builds, validates, and atomically publishes a
 new generation. `repair` checkpoints a valid generation, recovers an unambiguous torn publication,
 or rebuilds only when the lifecycle policy permits it; it never guesses when no generation can be
-selected. Cursor advance is monotonic and generation-bound. Cursor release removes only the named
+selected. `retire-view --view <id>` permanently removes one named view: its manifest entries, its
+manifests, and its `views` row, in one store transaction. It never reads the view's root path, and
+it never deletes allocator marks, log rows, receipts, or cursors. An absent view is
+`invalid_arguments` with code `view_not_found`; a queued or claimed request for that view is
+`busy`. Cursor advance is monotonic and generation-bound. Cursor release removes only the named
 consumer row; consumer IDs never become filesystem names.
 
 Maintenance emits a separate `StoreMaintenanceReport` with `report_schema_version: 1`; it does not
@@ -500,8 +504,9 @@ Human success uses stdout and human failure uses stderr.
 
 Maintenance exit codes are `0` for a completed plan/apply or semantic no-op, `1` for an operational
 refusal, `2` for CLI usage, and `3` for an incompatible store. Stable operational failure classes
-are `busy`, `stale_plan`, `capacity_insufficient`, `recovery_required`, `integrity_failed`, and
-`repair_unavailable`; incompatible schema/epoch/reader/writer floors use `incompatible_store`.
+are `busy`, `stale_plan`, `capacity_insufficient`, `recovery_required`, `integrity_failed`,
+`repair_unavailable`, and `invalid_arguments`; incompatible schema/epoch/reader/writer floors use
+`incompatible_store`.
 
 ## Status Values
 
