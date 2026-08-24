@@ -74,7 +74,7 @@
 | Task 1: Register and extract `qmldir` | Batch A | `crates/julie-extractors/Cargo.toml`; `Cargo.lock`; `crates/julie-extractors/src/lib.rs`; `crates/julie-extractors/src/language_spec/mod.rs`; `crates/julie-extractors/src/language_spec/specs.rs`; `crates/julie-extractors/src/registry.rs`; create `crates/julie-extractors/src/qmldir/**`; `crates/julie-extractors/src/tests/mod.rs`; create `crates/julie-extractors/src/tests/qmldir/**`; create `languages/qmldir.toml`; `deny.toml`; `crates/julie-extractors/tests/downstream_smoke.rs`; `docs/architecture/grammar-dependency-policy.md`; `xtask/tests/release_contract.rs` only if its generic pin policy requires change | No | None - safe parallel batch. |
 | Task 2: Normalize QML imports and type metadata | Batch A | `crates/julie-extractors/src/qml/mod.rs`; create `crates/julie-extractors/src/qml/imports.rs`; create `crates/julie-extractors/src/qml/typeinfo.rs`; `crates/julie-extractors/src/tests/qml/types.rs`; create `crates/julie-extractors/src/tests/qml/imports.rs`; create `crates/julie-extractors/src/tests/qml/typeinfo.rs`; `crates/julie-extractors/src/tests/qml/mod.rs`; test-only size-limit coverage in `crates/julie-extract-cli/src/discovery.rs` | No | None - safe parallel batch. |
 | Task 3: Make instantiations and Qt Quick Test roles exact | Batch A | `crates/julie-extractors/src/qml/relationships.rs`; `crates/julie-extractors/src/test_detection.rs`; `crates/julie-extractors/src/tests/qml/relationships.rs`; create `crates/julie-extractors/src/tests/qml/test_detection.rs`; QML real-world feature tests covering roles | No | None - safe parallel batch. |
-| Task 4: Register domain facts and build multi-file goldens | None - serial | `crates/julie-extractors/src/base/code_structural_facts.rs`; `crates/julie-extractors/src/base/structural_fact_registry/builtins/extra.rs`; structural-fact registry tests; `fixtures/extraction/qml/**`; create `fixtures/extraction/qmldir/**`; `fixtures/extraction/capabilities.json` | Yes | Integrates the extractor outputs from Tasks 1-3 into public fact schemas and authoritative goldens. |
+| Task 4: Register domain facts and build multi-file goldens | None - serial | `crates/julie-extractors/src/base/code_structural_facts.rs`; `crates/julie-extractors/src/base/structural_fact_registry/builtins/extra.rs`; `crates/julie-extractors/src/tests/golden.rs`; `crates/julie-extractors/src/tests/capability_matrix.rs`; `crates/julie-extractors/src/tests/structural_fact_registry.rs`; `fixtures/extraction/qml/**`; create `fixtures/extraction/qmldir/**`; `fixtures/extraction/capabilities.json` | Yes | Integrates the extractor outputs from Tasks 1-3 and extends the golden harness narrowly so one fixture can prove a real multi-file module. |
 | Task 5: Make per-language and certification gates complete | None - serial | `xtask/src/test_tiers.rs`; `xtask/tests/test_tiers.rs`; golden harness files required for language filtering; QML/qmldir certification fixtures or manifests; QML support documentation and dependency freshness records | Yes | Depends on the final fixture names, language registrations, and capability rows from Task 4. |
 
 Commit mode: Tasks 1-3 use `parallel-lead-commit`; Tasks 4-5 use `serial-worker-commit` after lead inline review and assigned verification.
@@ -189,7 +189,9 @@ Commit mode: Tasks 1-3 use `parallel-lead-commit`; Tasks 4-5 use `serial-worker-
 **Files:**
 - Modify: `crates/julie-extractors/src/base/code_structural_facts.rs`
 - Modify: `crates/julie-extractors/src/base/structural_fact_registry/builtins/extra.rs`
-- Modify: structural-fact registry tests identified by Miller
+- Modify: `crates/julie-extractors/src/tests/golden.rs`
+- Modify: `crates/julie-extractors/src/tests/capability_matrix.rs`
+- Modify: `crates/julie-extractors/src/tests/structural_fact_registry.rs`
 - Replace/expand: `fixtures/extraction/qml/cross_file/**`
 - Modify: `fixtures/extraction/qml/basic/**`
 - Modify: `fixtures/extraction/qml/test_roles/**`
@@ -203,13 +205,13 @@ Commit mode: Tasks 1-3 use `parallel-lead-commit`; Tasks 4-5 use `serial-worker-
 
 **Contract inputs:** no duplicated resolver channels; all positive capability claims require a named registered golden.
 
-**File ownership:** `crates/julie-extractors/src/base/code_structural_facts.rs`; `crates/julie-extractors/src/base/structural_fact_registry/builtins/extra.rs`; structural-fact registry tests; `fixtures/extraction/qml/**`; create `fixtures/extraction/qmldir/**`; `fixtures/extraction/capabilities.json`
+**File ownership:** `crates/julie-extractors/src/base/code_structural_facts.rs`; `crates/julie-extractors/src/base/structural_fact_registry/builtins/extra.rs`; `crates/julie-extractors/src/tests/golden.rs`; `crates/julie-extractors/src/tests/capability_matrix.rs`; `crates/julie-extractors/src/tests/structural_fact_registry.rs`; `fixtures/extraction/qml/**`; create `fixtures/extraction/qmldir/**`; `fixtures/extraction/capabilities.json`
 
 **Serialization required:** Yes
 
 **Dependency reason:** Integrates the extractor outputs from Tasks 1-3 into public fact schemas and authoritative goldens.
 
-**What to build:** Register only durable domain-native fact kinds, then build a real module fixture with multiple QML files, `qmldir`, `.qmltypes`, local/external components, aliases, bindings, and Quick Test cases. Update capability evidence from the generated artifact.
+**What to build:** Register only durable domain-native fact kinds, then build a real module fixture with multiple QML files, `qmldir`, `.qmltypes`, local/external components, aliases, bindings, and Quick Test cases. Extend the test-only golden fixture model with an optional complete `sources` list while retaining `source` as its backwards-compatible primary path; aggregate per-file extraction results without resolving them. Update capability evidence from the generated artifact.
 
 **Approach:** Use narrow facts for imports, object instantiations, manifest declarations, and typeinfo declarations. Generate expected artifacts through the repository golden workflow, inspect diffs, then lock them.
 
