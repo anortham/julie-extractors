@@ -40,6 +40,15 @@ on an unreleased upstream branch is not accepted.
 | `tree-sitter-sequel-tsql` | [`anortham/tree-sitter-sql`](https://github.com/anortham/tree-sitter-sql) | Certified T-SQL identifier, DDL, batch, trigger, routine, and `MERGE` syntax. |
 | `tree-sitter-razor` | [`anortham/tree-sitter-razor`](https://github.com/anortham/tree-sitter-razor) | Parser fixes required by the certified Razor and Blazor fixtures. |
 
+### Current Approved External Grammars
+
+External grammars may remain on their upstream repository when the repository,
+exact commit, license, lockfile source, and extraction evidence are recorded.
+
+| Dependency | Approved remote | Pinned commit | License | Rationale |
+| --- | --- | --- | --- | --- |
+| `tree-sitter-qmldir` | [`tree-sitter-grammars/tree-sitter-qmldir`](https://github.com/tree-sitter-grammars/tree-sitter-qmldir) | `c57e00865a1a6f1cca83340d6dad91f13df55479` | MIT | No suitable registry release; provides the qmldir module-manifest grammar used by the first-class QML extractor. |
+
 `crates/julie-extractors/Cargo.toml` and `Cargo.lock` are authoritative for the
 current full commit IDs. Update this inventory when ownership changes or an
 owned fork returns to a suitable published upstream release.

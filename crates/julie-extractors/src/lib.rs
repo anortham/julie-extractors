@@ -84,6 +84,7 @@ pub mod php;
 pub mod powershell;
 pub mod python;
 pub mod qml;
+pub mod qmldir;
 pub mod r;
 pub mod razor;
 pub mod regex;

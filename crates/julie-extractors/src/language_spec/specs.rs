@@ -203,10 +203,18 @@ pub(super) const LANGUAGE_SPECS: &[LanguageSpec] = &[
     ),
     spec(
         "qml",
-        &["qml"],
+        &["qml", "qmltypes"],
         "tree-sitter-qmljs",
         FULL_CAPABILITIES,
         parser_qml,
+        EMPTY,
+    ),
+    spec(
+        "qmldir",
+        &[],
+        "tree-sitter-qmldir",
+        SYMBOLS_ONLY_CAPABILITIES,
+        parser_qmldir,
         EMPTY,
     ),
     spec(

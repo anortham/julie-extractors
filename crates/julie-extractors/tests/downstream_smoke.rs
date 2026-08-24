@@ -4,8 +4,9 @@
 //!
 //! `cargo package --list` only enumerates files; it does not prove the crate
 //! is consumable. Real `cargo package -p julie-extractors --allow-dirty`
-//! fails because four inherent git dependencies (tree-sitter-qmljs,
-//! tree-sitter-razor, tree-sitter-powershell, tree-sitter-vb-dotnet) have
+//! fails because five inherent git dependencies (tree-sitter-qmljs,
+//! tree-sitter-qmldir, tree-sitter-razor, tree-sitter-powershell,
+//! tree-sitter-vb-dotnet) have
 //! no crates.io versions. The actual Pillar 3 contract is
 //! "consumable as a Rust path/git dependency". This test spawns a tempdir
 //! consumer crate, path-deps julie-extractors, and runs a program calling

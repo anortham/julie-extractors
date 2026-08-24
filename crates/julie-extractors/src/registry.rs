@@ -595,6 +595,41 @@ fn extract_xml(
     })
 }
 
+fn extract_qmldir(
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+    workspace_root: &Path,
+    level: ExtractionLevel,
+) -> Result<ExtractionResults, anyhow::Error> {
+    let mut ext = crate::qmldir::QmldirExtractor::new(
+        "qmldir".to_string(),
+        file_path.to_string(),
+        content.to_string(),
+        workspace_root,
+    );
+    let symbols = ext.extract_symbols(tree);
+    let identifiers = if level.includes_references() {
+        ext.extract_identifiers(tree, &symbols)
+    } else {
+        Vec::new()
+    };
+    Ok(ExtractionResults {
+        symbols,
+        relationships: Vec::new(),
+        pending_relationships: Vec::new(),
+        structured_pending_relationships: Vec::new(),
+        identifiers,
+        type_argument_usages: ext.base.take_type_argument_usages(),
+        literals: ext.base.take_literals(),
+        source_regions: Vec::new(),
+        structural_facts: ext.take_structural_facts(),
+        complexity_metrics: Vec::new(),
+        types: HashMap::new(),
+        parse_diagnostics: Vec::new(),
+    })
+}
+
 fn extract_vue(
     tree: &Tree,
     file_path: &str,
@@ -665,6 +700,7 @@ const EXTRACTORS: &[(&str, ExtractFn)] = &[
     ("erlang", extract_erlang),
     ("lua", extract_lua),
     ("qml", extract_qml),
+    ("qmldir", extract_qmldir),
     ("r", extract_r),
     ("bash", extract_bash),
     ("powershell", extract_powershell),
@@ -747,6 +783,7 @@ pub fn extract_for_language_at(
     })?;
     let mut results = (entry.extract)(tree, file_path, content, workspace_root, level)?;
     if level.includes_references() {
+        let extractor_structural_facts = std::mem::take(&mut results.structural_facts);
         results.source_regions =
             collect_source_regions(language, tree, file_path, content, &results.symbols);
         results.structural_facts =
@@ -802,6 +839,7 @@ pub fn extract_for_language_at(
                 content,
                 &results.symbols,
             ));
+        results.structural_facts.extend(extractor_structural_facts);
         sort_structural_facts(&mut results.structural_facts);
     }
     results.complexity_metrics = match language {
@@ -837,7 +875,7 @@ mod registry_tests {
 
     #[test]
     fn registry_matches_supported_language_count() {
-        assert_eq!(supported_languages().len(), 38);
+        assert_eq!(supported_languages().len(), 39);
         assert!(
             capabilities_for_language("rust")
                 .unwrap()

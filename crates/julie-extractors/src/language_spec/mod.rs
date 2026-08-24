@@ -136,6 +136,14 @@ pub const DATA_ONLY_CAPABILITIES: LanguageCapabilities = LanguageCapabilities {
     types: false,
 };
 
+pub const SYMBOLS_ONLY_CAPABILITIES: LanguageCapabilities = LanguageCapabilities {
+    symbols: true,
+    relationships: false,
+    pending_relationships: false,
+    identifiers: false,
+    types: false,
+};
+
 pub const RELATIONSHIP_DATA_CAPABILITIES: LanguageCapabilities = LanguageCapabilities {
     symbols: true,
     relationships: true,
@@ -241,6 +249,7 @@ parser!(parser_elixir, tree_sitter_elixir::LANGUAGE);
 parser!(parser_erlang, tree_sitter_erlang::LANGUAGE);
 parser!(parser_lua, tree_sitter_lua::LANGUAGE);
 parser!(parser_qml, tree_sitter_qmljs::LANGUAGE);
+parser!(parser_qmldir, tree_sitter_qmldir::LANGUAGE);
 parser!(parser_r, tree_sitter_r::LANGUAGE);
 parser!(parser_bash, tree_sitter_bash::LANGUAGE);
 parser!(parser_powershell, tree_sitter_powershell::LANGUAGE);
@@ -291,6 +300,14 @@ pub fn detect_language_from_extension(extension: &str) -> Option<&'static str> {
 }
 
 pub fn detect_language_for_source(file_path: &str, content: &str) -> Option<&'static str> {
+    if Path::new(file_path)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| name.eq_ignore_ascii_case("qmldir"))
+    {
+        return Some("qmldir");
+    }
+
     let extension = Path::new(file_path)
         .extension()
         .and_then(|ext| ext.to_str())

@@ -47,6 +47,7 @@ allow-git = [
     "https://github.com/anortham/tree-sitter-c-sharp",
     "https://github.com/anortham/tree-sitter-razor",
     "https://github.com/anortham/tree-sitter-sql",
+    "https://github.com/tree-sitter-grammars/tree-sitter-qmldir",
     "https://github.com/yuja/tree-sitter-qmljs",
 ]
 unused-allowed-source = "deny"

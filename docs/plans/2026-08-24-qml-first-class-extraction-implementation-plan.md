@@ -71,8 +71,8 @@
 
 | Task | Parallel batch | File ownership | Serialization required | Dependency reason |
 |---|---|---|---|---|
-| Task 1: Register and extract `qmldir` | Batch A | `crates/julie-extractors/Cargo.toml`; `Cargo.lock`; `crates/julie-extractors/src/language_spec/mod.rs`; `crates/julie-extractors/src/language_spec/specs.rs`; `crates/julie-extractors/src/registry.rs`; create `crates/julie-extractors/src/qmldir/**`; create `crates/julie-extractors/src/tests/qmldir/**`; create `languages/qmldir.toml`; dependency policy files touched by the pin | No | None - safe parallel batch. |
-| Task 2: Normalize QML imports and type metadata | Batch A | `crates/julie-extractors/src/qml/mod.rs`; create `crates/julie-extractors/src/qml/imports.rs`; create `crates/julie-extractors/src/qml/typeinfo.rs`; `crates/julie-extractors/src/tests/qml/types.rs`; create `crates/julie-extractors/src/tests/qml/imports.rs`; create `crates/julie-extractors/src/tests/qml/typeinfo.rs`; `crates/julie-extractors/src/tests/qml/mod.rs` | No | None - safe parallel batch. |
+| Task 1: Register and extract `qmldir` | Batch A | `crates/julie-extractors/Cargo.toml`; `Cargo.lock`; `crates/julie-extractors/src/lib.rs`; `crates/julie-extractors/src/language_spec/mod.rs`; `crates/julie-extractors/src/language_spec/specs.rs`; `crates/julie-extractors/src/registry.rs`; create `crates/julie-extractors/src/qmldir/**`; `crates/julie-extractors/src/tests/mod.rs`; create `crates/julie-extractors/src/tests/qmldir/**`; create `languages/qmldir.toml`; `deny.toml`; `crates/julie-extractors/tests/downstream_smoke.rs`; `docs/architecture/grammar-dependency-policy.md`; `xtask/tests/release_contract.rs` only if its generic pin policy requires change | No | None - safe parallel batch. |
+| Task 2: Normalize QML imports and type metadata | Batch A | `crates/julie-extractors/src/qml/mod.rs`; create `crates/julie-extractors/src/qml/imports.rs`; create `crates/julie-extractors/src/qml/typeinfo.rs`; `crates/julie-extractors/src/tests/qml/types.rs`; create `crates/julie-extractors/src/tests/qml/imports.rs`; create `crates/julie-extractors/src/tests/qml/typeinfo.rs`; `crates/julie-extractors/src/tests/qml/mod.rs`; test-only size-limit coverage in `crates/julie-extract-cli/src/discovery.rs` | No | None - safe parallel batch. |
 | Task 3: Make instantiations and Qt Quick Test roles exact | Batch A | `crates/julie-extractors/src/qml/relationships.rs`; `crates/julie-extractors/src/test_detection.rs`; `crates/julie-extractors/src/tests/qml/relationships.rs`; create `crates/julie-extractors/src/tests/qml/test_detection.rs`; QML real-world feature tests covering roles | No | None - safe parallel batch. |
 | Task 4: Register domain facts and build multi-file goldens | None - serial | `crates/julie-extractors/src/base/code_structural_facts.rs`; `crates/julie-extractors/src/base/structural_fact_registry/builtins/extra.rs`; structural-fact registry tests; `fixtures/extraction/qml/**`; create `fixtures/extraction/qmldir/**`; `fixtures/extraction/capabilities.json` | Yes | Integrates the extractor outputs from Tasks 1-3 into public fact schemas and authoritative goldens. |
 | Task 5: Make per-language and certification gates complete | None - serial | `xtask/src/test_tiers.rs`; `xtask/tests/test_tiers.rs`; golden harness files required for language filtering; QML/qmldir certification fixtures or manifests; QML support documentation and dependency freshness records | Yes | Depends on the final fixture names, language registrations, and capability rows from Task 4. |
@@ -84,13 +84,18 @@ Commit mode: Tasks 1-3 use `parallel-lead-commit`; Tasks 4-5 use `serial-worker-
 **Files:**
 - Modify: `crates/julie-extractors/Cargo.toml`
 - Modify: `Cargo.lock`
+- Modify: `crates/julie-extractors/src/lib.rs`
 - Modify: `crates/julie-extractors/src/language_spec/mod.rs`
 - Modify: `crates/julie-extractors/src/language_spec/specs.rs`
 - Modify: `crates/julie-extractors/src/registry.rs`
 - Create: `crates/julie-extractors/src/qmldir/mod.rs`
+- Modify: `crates/julie-extractors/src/tests/mod.rs`
 - Create: `crates/julie-extractors/src/tests/qmldir/mod.rs`
 - Create: `languages/qmldir.toml`
-- Modify: dependency policy and downstream smoke files identified by Miller before implementation
+- Modify: `deny.toml`
+- Modify: `crates/julie-extractors/tests/downstream_smoke.rs`
+- Modify: `docs/architecture/grammar-dependency-policy.md`
+- Modify: `xtask/tests/release_contract.rs` only if its existing generic pin-policy contract requires change
 
 **Interfaces:**
 - Consumes: tree-sitter `Language` dispatch, extractor registry contract, symbol/structural-fact builders, and the verified `tree-sitter-qmldir` Rust binding.
@@ -98,7 +103,7 @@ Commit mode: Tasks 1-3 use `parallel-lead-commit`; Tasks 4-5 use `serial-worker-
 
 **Contract inputs:** Qt `qmldir` directives from <https://doc.qt.io/qt-6/qtqml-modules-qmldir.html>; grammar pin `c57e00865a1a6f1cca83340d6dad91f13df55479`.
 
-**File ownership:** `crates/julie-extractors/Cargo.toml`; `Cargo.lock`; `crates/julie-extractors/src/language_spec/mod.rs`; `crates/julie-extractors/src/language_spec/specs.rs`; `crates/julie-extractors/src/registry.rs`; create `crates/julie-extractors/src/qmldir/**`; create `crates/julie-extractors/src/tests/qmldir/**`; create `languages/qmldir.toml`; dependency policy files touched by the pin
+**File ownership:** `crates/julie-extractors/Cargo.toml`; `Cargo.lock`; `crates/julie-extractors/src/lib.rs`; `crates/julie-extractors/src/language_spec/mod.rs`; `crates/julie-extractors/src/language_spec/specs.rs`; `crates/julie-extractors/src/registry.rs`; create `crates/julie-extractors/src/qmldir/**`; `crates/julie-extractors/src/tests/mod.rs`; create `crates/julie-extractors/src/tests/qmldir/**`; create `languages/qmldir.toml`; `deny.toml`; `crates/julie-extractors/tests/downstream_smoke.rs`; `docs/architecture/grammar-dependency-policy.md`; `xtask/tests/release_contract.rs` only if its existing generic pin-policy contract requires change
 
 **Serialization required:** No
 
@@ -109,10 +114,10 @@ Commit mode: Tasks 1-3 use `parallel-lead-commit`; Tasks 4-5 use `serial-worker-
 **Approach:** Use tree-sitter nodes rather than line regexes. Prove basename detection, malformed-line recovery, versions, singleton/internal flags, JavaScript resources, plugins, typeinfo, imports, depends, prefer, and designer directives through the public extractor.
 
 **Acceptance criteria:**
-- [ ] Extensionless `qmldir` files select the new parser and extractor deterministically.
-- [ ] All supported directives emit bounded typed rows with exact source spans.
-- [ ] The parser dependency is pinned, licensed, locked, and covered by downstream smoke policy.
-- [ ] Worker-scope verification passes and the change is handed to the lead per `parallel-lead-commit`.
+- [x] Extensionless `qmldir` files select the new parser and extractor deterministically.
+- [x] All supported directives emit bounded typed rows with exact source spans.
+- [x] The parser dependency is pinned, licensed, locked, and covered by downstream smoke policy.
+- [x] Worker-scope verification passes and the change is handed to the lead per `parallel-lead-commit`.
 
 ### Task 2: Normalize QML imports and type metadata
 
@@ -124,6 +129,7 @@ Commit mode: Tasks 1-3 use `parallel-lead-commit`; Tasks 4-5 use `serial-worker-
 - Create: `crates/julie-extractors/src/tests/qml/imports.rs`
 - Create: `crates/julie-extractors/src/tests/qml/typeinfo.rs`
 - Modify: `crates/julie-extractors/src/tests/qml/mod.rs`
+- Test: `crates/julie-extract-cli/src/discovery.rs` (test module only)
 
 **Interfaces:**
 - Consumes: current `QmlExtractor`, symbol metadata, type facts, and `.qml` parser dispatch.
@@ -131,7 +137,7 @@ Commit mode: Tasks 1-3 use `parallel-lead-commit`; Tasks 4-5 use `serial-worker-
 
 **Contract inputs:** Import metadata keys `source`, `alias`, `local_name`, `imported_name`, `is_namespace`; existing extractor file-size ceiling; Qt module/type metadata conventions.
 
-**File ownership:** `crates/julie-extractors/src/qml/mod.rs`; create `crates/julie-extractors/src/qml/imports.rs`; create `crates/julie-extractors/src/qml/typeinfo.rs`; `crates/julie-extractors/src/tests/qml/types.rs`; create `crates/julie-extractors/src/tests/qml/imports.rs`; create `crates/julie-extractors/src/tests/qml/typeinfo.rs`; `crates/julie-extractors/src/tests/qml/mod.rs`
+**File ownership:** `crates/julie-extractors/src/qml/mod.rs`; create `crates/julie-extractors/src/qml/imports.rs`; create `crates/julie-extractors/src/qml/typeinfo.rs`; `crates/julie-extractors/src/tests/qml/types.rs`; create `crates/julie-extractors/src/tests/qml/imports.rs`; create `crates/julie-extractors/src/tests/qml/typeinfo.rs`; `crates/julie-extractors/src/tests/qml/mod.rs`; test-only size-limit coverage in `crates/julie-extract-cli/src/discovery.rs`
 
 **Serialization required:** No
 
@@ -142,10 +148,10 @@ Commit mode: Tasks 1-3 use `parallel-lead-commit`; Tasks 4-5 use `serial-worker-
 **Approach:** Derive fields from tree-sitter nodes and preserve absent fields as absent, not guessed values. Add URI, directory, versioned, aliased, JavaScript, malformed, and `.qmltypes` size-limit tests.
 
 **Acceptance criteria:**
-- [ ] Every supported import form has correct normalized metadata on the import symbol.
-- [ ] `qml.import_statement.v1` values agree with the corresponding import symbol.
-- [ ] `.qmltypes` emits module/type/member/revision evidence under the normal size ceiling.
-- [ ] Worker-scope verification passes and the change is handed to the lead per `parallel-lead-commit`.
+- [x] Every supported import form has correct normalized metadata on the import symbol.
+- [x] Import symbols are the sole generic binding input; structural-fact normalization remains isolated for Task 4.
+- [x] `.qmltypes` emits module/type/member/revision evidence under the normal size ceiling.
+- [x] Worker-scope verification passes and the change is handed to the lead per `parallel-lead-commit`.
 
 ### Task 3: Make instantiations and Qt Quick Test roles exact
 
@@ -173,10 +179,10 @@ Commit mode: Tasks 1-3 use `parallel-lead-commit`; Tasks 4-5 use `serial-worker-
 **Approach:** Resolve only targets proved local; emit one structured pending relationship otherwise. Require Quick Test context before method-name classification and keep data helpers as ordinary non-test functions.
 
 **Acceptance criteria:**
-- [ ] Local and external component uses each emit exactly one authoritative instantiation edge.
-- [ ] Pending instantiations retain target and normalized import context for Miller.
-- [ ] Tests, lifecycle methods, data helpers, benchmarks, and application false positives classify exactly as designed.
-- [ ] Worker-scope verification passes and the change is handed to the lead per `parallel-lead-commit`.
+- [x] Local and external component uses each emit exactly one authoritative instantiation edge.
+- [x] Pending instantiations retain target and normalized import context for Miller.
+- [x] Tests, lifecycle methods, data helpers, benchmarks, and application false positives classify exactly as designed.
+- [x] Worker-scope verification passes and the change is handed to the lead per `parallel-lead-commit`.
 
 ### Task 4: Register domain facts and build multi-file goldens
 
@@ -209,6 +215,7 @@ Commit mode: Tasks 1-3 use `parallel-lead-commit`; Tasks 4-5 use `serial-worker-
 
 **Acceptance criteria:**
 - [ ] Every new fact kind has a fixed versioned schema and registry contract test.
+- [ ] `qml.import_statement.v1` values agree with normalized import-symbol metadata for URI, directory, versioned, alias, and JavaScript imports.
 - [ ] The cross-file golden contains multiple physical source files and proves local plus unresolved module behavior.
 - [ ] Capabilities cite the new fixtures and record any remaining implementation gap as `open_gaps` with closure details.
 - [ ] Golden, capability, contract, and strict quality gates pass; the worker commits per `serial-worker-commit`.

@@ -64,6 +64,7 @@ pub mod powershell;
 pub mod python;
 pub mod python_web;
 pub mod qml;
+pub mod qmldir;
 pub mod r;
 pub mod rails_routes;
 pub mod razor;
