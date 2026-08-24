@@ -3,8 +3,10 @@
 // Tree-sitter-qmljs extends TypeScript grammar with QML-specific nodes
 
 mod identifiers;
+mod imports;
 mod relationships;
 mod semantics;
+mod typeinfo;
 
 use crate::base::{
     BaseExtractor, Identifier, PendingRelationship, Relationship, StructuredPendingRelationship,
@@ -37,8 +39,11 @@ impl QmlExtractor {
         let root_node = tree.root_node();
         self.symbols.clear();
 
-        // Start recursive traversal from root
-        self.traverse_node(root_node, None, 0);
+        if typeinfo::is_typeinfo_path(&self.base.file_path) {
+            typeinfo::extract(self, root_node);
+        } else {
+            self.traverse_node(root_node, None, 0);
+        }
         mark_base_type_test_containers(&mut self.symbols, "TestCase");
 
         self.symbols.clone()
@@ -57,17 +62,7 @@ impl QmlExtractor {
         match node.kind() {
             // QML import statements (import QtQuick 2.15, import org.kde.plasma.core as Plasma)
             "ui_import" => {
-                if let Some(source_node) = node.child_by_field_name("source") {
-                    let name = self.base.get_node_text(&source_node);
-                    let options = SymbolOptions {
-                        parent_id: parent_id.clone(),
-                        visibility: Some(crate::base::Visibility::Public),
-                        doc_comment: semantics::extract_qml_doc_comment(self, &node),
-                        ..Default::default()
-                    };
-                    let symbol = self
-                        .base
-                        .create_symbol(&node, name, SymbolKind::Import, options);
+                if let Some(symbol) = imports::extract(self, &node, parent_id.clone()) {
                     self.symbols.push(symbol);
                 }
             }

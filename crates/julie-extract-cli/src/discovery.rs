@@ -659,6 +659,66 @@ mod tests {
     }
 
     #[test]
+    fn discover_records_slow_file_skip_for_oversized_qmltypes_file() {
+        let fixture = DiscoveryFixture::new();
+        let oversized = fixture.write(
+            "src/QtQuick.qmltypes",
+            &"x".repeat(MAX_SOURCE_FILE_BYTES + 1),
+        );
+        let selection = fixture.policy().select_file(&oversized);
+        let summary = fixture.policy().discover();
+
+        assert_eq!(
+            selection,
+            FileSelection::Unsupported {
+                reason: UnsupportedReason::Oversized
+            }
+        );
+        assert!(
+            summary
+                .slow_file_skips
+                .iter()
+                .any(|skip| skip.root_relative_path == oversized.root_relative_path),
+            "expected a slow_file_skips entry for {}, got: {:?}",
+            oversized.root_relative_path,
+            summary.slow_file_skips
+        );
+        assert!(
+            summary
+                .supported_files
+                .iter()
+                .all(|file| file.root_relative_path != oversized.root_relative_path)
+        );
+    }
+
+    #[test]
+    fn discover_selects_qmltypes_file_at_the_source_limit() {
+        let fixture = DiscoveryFixture::new();
+        let at_limit = fixture.write("src/QtQuick.qmltypes", &"x".repeat(MAX_SOURCE_FILE_BYTES));
+        let selection = fixture.policy().select_file(&at_limit);
+        let summary = fixture.policy().discover();
+
+        assert_eq!(
+            selection,
+            FileSelection::Supported {
+                language: "qml".to_string()
+            }
+        );
+        assert!(
+            summary
+                .supported_files
+                .iter()
+                .any(|file| file.root_relative_path == at_limit.root_relative_path)
+        );
+        assert!(
+            summary
+                .slow_file_skips
+                .iter()
+                .all(|skip| skip.root_relative_path != at_limit.root_relative_path)
+        );
+    }
+
+    #[test]
     fn vendor_directory_is_hard_excluded() {
         let fixture = DiscoveryFixture::new();
         let vendored = fixture.write("vendor/pkg/index.rs", "pub fn vendored() {}\n");

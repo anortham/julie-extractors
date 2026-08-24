@@ -78,6 +78,7 @@ pub mod cross_file_pending; // Phase 4b.qml structured pending lock
 pub mod cross_file_relationships; // Cross-file relationship resolution (pending relationships)
 pub mod functions; // Functions and JavaScript code
 pub mod identifiers; // Identifier extraction (calls, member access, variable refs)
+pub mod imports;
 pub mod layouts; // Anchors, layouts, positioning
 pub mod literals; // String-literal call-argument capture (Miller bridge Phase 3b)
 pub mod modern; // Qt 5.x/6.x modern features
@@ -88,4 +89,5 @@ pub mod signals; // Signals and signal handlers
 pub mod structural_facts;
 pub mod test_detection; // Qt Quick Test container detection (base_types metadata)
 pub mod type_arguments;
+pub mod typeinfo;
 pub mod types;
