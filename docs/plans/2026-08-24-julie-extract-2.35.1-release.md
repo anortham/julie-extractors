@@ -93,11 +93,11 @@
 **Approach:** Follow the v2.34.3/v2.34.4 epoch-bump pattern. Change only product-current epoch literals, not arbitrary historical or multi-epoch fixture values.
 
 **Acceptance criteria:**
-- [ ] All publishable manifests and lockfile package entries report 2.35.1.
-- [ ] Product-current extraction identity is epoch 5 and compatibility baseline/current are 4/5.
-- [ ] Ledger and release notes classify the QML output change as compatible and preserve schema versions.
-- [ ] Workflow defaults report 2.35.1 while current-published pointers still report v2.35.0.
-- [ ] Worker-scope verification passes and the lead commits the reviewed candidate.
+- [x] All publishable manifests and lockfile package entries report 2.35.1.
+- [x] Product-current extraction identity is epoch 5 and compatibility baseline/current are 4/5.
+- [x] Ledger and release notes classify the QML output change as compatible and preserve schema versions.
+- [x] Workflow defaults report 2.35.1 while current-published pointers still report v2.35.0.
+- [x] Worker-scope verification passes and the lead commits the reviewed candidate.
 
 ### Task 2: Verify and publish v2.35.1
 

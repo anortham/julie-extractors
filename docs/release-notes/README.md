@@ -9,6 +9,7 @@ published.
 
 Current notes:
 
+- `v2.35.1.md` (release candidate; v2.35.0 remains current until workflow success)
 - `v2.35.0.md` (current published release)
 - `v2.34.4.md`
 - `v2.34.3.md`

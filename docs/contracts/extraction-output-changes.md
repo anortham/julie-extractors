@@ -89,6 +89,26 @@ In CI, the `Extractor Compatibility` job downloads the latest published release 
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
+## 2.35.1
+
+classification: compatible
+
+The v2.35.1 release makes QML a first-class extraction family. QML source now
+publishes normalized imports, type facts, object-instantiation relationships,
+Qt Quick Test roles, and source evidence. `qmldir` files publish module,
+component, import, plugin, typeinfo, and related manifest facts. `.qmltypes`
+files publish tooling module, type, member, revision, and export evidence.
+The existing SQLite and JSONL tables remain schema-compatible; the new rows and
+the QML capability snapshot are the declared output change.
+
+Extraction identity epoch is 5. A reader built for v2.35.0 still reads schema
+7 / JSONL v5 / store schema 2. Family-store file versions re-extract because
+identity is `(path, content_hash, extraction_epoch)`.
+
+Consumer action: replace the binary and re-extract or rebuild standalone
+artifacts, or let epoch-5 family-store file versions populate on the next
+import or update.
+
 ## 2.34.4
 
 classification: compatible
