@@ -138,3 +138,110 @@ TestCase {
         .unwrap_or_else(|| panic!("expected verify_addition, got {symbols:?}"));
     assert!(!meta_bool(helper, "is_test"));
 }
+
+#[test]
+fn qml_data_helpers_are_not_tests_and_benchmarks_are_tests() {
+    let code = r#"
+import QtTest 1.0
+
+TestCase {
+    name: "CalculatorTests"
+
+    function test_addition() {
+    }
+
+    function test_addition_data() {
+    }
+
+    function init_data() {
+    }
+
+    function benchmark_addition() {
+    }
+
+    function benchmark_once_addition() {
+    }
+}
+"#;
+    let symbols = extract_symbols_with_path(code, "autotests/tst_calculator.qml");
+
+    assert!(meta_bool(
+        symbols.iter().find(|s| s.name == "test_addition").unwrap(),
+        "is_test"
+    ));
+    assert!(!meta_bool(
+        symbols
+            .iter()
+            .find(|s| s.name == "test_addition_data")
+            .unwrap(),
+        "is_test"
+    ));
+    assert!(
+        symbols
+            .iter()
+            .find(|s| s.name == "test_addition_data")
+            .unwrap()
+            .metadata
+            .as_ref()
+            .is_none()
+    );
+    assert!(!meta_bool(
+        symbols.iter().find(|s| s.name == "init_data").unwrap(),
+        "is_test"
+    ));
+    assert!(
+        symbols
+            .iter()
+            .find(|s| s.name == "init_data")
+            .unwrap()
+            .metadata
+            .as_ref()
+            .is_none()
+    );
+    assert!(meta_bool(
+        symbols
+            .iter()
+            .find(|s| s.name == "benchmark_addition")
+            .unwrap(),
+        "is_test"
+    ));
+    assert!(meta_bool(
+        symbols
+            .iter()
+            .find(|s| s.name == "benchmark_once_addition")
+            .unwrap(),
+        "is_test"
+    ));
+}
+
+#[test]
+fn qml_test_names_without_a_testcase_root_are_not_tests() {
+    let code = r#"
+import QtQuick 2.15
+
+Item {
+    function test_application_helper() {
+    }
+
+    function benchmark_application_helper() {
+    }
+}
+"#;
+    let symbols = extract_symbols_with_path(code, "autotests/tst_application.qml");
+
+    for name in ["test_application_helper", "benchmark_application_helper"] {
+        assert!(
+            !meta_bool(symbols.iter().find(|s| s.name == name).unwrap(), "is_test"),
+            "{name} must not be a Qt Quick Test without a TestCase root"
+        );
+        assert!(
+            symbols
+                .iter()
+                .find(|s| s.name == name)
+                .unwrap()
+                .metadata
+                .as_ref()
+                .is_none()
+        );
+    }
+}

@@ -241,14 +241,86 @@ pub(crate) fn apply_callable_test_metadata(
 }
 
 pub(crate) fn mark_base_type_test_containers(symbols: &mut [Symbol], base_type: &str) {
+    let test_container_ids: HashSet<String> = symbols
+        .iter()
+        .filter(|symbol| symbol.kind == SymbolKind::Class)
+        .filter(|symbol| metadata_string_list_contains(symbol, "base_types", base_type))
+        .map(|symbol| symbol.id.clone())
+        .collect();
+
+    for symbol in symbols.iter_mut().filter(|symbol| {
+        symbol.kind == SymbolKind::Class && test_container_ids.contains(&symbol.id)
+    }) {
+        mark_class_test_container(symbol);
+    }
+
+    if base_type == "TestCase" {
+        normalize_qml_test_roles(symbols, &test_container_ids);
+    }
+}
+
+fn normalize_qml_test_roles(symbols: &mut [Symbol], test_container_ids: &HashSet<String>) {
+    let parent_by_id: HashMap<String, Option<String>> = symbols
+        .iter()
+        .map(|symbol| (symbol.id.clone(), symbol.parent_id.clone()))
+        .collect();
+
     for symbol in symbols
         .iter_mut()
-        .filter(|symbol| symbol.kind == SymbolKind::Class)
+        .filter(|symbol| symbol.language == "qml" && is_callable(&symbol.kind))
     {
-        if metadata_string_list_contains(symbol, "base_types", base_type) {
-            mark_class_test_container(symbol);
+        let in_test_case = has_testcase_ancestor(symbol, test_container_ids, &parent_by_id);
+        let role = in_test_case.then(|| qml_test_role(&symbol.name)).flatten();
+        let mut metadata = symbol.metadata.take().unwrap_or_default();
+        metadata.remove("is_test");
+        metadata.remove("test_lifecycle");
+
+        if let Some(lifecycle) = role {
+            metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
+            if lifecycle {
+                metadata.insert("test_lifecycle".to_string(), serde_json::Value::Bool(true));
+            }
         }
+        symbol.metadata = (!metadata.is_empty()).then_some(metadata);
     }
+}
+
+fn has_testcase_ancestor(
+    symbol: &Symbol,
+    test_container_ids: &HashSet<String>,
+    parent_by_id: &HashMap<String, Option<String>>,
+) -> bool {
+    let mut current = symbol.parent_id.clone();
+    let mut visited = HashSet::new();
+    while let Some(parent_id) = current {
+        if !visited.insert(parent_id.clone()) {
+            return false;
+        }
+        if test_container_ids.contains(&parent_id) {
+            return true;
+        }
+        current = parent_by_id.get(&parent_id).cloned().flatten();
+    }
+    false
+}
+
+fn qml_test_role(name: &str) -> Option<bool> {
+    if matches!(
+        name,
+        "initTestCase" | "cleanupTestCase" | "init" | "cleanup"
+    ) {
+        return Some(true);
+    }
+    if name == "init_data" || (name.starts_with("test_") && name.ends_with("_data")) {
+        return None;
+    }
+    if name.starts_with("test_")
+        || name.starts_with("benchmark_")
+        || name.starts_with("benchmark_once_")
+    {
+        return Some(false);
+    }
+    None
 }
 
 fn mark_class_test_container(symbol: &mut Symbol) {
@@ -636,10 +708,7 @@ fn is_qml_test_lifecycle_name(name: &str) -> bool {
 }
 
 fn detect_qml(name: &str, file_path: &str) -> bool {
-    is_test_path(file_path)
-        && (is_qml_test_lifecycle_name(name)
-            || name.starts_with("test_")
-            || name.starts_with("Test"))
+    is_test_path(file_path) && qml_test_role(name).is_some()
 }
 
 fn is_bash_test_lifecycle_name(name: &str) -> bool {

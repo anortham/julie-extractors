@@ -192,7 +192,7 @@ Item {
 }
 "#;
 
-        let (symbols, _relationships) = extract_symbols_and_relationships(qml_code);
+        let (symbols, relationships) = extract_symbols_and_relationships(qml_code);
 
         // Only the root component (Item) is extracted as a Class symbol.
         // Nested components (Rectangle, Text) are no longer extracted,
@@ -209,6 +209,144 @@ Item {
         );
         // File-derived name from default "test.qml"
         assert_eq!(components[0].name, "test");
+        assert!(
+            relationships
+                .iter()
+                .all(|relationship| relationship.kind != RelationshipKind::Instantiates),
+            "built-in components without local targets must not create a resolved edge"
+        );
+    }
+
+    #[test]
+    fn local_component_use_emits_one_resolved_instantiation_edge() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Item {
+    Card {}
+}
+"#;
+
+        let tree = crate::tests::helpers::init_parser(qml_code, "qml");
+        let workspace_root = std::path::PathBuf::from("/tmp/test");
+        let mut extractor = crate::qml::QmlExtractor::new(
+            "qml".to_string(),
+            "test.qml".to_string(),
+            qml_code.to_string(),
+            &workspace_root,
+        );
+        let mut symbols = extractor.extract_symbols(&tree);
+        let root = symbols
+            .iter()
+            .find(|symbol| symbol.kind == SymbolKind::Class)
+            .expect("expected a root component")
+            .clone();
+        let mut local_card = root.clone();
+        local_card.id = "local-card".to_string();
+        local_card.name = "Card".to_string();
+        symbols.push(local_card.clone());
+
+        let relationships = extractor.extract_relationships(&tree, &symbols);
+        let instantiations: Vec<_> = relationships
+            .iter()
+            .filter(|relationship| relationship.kind == RelationshipKind::Instantiates)
+            .collect();
+
+        assert_eq!(instantiations.len(), 1);
+        assert_eq!(instantiations[0].from_symbol_id, root.id);
+        assert_eq!(instantiations[0].to_symbol_id, local_card.id);
+        assert!(
+            extractor
+                .get_structured_pending_relationships()
+                .iter()
+                .all(|pending| pending.pending.kind != RelationshipKind::Instantiates)
+        );
+    }
+
+    #[test]
+    fn duplicate_local_component_candidates_stay_pending() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Item {
+    Card {}
+}
+"#;
+
+        let tree = crate::tests::helpers::init_parser(qml_code, "qml");
+        let workspace_root = std::path::PathBuf::from("/tmp/test");
+        let mut extractor = crate::qml::QmlExtractor::new(
+            "qml".to_string(),
+            "test.qml".to_string(),
+            qml_code.to_string(),
+            &workspace_root,
+        );
+        let mut symbols = extractor.extract_symbols(&tree);
+        let root = symbols
+            .iter()
+            .find(|symbol| symbol.kind == SymbolKind::Class)
+            .expect("expected a root component")
+            .clone();
+        for id in ["local-card-1", "local-card-2"] {
+            let mut local_card = root.clone();
+            local_card.id = id.to_string();
+            local_card.name = "Card".to_string();
+            symbols.push(local_card);
+        }
+
+        let relationships = extractor.extract_relationships(&tree, &symbols);
+        assert!(
+            relationships
+                .iter()
+                .all(|relationship| relationship.kind != RelationshipKind::Instantiates)
+        );
+        assert_eq!(
+            extractor
+                .get_structured_pending_relationships()
+                .iter()
+                .filter(|pending| pending.pending.kind == RelationshipKind::Instantiates)
+                .count(),
+            1
+        );
+    }
+
+    #[test]
+    fn external_component_use_emits_one_structured_pending_instantiation() {
+        let qml_code = r#"
+import QtQuick 2.15
+import "widgets" as Widgets
+
+Item {
+    Widgets.Card {}
+}
+"#;
+
+        let tree = crate::tests::helpers::init_parser(qml_code, "qml");
+        let workspace_root = std::path::PathBuf::from("/tmp/test");
+        let mut extractor = crate::qml::QmlExtractor::new(
+            "qml".to_string(),
+            "autotests/tst_cards.qml".to_string(),
+            qml_code.to_string(),
+            &workspace_root,
+        );
+        let symbols = extractor.extract_symbols(&tree);
+        let relationships = extractor.extract_relationships(&tree, &symbols);
+
+        assert!(
+            relationships
+                .iter()
+                .all(|relationship| relationship.kind != RelationshipKind::Instantiates)
+        );
+        let pending: Vec<_> = extractor
+            .get_structured_pending_relationships()
+            .into_iter()
+            .filter(|pending| pending.pending.kind == RelationshipKind::Instantiates)
+            .collect();
+        assert_eq!(pending.len(), 1);
+        assert_eq!(pending[0].target.display_name, "Widgets.Card");
+        assert_eq!(pending[0].target.terminal_name, "Card");
+        assert_eq!(pending[0].target.receiver.as_deref(), Some("Widgets"));
+        assert_eq!(pending[0].target.import_context.as_deref(), Some("widgets"));
     }
 
     #[test]

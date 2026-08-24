@@ -1,7 +1,7 @@
 // QML Relationship Extraction
 // Extracts relationships between QML symbols: function calls, signal connections, component instantiation
 
-use crate::base::{Relationship, RelationshipKind, Symbol, SymbolKind};
+use crate::base::{Relationship, RelationshipKind, Symbol, SymbolKind, UnresolvedTarget};
 use crate::qml::QmlExtractor;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
@@ -9,7 +9,7 @@ use tree_sitter::{Node, Tree};
 
 /// Extract all relationships from QML code
 pub(super) fn extract_relationships(
-    extractor: &QmlExtractor,
+    extractor: &mut QmlExtractor,
     tree: &Tree,
     symbols: &[Symbol],
 ) -> Vec<Relationship> {
@@ -109,7 +109,6 @@ fn extract_call_relationships(
         }
     }
 
-    // Recursively process children
     let Some(child_depth) = child_tree_depth(depth) else {
         return;
     };
@@ -159,9 +158,9 @@ fn receiver_can_resolve_locally(
         && called_symbol.parent_id.as_deref() == receiver_parent_id
 }
 
-/// Extract component instantiation relationships (Rectangle {}, Button {}, etc.)
+/// Extract one relationship for each QML object use.
 fn extract_instantiation_relationships(
-    extractor: &QmlExtractor,
+    extractor: &mut QmlExtractor,
     node: Node,
     symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
@@ -171,46 +170,41 @@ fn extract_instantiation_relationships(
         return;
     }
 
-    // QML component definitions are ui_object_definition nodes
     if node.kind() == "ui_object_definition"
         && let Some(type_name_node) = node.child_by_field_name("type_name")
     {
-        let component_type = extractor.base.get_node_text(&type_name_node);
-
-        // Find the containing QML component (parent)
+        let component_type = extractor
+            .base
+            .get_node_text(&type_name_node)
+            .trim()
+            .to_string();
         if let Some(parent_symbol) = find_containing_component(node, symbols) {
-            // The instantiated component is the symbol we created for this node
-            // Find it by matching the node position
-            let node_line = node.start_position().row + 1;
-            if let Some(instantiated_symbol) = symbols.iter().find(|s| {
-                s.start_line == node_line as u32
-                    && s.kind == SymbolKind::Class
-                    && s.name.contains(&component_type)
-            }) {
-                let relationship = Relationship {
-                    id: format!(
-                        "{}_{}_{:?}_{}",
-                        parent_symbol.id,
-                        instantiated_symbol.id,
-                        RelationshipKind::Instantiates,
-                        node.start_position().row
-                    ),
-                    from_symbol_id: parent_symbol.id.clone(),
-                    to_symbol_id: instantiated_symbol.id.clone(),
-                    kind: RelationshipKind::Instantiates,
-                    file_path: extractor.base.file_path.clone(),
-                    line_number: node_line as u32,
-                    span: Some(crate::base::NormalizedSpan::from_node(&node)),
-                    reference_site_is_exact: false,
-                    confidence: 1.0,
-                    metadata: None,
-                };
-                relationships.push(relationship);
+            if let Some(instantiated_symbol) =
+                find_local_component_target(&component_type, parent_symbol, symbols)
+            {
+                relationships.push(extractor.base.create_relationship(
+                    parent_symbol.id.clone(),
+                    instantiated_symbol.id.clone(),
+                    RelationshipKind::Instantiates,
+                    &node,
+                    Some(1.0),
+                    None,
+                ));
+            } else {
+                let target = qml_component_target(&component_type, symbols);
+                let pending = extractor.base.create_pending_relationship(
+                    parent_symbol.id.clone(),
+                    target,
+                    RelationshipKind::Instantiates,
+                    &node,
+                    Some(parent_symbol.id.clone()),
+                    Some(0.9),
+                );
+                extractor.add_structured_pending_relationship(pending);
             }
         }
     }
 
-    // Recursively process children
     let Some(child_depth) = child_tree_depth(depth) else {
         return;
     };
@@ -218,6 +212,69 @@ fn extract_instantiation_relationships(
     for child in node.children(&mut cursor) {
         extract_instantiation_relationships(extractor, child, symbols, relationships, child_depth);
     }
+}
+
+fn find_local_component_target<'a>(
+    component_type: &str,
+    parent_symbol: &Symbol,
+    symbols: &'a [Symbol],
+) -> Option<&'a Symbol> {
+    let target_name = component_type.rsplit('.').next().unwrap_or(component_type);
+    let mut candidates = symbols.iter().filter(|symbol| {
+        symbol.kind == SymbolKind::Class
+            && symbol.id != parent_symbol.id
+            && symbol.file_path == parent_symbol.file_path
+            && symbol.name == target_name
+    });
+    let candidate = candidates.next()?;
+    candidates.next().is_none().then_some(candidate)
+}
+
+fn qml_component_target(component_type: &str, symbols: &[Symbol]) -> UnresolvedTarget {
+    let mut segments = component_type.split('.');
+    let terminal_name = segments.next_back().unwrap_or(component_type).to_string();
+    let receiver = if component_type.contains('.') {
+        Some(segments.collect::<Vec<_>>().join("."))
+    } else {
+        None
+    };
+    let import_context = qml_import_context(component_type, receiver.as_deref(), symbols);
+    UnresolvedTarget {
+        display_name: component_type.to_string(),
+        terminal_name,
+        receiver,
+        namespace_path: Vec::new(),
+        import_context,
+    }
+}
+
+fn qml_import_context(
+    component_type: &str,
+    receiver: Option<&str>,
+    symbols: &[Symbol],
+) -> Option<String> {
+    let prefix = receiver.unwrap_or(component_type);
+    symbols
+        .iter()
+        .filter(|symbol| symbol.kind == SymbolKind::Import)
+        .find_map(|import| {
+            let metadata = import.metadata.as_ref()?;
+            let source = metadata_string(metadata, "source")
+                .or_else(|| metadata_string(metadata, "imported_name"))
+                .or_else(|| (!import.name.is_empty()).then(|| import.name.clone()))?;
+            let alias = metadata_string(metadata, "local_name")
+                .or_else(|| metadata_string(metadata, "alias"));
+            let imported_name = metadata_string(metadata, "imported_name");
+            (alias.as_deref() == Some(prefix) || imported_name.as_deref() == Some(component_type))
+                .then_some(source)
+        })
+}
+
+fn metadata_string(metadata: &HashMap<String, serde_json::Value>, key: &str) -> Option<String> {
+    metadata
+        .get(key)
+        .and_then(|value| value.as_str())
+        .map(str::to_string)
 }
 
 /// Extract property binding relationships (width: parent.width, etc.)
@@ -269,7 +326,6 @@ fn extract_property_binding_relationships(
         }
     }
 
-    // Recursively process children
     let Some(child_depth) = child_tree_depth(depth) else {
         return;
     };
