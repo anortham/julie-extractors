@@ -120,10 +120,10 @@
 **Approach:** Never force-push or move a tag. Stop publication on any failed hard gate; after tag push, repair through a superseding release rather than rewriting published history.
 
 **Acceptance criteria:**
-- [ ] Linux, Windows, compatibility, release, and security gates pass on the exact candidate commit.
-- [ ] `main` is clean, pushed, and source CI succeeds.
-- [ ] Tag `v2.35.1` points to the candidate commit locally and on origin.
-- [ ] Release workflow succeeds for four targets and publishes a stable, non-draft, non-prerelease release.
+- [x] Linux, Windows, compatibility, release, and security gates pass on the exact candidate commit.
+- [x] `main` is clean, pushed, and source CI succeeds.
+- [x] Tag `v2.35.1` points to the candidate commit locally and on origin.
+- [x] Release workflow succeeds for four targets and publishes a stable, non-draft, non-prerelease release.
 
 ### Task 3: Verify live assets and close out
 
@@ -156,8 +156,8 @@
 **Approach:** Keep generated archives and artifacts under ignored `target/`. Record the post-release documentation commit explicitly as an approved evidence-only follow-up whose source binaries remain the tagged candidate commit.
 
 **Acceptance criteria:**
-- [ ] All four live archives and embedded checksums verify independently.
-- [ ] Downloaded Windows binary reports 2.35.1 and successfully extracts/inspects representative QML content.
-- [ ] Release evidence records exact source/tag/workflow/job URLs, sizes, digests, schemas, epoch, and consumer action.
-- [ ] All current-release pointers report v2.35.1 without contradicting tag provenance.
+- [x] All four live archives and embedded checksums verify independently.
+- [x] Downloaded Windows binary reports 2.35.1 and successfully extracts/inspects representative QML content.
+- [x] Release evidence records exact source/tag/workflow/job URLs, sizes, digests, schemas, epoch, and consumer action.
+- [x] All current-release pointers report v2.35.1 without contradicting tag provenance.
 - [ ] Evidence-only closeout is committed and pushed; primary `main` is clean and all worktrees are reconciled or named.
