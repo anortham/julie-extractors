@@ -255,7 +255,7 @@ Commit mode: Tasks 1-3 use `parallel-lead-commit`; Tasks 4-5 use `serial-worker-
 - [x] Each per-language command runs its unit tests and only its family goldens.
 - [x] Default tests do not execute real-world corpora or parser certification.
 - [x] Grammar/dependency changes have recorded provenance, freshness, packaging, and real-world evidence.
-- [ ] Branch-scope verification passes and the worker commits per `serial-worker-commit`.
+- [x] Branch-scope verification passes and the worker commits per `serial-worker-commit`.
 
 ## Execution Handoff
 

@@ -1,9 +1,9 @@
 ---
 id: qml-first-class-extraction-and-testing
 title: QML first-class extraction and testing
-status: active
+status: completed
 created: 2026-08-24T13:51:31.985Z
-updated: 2026-08-24T14:21:25.995Z
+updated: 2026-08-24T17:36:25.707Z
 tags:
   - qml
   - extraction
