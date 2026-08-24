@@ -26,19 +26,19 @@ fn walk(extractor: &mut QmlExtractor, node: Node, parent_id: Option<String>, dep
         if let Some(symbol) = super::imports::extract(extractor, &node, parent_id.clone()) {
             extractor.symbols.push(symbol);
         }
-    } else if node.kind() == "ui_object_definition" {
-        if let Some(symbol) = extract_object(extractor, &node, parent_id.clone()) {
-            let child_parent = Some(symbol.id.clone());
-            let enum_members = if symbol.kind == SymbolKind::Enum {
-                enum_members(extractor, &node, symbol.id.clone())
-            } else {
-                Vec::new()
-            };
-            extractor.symbols.push(symbol);
-            extractor.symbols.extend(enum_members);
-            walk_children(extractor, node, child_parent, depth);
-            return;
-        }
+    } else if node.kind() == "ui_object_definition"
+        && let Some(symbol) = extract_object(extractor, &node, parent_id.clone())
+    {
+        let child_parent = Some(symbol.id.clone());
+        let enum_members = if symbol.kind == SymbolKind::Enum {
+            enum_members(extractor, &node, symbol.id.clone())
+        } else {
+            Vec::new()
+        };
+        extractor.symbols.push(symbol);
+        extractor.symbols.extend(enum_members);
+        walk_children(extractor, node, child_parent, depth);
+        return;
     }
 
     walk_children(extractor, node, parent_id, depth);

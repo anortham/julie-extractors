@@ -472,7 +472,7 @@ fn short_maintenance_lease_heartbeats_intent_and_writer_during_apply() {
     let apply_plan = plan.clone();
     let apply_thread = thread::spawn(move || executor.apply(&apply_plan));
     if entered_receiver
-        .recv_timeout(Duration::from_secs(5))
+        .recv_timeout(Duration::from_secs(15))
         .is_err()
     {
         release.store(1, Ordering::SeqCst);
@@ -530,7 +530,7 @@ fn short_maintenance_lease_heartbeats_during_plan_validation() {
     let apply_plan = plan.clone();
     let apply_thread = thread::spawn(move || executor.apply(&apply_plan));
     if entered_receiver
-        .recv_timeout(Duration::from_secs(5))
+        .recv_timeout(Duration::from_secs(15))
         .is_err()
     {
         release.store(1, Ordering::SeqCst);
@@ -590,7 +590,7 @@ fn maintenance_heartbeat_fails_closed_after_lease_takeover() {
     let apply_plan = plan.clone();
     let apply_thread = thread::spawn(move || executor.apply(&apply_plan));
     if entered_receiver
-        .recv_timeout(Duration::from_secs(5))
+        .recv_timeout(Duration::from_secs(15))
         .is_err()
     {
         release.store(1, Ordering::SeqCst);

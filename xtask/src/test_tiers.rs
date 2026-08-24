@@ -38,7 +38,7 @@ impl CommandSpec {
             .into_iter()
             .map(|(key, value)| (key.into(), value.into()))
             .collect();
-        self.env.sort_unstable_by(|left, right| left.cmp(right));
+        self.env.sort_unstable();
         self
     }
 

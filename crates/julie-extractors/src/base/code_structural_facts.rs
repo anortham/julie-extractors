@@ -1020,15 +1020,15 @@ fn enrich_metadata(
             if let Some(source) = qml_import_source(content, node) {
                 insert_string(metadata, "import_module", &source);
                 insert_string(metadata, "source", &source);
-                if let Some(source_node) = node.child_by_field_name("source") {
-                    if let Some(source_kind) = crate::qml::import_source_kind(&source_node) {
-                        insert_string(metadata, "source_kind", source_kind);
-                        insert_string(
-                            metadata,
-                            "import_kind",
-                            crate::qml::import_kind(source_kind, &source),
-                        );
-                    }
+                if let Some(source_node) = node.child_by_field_name("source")
+                    && let Some(source_kind) = crate::qml::import_source_kind(&source_node)
+                {
+                    insert_string(metadata, "source_kind", source_kind);
+                    insert_string(
+                        metadata,
+                        "import_kind",
+                        crate::qml::import_kind(source_kind, &source),
+                    );
                 }
             }
             if let Some(version) = qml_field_name(content, node, "version") {

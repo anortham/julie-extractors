@@ -27,6 +27,34 @@ pub struct QmldirExtractor {
     structural_facts: Vec<StructuralFact>,
 }
 
+#[derive(Clone, Copy)]
+enum TypeSymbolMode {
+    Singleton,
+    Internal,
+    Object,
+}
+
+impl TypeSymbolMode {
+    fn visibility(self) -> Visibility {
+        match self {
+            Self::Singleton | Self::Object => Visibility::Public,
+            Self::Internal => Visibility::Internal,
+        }
+    }
+
+    fn kind(self) -> &'static str {
+        match self {
+            Self::Singleton => "singleton",
+            Self::Internal => "internal",
+            Self::Object => "object_type",
+        }
+    }
+
+    fn is_singleton(self) -> bool {
+        matches!(self, Self::Singleton)
+    }
+}
+
 impl QmldirExtractor {
     pub fn new(
         language: String,
@@ -155,9 +183,7 @@ impl QmldirExtractor {
             type_name,
             version,
             file,
-            Visibility::Public,
-            "singleton",
-            true,
+            TypeSymbolMode::Singleton,
         );
         self.push_fact(
             node,
@@ -187,9 +213,7 @@ impl QmldirExtractor {
             type_name,
             "",
             file,
-            Visibility::Internal,
-            "internal",
-            false,
+            TypeSymbolMode::Internal,
         );
         self.push_fact(
             node,
@@ -236,9 +260,7 @@ impl QmldirExtractor {
                 type_name,
                 version,
                 file,
-                Visibility::Public,
-                "object_type",
-                false,
+                TypeSymbolMode::Object,
             );
             self.push_fact(
                 node,
@@ -372,12 +394,10 @@ impl QmldirExtractor {
         type_name: &str,
         version: &str,
         file: &str,
-        visibility: Visibility,
-        kind: &str,
-        singleton: bool,
+        mode: TypeSymbolMode,
     ) {
         let mut attrs = symbol_metadata(
-            kind,
+            mode.kind(),
             [
                 (
                     "type_name",
@@ -392,9 +412,10 @@ impl QmldirExtractor {
                 serde_json::Value::String(version.to_string()),
             );
         }
-        if singleton {
+        if mode.is_singleton() {
             attrs.insert("singleton".to_string(), serde_json::Value::Bool(true));
         }
+        let visibility = mode.visibility();
         if matches!(visibility, Visibility::Internal) {
             attrs.insert("internal".to_string(), serde_json::Value::Bool(true));
         }
