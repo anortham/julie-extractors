@@ -5,9 +5,10 @@ use crate::{CapabilitySnapshot, capability_snapshot};
 #[test]
 fn test_capability_snapshot_loads_all_languages() {
     let snap = capability_snapshot();
-    assert_eq!(snap.languages().count(), 38);
+    assert_eq!(snap.languages().count(), 39);
     assert!(snap.get("rust").is_some());
     assert!(snap.get("vbnet").is_some());
+    assert!(snap.get("qmldir").is_some());
 }
 
 #[test]

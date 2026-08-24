@@ -1,5 +1,6 @@
 use super::QmlExtractor;
 use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::path::Path;
@@ -13,10 +14,14 @@ pub(super) fn is_typeinfo_path(file_path: &str) -> bool {
 }
 
 pub(super) fn extract(extractor: &mut QmlExtractor, root: Node) {
-    walk(extractor, root, None);
+    walk(extractor, root, None, 0);
 }
 
-fn walk(extractor: &mut QmlExtractor, node: Node, parent_id: Option<String>) {
+fn walk(extractor: &mut QmlExtractor, node: Node, parent_id: Option<String>, depth: u32) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind() == "ui_import" {
         if let Some(symbol) = super::imports::extract(extractor, &node, parent_id.clone()) {
             extractor.symbols.push(symbol);
@@ -31,18 +36,22 @@ fn walk(extractor: &mut QmlExtractor, node: Node, parent_id: Option<String>) {
             };
             extractor.symbols.push(symbol);
             extractor.symbols.extend(enum_members);
-            walk_children(extractor, node, child_parent);
+            walk_children(extractor, node, child_parent, depth);
             return;
         }
     }
 
-    walk_children(extractor, node, parent_id);
+    walk_children(extractor, node, parent_id, depth);
 }
 
-fn walk_children(extractor: &mut QmlExtractor, node: Node, parent_id: Option<String>) {
+fn walk_children(extractor: &mut QmlExtractor, node: Node, parent_id: Option<String>, depth: u32) {
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk(extractor, child, parent_id.clone());
+        walk(extractor, child, parent_id.clone(), child_depth);
     }
 }
 

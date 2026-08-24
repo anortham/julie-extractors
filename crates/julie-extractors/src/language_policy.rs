@@ -36,6 +36,7 @@ const EMBEDDED_LITERAL_CARRIER_POLICIES: &[(&str, &str)] = &[
     ),
     ("python", include_str!("../../../languages/python.toml")),
     ("qml", include_str!("../../../languages/qml.toml")),
+    ("qmldir", include_str!("../../../languages/qmldir.toml")),
     ("r", include_str!("../../../languages/r.toml")),
     ("razor", include_str!("../../../languages/razor.toml")),
     ("ruby", include_str!("../../../languages/ruby.toml")),

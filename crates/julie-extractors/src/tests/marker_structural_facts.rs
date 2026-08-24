@@ -343,7 +343,7 @@ fn marker_language_matrix_covers_every_supported_comment_language() {
         .iter()
         .map(|fixture| fixture.language)
         .collect::<BTreeSet<_>>();
-    let not_applicable = ["regex"].into_iter().collect::<BTreeSet<_>>();
+    let not_applicable = ["qmldir", "regex"].into_iter().collect::<BTreeSet<_>>();
     let covered = applicable
         .union(&not_applicable)
         .copied()
