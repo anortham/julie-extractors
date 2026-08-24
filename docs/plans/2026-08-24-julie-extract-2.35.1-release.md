@@ -160,4 +160,4 @@
 - [x] Downloaded Windows binary reports 2.35.1 and successfully extracts/inspects representative QML content.
 - [x] Release evidence records exact source/tag/workflow/job URLs, sizes, digests, schemas, epoch, and consumer action.
 - [x] All current-release pointers report v2.35.1 without contradicting tag provenance.
-- [ ] Evidence-only closeout is committed and pushed; primary `main` is clean and all worktrees are reconciled or named.
+- [x] Evidence-only closeout is committed and pushed; primary `main` is clean and all worktrees are reconciled or named.

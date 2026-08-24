@@ -1,9 +1,9 @@
 ---
 id: julie-extractors-v2-35-1-qml-release
 title: Julie Extractors v2.35.1 QML release
-status: active
+status: completed
 created: 2026-08-24T18:27:16.335Z
-updated: 2026-08-24T18:27:16.335Z
+updated: 2026-08-24T20:10:33.245Z
 tags:
   - release
   - qml
