@@ -248,4 +248,3 @@ Commit mode: Tasks 1-3 use `parallel-lead-commit`; Tasks 4-5 use `serial-worker-
 - The user reviews and approves this plan before implementation begins.
 - Create or reuse a dedicated task worktree after approval; preserve the current task-related Goldfish files.
 - Execute with `razorback:subagent-driven-development`, TDD, Miller orientation/impact checks, inline lead review, and the commit modes above.
-

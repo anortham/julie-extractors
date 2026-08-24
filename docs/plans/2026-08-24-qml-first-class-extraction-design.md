@@ -93,4 +93,3 @@ Julie Extractors will publish enough QML, `qmldir`, and `.qmltypes` evidence for
 - Qt QML CMake modules: <https://doc.qt.io/qt-6/qt-add-qml-module.html>
 - Qt Quick Test: <https://doc.qt.io/qt-6/qtquicktest-index.html>
 - Qt Quick Test `TestCase`: <https://doc.qt.io/qt-6/qml-qttest-testcase.html>
-
