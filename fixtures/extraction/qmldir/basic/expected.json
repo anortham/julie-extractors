@@ -124,48 +124,48 @@
   "parse_diagnostics": [
     {
       "kind": "Error",
-      "start_line": 15,
+      "start_line": 17,
       "start_column": 0,
-      "end_line": 15,
+      "end_line": 17,
       "end_column": 36,
-      "start_byte": 352,
-      "end_byte": 388
+      "start_byte": 422,
+      "end_byte": 458
     },
     {
       "kind": "Error",
-      "start_line": 15,
+      "start_line": 17,
       "start_column": 19,
-      "end_line": 15,
+      "end_line": 17,
       "end_column": 20,
-      "start_byte": 371,
-      "end_byte": 372
+      "start_byte": 441,
+      "end_byte": 442
     },
     {
       "kind": "Error",
-      "start_line": 15,
+      "start_line": 17,
       "start_column": 21,
-      "end_line": 15,
+      "end_line": 17,
       "end_column": 22,
-      "start_byte": 373,
-      "end_byte": 374
+      "start_byte": 443,
+      "end_byte": 444
     },
     {
       "kind": "Error",
-      "start_line": 15,
+      "start_line": 17,
       "start_column": 33,
-      "end_line": 15,
+      "end_line": 17,
       "end_column": 34,
-      "start_byte": 385,
-      "end_byte": 386
+      "start_byte": 455,
+      "end_byte": 456
     },
     {
       "kind": "Error",
-      "start_line": 15,
+      "start_line": 17,
       "start_column": 35,
-      "end_line": 15,
+      "end_line": 17,
       "end_column": 36,
-      "start_byte": 387,
-      "end_byte": 388
+      "start_byte": 457,
+      "end_byte": 458
     }
   ],
   "structural_facts": [
@@ -219,18 +219,42 @@
       "language": "qmldir",
       "file_path": "fixtures/extraction/qmldir/basic/qmldir",
       "containing_key": null,
-      "start_line": 12,
+      "start_line": 14,
       "start_column": 0,
-      "end_line": 13,
+      "end_line": 15,
       "end_column": 0,
-      "start_byte": 278,
-      "end_byte": 296,
+      "start_byte": 348,
+      "end_byte": 366,
       "confidence": "1.000",
       "metadata": {
         "directive": "designersupported",
         "pattern_version": 1,
         "query_family": "qmldir",
         "supported": true
+      }
+    },
+    {
+      "pattern_id": "qmldir.import.v1",
+      "capture_name": "default",
+      "node_kind": "command",
+      "language": "qmldir",
+      "file_path": "fixtures/extraction/qmldir/basic/qmldir",
+      "containing_key": null,
+      "start_line": 13,
+      "start_column": 0,
+      "end_line": 14,
+      "end_column": 0,
+      "start_byte": 314,
+      "end_byte": 348,
+      "confidence": "1.000",
+      "metadata": {
+        "default": true,
+        "directive": "default",
+        "module": "Default.Module",
+        "optional": true,
+        "pattern_version": 1,
+        "query_family": "qmldir",
+        "version": "2.0"
       }
     },
     {
@@ -248,11 +272,37 @@
       "end_byte": 278,
       "confidence": "1.000",
       "metadata": {
+        "default": false,
         "directive": "import",
         "module": "Shared",
+        "optional": false,
         "pattern_version": 1,
         "query_family": "qmldir",
         "version": "auto"
+      }
+    },
+    {
+      "pattern_id": "qmldir.import.v1",
+      "capture_name": "optional",
+      "node_kind": "command",
+      "language": "qmldir",
+      "file_path": "fixtures/extraction/qmldir/basic/qmldir",
+      "containing_key": null,
+      "start_line": 12,
+      "start_column": 0,
+      "end_line": 13,
+      "end_column": 0,
+      "start_byte": 278,
+      "end_byte": 314,
+      "confidence": "1.000",
+      "metadata": {
+        "default": false,
+        "directive": "optional",
+        "module": "Optional.Module",
+        "optional": true,
+        "pattern_version": 1,
+        "query_family": "qmldir",
+        "version": "1.0"
       }
     },
     {
@@ -308,12 +358,12 @@
       "language": "qmldir",
       "file_path": "fixtures/extraction/qmldir/basic/qmldir",
       "containing_key": null,
-      "start_line": 14,
+      "start_line": 16,
       "start_column": 0,
-      "end_line": 15,
+      "end_line": 17,
       "end_column": 0,
-      "start_byte": 327,
-      "end_byte": 352,
+      "start_byte": 397,
+      "end_byte": 422,
       "confidence": "1.000",
       "metadata": {
         "directive": "linktarget",
@@ -418,12 +468,12 @@
       "language": "qmldir",
       "file_path": "fixtures/extraction/qmldir/basic/qmldir",
       "containing_key": null,
-      "start_line": 13,
+      "start_line": 15,
       "start_column": 0,
-      "end_line": 14,
+      "end_line": 16,
       "end_column": 0,
-      "start_byte": 296,
-      "end_byte": 327,
+      "start_byte": 366,
+      "end_byte": 397,
       "confidence": "1.000",
       "metadata": {
         "directive": "prefer",

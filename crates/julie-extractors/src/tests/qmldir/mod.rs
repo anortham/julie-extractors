@@ -216,3 +216,62 @@ fn qmldir_parser_recovers_after_malformed_lines() {
     assert!(result.symbols.iter().any(|symbol| symbol.name == "Example"));
     assert!(result.symbols.iter().any(|symbol| symbol.name == "Button"));
 }
+
+#[test]
+fn qmldir_import_forms_emit_optional_and_default_metadata() {
+    let source = concat!(
+        "module Example\n",
+        "import QtQuick 2.15\n",
+        "optional import QtQml.Models 2.15\n",
+        "default import QtQuick.Controls 2.15\n",
+        "optional import Versionless.Module\n",
+        "optional import Broken nope\n",
+        "optional import\n",
+        "default import\n",
+        "optional plugin examplemodule\n",
+    );
+    let result = extract_canonical("qmldir", source, Path::new("."))
+        .expect("qmldir extraction should succeed");
+
+    let imports: Vec<_> = result
+        .structural_facts
+        .iter()
+        .filter(|fact| fact.pattern_id == "qmldir.import.v1")
+        .collect();
+    assert_eq!(imports.len(), 4);
+
+    for (fact, expected) in imports.iter().take(3).zip([
+        ("import", "QtQuick", "2.15", false, false),
+        ("optional", "QtQml.Models", "2.15", true, false),
+        ("default", "QtQuick.Controls", "2.15", true, true),
+    ]) {
+        let metadata = fact
+            .metadata
+            .as_ref()
+            .expect("qmldir import facts should have metadata");
+        assert_eq!(
+            metadata.get("directive"),
+            Some(&serde_json::json!(expected.0))
+        );
+        assert_eq!(metadata.get("module"), Some(&serde_json::json!(expected.1)));
+        assert_eq!(
+            metadata.get("version"),
+            Some(&serde_json::json!(expected.2))
+        );
+        assert_eq!(
+            metadata.get("optional"),
+            Some(&serde_json::json!(expected.3))
+        );
+        assert_eq!(
+            metadata.get("default"),
+            Some(&serde_json::json!(expected.4))
+        );
+    }
+    assert!(
+        !imports[3]
+            .metadata
+            .as_ref()
+            .expect("versionless qmldir import should have metadata")
+            .contains_key("version")
+    );
+}

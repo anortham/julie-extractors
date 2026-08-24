@@ -407,6 +407,13 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
             key("directive", STR, ALWAYS, "The manifest directive name."),
             key("module", STR, ALWAYS, "The imported module name."),
             key("version", STR, OPT, "The optional import version."),
+            key("optional", BOOL, ALWAYS, "Whether the import is optional."),
+            key(
+                "default",
+                BOOL,
+                ALWAYS,
+                "Whether the import is the default tooling import.",
+            ),
         ],
     },
     StructuralFactPatternSpec {

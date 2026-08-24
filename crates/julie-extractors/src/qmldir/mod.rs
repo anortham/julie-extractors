@@ -83,10 +83,16 @@ impl QmldirExtractor {
             "optional" if args.first().is_some_and(|value| value == "plugin") => {
                 self.extract_plugin(node, &args[1..], true)
             }
+            "optional" if args.first().is_some_and(|value| value == "import") => {
+                self.extract_import_reference(node, &args[1..], "optional", true, false)
+            }
+            "default" if args.first().is_some_and(|value| value == "import") => {
+                self.extract_import_reference(node, &args[1..], "default", true, true)
+            }
             "classname" => self.extract_classname(node, &args),
             "typeinfo" => self.extract_typeinfo(node, &args),
             "depends" => self.extract_module_reference(node, &args, "depends"),
-            "import" => self.extract_module_reference(node, &args, "import"),
+            "import" => self.extract_import_reference(node, &args, "import", false, false),
             "designersupported" if args.is_empty() => self.push_fact(
                 node,
                 "qmldir.designer_supported.v1",
@@ -320,6 +326,35 @@ impl QmldirExtractor {
         let pattern_id = format!("qmldir.{directive}.v1");
         let capture_name = directive.to_string();
         self.push_fact(node, &pattern_id, &capture_name, attrs);
+    }
+
+    fn extract_import_reference(
+        &mut self,
+        node: Node<'_>,
+        args: &[String],
+        directive: &str,
+        optional: bool,
+        default: bool,
+    ) {
+        let Some(module) = args.first() else {
+            return;
+        };
+        let mut attrs = base_metadata(
+            directive,
+            [("module", serde_json::Value::String(module.clone()))],
+        );
+        if let Some(version) = args.get(1) {
+            if !is_version(version) {
+                return;
+            }
+            attrs.insert(
+                "version".to_string(),
+                serde_json::Value::String(version.clone()),
+            );
+        }
+        attrs.insert("optional".to_string(), serde_json::Value::Bool(optional));
+        attrs.insert("default".to_string(), serde_json::Value::Bool(default));
+        self.push_fact(node, "qmldir.import.v1", directive, attrs);
     }
 
     fn extract_path_fact(&mut self, node: Node<'_>, args: &[String], directive: &str, key: &str) {

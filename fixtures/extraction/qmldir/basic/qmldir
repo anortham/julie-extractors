@@ -9,6 +9,8 @@ classname ExamplePlugin
 typeinfo plugins.qmltypes
 depends QtQuick 2.15
 import Shared auto
+optional import Optional.Module 1.0
+default import Default.Module 2.0
 designersupported
 prefer :/qt/qml/Example/Module
 linktarget ExampleModule

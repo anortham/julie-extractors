@@ -5639,6 +5639,18 @@
         "key": "version",
         "presence": "optional",
         "value_type": "string"
+      },
+      {
+        "description": "Whether the import is optional.",
+        "key": "optional",
+        "presence": "always",
+        "value_type": "bool"
+      },
+      {
+        "description": "Whether the import is the default tooling import.",
+        "key": "default",
+        "presence": "always",
+        "value_type": "bool"
       }
     ],
     "pattern_id": "qmldir.import.v1",
