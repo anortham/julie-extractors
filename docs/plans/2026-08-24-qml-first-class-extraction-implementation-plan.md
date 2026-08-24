@@ -71,10 +71,10 @@
 
 | Task | Parallel batch | File ownership | Serialization required | Dependency reason |
 |---|---|---|---|---|
-| Task 1: Register and extract `qmldir` | Batch A | `crates/julie-extractors/Cargo.toml`; `Cargo.lock`; `crates/julie-extractors/src/lib.rs`; `crates/julie-extractors/src/language_spec/mod.rs`; `crates/julie-extractors/src/language_spec/specs.rs`; `crates/julie-extractors/src/registry.rs`; create `crates/julie-extractors/src/qmldir/**`; `crates/julie-extractors/src/tests/mod.rs`; create `crates/julie-extractors/src/tests/qmldir/**`; create `languages/qmldir.toml`; `deny.toml`; `crates/julie-extractors/tests/downstream_smoke.rs`; `docs/architecture/grammar-dependency-policy.md`; `xtask/tests/release_contract.rs` only if its generic pin policy requires change | No | None - safe parallel batch. |
+| Task 1: Register and extract `qmldir` | Batch A | `crates/julie-extractors/Cargo.toml`; `Cargo.lock`; `crates/julie-extractors/src/lib.rs`; `crates/julie-extractors/src/language_spec/mod.rs`; `crates/julie-extractors/src/language_spec/specs.rs`; `crates/julie-extractors/src/pipeline.rs`; `crates/julie-extractors/src/registry.rs`; create `crates/julie-extractors/src/qmldir/**`; `crates/julie-extractors/src/tests/mod.rs`; create `crates/julie-extractors/src/tests/qmldir/**`; production basename discovery in `crates/julie-extract-cli/src/discovery.rs`; create `languages/qmldir.toml`; `deny.toml`; `crates/julie-extractors/tests/downstream_smoke.rs`; `docs/architecture/grammar-dependency-policy.md`; `xtask/tests/release_contract.rs` only if its generic pin policy requires change | No | None - safe parallel batch. |
 | Task 2: Normalize QML imports and type metadata | Batch A | `crates/julie-extractors/src/qml/mod.rs`; create `crates/julie-extractors/src/qml/imports.rs`; create `crates/julie-extractors/src/qml/typeinfo.rs`; `crates/julie-extractors/src/tests/qml/types.rs`; create `crates/julie-extractors/src/tests/qml/imports.rs`; create `crates/julie-extractors/src/tests/qml/typeinfo.rs`; `crates/julie-extractors/src/tests/qml/mod.rs`; test-only size-limit coverage in `crates/julie-extract-cli/src/discovery.rs` | No | None - safe parallel batch. |
 | Task 3: Make instantiations and Qt Quick Test roles exact | Batch A | `crates/julie-extractors/src/qml/relationships.rs`; `crates/julie-extractors/src/test_detection.rs`; `crates/julie-extractors/src/tests/qml/relationships.rs`; create `crates/julie-extractors/src/tests/qml/test_detection.rs`; QML real-world feature tests covering roles | No | None - safe parallel batch. |
-| Task 4: Register domain facts and build multi-file goldens | None - serial | `crates/julie-extractors/src/base/code_structural_facts.rs`; `crates/julie-extractors/src/base/structural_fact_registry/builtins/extra.rs`; `crates/julie-extractors/src/tests/golden.rs`; `crates/julie-extractors/src/tests/capability_matrix.rs`; `crates/julie-extractors/src/tests/structural_fact_registry.rs`; `fixtures/extraction/qml/**`; create `fixtures/extraction/qmldir/**`; `fixtures/extraction/capabilities.json` | Yes | Integrates the extractor outputs from Tasks 1-3 and extends the golden harness narrowly so one fixture can prove a real multi-file module. |
+| Task 4: Register domain facts and build multi-file goldens | None - serial | `crates/julie-extractors/src/base/code_structural_facts.rs`; `crates/julie-extractors/src/base/structural_fact_registry/builtins/extra.rs`; `crates/julie-extractors/src/base/structural_fact_registry/tests.rs`; `crates/julie-extractors/src/tests/golden.rs`; `crates/julie-extractors/src/tests/capability_matrix.rs`; `crates/julie-extractors/src/tests/structural_fact_registry.rs`; `crates/julie-extractors/src/tests/qml/structural_facts.rs`; test-only basename contracts in `crates/julie-extract-cli/tests/operations_contract.rs` and `crates/julie-extract-cli/src/store/test_support.rs`; `docs/contracts/structural-fact-patterns.json`; `fixtures/extraction/qml/**`; create `fixtures/extraction/qmldir/**`; `fixtures/extraction/capabilities.json` | Yes | Integrates the extractor outputs from Tasks 1-3 and extends the golden/store test harnesses narrowly so one fixture can prove a real multi-file module and basename-only language. |
 | Task 5: Make per-language and certification gates complete | None - serial | `xtask/src/test_tiers.rs`; `xtask/tests/test_tiers.rs`; golden harness files required for language filtering; QML/qmldir certification fixtures or manifests; QML support documentation and dependency freshness records | Yes | Depends on the final fixture names, language registrations, and capability rows from Task 4. |
 
 Commit mode: Tasks 1-3 use `parallel-lead-commit`; Tasks 4-5 use `serial-worker-commit` after lead inline review and assigned verification.
@@ -103,7 +103,7 @@ Commit mode: Tasks 1-3 use `parallel-lead-commit`; Tasks 4-5 use `serial-worker-
 
 **Contract inputs:** Qt `qmldir` directives from <https://doc.qt.io/qt-6/qtqml-modules-qmldir.html>; grammar pin `c57e00865a1a6f1cca83340d6dad91f13df55479`.
 
-**File ownership:** `crates/julie-extractors/Cargo.toml`; `Cargo.lock`; `crates/julie-extractors/src/lib.rs`; `crates/julie-extractors/src/language_spec/mod.rs`; `crates/julie-extractors/src/language_spec/specs.rs`; `crates/julie-extractors/src/registry.rs`; create `crates/julie-extractors/src/qmldir/**`; `crates/julie-extractors/src/tests/mod.rs`; create `crates/julie-extractors/src/tests/qmldir/**`; create `languages/qmldir.toml`; `deny.toml`; `crates/julie-extractors/tests/downstream_smoke.rs`; `docs/architecture/grammar-dependency-policy.md`; `xtask/tests/release_contract.rs` only if its existing generic pin-policy contract requires change
+**File ownership:** `crates/julie-extractors/Cargo.toml`; `Cargo.lock`; `crates/julie-extractors/src/lib.rs`; `crates/julie-extractors/src/language_spec/mod.rs`; `crates/julie-extractors/src/language_spec/specs.rs`; `crates/julie-extractors/src/pipeline.rs`; `crates/julie-extractors/src/registry.rs`; create `crates/julie-extractors/src/qmldir/**`; `crates/julie-extractors/src/tests/mod.rs`; create `crates/julie-extractors/src/tests/qmldir/**`; production basename discovery in `crates/julie-extract-cli/src/discovery.rs`; create `languages/qmldir.toml`; `deny.toml`; `crates/julie-extractors/tests/downstream_smoke.rs`; `docs/architecture/grammar-dependency-policy.md`; `xtask/tests/release_contract.rs` only if its existing generic pin-policy contract requires change
 
 **Serialization required:** No
 
@@ -189,9 +189,14 @@ Commit mode: Tasks 1-3 use `parallel-lead-commit`; Tasks 4-5 use `serial-worker-
 **Files:**
 - Modify: `crates/julie-extractors/src/base/code_structural_facts.rs`
 - Modify: `crates/julie-extractors/src/base/structural_fact_registry/builtins/extra.rs`
+- Modify: `crates/julie-extractors/src/base/structural_fact_registry/tests.rs`
 - Modify: `crates/julie-extractors/src/tests/golden.rs`
 - Modify: `crates/julie-extractors/src/tests/capability_matrix.rs`
 - Modify: `crates/julie-extractors/src/tests/structural_fact_registry.rs`
+- Modify: `crates/julie-extractors/src/tests/qml/structural_facts.rs`
+- Test: `crates/julie-extract-cli/tests/operations_contract.rs` (basename-only language contract only)
+- Test: `crates/julie-extract-cli/src/store/test_support.rs` (basename-only fixture lookup only)
+- Modify: `docs/contracts/structural-fact-patterns.json` (generated registry contract)
 - Replace/expand: `fixtures/extraction/qml/cross_file/**`
 - Modify: `fixtures/extraction/qml/basic/**`
 - Modify: `fixtures/extraction/qml/test_roles/**`
@@ -205,7 +210,7 @@ Commit mode: Tasks 1-3 use `parallel-lead-commit`; Tasks 4-5 use `serial-worker-
 
 **Contract inputs:** no duplicated resolver channels; all positive capability claims require a named registered golden.
 
-**File ownership:** `crates/julie-extractors/src/base/code_structural_facts.rs`; `crates/julie-extractors/src/base/structural_fact_registry/builtins/extra.rs`; `crates/julie-extractors/src/tests/golden.rs`; `crates/julie-extractors/src/tests/capability_matrix.rs`; `crates/julie-extractors/src/tests/structural_fact_registry.rs`; `fixtures/extraction/qml/**`; create `fixtures/extraction/qmldir/**`; `fixtures/extraction/capabilities.json`
+**File ownership:** `crates/julie-extractors/src/base/code_structural_facts.rs`; `crates/julie-extractors/src/base/structural_fact_registry/builtins/extra.rs`; `crates/julie-extractors/src/base/structural_fact_registry/tests.rs`; `crates/julie-extractors/src/tests/golden.rs`; `crates/julie-extractors/src/tests/capability_matrix.rs`; `crates/julie-extractors/src/tests/structural_fact_registry.rs`; `crates/julie-extractors/src/tests/qml/structural_facts.rs`; test-only basename contracts in `crates/julie-extract-cli/tests/operations_contract.rs` and `crates/julie-extract-cli/src/store/test_support.rs`; `docs/contracts/structural-fact-patterns.json`; `fixtures/extraction/qml/**`; create `fixtures/extraction/qmldir/**`; `fixtures/extraction/capabilities.json`
 
 **Serialization required:** Yes
 
@@ -216,11 +221,11 @@ Commit mode: Tasks 1-3 use `parallel-lead-commit`; Tasks 4-5 use `serial-worker-
 **Approach:** Use narrow facts for imports, object instantiations, manifest declarations, and typeinfo declarations. Generate expected artifacts through the repository golden workflow, inspect diffs, then lock them.
 
 **Acceptance criteria:**
-- [ ] Every new fact kind has a fixed versioned schema and registry contract test.
-- [ ] `qml.import_statement.v1` values agree with normalized import-symbol metadata for URI, directory, versioned, alias, and JavaScript imports.
-- [ ] The cross-file golden contains multiple physical source files and proves local plus unresolved module behavior.
-- [ ] Capabilities cite the new fixtures and record any remaining implementation gap as `open_gaps` with closure details.
-- [ ] Golden, capability, contract, and strict quality gates pass; the worker commits per `serial-worker-commit`.
+- [x] Every new fact kind has a fixed versioned schema and registry contract test.
+- [x] `qml.import_statement.v1` values agree with normalized import-symbol metadata for URI, directory, versioned, alias, and JavaScript imports.
+- [x] The cross-file golden contains multiple physical source files and proves local plus unresolved module behavior.
+- [x] Capabilities cite the new fixtures and record any remaining implementation gap as `open_gaps` with closure details.
+- [x] Golden, capability, contract, and strict quality gates pass; the worker commits per `serial-worker-commit`.
 
 ### Task 5: Make per-language and certification gates complete
 
@@ -234,7 +239,7 @@ Commit mode: Tasks 1-3 use `parallel-lead-commit`; Tasks 4-5 use `serial-worker-
 - Consumes: final QML/qmldir fixture registry and language ids from Task 4.
 - Produces: narrow commands that run unit plus family golden tests, and explicit slow certification evidence for grammar/dependency changes.
 
-**Contract inputs:** `cargo xtask test language qml`; `cargo xtask test language qmldir`; existing default/golden/capability/contract tier semantics.
+**Contract inputs:** `cargo xtask test language qml`; `cargo xtask test language qmldir`; existing default/golden/capability/contract tier semantics; KDE `plasma-framework` commit `0806864a1e7c200ee8872074a4c16be7e1ce3358` as extraction-only real-world evidence.
 
 **File ownership:** `xtask/src/test_tiers.rs`; `xtask/tests/test_tiers.rs`; golden harness files required for language filtering; QML/qmldir certification fixtures or manifests; QML support documentation and dependency freshness records
 
@@ -244,12 +249,12 @@ Commit mode: Tasks 1-3 use `parallel-lead-commit`; Tasks 4-5 use `serial-worker-
 
 **What to build:** Extend the language tier to include only that language family's registered goldens and document the parser recertification path. Keep corpus work out of default tests and make missing optional tooling explicit rather than silently passing.
 
-**Approach:** Add test-plan assertions before changing xtask dispatch. Prove QML and qmldir filter independently, then run branch gates and the clean-SHA Windows gate when triggered.
+**Approach:** Add test-plan assertions before changing xtask dispatch. Prove QML and qmldir filter independently, extract the pinned `plasma-framework` checkout without executing third-party code, then run branch gates and the clean-SHA Windows gate when triggered.
 
 **Acceptance criteria:**
-- [ ] Each per-language command runs its unit tests and only its family goldens.
-- [ ] Default tests do not execute real-world corpora or parser certification.
-- [ ] Grammar/dependency changes have recorded provenance, freshness, packaging, and real-world evidence.
+- [x] Each per-language command runs its unit tests and only its family goldens.
+- [x] Default tests do not execute real-world corpora or parser certification.
+- [x] Grammar/dependency changes have recorded provenance, freshness, packaging, and real-world evidence.
 - [ ] Branch-scope verification passes and the worker commits per `serial-worker-commit`.
 
 ## Execution Handoff
