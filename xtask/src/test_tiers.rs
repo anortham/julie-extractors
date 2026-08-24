@@ -11,6 +11,7 @@ pub struct TestPlan {
 pub struct CommandSpec {
     pub program: String,
     pub args: Vec<String>,
+    pub env: Vec<(String, String)>,
 }
 
 impl CommandSpec {
@@ -23,13 +24,43 @@ impl CommandSpec {
         Self {
             program: program.into(),
             args: args.into_iter().map(Into::into).collect(),
+            env: Vec::new(),
         }
     }
 
+    pub fn with_env<I, K, V>(mut self, env: I) -> Self
+    where
+        I: IntoIterator<Item = (K, V)>,
+        K: Into<String>,
+        V: Into<String>,
+    {
+        self.env = env
+            .into_iter()
+            .map(|(key, value)| (key.into(), value.into()))
+            .collect();
+        self.env.sort_unstable_by(|left, right| left.cmp(right));
+        self
+    }
+
     pub fn display(&self) -> String {
-        std::iter::once(self.program.as_str())
-            .chain(self.args.iter().map(String::as_str))
-            .map(shell_quote)
+        let mut parts = self
+            .env
+            .iter()
+            .map(|(key, value)| format!("{}={}", shell_quote(key), shell_quote(value)))
+            .collect::<Vec<_>>();
+        parts.push(self.program.clone());
+        parts.extend(self.args.iter().cloned());
+        let command_start = self.env.len();
+        parts
+            .iter()
+            .enumerate()
+            .map(|(index, part)| {
+                if index < command_start {
+                    part.clone()
+                } else {
+                    shell_quote(part)
+                }
+            })
             .collect::<Vec<_>>()
             .join(" ")
     }
@@ -124,7 +155,12 @@ where
 pub fn run_plan(plan: TestPlan) -> ExitCode {
     for command in plan.commands {
         println!("+ {}", command.display());
-        let status = Command::new(&command.program).args(&command.args).status();
+        let mut process = Command::new(&command.program);
+        process.args(&command.args);
+        for (key, value) in &command.env {
+            process.env(key, value);
+        }
+        let status = process.status();
         match status {
             Ok(status) if status.success() => {}
             Ok(status) => return ExitCode::from(status.code().unwrap_or(1) as u8),
@@ -171,10 +207,25 @@ fn language_plan(args: &[String]) -> Result<TestPlan, CliError> {
     };
 
     Ok(TestPlan {
-        commands: vec![CommandSpec::new(
-            "cargo",
-            ["test", "-p", "julie-extractors", "--lib", &test_filter],
-        )],
+        commands: vec![
+            CommandSpec::new(
+                "cargo",
+                ["test", "-p", "julie-extractors", "--lib", &test_filter],
+            ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extractors",
+                    "--features",
+                    "test-golden",
+                    "--lib",
+                    "golden_fixtures_match_canonical_extraction",
+                ],
+            )
+            .with_env([("JULIE_GOLDEN_LANGUAGE", language)]),
+        ],
     })
 }
 

@@ -31,11 +31,110 @@ fn test_language_tier_filters_one_language_module() {
 
     assert_eq!(
         plan.commands,
-        vec![CommandSpec::new(
-            "cargo",
-            ["test", "-p", "julie-extractors", "--lib", "tests::rust::",]
-        )]
+        vec![
+            CommandSpec::new(
+                "cargo",
+                ["test", "-p", "julie-extractors", "--lib", "tests::rust::",]
+            ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extractors",
+                    "--features",
+                    "test-golden",
+                    "--lib",
+                    "golden_fixtures_match_canonical_extraction",
+                ],
+            )
+            .with_env([("JULIE_GOLDEN_LANGUAGE", "rust")]),
+        ]
     );
+}
+
+#[test]
+fn test_language_tier_runs_qml_and_qmldir_unit_and_golden_commands() {
+    for language in ["qml", "qmldir"] {
+        let plan = plan_from_args(["test", "language", language]).expect("language plan");
+
+        assert_eq!(
+            plan.commands[0],
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extractors",
+                    "--lib",
+                    &format!("tests::{language}::")
+                ]
+            )
+        );
+        assert_eq!(
+            plan.commands[1],
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extractors",
+                    "--features",
+                    "test-golden",
+                    "--lib",
+                    "golden_fixtures_match_canonical_extraction",
+                ],
+            )
+            .with_env([("JULIE_GOLDEN_LANGUAGE", language)])
+        );
+        assert_eq!(
+            plan.commands[1].display(),
+            format!(
+                "JULIE_GOLDEN_LANGUAGE={language} cargo test -p julie-extractors --features test-golden --lib golden_fixtures_match_canonical_extraction"
+            )
+        );
+    }
+}
+
+#[test]
+fn test_command_spec_sorts_environment_for_deterministic_display() {
+    let command = CommandSpec::new("cargo", ["test"]).with_env([("Z_LAST", "1"), ("A_FIRST", "2")]);
+
+    assert_eq!(
+        command.env,
+        vec![
+            ("A_FIRST".to_string(), "2".to_string()),
+            ("Z_LAST".to_string(), "1".to_string()),
+        ]
+    );
+    assert_eq!(command.display(), "A_FIRST=2 Z_LAST=1 cargo test");
+}
+
+#[test]
+fn test_language_tier_rejects_extension_aliases() {
+    let qmltypes = plan_from_args(["test", "language", "qmltypes"])
+        .expect_err("qmltypes is an extension, not a registered language");
+    assert!(
+        qmltypes
+            .message()
+            .contains("unsupported language `qmltypes`"),
+        "unexpected error: {qmltypes}"
+    );
+}
+
+#[test]
+fn test_non_language_tiers_do_not_inject_golden_corpus_filters() {
+    for tier in [
+        ["test", "default"].as_slice(),
+        ["test", "certification"].as_slice(),
+        ["test", "real-world"].as_slice(),
+    ] {
+        let plan = plan_from_args(tier).expect("test tier plan");
+        assert!(
+            plan.commands.iter().all(|command| command.env.is_empty()),
+            "{tier:?} must not inject per-language golden filters"
+        );
+    }
 }
 
 #[test]
@@ -52,31 +151,61 @@ fn test_language_tier_rejects_unknown_languages_and_maps_variants() {
     let tsx = plan_from_args(["test", "language", "tsx"]).expect("tsx language plan");
     assert_eq!(
         tsx.commands,
-        vec![CommandSpec::new(
-            "cargo",
-            [
-                "test",
-                "-p",
-                "julie-extractors",
-                "--lib",
-                "tests::typescript::tsx",
-            ]
-        )]
+        vec![
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extractors",
+                    "--lib",
+                    "tests::typescript::tsx",
+                ]
+            ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extractors",
+                    "--features",
+                    "test-golden",
+                    "--lib",
+                    "golden_fixtures_match_canonical_extraction",
+                ],
+            )
+            .with_env([("JULIE_GOLDEN_LANGUAGE", "tsx")]),
+        ]
     );
 
     let jsx = plan_from_args(["test", "language", "jsx"]).expect("jsx language plan");
     assert_eq!(
         jsx.commands,
-        vec![CommandSpec::new(
-            "cargo",
-            [
-                "test",
-                "-p",
-                "julie-extractors",
-                "--lib",
-                "tests::javascript::jsx",
-            ]
-        )]
+        vec![
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extractors",
+                    "--lib",
+                    "tests::javascript::jsx",
+                ]
+            ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extractors",
+                    "--features",
+                    "test-golden",
+                    "--lib",
+                    "golden_fixtures_match_canonical_extraction",
+                ],
+            )
+            .with_env([("JULIE_GOLDEN_LANGUAGE", "jsx")]),
+        ]
     );
 }
 

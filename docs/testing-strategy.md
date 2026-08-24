@@ -69,6 +69,17 @@ Current exact form:
 cargo xtask test language rust
 ```
 
+For QML and QML module manifests, run both registered targets:
+
+```bash
+cargo xtask test language qml
+cargo xtask test language qmldir
+```
+
+Each target runs its language unit filter and an environment-scoped golden
+check. See [the QML support record](languages/qml.md) for the fixture and
+real-world evidence.
+
 ## Contract Tier
 
 Runs artifact-facing behavior:

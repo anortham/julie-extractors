@@ -372,9 +372,18 @@ fn golden_fixtures_match_canonical_extraction() {
     let root = workspace_root();
     let matrix = load_matrix(&root);
     let update = std::env::var_os("UPDATE_GOLDEN").is_some();
+    let selected_language = std::env::var("JULIE_GOLDEN_LANGUAGE").ok();
     let mut seen = BTreeSet::new();
+    let mut matched_language = false;
 
     for row in matrix.languages {
+        if selected_language
+            .as_deref()
+            .is_some_and(|selected| selected != row.language)
+        {
+            continue;
+        }
+        matched_language = true;
         assert!(
             !row.fixtures.is_empty(),
             "language {} has no golden fixtures",
@@ -429,6 +438,13 @@ fn golden_fixtures_match_canonical_extraction() {
                 );
             }
         }
+    }
+
+    if let Some(selected) = selected_language {
+        assert!(
+            matched_language,
+            "JULIE_GOLDEN_LANGUAGE={selected} did not match a capability-matrix language"
+        );
     }
 }
 
