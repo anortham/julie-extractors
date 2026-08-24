@@ -357,6 +357,7 @@ fn test_language_specs_drive_public_metadata_surfaces() {
     assert_eq!(language_spec("vue").map(|spec| spec.name), Some("vue"));
     assert_eq!(language_spec("vbnet").map(|spec| spec.name), Some("vbnet"));
     assert_eq!(detect_language_from_extension("vb"), Some("vbnet"));
+    assert_eq!(detect_language_from_extension("qmltypes"), Some("qml"));
 }
 
 #[test]
