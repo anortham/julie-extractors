@@ -94,7 +94,15 @@ come from the SQLite artifact.
 | Parse diagnostics | 121 | 10 |
 
 The diagnostics are parser diagnostics recorded in the artifact; they did not
-fail the scan. Representative rows prove both registrations:
+fail the scan. The 121 QML diagnostics break down into 115 CMake-template
+`@QQC2_VERSION@` placeholders, 4 `%{APPNAMELC}` project-template
+placeholders, and 2 intentional empty test fixtures. The 10 qmldir
+diagnostics are the same `%{APPNAMELC}` placeholders across two
+project-template manifests. Re-running extraction after substituting those
+template values yielded zero diagnostics; no valid-QML grammar limitation or
+extractor bug was found.
+
+Representative rows prove both registrations:
 
 - `src/declarativeimports/core/plugins.qmltypes` was indexed as `qml` with
   750 symbols and 2,375 structural facts, including 771
