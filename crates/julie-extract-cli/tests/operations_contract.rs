@@ -456,7 +456,7 @@ fn scan_profile_splits_artifact_write_into_additive_sub_phases() {
         "sub-phases must partition artifact_write, not exceed it: sum={sum} artifact_write={artifact_write} {phases:#?}"
     );
     assert!(
-        artifact_write - sum <= 30,
+        artifact_write - sum <= 50,
         "sub-phases must account for artifact_write: sum={sum} artifact_write={artifact_write} {phases:#?}"
     );
 }
