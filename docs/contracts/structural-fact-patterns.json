@@ -5315,14 +5315,78 @@
         "value_type": "string"
       },
       {
-        "description": "The imported QML module source.",
+        "description": "The normalized imported QML module or resource source.",
         "key": "import_module",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The normalized imported QML module or resource source.",
+        "key": "source",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The imported QML module version, when present.",
+        "key": "version",
         "presence": "optional",
         "value_type": "string"
+      },
+      {
+        "description": "The import namespace alias, when present.",
+        "key": "alias",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The local namespace name introduced by an aliased import.",
+        "key": "local_name",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The imported source name used by an aliased import.",
+        "key": "imported_name",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Whether the import introduces a namespace alias.",
+        "key": "is_namespace",
+        "presence": "optional",
+        "value_type": "bool"
       }
     ],
     "pattern_id": "qml.import_statement.v1",
     "query_family": "imports"
+  },
+  {
+    "description": "A QML object-definition use with its declared component type.",
+    "languages": [
+      "qml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The instantiated QML component type.",
+        "key": "type_name",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "qml.object_instantiation.v1",
+    "query_family": "objects"
   },
   {
     "description": "A QML `property` declaration.",
@@ -5385,6 +5449,560 @@
     ],
     "pattern_id": "qml.signal_declaration.v1",
     "query_family": "signals"
+  },
+  {
+    "description": "A declaration in a generated QML type-information file.",
+    "languages": [
+      "qml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The qmltypes declaration node type.",
+        "key": "type_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The normalized qmltypes declaration role.",
+        "key": "typeinfo_kind",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "qml.typeinfo_declaration.v1",
+    "query_family": "typeinfo"
+  },
+  {
+    "description": "A C++ classname declaration from a qmldir manifest.",
+    "languages": [
+      "qmldir"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The manifest directive name.",
+        "key": "directive",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The native class name.",
+        "key": "class_name",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "qmldir.classname.v1",
+    "query_family": "qmldir"
+  },
+  {
+    "description": "A module dependency declaration from a qmldir manifest.",
+    "languages": [
+      "qmldir"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The manifest directive name.",
+        "key": "directive",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The dependent module name.",
+        "key": "module",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The optional dependency version.",
+        "key": "version",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "qmldir.depends.v1",
+    "query_family": "qmldir"
+  },
+  {
+    "description": "A Designer support declaration from a qmldir manifest.",
+    "languages": [
+      "qmldir"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The manifest directive name.",
+        "key": "directive",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Whether Designer support is enabled.",
+        "key": "supported",
+        "presence": "always",
+        "value_type": "bool"
+      }
+    ],
+    "pattern_id": "qmldir.designer_supported.v1",
+    "query_family": "qmldir"
+  },
+  {
+    "description": "An additional module import declaration from a qmldir manifest.",
+    "languages": [
+      "qmldir"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The manifest directive name.",
+        "key": "directive",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The imported module name.",
+        "key": "module",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The optional import version.",
+        "key": "version",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "qmldir.import.v1",
+    "query_family": "qmldir"
+  },
+  {
+    "description": "An internal QML type declared by a qmldir manifest.",
+    "languages": [
+      "qmldir"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The manifest directive name.",
+        "key": "directive",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The declared internal type.",
+        "key": "type_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The QML source file backing the type.",
+        "key": "file",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Whether the declared type is internal.",
+        "key": "internal",
+        "presence": "always",
+        "value_type": "bool"
+      }
+    ],
+    "pattern_id": "qmldir.internal_type.v1",
+    "query_family": "qmldir"
+  },
+  {
+    "description": "A JavaScript resource declared by a qmldir manifest.",
+    "languages": [
+      "qmldir"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The manifest directive name.",
+        "key": "directive",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The resource's manifest name.",
+        "key": "resource_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The declared resource version.",
+        "key": "version",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The JavaScript resource file.",
+        "key": "file",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "qmldir.javascript_resource.v1",
+    "query_family": "qmldir"
+  },
+  {
+    "description": "A linker target declaration from a qmldir manifest.",
+    "languages": [
+      "qmldir"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The manifest directive name.",
+        "key": "directive",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The linker target path.",
+        "key": "target",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "qmldir.linktarget.v1",
+    "query_family": "qmldir"
+  },
+  {
+    "description": "A QML module declaration from a qmldir manifest.",
+    "languages": [
+      "qmldir"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The manifest directive name.",
+        "key": "directive",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The declared QML module name.",
+        "key": "module",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "qmldir.module.v1",
+    "query_family": "qmldir"
+  },
+  {
+    "description": "A public QML object type declared by a qmldir manifest.",
+    "languages": [
+      "qmldir"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The manifest directive name.",
+        "key": "directive",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The declared QML object type.",
+        "key": "type_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The declared QML type version.",
+        "key": "version",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The QML source file backing the type.",
+        "key": "file",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "qmldir.object_type.v1",
+    "query_family": "qmldir"
+  },
+  {
+    "description": "A native plugin declaration from a qmldir manifest.",
+    "languages": [
+      "qmldir"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The manifest directive name.",
+        "key": "directive",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The plugin name.",
+        "key": "name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Whether the plugin is optional.",
+        "key": "optional",
+        "presence": "always",
+        "value_type": "bool"
+      },
+      {
+        "description": "The optional plugin library path.",
+        "key": "path",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "qmldir.plugin.v1",
+    "query_family": "qmldir"
+  },
+  {
+    "description": "A preferred QML resource path declaration.",
+    "languages": [
+      "qmldir"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The manifest directive name.",
+        "key": "directive",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The preferred resource path.",
+        "key": "path",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "qmldir.prefer.v1",
+    "query_family": "qmldir"
+  },
+  {
+    "description": "A singleton QML type declared by a qmldir manifest.",
+    "languages": [
+      "qmldir"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The manifest directive name.",
+        "key": "directive",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The declared singleton type.",
+        "key": "type_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The declared singleton version.",
+        "key": "version",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The QML source file backing the singleton.",
+        "key": "file",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Whether the declared type is a singleton.",
+        "key": "singleton",
+        "presence": "always",
+        "value_type": "bool"
+      }
+    ],
+    "pattern_id": "qmldir.singleton_type.v1",
+    "query_family": "qmldir"
+  },
+  {
+    "description": "A generated QML type-information file declaration.",
+    "languages": [
+      "qmldir"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The manifest directive name.",
+        "key": "directive",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The qmltypes file name.",
+        "key": "file",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "qmldir.typeinfo.v1",
+    "query_family": "qmldir"
   },
   {
     "description": "An R model formula expression (`y ~ x`).",

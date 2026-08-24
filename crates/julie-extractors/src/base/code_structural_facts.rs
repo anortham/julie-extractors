@@ -384,6 +384,18 @@ const QML_PATTERNS: &[CodeStructuralPattern] = &[
         node_kinds: &["ui_binding"],
         query_family: "bindings",
     },
+    CodeStructuralPattern {
+        pattern_id: "qml.object_instantiation.v1",
+        capture_name: "object_instantiation",
+        node_kinds: &["ui_object_definition"],
+        query_family: "objects",
+    },
+    CodeStructuralPattern {
+        pattern_id: "qml.typeinfo_declaration.v1",
+        capture_name: "typeinfo_declaration",
+        node_kinds: &["ui_object_definition"],
+        query_family: "typeinfo",
+    },
 ];
 
 const BASH_PATTERNS: &[CodeStructuralPattern] = &[
@@ -600,6 +612,8 @@ const QML_PATTERN_IDS: &[&str] = &[
     "qml.property_declaration.v1",
     "qml.signal_declaration.v1",
     "qml.binding.v1",
+    "qml.object_instantiation.v1",
+    "qml.typeinfo_declaration.v1",
 ];
 #[cfg(all(test, feature = "test-capability-matrix"))]
 const BASH_PATTERN_IDS: &[&str] = &[
@@ -720,7 +734,7 @@ fn collect_node(
             {
                 continue;
             }
-            if !matches_pattern(language, content, node, pattern.pattern_id) {
+            if !matches_pattern(language, file_path, content, node, pattern.pattern_id) {
                 continue;
             }
             facts.push(fact_for_node(file_path, language, content, node, *pattern));
@@ -1003,8 +1017,20 @@ fn enrich_metadata(
             }
         }
         "qml.import_statement.v1" => {
-            if let Some(module) = qml_import_module(content, node) {
-                insert_string(metadata, "import_module", &module);
+            if let Some(source) = qml_import_source(content, node) {
+                insert_string(metadata, "import_module", &source);
+                insert_string(metadata, "source", &source);
+            }
+            if let Some(version) = qml_field_name(content, node, "version") {
+                insert_string(metadata, "version", &version);
+            }
+            if let Some(alias) = qml_field_name(content, node, "alias") {
+                insert_string(metadata, "alias", &alias);
+                insert_string(metadata, "local_name", &alias);
+                if let Some(source) = qml_import_source(content, node) {
+                    insert_string(metadata, "imported_name", &source);
+                }
+                metadata.insert("is_namespace".to_string(), Value::Bool(true));
             }
         }
         "qml.property_declaration.v1" => {
@@ -1023,6 +1049,17 @@ fn enrich_metadata(
         "qml.binding.v1" => {
             if let Some(name) = qml_field_name(content, node, "name") {
                 insert_string(metadata, "property_name", &name);
+            }
+        }
+        "qml.object_instantiation.v1" => {
+            if let Some(type_name) = qml_field_name(content, node, "type_name") {
+                insert_string(metadata, "type_name", &type_name);
+            }
+        }
+        "qml.typeinfo_declaration.v1" => {
+            if let Some(type_name) = qml_field_name(content, node, "type_name") {
+                insert_string(metadata, "type_name", &type_name);
+                insert_string(metadata, "typeinfo_kind", qml_typeinfo_kind(&type_name));
             }
         }
         "bash.export_declaration.v1" => {
@@ -1247,7 +1284,13 @@ fn insert_number(metadata: &mut HashMap<String, Value>, key: &str, value: u64) {
     metadata.insert(key.to_string(), Value::Number(Number::from(value)));
 }
 
-fn matches_pattern(language: &str, content: &str, node: Node<'_>, pattern_id: &str) -> bool {
+fn matches_pattern(
+    language: &str,
+    file_path: &str,
+    content: &str,
+    node: Node<'_>,
+    pattern_id: &str,
+) -> bool {
     match (language, pattern_id) {
         ("ruby", "ruby.require_call.v1") => ruby_require_kind(content, node).is_some(),
         ("ruby", "ruby.mixin_call.v1") => ruby_mixin_kind(content, node).is_some(),
@@ -1291,7 +1334,15 @@ fn matches_pattern(language: &str, content: &str, node: Node<'_>, pattern_id: &s
         ("zig", "zig.inline_function.v1") => zig_has_keyword(content, node, "inline"),
         ("zig", "zig.exported_function.v1") => zig_has_keyword(content, node, "export"),
         ("zig", "zig.comptime_parameter.v1") => zig_has_keyword(content, node, "comptime"),
+        ("qml", "qml.import_statement.v1") => qml_import_source(content, node).is_some(),
         ("qml", "qml.binding.v1") => qml_is_semantic_property_binding(content, node),
+        ("qml", "qml.object_instantiation.v1") => {
+            !file_path.ends_with(".qmltypes")
+                && qml_field_name(content, node, "type_name").is_some()
+        }
+        ("qml", "qml.typeinfo_declaration.v1") => {
+            file_path.ends_with(".qmltypes") && qml_field_name(content, node, "type_name").is_some()
+        }
         ("bash", "bash.shebang.v1") => node_text(content, node).trim_start().starts_with("#!"),
         ("bash", "bash.command_substitution.v1") => true,
         ("bash", "bash.arithmetic_expansion.v1") => true,
@@ -1721,8 +1772,36 @@ fn qml_field_name(content: &str, node: Node<'_>, field: &str) -> Option<String> 
         .map(|field_node| node_text(content, field_node))
 }
 
-fn qml_import_module(content: &str, node: Node<'_>) -> Option<String> {
+fn qml_import_source(content: &str, node: Node<'_>) -> Option<String> {
     qml_field_name(content, node, "source")
+        .map(|source| {
+            let source = source.trim();
+            if source.len() >= 2
+                && ((source.starts_with('"') && source.ends_with('"'))
+                    || (source.starts_with('\'') && source.ends_with('\'')))
+            {
+                source[1..source.len() - 1].to_string()
+            } else {
+                source.to_string()
+            }
+        })
+        .filter(|source| !source.is_empty())
+}
+
+fn qml_typeinfo_kind(type_name: &str) -> &'static str {
+    match type_name {
+        "Module" => "module",
+        "Component" => "type",
+        "AttachedType" => "attached_type",
+        "Extension" => "extension",
+        "Property" => "property",
+        "Signal" => "signal",
+        "Method" => "method",
+        "Parameter" => "parameter",
+        "Enum" => "enum",
+        "EnumValue" => "enum_value",
+        _ => "unknown",
+    }
 }
 
 fn qml_is_semantic_property_binding(content: &str, node: Node<'_>) -> bool {

@@ -2,6 +2,7 @@ use crate::base::complexity_metrics::complexity_metric_scopes_for_language;
 use crate::base::structural_facts::structural_fact_pattern_ids_for_language;
 use crate::extract_canonical;
 use crate::language::language_spec;
+use crate::qmldir::STRUCTURAL_FACT_PATTERN_IDS;
 use crate::registry::{capabilities_for_language, supported_languages};
 use crate::{IdentifierKind, RelationshipKind, SymbolKind};
 use serde::Deserialize;
@@ -73,6 +74,33 @@ pub(crate) struct FixtureRow {
     pub(crate) name: String,
     pub(crate) source: String,
     pub(crate) expected: String,
+    #[serde(default)]
+    pub(crate) sources: Vec<String>,
+}
+
+impl FixtureRow {
+    pub(crate) fn source_paths(&self) -> Vec<&str> {
+        if self.sources.is_empty() {
+            return vec![self.source.as_str()];
+        }
+
+        assert_eq!(
+            self.sources.first().map(String::as_str),
+            Some(self.source.as_str()),
+            "fixture {} must list source as sources[0]",
+            self.name
+        );
+        let mut seen = BTreeSet::new();
+        for source in &self.sources {
+            assert!(
+                seen.insert(source),
+                "fixture {} lists duplicate source {}",
+                self.name,
+                source
+            );
+        }
+        self.sources.iter().map(String::as_str).collect()
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -182,11 +210,6 @@ fn capability_matrix_matches_registry_entries() {
             row.language
         );
         assert!(
-            !row.extensions.is_empty(),
-            "{} is missing extension coverage",
-            row.language
-        );
-        assert!(
             matches!(
                 row.dependency_status.as_str(),
                 "current" | "upgrade_available" | "git_pinned" | "held"
@@ -203,6 +226,35 @@ fn capability_matrix_matches_registry_entries() {
                 row.language
             )
         });
+        if spec.extensions.is_empty() {
+            assert!(
+                row.extensions.is_empty(),
+                "{} is basename-only and must not invent an extension",
+                row.language
+            );
+            for fixture in &row.fixtures {
+                let basename = Path::new(&fixture.source)
+                    .file_name()
+                    .and_then(|name| name.to_str())
+                    .unwrap_or_else(|| {
+                        panic!(
+                            "{} fixture source must have a UTF-8 basename: {}",
+                            row.language, fixture.source
+                        )
+                    });
+                assert_eq!(
+                    basename, row.language,
+                    "{} fixture must use its basename-only language marker",
+                    row.language
+                );
+            }
+        } else {
+            assert!(
+                !row.extensions.is_empty(),
+                "{} is missing extension coverage",
+                row.language
+            );
+        }
         assert_eq!(
             row.extensions,
             spec.extensions
@@ -262,14 +314,16 @@ fn capability_matrix_has_golden_case_for_every_registry_entry() {
                 "{} has an unnamed fixture",
                 row.language
             );
-            let source = root.join(&fixture.source);
             let expected = root.join(&fixture.expected);
-            assert!(
-                source.is_file(),
-                "{} fixture source does not exist: {}",
-                row.language,
-                source.display()
-            );
+            for source_path in fixture.source_paths() {
+                let source = root.join(source_path);
+                assert!(
+                    source.is_file(),
+                    "{} fixture source does not exist: {}",
+                    row.language,
+                    source.display()
+                );
+            }
             assert!(
                 expected.is_file(),
                 "{} fixture expected output does not exist: {}",
@@ -296,8 +350,10 @@ fn capability_matrix_requires_relationship_fixture_evidence() {
             .find(|gap| gap.capability == "relationships" && gap.status == "exception");
 
         assert!(
-            row.capabilities.relationships || exception.is_none(),
-            "{} has a relationship fixture exception but does not advertise relationship support",
+            row.capabilities.relationships
+                || exception.is_none()
+                || !row.target_capabilities.relationships,
+            "{} has a relationship fixture exception without either current or target relationship support",
             row.language
         );
 
@@ -1012,10 +1068,17 @@ fn capability_matrix_structural_fact_claims_match_registry() {
             continue;
         };
         let claimed = structural_fact_claims(language, coverage);
-        let registry = structural_fact_pattern_ids_for_language(language)
-            .into_iter()
-            .map(str::to_string)
-            .collect::<BTreeSet<_>>();
+        let registry = if language == "qmldir" {
+            STRUCTURAL_FACT_PATTERN_IDS
+                .iter()
+                .map(|pattern_id| (*pattern_id).to_string())
+                .collect()
+        } else {
+            structural_fact_pattern_ids_for_language(language)
+                .into_iter()
+                .map(str::to_string)
+                .collect()
+        };
         if claimed != registry {
             errors.push(format!(
                 "{language} structural_facts coverage does not match registry: claimed={claimed:?} registry={registry:?}"
@@ -1599,20 +1662,19 @@ fn observed_structural_fact_patterns(root: &Path, row: &Value) -> BTreeSet<Strin
     let mut observed = BTreeSet::new();
 
     for fixture in fixtures {
-        let source_path = fixture["source"].as_str().unwrap_or_else(|| {
-            panic!("{language} fixture entries must include string source paths")
-        });
-        let source = fs::read_to_string(root.join(source_path))
-            .unwrap_or_else(|err| panic!("failed to read fixture source {source_path}: {err}"));
-        let results = extract_canonical(source_path, &source, root).unwrap_or_else(|err| {
-            panic!("extract_canonical failed for {language} fixture {source_path}: {err}")
-        });
-        observed.extend(
-            results
-                .structural_facts
-                .iter()
-                .map(|fact| fact.pattern_id.clone()),
-        );
+        for source_path in fixture_source_paths(fixture, language) {
+            let source = fs::read_to_string(root.join(source_path))
+                .unwrap_or_else(|err| panic!("failed to read fixture source {source_path}: {err}"));
+            let results = extract_canonical(source_path, &source, root).unwrap_or_else(|err| {
+                panic!("extract_canonical failed for {language} fixture {source_path}: {err}")
+            });
+            observed.extend(
+                results
+                    .structural_facts
+                    .iter()
+                    .map(|fact| fact.pattern_id.clone()),
+            );
+        }
     }
 
     observed
@@ -1625,18 +1687,20 @@ fn complexity_metrics_have_control_flow_evidence(root: &Path, row: &Value) -> bo
         .unwrap_or_else(|| panic!("{language} fixtures must be an array"));
 
     fixtures.iter().any(|fixture| {
-        let source_path = fixture["source"].as_str().unwrap_or_else(|| {
-            panic!("{language} fixture entries must include string source paths")
-        });
-        let source = fs::read_to_string(root.join(source_path))
-            .unwrap_or_else(|err| panic!("failed to read fixture source {source_path}: {err}"));
-        let results = extract_canonical(source_path, &source, root).unwrap_or_else(|err| {
-            panic!("extract_canonical failed for {language} fixture {source_path}: {err}")
-        });
-        results
-            .complexity_metrics
-            .iter()
-            .any(|metric| metric.decision_count > 0 || metric.loop_count > 0)
+        fixture_source_paths(fixture, language)
+            .into_iter()
+            .any(|source_path| {
+                let source = fs::read_to_string(root.join(source_path)).unwrap_or_else(|err| {
+                    panic!("failed to read fixture source {source_path}: {err}")
+                });
+                let results = extract_canonical(source_path, &source, root).unwrap_or_else(|err| {
+                    panic!("extract_canonical failed for {language} fixture {source_path}: {err}")
+                });
+                results
+                    .complexity_metrics
+                    .iter()
+                    .any(|metric| metric.decision_count > 0 || metric.loop_count > 0)
+            })
     })
 }
 
@@ -1648,20 +1712,19 @@ fn observed_complexity_metric_scopes(root: &Path, row: &Value) -> BTreeSet<Strin
     let mut observed = BTreeSet::new();
 
     for fixture in fixtures {
-        let source_path = fixture["source"].as_str().unwrap_or_else(|| {
-            panic!("{language} fixture entries must include string source paths")
-        });
-        let source = fs::read_to_string(root.join(source_path))
-            .unwrap_or_else(|err| panic!("failed to read fixture source {source_path}: {err}"));
-        let results = extract_canonical(source_path, &source, root).unwrap_or_else(|err| {
-            panic!("extract_canonical failed for {language} fixture {source_path}: {err}")
-        });
-        observed.extend(
-            results
-                .complexity_metrics
-                .iter()
-                .map(|metric| metric.scope.clone()),
-        );
+        for source_path in fixture_source_paths(fixture, language) {
+            let source = fs::read_to_string(root.join(source_path))
+                .unwrap_or_else(|err| panic!("failed to read fixture source {source_path}: {err}"));
+            let results = extract_canonical(source_path, &source, root).unwrap_or_else(|err| {
+                panic!("extract_canonical failed for {language} fixture {source_path}: {err}")
+            });
+            observed.extend(
+                results
+                    .complexity_metrics
+                    .iter()
+                    .map(|metric| metric.scope.clone()),
+            );
+        }
     }
 
     observed
@@ -2047,4 +2110,40 @@ pub(crate) fn load_expected_fixture(root: &Path, fixture: &FixtureRow) -> Value 
             err
         )
     })
+}
+
+fn fixture_source_paths<'a>(fixture: &'a Value, language: &str) -> Vec<&'a str> {
+    let source = fixture["source"]
+        .as_str()
+        .unwrap_or_else(|| panic!("{language} fixture entries must include string source paths"));
+    let Some(sources) = fixture.get("sources") else {
+        return vec![source];
+    };
+    let sources = sources
+        .as_array()
+        .unwrap_or_else(|| panic!("{language} fixture `sources` must be an array"));
+    if sources.is_empty() {
+        return vec![source];
+    }
+    let source_paths = sources
+        .iter()
+        .map(|value| {
+            value
+                .as_str()
+                .unwrap_or_else(|| panic!("{language} fixture `sources` values must be strings"))
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        source_paths.first().copied(),
+        Some(source),
+        "{language} fixture must list source as sources[0]"
+    );
+    let mut seen = BTreeSet::new();
+    for source_path in &source_paths {
+        assert!(
+            seen.insert(*source_path),
+            "{language} fixture lists duplicate source {source_path}"
+        );
+    }
+    source_paths
 }

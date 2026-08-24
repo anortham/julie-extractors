@@ -156,6 +156,7 @@ fn framework_key_type_is_string_when_present() {
 #[test]
 fn registry_pattern_ids_match_emitted_union_per_language() {
     use crate::base::structural_facts::structural_fact_pattern_ids_for_language;
+    use crate::qmldir::STRUCTURAL_FACT_PATTERN_IDS;
     use std::collections::BTreeSet;
 
     // Every language any source emits for. Kept in sync with the collector
@@ -188,6 +189,7 @@ fn registry_pattern_ids_match_emitted_union_per_language() {
         "gdscript",
         "powershell",
         "qml",
+        "qmldir",
         "vbnet",
         "zig",
         // data collector
@@ -220,10 +222,23 @@ fn registry_pattern_ids_match_emitted_union_per_language() {
             .filter(|spec| spec.languages.contains(language))
             .map(|spec| spec.pattern_id.to_string())
             .collect();
-        let emitted: BTreeSet<String> = structural_fact_pattern_ids_for_language(language)
-            .into_iter()
-            .map(str::to_string)
-            .collect();
+        let mut emitted: BTreeSet<String> = if *language == "qmldir" {
+            STRUCTURAL_FACT_PATTERN_IDS
+                .iter()
+                .map(|pattern_id| (*pattern_id).to_string())
+                .collect()
+        } else {
+            structural_fact_pattern_ids_for_language(language)
+                .into_iter()
+                .map(str::to_string)
+                .collect()
+        };
+        if structural_fact_pattern_specs()
+            .iter()
+            .any(|spec| spec.pattern_id == "code.marker.v1" && spec.languages.contains(language))
+        {
+            emitted.insert("code.marker.v1".to_string());
+        }
         union_from_emission.extend(emitted.iter().cloned());
         if registry != emitted {
             let missing: Vec<&String> = emitted.difference(&registry).collect();
@@ -247,6 +262,21 @@ fn registry_pattern_ids_match_emitted_union_per_language() {
     }
 
     assert!(errors.is_empty(), "{}", errors.join("\n"));
+}
+
+#[test]
+fn qml_domain_fact_ids_have_registered_contracts() {
+    let ids = structural_fact_pattern_specs()
+        .iter()
+        .filter(|spec| spec.languages.contains(&"qml") || spec.languages.contains(&"qmldir"))
+        .map(|spec| spec.pattern_id)
+        .collect::<std::collections::BTreeSet<_>>();
+    assert!(ids.contains("qml.import_statement.v1"));
+    assert!(ids.contains("qml.object_instantiation.v1"));
+    assert!(ids.contains("qml.typeinfo_declaration.v1"));
+    assert!(ids.contains("qmldir.module.v1"));
+    assert!(ids.contains("qmldir.object_type.v1"));
+    assert!(ids.contains("qmldir.typeinfo.v1"));
 }
 
 #[test]

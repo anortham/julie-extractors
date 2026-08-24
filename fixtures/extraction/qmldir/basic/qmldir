@@ -1,0 +1,15 @@
+module Example.Module
+Button 1.0 Button.qml
+singleton Theme 1.0 Theme.qml
+internal Private Private.qml
+MyScript 1.0 MyScript.js
+plugin examplemodule plugins
+optional plugin optionalmodule
+classname ExamplePlugin
+typeinfo plugins.qmltypes
+depends QtQuick 2.15
+import Shared auto
+designersupported
+prefer :/qt/qml/Example/Module
+linktarget ExampleModule
+not_a_directive not-a-version not-a-file

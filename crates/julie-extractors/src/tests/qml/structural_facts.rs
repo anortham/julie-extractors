@@ -36,6 +36,7 @@ fn qml_emits_expected_structural_fact_patterns() {
         "qml.property_declaration.v1",
         "qml.signal_declaration.v1",
         "qml.binding.v1",
+        "qml.object_instantiation.v1",
     ] {
         assert!(
             pattern_ids.contains(pattern_id),
@@ -83,6 +84,73 @@ fn qml_emits_expected_structural_fact_patterns() {
         Some("id"),
         "id bindings must not be classified as semantic property bindings"
     );
+}
+
+#[test]
+fn qml_import_facts_publish_normalized_binding_fields() {
+    let source = r#"
+import QtQuick 2.15
+import "components" as Components
+import "./js/helpers.js" as Helpers
+Item {}
+"#;
+    let results = extract(source);
+    let imports = results
+        .structural_facts
+        .iter()
+        .filter(|fact| fact.pattern_id == "qml.import_statement.v1")
+        .collect::<Vec<_>>();
+
+    assert_eq!(metadata_str(imports[0], "source"), Some("QtQuick"));
+    assert_eq!(metadata_str(imports[0], "version"), Some("2.15"));
+    assert_eq!(metadata_str(imports[1], "source"), Some("components"));
+    assert_eq!(metadata_str(imports[1], "alias"), Some("Components"));
+    assert_eq!(metadata_str(imports[1], "local_name"), Some("Components"));
+    assert_eq!(
+        metadata_str(imports[1], "imported_name"),
+        Some("components")
+    );
+    assert_eq!(metadata_str(imports[2], "source"), Some("./js/helpers.js"));
+    assert_eq!(metadata_str(imports[2], "alias"), Some("Helpers"));
+}
+
+#[test]
+fn qml_object_facts_publish_component_type_names() {
+    let results = extract(
+        r#"
+import QtQuick 2.15
+
+Item {
+    Card {}
+}
+"#,
+    );
+    let object = results
+        .structural_facts
+        .iter()
+        .find(|fact| {
+            fact.pattern_id == "qml.object_instantiation.v1"
+                && metadata_str(fact, "type_name") == Some("Card")
+        })
+        .expect("nested object instantiation fact");
+    assert_eq!(metadata_str(object, "type_name"), Some("Card"));
+}
+
+#[test]
+fn qmltypes_facts_publish_declaration_roles() {
+    let results = crate::pipeline::extract_canonical(
+        "fixtures/extraction/qml/typeinfo/source.qmltypes",
+        "Module { Component { name: \"Widget\" } }",
+        Path::new("/repo"),
+    )
+    .expect("canonical qmltypes extraction should succeed");
+    let declaration = results
+        .structural_facts
+        .iter()
+        .find(|fact| fact.pattern_id == "qml.typeinfo_declaration.v1")
+        .expect("qmltypes declaration fact");
+    assert_eq!(metadata_str(declaration, "type_name"), Some("Module"));
+    assert_eq!(metadata_str(declaration, "typeinfo_kind"), Some("module"));
 }
 
 #[test]

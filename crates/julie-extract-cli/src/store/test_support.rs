@@ -29,6 +29,10 @@ pub fn write_all_language_fixture(root: &Path) -> Result<Vec<String>, String> {
                         .and_then(|name| name.to_str())
                         .is_some_and(|name| name.starts_with("source."))
             })
+            .or_else(|| {
+                let path = basic.join(language);
+                path.is_file().then_some(path)
+            })
             .ok_or_else(|| format!("{language} fixture has no source file"))?;
         let destination = root.join("languages").join(language);
         fs::create_dir_all(&destination)

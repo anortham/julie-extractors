@@ -18,7 +18,10 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "source": "QtQuick",
+        "version": "2.0"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -42,7 +45,10 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "source": "QtTest",
+        "version": "1.0"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -202,7 +208,7 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/qml/test_roles/test_source.qml:test_source:4:0",
-      "metadata": {},
+      "metadata": null,
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -354,7 +360,9 @@
       "metadata": {
         "import_module": "QtQuick",
         "pattern_version": 1,
-        "query_family": "imports"
+        "query_family": "imports",
+        "source": "QtQuick",
+        "version": "2.0"
       }
     },
     {
@@ -374,7 +382,29 @@
       "metadata": {
         "import_module": "QtTest",
         "pattern_version": 1,
-        "query_family": "imports"
+        "query_family": "imports",
+        "source": "QtTest",
+        "version": "1.0"
+      }
+    },
+    {
+      "pattern_id": "qml.object_instantiation.v1",
+      "capture_name": "object_instantiation",
+      "node_kind": "ui_object_definition",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/test_roles/test_source.qml",
+      "containing_key": "fixtures/extraction/qml/test_roles/test_source.qml:test_source:4:0",
+      "start_line": 4,
+      "start_column": 0,
+      "end_line": 17,
+      "end_column": 1,
+      "start_byte": 38,
+      "end_byte": 246,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "objects",
+        "type_name": "TestCase"
       }
     }
   ],

@@ -1987,19 +1987,28 @@ fn languages_json_emits_capability_snapshot_data() {
     assert_eq!(report["languages"]["total"], expected_names.len());
     assert_eq!(emitted_names, expected_names);
     for language in emitted {
+        let language_name = language["language"].as_str().unwrap();
         assert!(
             language["parser_crate"]
                 .as_str()
                 .is_some_and(|v| !v.is_empty())
         );
-        assert!(
-            language["extensions"]
-                .as_array()
-                .is_some_and(|v| !v.is_empty())
-        );
+        let extensions = language["extensions"]
+            .as_array()
+            .expect("language rows include an extensions array");
+        if language_name == "qmldir" {
+            assert!(
+                extensions.is_empty(),
+                "qmldir is identified by its basename, not an invented extension"
+            );
+        } else {
+            assert!(
+                !extensions.is_empty(),
+                "{language_name} must advertise at least one extension"
+            );
+        }
         assert!(language["target_capabilities"].is_object());
         assert!(language["actual_capabilities"].is_object());
-        let language_name = language["language"].as_str().unwrap();
         assert_eq!(
             language["kind_coverage"], expected_kind_coverage[language_name],
             "languages --json must expose exact kind_coverage for {language_name}"

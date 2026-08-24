@@ -4251,7 +4251,8 @@
       "language": "qml",
       "parser_crate": "tree-sitter-qmljs",
       "extensions": [
-        "qml"
+        "qml",
+        "qmltypes"
       ],
       "dependency_status": "git_pinned",
       "capabilities": {
@@ -4270,7 +4271,17 @@
         {
           "name": "cross_file",
           "source": "fixtures/extraction/qml/cross_file/source.qml",
-          "expected": "fixtures/extraction/qml/cross_file/expected.json"
+          "expected": "fixtures/extraction/qml/cross_file/expected.json",
+          "sources": [
+            "fixtures/extraction/qml/cross_file/source.qml",
+            "fixtures/extraction/qml/cross_file/LocalCard.qml",
+            "fixtures/extraction/qml/cross_file/Module.qmltypes"
+          ]
+        },
+        {
+          "name": "typeinfo",
+          "source": "fixtures/extraction/qml/typeinfo/source.qmltypes",
+          "expected": "fixtures/extraction/qml/typeinfo/expected.json"
         },
         {
           "name": "test_roles",
@@ -4290,10 +4301,15 @@
         "symbols": {
           "supported": [
             "class",
+            "enum",
+            "enum_member",
             "event",
             "function",
             "import",
-            "property"
+            "method",
+            "module",
+            "property",
+            "variable"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -4301,6 +4317,7 @@
         "relationships": {
           "supported": [
             "calls",
+            "instantiates",
             "uses"
           ],
           "not_applicable": [],
@@ -4333,7 +4350,9 @@
             "qml.import_statement.v1",
             "qml.property_declaration.v1",
             "qml.signal_declaration.v1",
-            "qml.binding.v1"
+            "qml.binding.v1",
+            "qml.object_instantiation.v1",
+            "qml.typeinfo_declaration.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -4387,6 +4406,183 @@
               ],
               "not_applicable": [],
               "open_gaps": []
+        }
+      }
+    },
+    {
+      "language": "qmldir",
+      "parser_crate": "tree-sitter-qmldir",
+      "extensions": [],
+      "dependency_status": "git_pinned",
+      "capabilities": {
+        "symbols": true,
+        "relationships": false,
+        "pending_relationships": false,
+        "identifiers": false,
+        "types": false
+      },
+      "fixtures": [
+        {
+          "name": "basic",
+          "source": "fixtures/extraction/qmldir/basic/qmldir",
+          "expected": "fixtures/extraction/qmldir/basic/expected.json"
+        }
+      ],
+      "target_capabilities": {
+        "symbols": true,
+        "relationships": false,
+        "pending_relationships": false,
+        "identifiers": false,
+        "types": false
+      },
+      "capability_gaps": [
+        {
+          "capability": "relationships",
+          "status": "exception",
+          "reason": "A qmldir manifest declares module metadata and type availability but no executable relationship edges.",
+          "required_closure": "N/A - manifest language limitation.",
+          "evidence": {
+            "kind": "fixture",
+            "value": "fixtures/extraction/qmldir/basic/expected.json",
+            "command": "cargo xtask test golden"
+          }
+        },
+        {
+          "capability": "pending_relationships",
+          "status": "exception",
+          "reason": "A qmldir manifest has no call or reference sites from which pending relationships can be emitted.",
+          "required_closure": "N/A - manifest language limitation.",
+          "evidence": {
+            "kind": "fixture",
+            "value": "fixtures/extraction/qmldir/basic/expected.json",
+            "command": "cargo xtask test golden"
+          }
+        },
+        {
+          "capability": "identifiers",
+          "status": "exception",
+          "reason": "Manifest directives provide named declaration fields but no source-language identifier references.",
+          "required_closure": "N/A - manifest language limitation.",
+          "evidence": {
+            "kind": "fixture",
+            "value": "fixtures/extraction/qmldir/basic/expected.json",
+            "command": "cargo xtask test golden"
+          }
+        },
+        {
+          "capability": "types",
+          "status": "exception",
+          "reason": "A qmldir manifest describes QML type availability; generated qmltypes declarations are indexed as symbols rather than TypeInfo rows.",
+          "required_closure": "N/A - manifest language limitation.",
+          "evidence": {
+            "kind": "fixture",
+            "value": "fixtures/extraction/qmldir/basic/expected.json",
+            "command": "cargo xtask test golden"
+          }
+        }
+      ],
+      "kind_coverage": {
+        "symbols": {
+          "supported": [
+            "class",
+            "module"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "relationships": {
+          "supported": [],
+          "not_applicable": [
+            "calls",
+            "instantiates",
+            "uses"
+          ],
+          "open_gaps": []
+        },
+        "identifiers": {
+          "supported": [],
+          "not_applicable": [
+            "call",
+            "member_access",
+            "type_usage",
+            "variable_ref"
+          ],
+          "open_gaps": []
+        },
+        "body_spans": {
+          "supported": [
+            "class",
+            "module"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [
+            "qmldir.classname.v1",
+            "qmldir.depends.v1",
+            "qmldir.designer_supported.v1",
+            "qmldir.import.v1",
+            "qmldir.internal_type.v1",
+            "qmldir.javascript_resource.v1",
+            "qmldir.linktarget.v1",
+            "qmldir.module.v1",
+            "qmldir.object_type.v1",
+            "qmldir.plugin.v1",
+            "qmldir.prefer.v1",
+            "qmldir.singleton_type.v1",
+            "qmldir.typeinfo.v1"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "complexity_metrics": {
+          "supported": [],
+          "not_applicable": [
+            "file",
+            "symbol"
+          ],
+          "open_gaps": []
+        },
+        "annotations": {
+          "supported": [],
+          "not_applicable": [
+            "class",
+            "module"
+          ],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [],
+          "not_applicable": [
+            "class",
+            "module"
+          ],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [],
+          "not_applicable": [
+            "other"
+          ],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [],
+          "not_applicable": [
+            "comment",
+            "string_literal"
+          ],
+          "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [
+            "test_case",
+            "test_container",
+            "test_lifecycle"
+          ],
+          "open_gaps": []
         }
       }
     },

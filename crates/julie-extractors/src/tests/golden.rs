@@ -26,6 +26,88 @@ struct FixtureRow {
     name: String,
     source: String,
     expected: String,
+    #[serde(default)]
+    sources: Vec<String>,
+}
+
+impl FixtureRow {
+    fn source_paths(&self) -> Vec<&str> {
+        if self.sources.is_empty() {
+            return vec![self.source.as_str()];
+        }
+
+        assert_eq!(
+            self.sources.first().map(String::as_str),
+            Some(self.source.as_str()),
+            "fixture {} must list source as sources[0]",
+            self.name
+        );
+        let mut seen = BTreeSet::new();
+        for source in &self.sources {
+            assert!(
+                seen.insert(source),
+                "fixture {} lists duplicate source {}",
+                self.name,
+                source
+            );
+        }
+        self.sources.iter().map(String::as_str).collect()
+    }
+}
+
+#[test]
+fn qml_cross_file_fixture_declares_complete_source_list() {
+    let root = workspace_root();
+    let fixture = load_matrix(&root)
+        .languages
+        .into_iter()
+        .find(|row| row.language == "qml")
+        .and_then(|row| {
+            row.fixtures
+                .into_iter()
+                .find(|fixture| fixture.name == "cross_file")
+        })
+        .expect("QML cross-file fixture");
+
+    assert!(fixture.source_paths().len() >= 3);
+}
+
+fn first_difference(actual: &Value, expected: &Value, path: &str) -> String {
+    if actual == expected {
+        return "none".to_string();
+    }
+    match (actual, expected) {
+        (Value::Object(actual), Value::Object(expected)) => {
+            let keys = actual
+                .keys()
+                .chain(expected.keys())
+                .collect::<BTreeSet<_>>();
+            for key in keys {
+                let next = format!("{path}.{key}");
+                match (actual.get(key), expected.get(key)) {
+                    (Some(actual), Some(expected)) => {
+                        if actual != expected {
+                            return first_difference(actual, expected, &next);
+                        }
+                    }
+                    _ => return next,
+                }
+            }
+            path.to_string()
+        }
+        (Value::Array(actual), Value::Array(expected)) => {
+            if actual.len() != expected.len() {
+                return format!("{path}.length");
+            }
+            for (index, (actual, expected)) in actual.iter().zip(expected).enumerate() {
+                if actual != expected {
+                    return first_difference(actual, expected, &format!("{path}[{index}]"));
+                }
+            }
+            path.to_string()
+        }
+        _ => format!("{path}: actual={actual} expected={expected}"),
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -264,18 +346,7 @@ fn no_language_emits_per_identifier_code_context() {
 
     for row in matrix.languages {
         for fixture in row.fixtures {
-            let source_path = root.join(&fixture.source);
-            let source =
-                normalize_fixture_line_endings(fs::read_to_string(&source_path).unwrap_or_else(
-                    |err| panic!("failed to read {}: {err}", source_path.display()),
-                ));
-            let results =
-                extract_canonical(&fixture.source, &source, &root).unwrap_or_else(|err| {
-                    panic!(
-                        "extract_canonical failed for {}:{}: {err}",
-                        row.language, fixture.name
-                    )
-                });
+            let results = extract_fixture(&root, &row.language, &fixture);
 
             if !results.identifiers.is_empty() {
                 languages_with_identifiers.insert(row.language.clone());
@@ -317,27 +388,8 @@ fn golden_fixtures_match_canonical_extraction() {
                 "duplicate fixture {case_key}"
             );
 
-            let source_path = root.join(&fixture.source);
             let expected_path = root.join(&fixture.expected);
-            let source = fs::read_to_string(&source_path).unwrap_or_else(|err| {
-                panic!(
-                    "failed to read source for {} at {}: {}",
-                    case_key,
-                    source_path.display(),
-                    err
-                )
-            });
-            let source = normalize_fixture_line_endings(source);
-            let detected = detect_language_for_path(&fixture.source)
-                .unwrap_or_else(|err| panic!("failed to detect language for {case_key}: {err}"));
-            assert_eq!(
-                detected, row.language,
-                "fixture {case_key} must route through its registry language"
-            );
-
-            let actual = extract_canonical(&fixture.source, &source, &root)
-                .unwrap_or_else(|err| panic!("extract_canonical failed for {case_key}: {err}"));
-            let normalized = normalize(actual);
+            let normalized = normalize(extract_fixture(&root, &row.language, &fixture));
             let actual_json = serde_json::to_string_pretty(&normalized).unwrap();
 
             if update {
@@ -366,15 +418,62 @@ fn golden_fixtures_match_canonical_extraction() {
                     )
                 });
 
-            assert_eq!(
-                expected,
-                normalized,
-                "golden mismatch for {case_key}\nexpected file: {}\nactual:\n{}",
-                expected_path.display(),
-                actual_json
-            );
+            if expected != normalized {
+                let actual_value = serde_json::to_value(&normalized).unwrap();
+                let expected_value = serde_json::to_value(&expected).unwrap();
+                panic!(
+                    "golden mismatch for {case_key} at {}: {}\nactual: {}",
+                    expected_path.display(),
+                    first_difference(&actual_value, &expected_value, "$"),
+                    actual_json
+                );
+            }
         }
     }
+}
+
+fn extract_fixture(root: &Path, language: &str, fixture: &FixtureRow) -> ExtractionResults {
+    let mut merged = ExtractionResults::empty();
+    let mut type_keys = BTreeSet::new();
+
+    for source_path in fixture.source_paths() {
+        let path = root.join(source_path);
+        let source =
+            normalize_fixture_line_endings(fs::read_to_string(&path).unwrap_or_else(|err| {
+                panic!(
+                    "failed to read source for {}:{} at {}: {}",
+                    language,
+                    fixture.name,
+                    path.display(),
+                    err
+                )
+            }));
+        let detected = detect_language_for_path(source_path)
+            .unwrap_or_else(|err| panic!("failed to detect language for {source_path}: {err}"));
+        assert_eq!(
+            detected, language,
+            "fixture {}:{} source {} must route through its registry language",
+            language, fixture.name, source_path
+        );
+        let results = extract_canonical(source_path, &source, root).unwrap_or_else(|err| {
+            panic!(
+                "extract_canonical failed for {}:{} source {}: {err}",
+                language, fixture.name, source_path
+            )
+        });
+        for key in results.types.keys() {
+            assert!(
+                type_keys.insert(key.clone()),
+                "fixture {}:{} produced duplicate type-map key {}",
+                language,
+                fixture.name,
+                key
+            );
+        }
+        merged.extend(results);
+    }
+
+    merged
 }
 
 fn normalize_fixture_line_endings(source: String) -> String {

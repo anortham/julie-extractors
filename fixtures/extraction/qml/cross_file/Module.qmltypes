@@ -1,0 +1,32 @@
+import QtQuick.tool 1.2
+
+Module {
+    Component {
+        name: "RemoteCard"
+        prototype: "QObject"
+        exports: ["Example/RemoteCard 1.0"]
+        Property {
+            name: "title"
+            type: "QString"
+            revision: 1
+        }
+        Signal {
+            name: "selected"
+            Parameter {
+                name: "value"
+                type: "QString"
+            }
+        }
+        Method {
+            name: "reset"
+            returnType: "void"
+        }
+        Enum {
+            name: "State"
+            EnumValue {
+                name: "Ready"
+                value: 1
+            }
+        }
+    }
+}

@@ -178,23 +178,22 @@ mod golden_corpus {
                 .unwrap_or_else(|| panic!("{language} `fixtures` must be an array"));
 
             for fixture in fixtures {
-                let source_path = fixture["source"].as_str().unwrap_or_else(|| {
-                    panic!("{language} fixture entries must include a string `source` path")
-                });
-                let source =
-                    std::fs::read_to_string(root.join(source_path)).unwrap_or_else(|err| {
-                        panic!("failed to read fixture source {source_path}: {err}")
-                    });
-                let results =
-                    extract_canonical(source_path, &source, &root).unwrap_or_else(|err| {
-                        panic!(
-                            "extract_canonical failed for {language} fixture {source_path}: {err}"
-                        )
-                    });
+                for source_path in fixture_source_paths(fixture, language) {
+                    let source =
+                        std::fs::read_to_string(root.join(source_path)).unwrap_or_else(|err| {
+                            panic!("failed to read fixture source {source_path}: {err}")
+                        });
+                    let results =
+                        extract_canonical(source_path, &source, &root).unwrap_or_else(|err| {
+                            panic!(
+                                "extract_canonical failed for {language} fixture {source_path}: {err}"
+                            )
+                        });
 
-                for fact in &results.structural_facts {
-                    fact_count += 1;
-                    check_fact(fact, &specs, source_path, &mut violations);
+                    for fact in &results.structural_facts {
+                        fact_count += 1;
+                        check_fact(fact, &specs, source_path, &mut violations);
+                    }
                 }
             }
         }
@@ -211,6 +210,42 @@ mod golden_corpus {
             violations.len(),
             violations.iter().cloned().collect::<Vec<_>>().join("\n")
         );
+    }
+
+    fn fixture_source_paths<'a>(fixture: &'a Value, language: &str) -> Vec<&'a str> {
+        let source = fixture["source"].as_str().unwrap_or_else(|| {
+            panic!("{language} fixture entries must include a string `source` path")
+        });
+        let Some(sources) = fixture.get("sources") else {
+            return vec![source];
+        };
+        let sources = sources
+            .as_array()
+            .unwrap_or_else(|| panic!("{language} fixture `sources` must be an array"));
+        if sources.is_empty() {
+            return vec![source];
+        }
+        let source_paths = sources
+            .iter()
+            .map(|value| {
+                value.as_str().unwrap_or_else(|| {
+                    panic!("{language} fixture `sources` values must be strings")
+                })
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            source_paths.first().copied(),
+            Some(source),
+            "{language} fixture must list source as sources[0]"
+        );
+        let mut seen = BTreeSet::new();
+        for source_path in &source_paths {
+            assert!(
+                seen.insert(*source_path),
+                "{language} fixture lists duplicate source {source_path}"
+            );
+        }
+        source_paths
     }
 }
 

@@ -1,0 +1,47 @@
+import QtQuick.tool 1.2
+
+Module {
+    Component {
+        name: "ExampleWidget"
+        prototype: "QObject"
+        AttachedType {
+            name: "ExampleWidgetAttached"
+            prototype: "QObject"
+            revision: 1
+        }
+        Extension {
+            name: "ExampleWidgetExtension"
+            prototype: "QObject"
+            version: "1.2"
+        }
+        Property {
+            name: "title"
+            type: "QString"
+            revision: 2
+        }
+        Signal {
+            name: "changed"
+            Parameter {
+                name: "value"
+                type: "QString"
+            }
+        }
+        Method {
+            name: "reset"
+            returnType: "void"
+            Parameter {
+                name: "mode"
+                type: "int"
+                revision: 3
+            }
+        }
+        Enum {
+            name: "State"
+            revision: 4
+            EnumValue {
+                name: "Ready"
+                value: 1
+            }
+        }
+    }
+}
