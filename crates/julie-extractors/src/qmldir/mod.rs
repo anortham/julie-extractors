@@ -178,13 +178,7 @@ impl QmldirExtractor {
         if !is_version(version) || !is_qml_file(file) {
             return;
         }
-        self.push_type_symbol(
-            node,
-            type_name,
-            version,
-            file,
-            TypeSymbolMode::Singleton,
-        );
+        self.push_type_symbol(node, type_name, version, file, TypeSymbolMode::Singleton);
         self.push_fact(
             node,
             "qmldir.singleton_type.v1",
@@ -208,13 +202,7 @@ impl QmldirExtractor {
         if !is_qml_file(file) {
             return;
         }
-        self.push_type_symbol(
-            node,
-            type_name,
-            "",
-            file,
-            TypeSymbolMode::Internal,
-        );
+        self.push_type_symbol(node, type_name, "", file, TypeSymbolMode::Internal);
         self.push_fact(
             node,
             "qmldir.internal_type.v1",
@@ -255,13 +243,7 @@ impl QmldirExtractor {
                 ),
             );
         } else if is_qml_file(file) {
-            self.push_type_symbol(
-                node,
-                type_name,
-                version,
-                file,
-                TypeSymbolMode::Object,
-            );
+            self.push_type_symbol(node, type_name, version, file, TypeSymbolMode::Object);
             self.push_fact(
                 node,
                 "qmldir.object_type.v1",
