@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use ignore::Match;
 use ignore::gitignore::{Gitignore, GitignoreBuilder};
-use julie_extractors::detect_language_from_extension;
+use julie_extractors::detect_language_for_source;
 
 use crate::limits::{MAX_SOURCE_FILE_BYTES, slow_file_skip_message};
 use crate::paths::{FileTarget, PathPolicyError, canonicalize_ignore_file};
@@ -547,8 +547,8 @@ fn find_git_root(start: &Path) -> Option<PathBuf> {
 }
 
 fn language_for_path(path: &Path) -> Option<&'static str> {
-    let extension = path.extension()?.to_str()?;
-    detect_language_from_extension(extension)
+    let file_path = path.to_str()?;
+    detect_language_for_source(file_path, "")
 }
 
 fn is_hard_excluded(
@@ -715,6 +715,27 @@ mod tests {
                 .slow_file_skips
                 .iter()
                 .all(|skip| skip.root_relative_path != at_limit.root_relative_path)
+        );
+    }
+
+    #[test]
+    fn discover_selects_exact_qmldir_basename_but_rejects_other_extensionless_files() {
+        let fixture = DiscoveryFixture::new();
+        let qmldir = fixture.write("src/qmldir", "module Example.Module\n");
+        let readme = fixture.write("src/README", "not source\n");
+        let policy = fixture.policy();
+
+        assert_eq!(
+            policy.select_file(&qmldir),
+            FileSelection::Supported {
+                language: "qmldir".to_string()
+            }
+        );
+        assert_eq!(
+            policy.select_file(&readme),
+            FileSelection::Unsupported {
+                reason: UnsupportedReason::UnsupportedExtension
+            }
         );
     }
 

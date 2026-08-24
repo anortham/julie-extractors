@@ -5,6 +5,22 @@ use crate::base::{
 use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
+pub(crate) const STRUCTURAL_FACT_PATTERN_IDS: [&str; 13] = [
+    "qmldir.module.v1",
+    "qmldir.object_type.v1",
+    "qmldir.singleton_type.v1",
+    "qmldir.internal_type.v1",
+    "qmldir.javascript_resource.v1",
+    "qmldir.plugin.v1",
+    "qmldir.classname.v1",
+    "qmldir.typeinfo.v1",
+    "qmldir.depends.v1",
+    "qmldir.import.v1",
+    "qmldir.designer_supported.v1",
+    "qmldir.prefer.v1",
+    "qmldir.linktarget.v1",
+];
+
 pub struct QmldirExtractor {
     pub(crate) base: BaseExtractor,
     symbols: Vec<Symbol>,
@@ -366,6 +382,7 @@ impl QmldirExtractor {
         capture_name: &str,
         metadata: HashMap<String, serde_json::Value>,
     ) {
+        debug_assert!(STRUCTURAL_FACT_PATTERN_IDS.contains(&pattern_id));
         let span = NormalizedSpan::from_node(&node);
         self.structural_facts.push(StructuralFact {
             id: stable_location_id(

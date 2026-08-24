@@ -274,6 +274,6 @@ pub(crate) fn detect_language_for_path(file_path: &str) -> Result<&'static str, 
         .and_then(|ext| ext.to_str())
         .unwrap_or("");
 
-    crate::language::detect_language_from_extension(extension)
+    crate::language::detect_language_for_source(file_path, "")
         .ok_or_else(|| anyhow::anyhow!("Unsupported file extension: {}", extension))
 }

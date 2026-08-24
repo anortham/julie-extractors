@@ -374,6 +374,19 @@ void widget_init(widget_t *widget);
 }
 
 #[test]
+fn test_detect_language_for_path_uses_source_contract_for_qmldir_basename() {
+    assert_eq!(
+        crate::pipeline::detect_language_for_path("modules/Example/qmldir").unwrap(),
+        "qmldir"
+    );
+    assert!(crate::pipeline::detect_language_for_path("README").is_err());
+    assert_eq!(
+        crate::pipeline::detect_language_for_path("include/widget.h").unwrap(),
+        "c"
+    );
+}
+
+#[test]
 fn test_detect_language_for_source_preserves_c_headers_with_cpp_keyword_identifiers() {
     let c_header = r#"
 #ifndef KEYWORDS_H

@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::path::Path;
 
 use crate::{SymbolKind, extract_canonical};
@@ -112,6 +113,17 @@ fn qmldir_directive_matrix_emits_typed_facts_and_negative_controls() {
             .cloned()
             .unwrap_or_else(|| panic!("missing {key} metadata for {pattern_id}"))
     };
+    let emitted_pattern_ids: BTreeSet<_> = result
+        .structural_facts
+        .iter()
+        .map(|fact| fact.pattern_id.as_str())
+        .filter(|pattern_id| pattern_id.starts_with("qmldir."))
+        .collect();
+    let expected_pattern_ids: BTreeSet<_> = crate::qmldir::STRUCTURAL_FACT_PATTERN_IDS
+        .iter()
+        .copied()
+        .collect();
+    assert_eq!(emitted_pattern_ids, expected_pattern_ids);
 
     assert_eq!(
         metadata("qmldir.module.v1", "module"),
