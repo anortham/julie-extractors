@@ -138,7 +138,7 @@ fn maintenance_store_crash_worker() {
     };
     let layout = StoreLayout::create(root, "family-maintenance-crash", "2.30.0").unwrap();
     seed_l3_candidate(&layout);
-    run_gc(&layout, "gc-store-crash");
+    run_gc(&layout, "gc-store-crash", 5_000);
     panic!("worker passed crash boundary {boundary}");
 }
 
@@ -149,15 +149,21 @@ fn maintenance_coordinator_crash_worker() {
     };
     let layout = StoreLayout::create(root, "family-maintenance-crash", "2.30.0").unwrap();
     seed_terminal_request(&layout);
-    run_gc(&layout, "gc-coordinator-crash");
+    run_gc(&layout, "gc-coordinator-crash", 250);
     panic!("worker passed crash boundary {boundary}");
 }
 
-fn run_gc(layout: &StoreLayout, run_id: &str) {
+fn run_gc(layout: &StoreLayout, run_id: &str, lease_duration_ms: i64) {
     let plan = inspect_plan(layout);
     let mut executor = MaintenanceExecutor::acquire(
         factory(layout),
-        MaintenanceRun::new(run_id, "crash-owner", std::process::id(), 30 * DAY_MS, 250),
+        MaintenanceRun::new(
+            run_id,
+            "crash-owner",
+            std::process::id(),
+            30 * DAY_MS,
+            lease_duration_ms,
+        ),
         &plan,
         FixedCapacity,
     )
