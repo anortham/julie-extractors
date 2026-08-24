@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 use std::path::Path;
 
-use crate::base::StructuralFact;
+use crate::base::{StructuralFact, SymbolKind};
 
 const FIXTURE_SOURCE: &str =
     include_str!("../../../../../fixtures/extraction/qml/basic/source.qml");
@@ -112,6 +112,61 @@ Item {}
     );
     assert_eq!(metadata_str(imports[2], "source"), Some("./js/helpers.js"));
     assert_eq!(metadata_str(imports[2], "alias"), Some("Helpers"));
+    assert_eq!(metadata_str(imports[0], "source_kind"), Some("uri"));
+    assert_eq!(metadata_str(imports[0], "import_kind"), Some("module"));
+    assert_eq!(metadata_str(imports[1], "source_kind"), Some("quoted"));
+    assert_eq!(metadata_str(imports[1], "import_kind"), Some("directory"));
+    assert_eq!(metadata_str(imports[2], "source_kind"), Some("quoted"));
+    assert_eq!(metadata_str(imports[2], "import_kind"), Some("javascript"));
+}
+
+#[test]
+fn qml_import_symbols_and_facts_agree_on_source_and_import_kinds() {
+    let source = r#"
+import QtQuick 2.15
+import "components" as Components
+import "./js/helpers.js" as Helpers
+Item {}
+"#;
+    let results = extract(source);
+    let symbols = results
+        .symbols
+        .iter()
+        .filter(|symbol| symbol.kind == SymbolKind::Import)
+        .collect::<Vec<_>>();
+    let facts = results
+        .structural_facts
+        .iter()
+        .filter(|fact| fact.pattern_id == "qml.import_statement.v1")
+        .collect::<Vec<_>>();
+
+    assert_eq!(symbols.len(), facts.len());
+    for (symbol, fact) in symbols.iter().zip(facts.iter()) {
+        assert_eq!(
+            metadata_str(fact, "source"),
+            symbol
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get("source"))
+                .and_then(serde_json::Value::as_str)
+        );
+        assert_eq!(
+            metadata_str(fact, "source_kind"),
+            symbol
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get("source_kind"))
+                .and_then(serde_json::Value::as_str)
+        );
+        assert_eq!(
+            metadata_str(fact, "import_kind"),
+            symbol
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get("import_kind"))
+                .and_then(serde_json::Value::as_str)
+        );
+    }
 }
 
 #[test]
@@ -139,7 +194,7 @@ Item {
 #[test]
 fn qmltypes_facts_publish_declaration_roles() {
     let results = crate::pipeline::extract_canonical(
-        "fixtures/extraction/qml/typeinfo/source.qmltypes",
+        "fixtures/extraction/qml/typeinfo/source.QMLTYPES",
         "Module { Component { name: \"Widget\" } }",
         Path::new("/repo"),
     )

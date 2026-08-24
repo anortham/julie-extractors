@@ -386,6 +386,42 @@ fn test_detect_language_for_path_uses_source_contract_for_qmldir_basename() {
     );
 }
 
+#[cfg(unix)]
+#[test]
+fn test_detect_language_for_path_ignores_invalid_utf8_parent_components() {
+    use std::ffi::OsString;
+    use std::os::unix::ffi::OsStringExt;
+
+    let parent = PathBuf::from(OsString::from_vec(vec![b'm', 0xff, b'd']));
+    assert_eq!(
+        crate::language::detect_language_for_path(&parent.join("Widget.QML"), ""),
+        Some("qml")
+    );
+    assert_eq!(
+        crate::language::detect_language_for_path(&parent.join("Widget.qmltypes"), ""),
+        Some("qml")
+    );
+    assert_eq!(
+        crate::language::detect_language_for_path(&parent.join("qmldir"), ""),
+        Some("qmldir")
+    );
+    assert_eq!(
+        crate::language::detect_language_for_path(&parent.join("QMLDIR"), ""),
+        Some("qmldir")
+    );
+    assert_eq!(
+        crate::language::detect_language_for_path(
+            &parent.join("widget.H"),
+            "#pragma once\nnamespace app { class Widget { public: void run() const; }; }",
+        ),
+        Some("cpp")
+    );
+    assert_eq!(
+        crate::language::detect_language_for_path(&parent.join("README"), ""),
+        None
+    );
+}
+
 #[test]
 fn test_detect_language_for_source_preserves_c_headers_with_cpp_keyword_identifiers() {
     let c_header = r#"

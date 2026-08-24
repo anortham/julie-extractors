@@ -19,7 +19,9 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
+        "import_kind": "module",
         "source": "QtQuick",
+        "source_kind": "uri",
         "version": "2.15"
       },
       "annotations": [],
@@ -1273,10 +1275,12 @@
       "end_byte": 19,
       "confidence": "1.000",
       "metadata": {
+        "import_kind": "module",
         "import_module": "QtQuick",
         "pattern_version": 1,
         "query_family": "imports",
         "source": "QtQuick",
+        "source_kind": "uri",
         "version": "2.15"
       }
     },

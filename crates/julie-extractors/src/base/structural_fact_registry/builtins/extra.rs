@@ -141,6 +141,18 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "The normalized imported QML module or resource source.",
             ),
             key(
+                "source_kind",
+                STR,
+                ALWAYS,
+                "Whether the parser source is a QML URI or quoted resource path.",
+            ),
+            key(
+                "import_kind",
+                STR,
+                ALWAYS,
+                "The policy classification of a module, directory, or JavaScript import.",
+            ),
+            key(
                 "version",
                 STR,
                 OPT,

@@ -19,7 +19,9 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
+        "import_kind": "module",
         "source": "QtQuick",
+        "source_kind": "uri",
         "version": "2.0"
       },
       "annotations": [],
@@ -46,7 +48,9 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
+        "import_kind": "module",
         "source": "QtTest",
+        "source_kind": "uri",
         "version": "1.0"
       },
       "annotations": [],
@@ -358,10 +362,12 @@
       "end_byte": 18,
       "confidence": "1.000",
       "metadata": {
+        "import_kind": "module",
         "import_module": "QtQuick",
         "pattern_version": 1,
         "query_family": "imports",
         "source": "QtQuick",
+        "source_kind": "uri",
         "version": "2.0"
       }
     },
@@ -380,10 +386,12 @@
       "end_byte": 36,
       "confidence": "1.000",
       "metadata": {
+        "import_kind": "module",
         "import_module": "QtTest",
         "pattern_version": 1,
         "query_family": "imports",
         "source": "QtTest",
+        "source_kind": "uri",
         "version": "1.0"
       }
     },

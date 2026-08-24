@@ -166,6 +166,9 @@ fn extract_instantiation_relationships(
     relationships: &mut Vec<Relationship>,
     depth: u32,
 ) {
+    if super::is_typeinfo_path(&extractor.base.file_path) {
+        return;
+    }
     if !should_visit_tree_depth(depth) {
         return;
     }
@@ -256,7 +259,13 @@ fn qml_import_context(
     let prefix = receiver.unwrap_or(component_type);
     symbols
         .iter()
-        .filter(|symbol| symbol.kind == SymbolKind::Import)
+        .filter(|symbol| {
+            let import_kind = symbol
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata_string(metadata, "import_kind"));
+            symbol.kind == SymbolKind::Import && import_kind.as_deref() != Some("javascript")
+        })
         .find_map(|import| {
             let metadata = import.metadata.as_ref()?;
             let source = metadata_string(metadata, "source")

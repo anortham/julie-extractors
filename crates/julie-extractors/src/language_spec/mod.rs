@@ -299,8 +299,8 @@ pub fn detect_language_from_extension(extension: &str) -> Option<&'static str> {
         .map(|spec| spec.name)
 }
 
-pub fn detect_language_for_source(file_path: &str, content: &str) -> Option<&'static str> {
-    if Path::new(file_path)
+pub fn detect_language_for_path(file_path: &Path, content: &str) -> Option<&'static str> {
+    if file_path
         .file_name()
         .and_then(|name| name.to_str())
         .is_some_and(|name| name.eq_ignore_ascii_case("qmldir"))
@@ -308,7 +308,7 @@ pub fn detect_language_for_source(file_path: &str, content: &str) -> Option<&'st
         return Some("qmldir");
     }
 
-    let extension = Path::new(file_path)
+    let extension = file_path
         .extension()
         .and_then(|ext| ext.to_str())
         .unwrap_or("");
@@ -318,6 +318,10 @@ pub fn detect_language_for_source(file_path: &str, content: &str) -> Option<&'st
     }
 
     detect_language_from_extension(extension)
+}
+
+pub fn detect_language_for_source(file_path: &str, content: &str) -> Option<&'static str> {
+    detect_language_for_path(Path::new(file_path), content)
 }
 
 fn header_contains_cpp_syntax(content: &str) -> bool {

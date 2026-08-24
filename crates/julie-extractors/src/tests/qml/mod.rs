@@ -37,6 +37,28 @@ pub fn extract_symbols_and_relationships(code: &str) -> (Vec<Symbol>, Vec<Relati
     (symbols, relationships)
 }
 
+pub fn extract_symbols_and_relationships_with_path(
+    code: &str,
+    file_path: &str,
+) -> (
+    Vec<Symbol>,
+    Vec<Relationship>,
+    Vec<crate::base::StructuredPendingRelationship>,
+) {
+    let tree = init_parser(code, "qml");
+    let workspace_root = PathBuf::from("/tmp/test");
+    let mut extractor = QmlExtractor::new(
+        "qml".to_string(),
+        file_path.to_string(),
+        code.to_string(),
+        &workspace_root,
+    );
+    let symbols = extractor.extract_symbols(&tree);
+    let relationships = extractor.extract_relationships(&tree, &symbols);
+    let pending = extractor.get_structured_pending_relationships();
+    (symbols, relationships, pending)
+}
+
 /// Helper function to extract symbols from QML code with a custom file path
 /// Used for test detection tests where the file path matters
 pub fn extract_symbols_with_path(code: &str, file_path: &str) -> Vec<Symbol> {

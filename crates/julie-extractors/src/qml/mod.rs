@@ -8,6 +8,9 @@ mod relationships;
 mod semantics;
 mod typeinfo;
 
+pub(crate) use imports::{import_kind, source_kind as import_source_kind};
+pub(crate) use typeinfo::is_typeinfo_path;
+
 use crate::base::{
     BaseExtractor, Identifier, PendingRelationship, Relationship, StructuredPendingRelationship,
     Symbol,
@@ -39,7 +42,7 @@ impl QmlExtractor {
         let root_node = tree.root_node();
         self.symbols.clear();
 
-        if typeinfo::is_typeinfo_path(&self.base.file_path) {
+        if is_typeinfo_path(&self.base.file_path) {
             typeinfo::extract(self, root_node);
         } else {
             self.traverse_node(root_node, None, 0);

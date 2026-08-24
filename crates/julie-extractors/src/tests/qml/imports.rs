@@ -39,6 +39,14 @@ Item {}
         metadata_value(&symbols[0], "version").and_then(Value::as_str),
         Some("2.15")
     );
+    assert_eq!(
+        metadata_value(&symbols[0], "source_kind").and_then(Value::as_str),
+        Some("uri")
+    );
+    assert_eq!(
+        metadata_value(&symbols[0], "import_kind").and_then(Value::as_str),
+        Some("module")
+    );
     assert!(metadata_value(&symbols[0], "alias").is_none());
     assert!(metadata_value(&symbols[0], "local_name").is_none());
     assert!(metadata_value(&symbols[0], "imported_name").is_none());
@@ -61,11 +69,27 @@ Item {}
         metadata_value(&symbols[1], "is_namespace").and_then(Value::as_bool),
         Some(true)
     );
+    assert_eq!(
+        metadata_value(&symbols[1], "source_kind").and_then(Value::as_str),
+        Some("uri")
+    );
+    assert_eq!(
+        metadata_value(&symbols[1], "import_kind").and_then(Value::as_str),
+        Some("module")
+    );
 
     assert_eq!(symbols[2].name, "components");
     assert_eq!(
         metadata_value(&symbols[2], "source").and_then(Value::as_str),
         Some("components")
+    );
+    assert_eq!(
+        metadata_value(&symbols[2], "source_kind").and_then(Value::as_str),
+        Some("quoted")
+    );
+    assert_eq!(
+        metadata_value(&symbols[2], "import_kind").and_then(Value::as_str),
+        Some("directory")
     );
     assert!(metadata_value(&symbols[2], "alias").is_none());
     assert!(metadata_value(&symbols[2], "local_name").is_none());
@@ -88,6 +112,66 @@ Item {}
     assert_eq!(
         metadata_value(&symbols[3], "is_namespace").and_then(Value::as_bool),
         Some(true)
+    );
+    assert_eq!(
+        metadata_value(&symbols[3], "source_kind").and_then(Value::as_str),
+        Some("quoted")
+    );
+    assert_eq!(
+        metadata_value(&symbols[3], "import_kind").and_then(Value::as_str),
+        Some("javascript")
+    );
+}
+
+#[test]
+fn qml_import_source_kind_distinguishes_unquoted_and_quoted_same_source() {
+    let symbols = imports(
+        r#"
+import Widgets
+import "Widgets"
+Item {}
+"#,
+    );
+
+    assert_eq!(symbols.len(), 2);
+    assert_eq!(
+        metadata_value(&symbols[0], "source").and_then(Value::as_str),
+        Some("Widgets")
+    );
+    assert_eq!(
+        metadata_value(&symbols[0], "source_kind").and_then(Value::as_str),
+        Some("uri")
+    );
+    assert_eq!(
+        metadata_value(&symbols[1], "source").and_then(Value::as_str),
+        Some("Widgets")
+    );
+    assert_eq!(
+        metadata_value(&symbols[1], "source_kind").and_then(Value::as_str),
+        Some("quoted")
+    );
+    assert_eq!(
+        metadata_value(&symbols[1], "import_kind").and_then(Value::as_str),
+        Some("directory")
+    );
+}
+
+#[test]
+fn qml_import_kind_treats_javascript_extension_case_insensitively() {
+    let symbols = imports(
+        r#"
+import "./js/helpers.JS" as Helpers
+Item {}
+"#,
+    );
+
+    assert_eq!(
+        metadata_value(&symbols[0], "source_kind").and_then(Value::as_str),
+        Some("quoted")
+    );
+    assert_eq!(
+        metadata_value(&symbols[0], "import_kind").and_then(Value::as_str),
+        Some("javascript")
     );
 }
 

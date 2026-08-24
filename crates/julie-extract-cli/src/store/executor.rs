@@ -7,9 +7,7 @@ use julie_extract_artifact::store::{
     ManifestEntryStatus, ManifestPublishDisposition, ManifestPublishResult, ManifestStore,
     RequestKind, StoreFileVersion, StoreLevel, StoreWriteRequest, StoreWriter, same_path_identity,
 };
-use julie_extractors::{
-    EXTRACTION_IDENTITY_EPOCH, ExtractionLevel, detect_language_from_extension,
-};
+use julie_extractors::{EXTRACTION_IDENTITY_EPOCH, ExtractionLevel, detect_language_for_path};
 use rayon::prelude::*;
 use rusqlite::{OptionalExtension, Transaction};
 use serde::{Deserialize, Serialize};
@@ -143,10 +141,7 @@ impl PlannedImportFile {
     }
 
     fn language(&self) -> String {
-        std::path::Path::new(&self.root_relative_path)
-            .extension()
-            .and_then(|value| value.to_str())
-            .and_then(detect_language_from_extension)
+        detect_language_for_path(std::path::Path::new(&self.root_relative_path), "")
             .unwrap_or("unknown")
             .to_string()
     }
@@ -607,12 +602,7 @@ impl StoreRequestExecutor {
                 "changed_during_l1_wave".to_string()
             });
         }
-        let extension = target
-            .absolute_path
-            .extension()
-            .and_then(|value| value.to_str())
-            .unwrap_or_default();
-        let language = detect_language_from_extension(extension)
+        let language = detect_language_for_path(&target.absolute_path, &snapshot.content)
             .unwrap_or("unknown")
             .to_string();
         if let Some(progress) = progress {
@@ -1899,9 +1889,9 @@ fn wait_for_full_resume_test_hook() -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        IMPORT_PAYLOAD_MAX_BYTES, IMPORT_PLAN_MAX_FILES, MAX_CHUNK_VERSIONS, StoreRequestExecutor,
-        WAL_BUDGET_BYTES, chunk_ranges, estimate_projected_wal_bytes, map_with_jobs,
-        validate_payload_bounds,
+        IMPORT_PAYLOAD_MAX_BYTES, IMPORT_PLAN_MAX_FILES, MAX_CHUNK_VERSIONS, PlannedImportFile,
+        StoreRequestExecutor, WAL_BUDGET_BYTES, chunk_ranges, estimate_projected_wal_bytes,
+        map_with_jobs, validate_payload_bounds,
     };
 
     #[test]
@@ -2035,5 +2025,16 @@ mod tests {
                 .unwrap_err(),
             "invalid_import_request_payload:invalid_json"
         );
+    }
+
+    #[test]
+    fn planned_extensionless_qmldir_uses_the_source_language_contract() {
+        let planned = PlannedImportFile {
+            root_relative_path: "qmldir".to_string(),
+            content_hash: "blake3:0000000000000000000000000000000000000000000000000000000000000000"
+                .to_string(),
+            content_bytes: 1,
+        };
+        assert_eq!(planned.language(), "qmldir");
     }
 }

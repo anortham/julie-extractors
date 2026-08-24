@@ -14,9 +14,19 @@ pub(super) fn extract(
     if source.is_empty() {
         return None;
     }
+    let source_kind = super::import_source_kind(&source_node)?;
+    let import_kind = super::import_kind(source_kind, &source);
 
     let mut metadata = HashMap::new();
     metadata.insert("source".to_string(), Value::String(source.clone()));
+    metadata.insert(
+        "source_kind".to_string(),
+        Value::String(source_kind.to_string()),
+    );
+    metadata.insert(
+        "import_kind".to_string(),
+        Value::String(import_kind.to_string()),
+    );
 
     if let Some(version_node) = node.child_by_field_name("version") {
         let version = extractor.base.get_node_text(&version_node);
@@ -61,5 +71,24 @@ fn normalize_source(source: &str) -> String {
         source[1..source.len() - 1].to_string()
     } else {
         source.to_string()
+    }
+}
+
+pub(crate) fn source_kind(node: &Node<'_>) -> Option<&'static str> {
+    match node.kind() {
+        "identifier" | "nested_identifier" => Some("uri"),
+        "string" => Some("quoted"),
+        _ => None,
+    }
+}
+
+/// Classifies quoted `.js` paths case-insensitively; every other quoted path is a directory.
+pub(crate) fn import_kind(source_kind: &str, source: &str) -> &'static str {
+    if source_kind == "uri" {
+        "module"
+    } else if source.to_ascii_lowercase().ends_with(".js") {
+        "javascript"
+    } else {
+        "directory"
     }
 }

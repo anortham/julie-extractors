@@ -438,6 +438,61 @@ fn full_store_rows_equal_the_v3_extraction_only_writer_oracle() {
 }
 
 #[test]
+fn failed_extensionless_qmldir_manifest_row_preserves_language() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    fs::create_dir(&root).unwrap();
+    fs::write(
+        root.join("qmldir"),
+        [b'm', b'o', b'd', b'u', b'l', b'e', 0xff],
+    )
+    .unwrap();
+
+    run_store(&[
+        "import",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        FAMILY_FRESH,
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--level",
+        "l1",
+        "--request-id",
+        "request-qmldir-failure",
+        "--idempotency-key",
+        "idem-qmldir-failure",
+    ]);
+
+    let connection = Connection::open(store.join("gen-001/store.db")).unwrap();
+    let row = connection
+        .query_row(
+            "SELECT language, status, error_class
+             FROM manifest_entries WHERE path = 'qmldir'",
+            [],
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        row,
+        (
+            "qmldir".to_string(),
+            "failed".to_string(),
+            "extract".to_string()
+        )
+    );
+}
+
+#[test]
 fn public_claim_before_effect_crash_retries_once() {
     let fixture = tempfile::tempdir().unwrap();
     let root = fixture.path().join("root");

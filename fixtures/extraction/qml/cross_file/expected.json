@@ -54,7 +54,9 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
+        "import_kind": "module",
         "source": "QtQuick",
+        "source_kind": "uri",
         "version": "2.15"
       },
       "annotations": [],
@@ -169,7 +171,9 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
+        "import_kind": "module",
         "source": "QtQuick.tool",
+        "source_kind": "uri",
         "version": "1.2"
       },
       "annotations": [],
@@ -444,10 +448,12 @@
       "parent_key": null,
       "metadata": {
         "alias": "Helpers",
+        "import_kind": "javascript",
         "imported_name": "./js/helpers.js",
         "is_namespace": true,
         "local_name": "Helpers",
-        "source": "./js/helpers.js"
+        "source": "./js/helpers.js",
+        "source_kind": "quoted"
       },
       "annotations": [],
       "semantic_group": null,
@@ -473,7 +479,9 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
-        "source": "OtherModule"
+        "import_kind": "directory",
+        "source": "OtherModule",
+        "source_kind": "quoted"
       },
       "annotations": [],
       "semantic_group": null,
@@ -507,10 +515,12 @@
       "parent_key": null,
       "metadata": {
         "alias": "Controls",
+        "import_kind": "module",
         "imported_name": "QtQuick.Controls",
         "is_namespace": true,
         "local_name": "Controls",
         "source": "QtQuick.Controls",
+        "source_kind": "uri",
         "version": "2.15"
       },
       "annotations": [],
@@ -537,7 +547,9 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
+        "import_kind": "module",
         "source": "QtQuick",
+        "source_kind": "uri",
         "version": "2.15"
       },
       "annotations": [],
@@ -603,10 +615,12 @@
       "parent_key": null,
       "metadata": {
         "alias": "Components",
+        "import_kind": "directory",
         "imported_name": "components",
         "is_namespace": true,
         "local_name": "Components",
-        "source": "components"
+        "source": "components",
+        "source_kind": "quoted"
       },
       "annotations": [],
       "semantic_group": null,
@@ -935,54 +949,6 @@
   ],
   "pending_relationships": [
     {
-      "from_key": "fixtures/extraction/qml/cross_file/Module.qmltypes:RemoteCard:4:4",
-      "callee_name": "Enum",
-      "kind": "instantiates",
-      "file_path": "fixtures/extraction/qml/cross_file/Module.qmltypes",
-      "line_number": 24,
-      "confidence": "0.900"
-    },
-    {
-      "from_key": "fixtures/extraction/qml/cross_file/Module.qmltypes:RemoteCard:4:4",
-      "callee_name": "EnumValue",
-      "kind": "instantiates",
-      "file_path": "fixtures/extraction/qml/cross_file/Module.qmltypes",
-      "line_number": 26,
-      "confidence": "0.900"
-    },
-    {
-      "from_key": "fixtures/extraction/qml/cross_file/Module.qmltypes:RemoteCard:4:4",
-      "callee_name": "Method",
-      "kind": "instantiates",
-      "file_path": "fixtures/extraction/qml/cross_file/Module.qmltypes",
-      "line_number": 20,
-      "confidence": "0.900"
-    },
-    {
-      "from_key": "fixtures/extraction/qml/cross_file/Module.qmltypes:RemoteCard:4:4",
-      "callee_name": "Parameter",
-      "kind": "instantiates",
-      "file_path": "fixtures/extraction/qml/cross_file/Module.qmltypes",
-      "line_number": 15,
-      "confidence": "0.900"
-    },
-    {
-      "from_key": "fixtures/extraction/qml/cross_file/Module.qmltypes:RemoteCard:4:4",
-      "callee_name": "Property",
-      "kind": "instantiates",
-      "file_path": "fixtures/extraction/qml/cross_file/Module.qmltypes",
-      "line_number": 8,
-      "confidence": "0.900"
-    },
-    {
-      "from_key": "fixtures/extraction/qml/cross_file/Module.qmltypes:RemoteCard:4:4",
-      "callee_name": "Signal",
-      "kind": "instantiates",
-      "file_path": "fixtures/extraction/qml/cross_file/Module.qmltypes",
-      "line_number": 13,
-      "confidence": "0.900"
-    },
-    {
       "from_key": "fixtures/extraction/qml/cross_file/source.qml:entry:17:4",
       "callee_name": "external_helper",
       "kind": "calls",
@@ -1008,162 +974,6 @@
     }
   ],
   "structured_pending_relationships": [
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/qml/cross_file/Module.qmltypes:RemoteCard:4:4",
-        "callee_name": "Enum",
-        "kind": "instantiates",
-        "file_path": "fixtures/extraction/qml/cross_file/Module.qmltypes",
-        "line_number": 24,
-        "confidence": "0.900"
-      },
-      "target": {
-        "display_name": "Enum",
-        "terminal_name": "Enum",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/qml/cross_file/Module.qmltypes:RemoteCard:4:4",
-      "span": {
-        "start_line": 24,
-        "start_column": 8,
-        "end_line": 30,
-        "end_column": 9,
-        "start_byte": 505,
-        "end_byte": 640
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/qml/cross_file/Module.qmltypes:RemoteCard:4:4",
-        "callee_name": "EnumValue",
-        "kind": "instantiates",
-        "file_path": "fixtures/extraction/qml/cross_file/Module.qmltypes",
-        "line_number": 26,
-        "confidence": "0.900"
-      },
-      "target": {
-        "display_name": "EnumValue",
-        "terminal_name": "EnumValue",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/qml/cross_file/Module.qmltypes:RemoteCard:4:4",
-      "span": {
-        "start_line": 26,
-        "start_column": 12,
-        "end_line": 29,
-        "end_column": 13,
-        "start_byte": 550,
-        "end_byte": 630
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/qml/cross_file/Module.qmltypes:RemoteCard:4:4",
-        "callee_name": "Method",
-        "kind": "instantiates",
-        "file_path": "fixtures/extraction/qml/cross_file/Module.qmltypes",
-        "line_number": 20,
-        "confidence": "0.900"
-      },
-      "target": {
-        "display_name": "Method",
-        "terminal_name": "Method",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/qml/cross_file/Module.qmltypes:RemoteCard:4:4",
-      "span": {
-        "start_line": 20,
-        "start_column": 8,
-        "end_line": 23,
-        "end_column": 9,
-        "start_byte": 421,
-        "end_byte": 496
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/qml/cross_file/Module.qmltypes:RemoteCard:4:4",
-        "callee_name": "Parameter",
-        "kind": "instantiates",
-        "file_path": "fixtures/extraction/qml/cross_file/Module.qmltypes",
-        "line_number": 15,
-        "confidence": "0.900"
-      },
-      "target": {
-        "display_name": "Parameter",
-        "terminal_name": "Parameter",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/qml/cross_file/Module.qmltypes:RemoteCard:4:4",
-      "span": {
-        "start_line": 15,
-        "start_column": 12,
-        "end_line": 18,
-        "end_column": 13,
-        "start_byte": 315,
-        "end_byte": 402
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/qml/cross_file/Module.qmltypes:RemoteCard:4:4",
-        "callee_name": "Property",
-        "kind": "instantiates",
-        "file_path": "fixtures/extraction/qml/cross_file/Module.qmltypes",
-        "line_number": 8,
-        "confidence": "0.900"
-      },
-      "target": {
-        "display_name": "Property",
-        "terminal_name": "Property",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/qml/cross_file/Module.qmltypes:RemoteCard:4:4",
-      "span": {
-        "start_line": 8,
-        "start_column": 8,
-        "end_line": 12,
-        "end_column": 9,
-        "start_byte": 158,
-        "end_byte": 256
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/qml/cross_file/Module.qmltypes:RemoteCard:4:4",
-        "callee_name": "Signal",
-        "kind": "instantiates",
-        "file_path": "fixtures/extraction/qml/cross_file/Module.qmltypes",
-        "line_number": 13,
-        "confidence": "0.900"
-      },
-      "target": {
-        "display_name": "Signal",
-        "terminal_name": "Signal",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/qml/cross_file/Module.qmltypes:RemoteCard:4:4",
-      "span": {
-        "start_line": 13,
-        "start_column": 8,
-        "end_line": 19,
-        "end_column": 9,
-        "start_byte": 265,
-        "end_byte": 412
-      }
-    },
     {
       "pending": {
         "from_key": "fixtures/extraction/qml/cross_file/source.qml:entry:17:4",
@@ -2382,10 +2192,12 @@
       "end_byte": 19,
       "confidence": "1.000",
       "metadata": {
+        "import_kind": "module",
         "import_module": "QtQuick",
         "pattern_version": 1,
         "query_family": "imports",
         "source": "QtQuick",
+        "source_kind": "uri",
         "version": "2.15"
       }
     },
@@ -2404,10 +2216,12 @@
       "end_byte": 23,
       "confidence": "1.000",
       "metadata": {
+        "import_kind": "module",
         "import_module": "QtQuick.tool",
         "pattern_version": 1,
         "query_family": "imports",
         "source": "QtQuick.tool",
+        "source_kind": "uri",
         "version": "1.2"
       }
     },
@@ -2426,10 +2240,12 @@
       "end_byte": 19,
       "confidence": "1.000",
       "metadata": {
+        "import_kind": "module",
         "import_module": "QtQuick",
         "pattern_version": 1,
         "query_family": "imports",
         "source": "QtQuick",
+        "source_kind": "uri",
         "version": "2.15"
       }
     },
@@ -2449,6 +2265,7 @@
       "confidence": "1.000",
       "metadata": {
         "alias": "Controls",
+        "import_kind": "module",
         "import_module": "QtQuick.Controls",
         "imported_name": "QtQuick.Controls",
         "is_namespace": true,
@@ -2456,6 +2273,7 @@
         "pattern_version": 1,
         "query_family": "imports",
         "source": "QtQuick.Controls",
+        "source_kind": "uri",
         "version": "2.15"
       }
     },
@@ -2475,13 +2293,15 @@
       "confidence": "1.000",
       "metadata": {
         "alias": "Components",
+        "import_kind": "directory",
         "import_module": "components",
         "imported_name": "components",
         "is_namespace": true,
         "local_name": "Components",
         "pattern_version": 1,
         "query_family": "imports",
-        "source": "components"
+        "source": "components",
+        "source_kind": "quoted"
       }
     },
     {
@@ -2500,13 +2320,15 @@
       "confidence": "1.000",
       "metadata": {
         "alias": "Helpers",
+        "import_kind": "javascript",
         "import_module": "./js/helpers.js",
         "imported_name": "./js/helpers.js",
         "is_namespace": true,
         "local_name": "Helpers",
         "pattern_version": 1,
         "query_family": "imports",
-        "source": "./js/helpers.js"
+        "source": "./js/helpers.js",
+        "source_kind": "quoted"
       }
     },
     {
@@ -2524,10 +2346,12 @@
       "end_byte": 151,
       "confidence": "1.000",
       "metadata": {
+        "import_kind": "directory",
         "import_module": "OtherModule",
         "pattern_version": 1,
         "query_family": "imports",
-        "source": "OtherModule"
+        "source": "OtherModule",
+        "source_kind": "quoted"
       }
     },
     {

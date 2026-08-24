@@ -350,6 +350,68 @@ Item {
     }
 
     #[test]
+    fn javascript_import_alias_is_not_used_as_component_import_context() {
+        let qml_code = r#"
+import QtQuick 2.15
+import "./js/helpers.js" as Widgets
+
+Item {
+    Widgets.Card {}
+}
+"#;
+
+        let (symbols, relationships, pending) =
+            extract_symbols_and_relationships_with_path(qml_code, "test.qml");
+        assert!(
+            relationships
+                .iter()
+                .all(|relationship| relationship.kind != RelationshipKind::Instantiates)
+        );
+        let pending = pending
+            .into_iter()
+            .filter(|pending| pending.pending.kind == RelationshipKind::Instantiates)
+            .collect::<Vec<_>>();
+        assert_eq!(pending.len(), 1);
+        assert_eq!(pending[0].target.display_name, "Widgets.Card");
+        assert_eq!(pending[0].target.import_context, None);
+        let javascript_import = symbols
+            .iter()
+            .find(|symbol| symbol.name == "./js/helpers.js")
+            .expect("javascript import symbol");
+        assert_eq!(
+            javascript_import
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get("import_kind"))
+                .and_then(serde_json::Value::as_str),
+            Some("javascript")
+        );
+    }
+
+    #[test]
+    fn qmltypes_do_not_emit_runtime_instantiation_relationships() {
+        let qmltypes = r#"
+Module {
+    Component {
+        name: "Widget"
+    }
+}
+"#;
+        let (_symbols, relationships, pending) =
+            extract_symbols_and_relationships_with_path(qmltypes, "module.QMLTYPES");
+        assert!(
+            relationships
+                .iter()
+                .all(|relationship| relationship.kind != RelationshipKind::Instantiates)
+        );
+        assert!(
+            pending
+                .iter()
+                .all(|pending| pending.pending.kind != RelationshipKind::Instantiates)
+        );
+    }
+
+    #[test]
     fn test_extract_nested_function_calls() {
         let qml_code = r#"
 import QtQuick 2.15

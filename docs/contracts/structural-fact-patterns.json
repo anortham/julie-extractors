@@ -5327,6 +5327,18 @@
         "value_type": "string"
       },
       {
+        "description": "Whether the parser source is a QML URI or quoted resource path.",
+        "key": "source_kind",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The policy classification of a module, directory, or JavaScript import.",
+        "key": "import_kind",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
         "description": "The imported QML module version, when present.",
         "key": "version",
         "presence": "optional",

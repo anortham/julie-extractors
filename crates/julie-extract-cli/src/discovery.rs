@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use ignore::Match;
 use ignore::gitignore::{Gitignore, GitignoreBuilder};
-use julie_extractors::detect_language_for_source;
+use julie_extractors::detect_language_for_path;
 
 use crate::limits::{MAX_SOURCE_FILE_BYTES, slow_file_skip_message};
 use crate::paths::{FileTarget, PathPolicyError, canonicalize_ignore_file};
@@ -547,8 +547,7 @@ fn find_git_root(start: &Path) -> Option<PathBuf> {
 }
 
 fn language_for_path(path: &Path) -> Option<&'static str> {
-    let file_path = path.to_str()?;
-    detect_language_for_source(file_path, "")
+    detect_language_for_path(path, "")
 }
 
 fn is_hard_excluded(
@@ -733,6 +732,47 @@ mod tests {
         );
         assert_eq!(
             policy.select_file(&readme),
+            FileSelection::Unsupported {
+                reason: UnsupportedReason::UnsupportedExtension
+            }
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn select_file_handles_supported_files_under_invalid_utf8_parent_components() {
+        use std::ffi::OsString;
+        use std::os::unix::ffi::OsStringExt;
+
+        let fixture = DiscoveryFixture::new();
+        let parent = fixture
+            .root()
+            .join(OsString::from_vec(vec![b'm', 0xff, b'd']));
+        fs::create_dir_all(&parent).unwrap();
+        let policy = fixture.policy();
+        for (name, root_relative_path, expected) in [
+            ("Widget.QML", "src/Widget.QML", "qml"),
+            ("qmldir", "src/qmldir", "qmldir"),
+        ] {
+            let absolute_path = parent.join(name);
+            fs::write(&absolute_path, "source\n").unwrap();
+            assert_eq!(
+                policy.select_file(&FileTarget {
+                    absolute_path,
+                    root_relative_path: root_relative_path.to_string(),
+                }),
+                FileSelection::Supported {
+                    language: expected.to_string()
+                }
+            );
+        }
+        let readme = parent.join("README");
+        fs::write(&readme, "not source\n").unwrap();
+        assert_eq!(
+            policy.select_file(&FileTarget {
+                absolute_path: readme,
+                root_relative_path: "src/README".to_string(),
+            }),
             FileSelection::Unsupported {
                 reason: UnsupportedReason::UnsupportedExtension
             }

@@ -1020,6 +1020,16 @@ fn enrich_metadata(
             if let Some(source) = qml_import_source(content, node) {
                 insert_string(metadata, "import_module", &source);
                 insert_string(metadata, "source", &source);
+                if let Some(source_node) = node.child_by_field_name("source") {
+                    if let Some(source_kind) = crate::qml::import_source_kind(&source_node) {
+                        insert_string(metadata, "source_kind", source_kind);
+                        insert_string(
+                            metadata,
+                            "import_kind",
+                            crate::qml::import_kind(source_kind, &source),
+                        );
+                    }
+                }
             }
             if let Some(version) = qml_field_name(content, node, "version") {
                 insert_string(metadata, "version", &version);
@@ -1334,14 +1344,20 @@ fn matches_pattern(
         ("zig", "zig.inline_function.v1") => zig_has_keyword(content, node, "inline"),
         ("zig", "zig.exported_function.v1") => zig_has_keyword(content, node, "export"),
         ("zig", "zig.comptime_parameter.v1") => zig_has_keyword(content, node, "comptime"),
-        ("qml", "qml.import_statement.v1") => qml_import_source(content, node).is_some(),
+        ("qml", "qml.import_statement.v1") => {
+            qml_import_source(content, node).is_some()
+                && node
+                    .child_by_field_name("source")
+                    .is_some_and(|source| crate::qml::import_source_kind(&source).is_some())
+        }
         ("qml", "qml.binding.v1") => qml_is_semantic_property_binding(content, node),
         ("qml", "qml.object_instantiation.v1") => {
-            !file_path.ends_with(".qmltypes")
+            !crate::qml::is_typeinfo_path(file_path)
                 && qml_field_name(content, node, "type_name").is_some()
         }
         ("qml", "qml.typeinfo_declaration.v1") => {
-            file_path.ends_with(".qmltypes") && qml_field_name(content, node, "type_name").is_some()
+            crate::qml::is_typeinfo_path(file_path)
+                && qml_field_name(content, node, "type_name").is_some()
         }
         ("bash", "bash.shebang.v1") => node_text(content, node).trim_start().starts_with("#!"),
         ("bash", "bash.command_substitution.v1") => true,

@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use tree_sitter::Node;
 
-pub(super) fn is_typeinfo_path(file_path: &str) -> bool {
+pub(crate) fn is_typeinfo_path(file_path: &str) -> bool {
     Path::new(file_path)
         .extension()
         .and_then(|extension| extension.to_str())
