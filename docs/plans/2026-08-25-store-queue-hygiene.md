@@ -55,33 +55,33 @@
 **What to build:** Before reading or enqueuing, run the same `FilePolicy::select_file` decision `scan` uses. `Unsupported` (any reason: hard-excluded, ignored, oversized, unsupported extension) refuses the enqueue and reports terminal `unsupported` with the reason; no queue row is written; exit code follows the existing unsupported-file precedent in the CLI contract.
 
 **Acceptance criteria:**
-- [ ] `store update` on an oversized file returns `unsupported` and leaves zero queue rows.
-- [ ] `store update` on a `.min.js` returns `unsupported` and leaves zero queue rows.
-- [ ] A supported file still updates end to end.
-- [ ] TODO entry 19 closed.
+- [x] `store update` on an oversized file returns `unsupported` and leaves zero queue rows.
+- [x] `store update` on a `.min.js` returns `unsupported` and leaves zero queue rows.
+- [x] A supported file still updates end to end.
+- [x] TODO entry 19 closed.
 
 ### Task B: Overrun counter and honest caller state (TODO 21, 20)
 
 **What to build:** Count quantum overruns per request row; after 3, mark the row failed with `failure_class=coordinator_quantum` instead of requeuing. Decide `Update` renewable-vs-counter by matching the reasoning that added `Import` to `permits_renewable_quantum`, and record the choice in the TODO closure line. Separate the caller's own terminal state from backlog outcomes: the report's `state` is the caller's request state; backlog failures surface in a warning list.
 
 **Acceptance criteria:**
-- [ ] An unschedulable row reaches a terminal failed state within 3 drains.
-- [ ] A committed caller request reports its own committed state even when a backlog request fails in the same drain.
-- [ ] TODO entries 20 and 21 closed.
+- [x] An unschedulable row reaches a terminal failed state within 3 drains.
+- [x] A committed caller request reports its own committed state even when a backlog request fails in the same drain.
+- [x] TODO entries 20 and 21 closed.
 
 ### Task D: Publish discovery limits (TODO 23)
 
 **What to build:** Add a `discovery_limits` block to `languages --json`: `max_source_file_bytes`, hard-exclude suffixes, hard-exclude directory names. Follow the repo's report-contract precedent for additive fields and update the report contract doc.
 
 **Acceptance criteria:**
-- [ ] `languages --json` carries the limit and both hard-exclude sets, values sourced from the real constants.
-- [ ] Contract doc updated; TODO entry 23 closed.
+- [x] `languages --json` carries the limit and both hard-exclude sets, values sourced from the real constants.
+- [x] Contract doc updated; TODO entry 23 closed.
 
 ### Task C: Reap dead-requester rows, prune `requests` (TODO 22)
 
 **What to build:** Extend the claimed-row takeover rule to `queued`/`claimed` rows whose requester pid is dead (reuse the existing pid-liveness helper and its memoization — Windows pid probes cost ~100 ms). Add `requests`-table pruning of aged terminal rows to `store maintain`.
 
 **Acceptance criteria:**
-- [ ] A queued or claimed row with a dead requester pid is reaped or aged out.
-- [ ] `store maintain` prunes terminal `requests` rows past the retention age.
-- [ ] TODO entry 22 closed.
+- [x] A queued or claimed row with a dead requester pid is reaped or aged out.
+- [x] `store maintain` prunes terminal `requests` rows past the retention age.
+- [x] TODO entry 22 closed.
