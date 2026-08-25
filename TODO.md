@@ -732,13 +732,13 @@ is rejected.
   was already added to `permits_renewable_quantum` for the same bug class —
   either make `Update` renewable or give it the counter.
 
-## 22. Nobody reaps dead-requester queue rows; `store maintain` skips `requests` — open
+## 22. Nobody reaps dead-requester queue rows; `store maintain` skips `requests` — closed (fix/store-queue-hygiene)
 
 - **Where:** `crates/julie-extract-artifact/src/store/coordinator.rs` (lease
   takeover requeues claimed rows ~1010-1066; `requester_deadline` filters only
   `acknowledge` ~2035-2038) and `store/maintenance.rs` (prunes store-log rows
   and scratch, never `requests`).
-- **Status:** `open`.
+- **Status:** `closed`. Drains and maintenance reap queued rows with dead requesters (claimed rows only when the claim owner is dead too, token `coordinator_requester_dead`); `store maintain` archives terminal rows up to the log high-water mark and prunes aged failed rows, reported as `pruned_request_rows`.
 - **Evidence:** tree-sitter-razor's `coord.db` held a `claimed` update row
   whose `claim_owner` was a dead CLI pid; nothing surfaced or reaped it. A
   Miller family store held 2,163 committed update rows and 339 resolves, none

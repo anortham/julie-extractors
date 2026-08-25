@@ -94,6 +94,7 @@ pub struct StoreMaintenanceCounts {
     pub removed_pins: usize,
     pub removed_scratch_files: usize,
     pub archived_requests: usize,
+    pub pruned_request_rows: usize,
     pub pruned_log_rows: usize,
     pub copied_file_versions: usize,
     pub copied_rows: usize,
@@ -297,6 +298,7 @@ impl StoreMaintenanceReport {
         self.counts.removed_pins = applied.removed_pins;
         self.counts.removed_scratch_files = applied.removed_scratch_files;
         self.counts.archived_requests = applied.archived_requests;
+        self.counts.pruned_request_rows = applied.pruned_request_rows;
         self.counts.pruned_log_rows = applied.pruned_log_rows;
         self.retention.physical_current_bytes = applied.physical_bytes_before;
         self.retention.physical_bytes_before_gc = applied.physical_bytes_before;

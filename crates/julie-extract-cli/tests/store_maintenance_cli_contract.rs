@@ -912,6 +912,7 @@ fn maintenance_report_json_and_human_snapshots_are_stable() {
                 "removed_pins": 0,
                 "removed_scratch_files": 0,
                 "archived_requests": 0,
+                "pruned_request_rows": 0,
                 "pruned_log_rows": 0,
                 "copied_file_versions": 0,
                 "copied_rows": 0,
