@@ -14,6 +14,10 @@ use std::path::PathBuf;
 use tree_sitter::Parser;
 
 fn symbols(code: &str) -> Vec<Symbol> {
+    symbols_at("ExampleTest.php", code)
+}
+
+fn symbols_at(file_path: &str, code: &str) -> Vec<Symbol> {
     let mut parser = Parser::new();
     parser
         .set_language(&tree_sitter_php::LANGUAGE_PHP.into())
@@ -21,7 +25,7 @@ fn symbols(code: &str) -> Vec<Symbol> {
     let tree = parser.parse(code, None).expect("parse PHP");
     let mut ext = PhpExtractor::new(
         "php".to_string(),
-        "ExampleTest.php".to_string(),
+        file_path.to_string(),
         code.to_string(),
         &PathBuf::from("/test/workspace"),
     );
@@ -34,6 +38,156 @@ fn meta_bool(s: &Symbol, key: &str) -> bool {
         .and_then(|m| m.get(key))
         .and_then(|v| v.as_bool())
         .unwrap_or(false)
+}
+
+fn role<'a>(symbols: &'a [Symbol], name: &str) -> Option<&'a str> {
+    symbols
+        .iter()
+        .find(|symbol| symbol.name == name)
+        .unwrap_or_else(|| panic!("expected a symbol named {name}, got {symbols:?}"))
+        .metadata
+        .as_ref()
+        .and_then(|metadata| metadata.get("test_role"))
+        .and_then(|value| value.as_str())
+}
+
+const PHPUNIT_SUITE: &str = r#"<?php
+
+use PHPUnit\Framework\Attributes\Before;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\TestCase;
+
+final class PaymentTest extends TestCase
+{
+    protected function setUp(): void
+    {
+    }
+
+    protected function tearDown(): void
+    {
+    }
+
+    #[Before]
+    public function seedLedger(): void
+    {
+    }
+
+    /**
+     * @test
+     */
+    public function itRefundsAnOrder(): void
+    {
+    }
+
+    #[Test]
+    public function chargesAnOrder(): void
+    {
+    }
+
+    #[DataProvider('provideAmounts')]
+    public function testAddsAmounts(int $amount): void
+    {
+    }
+
+    public static function provideAmounts(): array
+    {
+        return [[1], [2]];
+    }
+
+    public function buildLedger(): int
+    {
+        return 2;
+    }
+}
+"#;
+
+#[test]
+fn phpunit_members_carry_their_roles_outside_a_test_path() {
+    let syms = symbols_at("src/Billing/PaymentSuite.php", PHPUNIT_SUITE);
+
+    assert_eq!(role(&syms, "PaymentTest"), Some("test_container"));
+    assert_eq!(role(&syms, "setUp"), Some("fixture_setup"));
+    assert_eq!(role(&syms, "tearDown"), Some("fixture_teardown"));
+    assert_eq!(role(&syms, "seedLedger"), Some("fixture_setup"));
+    assert_eq!(role(&syms, "itRefundsAnOrder"), Some("test_case"));
+    assert_eq!(role(&syms, "chargesAnOrder"), Some("test_case"));
+    assert_eq!(role(&syms, "testAddsAmounts"), Some("parameterized_test"));
+}
+
+#[test]
+fn a_data_provider_method_is_a_helper_not_a_test() {
+    let syms = symbols_at("tests/PaymentTest.php", PHPUNIT_SUITE);
+
+    assert_eq!(role(&syms, "provideAmounts"), None);
+    assert_eq!(role(&syms, "buildLedger"), None);
+}
+
+#[test]
+fn a_class_records_its_base_types() {
+    let syms = symbols_at("tests/PaymentTest.php", PHPUNIT_SUITE);
+    let suite = syms
+        .iter()
+        .find(|symbol| symbol.name == "PaymentTest")
+        .expect("expected the suite class");
+
+    assert_eq!(
+        suite
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("base_types")),
+        Some(&serde_json::json!(["TestCase"]))
+    );
+}
+
+#[test]
+fn a_test_attribute_makes_its_class_a_container() {
+    let code = r#"<?php
+
+final class ArithmeticSuite
+{
+    #[Test]
+    public function addsNumbers(): void
+    {
+    }
+}
+"#;
+    let syms = symbols_at("src/Math/ArithmeticSuite.php", code);
+
+    assert_eq!(role(&syms, "ArithmeticSuite"), Some("test_container"));
+    assert_eq!(role(&syms, "addsNumbers"), Some("test_case"));
+}
+
+#[test]
+fn production_pest_lookalike_calls_earn_no_role() {
+    let code = r#"<?php
+
+describe('report sections', function () {
+    it('renders a header', function () {
+    });
+});
+
+test('renders a footer', function () {
+});
+
+beforeEach(function () {
+});
+
+final class ConnectionProbe
+{
+    public function testConnection(): bool
+    {
+        return true;
+    }
+}
+"#;
+    let syms = symbols_at("src/Reporting/Sections.php", code);
+
+    assert!(
+        syms.iter()
+            .all(|symbol| !meta_bool(symbol, "is_test") && !meta_bool(symbol, "test_container")),
+        "a production file must publish no test role, got {syms:?}"
+    );
 }
 
 #[test]

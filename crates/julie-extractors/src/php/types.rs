@@ -96,6 +96,11 @@ pub(super) fn extract_class(
         );
     }
 
+    let base_types = collect_base_types(extractor, extends_node, implements_node);
+    if !base_types.is_empty() {
+        metadata.insert("base_types".to_string(), serde_json::json!(base_types));
+    }
+
     // Extract PHPDoc comment
     let doc_comment = extractor.get_base().find_doc_comment(&node);
 
@@ -396,6 +401,36 @@ pub(super) fn extract_anonymous_class(
             annotations,
         },
     ))
+}
+
+/// The canonical `base_types` array for a class: the extended class first, then
+/// each implemented interface, each spelled the way the source spells it.
+///
+/// A leading `\` marks an absolute namespace path and carries no type identity,
+/// so it is trimmed.
+fn collect_base_types(
+    extractor: &PhpExtractor,
+    extends_node: Option<Node>,
+    implements_node: Option<Node>,
+) -> Vec<String> {
+    [(extends_node, "extends"), (implements_node, "implements")]
+        .into_iter()
+        .filter_map(|(node, keyword)| {
+            node.map(|node| {
+                extractor
+                    .get_base()
+                    .get_node_text(&node)
+                    .replacen(keyword, "", 1)
+            })
+        })
+        .flat_map(|clause| {
+            clause
+                .split(',')
+                .map(|base_type| base_type.trim().trim_start_matches('\\').to_string())
+                .collect::<Vec<_>>()
+        })
+        .filter(|base_type| !base_type.is_empty())
+        .collect()
 }
 
 /// Find backing type after colon in enum declaration

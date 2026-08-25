@@ -477,6 +477,7 @@ fn is_test_lifecycle(
         "csharp" | "vbnet" | "razor" => {
             first_annotation_direction(annotation_keys, dotnet_test_lifecycle_direction)
         }
+        "php" => php_test_lifecycle_direction(name, annotation_keys),
         "python" => python_test_lifecycle_direction(name, annotation_keys),
         "rust" => rust_test_lifecycle_direction(annotation_keys),
         "go" => go_test_lifecycle_direction(name),
@@ -494,6 +495,7 @@ fn is_test_lifecycle(
 fn annotated_test_case_role(language: &str, annotation_keys: &[String]) -> Option<TestRole> {
     match language {
         "java" | "kotlin" => java_test_case_role(annotation_keys),
+        "php" => php_test_case_role(annotation_keys),
         "python" => python_test_case_role(annotation_keys),
         "rust" => rust_test_case_role(annotation_keys),
         _ => None,
@@ -1019,24 +1021,164 @@ fn detect_js_ts(name: &str, file_path: &str) -> bool {
     is_test_fn && in_test_file
 }
 
+/// PHPUnit hook attributes, keyed on the lower-cased rightmost namespace
+/// segment of the attribute name. The PHP extractor spells a PHPDoc `@before`
+/// tag as the same key, so a docblock hook classifies like its attribute.
+fn php_attribute_lifecycle_direction(annotation: &str) -> TestLifecycleDirection {
+    match annotation {
+        "before" | "beforeclass" => TestLifecycleDirection::Setup,
+        "after" | "afterclass" => TestLifecycleDirection::Teardown,
+        _ => TestLifecycleDirection::None,
+    }
+}
+
+/// PHPUnit's fixture method names. `setUp` and `tearDown` run around each test
+/// of a `TestCase` subclass; `setUpBeforeClass` and `tearDownAfterClass` run
+/// once around the whole class.
+fn php_name_lifecycle_direction(name: &str) -> TestLifecycleDirection {
+    match name {
+        "setUp" | "setUpBeforeClass" => TestLifecycleDirection::Setup,
+        "tearDown" | "tearDownAfterClass" => TestLifecycleDirection::Teardown,
+        _ => TestLifecycleDirection::None,
+    }
+}
+
+fn php_test_lifecycle_direction(name: &str, annotation_keys: &[String]) -> TestLifecycleDirection {
+    let attribute_direction =
+        first_annotation_direction(annotation_keys, php_attribute_lifecycle_direction);
+    if attribute_direction.is_lifecycle() {
+        return attribute_direction;
+    }
+    php_name_lifecycle_direction(name)
+}
+
+/// `#[DataProvider]` binds one method to a data set, so PHPUnit reports one
+/// result per row instead of one result per method.
+fn php_test_case_role(annotation_keys: &[String]) -> Option<TestRole> {
+    annotation_keys
+        .iter()
+        .any(|annotation| annotation == "dataprovider")
+        .then_some(TestRole::ParameterizedTest)
+}
+
+/// The role a PHPUnit member earns from its own name or attributes.
+///
+/// A `#[DataProvider]`-referenced method supplies rows and runs no assertion,
+/// so it earns nothing here: its name is not `test`-prefixed and it carries no
+/// hook attribute.
+fn php_member_test_role(name: &str, annotation_keys: &[String]) -> Option<TestRole> {
+    if let Some(role) = php_test_lifecycle_direction(name, annotation_keys).fixture_role() {
+        return Some(role);
+    }
+    name.starts_with("test")
+        .then(|| php_test_case_role(annotation_keys).unwrap_or(TestRole::TestCase))
+}
+
+/// An attribute or a `@test` docblock names a case wherever the file sits,
+/// because neither spelling occurs in ordinary PHP. The `test` name prefix is
+/// ordinary PHP — `testConnection()` on a service class — so it stays gated on
+/// a test path, and so do the fixture method names.
 fn detect_php(
     name: &str,
     file_path: &str,
     annotation_keys: &[String],
     doc_comment: Option<&str>,
 ) -> bool {
-    if annotation_keys.iter().any(|a| a == "test") {
+    if annotation_keys
+        .iter()
+        .any(|annotation| annotation == "test")
+        || first_annotation_direction(annotation_keys, php_attribute_lifecycle_direction)
+            .is_lifecycle()
+    {
         return true;
     }
-    // @test annotation in doc comment — genuine test marker regardless of path
     if let Some(doc) = doc_comment
         && doc.contains("@test")
     {
         return true;
     }
-    // Name prefix — requires test path to avoid false positives on production code
-    // (e.g. testConnection() in a service class)
-    name.starts_with("test") && is_test_path(file_path)
+    is_test_path(file_path)
+        && (name.starts_with("test") || php_name_lifecycle_direction(name).is_lifecycle())
+}
+
+/// Mark PHP test containers, classify the members they hold, then scope the
+/// call-style roles in a production file.
+///
+/// A class is a container when it extends PHPUnit's `TestCase` or when one of
+/// its members already carries a test role, which covers a `#[Test]`-holding
+/// class that extends nothing. The member pass then classifies the
+/// name-convention members of a container — PHPUnit collects `testXxx` and runs
+/// `setUp`/`tearDown` on the name alone — which the declaration path leaves
+/// alone outside a test path.
+///
+/// Pest declares its cases as top-level `test()` and `it()` calls, so a
+/// production file that calls a function of that name would otherwise publish a
+/// case. Outside a test path a role therefore survives only inside a container.
+pub(crate) fn mark_php_test_containers(symbols: &mut [Symbol], file_path: &str) {
+    let containers_with_test_members: HashSet<String> = symbols
+        .iter()
+        .filter(|symbol| is_callable(&symbol.kind))
+        .filter(|symbol| metadata_flag(symbol, "is_test"))
+        .filter_map(|symbol| symbol.parent_id.clone())
+        .collect();
+
+    let mut test_container_ids: HashSet<String> = HashSet::new();
+    for symbol in symbols
+        .iter_mut()
+        .filter(|symbol| symbol.kind == SymbolKind::Class)
+    {
+        if extends_php_test_case(symbol) || containers_with_test_members.contains(&symbol.id) {
+            mark_class_test_container(symbol);
+            test_container_ids.insert(symbol.id.clone());
+        }
+    }
+
+    apply_php_member_test_roles(symbols, &test_container_ids);
+
+    if !is_test_path(file_path) {
+        normalize_scoped_test_roles(symbols, &test_container_ids);
+    }
+}
+
+/// PHP separates namespace segments with `\`, and a `use` statement lets a
+/// class name PHPUnit's base class by its short name, so the rule compares the
+/// last segment of each declared base type.
+fn extends_php_test_case(symbol: &Symbol) -> bool {
+    symbol
+        .metadata
+        .as_ref()
+        .and_then(|metadata| metadata.get("base_types"))
+        .and_then(|value| value.as_array())
+        .is_some_and(|base_types| {
+            base_types
+                .iter()
+                .filter_map(|value| value.as_str())
+                .any(|base_type| base_type.rsplit('\\').next().unwrap_or(base_type) == "TestCase")
+        })
+}
+
+fn apply_php_member_test_roles(symbols: &mut [Symbol], test_container_ids: &HashSet<String>) {
+    for symbol in symbols
+        .iter_mut()
+        .filter(|symbol| is_callable(&symbol.kind))
+    {
+        let inside_container = symbol
+            .parent_id
+            .as_ref()
+            .is_some_and(|parent_id| test_container_ids.contains(parent_id));
+        if !inside_container || metadata_flag(symbol, "is_test") {
+            continue;
+        }
+        let annotation_keys: Vec<String> = symbol
+            .annotations
+            .iter()
+            .map(|annotation| annotation.annotation_key.clone())
+            .collect();
+        let Some(role) = php_member_test_role(&symbol.name, &annotation_keys) else {
+            continue;
+        };
+        apply_test_role(symbol.metadata.get_or_insert_with(Default::default), role);
+    }
 }
 
 fn matches_script_test_name(

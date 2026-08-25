@@ -2,7 +2,7 @@
 
 use super::{PhpExtractor, determine_visibility, extract_modifiers, find_child, find_child_text};
 use crate::base::{AnnotationMarker, Symbol, SymbolKind, SymbolOptions, normalize_annotations};
-use crate::test_detection::is_test_symbol;
+use crate::test_detection::apply_callable_test_metadata;
 use std::collections::HashMap;
 use tree_sitter::Node;
 
@@ -95,25 +95,20 @@ pub(super) fn extract_function(
     // Extract PHPDoc comment
     let doc_comment = extractor.get_base().find_doc_comment(&node);
 
-    // Test detection
-    let is_test = is_test_symbol(
-        "php",
-        &name,
-        &extractor.get_base().file_path,
-        &symbol_kind,
-        &annotation_keys,
-        doc_comment.as_deref(),
-    );
-
-    // Convert string metadata to Value::String, then add is_test as Bool separately
     let mut json_metadata: HashMap<String, serde_json::Value> = metadata
         .into_iter()
         .map(|(k, v)| (k, serde_json::Value::String(v)))
         .collect();
 
-    if is_test {
-        json_metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
-    }
+    apply_callable_test_metadata(
+        "php",
+        &name,
+        &extractor.get_base().file_path,
+        &symbol_kind,
+        &role_annotation_keys(&annotation_keys, doc_comment.as_deref()),
+        doc_comment.as_deref(),
+        &mut json_metadata,
+    );
 
     Some(extractor.get_base_mut().create_symbol(
         &node,
@@ -128,6 +123,33 @@ pub(super) fn extract_function(
             annotations,
         },
     ))
+}
+
+/// PHPUnit tags that carry a test role in a PHPDoc block. Each spells the same
+/// metadata as an attribute of the same name — `@before` and `#[Before]` both
+/// declare a setup hook — so both reach the shared detector as one key.
+const PHPDOC_ROLE_TAGS: [&str; 5] = ["test", "before", "after", "beforeClass", "afterClass"];
+
+fn role_annotation_keys(annotation_keys: &[String], doc_comment: Option<&str>) -> Vec<String> {
+    let mut keys = annotation_keys.to_vec();
+    let Some(doc) = doc_comment else {
+        return keys;
+    };
+    keys.extend(
+        PHPDOC_ROLE_TAGS
+            .iter()
+            .filter(|tag| has_phpdoc_tag(doc, tag))
+            .map(|tag| tag.to_ascii_lowercase()),
+    );
+    keys
+}
+
+fn has_phpdoc_tag(doc_comment: &str, tag: &str) -> bool {
+    doc_comment.match_indices('@').any(|(at, _)| {
+        doc_comment[at + 1..]
+            .strip_prefix(tag)
+            .is_some_and(|rest| rest.chars().next().is_none_or(|ch| !ch.is_alphanumeric()))
+    })
 }
 
 pub(super) fn extract_attribute_markers(

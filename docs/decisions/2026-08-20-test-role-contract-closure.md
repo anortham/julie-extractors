@@ -28,6 +28,7 @@ Every row below has `test_detection.open_gaps: []` in
 | Go | `go test` name prefixes and the `_test.go` compile gate, `TestMain`, testify suite embedding and hooks, gocheck hooks, and the Ginkgo v2 node vocabulary in `go:test_roles` | supported | supported | supported |
 | Java | JUnit 3 `TestCase` subclasses, JUnit 4/5 annotations, and TestNG annotations including the class-level `@Test` in `java:test_roles` | supported | supported | supported |
 | Ruby | RSpec example groups, examples, hooks, and helpers; Minitest and Test::Unit base classes; the Rails `test` macro and its `setup`/`teardown` blocks in `ruby:test_roles` | supported | supported | supported |
+| PHP | PHPUnit attributes, PHPDoc tags, fixture and `testXxx` method names, `TestCase` subclasses, and `#[DataProvider]`, plus the Pest call DSL, in `php:test_roles` | supported | supported | supported |
 
 The `not_applicable` cells are contract-level conclusions. Zig's `test`
 declarations provide no adopted lifecycle or suite syntax;
@@ -54,6 +55,7 @@ unclassified.
 - XML: Apache Ant's [JUnit task](https://ant.apache.org/manual/Tasks/junit.html) defines `<project>` targets containing `<junit>` and nested `<test>` elements; report XML and lookalike tags are outside that contract.
 - Python: [pytest test discovery](https://docs.pytest.org/en/stable/explanation/goodpractices.html#conventions-for-python-test-discovery) defines the `test*` function prefix and the `Test*` class prefix; [pytest fixtures](https://docs.pytest.org/en/stable/reference/fixture.html) define `@pytest.fixture`; [pytest xunit-style setup](https://docs.pytest.org/en/stable/how-to/xunit_setup.html) defines `setup_method`/`teardown_method` and the class, function, and module variants; [`unittest.TestLoader.testMethodPrefix`](https://docs.python.org/3/library/unittest.html#unittest.TestLoader.testMethodPrefix) defines the bare `test` method prefix, and `unittest` defines `setUp`/`tearDown`, their class and module variants, and `IsolatedAsyncioTestCase.asyncSetUp`/`asyncTearDown`.
 - JavaScript family: [Jest globals](https://jestjs.io/docs/api) and [Vitest API](https://vitest.dev/api/) define `describe`/`test`/`it`, the `only`/`skip`/`todo`/`failing`/`concurrent` run modifiers, the four `before*`/`after*` hooks, `describe.each`/`test.each`, and Vitest's `bench`; [Mocha interfaces](https://mochajs.org/interfaces/) define the BDD `describe`/`context`/`it`/`specify` set, the TDD `suite`/`test`/`setup`/`teardown`/`suiteSetup`/`suiteTeardown` set, and the `x`/`f` prefixed aliases; [Playwright test annotations](https://playwright.dev/docs/api/class-test) define `test`, `test.describe` with its `serial`/`parallel` modes, the `test.before*`/`test.after*` hooks, and `test.step`; the [Node.js test runner](https://nodejs.org/api/test.html) defines `test`/`describe`/`it`, the `before`/`after`/`beforeEach`/`afterEach` hooks, and the `TestContext` subtest methods `t.test` and `t.beforeEach`; [QUnit](https://qunitjs.com/api/QUnit/) defines `QUnit.module` and `QUnit.test` and passes lifecycle through a `hooks` callback parameter; [testdeck](https://testdeck.org/) defines the `@suite`, `@test`, and `@params` decorators.
+- PHP: [PHPUnit attributes](https://docs.phpunit.de/en/11.5/attributes.html) define `#[Test]`, `#[Before]`, `#[After]`, `#[BeforeClass]`, `#[AfterClass]`, and `#[DataProvider]`, and document the `@test`, `@before`, `@after`, and `@dataProvider` PHPDoc spellings they replace; [PHPUnit fixtures](https://docs.phpunit.de/en/11.5/fixtures.html) define `setUp`, `tearDown`, `setUpBeforeClass`, and `tearDownAfterClass` on a `PHPUnit\Framework\TestCase` subclass; [PHPUnit organizing tests](https://docs.phpunit.de/en/11.5/organizing-tests.html) defines the `*Test.php` suffix a directory suite collects; [Pest](https://pestphp.com/docs/writing-tests) defines the `test()`/`it()` cases, `describe()` groups, and `beforeEach`/`afterEach`/`beforeAll`/`afterAll` hooks.
 
 ## Python fixture-role reversal (2026-08-25)
 
@@ -323,6 +325,47 @@ registration (`gocheck.suite_registration`). All three sit under
 do: the `test_detection` vocabulary is frozen to three roles and each is
 already classified exactly once for go.
 
+## PHP named decisions (2026-08-25)
+
+PHPUnit spells the same metadata as an attribute and as a PHPDoc tag, so the
+PHP extractor reads the `@test`, `@before`, `@after`, `@beforeClass`, and
+`@afterClass` tags out of the docblock and hands each to the shared detector
+under the key its attribute produces. One vocabulary then covers both
+spellings, and a tag must match whole, so `@tested` is not `@test`.
+
+A `#[DataProvider]`-referenced method is a helper, not a case: it supplies
+argument rows and asserts nothing. No rule is needed to exclude it — a provider
+carries no hook metadata and is not `test`-prefixed. The method that names the
+provider reports `parameterized_test`, because PHPUnit reports one result per
+row.
+
+Two proofs work outside a test path, which closes the gap where a suite sits in
+a production directory. A class extending `TestCase` is a container, compared
+on the last namespace segment so the short imported name and the fully
+qualified `\PHPUnit\Framework\TestCase` both match. And the `*Test.php`
+filename is a test path, which is what PHPUnit's own suffix configuration
+collects. A container's `testXxx` and `setUp`/`tearDown` members are then
+classified by the member pass, the same shape the C# xUnit member pass uses.
+
+The name rules stay guarded in both directions. `testConnection()` and
+`setUp()` are ordinary PHP, so a name earns a role only inside a test path or
+inside a marked container. Pest's `test()` and `it()` are ordinary function
+calls, so outside a test path a Pest role survives only inside a container,
+through `normalize_scoped_test_roles`. `legacy_suite.php` carries
+`ConnectionProbe` with both names as the production control, and
+`production_roles.php` calls the whole Pest DSL at file scope and publishes
+nothing.
+
+Three named frameworks are recorded as `open_gaps` on the php row rather than
+claimed: Codeception `*Cest.php` classes with their `_before`/`_after` hooks
+and actor-argument cases (`codeception.cest_and_actor_roles`), Behat step
+attributes on a context class whose scenario lives in a `.feature` file
+(`behat.step_definition_roles`), and PHPSpec `ObjectBehavior` subclasses with
+`it_`/`its_` examples (`phpspec.example_roles`). All three sit under
+`kind_coverage.structural_facts.open_gaps` for the same reason the C# and go
+entries do: the `test_detection` vocabulary is frozen to three roles and each
+is already classified exactly once for php.
+
 ## Registered evidence and controls
 
 The reconciliation registers these new goldens in the capability matrix:
@@ -340,6 +383,15 @@ all four hook pairs; a gocheck suite; a Ginkgo tree; and four controls that
 must stay unclassified: `Testable` (lower-case character after the prefix),
 `AddsLikeATest`, a `recordingClock` struct embedding `sync.Mutex`, and an `It`
 declared inside a plain helper function.
+
+`php/test_roles` was rewritten from a single mixed file into four sources:
+`ArithmeticTest.php` (the PHPUnit class, its four fixture names, both hook
+spellings, `#[Test]`, the `testXxx` prefix, `#[DataProvider]`, and the provider
+and helper controls), `PestFeatureTest.php` (the Pest DSL and the
+`$ordinary->test(...)` member-call control), `legacy_suite.php` (a fully
+qualified `TestCase` subclass and a `#[Test]`-holding class in a production
+path, beside the `ConnectionProbe` control), and `production_roles.php` (the
+production-path Pest control).
 
 The JavaScript-family closure adds five framework goldens across the four
 dialect rows: `javascript/jest_vitest_roles`, `javascript/mocha_tdd_roles`,

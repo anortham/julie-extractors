@@ -722,6 +722,57 @@ fn php_test_prefix() {
     ));
 }
 
+#[test]
+fn php_fixture_names_are_tests_in_a_test_path() {
+    for name in [
+        "setUp",
+        "tearDown",
+        "setUpBeforeClass",
+        "tearDownAfterClass",
+    ] {
+        assert!(
+            check(
+                "php",
+                name,
+                "tests/PaymentTest.php",
+                &SymbolKind::Method,
+                &[],
+                None,
+            ),
+            "{name} must classify as PHPUnit test infrastructure"
+        );
+    }
+}
+
+#[test]
+fn php_fixture_name_in_production_path_returns_false() {
+    assert!(!check(
+        "php",
+        "setUp",
+        "src/Service/Installer.php",
+        &SymbolKind::Method,
+        &[],
+        None,
+    ));
+}
+
+#[test]
+fn php_hook_attribute_needs_no_test_path() {
+    for key in ["before", "after", "beforeclass", "afterclass"] {
+        assert!(
+            check(
+                "php",
+                "prepareFixtures",
+                "src/Support/Hooks.php",
+                &SymbolKind::Method,
+                &[s(key)],
+                None,
+            ),
+            "#[{key}] must classify as PHPUnit test infrastructure"
+        );
+    }
+}
+
 // ===========================================================================
 // Ruby
 // ===========================================================================
@@ -2422,6 +2473,78 @@ fn go_benchmark_carries_the_test_case_role() {
     let metadata = callable_test_metadata("go", "BenchmarkAdds", "payment/payment_test.go", &[]);
     assert_eq!(role(&metadata), Some("test_case"));
     assert!(!metadata.contains_key("test_lifecycle"));
+}
+
+#[test]
+fn php_set_up_carries_the_fixture_setup_role() {
+    let metadata = callable_test_metadata("php", "setUp", "tests/PaymentTest.php", &[]);
+    assert_eq!(role(&metadata), Some("fixture_setup"));
+    assert!(flag(&metadata, "test_lifecycle"));
+}
+
+#[test]
+fn php_set_up_before_class_carries_the_fixture_setup_role() {
+    let metadata = callable_test_metadata("php", "setUpBeforeClass", "tests/PaymentTest.php", &[]);
+    assert_eq!(role(&metadata), Some("fixture_setup"));
+}
+
+#[test]
+fn php_tear_down_carries_the_fixture_teardown_role() {
+    let metadata = callable_test_metadata("php", "tearDown", "tests/PaymentTest.php", &[]);
+    assert_eq!(role(&metadata), Some("fixture_teardown"));
+}
+
+#[test]
+fn php_tear_down_after_class_carries_the_fixture_teardown_role() {
+    let metadata =
+        callable_test_metadata("php", "tearDownAfterClass", "tests/PaymentTest.php", &[]);
+    assert_eq!(role(&metadata), Some("fixture_teardown"));
+}
+
+#[test]
+fn php_before_attribute_carries_the_fixture_setup_role() {
+    let metadata = callable_test_metadata(
+        "php",
+        "prepareFixtures",
+        "tests/PaymentTest.php",
+        &[s("before")],
+    );
+    assert_eq!(role(&metadata), Some("fixture_setup"));
+}
+
+#[test]
+fn php_after_class_attribute_carries_the_fixture_teardown_role() {
+    let metadata = callable_test_metadata(
+        "php",
+        "dropSchema",
+        "tests/PaymentTest.php",
+        &[s("afterclass")],
+    );
+    assert_eq!(role(&metadata), Some("fixture_teardown"));
+}
+
+#[test]
+fn php_test_attribute_carries_the_test_case_role() {
+    let metadata = callable_test_metadata(
+        "php",
+        "itAddsNumbers",
+        "tests/PaymentTest.php",
+        &[s("test")],
+    );
+    assert_eq!(role(&metadata), Some("test_case"));
+    assert!(!metadata.contains_key("test_lifecycle"));
+}
+
+#[test]
+fn php_data_provider_attribute_carries_the_parameterized_test_role() {
+    let metadata = callable_test_metadata(
+        "php",
+        "testAddsRows",
+        "tests/PaymentTest.php",
+        &[s("dataprovider")],
+    );
+    assert_eq!(role(&metadata), Some("parameterized_test"));
+    assert!(flag(&metadata, "is_test"));
 }
 
 #[test]

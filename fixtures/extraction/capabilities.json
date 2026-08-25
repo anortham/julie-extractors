@@ -2942,8 +2942,14 @@
         },
         {
           "name": "test_roles",
-          "source": "fixtures/extraction/php/test_roles/test_source.php",
-          "expected": "fixtures/extraction/php/test_roles/expected.json"
+          "source": "fixtures/extraction/php/test_roles/ArithmeticTest.php",
+          "expected": "fixtures/extraction/php/test_roles/expected.json",
+          "sources": [
+            "fixtures/extraction/php/test_roles/ArithmeticTest.php",
+            "fixtures/extraction/php/test_roles/PestFeatureTest.php",
+            "fixtures/extraction/php/test_roles/legacy_suite.php",
+            "fixtures/extraction/php/test_roles/production_roles.php"
+          ]
         }
       ],
       "target_capabilities": {
@@ -3028,6 +3034,24 @@
               "reason": "Guzzle and Symfony variable receivers are proven only via a typed parameter (`Client`/`ClientInterface`/`HttpClientInterface`/`HttpClient`) or a same-scope `new \\GuzzleHttp\\Client()` / `HttpClient::create()` assignment \u2014 a property (`$this->client->get(...)`) or cross-file/DI-provided receiver is syntactically identical to a non-HTTP call and stays silent by M2 (a false client edge is worse than a miss). Cross-function curl handles also stay silent.",
               "required_closure": "extend receiver proofs to promoted-property/class-property receivers if in-file type resolution becomes available; typed-param and same-scope construction forms already emit",
               "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2b (deferred clients open_gaps)"
+            },
+            {
+              "kind": "codeception.cest_and_actor_roles",
+              "reason": "Codeception collects a `*Cest.php` class where every public method that takes an actor argument is a case, and spells its hooks `_before` and `_after`. The class extends nothing and carries no attribute, so the container pass never marks it, and the underscore hook names and the actor-argument case rule reach no role.",
+              "required_closure": "adopt the Codeception Cest contract as a named PHP test framework, classify a `*Cest.php` class as a test container, `_before`/`_after` as hooks, and an actor-argument public method as a case, and register a golden fixture with a non-actor helper method as the control",
+              "planned_closure_task": "docs/plans/2026-08-25-ct-test-detection-readiness.md Task 12 follow-up: Codeception Cest roles"
+            },
+            {
+              "kind": "behat.step_definition_roles",
+              "reason": "Behat binds step definitions with `#[Given]`, `#[When]`, and `#[Then]` attributes on a context class, and the executable scenario lives in a `.feature` file, not in PHP. The extractor classifies neither the context class nor its step methods, so a Behat suite publishes no test role from its PHP side.",
+              "required_closure": "adopt the Behat context contract as a named PHP test framework, classify a context class as a test container and the step attributes as their own role, and register a golden fixture with a non-context class as the control",
+              "planned_closure_task": "docs/plans/2026-08-25-ct-test-detection-readiness.md Task 12 follow-up: Behat step definition roles"
+            },
+            {
+              "kind": "phpspec.example_roles",
+              "reason": "PHPSpec collects a `*Spec.php` class that extends `ObjectBehavior` and runs every method whose name starts with `it_` or `its_` as an example. `ObjectBehavior` is not `TestCase`, and the underscore name convention is not the `test` prefix, so neither the container rule nor the member rule fires.",
+              "required_closure": "adopt the PHPSpec contract, classify an `ObjectBehavior` subclass as a test container and its `it_`/`its_` methods as cases, and register a golden fixture with an ordinary helper method as the control",
+              "planned_closure_task": "docs/plans/2026-08-25-ct-test-detection-readiness.md Task 12 follow-up: PHPSpec example roles"
             }
           ]
         },
@@ -3050,7 +3074,8 @@
         },
         "doc_comments": {
           "supported": [
-            "function"
+            "function",
+            "method"
           ],
           "not_applicable": [],
           "open_gaps": []
