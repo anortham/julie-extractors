@@ -1,6 +1,297 @@
 {
   "symbols": [
     {
+      "key": "fixtures/extraction/rust/test_roles/source.rs:compound_cfg_support:54:0",
+      "name": "compound_cfg_support",
+      "kind": "namespace",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "start_line": 54,
+      "start_column": 0,
+      "end_line": 57,
+      "end_column": 1,
+      "start_byte": 968,
+      "end_byte": 1059,
+      "body_span": {
+        "start_line": 54,
+        "start_column": 25,
+        "end_line": 57,
+        "end_column": 1,
+        "start_byte": 993,
+        "end_byte": 1059
+      },
+      "body_hash": "7935ccc194b57ea1b1781283334d3dc2",
+      "signature": "mod compound_cfg_support",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {
+        "test_container": true,
+        "test_role": "test_container"
+      },
+      "annotations": [
+        {
+          "annotation": "cfg",
+          "annotation_key": "cfg",
+          "raw_text": "cfg(all(test, feature = \"slow\"))"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/test_roles/source.rs:extracts_async_test_case:7:0",
+      "name": "extracts_async_test_case",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "start_line": 7,
+      "start_column": 0,
+      "end_line": 7,
+      "end_column": 38,
+      "start_byte": 78,
+      "end_byte": 116,
+      "body_span": {
+        "start_line": 7,
+        "start_column": 36,
+        "end_line": 7,
+        "end_column": 38,
+        "start_byte": 114,
+        "end_byte": 116
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "async fn extracts_async_test_case()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {
+        "is_test": true,
+        "test_role": "test_case"
+      },
+      "annotations": [
+        {
+          "annotation": "tokio::test",
+          "annotation_key": "tokio::test",
+          "raw_text": "tokio::test"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/test_roles/source.rs:extracts_fixture_setup:35:0",
+      "name": "extracts_fixture_setup",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "start_line": 35,
+      "start_column": 0,
+      "end_line": 37,
+      "end_column": 1,
+      "start_byte": 629,
+      "end_byte": 673,
+      "body_span": {
+        "start_line": 35,
+        "start_column": 35,
+        "end_line": 37,
+        "end_column": 1,
+        "start_byte": 664,
+        "end_byte": 673
+      },
+      "body_hash": "e1440fb96cef327428687144d27c2087",
+      "signature": "fn extracts_fixture_setup() -> u32",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {
+        "is_test": true,
+        "test_lifecycle": true,
+        "test_role": "fixture_setup"
+      },
+      "annotations": [
+        {
+          "annotation": "fixture",
+          "annotation_key": "fixture",
+          "raw_text": "fixture"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/test_roles/source.rs:extracts_plain_rstest_case:13:0",
+      "name": "extracts_plain_rstest_case",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "start_line": 13,
+      "start_column": 0,
+      "end_line": 13,
+      "end_column": 34,
+      "start_byte": 193,
+      "end_byte": 227,
+      "body_span": {
+        "start_line": 13,
+        "start_column": 32,
+        "end_line": 13,
+        "end_column": 34,
+        "start_byte": 225,
+        "end_byte": 227
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "fn extracts_plain_rstest_case()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {
+        "is_test": true,
+        "test_role": "test_case"
+      },
+      "annotations": [
+        {
+          "annotation": "rstest",
+          "annotation_key": "rstest",
+          "raw_text": "rstest"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/test_roles/source.rs:extracts_qualified_suffix_test_case:10:0",
+      "name": "extracts_qualified_suffix_test_case",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "start_line": 10,
+      "start_column": 0,
+      "end_line": 10,
+      "end_column": 49,
+      "start_byte": 132,
+      "end_byte": 181,
+      "body_span": {
+        "start_line": 10,
+        "start_column": 47,
+        "end_line": 10,
+        "end_column": 49,
+        "start_byte": 179,
+        "end_byte": 181
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "async fn extracts_qualified_suffix_test_case()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {
+        "is_test": true,
+        "test_role": "test_case"
+      },
+      "annotations": [
+        {
+          "annotation": "sqlx::test",
+          "annotation_key": "sqlx::test",
+          "raw_text": "sqlx::test"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/test_roles/source.rs:extracts_rstest_named_case:24:0",
+      "name": "extracts_rstest_named_case",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "start_line": 24,
+      "start_column": 0,
+      "end_line": 26,
+      "end_column": 1,
+      "start_byte": 384,
+      "end_byte": 482,
+      "body_span": {
+        "start_line": 24,
+        "start_column": 69,
+        "end_line": 26,
+        "end_column": 1,
+        "start_byte": 453,
+        "end_byte": 482
+      },
+      "body_hash": "68c8eea9dfd69e82de2e91263e859b19",
+      "signature": "fn extracts_rstest_named_case(left: u32, right: u32)",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {
+        "is_test": true,
+        "test_role": "parameterized_test"
+      },
+      "annotations": [
+        {
+          "annotation": "rstest",
+          "annotation_key": "rstest",
+          "raw_text": "rstest"
+        },
+        {
+          "annotation": "case::six_times_seven",
+          "annotation_key": "case::six_times_seven",
+          "raw_text": "case::six_times_seven(6, 7)"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/test_roles/source.rs:extracts_rstest_parameterized_case:18:0",
+      "name": "extracts_rstest_parameterized_case",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "start_line": 18,
+      "start_column": 0,
+      "end_line": 20,
+      "end_column": 1,
+      "start_byte": 261,
+      "end_byte": 341,
+      "body_span": {
+        "start_line": 18,
+        "start_column": 58,
+        "end_line": 20,
+        "end_column": 1,
+        "start_byte": 319,
+        "end_byte": 341
+      },
+      "body_hash": "9f390a88d6190df083a153b52fc727ab",
+      "signature": "fn extracts_rstest_parameterized_case(input: u32)",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {
+        "is_test": true,
+        "test_role": "parameterized_test"
+      },
+      "annotations": [
+        {
+          "annotation": "rstest",
+          "annotation_key": "rstest",
+          "raw_text": "rstest"
+        },
+        {
+          "annotation": "case",
+          "annotation_key": "case",
+          "raw_text": "case(1)"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/rust/test_roles/source.rs:extracts_test_case:2:0",
       "name": "extracts_test_case",
       "kind": "function",
@@ -26,7 +317,8 @@
       "visibility": "Private",
       "parent_key": null,
       "metadata": {
-        "is_test": true
+        "is_test": true,
+        "test_role": "test_case"
       },
       "annotations": [
         {
@@ -40,24 +332,64 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/rust/test_roles/source.rs:feature_support:20:0",
+      "key": "fixtures/extraction/rust/test_roles/source.rs:extracts_test_case_macro_parameterized:30:0",
+      "name": "extracts_test_case_macro_parameterized",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "start_line": 30,
+      "start_column": 0,
+      "end_line": 32,
+      "end_column": 1,
+      "start_byte": 522,
+      "end_byte": 616,
+      "body_span": {
+        "start_line": 30,
+        "start_column": 65,
+        "end_line": 32,
+        "end_column": 1,
+        "start_byte": 587,
+        "end_byte": 616
+      },
+      "body_hash": "e87f9377074e81aec75111139d044706",
+      "signature": "fn extracts_test_case_macro_parameterized(left: u32, right: u32)",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {
+        "is_test": true,
+        "test_role": "parameterized_test"
+      },
+      "annotations": [
+        {
+          "annotation": "test_case",
+          "annotation_key": "test_case",
+          "raw_text": "test_case(1, 2)"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/test_roles/source.rs:feature_support:65:0",
       "name": "feature_support",
       "kind": "namespace",
       "language": "rust",
       "file_path": "fixtures/extraction/rust/test_roles/source.rs",
-      "start_line": 20,
+      "start_line": 65,
       "start_column": 0,
-      "end_line": 20,
+      "end_line": 65,
       "end_column": 22,
-      "start_byte": 277,
-      "end_byte": 299,
+      "start_byte": 1151,
+      "end_byte": 1173,
       "body_span": {
-        "start_line": 20,
+        "start_line": 65,
         "start_column": 20,
-        "end_line": 20,
+        "end_line": 65,
         "end_column": 22,
-        "start_byte": 297,
-        "end_byte": 299
+        "start_byte": 1171,
+        "end_byte": 1173
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "mod feature_support",
@@ -65,30 +397,153 @@
       "visibility": "Private",
       "parent_key": null,
       "metadata": {},
-      "annotations": [],
+      "annotations": [
+        {
+          "annotation": "cfg",
+          "annotation_key": "cfg",
+          "raw_text": "cfg(feature = \"test\")"
+        }
+      ],
       "semantic_group": null,
       "confidence": null,
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/rust/test_roles/source.rs:ordinary_support:14:0",
+      "key": "fixtures/extraction/rust/test_roles/source.rs:negated_cfg_support:68:0",
+      "name": "negated_cfg_support",
+      "kind": "namespace",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "start_line": 68,
+      "start_column": 0,
+      "end_line": 68,
+      "end_column": 26,
+      "start_byte": 1193,
+      "end_byte": 1219,
+      "body_span": {
+        "start_line": 68,
+        "start_column": 24,
+        "end_line": 68,
+        "end_column": 26,
+        "start_byte": 1217,
+        "end_byte": 1219
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "mod negated_cfg_support",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [
+        {
+          "annotation": "cfg",
+          "annotation_key": "cfg",
+          "raw_text": "cfg(not(test))"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/test_roles/source.rs:nested_case_inside_cfg_test_module:47:4",
+      "name": "nested_case_inside_cfg_test_module",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "start_line": 47,
+      "start_column": 4,
+      "end_line": 47,
+      "end_column": 46,
+      "start_byte": 846,
+      "end_byte": 888,
+      "body_span": {
+        "start_line": 47,
+        "start_column": 44,
+        "end_line": 47,
+        "end_column": 46,
+        "start_byte": 886,
+        "end_byte": 888
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "fn nested_case_inside_cfg_test_module()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/test_roles/source.rs:test_support:45:0",
+      "metadata": {
+        "is_test": true,
+        "test_role": "test_case"
+      },
+      "annotations": [
+        {
+          "annotation": "test",
+          "annotation_key": "test",
+          "raw_text": "test"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/test_roles/source.rs:nested_case_inside_compound_cfg_module:56:4",
+      "name": "nested_case_inside_compound_cfg_module",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "start_line": 56,
+      "start_column": 4,
+      "end_line": 56,
+      "end_column": 50,
+      "start_byte": 1011,
+      "end_byte": 1057,
+      "body_span": {
+        "start_line": 56,
+        "start_column": 48,
+        "end_line": 56,
+        "end_column": 50,
+        "start_byte": 1055,
+        "end_byte": 1057
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "fn nested_case_inside_compound_cfg_module()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/test_roles/source.rs:compound_cfg_support:54:0",
+      "metadata": {
+        "is_test": true,
+        "test_role": "test_case"
+      },
+      "annotations": [
+        {
+          "annotation": "test",
+          "annotation_key": "test",
+          "raw_text": "test"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/test_roles/source.rs:ordinary_support:59:0",
       "name": "ordinary_support",
       "kind": "namespace",
       "language": "rust",
       "file_path": "fixtures/extraction/rust/test_roles/source.rs",
-      "start_line": 14,
+      "start_line": 59,
       "start_column": 0,
-      "end_line": 17,
+      "end_line": 62,
       "end_column": 1,
-      "start_byte": 187,
-      "end_byte": 250,
+      "start_byte": 1061,
+      "end_byte": 1124,
       "body_span": {
-        "start_line": 14,
+        "start_line": 59,
         "start_column": 21,
-        "end_line": 17,
+        "end_line": 62,
         "end_column": 1,
-        "start_byte": 208,
-        "end_byte": 250
+        "start_byte": 1082,
+        "end_byte": 1124
       },
       "body_hash": "37bfb0188c4641add4fc1831cda646d0",
       "signature": "mod ordinary_support",
@@ -102,30 +557,67 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/rust/test_roles/source.rs:setup:10:4",
+      "key": "fixtures/extraction/rust/test_roles/source.rs:qualified_non_test_attribute_is_not_a_test:42:0",
+      "name": "qualified_non_test_attribute_is_not_a_test",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "start_line": 42,
+      "start_column": 0,
+      "end_line": 42,
+      "end_column": 56,
+      "start_byte": 740,
+      "end_byte": 796,
+      "body_span": {
+        "start_line": 42,
+        "start_column": 54,
+        "end_line": 42,
+        "end_column": 56,
+        "start_byte": 794,
+        "end_byte": 796
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "async fn qualified_non_test_attribute_is_not_a_test()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [
+        {
+          "annotation": "tokio::main",
+          "annotation_key": "tokio::main",
+          "raw_text": "tokio::main"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/test_roles/source.rs:setup:49:4",
       "name": "setup",
       "kind": "function",
       "language": "rust",
       "file_path": "fixtures/extraction/rust/test_roles/source.rs",
-      "start_line": 10,
+      "start_line": 49,
       "start_column": 4,
-      "end_line": 10,
+      "end_line": 49,
       "end_column": 17,
-      "start_byte": 149,
-      "end_byte": 162,
+      "start_byte": 894,
+      "end_byte": 907,
       "body_span": {
-        "start_line": 10,
+        "start_line": 49,
         "start_column": 15,
-        "end_line": 10,
+        "end_line": 49,
         "end_column": 17,
-        "start_byte": 160,
-        "end_byte": 162
+        "start_byte": 905,
+        "end_byte": 907
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "fn setup()",
       "doc_comment": null,
       "visibility": "Private",
-      "parent_key": "fixtures/extraction/rust/test_roles/source.rs:test_support:9:0",
+      "parent_key": "fixtures/extraction/rust/test_roles/source.rs:test_support:45:0",
       "metadata": {},
       "annotations": [],
       "semantic_group": null,
@@ -133,30 +625,30 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/rust/test_roles/source.rs:setup:15:4",
+      "key": "fixtures/extraction/rust/test_roles/source.rs:setup:60:4",
       "name": "setup",
       "kind": "function",
       "language": "rust",
       "file_path": "fixtures/extraction/rust/test_roles/source.rs",
-      "start_line": 15,
+      "start_line": 60,
       "start_column": 4,
-      "end_line": 15,
+      "end_line": 60,
       "end_column": 17,
-      "start_byte": 214,
-      "end_byte": 227,
+      "start_byte": 1088,
+      "end_byte": 1101,
       "body_span": {
-        "start_line": 15,
+        "start_line": 60,
         "start_column": 15,
-        "end_line": 15,
+        "end_line": 60,
         "end_column": 17,
-        "start_byte": 225,
-        "end_byte": 227
+        "start_byte": 1099,
+        "end_byte": 1101
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "fn setup()",
       "doc_comment": null,
       "visibility": "Private",
-      "parent_key": "fixtures/extraction/rust/test_roles/source.rs:ordinary_support:14:0",
+      "parent_key": "fixtures/extraction/rust/test_roles/source.rs:ordinary_support:59:0",
       "metadata": {},
       "annotations": [],
       "semantic_group": null,
@@ -164,30 +656,30 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/rust/test_roles/source.rs:teardown:11:4",
+      "key": "fixtures/extraction/rust/test_roles/source.rs:teardown:50:4",
       "name": "teardown",
       "kind": "function",
       "language": "rust",
       "file_path": "fixtures/extraction/rust/test_roles/source.rs",
-      "start_line": 11,
+      "start_line": 50,
       "start_column": 4,
-      "end_line": 11,
+      "end_line": 50,
       "end_column": 20,
-      "start_byte": 167,
-      "end_byte": 183,
+      "start_byte": 912,
+      "end_byte": 928,
       "body_span": {
-        "start_line": 11,
+        "start_line": 50,
         "start_column": 18,
-        "end_line": 11,
+        "end_line": 50,
         "end_column": 20,
-        "start_byte": 181,
-        "end_byte": 183
+        "start_byte": 926,
+        "end_byte": 928
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "fn teardown()",
       "doc_comment": null,
       "visibility": "Private",
-      "parent_key": "fixtures/extraction/rust/test_roles/source.rs:test_support:9:0",
+      "parent_key": "fixtures/extraction/rust/test_roles/source.rs:test_support:45:0",
       "metadata": {},
       "annotations": [],
       "semantic_group": null,
@@ -195,30 +687,30 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/rust/test_roles/source.rs:teardown:16:4",
+      "key": "fixtures/extraction/rust/test_roles/source.rs:teardown:61:4",
       "name": "teardown",
       "kind": "function",
       "language": "rust",
       "file_path": "fixtures/extraction/rust/test_roles/source.rs",
-      "start_line": 16,
+      "start_line": 61,
       "start_column": 4,
-      "end_line": 16,
+      "end_line": 61,
       "end_column": 20,
-      "start_byte": 232,
-      "end_byte": 248,
+      "start_byte": 1106,
+      "end_byte": 1122,
       "body_span": {
-        "start_line": 16,
+        "start_line": 61,
         "start_column": 18,
-        "end_line": 16,
+        "end_line": 61,
         "end_column": 20,
-        "start_byte": 246,
-        "end_byte": 248
+        "start_byte": 1120,
+        "end_byte": 1122
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "fn teardown()",
       "doc_comment": null,
       "visibility": "Private",
-      "parent_key": "fixtures/extraction/rust/test_roles/source.rs:ordinary_support:14:0",
+      "parent_key": "fixtures/extraction/rust/test_roles/source.rs:ordinary_support:59:0",
       "metadata": {},
       "annotations": [],
       "semantic_group": null,
@@ -226,24 +718,24 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/rust/test_roles/source.rs:test_named_but_unannotated_is_not_a_test:6:0",
+      "key": "fixtures/extraction/rust/test_roles/source.rs:test_named_but_unannotated_is_not_a_test:39:0",
       "name": "test_named_but_unannotated_is_not_a_test",
       "kind": "function",
       "language": "rust",
       "file_path": "fixtures/extraction/rust/test_roles/source.rs",
-      "start_line": 6,
+      "start_line": 39,
       "start_column": 0,
-      "end_line": 6,
+      "end_line": 39,
       "end_column": 48,
-      "start_byte": 63,
-      "end_byte": 111,
+      "start_byte": 675,
+      "end_byte": 723,
       "body_span": {
-        "start_line": 6,
+        "start_line": 39,
         "start_column": 46,
-        "end_line": 6,
+        "end_line": 39,
         "end_column": 48,
-        "start_byte": 109,
-        "end_byte": 111
+        "start_byte": 721,
+        "end_byte": 723
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "fn test_named_but_unannotated_is_not_a_test()",
@@ -257,34 +749,41 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/rust/test_roles/source.rs:test_support:9:0",
+      "key": "fixtures/extraction/rust/test_roles/source.rs:test_support:45:0",
       "name": "test_support",
       "kind": "namespace",
       "language": "rust",
       "file_path": "fixtures/extraction/rust/test_roles/source.rs",
-      "start_line": 9,
+      "start_line": 45,
       "start_column": 0,
-      "end_line": 12,
+      "end_line": 51,
       "end_column": 1,
-      "start_byte": 126,
-      "end_byte": 185,
+      "start_byte": 811,
+      "end_byte": 930,
       "body_span": {
-        "start_line": 9,
+        "start_line": 45,
         "start_column": 17,
-        "end_line": 12,
+        "end_line": 51,
         "end_column": 1,
-        "start_byte": 143,
-        "end_byte": 185
+        "start_byte": 828,
+        "end_byte": 930
       },
-      "body_hash": "37bfb0188c4641add4fc1831cda646d0",
+      "body_hash": "9e6b12b30069639fb2681ee35483c3fe",
       "signature": "mod test_support",
       "doc_comment": null,
       "visibility": "Private",
       "parent_key": null,
       "metadata": {
-        "test_container": true
+        "test_container": true,
+        "test_role": "test_container"
       },
-      "annotations": [],
+      "annotations": [
+        {
+          "annotation": "cfg",
+          "annotation_key": "cfg",
+          "raw_text": "cfg(test)"
+        }
+      ],
       "semantic_group": null,
       "confidence": null,
       "content_type": null
@@ -293,8 +792,163 @@
   "relationships": [],
   "pending_relationships": [],
   "structured_pending_relationships": [],
-  "identifiers": [],
-  "types": [],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/rust/test_roles/source.rs:input:variable_ref:19:12",
+      "name": "input",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "start_line": 19,
+      "start_column": 12,
+      "end_line": 19,
+      "end_column": 17,
+      "start_byte": 333,
+      "end_byte": 338,
+      "containing_key": "fixtures/extraction/rust/test_roles/source.rs:extracts_rstest_parameterized_case:18:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/test_roles/source.rs:left:variable_ref:25:12",
+      "name": "left",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "start_line": 25,
+      "start_column": 12,
+      "end_line": 25,
+      "end_column": 16,
+      "start_byte": 467,
+      "end_byte": 471,
+      "containing_key": "fixtures/extraction/rust/test_roles/source.rs:extracts_rstest_named_case:24:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/test_roles/source.rs:left:variable_ref:31:12",
+      "name": "left",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "start_line": 31,
+      "start_column": 12,
+      "end_line": 31,
+      "end_column": 16,
+      "start_byte": 601,
+      "end_byte": 605,
+      "containing_key": "fixtures/extraction/rust/test_roles/source.rs:extracts_test_case_macro_parameterized:30:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/test_roles/source.rs:main:type_usage:41:9",
+      "name": "main",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "start_line": 41,
+      "start_column": 9,
+      "end_line": 41,
+      "end_column": 13,
+      "start_byte": 734,
+      "end_byte": 738,
+      "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/test_roles/source.rs:right:variable_ref:25:19",
+      "name": "right",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "start_line": 25,
+      "start_column": 19,
+      "end_line": 25,
+      "end_column": 24,
+      "start_byte": 474,
+      "end_byte": 479,
+      "containing_key": "fixtures/extraction/rust/test_roles/source.rs:extracts_rstest_named_case:24:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/test_roles/source.rs:right:variable_ref:31:19",
+      "name": "right",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "start_line": 31,
+      "start_column": 19,
+      "end_line": 31,
+      "end_column": 24,
+      "start_byte": 608,
+      "end_byte": 613,
+      "containing_key": "fixtures/extraction/rust/test_roles/source.rs:extracts_test_case_macro_parameterized:30:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/test_roles/source.rs:six_times_seven:type_usage:23:8",
+      "name": "six_times_seven",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "start_line": 23,
+      "start_column": 8,
+      "end_line": 23,
+      "end_column": 23,
+      "start_byte": 361,
+      "end_byte": 376,
+      "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/test_roles/source.rs:test:type_usage:6:9",
+      "name": "test",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "start_line": 6,
+      "start_column": 9,
+      "end_line": 6,
+      "end_column": 13,
+      "start_byte": 72,
+      "end_byte": 76,
+      "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/test_roles/source.rs:test:type_usage:9:8",
+      "name": "test",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "start_line": 9,
+      "start_column": 8,
+      "end_line": 9,
+      "end_column": 12,
+      "start_byte": 126,
+      "end_byte": 130,
+      "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/rust/test_roles/source.rs:extracts_fixture_setup:35:0",
+      "resolved_type": "u32",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "rust",
+      "metadata": null
+    }
+  ],
   "parse_diagnostics": [],
   "structural_facts": [],
   "complexity_metrics": [
@@ -304,18 +958,150 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "rust",
       "file_path": "fixtures/extraction/rust/test_roles/source.rs",
-      "covered_lines": 21,
-      "covered_bytes": 300,
+      "covered_lines": 69,
+      "covered_bytes": 1220,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 21,
+      "end_line": 69,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 300,
+      "end_byte": 1220,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/test_roles/source.rs:extracts_async_test_case:7:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 7,
+      "start_column": 36,
+      "end_line": 7,
+      "end_column": 38,
+      "start_byte": 114,
+      "end_byte": 116,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/test_roles/source.rs:extracts_fixture_setup:35:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "covered_lines": 3,
+      "covered_bytes": 9,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 35,
+      "start_column": 35,
+      "end_line": 37,
+      "end_column": 1,
+      "start_byte": 664,
+      "end_byte": 673,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/test_roles/source.rs:extracts_plain_rstest_case:13:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 13,
+      "start_column": 32,
+      "end_line": 13,
+      "end_column": 34,
+      "start_byte": 225,
+      "end_byte": 227,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/test_roles/source.rs:extracts_qualified_suffix_test_case:10:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 10,
+      "start_column": 47,
+      "end_line": 10,
+      "end_column": 49,
+      "start_byte": 179,
+      "end_byte": 181,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/test_roles/source.rs:extracts_rstest_named_case:24:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "covered_lines": 3,
+      "covered_bytes": 29,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 2,
+      "start_line": 24,
+      "start_column": 69,
+      "end_line": 26,
+      "end_column": 1,
+      "start_byte": 453,
+      "end_byte": 482,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/test_roles/source.rs:extracts_rstest_parameterized_case:18:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "covered_lines": 3,
+      "covered_bytes": 22,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 18,
+      "start_column": 58,
+      "end_line": 20,
+      "end_column": 1,
+      "start_byte": 319,
+      "end_byte": 341,
       "metadata": {
         "metric_version": 1
       }
@@ -344,7 +1130,29 @@
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/rust/test_roles/source.rs:setup:10:4",
+      "symbol_key": "fixtures/extraction/rust/test_roles/source.rs:extracts_test_case_macro_parameterized:30:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "covered_lines": 3,
+      "covered_bytes": 29,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 2,
+      "start_line": 30,
+      "start_column": 65,
+      "end_line": 32,
+      "end_column": 1,
+      "start_byte": 587,
+      "end_byte": 616,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/test_roles/source.rs:nested_case_inside_cfg_test_module:47:4",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "rust",
       "file_path": "fixtures/extraction/rust/test_roles/source.rs",
@@ -354,19 +1162,85 @@
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 0,
-      "start_line": 10,
+      "start_line": 47,
+      "start_column": 44,
+      "end_line": 47,
+      "end_column": 46,
+      "start_byte": 886,
+      "end_byte": 888,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/test_roles/source.rs:nested_case_inside_compound_cfg_module:56:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 56,
+      "start_column": 48,
+      "end_line": 56,
+      "end_column": 50,
+      "start_byte": 1055,
+      "end_byte": 1057,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/test_roles/source.rs:qualified_non_test_attribute_is_not_a_test:42:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 42,
+      "start_column": 54,
+      "end_line": 42,
+      "end_column": 56,
+      "start_byte": 794,
+      "end_byte": 796,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/test_roles/source.rs:setup:49:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 49,
       "start_column": 15,
-      "end_line": 10,
+      "end_line": 49,
       "end_column": 17,
-      "start_byte": 160,
-      "end_byte": 162,
+      "start_byte": 905,
+      "end_byte": 907,
       "metadata": {
         "metric_version": 1
       }
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/rust/test_roles/source.rs:setup:15:4",
+      "symbol_key": "fixtures/extraction/rust/test_roles/source.rs:setup:60:4",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "rust",
       "file_path": "fixtures/extraction/rust/test_roles/source.rs",
@@ -376,19 +1250,19 @@
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 0,
-      "start_line": 15,
+      "start_line": 60,
       "start_column": 15,
-      "end_line": 15,
+      "end_line": 60,
       "end_column": 17,
-      "start_byte": 225,
-      "end_byte": 227,
+      "start_byte": 1099,
+      "end_byte": 1101,
       "metadata": {
         "metric_version": 1
       }
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/rust/test_roles/source.rs:teardown:11:4",
+      "symbol_key": "fixtures/extraction/rust/test_roles/source.rs:teardown:50:4",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "rust",
       "file_path": "fixtures/extraction/rust/test_roles/source.rs",
@@ -398,19 +1272,19 @@
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 0,
-      "start_line": 11,
+      "start_line": 50,
       "start_column": 18,
-      "end_line": 11,
+      "end_line": 50,
       "end_column": 20,
-      "start_byte": 181,
-      "end_byte": 183,
+      "start_byte": 926,
+      "end_byte": 928,
       "metadata": {
         "metric_version": 1
       }
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/rust/test_roles/source.rs:teardown:16:4",
+      "symbol_key": "fixtures/extraction/rust/test_roles/source.rs:teardown:61:4",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "rust",
       "file_path": "fixtures/extraction/rust/test_roles/source.rs",
@@ -420,19 +1294,19 @@
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 0,
-      "start_line": 16,
+      "start_line": 61,
       "start_column": 18,
-      "end_line": 16,
+      "end_line": 61,
       "end_column": 20,
-      "start_byte": 246,
-      "end_byte": 248,
+      "start_byte": 1120,
+      "end_byte": 1122,
       "metadata": {
         "metric_version": 1
       }
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/rust/test_roles/source.rs:test_named_but_unannotated_is_not_a_test:6:0",
+      "symbol_key": "fixtures/extraction/rust/test_roles/source.rs:test_named_but_unannotated_is_not_a_test:39:0",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "rust",
       "file_path": "fixtures/extraction/rust/test_roles/source.rs",
@@ -442,12 +1316,12 @@
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 0,
-      "start_line": 6,
+      "start_line": 39,
       "start_column": 46,
-      "end_line": 6,
+      "end_line": 39,
       "end_column": 48,
-      "start_byte": 109,
-      "end_byte": 111,
+      "start_byte": 721,
+      "end_byte": 723,
       "metadata": {
         "metric_version": 1
       }
@@ -460,12 +1334,25 @@
       "language": "rust",
       "file_path": "fixtures/extraction/rust/test_roles/source.rs",
       "containing_key": null,
-      "start_line": 19,
+      "start_line": 53,
+      "start_column": 26,
+      "end_line": 53,
+      "end_column": 32,
+      "start_byte": 958,
+      "end_byte": 964,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "containing_key": null,
+      "start_line": 64,
       "start_column": 16,
-      "end_line": 19,
+      "end_line": 64,
       "end_column": 22,
-      "start_byte": 268,
-      "end_byte": 274,
+      "start_byte": 1142,
+      "end_byte": 1148,
       "metadata": null
     }
   ],

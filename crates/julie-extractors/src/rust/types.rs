@@ -1,11 +1,12 @@
 use super::helpers::{
     extract_attribute_texts, extract_derived_traits, extract_visibility, find_doc_comment,
-    get_preceding_attributes, has_exact_cfg_test_attribute,
+    get_preceding_attributes, has_cfg_test_attribute,
 };
 // Rust type definitions: structs, enums, fields, variants, traits,
 // unions, modules, consts, statics, macros, type aliases.
-use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility, normalize_annotations};
+use crate::base::{Symbol, SymbolKind, SymbolOptions, TestRole, Visibility, normalize_annotations};
 use crate::rust::RustExtractor;
+use crate::test_detection::apply_test_role;
 use std::collections::HashMap;
 use tree_sitter::Node;
 
@@ -304,9 +305,10 @@ pub(super) fn extract_module(
     let visibility = extract_visibility(base, node);
     let signature = format!("{}mod {}", visibility, name);
     let attributes = get_preceding_attributes(base, node);
+    let annotations = normalize_annotations(&extract_attribute_texts(base, &attributes), "rust");
     let mut metadata = HashMap::new();
-    if has_exact_cfg_test_attribute(base, &attributes) {
-        metadata.insert("test_container".to_string(), serde_json::Value::Bool(true));
+    if has_cfg_test_attribute(base, &attributes) {
+        apply_test_role(&mut metadata, TestRole::TestContainer);
     }
 
     let visibility_enum = if visibility.trim().is_empty() {
@@ -325,7 +327,7 @@ pub(super) fn extract_module(
             parent_id,
             doc_comment: find_doc_comment(base, node),
             metadata: Some(metadata),
-            annotations: Vec::new(),
+            annotations,
         },
     ))
 }

@@ -129,14 +129,20 @@ pub(super) fn extract_attribute_texts(base: &BaseExtractor, attributes: &[Node])
         .collect()
 }
 
-pub(super) fn has_exact_cfg_test_attribute(base: &BaseExtractor, attributes: &[Node<'_>]) -> bool {
+/// Whether any attribute is a `cfg` whose predicate selects test builds.
+///
+/// Accepts the bare `#[cfg(test)]` and the compound `#[cfg(all(test, ..))]` and
+/// `#[cfg(any(test, ..))]` forms, at any nesting depth. A `test` inside a `not`
+/// means the item is compiled out of test builds, so a `not` subtree never
+/// contributes.
+pub(super) fn has_cfg_test_attribute(base: &BaseExtractor, attributes: &[Node<'_>]) -> bool {
     attributes
         .iter()
         .copied()
-        .any(|attribute_item| is_exact_cfg_test_attribute(base, attribute_item))
+        .any(|attribute_item| is_cfg_test_attribute(base, attribute_item))
 }
 
-fn is_exact_cfg_test_attribute(base: &BaseExtractor, attribute_item: Node<'_>) -> bool {
+fn is_cfg_test_attribute(base: &BaseExtractor, attribute_item: Node<'_>) -> bool {
     let Some(attribute) = attribute_item.named_child(0) else {
         return false;
     };
@@ -157,10 +163,46 @@ fn is_exact_cfg_test_attribute(base: &BaseExtractor, attribute_item: Node<'_>) -
     let Some(arguments) = attribute.child_by_field_name("arguments") else {
         return false;
     };
-    let named_arguments: Vec<_> = arguments.named_children(&mut arguments.walk()).collect();
-    named_arguments.len() == 1
-        && named_arguments[0].kind() == "identifier"
-        && base.get_node_text(&named_arguments[0]) == "test"
+    cfg_predicate_selects_test(base, arguments)
+}
+
+/// Iterative on purpose: a nested `cfg` predicate is CST recursion, and the
+/// crate-wide traversal budget exists because one Rust frame per CST node
+/// overflows the extraction worker's stack on a generated file.
+fn cfg_predicate_selects_test<'tree>(base: &BaseExtractor, predicate: Node<'tree>) -> bool {
+    let mut pending = vec![predicate];
+
+    while let Some(node) = pending.pop() {
+        let terms: Vec<_> = node.named_children(&mut node.walk()).collect();
+        let mut index = 0;
+        while index < terms.len() {
+            let term = terms[index];
+            if term.kind() != "identifier" {
+                index += 1;
+                continue;
+            }
+
+            let name = base.get_node_text(&term);
+            if name == "test" {
+                return true;
+            }
+
+            let nested = terms
+                .get(index + 1)
+                .copied()
+                .filter(|child| child.kind() == "token_tree");
+            match (name.as_str(), nested) {
+                ("all" | "any", Some(inner)) => {
+                    pending.push(inner);
+                    index += 2;
+                }
+                ("not", Some(_)) => index += 2,
+                _ => index += 1,
+            }
+        }
+    }
+
+    false
 }
 
 /// Extract trait names from #[derive(...)] attributes

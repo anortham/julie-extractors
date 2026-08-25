@@ -56,6 +56,11 @@
           "expected": "fixtures/extraction/rust/http_client_deferred/expected.json"
         },
         {
+          "name": "trait_impl",
+          "source": "fixtures/extraction/rust/trait_impl/source.rs",
+          "expected": "fixtures/extraction/rust/trait_impl/expected.json"
+        },
+        {
           "name": "test_roles",
           "source": "fixtures/extraction/rust/test_roles/source.rs",
           "expected": "fixtures/extraction/rust/test_roles/expected.json"
@@ -72,9 +77,11 @@
       "kind_coverage": {
         "symbols": {
           "supported": [
+            "constant",
             "field",
             "function",
             "import",
+            "interface",
             "method",
             "namespace",
             "struct"
@@ -85,6 +92,7 @@
         "relationships": {
           "supported": [
             "calls",
+            "implements",
             "imports"
           ],
           "not_applicable": [],
@@ -103,11 +111,13 @@
         "body_spans": {
           "supported": [
             "function",
+            "interface",
             "method",
             "namespace",
             "struct"
           ],
           "not_applicable": [
+            "constant",
             "field",
             "import"
           ],
@@ -160,6 +170,18 @@
               "reason": "The reqwest builder form (`client.get(\"url\")`) requires a same-file-proven reqwest receiver (inline `reqwest::Client::new()` chain, a single-assigned local, or a `reqwest::Client` typed param) \u2014 a struct-field or cross-file client (`self.client.get(...)`) is syntactically identical to a non-HTTP `.get(...)` and stays silent by M2 (a false client edge is worse than a miss).",
               "required_closure": "extend reqwest builder detection to struct-field/typed receivers if in-file type resolution becomes available; scoped `reqwest::get(\"url\")` and proven-receiver forms already emit",
               "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2b (deferred clients open_gaps)"
+            },
+            {
+              "kind": "rust.benchmark_harness_roles",
+              "reason": "Rust benchmarks run under three harnesses the extractor does not classify. Nightly `#[bench]` is an attribute macro, so widening the test-attribute list would report it as `test_case`, which is wrong: a benchmark measures time and reports no pass or fail. Criterion and divan declare their cases through `criterion_group!`/`criterion_main!` and `#[divan::bench]`, so the case list lives in a macro invocation rather than in a callable symbol the role writer can reach. All three stay unclassified today.",
+              "required_closure": "add a benchmark unit to the published test-role vocabulary, which is frozen to test_case, test_container, and test_lifecycle today, then emit it for `#[bench]`, `#[divan::bench]`, and the criterion group macro arguments, fixture-backed",
+              "planned_closure_task": "docs/languages/rust.md section 'Recorded gaps' \u2014 future rust.benchmark.v1 structural fact, sequenced after the test-role vocabulary gains a benchmark unit"
+            },
+            {
+              "kind": "rust.doc_test_cases",
+              "reason": "`cargo test` runs the executable examples in `///` and `//!` doc comments as doc-tests, and Miller's Rust continuous-testing provider lists them as cases. The extractor emits nothing for them: a doc-test lives inside doc-comment text, not in a callable symbol, so it has no symbol to carry a role and no span the role writer can address.",
+              "required_closure": "parse rustdoc fenced code blocks out of the doc-comment text the extractor already captures, honour the `ignore`/`no_run`/`compile_fail`/`text` fence attributes that decide whether a fence runs, and emit a doc-test fact anchored to the documented symbol and the fence span, fixture-backed",
+              "planned_closure_task": "docs/languages/rust.md section 'Recorded gaps' \u2014 future rust.doc_test.v1 structural fact; `markdown:test_roles` already models executable rustdoc fences in Markdown files"
             }
           ]
         },
@@ -175,6 +197,7 @@
           "supported": [
             "function",
             "method",
+            "namespace",
             "struct"
           ],
           "not_applicable": [],
@@ -182,7 +205,9 @@
         },
         "doc_comments": {
           "supported": [
-            "function"
+            "function",
+            "interface",
+            "struct"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -203,15 +228,14 @@
           "not_applicable": [],
           "open_gaps": []
         },
-      "test_detection": {
-        "supported": [
-          "test_case",
-          "test_container"
-        ],
-        "not_applicable": [
-          "test_lifecycle"
-        ],
-        "open_gaps": []
+        "test_detection": {
+          "supported": [
+            "test_case",
+            "test_container",
+            "test_lifecycle"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },

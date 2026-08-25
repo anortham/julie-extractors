@@ -84,6 +84,89 @@ fn rust_no_test_attr() {
     ));
 }
 
+#[test]
+fn rust_named_test_attribute_macros_are_test_cases() {
+    for annotation in [
+        "test",
+        "tokio::test",
+        "actix_web::test",
+        "actix_rt::test",
+        "sqlx::test",
+        "async_std::test",
+        "wasm_bindgen_test",
+        "quickcheck",
+        "proptest",
+        "googletest::test",
+        "gtest",
+        "test_log::test",
+        "traced_test",
+        "rstest",
+        "rstest::rstest",
+        "test_case",
+    ] {
+        assert!(
+            check(
+                "rust",
+                "exercises_behaviour",
+                "src/lib.rs",
+                &SymbolKind::Function,
+                &[s(annotation)],
+                None,
+            ),
+            "#[{annotation}] must classify as a Rust test"
+        );
+    }
+}
+
+#[test]
+fn rust_attributes_whose_last_segment_is_not_test_stay_unclassified() {
+    for annotation in [
+        "tokio::main",
+        "actix_web::main",
+        "latest",
+        "protest",
+        "serde",
+        "cfg",
+        "inline",
+        "my_crate::attest",
+        "test_util",
+        "contest",
+        "proptest_derive::arbitrary",
+    ] {
+        assert!(
+            !check(
+                "rust",
+                "exercises_behaviour",
+                "src/lib.rs",
+                &SymbolKind::Function,
+                &[s(annotation)],
+                None,
+            ),
+            "#[{annotation}] must not classify as a Rust test"
+        );
+    }
+}
+
+#[test]
+fn rust_fixture_attribute_is_a_test_symbol() {
+    assert!(check(
+        "rust",
+        "connection",
+        "src/lib.rs",
+        &SymbolKind::Function,
+        &[s("fixture")],
+        None,
+    ));
+    assert!(check(
+        "rust",
+        "connection",
+        "src/lib.rs",
+        &SymbolKind::Function,
+        &[s("rstest::fixture")],
+        None,
+    ));
+}
+
 // ===========================================================================
 // Python
 // ===========================================================================
@@ -2620,4 +2703,80 @@ describe("calculator", () => {
     assert!(flag(&hook, "is_test"));
     assert!(flag(&hook, "test_lifecycle"));
     assert!(!hook.contains_key("test_container"));
+}
+
+// ===========================================================================
+// Rust test roles
+// ===========================================================================
+
+fn rust_role(annotation_keys: &[String]) -> Option<String> {
+    callable_test_metadata("rust", "exercises_behaviour", "src/lib.rs", annotation_keys)
+        .get("test_role")
+        .and_then(|value| value.as_str())
+        .map(str::to_string)
+}
+
+#[test]
+fn a_rust_test_attribute_carries_the_test_case_role() {
+    for annotation in ["test", "tokio::test", "sqlx::test", "rstest"] {
+        assert_eq!(
+            rust_role(&[s(annotation)]).as_deref(),
+            Some("test_case"),
+            "#[{annotation}] must carry the test_case role"
+        );
+    }
+}
+
+#[test]
+fn a_rust_test_case_attribute_carries_the_parameterized_test_role() {
+    assert_eq!(
+        rust_role(&[s("test_case")]).as_deref(),
+        Some("parameterized_test")
+    );
+}
+
+#[test]
+fn an_rstest_with_case_attributes_carries_the_parameterized_test_role() {
+    assert_eq!(
+        rust_role(&[s("rstest"), s("case")]).as_deref(),
+        Some("parameterized_test")
+    );
+}
+
+#[test]
+fn an_rstest_with_named_case_attributes_carries_the_parameterized_test_role() {
+    assert_eq!(
+        rust_role(&[s("rstest"), s("case::six_times_seven")]).as_deref(),
+        Some("parameterized_test")
+    );
+}
+
+#[test]
+fn an_attribute_ending_in_case_does_not_make_an_rstest_parameterized() {
+    assert_eq!(
+        rust_role(&[s("rstest"), s("lower_case")]).as_deref(),
+        Some("test_case")
+    );
+}
+
+#[test]
+fn a_case_attribute_without_rstest_stays_unclassified() {
+    assert_eq!(rust_role(&[s("case")]), None);
+    assert_eq!(rust_role(&[s("case::named")]), None);
+}
+
+#[test]
+fn an_rstest_fixture_carries_the_fixture_setup_role() {
+    let metadata = callable_test_metadata("rust", "connection", "src/lib.rs", &[s("fixture")]);
+    assert_eq!(role(&metadata), Some("fixture_setup"));
+    assert!(flag(&metadata, "is_test"));
+    assert!(flag(&metadata, "test_lifecycle"));
+}
+
+#[test]
+fn a_rust_fixture_that_is_also_a_case_stays_a_fixture() {
+    assert_eq!(
+        rust_role(&[s("rstest"), s("fixture")]).as_deref(),
+        Some("fixture_setup")
+    );
 }

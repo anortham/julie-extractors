@@ -11,7 +11,7 @@ Every row below has `test_detection.open_gaps: []` in
 
 | Language | Named contract and evidence | `test_case` | `test_container` | `test_lifecycle` |
 | --- | --- | --- | --- | --- |
-| Rust | `#[cfg(test)] mod` container plus Rust test attributes in `rust:test_roles` | supported | supported | not applicable |
+| Rust | Named test attribute macros, the qualified `::test` suffix rule, rstest `#[fixture]`, and `#[cfg(test)]`/compound-`cfg` module containers in `rust:test_roles` | supported | supported | supported |
 | C | Criterion `TestSuite`/`Test` macros and suite/test init/fini hooks in `c:test_roles` | supported | supported | supported |
 | C++ | Catch2 `TEST_CASE`/`SECTION` and GoogleTest fixture hooks in `cpp:test_roles` | supported | supported | supported |
 | Zig | Zig `test` declarations in `zig:test_roles` | supported | not applicable | not applicable |
@@ -25,8 +25,8 @@ Every row below has `test_detection.open_gaps: []` in
 | Python | pytest collection prefixes, `@pytest.mark.parametrize`, `@pytest.fixture`, pytest xunit hooks, and unittest fixtures in `python:test_roles` | supported | supported | supported |
 | C# | NUnit, MSTest, and xUnit.net attributes plus the xUnit constructor/`IDisposable`/`IAsyncLifetime` lifecycle in `csharp:test_roles` | supported | supported | supported |
 
-The `not_applicable` cells are contract-level conclusions. Rust's `cfg(test)`
-and Zig's `test` declarations provide no adopted lifecycle or suite syntax;
+The `not_applicable` cells are contract-level conclusions. Zig's `test`
+declarations provide no adopted lifecycle or suite syntax;
 rustdoc treats executable fences as examples, not suites or hooks; JSON Schema
 Test Suite groups cases but defines no setup/teardown role; and Ant's JUnit
 task contract defines targets and tests but no lifecycle symbol. Ordinary
@@ -37,7 +37,7 @@ unclassified.
 
 ## Named contracts and primary sources
 
-- Rust: the [Rust Reference `cfg` attribute](https://doc.rust-lang.org/reference/conditional-compilation.html#the-cfg-attribute) defines the built-in `test` predicate; [rustdoc documentation tests](https://doc.rust-lang.org/rustdoc/write-documentation/documentation-tests.html) define executable Rust examples and the default language for unspecified fences.
+- Rust: the [Rust Reference `cfg` attribute](https://doc.rust-lang.org/reference/conditional-compilation.html#the-cfg-attribute) defines the built-in `test` predicate and the `all`/`any`/`not` predicate combinators; the [Rust Reference testing attributes](https://doc.rust-lang.org/reference/attributes/testing.html) define `#[test]`; [`tokio::test`](https://docs.rs/tokio/latest/tokio/attr.test.html), [`sqlx::test`](https://docs.rs/sqlx/latest/sqlx/attr.test.html), [`actix_web::test`](https://docs.rs/actix-web/latest/actix_web/attr.test.html), [`async_std::test`](https://docs.rs/async-std/latest/async_std/attr.test.html), and [`googletest::test`](https://docs.rs/googletest/latest/googletest/attr.test.html) define the qualified async and framework replacements for it; [rstest](https://docs.rs/rstest/latest/rstest/) defines `#[rstest]`, its `#[case]`/`#[values]` per-case attributes, and `#[fixture]`; [test-case](https://docs.rs/test-case/latest/test_case/) defines `#[test_case(..)]`; [rustdoc documentation tests](https://doc.rust-lang.org/rustdoc/write-documentation/documentation-tests.html) define executable Rust examples and the default language for unspecified fences.
 - C: [Criterion features and test suites](https://criterion.readthedocs.io/en/master/features.html) define the `TestSuite`/`Test` and init/fini vocabulary used by the fixture.
 - C++: [Catch2 test cases and sections](https://github.com/catchorg/Catch2/blob/devel/docs/test-cases-and-sections.md) define `TEST_CASE`/`SECTION`; [GoogleTest testing reference](https://google.github.io/googletest/reference/testing.html) defines fixture setup and teardown methods.
 - Zig: the official [Zig language reference](https://ziglang.org/documentation/master/#test) defines `test` declarations; it does not define a suite or lifecycle role for this extractor contract.
@@ -78,6 +78,53 @@ shares that vocabulary. And `@pytest.mark.parametrize` now reports
 `parameterized_test` instead of `test_case`, because one decorated definition
 runs one case per argument set. Real-world precision and recall measurements
 for all three changes are in `docs/languages/python.md`.
+
+## Rust lifecycle reversal (2026-08-25)
+
+The Rust row previously read `test_lifecycle: not applicable`. The stated
+reason was that `cfg(test)` defines no lifecycle syntax. That reason held only
+because the row named `cfg(test)` as the whole contract. The adopted contract
+is wider than that, and it does define a hook: rstest's `#[fixture]` builds a
+value a test case asks for by name.
+
+A fixture only ever runs inside a test session, so publishing no role hid a
+real dependency — Miller's Rust continuous testing provider must know that
+editing a fixture invalidates every case that requests it. The row therefore
+moves to `test_lifecycle: supported`. A fixture that returns a guard also tears
+down after the case, and the extractor cannot tell a guard-returning fixture
+from a plain one without reading the body, so the contract publishes the single
+honest direction: `fixture_setup`.
+
+Rust has no teardown attribute at all, so `fixture_teardown` is never written
+for Rust. That is a narrower claim than the `test_lifecycle` ledger cell can
+express, because the cell covers both directions with one unit.
+
+Three further Rust contract changes land with it:
+
+- Detection stays annotation-only. A Rust function earns a role from an
+  attribute macro and never from its name or its path.
+- A qualified attribute macro whose last `::` segment is exactly `test` is a
+  test attribute. This is what makes `tokio::test`, `sqlx::test`,
+  `actix_web::test`, `actix_rt::test`, `async_std::test`, `googletest::test`,
+  and `test_log::test` classify without naming each crate. The segment must
+  match whole, so `latest`, `contest`, `test_util`, and `tokio::main` stay
+  production attributes.
+- `#[cfg(all(test, ..))]` and `#[cfg(any(test, ..))]` now mark a module as
+  `test_container`, at any nesting depth. A `test` inside a `not` never
+  contributes, because such an item is compiled out of test builds. A module
+  also publishes its `cfg` attribute, which it previously dropped.
+
+`#[test_case(..)]` and an `#[rstest]` carrying `#[case]` or `#[values]`
+attributes report `parameterized_test`, because one decorated definition runs
+one case per data row. A bare `#[rstest]` stays `test_case`.
+
+Two named Rust test surfaces are excluded and recorded as `open_gaps` on the
+rust row: benchmark harnesses (`#[bench]`, criterion, divan) and rustdoc
+doc-tests. Both sit under `kind_coverage.structural_facts.open_gaps` rather
+than `test_detection`, because the `test_detection` vocabulary is frozen to
+`test_case`, `test_container`, and `test_lifecycle` and each is already
+classified exactly once for rust. Real-world precision and recall measurements
+for the Rust changes are in `docs/languages/rust.md`.
 
 - C#: [NUnit attributes](https://docs.nunit.org/articles/nunit/writing-tests/attributes.html) define `TestFixture`, `SetUpFixture`, `Test`, `TestCase`, `TestCaseSource`, `TestFixtureSource`, `SetUp`/`TearDown`, and `OneTimeSetUp`/`OneTimeTearDown`; [MSTest attributes](https://learn.microsoft.com/en-us/dotnet/core/testing/unit-testing-mstest-writing) define `TestClass`, `TestMethod`, `DataTestMethod`, `TestInitialize`/`TestCleanup`, `ClassInitialize`/`ClassCleanup`, and `AssemblyInitialize`/`AssemblyCleanup`; [xUnit.net shared context](https://xunit.net/docs/shared-context) defines the constructor, `IDisposable`, `IAsyncDisposable`, and `IAsyncLifetime` as the fixture hooks and `CollectionDefinition` as the collection declaration.
 

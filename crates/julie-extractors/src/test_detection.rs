@@ -209,10 +209,90 @@ pub fn is_test_symbol(
 // Language-specific detectors
 // ---------------------------------------------------------------------------
 
+/// Attribute macros that make a Rust function a test case on their own.
+///
+/// Matching runs on the last `::` segment of the normalized key, so
+/// `rstest::rstest` reads the same as `rstest`. The `test` entry is what makes
+/// the whole `tokio::test`, `actix_web::test`, `actix_rt::test`, `sqlx::test`,
+/// `async_std::test`, `googletest::test`, and `test_log::test` family classify
+/// without naming each crate: any qualified attribute whose last segment is
+/// exactly `test` is a test attribute. The segment must match whole, so
+/// `latest`, `contest`, and `test_util` stay production attributes.
+const RUST_TEST_CASE_ATTRIBUTES: [&str; 8] = [
+    "test",
+    "test_case",
+    "wasm_bindgen_test",
+    "quickcheck",
+    "proptest",
+    "gtest",
+    "traced_test",
+    "rstest",
+];
+
+fn rust_attribute_segment(annotation_key: &str) -> &str {
+    annotation_key
+        .rsplit("::")
+        .next()
+        .unwrap_or(annotation_key)
+        .trim()
+}
+
+/// An rstest per-case attribute. Each one adds one more run of the same
+/// function. Matched on the leading segment, because rstest names a case by
+/// suffixing the attribute: `#[case::six_times_seven(6, 7)]` is one case.
+fn is_rstest_case_attribute(annotation_key: &str) -> bool {
+    annotation_key
+        .split("::")
+        .next()
+        .unwrap_or(annotation_key)
+        .trim()
+        == "case"
+}
+
+fn has_rust_attribute(annotation_keys: &[String], segment: &str) -> bool {
+    annotation_keys
+        .iter()
+        .any(|key| rust_attribute_segment(key) == segment)
+}
+
+fn is_rust_test_case_attribute(annotation_key: &str) -> bool {
+    RUST_TEST_CASE_ATTRIBUTES.contains(&rust_attribute_segment(annotation_key))
+}
+
+/// rstest's `#[fixture]` builds a value a test case asks for by name. It only
+/// ever runs inside a test session, so it is a lifecycle hook, not a case. A
+/// fixture that returns a guard also tears down, but the setup half always
+/// runs, so the contract publishes the single honest direction: setup.
+fn rust_test_lifecycle_direction(annotation_keys: &[String]) -> TestLifecycleDirection {
+    if has_rust_attribute(annotation_keys, "fixture") {
+        return TestLifecycleDirection::Setup;
+    }
+    TestLifecycleDirection::None
+}
+
+/// `#[test_case(..)]` and an `#[rstest]` carrying `#[case]` attributes both make
+/// the runner report one result per data row instead of one per function.
+///
+/// rstest also builds a case matrix from `#[values(..)]`, but that attribute
+/// sits on a parameter rather than on the function, so it never reaches these
+/// keys and such a function reports `test_case`.
+fn rust_test_case_role(annotation_keys: &[String]) -> Option<TestRole> {
+    let rstest_has_cases = has_rust_attribute(annotation_keys, "rstest")
+        && annotation_keys
+            .iter()
+            .any(|key| is_rstest_case_attribute(key));
+    (has_rust_attribute(annotation_keys, "test_case") || rstest_has_cases)
+        .then_some(TestRole::ParameterizedTest)
+}
+
+/// Annotation-only. A Rust function earns a role from an attribute macro and
+/// never from its name or its path: `fn test_parser` with no attribute is
+/// ordinary code, and `#[test]` in `src/lib.rs` is a real case.
 fn detect_rust(annotation_keys: &[String]) -> bool {
     annotation_keys
         .iter()
-        .any(|a| a == "test" || a == "tokio::test" || a == "rstest")
+        .any(|key| is_rust_test_case_attribute(key))
+        || rust_test_lifecycle_direction(annotation_keys).is_lifecycle()
 }
 
 /// unittest fixtures, pytest xunit hooks, and `@pytest.fixture` factories.
@@ -372,6 +452,7 @@ fn is_test_lifecycle(
             first_annotation_direction(annotation_keys, dotnet_test_lifecycle_direction)
         }
         "python" => python_test_lifecycle_direction(name, annotation_keys),
+        "rust" => rust_test_lifecycle_direction(annotation_keys),
         "bash" => bash_test_lifecycle_direction(name),
         "gdscript" => gdscript_test_lifecycle_direction(name),
         "qml" => qml_test_lifecycle_direction(name),
@@ -385,6 +466,7 @@ fn is_test_lifecycle(
 fn annotated_test_case_role(language: &str, annotation_keys: &[String]) -> Option<TestRole> {
     match language {
         "python" => python_test_case_role(annotation_keys),
+        "rust" => rust_test_case_role(annotation_keys),
         _ => None,
     }
 }

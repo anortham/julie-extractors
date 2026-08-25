@@ -9,7 +9,7 @@ use super::signatures::extract_return_type;
 /// - Impl blocks and two-phase processing
 use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility, normalize_annotations};
 use crate::rust::RustExtractor;
-use crate::test_detection::is_test_symbol;
+use crate::test_detection::apply_callable_test_metadata;
 use serde_json::Value;
 use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
@@ -115,16 +115,15 @@ pub(super) fn extract_function(
 
     let mut metadata = HashMap::new();
 
-    if is_test_symbol(
+    apply_callable_test_metadata(
         "rust",
         &name,
         &base.file_path,
         &kind,
         &annotation_keys,
         None,
-    ) {
-        metadata.insert("is_test".to_string(), Value::Bool(true));
-    }
+        &mut metadata,
+    );
 
     Some(base.create_symbol(
         &node,
