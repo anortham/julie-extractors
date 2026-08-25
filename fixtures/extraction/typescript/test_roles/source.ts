@@ -1,3 +1,5 @@
+import { beforeEach, describe, test } from "vitest";
+
 describe("typescript roles", () => {
   beforeEach(() => {});
   test("extracts a TypeScript test case", () => {});

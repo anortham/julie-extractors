@@ -41,6 +41,7 @@ pub struct TypeScriptExtractor {
     import_bindings: Option<HashSet<String>>,
     import_binding_sources: Option<HashMap<String, String>>,
     receiver_import_contexts: HashMap<(usize, String), Option<String>>,
+    pub(super) test_dsl_active: bool,
 }
 
 impl TypeScriptExtractor {
@@ -59,6 +60,7 @@ impl TypeScriptExtractor {
             import_bindings: None,
             import_binding_sources: None,
             receiver_import_contexts: HashMap::new(),
+            test_dsl_active: false,
         }
     }
 
@@ -212,44 +214,27 @@ impl TypeScriptExtractor {
             // Check for test call expressions (it, test, describe, beforeEach, etc.)
             // The arrow_function inside it("name", () => {...}) has no name field,
             // so we look at the parent call_expression and use the test name.
-            if current_node.kind() == "call_expression"
-                && let Some(function_node) = current_node.child_by_field_name("function")
+            if let Some(dsl_word) =
+                crate::javascript::test_symbols::dsl_word_of_call(&self.base, current_node)
+                && let Some(args) = current_node.child_by_field_name("arguments")
             {
-                let callee = match function_node.kind() {
-                    "identifier" => self.base.get_node_text(&function_node),
-                    "member_expression" => {
-                        if let Some(obj) = function_node.child_by_field_name("object") {
-                            self.base.get_node_text(&obj)
-                        } else {
-                            String::new()
-                        }
+                let mut cursor = args.walk();
+                if let Some(first_str) = args
+                    .children(&mut cursor)
+                    .find(|c| c.kind() == "string" || c.kind() == "template_string")
+                {
+                    let name = self
+                        .base
+                        .get_node_text(&first_str)
+                        .trim_matches(|c| c == '"' || c == '\'' || c == '`')
+                        .to_string();
+                    if let Some(symbol) = symbol_map.get(&name) {
+                        return Some(symbol);
                     }
-                    _ => String::new(),
-                };
-
-                if crate::test_calls::is_test_runner_call(&callee) {
-                    // Get test name from first string argument
-                    if let Some(args) = current_node.child_by_field_name("arguments") {
-                        let mut cursor = args.walk();
-                        if let Some(first_str) = args
-                            .children(&mut cursor)
-                            .find(|c| c.kind() == "string" || c.kind() == "template_string")
-                        {
-                            let name = self
-                                .base
-                                .get_node_text(&first_str)
-                                .trim_matches(|c| c == '"' || c == '\'' || c == '`')
-                                .to_string();
-                            if let Some(symbol) = symbol_map.get(&name) {
-                                return Some(symbol);
-                            }
-                        }
-                        // For lifecycle (no string arg), look up by callee name
-                        let base_name = callee.split('.').next().unwrap_or(&callee).to_string();
-                        if let Some(symbol) = symbol_map.get(&base_name) {
-                            return Some(symbol);
-                        }
-                    }
+                }
+                // For lifecycle (no string arg), look up by the DSL word
+                if let Some(symbol) = symbol_map.get(&dsl_word) {
+                    return Some(symbol);
                 }
             }
 

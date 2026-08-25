@@ -1,3 +1,5 @@
+import { beforeEach, describe, test } from "vitest";
+
 describe("jsx roles", () => {
   beforeEach(() => {});
   test("renders a JSX test case", () => {

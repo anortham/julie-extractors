@@ -17,6 +17,9 @@ pub(crate) mod identifiers;
 mod imports;
 mod relationships;
 mod signatures;
+// pub(crate): test_symbols carries the JS-family test classifier, shared with
+// the TypeScript extractor because ts/tsx run the same test DSL.
+pub(crate) mod test_symbols;
 mod types;
 mod variables;
 mod visibility;
@@ -46,6 +49,7 @@ pub struct JavaScriptExtractor {
     import_bindings: Option<HashSet<String>>,
     import_binding_sources: Option<HashMap<String, String>>,
     receiver_import_contexts: HashMap<(usize, String), Option<String>>,
+    test_dsl_active: bool,
 }
 
 impl JavaScriptExtractor {
@@ -60,6 +64,7 @@ impl JavaScriptExtractor {
             import_bindings: None,
             import_binding_sources: None,
             receiver_import_contexts: HashMap::new(),
+            test_dsl_active: false,
         }
     }
 
@@ -70,6 +75,7 @@ impl JavaScriptExtractor {
 
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
+        self.test_dsl_active = test_symbols::test_dsl_is_active(&self.base, tree.root_node());
         self.visit_node(tree.root_node(), &mut symbols, None, 0);
         symbols
     }
@@ -221,42 +227,26 @@ impl JavaScriptExtractor {
             // Check for test call expressions (it, test, describe, beforeEach, etc.)
             // The arrow_function inside it("name", () => {...}) has no name field,
             // so we look at the parent call_expression and use the test name.
-            if current_node.kind() == "call_expression"
-                && let Some(function_node) = current_node.child_by_field_name("function")
+            if let Some(dsl_word) = test_symbols::dsl_word_of_call(&self.base, current_node)
+                && let Some(args) = current_node.child_by_field_name("arguments")
             {
-                let callee = match function_node.kind() {
-                    "identifier" => self.base.get_node_text(&function_node),
-                    "member_expression" => {
-                        if let Some(obj) = function_node.child_by_field_name("object") {
-                            self.base.get_node_text(&obj)
-                        } else {
-                            String::new()
-                        }
-                    }
-                    _ => String::new(),
-                };
-
-                if crate::test_calls::is_test_runner_call(&callee)
-                    && let Some(args) = current_node.child_by_field_name("arguments")
+                let mut cursor = args.walk();
+                if let Some(first_str) = args
+                    .children(&mut cursor)
+                    .find(|c| c.kind() == "string" || c.kind() == "template_string")
                 {
-                    let mut cursor = args.walk();
-                    if let Some(first_str) = args
-                        .children(&mut cursor)
-                        .find(|c| c.kind() == "string" || c.kind() == "template_string")
-                    {
-                        let name = self
-                            .base
-                            .get_node_text(&first_str)
-                            .trim_matches(|c| c == '"' || c == '\'' || c == '`')
-                            .to_string();
-                        if let Some(symbol) = symbol_map.get(&name) {
-                            return Some(symbol);
-                        }
-                    }
-                    // For lifecycle (no string arg), look up by callee name
-                    if let Some(symbol) = symbol_map.get(&callee) {
+                    let name = self
+                        .base
+                        .get_node_text(&first_str)
+                        .trim_matches(|c| c == '"' || c == '\'' || c == '`')
+                        .to_string();
+                    if let Some(symbol) = symbol_map.get(&name) {
                         return Some(symbol);
                     }
+                }
+                // For lifecycle (no string arg), look up by the DSL word
+                if let Some(symbol) = symbol_map.get(&dsl_word) {
+                    return Some(symbol);
                 }
             }
 
@@ -738,36 +728,23 @@ impl JavaScriptExtractor {
                 }
             }
             // Test call expressions (describe, it, test, beforeEach, etc.)
-            "call_expression" => {
-                if let Some(function_node) = node.child_by_field_name("function") {
-                    let callee = match function_node.kind() {
-                        "identifier" => self.base.get_node_text(&function_node),
-                        "member_expression" => {
-                            if let Some(obj) = function_node.child_by_field_name("object") {
-                                self.base.get_node_text(&obj)
-                            } else {
-                                String::new()
-                            }
-                        }
-                        _ => String::new(),
-                    };
-                    if crate::test_calls::is_test_runner_call(&callee) {
-                        let parent = symbols
-                            .iter()
-                            .rev()
-                            .find(|s| {
-                                s.metadata
-                                    .as_ref()
-                                    .and_then(|m| m.get("test_container"))
-                                    .and_then(|v| v.as_bool())
-                                    == Some(true)
-                                    && s.start_byte <= node.start_byte() as u32
-                                    && s.end_byte >= node.end_byte() as u32
-                            })
-                            .map(|s| s.id.as_str());
-                        symbol = crate::test_calls::extract_test_call(&mut self.base, node, parent);
-                    }
-                }
+            "call_expression"
+                if self.test_dsl_active && test_symbols::is_test_dsl_call(&self.base, node) =>
+            {
+                let parent = symbols
+                    .iter()
+                    .rev()
+                    .find(|s| {
+                        s.metadata
+                            .as_ref()
+                            .and_then(|m| m.get("test_container"))
+                            .and_then(|v| v.as_bool())
+                            == Some(true)
+                            && s.start_byte <= node.start_byte() as u32
+                            && s.end_byte >= node.end_byte() as u32
+                    })
+                    .map(|s| s.id.as_str());
+                symbol = test_symbols::extract_test_call(&mut self.base, node, parent);
             }
             _ => {}
         }

@@ -5,7 +5,7 @@
 
 use super::helpers;
 use crate::base::{Symbol, SymbolKind, SymbolOptions, normalize_annotations};
-use crate::test_detection::is_test_symbol;
+use crate::javascript::test_symbols::apply_declared_test_metadata;
 use crate::typescript::TypeScriptExtractor;
 use std::collections::HashMap;
 use tree_sitter::Node;
@@ -63,17 +63,15 @@ pub(super) fn extract_function(
     // Extract JSDoc comment
     let doc_comment = extractor.base().find_doc_comment(&node);
 
-    // Test detection
-    if is_test_symbol(
+    apply_declared_test_metadata(
         "typescript",
         &name,
         &extractor.base().file_path,
         &SymbolKind::Function,
         &annotation_keys,
         doc_comment.as_deref(),
-    ) {
-        metadata.insert("is_test".to_string(), serde_json::json!(true));
-    }
+        &mut metadata,
+    );
 
     let symbol = extractor.base_mut().create_symbol(
         &node,
@@ -151,17 +149,15 @@ pub(super) fn extract_method(
     // Extract JSDoc comment
     let doc_comment = extractor.base().find_doc_comment(&node);
 
-    // Test detection
-    if is_test_symbol(
+    apply_declared_test_metadata(
         "typescript",
         &name,
         &extractor.base().file_path,
         &symbol_kind,
         &annotation_keys,
         doc_comment.as_deref(),
-    ) {
-        metadata.insert("is_test".to_string(), serde_json::json!(true));
-    }
+        &mut metadata,
+    );
 
     let symbol = extractor.base_mut().create_symbol(
         &node,

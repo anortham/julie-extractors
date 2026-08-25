@@ -15,6 +15,7 @@ pub mod literals;
 pub mod modern_features;
 pub mod relationships;
 pub mod scoping;
+pub mod test_detection;
 pub mod types;
 
 #[cfg(test)]

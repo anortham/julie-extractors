@@ -5,6 +5,7 @@
 
 use super::{classes, functions, imports_exports, interfaces};
 use crate::base::{Symbol, SymbolKind};
+use crate::javascript::test_symbols;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use crate::typescript::TypeScriptExtractor;
 use tree_sitter::{Node, Tree};
@@ -12,6 +13,8 @@ use tree_sitter::{Node, Tree};
 /// Extract all symbols from the syntax tree
 pub(super) fn extract_symbols(extractor: &mut TypeScriptExtractor, tree: &Tree) -> Vec<Symbol> {
     let mut symbols = Vec::new();
+    extractor.test_dsl_active =
+        test_symbols::test_dsl_is_active(extractor.base(), tree.root_node());
     visit_node(extractor, tree.root_node(), &mut symbols, None, 0);
     symbols
 }
@@ -114,43 +117,31 @@ fn visit_node(
         }
 
         // Test call expression extraction (describe/it/test/beforeEach/etc.)
-        "call_expression" => {
-            if let Some(function_node) = node.child_by_field_name("function") {
-                let callee = match function_node.kind() {
-                    "identifier" => extractor.base().get_node_text(&function_node),
-                    "member_expression" => {
-                        if let Some(obj) = function_node.child_by_field_name("object") {
-                            extractor.base().get_node_text(&obj)
-                        } else {
-                            String::new()
-                        }
-                    }
-                    _ => String::new(),
-                };
-                if crate::test_calls::is_test_runner_call(&callee) {
-                    // Find parent describe for nesting
-                    let parent = symbols
-                        .iter()
-                        .rev()
-                        .find(|s| {
-                            s.metadata
-                                .as_ref()
-                                .and_then(|m| m.get("test_container"))
-                                .and_then(|v| v.as_bool())
-                                == Some(true)
-                                && s.start_byte <= node.start_byte() as u32
-                                && s.end_byte >= node.end_byte() as u32
-                        })
-                        .map(|s| s.id.as_str());
-                    // Need to extract parent_id before mutable borrow of extractor
-                    let parent_id_owned = parent.map(|s| s.to_string());
-                    symbol = crate::test_calls::extract_test_call(
-                        extractor.base_mut(),
-                        node,
-                        parent_id_owned.as_deref(),
-                    );
-                }
-            }
+        "call_expression"
+            if extractor.test_dsl_active
+                && test_symbols::is_test_dsl_call(extractor.base(), node) =>
+        {
+            // Find parent describe for nesting
+            let parent = symbols
+                .iter()
+                .rev()
+                .find(|s| {
+                    s.metadata
+                        .as_ref()
+                        .and_then(|m| m.get("test_container"))
+                        .and_then(|v| v.as_bool())
+                        == Some(true)
+                        && s.start_byte <= node.start_byte() as u32
+                        && s.end_byte >= node.end_byte() as u32
+                })
+                .map(|s| s.id.as_str());
+            // Need to extract parent_id before mutable borrow of extractor
+            let parent_id_owned = parent.map(|s| s.to_string());
+            symbol = test_symbols::extract_test_call(
+                extractor.base_mut(),
+                node,
+                parent_id_owned.as_deref(),
+            );
         }
 
         _ => {}

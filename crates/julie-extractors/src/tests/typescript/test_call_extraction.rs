@@ -1,9 +1,9 @@
 //! Tests for test call expression extraction in TypeScript/JavaScript.
 //!
-//! Validates that Jest/Vitest/Mocha/Bun test DSL call expressions
+//! Validates that Jest/Vitest/Mocha/Bun/Playwright test DSL call expressions
 //! (describe/it/test/beforeEach/etc.) are extracted as named symbols.
 
-use crate::base::{RelationshipKind, SymbolKind};
+use crate::base::{RelationshipKind, Symbol, SymbolKind};
 use crate::typescript::TypeScriptExtractor;
 use std::path::PathBuf;
 
@@ -13,6 +13,32 @@ fn init_parser() -> tree_sitter::Parser {
         .set_language(&tree_sitter_javascript::LANGUAGE.into())
         .expect("Error loading JavaScript grammar");
     parser
+}
+
+fn extractor_at(file_path: &str, code: &str) -> TypeScriptExtractor {
+    TypeScriptExtractor::new(
+        "typescript".to_string(),
+        file_path.to_string(),
+        code.to_string(),
+        &PathBuf::from("/tmp/test"),
+    )
+}
+
+fn symbols_at(file_path: &str, code: &str) -> Vec<Symbol> {
+    let mut parser = init_parser();
+    let tree = parser.parse(code, None).unwrap();
+    extractor_at(file_path, code).extract_symbols(&tree)
+}
+
+fn role(symbols: &[Symbol], name: &str) -> Option<String> {
+    symbols
+        .iter()
+        .find(|symbol| symbol.name == name)?
+        .metadata
+        .as_ref()?
+        .get("test_role")?
+        .as_str()
+        .map(str::to_string)
 }
 
 #[test]
@@ -213,4 +239,141 @@ it("should process", () => {
         process_pending.from_symbol_id, it_sym.id,
         "processPayment() pending call should be attributed to the it() test symbol"
     );
+}
+
+const PLAYWRIGHT_SPEC: &str = r#"
+import { test } from "@playwright/test";
+
+test.describe("checkout", () => {
+    test.beforeEach(async () => {});
+    test.afterAll(async () => {});
+    test("pays with a card", async () => {});
+});
+"#;
+
+#[test]
+fn playwright_dotted_calls_extract_container_and_lifecycle_symbols() {
+    let symbols = symbols_at("tests/checkout.spec.ts", PLAYWRIGHT_SPEC);
+
+    assert_eq!(
+        role(&symbols, "checkout").as_deref(),
+        Some("test_container"),
+        "test.describe declares a container, got: {:?}",
+        symbols.iter().map(|s| &s.name).collect::<Vec<_>>()
+    );
+    assert_eq!(
+        role(&symbols, "beforeEach").as_deref(),
+        Some("fixture_setup")
+    );
+    assert_eq!(
+        role(&symbols, "afterAll").as_deref(),
+        Some("fixture_teardown")
+    );
+    assert_eq!(
+        role(&symbols, "pays with a card").as_deref(),
+        Some("test_case")
+    );
+}
+
+#[test]
+fn dotted_lifecycle_symbols_nest_under_their_container() {
+    let symbols = symbols_at("tests/checkout.spec.ts", PLAYWRIGHT_SPEC);
+
+    let container = symbols
+        .iter()
+        .find(|symbol| symbol.name == "checkout")
+        .expect("container symbol");
+    let hook = symbols
+        .iter()
+        .find(|symbol| symbol.name == "beforeEach")
+        .expect("lifecycle symbol");
+
+    assert_eq!(hook.parent_id.as_deref(), Some(container.id.as_str()));
+}
+
+#[test]
+fn each_table_call_extracts_a_parameterized_symbol() {
+    let code = r#"
+import { test } from "vitest";
+
+test.each([[1, 2]])("adds %i", (a, b) => {});
+"#;
+    let symbols = symbols_at("tests/math.spec.ts", code);
+
+    assert_eq!(
+        role(&symbols, "adds %i").as_deref(),
+        Some("parameterized_test"),
+        "test.each(table)(name, fn) declares a parameterized test, got: {:?}",
+        symbols.iter().map(|s| &s.name).collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn test_dsl_vocabulary_needs_a_framework_import_or_a_test_path() {
+    let code = r#"
+describe("migration runner", () => {
+    setup(() => {});
+    teardown(() => {});
+    it("applies a migration", () => {});
+});
+"#;
+
+    let production = symbols_at("src/migrations/runner.ts", code);
+    let production_roles: Vec<_> = production
+        .iter()
+        .filter(|symbol| {
+            symbol
+                .metadata
+                .as_ref()
+                .is_some_and(|metadata| metadata.contains_key("test_role"))
+        })
+        .map(|symbol| &symbol.name)
+        .collect();
+    assert!(
+        production_roles.is_empty(),
+        "production file should carry no test roles, got: {production_roles:?}"
+    );
+
+    let spec = symbols_at("src/migrations/runner.spec.ts", code);
+    assert_eq!(
+        role(&spec, "migration runner").as_deref(),
+        Some("test_container")
+    );
+    assert_eq!(role(&spec, "setup").as_deref(), Some("fixture_setup"));
+    assert_eq!(role(&spec, "teardown").as_deref(), Some("fixture_teardown"));
+}
+
+#[test]
+fn calls_inside_a_dotted_lifecycle_hook_are_attributed_to_it() {
+    let code = r#"
+import { test } from "@playwright/test";
+
+function seedDatabase() {}
+
+test.beforeEach(async () => {
+    seedDatabase();
+});
+"#;
+
+    let mut parser = init_parser();
+    let tree = parser.parse(code, None).unwrap();
+    let mut extractor = extractor_at("tests/checkout.spec.ts", code);
+    let symbols = extractor.extract_symbols(&tree);
+    let relationships = extractor.extract_relationships(&tree, &symbols);
+
+    let hook = symbols
+        .iter()
+        .find(|symbol| symbol.name == "beforeEach")
+        .expect("test.beforeEach should emit a lifecycle symbol");
+    let seed_call = relationships
+        .iter()
+        .find(|relationship| {
+            symbols.iter().any(|symbol| {
+                symbol.id == relationship.to_symbol_id && symbol.name == "seedDatabase"
+            })
+        })
+        .expect("seedDatabase() call should produce a relationship");
+
+    assert_eq!(seed_call.kind, RelationshipKind::Calls);
+    assert_eq!(seed_call.from_symbol_id, hook.id);
 }

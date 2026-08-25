@@ -3,8 +3,8 @@
 //! Handles extraction of function declarations, function expressions,
 //! arrow functions, methods, and constructors.
 
+use super::test_symbols::apply_declared_test_metadata;
 use crate::base::{AnnotationMarker, Symbol, SymbolKind, SymbolOptions, normalize_annotations};
-use crate::test_detection::is_test_symbol;
 use serde_json::json;
 use std::collections::HashMap;
 use tree_sitter::Node;
@@ -66,17 +66,15 @@ impl super::JavaScriptExtractor {
         // Extract JSDoc comment
         let doc_comment = self.base.find_doc_comment(&node);
 
-        // Test detection
-        if is_test_symbol(
+        apply_declared_test_metadata(
             "javascript",
             &name,
             &self.base.file_path,
             &SymbolKind::Function,
             &annotation_keys,
             doc_comment.as_deref(),
-        ) {
-            metadata.insert("is_test".to_string(), json!(true));
-        }
+            &mut metadata,
+        );
 
         Some(self.base.create_symbol(
             &node,
@@ -145,17 +143,15 @@ impl super::JavaScriptExtractor {
         // Extract JSDoc comment
         let doc_comment = self.base.find_doc_comment(&node);
 
-        // Test detection
-        if is_test_symbol(
+        apply_declared_test_metadata(
             "javascript",
             &name,
             &self.base.file_path,
             &symbol_kind,
             &annotation_keys,
             doc_comment.as_deref(),
-        ) {
-            metadata.insert("is_test".to_string(), json!(true));
-        }
+            &mut metadata,
+        );
 
         Some(self.base.create_symbol(
             &node,
