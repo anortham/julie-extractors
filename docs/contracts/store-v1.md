@@ -107,7 +107,7 @@ longer written; writer open drops leftover journal tables.
 - A requester identity of the form `cli-<pid>` names the requesting process, and a claim owner of
   the same form names the claiming process. A drain reaps, right after it takes the writer lease,
   every queued row whose requester process is dead and every claimed row whose requester and claim
-  owner are both dead — but only after the row's `requester_deadline` has expired. Crash resume is
+  owner are both dead, and only after the row's `requester_deadline` has expired. Crash resume is
   a designed path: a successor process may adopt and complete a queued request whose submitter died
   while the submitter's window remains, so a dead pid alone never reaps a row, and a NULL deadline
   never expires. Reaped rows become typed `failed` with the `coordinator_requester_dead`

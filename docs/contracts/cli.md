@@ -456,8 +456,8 @@ already current and a delete whose path is already absent are semantic no-ops: n
 manifest generation nor duplicates a version or terminal effect.
 
 `store update` applies the same discovery decision `scan` applies before it reads, hashes, or
-enqueues the file. A file that discovery refuses — ignored, hard-excluded, an unsupported
-extension, or over the extraction byte limit — is refused here too: the report state is
+enqueues the file. When discovery refuses the file, whether ignored, hard-excluded, an unsupported
+extension, or over the extraction byte limit, the update refuses it too. The report state is
 `unsupported`, the coordinator disposition is `not_started`, no request row is written, and the
 exit code is `0`. The report then carries an `unsupported` object with `reason`
 (`ignored`, `hard_excluded`, `unsupported_extension`, or `oversized`), `root_relative_path`, and a

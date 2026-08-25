@@ -83,7 +83,7 @@ progress and terminal reconciliation advance those marks monotonically; promotio
 all named generations and receipts before raising destination allocators. No published identity is
 reused after a generation transition.
 
-The public lifecycle surface is `store maintain inspect|gc|repair|promote` plus `cursor
+The public lifecycle verbs are `store maintain inspect|gc|repair|promote|retire-view` plus `cursor
 advance|release`. Inspection is read-only and every mutation requires `--apply`. Forward rollback is
 an artifact API used by an orchestrator; it is deliberately not an end-user CLI verb.
 
