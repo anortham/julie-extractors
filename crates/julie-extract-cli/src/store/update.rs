@@ -1,8 +1,12 @@
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use julie_extract_artifact::store::{
     CoordinatorRequest, LeaseHolder, RequestKind, StoreCoordinator,
 };
+
+use crate::discovery::{DiscoveryExclusions, DiscoveryPolicy, FileSelection, UnsupportedReason};
+use crate::paths::FileTarget;
 
 use super::args::{StoreLevelArg, StoreUpdateArgs};
 use super::executor::{
@@ -17,6 +21,7 @@ use super::import::{
 };
 use super::report::{
     StoreOperation, StoreOutputFormat, StoreReport, StoreRequestState, StoreRequestedLevel,
+    StoreUnsupportedReason, StoreUnsupportedReport,
 };
 
 pub(crate) fn run(args: StoreUpdateArgs) -> StoreExecutionOutcome {
@@ -126,12 +131,23 @@ fn execute_update(
             ..controls
         };
         let root_text = require_existing_view(&layout, &args.root, &args.view)?;
-        let root = std::path::Path::new(&root_text);
-        let target = crate::paths::FileTarget {
+        let root = Path::new(&root_text);
+        let target = FileTarget {
             absolute_path: root.join(&root_relative_path),
             root_relative_path: root_relative_path.clone(),
         };
         validate_target_within_root(root, &root_relative_path)?;
+        if let Some(refusal) = discovery_refusal(root, layout.store_db(), &target, &controls)? {
+            let mut report = base_report(
+                args,
+                request_id,
+                idempotency_key,
+                StoreRequestState::Unsupported,
+            );
+            report.family_id = family_id;
+            report.root = root_text;
+            return Ok(report.with_unsupported(refusal));
+        }
         let (content_hash, content_bytes) =
             crate::extraction::read_source_identity(&target).map_err(|error| error.message)?;
         preflight_store_capacity(&args.store, content_bytes)?;
@@ -193,6 +209,41 @@ fn execute_update(
             l1_event_kind: "store_update_l1_published",
         },
     )
+}
+
+/// The discovery decision `scan` applies, run before the update path reads,
+/// hashes, or enqueues the file. A file `scan` refuses is refused here too, so
+/// an oversized or hard-excluded path can never enter the request queue and
+/// stall every later import that inherits it.
+fn discovery_refusal(
+    root: &Path,
+    db_path: &Path,
+    target: &FileTarget,
+    controls: &ImportScanControls,
+) -> Result<Option<StoreUnsupportedReport>, String> {
+    let exclusions = DiscoveryExclusions {
+        progress_path: controls.progress_file.as_deref().map(PathBuf::from),
+        spool_dir: controls.spool_dir.as_deref().map(PathBuf::from),
+    };
+    let ignore_files: Vec<PathBuf> = controls.ignore_files.iter().map(PathBuf::from).collect();
+    let policy = DiscoveryPolicy::build_excluding(root, db_path, exclusions, &ignore_files)
+        .map_err(|error| format!("{error:?}"))?;
+    let FileSelection::Unsupported { reason } = policy.select_file(target) else {
+        return Ok(None);
+    };
+    Ok(Some(StoreUnsupportedReport {
+        reason: match reason {
+            UnsupportedReason::Ignored => StoreUnsupportedReason::Ignored,
+            UnsupportedReason::HardExcluded => StoreUnsupportedReason::HardExcluded,
+            UnsupportedReason::UnsupportedExtension => StoreUnsupportedReason::UnsupportedExtension,
+            UnsupportedReason::Oversized => StoreUnsupportedReason::Oversized,
+        },
+        root_relative_path: target.root_relative_path.clone(),
+        message: match reason {
+            UnsupportedReason::Oversized => crate::limits::slow_file_skip_message(),
+            _ => "file is ignored or unsupported; no store request was queued".to_string(),
+        },
+    }))
 }
 
 fn base_report(

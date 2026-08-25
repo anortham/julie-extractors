@@ -455,6 +455,16 @@ root-relative file and never rediscovers the tree. `store delete` plans exactly 
 already current and a delete whose path is already absent are semantic no-ops: neither creates a
 manifest generation nor duplicates a version or terminal effect.
 
+`store update` applies the same discovery decision `scan` applies before it reads, hashes, or
+enqueues the file. A file that discovery refuses — ignored, hard-excluded, an unsupported
+extension, or over the extraction byte limit — is refused here too: the report state is
+`unsupported`, the coordinator disposition is `not_started`, no request row is written, and the
+exit code is `0`. The report then carries an `unsupported` object with `reason`
+(`ignored`, `hard_excluded`, `unsupported_extension`, or `oversized`), `root_relative_path`, and a
+`message`; the `oversized` message is the same `slow_file_skipped` text `scan` emits. The object is
+absent on every other report. Unlike the artifact-level `update`, the store path removes no rows:
+it refuses the request and leaves the store untouched.
+
 `--level l1` publishes the symbol/relationship core before deep evidence. `--level full` requires
 L1, L2, and L3 completion. A later Full request may deepen immutable versions published by an L1
 request without creating a new manifest generation. Store reports do not carry a resolution
@@ -474,7 +484,10 @@ request, so a retry uses the original schedule even when a successor process has
 
 Store JSON uses its own `report_schema_version: 1`. Stable fields include `operation`, request
 identity, family/view/root identity, coordinator state, requested/completed levels, manifest
-generation/hash/disposition, row counts, failure class, and a nullable error.
+generation/hash/disposition, row counts, failure class, and a nullable error. Report states are
+`queued`, `claimed`, `committed`, `acknowledged`, `failed`, and `unsupported`. Only `unsupported`
+has no coordinator request row behind it: the CLI refuses the file before enqueue, so coordinator
+request states stay the five listed in [store-v1.md](store-v1.md).
 The physical format and recovery invariants are frozen in [store-v1.md](store-v1.md) and
 [sqlite-store-schema-v2.md](sqlite-store-schema-v2.md).
 

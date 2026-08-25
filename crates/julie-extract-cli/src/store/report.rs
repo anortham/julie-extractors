@@ -82,6 +82,38 @@ pub struct StoreExportReport {
     pub disposition: StoreExportDisposition,
 }
 
+/// Why a discovery decision refused the requested file. Mirrors the scan-side
+/// `UnsupportedReason` so a store report names the same gate the scan applies.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum StoreUnsupportedReason {
+    Ignored,
+    HardExcluded,
+    UnsupportedExtension,
+    Oversized,
+}
+
+impl StoreUnsupportedReason {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Ignored => "ignored",
+            Self::HardExcluded => "hard_excluded",
+            Self::UnsupportedExtension => "unsupported_extension",
+            Self::Oversized => "oversized",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StoreUnsupportedReport {
+    pub reason: StoreUnsupportedReason,
+    pub root_relative_path: String,
+    pub message: String,
+}
+
+/// Report state of one store request. `unsupported` is the only state a
+/// coordinator request row never carries: the CLI refuses the file before
+/// enqueue, so the request never exists.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum StoreRequestState {
@@ -90,6 +122,7 @@ pub enum StoreRequestState {
     Committed,
     Acknowledged,
     Failed,
+    Unsupported,
 }
 
 impl StoreRequestState {
@@ -100,6 +133,7 @@ impl StoreRequestState {
             Self::Committed => "committed",
             Self::Acknowledged => "acknowledged",
             Self::Failed => "failed",
+            Self::Unsupported => "unsupported",
         }
     }
 }
@@ -177,6 +211,8 @@ pub struct StoreReport {
     pub row_counts: StoreRowCounts,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub export: Option<StoreExportReport>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub unsupported: Option<StoreUnsupportedReport>,
     pub coordinator: StoreCoordinatorDisposition,
     pub failure_class: StoreFailureClass,
     pub error: Option<StoreErrorReport>,
@@ -206,12 +242,14 @@ impl StoreReport {
             manifest: StoreManifestReport::default(),
             row_counts: StoreRowCounts::default(),
             export: None,
+            unsupported: None,
             coordinator: match state {
                 StoreRequestState::Queued => StoreCoordinatorDisposition::Queued,
                 StoreRequestState::Claimed => StoreCoordinatorDisposition::Claimed,
                 StoreRequestState::Committed => StoreCoordinatorDisposition::Committed,
                 StoreRequestState::Acknowledged => StoreCoordinatorDisposition::Acknowledged,
                 StoreRequestState::Failed => StoreCoordinatorDisposition::Failed,
+                StoreRequestState::Unsupported => StoreCoordinatorDisposition::NotStarted,
             },
             failure_class: if failed {
                 StoreFailureClass::Internal
@@ -262,6 +300,13 @@ impl StoreReport {
 
     pub fn with_export(mut self, export: StoreExportReport) -> Self {
         self.export = Some(export);
+        self
+    }
+
+    pub fn with_unsupported(mut self, unsupported: StoreUnsupportedReport) -> Self {
+        self.state = StoreRequestState::Unsupported;
+        self.coordinator = StoreCoordinatorDisposition::NotStarted;
+        self.unsupported = Some(unsupported);
         self
     }
 
@@ -421,6 +466,15 @@ impl StoreCommandOutcome {
             });
             output.push('\n');
         }
+        if let Some(unsupported) = &self.report.unsupported {
+            output.push_str("unsupported: reason=");
+            output.push_str(unsupported.reason.as_str());
+            output.push_str(" file=");
+            output.push_str(&unsupported.root_relative_path);
+            output.push_str(" message=");
+            output.push_str(&unsupported.message);
+            output.push('\n');
+        }
         output.push_str("state: ");
         output.push_str(self.report.state.as_str());
         output.push('\n');
@@ -514,6 +568,7 @@ impl StoreCommandOutcome {
 fn normalize_failed_report(mut report: StoreReport) -> StoreReport {
     report.state = StoreRequestState::Failed;
     report.coordinator = StoreCoordinatorDisposition::Failed;
+    report.unsupported = None;
     if report.failure_class == StoreFailureClass::None {
         report.failure_class = StoreFailureClass::Internal;
     }
@@ -532,6 +587,7 @@ fn normalize_failed_report(mut report: StoreReport) -> StoreReport {
 fn normalize_usage_report(mut report: StoreReport) -> StoreReport {
     report.state = StoreRequestState::Failed;
     report.coordinator = StoreCoordinatorDisposition::Failed;
+    report.unsupported = None;
     if report.failure_class == StoreFailureClass::None {
         report.failure_class = StoreFailureClass::InvalidArguments;
     }
