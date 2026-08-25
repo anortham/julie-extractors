@@ -566,7 +566,7 @@ Shared files (`crates/julie-extractors/src/test_detection.rs`, `fixtures/extract
 
 **Acceptance criteria:**
 - [x] Universality gate: a test proves no emitted symbol in any registered golden carries a test boolean without a matching `test_role`; all remaining direct writers routed through `apply_test_role`.
-- [ ] Branch gate green: `cargo xtask test default`, `golden`, `capability`, `contract`, strict report, doc-sync check, Windows suite.
+- [x] Branch gate green: `cargo xtask test default`, `golden`, `capability`, `contract`, strict report, doc-sync check, Windows suite.
 - [x] Every language touched in this plan has: golden-backed ledger rows, a decision-doc row, and `docs/languages/<lang>.md`.
 - [x] All open-gap entries have reason, required closure, and planned task.
 - [x] Verification ledger recorded; change committed per `serial-worker-commit`.
