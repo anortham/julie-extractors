@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "source": "fixtures/extraction/capabilities.json registered canonical golden corpus",
-  "source_digest": "sha256:f3b0e6937a469cff593429f97e3f0b4509f8757f163360603758712e1142e8e8",
+  "source_digest": "sha256:02a4d6da22a299a633abff3d7da805446f34f79d07fa822e0fda4e31bf844b2e",
   "languages": [
     "rust",
     "c",
@@ -263,16 +263,16 @@
     },
     {
       "language": "php",
-      "total": 188,
-      "attempted": 57,
-      "resolved": 7,
+      "total": 221,
+      "attempted": 80,
+      "resolved": 10,
       "ambiguous": 0,
       "missing": 0,
       "no_context": 0,
-      "unresolved_pending": 50,
-      "unattempted": 131,
-      "span_present": 163,
-      "span_missing": 25
+      "unresolved_pending": 70,
+      "unattempted": 141,
+      "span_present": 186,
+      "span_missing": 35
     },
     {
       "language": "ruby",
@@ -289,29 +289,29 @@
     },
     {
       "language": "swift",
-      "total": 65,
-      "attempted": 17,
-      "resolved": 9,
+      "total": 106,
+      "attempted": 29,
+      "resolved": 13,
       "ambiguous": 0,
       "missing": 0,
       "no_context": 0,
-      "unresolved_pending": 8,
-      "unattempted": 48,
-      "span_present": 61,
-      "span_missing": 4
+      "unresolved_pending": 16,
+      "unattempted": 77,
+      "span_present": 98,
+      "span_missing": 8
     },
     {
       "language": "kotlin",
-      "total": 260,
-      "attempted": 114,
-      "resolved": 8,
+      "total": 301,
+      "attempted": 129,
+      "resolved": 7,
       "ambiguous": 0,
       "missing": 0,
       "no_context": 0,
-      "unresolved_pending": 106,
-      "unattempted": 146,
-      "span_present": 207,
-      "span_missing": 53
+      "unresolved_pending": 122,
+      "unattempted": 172,
+      "span_present": 240,
+      "span_missing": 61
     },
     {
       "language": "scala",
@@ -4076,7 +4076,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 58
+      "count": 68
     },
     {
       "language": "kotlin",
@@ -4088,7 +4088,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 8
+      "count": 12
     },
     {
       "language": "kotlin",
@@ -4100,7 +4100,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 36
+      "count": 47
     },
     {
       "language": "kotlin",
@@ -4112,7 +4112,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 44
+      "count": 45
     },
     {
       "language": "kotlin",
@@ -4124,7 +4124,7 @@
       "method": null,
       "span_present": false,
       "applicability": "observed",
-      "count": 52
+      "count": 57
     },
     {
       "language": "kotlin",
@@ -4136,7 +4136,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 52
+      "count": 57
     },
     {
       "language": "kotlin",
@@ -4148,7 +4148,7 @@
       "method": null,
       "span_present": false,
       "applicability": "observed",
-      "count": 1
+      "count": 4
     },
     {
       "language": "kotlin",
@@ -4160,7 +4160,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 1
+      "count": 4
     },
     {
       "language": "kotlin",
@@ -4232,7 +4232,7 @@
       "method": "extraction_direct",
       "span_present": true,
       "applicability": "observed",
-      "count": 7
+      "count": 6
     },
     {
       "language": "kotlin",
@@ -4760,7 +4760,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 47
+      "count": 57
     },
     {
       "language": "php",
@@ -4808,7 +4808,7 @@
       "method": null,
       "span_present": false,
       "applicability": "observed",
-      "count": 24
+      "count": 32
     },
     {
       "language": "php",
@@ -4820,19 +4820,31 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 24
+      "count": 32
     },
     {
       "language": "php",
       "origin": "pending_relationship",
       "raw_kind": "extends",
       "canonical_kind": "extends",
-      "outcome": "zero",
+      "outcome": "unresolved_pending",
       "tier": null,
       "method": null,
       "span_present": false,
-      "applicability": "zero",
-      "count": 0
+      "applicability": "observed",
+      "count": 2
+    },
+    {
+      "language": "php",
+      "origin": "pending_relationship",
+      "raw_kind": "extends",
+      "canonical_kind": "extends",
+      "outcome": "unresolved_pending",
+      "tier": null,
+      "method": null,
+      "span_present": true,
+      "applicability": "observed",
+      "count": 2
     },
     {
       "language": "php",
@@ -4916,7 +4928,7 @@
       "method": "extraction_direct",
       "span_present": true,
       "applicability": "observed",
-      "count": 7
+      "count": 9
     },
     {
       "language": "php",
@@ -4935,12 +4947,12 @@
       "origin": "relationship",
       "raw_kind": "implements",
       "canonical_kind": "implements",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
+      "outcome": "resolved",
+      "tier": 1,
+      "method": "extraction_direct",
+      "span_present": true,
+      "applicability": "observed",
+      "count": 1
     },
     {
       "language": "php",
@@ -7532,7 +7544,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 17
+      "count": 35
     },
     {
       "language": "swift",
@@ -7556,7 +7568,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 18
+      "count": 24
     },
     {
       "language": "swift",
@@ -7568,7 +7580,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 13
+      "count": 18
     },
     {
       "language": "swift",
@@ -7580,7 +7592,7 @@
       "method": null,
       "span_present": false,
       "applicability": "observed",
-      "count": 3
+      "count": 7
     },
     {
       "language": "swift",
@@ -7592,7 +7604,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 3
+      "count": 7
     },
     {
       "language": "swift",
@@ -7688,7 +7700,7 @@
       "method": "extraction_direct",
       "span_present": true,
       "applicability": "observed",
-      "count": 8
+      "count": 12
     },
     {
       "language": "swift",
