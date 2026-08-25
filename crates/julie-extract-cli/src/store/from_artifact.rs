@@ -123,8 +123,14 @@ fn execute(
                 args.family.clone(),
                 None,
             );
-            drain_when_available(&mut coordinator, &mut executor, &request)
+            let warnings = drain_when_available(&mut coordinator, &mut executor, &request)
                 .map_err(FromArtifactFailure::Operational)?;
+            let observed = coordinator
+                .request(&request.request_id)
+                .map_err(|error| FromArtifactFailure::Operational(error.to_string()))?;
+            return report(&layout, &observed, &stored)
+                .map(|report| report.with_warnings(warnings))
+                .map_err(FromArtifactFailure::Operational);
         }
         let observed = coordinator
             .request(&request.request_id)
@@ -176,12 +182,14 @@ fn execute(
     let mut executor =
         StoreRequestExecutor::new(layout.store_db().to_path_buf(), args.family.clone(), None)
             .with_from_artifact_reuse(reuse);
-    drain_when_available(&mut coordinator, &mut executor, &request)
+    let warnings = drain_when_available(&mut coordinator, &mut executor, &request)
         .map_err(FromArtifactFailure::Operational)?;
     let observed = coordinator
         .request(&request.request_id)
         .map_err(|error| FromArtifactFailure::Operational(error.to_string()))?;
-    report(&layout, &observed, &payload).map_err(FromArtifactFailure::Operational)
+    report(&layout, &observed, &payload)
+        .map(|report| report.with_warnings(warnings))
+        .map_err(FromArtifactFailure::Operational)
 }
 
 fn reusable_from_artifact_manifest(

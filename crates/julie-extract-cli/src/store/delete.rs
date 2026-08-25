@@ -127,13 +127,13 @@ fn execute_delete(
     let canonical_request_id = canonical_request.request_id.clone();
     let mut executor =
         StoreRequestExecutor::new(layout.store_db().to_path_buf(), family_id.clone(), None);
-    drain_when_available(&mut coordinator, &mut executor, &canonical_request)?;
+    let warnings = drain_when_available(&mut coordinator, &mut executor, &canonical_request)?;
     let request = coordinator
         .request(&canonical_request_id)
         .map_err(|error| error.to_string())?;
     let payload = StoreRequestExecutor::new(layout.store_db().to_path_buf(), family_id, None)
         .validate_delete_payload_json(&request.payload_json)?;
-    report_request(
+    Ok(report_request(
         &layout,
         &request,
         RequestReportSpec {
@@ -144,7 +144,8 @@ fn execute_delete(
             requested_level: RequestedLevel::L1,
             l1_event_kind: "store_delete_l1_published",
         },
-    )
+    )?
+    .with_warnings(warnings))
 }
 
 fn base_report(

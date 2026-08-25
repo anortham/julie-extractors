@@ -191,13 +191,13 @@ fn execute_update(
         .map(crate::watchdog::ParentWatchdog::start);
     let mut executor =
         StoreRequestExecutor::new(layout.store_db().to_path_buf(), family_id.clone(), watchdog);
-    drain_when_available(&mut coordinator, &mut executor, &canonical_request)?;
+    let warnings = drain_when_available(&mut coordinator, &mut executor, &canonical_request)?;
     let request = coordinator
         .request(&canonical_request_id)
         .map_err(|error| error.to_string())?;
     let payload = StoreRequestExecutor::new(layout.store_db().to_path_buf(), family_id, None)
         .validate_update_payload_json(&request.payload_json)?;
-    report_request(
+    Ok(report_request(
         &layout,
         &request,
         RequestReportSpec {
@@ -208,7 +208,8 @@ fn execute_update(
             requested_level: payload.requested_level,
             l1_event_kind: "store_update_l1_published",
         },
-    )
+    )?
+    .with_warnings(warnings))
 }
 
 /// The discovery decision `scan` applies, run before the update path reads,
