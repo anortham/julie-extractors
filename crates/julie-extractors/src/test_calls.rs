@@ -10,7 +10,8 @@
 //! languages. The JS/TS path ([`extract_test_call`] + [`is_test_runner_call`]) is
 //! built on that core; Dart, Lua, R, and C/C++ adapters reuse the same builder.
 
-use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions};
+use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, TestRole};
+use crate::test_detection::apply_test_role;
 use std::collections::HashMap;
 use tree_sitter::Node;
 
@@ -80,12 +81,38 @@ pub fn classify_call_exact(callee: &str, vocab: &TestCallVocab) -> Option<TestCa
     }
 }
 
+/// Resolve the role a captured call carries.
+///
+/// [`TestCallCategory::Lifecycle`] records no direction, so the direction comes
+/// from the callee name. Every hook in every shared vocabulary spells its
+/// teardown half with `after`, `teardown`, or `cleanup`, and its setup half with
+/// neither, so one language-neutral name rule covers them all.
+fn test_call_role(full_callee: &str, category: TestCallCategory) -> TestRole {
+    match category {
+        TestCallCategory::Test => TestRole::TestCase,
+        TestCallCategory::Container => TestRole::TestContainer,
+        TestCallCategory::Lifecycle => {
+            let base = full_callee
+                .split('.')
+                .next()
+                .unwrap_or(full_callee)
+                .to_ascii_lowercase();
+            if base.contains("after") || base.contains("teardown") || base.contains("cleanup") {
+                TestRole::FixtureTeardown
+            } else {
+                TestRole::FixtureSetup
+            }
+        }
+    }
+}
+
 /// Build a `Function` symbol for a captured test-DSL call. Grammar-agnostic: the
 /// caller (a per-language adapter) walks the grammar to resolve `full_callee`, the
 /// display `name`, and the `category`; this attaches the canonical metadata and
 /// creates the symbol.
 ///
-/// Metadata mirrors the historical JS behavior:
+/// Metadata goes through the shared role writer, so the booleans stay what they
+/// have always been and the `test_role` string always agrees with them:
 /// - `Test` / `Lifecycle` → `is_test = true`
 /// - `Container` → `test_container = true`
 /// - `Lifecycle` → additionally `test_lifecycle = true`
@@ -103,18 +130,7 @@ pub fn build_test_call_symbol(
     };
 
     let mut metadata = HashMap::new();
-    match category {
-        TestCallCategory::Test => {
-            metadata.insert("is_test".to_string(), serde_json::json!(true));
-        }
-        TestCallCategory::Container => {
-            metadata.insert("test_container".to_string(), serde_json::json!(true));
-        }
-        TestCallCategory::Lifecycle => {
-            metadata.insert("is_test".to_string(), serde_json::json!(true));
-            metadata.insert("test_lifecycle".to_string(), serde_json::json!(true));
-        }
-    }
+    apply_test_role(&mut metadata, test_call_role(full_callee, category));
 
     base.create_symbol(
         node,

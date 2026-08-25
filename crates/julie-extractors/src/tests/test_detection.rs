@@ -2312,3 +2312,320 @@ TestCase {
     assert_eq!(symbol_role(named("test_adds_data")), None);
     assert_eq!(symbol_role(named("helper")), None);
 }
+
+// ===========================================================================
+// Shared path guard — one accept case and one near-miss control per convention
+// ===========================================================================
+
+fn path_reads_as_test(file_path: &str) -> bool {
+    check(
+        "zig",
+        "test_thing",
+        file_path,
+        &SymbolKind::Function,
+        &[],
+        None,
+    )
+}
+
+fn windows_path(file_path: &str) -> String {
+    file_path.replace('/', "\\")
+}
+
+#[test]
+fn ruby_test_suffix_reads_as_a_test_path() {
+    assert!(path_reads_as_test("app/models/user_test.rb"));
+}
+
+#[test]
+fn a_ruby_file_that_only_looks_like_a_test_suffix_reads_as_production() {
+    assert!(!path_reads_as_test("app/models/contest.rb"));
+}
+
+#[test]
+fn ruby_spec_suffix_reads_as_a_test_path() {
+    assert!(path_reads_as_test("app/models/user_spec.rb"));
+}
+
+#[test]
+fn a_ruby_file_that_only_looks_like_a_spec_suffix_reads_as_production() {
+    assert!(!path_reads_as_test("app/models/codespec.rb"));
+}
+
+#[test]
+fn python_test_suffix_reads_as_a_test_path() {
+    assert!(path_reads_as_test("src/calc_test.py"));
+}
+
+#[test]
+fn a_python_file_that_only_looks_like_a_test_suffix_reads_as_production() {
+    assert!(!path_reads_as_test("src/contest.py"));
+}
+
+#[test]
+fn a_pytest_conftest_file_reads_as_a_test_path() {
+    assert!(path_reads_as_test("src/pkg/conftest.py"));
+}
+
+#[test]
+fn a_file_that_only_ends_in_conftest_py_reads_as_production() {
+    assert!(!path_reads_as_test("src/pkg/myconftest.py"));
+}
+
+#[test]
+fn phpunit_test_suffix_reads_as_a_test_path() {
+    assert!(path_reads_as_test("src/UserTest.php"));
+}
+
+#[test]
+fn a_php_file_that_only_looks_like_a_test_suffix_reads_as_production() {
+    assert!(!path_reads_as_test("src/Contest.php"));
+}
+
+#[test]
+fn codeception_cest_suffix_reads_as_a_test_path() {
+    assert!(path_reads_as_test("src/LoginCest.php"));
+}
+
+#[test]
+fn a_php_file_that_only_looks_like_a_cest_suffix_reads_as_production() {
+    assert!(!path_reads_as_test("src/recest.php"));
+}
+
+#[test]
+fn phpspec_spec_suffix_reads_as_a_test_path() {
+    assert!(path_reads_as_test("src/UserSpec.php"));
+}
+
+#[test]
+fn a_php_file_that_only_looks_like_a_spec_suffix_reads_as_production() {
+    assert!(!path_reads_as_test("src/prospec.php"));
+}
+
+#[test]
+fn an_xcode_tests_directory_reads_as_a_test_path() {
+    assert!(path_reads_as_test("MyAppTests/Helper.swift"));
+}
+
+#[test]
+fn a_directory_that_only_looks_like_a_tests_directory_reads_as_production() {
+    assert!(!path_reads_as_test("Contests/Helper.swift"));
+}
+
+#[test]
+fn an_xcode_tests_swift_file_reads_as_a_test_path() {
+    assert!(path_reads_as_test("Sources/CalculatorTests.swift"));
+}
+
+#[test]
+fn a_swift_file_that_only_looks_like_a_tests_file_reads_as_production() {
+    assert!(!path_reads_as_test("Sources/Manifests.swift"));
+}
+
+#[test]
+fn an_e2e_directory_reads_as_a_test_path() {
+    assert!(path_reads_as_test("apps/web/e2e/login.ts"));
+}
+
+#[test]
+fn a_directory_that_only_starts_with_e2e_reads_as_production() {
+    assert!(!path_reads_as_test("apps/web/e2ee/login.ts"));
+}
+
+#[test]
+fn a_cypress_directory_reads_as_a_test_path() {
+    assert!(path_reads_as_test("cypress/support/commands.js"));
+}
+
+#[test]
+fn a_directory_that_only_starts_with_cypress_reads_as_production() {
+    assert!(!path_reads_as_test("cypress-helpers/support/commands.js"));
+}
+
+#[test]
+fn an_integration_directory_reads_as_a_test_path() {
+    assert!(path_reads_as_test("src/integration/payment_flow.js"));
+}
+
+#[test]
+fn an_integrations_directory_reads_as_production() {
+    assert!(!path_reads_as_test("src/integrations/payment_flow.js"));
+}
+
+#[test]
+fn a_cypress_spec_infix_reads_as_a_test_path() {
+    assert!(path_reads_as_test("src/login.cy.ts"));
+}
+
+#[test]
+fn a_file_that_only_looks_like_a_cypress_spec_reads_as_production() {
+    assert!(!path_reads_as_test("reports/latest.cy-report.txt"));
+}
+
+#[test]
+fn a_gradle_integration_test_source_set_reads_as_a_test_path() {
+    assert!(path_reads_as_test("src/integrationTest/java/CalcIT.java"));
+}
+
+#[test]
+fn a_directory_that_only_starts_with_integration_test_reads_as_production() {
+    assert!(!path_reads_as_test(
+        "src/integrationTestUtils/java/Calc.java"
+    ));
+}
+
+#[test]
+fn a_gradle_test_fixtures_source_set_reads_as_a_test_path() {
+    assert!(path_reads_as_test("src/testFixtures/java/Fake.java"));
+}
+
+#[test]
+fn a_directory_that_only_starts_with_test_fixtures_reads_as_production() {
+    assert!(!path_reads_as_test("src/testFixturesGen/java/Fake.java"));
+}
+
+#[test]
+fn a_gradle_android_test_source_set_reads_as_a_test_path() {
+    assert!(path_reads_as_test("app/src/androidTest/java/UiCheck.java"));
+}
+
+#[test]
+fn a_directory_that_only_starts_with_android_test_reads_as_production() {
+    assert!(!path_reads_as_test(
+        "app/src/androidTestShared/java/UiCheck.java"
+    ));
+}
+
+#[test]
+fn a_gradle_functional_test_source_set_reads_as_a_test_path() {
+    assert!(path_reads_as_test(
+        "src/functionalTest/groovy/CalcFuncSpec.groovy"
+    ));
+}
+
+#[test]
+fn a_directory_that_only_starts_with_functional_test_reads_as_production() {
+    assert!(!path_reads_as_test(
+        "src/functionalTesting/groovy/Calc.groovy"
+    ));
+}
+
+#[test]
+fn every_accepted_convention_also_holds_with_windows_separators() {
+    let accepted = [
+        "src/test/java/CalcTest.java",
+        "src/tests/calc.zig",
+        "spec/models/user.rb",
+        "src/__tests__/calc.js",
+        "MyProject.Tests/Calc.cs",
+        "app/models/user_test.rb",
+        "app/models/user_spec.rb",
+        "src/calc_test.py",
+        "src/pkg/conftest.py",
+        "src/UserTest.php",
+        "src/LoginCest.php",
+        "src/UserSpec.php",
+        "MyAppTests/Helper.swift",
+        "Sources/CalculatorTests.swift",
+        "apps/web/e2e/login.ts",
+        "cypress/support/commands.js",
+        "src/integration/payment_flow.js",
+        "src/login.cy.ts",
+        "src/integrationTest/java/CalcIT.java",
+        "src/testFixtures/java/Fake.java",
+        "app/src/androidTest/java/UiCheck.java",
+        "src/functionalTest/groovy/CalcFuncSpec.groovy",
+    ];
+
+    for file_path in accepted {
+        assert!(path_reads_as_test(file_path), "{file_path}");
+        let windows = windows_path(file_path);
+        assert!(path_reads_as_test(&windows), "{windows}");
+    }
+}
+
+#[test]
+fn every_previously_accepted_convention_is_still_accepted() {
+    let accepted = [
+        "src/test/java/CalcTest.java",
+        "src/tests/calc.zig",
+        "src/Test/Calc.cs",
+        "src/Tests/Calc.cs",
+        "spec/models/user.rb",
+        "Spec/Models/User.cs",
+        "src/__tests__/calc.js",
+        "src/autotests/calc.py",
+        "MyProject.Tests/Calc.cs",
+        "MyProject.Test/Calc.cs",
+        "pkg/calc_test.go",
+        "src/calc.test.js",
+        "src/calc.spec.ts",
+        "src/test_calc.py",
+        "src/tst_calc.qml",
+    ];
+
+    for file_path in accepted {
+        assert!(path_reads_as_test(file_path), "{file_path}");
+    }
+}
+
+// ===========================================================================
+// test_role on call-style test DSL symbols
+// ===========================================================================
+
+#[test]
+fn a_js_test_dsl_call_carries_a_role_for_every_captured_category() {
+    let code = r#"
+describe("calculator", () => {
+  beforeEach(() => {});
+  afterEach(() => {});
+  it("adds", () => {});
+});
+"#;
+    let symbols = extract_symbols_for("javascript", "src/calc.test.js", code);
+
+    let named = |name: &str| {
+        symbols
+            .iter()
+            .find(|symbol| symbol.name == name)
+            .unwrap_or_else(|| panic!("{name} should be extracted"))
+    };
+
+    assert_eq!(symbol_role(named("calculator")), Some("test_container"));
+    assert_eq!(symbol_role(named("adds")), Some("test_case"));
+    assert_eq!(symbol_role(named("beforeEach")), Some("fixture_setup"));
+    assert_eq!(symbol_role(named("afterEach")), Some("fixture_teardown"));
+}
+
+#[test]
+fn a_js_test_dsl_call_keeps_the_boolean_flags_it_has_always_emitted() {
+    let code = r#"
+describe("calculator", () => {
+  beforeEach(() => {});
+  it("adds", () => {});
+});
+"#;
+    let symbols = extract_symbols_for("javascript", "src/calc.test.js", code);
+
+    let metadata_of = |name: &str| {
+        symbols
+            .iter()
+            .find(|symbol| symbol.name == name)
+            .and_then(|symbol| symbol.metadata.clone())
+            .unwrap_or_else(|| panic!("{name} should carry metadata"))
+    };
+
+    let container = metadata_of("calculator");
+    assert!(flag(&container, "test_container"));
+    assert!(!container.contains_key("is_test"));
+
+    let case = metadata_of("adds");
+    assert!(flag(&case, "is_test"));
+    assert!(!case.contains_key("test_lifecycle"));
+    assert!(!case.contains_key("test_container"));
+
+    let hook = metadata_of("beforeEach");
+    assert!(flag(&hook, "is_test"));
+    assert!(flag(&hook, "test_lifecycle"));
+    assert!(!hook.contains_key("test_container"));
+}

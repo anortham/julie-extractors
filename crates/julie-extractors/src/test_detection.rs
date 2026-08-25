@@ -44,7 +44,7 @@ impl TestLifecycleDirection {
 ///
 /// Every test-role write in this module goes through here, so the booleans a
 /// consumer reads and the `test_role` string can never disagree.
-fn apply_test_role(metadata: &mut HashMap<String, serde_json::Value>, role: TestRole) {
+pub(crate) fn apply_test_role(metadata: &mut HashMap<String, serde_json::Value>, role: TestRole) {
     match role {
         TestRole::TestContainer => {
             metadata.insert("test_container".to_string(), serde_json::Value::Bool(true));
@@ -78,36 +78,76 @@ fn is_callable(kind: &SymbolKind) -> bool {
     )
 }
 
+/// Directory names that mean "the code below me is test code".
+///
+/// Matching is exact and case-sensitive, so `integrations/` and `androidTestUtils/`
+/// stay production directories.
+const TEST_DIRECTORY_SEGMENTS: &[&str] = &[
+    "test",
+    "tests",
+    "Test",
+    "Tests",
+    "spec",
+    "Spec",
+    "__tests__",
+    "autotests",
+    "e2e",
+    "cypress",
+    "integration",
+    "integrationTest",
+    "testFixtures",
+    "androidTest",
+    "functionalTest",
+];
+
+/// File-name endings that mean "this file is a test file".
+const TEST_FILE_NAME_SUFFIXES: &[&str] = &[
+    "_test.go",
+    "_test.rb",
+    "_spec.rb",
+    "_test.py",
+    "Test.php",
+    "Cest.php",
+    "Spec.php",
+    "Tests.swift",
+];
+
+const PATH_SEPARATORS: [char; 2] = ['/', '\\'];
+
 /// Check whether `file_path` looks like it lives in a test directory or is a test file.
 ///
 /// Language-agnostic: works for Rust, Python, Java, C#, Go, JS/TS, Ruby, Swift, etc.
+/// Accepts both `/` and `\` separators so Windows-spelled paths read the same.
 fn is_test_path(file_path: &str) -> bool {
-    // Segment-level checks (directory names)
-    for segment in file_path.split('/') {
-        match segment {
-            "test" | "tests" | "Test" | "Tests" | "spec" | "Spec" | "__tests__" | "autotests" => {
-                return true;
-            }
-            _ => {}
+    for segment in file_path.split(PATH_SEPARATORS) {
+        if TEST_DIRECTORY_SEGMENTS.contains(&segment) {
+            return true;
         }
-        // C# convention: MyProject.Tests/
-        if segment.ends_with(".Tests") || segment.ends_with(".Test") {
+        // C# `MyProject.Test/`, C# `MyProject.Tests/`, Xcode `MyAppTests/`
+        if segment.ends_with(".Test") || segment.ends_with("Tests") {
             return true;
         }
     }
 
-    // File-name patterns
-    let file_name = file_path.rsplit('/').next().unwrap_or(file_path);
-    if file_name.ends_with("_test.go")
-        || file_name.contains(".test.")
-        || file_name.contains(".spec.")
-        || file_name.starts_with("test_")
-        || file_name.starts_with("tst_")
+    let file_name = file_path
+        .rsplit(PATH_SEPARATORS)
+        .next()
+        .unwrap_or(file_path);
+    if file_name == "conftest.py" {
+        return true;
+    }
+    if TEST_FILE_NAME_SUFFIXES
+        .iter()
+        .any(|suffix| file_name.ends_with(suffix))
     {
         return true;
     }
 
-    false
+    file_name.contains(".test.")
+        || file_name.contains(".spec.")
+        || file_name.contains(".cy.")
+        || file_name.starts_with("test_")
+        || file_name.starts_with("tst_")
 }
 
 /// Determine if a symbol is a test symbol.
@@ -331,33 +371,60 @@ pub(crate) fn mark_base_type_test_containers(symbols: &mut [Symbol], base_type: 
     }
 
     if base_type == "TestCase" {
-        normalize_qml_test_roles(symbols, &test_container_ids);
+        normalize_scoped_test_roles(symbols, &test_container_ids);
+        apply_qml_test_roles(symbols, &test_container_ids);
     }
 }
 
-fn normalize_qml_test_roles(symbols: &mut [Symbol], test_container_ids: &HashSet<String>) {
-    let parent_by_id: HashMap<String, Option<String>> = symbols
+fn parent_index(symbols: &[Symbol]) -> HashMap<String, Option<String>> {
+    symbols
         .iter()
         .map(|symbol| (symbol.id.clone(), symbol.parent_id.clone()))
-        .collect();
+        .collect()
+}
 
-    for symbol in symbols
-        .iter_mut()
-        .filter(|symbol| symbol.language == "qml" && is_callable(&symbol.kind))
-    {
-        let in_test_case = has_testcase_ancestor(symbol, test_container_ids, &parent_by_id);
-        let role = in_test_case.then(|| qml_test_role(&symbol.name)).flatten();
+/// Strip the test role from every callable that no symbol in `test_container_ids`
+/// contains.
+///
+/// Language-neutral: the caller decides which symbols are test containers and
+/// passes their ids. Use it wherever a name-based rule can fire on production
+/// code that happens to share a test framework's vocabulary.
+pub(crate) fn normalize_scoped_test_roles(
+    symbols: &mut [Symbol],
+    test_container_ids: &HashSet<String>,
+) {
+    let parent_by_id = parent_index(symbols);
+
+    for symbol in symbols.iter_mut().filter(|symbol| {
+        is_callable(&symbol.kind)
+            && !has_test_container_ancestor(symbol, test_container_ids, &parent_by_id)
+    }) {
+        let Some(mut metadata) = symbol.metadata.take() else {
+            continue;
+        };
+        clear_test_role(&mut metadata);
+        symbol.metadata = (!metadata.is_empty()).then_some(metadata);
+    }
+}
+
+fn apply_qml_test_roles(symbols: &mut [Symbol], test_container_ids: &HashSet<String>) {
+    let parent_by_id = parent_index(symbols);
+
+    for symbol in symbols.iter_mut().filter(|symbol| {
+        symbol.language == "qml"
+            && is_callable(&symbol.kind)
+            && has_test_container_ancestor(symbol, test_container_ids, &parent_by_id)
+    }) {
         let mut metadata = symbol.metadata.take().unwrap_or_default();
         clear_test_role(&mut metadata);
-
-        if let Some(role) = role {
+        if let Some(role) = qml_test_role(&symbol.name) {
             apply_test_role(&mut metadata, role);
         }
         symbol.metadata = (!metadata.is_empty()).then_some(metadata);
     }
 }
 
-fn has_testcase_ancestor(
+fn has_test_container_ancestor(
     symbol: &Symbol,
     test_container_ids: &HashSet<String>,
     parent_by_id: &HashMap<String, Option<String>>,

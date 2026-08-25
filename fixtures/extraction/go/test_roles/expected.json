@@ -58,7 +58,8 @@
       "parent_key": "fixtures/extraction/go/test_roles/source_test.go:calculator:9:8",
       "metadata": {
         "is_test": true,
-        "test_lifecycle": true
+        "test_lifecycle": true,
+        "test_role": "fixture_setup"
       },
       "annotations": [],
       "semantic_group": null,
@@ -155,7 +156,8 @@
       "visibility": null,
       "parent_key": "fixtures/extraction/go/test_roles/source_test.go:calculator:9:8",
       "metadata": {
-        "is_test": true
+        "is_test": true,
+        "test_role": "test_case"
       },
       "annotations": [],
       "semantic_group": null,
@@ -188,7 +190,8 @@
       "visibility": null,
       "parent_key": null,
       "metadata": {
-        "test_container": true
+        "test_container": true,
+        "test_role": "test_container"
       },
       "annotations": [],
       "semantic_group": null,

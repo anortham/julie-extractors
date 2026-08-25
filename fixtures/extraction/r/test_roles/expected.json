@@ -57,7 +57,8 @@
       "visibility": null,
       "parent_key": "fixtures/extraction/r/test_roles/test_source.r:r roles:1:0",
       "metadata": {
-        "is_test": true
+        "is_test": true,
+        "test_role": "test_case"
       },
       "annotations": [],
       "semantic_group": null,
@@ -90,7 +91,8 @@
       "visibility": null,
       "parent_key": null,
       "metadata": {
-        "is_test": true
+        "is_test": true,
+        "test_role": "test_case"
       },
       "annotations": [],
       "semantic_group": null,
@@ -123,7 +125,8 @@
       "visibility": null,
       "parent_key": null,
       "metadata": {
-        "test_container": true
+        "test_container": true,
+        "test_role": "test_container"
       },
       "annotations": [],
       "semantic_group": null,
