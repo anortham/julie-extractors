@@ -55,6 +55,15 @@ fn is_test(symbol: &crate::base::Symbol) -> bool {
     role(symbol, "is_test")
 }
 
+fn test_role(symbol: &crate::base::Symbol) -> Option<String> {
+    symbol
+        .metadata
+        .as_ref()
+        .and_then(|m| m.get("test_role"))
+        .and_then(|v| v.as_str())
+        .map(str::to_string)
+}
+
 fn role(symbol: &crate::base::Symbol, key: &str) -> bool {
     symbol
         .metadata
@@ -232,6 +241,132 @@ class MisleadingBase extends NotATestCase {
     assert!(role(named(&syms, "WhenEmpty"), "test_container"));
     assert!(!role(named(&syms, "OrdinaryHelper"), "test_container"));
     assert!(!role(named(&syms, "MisleadingBase"), "test_container"));
+}
+
+#[test]
+fn testng_class_level_test_marks_the_class_and_its_public_methods() {
+    let code = r#"
+@org.testng.annotations.Test
+public class OrderFlowTest {
+    public void placesOrder() {
+        total(1, 2);
+    }
+
+    private int total(int first, int second) {
+        return first + second;
+    }
+}
+"#;
+    let syms = symbols(code, "src/test/java/OrderFlowTest.java");
+    assert!(role(named(&syms, "OrderFlowTest"), "test_container"));
+
+    let case = named(&syms, "placesOrder");
+    assert!(is_test(case));
+    assert_eq!(test_role(case), Some("test_case".to_string()));
+
+    let helper = named(&syms, "total");
+    assert!(
+        !is_test(helper),
+        "a non-public member of a TestNG class is not a case"
+    );
+}
+
+#[test]
+fn testng_lifecycle_annotations_outrank_the_class_level_case_rule() {
+    let code = r#"
+@org.testng.annotations.Test
+public class OrderSuiteTest {
+    @org.testng.annotations.BeforeSuite
+    public void beforeSuite() {
+    }
+
+    @org.testng.annotations.AfterMethod
+    public void afterMethod() {
+    }
+}
+"#;
+    let syms = symbols(code, "src/test/java/OrderSuiteTest.java");
+
+    let setup = named(&syms, "beforeSuite");
+    assert_eq!(test_role(setup), Some("fixture_setup".to_string()));
+
+    let teardown = named(&syms, "afterMethod");
+    assert_eq!(test_role(teardown), Some("fixture_teardown".to_string()));
+}
+
+#[test]
+fn parameterized_annotations_upgrade_the_method_role() {
+    let code = r#"
+class CalcTest {
+    @org.junit.jupiter.params.ParameterizedTest
+    void addsPairs() {
+    }
+
+    @org.junit.jupiter.api.RepeatedTest
+    void addsRepeatedly() {
+    }
+
+    @org.junit.jupiter.api.TestFactory
+    void buildsCases() {
+    }
+}
+"#;
+    let syms = symbols(code, "src/test/java/CalcTest.java");
+    assert_eq!(
+        test_role(named(&syms, "addsPairs")),
+        Some("parameterized_test".to_string())
+    );
+    assert_eq!(
+        test_role(named(&syms, "addsRepeatedly")),
+        Some("parameterized_test".to_string())
+    );
+    assert_eq!(
+        test_role(named(&syms, "buildsCases")),
+        Some("test_case".to_string())
+    );
+}
+
+#[test]
+fn junit3_name_fallback_only_fires_inside_a_test_container() {
+    let code = r#"
+import junit.framework.TestCase;
+
+public class CalcTest extends TestCase {
+    public void testAdds() {
+    }
+}
+
+class TestRoleHelpers {
+    public void testDataForCalc() {
+    }
+}
+"#;
+    let syms = symbols(code, "src/test/java/CalcTest.java");
+    assert!(is_test(named(&syms, "testAdds")));
+
+    let helper = named(&syms, "testDataForCalc");
+    assert!(
+        !is_test(helper),
+        "a test-named method outside a test container must carry no role"
+    );
+    assert!(!role(named(&syms, "TestRoleHelpers"), "test_container"));
+}
+
+#[test]
+fn lifecycle_only_class_stays_a_test_container() {
+    let code = r#"
+class AbstractIntegrationTest {
+    @org.junit.jupiter.api.BeforeEach
+    void setUp() {
+    }
+}
+"#;
+    let syms = symbols(code, "src/test/java/AbstractIntegrationTest.java");
+    assert!(role(
+        named(&syms, "AbstractIntegrationTest"),
+        "test_container"
+    ));
+    assert!(role(named(&syms, "setUp"), "test_lifecycle"));
 }
 
 #[test]

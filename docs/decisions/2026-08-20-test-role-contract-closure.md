@@ -26,6 +26,7 @@ Every row below has `test_detection.open_gaps: []` in
 | C# | NUnit, MSTest, and xUnit.net attributes plus the xUnit constructor/`IDisposable`/`IAsyncLifetime` lifecycle in `csharp:test_roles` | supported | supported | supported |
 | JavaScript family (`javascript`, `jsx`, `typescript`, `tsx`) | Jest/Vitest, Playwright, Mocha BDD and TDD, `node:test`, and QUnit call DSLs, plus testdeck method decorators, in `javascript:test_roles`, `javascript:jest_vitest_roles`, `javascript:mocha_tdd_roles`, `jsx:test_roles`, `jsx:node_test_roles`, `typescript:test_roles`, `typescript:playwright_roles`, `tsx:test_roles`, and `tsx:qunit_roles` | supported | supported | supported |
 | Go | `go test` name prefixes and the `_test.go` compile gate, `TestMain`, testify suite embedding and hooks, gocheck hooks, and the Ginkgo v2 node vocabulary in `go:test_roles` | supported | supported | supported |
+| Java | JUnit 3 `TestCase` subclasses, JUnit 4/5 annotations, and TestNG annotations including the class-level `@Test` in `java:test_roles` | supported | supported | supported |
 
 The `not_applicable` cells are contract-level conclusions. Zig's `test`
 declarations provide no adopted lifecycle or suite syntax;
@@ -131,6 +132,43 @@ for the Rust changes are in `docs/languages/rust.md`.
 
 - Go: the [`go test` command documentation](https://pkg.go.dev/cmd/go#hdr-Testing_flags) and the [`testing` package](https://pkg.go.dev/testing) define the `_test.go` file suffix, the `TestXxx`/`BenchmarkXxx`/`FuzzXxx`/`ExampleXxx` name prefixes, the rule that the character after the prefix must not be lower-case, and `TestMain` as the package entry point that wraps `m.Run()`; [testify's suite package](https://pkg.go.dev/github.com/stretchr/testify/suite) defines the embedded `suite.Suite`, `SetupSuite`/`TearDownSuite`, `SetupTest`/`TearDownTest`, `SetupSubTest`/`TearDownSubTest`, and `BeforeTest`/`AfterTest` interfaces; [gocheck](https://pkg.go.dev/gopkg.in/check.v1) defines `SetUpSuite`/`TearDownSuite` and `SetUpTest`/`TearDownTest`; [Ginkgo v2](https://onsi.github.io/ginkgo/) defines the container, subject, and setup node vocabulary and states that the spec tree is built at file scope with the suite as the implicit root.
 - C#: [NUnit attributes](https://docs.nunit.org/articles/nunit/writing-tests/attributes.html) define `TestFixture`, `SetUpFixture`, `Test`, `TestCase`, `TestCaseSource`, `TestFixtureSource`, `SetUp`/`TearDown`, and `OneTimeSetUp`/`OneTimeTearDown`; [MSTest attributes](https://learn.microsoft.com/en-us/dotnet/core/testing/unit-testing-mstest-writing) define `TestClass`, `TestMethod`, `DataTestMethod`, `TestInitialize`/`TestCleanup`, `ClassInitialize`/`ClassCleanup`, and `AssemblyInitialize`/`AssemblyCleanup`; [xUnit.net shared context](https://xunit.net/docs/shared-context) defines the constructor, `IDisposable`, `IAsyncDisposable`, and `IAsyncLifetime` as the fixture hooks and `CollectionDefinition` as the collection declaration.
+
+- Java: [JUnit 5 annotations](https://docs.junit.org/current/user-guide/#writing-tests-annotations) define `@Test`, `@ParameterizedTest`, `@RepeatedTest`, `@TestFactory`, `@TestTemplate`, `@Nested`, and the `@BeforeEach`/`@AfterEach`/`@BeforeAll`/`@AfterAll` hooks; [JUnit 4](https://github.com/junit-team/junit4/wiki/Test-fixtures) defines `@Before`/`@After` and `@BeforeClass`/`@AfterClass`; [`junit.framework.TestCase`](https://junit.org/junit4/javadoc/latest/junit/framework/TestCase.html) defines the JUnit 3 subclass-and-`testXxx` contract; [TestNG annotations](https://testng.org/#_annotations) define `@Test` on a class or a method and the `@BeforeSuite`/`@AfterSuite`, `@BeforeTest`/`@AfterTest`, `@BeforeGroups`/`@AfterGroups`, `@BeforeClass`/`@AfterClass`, and `@BeforeMethod`/`@AfterMethod` hooks; the [JUnit Platform Suite engine](https://docs.junit.org/current/user-guide/#junit-platform-suite-engine) defines `@Suite`; [Cucumber-JVM](https://github.com/cucumber/cucumber-jvm/blob/main/docs/step-definitions.md) defines glue-class step bindings.
+
+## Java named contract and exclusions
+
+TestNG's class-level `@Test` marks the class a container and every public
+method of that class a case, because TestNG runs them that way. A hook
+annotation on such a method wins over the class-level rule. Non-public members
+are excluded, and `fixtures/extraction/java/test_roles/test_source.java` carries
+`LedgerTestNgTest.helperTotal` as the control that must stay unclassified.
+
+`@ParameterizedTest` and `@RepeatedTest` report `parameterized_test`, because
+one declaration runs one result per argument source or per repetition.
+`@TestFactory` and `@TestTemplate` stay `test_case`: each is one declaration
+the engine expands at run time, and the expansion is not visible in the source.
+
+JUnit 3 has no annotation, so the contract falls back to the `test` name prefix
+guarded by the shared test-path check. Ordinary Java shares that vocabulary —
+listeners and extensions are full of `testName` and `testMethod` — so the
+fallback is scoped with `normalize_scoped_test_roles`: a callable that no test
+container encloses loses the role. `LedgerTestHelpers.testDataForLedger` is the
+golden's control. Scoping runs only for Java; Kotlin shares the pass but also
+earns roles from the Kotest and Spek call DSLs, whose spec classes carry no
+container marker yet. A second pass re-derives every role an annotation alone
+justifies, so scoping by position cannot strip an annotated member.
+
+Two named frameworks are excluded and recorded as `open_gaps` on the java row:
+Cucumber-JVM step bindings (the executable scenario lives in a `.feature` file,
+and `@Given`/`@When`/`@Then` on a glue class are unclassified) and JUnit
+Platform `@Suite` containers (the suite class holds no test member of its own).
+Those two entries sit under `kind_coverage.structural_facts.open_gaps` rather
+than `test_detection`, for the same reason as the csharp pair below: the
+`test_detection` vocabulary is frozen to three units and each is already
+classified exactly once for java.
+
+Real-world precision and recall measurements against the TestNG and JUnit
+source trees are in `docs/languages/java.md`.
 
 ## C# named exclusions
 

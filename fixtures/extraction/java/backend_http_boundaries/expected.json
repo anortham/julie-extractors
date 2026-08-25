@@ -176,7 +176,7 @@
       "doc_comment": null,
       "visibility": "Private",
       "parent_key": "fixtures/extraction/java/backend_http_boundaries/source.java:UserController:5:0",
-      "metadata": {},
+      "metadata": null,
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -207,7 +207,7 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/java/backend_http_boundaries/source.java:UserController:5:0",
-      "metadata": {},
+      "metadata": null,
       "annotations": [
         {
           "annotation": "GetMapping",
@@ -244,7 +244,7 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/java/backend_http_boundaries/source.java:HealthController:20:0",
-      "metadata": {},
+      "metadata": null,
       "annotations": [
         {
           "annotation": "GetMapping",
@@ -281,7 +281,7 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/java/backend_http_boundaries/source.java:HealthController:20:0",
-      "metadata": {},
+      "metadata": null,
       "annotations": [
         {
           "annotation": "RequestMapping",
@@ -318,7 +318,7 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/java/backend_http_boundaries/source.java:UserController:5:0",
-      "metadata": {},
+      "metadata": null,
       "annotations": [
         {
           "annotation": "RequestMapping",

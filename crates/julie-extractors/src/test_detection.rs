@@ -4,7 +4,7 @@
 //! a symbol is a test based on its language, name, file path, kind, annotation keys,
 //! and doc comment. No tree-sitter, no file I/O.
 
-use crate::base::{Symbol, SymbolKind, TestRole};
+use crate::base::{Symbol, SymbolKind, TestRole, Visibility};
 use std::collections::{HashMap, HashSet};
 
 /// Which side of a fixture a test lifecycle hook runs on.
@@ -362,15 +362,44 @@ fn detect_scala(name: &str, annotation_keys: &[String]) -> bool {
 }
 
 fn is_java_test_case_annotation(annotation: &str) -> bool {
-    matches!(annotation, "test" | "parameterizedtest" | "repeatedtest")
+    matches!(annotation, "test" | "testfactory" | "testtemplate")
+        || is_java_parameterized_test_annotation(annotation)
 }
 
+/// Annotations that run one method once per case, so the runner reports one
+/// result per case instead of one result per method.
+fn is_java_parameterized_test_annotation(annotation: &str) -> bool {
+    matches!(annotation, "parameterizedtest" | "repeatedtest")
+}
+
+/// TestNG's class-level `@Test`, which runs every public method of the class as
+/// a case.
+fn is_testng_class_case_annotation(annotation: &str) -> bool {
+    annotation == "test"
+}
+
+/// Annotations that declare a type to be a test container on their own.
+fn is_java_container_annotation(annotation: &str) -> bool {
+    annotation == "nested" || is_testng_class_case_annotation(annotation)
+}
+
+/// JUnit 4/5, TestNG, and kotlin.test hook annotations, keyed on the lower-cased
+/// last segment of the annotation name.
 fn java_test_lifecycle_direction(annotation: &str) -> TestLifecycleDirection {
     match annotation {
-        "beforeeach" | "beforeall" | "before" | "beforeclass" => TestLifecycleDirection::Setup,
-        "aftereach" | "afterall" | "after" | "afterclass" => TestLifecycleDirection::Teardown,
+        "beforeeach" | "beforeall" | "before" | "beforeclass" | "beforemethod" | "beforesuite"
+        | "beforetest" | "beforegroups" => TestLifecycleDirection::Setup,
+        "aftereach" | "afterall" | "after" | "afterclass" | "aftermethod" | "aftersuite"
+        | "aftertest" | "aftergroups" => TestLifecycleDirection::Teardown,
         _ => TestLifecycleDirection::None,
     }
+}
+
+fn java_test_case_role(annotation_keys: &[String]) -> Option<TestRole> {
+    annotation_keys
+        .iter()
+        .any(|annotation| is_java_parameterized_test_annotation(annotation))
+        .then_some(TestRole::ParameterizedTest)
 }
 
 fn detect_java_kotlin(annotation_keys: &[String]) -> bool {
@@ -463,6 +492,7 @@ fn is_test_lifecycle(
 /// parameterized case with an annotation.
 fn annotated_test_case_role(language: &str, annotation_keys: &[String]) -> Option<TestRole> {
     match language {
+        "java" | "kotlin" => java_test_case_role(annotation_keys),
         "python" => python_test_case_role(annotation_keys),
         "rust" => rust_test_case_role(annotation_keys),
         _ => None,
@@ -721,33 +751,116 @@ pub(crate) fn mark_java_test_containers(symbols: &mut [Symbol]) {
     let containers_with_test_members: HashSet<String> = symbols
         .iter()
         .filter(|symbol| symbol.kind == SymbolKind::Method)
-        .filter(|symbol| {
-            symbol
-                .annotations
-                .iter()
-                .any(|annotation| is_java_test_case_annotation(&annotation.annotation_key))
-        })
+        .filter(|symbol| has_java_annotation(symbol, is_java_member_test_annotation))
         .filter_map(|symbol| symbol.parent_id.clone())
         .collect();
 
+    let mut testng_class_ids: HashSet<String> = HashSet::new();
     for symbol in symbols
         .iter_mut()
         .filter(|symbol| symbol.kind == SymbolKind::Class)
     {
-        let has_nested_attribute = symbol
-            .annotations
-            .iter()
-            .any(|annotation| annotation.annotation_key == "nested");
         let extends_testcase = metadata_string_list_contains(symbol, "base_types", "TestCase");
-        if has_nested_attribute
+        if has_java_annotation(symbol, is_java_container_annotation)
             || extends_testcase
             || containers_with_test_members.contains(&symbol.id)
         {
             mark_class_test_container(symbol);
         }
+        if has_java_annotation(symbol, is_testng_class_case_annotation) {
+            testng_class_ids.insert(symbol.id.clone());
+        }
     }
 
     mark_ancestor_test_containers(symbols);
+
+    if scopes_name_convention_roles(symbols) {
+        let test_container_ids = marked_test_container_ids(symbols);
+        normalize_scoped_test_roles(symbols, &test_container_ids);
+    }
+    apply_java_member_test_roles(symbols, &testng_class_ids);
+}
+
+/// Whether the JUnit 3 `testXxx` name convention is the only rule here that can
+/// fire outside a test container.
+///
+/// Kotlin shares this pass but also earns roles from the Kotest and Spek call
+/// DSLs, whose spec classes carry no container marker yet, so scoping a Kotlin
+/// file would strip real roles. Java has no call-style test DSL.
+fn scopes_name_convention_roles(symbols: &[Symbol]) -> bool {
+    symbols.iter().all(|symbol| symbol.language == "java")
+}
+
+/// Annotations that make a method test infrastructure, so its enclosing class is
+/// a test container. A class holding only hooks — a shared JUnit base class —
+/// still counts.
+fn is_java_member_test_annotation(annotation: &str) -> bool {
+    is_java_test_case_annotation(annotation)
+        || java_test_lifecycle_direction(annotation).is_lifecycle()
+}
+
+fn has_java_annotation(symbol: &Symbol, matches_key: impl Fn(&str) -> bool) -> bool {
+    symbol
+        .annotations
+        .iter()
+        .any(|annotation| matches_key(&annotation.annotation_key))
+}
+
+fn marked_test_container_ids(symbols: &[Symbol]) -> HashSet<String> {
+    symbols
+        .iter()
+        .filter(|symbol| metadata_flag(symbol, "test_container"))
+        .map(|symbol| symbol.id.clone())
+        .collect()
+}
+
+/// Restore the annotation-driven roles the scoping pass cleared, and classify
+/// the members a TestNG class-level `@Test` covers.
+///
+/// Scoping is a name-convention guard, but it cannot see where a role came
+/// from: it also strips an annotated Kotlin top-level test function, which has
+/// no enclosing class at all. Re-deriving from annotations alone puts those
+/// roles back without reviving the name convention.
+fn apply_java_member_test_roles(symbols: &mut [Symbol], testng_class_ids: &HashSet<String>) {
+    for symbol in symbols
+        .iter_mut()
+        .filter(|symbol| is_callable(&symbol.kind))
+    {
+        let inside_testng_class = symbol
+            .parent_id
+            .as_ref()
+            .is_some_and(|parent_id| testng_class_ids.contains(parent_id));
+        let Some(role) = java_member_test_role(symbol, inside_testng_class) else {
+            continue;
+        };
+        apply_test_role(symbol.metadata.get_or_insert_with(Default::default), role);
+    }
+}
+
+/// TestNG runs every public method of a `@Test`-annotated class as a case, so
+/// those methods carry no annotation of their own. A hook annotation on such a
+/// method wins, because TestNG runs it around the cases instead.
+fn java_member_test_role(symbol: &Symbol, inside_testng_class: bool) -> Option<TestRole> {
+    let annotation_keys: Vec<String> = symbol
+        .annotations
+        .iter()
+        .map(|annotation| annotation.annotation_key.clone())
+        .collect();
+    if let Some(role) =
+        first_annotation_direction(&annotation_keys, java_test_lifecycle_direction).fixture_role()
+    {
+        return Some(role);
+    }
+    if annotation_keys
+        .iter()
+        .any(|annotation| is_java_test_case_annotation(annotation))
+    {
+        return Some(java_test_case_role(&annotation_keys).unwrap_or(TestRole::TestCase));
+    }
+    let runs_as_testng_case = inside_testng_class
+        && symbol.kind == SymbolKind::Method
+        && symbol.visibility == Some(Visibility::Public);
+    runs_as_testng_case.then_some(TestRole::TestCase)
 }
 
 /// Mark every `Class` ancestor of an already-marked test-container class.

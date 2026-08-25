@@ -2219,14 +2219,80 @@ fn java_test_annotation_carries_the_test_case_role() {
 }
 
 #[test]
-fn java_parameterized_test_annotation_still_carries_the_test_case_role() {
+fn java_parameterized_test_annotation_carries_the_parameterized_test_role() {
     let metadata = callable_test_metadata(
         "java",
         "addsPairs",
         "src/test/java/CalcTest.java",
         &[s("parameterizedtest")],
     );
-    assert_eq!(role(&metadata), Some("test_case"));
+    assert_eq!(role(&metadata), Some("parameterized_test"));
+    assert!(flag(&metadata, "is_test"));
+    assert!(!metadata.contains_key("test_lifecycle"));
+}
+
+#[test]
+fn java_repeated_test_annotation_carries_the_parameterized_test_role() {
+    let metadata = callable_test_metadata(
+        "java",
+        "addsRepeatedly",
+        "src/test/java/CalcTest.java",
+        &[s("repeatedtest")],
+    );
+    assert_eq!(role(&metadata), Some("parameterized_test"));
+}
+
+#[test]
+fn java_test_factory_and_test_template_carry_the_test_case_role() {
+    for annotation in ["testfactory", "testtemplate"] {
+        let metadata = callable_test_metadata(
+            "java",
+            "buildsCases",
+            "src/test/java/CalcTest.java",
+            &[s(annotation)],
+        );
+        assert_eq!(
+            role(&metadata),
+            Some("test_case"),
+            "@{annotation} must carry the test_case role"
+        );
+    }
+}
+
+#[test]
+fn testng_setup_annotations_carry_the_fixture_setup_role() {
+    for annotation in ["beforemethod", "beforesuite", "beforetest", "beforegroups"] {
+        let metadata = callable_test_metadata(
+            "java",
+            "prepare",
+            "src/test/java/OrderTest.java",
+            &[s(annotation)],
+        );
+        assert_eq!(
+            role(&metadata),
+            Some("fixture_setup"),
+            "@{annotation} must carry the fixture_setup role"
+        );
+        assert!(flag(&metadata, "test_lifecycle"));
+    }
+}
+
+#[test]
+fn testng_teardown_annotations_carry_the_fixture_teardown_role() {
+    for annotation in ["aftermethod", "aftersuite", "aftertest", "aftergroups"] {
+        let metadata = callable_test_metadata(
+            "java",
+            "shutdown",
+            "src/test/java/OrderTest.java",
+            &[s(annotation)],
+        );
+        assert_eq!(
+            role(&metadata),
+            Some("fixture_teardown"),
+            "@{annotation} must carry the fixture_teardown role"
+        );
+        assert!(flag(&metadata, "test_lifecycle"));
+    }
 }
 
 #[test]
