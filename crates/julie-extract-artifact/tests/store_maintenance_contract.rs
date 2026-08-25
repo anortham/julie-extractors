@@ -1060,6 +1060,125 @@ fn gc_archives_terminal_requests_before_pruning_their_store_log() {
 }
 
 #[test]
+fn gc_prunes_aged_terminal_requests_and_keeps_queued_and_fresh_rows() {
+    let temp = TempStore::new("gc-terminal-request-pruning");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let store = Connection::open(layout.store_db()).unwrap();
+    store
+        .execute(
+            "INSERT INTO store_log
+             (sequence,request_id,event_kind,terminal,payload_json,created_at)
+             VALUES (1,'request-committed','store_import_completed',1,'{\"generation\":1}',
+                     '1970-01-01T00:00:01Z')",
+            [],
+        )
+        .unwrap();
+    let coord = Connection::open(layout.coordinator_db()).unwrap();
+    coord
+        .execute(
+            "INSERT INTO requests
+             (request_id,idempotency_key,kind,payload_json,state,requester_id,requester_deadline,
+              claim_owner,claim_heartbeat_at,terminal_log_sequence,result_json,error_json,
+              created_at,updated_at)
+             VALUES ('request-committed','idem-committed','import','{}','committed','cli',NULL,
+                     NULL,NULL,1,'{\"generation\":1}',NULL,1,1)",
+            [],
+        )
+        .unwrap();
+    coord
+        .execute(
+            "INSERT INTO requests
+             (request_id,idempotency_key,kind,payload_json,state,requester_id,requester_deadline,
+              claim_owner,claim_heartbeat_at,terminal_log_sequence,result_json,error_json,
+              created_at,updated_at)
+             VALUES ('request-failed-aged','idem-failed-aged','update','{}','failed','cli',NULL,
+                     NULL,NULL,NULL,NULL,'{\"message\":\"aged\"}',1,1)",
+            [],
+        )
+        .unwrap();
+    coord
+        .execute(
+            "INSERT INTO requests
+             (request_id,idempotency_key,kind,payload_json,state,requester_id,requester_deadline,
+              claim_owner,claim_heartbeat_at,terminal_log_sequence,result_json,error_json,
+              created_at,updated_at)
+             VALUES ('request-failed-fresh','idem-failed-fresh','update','{}','failed','cli',NULL,
+                     NULL,NULL,NULL,NULL,'{\"message\":\"fresh\"}',1,?1)",
+            [29 * DAY_MS],
+        )
+        .unwrap();
+    coord
+        .execute(
+            "INSERT INTO requests
+             (request_id,idempotency_key,kind,payload_json,state,requester_id,requester_deadline,
+              claim_owner,claim_heartbeat_at,terminal_log_sequence,result_json,error_json,
+              created_at,updated_at)
+             VALUES ('request-queued','idem-queued','update','{}','queued','cli',NULL,NULL,NULL,
+                     NULL,NULL,NULL,1,1)",
+            [],
+        )
+        .unwrap();
+    coord
+        .execute(
+            "INSERT INTO consumer_cursors VALUES ('consumer-a','gen-001',0,1)",
+            [],
+        )
+        .unwrap();
+
+    let plan = inspect_plan(&layout, 30 * DAY_MS);
+    let mut executor = MaintenanceExecutor::acquire(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0"),
+        MaintenanceRun::new(
+            "gc-terminal-request-pruning",
+            "owner",
+            std::process::id(),
+            30 * DAY_MS,
+            5_000,
+        ),
+        &plan,
+        FixedCapacity,
+    )
+    .unwrap();
+    let report = executor.apply(&plan).unwrap();
+
+    assert_eq!(report.archived_requests, 1);
+    assert_eq!(report.pruned_request_rows, 1);
+    assert_eq!(report.pruned_log_rows, 0);
+    let mut statement = coord
+        .prepare("SELECT request_id FROM requests ORDER BY request_id")
+        .unwrap();
+    let surviving = statement
+        .query_map([], |row| row.get::<_, String>(0))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    assert_eq!(
+        surviving,
+        vec![
+            "request-failed-fresh".to_string(),
+            "request-queued".to_string()
+        ]
+    );
+    assert_eq!(
+        coord
+            .query_row(
+                "SELECT COUNT(*) FROM request_receipts WHERE request_id='request-committed'",
+                [],
+                |row| row.get::<_, i64>(0)
+            )
+            .unwrap(),
+        1
+    );
+    assert_eq!(
+        store
+            .query_row("SELECT COUNT(*) FROM store_log", [], |row| row
+                .get::<_, i64>(0))
+            .unwrap(),
+        1
+    );
+}
+
+#[test]
 fn malformed_or_ahead_consumer_cursors_block_request_log_pruning() {
     for (name, generation, sequence) in
         [("malformed", "gen-bad", 0_i64), ("ahead", "gen-001", 2_i64)]

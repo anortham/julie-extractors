@@ -368,6 +368,7 @@ pub struct MaintenanceApplyReport {
     pub removed_pins: usize,
     pub removed_scratch_files: usize,
     pub archived_requests: usize,
+    pub pruned_request_rows: usize,
     pub pruned_log_rows: usize,
     pub last_version_cursor: Option<i64>,
     pub checkpoint_order: Vec<String>,
@@ -1243,6 +1244,14 @@ impl MaintenanceExecutor {
         let mut coord = open_maintenance_coordinator(factory.layout().coordinator_db())?;
         let transaction = coord.transaction_with_behavior(TransactionBehavior::Immediate)?;
         super::coordinator::reap_retired_resolve_rows(&transaction, wall_now)?;
+        // Before the claimed-row check below, which reports `busy`: a claimed row whose owner and
+        // requester are both gone would otherwise refuse every maintenance run for the life of the
+        // family.
+        super::coordinator::reap_dead_requester_rows(
+            &transaction,
+            &super::coordinator::SystemPidLiveness,
+            wall_now,
+        )?;
         let active_intent = transaction
             .query_row(
                 "SELECT run_id,owner_id,owner_pid,expires_at,source_min_writer_version
@@ -1809,13 +1818,18 @@ impl MaintenanceExecutor {
         #[cfg(feature = "test-store-crash")]
         super::test_hooks::crash_if("maintenance_store_after_commit");
         heartbeat.check()?;
-        let (safe_sequence, _high_water) = self.safe_log_sequence(plan)?;
+        let (safe_sequence, high_water) = self.safe_log_sequence(plan)?;
         let completed_before = self.run.now_ms.saturating_sub(policy.request_safety_ms);
         let mut coordinator = StoreCoordinator::open(self.factory.layout())?;
+        // Archival is bounded by the LOG high-water mark, not by the safe consumer cursor. Bounding
+        // it by the cursor pinned every committed row a lagging consumer had not read: one Miller
+        // family store kept 2,163 of them, none prunable, because its cursor never advanced past
+        // them. The receipt is what preserves the request identity and its result, and it costs the
+        // log nothing; the store-log prune below keeps the cursor bound it needs.
         let archived = coordinator.archive_terminal_requests(
             self.factory.layout().generation_name(),
             completed_before,
-            safe_sequence,
+            high_water,
             policy.receipt_limit,
         )?;
         report.archived_requests = archived.len();
@@ -1860,6 +1874,12 @@ impl MaintenanceExecutor {
             super::test_hooks::crash_if("maintenance_log_after_commit");
             drop(log_writer);
         }
+        heartbeat.check()?;
+        report.pruned_request_rows = prune_failed_requests(
+            self.factory.layout().coordinator_db(),
+            completed_before,
+            policy.receipt_limit,
+        )?;
         heartbeat.check()?;
         report.checkpoint_order.push("checkpoint".to_string());
         writer.execute_batch("PRAGMA wal_checkpoint(PASSIVE);")?;
@@ -2531,6 +2551,35 @@ fn checked_generation_path(
         });
     }
     Ok(canonical)
+}
+
+/// Deletes failed request rows older than the retention window, newest-safe and bounded.
+///
+/// A failed row can never age into a receipt: the contract gives receipts a terminal result, and a
+/// failed request has an error instead. Nothing else removed them, so every reaped, refused, or
+/// overrun request stayed in `requests` for the life of the family. Committed and acknowledged rows
+/// keep leaving through archival, which preserves their identity and result first.
+fn prune_failed_requests(
+    coordinator_db: &Path,
+    completed_before: i64,
+    limit: usize,
+) -> Result<usize, MaintenanceError> {
+    if limit == 0 {
+        return Err(MaintenanceError::InvalidPolicy {
+            field: "receipt_limit",
+        });
+    }
+    let mut coordinator = open_maintenance_coordinator(coordinator_db)?;
+    let transaction = coordinator.transaction_with_behavior(TransactionBehavior::Immediate)?;
+    let pruned = transaction.execute(
+        "DELETE FROM requests WHERE request_id IN (
+           SELECT request_id FROM requests
+           WHERE state='failed' AND updated_at<=?1
+           ORDER BY updated_at,request_id LIMIT ?2)",
+        params![completed_before, limit as i64],
+    )?;
+    transaction.commit()?;
+    Ok(pruned)
 }
 
 fn eligible_receipt_ids(

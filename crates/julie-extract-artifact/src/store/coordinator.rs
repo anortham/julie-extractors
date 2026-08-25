@@ -42,6 +42,14 @@ const MAXIMUM_QUANTUM_OVERRUNS: i64 = 3;
 /// Stable classification token every quantum-overrun message carries, for callers that map a
 /// coordinator failure onto their own report failure class.
 pub const QUANTUM_OVERRUN_CODE: &str = "coordinator_quantum";
+/// Stable classification token every dead-requester reap message carries, for callers that map a
+/// coordinator failure onto their own report failure class.
+pub const REQUESTER_DEAD_CODE: &str = "coordinator_requester_dead";
+/// Prefix of the requester and lease-holder identities the CLI writes (`cli-<pid>`).
+///
+/// The pid in that identity is the only record of which process wants a request. A row whose
+/// identity does not carry a probe-able pid is never reaped by liveness.
+const PROCESS_IDENTITY_PREFIX: &str = "cli-";
 static LAST_FENCING_TOKEN: AtomicI64 = AtomicI64::new(0);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -638,7 +646,7 @@ pub trait PidLiveness: fmt::Debug + Send + Sync {
 }
 
 #[derive(Debug)]
-struct SystemPidLiveness;
+pub(crate) struct SystemPidLiveness;
 
 impl PidLiveness for SystemPidLiveness {
     fn status(&self, pid: u32) -> PidStatus {
@@ -1218,6 +1226,17 @@ impl StoreCoordinator {
             armed: true,
         };
         let result = catch_unwind(AssertUnwindSafe(|| {
+            // After the takeover, not before it: the takeover above requeues the dead holder's
+            // claimed rows, and a row whose requester is also gone must end this pass terminal
+            // rather than come back queued for the next drain to run again.
+            {
+                let connection = self.coordinator();
+                reap_dead_requester_rows(
+                    &connection,
+                    self.pid_liveness.as_ref(),
+                    self.clock.now_ms(),
+                )?;
+            }
             let heartbeat = LeaseHeartbeatGuard::start(
                 self.coordinator_db.clone(),
                 holder.clone(),
@@ -2330,6 +2349,89 @@ pub(crate) fn reap_retired_resolve_rows(
          WHERE kind = 'resolve' AND state IN ('queued', 'claimed')",
         params![error_json, now],
     )?)
+}
+
+fn identity_process_id(identity: &str) -> Option<u32> {
+    identity
+        .strip_prefix(PROCESS_IDENTITY_PREFIX)
+        .and_then(|pid| pid.parse::<u32>().ok())
+        .filter(|pid| *pid > 0)
+}
+
+/// Fails every queued or claimed request whose requesting process is gone.
+///
+/// Lease takeover only ever requeued the dead holder's claimed rows, so a row whose REQUESTER died
+/// came back queued and was re-executed by every later drain: nobody was left to read its result,
+/// and a claimed row whose owner was also dead cycled between claimed and queued forever.
+/// Observed on tree-sitter-razor: one `claimed` update owned by a dead CLI pid, never surfaced and
+/// never reaped, and a Miller family store whose queue kept thousands of rows nobody awaited.
+///
+/// A claimed row is failed only when its claim owner is dead too. A live owner is executing the
+/// request under the writer lease, and failing the row underneath it would make its commit find no
+/// claimed row and report a lost lease.
+///
+/// Probes are memoized per pass because one dead CLI usually owns many rows, and a Windows probe
+/// costs about 100 ms (see [`process_status`]).
+pub(crate) fn reap_dead_requester_rows(
+    connection: &Connection,
+    liveness: &dyn PidLiveness,
+    now: i64,
+) -> Result<usize, CoordinatorError> {
+    if now < 0 {
+        return Err(CoordinatorError::InvalidTime {
+            field: "updated_at",
+            value: now,
+        });
+    }
+    let candidates = {
+        let mut statement = connection.prepare(
+            "SELECT request_id, state, requester_id, claim_owner FROM requests
+             WHERE state IN ('queued', 'claimed') ORDER BY created_at, request_id",
+        )?;
+        statement
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, Option<String>>(3)?,
+                ))
+            })?
+            .collect::<Result<Vec<_>, _>>()?
+    };
+    let mut probed = std::collections::HashMap::new();
+    let mut is_dead =
+        |pid: u32| *probed.entry(pid).or_insert_with(|| liveness.status(pid)) == PidStatus::Dead;
+    let mut reaped = 0;
+    for (request_id, state, requester_id, claim_owner) in candidates {
+        let Some(requester_pid) = identity_process_id(&requester_id) else {
+            continue;
+        };
+        if !is_dead(requester_pid) {
+            continue;
+        }
+        if RequestState::parse(&state)? == RequestState::Claimed
+            && !claim_owner
+                .as_deref()
+                .and_then(identity_process_id)
+                .is_some_and(&mut is_dead)
+        {
+            continue;
+        }
+        let error_json = serde_json::json!({
+            "message": format!(
+                "{REQUESTER_DEAD_CODE}: requester {requester_id:?} is gone"
+            )
+        })
+        .to_string();
+        reaped += connection.execute(
+            "UPDATE requests SET state = 'failed', claim_owner = NULL,
+             claim_heartbeat_at = NULL, result_json = NULL, error_json = ?1, updated_at = ?2
+             WHERE request_id = ?3 AND state IN ('queued', 'claimed')",
+            params![error_json, now, request_id],
+        )?;
+    }
+    Ok(reaped)
 }
 
 /// Returns the live maintenance intent identity when `expires_at > now`.

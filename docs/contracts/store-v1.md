@@ -104,6 +104,13 @@ longer written; writer open drops leftover journal tables.
 - Only claimed requests may carry claim owner and heartbeat fields.
 - Committed and acknowledged requests require a terminal log sequence and result with no error.
 - Failed requests require an error, prohibit a result, and may lack a terminal sequence.
+- A requester identity of the form `cli-<pid>` names the requesting process, and a claim owner of
+  the same form names the claiming process. A drain reaps, right after it takes the writer lease,
+  every queued row whose requester process is dead and every claimed row whose requester and claim
+  owner are both dead. Reaped rows become typed `failed` with the `coordinator_requester_dead`
+  error token. Maintenance runs the same reap before it refuses a run as `busy`. A live claim owner
+  is executing the request and is never reaped; an identity without a `cli-<pid>` pid is never
+  probed.
 - A request row counts its quantum overruns in `quantum_overruns`. A kind that may not renew its
   writer lease is requeued on an overrun for the first two, and failed with the typed
   `coordinator_quantum` error on the third, so one request whose work can never fit the quantum
@@ -147,7 +154,11 @@ active request/claim, scratch owner, consumer cursor window, and retained-genera
 `store maintain retire-view` is the one path that removes manifest roots themselves; it removes
 them for one named view and leaves the versions they held to ordinary reclaim.
 Terminal request rows become durable receipts before coordinator deletion; orphan store logs are
-pruned only afterward and below every safe cursor. General maintenance behavior is specified by the
+pruned only afterward and below every safe cursor. Committed and acknowledged rows older than the
+request safety window are archived up to the durable log high-water mark, not up to the safe
+consumer cursor, so a lagging consumer cannot pin them in `requests` forever. Failed rows of that
+age carry no result to preserve and are deleted outright, in the same bounded batch size as
+receipts; the apply report counts them. Queued and claimed rows are never pruned. General maintenance behavior is specified by the
 Ph2d lifecycle design and is implemented behind `store maintain`.
 
 ## Lifecycle maintenance interface

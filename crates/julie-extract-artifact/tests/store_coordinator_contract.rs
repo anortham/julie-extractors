@@ -3005,3 +3005,133 @@ fn consumer_cursor_advance_is_monotonic_bounded_and_releasable() {
     assert!(coordinator.release_consumer_cursor("miller").unwrap());
     assert!(!coordinator.release_consumer_cursor("miller").unwrap());
 }
+
+#[derive(Debug)]
+struct DeadPids(Vec<u32>);
+
+impl PidLiveness for DeadPids {
+    fn status(&self, pid: u32) -> PidStatus {
+        if self.0.contains(&pid) {
+            PidStatus::Dead
+        } else {
+            PidStatus::Alive
+        }
+    }
+}
+
+#[test]
+fn drain_reaps_a_queued_request_whose_requester_process_is_gone() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let clock = Arc::new(TestClock::default());
+    clock.set(10);
+    let holder = LeaseHolder::new("holder", "2.30.0", std::process::id());
+    let mut coordinator = StoreCoordinator::open_with_runtime(
+        &layout,
+        holder,
+        Arc::clone(&clock),
+        Arc::new(DeadPids(vec![4_242])),
+    )
+    .unwrap();
+    coordinator
+        .enqueue(CoordinatorRequest::new(
+            "abandoned",
+            "idem-abandoned",
+            RequestKind::Update,
+            "{}",
+            "cli-4242",
+            30_000,
+            1,
+        ))
+        .unwrap();
+    let mut executor = RecordingExecutor {
+        order: Vec::new(),
+        clock: Arc::clone(&clock),
+        advance_ms: 0,
+    };
+
+    coordinator
+        .drain(&mut executor, &CoordinatorPolicy::default())
+        .unwrap();
+
+    assert!(executor.order.is_empty());
+    assert_eq!(
+        coordinator.request("abandoned").unwrap().state.as_str(),
+        "failed"
+    );
+    assert!(request_error_message(&layout, "abandoned").contains("coordinator_requester_dead"));
+
+    coordinator
+        .enqueue(CoordinatorRequest::new(
+            "follow-on",
+            "idem-follow-on",
+            RequestKind::Update,
+            "{}",
+            format!("cli-{}", std::process::id()),
+            30_000,
+            2,
+        ))
+        .unwrap();
+    coordinator
+        .drain(&mut executor, &CoordinatorPolicy::default())
+        .unwrap();
+
+    assert_eq!(executor.order, vec!["follow-on".to_string()]);
+    assert_eq!(
+        coordinator.request("follow-on").unwrap().state.as_str(),
+        "committed"
+    );
+}
+
+#[test]
+fn takeover_fails_a_claimed_request_whose_owner_and_requester_are_both_gone() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let clock = Arc::new(TestClock::default());
+    clock.set(10);
+    let holder = LeaseHolder::new("holder", "2.30.0", std::process::id());
+    let mut coordinator = StoreCoordinator::open_with_runtime(
+        &layout,
+        holder,
+        Arc::clone(&clock),
+        Arc::new(DeadPids(vec![4_242])),
+    )
+    .unwrap();
+    coordinator
+        .enqueue(CoordinatorRequest::new(
+            "poisoned",
+            "idem-poisoned",
+            RequestKind::Update,
+            "{}",
+            "cli-4242",
+            30_000,
+            1,
+        ))
+        .unwrap();
+    claim_request_for_test(layout.coordinator_db(), "poisoned", "cli-4242", 1);
+    Connection::open(layout.coordinator_db())
+        .unwrap()
+        .execute(
+            "INSERT INTO writer_lease
+             (resource,holder_id,holder_version,holder_pid,heartbeat_at,expires_at,fencing_token)
+             VALUES ('store-writer','cli-4242','2.30.0',4242,1,?1,1)",
+            [i64::MAX],
+        )
+        .unwrap();
+    let mut executor = RecordingExecutor {
+        order: Vec::new(),
+        clock: Arc::clone(&clock),
+        advance_ms: 0,
+    };
+
+    coordinator
+        .drain(&mut executor, &CoordinatorPolicy::default())
+        .unwrap();
+
+    assert!(executor.order.is_empty());
+    assert_eq!(
+        coordinator.request("poisoned").unwrap().state.as_str(),
+        "failed"
+    );
+    assert!(request_error_message(&layout, "poisoned").contains("coordinator_requester_dead"));
+}
