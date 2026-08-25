@@ -118,6 +118,18 @@ fn execute(
             request.state,
             RequestState::Committed | RequestState::Acknowledged
         ) {
+            let adoption_now = now_millis();
+            let adoption_deadline_delta = i64::try_from(args.request.request_timeout_seconds)
+                .unwrap_or(i64::MAX)
+                .saturating_mul(1_000);
+            let request = coordinator
+                .adopt_request(
+                    request,
+                    &format!("cli-{}", std::process::id()),
+                    adoption_now.saturating_add(adoption_deadline_delta),
+                    adoption_now,
+                )
+                .map_err(|error| FromArtifactFailure::Operational(error.to_string()))?;
             let mut executor = StoreRequestExecutor::new(
                 layout.store_db().to_path_buf(),
                 args.family.clone(),

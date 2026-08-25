@@ -184,6 +184,18 @@ fn execute_update(
             .map_err(|error| error.to_string())?
             .request
     };
+    let adoption_now = now_millis();
+    let adoption_deadline_delta = i64::try_from(args.request.request_timeout_seconds)
+        .unwrap_or(i64::MAX)
+        .saturating_mul(1_000);
+    let canonical_request = coordinator
+        .adopt_request(
+            canonical_request,
+            &format!("cli-{}", std::process::id()),
+            adoption_now.saturating_add(adoption_deadline_delta),
+            adoption_now,
+        )
+        .map_err(|error| error.to_string())?;
     let canonical_request_id = canonical_request.request_id.clone();
     let watchdog = args
         .scan

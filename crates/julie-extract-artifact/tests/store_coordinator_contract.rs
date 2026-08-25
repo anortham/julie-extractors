@@ -3049,6 +3049,7 @@ fn drain_reaps_a_queued_request_whose_requester_process_is_gone() {
         clock: Arc::clone(&clock),
         advance_ms: 0,
     };
+    clock.set(30_001);
 
     coordinator
         .drain(&mut executor, &CoordinatorPolicy::default())
@@ -3079,6 +3080,109 @@ fn drain_reaps_a_queued_request_whose_requester_process_is_gone() {
     assert_eq!(executor.order, vec!["follow-on".to_string()]);
     assert_eq!(
         coordinator.request("follow-on").unwrap().state.as_str(),
+        "committed"
+    );
+}
+
+#[test]
+fn drain_keeps_a_dead_requesters_queued_request_inside_its_deadline_window() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let clock = Arc::new(TestClock::default());
+    clock.set(10);
+    let holder = LeaseHolder::new("holder", "2.30.0", std::process::id());
+    let mut coordinator = StoreCoordinator::open_with_runtime(
+        &layout,
+        holder,
+        Arc::clone(&clock),
+        Arc::new(DeadPids(vec![4_242])),
+    )
+    .unwrap();
+    coordinator
+        .enqueue(CoordinatorRequest::new(
+            "resumable",
+            "idem-resumable",
+            RequestKind::Update,
+            "{}",
+            "cli-4242",
+            30_000,
+            1,
+        ))
+        .unwrap();
+    let mut executor = RecordingExecutor {
+        order: Vec::new(),
+        clock: Arc::clone(&clock),
+        advance_ms: 0,
+    };
+
+    coordinator
+        .drain(&mut executor, &CoordinatorPolicy::default())
+        .unwrap();
+
+    assert_eq!(executor.order, vec!["resumable".to_string()]);
+    assert_eq!(
+        coordinator.request("resumable").unwrap().state.as_str(),
+        "committed"
+    );
+}
+
+#[test]
+fn a_successors_replay_adopts_an_orphaned_request_instead_of_reaping_it() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let clock = Arc::new(TestClock::default());
+    clock.set(10);
+    let holder = LeaseHolder::new("holder", "2.30.0", std::process::id());
+    let mut coordinator = StoreCoordinator::open_with_runtime(
+        &layout,
+        holder,
+        Arc::clone(&clock),
+        Arc::new(DeadPids(vec![4_242])),
+    )
+    .unwrap();
+    coordinator
+        .enqueue(CoordinatorRequest::new(
+            "orphaned",
+            "idem-orphaned",
+            RequestKind::Update,
+            "{}",
+            "cli-4242",
+            30_000,
+            1,
+        ))
+        .unwrap();
+    clock.set(30_001);
+
+    let live_requester = format!("cli-{}", std::process::id());
+    let replay = coordinator
+        .enqueue(CoordinatorRequest::new(
+            "successor",
+            "idem-orphaned",
+            RequestKind::Update,
+            "{}",
+            live_requester.clone(),
+            90_000,
+            30_001,
+        ))
+        .unwrap();
+
+    assert!(!replay.inserted);
+    assert_eq!(replay.request.request_id, "orphaned");
+    assert_eq!(replay.request.requester_id, live_requester);
+    assert_eq!(replay.request.requester_deadline, Some(90_000));
+
+    let mut executor = RecordingExecutor {
+        order: Vec::new(),
+        clock: Arc::clone(&clock),
+        advance_ms: 0,
+    };
+    coordinator
+        .drain(&mut executor, &CoordinatorPolicy::default())
+        .unwrap();
+
+    assert_eq!(executor.order, vec!["orphaned".to_string()]);
+    assert_eq!(
+        coordinator.request("orphaned").unwrap().state.as_str(),
         "committed"
     );
 }
@@ -3123,6 +3227,7 @@ fn takeover_fails_a_claimed_request_whose_owner_and_requester_are_both_gone() {
         clock: Arc::clone(&clock),
         advance_ms: 0,
     };
+    clock.set(30_001);
 
     coordinator
         .drain(&mut executor, &CoordinatorPolicy::default())

@@ -742,6 +742,44 @@ impl StoreCoordinator {
         })
     }
 
+    /// Moves a still-live request onto the caller that re-submitted its idempotency key.
+    ///
+    /// The CLI's idempotent-replay pre-checks hand back the existing row without re-enqueuing, so
+    /// a successor process resuming a dead submitter's request would otherwise keep the dead
+    /// requester's identity and expired deadline — and the dead-requester reap would fail the very
+    /// row the successor awaits. Terminal rows and same-requester replays return unchanged.
+    pub fn adopt_request(
+        &mut self,
+        existing: CoordinatorRequest,
+        requester_id: &str,
+        requester_deadline: i64,
+        now: i64,
+    ) -> Result<CoordinatorRequest, CoordinatorError> {
+        if now < 0 {
+            return Err(CoordinatorError::InvalidTime {
+                field: "updated_at",
+                value: now,
+            });
+        }
+        if requester_deadline < 0 {
+            return Err(CoordinatorError::InvalidTime {
+                field: "requester_deadline",
+                value: requester_deadline,
+            });
+        }
+        let submitted = CoordinatorRequest {
+            requester_id: requester_id.to_string(),
+            requester_deadline: Some(requester_deadline),
+            created_at: now,
+            ..existing.clone()
+        };
+        let mut connection = self.coordinator();
+        let transaction = begin_coordinator(&mut connection)?;
+        let adopted = adopt_live_request(&transaction, existing, &submitted)?;
+        transaction.commit()?;
+        Ok(adopted)
+    }
+
     pub fn enqueue(
         &mut self,
         request: CoordinatorRequest,
@@ -765,10 +803,11 @@ impl StoreCoordinator {
         }
         if let Some(existing) = request_by_idempotency(&transaction, &request.idempotency_key)? {
             if existing.kind == request.kind && existing.payload_json == request.payload_json {
+                let adopted = adopt_live_request(&transaction, existing, &request)?;
                 transaction.commit()?;
                 return Ok(EnqueueResult {
                     inserted: false,
-                    request: existing,
+                    request: adopted,
                 });
             }
             return Err(CoordinatorError::IdempotencyConflict {
@@ -2351,6 +2390,41 @@ pub(crate) fn reap_retired_resolve_rows(
     )?)
 }
 
+/// Moves a still-live request onto the requester that just re-submitted it.
+///
+/// Idempotent re-submission is the crash-resume path: a successor process replays the dead
+/// submitter's idempotency key and inherits the queued row. Without adoption the row keeps the dead
+/// submitter's identity and expired deadline, so the dead-requester reap would fail the very row
+/// the live successor is waiting on, and the acknowledge filter would refuse its result. Terminal
+/// rows and same-requester replays are returned unchanged.
+fn adopt_live_request(
+    connection: &Connection,
+    existing: CoordinatorRequest,
+    submitted: &CoordinatorRequest,
+) -> Result<CoordinatorRequest, CoordinatorError> {
+    if !matches!(existing.state, RequestState::Queued | RequestState::Claimed)
+        || existing.requester_id == submitted.requester_id
+    {
+        return Ok(existing);
+    }
+    connection.execute(
+        "UPDATE requests SET requester_id = ?1, requester_deadline = ?2, updated_at = ?3
+         WHERE request_id = ?4 AND state IN ('queued', 'claimed')",
+        params![
+            submitted.requester_id,
+            submitted.requester_deadline,
+            submitted.created_at,
+            existing.request_id,
+        ],
+    )?;
+    Ok(CoordinatorRequest {
+        requester_id: submitted.requester_id.clone(),
+        requester_deadline: submitted.requester_deadline,
+        updated_at: submitted.created_at,
+        ..existing
+    })
+}
+
 fn identity_process_id(identity: &str) -> Option<u32> {
     identity
         .strip_prefix(PROCESS_IDENTITY_PREFIX)
@@ -2370,6 +2444,11 @@ fn identity_process_id(identity: &str) -> Option<u32> {
 /// request under the writer lease, and failing the row underneath it would make its commit find no
 /// claimed row and report a lost lease.
 ///
+/// A row is a candidate only after its `requester_deadline` expires. Crash resume is a designed
+/// path: a successor process may adopt a queued request whose submitter died and complete it inside
+/// what remains of the submitter's window, so a dead pid alone does not make a row garbage. A NULL
+/// deadline never expires and is never reaped.
+///
 /// Probes are memoized per pass because one dead CLI usually owns many rows, and a Windows probe
 /// costs about 100 ms (see [`process_status`]).
 pub(crate) fn reap_dead_requester_rows(
@@ -2386,10 +2465,12 @@ pub(crate) fn reap_dead_requester_rows(
     let candidates = {
         let mut statement = connection.prepare(
             "SELECT request_id, state, requester_id, claim_owner FROM requests
-             WHERE state IN ('queued', 'claimed') ORDER BY created_at, request_id",
+             WHERE state IN ('queued', 'claimed')
+               AND requester_deadline IS NOT NULL AND requester_deadline < ?1
+             ORDER BY created_at, request_id",
         )?;
         statement
-            .query_map([], |row| {
+            .query_map(params![now], |row| {
                 Ok((
                     row.get::<_, String>(0)?,
                     row.get::<_, String>(1)?,
