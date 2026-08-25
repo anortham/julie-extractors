@@ -242,6 +242,31 @@ fn languages_json_report_publishes_structural_fact_pattern_registry() {
 }
 
 #[test]
+fn languages_json_report_publishes_discovery_limits() {
+    let output = julie_extract(&["languages", "--json"]);
+
+    assert_eq!(output.status.code(), Some(0));
+    let report = json_report(&output);
+
+    let discovery_limits = &report["languages"]["discovery_limits"];
+    assert_eq!(
+        discovery_limits["max_source_file_bytes"].as_u64(),
+        Some(julie_extract_cli::limits::MAX_SOURCE_FILE_BYTES as u64),
+        "max_source_file_bytes must equal the real limit constant, got: {discovery_limits}"
+    );
+    assert_eq!(
+        discovery_limits["hard_exclude_directories"],
+        json!(julie_extract_cli::limits::HARD_EXCLUDE_DIRS),
+        "hard_exclude_directories must equal the real discovery constant, got: {discovery_limits}"
+    );
+    assert_eq!(
+        discovery_limits["hard_exclude_suffixes"],
+        json!(julie_extract_cli::limits::HARD_EXCLUDE_SUFFIXES),
+        "hard_exclude_suffixes must equal the real discovery constant, got: {discovery_limits}"
+    );
+}
+
+#[test]
 fn exit_codes_and_json_errors_match_contract() {
     let temp = TempDir::new().unwrap();
     let missing_db = temp.path().join("missing.sqlite");

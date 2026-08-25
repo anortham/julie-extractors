@@ -23,7 +23,7 @@ use julie_extractors::{
     detect_language_for_source,
 };
 use rayon::prelude::*;
-use serde_json::json;
+use serde_json::{Value, json};
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
 use crate::args::{
@@ -48,6 +48,7 @@ use crate::extraction::{
     extract_artifact_file_from_snapshot_at, failed_artifact_file, read_source_snapshot,
     select_extraction_pool, unchanged_artifact_file, unsupported_artifact_file,
 };
+use crate::limits::{HARD_EXCLUDE_DIRS, HARD_EXCLUDE_SUFFIXES, MAX_SOURCE_FILE_BYTES};
 use crate::paths::{
     FileTarget, canonicalize_db_path, canonicalize_progress_file, canonicalize_root,
     canonicalize_spool_dir, canonicalize_update_file, normalize_delete_file,
@@ -1263,6 +1264,17 @@ fn export(args: ExportArgs) -> CommandOutcome {
     }
 }
 
+/// The mechanical file-eligibility limits `scan` and `update` apply before any
+/// ignore file is consulted, published so consumers filter with the pinned
+/// binary's own values instead of mirroring them.
+fn discovery_limits_json() -> Value {
+    json!({
+        "max_source_file_bytes": MAX_SOURCE_FILE_BYTES,
+        "hard_exclude_directories": HARD_EXCLUDE_DIRS,
+        "hard_exclude_suffixes": HARD_EXCLUDE_SUFFIXES,
+    })
+}
+
 fn languages(args: LanguagesArgs) -> CommandOutcome {
     let snapshot = extractor_capability_snapshot();
     let languages = snapshot
@@ -1298,6 +1310,7 @@ fn languages(args: LanguagesArgs) -> CommandOutcome {
     .with_languages(json!({
         "total": languages.len(),
         "languages": languages,
+        "discovery_limits": discovery_limits_json(),
     }))
     .with_structural_fact_patterns(structural_fact_patterns_json());
     outcome(report, 0, args.json, ReportStream::Stdout)

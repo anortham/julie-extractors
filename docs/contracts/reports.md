@@ -375,6 +375,39 @@ retarget also writes the optional `rebound_from_root`,
 `rebound_from_artifact_id`, and `rebound_at` artifact-metadata keys; they are
 absent on a never-rebound artifact, like `index_level`.
 
+## Discovery Limits Section
+
+`languages` publishes the mechanical file-eligibility limits that `scan` and
+`update` apply before any ignore file is consulted. Consumers read them from the
+pinned binary instead of mirroring the values, so a limit change cannot drift out
+of sync. The section sits under the `languages` key:
+
+```json
+"languages": {
+  "total": 38,
+  "languages": [],
+  "discovery_limits": {
+    "max_source_file_bytes": 1048576,
+    "hard_exclude_directories": [".git", "node_modules", "target"],
+    "hard_exclude_suffixes": [".min.js", ".generated.d.ts"]
+  }
+}
+```
+
+- `max_source_file_bytes`: the largest source file discovery parses. A larger
+  file is skipped with a `slow_file_skipped` warning.
+- `hard_exclude_directories`: directory names refused at any depth of the
+  root-relative path. An ignore file cannot whitelist one back.
+- `hard_exclude_suffixes`: file suffixes refused when the root-relative path ends
+  with one. A suffix may span more than one extension, such as `.generated.d.ts`.
+
+Both sets are exact, case-sensitive string comparisons. They list only the
+mechanical exclusions: the artifact path, its SQLite sidecars, a
+`--progress-file` target, and a `--spool-dir` are excluded per run and are not
+part of this section.
+The section is unique to the `languages` report and is additive, so
+`report_schema_version` remains `3`.
+
 ## Per-File Row Attribution
 
 `counts.file_rows` attributes durable extraction rows to source files. Entries
@@ -631,6 +664,9 @@ and the total `conflict_count`.
 - `artifact`: `null`
 - The report includes capability counts and may include the full snapshot under
   a `languages` field.
+- Includes the additive `languages.discovery_limits` object (see
+  [Discovery Limits Section](#discovery-limits-section)); `report_schema_version`
+  remains `3`.
 - Includes the additive top-level `structural_fact_patterns` array (the
   structural-fact pattern registry). It is content-equivalent to
   `docs/contracts/structural-fact-patterns.json` and produced by the same

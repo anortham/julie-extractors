@@ -610,7 +610,10 @@ fn sqlite_sidecar_paths(db_path: &Path) -> Vec<PathBuf> {
         .collect()
 }
 
-const HARD_EXCLUDE_DIRS: &[&str] = &[
+/// Directory names discovery refuses before any ignore file is consulted. An
+/// ignore file cannot whitelist one back, so consumers can pre-filter with this
+/// set. Published through `languages --json` by way of [`crate::limits`].
+pub const HARD_EXCLUDE_DIRS: &[&str] = &[
     ".git",
     ".hg",
     ".svn",
@@ -628,7 +631,11 @@ const HARD_EXCLUDE_DIRS: &[&str] = &[
     "TestResults",
 ];
 
-const HARD_EXCLUDE_SUFFIXES: &[&str] = &[
+/// Generated and bundled file suffixes discovery refuses before any ignore file
+/// is consulted. Matched against the root-relative path, so a suffix may span
+/// more than one extension. Published through `languages --json` by way of
+/// [`crate::limits`].
+pub const HARD_EXCLUDE_SUFFIXES: &[&str] = &[
     ".min.js",
     ".bundle.js",
     ".generated.js",

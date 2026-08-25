@@ -1,5 +1,10 @@
 //! Shared source-discovery and extraction limits.
 
+/// Directory names and file suffixes discovery refuses before any ignore file is
+/// consulted. Defined by [`crate::discovery`] and re-exported here so the
+/// published discovery limits have one import path.
+pub use crate::discovery::{HARD_EXCLUDE_DIRS, HARD_EXCLUDE_SUFFIXES};
+
 /// Maximum byte size of a source file that `julie-extract` will parse. Files
 /// larger than this are skipped with a typed `slow_file_skipped` warning instead
 /// of being parsed, bounding worst-case extraction time. Exposed through the
