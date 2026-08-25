@@ -294,13 +294,14 @@ fn resolve(base: &BaseExtractor, node: Node) -> Option<TestCall> {
     let (category, role, word) = classify_callee(&callee)?;
     let word = word.to_string();
 
-    // A tabled call declares cases, not a group, whichever word leads the chain.
+    // Jest and Vitest run `describe.each` as a suite factory: the table
+    // multiplies groups, and only `test.each`/`it.each` declares cases.
     let (category, role, callee) = if tabled {
-        (
-            TestCallCategory::Test,
-            TestRole::ParameterizedTest,
-            format!("{callee}.{TABLE_SEGMENT}"),
-        )
+        let role = match category {
+            TestCallCategory::Test => TestRole::ParameterizedTest,
+            _ => role,
+        };
+        (category, role, format!("{callee}.{TABLE_SEGMENT}"))
     } else {
         (category, role, callee)
     };

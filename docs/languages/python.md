@@ -32,19 +32,21 @@ two collectors that actually run the code.
 | any other `@pytest.mark.*` | `test_case` | a pytest mark is only applied to collected items |
 | `@unittest.skip`, `skipIf`, `skipUnless`, `expectedFailure` | `test_case` | unittest decorators are only applied to test methods |
 | `@pytest.fixture` | `fixture_setup` | pytest fixture factory |
-| `setUp`, `setUpClass`, `setUpModule`, `asyncSetUp` | `fixture_setup` | unittest fixtures |
-| `tearDown`, `tearDownClass`, `tearDownModule`, `asyncTearDown` | `fixture_teardown` | unittest fixtures |
-| `setup_method`, `setup_class`, `setup_function`, `setup_module` | `fixture_setup` | pytest xunit-style setup |
-| `teardown_method`, `teardown_class`, `teardown_function`, `teardown_module` | `fixture_teardown` | pytest xunit-style teardown |
+| `setUp`, `setUpClass`, `setUpModule`, `asyncSetUp` in a test path | `fixture_setup` | unittest fixtures |
+| `tearDown`, `tearDownClass`, `tearDownModule`, `asyncTearDown` in a test path | `fixture_teardown` | unittest fixtures |
+| `setup_method`, `setup_class`, `setup_function`, `setup_module` in a test path | `fixture_setup` | pytest xunit-style setup |
+| `teardown_method`, `teardown_class`, `teardown_function`, `teardown_module` in a test path | `fixture_teardown` | pytest xunit-style teardown |
 | class with a `TestCase` base, or with a collected member | `test_container` | unittest suite and pytest class collection |
 
 Two rules carry a deliberate cost.
 
 The name rule takes a bare `test` prefix, not `test_`. Both collectors use the
 bare prefix, so `def testAddition` is a real case. Because production code
-shares that vocabulary, the name rule stays guarded by `is_test_path`. An
-annotation rule needs no path guard, because a `pytest.mark` or `unittest`
-decorator is only ever written on a test.
+shares that vocabulary, the name rule stays guarded by `is_test_path`. The
+lifecycle name rule carries the same guard for the same reason: a production
+`ConnectionPool.setUp` in `src/client.py` earns no role. An annotation rule
+needs no path guard, because a `pytest.mark` or `unittest` decorator is only
+ever written on a test.
 
 A `@pytest.fixture` reports `fixture_setup`, not `test_case`. A fixture that
 yields also tears down after the test, but the setup half always runs, so

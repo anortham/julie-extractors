@@ -104,7 +104,11 @@ describe.each([[4]])("groups %i", () => {});
 fn each_table_calls_are_parameterized_tests() {
     assert_role_in_every_dialect(EACH_SUITE, "adds %i", "parameterized_test");
     assert_role_in_every_dialect(EACH_SUITE, "checks %i", "parameterized_test");
-    assert_role_in_every_dialect(EACH_SUITE, "groups %i", "parameterized_test");
+}
+
+#[test]
+fn a_tabled_describe_is_a_test_container() {
+    assert_role_in_every_dialect(EACH_SUITE, "groups %i", "test_container");
 }
 
 #[test]

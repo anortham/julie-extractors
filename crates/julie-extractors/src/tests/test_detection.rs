@@ -1970,6 +1970,25 @@ fn test_is_test_symbol_dispatch_across_languages() {
             None,
             false,
         ),
+        // JS: Windows-spelled paths read the same as `/`-spelled ones
+        (
+            "javascript",
+            "describe",
+            r"src\payment.spec.js",
+            SymbolKind::Function,
+            vec![],
+            None,
+            true,
+        ),
+        (
+            "javascript",
+            "test",
+            r"C:\work\foo.test.old\src\app.js",
+            SymbolKind::Function,
+            vec![],
+            None,
+            false,
+        ),
         // --- TypeScript: same rules as JS ---
         (
             "typescript",
@@ -2828,8 +2847,13 @@ fn a_directory_that_only_starts_with_cypress_reads_as_production() {
 }
 
 #[test]
-fn an_integration_directory_reads_as_a_test_path() {
-    assert!(path_reads_as_test("src/integration/payment_flow.js"));
+fn an_integration_directory_reads_as_production() {
+    assert!(!path_reads_as_test("src/integration/payment_flow.js"));
+}
+
+#[test]
+fn a_cypress_integration_directory_reads_as_a_test_path() {
+    assert!(path_reads_as_test("cypress/integration/login_spec.js"));
 }
 
 #[test]
@@ -2914,7 +2938,7 @@ fn every_accepted_convention_also_holds_with_windows_separators() {
         "Sources/CalculatorTests.swift",
         "apps/web/e2e/login.ts",
         "cypress/support/commands.js",
-        "src/integration/payment_flow.js",
+        "cypress/integration/login_spec.js",
         "src/login.cy.ts",
         "src/integrationTest/java/CalcIT.java",
         "src/testFixtures/java/Fake.java",

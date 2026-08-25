@@ -42,10 +42,12 @@ pub enum UnsupportedReason {
     Ignored,
     HardExcluded,
     UnsupportedExtension,
-    /// Otherwise-supported file exceeded [`MAX_SOURCE_FILE_BYTES`] and was
-    /// skipped. Distinct from [`Self::HardExcluded`] so callers can surface a
-    /// typed `slow_file_skipped` warning instead of counting the file as a
-    /// silent unsupported.
+    /// File exceeded [`MAX_SOURCE_FILE_BYTES`] and was skipped, whether or not
+    /// an extractor claims its extension: the journal pass hashes every
+    /// non-skipped file whole, so the cap must fire before language routing.
+    /// Distinct from [`Self::HardExcluded`] so callers can surface a typed
+    /// `slow_file_skipped` warning instead of counting the file as a silent
+    /// unsupported.
     Oversized,
 }
 
@@ -209,17 +211,15 @@ impl DiscoveryPolicy {
                 reason: UnsupportedReason::Ignored,
             };
         }
+        if is_oversized_source_file(&target.absolute_path) {
+            return FileSelection::Unsupported {
+                reason: UnsupportedReason::Oversized,
+            };
+        }
         match language_for_path(&target.absolute_path) {
-            Some(language) => {
-                if is_oversized_source_file(&target.absolute_path) {
-                    return FileSelection::Unsupported {
-                        reason: UnsupportedReason::Oversized,
-                    };
-                }
-                FileSelection::Supported {
-                    language: language.to_string(),
-                }
-            }
+            Some(language) => FileSelection::Supported {
+                language: language.to_string(),
+            },
             None => FileSelection::Unsupported {
                 reason: UnsupportedReason::UnsupportedExtension,
             },
@@ -735,6 +735,15 @@ mod tests {
     fn discover_leaves_oversized_files_out_of_unsupported_targets() {
         let fixture = DiscoveryFixture::new();
         fixture.write("src/huge.rs", &"x".repeat(MAX_SOURCE_FILE_BYTES + 1));
+        let summary = fixture.policy().discover();
+
+        assert_eq!(summary.unsupported_targets, Vec::new());
+    }
+
+    #[test]
+    fn discover_leaves_oversized_unsupported_files_out_of_unsupported_targets() {
+        let fixture = DiscoveryFixture::new();
+        fixture.write("assets/capture.bin", &"x".repeat(MAX_SOURCE_FILE_BYTES + 1));
         let summary = fixture.policy().discover();
 
         assert_eq!(summary.unsupported_targets, Vec::new());

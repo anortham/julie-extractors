@@ -158,6 +158,52 @@ class TestHarness:
 }
 
 #[test]
+fn lifecycle_names_outside_a_test_path_emit_no_role() {
+    let code = r#"
+class ConnectionPool:
+    def setUp(self):
+        return True
+
+    def tearDown(self):
+        return True
+
+def setup_module():
+    return True
+
+def teardown_function():
+    return True
+"#;
+    let syms = symbols(code, "src/client.py");
+
+    for name in ["setUp", "tearDown", "setup_module", "teardown_function"] {
+        assert_eq!(test_role(&syms, name), None, "{name} must carry no role");
+        assert!(!role(&syms, name, "is_test"));
+        assert!(!role(&syms, name, "test_lifecycle"));
+    }
+}
+
+#[test]
+fn lifecycle_names_inside_a_test_path_keep_their_roles() {
+    let code = r#"
+def setup_module():
+    return True
+
+def teardown_module():
+    return True
+"#;
+    let syms = symbols(code, "tests/test_hooks.py");
+
+    assert_eq!(
+        test_role(&syms, "setup_module").as_deref(),
+        Some("fixture_setup")
+    );
+    assert_eq!(
+        test_role(&syms, "teardown_module").as_deref(),
+        Some("fixture_teardown")
+    );
+}
+
+#[test]
 fn pytest_fixture_is_a_fixture_setup_hook() {
     let code = r#"
 import contextlib

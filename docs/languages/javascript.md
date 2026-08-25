@@ -63,7 +63,8 @@ word decides the role.
 | `describe`, `context`, `suite`, `xdescribe`, `fdescribe`, `xcontext` | `test_container` | `describe("cart", fn)` |
 | `beforeEach`, `beforeAll`, `before`, `setup`, `suiteSetup` | `fixture_setup` | `suiteSetup(fn)` |
 | `afterEach`, `afterAll`, `after`, `teardown`, `suiteTeardown` | `fixture_teardown` | `teardown(fn)` |
-| any of the above with a `.each` table | `parameterized_test` | `test.each([1, 2])("doubles %i", fn)` |
+| a case word with a `.each` table | `parameterized_test` | `test.each([1, 2])("doubles %i", fn)` |
+| a container word with a `.each` table | `test_container` | `describe.each(rows)("suite %i", fn)` |
 | `module` behind a namespace root | `test_container` | `QUnit.module("badge", fn)` |
 
 The dropped run modifiers are `only`, `skip`, `todo`, `failing`, `fails`,
@@ -76,11 +77,12 @@ A dotted chain resolves only behind a namespace root: `test`, `it`, `describe`,
 QUnit's `QUnit.test`, and a `node:test` subtest `t.test` resolve, while an
 ordinary member call such as `reporter.test("...", fn)` resolves to nothing.
 
-### `.each` declares cases, not a group
+### `.each` keeps the word's own category
 
-`describe.each(table)("name", fn)` reports `parameterized_test`, not
-`test_container`. A table-driven `describe` runs one *case* per row, so the
-symbol it declares is a case set. This is a deliberate contract choice recorded
+`test.each`/`it.each` report `parameterized_test`: the table multiplies
+runnable cases. `describe.each(table)("name", fn)` reports `test_container`:
+Jest and Vitest run it as a suite factory, one group per table row, and the
+cases inside it come from its own `it`/`test` calls. The rationale is recorded
 in `docs/decisions/2026-08-20-test-role-contract-closure.md`.
 
 ### Registered evidence

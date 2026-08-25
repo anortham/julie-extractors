@@ -910,8 +910,8 @@
       "visibility": null,
       "parent_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:cart totals:16:0",
       "metadata": {
-        "is_test": true,
-        "test_role": "parameterized_test"
+        "test_container": true,
+        "test_role": "test_container"
       },
       "annotations": [],
       "semantic_group": null,

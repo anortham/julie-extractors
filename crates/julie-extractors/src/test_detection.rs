@@ -78,7 +78,9 @@ fn is_callable(kind: &SymbolKind) -> bool {
 /// Directory names that mean "the code below me is test code".
 ///
 /// Matching is exact and case-sensitive, so `integrations/` and `androidTestUtils/`
-/// stay production directories.
+/// stay production directories. Bare `integration/` stays production too: Nest
+/// and DDD codebases use `src/integration/` for production modules, and the
+/// Cypress legacy layout is already matched by its `cypress/` parent.
 const TEST_DIRECTORY_SEGMENTS: &[&str] = &[
     "test",
     "tests",
@@ -90,7 +92,6 @@ const TEST_DIRECTORY_SEGMENTS: &[&str] = &[
     "autotests",
     "e2e",
     "cypress",
-    "integration",
     "integrationTest",
     "testFixtures",
     "androidTest",
@@ -345,7 +346,17 @@ fn detect_python(name: &str, file_path: &str, annotation_keys: &[String]) -> boo
     }) {
         return true;
     }
-    if python_test_lifecycle_direction(name, annotation_keys).is_lifecycle() {
+    if annotation_keys
+        .iter()
+        .any(|annotation| annotation == "pytest.fixture")
+    {
+        return true;
+    }
+    // Bare hook names are ordinary Python elsewhere: a production
+    // `ConnectionPool.setUp` in `src/client.py` earns no role.
+    if python_test_lifecycle_direction(name, annotation_keys).is_lifecycle()
+        && is_test_path(file_path)
+    {
         return true;
     }
     name.starts_with("test") && is_test_path(file_path)
@@ -1102,7 +1113,7 @@ fn embeds_go_test_suite(symbol: &Symbol) -> bool {
 fn detect_js_ts(name: &str, file_path: &str) -> bool {
     // Must be a test runner function AND in a test/spec file
     let is_test_fn = matches!(name, "describe" | "it" | "test");
-    let file_name = file_path.rsplit('/').next().unwrap_or(file_path);
+    let file_name = file_path.rsplit(PATH_SEPARATORS).next().unwrap_or(file_path);
     let in_test_file =
         file_name.contains(".test.") || file_name.contains(".spec.") || is_test_path(file_path);
     is_test_fn && in_test_file

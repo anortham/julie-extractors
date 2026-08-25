@@ -322,9 +322,14 @@ JavaScript-family golden proves the import gate. The zod corpus in
 `docs/languages/typescript.md` shows why both are needed: a Vitest global setup
 file in `scripts/` carries real hooks that a path-only rule would drop.
 
-**`.each` declares cases, not a group.** `describe.each(table)("name", fn)`
-reports `parameterized_test`, not `test_container`. A table-driven `describe`
-runs one case per table row, so what it declares is a case set. Both `.each`
+**`.each` keeps the word's own category.** `test.each(table)("name", fn)` and
+`it.each` report `parameterized_test`: the table multiplies runnable cases.
+`describe.each(table)("name", fn)` reports `test_container`: Jest and Vitest
+run it as a suite factory — one group per table row — and the cases inside it
+are declared by their own `it`/`test` calls. The first revision of this
+contract reported `describe.each` as `parameterized_test`; an adversarial
+review (2026-08-25, grok) showed that double-counts the suite as a runnable
+case, and the contract was corrected before first release. Both `.each`
 spellings are in `javascript:jest_vitest_roles`.
 
 **Decorator support covers methods, not classes.** testdeck `@test` and

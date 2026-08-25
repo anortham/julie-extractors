@@ -33,6 +33,7 @@ fn test_public_contract_version_marks_current_fact_families() {
         "backend-http-boundary-v1",
         "backend-http-boundary-v2",
         "sql-tsql-facts-v1",
+        "test-role-strings-v2",
     ] {
         assert!(
             version.contains(marker),
