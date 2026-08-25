@@ -693,7 +693,7 @@ pub(crate) fn initialize_store_database(
     let transaction = connection.transaction()?;
     for (key, value) in [
         ("family_id", family_id),
-        ("extraction_identity_epoch", "5"),
+        ("extraction_identity_epoch", "6"),
         ("min_reader_version", creator_version),
         ("min_writer_version", creator_version),
         ("created_by_version", creator_version),

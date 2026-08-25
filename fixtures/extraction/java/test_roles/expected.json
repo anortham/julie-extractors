@@ -26,7 +26,8 @@
       "visibility": "Private",
       "parent_key": null,
       "metadata": {
-        "test_container": true
+        "test_container": true,
+        "test_role": "test_container"
       },
       "annotations": [],
       "semantic_group": null,
@@ -121,7 +122,8 @@
       "visibility": "Private",
       "parent_key": "fixtures/extraction/java/test_roles/source.java:ManagedTestRoles:1:0",
       "metadata": {
-        "is_test": true
+        "is_test": true,
+        "test_role": "test_case"
       },
       "annotations": [
         {
@@ -160,7 +162,8 @@
       "visibility": "Private",
       "parent_key": "fixtures/extraction/java/test_roles/source.java:ManagedTestRoles:1:0",
       "metadata": {
-        "is_test": true
+        "is_test": true,
+        "test_role": "test_case"
       },
       "annotations": [
         {
@@ -200,7 +203,8 @@
       "parent_key": "fixtures/extraction/java/test_roles/source.java:ManagedTestRoles:1:0",
       "metadata": {
         "is_test": true,
-        "test_lifecycle": true
+        "test_lifecycle": true,
+        "test_role": "fixture_setup"
       },
       "annotations": [
         {
@@ -240,7 +244,8 @@
       "parent_key": "fixtures/extraction/java/test_roles/source.java:ManagedTestRoles:1:0",
       "metadata": {
         "is_test": true,
-        "test_lifecycle": true
+        "test_lifecycle": true,
+        "test_role": "fixture_teardown"
       },
       "annotations": [
         {
@@ -310,7 +315,8 @@
       "visibility": "Private",
       "parent_key": "fixtures/extraction/java/test_roles/source.java:ManagedTestRoles:1:0",
       "metadata": {
-        "is_test": true
+        "is_test": true,
+        "test_role": "test_case"
       },
       "annotations": [
         {

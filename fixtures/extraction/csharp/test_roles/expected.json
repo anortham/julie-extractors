@@ -28,7 +28,8 @@
       "metadata": {
         "isStatic": false,
         "is_test": true,
-        "test_lifecycle": true
+        "test_lifecycle": true,
+        "test_role": "fixture_teardown"
       },
       "annotations": [
         {
@@ -69,7 +70,8 @@
       "metadata": {
         "isStatic": false,
         "is_test": true,
-        "test_lifecycle": true
+        "test_lifecycle": true,
+        "test_role": "fixture_setup"
       },
       "annotations": [
         {
@@ -142,7 +144,8 @@
       "parent_key": null,
       "metadata": {
         "csharp_visibility": "public",
-        "test_container": true
+        "test_container": true,
+        "test_role": "test_container"
       },
       "annotations": [],
       "semantic_group": null,
@@ -202,7 +205,8 @@
       "parent_key": "fixtures/extraction/csharp/test_roles/source.cs:MsTestFixture:8:0",
       "metadata": {
         "isStatic": false,
-        "is_test": true
+        "is_test": true,
+        "test_role": "test_case"
       },
       "annotations": [
         {
@@ -242,7 +246,8 @@
       "parent_key": null,
       "metadata": {
         "csharp_visibility": "public",
-        "test_container": true
+        "test_container": true,
+        "test_role": "test_container"
       },
       "annotations": [
         {
@@ -282,7 +287,8 @@
       "parent_key": "fixtures/extraction/csharp/test_roles/source.cs:ManagedTestRoles:14:0",
       "metadata": {
         "isStatic": false,
-        "is_test": true
+        "is_test": true,
+        "test_role": "test_case"
       },
       "annotations": [
         {
@@ -322,7 +328,8 @@
       "parent_key": null,
       "metadata": {
         "csharp_visibility": "public",
-        "test_container": true
+        "test_container": true,
+        "test_role": "test_container"
       },
       "annotations": [
         {
@@ -362,7 +369,8 @@
       "parent_key": "fixtures/extraction/csharp/test_roles/source.cs:ManagedTestRoles:14:0",
       "metadata": {
         "isStatic": false,
-        "is_test": true
+        "is_test": true,
+        "test_role": "test_case"
       },
       "annotations": [
         {
@@ -474,7 +482,8 @@
       "parent_key": "fixtures/extraction/csharp/test_roles/source.cs:ManagedTestRoles:14:0",
       "metadata": {
         "isStatic": false,
-        "is_test": true
+        "is_test": true,
+        "test_role": "test_case"
       },
       "annotations": [
         {
@@ -514,7 +523,8 @@
       "parent_key": "fixtures/extraction/csharp/test_roles/source.cs:ManagedTestRoles:14:0",
       "metadata": {
         "isStatic": false,
-        "is_test": true
+        "is_test": true,
+        "test_role": "test_case"
       },
       "annotations": [
         {

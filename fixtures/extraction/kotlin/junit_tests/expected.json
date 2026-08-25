@@ -28,6 +28,7 @@
       "metadata": {
         "modifiers": "",
         "test_container": true,
+        "test_role": "test_container",
         "type": "class"
       },
       "annotations": [],
@@ -97,6 +98,7 @@
       "metadata": {
         "modifiers": "@Nested",
         "test_container": true,
+        "test_role": "test_container",
         "type": "class"
       },
       "annotations": [
@@ -138,6 +140,7 @@
       "metadata": {
         "is_test": true,
         "modifiers": "@Test",
+        "test_role": "test_case",
         "type": "method"
       },
       "annotations": [
@@ -403,6 +406,7 @@
       "metadata": {
         "is_test": true,
         "modifiers": "@Test",
+        "test_role": "test_case",
         "type": "method"
       },
       "annotations": [
@@ -445,6 +449,7 @@
         "is_test": true,
         "modifiers": "@BeforeEach",
         "test_lifecycle": true,
+        "test_role": "fixture_setup",
         "type": "method"
       },
       "annotations": [
@@ -487,6 +492,7 @@
         "is_test": true,
         "modifiers": "@BeforeAll",
         "test_lifecycle": true,
+        "test_role": "fixture_setup",
         "type": "method"
       },
       "annotations": [
@@ -529,6 +535,7 @@
         "is_test": true,
         "modifiers": "@AfterEach",
         "test_lifecycle": true,
+        "test_role": "fixture_teardown",
         "type": "method"
       },
       "annotations": [
@@ -571,6 +578,7 @@
         "is_test": true,
         "modifiers": "@AfterAll",
         "test_lifecycle": true,
+        "test_role": "fixture_teardown",
         "type": "method"
       },
       "annotations": [

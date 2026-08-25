@@ -3,7 +3,8 @@
 // Covers all 34 languages via language-specific rules + generic fallback.
 
 use crate::base::SymbolKind;
-use crate::test_detection::is_test_symbol;
+use crate::test_detection::{apply_callable_test_metadata, is_test_symbol};
+use std::collections::HashMap;
 
 // ---------------------------------------------------------------------------
 // Helper: shorthand for common no-annotations/no-doc calls
@@ -2053,4 +2054,261 @@ pub fn add(a: u32, b: u32) u32 {
         !has_is_test(add_fn.unwrap()),
         "add function should NOT have is_test"
     );
+}
+
+// ===========================================================================
+// test_role contract — booleans and role string are written together
+// ===========================================================================
+
+fn callable_test_metadata(
+    language: &str,
+    name: &str,
+    file_path: &str,
+    annotation_keys: &[String],
+) -> HashMap<String, serde_json::Value> {
+    let mut metadata = HashMap::new();
+    apply_callable_test_metadata(
+        language,
+        name,
+        file_path,
+        &SymbolKind::Method,
+        annotation_keys,
+        None,
+        &mut metadata,
+    );
+    metadata
+}
+
+fn role(metadata: &HashMap<String, serde_json::Value>) -> Option<&str> {
+    metadata.get("test_role").and_then(|value| value.as_str())
+}
+
+fn flag(metadata: &HashMap<String, serde_json::Value>, key: &str) -> bool {
+    metadata.get(key).and_then(|value| value.as_bool()) == Some(true)
+}
+
+fn symbol_role(symbol: &crate::base::Symbol) -> Option<&str> {
+    symbol
+        .metadata
+        .as_ref()
+        .and_then(|metadata| metadata.get("test_role"))
+        .and_then(|value| value.as_str())
+}
+
+#[test]
+fn java_test_annotation_carries_the_test_case_role() {
+    let metadata = callable_test_metadata(
+        "java",
+        "addsTwoNumbers",
+        "src/test/java/CalcTest.java",
+        &[s("test")],
+    );
+    assert_eq!(role(&metadata), Some("test_case"));
+    assert!(flag(&metadata, "is_test"));
+    assert!(!metadata.contains_key("test_lifecycle"));
+}
+
+#[test]
+fn java_parameterized_test_annotation_still_carries_the_test_case_role() {
+    let metadata = callable_test_metadata(
+        "java",
+        "addsPairs",
+        "src/test/java/CalcTest.java",
+        &[s("parameterizedtest")],
+    );
+    assert_eq!(role(&metadata), Some("test_case"));
+}
+
+#[test]
+fn java_before_each_carries_the_fixture_setup_role() {
+    let metadata = callable_test_metadata(
+        "java",
+        "prepare",
+        "src/test/java/CalcTest.java",
+        &[s("beforeeach")],
+    );
+    assert_eq!(role(&metadata), Some("fixture_setup"));
+    assert!(flag(&metadata, "is_test"));
+    assert!(flag(&metadata, "test_lifecycle"));
+}
+
+#[test]
+fn java_after_all_carries_the_fixture_teardown_role() {
+    let metadata = callable_test_metadata(
+        "java",
+        "shutdown",
+        "src/test/java/CalcTest.java",
+        &[s("afterall")],
+    );
+    assert_eq!(role(&metadata), Some("fixture_teardown"));
+    assert!(flag(&metadata, "test_lifecycle"));
+}
+
+#[test]
+fn dotnet_test_initialize_carries_the_fixture_setup_role() {
+    let metadata = callable_test_metadata(
+        "csharp",
+        "Prepare",
+        "tests/CalcTests.cs",
+        &[s("testinitialize")],
+    );
+    assert_eq!(role(&metadata), Some("fixture_setup"));
+}
+
+#[test]
+fn dotnet_one_time_teardown_carries_the_fixture_teardown_role() {
+    let metadata = callable_test_metadata(
+        "csharp",
+        "Shutdown",
+        "tests/CalcTests.cs",
+        &[s("onetimeteardown")],
+    );
+    assert_eq!(role(&metadata), Some("fixture_teardown"));
+}
+
+#[test]
+fn python_set_up_class_carries_the_fixture_setup_role() {
+    let metadata = callable_test_metadata("python", "setUpClass", "tests/test_calc.py", &[]);
+    assert_eq!(role(&metadata), Some("fixture_setup"));
+}
+
+#[test]
+fn python_tear_down_carries_the_fixture_teardown_role() {
+    let metadata = callable_test_metadata("python", "tearDown", "tests/test_calc.py", &[]);
+    assert_eq!(role(&metadata), Some("fixture_teardown"));
+}
+
+#[test]
+fn bash_teardown_carries_the_fixture_teardown_role() {
+    let metadata = callable_test_metadata("bash", "teardown", "tests/calc_test.sh", &[]);
+    assert_eq!(role(&metadata), Some("fixture_teardown"));
+}
+
+#[test]
+fn gdscript_before_all_carries_the_fixture_setup_role() {
+    let metadata = callable_test_metadata("gdscript", "before_all", "tests/test_calc.gd", &[]);
+    assert_eq!(role(&metadata), Some("fixture_setup"));
+}
+
+#[test]
+fn scala_after_each_carries_the_fixture_teardown_role() {
+    let metadata =
+        callable_test_metadata("scala", "afterEach", "src/test/scala/CalcSpec.scala", &[]);
+    assert_eq!(role(&metadata), Some("fixture_teardown"));
+}
+
+#[test]
+fn qml_cleanup_test_case_carries_the_fixture_teardown_role() {
+    let metadata = callable_test_metadata("qml", "cleanupTestCase", "tests/tst_calc.qml", &[]);
+    assert_eq!(role(&metadata), Some("fixture_teardown"));
+}
+
+#[test]
+fn swift_test_case_without_a_lifecycle_arm_carries_the_test_case_role() {
+    let metadata = callable_test_metadata("swift", "testAddition", "Tests/CalcTests.swift", &[]);
+    assert_eq!(role(&metadata), Some("test_case"));
+    assert!(!metadata.contains_key("test_lifecycle"));
+}
+
+#[test]
+fn a_production_callable_carries_no_test_metadata_at_all() {
+    let metadata = callable_test_metadata("java", "connect", "src/main/java/Client.java", &[]);
+    assert!(metadata.is_empty());
+}
+
+#[test]
+fn every_emitted_role_agrees_with_the_emitted_booleans() {
+    let cases = [
+        (
+            "java",
+            "run",
+            "src/test/java/CalcTest.java",
+            vec![s("test")],
+        ),
+        (
+            "java",
+            "prepare",
+            "src/test/java/CalcTest.java",
+            vec![s("beforeeach")],
+        ),
+        (
+            "java",
+            "shutdown",
+            "src/test/java/CalcTest.java",
+            vec![s("afterclass")],
+        ),
+        ("python", "setUp", "tests/test_calc.py", vec![]),
+        ("python", "test_adds", "tests/test_calc.py", vec![]),
+        ("bash", "setup", "tests/calc_test.sh", vec![]),
+        ("gdscript", "after_each", "tests/test_calc.gd", vec![]),
+        ("qml", "init", "tests/tst_calc.qml", vec![]),
+    ];
+
+    for (language, name, file_path, annotation_keys) in cases {
+        let metadata = callable_test_metadata(language, name, file_path, &annotation_keys);
+        let emitted = role(&metadata).unwrap_or_else(|| panic!("{language}::{name} needs a role"));
+        let expected_lifecycle = matches!(emitted, "fixture_setup" | "fixture_teardown");
+        assert!(flag(&metadata, "is_test"), "{language}::{name}");
+        assert_eq!(
+            flag(&metadata, "test_lifecycle"),
+            expected_lifecycle,
+            "{language}::{name}"
+        );
+    }
+}
+
+#[test]
+fn a_python_test_case_class_carries_the_test_container_role() {
+    let code = r#"
+import unittest
+
+
+class CalcTests(unittest.TestCase):
+    def test_adds(self):
+        self.assertEqual(1 + 1, 2)
+"#;
+    let symbols = extract_symbols_for("python", "tests/test_calc.py", code);
+
+    let container = symbols
+        .iter()
+        .find(|symbol| symbol.name == "CalcTests")
+        .expect("CalcTests class should be extracted");
+    assert_eq!(symbol_role(container), Some("test_container"));
+    assert!(!has_is_test(container));
+
+    let case = symbols
+        .iter()
+        .find(|symbol| symbol.name == "test_adds")
+        .expect("test_adds method should be extracted");
+    assert_eq!(symbol_role(case), Some("test_case"));
+}
+
+#[test]
+fn a_qml_test_case_function_carries_a_role_and_a_data_provider_carries_none() {
+    let code = r#"
+import QtQuick 2.15
+import QtTest 1.15
+
+TestCase {
+    name: "CalcTests"
+
+    function initTestCase() {}
+    function test_adds_data() { return []; }
+    function test_adds(data) {}
+    function helper() {}
+}
+"#;
+    let symbols = extract_symbols_for("qml", "tests/tst_calc.qml", code);
+
+    let named = |name: &str| {
+        symbols
+            .iter()
+            .find(|symbol| symbol.name == name)
+            .unwrap_or_else(|| panic!("{name} should be extracted"))
+    };
+
+    assert_eq!(symbol_role(named("initTestCase")), Some("fixture_setup"));
+    assert_eq!(symbol_role(named("test_adds")), Some("test_case"));
+    assert_eq!(symbol_role(named("test_adds_data")), None);
+    assert_eq!(symbol_role(named("helper")), None);
 }

@@ -89,6 +89,37 @@ In CI, the `Extractor Compatibility` job downloads the latest published release 
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
+## 2.36.0
+
+classification: compatible
+
+Test-role contract expansion: `test_role` string, lifecycle direction, per-language
+role corrections.
+
+Every symbol that the shared test-detection writer flags now carries a `test_role`
+string in `symbols.metadata_json`, next to the existing `is_test`,
+`test_container`, and `test_lifecycle` booleans. The value is one of `test_case`,
+`parameterized_test`, `fixture_setup`, `fixture_teardown`, or `test_container`.
+One helper writes the booleans and the string together, so the two can never
+disagree. The lifecycle arms now report a direction — setup, teardown, ambiguous,
+or none — instead of a bare "is a lifecycle hook" answer. A hook that wraps a test
+case on both sides (an `around`-style hook) reports `Ambiguous` and takes the
+`fixture_setup` role, because a wrapping hook always runs its setup half first.
+Later work on this branch corrects per-language role classification for ten
+languages; this one entry covers that whole branch.
+
+The typed `symbols.is_test`, `symbols.test_container`, and `symbols.test_lifecycle`
+columns keep their current values. No table, column, or JSONL field is added,
+removed, or renamed. A reader built for v2.35.1 ignores the new metadata key and
+still reads schema 7 / JSONL v5 / store schema 2.
+
+Extraction identity epoch is 6. Family-store file versions re-extract because
+identity is `(path, content_hash, extraction_epoch)`.
+
+Consumer action: to read `test_role`, replace the binary and re-extract or rebuild
+standalone artifacts, or let epoch-6 family-store file versions populate on the
+next import or update. A consumer that reads only the booleans needs no action.
+
 ## 2.35.1
 
 classification: compatible

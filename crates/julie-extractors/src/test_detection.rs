@@ -4,8 +4,71 @@
 //! a symbol is a test based on its language, name, file path, kind, annotation keys,
 //! and doc comment. No tree-sitter, no file I/O.
 
-use crate::base::{Symbol, SymbolKind};
+use crate::base::{Symbol, SymbolKind, TestRole};
 use std::collections::{HashMap, HashSet};
+
+/// Which side of a fixture a test lifecycle hook runs on.
+///
+/// `Ambiguous` covers a hook that wraps a test case on both sides, such as an
+/// RSpec `around` block. It resolves to [`TestRole::FixtureSetup`] because a
+/// wrapping hook always runs its setup half first.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum TestLifecycleDirection {
+    Setup,
+    Teardown,
+    #[allow(
+        dead_code,
+        reason = "no supported language reports an around-style hook yet"
+    )]
+    Ambiguous,
+    None,
+}
+
+impl TestLifecycleDirection {
+    fn is_lifecycle(self) -> bool {
+        !matches!(self, TestLifecycleDirection::None)
+    }
+
+    fn fixture_role(self) -> Option<TestRole> {
+        match self {
+            TestLifecycleDirection::Setup | TestLifecycleDirection::Ambiguous => {
+                Some(TestRole::FixtureSetup)
+            }
+            TestLifecycleDirection::Teardown => Some(TestRole::FixtureTeardown),
+            TestLifecycleDirection::None => None,
+        }
+    }
+}
+
+/// Write the boolean role flags and the `test_role` string for one role.
+///
+/// Every test-role write in this module goes through here, so the booleans a
+/// consumer reads and the `test_role` string can never disagree.
+fn apply_test_role(metadata: &mut HashMap<String, serde_json::Value>, role: TestRole) {
+    match role {
+        TestRole::TestContainer => {
+            metadata.insert("test_container".to_string(), serde_json::Value::Bool(true));
+        }
+        TestRole::FixtureSetup | TestRole::FixtureTeardown => {
+            metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
+            metadata.insert("test_lifecycle".to_string(), serde_json::Value::Bool(true));
+        }
+        TestRole::TestCase | TestRole::ParameterizedTest => {
+            metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
+        }
+    }
+    metadata.insert(
+        "test_role".to_string(),
+        serde_json::Value::String(role.as_str().to_string()),
+    );
+}
+
+fn clear_test_role(metadata: &mut HashMap<String, serde_json::Value>) {
+    metadata.remove("is_test");
+    metadata.remove("test_lifecycle");
+    metadata.remove("test_container");
+    metadata.remove("test_role");
+}
 
 /// Callable symbol kinds — only these can be actual test functions/methods.
 fn is_callable(kind: &SymbolKind) -> bool {
@@ -112,8 +175,12 @@ fn detect_rust(annotation_keys: &[String]) -> bool {
         .any(|a| a == "test" || a == "tokio::test" || a == "rstest")
 }
 
-fn is_python_test_lifecycle_name(name: &str) -> bool {
-    matches!(name, "setUp" | "tearDown" | "setUpClass" | "tearDownClass")
+fn python_test_lifecycle_direction(name: &str) -> TestLifecycleDirection {
+    match name {
+        "setUp" | "setUpClass" => TestLifecycleDirection::Setup,
+        "tearDown" | "tearDownClass" => TestLifecycleDirection::Teardown,
+        _ => TestLifecycleDirection::None,
+    }
 }
 
 fn detect_python(name: &str, file_path: &str, annotation_keys: &[String]) -> bool {
@@ -129,7 +196,7 @@ fn detect_python(name: &str, file_path: &str, annotation_keys: &[String]) -> boo
     }) {
         return true;
     }
-    if is_python_test_lifecycle_name(name) {
+    if python_test_lifecycle_direction(name).is_lifecycle() {
         return true;
     }
     name.starts_with("test_") && is_test_path(file_path)
@@ -139,7 +206,7 @@ fn detect_scala(name: &str, annotation_keys: &[String]) -> bool {
     if detect_java_kotlin(annotation_keys) {
         return true;
     }
-    if is_scala_test_lifecycle_name(name) {
+    if scala_test_lifecycle_direction(name).is_lifecycle() {
         return true;
     }
     name.starts_with("test")
@@ -149,44 +216,37 @@ fn is_java_test_case_annotation(annotation: &str) -> bool {
     matches!(annotation, "test" | "parameterizedtest" | "repeatedtest")
 }
 
-fn is_java_test_lifecycle_annotation(annotation: &str) -> bool {
-    matches!(
-        annotation,
-        "beforeeach"
-            | "aftereach"
-            | "beforeall"
-            | "afterall"
-            | "before"
-            | "after"
-            | "beforeclass"
-            | "afterclass"
-    )
+fn java_test_lifecycle_direction(annotation: &str) -> TestLifecycleDirection {
+    match annotation {
+        "beforeeach" | "beforeall" | "before" | "beforeclass" => TestLifecycleDirection::Setup,
+        "aftereach" | "afterall" | "after" | "afterclass" => TestLifecycleDirection::Teardown,
+        _ => TestLifecycleDirection::None,
+    }
 }
 
 fn detect_java_kotlin(annotation_keys: &[String]) -> bool {
     annotation_keys.iter().any(|annotation| {
-        is_java_test_case_annotation(annotation) || is_java_test_lifecycle_annotation(annotation)
+        is_java_test_case_annotation(annotation)
+            || java_test_lifecycle_direction(annotation).is_lifecycle()
     })
 }
 
-fn is_dotnet_test_lifecycle_annotation(annotation: &str) -> bool {
-    matches!(
-        annotation,
-        "setup"
-            | "teardown"
-            | "onetimesetup"
-            | "onetimeteardown"
-            | "testinitialize"
-            | "testcleanup"
-            | "classinitialize"
-            | "classcleanup"
-    )
+fn dotnet_test_lifecycle_direction(annotation: &str) -> TestLifecycleDirection {
+    match annotation {
+        "setup" | "onetimesetup" | "testinitialize" | "classinitialize" => {
+            TestLifecycleDirection::Setup
+        }
+        "teardown" | "onetimeteardown" | "testcleanup" | "classcleanup" => {
+            TestLifecycleDirection::Teardown
+        }
+        _ => TestLifecycleDirection::None,
+    }
 }
 
 fn detect_csharp(annotation_keys: &[String]) -> bool {
     annotation_keys.iter().any(|annotation| {
         is_dotnet_test_case_annotation(annotation)
-            || is_dotnet_test_lifecycle_annotation(annotation)
+            || dotnet_test_lifecycle_direction(annotation).is_lifecycle()
     })
 }
 
@@ -197,24 +257,40 @@ fn is_dotnet_test_case_annotation(annotation: &str) -> bool {
     )
 }
 
-fn is_test_lifecycle(language: &str, name: &str, annotation_keys: &[String]) -> bool {
+fn first_annotation_direction(
+    annotation_keys: &[String],
+    direction_of: fn(&str) -> TestLifecycleDirection,
+) -> TestLifecycleDirection {
+    annotation_keys
+        .iter()
+        .map(|annotation| direction_of(annotation))
+        .find(|direction| direction.is_lifecycle())
+        .unwrap_or(TestLifecycleDirection::None)
+}
+
+fn is_test_lifecycle(
+    language: &str,
+    name: &str,
+    annotation_keys: &[String],
+) -> TestLifecycleDirection {
     match language {
-        "java" | "kotlin" => annotation_keys
-            .iter()
-            .any(|annotation| is_java_test_lifecycle_annotation(annotation)),
-        "csharp" | "vbnet" | "razor" => annotation_keys
-            .iter()
-            .any(|annotation| is_dotnet_test_lifecycle_annotation(annotation)),
-        "python" => is_python_test_lifecycle_name(name),
-        "bash" => is_bash_test_lifecycle_name(name),
-        "gdscript" => is_gdscript_test_lifecycle_name(name),
-        "qml" => is_qml_test_lifecycle_name(name),
-        "scala" => is_scala_test_lifecycle_name(name),
-        _ => false,
+        "java" | "kotlin" => {
+            first_annotation_direction(annotation_keys, java_test_lifecycle_direction)
+        }
+        "csharp" | "vbnet" | "razor" => {
+            first_annotation_direction(annotation_keys, dotnet_test_lifecycle_direction)
+        }
+        "python" => python_test_lifecycle_direction(name),
+        "bash" => bash_test_lifecycle_direction(name),
+        "gdscript" => gdscript_test_lifecycle_direction(name),
+        "qml" => qml_test_lifecycle_direction(name),
+        "scala" => scala_test_lifecycle_direction(name),
+        _ => TestLifecycleDirection::None,
     }
 }
 
-/// Set `is_test` and, when applicable, `test_lifecycle` on callable metadata.
+/// Set `is_test`, `test_role`, and — for a lifecycle hook — `test_lifecycle` on
+/// callable metadata.
 pub(crate) fn apply_callable_test_metadata(
     language: &str,
     name: &str,
@@ -234,10 +310,10 @@ pub(crate) fn apply_callable_test_metadata(
     ) {
         return;
     }
-    metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
-    if is_test_lifecycle(language, name, annotation_keys) {
-        metadata.insert("test_lifecycle".to_string(), serde_json::Value::Bool(true));
-    }
+    let role = is_test_lifecycle(language, name, annotation_keys)
+        .fixture_role()
+        .unwrap_or(TestRole::TestCase);
+    apply_test_role(metadata, role);
 }
 
 pub(crate) fn mark_base_type_test_containers(symbols: &mut [Symbol], base_type: &str) {
@@ -272,14 +348,10 @@ fn normalize_qml_test_roles(symbols: &mut [Symbol], test_container_ids: &HashSet
         let in_test_case = has_testcase_ancestor(symbol, test_container_ids, &parent_by_id);
         let role = in_test_case.then(|| qml_test_role(&symbol.name)).flatten();
         let mut metadata = symbol.metadata.take().unwrap_or_default();
-        metadata.remove("is_test");
-        metadata.remove("test_lifecycle");
+        clear_test_role(&mut metadata);
 
-        if let Some(lifecycle) = role {
-            metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
-            if lifecycle {
-                metadata.insert("test_lifecycle".to_string(), serde_json::Value::Bool(true));
-            }
+        if let Some(role) = role {
+            apply_test_role(&mut metadata, role);
         }
         symbol.metadata = (!metadata.is_empty()).then_some(metadata);
     }
@@ -304,12 +376,9 @@ fn has_testcase_ancestor(
     false
 }
 
-fn qml_test_role(name: &str) -> Option<bool> {
-    if matches!(
-        name,
-        "initTestCase" | "cleanupTestCase" | "init" | "cleanup"
-    ) {
-        return Some(true);
+fn qml_test_role(name: &str) -> Option<TestRole> {
+    if let Some(role) = qml_test_lifecycle_direction(name).fixture_role() {
+        return Some(role);
     }
     if name == "init_data" || (name.starts_with("test_") && name.ends_with("_data")) {
         return None;
@@ -318,16 +387,16 @@ fn qml_test_role(name: &str) -> Option<bool> {
         || name.starts_with("benchmark_")
         || name.starts_with("benchmark_once_")
     {
-        return Some(false);
+        return Some(TestRole::TestCase);
     }
     None
 }
 
 fn mark_class_test_container(symbol: &mut Symbol) {
-    symbol
-        .metadata
-        .get_or_insert_with(Default::default)
-        .insert("test_container".to_string(), serde_json::Value::Bool(true));
+    apply_test_role(
+        symbol.metadata.get_or_insert_with(Default::default),
+        TestRole::TestContainer,
+    );
 }
 
 fn metadata_string_list_contains(symbol: &Symbol, key: &str, needle: &str) -> bool {
@@ -689,34 +758,45 @@ fn detect_dart(name: &str, file_path: &str, annotation_keys: &[String]) -> bool 
 /// is represented independently through `base_types` metadata. Path-guarded so a
 /// production method like `testConnection` isn't mis-flagged. Broader than the
 /// generic fallback, which only catches `test_`/`Test`.
-fn is_gdscript_test_lifecycle_name(name: &str) -> bool {
-    matches!(
-        name,
-        "before_each" | "after_each" | "before_all" | "after_all"
-    )
+fn gdscript_test_lifecycle_direction(name: &str) -> TestLifecycleDirection {
+    match name {
+        "before_each" | "before_all" => TestLifecycleDirection::Setup,
+        "after_each" | "after_all" => TestLifecycleDirection::Teardown,
+        _ => TestLifecycleDirection::None,
+    }
 }
 
 fn detect_gdscript(name: &str, file_path: &str) -> bool {
-    is_test_path(file_path) && (name.starts_with("test") || is_gdscript_test_lifecycle_name(name))
+    is_test_path(file_path)
+        && (name.starts_with("test") || gdscript_test_lifecycle_direction(name).is_lifecycle())
 }
 
-fn is_qml_test_lifecycle_name(name: &str) -> bool {
-    matches!(
-        name,
-        "initTestCase" | "cleanupTestCase" | "init" | "cleanup"
-    )
+fn qml_test_lifecycle_direction(name: &str) -> TestLifecycleDirection {
+    match name {
+        "initTestCase" | "init" => TestLifecycleDirection::Setup,
+        "cleanupTestCase" | "cleanup" => TestLifecycleDirection::Teardown,
+        _ => TestLifecycleDirection::None,
+    }
 }
 
 fn detect_qml(name: &str, file_path: &str) -> bool {
     is_test_path(file_path) && qml_test_role(name).is_some()
 }
 
-fn is_bash_test_lifecycle_name(name: &str) -> bool {
-    matches!(name.to_ascii_lowercase().as_str(), "setup" | "teardown")
+fn bash_test_lifecycle_direction(name: &str) -> TestLifecycleDirection {
+    match name.to_ascii_lowercase().as_str() {
+        "setup" => TestLifecycleDirection::Setup,
+        "teardown" => TestLifecycleDirection::Teardown,
+        _ => TestLifecycleDirection::None,
+    }
 }
 
-fn is_scala_test_lifecycle_name(name: &str) -> bool {
-    matches!(name, "beforeEach" | "afterEach" | "beforeAll" | "afterAll")
+fn scala_test_lifecycle_direction(name: &str) -> TestLifecycleDirection {
+    match name {
+        "beforeEach" | "beforeAll" => TestLifecycleDirection::Setup,
+        "afterEach" | "afterAll" => TestLifecycleDirection::Teardown,
+        _ => TestLifecycleDirection::None,
+    }
 }
 
 /// Lua luaunit: test functions/methods are `testXxx` (camelCase) or `test_xxx`.

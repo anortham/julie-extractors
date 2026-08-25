@@ -85,7 +85,8 @@
       "parent_key": "fixtures/extraction/qml/test_roles/test_source.qml:test_source:4:0",
       "metadata": {
         "is_test": true,
-        "test_lifecycle": true
+        "test_lifecycle": true,
+        "test_role": "fixture_setup"
       },
       "annotations": [],
       "semantic_group": null,
@@ -144,7 +145,8 @@
       "visibility": "Public",
       "parent_key": "fixtures/extraction/qml/test_roles/test_source.qml:test_source:4:0",
       "metadata": {
-        "is_test": true
+        "is_test": true,
+        "test_role": "test_case"
       },
       "annotations": [],
       "semantic_group": null,
@@ -180,7 +182,8 @@
         "base_types": [
           "TestCase"
         ],
-        "test_container": true
+        "test_container": true,
+        "test_role": "test_container"
       },
       "annotations": [],
       "semantic_group": null,

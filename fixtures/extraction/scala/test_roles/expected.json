@@ -64,6 +64,7 @@
         "modifiers": "override",
         "returnType": "Unit",
         "test_lifecycle": true,
+        "test_role": "fixture_setup",
         "type": "method"
       },
       "annotations": [],

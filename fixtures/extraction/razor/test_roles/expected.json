@@ -32,6 +32,7 @@
         "parameters": "()",
         "returnType": "void",
         "test_lifecycle": true,
+        "test_role": "fixture_teardown",
         "type": "method"
       },
       "annotations": [
@@ -77,6 +78,7 @@
         "parameters": "()",
         "returnType": "void",
         "test_lifecycle": true,
+        "test_role": "fixture_setup",
         "type": "method"
       },
       "annotations": [
@@ -215,6 +217,7 @@
         "modifiers": "public",
         "parameters": "()",
         "returnType": "void",
+        "test_role": "test_case",
         "type": "method"
       },
       "annotations": [
@@ -257,6 +260,7 @@
         "attributes": "[TestClass]",
         "modifiers": "public, sealed",
         "test_container": true,
+        "test_role": "test_container",
         "type": "class"
       },
       "annotations": [
@@ -301,6 +305,7 @@
         "modifiers": "public",
         "parameters": "()",
         "returnType": "void",
+        "test_role": "test_case",
         "type": "method"
       },
       "annotations": [
@@ -343,6 +348,7 @@
         "attributes": "[TestFixture]",
         "modifiers": "public, sealed",
         "test_container": true,
+        "test_role": "test_container",
         "type": "class"
       },
       "annotations": [
@@ -387,6 +393,7 @@
         "modifiers": "public",
         "parameters": "(int value)",
         "returnType": "void",
+        "test_role": "test_case",
         "type": "method"
       },
       "annotations": [
@@ -472,6 +479,7 @@
         "modifiers": "public",
         "parameters": "()",
         "returnType": "void",
+        "test_role": "test_case",
         "type": "method"
       },
       "annotations": [
@@ -513,6 +521,7 @@
       "metadata": {
         "modifiers": "public, sealed",
         "test_container": true,
+        "test_role": "test_container",
         "type": "class"
       },
       "annotations": [],
@@ -551,6 +560,7 @@
         "modifiers": "public",
         "parameters": "()",
         "returnType": "void",
+        "test_role": "test_case",
         "type": "method"
       },
       "annotations": [

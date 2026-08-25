@@ -31,7 +31,8 @@
         "superclasses": [
           "unittest.TestCase"
         ],
-        "test_container": true
+        "test_container": true,
+        "test_role": "test_container"
       },
       "annotations": [],
       "semantic_group": null,
@@ -208,7 +209,8 @@
         "isAsync": false,
         "is_test": true,
         "returnType": "",
-        "test_lifecycle": true
+        "test_lifecycle": true,
+        "test_role": "fixture_setup"
       },
       "annotations": [],
       "semantic_group": null,
@@ -245,7 +247,8 @@
         "isAsync": false,
         "is_test": true,
         "returnType": "",
-        "test_lifecycle": true
+        "test_lifecycle": true,
+        "test_role": "fixture_teardown"
       },
       "annotations": [],
       "semantic_group": null,
@@ -281,7 +284,8 @@
         "decorators": [],
         "isAsync": false,
         "is_test": true,
-        "returnType": ""
+        "returnType": "",
+        "test_role": "test_case"
       },
       "annotations": [],
       "semantic_group": null,
@@ -317,7 +321,8 @@
         "decorators": [],
         "isAsync": false,
         "is_test": true,
-        "returnType": ""
+        "returnType": "",
+        "test_role": "test_case"
       },
       "annotations": [],
       "semantic_group": null,
