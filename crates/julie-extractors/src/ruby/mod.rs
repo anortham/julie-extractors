@@ -19,7 +19,7 @@ use tree_sitter::{Node, Tree};
 // Private modules - encapsulate implementation details
 mod assignments;
 mod calls;
-mod helpers;
+pub(crate) mod helpers;
 mod identifiers;
 mod relationships;
 mod signatures;
@@ -60,6 +60,8 @@ impl RubyExtractor {
                 symbols.push(symbol.clone());
             }
         }
+
+        crate::test_detection::mark_ruby_test_containers(&mut symbols);
 
         symbols
     }

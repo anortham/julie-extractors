@@ -27,6 +27,7 @@ Every row below has `test_detection.open_gaps: []` in
 | JavaScript family (`javascript`, `jsx`, `typescript`, `tsx`) | Jest/Vitest, Playwright, Mocha BDD and TDD, `node:test`, and QUnit call DSLs, plus testdeck method decorators, in `javascript:test_roles`, `javascript:jest_vitest_roles`, `javascript:mocha_tdd_roles`, `jsx:test_roles`, `jsx:node_test_roles`, `typescript:test_roles`, `typescript:playwright_roles`, `tsx:test_roles`, and `tsx:qunit_roles` | supported | supported | supported |
 | Go | `go test` name prefixes and the `_test.go` compile gate, `TestMain`, testify suite embedding and hooks, gocheck hooks, and the Ginkgo v2 node vocabulary in `go:test_roles` | supported | supported | supported |
 | Java | JUnit 3 `TestCase` subclasses, JUnit 4/5 annotations, and TestNG annotations including the class-level `@Test` in `java:test_roles` | supported | supported | supported |
+| Ruby | RSpec example groups, examples, hooks, and helpers; Minitest and Test::Unit base classes; the Rails `test` macro and its `setup`/`teardown` blocks in `ruby:test_roles` | supported | supported | supported |
 
 The `not_applicable` cells are contract-level conclusions. Zig's `test`
 declarations provide no adopted lifecycle or suite syntax;
@@ -169,6 +170,36 @@ classified exactly once for java.
 
 Real-world precision and recall measurements against the TestNG and JUnit
 source trees are in `docs/languages/java.md`.
+
+- Ruby: [RSpec example groups](https://rspec.info/features/3-13/rspec-core/example-groups/basic-structure/) define `describe`/`context` and `it`/`specify`/`example`, [`xit`/`fit` and the `x`/`f` prefixes](https://rspec.info/features/3-13/rspec-core/filtering/) define skipped and focused aliases, [hooks](https://rspec.info/features/3-13/rspec-core/hooks/before-and-after-hooks/) define `before`/`after`, [`around` hooks](https://rspec.info/features/3-13/rspec-core/hooks/around-hooks/) define the wrapping hook, [helper methods](https://rspec.info/features/3-13/rspec-core/helper-methods/let/) define `let`/`let!`/`subject`, and [shared examples](https://rspec.info/features/3-13/rspec-core/example-groups/shared-examples/) define `shared_examples`/`shared_context` and the `it_behaves_like`/`include_examples` call forms; [Minitest](https://github.com/minitest/minitest) collects `test_`-prefixed methods from a `Minitest::Test` subclass and calls `setup`/`teardown` around each one; [`ActiveSupport::TestCase`](https://guides.rubyonrails.org/testing.html) adds the `test "name" do` macro and block-form `setup`/`teardown`, and `ActionDispatch::IntegrationTest` extends it.
+
+## Ruby named exclusions
+
+Every name in the Ruby test vocabulary is ordinary Ruby somewhere else, and
+none of it is syntax the parser can tell apart on its own. `setup`, `before`,
+and `test` are plain method calls, and `describe` is a plain method name. The
+contract therefore takes three guards together, and a role needs all three.
+
+The file must read as a test path. The call must be bare or sent to `RSpec`
+itself, so `runner.describe "x"` stays an ordinary message to an object that
+answers `describe`. And a callable must sit inside a test container, so the
+scoping pass strips a role from a `def setup` in a spec-directory support
+class. RSpec blocks are their own containers; a Minitest-family suite is found
+through the class's `base_types` metadata, for `Minitest::Test`,
+`Test::Unit::TestCase`, `ActiveSupport::TestCase`, and
+`ActionDispatch::IntegrationTest`.
+
+`around` is the first hook in any supported language that wraps a case on both
+sides. It reports `fixture_setup`, through the `Ambiguous` lifecycle direction,
+because a wrapping hook always runs its setup half first.
+
+Two RSpec surfaces are excluded and recorded as `open_gaps` on the ruby row:
+shared example group references (`it_behaves_like`, `include_examples` name a
+group defined elsewhere, so a symbol row would be a second definition) and
+example metadata tags (`:slow`, `type: :model` are call arguments, and Ruby has
+no annotation syntax to carry them). Both entries sit under
+`kind_coverage.structural_facts.open_gaps`, for the same reason the two csharp
+entries do.
 
 ## C# named exclusions
 

@@ -3116,7 +3116,13 @@
         {
           "name": "test_roles",
           "source": "fixtures/extraction/ruby/test_roles/test_source.rb",
-          "expected": "fixtures/extraction/ruby/test_roles/expected.json"
+          "expected": "fixtures/extraction/ruby/test_roles/expected.json",
+          "sources": [
+            "fixtures/extraction/ruby/test_roles/test_source.rb",
+            "fixtures/extraction/ruby/test_roles/minitest_class_test.rb",
+            "fixtures/extraction/ruby/test_roles/rails_macro_test.rb",
+            "fixtures/extraction/ruby/test_roles/production_roles.rb"
+          ]
         }
       ],
       "target_capabilities": {
@@ -3131,9 +3137,12 @@
         "symbols": {
           "supported": [
             "class",
+            "constant",
             "constructor",
+            "function",
             "import",
             "method",
+            "namespace",
             "variable"
           ],
           "not_applicable": [],
@@ -3160,9 +3169,12 @@
           "supported": [
             "class",
             "constructor",
-            "method"
+            "function",
+            "method",
+            "namespace"
           ],
           "not_applicable": [
+            "constant",
             "import",
             "variable"
           ],
@@ -3180,7 +3192,20 @@
             "ruby.rescue_clause.v1"
           ],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "rspec.shared_example_group_references",
+              "reason": "RSpec `it_behaves_like \"a countable\"` and `include_examples \"a countable\"` run a group that `shared_examples` defines somewhere else, often in another file. The call names the group; it does not define it. A symbol row for the call would publish a second definition of one group, so the extractor emits the `shared_examples` container and leaves the call as an ordinary identifier row.",
+              "required_closure": "determine language-native applicability for a group-reference row, then add a reference edge from the call site to the shared group and register a golden fixture that defines a group in one file and runs it from another",
+              "planned_closure_task": "docs/plans/2026-08-25-ct-test-detection-readiness.md Task 11 follow-up: RSpec shared example group references"
+            },
+            {
+              "kind": "rspec.example_metadata_tags",
+              "reason": "RSpec attaches metadata to an example or a group through extra call arguments, such as `it \"is slow\", :slow do` and `describe Order, type: :model do`. Ruby has no annotation syntax, so the ruby row classifies every annotation kind as not applicable and these tags reach no channel. A runner filter such as `--tag slow` therefore has no published evidence.",
+              "required_closure": "determine language-native applicability for a tag row, then choose the channel that carries it, either a structural fact or an annotation-shaped row, and register a golden fixture with a symbol tag and a hash tag beside an untagged control",
+              "planned_closure_task": "docs/plans/2026-08-25-ct-test-detection-readiness.md Task 11 follow-up: RSpec example metadata tags"
+            }
+          ]
         },
         "complexity_metrics": {
           "supported": [
@@ -3194,9 +3219,12 @@
           "supported": [],
           "not_applicable": [
             "class",
+            "constant",
             "constructor",
+            "function",
             "import",
             "method",
+            "namespace",
             "variable"
           ],
           "open_gaps": []

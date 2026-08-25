@@ -25,7 +25,7 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": null,
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -96,6 +96,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/ruby/backend_http_boundaries/source.rb",
       "line_number": 24,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/ruby/backend_http_boundaries/source.rb:call_clients:22:0",
+      "callee_name": "URI",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/ruby/backend_http_boundaries/source.rb",
+      "line_number": 23,
       "confidence": "0.700"
     },
     {
@@ -174,6 +182,32 @@
         "end_column": 61,
         "start_byte": 529,
         "end_byte": 588
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/ruby/backend_http_boundaries/source.rb:call_clients:22:0",
+        "callee_name": "URI",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/ruby/backend_http_boundaries/source.rb",
+        "line_number": 23,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "URI",
+        "terminal_name": "URI",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/ruby/backend_http_boundaries/source.rb:call_clients:22:0",
+      "span": {
+        "start_line": 23,
+        "start_column": 16,
+        "end_line": 23,
+        "end_column": 52,
+        "start_byte": 489,
+        "end_byte": 525
       }
     },
     {

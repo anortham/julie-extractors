@@ -1,7 +1,9 @@
-use super::helpers::extract_method_name_from_call;
+use super::helpers::{extract_call_receiver, extract_method_name_from_call};
 /// Special method call extraction for Ruby
 /// Handles require, attr_accessor, define_method, def_delegator, module_function, Struct.new
-use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
+/// and the RSpec, Rails, and ActiveSupport test-block vocabularies
+use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, TestRole, Visibility};
+use crate::test_detection::{apply_test_role, is_test_path, ruby_block_test_role};
 use std::collections::HashMap;
 use tree_sitter::Node;
 
@@ -15,35 +17,16 @@ pub(super) fn extract_call(
         return Vec::new();
     };
 
+    if let Some(block_kind) = test_block_kind(&method_name)
+        && is_test_block_call(base, node)
+    {
+        return extract_test_block(base, node, &method_name, parent_id.as_deref(), block_kind)
+            .into_iter()
+            .collect();
+    }
+
     match method_name.as_str() {
         "require" | "require_relative" => extract_require(base, node).into_iter().collect(),
-        "describe" | "context" | "feature" => extract_rspec_block(
-            base,
-            node,
-            &method_name,
-            parent_id.as_deref(),
-            RSpecBlockKind::Container,
-        )
-        .into_iter()
-        .collect(),
-        "it" | "specify" | "example" | "scenario" => extract_rspec_block(
-            base,
-            node,
-            &method_name,
-            parent_id.as_deref(),
-            RSpecBlockKind::Example,
-        )
-        .into_iter()
-        .collect(),
-        "before" | "after" | "around" => extract_rspec_block(
-            base,
-            node,
-            &method_name,
-            parent_id.as_deref(),
-            RSpecBlockKind::Lifecycle,
-        )
-        .into_iter()
-        .collect(),
         "attr_reader" | "attr_writer" | "attr_accessor" => {
             extract_attr_accessor(base, node, &method_name, parent_id)
         }
@@ -181,56 +164,132 @@ fn extract_require(base: &mut BaseExtractor, node: Node) -> Option<Symbol> {
     ))
 }
 
-enum RSpecBlockKind {
+/// The shape a recognised test-block call takes in the source.
+///
+/// The shape decides where the symbol's name comes from and which symbol kind
+/// it becomes; [`TestBlockKind::role`] decides the test role.
+#[derive(Clone, Copy)]
+enum TestBlockKind {
+    /// `describe`/`context`/`shared_examples` — named by the first argument.
     Container,
+    /// `it`/`specify`/`xit` — named by the first argument.
     Example,
+    /// `before`/`after`/`around`/`setup`/`teardown` — named by the hook itself.
     Lifecycle,
+    /// `let`/`let!`/`subject` — named by the first argument, or by the hook when
+    /// the call takes no argument.
+    Fixture,
+    /// The Rails `test "name" do` macro — named by its string argument.
+    RailsCase,
 }
 
-fn extract_rspec_block(
+impl TestBlockKind {
+    fn role(self, method_name: &str) -> Option<TestRole> {
+        match self {
+            TestBlockKind::Container => Some(TestRole::TestContainer),
+            TestBlockKind::Example | TestBlockKind::RailsCase => Some(TestRole::TestCase),
+            TestBlockKind::Lifecycle => ruby_block_test_role(method_name),
+            TestBlockKind::Fixture => Some(TestRole::FixtureSetup),
+        }
+    }
+
+    fn symbol_kind(self) -> SymbolKind {
+        match self {
+            TestBlockKind::Container => SymbolKind::Namespace,
+            _ => SymbolKind::Function,
+        }
+    }
+
+    /// Whether the call must carry a `do`/`{` block to count.
+    ///
+    /// A bare `subject` or `setup` with no block is an ordinary reference or
+    /// method call. An `it "is pending"` with no block is a real RSpec pending
+    /// example, so examples and containers do not require one.
+    fn requires_block(self) -> bool {
+        matches!(
+            self,
+            TestBlockKind::Lifecycle | TestBlockKind::Fixture | TestBlockKind::RailsCase
+        )
+    }
+}
+
+fn test_block_kind(method_name: &str) -> Option<TestBlockKind> {
+    match method_name {
+        "describe"
+        | "context"
+        | "feature"
+        | "xdescribe"
+        | "xcontext"
+        | "fdescribe"
+        | "fcontext"
+        | "shared_examples"
+        | "shared_examples_for"
+        | "shared_context" => Some(TestBlockKind::Container),
+        "it" | "specify" | "example" | "scenario" | "xit" | "fit" | "xspecify" | "fspecify"
+        | "xexample" | "fexample" => Some(TestBlockKind::Example),
+        "before" | "after" | "around" | "setup" | "teardown" => Some(TestBlockKind::Lifecycle),
+        "let" | "let!" | "subject" | "subject!" => Some(TestBlockKind::Fixture),
+        "test" => Some(TestBlockKind::RailsCase),
+        _ => None,
+    }
+}
+
+/// Whether this call site may be read as a test block.
+///
+/// Two guards keep production Ruby clean. The file must be a test path, because
+/// every name in the vocabulary is ordinary Ruby elsewhere. And the call must be
+/// bare or sent to `RSpec` itself — `runner.describe "x"` sends an ordinary
+/// message to an object that happens to answer `describe`.
+fn is_test_block_call(base: &BaseExtractor, node: Node) -> bool {
+    if !is_test_path(&base.file_path) {
+        return false;
+    }
+    matches!(
+        extract_call_receiver(node, |n| base.get_node_text(n)).as_deref(),
+        None | Some("RSpec")
+    )
+}
+
+fn call_block(node: Node<'_>) -> Option<Node<'_>> {
+    node.child_by_field_name("block")
+}
+
+fn extract_test_block(
     base: &mut BaseExtractor,
     node: Node,
     method_name: &str,
     parent_id: Option<&str>,
-    block_kind: RSpecBlockKind,
+    block_kind: TestBlockKind,
 ) -> Option<Symbol> {
-    let is_lifecycle = matches!(block_kind, RSpecBlockKind::Lifecycle);
-    let block_name = if is_lifecycle {
-        method_name.to_string()
-    } else {
-        extract_first_rspec_argument(base, node)?
+    if block_kind.requires_block() && call_block(node).is_none() {
+        return None;
+    }
+
+    let block_name = match block_kind {
+        TestBlockKind::Lifecycle => method_name.to_string(),
+        TestBlockKind::Fixture => {
+            extract_first_rspec_argument(base, node).unwrap_or_else(|| method_name.to_string())
+        }
+        TestBlockKind::RailsCase => extract_first_string_argument(base, node)?,
+        TestBlockKind::Container | TestBlockKind::Example => {
+            extract_first_rspec_argument(base, node)?
+        }
     };
 
-    let signature = if is_lifecycle {
-        format!("{method_name}()")
-    } else {
-        format!("{method_name} \"{block_name}\"")
+    let signature = match block_kind {
+        TestBlockKind::Lifecycle => format!("{method_name}()"),
+        _ => format!("{method_name} \"{block_name}\""),
     };
 
     let mut metadata = HashMap::new();
-    match block_kind {
-        RSpecBlockKind::Container => {
-            metadata.insert("test_container".to_string(), serde_json::json!(true));
-        }
-        RSpecBlockKind::Example => {
-            metadata.insert("is_test".to_string(), serde_json::json!(true));
-        }
-        RSpecBlockKind::Lifecycle => {
-            metadata.insert("is_test".to_string(), serde_json::json!(true));
-            metadata.insert("test_lifecycle".to_string(), serde_json::json!(true));
-        }
+    if let Some(role) = block_kind.role(method_name) {
+        apply_test_role(&mut metadata, role);
     }
-
-    let kind = if matches!(block_kind, RSpecBlockKind::Container) {
-        SymbolKind::Namespace
-    } else {
-        SymbolKind::Function
-    };
 
     Some(base.create_symbol(
         &node,
         block_name,
-        kind,
+        block_kind.symbol_kind(),
         SymbolOptions {
             signature: Some(signature),
             visibility: None,
@@ -259,6 +318,25 @@ fn extract_first_rspec_argument(base: &BaseExtractor, node: Node) -> Option<Stri
         "simple_symbol" | "symbol" => raw.trim_start_matches(':').to_string(),
         _ => raw,
     })
+}
+
+/// First argument of a call, only when it is a string literal.
+///
+/// The Rails `test` macro names a case with a string. `test some_variable do`
+/// is not the macro form and must not become a case.
+fn extract_first_string_argument(base: &BaseExtractor, node: Node) -> Option<String> {
+    let arg_node = node.child_by_field_name("arguments")?;
+    let first_arg = arg_node
+        .children(&mut arg_node.walk())
+        .find(|child| !matches!(child.kind(), "(" | ")" | ","))?;
+    if first_arg.kind() != "string" {
+        return None;
+    }
+    Some(
+        base.get_node_text(&first_arg)
+            .trim_matches(|ch| matches!(ch, '"' | '\'' | '`'))
+            .to_string(),
+    )
 }
 
 /// Extract attr_reader/attr_writer/attr_accessor calls.

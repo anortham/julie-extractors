@@ -1,4 +1,6 @@
-use super::helpers::{extract_method_name_from_call, extract_name_from_node};
+use super::helpers::{
+    extract_method_name_from_call, extract_name_from_node, is_self_directed_call,
+};
 /// Relationship extraction for Ruby symbols
 /// Handles inheritance, module inclusion, and other symbol relationships
 use crate::base::{
@@ -203,7 +205,8 @@ fn process_include_extend_call(
     relationships: &mut Vec<Relationship>,
 ) {
     let base = extractor.base();
-    if let Some(method_name) = extract_method_name_from_call(child, |n| base.get_node_text(n))
+    if is_self_directed_call(child)
+        && let Some(method_name) = extract_method_name_from_call(child, |n| base.get_node_text(n))
         && matches!(
             method_name.as_str(),
             "include" | "extend" | "prepend" | "using"

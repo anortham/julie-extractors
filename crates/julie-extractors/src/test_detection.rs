@@ -115,7 +115,7 @@ const PATH_SEPARATORS: [char; 2] = ['/', '\\'];
 ///
 /// Language-agnostic: works for Rust, Python, Java, C#, Go, JS/TS, Ruby, Swift, etc.
 /// Accepts both `/` and `\` separators so Windows-spelled paths read the same.
-fn is_test_path(file_path: &str) -> bool {
+pub(crate) fn is_test_path(file_path: &str) -> bool {
     for segment in file_path.split(PATH_SEPARATORS) {
         if TEST_DIRECTORY_SEGMENTS.contains(&segment) {
             return true;
@@ -480,6 +480,7 @@ fn is_test_lifecycle(
         "python" => python_test_lifecycle_direction(name, annotation_keys),
         "rust" => rust_test_lifecycle_direction(annotation_keys),
         "go" => go_test_lifecycle_direction(name),
+        "ruby" => ruby_test_lifecycle_direction(name),
         "bash" => bash_test_lifecycle_direction(name),
         "gdscript" => gdscript_test_lifecycle_direction(name),
         "qml" => qml_test_lifecycle_direction(name),
@@ -1081,6 +1082,28 @@ fn detect_powershell(name: &str, file_path: &str) -> bool {
     )
 }
 
+/// Minitest, Test::Unit, and ActiveSupport::TestCase all name their per-case
+/// hooks `setup` and `teardown`. RSpec's `before`/`after`/`around` reach this
+/// function through the block symbols the Ruby call extractor names after the
+/// hook itself.
+///
+/// `around` wraps the example on both sides, so it reports
+/// [`TestLifecycleDirection::Ambiguous`].
+fn ruby_test_lifecycle_direction(name: &str) -> TestLifecycleDirection {
+    match name {
+        "setup" | "before" => TestLifecycleDirection::Setup,
+        "teardown" | "after" => TestLifecycleDirection::Teardown,
+        "around" => TestLifecycleDirection::Ambiguous,
+        _ => TestLifecycleDirection::None,
+    }
+}
+
+/// The role a bare Ruby block call plays, for the RSpec, Rails, and
+/// ActiveSupport vocabularies the Ruby call extractor recognises.
+pub(crate) fn ruby_block_test_role(method_name: &str) -> Option<TestRole> {
+    ruby_test_lifecycle_direction(method_name).fixture_role()
+}
+
 fn detect_ruby(name: &str, file_path: &str) -> bool {
     matches_script_test_name(
         name,
@@ -1097,6 +1120,8 @@ fn detect_ruby(name: &str, file_path: &str) -> bool {
             "before",
             "after",
             "around",
+            "setup",
+            "teardown",
             "xdescribe",
             "xcontext",
             "xit",
@@ -1104,6 +1129,42 @@ fn detect_ruby(name: &str, file_path: &str) -> bool {
             "fit",
         ],
     )
+}
+
+/// Base classes whose subclasses a Ruby test runner collects on sight.
+///
+/// Minitest and Test::Unit collect `test_`-prefixed methods from a subclass;
+/// Rails layers `ActiveSupport::TestCase` and `ActionDispatch::IntegrationTest`
+/// on top of Minitest and adds the `test "name" do` macro.
+const RUBY_TEST_BASE_TYPES: [&str; 4] = [
+    "Minitest::Test",
+    "Test::Unit::TestCase",
+    "ActiveSupport::TestCase",
+    "ActionDispatch::IntegrationTest",
+];
+
+/// Mark Ruby test containers, then strip every role that sits outside one.
+///
+/// Two container families exist. RSpec `describe`/`context`/`shared_examples`
+/// blocks are marked as containers by the Ruby call extractor, which reads
+/// their block syntax. Minitest-family suites are ordinary classes, so they are
+/// found through the `base_types` metadata the Ruby class extractor emits.
+///
+/// The scoping pass matters because Ruby's test vocabulary — `setup`,
+/// `teardown`, `test_`-prefixed methods — is ordinary Ruby elsewhere. A
+/// `def setup` in a spec-directory support class earns no role.
+pub(crate) fn mark_ruby_test_containers(symbols: &mut [Symbol]) {
+    for base_type in RUBY_TEST_BASE_TYPES {
+        mark_base_type_test_containers(symbols, base_type);
+    }
+
+    let test_container_ids: HashSet<String> = symbols
+        .iter()
+        .filter(|symbol| metadata_flag(symbol, "test_container"))
+        .map(|symbol| symbol.id.clone())
+        .collect();
+
+    normalize_scoped_test_roles(symbols, &test_container_ids);
 }
 
 fn detect_swift(name: &str, file_path: &str) -> bool {

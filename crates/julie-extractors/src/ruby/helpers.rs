@@ -98,18 +98,35 @@ pub(super) fn is_assignment_target(node: &Node) -> bool {
     })
 }
 
-/// Extract method name from a call node
-pub(super) fn extract_method_name_from_call(
+/// Extract the called method's name from a call node.
+///
+/// Reads the grammar's `method` field. Scanning for the first `identifier`
+/// child instead returns the receiver of `receiver.method`, because the
+/// receiver comes first in the child order.
+pub(crate) fn extract_method_name_from_call(
     node: Node,
     base_get_text: impl Fn(&Node) -> String,
 ) -> Option<String> {
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        if child.kind() == "identifier" {
-            return Some(base_get_text(&child));
-        }
-    }
-    None
+    node.child_by_field_name("method")
+        .map(|method_node| base_get_text(&method_node))
+}
+
+/// Text of a call node's receiver, or `None` for a bare call.
+pub(crate) fn extract_call_receiver(
+    node: Node,
+    base_get_text: impl Fn(&Node) -> String,
+) -> Option<String> {
+    node.child_by_field_name("receiver")
+        .map(|receiver| base_get_text(&receiver))
+}
+
+/// Whether a call acts on the enclosing scope rather than on another object.
+///
+/// `include Formatting` mixes into the enclosing class; `other.include
+/// Formatting` mixes into `other` and says nothing about the enclosing class.
+pub(super) fn is_self_directed_call(node: Node) -> bool {
+    node.child_by_field_name("receiver")
+        .is_none_or(|receiver| receiver.kind() == "self")
 }
 
 /// Extract method name from a singleton method node
@@ -190,6 +207,7 @@ fn find_includes_and_extends_recursive(
 
     // Check if this node itself is a call node for include/extend/prepend
     if node.kind() == "call"
+        && is_self_directed_call(node)
         && let Some(method_name) = extract_method_name(node)
         && matches!(
             method_name.as_str(),

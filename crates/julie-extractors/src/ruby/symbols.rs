@@ -3,7 +3,7 @@ use super::signatures;
 /// Symbol extraction for individual Ruby constructs
 /// Handles extraction of modules, classes, methods, variables, constants, and aliases
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
-use crate::test_detection::is_test_symbol;
+use crate::test_detection::apply_callable_test_metadata;
 use std::collections::HashMap;
 use tree_sitter::Node;
 
@@ -74,6 +74,14 @@ pub(super) fn extract_class(
     // Extract RDoc/YARD comment
     let doc_comment = base.find_doc_comment(&node);
 
+    let mut metadata = HashMap::new();
+    if let Some(base_type) = extract_superclass_name(base, node) {
+        metadata.insert(
+            "base_types".to_string(),
+            serde_json::Value::Array(vec![serde_json::Value::String(base_type)]),
+        );
+    }
+
     Some(base.create_symbol(
         &node,
         name,
@@ -82,11 +90,24 @@ pub(super) fn extract_class(
             signature: Some(signature),
             visibility: Some(Visibility::Public),
             parent_id,
-            metadata: None,
+            metadata: (!metadata.is_empty()).then_some(metadata),
             doc_comment,
             annotations: Vec::new(),
         },
     ))
+}
+
+/// Name of the single class a Ruby class inherits from.
+///
+/// The grammar wraps the superclass in a `superclass` node that also holds the
+/// `<` token, so the name is the constant or `::`-scoped constant inside it.
+/// A computed superclass such as `class Row < Struct.new(:a)` yields no name.
+fn extract_superclass_name(base: &BaseExtractor, node: Node) -> Option<String> {
+    let superclass = node.child_by_field_name("superclass")?;
+    let name_node = superclass
+        .children(&mut superclass.walk())
+        .find(|child| matches!(child.kind(), "constant" | "scope_resolution"))?;
+    Some(base.get_node_text(&name_node))
 }
 
 /// Extract a singleton class symbol
@@ -156,18 +177,16 @@ pub(super) fn extract_method(
     // Extract RDoc/YARD comment
     let doc_comment = base.find_doc_comment(&node);
 
-    // Test detection
     let mut metadata = HashMap::new();
-    if is_test_symbol(
+    apply_callable_test_metadata(
         "ruby",
         &name,
         &base.file_path,
         &kind,
         &[],
         doc_comment.as_deref(),
-    ) {
-        metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
-    }
+        &mut metadata,
+    );
 
     Some(base.create_symbol(
         &node,
