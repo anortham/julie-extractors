@@ -138,11 +138,11 @@ Shared files (`crates/julie-extractors/src/test_detection.rs`, `fixtures/extract
 **Approach:** Guard widening is name/suffix matching on path segments — follow the existing style in `is_test_path`. The scoping helper takes the container-id set the caller computed; it does not decide what a container is. Verify the QML golden is byte-identical after the switch. Windows: these are string paths already normalized by the caller — add a `\`-separated test case per new rule.
 
 **Acceptance criteria:**
-- [ ] Every new convention has a passing accept test and a false-positive control test.
-- [ ] QML golden output unchanged after switching to the generic helper.
-- [ ] `build_test_call_symbol` emits `test_role` through `apply_test_role`; affected goldens regenerated; typed flags unchanged.
-- [ ] `cargo xtask test language qml` passes; `win-test` scheduled at branch gate (path logic changed).
-- [ ] Worker-scope verification passes and the change is committed per `serial-worker-commit`.
+- [x] Every new convention has a passing accept test and a false-positive control test.
+- [x] QML golden output unchanged after switching to the generic helper.
+- [x] `build_test_call_symbol` emits `test_role` through `apply_test_role`; affected goldens regenerated; typed flags unchanged.
+- [x] `cargo xtask test language qml` passes; `win-test` scheduled at branch gate (path logic changed).
+- [x] Worker-scope verification passes and the change is committed per `serial-worker-commit`.
 
 ### Task 3: JS/TS call-classifier fixes
 
@@ -168,10 +168,10 @@ Shared files (`crates/julie-extractors/src/test_detection.rs`, `fixtures/extract
 **Approach:** The dotted-property and chained-call fixes are callee-resolution changes in one classification function per dialect — inspect the current resolution first with Miller; jsx/tsx share the js/ts code paths, so verify all four dialects in tests. The import-or-path guard is the risky change: it must not drop currently-detected real tests — golden diff on all four existing fixtures is the control.
 
 **Acceptance criteria:**
-- [ ] Each of the nine findings has a red-then-green unit test.
-- [ ] Existing four dialect goldens still pass (or their expected change is documented for Task 8).
-- [ ] `cargo xtask test language javascript` and `cargo xtask test language typescript` pass.
-- [ ] Verified diff handed to the lead per `parallel-lead-commit`.
+- [x] Each of the nine findings has a red-then-green unit test.
+- [x] Existing four dialect goldens still pass (or their expected change is documented for Task 8).
+- [x] `cargo xtask test language javascript` and `cargo xtask test language typescript` pass.
+- [x] Verified diff handed to the lead per `parallel-lead-commit`.
 
 ### Task 4: Python detection + evidence
 
@@ -197,10 +197,10 @@ Shared files (`crates/julie-extractors/src/test_detection.rs`, `fixtures/extract
 **Approach:** All rule changes are in the python arms of `test_detection.rs`; keep them there. Fixture-role decision (finding 3) changes published output for real projects — state the rationale in the decision-doc row.
 
 **Acceptance criteria:**
-- [ ] All findings closed or (finding 9 only) recorded as a complete `open_gaps` entry.
-- [ ] Golden exercises every claimed idiom with negative controls; `cargo xtask test language python` passes.
-- [ ] Ledger, decision-doc row, and `docs/languages/python.md` complete.
-- [ ] Verified diff handed to the lead per `parallel-lead-commit`.
+- [x] All findings closed or (finding 9 only) recorded as a complete `open_gaps` entry.
+- [x] Golden exercises every claimed idiom with negative controls; `cargo xtask test language python` passes.
+- [x] Ledger, decision-doc row, and `docs/languages/python.md` complete.
+- [x] Verified diff handed to the lead per `parallel-lead-commit`.
 
 ### Task 5: Rust detection + evidence
 
@@ -227,10 +227,10 @@ Shared files (`crates/julie-extractors/src/test_detection.rs`, `fixtures/extract
 **Approach:** The suffix rule must not over-match: require the segment match on the normalized (lowercased, `::`-split) key, with control tests for non-test attributes ending in other words. Keep `detect_rust` annotation-only; no name heuristics.
 
 **Acceptance criteria:**
-- [ ] All listed attribute macros classify; compound-cfg modules are containers; controls pass.
-- [ ] Golden and ledger agree bidirectionally; `cargo xtask test language rust` passes.
-- [ ] Open-gap entries for benchmarks and doc-tests are complete (reason, closure, planned task).
-- [ ] Verified diff handed to the lead per `parallel-lead-commit`.
+- [x] All listed attribute macros classify; compound-cfg modules are containers; controls pass.
+- [x] Golden and ledger agree bidirectionally; `cargo xtask test language rust` passes.
+- [x] Open-gap entries for benchmarks and doc-tests are complete (reason, closure, planned task).
+- [x] Verified diff handed to the lead per `parallel-lead-commit`.
 
 ### Task 6: C# detection + evidence
 
@@ -256,10 +256,10 @@ Shared files (`crates/julie-extractors/src/test_detection.rs`, `fixtures/extract
 **Approach:** The xUnit lifecycle pass runs after container marking, as a second pass over symbols — same pattern as `mark_dotnet_test_containers`. `[Theory]` already maps to test case; upgrade it to `parameterized_test` under the Task 1 contract, with `[DataTestMethod]`, `[TestCase(...)]`, `[TestCaseSource]` alike.
 
 **Acceptance criteria:**
-- [ ] xUnit constructor/Dispose lifecycle emitted only inside marked containers; control class stays clean.
-- [ ] All new keys classify; struct containers marked; `cargo xtask test language csharp` passes.
-- [ ] Ledger, decision-doc row, docs complete; open gaps recorded.
-- [ ] Verified diff handed to the lead per `parallel-lead-commit`.
+- [x] xUnit constructor/Dispose lifecycle emitted only inside marked containers; control class stays clean.
+- [x] All new keys classify; struct containers marked; `cargo xtask test language csharp` passes.
+- [x] Ledger, decision-doc row, docs complete; open gaps recorded.
+- [x] Verified diff handed to the lead per `parallel-lead-commit`.
 
 ### Task 7: Change-journal coverage for unsupported files
 
@@ -284,10 +284,10 @@ Shared files (`crates/julie-extractors/src/test_detection.rs`, `fixtures/extract
 **Approach:** First map the discovery walk's decision points with Miller; the design question is which walk tier drops unsupported files today. Keep the artifact schema stable if a status value suffices; if a schema change is unavoidable, it is a contract change — add contract tests and a schema note, and flag it to the lead before finalizing. Check Windows file-identity pitfalls (path text vs identity) for the new rows.
 
 **Acceptance criteria:**
-- [ ] A changed unsupported file yields a journal row in artifact mode and a manifest diff in store mode; contract tests prove both.
-- [ ] Ignore rules unchanged; no unsupported file is parsed.
-- [ ] `cargo xtask test contract` passes.
-- [ ] Verified diff handed to the lead per `parallel-lead-commit`.
+- [x] A changed unsupported file yields a journal row in artifact mode and a manifest diff in store mode; contract tests prove both.
+- [x] Ignore rules unchanged; no unsupported file is parsed.
+- [x] `cargo xtask test contract` passes.
+- [x] Verified diff handed to the lead per `parallel-lead-commit`.
 
 ### Task 8: JS/TS fixtures, ledger, and docs
 
@@ -312,10 +312,10 @@ Shared files (`crates/julie-extractors/src/test_detection.rs`, `fixtures/extract
 **Approach:** Keep per-dialect fixtures small but idiom-complete; one framework per fixture directory keeps failures readable. jsx/tsx fixtures reuse the js/ts source with dialect syntax added.
 
 **Acceptance criteria:**
-- [ ] Every ledger `supported` claim for the four dialects has golden backing; strict report stays clean.
-- [ ] `cargo xtask test language javascript` and `cargo xtask test language typescript` pass.
-- [ ] Docs and decision-doc row complete.
-- [ ] Verified diff handed to the lead per `parallel-lead-commit`.
+- [x] Every ledger `supported` claim for the four dialects has golden backing; strict report stays clean.
+- [x] `cargo xtask test language javascript` and `cargo xtask test language typescript` pass.
+- [x] Docs and decision-doc row complete.
+- [x] Verified diff handed to the lead per `parallel-lead-commit`.
 
 ### Task 9: Go detection + evidence
 
@@ -342,10 +342,10 @@ Shared files (`crates/julie-extractors/src/test_detection.rs`, `fixtures/extract
 **Approach:** Go method receivers carry the suite type — container marking keys on the embedded `suite.Suite` field in the struct declaration, then lifecycle/test methods attach via receiver type. `_test.go` gating stays the primary guard for stdlib names.
 
 **Acceptance criteria:**
-- [ ] `TestMain` is lifecycle; testify suites fully classified; benchmark decision recorded and implemented.
-- [ ] Ginkgo controls prove no production false positives.
-- [ ] Golden, ledger, docs complete; `cargo xtask test language go` passes.
-- [ ] Verified diff handed to the lead per `parallel-lead-commit`.
+- [x] `TestMain` is lifecycle; testify suites fully classified; benchmark decision recorded and implemented.
+- [x] Ginkgo controls prove no production false positives.
+- [x] Golden, ledger, docs complete; `cargo xtask test language go` passes.
+- [x] Verified diff handed to the lead per `parallel-lead-commit`.
 
 ### Task 10: Java detection + evidence
 
@@ -371,10 +371,10 @@ Shared files (`crates/julie-extractors/src/test_detection.rs`, `fixtures/extract
 **Approach:** Smallest task in the plan; all rule changes are key-list additions plus one container rule. Follow the existing dotnet class-level inference pattern for TestNG class-level `@Test`.
 
 **Acceptance criteria:**
-- [ ] All new keys classify; class-level `@Test` yields container + cases; fallback scoped.
-- [ ] Golden proves every claim incl. an `extends` edge; `cargo xtask test language java` passes.
-- [ ] Ledger, decision-doc row, docs complete; open gaps recorded.
-- [ ] Verified diff handed to the lead per `parallel-lead-commit`.
+- [x] All new keys classify; class-level `@Test` yields container + cases; fallback scoped.
+- [x] Golden proves every claim incl. an `extends` edge; `cargo xtask test language java` passes.
+- [x] Ledger, decision-doc row, docs complete; open gaps recorded.
+- [x] Verified diff handed to the lead per `parallel-lead-commit`.
 
 ### Task 11: Ruby detection + evidence
 
@@ -401,10 +401,10 @@ Shared files (`crates/julie-extractors/src/test_detection.rs`, `fixtures/extract
 **Approach:** The Rails `test` macro arm mirrors the existing RSpec block arm — string-literal first argument becomes the symbol name. Scoping: RSpec blocks establish containers; minitest scoping keys on the base-type containers from finding 5.
 
 **Acceptance criteria:**
-- [ ] Rails macro suites visible; false-positive controls prove production code stays clean.
-- [ ] `extract_method_name_from_call` reads the method field; regression test added.
-- [ ] Golden trio, ledger, decision-doc row, docs complete; `cargo xtask test language ruby` passes.
-- [ ] Verified diff handed to the lead per `parallel-lead-commit`.
+- [x] Rails macro suites visible; false-positive controls prove production code stays clean.
+- [x] `extract_method_name_from_call` reads the method field; regression test added.
+- [x] Golden trio, ledger, decision-doc row, docs complete; `cargo xtask test language ruby` passes.
+- [x] Verified diff handed to the lead per `parallel-lead-commit`.
 
 ### Task 12: PHP detection + evidence
 
@@ -431,9 +431,9 @@ Shared files (`crates/julie-extractors/src/test_detection.rs`, `fixtures/extract
 **Approach:** PHPUnit data-provider methods referenced by `#[DataProvider]` are helpers, not tests — the fixture control proves it. `parameterized_test` applies to `#[DataProvider]`-carrying test methods.
 
 **Acceptance criteria:**
-- [ ] PHPUnit lifecycle, containers, and out-of-tree detection work; Pest controls pass.
-- [ ] Golden, ledger, decision-doc row, docs complete; `cargo xtask test language php` passes.
-- [ ] Verified diff handed to the lead per `parallel-lead-commit`.
+- [x] PHPUnit lifecycle, containers, and out-of-tree detection work; Pest controls pass.
+- [x] Golden, ledger, decision-doc row, docs complete; `cargo xtask test language php` passes.
+- [x] Verified diff handed to the lead per `parallel-lead-commit`.
 
 ### Task 13: Kotlin detection + evidence
 
@@ -460,9 +460,9 @@ Shared files (`crates/julie-extractors/src/test_detection.rs`, `fixtures/extract
 **Approach:** Backtick stripping is a name-normalization change — check `trace` for consumers of kotlin symbol names before changing (reference resolution may depend on the raw form; if so, store the display name stripped and keep the raw form in metadata).
 
 **Acceptance criteria:**
-- [ ] StringSpec/WordSpec/FreeSpec cases emit symbols; backtick names normalized; spec classes are containers.
-- [ ] Goldens, ledger, decision-doc row, docs complete; `cargo xtask test language kotlin` passes.
-- [ ] Verified diff handed to the lead per `parallel-lead-commit`.
+- [x] StringSpec/WordSpec/FreeSpec cases emit symbols; backtick names normalized; spec classes are containers.
+- [x] Goldens, ledger, decision-doc row, docs complete; `cargo xtask test language kotlin` passes.
+- [x] Verified diff handed to the lead per `parallel-lead-commit`.
 
 ### Task 14: Swift detection + evidence
 
@@ -489,9 +489,9 @@ Shared files (`crates/julie-extractors/src/test_detection.rs`, `fixtures/extract
 **Approach:** Swift Testing macros arrive as attributes in the grammar — verify the exact node/key spelling with Miller against the swift grammar fixtures before coding; do not assume `@Test` normalizes to `test` without checking the annotation-key normalizer.
 
 **Acceptance criteria:**
-- [ ] Swift Testing and XCTest fully classified; lifecycle no longer mislabeled as cases.
-- [ ] Golden, ledger correction, decision-doc row, docs complete; `cargo xtask test language swift` passes.
-- [ ] Verified diff handed to the lead per `parallel-lead-commit`.
+- [x] Swift Testing and XCTest fully classified; lifecycle no longer mislabeled as cases.
+- [x] Golden, ledger correction, decision-doc row, docs complete; `cargo xtask test language swift` passes.
+- [x] Verified diff handed to the lead per `parallel-lead-commit`.
 
 ### Task 15: `test_linkage` / `test_coverage` contract decision + C# pilot
 
@@ -516,10 +516,10 @@ Shared files (`crates/julie-extractors/src/test_detection.rs`, `fixtures/extract
 **Approach:** Derive linkage only from facts the extractor already has (same-file call relationships); no cross-file guessing — that is Miller's join. If verification against Miller shows the reader expects data the extractor cannot honestly produce in-file, write the decision doc with that finding and a `not-yet` verdict instead of a forced pilot; the doc is the deliverable, the pilot is conditional.
 
 **Acceptance criteria:**
-- [ ] Decision doc complete with verified key shapes and rollout plan.
-- [ ] Pilot emits linkage for the C# fixture or the doc records the verified reason it cannot.
-- [ ] `cargo xtask test contract` and `cargo xtask test language csharp` pass.
-- [ ] Worker-scope verification passes and the change is committed per `serial-worker-commit`.
+- [x] Decision doc complete with verified key shapes and rollout plan.
+- [x] Pilot emits linkage for the C# fixture or the doc records the verified reason it cannot.
+- [x] `cargo xtask test contract` and `cargo xtask test language csharp` pass.
+- [x] Worker-scope verification passes and the change is committed per `serial-worker-commit`.
 
 ### Task 16: Dialect language identity decision (jsx/tsx)
 
@@ -541,8 +541,8 @@ Shared files (`crates/julie-extractors/src/test_detection.rs`, `fixtures/extract
 **What to build:** A short decision doc: problem, the two options, chosen contract, and the exact Miller-side change it implies (named file: Miller's extension map / selector comparison).
 
 **Acceptance criteria:**
-- [ ] Decision doc complete; the Miller follow-up item is stated precisely enough to hand to a Miller session.
-- [ ] Change committed per `serial-worker-commit`.
+- [x] Decision doc complete; the Miller follow-up item is stated precisely enough to hand to a Miller session.
+- [x] Change committed per `serial-worker-commit`.
 
 ### Task 17: Cross-language closure sweep
 
@@ -565,11 +565,11 @@ Shared files (`crates/julie-extractors/src/test_detection.rs`, `fixtures/extract
 **What to build:** Route every remaining direct test-flag writer (the Task 1 inventory names them: `elixir/test_calls.rs`, `erlang/definition_forms.rs`, `sql/routines.rs`, `yaml/mod.rs`, `toml/test_detection.rs`, `xml/elements.rs`, `zig/functions.rs`, `vue/script.rs`, and any others `grep` for the three boolean keys still finds) through `apply_test_role`, add the universality gate, reconcile the shared tables, run the full branch gate (including `win-test` — Task 2 changed path logic — and `scripts/check-agent-doc-sync.sh`), record the verification ledger, and checkpoint before commit.
 
 **Acceptance criteria:**
-- [ ] Universality gate: a test proves no emitted symbol in any registered golden carries a test boolean without a matching `test_role`; all remaining direct writers routed through `apply_test_role`.
+- [x] Universality gate: a test proves no emitted symbol in any registered golden carries a test boolean without a matching `test_role`; all remaining direct writers routed through `apply_test_role`.
 - [ ] Branch gate green: `cargo xtask test default`, `golden`, `capability`, `contract`, strict report, doc-sync check, Windows suite.
-- [ ] Every language touched in this plan has: golden-backed ledger rows, a decision-doc row, and `docs/languages/<lang>.md`.
-- [ ] All open-gap entries have reason, required closure, and planned task.
-- [ ] Verification ledger recorded; change committed per `serial-worker-commit`.
+- [x] Every language touched in this plan has: golden-backed ledger rows, a decision-doc row, and `docs/languages/<lang>.md`.
+- [x] All open-gap entries have reason, required closure, and planned task.
+- [x] Verification ledger recorded; change committed per `serial-worker-commit`.
 
 ---
 
