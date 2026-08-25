@@ -215,31 +215,63 @@ fn detect_rust(annotation_keys: &[String]) -> bool {
         .any(|a| a == "test" || a == "tokio::test" || a == "rstest")
 }
 
-fn python_test_lifecycle_direction(name: &str) -> TestLifecycleDirection {
+/// unittest fixtures, pytest xunit hooks, and `@pytest.fixture` factories.
+///
+/// A `@pytest.fixture` may also tear down after a `yield`, but its setup half
+/// always runs, so a fixture factory reports as setup.
+fn python_test_lifecycle_direction(
+    name: &str,
+    annotation_keys: &[String],
+) -> TestLifecycleDirection {
+    if annotation_keys
+        .iter()
+        .any(|annotation| annotation == "pytest.fixture")
+    {
+        return TestLifecycleDirection::Setup;
+    }
     match name {
-        "setUp" | "setUpClass" => TestLifecycleDirection::Setup,
-        "tearDown" | "tearDownClass" => TestLifecycleDirection::Teardown,
+        "setUp" | "setUpClass" | "setUpModule" | "asyncSetUp" | "setup_method" | "setup_class"
+        | "setup_function" | "setup_module" => TestLifecycleDirection::Setup,
+        "tearDown" | "tearDownClass" | "tearDownModule" | "asyncTearDown" | "teardown_method"
+        | "teardown_class" | "teardown_function" | "teardown_module" => {
+            TestLifecycleDirection::Teardown
+        }
         _ => TestLifecycleDirection::None,
     }
 }
 
+/// `@pytest.mark.parametrize` runs one case per argument set.
+fn python_test_case_role(annotation_keys: &[String]) -> Option<TestRole> {
+    annotation_keys
+        .iter()
+        .any(|annotation| annotation == "pytest.mark.parametrize")
+        .then_some(TestRole::ParameterizedTest)
+}
+
+/// Both collectors take a bare `test` prefix: pytest matches `python_functions
+/// = test*` and unittest matches `TestLoader.testMethodPrefix = "test"`, so
+/// `testAddition` is a real case. The prefix rule stays path-guarded because
+/// production code shares the vocabulary.
+///
+/// Annotation keys arrive lower-cased, so the `unittest` decorators are spelled
+/// lower-case here.
 fn detect_python(name: &str, file_path: &str, annotation_keys: &[String]) -> bool {
     if annotation_keys.iter().any(|annotation| {
         annotation.starts_with("pytest.mark.")
             || matches!(
                 annotation.as_str(),
                 "unittest.skip"
-                    | "unittest.skipIf"
-                    | "unittest.skipUnless"
-                    | "unittest.expectedFailure"
+                    | "unittest.skipif"
+                    | "unittest.skipunless"
+                    | "unittest.expectedfailure"
             )
     }) {
         return true;
     }
-    if python_test_lifecycle_direction(name).is_lifecycle() {
+    if python_test_lifecycle_direction(name, annotation_keys).is_lifecycle() {
         return true;
     }
-    name.starts_with("test_") && is_test_path(file_path)
+    name.starts_with("test") && is_test_path(file_path)
 }
 
 fn detect_scala(name: &str, annotation_keys: &[String]) -> bool {
@@ -320,12 +352,21 @@ fn is_test_lifecycle(
         "csharp" | "vbnet" | "razor" => {
             first_annotation_direction(annotation_keys, dotnet_test_lifecycle_direction)
         }
-        "python" => python_test_lifecycle_direction(name),
+        "python" => python_test_lifecycle_direction(name, annotation_keys),
         "bash" => bash_test_lifecycle_direction(name),
         "gdscript" => gdscript_test_lifecycle_direction(name),
         "qml" => qml_test_lifecycle_direction(name),
         "scala" => scala_test_lifecycle_direction(name),
         _ => TestLifecycleDirection::None,
+    }
+}
+
+/// The non-lifecycle role of a test callable, for languages that mark a
+/// parameterized case with an annotation.
+fn annotated_test_case_role(language: &str, annotation_keys: &[String]) -> Option<TestRole> {
+    match language {
+        "python" => python_test_case_role(annotation_keys),
+        _ => None,
     }
 }
 
@@ -352,6 +393,7 @@ pub(crate) fn apply_callable_test_metadata(
     }
     let role = is_test_lifecycle(language, name, annotation_keys)
         .fixture_role()
+        .or_else(|| annotated_test_case_role(language, annotation_keys))
         .unwrap_or(TestRole::TestCase);
     apply_test_role(metadata, role);
 }

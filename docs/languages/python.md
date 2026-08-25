@@ -1,0 +1,173 @@
+# Python support
+
+Julie registers one Python language: `python` handles `.py`, `.pyi`, and `.pyw`
+files.
+
+## Continuous testing
+
+Run the language target when changing Python extraction:
+
+```bash
+cargo xtask test language python
+```
+
+The command runs the Python unit-test module and the golden extraction test
+with `JULIE_GOLDEN_LANGUAGE=python`. The normal golden target stays
+unfiltered:
+
+```bash
+cargo xtask test golden
+```
+
+## Test-role contract
+
+Miller runs a pytest continuous-testing provider for Python, so a wrong test
+role turns straight into a wrong staleness verdict. The detector follows the
+two collectors that actually run the code.
+
+| Idiom | Role | Source of the rule |
+| --- | --- | --- |
+| `def test_x` / `def testX` in a test path | `test_case` | pytest `python_functions = test*`; unittest `TestLoader.testMethodPrefix = "test"` |
+| `@pytest.mark.parametrize` | `parameterized_test` | pytest parametrize runs one case per argument set |
+| any other `@pytest.mark.*` | `test_case` | a pytest mark is only applied to collected items |
+| `@unittest.skip`, `skipIf`, `skipUnless`, `expectedFailure` | `test_case` | unittest decorators are only applied to test methods |
+| `@pytest.fixture` | `fixture_setup` | pytest fixture factory |
+| `setUp`, `setUpClass`, `setUpModule`, `asyncSetUp` | `fixture_setup` | unittest fixtures |
+| `tearDown`, `tearDownClass`, `tearDownModule`, `asyncTearDown` | `fixture_teardown` | unittest fixtures |
+| `setup_method`, `setup_class`, `setup_function`, `setup_module` | `fixture_setup` | pytest xunit-style setup |
+| `teardown_method`, `teardown_class`, `teardown_function`, `teardown_module` | `fixture_teardown` | pytest xunit-style teardown |
+| class with a `TestCase` base, or with a collected member | `test_container` | unittest suite and pytest class collection |
+
+Two rules carry a deliberate cost.
+
+The name rule takes a bare `test` prefix, not `test_`. Both collectors use the
+bare prefix, so `def testAddition` is a real case. Because production code
+shares that vocabulary, the name rule stays guarded by `is_test_path`. An
+annotation rule needs no path guard, because a `pytest.mark` or `unittest`
+decorator is only ever written on a test.
+
+A `@pytest.fixture` reports `fixture_setup`, not `test_case`. A fixture that
+yields also tears down after the test, but the setup half always runs, so
+setup is the honest single direction. This reverses an earlier decision that
+excluded fixtures from roles entirely; see
+`docs/decisions/2026-08-20-test-role-contract-closure.md`.
+
+## Known limitation: nested callables
+
+Test detection reads a symbol's name, path, kind, and annotation keys. It does
+not know whether a callable is defined at module or class level, or nested
+inside another function. Two consequences follow:
+
+- A nested `def test(...)` inside a real test function is flagged as a case.
+  pytest does not collect nested functions.
+- A nested function inherits the enclosing decorated definition's decorators,
+  because `extract_decorator_texts` in
+  `crates/julie-extractors/src/python/decorators.rs` walks up to the nearest
+  `decorated_definition` ancestor. A helper nested inside a
+  `@pytest.mark.parametrize` test therefore reports `parameterized_test`.
+
+Both need nesting depth at the extraction site, which is a Python extractor
+change rather than a detection-rule change. The measured cost is in the
+real-world evidence below.
+
+## Known gap: cross-file inheritance
+
+A class that inherits an imported base emits neither a resolved `extends`
+relationship nor a pending one. `extract_class_relationships` in
+`crates/julie-extractors/src/python/relationships.rs` only emits when the base
+class symbol is found in the same file, unlike cross-module calls, which do
+emit a structured pending relationship. A project base class such as
+`class ApiTestCase(TestCase)` in another module is therefore invisible to
+workspace-level resolution.
+
+Test containers still work in that case, because
+`mark_python_test_containers` matches the `superclasses` metadata name
+`TestCase` textually. The gap is recorded as
+`python.relationships.open_gaps[extends]` in
+`fixtures/extraction/capabilities.json`.
+
+## Grammar freshness
+
+The live maintenance report was run with:
+
+```bash
+node scripts/grammar-freshness-report.mjs --format json
+```
+
+The Python-specific findings were:
+
+- `tree-sitter-python` is current: declared and locked at `0.25.0`, matching
+  the latest stable release.
+- The shared `tree-sitter` runtime is marked drift at locked `0.26.11` versus
+  latest stable `0.26.13`. This is a repository-wide freshness finding, not an
+  unrecorded Python dependency change.
+
+## Real-world evidence
+
+Two corpora were scanned, one per collector style. Both were cloned shallowly
+into temporary directories. No project build script, hook, or third-party
+binary was run.
+
+- pytest style: `pallets/flask` at commit
+  `d318b683471101618febed18996405ad26462110`, BSD-3-Clause.
+- unittest style: `google/python-fire` at commit
+  `716bbc23d7eca949fdb682172283c8d18f742cb6`, Apache-2.0.
+
+Reproducible checkout and scan commands:
+
+```bash
+CORPUS="$(mktemp -d)"
+git clone --depth 1 https://github.com/pallets/flask "$CORPUS"
+git -C "$CORPUS" checkout --detach \
+  d318b683471101618febed18996405ad26462110
+
+cargo build --locked --bin julie-extract
+ARTIFACT="$(mktemp -d)"
+./target/debug/julie-extract scan \
+  --root "$CORPUS" \
+  --db "$ARTIFACT/artifact.sqlite" \
+  --json >"$ARTIFACT/scan-report.json" \
+  2>"$ARTIFACT/scan-stderr.log"
+```
+
+Both scans reported `status=ok` with `files_failed=0` and empty `warnings`
+and `errors`. Flask scanned 236 files, 83 of them Python; python-fire scanned
+79 files, 61 of them Python. Neither scan produced a single Python parse
+diagnostic. Flask's 11 diagnostics were 9 HTML and 2 SQL rows.
+
+| Artifact evidence | flask | python-fire |
+| --- | ---: | ---: |
+| Python files indexed | 83 | 61 |
+| Python symbols | 3,819 | 2,377 |
+| `test_case` | 369 | 274 |
+| `parameterized_test` | 40 | 0 |
+| `fixture_setup` | 24 | 3 |
+| `fixture_teardown` | 0 | 0 |
+| `test_container` | 7 | 26 |
+
+python-fire measures the bare-`test`-prefix rule. Of its 274 cases, 238 are
+camelCase `testXxx` methods that the previous `test_` rule could not see at
+all. Every flagged symbol is a real absltest case, a real `setUp`, or a real
+`unittest.TestCase` subclass: the corpus produced zero false positives.
+
+Flask measures the cost of the same rule plus the nested-callable limitation.
+Of its 433 flagged symbols, 14 are wrong, and every one of them is a nested
+local function:
+
+- 8 are nested `def test(...)` Flask routes and Click commands written inside
+  test bodies, in `tests/test_basic.py`, `tests/test_cli.py`, and
+  `tests/test_regression.py`.
+- 6 inherit the enclosing decorator: `check`, `run_simple_mock` twice,
+  `reset_path`, `create_app`, and `inner`.
+
+That is 96.8 percent precision on the corpus. Both failure modes have the same
+cause and the same fix, recorded under "Known limitation: nested callables"
+above.
+
+Flask also proves the two new roles. Its 40 `parameterized_test` rows and 24
+`fixture_setup` rows had no equivalent before this contract: parametrized
+cases reported as plain `test_case`, and `@pytest.fixture` factories carried
+no role at all.
+
+The temporary checkouts and SQLite artifacts were removed after recording this
+evidence.

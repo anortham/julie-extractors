@@ -2226,12 +2226,20 @@
             "calls"
           ],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "extends",
+              "reason": "Python emits an `extends` relationship only when the base class symbol is defined in the same file. A class that inherits an imported base, such as `unittest.TestCase` or a project base class from another module, produces neither a relationship nor a pending relationship, so no golden fixture can claim the kind. Cross-file test containers are found only through the `superclasses` metadata name check.",
+              "required_closure": "emit a structured pending relationship for an unresolved base class in crates/julie-extractors/src/python/relationships.rs, the way cross-module calls already do, and register a golden fixture that inherits an imported base class",
+              "planned_closure_task": "docs/plans/2026-08-25-ct-test-detection-readiness.md Task 4 finding 9 follow-up: Python cross-file inheritance pending edges"
+            }
+          ]
         },
         "identifiers": {
           "supported": [
             "call",
             "member_access",
+            "type_usage",
             "variable_ref"
           ],
           "not_applicable": [],

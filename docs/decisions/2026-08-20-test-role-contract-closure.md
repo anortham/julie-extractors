@@ -22,6 +22,7 @@ Every row below has `open_gaps: []` in
 | TOML | trycmd case shape and nextest group/setup tables in `toml:trycmd_roles` and `toml:nextest_roles` | supported | supported | supported |
 | YAML | Google container-structure-test v2 command-test shape in `yaml:test_roles` | supported | supported | supported |
 | XML | Apache Ant project/target/junit/test chain in `xml:test_roles` | supported | supported | not applicable |
+| Python | pytest collection prefixes, `@pytest.mark.parametrize`, `@pytest.fixture`, pytest xunit hooks, and unittest fixtures in `python:test_roles` | supported | supported | supported |
 
 The `not_applicable` cells are contract-level conclusions. Rust's `cfg(test)`
 and Zig's `test` declarations provide no adopted lifecycle or suite syntax;
@@ -46,6 +47,36 @@ unclassified.
 - TOML: [trycmd](https://github.com/assert-rs/trycmd) defines command-case TOML; [cargo-nextest configuration](https://nexte.st/docs/configuration/) defines test groups and setup scripts. These are tool schemas layered on TOML, not TOML-native roles.
 - YAML: Google's [container-structure-test command tests](https://github.com/GoogleContainerTools/container-structure-test/blob/main/docs/tests/command_test.md) define the v2 `schemaVersion`, `commandTests`, `name`, `setup`, and `teardown` contract.
 - XML: Apache Ant's [JUnit task](https://ant.apache.org/manual/Tasks/junit.html) defines `<project>` targets containing `<junit>` and nested `<test>` elements; report XML and lookalike tags are outside that contract.
+- Python: [pytest test discovery](https://docs.pytest.org/en/stable/explanation/goodpractices.html#conventions-for-python-test-discovery) defines the `test*` function prefix and the `Test*` class prefix; [pytest fixtures](https://docs.pytest.org/en/stable/reference/fixture.html) define `@pytest.fixture`; [pytest xunit-style setup](https://docs.pytest.org/en/stable/how-to/xunit_setup.html) defines `setup_method`/`teardown_method` and the class, function, and module variants; [`unittest.TestLoader.testMethodPrefix`](https://docs.python.org/3/library/unittest.html#unittest.TestLoader.testMethodPrefix) defines the bare `test` method prefix, and `unittest` defines `setUp`/`tearDown`, their class and module variants, and `IsolatedAsyncioTestCase.asyncSetUp`/`asyncTearDown`.
+
+## Python fixture-role reversal (2026-08-25)
+
+An earlier Python rule deliberately excluded `@pytest.fixture` from every
+role, and a unit test asserted that a fixture factory is not a test symbol.
+That reversal is now recorded: `@pytest.fixture` reports `fixture_setup`.
+
+The old exclusion treated a fixture as production support code. It is not. A
+fixture only ever runs inside a test session, and Miller's pytest continuous
+testing provider must know that editing a fixture invalidates every test that
+requests it. Publishing no role hid that dependency.
+
+A fixture that yields also tears down after the test, so the true direction is
+"both sides". The extractor cannot tell a yielding fixture from a returning
+one without reading the body, and the setup half always runs, so the contract
+publishes the single honest direction: setup.
+
+This changes published output for real Python projects. A `conftest.py` that
+previously produced no roles now produces `fixture_setup` rows, and
+`test_lifecycle` is set, which keeps a fixture out of the `test_case` count
+and keeps a class holding only fixtures out of `test_container`.
+
+Two further Python contract changes land with it. The name rule now takes the
+bare `test` prefix that both collectors use, so `def testAddition` is a real
+case; it stays guarded by the shared test-path check because production code
+shares that vocabulary. And `@pytest.mark.parametrize` now reports
+`parameterized_test` instead of `test_case`, because one decorated definition
+runs one case per argument set. Real-world precision and recall measurements
+for all three changes are in `docs/languages/python.md`.
 
 ## Registered evidence and controls
 

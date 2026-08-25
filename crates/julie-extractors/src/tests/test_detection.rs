@@ -101,15 +101,7 @@ fn python_pytest_decorator() {
 }
 
 #[test]
-fn python_fixture_and_mock_decorators_are_not_test_evidence() {
-    assert!(!check(
-        "python",
-        "build_client",
-        "tests/test_helpers.py",
-        &SymbolKind::Function,
-        &[s("pytest.fixture")],
-        None,
-    ));
+fn python_mock_decorator_is_not_test_evidence() {
     assert!(!check(
         "python",
         "patch_client",
@@ -144,9 +136,9 @@ fn python_fixture_and_mock_decorators_preserve_independent_test_evidence() {
 fn python_unittest_test_control_decorators_are_test_evidence() {
     for annotation in [
         "unittest.skip",
-        "unittest.skipIf",
-        "unittest.skipUnless",
-        "unittest.expectedFailure",
+        "unittest.skipif",
+        "unittest.skipunless",
+        "unittest.expectedfailure",
     ] {
         assert!(check(
             "python",
