@@ -93,7 +93,7 @@ use tree_sitter::Node;
 /// - `beforeTest` / `afterTest` — Kotest
 /// - `beforeEachTest` / `afterEachTest` — Spek
 /// - `beforeGroup` / `afterGroup` — Spek
-const KOTLIN_VOCAB: TestCallVocab = TestCallVocab {
+pub(crate) const KOTLIN_VOCAB: TestCallVocab = TestCallVocab {
     test: &[
         "test", "it", "should", "then", "scenario", "expect", "xit", "xtest",
     ],

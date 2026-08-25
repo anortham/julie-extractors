@@ -22,15 +22,16 @@
 //!
 //! Optional trailing arguments are ignored when building test names.
 
-use crate::base::{BaseExtractor, Symbol, SymbolKind};
+use crate::base::{BaseExtractor, Symbol, SymbolKind, TestRole};
 use crate::test_calls::{
     TestCallCategory, TestCallVocab, build_test_call_symbol, classify_call_exact,
 };
+use crate::test_detection::apply_test_role;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use std::collections::HashSet;
+use std::collections::HashMap;
 use tree_sitter::Node;
 
-const CRITERION_VOCAB: TestCallVocab = TestCallVocab {
+pub(crate) const CRITERION_VOCAB: TestCallVocab = TestCallVocab {
     test: &["Test"],
     container: &["TestSuite"],
     lifecycle: &[],
@@ -87,28 +88,27 @@ pub fn apply_criterion_lifecycle_metadata(
     root: Node,
     symbols: &mut [Symbol],
 ) {
-    let mut lifecycle_names = HashSet::new();
+    let mut lifecycle_names = HashMap::new();
     collect_lifecycle_names(base, root, &mut lifecycle_names, 0);
     if lifecycle_names.is_empty() {
         return;
     }
 
     for symbol in symbols {
-        if !matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method)
-            || !lifecycle_names.contains(&symbol.name)
-        {
+        if !matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method) {
             continue;
         }
-        let metadata = symbol.metadata.get_or_insert_with(Default::default);
-        metadata.insert("is_test".to_string(), serde_json::json!(true));
-        metadata.insert("test_lifecycle".to_string(), serde_json::json!(true));
+        let Some(role) = lifecycle_names.get(&symbol.name) else {
+            continue;
+        };
+        apply_test_role(symbol.metadata.get_or_insert_with(Default::default), *role);
     }
 }
 
 fn collect_lifecycle_names(
     base: &BaseExtractor,
     node: Node,
-    names: &mut HashSet<String>,
+    names: &mut HashMap<String, TestRole>,
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
@@ -132,13 +132,21 @@ fn collect_lifecycle_names(
     }
 }
 
+/// Criterion names the setup hook `.init` and the teardown hook `.fini` in the
+/// test macro's designated initializers, so the hook's direction is on the call
+/// site, not in the hook function's own name.
+const CRITERION_LIFECYCLE_MARKERS: [(&str, TestRole); 2] = [
+    (".init", TestRole::FixtureSetup),
+    (".fini", TestRole::FixtureTeardown),
+];
+
 fn collect_designated_lifecycle_names(
     base: &BaseExtractor,
     node: Node,
-    names: &mut HashSet<String>,
+    names: &mut HashMap<String, TestRole>,
 ) {
     let source = base.get_node_text(&node);
-    for marker in [".init", ".fini"] {
+    for (marker, role) in CRITERION_LIFECYCLE_MARKERS {
         let mut offset = 0;
         while let Some(relative) = source[offset..].find(marker) {
             let marker_end = offset + relative + marker.len();
@@ -154,7 +162,7 @@ fn collect_designated_lifecycle_names(
                 .map(char::len_utf8)
                 .sum::<usize>();
             if hook_len > 0 {
-                names.insert(hook[..hook_len].to_string());
+                names.insert(hook[..hook_len].to_string(), role);
             }
             offset = marker_end;
         }

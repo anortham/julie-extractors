@@ -28,19 +28,25 @@ pub fn extract_decorator_texts(extractor: &PythonExtractor, node: &Node) -> Vec<
     decorators
 }
 
+/// The `decorated_definition` whose decorators belong to `node`.
+///
+/// The walk stops at the first enclosing function or class. Without that stop a
+/// nested `def` reaches its enclosing function's `decorated_definition` and
+/// inherits decorators it never carried — a `@pytest.fixture` helper's inner
+/// closure was reported as a fixture, and every method of a decorated class as
+/// carrying the class decorator.
 fn find_decorated_node<'a>(node: &Node<'a>) -> Option<Node<'a>> {
-    // Check if current node is already a decorated_definition
     if node.kind() == "decorated_definition" {
         return Some(*node);
     }
 
-    // Walk up to find decorated_definition parent
     let mut current = *node;
     while let Some(parent) = current.parent() {
-        if parent.kind() == "decorated_definition" {
-            return Some(parent);
+        match parent.kind() {
+            "decorated_definition" => return Some(parent),
+            "function_definition" | "class_definition" => return None,
+            _ => current = parent,
         }
-        current = parent;
     }
 
     None

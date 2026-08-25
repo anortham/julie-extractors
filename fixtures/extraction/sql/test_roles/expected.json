@@ -21,7 +21,8 @@
       "metadata": {
         "extractedFromError": true,
         "isSchema": true,
-        "test_container": true
+        "test_container": true,
+        "test_role": "test_container"
       },
       "annotations": [],
       "semantic_group": null,
@@ -49,7 +50,8 @@
       "metadata": {
         "extractedFromError": true,
         "isSchema": true,
-        "test_container": true
+        "test_container": true,
+        "test_role": "test_container"
       },
       "annotations": [],
       "semantic_group": null,
@@ -86,7 +88,8 @@
         "isFunction": true,
         "isStoredProcedure": true,
         "is_test": true,
-        "test_lifecycle": true
+        "test_lifecycle": true,
+        "test_role": "fixture_setup"
       },
       "annotations": [],
       "semantic_group": null,
@@ -123,7 +126,8 @@
         "isFunction": true,
         "isStoredProcedure": true,
         "is_test": true,
-        "test_lifecycle": true
+        "test_lifecycle": true,
+        "test_role": "fixture_teardown"
       },
       "annotations": [],
       "semantic_group": null,
@@ -186,7 +190,8 @@
         "bodySpanSource": "statement_text",
         "isFunction": true,
         "isStoredProcedure": true,
-        "is_test": true
+        "is_test": true,
+        "test_role": "test_case"
       },
       "annotations": [],
       "semantic_group": null,

@@ -81,7 +81,8 @@
       "visibility": "Private",
       "parent_key": "fixtures/extraction/elixir/test_roles/source.ex:CalculatorTest:1:0",
       "metadata": {
-        "test_container": true
+        "test_container": true,
+        "test_role": "test_container"
       },
       "annotations": [],
       "semantic_group": null,
@@ -114,7 +115,8 @@
       "visibility": "Private",
       "parent_key": "fixtures/extraction/elixir/test_roles/source.ex:addition:8:2",
       "metadata": {
-        "is_test": true
+        "is_test": true,
+        "test_role": "test_case"
       },
       "annotations": [],
       "semantic_group": null,
@@ -148,7 +150,8 @@
       "parent_key": "fixtures/extraction/elixir/test_roles/source.ex:CalculatorTest:1:0",
       "metadata": {
         "is_test": true,
-        "test_lifecycle": true
+        "test_lifecycle": true,
+        "test_role": "fixture_setup"
       },
       "annotations": [],
       "semantic_group": null,

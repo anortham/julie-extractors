@@ -10,7 +10,7 @@ pub(super) mod properties;
 pub(super) mod protocol;
 pub(super) mod relationships;
 pub(super) mod signatures;
-pub(super) mod test_calls;
+pub(crate) mod test_calls;
 pub(super) mod test_roles;
 pub(super) mod types;
 

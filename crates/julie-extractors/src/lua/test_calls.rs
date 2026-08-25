@@ -28,7 +28,7 @@ use tree_sitter::Node;
 /// busted vocabulary. `it` is a case, `describe`/`context` are containers, and
 /// `before_each`/`after_each`/`setup`/`teardown`/`lazy_setup`/`lazy_teardown`
 /// are lifecycle fixtures.
-const LUA_VOCAB: TestCallVocab = TestCallVocab {
+pub(crate) const LUA_VOCAB: TestCallVocab = TestCallVocab {
     test: &["it"],
     container: &["describe", "context"],
     lifecycle: &[

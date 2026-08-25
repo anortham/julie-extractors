@@ -39,7 +39,7 @@ use tree_sitter::Node;
 /// - Scala lifecycle hooks (`beforeEach` / `afterAll`) are METHOD OVERRIDES
 ///   (`def`, caught by the declaration path), not calls, so the call-style
 ///   lifecycle slice is empty.
-const SCALA_VOCAB: TestCallVocab = TestCallVocab {
+pub(crate) const SCALA_VOCAB: TestCallVocab = TestCallVocab {
     test: &["test", "it", "scenario"],
     container: &["describe", "context", "feature"],
     lifecycle: &[],

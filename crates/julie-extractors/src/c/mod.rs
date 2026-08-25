@@ -26,7 +26,7 @@ mod identifiers;
 mod relationships;
 mod signatures;
 mod structs;
-mod test_calls;
+pub(crate) mod test_calls;
 mod typedefs;
 mod types;
 

@@ -16,7 +16,10 @@
 /// - Configuration files
 mod relationships;
 
-use crate::base::{BaseExtractor, Identifier, IdentifierKind, Relationship, Symbol, SymbolKind};
+use crate::base::{
+    BaseExtractor, Identifier, IdentifierKind, Relationship, Symbol, SymbolKind, TestRole,
+};
+use crate::test_detection::apply_test_role;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -120,20 +123,7 @@ impl YamlExtractor {
             metadata
         });
         if let Some(role) = self.test_role_for_mapping_pair(node, &key_name) {
-            let metadata = metadata.get_or_insert_with(HashMap::new);
-            match role {
-                "test_case" => {
-                    metadata.insert("is_test".to_string(), Value::Bool(true));
-                }
-                "test_lifecycle" => {
-                    metadata.insert("is_test".to_string(), Value::Bool(true));
-                    metadata.insert("test_lifecycle".to_string(), Value::Bool(true));
-                }
-                "test_container" => {
-                    metadata.insert("test_container".to_string(), Value::Bool(true));
-                }
-                _ => {}
-            }
+            apply_test_role(metadata.get_or_insert_with(HashMap::new), role);
         }
 
         // Determine kind: container keys (with nested mappings) are Module, leaves are Variable
@@ -264,20 +254,21 @@ impl YamlExtractor {
         &self,
         node: tree_sitter::Node,
         key_name: &str,
-    ) -> Option<&'static str> {
+    ) -> Option<TestRole> {
         if key_name == "commandTests"
             && self.is_google_command_tests_root(node)
             && mapping_pair_value_is_sequence(node)
         {
-            return Some("test_container");
+            return Some(TestRole::TestContainer);
         }
         if !self.is_direct_command_test_pair(node) {
             return None;
         }
 
         match key_name {
-            "name" if mapping_pair_has_string_value(&self.base, node) => Some("test_case"),
-            "setup" | "teardown" => Some("test_lifecycle"),
+            "name" if mapping_pair_has_string_value(&self.base, node) => Some(TestRole::TestCase),
+            "setup" => Some(TestRole::FixtureSetup),
+            "teardown" => Some(TestRole::FixtureTeardown),
             _ => None,
         }
     }

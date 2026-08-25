@@ -54,7 +54,8 @@
       "parent_key": "fixtures/extraction/markdown/test_roles/source.md:Rust Documentation Examples:1:0",
       "metadata": {
         "is_test": true,
-        "markdown_kind": "code_block"
+        "markdown_kind": "code_block",
+        "test_role": "test_case"
       },
       "annotations": [],
       "semantic_group": null,
@@ -125,7 +126,8 @@
         "info_string": "rust",
         "is_test": true,
         "language": "rust",
-        "markdown_kind": "code_block"
+        "markdown_kind": "code_block",
+        "test_role": "test_case"
       },
       "annotations": [],
       "semantic_group": null,
@@ -154,7 +156,8 @@
         "info_string": "rust,compile_fail",
         "is_test": true,
         "language": "rust,compile_fail",
-        "markdown_kind": "code_block"
+        "markdown_kind": "code_block",
+        "test_role": "test_case"
       },
       "annotations": [],
       "semantic_group": null,
@@ -225,7 +228,8 @@
         "info_string": "rust,no_run",
         "is_test": true,
         "language": "rust,no_run",
-        "markdown_kind": "code_block"
+        "markdown_kind": "code_block",
+        "test_role": "test_case"
       },
       "annotations": [],
       "semantic_group": null,

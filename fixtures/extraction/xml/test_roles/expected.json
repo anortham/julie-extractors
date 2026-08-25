@@ -89,7 +89,8 @@
       "metadata": {
         "name_attribute": "id",
         "tag": "target",
-        "test_container": true
+        "test_container": true,
+        "test_role": "test_container"
       },
       "annotations": [],
       "semantic_group": null,
@@ -117,7 +118,8 @@
       "metadata": {
         "is_test": true,
         "name_attribute": "name",
-        "tag": "test"
+        "tag": "test",
+        "test_role": "test_case"
       },
       "annotations": [],
       "semantic_group": null,
@@ -355,7 +357,8 @@
       "metadata": {
         "name_attribute": "name",
         "tag": "target",
-        "test_container": true
+        "test_container": true,
+        "test_role": "test_container"
       },
       "annotations": [],
       "semantic_group": null,
@@ -383,7 +386,8 @@
       "metadata": {
         "is_test": true,
         "name_attribute": "name",
-        "tag": "test"
+        "tag": "test",
+        "test_role": "test_case"
       },
       "annotations": [],
       "semantic_group": null,

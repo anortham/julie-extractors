@@ -93,7 +93,7 @@ fn declares_ginkgo_import(base: &BaseExtractor, node: Node) -> bool {
 /// - Test: `It`, `Specify` + focused/excluded variants
 /// - Lifecycle: `BeforeEach`, `AfterEach`, `BeforeSuite`, `AfterSuite`,
 ///   `JustBeforeEach`, `JustAfterEach`, `DeferCleanup`
-const GINKGO_VOCAB: TestCallVocab = TestCallVocab {
+pub(crate) const GINKGO_VOCAB: TestCallVocab = TestCallVocab {
     test: &[
         "It", "FIt", "XIt", "PIt", "Specify", "FSpecify", "XSpecify", "PSpecify", "Entry",
         "FEntry", "XEntry", "PEntry",

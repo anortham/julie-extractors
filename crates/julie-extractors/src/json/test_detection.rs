@@ -1,17 +1,11 @@
-use crate::base::BaseExtractor;
+use crate::base::{BaseExtractor, TestRole};
 use tree_sitter::Node;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum JsonTestRole {
-    Container,
-    Case,
-}
 
 pub(super) fn role_for_description_pair(
     base: &BaseExtractor,
     pair: Node,
     key_name: &str,
-) -> Option<JsonTestRole> {
+) -> Option<TestRole> {
     if key_name != "description" || pair_value(pair)?.kind() != "string" {
         return None;
     }
@@ -21,10 +15,10 @@ pub(super) fn role_for_description_pair(
         return None;
     }
     if is_group_object(base, object) {
-        return Some(JsonTestRole::Container);
+        return Some(TestRole::TestContainer);
     }
     if is_test_object(base, object) {
-        return Some(JsonTestRole::Case);
+        return Some(TestRole::TestCase);
     }
     None
 }

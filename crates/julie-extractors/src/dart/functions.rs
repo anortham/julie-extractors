@@ -5,9 +5,37 @@
 use super::helpers::*;
 use super::signatures;
 use crate::base::{AnnotationMarker, BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
-use crate::test_detection::is_test_symbol;
+use crate::test_detection::apply_callable_test_metadata;
 use std::collections::HashMap;
 use tree_sitter::Node;
+
+/// Attach the shared test role to a Dart symbol, leaving a non-test symbol's
+/// metadata untouched — including the `None` a symbol with no other metadata
+/// carries.
+fn merge_test_metadata(
+    symbol: &mut Symbol,
+    file_path: &str,
+    kind: &SymbolKind,
+    annotation_keys: &[String],
+) {
+    let mut test_metadata = HashMap::new();
+    apply_callable_test_metadata(
+        "dart",
+        &symbol.name,
+        file_path,
+        kind,
+        annotation_keys,
+        None,
+        &mut test_metadata,
+    );
+    if test_metadata.is_empty() {
+        return;
+    }
+    symbol
+        .metadata
+        .get_or_insert_with(HashMap::new)
+        .extend(test_metadata);
+}
 
 /// Extract class definition
 pub(super) fn extract_class(
@@ -94,19 +122,8 @@ pub(super) fn extract_function(
     }
 
     // Test detection for Dart functions
-    if is_test_symbol(
-        "dart",
-        &symbol.name,
-        &base.file_path,
-        &symbol.kind,
-        &annotation_keys,
-        None,
-    ) {
-        symbol
-            .metadata
-            .get_or_insert_with(HashMap::new)
-            .insert("is_test".to_string(), serde_json::Value::Bool(true));
-    }
+    let kind = symbol.kind.clone();
+    merge_test_metadata(&mut symbol, &base.file_path, &kind, &annotation_keys);
 
     Some(symbol)
 }
@@ -195,19 +212,12 @@ pub(super) fn extract_method(
     );
 
     // Test detection for Dart methods
-    if is_test_symbol(
-        "dart",
-        &symbol.name,
+    merge_test_metadata(
+        &mut symbol,
         &base.file_path,
         &SymbolKind::Method,
         &annotation_keys,
-        None,
-    ) {
-        symbol
-            .metadata
-            .get_or_insert_with(HashMap::new)
-            .insert("is_test".to_string(), serde_json::Value::Bool(true));
-    }
+    );
 
     Some(symbol)
 }
@@ -293,19 +303,12 @@ pub(super) fn extract_constructor(
         .insert("isConst".to_string(), serde_json::Value::Bool(is_const));
 
     // Test detection for Dart constructors
-    if is_test_symbol(
-        "dart",
-        &symbol.name,
+    merge_test_metadata(
+        &mut symbol,
         &base.file_path,
         &SymbolKind::Constructor,
         &annotation_keys,
-        None,
-    ) {
-        symbol
-            .metadata
-            .get_or_insert_with(HashMap::new)
-            .insert("is_test".to_string(), serde_json::Value::Bool(true));
-    }
+    );
 
     Some(symbol)
 }

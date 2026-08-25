@@ -17,7 +17,7 @@ pub(crate) mod helpers;
 mod identifiers;
 mod relationships;
 mod tables;
-mod test_calls;
+pub(crate) mod test_calls;
 mod variables;
 
 use crate::base::{

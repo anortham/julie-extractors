@@ -66,6 +66,14 @@ fn has_annotation_key(sym: &Symbol, key: &str) -> bool {
     sym.annotations.iter().any(|a| a.annotation_key == key)
 }
 
+fn test_role(sym: &Symbol) -> Option<String> {
+    sym.metadata
+        .as_ref()
+        .and_then(|m| m.get("test_role"))
+        .and_then(|v| v.as_str())
+        .map(str::to_string)
+}
+
 fn base_types(sym: &Symbol) -> Vec<String> {
     sym.metadata
         .as_ref()
@@ -168,6 +176,68 @@ TYPED_TEST_P(MathTypedParam, Squares) {
             has_annotation_key(t, key),
             "{expected} must carry the `{key}` annotation key (→ parameterized_test), got {:?}",
             t.annotations
+        );
+        assert_eq!(
+            test_role(t).as_deref(),
+            Some("parameterized_test"),
+            "{expected} must publish the parameterized_test role, got {t:?}"
+        );
+    }
+}
+
+#[test]
+fn googletest_non_parameterized_macros_publish_the_test_case_role() {
+    let syms = symbols(
+        r#"
+TEST(MathTest, AdditionWorks) {
+    EXPECT_EQ(4, 2 + 2);
+}
+TEST_F(MathFixture, Multiplies) {
+    EXPECT_EQ(4, 2 * 2);
+}
+"#,
+    );
+    for expected in ["MathTest.AdditionWorks", "MathFixture.Multiplies"] {
+        let t = syms
+            .iter()
+            .find(|s| s.name == expected)
+            .unwrap_or_else(|| panic!("expected `{expected}`, got {syms:?}"));
+        assert_eq!(
+            test_role(t).as_deref(),
+            Some("test_case"),
+            "{expected} must publish the test_case role, got {t:?}"
+        );
+    }
+}
+
+#[test]
+fn googletest_fixture_hooks_publish_their_setup_or_teardown_half() {
+    let syms = symbols(
+        r#"
+class MathFixture : public ::testing::Test {
+protected:
+    void SetUp() override {}
+    void TearDown() override {}
+    static void SetUpTestSuite() {}
+    static void TearDownTestSuite() {}
+};
+"#,
+    );
+    for (expected, role) in [
+        ("SetUp", "fixture_setup"),
+        ("SetUpTestSuite", "fixture_setup"),
+        ("TearDown", "fixture_teardown"),
+        ("TearDownTestSuite", "fixture_teardown"),
+    ] {
+        let t = syms
+            .iter()
+            .find(|s| s.name == expected)
+            .unwrap_or_else(|| panic!("expected `{expected}`, got {syms:?}"));
+        assert!(is_lifecycle(t), "{expected} must stay a lifecycle hook");
+        assert_eq!(
+            test_role(t).as_deref(),
+            Some(role),
+            "{expected} must publish the {role} role, got {t:?}"
         );
     }
 }

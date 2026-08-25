@@ -6,12 +6,12 @@ mod identifiers;
 mod idioms;
 mod non_s3;
 mod relationships;
-mod test_calls;
+pub(crate) mod test_calls;
 mod text_args;
 
 use crate::base::{BaseExtractor, Identifier, PendingRelationship, Relationship, Symbol};
 use crate::base::{SymbolKind, SymbolOptions};
-use crate::test_detection::is_test_symbol;
+use crate::test_detection::apply_callable_test_metadata;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
@@ -186,9 +186,15 @@ impl RExtractor {
         metadata.extend(idioms::member_metadata(self, node, parent_id));
 
         // Test detection
-        if is_test_symbol("r", &name, &self.base.file_path, &kind, &[], None) {
-            metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
-        }
+        apply_callable_test_metadata(
+            "r",
+            &name,
+            &self.base.file_path,
+            &kind,
+            &[],
+            None,
+            &mut metadata,
+        );
 
         let options = SymbolOptions {
             parent_id: parent_id.clone(),

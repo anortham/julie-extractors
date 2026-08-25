@@ -1,6 +1,8 @@
 use crate::base::{
-    BaseExtractor, NormalizedSpan, Symbol, SymbolKind, SymbolOptions, containing_symbol_at_line,
+    BaseExtractor, NormalizedSpan, Symbol, SymbolKind, SymbolOptions, TestRole,
+    containing_symbol_at_line,
 };
+use crate::test_detection::apply_test_role;
 use regex::Regex;
 use serde_json::{Value, json};
 use std::collections::HashMap;
@@ -54,7 +56,7 @@ fn extract_fenced_code_block(
         metadata.insert("language".to_string(), json!(language));
     }
     if is_rustdoc_test_case(info_string.as_deref()) {
-        metadata.insert("is_test".to_string(), json!(true));
+        apply_test_role(&mut metadata, TestRole::TestCase);
     }
 
     let name = language

@@ -13,7 +13,7 @@ use super::ErlangExtractor;
 use super::helpers::{NameArity, arg_count, find_child_by_type, first_atom_text};
 use crate::base::body::body_hash;
 use crate::base::{NormalizedSpan, Symbol, SymbolKind, SymbolOptions, Visibility};
-use crate::test_detection::{ErlangTestRole, erlang_test_role};
+use crate::test_detection::{apply_test_role, erlang_test_role};
 
 pub(super) struct FunctionClause {
     pub(super) identity: NameArity,
@@ -63,10 +63,7 @@ pub(super) fn extract_function(
         Value::Number((clause_count as u64).into()),
     );
     if let Some(role) = erlang_test_role(extractor.test_module, &name, arity, exported) {
-        metadata.insert("is_test".to_string(), Value::Bool(true));
-        if role == ErlangTestRole::Lifecycle {
-            metadata.insert("test_lifecycle".to_string(), Value::Bool(true));
-        }
+        apply_test_role(&mut metadata, role);
     }
 
     let doc_comment = super::doc::doc_for(extractor, node);

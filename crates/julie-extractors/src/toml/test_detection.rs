@@ -1,14 +1,9 @@
+use crate::base::TestRole;
+use crate::test_detection::apply_test_role;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use serde_json::Value;
 use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) enum TomlTestRole {
-    Case,
-    Container,
-    Lifecycle,
-}
 
 pub(crate) struct TomlTestContext {
     trycmd_dotted_case: bool,
@@ -33,45 +28,29 @@ impl TomlTestContext {
         }
     }
 
-    pub(crate) fn pair_role(
-        &self,
-        table_name: Option<&str>,
-        key_name: &str,
-    ) -> Option<TomlTestRole> {
+    pub(crate) fn pair_role(&self, table_name: Option<&str>, key_name: &str) -> Option<TestRole> {
         if self.trycmd_dotted_case && table_name.is_none() && key_name == "bin.name" {
-            return Some(TomlTestRole::Case);
+            return Some(TestRole::TestCase);
         }
         None
     }
 
-    pub(crate) fn table_role(&self, table_name: &str) -> Option<TomlTestRole> {
+    pub(crate) fn table_role(&self, table_name: &str) -> Option<TestRole> {
         if self.trycmd_table_case && table_name == "bin" {
-            return Some(TomlTestRole::Case);
+            return Some(TestRole::TestCase);
         }
         if self.nextest_marker && is_named_table(table_name, "test-groups.") {
-            return Some(TomlTestRole::Container);
+            return Some(TestRole::TestContainer);
         }
         if self.nextest_marker && is_named_table(table_name, "scripts.setup.") {
-            return Some(TomlTestRole::Lifecycle);
+            return Some(TestRole::FixtureSetup);
         }
         None
     }
 
-    pub(crate) fn metadata(role: Option<TomlTestRole>) -> Option<HashMap<String, Value>> {
-        let role = role?;
+    pub(crate) fn metadata(role: Option<TestRole>) -> Option<HashMap<String, Value>> {
         let mut metadata = HashMap::new();
-        match role {
-            TomlTestRole::Case => {
-                metadata.insert("is_test".to_string(), Value::Bool(true));
-            }
-            TomlTestRole::Container => {
-                metadata.insert("test_container".to_string(), Value::Bool(true));
-            }
-            TomlTestRole::Lifecycle => {
-                metadata.insert("is_test".to_string(), Value::Bool(true));
-                metadata.insert("test_lifecycle".to_string(), Value::Bool(true));
-            }
-        }
+        apply_test_role(&mut metadata, role?);
         Some(metadata)
     }
 }
@@ -181,6 +160,6 @@ fn is_named_table(name: &str, prefix: &str) -> bool {
         .is_some_and(|suffix| !suffix.is_empty() && !suffix.contains('.'))
 }
 
-pub(crate) fn role_metadata(role: Option<TomlTestRole>) -> Option<HashMap<String, Value>> {
+pub(crate) fn role_metadata(role: Option<TestRole>) -> Option<HashMap<String, Value>> {
     TomlTestContext::metadata(role)
 }

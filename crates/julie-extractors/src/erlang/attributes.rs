@@ -11,7 +11,8 @@ use super::helpers::{
     arg_count, attribute_signature, child_named_kinds, find_child_by_type, first_atom_text,
     named_children, unquote_atom,
 };
-use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility};
+use crate::base::{Symbol, SymbolKind, SymbolOptions, TestRole, Visibility};
+use crate::test_detection::apply_test_role;
 
 pub(super) fn extract_module(
     extractor: &mut ErlangExtractor,
@@ -25,7 +26,7 @@ pub(super) fn extract_module(
 
     let mut metadata = HashMap::new();
     if extractor.test_module.is_test_container() {
-        metadata.insert("test_container".to_string(), Value::Bool(true));
+        apply_test_role(&mut metadata, TestRole::TestContainer);
     }
 
     Some(extractor.base.create_symbol(

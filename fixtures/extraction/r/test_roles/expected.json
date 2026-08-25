@@ -161,7 +161,8 @@
       "metadata": {
         "is_test": true,
         "s3_class": "named.case",
-        "s3_method": "test"
+        "s3_method": "test",
+        "test_role": "test_case"
       },
       "annotations": [],
       "semantic_group": null,

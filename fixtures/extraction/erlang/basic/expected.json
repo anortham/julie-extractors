@@ -261,7 +261,8 @@
       "metadata": {
         "arity": 0,
         "clause_count": 1,
-        "is_test": true
+        "is_test": true,
+        "test_role": "test_case"
       },
       "annotations": [],
       "semantic_group": null,

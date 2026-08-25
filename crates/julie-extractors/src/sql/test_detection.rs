@@ -1,5 +1,6 @@
-use crate::base::{BaseExtractor, Symbol, SymbolKind};
+use crate::base::{BaseExtractor, Symbol, SymbolKind, TestRole};
 use crate::sql::helpers::normalize_sql_identifier;
+use crate::test_detection::apply_test_role;
 use std::collections::HashSet;
 use std::collections::VecDeque;
 use tree_sitter::{Node, Tree};
@@ -10,11 +11,13 @@ pub(super) struct PgTapContext {
     runner_schemas: HashSet<String>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum PgTapRoutineRole {
-    Case,
-    Lifecycle,
-}
+/// pgTAP name prefixes that select a fixture hook, and the half it runs on.
+const PGTAP_LIFECYCLE_PREFIXES: [(&str, TestRole); 4] = [
+    ("startup", TestRole::FixtureSetup),
+    ("setup", TestRole::FixtureSetup),
+    ("teardown", TestRole::FixtureTeardown),
+    ("shutdown", TestRole::FixtureTeardown),
+];
 
 impl PgTapContext {
     pub(super) fn from_tree(base: &BaseExtractor, tree: &Tree) -> Self {
@@ -61,10 +64,10 @@ pub(super) fn mark_pgtap_schema_containers(context: &PgTapContext, symbols: &mut
 
         let schema_name = normalize_sql_identifier(&symbol.name).to_ascii_lowercase();
         if context.runner_schemas().contains(&schema_name) {
-            symbol
-                .metadata
-                .get_or_insert_with(Default::default)
-                .insert("test_container".to_string(), serde_json::Value::Bool(true));
+            apply_test_role(
+                symbol.metadata.get_or_insert_with(Default::default),
+                TestRole::TestContainer,
+            );
         }
     }
 }
@@ -74,22 +77,19 @@ pub(super) fn classify_routine(
     node: Node,
     name: &str,
     context: &PgTapContext,
-) -> Option<PgTapRoutineRole> {
+) -> Option<TestRole> {
     if !context.runner_seen() || !returns_setof_text(base, node) {
         return None;
     }
 
     let name = normalize_sql_identifier(name).to_ascii_lowercase();
     if name.starts_with("test") {
-        return Some(PgTapRoutineRole::Case);
+        return Some(TestRole::TestCase);
     }
-    if ["startup", "setup", "teardown", "shutdown"]
+    PGTAP_LIFECYCLE_PREFIXES
         .iter()
-        .any(|prefix| name.starts_with(prefix))
-    {
-        return Some(PgTapRoutineRole::Lifecycle);
-    }
-    None
+        .find(|(prefix, _)| name.starts_with(prefix))
+        .map(|(_, role)| *role)
 }
 
 fn is_pgtap_runner(base: &BaseExtractor, node: Node) -> bool {

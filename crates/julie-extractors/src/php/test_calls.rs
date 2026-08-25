@@ -33,7 +33,7 @@ use tree_sitter::Node;
 /// container; `beforeEach`/`afterEach`/`beforeAll`/`afterAll` are lifecycle
 /// fixtures (Pest's full hook set, confirmed present in the tree-sitter-php
 /// grammar via `function_call_expression` with a bare `name` callee).
-const PHP_PEST_VOCAB: TestCallVocab = TestCallVocab {
+pub(crate) const PHP_PEST_VOCAB: TestCallVocab = TestCallVocab {
     test: &["test", "it"],
     container: &["describe"],
     lifecycle: &["beforeEach", "afterEach", "beforeAll", "afterAll"],

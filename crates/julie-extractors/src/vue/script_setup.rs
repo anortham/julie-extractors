@@ -9,7 +9,7 @@
 use super::parsing::VueSection;
 use super::script::create_symbol_manual;
 use crate::base::{AnnotationMarker, BaseExtractor, Symbol, SymbolKind, normalize_annotations};
-use crate::test_detection::is_test_symbol;
+use crate::test_detection::apply_callable_test_metadata;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -309,16 +309,15 @@ fn extract_function_declaration(
     metadata.insert("type".to_string(), Value::String("function".to_string()));
 
     // Test detection (Category 3: name + path, empty annotation keys)
-    if is_test_symbol(
+    apply_callable_test_metadata(
         "vue",
         &name,
         &base.file_path,
         &SymbolKind::Function,
         &[],
         None,
-    ) {
-        metadata.insert("is_test".to_string(), Value::Bool(true));
-    }
+        &mut metadata,
+    );
 
     Some(with_zero_based_columns(create_symbol_manual(
         base,
@@ -388,16 +387,15 @@ fn extract_variable_declarator(
         );
 
         // Test detection (Category 3: name + path, empty annotation keys)
-        if is_test_symbol(
+        apply_callable_test_metadata(
             "vue",
             &name,
             &base.file_path,
             &SymbolKind::Function,
             &[],
             None,
-        ) {
-            metadata.insert("is_test".to_string(), Value::Bool(true));
-        }
+            &mut metadata,
+        );
 
         Some(with_zero_based_columns(create_symbol_manual(
             base,

@@ -4,7 +4,7 @@ mod identifiers;
 mod relationships;
 mod signatures;
 mod specs;
-mod test_calls;
+pub(crate) mod test_calls;
 mod types;
 
 use crate::base::{

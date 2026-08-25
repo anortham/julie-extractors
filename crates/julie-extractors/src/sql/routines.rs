@@ -6,7 +6,8 @@
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions};
 use crate::sql::body_spans;
 use crate::sql::helpers::{DECLARE_VAR_RE, VAR_DECL_RE, normalize_sql_identifier};
-use crate::sql::test_detection::{PgTapContext, PgTapRoutineRole, classify_routine};
+use crate::sql::test_detection::{PgTapContext, classify_routine};
+use crate::test_detection::apply_test_role;
 use regex::Regex;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -64,10 +65,7 @@ pub(super) fn extract_stored_procedure(
     let doc_comment = base.find_doc_comment(&node);
 
     if let Some(role) = classify_routine(base, node, &name, pgtap_context) {
-        metadata.insert("is_test".to_string(), Value::Bool(true));
-        if role == PgTapRoutineRole::Lifecycle {
-            metadata.insert("test_lifecycle".to_string(), Value::Bool(true));
-        }
+        apply_test_role(&mut metadata, role);
     }
 
     let options = SymbolOptions {

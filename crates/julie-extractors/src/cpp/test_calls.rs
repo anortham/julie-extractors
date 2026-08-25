@@ -38,7 +38,7 @@ use tree_sitter::Node;
 ///
 /// Catch2 has no call-style lifecycle hooks (fixtures are classes used via
 /// `TEST_CASE_METHOD`), so the lifecycle set is empty.
-const CATCH2_VOCAB: TestCallVocab = TestCallVocab {
+pub(crate) const CATCH2_VOCAB: TestCallVocab = TestCallVocab {
     test: &["TEST_CASE", "SCENARIO", "TEST_CASE_METHOD"],
     container: &["SECTION", "GIVEN", "WHEN", "THEN"],
     lifecycle: &[],

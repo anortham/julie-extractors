@@ -17,7 +17,7 @@ mod functions;
 mod helpers;
 mod relationships;
 mod signatures;
-mod test_calls;
+pub(crate) mod test_calls;
 mod types;
 mod variables;
 

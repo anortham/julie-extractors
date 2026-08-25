@@ -1,8 +1,8 @@
 use super::ElixirExtractor;
 use super::helpers;
-use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility};
+use crate::base::{Symbol, SymbolKind, SymbolOptions, TestRole, Visibility};
+use crate::test_detection::apply_test_role;
 use crate::tree_traversal::child_tree_depth;
-use serde_json::Value;
 use std::collections::HashMap;
 use tree_sitter::Node;
 
@@ -16,7 +16,7 @@ pub(super) fn extract_test(
     let signature = format!("test \"{}\"", description);
 
     let mut metadata = HashMap::new();
-    metadata.insert("is_test".to_string(), Value::Bool(true));
+    apply_test_role(&mut metadata, TestRole::TestCase);
 
     let symbol = extractor.base.create_symbol(
         node,
@@ -48,7 +48,7 @@ pub(super) fn extract_describe(
     let signature = format!("describe \"{}\"", description);
 
     let mut metadata = HashMap::new();
-    metadata.insert("test_container".to_string(), Value::Bool(true));
+    apply_test_role(&mut metadata, TestRole::TestContainer);
 
     let symbol = extractor.base.create_symbol(
         node,
@@ -84,8 +84,7 @@ pub(super) fn extract_setup(
     let signature = format!("{}()", name);
 
     let mut metadata = HashMap::new();
-    metadata.insert("is_test".to_string(), Value::Bool(true));
-    metadata.insert("test_lifecycle".to_string(), Value::Bool(true));
+    apply_test_role(&mut metadata, TestRole::FixtureSetup);
 
     let symbol = extractor.base.create_symbol(
         node,

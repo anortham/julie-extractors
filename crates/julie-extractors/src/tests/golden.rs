@@ -367,6 +367,141 @@ fn no_language_emits_per_identifier_code_context() {
     );
 }
 
+#[derive(Debug, PartialEq, Eq)]
+struct TestRoleFlags {
+    is_test: bool,
+    lifecycle: bool,
+    container: bool,
+}
+
+impl TestRoleFlags {
+    fn any(&self) -> bool {
+        self.is_test || self.lifecycle || self.container
+    }
+}
+
+fn flags_written_for_role(role: &str) -> Option<TestRoleFlags> {
+    match role {
+        "test_case" | "parameterized_test" => Some(TestRoleFlags {
+            is_test: true,
+            lifecycle: false,
+            container: false,
+        }),
+        "fixture_setup" | "fixture_teardown" => Some(TestRoleFlags {
+            is_test: true,
+            lifecycle: true,
+            container: false,
+        }),
+        "test_container" => Some(TestRoleFlags {
+            is_test: false,
+            lifecycle: false,
+            container: true,
+        }),
+        _ => None,
+    }
+}
+
+fn flags_in_metadata(metadata: Option<&Value>) -> TestRoleFlags {
+    let flag = |key: &str| {
+        metadata
+            .and_then(|metadata| metadata.get(key))
+            .and_then(Value::as_bool)
+            .unwrap_or(false)
+    };
+    TestRoleFlags {
+        is_test: flag("is_test"),
+        lifecycle: flag("test_lifecycle"),
+        container: flag("test_container"),
+    }
+}
+
+#[test]
+fn every_golden_test_boolean_carries_an_agreeing_test_role() {
+    let root = workspace_root();
+    let matrix = load_matrix(&root);
+    let mut violations = Vec::new();
+    let mut languages = BTreeSet::new();
+    let mut flagged_symbols = 0usize;
+
+    for row in matrix.languages {
+        for fixture in row.fixtures {
+            let expected_path = root.join(&fixture.expected);
+            let expected_json = fs::read_to_string(&expected_path).unwrap_or_else(|err| {
+                panic!(
+                    "failed to read expected golden output for {}:{} at {}: {}",
+                    row.language,
+                    fixture.name,
+                    expected_path.display(),
+                    err
+                )
+            });
+            let expected: Value = serde_json::from_str(&expected_json).unwrap_or_else(|err| {
+                panic!(
+                    "failed to parse expected golden output for {}:{} at {}: {}",
+                    row.language,
+                    fixture.name,
+                    expected_path.display(),
+                    err
+                )
+            });
+            let symbols = expected
+                .get("symbols")
+                .and_then(Value::as_array)
+                .unwrap_or_else(|| {
+                    panic!(
+                        "expected golden output for {}:{} has no symbols array",
+                        row.language, fixture.name
+                    )
+                });
+
+            for symbol in symbols {
+                let metadata = symbol.get("metadata");
+                let flags = flags_in_metadata(metadata);
+                let role = metadata
+                    .and_then(|metadata| metadata.get("test_role"))
+                    .and_then(Value::as_str);
+                if !flags.any() && role.is_none() {
+                    continue;
+                }
+
+                flagged_symbols += 1;
+                languages.insert(row.language.clone());
+                let name = symbol.get("name").and_then(Value::as_str).unwrap_or("?");
+                let where_ = format!("{}:{} `{name}`", row.language, fixture.name);
+
+                let Some(role) = role else {
+                    violations.push(format!("{where_} carries {flags:?} without a test_role"));
+                    continue;
+                };
+                let Some(written) = flags_written_for_role(role) else {
+                    violations.push(format!("{where_} carries unknown test_role `{role}`"));
+                    continue;
+                };
+                if written != flags {
+                    violations.push(format!(
+                        "{where_} has test_role `{role}` but {flags:?} instead of {written:?}"
+                    ));
+                }
+            }
+        }
+    }
+
+    assert!(
+        languages.len() >= 30,
+        "scan should cover the whole registered corpus, saw only {languages:?}"
+    );
+    assert!(
+        flagged_symbols >= 400,
+        "scan should see the corpus test symbols, saw only {flagged_symbols}"
+    );
+    assert!(
+        violations.is_empty(),
+        "{} golden symbols disagree with their test_role:\n{}",
+        violations.len(),
+        violations.join("\n")
+    );
+}
+
 #[test]
 fn golden_fixtures_match_canonical_extraction() {
     let root = workspace_root();

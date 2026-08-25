@@ -24,7 +24,7 @@ use tree_sitter::Node;
 
 /// testthat vocabulary. `test_that` and BDD-style `it` are cases; `describe` is
 /// a container. No per-call lifecycle DSL, so the lifecycle slice is empty.
-const R_VOCAB: TestCallVocab = TestCallVocab {
+pub(crate) const R_VOCAB: TestCallVocab = TestCallVocab {
     test: &["test_that", "it"],
     container: &["describe"],
     lifecycle: &[],

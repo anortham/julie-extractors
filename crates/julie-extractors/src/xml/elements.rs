@@ -3,7 +3,8 @@ use std::collections::HashMap;
 use serde_json::Value;
 use tree_sitter::Node;
 
-use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
+use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, TestRole, Visibility};
+use crate::test_detection::apply_test_role;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 /// Attributes that promote an element to a symbol, in priority order.
@@ -113,7 +114,7 @@ fn extract_from_tag(
     metadata.insert("tag".to_string(), Value::String(tag_name));
     metadata.insert("name_attribute".to_string(), Value::String(name_attribute));
     if let Some(role) = role {
-        metadata.insert(role.to_string(), Value::Bool(true));
+        apply_test_role(&mut metadata, role);
     }
 
     Some(base.create_symbol(
@@ -136,14 +137,16 @@ fn test_role(
     element: Node<'_>,
     tag_name: &str,
     name_attribute: &str,
-) -> Option<&'static str> {
+) -> Option<TestRole> {
     if element.kind() != "element" {
         return None;
     }
 
     match tag_name {
-        "target" if is_ant_target(base, element) => Some("test_container"),
-        "test" if name_attribute == "name" && is_ant_test_case(base, element) => Some("is_test"),
+        "target" if is_ant_target(base, element) => Some(TestRole::TestContainer),
+        "test" if name_attribute == "name" && is_ant_test_case(base, element) => {
+            Some(TestRole::TestCase)
+        }
         _ => None,
     }
 }

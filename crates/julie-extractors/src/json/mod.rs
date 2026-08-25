@@ -8,6 +8,7 @@ use crate::base::{
     BaseExtractor, Identifier, PendingRelationship, Relationship, StructuredPendingRelationship,
     Symbol, SymbolKind,
 };
+use crate::test_detection::apply_test_role;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use std::path::Path;
@@ -144,12 +145,7 @@ impl JsonExtractor {
             .create_symbol(&node, key_name.clone(), symbol_kind, options);
 
         if let Some(role) = test_detection::role_for_description_pair(&self.base, node, &key_name) {
-            let metadata = symbol.metadata.get_or_insert_with(HashMap::new);
-            let key = match role {
-                test_detection::JsonTestRole::Container => "test_container",
-                test_detection::JsonTestRole::Case => "is_test",
-            };
-            metadata.insert(key.to_string(), serde_json::Value::Bool(true));
+            apply_test_role(symbol.metadata.get_or_insert_with(HashMap::new), role);
         }
 
         if value_node.kind() == "string" {

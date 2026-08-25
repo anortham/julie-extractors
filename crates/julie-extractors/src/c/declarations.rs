@@ -6,7 +6,7 @@
 
 use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility, normalize_annotations};
 use crate::c::CExtractor;
-use crate::test_detection::is_test_symbol;
+use crate::test_detection::apply_callable_test_metadata;
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -173,16 +173,15 @@ pub(super) fn extract_function_definition(
         ),
     ]);
 
-    if is_test_symbol(
+    apply_callable_test_metadata(
         "c",
         &function_name,
         &extractor.base.file_path,
         &SymbolKind::Function,
         &[],
         doc_comment.as_deref(),
-    ) {
-        metadata.insert("is_test".to_string(), Value::Bool(true));
-    }
+        &mut metadata,
+    );
 
     Some(extractor.base.create_symbol(
         &node,

@@ -13,7 +13,7 @@ mod members;
 mod pending_calls;
 mod relationships;
 mod signatures;
-mod test_calls;
+pub(crate) mod test_calls;
 mod types;
 
 use crate::base::{

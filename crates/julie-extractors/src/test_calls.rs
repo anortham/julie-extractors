@@ -87,7 +87,7 @@ pub fn classify_call_exact(callee: &str, vocab: &TestCallVocab) -> Option<TestCa
 /// from the callee name. Every hook in every shared vocabulary spells its
 /// teardown half with `after`, `teardown`, or `cleanup`, and its setup half with
 /// neither, so one language-neutral name rule covers them all.
-fn test_call_role(full_callee: &str, category: TestCallCategory) -> TestRole {
+pub(crate) fn test_call_role(full_callee: &str, category: TestCallCategory) -> TestRole {
     match category {
         TestCallCategory::Test => TestRole::TestCase,
         TestCallCategory::Container => TestRole::TestContainer,
@@ -168,11 +168,40 @@ pub const LIFECYCLE_BLOCKS: &[&str] = &[
 ];
 
 /// JS/TS test-DSL vocabulary (Jest/Vitest/Mocha/Bun).
-const JS_VOCAB: TestCallVocab = TestCallVocab {
+pub(crate) const JS_VOCAB: TestCallVocab = TestCallVocab {
     test: TEST_BLOCKS,
     container: CONTAINER_BLOCKS,
     lifecycle: LIFECYCLE_BLOCKS,
 };
+
+/// Every shared test-call vocabulary, named by the framework family it covers.
+///
+/// [`test_call_role`] reads a lifecycle hook's direction out of its name, so a
+/// word added to any vocabulary here silently picks a direction. The registry
+/// exists so one test can walk every word and prove each direction is the
+/// intended one; a new language MUST add its vocabulary here.
+#[cfg(test)]
+pub(crate) const SHARED_TEST_CALL_VOCABS: &[(&str, TestCallVocab)] = &[
+    ("bash/BASH_VOCAB", crate::bash::test_calls::BASH_VOCAB),
+    ("c/CRITERION_VOCAB", crate::c::test_calls::CRITERION_VOCAB),
+    ("cpp/CATCH2_VOCAB", crate::cpp::test_calls::CATCH2_VOCAB),
+    ("dart/DART_VOCAB", crate::dart::test_calls::DART_VOCAB),
+    ("go/GINKGO_VOCAB", crate::go::test_calls::GINKGO_VOCAB),
+    ("javascript/JS_VOCAB", JS_VOCAB),
+    (
+        "kotlin/KOTLIN_VOCAB",
+        crate::kotlin::test_calls::KOTLIN_VOCAB,
+    ),
+    ("lua/LUA_VOCAB", crate::lua::test_calls::LUA_VOCAB),
+    ("php/PHP_PEST_VOCAB", crate::php::test_calls::PHP_PEST_VOCAB),
+    (
+        "powershell/PESTER_VOCAB",
+        crate::powershell::test_calls::PESTER_VOCAB,
+    ),
+    ("r/R_VOCAB", crate::r::test_calls::R_VOCAB),
+    ("scala/SCALA_VOCAB", crate::scala::test_calls::SCALA_VOCAB),
+    ("swift/QUICK_VOCAB", crate::swift::test_calls::QUICK_VOCAB),
+];
 
 /// Check whether a JS/TS function name (or its base before `.`) is a test runner
 /// call. Handles `.skip`/`.only`/`.todo` variants (`it.skip` -> true via base `it`).

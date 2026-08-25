@@ -92,7 +92,8 @@
       "parent_key": null,
       "metadata": {
         "is_test": true,
-        "test_lifecycle": true
+        "test_lifecycle": true,
+        "test_role": "fixture_setup"
       },
       "annotations": [],
       "semantic_group": null,
@@ -118,7 +119,8 @@
       "visibility": null,
       "parent_key": null,
       "metadata": {
-        "test_container": true
+        "test_container": true,
+        "test_role": "test_container"
       },
       "annotations": [],
       "semantic_group": null,

@@ -361,6 +361,43 @@ fn detect_scala(name: &str, annotation_keys: &[String]) -> bool {
     name.starts_with("test")
 }
 
+/// GoogleTest macro keys that declare a parameterized case. The C++ extractor
+/// synthesizes these keys from the macro keyword, because the macros carry no
+/// source attribute.
+const GOOGLETEST_PARAMETERIZED_MACRO_KEYS: [&str; 2] = ["test_p", "typed_test_p"];
+
+fn cpp_test_case_role(annotation_keys: &[String]) -> Option<TestRole> {
+    annotation_keys
+        .iter()
+        .any(|key| GOOGLETEST_PARAMETERIZED_MACRO_KEYS.contains(&key.as_str()))
+        .then_some(TestRole::ParameterizedTest)
+}
+
+/// GoogleTest fixture hooks, matched on the method name after any `Class::`
+/// qualifier so an out-of-class definition classifies like its in-class twin.
+fn cpp_test_lifecycle_direction(name: &str) -> TestLifecycleDirection {
+    match name.rsplit("::").next().unwrap_or(name) {
+        "SetUp" | "SetUpTestSuite" | "SetUpTestCase" => TestLifecycleDirection::Setup,
+        "TearDown" | "TearDownTestSuite" | "TearDownTestCase" => TestLifecycleDirection::Teardown,
+        _ => TestLifecycleDirection::None,
+    }
+}
+
+/// The role of a GoogleTest fixture hook the C++ extractor recognized from the
+/// enclosing fixture's base type. That structural gate already proved the method
+/// is a hook, so an unrecognized spelling still records the setup half rather
+/// than dropping the role.
+pub(crate) fn cpp_fixture_lifecycle_role(name: &str) -> TestRole {
+    cpp_test_lifecycle_direction(name)
+        .fixture_role()
+        .unwrap_or(TestRole::FixtureSetup)
+}
+
+/// The role of a GoogleTest case macro, from the synthetic macro-keyword key.
+pub(crate) fn cpp_googletest_case_role(annotation_keys: &[String]) -> TestRole {
+    cpp_test_case_role(annotation_keys).unwrap_or(TestRole::TestCase)
+}
+
 fn is_java_test_case_annotation(annotation: &str) -> bool {
     matches!(annotation, "test" | "testfactory" | "testtemplate")
         || is_java_parameterized_test_annotation(annotation)
@@ -477,6 +514,7 @@ fn is_test_lifecycle(
         "csharp" | "vbnet" | "razor" => {
             first_annotation_direction(annotation_keys, dotnet_test_lifecycle_direction)
         }
+        "cpp" => cpp_test_lifecycle_direction(name),
         "php" => php_test_lifecycle_direction(name, annotation_keys),
         "python" => python_test_lifecycle_direction(name, annotation_keys),
         "rust" => rust_test_lifecycle_direction(annotation_keys),
@@ -495,6 +533,7 @@ fn is_test_lifecycle(
 /// parameterized case with an annotation.
 fn annotated_test_case_role(language: &str, annotation_keys: &[String]) -> Option<TestRole> {
     match language {
+        "cpp" => cpp_test_case_role(annotation_keys),
         "java" | "kotlin" => java_test_case_role(annotation_keys),
         "php" => php_test_case_role(annotation_keys),
         "python" => python_test_case_role(annotation_keys),
@@ -1418,14 +1457,13 @@ fn detect_erlang(name: &str) -> bool {
 }
 
 /// Common Test callbacks that set up or tear down a suite, group, or case.
-const COMMON_TEST_LIFECYCLE_NAMES: [&str; 6] = [
-    "init_per_suite",
-    "end_per_suite",
-    "init_per_testcase",
-    "end_per_testcase",
-    "init_per_group",
-    "end_per_group",
-];
+fn common_test_lifecycle_direction(name: &str) -> TestLifecycleDirection {
+    match name {
+        "init_per_suite" | "init_per_testcase" | "init_per_group" => TestLifecycleDirection::Setup,
+        "end_per_suite" | "end_per_testcase" | "end_per_group" => TestLifecycleDirection::Teardown,
+        _ => TestLifecycleDirection::None,
+    }
+}
 
 /// Common Test callbacks that describe a suite instead of exercising it.
 const COMMON_TEST_CONFIG_NAMES: [&str; 3] = ["all", "groups", "suite"];
@@ -1455,13 +1493,6 @@ impl ErlangTestModule {
     }
 }
 
-/// The role an Erlang function plays in its module's test framework.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum ErlangTestRole {
-    Case,
-    Lifecycle,
-}
-
 /// Classify an Erlang function against EUnit and Common Test.
 ///
 /// Common Test dispatches on exact callback names inside a `*_SUITE` module and
@@ -1473,18 +1504,18 @@ pub(crate) fn erlang_test_role(
     name: &str,
     arity: u32,
     exported: bool,
-) -> Option<ErlangTestRole> {
+) -> Option<TestRole> {
     if module.common_test {
-        if COMMON_TEST_LIFECYCLE_NAMES.contains(&name) {
-            return Some(ErlangTestRole::Lifecycle);
+        if let Some(role) = common_test_lifecycle_direction(name).fixture_role() {
+            return Some(role);
         }
         if exported && arity == COMMON_TEST_CASE_ARITY && !COMMON_TEST_CONFIG_NAMES.contains(&name)
         {
-            return Some(ErlangTestRole::Case);
+            return Some(TestRole::TestCase);
         }
     }
 
-    (arity == 0 && detect_erlang(name)).then_some(ErlangTestRole::Case)
+    (arity == 0 && detect_erlang(name)).then_some(TestRole::TestCase)
 }
 
 fn detect_dart(name: &str, file_path: &str, annotation_keys: &[String]) -> bool {

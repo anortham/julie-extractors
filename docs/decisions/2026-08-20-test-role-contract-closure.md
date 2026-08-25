@@ -559,3 +559,66 @@ nextest tables; YAML keys outside direct v2 command tests; and Ant report,
 outside-target, id-only, and non-JUnit XML shapes. These controls establish
 that `not_applicable` and unmarked symbols are deliberate contract boundaries,
 not artifacts of missing extraction.
+
+## Single-writer closure (2026-08-25)
+
+`apply_test_role` is now the only writer of the three test booleans. Thirteen
+languages still set `is_test`, `test_lifecycle`, or `test_container` by hand and
+therefore published a boolean with no `test_role` string: C, C++, Zig, Elixir,
+Erlang, Lua, R, SQL, Markdown, JSON, TOML, YAML, and XML. Every one of them now
+routes through `apply_test_role` or `apply_callable_test_metadata`.
+
+The routing kept every boolean exactly as it was. Across the registered corpus
+the same 434 symbols carry a test flag before and after, with the same
+`is_test`/`test_lifecycle`/`test_container` values; the only change is that the
+74 symbols that carried a boolean without a role now carry the agreeing role.
+
+Two parallel role vocabularies were removed in the process. `TomlTestRole`,
+`JsonTestRole`, `PgTapRoutineRole`, and `ErlangTestRole` each restated a subset
+of `TestRole`; each now returns `TestRole` directly, so a language cannot drift
+from the shared spelling.
+
+Four language-local writers had to name a direction they previously did not
+record. Criterion takes it from the `.init`/`.fini` designated initializer at
+the call site, not from the hook's own name. Common Test takes it from the
+`init_per_*`/`end_per_*` prefix. pgTAP takes it from the
+`startup`/`setup`/`teardown`/`shutdown` prefix. Google container-structure-test
+takes it from the literal `setup`/`teardown` key. GoogleTest fixture hooks take
+it from `SetUp*`/`TearDown*` after any `Class::` qualifier.
+
+GoogleTest `TEST_P` and `TYPED_TEST_P` now publish `parameterized_test`. The
+synthetic macro-keyword annotation already carried that evidence and the
+extractor comment already named the intent; only the published role was
+missing. `TEST`, `TEST_F`, and `TYPED_TEST` publish `test_case`.
+
+### Invariants under test
+
+Three gates hold the closure:
+
+- `every_golden_test_boolean_carries_an_agreeing_test_role` walks every symbol
+  of every registered golden and fails on any test boolean without a matching
+  `test_role`, and on any role whose booleans disagree with what
+  `apply_test_role` writes for it. It scans the whole registry rather than a
+  chosen list, and asserts a floor on the languages and symbols it saw so a
+  broken scan cannot pass empty.
+- `every_shared_lifecycle_word_publishes_its_declared_direction` walks every
+  lifecycle word of every vocabulary in `SHARED_TEST_CALL_VOCABS` and requires a
+  declared half for each. `test_call_role` infers the half from the callee name,
+  so a future word spelled `dispose` or `reset` would otherwise publish
+  `fixture_setup` in silence; the gate fails the build instead.
+- `every_language_with_a_shared_vocabulary_is_registered` scans the production
+  sources for vocabulary declarations and fails when one is missing from the
+  registry, so a new language cannot skip the direction gate.
+
+## Python decorator scope defect (2026-08-25)
+
+`find_decorated_node` walked up to the nearest `decorated_definition` without
+stopping at an enclosing function or class. A nested `def` therefore inherited
+the decorators of the function that contained it, and every method of a
+decorated class inherited the class decorator. Measured on Flask, the defect
+produced six wrong roles and eight false positives: a closure inside a
+`@pytest.fixture` helper was reported as `fixture_setup`, and a helper inside a
+`@pytest.mark.parametrize` test was reported as `parameterized_test`.
+
+The walk now stops at the first enclosing `function_definition` or
+`class_definition`. Decorators reach only the definition they are written on.

@@ -8,7 +8,7 @@ mod identifiers;
 mod members;
 mod namespaces;
 mod relationships;
-mod test_calls;
+pub(crate) mod test_calls;
 mod types;
 
 use crate::base::{

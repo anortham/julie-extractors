@@ -30,7 +30,7 @@ use tree_sitter::Node;
 
 /// Dart `package:test` vocabulary. `test`/`testWidgets` are cases, `group` is a
 /// container, `setUp`/`tearDown[All]` are lifecycle fixtures.
-const DART_VOCAB: TestCallVocab = TestCallVocab {
+pub(crate) const DART_VOCAB: TestCallVocab = TestCallVocab {
     test: &["test", "testWidgets"],
     container: &["group"],
     lifecycle: &["setUp", "tearDown", "setUpAll", "tearDownAll"],

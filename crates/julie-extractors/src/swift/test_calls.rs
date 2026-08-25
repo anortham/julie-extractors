@@ -48,7 +48,7 @@ use tree_sitter::Node;
 /// `sharedExamples` names a group of examples and `itBehavesLike` runs that
 /// group at the call site, so both are groups rather than single cases.
 /// `aroundEach` wraps an example on both sides and reports the setup half.
-const QUICK_VOCAB: TestCallVocab = TestCallVocab {
+pub(crate) const QUICK_VOCAB: TestCallVocab = TestCallVocab {
     test: &[
         "it", "xit", "fit", "specify", "xspecify", "fspecify", "pending",
     ],

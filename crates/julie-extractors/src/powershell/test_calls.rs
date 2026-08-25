@@ -42,7 +42,7 @@ use tree_sitter::Node;
 /// - `It` → test case (`is_test = true`)
 /// - `BeforeAll` / `AfterAll` / `BeforeEach` / `AfterEach` → lifecycle
 ///   (`is_test = true` + `test_lifecycle = true`)
-const PESTER_VOCAB: TestCallVocab = TestCallVocab {
+pub(crate) const PESTER_VOCAB: TestCallVocab = TestCallVocab {
     test: &["It"],
     container: &["Describe", "Context"],
     lifecycle: &["BeforeAll", "AfterAll", "BeforeEach", "AfterEach"],

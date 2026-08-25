@@ -95,6 +95,7 @@ pub mod zig;
 
 // Cross-cutting concerns
 pub mod factory_tests;
+pub mod test_calls;
 pub mod test_detection;
 pub mod test_linkage_contract;
 pub mod test_tiers;

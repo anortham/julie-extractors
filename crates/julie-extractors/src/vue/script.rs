@@ -9,7 +9,7 @@ use super::helpers::{
 pub(super) use super::manual_symbols::create_symbol_manual;
 use super::parsing::VueSection;
 use crate::base::{BaseExtractor, Symbol, SymbolKind};
-use crate::test_detection::is_test_symbol;
+use crate::test_detection::apply_callable_test_metadata;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -103,14 +103,17 @@ pub(super) fn extract_script_symbols(base: &BaseExtractor, section: &VueSection)
             let start_col = line.find(name).unwrap_or(0) + 1;
 
             // Test detection (Category 3: name + path, empty annotation keys)
-            let metadata =
-                if is_test_symbol("vue", name, &base.file_path, &SymbolKind::Method, &[], None) {
-                    let mut m = HashMap::new();
-                    m.insert("is_test".to_string(), Value::Bool(true));
-                    Some(m)
-                } else {
-                    None
-                };
+            let mut test_metadata = HashMap::new();
+            apply_callable_test_metadata(
+                "vue",
+                name,
+                &base.file_path,
+                &SymbolKind::Method,
+                &[],
+                None,
+                &mut test_metadata,
+            );
+            let metadata = (!test_metadata.is_empty()).then_some(test_metadata);
 
             symbols.push(create_symbol_manual(
                 base,
@@ -393,9 +396,15 @@ fn push_node_symbol(
     let mut metadata = HashMap::new();
     metadata.insert("type".to_string(), Value::String(format!("{:?}", kind)));
 
-    if is_test_symbol("vue", name, &base.file_path, &kind, &[], None) {
-        metadata.insert("is_test".to_string(), Value::Bool(true));
-    }
+    apply_callable_test_metadata(
+        "vue",
+        name,
+        &base.file_path,
+        &kind,
+        &[],
+        None,
+        &mut metadata,
+    );
 
     // Extract JSDoc comment from a preceding comment node in the tree-sitter tree.
     // The key node (e.g. "methods") is a child of the pair/method_definition; the

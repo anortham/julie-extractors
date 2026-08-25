@@ -4,7 +4,7 @@
 use crate::base::{
     BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility, normalize_annotations,
 };
-use crate::test_detection::is_test_symbol;
+use crate::test_detection::apply_callable_test_metadata;
 use regex::Regex;
 use std::collections::HashMap;
 use std::sync::LazyLock;
@@ -47,16 +47,15 @@ pub(super) fn extract_function(
 
     // Test detection
     let mut metadata = HashMap::new();
-    if is_test_symbol(
+    apply_callable_test_metadata(
         "powershell",
         &name,
         &base.file_path,
         &SymbolKind::Function,
         &annotation_keys,
         doc_comment.as_deref(),
-    ) {
-        metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
-    }
+        &mut metadata,
+    );
 
     Some(base.create_symbol(
         &node,

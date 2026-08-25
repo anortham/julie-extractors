@@ -8,7 +8,7 @@ use super::definition_forms;
 use super::helpers;
 use super::test_calls;
 use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility, normalize_annotations};
-use crate::test_detection::is_test_symbol;
+use crate::test_detection::apply_callable_test_metadata;
 use crate::tree_traversal::child_tree_depth;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -138,20 +138,17 @@ fn extract_def(
         .collect::<Vec<_>>();
 
     // Test detection
-    let metadata = if is_test_symbol(
+    let mut test_metadata = HashMap::new();
+    apply_callable_test_metadata(
         "elixir",
         &fn_name,
         &extractor.base.file_path,
         &SymbolKind::Function,
         &annotation_keys,
         doc_comment.as_deref(),
-    ) {
-        let mut m = HashMap::new();
-        m.insert("is_test".to_string(), Value::Bool(true));
-        Some(m)
-    } else {
-        None
-    };
+        &mut test_metadata,
+    );
+    let metadata = (!test_metadata.is_empty()).then_some(test_metadata);
 
     let symbol = extractor.base.create_symbol(
         node,

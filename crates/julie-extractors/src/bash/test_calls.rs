@@ -48,7 +48,7 @@ use tree_sitter::Node;
 /// - `Describe` / `Context` → container (`test_container = true`)
 /// - `It` / `Specify` / `Example` / `Feature` / `Scenario` → test case (`is_test = true`)
 /// - `@test` (bats) → test case (`is_test = true`)
-const BASH_VOCAB: TestCallVocab = TestCallVocab {
+pub(crate) const BASH_VOCAB: TestCallVocab = TestCallVocab {
     test: &["It", "Specify", "Example", "Feature", "Scenario", "@test"],
     container: &["Describe", "Context"],
     lifecycle: &[], // setup/teardown are function_definitions, handled by name-heuristics

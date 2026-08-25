@@ -56,19 +56,25 @@ excluded fixtures from roles entirely; see
 
 Test detection reads a symbol's name, path, kind, and annotation keys. It does
 not know whether a callable is defined at module or class level, or nested
-inside another function. Two consequences follow:
+inside another function. One consequence remains:
 
 - A nested `def test(...)` inside a real test function is flagged as a case.
   pytest does not collect nested functions.
-- A nested function inherits the enclosing decorated definition's decorators,
-  because `extract_decorator_texts` in
-  `crates/julie-extractors/src/python/decorators.rs` walks up to the nearest
-  `decorated_definition` ancestor. A helper nested inside a
-  `@pytest.mark.parametrize` test therefore reports `parameterized_test`.
 
-Both need nesting depth at the extraction site, which is a Python extractor
+That needs nesting depth at the extraction site, which is a Python extractor
 change rather than a detection-rule change. The measured cost is in the
 real-world evidence below.
+
+The second consequence is fixed. A nested callable used to inherit the
+enclosing decorated definition's decorators, because `find_decorated_node` in
+`crates/julie-extractors/src/python/decorators.rs` walked up to the nearest
+`decorated_definition` ancestor without stopping at an enclosing definition. A
+helper nested inside a `@pytest.mark.parametrize` test reported
+`parameterized_test`, a closure inside a `@pytest.fixture` helper reported
+`fixture_setup`, and every method of a decorated class carried the class
+decorator. The walk now stops at the first enclosing `function_definition` or
+`class_definition`, so decorators reach only the definition they are written
+on.
 
 ## Known gap: cross-file inheritance
 
@@ -140,10 +146,15 @@ diagnostic. Flask's 11 diagnostics were 9 HTML and 2 SQL rows.
 | Python files indexed | 83 | 61 |
 | Python symbols | 3,819 | 2,377 |
 | `test_case` | 369 | 274 |
-| `parameterized_test` | 40 | 0 |
-| `fixture_setup` | 24 | 3 |
+| `parameterized_test` | 35 | 0 |
+| `fixture_setup` | 23 | 3 |
 | `fixture_teardown` | 0 | 0 |
 | `test_container` | 7 | 26 |
+
+The Flask column was re-measured on 2026-08-25 against the same pinned commit,
+after the decorator-scope fix. It previously read 40 `parameterized_test` and
+24 `fixture_setup`; the six removed rows are exactly the six that inherited an
+enclosing decorator.
 
 python-fire measures the bare-`test`-prefix rule. Of its 274 cases, 238 are
 camelCase `testXxx` methods that the previous `test_` rule could not see at
@@ -151,20 +162,20 @@ all. Every flagged symbol is a real absltest case, a real `setUp`, or a real
 `unittest.TestCase` subclass: the corpus produced zero false positives.
 
 Flask measures the cost of the same rule plus the nested-callable limitation.
-Of its 433 flagged symbols, 14 are wrong, and every one of them is a nested
-local function:
+Of its 434 flagged symbols, 8 are wrong, and every one of them is a nested
+local function: nested `def test(...)` Flask routes and Click commands written
+inside test bodies, in `tests/test_basic.py`, `tests/test_cli.py`, and
+`tests/test_regression.py`.
 
-- 8 are nested `def test(...)` Flask routes and Click commands written inside
-  test bodies, in `tests/test_basic.py`, `tests/test_cli.py`, and
-  `tests/test_regression.py`.
-- 6 inherit the enclosing decorator: `check`, `run_simple_mock` twice,
-  `reset_path`, `create_app`, and `inner`.
+That is 98.2 percent precision on the corpus. The remaining failure mode is
+recorded under "Known limitation: nested callables" above.
 
-That is 96.8 percent precision on the corpus. Both failure modes have the same
-cause and the same fix, recorded under "Known limitation: nested callables"
-above.
+The second failure mode is closed. Six symbols used to inherit the enclosing
+decorator — `check`, `run_simple_mock` twice, `reset_path`, `create_app`, and
+`inner`. Each now carries no role, which is why the Flask column above dropped
+five `parameterized_test` rows and one `fixture_setup` row.
 
-Flask also proves the two new roles. Its 40 `parameterized_test` rows and 24
+Flask also proves the two new roles. Its 35 `parameterized_test` rows and 23
 `fixture_setup` rows had no equivalent before this contract: parametrized
 cases reported as plain `test_case`, and `@pytest.fixture` factories carried
 no role at all.

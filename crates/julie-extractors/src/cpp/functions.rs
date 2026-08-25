@@ -4,7 +4,10 @@
 use crate::base::{
     AnnotationMarker, BaseExtractor, Symbol, SymbolKind, SymbolOptions, normalize_annotations,
 };
-use crate::test_detection::is_test_symbol;
+use crate::test_detection::{
+    apply_callable_test_metadata, apply_test_role, cpp_fixture_lifecycle_role,
+    cpp_googletest_case_role,
+};
 use std::collections::HashMap;
 use tree_sitter::Node;
 
@@ -187,26 +190,26 @@ pub(super) fn extract_function(
         .map(|annotation| annotation.annotation_key.clone())
         .collect::<Vec<_>>();
 
-    // Test detection. GoogleTest macros get their role from the synthetic annotation
-    // above (preserving test_p/typed_test_p → parameterized_test) AND are flagged
-    // is_test structurally here as a fallback; everything else routes through the
-    // shared name/annotation/path detector.
+    // Test detection. A fixture hook recognized from the enclosing fixture's base
+    // type outranks the case roles, because a hook also satisfies the macro test.
+    // GoogleTest macros then take their role from the synthetic annotation above
+    // (preserving test_p/typed_test_p → parameterized_test); everything else routes
+    // through the shared name/annotation/path detector.
     let mut metadata = HashMap::new();
-    if googletest_macro.is_some()
-        || is_test_symbol(
+    if google_test_lifecycle {
+        apply_test_role(&mut metadata, cpp_fixture_lifecycle_role(&name));
+    } else if googletest_macro.is_some() {
+        apply_test_role(&mut metadata, cpp_googletest_case_role(&annotation_keys));
+    } else {
+        apply_callable_test_metadata(
             "cpp",
             &name,
             &base.file_path,
             &kind,
             &annotation_keys,
             doc_comment.as_deref(),
-        )
-    {
-        metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
-    }
-    if google_test_lifecycle {
-        metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
-        metadata.insert("test_lifecycle".to_string(), serde_json::Value::Bool(true));
+            &mut metadata,
+        );
     }
 
     Some(base.create_symbol(
@@ -287,19 +290,18 @@ fn extract_method(
 
     // Test detection
     let mut metadata = HashMap::new();
-    if is_test_symbol(
-        "cpp",
-        name,
-        &base.file_path,
-        &kind,
-        &annotation_keys,
-        doc_comment.as_deref(),
-    ) {
-        metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
-    }
     if is_google_test_fixture_lifecycle(base, node, name, parent_id) {
-        metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
-        metadata.insert("test_lifecycle".to_string(), serde_json::Value::Bool(true));
+        apply_test_role(&mut metadata, cpp_fixture_lifecycle_role(name));
+    } else {
+        apply_callable_test_metadata(
+            "cpp",
+            name,
+            &base.file_path,
+            &kind,
+            &annotation_keys,
+            doc_comment.as_deref(),
+            &mut metadata,
+        );
     }
 
     Some(base.create_symbol(
