@@ -120,6 +120,24 @@ Consumer action: to read `test_role`, replace the binary and re-extract or rebui
 standalone artifacts, or let epoch-6 family-store file versions populate on the
 next import or update. A consumer that reads only the booleans needs no action.
 
+The same branch adds change-journal coverage for unsupported files. A scan now
+writes one `files` row per path the discovery walk reached and dropped for an
+unsupported extension, with `status = 'unsupported'`, `language = 'unsupported'`,
+a content hash, a byte count, and a null `line_count`. Those paths are read once
+for the hash and are never parsed, so they add no symbol or other fact rows. The
+`files` table therefore gains rows on the compat fixture, and
+`revision_file_changes` (already excluded from the gate) gains `unsupported` and
+`deleted` entries for them. Ignored paths, hard-excluded paths, oversized source
+files, and the artifact's own `-wal`/`-shm`/`-journal` companions stay out.
+
+A store view built from such an artifact carries one manifest entry per
+unsupported path, with `status = 'failed'` and `error_class = 'unsupported'` and
+no file version — the existing from-artifact mapping, now reachable.
+
+Consumer action: a reader that lists `files` must filter on
+`status = 'indexed'` if it wants only parsed files. A reader that already
+filters by status, or that reads the change journal, needs no action.
+
 ## 2.35.1
 
 classification: compatible

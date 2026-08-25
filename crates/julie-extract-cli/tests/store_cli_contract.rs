@@ -969,6 +969,98 @@ fn seed_unsupported_store(
     (store, root)
 }
 
+#[test]
+fn from_artifact_import_publishes_a_new_manifest_when_an_unsupported_file_changes() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    let artifact = fixture.path().join("artifact.sqlite");
+    let snapshot = root.join("__snapshots__/view.snap");
+    std::fs::create_dir_all(snapshot.parent().unwrap()).unwrap();
+    std::fs::write(root.join("a.rs"), "pub fn a() -> u32 { 1 }\n").unwrap();
+    std::fs::write(&snapshot, "exports[`view`] = `first`;\n").unwrap();
+
+    scan_into_artifact(&root, &artifact);
+    let first = import_from_artifact(&store, &root, &artifact, "request-unsupported-first");
+    std::fs::write(&snapshot, "exports[`view`] = `second`;\n").unwrap();
+    scan_into_artifact(&root, &artifact);
+    let second = import_from_artifact(&store, &root, &artifact, "request-unsupported-second");
+
+    assert_ne!(first["manifest"]["hash"], second["manifest"]["hash"]);
+    assert_eq!(second["manifest"]["disposition"], "created");
+    assert_eq!(
+        manifest_entry_hashes(&store, "__snapshots__/view.snap").len(),
+        2,
+        "each generation must carry the unsupported path"
+    );
+    let hashes = manifest_entry_hashes(&store, "__snapshots__/view.snap");
+    assert_ne!(hashes[0], hashes[1]);
+}
+
+fn scan_into_artifact(root: &Path, artifact: &Path) {
+    let scanned = julie_extract(&[
+        "scan",
+        "--root",
+        root.to_str().unwrap(),
+        "--db",
+        artifact.to_str().unwrap(),
+        "--json",
+    ]);
+    assert_eq!(
+        scanned.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&scanned.stdout),
+        String::from_utf8_lossy(&scanned.stderr)
+    );
+}
+
+fn import_from_artifact(store: &Path, root: &Path, artifact: &Path, request_id: &str) -> Value {
+    let imported = julie_extract(&[
+        "store",
+        "import",
+        "--from-artifact",
+        artifact.to_str().unwrap(),
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        FAMILY_ID,
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--request-id",
+        request_id,
+        "--idempotency-key",
+        request_id,
+        "--json",
+    ]);
+    assert_eq!(
+        imported.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&imported.stdout),
+        String::from_utf8_lossy(&imported.stderr)
+    );
+    serde_json::from_slice(&imported.stdout).unwrap()
+}
+
+fn manifest_entry_hashes(store: &Path, path: &str) -> Vec<String> {
+    let connection = Connection::open(store.join("gen-001/store.db")).unwrap();
+    let mut statement = connection
+        .prepare(
+            "SELECT observed_content_hash FROM manifest_entries
+             WHERE path = ?1 AND status = 'failed' AND error_class = 'unsupported'
+             ORDER BY generation",
+        )
+        .unwrap();
+    statement
+        .query_map([path], |row| row.get(0))
+        .unwrap()
+        .collect::<Result<Vec<String>, _>>()
+        .unwrap()
+}
+
 fn import_store(store: &Path, root: &Path, view: &str, request_id: &str) {
     let imported = julie_extract(&[
         "store",

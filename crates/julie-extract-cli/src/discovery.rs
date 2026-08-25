@@ -88,6 +88,9 @@ impl DiscoveryExclusions {
 pub struct DiscoveryPolicy {
     root: PathBuf,
     db_path: PathBuf,
+    /// SQLite's companion files for `db_path`, spelled the same way `db_path`
+    /// is, so the walk compares them exactly as it compares the artifact.
+    db_sidecars: Vec<PathBuf>,
     exclusions: DiscoveryExclusions,
     /// Rules from `--ignore-file`, anchored at the scan root. The caller
     /// layer is consulted first and is decisive, so explicit invocation
@@ -106,6 +109,12 @@ pub struct DiscoveryPolicy {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DiscoverySummary {
     pub supported_files: Vec<FileTarget>,
+    /// Files the walk reached and dropped because no extractor claims the
+    /// extension. They are recorded in the change journal as `unsupported` so a
+    /// consumer reading the journal can account for every path the walk
+    /// visited. Files an ignore rule or a hard exclusion removed are absent:
+    /// those paths are excluded from the artifact by contract.
+    pub unsupported_targets: Vec<FileTarget>,
     pub unsupported_files: usize,
     pub errors: Vec<DiscoveryError>,
     /// Otherwise-supported files skipped for exceeding [`MAX_SOURCE_FILE_BYTES`],
@@ -149,6 +158,7 @@ impl DiscoveryPolicy {
         Ok(Self {
             root: root.to_path_buf(),
             db_path: db_path.to_path_buf(),
+            db_sidecars: sqlite_sidecar_paths(db_path),
             exclusions,
             caller_matcher,
             scopes,
@@ -216,6 +226,15 @@ impl DiscoveryPolicy {
         }
     }
 
+    /// Whether the path is one of SQLite's own companion files for the artifact
+    /// this scan writes. The artifact itself is hard-excluded, but its `-wal`,
+    /// `-shm`, and `-journal` companions are not, and the scan that would
+    /// journal them rewrites them — so a scan of a root that holds its own
+    /// artifact would report a change on every run.
+    fn is_artifact_sidecar(&self, path: &Path) -> bool {
+        self.db_sidecars.iter().any(|sidecar| sidecar == path)
+    }
+
     #[cfg(test)]
     pub fn discover(&self) -> DiscoverySummary {
         self.discover_with_progress(None)
@@ -224,6 +243,7 @@ impl DiscoveryPolicy {
     pub fn discover_with_progress(&self, progress: Option<&ScanProgress>) -> DiscoverySummary {
         let mut summary = DiscoverySummary {
             supported_files: Vec::new(),
+            unsupported_targets: Vec::new(),
             unsupported_files: 0,
             errors: self.warnings.clone(),
             slow_file_skips: Vec::new(),
@@ -235,6 +255,9 @@ impl DiscoveryPolicy {
         self.discover_dir(&self.root, &mut summary, &mut walk);
         summary
             .supported_files
+            .sort_by(|left, right| left.root_relative_path.cmp(&right.root_relative_path));
+        summary
+            .unsupported_targets
             .sort_by(|left, right| left.root_relative_path.cmp(&right.root_relative_path));
         if let Some(progress) = progress {
             progress.advance(
@@ -321,12 +344,20 @@ impl DiscoveryPolicy {
                 FileSelection::Supported { .. } => summary.supported_files.push(target),
                 FileSelection::Unsupported { reason } => {
                     summary.unsupported_files += 1;
-                    if reason == UnsupportedReason::Oversized {
-                        summary.slow_file_skips.push(DiscoveryError {
-                            path: target.absolute_path.display().to_string(),
-                            root_relative_path: target.root_relative_path.clone(),
-                            message: slow_file_skip_message(),
-                        });
+                    match reason {
+                        UnsupportedReason::Oversized => {
+                            summary.slow_file_skips.push(DiscoveryError {
+                                path: target.absolute_path.display().to_string(),
+                                root_relative_path: target.root_relative_path.clone(),
+                                message: slow_file_skip_message(),
+                            });
+                        }
+                        UnsupportedReason::UnsupportedExtension => {
+                            if !self.is_artifact_sidecar(&target.absolute_path) {
+                                summary.unsupported_targets.push(target);
+                            }
+                        }
+                        UnsupportedReason::Ignored | UnsupportedReason::HardExcluded => {}
                     }
                 }
             }
@@ -566,6 +597,19 @@ fn is_hard_excluded(
             .any(|suffix| relative_path.ends_with(suffix))
 }
 
+const SQLITE_SIDECAR_SUFFIXES: &[&str] = &["-wal", "-shm", "-journal"];
+
+fn sqlite_sidecar_paths(db_path: &Path) -> Vec<PathBuf> {
+    SQLITE_SIDECAR_SUFFIXES
+        .iter()
+        .map(|suffix| {
+            let mut sidecar = db_path.to_path_buf().into_os_string();
+            sidecar.push(suffix);
+            PathBuf::from(sidecar)
+        })
+        .collect()
+}
+
 const HARD_EXCLUDE_DIRS: &[&str] = &[
     ".git",
     ".hg",
@@ -637,6 +681,63 @@ mod tests {
                 reason: UnsupportedReason::Oversized
             }
         );
+    }
+
+    #[test]
+    fn discover_keeps_unsupported_extension_targets_for_the_change_journal() {
+        let fixture = DiscoveryFixture::new();
+        let snapshot = fixture.write("src/__snapshots__/view.snap", "exports[`view`] = `x`;\n");
+        let summary = fixture.policy().discover();
+
+        assert_eq!(
+            summary
+                .unsupported_targets
+                .iter()
+                .map(|target| target.root_relative_path.as_str())
+                .collect::<Vec<_>>(),
+            vec![snapshot.root_relative_path.as_str()]
+        );
+    }
+
+    #[test]
+    fn discover_leaves_ignored_and_hard_excluded_files_out_of_unsupported_targets() {
+        let fixture = DiscoveryFixture::new();
+        fixture.write(".gitignore", "notes.bin\n");
+        let ignored = fixture.write("notes.bin", "ignored\n");
+        let generated = fixture.write("src/schema.generated.ts", "export const schema = {};\n");
+        let summary = fixture.policy().discover();
+
+        for excluded in [&ignored, &generated] {
+            assert!(
+                summary
+                    .unsupported_targets
+                    .iter()
+                    .all(|target| target.root_relative_path != excluded.root_relative_path),
+                "expected {} to stay out of unsupported_targets, got: {:?}",
+                excluded.root_relative_path,
+                summary.unsupported_targets
+            );
+        }
+    }
+
+    #[test]
+    fn discover_leaves_the_artifacts_own_sqlite_sidecars_out_of_unsupported_targets() {
+        let fixture = DiscoveryFixture::new();
+        fixture.write("artifact.sqlite-wal", "wal");
+        fixture.write("artifact.sqlite-shm", "shm");
+        fixture.write("artifact.sqlite-journal", "journal");
+        let summary = fixture.policy().discover();
+
+        assert_eq!(summary.unsupported_targets, Vec::new());
+    }
+
+    #[test]
+    fn discover_leaves_oversized_files_out_of_unsupported_targets() {
+        let fixture = DiscoveryFixture::new();
+        fixture.write("src/huge.rs", &"x".repeat(MAX_SOURCE_FILE_BYTES + 1));
+        let summary = fixture.policy().discover();
+
+        assert_eq!(summary.unsupported_targets, Vec::new());
     }
 
     #[test]

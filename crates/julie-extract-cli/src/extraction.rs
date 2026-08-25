@@ -107,7 +107,6 @@ pub(crate) fn read_source_snapshot(
     })
 }
 
-#[allow(dead_code)]
 pub(crate) fn read_source_identity(target: &FileTarget) -> Result<(String, u64), ExtractFileError> {
     let bytes = fs::read(&target.absolute_path).map_err(|error| ExtractFileError {
         kind: ExtractFileErrorKind::Read,
@@ -274,6 +273,47 @@ pub(crate) fn failed_artifact_file(
         complexity_metrics: Vec::new(),
         parse_diagnostics: vec![failure_parse_diagnostic(target, error, content_bytes)],
     }
+}
+
+/// The `files.language` value carried by a file no extractor claims. The column
+/// is `NOT NULL`, and the store manifest requires a non-empty language, so the
+/// status is spelled in the language column rather than left blank.
+pub(crate) const UNSUPPORTED_FILE_LANGUAGE: &str = "unsupported";
+
+/// The artifact row for a file the discovery walk reached and dropped because no
+/// extractor claims its extension. The file is read for its content hash and
+/// never decoded or parsed, so a binary file costs one read and produces no
+/// language rows.
+pub(crate) fn unsupported_artifact_file(
+    target: &FileTarget,
+    indexed_at: String,
+) -> Result<ArtifactFile, ExtractFileError> {
+    let (content_hash, content_bytes) = read_source_identity(target)?;
+    let path = target.root_relative_path.clone();
+    Ok(ArtifactFile {
+        file_id: stable_id("file", [&path]),
+        path,
+        language: UNSUPPORTED_FILE_LANGUAGE.to_string(),
+        content_hash,
+        content_bytes: content_bytes as i64,
+        line_count: None,
+        indexed_at,
+        status: FileStatus::Unsupported,
+        metadata_json: None,
+        symbols: Vec::new(),
+        symbol_annotations: Vec::new(),
+        identifiers: Vec::new(),
+        relationships: Vec::new(),
+        pending_relationships: Vec::new(),
+        type_facts: Vec::new(),
+        type_argument_usages: Vec::new(),
+        type_arguments: Vec::new(),
+        literals: Vec::new(),
+        source_regions: Vec::new(),
+        structural_facts: Vec::new(),
+        complexity_metrics: Vec::new(),
+        parse_diagnostics: Vec::new(),
+    })
 }
 
 pub(crate) fn unchanged_artifact_file(

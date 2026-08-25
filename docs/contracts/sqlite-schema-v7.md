@@ -24,6 +24,21 @@ A leftover v6 artifact that still carries overlay rows opens for read unless
 `--strict-schema` is set. Write access and `--strict-schema` refuse it with
 `schema_migration_required`. Recovery is a whole-workspace `julie-extract scan`.
 
+## `files` rows for unsupported paths
+
+No DDL changes, so the catalog hash is unchanged. What changes is which rows a
+scan writes: `files.status = 'unsupported'` is no longer reserved for evidence
+that stale rows were removed. A scan now writes one such row per file the
+discovery walk reached and dropped for an unsupported extension, carrying
+`language = 'unsupported'`, the content hash, the byte count, and a null
+`line_count`. Those files own no `symbols` rows or other fact rows.
+
+`revision_file_changes` gains the matching coverage: `unsupported` on the first
+scan that sees the path and on every later content change, `deleted` when the
+path disappears. Ignored paths, hard-excluded paths, oversized source files,
+and the artifact's own `-wal`/`-shm`/`-journal` companions stay out of the
+artifact.
+
 ## Upgrading from v6
 
 There is no in-place artifact migration. Rebuild the workspace to produce a

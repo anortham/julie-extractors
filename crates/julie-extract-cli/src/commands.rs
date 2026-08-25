@@ -46,7 +46,7 @@ use crate::discovery::{
 use crate::extraction::{
     ExtractFileError, SourceSnapshot, extract_artifact_file,
     extract_artifact_file_from_snapshot_at, failed_artifact_file, read_source_snapshot,
-    select_extraction_pool, unchanged_artifact_file,
+    select_extraction_pool, unchanged_artifact_file, unsupported_artifact_file,
 };
 use crate::paths::{
     FileTarget, canonicalize_db_path, canonicalize_progress_file, canonicalize_root,
@@ -384,6 +384,7 @@ fn scan_collecting_warnings(
         },
         &discovery,
         &discovered.supported_files,
+        &discovered.unsupported_targets,
         controls,
     ) {
         Ok(extracted) => extracted,
@@ -1532,6 +1533,7 @@ fn spool_discovered_files(
     request: ExtractionRequest<'_>,
     discovery: &DiscoveryPolicy,
     targets: &[FileTarget],
+    unsupported_targets: &[FileTarget],
     controls: ScanControls<'_>,
 ) -> Result<SpooledExtractedFiles, ExtractionSpoolError> {
     let mut supported_targets = Vec::with_capacity(targets.len());
@@ -1541,7 +1543,8 @@ fn spool_discovered_files(
         }
     }
     let level = request.level;
-    extract_supported_files_to_spool(
+    let indexed_at = request.indexed_at.clone();
+    let mut spooled = extract_supported_files_to_spool(
         request,
         &supported_targets,
         controls,
@@ -1550,7 +1553,31 @@ fn spool_discovered_files(
                 root, target, language, indexed_at, snapshot, level,
             )
         },
-    )
+    )?;
+    spool_unsupported_files(&mut spooled, unsupported_targets, &indexed_at)?;
+    Ok(spooled)
+}
+
+/// Spool the files the walk dropped as unsupported so the scan's change journal
+/// accounts for them. They carry a content hash and nothing else: the writer
+/// journals one `unsupported` change per content change, and a consumer reading
+/// the journal never has to guess whether the scan saw the path.
+fn spool_unsupported_files(
+    spooled: &mut SpooledExtractedFiles,
+    targets: &[FileTarget],
+    indexed_at: &str,
+) -> Result<(), ExtractionSpoolError> {
+    for target in targets {
+        match unsupported_artifact_file(target, indexed_at.to_string()) {
+            Ok(file) => {
+                spooled.spool.file_spool_mut().push(&file)?;
+                spooled.snapshot_paths.push(file.path);
+            }
+            Err(error) => spooled.errors.push(error),
+        }
+    }
+    spooled.files_spooled = spooled.spool.len();
+    Ok(())
 }
 
 #[cfg(test)]

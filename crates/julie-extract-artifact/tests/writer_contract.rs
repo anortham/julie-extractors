@@ -556,6 +556,58 @@ fn a_single_file_write_spends_bulk_load_eligibility() {
 }
 
 #[test]
+fn scan_journals_an_unsupported_file_only_when_its_content_changes() {
+    let mut writer = open_writer();
+    let unsupported = unsupported_file("file-npmrc", ".npmrc", "hash-npmrc-1");
+    let changed = ArtifactFile {
+        content_hash: "hash-npmrc-2".to_string(),
+        ..unsupported.clone()
+    };
+
+    for files in [&unsupported, &unsupported, &changed] {
+        writer
+            .write_scan(
+                revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+                std::slice::from_ref(files),
+            )
+            .unwrap();
+    }
+
+    assert_eq!(
+        change_kinds_for(writer.connection(), ".npmrc"),
+        vec!["unsupported".to_string(), "unsupported".to_string()]
+    );
+    assert_eq!(
+        file_status(writer.connection(), ".npmrc").as_deref(),
+        Some("unsupported")
+    );
+    assert_eq!(symbol_count(writer.connection(), ".npmrc"), 0);
+}
+
+#[test]
+fn scan_journals_an_unsupported_file_that_disappears_as_deleted() {
+    let mut writer = open_writer();
+    writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[unsupported_file("file-npmrc", ".npmrc", "hash-npmrc-1")],
+        )
+        .unwrap();
+    writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"])],
+        )
+        .unwrap();
+
+    assert_eq!(
+        change_kinds_for(writer.connection(), ".npmrc"),
+        vec!["unsupported".to_string(), "deleted".to_string()]
+    );
+    assert_eq!(file_status(writer.connection(), ".npmrc"), None);
+}
+
+#[test]
 fn bulk_load_and_indexed_path_write_identical_artifacts() {
     let temp_dir = unique_temp_dir("bulk-load-equivalence");
     std::fs::create_dir_all(&temp_dir).unwrap();
@@ -2662,6 +2714,45 @@ fn latest_change(conn: &Connection, path: &str) -> Option<String> {
         |row| row.get(0),
     )
     .ok()
+}
+
+fn unsupported_file(file_id: &str, path: &str, hash: &str) -> ArtifactFile {
+    ArtifactFile {
+        language: "unsupported".to_string(),
+        line_count: None,
+        status: FileStatus::Unsupported,
+        symbols: Vec::new(),
+        ..file_with_symbols(file_id, path, hash, [])
+    }
+}
+
+fn file_status(conn: &Connection, path: &str) -> Option<String> {
+    conn.query_row("SELECT status FROM files WHERE path = ?1", [path], |row| {
+        row.get(0)
+    })
+    .ok()
+}
+
+fn symbol_count(conn: &Connection, path: &str) -> i64 {
+    conn.query_row(
+        "SELECT COUNT(*) FROM symbols WHERE path = ?1",
+        [path],
+        |row| row.get(0),
+    )
+    .unwrap()
+}
+
+fn change_kinds_for(conn: &Connection, path: &str) -> Vec<String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT change_kind FROM revision_file_changes \
+             WHERE path = ?1 ORDER BY revision_id",
+        )
+        .unwrap();
+    stmt.query_map([path], |row| row.get(0))
+        .unwrap()
+        .collect::<Result<_, _>>()
+        .unwrap()
 }
 
 fn index_exists(conn: &Connection, name: &str) -> bool {

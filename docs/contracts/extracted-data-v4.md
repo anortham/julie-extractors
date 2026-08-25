@@ -28,6 +28,24 @@ Assertions remain separate evidence rows. No assertion table is added. Consumers
 assertions by `(reference_site_id, target_symbol_id, canonical_kind)` and unresolved assertions by
 `(reference_site_id, target_name, canonical_kind)`.
 
+## Unsupported files are recorded, not parsed
+
+A `scan` records every file the discovery walk reached and dropped because no
+extractor claims the extension. Each one gets a `files` row with
+`status = 'unsupported'`, `language = 'unsupported'`, a content hash, a byte
+count, and no `line_count`. The file is read once for its hash and is never
+decoded or parsed, so it produces no symbols and no other fact rows.
+
+The change journal follows from that row: the first scan that sees the path
+writes an `unsupported` change, a later scan writes another one only when the
+content hash changes, and a scan that no longer sees the path writes a
+`deleted` change. A consumer reading the journal can therefore account for
+every path the walk visited instead of treating it as never seen.
+
+Paths an ignore rule, a hard exclusion, or the source-size limit removed are
+absent from the artifact, as before. So are the artifact's own SQLite
+companion files (`-wal`, `-shm`, `-journal`).
+
 ## Capability gaps
 
 Gap status is the closed vocabulary `open | exception`. Unknown statuses are

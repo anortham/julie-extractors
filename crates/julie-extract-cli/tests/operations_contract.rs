@@ -1654,6 +1654,76 @@ fn scan_treats_supported_extensions_case_insensitively() {
 }
 
 #[test]
+fn scan_journals_a_changed_unsupported_file_without_parsing_it() {
+    let fixture = FixtureRoot::new();
+    let snapshot = fixture.path("src/__snapshots__/view.snap");
+    std::fs::create_dir_all(snapshot.parent().unwrap()).unwrap();
+    std::fs::write(&snapshot, "exports[`view`] = `first`;\n").unwrap();
+    let db = fixture.path("artifact.sqlite");
+
+    assert_success(scan(fixture.root_str(), &db));
+    assert_success(scan(fixture.root_str(), &db));
+    std::fs::write(&snapshot, "exports[`view`] = `second`;\n").unwrap();
+    assert_success(scan(fixture.root_str(), &db));
+
+    assert_eq!(
+        change_kinds_for_path(&db, "src/__snapshots__/view.snap"),
+        vec!["unsupported".to_string(), "unsupported".to_string()]
+    );
+    assert_eq!(
+        optional_file_status_for_path(&db, "src/__snapshots__/view.snap").as_deref(),
+        Some("unsupported")
+    );
+    assert!(symbols_for_path(&db, "src/__snapshots__/view.snap").is_empty());
+}
+
+#[test]
+fn scan_journals_an_unsupported_file_that_is_removed_as_deleted() {
+    let fixture = FixtureRoot::new();
+    let lockfile = fixture.path("pnpm-lock.yaml.lock");
+    std::fs::write(&lockfile, "lockfileVersion: 9\n").unwrap();
+    let db = fixture.path("artifact.sqlite");
+
+    assert_success(scan(fixture.root_str(), &db));
+    std::fs::remove_file(&lockfile).unwrap();
+    assert_success(scan(fixture.root_str(), &db));
+
+    assert_eq!(
+        change_kinds_for_path(&db, "pnpm-lock.yaml.lock"),
+        vec!["unsupported".to_string(), "deleted".to_string()]
+    );
+    assert_eq!(
+        optional_file_status_for_path(&db, "pnpm-lock.yaml.lock"),
+        None
+    );
+}
+
+#[test]
+fn scan_keeps_ignored_and_hard_excluded_files_out_of_the_change_journal() {
+    let fixture = FixtureRoot::new();
+    std::fs::write(fixture.path(".gitignore"), "notes.bin\n").unwrap();
+    std::fs::write(fixture.path("notes.bin"), "ignored\n").unwrap();
+    std::fs::create_dir_all(fixture.path("vendor")).unwrap();
+    std::fs::write(fixture.path("vendor/dep.bin"), "vendored\n").unwrap();
+    let db = fixture.path("artifact.sqlite");
+
+    assert_success(scan(fixture.root_str(), &db));
+
+    assert_eq!(
+        change_kinds_for_path(&db, "notes.bin"),
+        Vec::<String>::new()
+    );
+    assert_eq!(
+        change_kinds_for_path(&db, "vendor/dep.bin"),
+        Vec::<String>::new()
+    );
+    assert_eq!(
+        change_kinds_for_path(&db, ".gitignore"),
+        vec!["unsupported".to_string()]
+    );
+}
+
+#[test]
 fn scan_reports_slow_file_skipped_warning_for_oversized_source_file() {
     let oversized_contents = "x".repeat(MAX_SOURCE_FILE_BYTES + 1);
     let fixture = FixtureRoot::with_file("src/huge.rs", &oversized_contents);
@@ -3802,6 +3872,29 @@ fn file_status_for_path(db: &Path, path: &str) -> String {
         row.get(0)
     })
     .unwrap()
+}
+
+fn optional_file_status_for_path(db: &Path, path: &str) -> Option<String> {
+    let conn = Connection::open(db).unwrap();
+    conn.query_row("SELECT status FROM files WHERE path = ?1", [path], |row| {
+        row.get(0)
+    })
+    .optional()
+    .unwrap()
+}
+
+fn change_kinds_for_path(db: &Path, path: &str) -> Vec<String> {
+    let conn = Connection::open(db).unwrap();
+    let mut stmt = conn
+        .prepare(
+            "SELECT change_kind FROM revision_file_changes \
+             WHERE path = ?1 ORDER BY revision_id",
+        )
+        .unwrap();
+    stmt.query_map([path], |row| row.get(0))
+        .unwrap()
+        .collect::<Result<_, _>>()
+        .unwrap()
 }
 
 fn file_language_for_path(db: &Path, path: &str) -> String {
