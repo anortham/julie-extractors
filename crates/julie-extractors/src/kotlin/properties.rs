@@ -32,7 +32,8 @@ pub(super) fn extract_property(
             .children(&mut node.walk())
             .find(|n| n.kind() == "identifier");
     }
-    let name = name_node.map(|n| base.get_node_text(&n))?;
+    let raw_name = name_node.map(|n| base.get_node_text(&n))?;
+    let name = helpers::strip_backticks(&raw_name).to_string();
 
     let modifiers = helpers::extract_modifiers(base, node);
     let property_type = helpers::extract_property_type(base, node);
@@ -63,7 +64,7 @@ pub(super) fn extract_property(
     } else {
         "val"
     };
-    let mut signature = format!("{} {}", binding, name);
+    let mut signature = format!("{} {}", binding, raw_name);
 
     if !modifiers.is_empty() {
         signature = format!("{} {}", modifiers.join(" "), signature);
@@ -107,6 +108,7 @@ pub(super) fn extract_property(
     if let Some(property_type) = property_type {
         metadata.insert("propertyType".to_string(), Value::String(property_type));
     }
+    super::types::record_raw_name(&name, &raw_name, &mut metadata);
 
     // Extract KDoc comment
     let doc_comment = base.find_doc_comment(node);
@@ -144,9 +146,10 @@ pub(super) fn extract_constructor_parameters(
                 let name_node = child
                     .children(&mut child.walk())
                     .find(|n| n.kind() == "identifier");
-                let Some(name) = name_node.map(|n| base.get_node_text(&n)) else {
+                let Some(raw_name) = name_node.map(|n| base.get_node_text(&n)) else {
                     continue;
                 };
+                let name = helpers::strip_backticks(&raw_name).to_string();
 
                 // Get binding pattern (val/var)
                 let binding_node = child
@@ -192,7 +195,7 @@ pub(super) fn extract_constructor_parameters(
 
                 // Build the base signature: [modifiers] binding name[: type][ = default]
                 let final_signature = {
-                    let mut signature = format!("{} {}", binding, name);
+                    let mut signature = format!("{} {}", binding, raw_name);
                     if !param_type.is_empty() {
                         signature.push_str(&format!(": {}", param_type));
                     }
@@ -233,6 +236,17 @@ pub(super) fn extract_constructor_parameters(
                 let doc_comment = base.find_doc_comment(&child);
                 let annotations = helpers::extract_annotations(base, &child);
 
+                let mut metadata = HashMap::from([
+                    ("type".to_string(), Value::String("property".to_string())),
+                    ("binding".to_string(), Value::String(binding)),
+                    ("dataType".to_string(), Value::String(param_type)),
+                    (
+                        "hasDefaultValue".to_string(),
+                        Value::String((!default_val.is_empty()).to_string()),
+                    ),
+                ]);
+                super::types::record_raw_name(&name, &raw_name, &mut metadata);
+
                 let property_symbol = base.create_symbol(
                     &child,
                     name,
@@ -241,15 +255,7 @@ pub(super) fn extract_constructor_parameters(
                         signature: Some(final_signature),
                         visibility: Some(visibility),
                         parent_id: parent_id.map(|s| s.to_string()),
-                        metadata: Some(HashMap::from([
-                            ("type".to_string(), Value::String("property".to_string())),
-                            ("binding".to_string(), Value::String(binding)),
-                            ("dataType".to_string(), Value::String(param_type)),
-                            (
-                                "hasDefaultValue".to_string(),
-                                Value::String((!default_val.is_empty()).to_string()),
-                            ),
-                        ])),
+                        metadata: Some(metadata),
                         doc_comment,
                         annotations,
                     },

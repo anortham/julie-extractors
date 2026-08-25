@@ -85,10 +85,10 @@ that no test container encloses loses the role. `LedgerTestHelpers` in the
 golden is that control — a plain class in a test path holding
 `testDataForLedger`, which the golden shows with no test metadata.
 
-Scoping runs only for Java. Kotlin shares this pass but also earns roles from
-the Kotest and Spek call DSLs, whose spec classes carry no container marker
-yet, so scoping a Kotlin file would strip real roles. Kotlin scoping belongs
-with the Kotest container work.
+Scoping runs for Kotlin too. Kotlin shares this pass and also earns roles from
+the Kotest and Spek call DSLs; `mark_kotlin_test_containers` marks those spec
+classes as containers before this pass runs, so scoping keeps the call-DSL
+roles. See `docs/languages/kotlin.md`.
 
 Because scoping clears by position and cannot see where a role came from, a
 second pass re-derives every role that an annotation alone justifies. That pass

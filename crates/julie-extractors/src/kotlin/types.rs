@@ -15,10 +15,7 @@ pub(super) fn extract_class(
     node: &Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    let name = node
-        .children(&mut node.walk())
-        .find(|n| n.kind() == "identifier")
-        .map(|n| base.get_node_text(&n))?;
+    let (name, raw_name) = helpers::declared_name(base, node)?;
 
     // Check if this is actually an interface by looking for 'interface' child node
     let is_interface = node
@@ -41,14 +38,14 @@ pub(super) fn extract_class(
 
     let mut signature = if is_interface {
         if has_fun_keyword {
-            format!("fun interface {}", name)
+            format!("fun interface {}", raw_name)
         } else {
-            format!("interface {}", name)
+            format!("interface {}", raw_name)
         }
     } else if is_enum {
-        format!("enum class {}", name)
+        format!("enum class {}", raw_name)
     } else {
-        format!("class {}", name)
+        format!("class {}", raw_name)
     };
 
     // For enum classes, don't include 'enum' in modifiers since it's already in the signature
@@ -95,6 +92,16 @@ pub(super) fn extract_class(
     // Extract KDoc comment
     let doc_comment = base.find_doc_comment(node);
 
+    let mut metadata = HashMap::from([
+        ("type".to_string(), Value::String("class".to_string())),
+        (
+            "modifiers".to_string(),
+            Value::String(final_modifiers.join(",")),
+        ),
+    ]);
+    record_base_types(base, node, &mut metadata);
+    record_raw_name(&name, &raw_name, &mut metadata);
+
     Some(base.create_symbol(
         node,
         name,
@@ -103,17 +110,39 @@ pub(super) fn extract_class(
             signature: Some(signature),
             visibility: Some(visibility),
             parent_id: parent_id.map(|s| s.to_string()),
-            metadata: Some(HashMap::from([
-                ("type".to_string(), Value::String("class".to_string())),
-                (
-                    "modifiers".to_string(),
-                    Value::String(final_modifiers.join(",")),
-                ),
-            ])),
+            metadata: Some(metadata),
             doc_comment,
             annotations,
         },
     ))
+}
+
+/// Publish the declaration's supertypes as a clean name list.
+///
+/// The shared container passes read `base_types` to decide whether a class is a
+/// test container, and Kotlin previously published the supertypes only inside
+/// the signature text.
+pub(super) fn record_base_types(
+    base: &BaseExtractor,
+    node: &Node,
+    metadata: &mut HashMap<String, Value>,
+) {
+    let base_types = helpers::collect_base_type_names(base, node);
+    if base_types.is_empty() {
+        return;
+    }
+    metadata.insert(
+        "base_types".to_string(),
+        Value::Array(base_types.into_iter().map(Value::String).collect()),
+    );
+}
+
+/// Keep the escaped source spelling of a backticked declaration name.
+pub(super) fn record_raw_name(name: &str, raw_name: &str, metadata: &mut HashMap<String, Value>) {
+    if name == raw_name {
+        return;
+    }
+    metadata.insert("rawName".to_string(), Value::String(raw_name.to_string()));
 }
 
 /// Extract a Kotlin interface declaration
@@ -122,17 +151,14 @@ pub(super) fn extract_interface(
     node: &Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    let name = node
-        .children(&mut node.walk())
-        .find(|n| n.kind() == "identifier")
-        .map(|n| base.get_node_text(&n))?;
+    let (name, raw_name) = helpers::declared_name(base, node)?;
 
     let modifiers = helpers::extract_modifiers(base, node);
     let type_params = helpers::extract_type_parameters(base, node);
     let super_types = helpers::extract_super_types(base, node);
     let annotations = helpers::extract_annotations(base, node);
 
-    let mut signature = format!("interface {}", name);
+    let mut signature = format!("interface {}", raw_name);
 
     if !modifiers.is_empty() {
         signature = format!("{} {}", modifiers.join(" "), signature);
@@ -151,6 +177,13 @@ pub(super) fn extract_interface(
     // Extract KDoc comment
     let doc_comment = base.find_doc_comment(node);
 
+    let mut metadata = HashMap::from([
+        ("type".to_string(), Value::String("interface".to_string())),
+        ("modifiers".to_string(), Value::String(modifiers.join(","))),
+    ]);
+    record_base_types(base, node, &mut metadata);
+    record_raw_name(&name, &raw_name, &mut metadata);
+
     Some(base.create_symbol(
         node,
         name,
@@ -159,10 +192,7 @@ pub(super) fn extract_interface(
             signature: Some(signature),
             visibility: Some(visibility),
             parent_id: parent_id.map(|s| s.to_string()),
-            metadata: Some(HashMap::from([
-                ("type".to_string(), Value::String("interface".to_string())),
-                ("modifiers".to_string(), Value::String(modifiers.join(","))),
-            ])),
+            metadata: Some(metadata),
             doc_comment,
             annotations,
         },
@@ -175,16 +205,13 @@ pub(super) fn extract_object(
     node: &Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    let name = node
-        .children(&mut node.walk())
-        .find(|n| n.kind() == "identifier")
-        .map(|n| base.get_node_text(&n))?;
+    let (name, raw_name) = helpers::declared_name(base, node)?;
 
     let modifiers = helpers::extract_modifiers(base, node);
     let super_types = helpers::extract_super_types(base, node);
     let annotations = helpers::extract_annotations(base, node);
 
-    let mut signature = format!("object {}", name);
+    let mut signature = format!("object {}", raw_name);
 
     if !modifiers.is_empty() {
         signature = format!("{} {}", modifiers.join(" "), signature);
@@ -199,6 +226,13 @@ pub(super) fn extract_object(
     // Extract KDoc comment
     let doc_comment = base.find_doc_comment(node);
 
+    let mut metadata = HashMap::from([
+        ("type".to_string(), Value::String("object".to_string())),
+        ("modifiers".to_string(), Value::String(modifiers.join(","))),
+    ]);
+    record_base_types(base, node, &mut metadata);
+    record_raw_name(&name, &raw_name, &mut metadata);
+
     Some(base.create_symbol(
         node,
         name,
@@ -207,10 +241,7 @@ pub(super) fn extract_object(
             signature: Some(signature),
             visibility: Some(visibility),
             parent_id: parent_id.map(|s| s.to_string()),
-            metadata: Some(HashMap::from([
-                ("type".to_string(), Value::String("object".to_string())),
-                ("modifiers".to_string(), Value::String(modifiers.join(","))),
-            ])),
+            metadata: Some(metadata),
             doc_comment,
             annotations,
         },
@@ -233,7 +264,7 @@ pub(super) fn extract_companion_object(
     let name = if let Some(ref name_node) = name_node {
         let custom_name = base.get_node_text(name_node);
         signature.push_str(&format!(" {}", custom_name));
-        custom_name
+        helpers::strip_backticks(&custom_name).to_string()
     } else {
         "Companion".to_string()
     };
@@ -273,10 +304,11 @@ pub(super) fn extract_enum_members(
                 .children(&mut child.walk())
                 .find(|n| n.kind() == "identifier");
             if let Some(name_node) = name_node {
-                let name = base.get_node_text(&name_node);
+                let raw_name = base.get_node_text(&name_node);
+                let name = helpers::strip_backticks(&raw_name).to_string();
 
                 // Check for constructor parameters
-                let mut signature = name.clone();
+                let mut signature = raw_name.clone();
                 let value_args = child
                     .children(&mut child.walk())
                     .find(|n| n.kind() == "value_arguments");
@@ -288,6 +320,10 @@ pub(super) fn extract_enum_members(
                 // Extract KDoc comment
                 let doc_comment = base.find_doc_comment(&child);
 
+                let mut metadata =
+                    HashMap::from([("type".to_string(), Value::String("enum-member".to_string()))]);
+                record_raw_name(&name, &raw_name, &mut metadata);
+
                 let symbol = base.create_symbol(
                     &child,
                     name,
@@ -296,10 +332,7 @@ pub(super) fn extract_enum_members(
                         signature: Some(signature),
                         visibility: Some(Visibility::Public),
                         parent_id: parent_id.map(|s| s.to_string()),
-                        metadata: Some(HashMap::from([(
-                            "type".to_string(),
-                            Value::String("enum-member".to_string()),
-                        )])),
+                        metadata: Some(metadata),
                         doc_comment,
                         annotations: Vec::new(),
                     },

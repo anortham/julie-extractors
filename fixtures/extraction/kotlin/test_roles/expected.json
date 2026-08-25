@@ -26,7 +26,12 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
+        "base_types": [
+          "DescribeSpec"
+        ],
         "modifiers": "",
+        "test_container": true,
+        "test_role": "test_container",
         "type": "class"
       },
       "annotations": [],
@@ -172,26 +177,7 @@
       "content_type": null
     }
   ],
-  "relationships": [
-    {
-      "from_key": "fixtures/extraction/kotlin/test_roles/source.kt:beforeEach:2:4",
-      "to_key": "fixtures/extraction/kotlin/test_roles/source.kt:beforeEach:2:4",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/kotlin/test_roles/source.kt",
-      "line_number": 2,
-      "span": {
-        "start_line": 2,
-        "start_column": 4,
-        "end_line": 3,
-        "end_column": 5,
-        "start_byte": 44,
-        "end_byte": 62
-      },
-      "reference_site_is_exact": false,
-      "confidence": "0.900",
-      "metadata": null
-    }
-  ],
+  "relationships": [],
   "pending_relationships": [
     {
       "from_key": "fixtures/extraction/kotlin/test_roles/source.kt:ManagedTestRoles:1:0",

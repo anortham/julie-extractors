@@ -71,7 +71,7 @@ fn extract_identifier_from_node(
             {
                 let arguments = type_args_node
                     .map(|ta| extract_type_arguments(base, ta, decompose_kotlin_type_arg));
-                let name = base.get_node_text(child);
+                let name = identifier_name(base, child);
                 let containing = find_containing_symbol_id(base, node, symbol_map);
                 let identifier =
                     base.create_identifier(child, name, IdentifierKind::Call, containing);
@@ -163,7 +163,7 @@ fn extract_identifier_from_node(
         // Call/MemberAccess/TypeUsage arms above do not own. Kotlin type positions
         // live inside `user_type`, which the predicate excludes.
         "identifier" if is_kotlin_value_read_identifier(node) => {
-            let name = base.get_node_text(&node);
+            let name = identifier_name(base, &node);
             // Rule 5: reuse the existing noise filter, plus the `it`/`field`
             // soft keywords (implicit lambda parameter / property backing
             // field), which parse as plain identifiers in kotlin-ng.
@@ -553,9 +553,17 @@ fn extract_rightmost_identifier<'a>(
         .collect();
 
     if let Some(last_identifier) = identifiers.last() {
-        let name = base.get_node_text(last_identifier);
+        let name = identifier_name(base, last_identifier);
         return Some((*last_identifier, name));
     }
 
     None
+}
+
+/// The reference name of a Kotlin identifier node, without escaping backticks.
+///
+/// A call site spells a backticked declaration the same way the declaration
+/// does, so both sides must strip for the names to match.
+fn identifier_name(base: &BaseExtractor, node: &Node) -> String {
+    super::helpers::strip_backticks(&base.get_node_text(node)).to_string()
 }

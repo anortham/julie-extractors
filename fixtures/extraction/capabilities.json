@@ -3495,6 +3495,16 @@
           "name": "junit_tests",
           "source": "fixtures/extraction/kotlin/junit_tests/source.kt",
           "expected": "fixtures/extraction/kotlin/junit_tests/expected.json"
+        },
+        {
+          "name": "kotest_string_spec",
+          "source": "fixtures/extraction/kotlin/kotest_string_spec/source.kt",
+          "expected": "fixtures/extraction/kotlin/kotest_string_spec/expected.json"
+        },
+        {
+          "name": "kotlin_test_lifecycle",
+          "source": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+          "expected": "fixtures/extraction/kotlin/kotlin_test_lifecycle/expected.json"
         }
       ],
       "target_capabilities": {
@@ -3509,11 +3519,13 @@
         "symbols": {
           "supported": [
             "class",
+            "function",
             "import",
             "interface",
             "method",
             "namespace",
-            "property"
+            "property",
+            "type"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -3521,6 +3533,7 @@
         "relationships": {
           "supported": [
             "calls",
+            "extends",
             "implements"
           ],
           "not_applicable": [],
@@ -3529,6 +3542,7 @@
         "identifiers": {
           "supported": [
             "call",
+            "member_access",
             "type_usage",
             "variable_ref"
           ],
@@ -3538,13 +3552,15 @@
         "body_spans": {
           "supported": [
             "class",
+            "function",
             "interface",
-            "method"
+            "method",
+            "property",
+            "type"
           ],
           "not_applicable": [
             "import",
-            "namespace",
-            "property"
+            "namespace"
           ],
           "open_gaps": []
         },
@@ -3570,6 +3586,18 @@
               "reason": "Ktor/WebClient/RestTemplate receivers are proven only via a typed function or primary-constructor parameter, an exact `WebClient.create()`/`RestTemplate` builder chain, or (Ktor) a same-file `HttpClient(...)` local \u2014 class-property, DI-provided, or cross-file receivers are syntactically identical to non-HTTP fluent calls and stay silent by M2. Retrofit `@HTTP(method = ...)` annotations also stay silent (no static verb element support).",
               "required_closure": "extend receiver proofs to class-property/field receivers if in-file type resolution becomes available; add `@HTTP` static-element parsing if demanded",
               "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2b (deferred clients open_gaps)"
+            },
+            {
+              "kind": "kotest.data_driven_test_roles",
+              "reason": "Kotest data-driven testing runs one case per row with `forAll(rows) { … }` / `io.kotest.data.forAll`. The rows are call arguments, not declarations, so the block is one lambda with no per-row symbol and no `parameterized_test` role is published.",
+              "required_closure": "publish a parameterized_test role for a `forAll`/`forNone` block once a row-count model for call-argument tables is designed",
+              "planned_closure_task": "docs/decisions/2026-08-20-test-role-contract-closure.md (Kotlin named contract and exclusions)"
+            },
+            {
+              "kind": "kotest.property_test_roles",
+              "reason": "Kotest property testing declares a case with `checkAll`/`forAll` over generators inside an already-classified spec step, so the generator block carries no role of its own and the arbitraries it uses are unclassified.",
+              "required_closure": "classify `checkAll`/`forAll` generator blocks once the contract decides whether a property block is a case or a case body",
+              "planned_closure_task": "docs/decisions/2026-08-20-test-role-contract-closure.md (Kotlin named contract and exclusions)"
             }
           ]
         },

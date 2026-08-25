@@ -29,6 +29,14 @@ use tree_sitter::{Node, Tree};
 
 pub struct KotlinExtractor {
     pub(crate) base: BaseExtractor,
+    /// Ids of the symbols the Kotest / Spek adapter materialized.
+    ///
+    /// Such a symbol is named by a description string — `"shouldBeZero" { }`
+    /// declares a case, not a function called `shouldBeZero` — so it must never
+    /// answer a call-target lookup. Kotest's own suite has cases named after the
+    /// matcher they exercise, and without this set every such call resolved to
+    /// the case that contains it.
+    dsl_call_symbol_ids: HashSet<String>,
 }
 
 impl KotlinExtractor {
@@ -40,6 +48,7 @@ impl KotlinExtractor {
     ) -> Self {
         Self {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
+            dsl_call_symbol_ids: HashSet::new(),
         }
     }
 
@@ -73,6 +82,7 @@ impl KotlinExtractor {
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
         self.visit_node(tree.root_node(), &mut symbols, None, 0);
+        crate::test_detection::mark_kotlin_test_containers(&mut symbols);
         crate::test_detection::mark_java_test_containers(&mut symbols);
         symbols
     }
@@ -165,6 +175,27 @@ impl KotlinExtractor {
                     &node,
                     parent_id.as_deref(),
                 );
+                self.record_dsl_call_symbol(symbol.as_ref());
+            }
+            // Kotest WordSpec (`"subject" should { }`) and FreeSpec
+            // (`"subject" - { }`) open a group with an infix or operator call
+            // instead of a named one. Returns None for every other infix and
+            // binary expression.
+            "infix_expression" => {
+                symbol = test_calls::extract_kotlin_wordspec_group(
+                    &mut self.base,
+                    &node,
+                    parent_id.as_deref(),
+                );
+                self.record_dsl_call_symbol(symbol.as_ref());
+            }
+            "binary_expression" => {
+                symbol = test_calls::extract_kotlin_freespec_group(
+                    &mut self.base,
+                    &node,
+                    parent_id.as_deref(),
+                );
+                self.record_dsl_call_symbol(symbol.as_ref());
             }
             // ERROR recovery: when tree-sitter can't fully parse a class declaration
             // (e.g., due to unsupported syntax like `class Foo\nprivate constructor(...)`),
@@ -296,6 +327,16 @@ impl KotlinExtractor {
 
     pub(crate) fn base(&self) -> &BaseExtractor {
         &self.base
+    }
+
+    fn record_dsl_call_symbol(&mut self, symbol: Option<&Symbol>) {
+        if let Some(symbol) = symbol {
+            self.dsl_call_symbol_ids.insert(symbol.id.clone());
+        }
+    }
+
+    pub(crate) fn is_dsl_call_symbol(&self, symbol_id: &str) -> bool {
+        self.dsl_call_symbol_ids.contains(symbol_id)
     }
 }
 

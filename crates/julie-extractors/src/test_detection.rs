@@ -777,21 +777,68 @@ pub(crate) fn mark_java_test_containers(symbols: &mut [Symbol]) {
 
     mark_ancestor_test_containers(symbols);
 
-    if scopes_name_convention_roles(symbols) {
-        let test_container_ids = marked_test_container_ids(symbols);
-        normalize_scoped_test_roles(symbols, &test_container_ids);
-    }
+    let test_container_ids = marked_test_container_ids(symbols);
+    normalize_scoped_test_roles(symbols, &test_container_ids);
     apply_java_member_test_roles(symbols, &testng_class_ids);
 }
 
-/// Whether the JUnit 3 `testXxx` name convention is the only rule here that can
-/// fire outside a test container.
+/// Kotest and Spek spec base classes. A class extending one of them is a spec
+/// even when its body is empty, because the base class is what the engine runs.
+const KOTLIN_SPEC_BASE_TYPES: &[&str] = &[
+    "AnnotationSpec",
+    "BehaviorSpec",
+    "DescribeSpec",
+    "ExpectSpec",
+    "FeatureSpec",
+    "FreeSpec",
+    "FunSpec",
+    "ShouldSpec",
+    "StringSpec",
+    "WordSpec",
+    "Spek",
+];
+
+/// Mark a Kotest or Spek spec scope as a test container.
 ///
-/// Kotlin shares this pass but also earns roles from the Kotest and Spek call
-/// DSLs, whose spec classes carry no container marker yet, so scoping a Kotlin
-/// file would strip real roles. Java has no call-style test DSL.
-fn scopes_name_convention_roles(symbols: &[Symbol]) -> bool {
-    symbols.iter().all(|symbol| symbol.language == "java")
+/// A spec carries no annotation, so the pass takes two proofs and either one is
+/// enough:
+///
+/// - the class extends a named Kotest or Spek spec base type, or
+/// - the declaration's body is a spec lambda: a call-DSL step already earned a
+///   role and named this declaration as its parent. This catches a project's own
+///   spec base class, which the name list cannot know, and a Kotest test factory
+///   (`val factory = funSpec { … }`), which is a property rather than a class.
+///
+/// The second proof is limited to a class or a property so that a nested step
+/// never turns the case above it into a container.
+///
+/// It must run before [`mark_java_test_containers`], whose scoping pass reads
+/// the marked containers.
+pub(crate) fn mark_kotlin_test_containers(symbols: &mut [Symbol]) {
+    let spec_scopes_with_dsl_steps: HashSet<String> = symbols
+        .iter()
+        .filter(|symbol| symbol.kind == SymbolKind::Function)
+        .filter(|symbol| {
+            symbol
+                .metadata
+                .as_ref()
+                .is_some_and(|metadata| metadata.contains_key("test_role"))
+        })
+        .filter_map(|symbol| symbol.parent_id.clone())
+        .collect();
+
+    for symbol in symbols
+        .iter_mut()
+        .filter(|symbol| matches!(symbol.kind, SymbolKind::Class | SymbolKind::Property))
+    {
+        let extends_spec_base = symbol.kind == SymbolKind::Class
+            && KOTLIN_SPEC_BASE_TYPES
+                .iter()
+                .any(|base_type| metadata_string_list_contains(symbol, "base_types", base_type));
+        if extends_spec_base || spec_scopes_with_dsl_steps.contains(&symbol.id) {
+            mark_class_test_container(symbol);
+        }
+    }
 }
 
 /// Annotations that make a method test infrastructure, so its enclosing class is

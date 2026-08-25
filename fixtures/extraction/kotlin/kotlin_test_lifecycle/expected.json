@@ -1,0 +1,986 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:LedgerKotlinTest:6:0",
+      "name": "LedgerKotlinTest",
+      "kind": "class",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "start_line": 6,
+      "start_column": 0,
+      "end_line": 19,
+      "end_column": 1,
+      "start_byte": 116,
+      "end_byte": 305,
+      "body_span": {
+        "start_line": 6,
+        "start_column": 23,
+        "end_line": 19,
+        "end_column": 1,
+        "start_byte": 139,
+        "end_byte": 305
+      },
+      "body_hash": "489b1836745dab65ef363330aa87040f",
+      "signature": "class LedgerKotlinTest",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "modifiers": "",
+        "test_container": true,
+        "test_role": "test_container",
+        "type": "class"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:LedgerTestHelpers:35:0",
+      "name": "LedgerTestHelpers",
+      "kind": "class",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "start_line": 35,
+      "start_column": 0,
+      "end_line": 39,
+      "end_column": 1,
+      "start_byte": 481,
+      "end_byte": 574,
+      "body_span": {
+        "start_line": 35,
+        "start_column": 24,
+        "end_line": 39,
+        "end_column": 1,
+        "start_byte": 505,
+        "end_byte": 574
+      },
+      "body_hash": "beabf907859bf7111cbbc2e774b639be",
+      "signature": "class LedgerTestHelpers",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "modifiers": "",
+        "type": "class"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:LedgerTestNgTest:21:0",
+      "name": "LedgerTestNgTest",
+      "kind": "class",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "start_line": 21,
+      "start_column": 0,
+      "end_line": 33,
+      "end_column": 1,
+      "start_byte": 307,
+      "end_byte": 479,
+      "body_span": {
+        "start_line": 22,
+        "start_column": 23,
+        "end_line": 33,
+        "end_column": 1,
+        "start_byte": 336,
+        "end_byte": 479
+      },
+      "body_hash": "7c8563def3c798f5a7bd130b221129da",
+      "signature": "@Test class LedgerTestNgTest",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "modifiers": "@Test",
+        "test_container": true,
+        "test_role": "test_container",
+        "type": "class"
+      },
+      "annotations": [
+        {
+          "annotation": "Test",
+          "annotation_key": "test",
+          "raw_text": "Test"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:clearLedger:11:4",
+      "name": "clearLedger",
+      "kind": "method",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "start_line": 11,
+      "start_column": 4,
+      "end_line": 13,
+      "end_column": 5,
+      "start_byte": 194,
+      "end_byte": 234,
+      "body_span": {
+        "start_line": 12,
+        "start_column": 22,
+        "end_line": 13,
+        "end_column": 5,
+        "start_byte": 227,
+        "end_byte": 234
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "@AfterTest fun clearLedger()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:LedgerKotlinTest:6:0",
+      "metadata": {
+        "is_test": true,
+        "modifiers": "@AfterTest",
+        "test_lifecycle": true,
+        "test_role": "fixture_teardown",
+        "type": "method"
+      },
+      "annotations": [
+        {
+          "annotation": "AfterTest",
+          "annotation_key": "aftertest",
+          "raw_text": "AfterTest"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:helperTotal:26:4",
+      "name": "helperTotal",
+      "kind": "method",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "start_line": 26,
+      "start_column": 4,
+      "end_line": 28,
+      "end_column": 5,
+      "start_byte": 374,
+      "end_byte": 429,
+      "body_span": {
+        "start_line": 26,
+        "start_column": 35,
+        "end_line": 28,
+        "end_column": 5,
+        "start_byte": 405,
+        "end_byte": 429
+      },
+      "body_hash": "0e86e6be821929edf9498a18ea9e01b0",
+      "signature": "private fun helperTotal(): Int",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:LedgerTestNgTest:21:0",
+      "metadata": {
+        "modifiers": "private",
+        "returnType": "Int",
+        "type": "method"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:kotlin.test.AfterTest:1:0",
+      "name": "kotlin.test.AfterTest",
+      "kind": "import",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 28,
+      "start_byte": 0,
+      "end_byte": 28,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "import kotlin.test.AfterTest",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "type": "import"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:kotlin.test.BeforeTest:2:0",
+      "name": "kotlin.test.BeforeTest",
+      "kind": "import",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 29,
+      "start_byte": 29,
+      "end_byte": 58,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "import kotlin.test.BeforeTest",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "type": "import"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:kotlin.test.Test:3:0",
+      "name": "kotlin.test.Test",
+      "kind": "import",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 23,
+      "start_byte": 59,
+      "end_byte": 82,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "import kotlin.test.Test",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "type": "import"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:kotlin.test.assertEquals:4:0",
+      "name": "kotlin.test.assertEquals",
+      "kind": "import",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "start_line": 4,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 31,
+      "start_byte": 83,
+      "end_byte": 114,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "import kotlin.test.assertEquals",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "type": "import"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:postsAnEntry:15:4",
+      "name": "postsAnEntry",
+      "kind": "method",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "start_line": 15,
+      "start_column": 4,
+      "end_line": 18,
+      "end_column": 5,
+      "start_byte": 240,
+      "end_byte": 303,
+      "body_span": {
+        "start_line": 16,
+        "start_column": 23,
+        "end_line": 18,
+        "end_column": 5,
+        "start_byte": 269,
+        "end_byte": 303
+      },
+      "body_hash": "3caf93905543535738c3e97e32b39199",
+      "signature": "@Test fun postsAnEntry()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:LedgerKotlinTest:6:0",
+      "metadata": {
+        "is_test": true,
+        "modifiers": "@Test",
+        "test_role": "test_case",
+        "type": "method"
+      },
+      "annotations": [
+        {
+          "annotation": "Test",
+          "annotation_key": "test",
+          "raw_text": "Test"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:postsAnEntry:23:4",
+      "name": "postsAnEntry",
+      "kind": "method",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "start_line": 23,
+      "start_column": 4,
+      "end_line": 24,
+      "end_column": 5,
+      "start_byte": 342,
+      "end_byte": 368,
+      "body_span": {
+        "start_line": 23,
+        "start_column": 23,
+        "end_line": 24,
+        "end_column": 5,
+        "start_byte": 361,
+        "end_byte": 368
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "fun postsAnEntry()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:LedgerTestNgTest:21:0",
+      "metadata": {
+        "is_test": true,
+        "modifiers": "",
+        "test_role": "test_case",
+        "type": "method"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:prepareLedger:7:4",
+      "name": "prepareLedger",
+      "kind": "method",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "start_line": 7,
+      "start_column": 4,
+      "end_line": 9,
+      "end_column": 5,
+      "start_byte": 145,
+      "end_byte": 188,
+      "body_span": {
+        "start_line": 8,
+        "start_column": 24,
+        "end_line": 9,
+        "end_column": 5,
+        "start_byte": 181,
+        "end_byte": 188
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "@BeforeTest fun prepareLedger()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:LedgerKotlinTest:6:0",
+      "metadata": {
+        "is_test": true,
+        "modifiers": "@BeforeTest",
+        "test_lifecycle": true,
+        "test_role": "fixture_setup",
+        "type": "method"
+      },
+      "annotations": [
+        {
+          "annotation": "BeforeTest",
+          "annotation_key": "beforetest",
+          "raw_text": "BeforeTest"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:prepareRun:30:4",
+      "name": "prepareRun",
+      "kind": "method",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "start_line": 30,
+      "start_column": 4,
+      "end_line": 32,
+      "end_column": 5,
+      "start_byte": 435,
+      "end_byte": 477,
+      "body_span": {
+        "start_line": 31,
+        "start_column": 21,
+        "end_line": 32,
+        "end_column": 5,
+        "start_byte": 470,
+        "end_byte": 477
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "@BeforeMethod fun prepareRun()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:LedgerTestNgTest:21:0",
+      "metadata": {
+        "is_test": true,
+        "modifiers": "@BeforeMethod",
+        "test_lifecycle": true,
+        "test_role": "fixture_setup",
+        "type": "method"
+      },
+      "annotations": [
+        {
+          "annotation": "BeforeMethod",
+          "annotation_key": "beforemethod",
+          "raw_text": "BeforeMethod"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:testDataForLedger:36:4",
+      "name": "testDataForLedger",
+      "kind": "method",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "start_line": 36,
+      "start_column": 4,
+      "end_line": 38,
+      "end_column": 5,
+      "start_byte": 511,
+      "end_byte": 572,
+      "body_span": {
+        "start_line": 36,
+        "start_column": 36,
+        "end_line": 38,
+        "end_column": 5,
+        "start_byte": 543,
+        "end_byte": 572
+      },
+      "body_hash": "47bec497b80d947c036ad7ccc60aa26c",
+      "signature": "fun testDataForLedger(): String",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:LedgerTestHelpers:35:0",
+      "metadata": {
+        "modifiers": "",
+        "returnType": "String",
+        "type": "method"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:postsAnEntry:15:4",
+      "callee_name": "assertEquals",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "line_number": 17,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:postsAnEntry:15:4",
+      "callee_name": "assertEquals",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "line_number": 17,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:postsAnEntry:15:4",
+        "callee_name": "assertEquals",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+        "line_number": 17,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "assertEquals",
+        "terminal_name": "assertEquals",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:postsAnEntry:15:4",
+      "span": {
+        "start_line": 17,
+        "start_column": 8,
+        "end_line": 17,
+        "end_column": 26,
+        "start_byte": 279,
+        "end_byte": 297
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:postsAnEntry:15:4",
+        "callee_name": "assertEquals",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+        "line_number": 17,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "assertEquals",
+        "terminal_name": "assertEquals",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:postsAnEntry:15:4",
+      "span": {
+        "start_line": 17,
+        "start_column": 8,
+        "end_line": 17,
+        "end_column": 26,
+        "start_byte": 279,
+        "end_byte": 297
+      }
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:AfterTest:type_usage:11:5",
+      "name": "AfterTest",
+      "kind": "type_usage",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "start_line": 11,
+      "start_column": 5,
+      "end_line": 11,
+      "end_column": 14,
+      "start_byte": 195,
+      "end_byte": 204,
+      "containing_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:clearLedger:11:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:BeforeMethod:type_usage:30:5",
+      "name": "BeforeMethod",
+      "kind": "type_usage",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "start_line": 30,
+      "start_column": 5,
+      "end_line": 30,
+      "end_column": 17,
+      "start_byte": 436,
+      "end_byte": 448,
+      "containing_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:prepareRun:30:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:BeforeTest:type_usage:7:5",
+      "name": "BeforeTest",
+      "kind": "type_usage",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "start_line": 7,
+      "start_column": 5,
+      "end_line": 7,
+      "end_column": 15,
+      "start_byte": 146,
+      "end_byte": 156,
+      "containing_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:prepareLedger:7:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:Test:type_usage:15:5",
+      "name": "Test",
+      "kind": "type_usage",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "start_line": 15,
+      "start_column": 5,
+      "end_line": 15,
+      "end_column": 9,
+      "start_byte": 241,
+      "end_byte": 245,
+      "containing_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:postsAnEntry:15:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:Test:type_usage:21:1",
+      "name": "Test",
+      "kind": "type_usage",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "start_line": 21,
+      "start_column": 1,
+      "end_line": 21,
+      "end_column": 5,
+      "start_byte": 308,
+      "end_byte": 312,
+      "containing_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:LedgerTestNgTest:21:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:assertEquals:call:17:8",
+      "name": "assertEquals",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "start_line": 17,
+      "start_column": 8,
+      "end_line": 17,
+      "end_column": 20,
+      "start_byte": 279,
+      "end_byte": 291,
+      "containing_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:postsAnEntry:15:4",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:helperTotal:26:4",
+      "resolved_type": "Int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "kotlin",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:testDataForLedger:36:4",
+      "resolved_type": "String",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "kotlin",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "kotlin.annotation.v1",
+      "capture_name": "annotation",
+      "node_kind": "annotation",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:LedgerTestNgTest:21:0",
+      "start_line": 21,
+      "start_column": 0,
+      "end_line": 21,
+      "end_column": 5,
+      "start_byte": 307,
+      "end_byte": 312,
+      "confidence": "1.000",
+      "metadata": {
+        "annotation_name": "Test",
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    },
+    {
+      "pattern_id": "kotlin.annotation.v1",
+      "capture_name": "annotation",
+      "node_kind": "annotation",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:clearLedger:11:4",
+      "start_line": 11,
+      "start_column": 4,
+      "end_line": 11,
+      "end_column": 14,
+      "start_byte": 194,
+      "end_byte": 204,
+      "confidence": "1.000",
+      "metadata": {
+        "annotation_name": "AfterTest",
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    },
+    {
+      "pattern_id": "kotlin.annotation.v1",
+      "capture_name": "annotation",
+      "node_kind": "annotation",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:postsAnEntry:15:4",
+      "start_line": 15,
+      "start_column": 4,
+      "end_line": 15,
+      "end_column": 9,
+      "start_byte": 240,
+      "end_byte": 245,
+      "confidence": "1.000",
+      "metadata": {
+        "annotation_name": "Test",
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    },
+    {
+      "pattern_id": "kotlin.annotation.v1",
+      "capture_name": "annotation",
+      "node_kind": "annotation",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:prepareLedger:7:4",
+      "start_line": 7,
+      "start_column": 4,
+      "end_line": 7,
+      "end_column": 15,
+      "start_byte": 145,
+      "end_byte": 156,
+      "confidence": "1.000",
+      "metadata": {
+        "annotation_name": "BeforeTest",
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    },
+    {
+      "pattern_id": "kotlin.annotation.v1",
+      "capture_name": "annotation",
+      "node_kind": "annotation",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:prepareRun:30:4",
+      "start_line": 30,
+      "start_column": 4,
+      "end_line": 30,
+      "end_column": 17,
+      "start_byte": 435,
+      "end_byte": 448,
+      "confidence": "1.000",
+      "metadata": {
+        "annotation_name": "BeforeMethod",
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "covered_lines": 40,
+      "covered_bytes": 575,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 40,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 575,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:clearLedger:11:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "covered_lines": 2,
+      "covered_bytes": 7,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 12,
+      "start_column": 22,
+      "end_line": 13,
+      "end_column": 5,
+      "start_byte": 227,
+      "end_byte": 234,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:helperTotal:26:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "covered_lines": 3,
+      "covered_bytes": 24,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 26,
+      "start_column": 35,
+      "end_line": 28,
+      "end_column": 5,
+      "start_byte": 405,
+      "end_byte": 429,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:postsAnEntry:15:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "covered_lines": 3,
+      "covered_bytes": 34,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 16,
+      "start_column": 23,
+      "end_line": 18,
+      "end_column": 5,
+      "start_byte": 269,
+      "end_byte": 303,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:postsAnEntry:23:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "covered_lines": 2,
+      "covered_bytes": 7,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 23,
+      "start_column": 23,
+      "end_line": 24,
+      "end_column": 5,
+      "start_byte": 361,
+      "end_byte": 368,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:prepareLedger:7:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "covered_lines": 2,
+      "covered_bytes": 7,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 8,
+      "start_column": 24,
+      "end_line": 9,
+      "end_column": 5,
+      "start_byte": 181,
+      "end_byte": 188,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:prepareRun:30:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "covered_lines": 2,
+      "covered_bytes": 7,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 31,
+      "start_column": 21,
+      "end_line": 32,
+      "end_column": 5,
+      "start_byte": 470,
+      "end_byte": 477,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:testDataForLedger:36:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "covered_lines": 3,
+      "covered_bytes": 29,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 36,
+      "start_column": 36,
+      "end_line": 38,
+      "end_column": 5,
+      "start_byte": 543,
+      "end_byte": 572,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [
+    {
+      "kind": "string_literal",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:testDataForLedger:36:4",
+      "start_line": 37,
+      "start_column": 15,
+      "end_line": 37,
+      "end_column": 21,
+      "start_byte": 560,
+      "end_byte": 566,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
+}

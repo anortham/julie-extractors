@@ -68,6 +68,9 @@ use tree_sitter::Node;
 /// - `it` — Kotest DescribeSpec, BehaviorSpec, Spek
 /// - `should` — Kotest ShouldSpec
 /// - `then` — Kotest BehaviorSpec (innermost leaf assertion step)
+/// - `scenario` — Kotest FeatureSpec leaf step
+/// - `expect` — Kotest ExpectSpec leaf step
+/// - `xit` / `xtest` — the disabled spellings of `it` and `test`
 ///
 /// **Containers** (`test_container = true`):
 /// - `describe` — Kotest DescribeSpec, Spek
@@ -76,6 +79,13 @@ use tree_sitter::Node;
 /// - `When` — Kotest BehaviorSpec intermediate step (capital W: `when` is a
 ///   reserved Kotlin keyword; Kotest uses `When`)
 /// - `and` — Kotest BehaviorSpec continuation step
+/// - `feature` — Kotest FeatureSpec group
+/// - `xdescribe` / `xcontext` — the disabled spellings of `describe` and
+///   `context`
+///
+/// A disabled step still declares a case or a group; the runner reports it as
+/// skipped rather than dropping it, so it earns the same role as the enabled
+/// spelling.
 ///
 /// **Lifecycle** (`is_test = true` + `test_lifecycle = true`):
 /// - `beforeEach` / `afterEach` — Kotest
@@ -84,8 +94,19 @@ use tree_sitter::Node;
 /// - `beforeEachTest` / `afterEachTest` — Spek
 /// - `beforeGroup` / `afterGroup` — Spek
 const KOTLIN_VOCAB: TestCallVocab = TestCallVocab {
-    test: &["test", "it", "should", "then"],
-    container: &["describe", "context", "given", "When", "and"],
+    test: &[
+        "test", "it", "should", "then", "scenario", "expect", "xit", "xtest",
+    ],
+    container: &[
+        "describe",
+        "context",
+        "given",
+        "When",
+        "and",
+        "feature",
+        "xdescribe",
+        "xcontext",
+    ],
     lifecycle: &[
         "beforeEach",
         "afterEach",
@@ -149,6 +170,23 @@ pub(super) fn extract_kotlin_test_call(
     // Callee text and optional string literal from the argument.
     let full_callee: String;
     let string_node: Option<Node>;
+
+    if first_named.kind() == "string_literal" {
+        // ── String-invoke pattern ────────────────────────────────────────────
+        // StringSpec, and the leaf step of WordSpec and FreeSpec, write a case
+        // as `"name" { }`. Kotest declares that form with
+        // `operator fun String.invoke(test: suspend TestScope.() -> Unit)`, so
+        // the callee is `invoke` and the case name is the receiver string.
+        let name = base.decode_string_literal(&first_named)?;
+        return Some(build_test_call_symbol(
+            base,
+            node,
+            "invoke",
+            name,
+            TestCallCategory::Test,
+            parent_id,
+        ));
+    }
 
     if first_named.kind() == "call_expression" {
         // ── Curried pattern ──────────────────────────────────────────────────
@@ -214,6 +252,95 @@ pub(super) fn extract_kotlin_test_call(
         &full_callee,
         name,
         category,
+        parent_id,
+    ))
+}
+
+/// WordSpec behaviour verbs. Kotest declares each as an infix extension on
+/// `String`, so `"subject" should { }` opens a group.
+const WORDSPEC_VERBS: &[&str] = &["should", "When"];
+
+/// Materialize a Kotest WordSpec group (`"subject" should { … }`) as a
+/// `test_container` named `"subject should"`.
+///
+/// Kotlin uses `infix_expression` for every infix call, including `shouldBe`
+/// assertions, so the guards are tight: a string receiver, a WordSpec verb, and
+/// a lambda body.
+pub(super) fn extract_kotlin_wordspec_group(
+    base: &mut BaseExtractor,
+    node: &Node,
+    parent_id: Option<&str>,
+) -> Option<Symbol> {
+    if node.kind() != "infix_expression" {
+        return None;
+    }
+    let children: Vec<Node> = {
+        let mut cursor = node.walk();
+        node.named_children(&mut cursor).collect()
+    };
+    let [subject, verb_node, body] = children.as_slice() else {
+        return None;
+    };
+    if subject.kind() != "string_literal" || body.kind() != "lambda_literal" {
+        return None;
+    }
+    let verb = base.get_node_text(verb_node);
+    if !WORDSPEC_VERBS.contains(&verb.as_str()) {
+        return None;
+    }
+    let subject_text = base.decode_string_literal(subject)?;
+
+    Some(build_test_call_symbol(
+        base,
+        node,
+        &verb,
+        format!("{subject_text} {verb}"),
+        TestCallCategory::Container,
+        parent_id,
+    ))
+}
+
+/// Materialize a Kotest FreeSpec group (`"subject" - { … }`) as a
+/// `test_container` named after the subject.
+///
+/// Kotest declares the form with
+/// `operator fun String.minus(test: suspend FreeSpecContainerScope.() -> Unit)`,
+/// so the callee is `minus`. Subtracting a lambda from a string has no other
+/// meaning in Kotlin, which is what makes the guard safe.
+pub(super) fn extract_kotlin_freespec_group(
+    base: &mut BaseExtractor,
+    node: &Node,
+    parent_id: Option<&str>,
+) -> Option<Symbol> {
+    if node.kind() != "binary_expression" {
+        return None;
+    }
+    let children: Vec<Node> = {
+        let mut cursor = node.walk();
+        node.named_children(&mut cursor).collect()
+    };
+    let [subject, body] = children.as_slice() else {
+        return None;
+    };
+    if subject.kind() != "string_literal" || body.kind() != "lambda_literal" {
+        return None;
+    }
+    let operator_is_minus = {
+        let mut cursor = node.walk();
+        node.children(&mut cursor)
+            .any(|child| !child.is_named() && child.kind() == "-")
+    };
+    if !operator_is_minus {
+        return None;
+    }
+    let subject_text = base.decode_string_literal(subject)?;
+
+    Some(build_test_call_symbol(
+        base,
+        node,
+        "minus",
+        subject_text,
+        TestCallCategory::Container,
         parent_id,
     ))
 }

@@ -29,6 +29,7 @@ Every row below has `test_detection.open_gaps: []` in
 | Java | JUnit 3 `TestCase` subclasses, JUnit 4/5 annotations, and TestNG annotations including the class-level `@Test` in `java:test_roles` | supported | supported | supported |
 | Ruby | RSpec example groups, examples, hooks, and helpers; Minitest and Test::Unit base classes; the Rails `test` macro and its `setup`/`teardown` blocks in `ruby:test_roles` | supported | supported | supported |
 | PHP | PHPUnit attributes, PHPDoc tags, fixture and `testXxx` method names, `TestCase` subclasses, and `#[DataProvider]`, plus the Pest call DSL, in `php:test_roles` | supported | supported | supported |
+| Kotlin | JUnit 4/5, TestNG, and kotlin.test annotations shared with Java; the Kotest and Spek call DSLs including the StringSpec string-invoke, WordSpec `should`, and FreeSpec `-` forms; Kotest and Spek spec classes as containers in `kotlin:test_roles`, `kotlin:junit_tests`, `kotlin:kotest_string_spec`, and `kotlin:kotlin_test_lifecycle` | supported | supported | supported |
 
 The `not_applicable` cells are contract-level conclusions. Zig's `test`
 declarations provide no adopted lifecycle or suite syntax;
@@ -156,10 +157,10 @@ guarded by the shared test-path check. Ordinary Java shares that vocabulary —
 listeners and extensions are full of `testName` and `testMethod` — so the
 fallback is scoped with `normalize_scoped_test_roles`: a callable that no test
 container encloses loses the role. `LedgerTestHelpers.testDataForLedger` is the
-golden's control. Scoping runs only for Java; Kotlin shares the pass but also
-earns roles from the Kotest and Spek call DSLs, whose spec classes carry no
-container marker yet. A second pass re-derives every role an annotation alone
-justifies, so scoping by position cannot strip an annotated member.
+golden's control. Scoping runs for Kotlin too, since the Kotest and Spek spec
+classes that hold its call-DSL roles are now marked containers. A second pass
+re-derives every role an annotation alone justifies, so scoping by position
+cannot strip an annotated member.
 
 Two named frameworks are excluded and recorded as `open_gaps` on the java row:
 Cucumber-JVM step bindings (the executable scenario lives in a `.feature` file,
@@ -202,6 +203,85 @@ example metadata tags (`:slow`, `type: :model` are call arguments, and Ruby has
 no annotation syntax to carry them). Both entries sit under
 `kind_coverage.structural_facts.open_gaps`, for the same reason the two csharp
 entries do.
+
+- Kotlin: [kotlin.test](https://kotlinlang.org/api/core/kotlin-test/kotlin.test/) defines `@Test`, `@BeforeTest`/`@AfterTest`, and `@BeforeClass`/`@AfterClass`, and maps them onto the platform framework; the JUnit and TestNG contracts in the Java bullet above apply unchanged to Kotlin sources; [Kotest spec styles](https://kotest.io/docs/framework/testing-styles.html) define `StringSpec`, `FunSpec`, `DescribeSpec`, `ShouldSpec`, `WordSpec`, `FreeSpec`, `BehaviorSpec`, `FeatureSpec`, `ExpectSpec`, and `AnnotationSpec` together with the `test`/`it`/`should`/`then`/`scenario`/`expect` case words, the `describe`/`context`/`given`/`When`/`and`/`feature` group words, the `x`-prefixed disabled spellings, the StringSpec `"name" { }` string-invoke form, the WordSpec `"subject" should { }` infix form, and the FreeSpec `"subject" - { }` operator form; [Kotest lifecycle hooks](https://kotest.io/docs/framework/lifecycle-hooks.html) define `beforeTest`/`afterTest`, `beforeEach`/`afterEach`, and `beforeAll`/`afterAll`; [Spek](https://www.spekframework.org/) defines the `describe`/`it` specification style and the `beforeEachTest`/`afterEachTest` and `beforeGroup`/`afterGroup` hooks.
+
+## Kotlin named contract and exclusions
+
+Kotlin publishes roles from two independent sources and both are adopted.
+
+The annotation source is Java's. `java` and `kotlin` share `detect_java_kotlin`,
+the annotation key lists, and `mark_java_test_containers`, so JUnit 3/4/5,
+TestNG, and kotlin.test all classify from the same rules. kotlin.test's
+`@BeforeTest` and `@AfterTest` share the TestNG keys `beforetest` and
+`aftertest`, so they need no Kotlin-only arm.
+`fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt` is the evidence,
+and it also carries the TestNG class-level rule for Kotlin: Kotlin members of a
+class earn `SymbolKind::Method` and `Visibility::Public` by default, which is
+exactly what that rule requires, so `LedgerTestNgTest.postsAnEntry` is a case
+and the private `helperTotal` stays unclassified.
+
+The call source is Kotest and Spek. Three of those forms are not named calls at
+all, and each names the Kotest function that declares it:
+
+- StringSpec, and the leaf step of WordSpec and FreeSpec, write a case as
+  `"name" { }`. Kotest declares that with
+  `operator fun String.invoke(test: suspend TestScope.() -> Unit)`, so the
+  captured callee is `invoke`.
+- WordSpec opens a group with `"subject" should { }`, an infix extension on
+  `String`, so the captured callee is `should` and the group is named
+  `"subject should"`.
+- FreeSpec opens a group with `"subject" - { }`, declared as
+  `operator fun String.minus(...)`, so the captured callee is `minus`.
+
+Subtracting or invoking a lambda on a string has no other meaning in Kotlin,
+which is what makes those three guards safe.
+
+The `x`-prefixed spellings — `xdescribe`, `xcontext`, `xit`, `xtest` — earn the
+same role as the enabled spelling, because the runner reports a disabled step as
+skipped rather than dropping it.
+
+A Kotest or Spek spec class carries no annotation, so
+`mark_kotlin_test_containers` takes two proofs and either one is enough: the
+class extends a named spec base type, or a call-DSL step already earned a role
+and named the class as its parent. The second proof is what catches a project's
+own spec base class, which no name list can know.
+
+That container marker is what lets Kotlin take the same scoping the Java row
+describes. `normalize_scoped_test_roles` now runs for every language that
+reaches `mark_java_test_containers`, and the Java-only gate is deleted.
+`LedgerTestHelpers.testDataForLedger` in the kotlin.test golden is the control
+that must lose its name-convention role.
+
+Backticked names are normalized. Kotlin lets a test method be written
+`` fun `adds two numbers`() `` and the grammar keeps the backticks in the
+identifier text, but every runner and report prints the name without them.
+`symbols.name` and `identifiers.name` are therefore both stripped, so a call
+site still matches its definition, and the escaped spelling stays available in
+the symbol signature and in the `rawName` metadata key.
+
+A lifecycle hook is written `beforeEach { }`, so the call adapter names the
+symbol after the callee. The containing-symbol lookup then returned that same
+symbol for the call node it was built from, and resolving the callee found it
+again — a `beforeEach` calls `beforeEach` edge that describes nothing. A symbol
+whose span is exactly the call node no longer opens a call edge; a declaration
+never shares a span with a call expression, so a recursive function keeps its
+real self-call edge.
+
+Two named Kotest surfaces are excluded and recorded as `open_gaps` on the kotlin
+row: data-driven testing (`forAll(rows) { … }`, where the rows are call
+arguments rather than declarations, so there is no per-row symbol and no
+`parameterized_test` role) and property testing (`checkAll`/`forAll` over
+generators inside an already-classified step, so the generator block carries no
+role of its own). Both sit under `kind_coverage.structural_facts.open_gaps`
+rather than `test_detection`, for the same reason as the java, csharp, and ruby
+entries: the `test_detection` vocabulary is frozen to three units and each is
+already classified exactly once for kotlin.
+
+Gradle's extra test source sets need no Kotlin rule: `is_test_path` already
+accepts `integrationTest`, `functionalTest`, `androidTest`, and `testFixtures`.
+
+Real-world precision and recall measurements are in `docs/languages/kotlin.md`.
 
 ## C# named exclusions
 

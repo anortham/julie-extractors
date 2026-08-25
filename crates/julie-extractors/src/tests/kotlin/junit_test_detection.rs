@@ -215,3 +215,190 @@ class OrderService {
         );
     }
 }
+
+fn test_role(symbol: &crate::base::Symbol) -> Option<String> {
+    symbol
+        .metadata
+        .as_ref()
+        .and_then(|m| m.get("test_role"))
+        .and_then(|v| v.as_str())
+        .map(str::to_string)
+}
+
+#[test]
+fn kotlin_test_lifecycle_annotations_are_fixture_hooks() {
+    let code = r#"
+class KotlinTestLifecycle {
+    @BeforeTest
+    fun prepare() {
+    }
+
+    @AfterTest
+    fun cleanUp() {
+    }
+
+    @Test
+    fun caseOne() {
+    }
+}
+"#;
+    let syms = symbols(code, "src/test/kotlin/KotlinTestLifecycle.kt");
+    assert_eq!(
+        test_role(named(&syms, "prepare")).as_deref(),
+        Some("fixture_setup")
+    );
+    assert_eq!(
+        test_role(named(&syms, "cleanUp")).as_deref(),
+        Some("fixture_teardown")
+    );
+    assert_eq!(
+        test_role(named(&syms, "caseOne")).as_deref(),
+        Some("test_case")
+    );
+}
+
+#[test]
+fn parameterized_and_repeated_annotations_report_parameterized_test() {
+    let code = r#"
+class ParameterizedTests {
+    @ParameterizedTest
+    fun addsEachRow() {
+    }
+
+    @RepeatedTest
+    fun repeatsTheCase() {
+    }
+
+    @TestFactory
+    fun buildsCases() {
+    }
+
+    @TestTemplate
+    fun templatesTheCase() {
+    }
+}
+"#;
+    let syms = symbols(code, "src/test/kotlin/ParameterizedTests.kt");
+    assert_eq!(
+        test_role(named(&syms, "addsEachRow")).as_deref(),
+        Some("parameterized_test")
+    );
+    assert_eq!(
+        test_role(named(&syms, "repeatsTheCase")).as_deref(),
+        Some("parameterized_test")
+    );
+    assert_eq!(
+        test_role(named(&syms, "buildsCases")).as_deref(),
+        Some("test_case")
+    );
+    assert_eq!(
+        test_role(named(&syms, "templatesTheCase")).as_deref(),
+        Some("test_case")
+    );
+}
+
+#[test]
+fn testng_class_level_test_runs_public_members_as_cases() {
+    let code = r#"
+@Test
+class LedgerTestNgTest {
+    fun postsAnEntry() {
+    }
+
+    private fun helperTotal(): Int {
+        return 0
+    }
+
+    @BeforeMethod
+    fun prepare() {
+    }
+}
+"#;
+    let syms = symbols(code, "src/test/kotlin/LedgerTestNgTest.kt");
+
+    let member = named(&syms, "postsAnEntry");
+    assert_eq!(member.kind, SymbolKind::Method);
+    assert_eq!(member.visibility, Some(crate::base::Visibility::Public));
+    assert_eq!(test_role(member).as_deref(), Some("test_case"));
+
+    let helper = named(&syms, "helperTotal");
+    assert_eq!(test_role(helper), None, "a private member is not a case");
+
+    assert_eq!(
+        test_role(named(&syms, "prepare")).as_deref(),
+        Some("fixture_setup"),
+        "a hook annotation wins over the class-level rule"
+    );
+
+    assert!(role(named(&syms, "LedgerTestNgTest"), "test_container"));
+}
+
+#[test]
+fn backtick_names_are_stripped_from_symbol_names() {
+    let code = r#"
+class BacktickTests {
+    @Test
+    fun `adds two numbers and returns the sum`() {
+    }
+}
+"#;
+    let syms = symbols(code, "src/test/kotlin/BacktickTests.kt");
+    let case = named(&syms, "adds two numbers and returns the sum");
+    assert_eq!(test_role(case).as_deref(), Some("test_case"));
+    assert_eq!(
+        case.signature.as_deref(),
+        Some("@Test fun `adds two numbers and returns the sum`()"),
+        "the signature keeps the source spelling"
+    );
+    assert_eq!(
+        case.metadata
+            .as_ref()
+            .and_then(|m| m.get("rawName"))
+            .and_then(|v| v.as_str()),
+        Some("`adds two numbers and returns the sum`")
+    );
+}
+
+#[test]
+fn backtick_call_sites_match_the_stripped_definition_name() {
+    let code = r#"
+class BacktickTests {
+    @Test
+    fun `adds two numbers`() {
+    }
+
+    fun rerun() {
+        `adds two numbers`()
+    }
+}
+"#;
+    let mut parser = Parser::new();
+    parser
+        .set_language(&tree_sitter_kotlin_ng::LANGUAGE.into())
+        .expect("load Kotlin grammar");
+    let tree = parser.parse(code, None).expect("parse Kotlin");
+    let mut ext = KotlinExtractor::new(
+        "kotlin".to_string(),
+        "src/test/kotlin/BacktickTests.kt".to_string(),
+        code.to_string(),
+        &PathBuf::from("/test/workspace"),
+    );
+    let syms = ext.extract_symbols(&tree);
+    let identifiers = ext.extract_identifiers(&tree, &syms);
+    let relationships = ext.extract_relationships(&tree, &syms);
+
+    let case = named(&syms, "adds two numbers");
+    let caller = named(&syms, "rerun");
+    assert!(
+        relationships
+            .iter()
+            .any(|r| r.from_symbol_id == caller.id && r.to_symbol_id == case.id),
+        "a backticked call must resolve to the stripped definition; got {relationships:?}"
+    );
+    assert!(
+        identifiers
+            .iter()
+            .any(|identifier| identifier.name == "adds two numbers"),
+        "identifier names must be stripped too; got {identifiers:?}"
+    );
+}

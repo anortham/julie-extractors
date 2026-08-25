@@ -207,6 +207,9 @@ fn collect_base_type_entries(base: &BaseExtractor, node: &Node) -> Vec<BaseTypeE
         }
     }
 
+    for entry in &mut base_type_entries {
+        entry.name = super::helpers::strip_backticks(&entry.name).to_string();
+    }
     base_type_entries
 }
 
@@ -216,10 +219,7 @@ fn find_class_symbol<'a>(
     node: &Node,
     symbols: &'a [Symbol],
 ) -> Option<&'a Symbol> {
-    let name_node = node
-        .children(&mut node.walk())
-        .find(|n| n.kind() == "identifier");
-    let class_name = name_node.map(|n| base.get_node_text(&n))?;
+    let (class_name, _) = super::helpers::declared_name(base, node)?;
 
     symbols.iter().find(|s| {
         s.name == class_name
@@ -310,7 +310,7 @@ fn extract_function_call_relationship(
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
             if child.kind() == "identifier" || child.kind() == "simple_identifier" {
-                result = Some(base.get_node_text(&child));
+                result = Some(call_name(base, &child));
                 break;
             }
             // Handle navigation expressions (obj.method) - get the last identifier
@@ -319,7 +319,7 @@ fn extract_function_call_relationship(
                 let mut nav_cursor = child.walk();
                 for nav_child in child.children(&mut nav_cursor) {
                     if nav_child.kind() == "identifier" || nav_child.kind() == "simple_identifier" {
-                        last_id = Some(base.get_node_text(&nav_child));
+                        last_id = Some(call_name(base, &nav_child));
                     }
                 }
                 if last_id.is_some() {
@@ -339,6 +339,10 @@ fn extract_function_call_relationship(
         return;
     };
 
+    if symbol_spans_node(caller, &node) {
+        return;
+    }
+
     let target = unresolved_call_target(extractor, node, &function_name);
     let line_number = node.start_position().row as u32 + 1;
     let file_path = extractor.base().file_path.clone();
@@ -356,6 +360,19 @@ fn extract_function_call_relationship(
                 &node,
                 Some(caller.id.clone()),
                 Some(0.8),
+            );
+            extractor.add_structured_pending_relationship(pending);
+        }
+        LocalTargetResolution::Resolved(called_symbol)
+            if extractor.is_dsl_call_symbol(&called_symbol.id) =>
+        {
+            let pending = extractor.base().create_pending_relationship(
+                caller.id.clone(),
+                target,
+                RelationshipKind::Calls,
+                &node,
+                Some(caller.id.clone()),
+                Some(0.7),
             );
             extractor.add_structured_pending_relationship(pending);
         }
@@ -395,6 +412,22 @@ fn extract_function_call_relationship(
     }
 }
 
+/// Is `symbol` the symbol this very call node produced?
+///
+/// A Kotest or Spek lifecycle hook is written `beforeEach { }`, so the call
+/// adapter names the symbol after the callee. The containing-symbol lookup then
+/// returns that same symbol for the call node it was built from, and resolving
+/// the callee finds it again — a `beforeEach` calls `beforeEach` edge that
+/// describes nothing. A declaration never shares a span with a call expression,
+/// so a recursive function keeps its real self-call edge.
+fn symbol_spans_node(symbol: &Symbol, node: &Node) -> bool {
+    symbol.start_byte as usize == node.start_byte() && symbol.end_byte as usize == node.end_byte()
+}
+
+fn call_name(base: &BaseExtractor, node: &Node) -> String {
+    super::helpers::strip_backticks(&base.get_node_text(node)).to_string()
+}
+
 fn unresolved_call_target(
     extractor: &KotlinExtractor,
     node: Node,
@@ -404,14 +437,14 @@ fn unresolved_call_target(
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         if child.kind() == "identifier" || child.kind() == "simple_identifier" {
-            identifiers.push(extractor.base().get_node_text(&child));
+            identifiers.push(call_name(extractor.base(), &child));
         }
         // Descend into navigation_expression to collect receiver and method identifiers
         if child.kind() == "navigation_expression" {
             let mut nav_cursor = child.walk();
             for nav_child in child.children(&mut nav_cursor) {
                 if nav_child.kind() == "identifier" || nav_child.kind() == "simple_identifier" {
-                    identifiers.push(extractor.base().get_node_text(&nav_child));
+                    identifiers.push(call_name(extractor.base(), &nav_child));
                 }
             }
         }

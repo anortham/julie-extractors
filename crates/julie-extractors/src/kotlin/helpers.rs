@@ -3,8 +3,77 @@
 //! This module provides utility functions for extracting modifiers, visibility,
 //! type information, and other metadata from Kotlin code.
 
-use crate::base::{AnnotationMarker, SymbolKind, Visibility, normalize_annotations};
+use crate::base::{AnnotationMarker, BaseExtractor, SymbolKind, Visibility, normalize_annotations};
 use tree_sitter::Node;
+
+/// Drop the escaping backticks from a Kotlin identifier.
+///
+/// Kotlin lets any identifier be written `` `like this` ``, and the grammar keeps
+/// the backticks in the identifier node text. Every runner and report — JUnit,
+/// Gradle, Kotest — prints the name without them, so a consumer matching a
+/// report line against a symbol name never sees the escaped spelling. The
+/// escaped spelling stays available in the symbol signature and in `rawName`.
+pub(super) fn strip_backticks(name: &str) -> &str {
+    name.strip_prefix('`')
+        .and_then(|rest| rest.strip_suffix('`'))
+        .unwrap_or(name)
+}
+
+/// The declared name of `node`'s first `identifier` child, without backticks.
+pub(super) fn declared_name(base: &BaseExtractor, node: &Node) -> Option<(String, String)> {
+    let raw = node
+        .children(&mut node.walk())
+        .find(|n| n.kind() == "identifier")
+        .map(|n| base.get_node_text(&n))?;
+    let display = strip_backticks(&raw).to_string();
+    Some((display, raw))
+}
+
+/// Base type names of a Kotlin declaration, one clean type name per supertype.
+///
+/// [`extract_super_types`] returns the source text for the signature, which for
+/// `StringSpec({ … })` is the whole constructor invocation including the spec
+/// lambda. A container pass needs the type name alone, so this walks the same
+/// delegation specifiers and keeps only the `user_type`.
+pub(super) fn collect_base_type_names(base: &BaseExtractor, node: &Node) -> Vec<String> {
+    let mut names = Vec::new();
+    let container = node
+        .children(&mut node.walk())
+        .find(|n| n.kind() == "delegation_specifiers");
+    let specifiers: Vec<Node> = match container {
+        Some(container) => container
+            .children(&mut container.walk())
+            .filter(|n| n.kind() == "delegation_specifier")
+            .collect(),
+        None => node
+            .children(&mut node.walk())
+            .filter(|n| n.kind() == "delegation_specifier")
+            .collect(),
+    };
+
+    for specifier in specifiers {
+        if let Some(name) = base_type_name(base, &specifier) {
+            names.push(name);
+        }
+    }
+    names
+}
+
+fn base_type_name(base: &BaseExtractor, specifier: &Node) -> Option<String> {
+    let type_node = specifier.children(&mut specifier.walk()).find(|n| {
+        matches!(
+            n.kind(),
+            "type" | "user_type" | "identifier" | "constructor_invocation" | "explicit_delegation"
+        )
+    })?;
+    let named = match type_node.kind() {
+        "constructor_invocation" | "explicit_delegation" => type_node
+            .children(&mut type_node.walk())
+            .find(|n| matches!(n.kind(), "user_type" | "type" | "identifier"))?,
+        _ => type_node,
+    };
+    Some(strip_backticks(&base.get_node_text(&named)).to_string())
+}
 
 /// Extract modifiers from a Kotlin node (public, private, open, sealed, data, etc.)
 pub(super) fn extract_modifiers(

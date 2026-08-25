@@ -16,10 +16,7 @@ pub(super) fn extract_function(
     node: &Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    let name_node = node
-        .children(&mut node.walk())
-        .find(|n| n.kind() == "identifier");
-    let name = name_node.map(|n| base.get_node_text(&n))?;
+    let (name, raw_name) = helpers::declared_name(base, node)?;
 
     let modifiers = helpers::extract_modifiers(base, node);
     let annotations = helpers::extract_annotations(base, node);
@@ -45,9 +42,9 @@ pub(super) fn extract_function(
 
     // Add receiver type for extension functions (e.g., String.functionName)
     if let Some(receiver_type) = receiver_type {
-        signature.push_str(&format!(" {}.{}", receiver_type, name));
+        signature.push_str(&format!(" {}.{}", receiver_type, raw_name));
     } else {
-        signature.push_str(&format!(" {}", name));
+        signature.push_str(&format!(" {}", raw_name));
     }
 
     signature.push_str(&parameters.unwrap_or_else(|| "()".to_string()));
@@ -102,6 +99,7 @@ pub(super) fn extract_function(
     if let Some(return_type) = return_type {
         metadata.insert("returnType".to_string(), Value::String(return_type));
     }
+    super::types::record_raw_name(&name, &raw_name, &mut metadata);
 
     // Extract KDoc comment
     let doc_comment = base.find_doc_comment(node);
@@ -282,10 +280,7 @@ pub(super) fn extract_type_alias(
     node: &Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    let name = node
-        .children(&mut node.walk())
-        .find(|n| n.kind() == "identifier")
-        .map(|n| base.get_node_text(&n))?;
+    let (name, raw_name) = helpers::declared_name(base, node)?;
 
     let modifiers = helpers::extract_modifiers(base, node);
     let type_params = helpers::extract_type_parameters(base, node);
@@ -306,7 +301,7 @@ pub(super) fn extract_type_alias(
             .join(" ");
     }
 
-    let mut signature = format!("typealias {}", name);
+    let mut signature = format!("typealias {}", raw_name);
 
     if !modifiers.is_empty() {
         signature = format!("{} {}", modifiers.join(" "), signature);
@@ -325,6 +320,13 @@ pub(super) fn extract_type_alias(
     // Extract KDoc comment
     let doc_comment = base.find_doc_comment(node);
 
+    let mut metadata = HashMap::from([
+        ("type".to_string(), Value::String("typealias".to_string())),
+        ("modifiers".to_string(), Value::String(modifiers.join(","))),
+        ("aliasedType".to_string(), Value::String(aliased_type)),
+    ]);
+    super::types::record_raw_name(&name, &raw_name, &mut metadata);
+
     Some(base.create_symbol(
         node,
         name,
@@ -333,11 +335,7 @@ pub(super) fn extract_type_alias(
             signature: Some(signature),
             visibility: Some(visibility),
             parent_id: parent_id.map(|s| s.to_string()),
-            metadata: Some(HashMap::from([
-                ("type".to_string(), Value::String("typealias".to_string())),
-                ("modifiers".to_string(), Value::String(modifiers.join(","))),
-                ("aliasedType".to_string(), Value::String(aliased_type)),
-            ])),
+            metadata: Some(metadata),
             doc_comment,
             annotations,
         },
