@@ -10,16 +10,13 @@ use std::collections::{HashMap, HashSet};
 /// Which side of a fixture a test lifecycle hook runs on.
 ///
 /// `Ambiguous` covers a hook that wraps a test case on both sides, such as an
-/// RSpec `around` block. It resolves to [`TestRole::FixtureSetup`] because a
-/// wrapping hook always runs its setup half first.
+/// RSpec `around` block or Go's `TestMain`. It resolves to
+/// [`TestRole::FixtureSetup`] because a wrapping hook always runs its setup
+/// half first.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum TestLifecycleDirection {
     Setup,
     Teardown,
-    #[allow(
-        dead_code,
-        reason = "no supported language reports an around-style hook yet"
-    )]
     Ambiguous,
     None,
 }
@@ -453,6 +450,7 @@ fn is_test_lifecycle(
         }
         "python" => python_test_lifecycle_direction(name, annotation_keys),
         "rust" => rust_test_lifecycle_direction(annotation_keys),
+        "go" => go_test_lifecycle_direction(name),
         "bash" => bash_test_lifecycle_direction(name),
         "gdscript" => gdscript_test_lifecycle_direction(name),
         "qml" => qml_test_lifecycle_direction(name),
@@ -807,11 +805,92 @@ pub(crate) fn mark_python_test_containers(symbols: &mut [Symbol]) {
     }
 }
 
+/// `go test` compiles only the files whose name ends in `_test.go`, so every Go
+/// test role is gated on that suffix. Both separators are accepted so a
+/// Windows-spelled path reads the same.
+pub(crate) fn is_go_test_file(file_path: &str) -> bool {
+    file_path
+        .rsplit(PATH_SEPARATORS)
+        .next()
+        .unwrap_or(file_path)
+        .ends_with("_test.go")
+}
+
+/// Name prefixes that `go test` reports as their own result.
+///
+/// `Benchmark` is included because `go test -list` lists benchmarks beside
+/// tests, fuzz targets, and examples, so a benchmark-only file must not be
+/// invisible to a test-aware consumer.
+const GO_TEST_CASE_PREFIXES: [&str; 4] = ["Test", "Benchmark", "Fuzz", "Example"];
+
+/// `go` requires the character after the prefix to not be a lower-case letter,
+/// so `Testable` stays production code while `Test_adds` is a case.
+fn matches_go_test_prefix(name: &str, prefix: &str) -> bool {
+    name.strip_prefix(prefix)
+        .is_some_and(|suffix| !suffix.starts_with(char::is_lowercase))
+}
+
+fn is_go_test_case_name(name: &str) -> bool {
+    GO_TEST_CASE_PREFIXES
+        .iter()
+        .any(|prefix| matches_go_test_prefix(name, prefix))
+}
+
+/// `TestMain` wraps the whole package run around `m.Run()`, so it is an
+/// around-style hook, not a case. testify spells its hooks `SetupXxx`,
+/// `TearDownXxx`, `BeforeTest`, and `AfterTest`; gocheck spells them `SetUpXxx`
+/// and `TearDownXxx`.
+fn go_test_lifecycle_direction(name: &str) -> TestLifecycleDirection {
+    match name {
+        "TestMain" => TestLifecycleDirection::Ambiguous,
+        "SetupSuite" | "SetupTest" | "SetupSubTest" | "BeforeTest" | "SetUpSuite" | "SetUpTest" => {
+            TestLifecycleDirection::Setup
+        }
+        "TearDownSuite" | "TearDownTest" | "TearDownSubTest" | "AfterTest" => {
+            TestLifecycleDirection::Teardown
+        }
+        _ => TestLifecycleDirection::None,
+    }
+}
+
 fn detect_go(name: &str, file_path: &str) -> bool {
-    // Go tests require BOTH: recognized prefix AND _test.go file suffix
-    let file_name = file_path.rsplit('/').next().unwrap_or(file_path);
-    (name.starts_with("Test") || name.starts_with("Fuzz") || name.starts_with("Example"))
-        && file_name.ends_with("_test.go")
+    is_go_test_file(file_path)
+        && (is_go_test_case_name(name) || go_test_lifecycle_direction(name).is_lifecycle())
+}
+
+/// Mark a testify suite struct as a test container.
+///
+/// testify runs a suite by embedding `suite.Suite` in a struct declared in a
+/// `_test.go` file, and the suite's methods attach through their receiver type.
+/// An aliased import spells the embedded type with a different qualifier, so
+/// the rule keys on a qualified embedded type whose final segment is `Suite`.
+pub(crate) fn mark_go_test_containers(symbols: &mut [Symbol]) {
+    let suite_struct_ids: HashSet<String> = symbols
+        .iter()
+        .filter(|symbol| symbol.kind == SymbolKind::Field)
+        .filter(|symbol| is_go_test_file(&symbol.file_path))
+        .filter(|symbol| metadata_flag(symbol, "go_embedded"))
+        .filter(|symbol| embeds_go_test_suite(symbol))
+        .filter_map(|symbol| symbol.parent_id.clone())
+        .collect();
+
+    for symbol in symbols
+        .iter_mut()
+        .filter(|symbol| symbol.kind == SymbolKind::Struct)
+        .filter(|symbol| suite_struct_ids.contains(&symbol.id))
+    {
+        mark_class_test_container(symbol);
+    }
+}
+
+fn embeds_go_test_suite(symbol: &Symbol) -> bool {
+    symbol
+        .metadata
+        .as_ref()
+        .and_then(|metadata| metadata.get("embedded_type"))
+        .and_then(|value| value.as_str())
+        .map(|embedded| embedded.trim_start_matches('*'))
+        .is_some_and(|embedded| matches!(embedded.rsplit_once('.'), Some((_, "Suite"))))
 }
 
 /// Known limitation: in Jest/Mocha, `test()`/`describe()` are call expressions, not named

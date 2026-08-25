@@ -1,5 +1,5 @@
 use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility};
-use crate::test_detection::is_test_symbol;
+use crate::test_detection::apply_callable_test_metadata;
 use regex::Regex;
 use std::collections::HashMap;
 use std::sync::LazyLock;
@@ -50,16 +50,15 @@ impl super::GoExtractor {
             };
             let id = self.base.generate_id_for_span(&name, &span);
             let mut metadata = HashMap::new();
-            if is_test_symbol(
+            apply_callable_test_metadata(
                 "go",
                 &name,
                 &self.base.file_path,
                 &SymbolKind::Function,
                 &[],
                 None,
-            ) {
-                metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
-            }
+                &mut metadata,
+            );
             let symbol = Symbol {
                 id: id.clone(),
                 name: name.clone(),
@@ -151,16 +150,15 @@ impl super::GoExtractor {
         let annotations = self.annotations_from_compiler_directives(&node);
 
         let mut metadata = HashMap::new();
-        if is_test_symbol(
+        apply_callable_test_metadata(
             "go",
             &name,
             &self.base.file_path,
             &SymbolKind::Function,
             &[],
             doc_comment.as_deref(),
-        ) {
-            metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
-        }
+            &mut metadata,
+        );
 
         let symbol = self.base.create_symbol(
             &node,
@@ -258,16 +256,15 @@ impl super::GoExtractor {
         let annotations = self.annotations_from_compiler_directives(&node);
 
         let mut metadata = HashMap::new();
-        if is_test_symbol(
+        apply_callable_test_metadata(
             "go",
             &name,
             &self.base.file_path,
             &SymbolKind::Method,
             &[],
             doc_comment.as_deref(),
-        ) {
-            metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
-        }
+            &mut metadata,
+        );
 
         let symbol = self.base.create_symbol(
             &node,

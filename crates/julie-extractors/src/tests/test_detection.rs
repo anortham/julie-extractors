@@ -558,13 +558,48 @@ fn go_test_name_not_in_test_file() {
 }
 
 #[test]
-fn go_benchmark_not_test() {
-    // BenchmarkX isn't a test function for our purposes
-    assert!(!check(
+fn go_benchmark_in_test_file() {
+    assert!(check(
         "go",
         "BenchmarkProcess",
         "payment/payment_test.go",
         &SymbolKind::Function,
+        &[],
+        None,
+    ));
+}
+
+#[test]
+fn go_lower_case_suffix_is_not_a_test() {
+    assert!(!check(
+        "go",
+        "Testable",
+        "payment/payment_test.go",
+        &SymbolKind::Function,
+        &[],
+        None,
+    ));
+}
+
+#[test]
+fn go_testify_lifecycle_method_in_test_file() {
+    assert!(check(
+        "go",
+        "SetupTest",
+        "payment/payment_test.go",
+        &SymbolKind::Method,
+        &[],
+        None,
+    ));
+}
+
+#[test]
+fn go_testify_lifecycle_method_outside_test_file() {
+    assert!(!check(
+        "go",
+        "SetupTest",
+        "payment/helpers.go",
+        &SymbolKind::Method,
         &[],
         None,
     ));
@@ -2281,6 +2316,44 @@ fn qml_cleanup_test_case_carries_the_fixture_teardown_role() {
 #[test]
 fn swift_test_case_without_a_lifecycle_arm_carries_the_test_case_role() {
     let metadata = callable_test_metadata("swift", "testAddition", "Tests/CalcTests.swift", &[]);
+    assert_eq!(role(&metadata), Some("test_case"));
+    assert!(!metadata.contains_key("test_lifecycle"));
+}
+
+#[test]
+fn go_test_main_carries_the_fixture_setup_role() {
+    let metadata = callable_test_metadata("go", "TestMain", "payment/payment_test.go", &[]);
+    assert_eq!(role(&metadata), Some("fixture_setup"));
+    assert!(flag(&metadata, "test_lifecycle"));
+}
+
+#[test]
+fn go_testify_setup_suite_carries_the_fixture_setup_role() {
+    let metadata = callable_test_metadata("go", "SetupSuite", "payment/payment_test.go", &[]);
+    assert_eq!(role(&metadata), Some("fixture_setup"));
+}
+
+#[test]
+fn go_testify_tear_down_test_carries_the_fixture_teardown_role() {
+    let metadata = callable_test_metadata("go", "TearDownTest", "payment/payment_test.go", &[]);
+    assert_eq!(role(&metadata), Some("fixture_teardown"));
+}
+
+#[test]
+fn go_gocheck_set_up_test_carries_the_fixture_setup_role() {
+    let metadata = callable_test_metadata("go", "SetUpTest", "payment/payment_test.go", &[]);
+    assert_eq!(role(&metadata), Some("fixture_setup"));
+}
+
+#[test]
+fn go_after_test_carries_the_fixture_teardown_role() {
+    let metadata = callable_test_metadata("go", "AfterTest", "payment/payment_test.go", &[]);
+    assert_eq!(role(&metadata), Some("fixture_teardown"));
+}
+
+#[test]
+fn go_benchmark_carries_the_test_case_role() {
+    let metadata = callable_test_metadata("go", "BenchmarkAdds", "payment/payment_test.go", &[]);
     assert_eq!(role(&metadata), Some("test_case"));
     assert!(!metadata.contains_key("test_lifecycle"));
 }

@@ -11,8 +11,10 @@ use crate::base::{
     BaseExtractor, Identifier, PendingRelationship, Relationship, StructuredPendingRelationship,
     Symbol, SymbolKind,
 };
+use crate::test_calls::TestCallCategory;
+use crate::test_detection::{mark_go_test_containers, normalize_scoped_test_roles};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use tree_sitter::{Node, Tree};
 
 /// Go language extractor that handles Go-specific constructs including:
@@ -24,6 +26,9 @@ use tree_sitter::{Node, Tree};
 /// - Interface implementations and embedding
 pub struct GoExtractor {
     pub(crate) base: BaseExtractor,
+    ginkgo_enabled: bool,
+    ginkgo_node_ids: HashSet<String>,
+    ginkgo_scoped_ids: HashSet<String>,
 }
 
 impl GoExtractor {
@@ -35,6 +40,9 @@ impl GoExtractor {
     ) -> Self {
         Self {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
+            ginkgo_enabled: false,
+            ginkgo_node_ids: HashSet::new(),
+            ginkgo_scoped_ids: HashSet::new(),
         }
     }
 
@@ -67,12 +75,65 @@ impl GoExtractor {
 
     /// Extract symbols from Go source code - direct port from reference logic
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
+        self.ginkgo_enabled = test_calls::file_enables_ginkgo(&self.base, tree.root_node());
+
         let mut symbols = Vec::new();
         self.walk_tree(tree.root_node(), &mut symbols, None, 0);
         self.recover_function_symbols_from_source(&mut symbols);
 
         // Prioritize functions over fields with the same name (reference logic)
-        self.prioritize_functions_over_fields(symbols)
+        let mut symbols = self.prioritize_functions_over_fields(symbols);
+        self.scope_ginkgo_test_roles(&mut symbols);
+        mark_go_test_containers(&mut symbols);
+        symbols
+    }
+
+    /// Keep a nested Ginkgo spec or hook only when another Ginkgo node encloses
+    /// it.
+    ///
+    /// Ginkgo builds its spec tree at file scope, and the suite itself is the
+    /// implicit root, so a top-level `It` or `BeforeSuite` is a real node and
+    /// keeps its role. A `It` written inside an ordinary function body is not:
+    /// Ginkgo builds the tree before any test runs, so a spec declared from a
+    /// plain helper never joins a suite. Scoping touches the captured Ginkgo
+    /// calls alone; a `TestXxx` function or a testify suite method is a root of
+    /// its own and keeps the role its name earned.
+    fn scope_ginkgo_test_roles(&self, symbols: &mut [Symbol]) {
+        if self.ginkgo_scoped_ids.is_empty() {
+            return;
+        }
+
+        let slots: Vec<usize> = symbols
+            .iter()
+            .enumerate()
+            .filter(|(_, symbol)| self.ginkgo_scoped_ids.contains(&symbol.id))
+            .map(|(slot, _)| slot)
+            .collect();
+        let mut scoped: Vec<Symbol> = slots.iter().map(|slot| symbols[*slot].clone()).collect();
+
+        normalize_scoped_test_roles(&mut scoped, &self.ginkgo_node_ids);
+
+        for (slot, symbol) in slots.into_iter().zip(scoped) {
+            symbols[slot] = symbol;
+        }
+    }
+
+    fn extract_ginkgo_call(&mut self, node: Node, parent_id: Option<&str>) -> Option<Symbol> {
+        if !self.ginkgo_enabled {
+            return None;
+        }
+
+        let call = test_calls::extract_ginkgo_test_call(&mut self.base, node, parent_id)?;
+        self.ginkgo_node_ids.insert(call.symbol.id.clone());
+        let nested_leaf = parent_id.is_some()
+            && matches!(
+                call.category,
+                TestCallCategory::Test | TestCallCategory::Lifecycle
+            );
+        if nested_leaf {
+            self.ginkgo_scoped_ids.insert(call.symbol.id.clone());
+        }
+        Some(call.symbol)
     }
 
     pub fn extract_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {
@@ -229,10 +290,7 @@ impl GoExtractor {
             "function_declaration" => self.extract_function(node, parent_id),
             "method_declaration" => self.extract_method(node, parent_id),
             // "field_declaration" handled in walk_tree (can produce multiple symbols)
-            "call_expression" => {
-                // Ginkgo/Gomega DSL: Describe/Context/It/BeforeEach/…
-                test_calls::extract_ginkgo_test_call(&mut self.base, node, parent_id)
-            }
+            "call_expression" => self.extract_ginkgo_call(node, parent_id),
             "ERROR" => self.extract_from_error_node(node, parent_id),
             _ => None,
         }

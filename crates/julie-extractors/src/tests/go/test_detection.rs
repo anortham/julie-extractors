@@ -27,7 +27,7 @@ use crate::base::Symbol;
 use crate::go::GoExtractor;
 use std::path::PathBuf;
 
-fn symbols(code: &str) -> Vec<Symbol> {
+fn symbols_in(file_path: &str, code: &str) -> Vec<Symbol> {
     let mut parser = tree_sitter::Parser::new();
     parser
         .set_language(&tree_sitter_go::LANGUAGE.into())
@@ -35,11 +35,15 @@ fn symbols(code: &str) -> Vec<Symbol> {
     let tree = parser.parse(code, None).expect("parse Go");
     let mut ext = GoExtractor::new(
         "go".to_string(),
-        "math_test.go".to_string(),
+        file_path.to_string(),
         code.to_string(),
         &PathBuf::from("/test/workspace"),
     );
     ext.extract_symbols(&tree)
+}
+
+fn symbols(code: &str) -> Vec<Symbol> {
+    symbols_in("math_test.go", code)
 }
 
 fn meta_bool(s: &Symbol, key: &str) -> bool {
@@ -175,4 +179,162 @@ func (s suite) run() {
         0,
         "selector calls with vocab names must NOT produce test-role metadata: {syms:?}"
     );
+}
+
+#[test]
+fn bare_ginkgo_vocabulary_in_production_go_is_not_a_test() {
+    let code = r#"package scheduler
+
+func Describe(name string, run func()) {}
+
+func It(name string, run func()) {}
+
+func Register() {
+    Describe("job queue", func() {
+        It("drains", func() {})
+    })
+}
+"#;
+    let syms = symbols_in("scheduler/scheduler.go", code);
+    assert_eq!(
+        syms.iter()
+            .filter(|s| meta_bool(s, "is_test") || meta_bool(s, "test_container"))
+            .count(),
+        0,
+        "production Go without a Ginkgo import must publish no test roles: {syms:?}"
+    );
+}
+
+#[test]
+fn ginkgo_import_enables_detection_outside_a_test_file() {
+    let code = r#"package shared
+
+import . "github.com/onsi/ginkgo/v2"
+
+var _ = Describe("shared behaviour", func() {
+    It("holds", func() {})
+})
+"#;
+    let syms = symbols_in("shared/behaviour.go", code);
+    let container = syms
+        .iter()
+        .find(|s| s.name == "shared behaviour")
+        .unwrap_or_else(|| panic!("expected Describe container, got: {syms:?}"));
+    assert!(meta_bool(container, "test_container"));
+    let case = syms
+        .iter()
+        .find(|s| s.name == "holds")
+        .unwrap_or_else(|| panic!("expected It case, got: {syms:?}"));
+    assert!(meta_bool(case, "is_test"));
+}
+
+#[test]
+fn ginkgo_leaf_without_a_container_ancestor_loses_its_role() {
+    let code = r#"package math_test
+
+func sharedExpectations() {
+    It("has no container", func() {})
+    BeforeEach(func() {})
+}
+
+var _ = Describe("math", func() {
+    It("has a container", func() {})
+})
+"#;
+    let syms = symbols(code);
+    let orphan = syms
+        .iter()
+        .find(|s| s.name == "has no container")
+        .unwrap_or_else(|| panic!("expected orphan It symbol, got: {syms:?}"));
+    assert!(!meta_bool(orphan, "is_test"));
+    let orphan_hook = syms
+        .iter()
+        .find(|s| s.name == "BeforeEach")
+        .unwrap_or_else(|| panic!("expected orphan BeforeEach symbol, got: {syms:?}"));
+    assert!(!meta_bool(orphan_hook, "is_test"));
+    let scoped = syms
+        .iter()
+        .find(|s| s.name == "has a container")
+        .unwrap_or_else(|| panic!("expected scoped It symbol, got: {syms:?}"));
+    assert!(meta_bool(scoped, "is_test"));
+}
+
+#[test]
+fn testify_suite_struct_is_a_test_container() {
+    let code = r#"package math_test
+
+import (
+    "sync"
+
+    "github.com/stretchr/testify/suite"
+)
+
+type CalculatorSuite struct {
+    suite.Suite
+}
+
+type recordingClock struct {
+    sync.Mutex
+}
+"#;
+    let syms = symbols(code);
+    let suite_struct = syms
+        .iter()
+        .find(|s| s.name == "CalculatorSuite")
+        .unwrap_or_else(|| panic!("expected suite struct, got: {syms:?}"));
+    assert!(meta_bool(suite_struct, "test_container"));
+    let control = syms
+        .iter()
+        .find(|s| s.name == "recordingClock")
+        .unwrap_or_else(|| panic!("expected control struct, got: {syms:?}"));
+    assert!(!meta_bool(control, "test_container"));
+}
+
+#[test]
+fn a_suite_struct_outside_a_test_file_is_not_a_container() {
+    let code = r#"package harness
+
+import "github.com/stretchr/testify/suite"
+
+type CalculatorSuite struct {
+    suite.Suite
+}
+"#;
+    let syms = symbols_in("harness/harness.go", code);
+    let suite_struct = syms
+        .iter()
+        .find(|s| s.name == "CalculatorSuite")
+        .unwrap_or_else(|| panic!("expected suite struct, got: {syms:?}"));
+    assert!(!meta_bool(suite_struct, "test_container"));
+}
+
+#[test]
+fn go_test_main_and_benchmark_carry_lifecycle_and_case_roles() {
+    let code = r#"package math_test
+
+import "testing"
+
+func TestMain(m *testing.M) {}
+
+func BenchmarkAdds(b *testing.B) {}
+
+func Testable(t *testing.T) {}
+"#;
+    let syms = symbols(code);
+    let main = syms
+        .iter()
+        .find(|s| s.name == "TestMain")
+        .unwrap_or_else(|| panic!("expected TestMain, got: {syms:?}"));
+    assert!(meta_bool(main, "test_lifecycle"));
+    let benchmark = syms
+        .iter()
+        .find(|s| s.name == "BenchmarkAdds")
+        .unwrap_or_else(|| panic!("expected BenchmarkAdds, got: {syms:?}"));
+    assert!(meta_bool(benchmark, "is_test"));
+    assert!(!meta_bool(benchmark, "test_lifecycle"));
+    let control = syms
+        .iter()
+        .find(|s| s.name == "Testable")
+        .unwrap_or_else(|| panic!("expected Testable, got: {syms:?}"));
+    assert!(!meta_bool(control, "is_test"));
 }

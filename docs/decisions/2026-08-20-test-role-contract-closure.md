@@ -25,6 +25,7 @@ Every row below has `test_detection.open_gaps: []` in
 | Python | pytest collection prefixes, `@pytest.mark.parametrize`, `@pytest.fixture`, pytest xunit hooks, and unittest fixtures in `python:test_roles` | supported | supported | supported |
 | C# | NUnit, MSTest, and xUnit.net attributes plus the xUnit constructor/`IDisposable`/`IAsyncLifetime` lifecycle in `csharp:test_roles` | supported | supported | supported |
 | JavaScript family (`javascript`, `jsx`, `typescript`, `tsx`) | Jest/Vitest, Playwright, Mocha BDD and TDD, `node:test`, and QUnit call DSLs, plus testdeck method decorators, in `javascript:test_roles`, `javascript:jest_vitest_roles`, `javascript:mocha_tdd_roles`, `jsx:test_roles`, `jsx:node_test_roles`, `typescript:test_roles`, `typescript:playwright_roles`, `tsx:test_roles`, and `tsx:qunit_roles` | supported | supported | supported |
+| Go | `go test` name prefixes and the `_test.go` compile gate, `TestMain`, testify suite embedding and hooks, gocheck hooks, and the Ginkgo v2 node vocabulary in `go:test_roles` | supported | supported | supported |
 
 The `not_applicable` cells are contract-level conclusions. Zig's `test`
 declarations provide no adopted lifecycle or suite syntax;
@@ -128,6 +129,7 @@ than `test_detection`, because the `test_detection` vocabulary is frozen to
 classified exactly once for rust. Real-world precision and recall measurements
 for the Rust changes are in `docs/languages/rust.md`.
 
+- Go: the [`go test` command documentation](https://pkg.go.dev/cmd/go#hdr-Testing_flags) and the [`testing` package](https://pkg.go.dev/testing) define the `_test.go` file suffix, the `TestXxx`/`BenchmarkXxx`/`FuzzXxx`/`ExampleXxx` name prefixes, the rule that the character after the prefix must not be lower-case, and `TestMain` as the package entry point that wraps `m.Run()`; [testify's suite package](https://pkg.go.dev/github.com/stretchr/testify/suite) defines the embedded `suite.Suite`, `SetupSuite`/`TearDownSuite`, `SetupTest`/`TearDownTest`, `SetupSubTest`/`TearDownSubTest`, and `BeforeTest`/`AfterTest` interfaces; [gocheck](https://pkg.go.dev/gopkg.in/check.v1) defines `SetUpSuite`/`TearDownSuite` and `SetUpTest`/`TearDownTest`; [Ginkgo v2](https://onsi.github.io/ginkgo/) defines the container, subject, and setup node vocabulary and states that the spec tree is built at file scope with the suite as the implicit root.
 - C#: [NUnit attributes](https://docs.nunit.org/articles/nunit/writing-tests/attributes.html) define `TestFixture`, `SetUpFixture`, `Test`, `TestCase`, `TestCaseSource`, `TestFixtureSource`, `SetUp`/`TearDown`, and `OneTimeSetUp`/`OneTimeTearDown`; [MSTest attributes](https://learn.microsoft.com/en-us/dotnet/core/testing/unit-testing-mstest-writing) define `TestClass`, `TestMethod`, `DataTestMethod`, `TestInitialize`/`TestCleanup`, `ClassInitialize`/`ClassCleanup`, and `AssemblyInitialize`/`AssemblyCleanup`; [xUnit.net shared context](https://xunit.net/docs/shared-context) defines the constructor, `IDisposable`, `IAsyncDisposable`, and `IAsyncLifetime` as the fixture hooks and `CollectionDefinition` as the collection declaration.
 
 ## C# named exclusions
@@ -205,6 +207,53 @@ callable literally named `describe`, `it`, or `test` inside a test file earns
 `test_case` through `detect_js_ts`. Measured cost across the express and zod
 corpora is 3 rows in 4,328; see `docs/languages/javascript.md`.
 
+## Go named decisions (2026-08-25)
+
+Go previously wrote `is_test` by hand in its extractor, so it could never
+publish a lifecycle or a container role. Go callables now go through
+`apply_callable_test_metadata` like every other language, and four contract
+decisions land with that change.
+
+`Benchmark` is a `test_case`. `go test -list` lists benchmarks beside tests,
+fuzz targets, and examples, and `go test -bench` runs them, so a benchmark is a
+selectable unit of work. The earlier rule excluded the prefix, which made a
+benchmark-only file invisible; the five corpora in `docs/languages/go.md`
+contain 142 such rows.
+
+`TestMain` is a lifecycle hook, not a case. It matches the `Test` prefix, but
+it wraps the whole package run around `m.Run()` and `go test -run` cannot
+select it. It is an around-style hook, so it takes
+`TestLifecycleDirection::Ambiguous` and reports the single honest direction,
+`fixture_setup`. Go is the first language to use that variant.
+
+A test container is a struct declared in a `_test.go` file that embeds a
+qualified type whose final segment is `Suite`. That is testify's `suite.Suite`,
+spelled so an aliased import still matches. Go attaches suite methods through
+their receiver type rather than through lexical nesting, so a suite method is
+not a child symbol of its struct; method roles come from the name plus the
+`_test.go` gate, and the container row records the suite itself.
+
+Ginkgo gets two guards, because its vocabulary is ordinary Go identifiers.
+Ginkgo calls are read as tests only when `go test` compiles the file or the
+file imports `github.com/onsi/ginkgo`. Inside such a file, a spec or hook
+written in an ordinary function body loses its role through
+`normalize_scoped_test_roles`, because Ginkgo builds its spec tree before any
+spec runs and a node declared at run time never joins a suite. Ginkgo treats
+the suite as the implicit root, so a top-level `It` or `BeforeSuite` is a real
+node and is deliberately left out of that scoping; scoping top-level nodes as
+well was measured first and dropped 39 real rows in Ginkgo's own repository,
+including every `BeforeSuite` and `AfterSuite`. The measured residual cost of
+the shipped rule is six rows out of 4,912.
+
+Three named gaps are recorded as `open_gaps` on the go row rather than claimed:
+`t.Run` subtest names (`go.subtest_names`), a `go.mod`/`go.sum` manifest
+language keyed on an exact basename the way `qmldir` is
+(`go.module_manifest_language`), and gocheck's `Suite(&T{})` container
+registration (`gocheck.suite_registration`). All three sit under
+`kind_coverage.structural_facts.open_gaps` for the same reason the C# entries
+do: the `test_detection` vocabulary is frozen to three roles and each is
+already classified exactly once for go.
+
 ## Registered evidence and controls
 
 The reconciliation registers these new goldens in the capability matrix:
@@ -212,8 +261,16 @@ The reconciliation registers these new goldens in the capability matrix:
 `html/test_roles`, `json/test_roles`, `markdown/test_roles`, `sql/test_roles`,
 `toml/trycmd_roles`, `toml/nextest_roles`, `yaml/test_roles`, and
 `xml/test_roles`. Existing `rust/test_roles`, `c/test_roles`,
-`cpp/test_roles`, `zig/test_roles`, and `csharp/test_roles` remain registered
-and are included in the matrix above.
+`cpp/test_roles`, `zig/test_roles`, `csharp/test_roles`, and `go/test_roles`
+remain registered and are included in the matrix above.
+
+`go/test_roles` was rewritten from an eleven-line stub into a realistic
+multi-framework file. It carries the standard-library prefixes including
+`TestMain`, a benchmark, a fuzz target, and an example; a testify suite with
+all four hook pairs; a gocheck suite; a Ginkgo tree; and four controls that
+must stay unclassified: `Testable` (lower-case character after the prefix),
+`AddsLikeATest`, a `recordingClock` struct embedding `sync.Mutex`, and an `It`
+declared inside a plain helper function.
 
 The JavaScript-family closure adds five framework goldens across the four
 dialect rows: `javascript/jest_vitest_roles`, `javascript/mocha_tdd_roles`,
