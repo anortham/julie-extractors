@@ -1,9 +1,9 @@
 ---
 id: ct-test-detection-readiness-17-task-remediation-br
 title: "CT test-detection readiness: 17-task remediation branch"
-status: active
+status: completed
 created: 2026-08-25T16:25:07.194Z
-updated: 2026-08-25T16:25:07.194Z
+updated: 2026-08-25T21:14:15.723Z
 tags:
   - ct
   - test-detection
