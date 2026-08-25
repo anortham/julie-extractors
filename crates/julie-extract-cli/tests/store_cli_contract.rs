@@ -9,7 +9,7 @@ use julie_extract_cli::store::report::{
     STORE_REPORT_SCHEMA_VERSION, StoreCommandOutcome, StoreCoordinatorDisposition,
     StoreFailureClass, StoreLevelCompletion, StoreManifestDisposition, StoreManifestReport,
     StoreOutputFormat, StoreOutputStream, StoreReport, StoreRequestState, StoreRequestedLevel,
-    StoreRowCounts,
+    StoreRowCounts, StoreWarningReport,
 };
 use julie_extractors::EXTRACTION_IDENTITY_EPOCH;
 use rusqlite::{Connection, OptionalExtension};
@@ -314,6 +314,54 @@ fn report_constructors_cannot_emit_an_unclassified_failure() {
         StoreReport::new("request-3", "family-1", "view-1", StoreRequestState::Queued)
             .with_failure(StoreFailureClass::None, "missing classification");
     assert_ne!(unclassified.failure_class, StoreFailureClass::None);
+}
+
+#[test]
+fn a_backlog_failure_is_reported_as_a_warning_and_leaves_a_committed_caller_committed() {
+    let report = StoreReport::new(
+        "request-mine",
+        "family-1",
+        "view-1",
+        StoreRequestState::Committed,
+    )
+    .with_warnings([StoreWarningReport {
+        class: StoreFailureClass::CoordinatorQuantum,
+        request_id: Some("request-theirs".to_string()),
+        message:
+            "coordinator_quantum: request \"request-theirs\" took 29000 ms; maximum is 4000 ms"
+                .to_string(),
+    }]);
+    let outcome = StoreCommandOutcome::queued(report);
+
+    assert_eq!(outcome.report().state, StoreRequestState::Committed);
+    assert_eq!(outcome.report().failure_class, StoreFailureClass::None);
+    assert!(outcome.report().error.is_none());
+    assert_eq!(outcome.exit_code(), STORE_EXIT_SUCCESS);
+
+    let json: Value = serde_json::from_str(&outcome.render_json()).unwrap();
+    assert_eq!(json["state"], "committed");
+    assert_eq!(json["failure_class"], "none");
+    assert_eq!(json["warnings"][0]["class"], "coordinator_quantum");
+    assert_eq!(json["warnings"][0]["request_id"], "request-theirs");
+    assert!(
+        outcome
+            .render_human()
+            .contains("warning: coordinator_quantum request=request-theirs:"),
+        "{}",
+        outcome.render_human()
+    );
+}
+
+#[test]
+fn a_report_without_warnings_keeps_the_warning_field_out_of_json() {
+    let outcome = StoreCommandOutcome::queued(StoreReport::new(
+        "request-1",
+        "family-1",
+        "view-1",
+        StoreRequestState::Queued,
+    ));
+    let json: Value = serde_json::from_str(&outcome.render_json()).unwrap();
+    assert!(json.get("warnings").is_none(), "{json}");
 }
 
 #[test]

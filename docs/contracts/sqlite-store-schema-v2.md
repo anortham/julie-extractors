@@ -10,6 +10,14 @@ Status: frozen Ph2d lifecycle catalog authority.
 > is dropped. The catalog fingerprints below are the post-retirement v2
 > authority. Historical resolution DDL below is no longer created.
 
+> **2026-08-25 quantum-overrun counter:** store/coord stay schema v2.
+> `requests` gains a final `quantum_overruns INTEGER NOT NULL DEFAULT 0` column
+> counting how many times a request's single quantum outran
+> `maximum_quantum_ms`. Coordinator open adds the column in place with
+> `ALTER TABLE` when an older `coord.db` lacks it, so no file is refused. The
+> column is declared last so the created and the altered catalog carry
+> byte-identical DDL. The coordinator fingerprint below covers it.
+
 All ordinary tables are `STRICT`. `store.db` timestamps are canonical RFC 3339 UTC text
 (`YYYY-MM-DDTHH:MM:SS[.fraction]Z`, with one to nine fractional digits when present); `coord.db`
 times are injected Unix-millisecond integers. Both databases use `PRAGMA user_version = 2`.
@@ -22,7 +30,7 @@ hashes the UTF-8 bytes with SHA-256.
 
 ```text catalog-authority
 store-catalog-sha256: c3786c3d483dc554c6170efe7b5bb6d97360ca05f2713d1c04ed0f0c8111109c
-coordinator-catalog-sha256: 60268286b62c818b1137ddd06639bb63fd512b64d45d0a990c7737f993fe12f4
+coordinator-catalog-sha256: 9f0efeb7720cd560298773589a6678ca2492492d56495afa9b05ed3ad2171bdb
 ```
 
 ## Store catalog additions
@@ -153,6 +161,11 @@ coord: uidx_coord_one_claimed_resolve(kind) WHERE kind = 'resolve' AND state = '
 
 It permits at most one claimed resolve request per family coordinator. Existing request-state,
 idempotency, writer-lease, queue, and stale-claim constraints remain unchanged.
+
+`requests.quantum_overruns` is non-negative and starts at `0`. The coordinator raises it by one each
+time a request's completed quantum outran `maximum_quantum_ms` for a kind that may not renew its
+lease. The count survives the requeue that follows, so it accumulates across separate drains in
+separate processes. It is never reset and never regresses.
 
 ## Exclusions
 

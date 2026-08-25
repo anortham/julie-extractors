@@ -83,7 +83,37 @@ pub(crate) fn ensure_read_symbol_indexes(conn: &Connection) -> Result<(), StoreS
 /// Creates or validates the independently versioned `coord.db` catalog.
 pub fn create_coordinator_schema(conn: &Connection) -> Result<(), StoreSchemaError> {
     create_schema(conn, "coord.db", COORDINATOR_SCHEMA_SQL)?;
+    add_request_quantum_overruns(conn)?;
     retire_coordinator_resolution_objects(conn)
+}
+
+/// Adds `requests.quantum_overruns` to a `coord.db` created before the column existed.
+///
+/// `CREATE TABLE IF NOT EXISTS` leaves an existing table untouched, so a catalog written by an
+/// earlier binary keeps the old column list. The column is additive with a non-null default, which
+/// an `ALTER TABLE` applies in place on a STRICT table, so no catalog version changes and no file
+/// is refused.
+///
+/// SQLite writes an added column after the last column and before the table constraints, so the
+/// declaration here and the one in `COORDINATOR_SCHEMA_SQL` must stay identical and stay last in
+/// the column list. Otherwise a created and an altered `coord.db` carry different catalog DDL and
+/// disagree on the checked-in catalog fingerprint.
+fn add_request_quantum_overruns(conn: &Connection) -> Result<(), StoreSchemaError> {
+    let present: bool = conn.query_row(
+        "SELECT EXISTS(
+           SELECT 1 FROM pragma_table_info('requests') WHERE name = 'quantum_overruns'
+         )",
+        [],
+        |row| row.get(0),
+    )?;
+    if present {
+        return Ok(());
+    }
+    conn.execute_batch(
+        "ALTER TABLE requests
+         ADD COLUMN quantum_overruns INTEGER NOT NULL DEFAULT 0 CHECK (quantum_overruns >= 0);",
+    )?;
+    Ok(())
 }
 
 pub(crate) fn validate_store_schema_version(conn: &Connection) -> Result<(), StoreSchemaError> {
@@ -1197,6 +1227,7 @@ CREATE TABLE IF NOT EXISTS requests (
   error_json TEXT,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
+  quantum_overruns INTEGER NOT NULL DEFAULT 0 CHECK (quantum_overruns >= 0),
   CHECK (
     (state = 'claimed'
       AND claim_owner IS NOT NULL

@@ -4,8 +4,8 @@ use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use julie_extract_artifact::store::{
-    CoordinatorError, CoordinatorPolicy, CoordinatorRequest, LeaseHolder, RequestKind,
-    RequestState, StoreCoordinator, StoreLayout, same_path_identity,
+    CoordinatorError, CoordinatorPolicy, CoordinatorRequest, LeaseHolder, QUANTUM_OVERRUN_CODE,
+    RequestKind, RequestState, StoreCoordinator, StoreLayout, same_path_identity,
 };
 use rusqlite::OptionalExtension;
 
@@ -18,6 +18,7 @@ use super::report::{
     StoreCommandOutcome, StoreCoordinatorDisposition, StoreErrorReport, StoreFailureClass,
     StoreLevelCompletion, StoreManifestDisposition, StoreOperation, StoreOutputFormat,
     StoreOutputStream, StoreReport, StoreRequestState, StoreRequestedLevel, StoreRowCounts,
+    StoreWarningReport,
 };
 
 pub struct StoreExecutionOutcome {
@@ -486,11 +487,24 @@ fn execute_import(
     // whenever the lease was released without our request being executed — the
     // crash-resume case. A retry inherits the ORIGINAL requester deadline, so a
     // resumed request gets what remains of the crashed process's window.
+    let mut warnings = Vec::new();
     loop {
         match coordinator.drain(&mut executor, &policy) {
             Ok(_) => break,
             Err(CoordinatorError::LeaseUnavailable) => {}
-            Err(error) => return Err(error.to_string()),
+            Err(error) => {
+                let own_state = coordinator
+                    .request(&canonical_request_id)
+                    .map_err(|error| error.to_string())?
+                    .state;
+                match classify_drain_interruption(&error, &canonical_request_id, own_state) {
+                    DrainInterruption::CallerFailed(message) => return Err(message),
+                    DrainInterruption::BacklogWarning(warning) => {
+                        warnings.push(warning);
+                        break;
+                    }
+                }
+            }
         }
         let observed = coordinator
             .request(&canonical_request_id)
@@ -541,7 +555,7 @@ fn execute_import(
                 canonical_payload.requested_level,
                 false,
             )?;
-            return Ok(report);
+            return Ok(report.with_warnings(warnings));
         }
         std::thread::sleep(std::time::Duration::from_millis(10));
     }
@@ -569,7 +583,8 @@ fn execute_import(
     .with_requested_level(match canonical_payload.requested_level {
         RequestedLevel::L1 => StoreRequestedLevel::L1,
         RequestedLevel::Full => StoreRequestedLevel::Full,
-    });
+    })
+    .with_warnings(warnings);
     if !committed {
         let message = request
             .error_json
@@ -816,7 +831,9 @@ pub(crate) fn trusted_store_family(layout: &StoreLayout) -> Result<String, Strin
 }
 
 pub(crate) fn classify_failure(message: &str) -> StoreFailureClass {
-    if message.contains("capacity_insufficient") {
+    if message.contains(QUANTUM_OVERRUN_CODE) {
+        StoreFailureClass::CoordinatorQuantum
+    } else if message.contains("capacity_insufficient") {
         StoreFailureClass::CapacityInsufficient
     } else if message.contains("store_not_found") {
         StoreFailureClass::StoreNotFound
@@ -952,25 +969,79 @@ mod capacity_tests {
     }
 }
 
+/// What a drain failure means for the requester that ran the drain.
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum DrainInterruption {
+    CallerFailed(String),
+    BacklogWarning(StoreWarningReport),
+}
+
+/// Decides whether a drain failure belongs to the caller's own request or to somebody else's.
+///
+/// One drain serves the whole queue, so it can stop on a backlog request the caller never asked
+/// for. Charging that failure to the caller reported a committed request as failed, advanced the
+/// store revision on a scan the report called failed, and made the consumer throttle a healthy
+/// store. Only a failure that names another request, raised after the caller's own request already
+/// reached a terminal state, becomes a warning. A failure that names no request may well be the
+/// caller's own, so it stays the caller's failure.
+pub(crate) fn classify_drain_interruption(
+    error: &CoordinatorError,
+    own_request_id: &str,
+    own_state: RequestState,
+) -> DrainInterruption {
+    let message = error.to_string();
+    let own_is_terminal = matches!(
+        own_state,
+        RequestState::Committed | RequestState::Acknowledged | RequestState::Failed
+    );
+    let backlog_request = failing_request(error)
+        .filter(|request_id| own_is_terminal && *request_id != own_request_id);
+    match backlog_request {
+        Some(request_id) => DrainInterruption::BacklogWarning(StoreWarningReport {
+            class: classify_failure(&message),
+            request_id: Some(request_id.to_string()),
+            message,
+        }),
+        None => DrainInterruption::CallerFailed(message),
+    }
+}
+
+fn failing_request(error: &CoordinatorError) -> Option<&str> {
+    match error {
+        CoordinatorError::QuantumDeadlineExceeded { request_id, .. }
+        | CoordinatorError::ExecutionFailed { request_id, .. } => Some(request_id),
+        _ => None,
+    }
+}
+
 pub(crate) fn drain_when_available(
     coordinator: &mut StoreCoordinator,
     executor: &mut StoreRequestExecutor,
     request: &CoordinatorRequest,
-) -> Result<(), String> {
+) -> Result<Vec<StoreWarningReport>, String> {
     let policy = CoordinatorPolicy {
         own_request_id: Some(request.request_id.clone()),
         ..CoordinatorPolicy::default()
     };
     loop {
         match coordinator.drain(executor, &policy) {
-            Ok(_) => return Ok(()),
+            Ok(_) => return Ok(Vec::new()),
             Err(CoordinatorError::LeaseUnavailable) => {
                 if now_millis() >= request.requester_deadline.unwrap_or(i64::MAX) {
-                    return Ok(());
+                    return Ok(Vec::new());
                 }
                 std::thread::sleep(std::time::Duration::from_millis(10));
             }
-            Err(error) => return Err(error.to_string()),
+            Err(error) => {
+                let own_state = coordinator
+                    .request(&request.request_id)
+                    .map_err(|error| error.to_string())?
+                    .state;
+                match classify_drain_interruption(&error, &request.request_id, own_state) {
+                    DrainInterruption::CallerFailed(message) => return Err(message),
+                    DrainInterruption::BacklogWarning(warning) => return Ok(vec![warning]),
+                }
+            }
         }
     }
 }
@@ -990,5 +1061,77 @@ pub(crate) struct ImportPidLiveness;
 impl julie_extract_artifact::store::PidLiveness for ImportPidLiveness {
     fn status(&self, pid: u32) -> julie_extract_artifact::store::PidStatus {
         crate::watchdog::process_status(pid)
+    }
+}
+
+#[cfg(test)]
+mod drain_interruption_tests {
+    use super::{DrainInterruption, classify_drain_interruption};
+    use crate::store::report::StoreFailureClass;
+    use julie_extract_artifact::store::{CoordinatorError, RequestState};
+
+    fn backlog_overrun() -> CoordinatorError {
+        CoordinatorError::QuantumDeadlineExceeded {
+            request_id: "request-theirs".to_string(),
+            elapsed_ms: 29_000,
+            maximum_ms: 4_000,
+        }
+    }
+
+    #[test]
+    fn a_backlog_overrun_after_our_own_commit_becomes_a_warning() {
+        let interruption = classify_drain_interruption(
+            &backlog_overrun(),
+            "request-mine",
+            RequestState::Committed,
+        );
+
+        let DrainInterruption::BacklogWarning(warning) = interruption else {
+            panic!("{interruption:?}");
+        };
+        assert_eq!(warning.class, StoreFailureClass::CoordinatorQuantum);
+        assert_eq!(warning.request_id.as_deref(), Some("request-theirs"));
+    }
+
+    #[test]
+    fn our_own_overrun_still_fails_the_caller() {
+        let error = CoordinatorError::QuantumDeadlineExceeded {
+            request_id: "request-mine".to_string(),
+            elapsed_ms: 29_000,
+            maximum_ms: 4_000,
+        };
+
+        let interruption =
+            classify_drain_interruption(&error, "request-mine", RequestState::Committed);
+
+        assert_eq!(
+            interruption,
+            DrainInterruption::CallerFailed(error.to_string())
+        );
+    }
+
+    #[test]
+    fn a_backlog_overrun_before_our_own_request_settles_still_fails_the_caller() {
+        let interruption =
+            classify_drain_interruption(&backlog_overrun(), "request-mine", RequestState::Queued);
+
+        assert_eq!(
+            interruption,
+            DrainInterruption::CallerFailed(backlog_overrun().to_string())
+        );
+    }
+
+    #[test]
+    fn an_unattributed_drain_failure_stays_the_callers_failure() {
+        let interruption = classify_drain_interruption(
+            &CoordinatorError::LeaseLost,
+            "request-mine",
+            RequestState::Committed,
+        );
+
+        assert_eq!(
+            interruption,
+            DrainInterruption::CallerFailed(CoordinatorError::LeaseLost.to_string())
+        );
     }
 }

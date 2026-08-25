@@ -157,6 +157,7 @@ pub enum StoreFailureClass {
     Busy,
     OutputIdentityMismatch,
     CapacityInsufficient,
+    CoordinatorQuantum,
     Internal,
 }
 
@@ -179,6 +180,7 @@ impl StoreFailureClass {
             Self::Busy => "busy",
             Self::OutputIdentityMismatch => "output_identity_mismatch",
             Self::CapacityInsufficient => "capacity_insufficient",
+            Self::CoordinatorQuantum => "coordinator_quantum",
             Self::Internal => "internal",
         }
     }
@@ -193,6 +195,18 @@ pub struct StoreRequestReport {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StoreErrorReport {
     pub class: StoreFailureClass,
+    pub message: String,
+}
+
+/// A failure this command observed while serving the queue, that did not belong to its own request.
+///
+/// One coordinator drain executes other requesters' backlog as well as the caller's own work. A
+/// backlog failure says nothing about whether the caller's request committed, so it is reported
+/// here and never in `state`, `failure_class`, or the exit code.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StoreWarningReport {
+    pub class: StoreFailureClass,
+    pub request_id: Option<String>,
     pub message: String,
 }
 
@@ -216,6 +230,8 @@ pub struct StoreReport {
     pub coordinator: StoreCoordinatorDisposition,
     pub failure_class: StoreFailureClass,
     pub error: Option<StoreErrorReport>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub warnings: Vec<StoreWarningReport>,
 }
 
 impl StoreReport {
@@ -260,6 +276,7 @@ impl StoreReport {
                 class: StoreFailureClass::Internal,
                 message: "store operation failed without a failure class".to_string(),
             }),
+            warnings: Vec::new(),
         }
     }
 
@@ -307,6 +324,11 @@ impl StoreReport {
         self.state = StoreRequestState::Unsupported;
         self.coordinator = StoreCoordinatorDisposition::NotStarted;
         self.unsupported = Some(unsupported);
+        self
+    }
+
+    pub fn with_warnings(mut self, warnings: impl IntoIterator<Item = StoreWarningReport>) -> Self {
+        self.warnings.extend(warnings);
         self
     }
 
@@ -536,6 +558,15 @@ impl StoreCommandOutcome {
             output.push_str(error.class.as_str());
             output.push_str(": ");
             output.push_str(&error.message);
+            output.push('\n');
+        }
+        for warning in &self.report.warnings {
+            output.push_str("warning: ");
+            output.push_str(warning.class.as_str());
+            output.push_str(" request=");
+            output.push_str(warning.request_id.as_deref().unwrap_or("none"));
+            output.push_str(": ");
+            output.push_str(&warning.message);
             output.push('\n');
         }
         output

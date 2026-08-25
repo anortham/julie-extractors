@@ -33,6 +33,15 @@ const COORDINATOR_BUSY_TIMEOUT: Duration = Duration::from_secs(5);
 /// not collect a whole scan's work (see the retry loop in [`LeaseHeartbeatGuard::start`]).
 const HEARTBEAT_RENEWAL_ATTEMPTS: u32 = 3;
 const HEARTBEAT_RENEWAL_RETRY_DELAY: Duration = Duration::from_millis(100);
+/// Quantum overruns one request may charge to the queue before it is failed instead of requeued.
+///
+/// A capped quantum is measured only after the work finishes, so a request whose single quantum
+/// always outruns the cap is rolled back and requeued every time. Without a ceiling that request is
+/// re-executed by every later drain, forever, and every unrelated queued request behind it starves.
+const MAXIMUM_QUANTUM_OVERRUNS: i64 = 3;
+/// Stable classification token every quantum-overrun message carries, for callers that map a
+/// coordinator failure onto their own report failure class.
+pub const QUANTUM_OVERRUN_CODE: &str = "coordinator_quantum";
 static LAST_FENCING_TOKEN: AtomicI64 = AtomicI64::new(0);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -84,7 +93,9 @@ impl RequestKind {
     /// as pure duplication — [`LeaseHeartbeatGuard`] already covers this window.
     ///
     /// `Update`/`Delete` stay capped on purpose: they are the single-file interactive paths, and the cap plus
-    /// `interactive_burst_ms` is what stops a long batch starving them.
+    /// `interactive_burst_ms` is what stops a long batch starving them. An `Update` that genuinely needs
+    /// minutes is a defect in that request, not a reason to widen the interactive cap — it is charged against
+    /// [`MAXIMUM_QUANTUM_OVERRUNS`] and failed, which is what keeps the queue behind it moving.
     fn permits_renewable_quantum(self) -> bool {
         matches!(self, Self::FromArtifact | Self::Import)
     }
@@ -473,6 +484,7 @@ pub enum CoordinatorError {
     },
     InvalidPolicy,
     QuantumDeadlineExceeded {
+        request_id: String,
         elapsed_ms: i64,
         maximum_ms: i64,
     },
@@ -557,11 +569,12 @@ impl fmt::Display for CoordinatorError {
             }
             Self::InvalidPolicy => write!(formatter, "coordinator policy is invalid"),
             Self::QuantumDeadlineExceeded {
+                request_id,
                 elapsed_ms,
                 maximum_ms,
             } => write!(
                 formatter,
-                "coordinator quantum took {elapsed_ms} ms; maximum is {maximum_ms} ms"
+                "{QUANTUM_OVERRUN_CODE}: request {request_id:?} took {elapsed_ms} ms; maximum is {maximum_ms} ms"
             ),
             Self::Sqlite(error) => error.fmt(formatter),
             Self::StoreLog(error) => error.fmt(formatter),
@@ -1449,6 +1462,34 @@ impl StoreCoordinator {
         let elapsed_ms = quantum_finished_at.saturating_sub(quantum_started_at);
         if elapsed_ms > policy.maximum_quantum_ms && !request.kind.permits_renewable_quantum() {
             drop(transaction);
+            let Some(overruns) = self.charge_quantum_overrun(
+                &request.request_id,
+                holder,
+                fencing_token,
+                quantum_finished_at,
+            )?
+            else {
+                return Err(CoordinatorError::LeaseLost);
+            };
+            if overruns >= MAXIMUM_QUANTUM_OVERRUNS {
+                let detail = format!(
+                    "{QUANTUM_OVERRUN_CODE}: request outran the {} ms quantum {overruns} times",
+                    policy.maximum_quantum_ms
+                );
+                if !self.fail_request(
+                    &request.request_id,
+                    &detail,
+                    holder,
+                    fencing_token,
+                    quantum_finished_at,
+                )? {
+                    return Err(CoordinatorError::LeaseLost);
+                }
+                return Err(CoordinatorError::ExecutionFailed {
+                    request_id: request.request_id,
+                    detail,
+                });
+            }
             if !self.requeue_request(
                 &request.request_id,
                 holder,
@@ -1458,6 +1499,7 @@ impl StoreCoordinator {
                 return Err(CoordinatorError::LeaseLost);
             }
             return Err(CoordinatorError::QuantumDeadlineExceeded {
+                request_id: request.request_id,
                 elapsed_ms,
                 maximum_ms: policy.maximum_quantum_ms,
             });
@@ -1681,6 +1723,42 @@ impl StoreCoordinator {
                 fencing_token,
             ],
         )? == 1)
+    }
+
+    /// Records one quantum overrun against a claimed request and returns its new overrun total.
+    ///
+    /// `None` means the row was no longer this holder's to charge, which the caller treats as a
+    /// lost lease. The count survives the requeue that follows it, so it accumulates across the
+    /// separate drains of separate processes rather than restarting with each one.
+    fn charge_quantum_overrun(
+        &self,
+        request_id: &str,
+        holder: &LeaseHolder,
+        fencing_token: i64,
+        now: i64,
+    ) -> Result<Option<i64>, CoordinatorError> {
+        let connection = self.coordinator();
+        Ok(connection
+            .query_row(
+                "UPDATE requests SET quantum_overruns = quantum_overruns + 1, updated_at = ?1
+                 WHERE request_id = ?2 AND state = 'claimed' AND claim_owner = ?3
+                   AND EXISTS (
+                     SELECT 1 FROM writer_lease
+                     WHERE resource = ?4 AND holder_id = ?3 AND holder_pid = ?5
+                       AND fencing_token = ?6 AND expires_at > ?1
+                   )
+                 RETURNING quantum_overruns",
+                params![
+                    now,
+                    request_id,
+                    holder.holder_id,
+                    STORE_WRITER_RESOURCE,
+                    holder.holder_pid,
+                    fencing_token,
+                ],
+                |row| row.get(0),
+            )
+            .optional()?)
     }
 
     fn requeue_request(

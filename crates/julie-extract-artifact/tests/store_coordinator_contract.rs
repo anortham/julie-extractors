@@ -2578,6 +2578,101 @@ struct SlowExecutor {
     clock: Arc<TestClock>,
 }
 
+struct SelectivelySlowExecutor {
+    clock: Arc<TestClock>,
+    slow_request_ids: Vec<String>,
+    order: Vec<String>,
+}
+
+impl CoordinatorExecutor for SelectivelySlowExecutor {
+    fn execute_quantum(
+        &mut self,
+        _transaction: &Transaction<'_>,
+        request: &CoordinatorRequest,
+        _context: ExecutionContext,
+    ) -> Result<ExecutionQuantum, String> {
+        self.order.push(request.request_id.clone());
+        if self.slow_request_ids.contains(&request.request_id) {
+            self.clock.advance(4_001);
+        }
+        Ok(ExecutionQuantum::Complete {
+            event_kind: "complete".to_string(),
+            result_json: "{}".to_string(),
+        })
+    }
+}
+
+fn request_error_message(layout: &StoreLayout, request_id: &str) -> String {
+    Connection::open(layout.coordinator_db())
+        .unwrap()
+        .query_row(
+            "SELECT error_json FROM requests WHERE request_id = ?1",
+            [request_id],
+            |row| row.get::<_, String>(0),
+        )
+        .unwrap()
+}
+
+#[test]
+fn a_request_that_always_overruns_the_quantum_fails_and_stops_starving_the_queue() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let clock = Arc::new(TestClock::default());
+    let mut coordinator = StoreCoordinator::open_with_runtime(
+        &layout,
+        LeaseHolder::new("holder", "2.30.0", std::process::id()),
+        Arc::clone(&clock),
+        Arc::new(FixedLiveness(true)),
+    )
+    .unwrap();
+    enqueue_request(&mut coordinator, 1, RequestKind::Update, 1);
+    enqueue_request(&mut coordinator, 2, RequestKind::Update, 2);
+    let mut executor = SelectivelySlowExecutor {
+        clock: Arc::clone(&clock),
+        slow_request_ids: vec!["request-1".to_string()],
+        order: Vec::new(),
+    };
+
+    for drain in 1..=2 {
+        let error = coordinator
+            .drain(&mut executor, &CoordinatorPolicy::default())
+            .unwrap_err();
+        assert!(
+            matches!(error, CoordinatorError::QuantumDeadlineExceeded { .. }),
+            "drain {drain} returned {error:?}"
+        );
+        assert_eq!(
+            coordinator.request("request-1").unwrap().state.as_str(),
+            "queued"
+        );
+        assert_eq!(
+            coordinator.request("request-2").unwrap().state.as_str(),
+            "queued"
+        );
+    }
+
+    let report = coordinator
+        .drain(&mut executor, &CoordinatorPolicy::default())
+        .unwrap();
+
+    assert_eq!(
+        coordinator.request("request-1").unwrap().state.as_str(),
+        "failed"
+    );
+    assert!(
+        request_error_message(&layout, "request-1").contains("coordinator_quantum"),
+        "{}",
+        request_error_message(&layout, "request-1")
+    );
+    assert_eq!(
+        coordinator.request("request-2").unwrap().state.as_str(),
+        "committed"
+    );
+    assert_eq!(report.failed_requests, 1);
+    assert_eq!(report.completed_requests, 1);
+    assert!(executor.order.contains(&"request-2".to_string()));
+}
+
 struct BlockingExecutor {
     entered: mpsc::Sender<()>,
     resume: mpsc::Receiver<()>,

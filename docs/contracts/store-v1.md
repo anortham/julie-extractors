@@ -104,6 +104,10 @@ longer written; writer open drops leftover journal tables.
 - Only claimed requests may carry claim owner and heartbeat fields.
 - Committed and acknowledged requests require a terminal log sequence and result with no error.
 - Failed requests require an error, prohibit a result, and may lack a terminal sequence.
+- A request row counts its quantum overruns in `quantum_overruns`. A kind that may not renew its
+  writer lease is requeued on an overrun for the first two, and failed with the typed
+  `coordinator_quantum` error on the third, so one request whose work can never fit the quantum
+  stops starving every request queued behind it.
 - The idempotency key is unique through its named classified index.
 - Coordinator clocks are Unix-millisecond integers.
 - The lease resource is exactly `store-writer`; holder identity/version are non-empty, PID and fencing token are positive, and release deletes the row.

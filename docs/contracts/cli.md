@@ -491,6 +491,13 @@ request states stay the five listed in [store-v1.md](store-v1.md).
 The physical format and recovery invariants are frozen in [store-v1.md](store-v1.md) and
 [sqlite-store-schema-v2.md](sqlite-store-schema-v2.md).
 
+`state`, `failure_class`, `error`, and the exit code describe the caller's own request and nothing
+else. One drain also executes other requesters' queued work, so a failure charged to a different
+request is reported in the optional `warnings` array instead. Each warning names its failure class,
+the request it belongs to, and a message. The array is omitted when it is empty, and a warning never
+changes `state`, `failure_class`, or the exit code. `coordinator_quantum` is the failure class of a
+request whose single quantum outran the coordinator's quantum limit three times.
+
 ### `store maintain`
 
 `store maintain inspect` is always read-only. `gc`, `repair`, `promote`, `retire-view`,

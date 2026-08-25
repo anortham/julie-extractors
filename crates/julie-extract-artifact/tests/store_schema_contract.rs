@@ -22,6 +22,48 @@ fn store_and_coordinator_catalogs_match_the_checked_in_authority() {
 }
 
 #[test]
+fn a_coordinator_created_before_quantum_overruns_reaches_the_same_catalog() {
+    let fresh = open_coordinator();
+    let migrated = Connection::open_in_memory().unwrap();
+    migrated
+        .execute_batch(&coordinator_ddl(&fresh).replace(
+            ", quantum_overruns INTEGER NOT NULL DEFAULT 0 CHECK (quantum_overruns >= 0)",
+            "",
+        ))
+        .unwrap();
+    migrated.pragma_update(None, "user_version", 2).unwrap();
+
+    create_coordinator_schema(&migrated).unwrap();
+
+    assert_eq!(catalog_hash(&migrated), catalog_hash(&fresh));
+    assert_eq!(
+        migrated
+            .query_row(
+                "SELECT COUNT(*) FROM pragma_table_info('requests')
+                 WHERE name = 'quantum_overruns'",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        1
+    );
+}
+
+fn coordinator_ddl(conn: &Connection) -> String {
+    conn.prepare(
+        "SELECT sql FROM sqlite_master WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%'
+         ORDER BY CASE type WHEN 'table' THEN 0 WHEN 'index' THEN 1 ELSE 2 END, name",
+    )
+    .unwrap()
+    .query_map([], |row| row.get::<_, String>(0))
+    .unwrap()
+    .collect::<Result<Vec<_>, _>>()
+    .unwrap()
+    .join(";\n")
+        + ";"
+}
+
+#[test]
 fn views_keep_resolution_columns_without_resolution_foreign_keys() {
     let store = open_store();
     assert_eq!(
