@@ -36,6 +36,25 @@ Workspace-global reference resolution is not an artifact domain. Miller
 computes it at query time from the fact tables. See
 [2026-08-18-resolution-write-path-retirement.md](../decisions/2026-08-18-resolution-write-path-retirement.md).
 
+## Language Identity
+
+`files.language` and `symbols.language` carry the registry `LanguageSpec.name`
+for the file. That name is a per-file identity, not a language family: a `.tsx`
+file publishes `tsx` and a `.jsx` file publishes `jsx`, never `typescript` or
+`javascript`. The artifact publishes no base-language or family fact.
+
+A consumer that needs family behavior maps the value at read time and owns that
+mapping. `language_capabilities.extensions_json` publishes the complete
+language-to-extension map for the writing binary, so a consumer can build a
+grouping without hard-coding one. Where a consumer's own extension map
+disagrees with the artifact, the artifact value wins: `qmldir` is matched by
+filename and `.h` resolves to `c` or `cpp` by content, so no extension map can
+reproduce every answer.
+
+Adding a `LanguageSpec` is a contract-visible change even when it changes no
+DDL. See
+[2026-08-25-dialect-language-identity.md](../decisions/2026-08-25-dialect-language-identity.md).
+
 ## Metadata Requirements
 
 Every database must expose:
