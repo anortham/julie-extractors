@@ -1113,7 +1113,10 @@ fn embeds_go_test_suite(symbol: &Symbol) -> bool {
 fn detect_js_ts(name: &str, file_path: &str) -> bool {
     // Must be a test runner function AND in a test/spec file
     let is_test_fn = matches!(name, "describe" | "it" | "test");
-    let file_name = file_path.rsplit(PATH_SEPARATORS).next().unwrap_or(file_path);
+    let file_name = file_path
+        .rsplit(PATH_SEPARATORS)
+        .next()
+        .unwrap_or(file_path);
     let in_test_file =
         file_name.contains(".test.") || file_name.contains(".spec.") || is_test_path(file_path);
     is_test_fn && in_test_file
