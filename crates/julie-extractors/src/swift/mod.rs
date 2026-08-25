@@ -11,6 +11,7 @@ pub(super) mod protocol;
 pub(super) mod relationships;
 pub(super) mod signatures;
 pub(super) mod test_calls;
+pub(super) mod test_roles;
 pub(super) mod types;
 
 use crate::base::{BaseExtractor, PendingRelationship, StructuredPendingRelationship, Symbol};
@@ -67,6 +68,7 @@ impl SwiftExtractor {
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
         self.visit_node(tree.root_node(), &mut symbols, None, 0);
+        test_roles::apply_swift_test_roles(&mut symbols);
         symbols
     }
 

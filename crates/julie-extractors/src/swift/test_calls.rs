@@ -40,8 +40,14 @@ use tree_sitter::Node;
 
 /// Quick/Nimble vocabulary.
 /// - `describe` / `context` (+ focused/excluded variants) → container
+/// - `sharedExamples` / `itBehavesLike` → container
 /// - `it` / `specify` (+ focused/excluded variants) → test case
-/// - `beforeEach` / `afterEach` / `beforeAll` / `afterAll` / `justBeforeEach` → lifecycle
+/// - `beforeEach` / `afterEach` / `beforeAll` / `afterAll` / `justBeforeEach` /
+///   `beforeSuite` / `afterSuite` / `aroundEach` → lifecycle
+///
+/// `sharedExamples` names a group of examples and `itBehavesLike` runs that
+/// group at the call site, so both are groups rather than single cases.
+/// `aroundEach` wraps an example on both sides and reports the setup half.
 const QUICK_VOCAB: TestCallVocab = TestCallVocab {
     test: &[
         "it", "xit", "fit", "specify", "xspecify", "fspecify", "pending",
@@ -53,6 +59,8 @@ const QUICK_VOCAB: TestCallVocab = TestCallVocab {
         "context",
         "xcontext",
         "fcontext",
+        "sharedExamples",
+        "itBehavesLike",
     ],
     lifecycle: &[
         "beforeEach",
@@ -60,6 +68,9 @@ const QUICK_VOCAB: TestCallVocab = TestCallVocab {
         "beforeAll",
         "afterAll",
         "justBeforeEach",
+        "beforeSuite",
+        "afterSuite",
+        "aroundEach",
     ],
 };
 

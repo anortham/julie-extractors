@@ -937,6 +937,54 @@ fn swift_class_with_test_prefix_returns_false() {
     ));
 }
 
+#[test]
+fn swift_test_macro_needs_no_test_path() {
+    assert!(check(
+        "swift",
+        "addsTwoNumbers",
+        "Sources/App/Math.swift",
+        &SymbolKind::Function,
+        &[s("test")],
+        None,
+    ));
+}
+
+#[test]
+fn swift_setup_hooks_carry_the_fixture_setup_role() {
+    for name in ["setUp", "setUpWithError"] {
+        let metadata = callable_test_metadata("swift", name, "Tests/MathTests.swift", &[]);
+        assert_eq!(role(&metadata), Some("fixture_setup"));
+        assert!(flag(&metadata, "test_lifecycle"));
+    }
+}
+
+#[test]
+fn swift_teardown_hooks_carry_the_fixture_teardown_role() {
+    for name in ["tearDown", "tearDownWithError"] {
+        let metadata = callable_test_metadata("swift", name, "Tests/MathTests.swift", &[]);
+        assert_eq!(role(&metadata), Some("fixture_teardown"));
+        assert!(flag(&metadata, "test_lifecycle"));
+    }
+}
+
+#[test]
+fn swift_wrapping_hook_reports_the_setup_half() {
+    let metadata = callable_test_metadata("swift", "aroundEach", "Tests/MathSpec.swift", &[]);
+    assert_eq!(role(&metadata), Some("fixture_setup"));
+}
+
+#[test]
+fn swift_test_prefixed_name_outside_a_test_path_is_not_a_test() {
+    assert!(!check(
+        "swift",
+        "testConnection",
+        "Sources/App/Network.swift",
+        &SymbolKind::Method,
+        &[],
+        None,
+    ));
+}
+
 // ===========================================================================
 // Dart
 // ===========================================================================
@@ -2431,7 +2479,7 @@ fn qml_cleanup_test_case_carries_the_fixture_teardown_role() {
 }
 
 #[test]
-fn swift_test_case_without_a_lifecycle_arm_carries_the_test_case_role() {
+fn swift_test_prefixed_method_carries_the_test_case_role() {
     let metadata = callable_test_metadata("swift", "testAddition", "Tests/CalcTests.swift", &[]);
     assert_eq!(role(&metadata), Some("test_case"));
     assert!(!metadata.contains_key("test_lifecycle"));

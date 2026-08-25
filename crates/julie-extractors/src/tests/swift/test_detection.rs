@@ -1,12 +1,14 @@
 //! Swift test detection signals.
 //!
 //! These are extractor-level assertions for signals preserved in artifact v1.
-//! Swift has two frameworks:
+//! Swift has three frameworks:
 //! - **XCTest**: a `class … : XCTestCase` is a test container. The extractor
 //!   records the inherited types under the canonical `base_types` metadata key;
-//!   `func test*` methods are flagged `is_test` in test paths.
+//!   `func test*` methods are cases and `setUp`/`tearDown` are hooks, both in
+//!   test paths only.
 //! - **Swift Testing**: `@Test` / `@Suite` macros, captured as annotation
 //!   markers (`annotation_key` "test"/"suite"), path-independent.
+//! - **Quick**: `describe`/`it`/hook calls, materialised by the call adapter.
 
 use crate::base::SymbolKind;
 use crate::swift::SwiftExtractor;
@@ -266,4 +268,175 @@ let x = someFunction("argument")
         0,
         "non-Quick calls must not carry test-role metadata: {syms:?}"
     );
+}
+
+fn role(symbol: &crate::base::Symbol) -> Option<&str> {
+    symbol
+        .metadata
+        .as_ref()
+        .and_then(|m| m.get("test_role"))
+        .and_then(|v| v.as_str())
+}
+
+fn named<'a>(syms: &'a [crate::base::Symbol], name: &str) -> &'a crate::base::Symbol {
+    syms.iter()
+        .find(|s| s.name == name)
+        .unwrap_or_else(|| panic!("expected {name}, got {syms:?}"))
+}
+
+const XCTEST_SOURCE: &str = r#"
+import XCTest
+
+final class CalculatorTests: XCTestCase {
+    override func setUp() { }
+    override func setUpWithError() throws { }
+    override func tearDown() { }
+    override func tearDownWithError() throws { }
+
+    func testAddition() {
+        XCTAssertEqual(2 + 2, 4)
+    }
+
+    func calculateTotal() -> Int { 4 }
+}
+
+extension CalculatorTests {
+    func testSubtraction() { }
+}
+
+struct CalculatorSupport {
+    func testHelperNamedLikeACase() { }
+}
+"#;
+
+const SWIFT_TESTING_SOURCE: &str = r#"
+import Testing
+
+@Suite("Math suite")
+struct MathSuite {
+    init() { }
+    deinit { }
+
+    @Test func addsTwoNumbers() { }
+
+    @Test("adds many", arguments: [1, 2, 3])
+    func addsManyNumbers(value: Int) { }
+
+    func makeSubject() -> Int { 1 }
+}
+"#;
+
+#[test]
+fn xctest_class_is_a_test_container() {
+    let syms = symbols(XCTEST_SOURCE, "Tests/CalculatorTests.swift");
+    assert_eq!(
+        role(named(&syms, "CalculatorTests")),
+        Some("test_container")
+    );
+}
+
+#[test]
+fn xctest_hooks_report_fixture_roles_instead_of_cases() {
+    let syms = symbols(XCTEST_SOURCE, "Tests/CalculatorTests.swift");
+    assert_eq!(role(named(&syms, "setUp")), Some("fixture_setup"));
+    assert_eq!(role(named(&syms, "setUpWithError")), Some("fixture_setup"));
+    assert_eq!(role(named(&syms, "tearDown")), Some("fixture_teardown"));
+    assert_eq!(
+        role(named(&syms, "tearDownWithError")),
+        Some("fixture_teardown")
+    );
+    assert!(meta_bool(named(&syms, "setUp"), "test_lifecycle"));
+}
+
+#[test]
+fn xctest_case_and_plain_method_are_told_apart() {
+    let syms = symbols(XCTEST_SOURCE, "Tests/CalculatorTests.swift");
+    assert_eq!(role(named(&syms, "testAddition")), Some("test_case"));
+    assert_eq!(role(named(&syms, "calculateTotal")), None);
+}
+
+#[test]
+fn test_prefixed_method_outside_a_container_stays_unclassified() {
+    let syms = symbols(XCTEST_SOURCE, "Tests/CalculatorTests.swift");
+    assert_eq!(role(named(&syms, "testHelperNamedLikeACase")), None);
+    assert!(!meta_bool(
+        named(&syms, "testHelperNamedLikeACase"),
+        "is_test"
+    ));
+}
+
+#[test]
+fn xctest_case_in_an_extension_of_the_container_keeps_its_role() {
+    let syms = symbols(XCTEST_SOURCE, "Tests/CalculatorTests.swift");
+    assert_eq!(role(named(&syms, "testSubtraction")), Some("test_case"));
+}
+
+#[test]
+fn swift_testing_suite_is_a_test_container_outside_a_test_path() {
+    let syms = symbols(SWIFT_TESTING_SOURCE, "Sources/App/Math.swift");
+    assert_eq!(role(named(&syms, "MathSuite")), Some("test_container"));
+}
+
+#[test]
+fn swift_testing_test_macro_is_a_case_outside_a_test_path() {
+    let syms = symbols(SWIFT_TESTING_SOURCE, "Sources/App/Math.swift");
+    assert_eq!(role(named(&syms, "addsTwoNumbers")), Some("test_case"));
+}
+
+#[test]
+fn swift_testing_arguments_macro_is_a_parameterized_case() {
+    let syms = symbols(SWIFT_TESTING_SOURCE, "Sources/App/Math.swift");
+    assert_eq!(
+        role(named(&syms, "addsManyNumbers")),
+        Some("parameterized_test")
+    );
+}
+
+#[test]
+fn swift_testing_unannotated_member_stays_unclassified() {
+    let syms = symbols(SWIFT_TESTING_SOURCE, "Sources/App/Math.swift");
+    assert_eq!(role(named(&syms, "makeSubject")), None);
+}
+
+#[test]
+fn swift_testing_suite_init_and_deinit_are_fixture_hooks() {
+    let syms = symbols(SWIFT_TESTING_SOURCE, "Sources/App/Math.swift");
+    assert_eq!(role(named(&syms, "init")), Some("fixture_setup"));
+    assert_eq!(role(named(&syms, "deinit")), Some("fixture_teardown"));
+}
+
+#[test]
+fn quick_shared_examples_and_suite_hooks_emit_roles() {
+    let code = r#"
+sharedExamples("a collection") {
+    it("is not empty") { }
+}
+
+describe("calculator") {
+    beforeSuite { }
+    afterSuite { }
+    aroundEach { runExample in runExample() }
+    itBehavesLike("a collection")
+}
+"#;
+    let syms = symbols(code, "Tests/CalculatorSpec.swift");
+    let groups: Vec<&crate::base::Symbol> =
+        syms.iter().filter(|s| s.name == "a collection").collect();
+    assert_eq!(groups.len(), 2, "got {syms:?}");
+    assert!(groups.iter().all(|s| role(s) == Some("test_container")));
+    assert_eq!(role(named(&syms, "beforeSuite")), Some("fixture_setup"));
+    assert_eq!(role(named(&syms, "afterSuite")), Some("fixture_teardown"));
+    assert_eq!(role(named(&syms, "aroundEach")), Some("fixture_setup"));
+}
+
+#[test]
+fn quick_top_level_container_keeps_its_role_after_scoping() {
+    let code = r#"
+describe("calculator") {
+    it("adds") { }
+}
+"#;
+    let syms = symbols(code, "Tests/CalculatorSpec.swift");
+    assert_eq!(role(named(&syms, "calculator")), Some("test_container"));
+    assert_eq!(role(named(&syms, "adds")), Some("test_case"));
 }

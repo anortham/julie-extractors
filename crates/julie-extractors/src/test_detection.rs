@@ -192,7 +192,7 @@ pub fn is_test_symbol(
         "bash" => detect_bash(name, file_path),
         "powershell" => detect_powershell(name, file_path),
         "ruby" => detect_ruby(name, file_path),
-        "swift" => detect_swift(name, file_path),
+        "swift" => detect_swift(name, file_path, annotation_keys),
         "dart" => detect_dart(name, file_path, annotation_keys),
         "gdscript" => detect_gdscript(name, file_path),
         "qml" => detect_qml(name, file_path),
@@ -486,6 +486,7 @@ fn is_test_lifecycle(
         "gdscript" => gdscript_test_lifecycle_direction(name),
         "qml" => qml_test_lifecycle_direction(name),
         "scala" => scala_test_lifecycle_direction(name),
+        "swift" => swift_test_lifecycle_direction(name),
         _ => TestLifecycleDirection::None,
     }
 }
@@ -1356,16 +1357,49 @@ pub(crate) fn mark_ruby_test_containers(symbols: &mut [Symbol]) {
     normalize_scoped_test_roles(symbols, &test_container_ids);
 }
 
-fn detect_swift(name: &str, file_path: &str) -> bool {
-    // XCTest convention: test* prefix + lifecycle methods — all require test path
-    // to avoid false positives on production code with similarly-named methods
-    is_test_path(file_path)
-        && (name.starts_with("test")
-            || matches!(
-                name,
-                "setUp" | "tearDown" | "setUpWithError" | "tearDownWithError"
-            ))
+/// XCTest's per-test hooks, plus Quick's wrapping hook.
+///
+/// `aroundEach` runs its closure on both sides of an example, so it reports
+/// [`TestLifecycleDirection::Ambiguous`]. Quick spells that hook as a call, and
+/// the shared call-role rule reaches the same `fixture_setup` from the name.
+///
+/// Swift Testing's `init`/`deinit` are absent on purpose: those names carry no
+/// test meaning outside a suite, so the Swift container pass assigns their
+/// roles the way the xUnit constructor rule does.
+fn swift_test_lifecycle_direction(name: &str) -> TestLifecycleDirection {
+    match name {
+        "setUp" | "setUpWithError" => TestLifecycleDirection::Setup,
+        "tearDown" | "tearDownWithError" => TestLifecycleDirection::Teardown,
+        "aroundEach" => TestLifecycleDirection::Ambiguous,
+        _ => TestLifecycleDirection::None,
+    }
 }
+
+/// XCTest collects a method whose name starts with `test`; Swift Testing
+/// collects whatever the `@Test` macro names.
+///
+/// The macro is definitive, so it carries no path guard and a `@Test` function
+/// in `Sources/` is a real case. The name convention is ordinary Swift
+/// everywhere else, so it keeps the path guard and the Swift container pass
+/// scopes it further.
+fn detect_swift(name: &str, file_path: &str, annotation_keys: &[String]) -> bool {
+    if annotation_keys
+        .iter()
+        .any(|key| key == SWIFT_TEST_MACRO_KEY)
+    {
+        return true;
+    }
+    is_test_path(file_path)
+        && (name.starts_with("test") || swift_test_lifecycle_direction(name).is_lifecycle())
+}
+
+/// The normalized annotation key for Swift Testing's `@Test` macro. The Swift
+/// annotation normalizer lower-cases the macro name and drops its argument
+/// list, so `@Test` and `@Test(arguments:)` share this key.
+pub(crate) const SWIFT_TEST_MACRO_KEY: &str = "test";
+
+/// The normalized annotation key for Swift Testing's `@Suite` macro.
+pub(crate) const SWIFT_SUITE_MACRO_KEY: &str = "suite";
 
 fn detect_elixir(name: &str) -> bool {
     name.starts_with("test_") || name.starts_with("test ")

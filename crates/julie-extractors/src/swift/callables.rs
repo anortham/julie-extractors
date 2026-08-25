@@ -1,5 +1,5 @@
 use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility};
-use crate::test_detection::is_test_symbol;
+use crate::test_detection::apply_callable_test_metadata;
 use serde_json;
 use std::collections::HashMap;
 use tree_sitter::Node;
@@ -77,17 +77,15 @@ impl SwiftExtractor {
         // Extract Swift documentation comment
         let doc_comment = self.base.find_doc_comment(&node);
 
-        // Test detection
-        if is_test_symbol(
+        apply_callable_test_metadata(
             "swift",
             &name,
             &self.base.file_path,
             &symbol_kind,
             &annotation_keys,
             doc_comment.as_deref(),
-        ) {
-            metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
-        }
+            &mut metadata,
+        );
 
         Some(self.base.create_symbol(
             &node,
@@ -109,6 +107,10 @@ impl SwiftExtractor {
         let name = "init".to_string();
         let modifiers = self.extract_modifiers(node);
         let annotations = self.extract_annotations(node);
+        let annotation_keys: Vec<String> = annotations
+            .iter()
+            .map(|annotation| annotation.annotation_key.clone())
+            .collect();
         let parameters = self.extract_initializer_parameters(node);
 
         let params_str = parameters.unwrap_or_else(|| "()".to_string());
@@ -118,7 +120,7 @@ impl SwiftExtractor {
             signature = format!("{} {}", modifiers.join(" "), signature);
         }
 
-        let metadata = HashMap::from([
+        let mut metadata = HashMap::from([
             (
                 "type".to_string(),
                 serde_json::Value::String("initializer".to_string()),
@@ -135,6 +137,16 @@ impl SwiftExtractor {
 
         // Extract Swift documentation comment
         let doc_comment = self.base.find_doc_comment(&node);
+
+        apply_callable_test_metadata(
+            "swift",
+            &name,
+            &self.base.file_path,
+            &SymbolKind::Constructor,
+            &annotation_keys,
+            doc_comment.as_deref(),
+            &mut metadata,
+        );
 
         self.base.create_symbol(
             &node,

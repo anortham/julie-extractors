@@ -30,6 +30,7 @@ Every row below has `test_detection.open_gaps: []` in
 | Ruby | RSpec example groups, examples, hooks, and helpers; Minitest and Test::Unit base classes; the Rails `test` macro and its `setup`/`teardown` blocks in `ruby:test_roles` | supported | supported | supported |
 | PHP | PHPUnit attributes, PHPDoc tags, fixture and `testXxx` method names, `TestCase` subclasses, and `#[DataProvider]`, plus the Pest call DSL, in `php:test_roles` | supported | supported | supported |
 | Kotlin | JUnit 4/5, TestNG, and kotlin.test annotations shared with Java; the Kotest and Spek call DSLs including the StringSpec string-invoke, WordSpec `should`, and FreeSpec `-` forms; Kotest and Spek spec classes as containers in `kotlin:test_roles`, `kotlin:junit_tests`, `kotlin:kotest_string_spec`, and `kotlin:kotlin_test_lifecycle` | supported | supported | supported |
+| Swift | XCTest `XCTestCase` subclasses, the `test` method prefix, and the four `setUp`/`tearDown` hooks; the Swift Testing `@Suite`, `@Test`, and `@Test(arguments:)` macros with suite `init`/`deinit`; and the Quick call vocabulary including shared groups and the `aroundEach` wrapping hook in `swift:test_roles` | supported | supported | supported |
 
 The `not_applicable` cells are contract-level conclusions. Zig's `test`
 declarations provide no adopted lifecycle or suite syntax;
@@ -57,6 +58,7 @@ unclassified.
 - Python: [pytest test discovery](https://docs.pytest.org/en/stable/explanation/goodpractices.html#conventions-for-python-test-discovery) defines the `test*` function prefix and the `Test*` class prefix; [pytest fixtures](https://docs.pytest.org/en/stable/reference/fixture.html) define `@pytest.fixture`; [pytest xunit-style setup](https://docs.pytest.org/en/stable/how-to/xunit_setup.html) defines `setup_method`/`teardown_method` and the class, function, and module variants; [`unittest.TestLoader.testMethodPrefix`](https://docs.python.org/3/library/unittest.html#unittest.TestLoader.testMethodPrefix) defines the bare `test` method prefix, and `unittest` defines `setUp`/`tearDown`, their class and module variants, and `IsolatedAsyncioTestCase.asyncSetUp`/`asyncTearDown`.
 - JavaScript family: [Jest globals](https://jestjs.io/docs/api) and [Vitest API](https://vitest.dev/api/) define `describe`/`test`/`it`, the `only`/`skip`/`todo`/`failing`/`concurrent` run modifiers, the four `before*`/`after*` hooks, `describe.each`/`test.each`, and Vitest's `bench`; [Mocha interfaces](https://mochajs.org/interfaces/) define the BDD `describe`/`context`/`it`/`specify` set, the TDD `suite`/`test`/`setup`/`teardown`/`suiteSetup`/`suiteTeardown` set, and the `x`/`f` prefixed aliases; [Playwright test annotations](https://playwright.dev/docs/api/class-test) define `test`, `test.describe` with its `serial`/`parallel` modes, the `test.before*`/`test.after*` hooks, and `test.step`; the [Node.js test runner](https://nodejs.org/api/test.html) defines `test`/`describe`/`it`, the `before`/`after`/`beforeEach`/`afterEach` hooks, and the `TestContext` subtest methods `t.test` and `t.beforeEach`; [QUnit](https://qunitjs.com/api/QUnit/) defines `QUnit.module` and `QUnit.test` and passes lifecycle through a `hooks` callback parameter; [testdeck](https://testdeck.org/) defines the `@suite`, `@test`, and `@params` decorators.
 - PHP: [PHPUnit attributes](https://docs.phpunit.de/en/11.5/attributes.html) define `#[Test]`, `#[Before]`, `#[After]`, `#[BeforeClass]`, `#[AfterClass]`, and `#[DataProvider]`, and document the `@test`, `@before`, `@after`, and `@dataProvider` PHPDoc spellings they replace; [PHPUnit fixtures](https://docs.phpunit.de/en/11.5/fixtures.html) define `setUp`, `tearDown`, `setUpBeforeClass`, and `tearDownAfterClass` on a `PHPUnit\Framework\TestCase` subclass; [PHPUnit organizing tests](https://docs.phpunit.de/en/11.5/organizing-tests.html) defines the `*Test.php` suffix a directory suite collects; [Pest](https://pestphp.com/docs/writing-tests) defines the `test()`/`it()` cases, `describe()` groups, and `beforeEach`/`afterEach`/`beforeAll`/`afterAll` hooks.
+- Swift: [`XCTestCase`](https://developer.apple.com/documentation/xctest/xctestcase) defines the subclass contract, the `test` method prefix that XCTest collects, and the `setUp`/`setUpWithError`/`tearDown`/`tearDownWithError` hooks; [Swift Testing](https://developer.apple.com/documentation/testing) defines the `@Test` and `@Suite` macros, the `arguments:` parameterized form, and the per-case suite instance that makes `init` and `deinit` the setup and teardown hooks; [Quick](https://github.com/Quick/Quick/blob/main/Documentation/en-us/QuickExamplesAndGroups.md) defines `describe`/`context`/`it` with their `x`/`f` aliases, `beforeEach`/`afterEach`/`beforeSuite`/`afterSuite`/`justBeforeEach`/`aroundEach`, and the `sharedExamples`/`itBehavesLike` group pair.
 
 ## Python fixture-role reversal (2026-08-25)
 
@@ -446,6 +448,65 @@ attributes on a context class whose scenario lives in a `.feature` file
 entries do: the `test_detection` vocabulary is frozen to three roles and each
 is already classified exactly once for php.
 
+## Swift ledger correction and named decisions (2026-08-25)
+
+The swift row claimed `test_container` and `test_lifecycle` before either role
+had a declaration-driven emission path. Only the Quick call adapter published
+them, and that adapter reached one golden block. XCTest classes published no
+container row at all, and `setUp`, `setUpWithError`, `tearDown`, and
+`tearDownWithError` published `is_test` alone, so the four hooks were reported
+as cases. Swift Testing was worse: `detect_swift` never read the annotation
+keys, so `@Test`, `@Test(arguments:)`, and `@Suite` published nothing at all
+even though the annotation markers were already recorded. The correction adds
+the emission paths, so the three claims now rest on the golden rows the swift
+`test_roles` fixture carries.
+
+Four contract decisions land with that change.
+
+The macro is definitive and the name is not. `@Test` and `@Suite` name a test
+in the source, so a `@Test` function in `Sources/` is a real case and the swift
+fixture proves it from a production path. XCTest's `test` prefix and its four
+hook names are ordinary Swift elsewhere, so they keep the path guard and are
+scoped to a container by `normalize_scoped_test_roles`. The scoping pass runs
+over every swift file, then the macro roles are re-derived, exactly as the Java
+pass restores an annotated top-level Kotlin function.
+
+An extension of a container is itself a container. Swift splits a type across
+extensions and XCTest runs a `test`-prefixed method declared in one, and an
+extension is its own symbol with its own children, so without this rule the
+scoping pass would strip every case an extension holds. The match is by the
+extended type's name within the file, which is what an extension records; an
+extension of a container declared in another file is out of reach of a per-file
+extractor.
+
+`init` and `deinit` earn a fixture role only inside a container. Swift Testing
+builds one instance of a suite per case, so `init` runs before the case and
+`deinit` runs after it; outside a suite both names are ordinary Swift. This is
+the rule the xUnit constructor already takes in C#. `deinit` is a `Destructor`
+symbol rather than a callable, so the swift container pass assigns both roles
+instead of the shared callable path.
+
+`aroundEach` reports `fixture_setup` through the `Ambiguous` lifecycle
+direction, because a wrapping hook always runs its setup half first. Ruby's
+`around` and Go's `TestMain` take the same direction.
+
+`itBehavesLike` is a container. Quick inserts the examples of the named shared
+group at the call site, so the row names a group, not a case. Ruby records the
+matching RSpec call as an open gap instead, because an RSpec shared group
+usually lives in another file and a symbol row there would publish a second
+definition. A Quick shared group and its use commonly sit in one spec file, and
+the invocation site is where the examples run, so swift publishes both rows.
+
+Two surfaces are excluded and recorded as `open_gaps` on the swift row:
+QuickSpec subclass containers (`quick.quickspec_subclass_container`, where the
+groups and examples publish roles but the `class X: QuickSpec` itself does not)
+and Swift Testing traits (`swift_testing.test_traits`, where `.tags`,
+`.disabled`, and `.serialized` are macro arguments that the annotation
+normalizer drops). Both entries sit under
+`kind_coverage.structural_facts.open_gaps` for the same reason the C# and go
+entries do: the `test_detection` vocabulary is frozen to three roles and each is
+already classified exactly once for swift.
+
 ## Registered evidence and controls
 
 The reconciliation registers these new goldens in the capability matrix:
@@ -472,6 +533,18 @@ and helper controls), `PestFeatureTest.php` (the Pest DSL and the
 qualified `TestCase` subclass and a `#[Test]`-holding class in a production
 path, beside the `ConnectionProbe` control), and `production_roles.php` (the
 production-path Pest control).
+
+`swift/test_roles` was extended from a single 23-line source into a two-source
+fixture. `test_source.swift` carries the XCTest container with all four hooks,
+a case, a case declared in an extension, a non-test method, and the full Quick
+tree including `sharedExamples`/`itBehavesLike` and the suite and wrapping
+hooks; `production_roles.swift` carries the Swift Testing suite, case,
+parameterized case, and `init`/`deinit` hooks from a production path. Four
+controls must stay unclassified: `CalculatorSupport`, an in-test-path struct
+with a `test`-prefixed method and a `setUp`; an extension of that struct
+holding another `test`-prefixed method; `NetworkClient`, a production class
+with `testConnection`, `setUp`, `init`, and `deinit`; and the top-level
+`itNamedButNotCalled` function.
 
 The JavaScript-family closure adds five framework goldens across the four
 dialect rows: `javascript/jest_vitest_roles`, `javascript/mocha_tdd_roles`,
