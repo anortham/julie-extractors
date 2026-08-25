@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "source": "fixtures/extraction/capabilities.json registered canonical golden corpus",
-  "source_digest": "sha256:b844da4f6fe8220ab3bcb8034a1dfd9fbc3bfb03b75bf83b2314276afdee1ac4",
+  "source_digest": "sha256:f3b0e6937a469cff593429f97e3f0b4509f8757f163360603758712e1142e8e8",
   "languages": [
     "rust",
     "c",
@@ -29,6 +29,7 @@
     "erlang",
     "lua",
     "qml",
+    "qmldir",
     "r",
     "bash",
     "powershell",
@@ -54,55 +55,55 @@
   "summaries": [
     {
       "language": "rust",
-      "total": 487,
-      "attempted": 224,
-      "resolved": 6,
+      "total": 504,
+      "attempted": 225,
+      "resolved": 7,
       "ambiguous": 0,
       "missing": 0,
       "no_context": 0,
       "unresolved_pending": 218,
-      "unattempted": 263,
-      "span_present": 370,
+      "unattempted": 279,
+      "span_present": 387,
       "span_missing": 117
     },
     {
       "language": "c",
-      "total": 32,
-      "attempted": 11,
+      "total": 42,
+      "attempted": 13,
       "resolved": 5,
       "ambiguous": 0,
       "missing": 0,
       "no_context": 0,
-      "unresolved_pending": 6,
-      "unattempted": 21,
-      "span_present": 29,
-      "span_missing": 3
+      "unresolved_pending": 8,
+      "unattempted": 29,
+      "span_present": 38,
+      "span_missing": 4
     },
     {
       "language": "cpp",
-      "total": 44,
-      "attempted": 18,
-      "resolved": 8,
+      "total": 68,
+      "attempted": 34,
+      "resolved": 12,
       "ambiguous": 0,
       "missing": 0,
       "no_context": 0,
-      "unresolved_pending": 10,
-      "unattempted": 26,
-      "span_present": 39,
-      "span_missing": 5
+      "unresolved_pending": 22,
+      "unattempted": 34,
+      "span_present": 57,
+      "span_missing": 11
     },
     {
       "language": "go",
-      "total": 134,
-      "attempted": 39,
-      "resolved": 5,
+      "total": 175,
+      "attempted": 54,
+      "resolved": 16,
       "ambiguous": 0,
       "missing": 0,
       "no_context": 0,
-      "unresolved_pending": 34,
-      "unattempted": 95,
-      "span_present": 117,
-      "span_missing": 17
+      "unresolved_pending": 38,
+      "unattempted": 121,
+      "span_present": 156,
+      "span_missing": 19
     },
     {
       "language": "zig",
@@ -119,68 +120,68 @@
     },
     {
       "language": "typescript",
-      "total": 115,
-      "attempted": 11,
-      "resolved": 5,
-      "ambiguous": 0,
-      "missing": 0,
-      "no_context": 0,
-      "unresolved_pending": 6,
-      "unattempted": 104,
-      "span_present": 112,
-      "span_missing": 3
-    },
-    {
-      "language": "tsx",
-      "total": 101,
-      "attempted": 11,
-      "resolved": 5,
-      "ambiguous": 0,
-      "missing": 0,
-      "no_context": 0,
-      "unresolved_pending": 6,
-      "unattempted": 90,
-      "span_present": 98,
-      "span_missing": 3
-    },
-    {
-      "language": "javascript",
-      "total": 120,
+      "total": 167,
       "attempted": 12,
       "resolved": 4,
       "ambiguous": 0,
       "missing": 0,
       "no_context": 0,
       "unresolved_pending": 8,
-      "unattempted": 108,
-      "span_present": 116,
+      "unattempted": 155,
+      "span_present": 163,
       "span_missing": 4
     },
     {
-      "language": "jsx",
-      "total": 82,
-      "attempted": 11,
+      "language": "tsx",
+      "total": 138,
+      "attempted": 13,
       "resolved": 5,
       "ambiguous": 0,
       "missing": 0,
       "no_context": 0,
-      "unresolved_pending": 6,
-      "unattempted": 71,
-      "span_present": 79,
-      "span_missing": 3
+      "unresolved_pending": 8,
+      "unattempted": 125,
+      "span_present": 134,
+      "span_missing": 4
+    },
+    {
+      "language": "javascript",
+      "total": 224,
+      "attempted": 53,
+      "resolved": 21,
+      "ambiguous": 0,
+      "missing": 0,
+      "no_context": 0,
+      "unresolved_pending": 32,
+      "unattempted": 171,
+      "span_present": 208,
+      "span_missing": 16
+    },
+    {
+      "language": "jsx",
+      "total": 110,
+      "attempted": 17,
+      "resolved": 9,
+      "ambiguous": 0,
+      "missing": 0,
+      "no_context": 0,
+      "unresolved_pending": 8,
+      "unattempted": 93,
+      "span_present": 106,
+      "span_missing": 4
     },
     {
       "language": "html",
-      "total": 18,
-      "attempted": 7,
-      "resolved": 7,
+      "total": 21,
+      "attempted": 8,
+      "resolved": 8,
       "ambiguous": 0,
       "missing": 0,
       "no_context": 0,
       "unresolved_pending": 0,
-      "unattempted": 11,
-      "span_present": 14,
-      "span_missing": 4
+      "unattempted": 13,
+      "span_present": 15,
+      "span_missing": 6
     },
     {
       "language": "css",
@@ -210,42 +211,42 @@
     },
     {
       "language": "python",
-      "total": 94,
-      "attempted": 34,
-      "resolved": 6,
+      "total": 128,
+      "attempted": 42,
+      "resolved": 8,
       "ambiguous": 0,
       "missing": 0,
       "no_context": 0,
-      "unresolved_pending": 28,
-      "unattempted": 60,
-      "span_present": 80,
-      "span_missing": 14
+      "unresolved_pending": 34,
+      "unattempted": 86,
+      "span_present": 111,
+      "span_missing": 17
     },
     {
       "language": "java",
-      "total": 136,
-      "attempted": 58,
-      "resolved": 10,
+      "total": 303,
+      "attempted": 168,
+      "resolved": 12,
       "ambiguous": 0,
       "missing": 0,
       "no_context": 0,
-      "unresolved_pending": 48,
-      "unattempted": 78,
-      "span_present": 112,
-      "span_missing": 24
+      "unresolved_pending": 156,
+      "unattempted": 135,
+      "span_present": 225,
+      "span_missing": 78
     },
     {
       "language": "csharp",
-      "total": 243,
-      "attempted": 85,
+      "total": 256,
+      "attempted": 89,
       "resolved": 7,
       "ambiguous": 0,
       "missing": 0,
       "no_context": 0,
-      "unresolved_pending": 78,
-      "unattempted": 158,
-      "span_present": 204,
-      "span_missing": 39
+      "unresolved_pending": 82,
+      "unattempted": 167,
+      "span_present": 215,
+      "span_missing": 41
     },
     {
       "language": "vbnet",
@@ -275,16 +276,16 @@
     },
     {
       "language": "ruby",
-      "total": 95,
-      "attempted": 32,
-      "resolved": 2,
+      "total": 243,
+      "attempted": 116,
+      "resolved": 4,
       "ambiguous": 0,
       "missing": 0,
       "no_context": 0,
-      "unresolved_pending": 30,
-      "unattempted": 63,
-      "span_present": 80,
-      "span_missing": 15
+      "unresolved_pending": 112,
+      "unattempted": 127,
+      "span_present": 187,
+      "span_missing": 56
     },
     {
       "language": "swift",
@@ -379,16 +380,29 @@
     },
     {
       "language": "qml",
-      "total": 58,
-      "attempted": 12,
-      "resolved": 6,
+      "total": 146,
+      "attempted": 20,
+      "resolved": 8,
       "ambiguous": 0,
       "missing": 0,
       "no_context": 0,
-      "unresolved_pending": 6,
-      "unattempted": 46,
-      "span_present": 55,
-      "span_missing": 3
+      "unresolved_pending": 12,
+      "unattempted": 126,
+      "span_present": 140,
+      "span_missing": 6
+    },
+    {
+      "language": "qmldir",
+      "total": 0,
+      "attempted": 0,
+      "resolved": 0,
+      "ambiguous": 0,
+      "missing": 0,
+      "no_context": 0,
+      "unresolved_pending": 0,
+      "unattempted": 0,
+      "span_present": 0,
+      "span_missing": 0
     },
     {
       "language": "r",
@@ -457,15 +471,15 @@
     },
     {
       "language": "sql",
-      "total": 43,
+      "total": 49,
       "attempted": 5,
       "resolved": 5,
       "ambiguous": 0,
       "missing": 0,
       "no_context": 0,
       "unresolved_pending": 0,
-      "unattempted": 38,
-      "span_present": 41,
+      "unattempted": 44,
+      "span_present": 47,
       "span_missing": 2
     },
     {
@@ -786,7 +800,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 7
+      "count": 8
     },
     {
       "language": "c",
@@ -798,7 +812,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 1
+      "count": 3
     },
     {
       "language": "c",
@@ -822,7 +836,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 12
+      "count": 17
     },
     {
       "language": "c",
@@ -834,7 +848,7 @@
       "method": null,
       "span_present": false,
       "applicability": "observed",
-      "count": 3
+      "count": 4
     },
     {
       "language": "c",
@@ -846,7 +860,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 3
+      "count": 4
     },
     {
       "language": "c",
@@ -954,7 +968,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 4
+      "count": 12
     },
     {
       "language": "cpp",
@@ -1057,12 +1071,24 @@
       "origin": "pending_relationship",
       "raw_kind": "uses",
       "canonical_kind": "uses",
-      "outcome": "zero",
+      "outcome": "unresolved_pending",
       "tier": null,
       "method": null,
       "span_present": false,
-      "applicability": "zero",
-      "count": 0
+      "applicability": "observed",
+      "count": 6
+    },
+    {
+      "language": "cpp",
+      "origin": "pending_relationship",
+      "raw_kind": "uses",
+      "canonical_kind": "uses",
+      "outcome": "unresolved_pending",
+      "tier": null,
+      "method": null,
+      "span_present": true,
+      "applicability": "observed",
+      "count": 6
     },
     {
       "language": "cpp",
@@ -1086,7 +1112,7 @@
       "method": "extraction_direct",
       "span_present": true,
       "applicability": "observed",
-      "count": 1
+      "count": 3
     },
     {
       "language": "cpp",
@@ -1146,7 +1172,7 @@
       "method": "extraction_direct",
       "span_present": true,
       "applicability": "observed",
-      "count": 4
+      "count": 6
     },
     {
       "language": "c",
@@ -1242,7 +1268,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 40
+      "count": 42
     },
     {
       "language": "csharp",
@@ -1254,7 +1280,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 4
+      "count": 6
     },
     {
       "language": "csharp",
@@ -1266,7 +1292,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 53
+      "count": 54
     },
     {
       "language": "csharp",
@@ -1278,7 +1304,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 61
+      "count": 65
     },
     {
       "language": "csharp",
@@ -1290,7 +1316,7 @@
       "method": null,
       "span_present": false,
       "applicability": "observed",
-      "count": 31
+      "count": 33
     },
     {
       "language": "csharp",
@@ -1302,7 +1328,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 31
+      "count": 33
     },
     {
       "language": "csharp",
@@ -2682,7 +2708,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 33
+      "count": 37
     },
     {
       "language": "go",
@@ -2706,7 +2732,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 7
+      "count": 26
     },
     {
       "language": "go",
@@ -2718,7 +2744,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 53
+      "count": 56
     },
     {
       "language": "go",
@@ -2730,7 +2756,7 @@
       "method": null,
       "span_present": false,
       "applicability": "observed",
-      "count": 17
+      "count": 19
     },
     {
       "language": "go",
@@ -2742,7 +2768,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 17
+      "count": 19
     },
     {
       "language": "go",
@@ -2898,7 +2924,7 @@
       "method": "extraction_direct",
       "span_present": true,
       "applicability": "observed",
-      "count": 1
+      "count": 12
     },
     {
       "language": "html",
@@ -2994,7 +3020,7 @@
       "method": null,
       "span_present": false,
       "applicability": "observed",
-      "count": 4
+      "count": 6
     },
     {
       "language": "html",
@@ -3078,7 +3104,7 @@
       "method": "extraction_direct",
       "span_present": true,
       "applicability": "observed",
-      "count": 1
+      "count": 2
     },
     {
       "language": "html",
@@ -3126,7 +3152,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 20
+      "count": 47
     },
     {
       "language": "java",
@@ -3150,7 +3176,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 22
+      "count": 24
     },
     {
       "language": "java",
@@ -3162,7 +3188,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 31
+      "count": 59
     },
     {
       "language": "java",
@@ -3174,7 +3200,7 @@
       "method": null,
       "span_present": false,
       "applicability": "observed",
-      "count": 24
+      "count": 77
     },
     {
       "language": "java",
@@ -3186,19 +3212,31 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 24
+      "count": 77
     },
     {
       "language": "java",
       "origin": "pending_relationship",
       "raw_kind": "extends",
       "canonical_kind": "extends",
-      "outcome": "zero",
+      "outcome": "unresolved_pending",
       "tier": null,
       "method": null,
       "span_present": false,
-      "applicability": "zero",
-      "count": 0
+      "applicability": "observed",
+      "count": 1
+    },
+    {
+      "language": "java",
+      "origin": "pending_relationship",
+      "raw_kind": "extends",
+      "canonical_kind": "extends",
+      "outcome": "unresolved_pending",
+      "tier": null,
+      "method": null,
+      "span_present": true,
+      "applicability": "observed",
+      "count": 1
     },
     {
       "language": "java",
@@ -3262,6 +3300,690 @@
     },
     {
       "language": "java",
+      "origin": "relationship",
+      "raw_kind": "calls",
+      "canonical_kind": "calls",
+      "outcome": "resolved",
+      "tier": 1,
+      "method": "extraction_direct",
+      "span_present": true,
+      "applicability": "observed",
+      "count": 10
+    },
+    {
+      "language": "java",
+      "origin": "relationship",
+      "raw_kind": "extends",
+      "canonical_kind": "extends",
+      "outcome": "resolved",
+      "tier": 1,
+      "method": "extraction_direct",
+      "span_present": true,
+      "applicability": "observed",
+      "count": 1
+    },
+    {
+      "language": "java",
+      "origin": "relationship",
+      "raw_kind": "implements",
+      "canonical_kind": "implements",
+      "outcome": "resolved",
+      "tier": 1,
+      "method": "extraction_direct",
+      "span_present": true,
+      "applicability": "observed",
+      "count": 1
+    },
+    {
+      "language": "java",
+      "origin": "relationship",
+      "raw_kind": "imports",
+      "canonical_kind": "imports",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "java",
+      "origin": "relationship",
+      "raw_kind": "instantiates",
+      "canonical_kind": "instantiates",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "java",
+      "origin": "relationship",
+      "raw_kind": "references",
+      "canonical_kind": "references",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "java",
+      "origin": "relationship",
+      "raw_kind": "uses",
+      "canonical_kind": "uses",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "javascript",
+      "origin": "identifier",
+      "raw_kind": "call",
+      "canonical_kind": "calls",
+      "outcome": "unattempted",
+      "tier": null,
+      "method": null,
+      "span_present": true,
+      "applicability": "observed",
+      "count": 94
+    },
+    {
+      "language": "javascript",
+      "origin": "identifier",
+      "raw_kind": "member_access",
+      "canonical_kind": "references",
+      "outcome": "unattempted",
+      "tier": null,
+      "method": null,
+      "span_present": true,
+      "applicability": "observed",
+      "count": 4
+    },
+    {
+      "language": "javascript",
+      "origin": "identifier",
+      "raw_kind": "type_usage",
+      "canonical_kind": "uses",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "javascript",
+      "origin": "identifier",
+      "raw_kind": "variable_ref",
+      "canonical_kind": "references",
+      "outcome": "unattempted",
+      "tier": null,
+      "method": null,
+      "span_present": true,
+      "applicability": "observed",
+      "count": 73
+    },
+    {
+      "language": "javascript",
+      "origin": "pending_relationship",
+      "raw_kind": "calls",
+      "canonical_kind": "calls",
+      "outcome": "unresolved_pending",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "observed",
+      "count": 16
+    },
+    {
+      "language": "javascript",
+      "origin": "pending_relationship",
+      "raw_kind": "calls",
+      "canonical_kind": "calls",
+      "outcome": "unresolved_pending",
+      "tier": null,
+      "method": null,
+      "span_present": true,
+      "applicability": "observed",
+      "count": 16
+    },
+    {
+      "language": "javascript",
+      "origin": "pending_relationship",
+      "raw_kind": "extends",
+      "canonical_kind": "extends",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "javascript",
+      "origin": "pending_relationship",
+      "raw_kind": "implements",
+      "canonical_kind": "implements",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "javascript",
+      "origin": "pending_relationship",
+      "raw_kind": "imports",
+      "canonical_kind": "imports",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "javascript",
+      "origin": "pending_relationship",
+      "raw_kind": "instantiates",
+      "canonical_kind": "instantiates",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "javascript",
+      "origin": "pending_relationship",
+      "raw_kind": "references",
+      "canonical_kind": "references",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "javascript",
+      "origin": "pending_relationship",
+      "raw_kind": "uses",
+      "canonical_kind": "uses",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "javascript",
+      "origin": "relationship",
+      "raw_kind": "calls",
+      "canonical_kind": "calls",
+      "outcome": "resolved",
+      "tier": 1,
+      "method": "extraction_direct",
+      "span_present": true,
+      "applicability": "observed",
+      "count": 21
+    },
+    {
+      "language": "javascript",
+      "origin": "relationship",
+      "raw_kind": "extends",
+      "canonical_kind": "extends",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "javascript",
+      "origin": "relationship",
+      "raw_kind": "implements",
+      "canonical_kind": "implements",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "javascript",
+      "origin": "relationship",
+      "raw_kind": "imports",
+      "canonical_kind": "imports",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "javascript",
+      "origin": "relationship",
+      "raw_kind": "instantiates",
+      "canonical_kind": "instantiates",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "javascript",
+      "origin": "relationship",
+      "raw_kind": "references",
+      "canonical_kind": "references",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "javascript",
+      "origin": "relationship",
+      "raw_kind": "uses",
+      "canonical_kind": "uses",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "json",
+      "origin": "identifier",
+      "raw_kind": "call",
+      "canonical_kind": "calls",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "not_applicable",
+      "count": 0
+    },
+    {
+      "language": "json",
+      "origin": "identifier",
+      "raw_kind": "member_access",
+      "canonical_kind": "references",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "not_applicable",
+      "count": 0
+    },
+    {
+      "language": "json",
+      "origin": "identifier",
+      "raw_kind": "type_usage",
+      "canonical_kind": "uses",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "not_applicable",
+      "count": 0
+    },
+    {
+      "language": "json",
+      "origin": "identifier",
+      "raw_kind": "variable_ref",
+      "canonical_kind": "references",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "not_applicable",
+      "count": 0
+    },
+    {
+      "language": "json",
+      "origin": "pending_relationship",
+      "raw_kind": "calls",
+      "canonical_kind": "calls",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "json",
+      "origin": "pending_relationship",
+      "raw_kind": "extends",
+      "canonical_kind": "extends",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "json",
+      "origin": "pending_relationship",
+      "raw_kind": "implements",
+      "canonical_kind": "implements",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "json",
+      "origin": "pending_relationship",
+      "raw_kind": "imports",
+      "canonical_kind": "imports",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "json",
+      "origin": "pending_relationship",
+      "raw_kind": "instantiates",
+      "canonical_kind": "instantiates",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "json",
+      "origin": "pending_relationship",
+      "raw_kind": "references",
+      "canonical_kind": "references",
+      "outcome": "unattempted",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "observed",
+      "count": 2
+    },
+    {
+      "language": "json",
+      "origin": "pending_relationship",
+      "raw_kind": "uses",
+      "canonical_kind": "uses",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "json",
+      "origin": "relationship",
+      "raw_kind": "calls",
+      "canonical_kind": "calls",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "json",
+      "origin": "relationship",
+      "raw_kind": "extends",
+      "canonical_kind": "extends",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "json",
+      "origin": "relationship",
+      "raw_kind": "implements",
+      "canonical_kind": "implements",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "json",
+      "origin": "relationship",
+      "raw_kind": "imports",
+      "canonical_kind": "imports",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "json",
+      "origin": "relationship",
+      "raw_kind": "instantiates",
+      "canonical_kind": "instantiates",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "json",
+      "origin": "relationship",
+      "raw_kind": "references",
+      "canonical_kind": "references",
+      "outcome": "resolved",
+      "tier": 1,
+      "method": "extraction_direct",
+      "span_present": true,
+      "applicability": "observed",
+      "count": 1
+    },
+    {
+      "language": "json",
+      "origin": "relationship",
+      "raw_kind": "uses",
+      "canonical_kind": "uses",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "jsx",
+      "origin": "identifier",
+      "raw_kind": "call",
+      "canonical_kind": "calls",
+      "outcome": "unattempted",
+      "tier": null,
+      "method": null,
+      "span_present": true,
+      "applicability": "observed",
+      "count": 44
+    },
+    {
+      "language": "jsx",
+      "origin": "identifier",
+      "raw_kind": "member_access",
+      "canonical_kind": "references",
+      "outcome": "unattempted",
+      "tier": null,
+      "method": null,
+      "span_present": true,
+      "applicability": "observed",
+      "count": 1
+    },
+    {
+      "language": "jsx",
+      "origin": "identifier",
+      "raw_kind": "type_usage",
+      "canonical_kind": "uses",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "jsx",
+      "origin": "identifier",
+      "raw_kind": "variable_ref",
+      "canonical_kind": "references",
+      "outcome": "unattempted",
+      "tier": null,
+      "method": null,
+      "span_present": true,
+      "applicability": "observed",
+      "count": 48
+    },
+    {
+      "language": "jsx",
+      "origin": "pending_relationship",
+      "raw_kind": "calls",
+      "canonical_kind": "calls",
+      "outcome": "unresolved_pending",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "observed",
+      "count": 3
+    },
+    {
+      "language": "jsx",
+      "origin": "pending_relationship",
+      "raw_kind": "calls",
+      "canonical_kind": "calls",
+      "outcome": "unresolved_pending",
+      "tier": null,
+      "method": null,
+      "span_present": true,
+      "applicability": "observed",
+      "count": 3
+    },
+    {
+      "language": "jsx",
+      "origin": "pending_relationship",
+      "raw_kind": "extends",
+      "canonical_kind": "extends",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "jsx",
+      "origin": "pending_relationship",
+      "raw_kind": "implements",
+      "canonical_kind": "implements",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "jsx",
+      "origin": "pending_relationship",
+      "raw_kind": "imports",
+      "canonical_kind": "imports",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "jsx",
+      "origin": "pending_relationship",
+      "raw_kind": "instantiates",
+      "canonical_kind": "instantiates",
+      "outcome": "unresolved_pending",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "observed",
+      "count": 1
+    },
+    {
+      "language": "jsx",
+      "origin": "pending_relationship",
+      "raw_kind": "instantiates",
+      "canonical_kind": "instantiates",
+      "outcome": "unresolved_pending",
+      "tier": null,
+      "method": null,
+      "span_present": true,
+      "applicability": "observed",
+      "count": 1
+    },
+    {
+      "language": "jsx",
+      "origin": "pending_relationship",
+      "raw_kind": "references",
+      "canonical_kind": "references",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "jsx",
+      "origin": "pending_relationship",
+      "raw_kind": "uses",
+      "canonical_kind": "uses",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "zero",
+      "count": 0
+    },
+    {
+      "language": "jsx",
       "origin": "relationship",
       "raw_kind": "calls",
       "canonical_kind": "calls",
@@ -3271,690 +3993,6 @@
       "span_present": true,
       "applicability": "observed",
       "count": 9
-    },
-    {
-      "language": "java",
-      "origin": "relationship",
-      "raw_kind": "extends",
-      "canonical_kind": "extends",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "java",
-      "origin": "relationship",
-      "raw_kind": "implements",
-      "canonical_kind": "implements",
-      "outcome": "resolved",
-      "tier": 1,
-      "method": "extraction_direct",
-      "span_present": true,
-      "applicability": "observed",
-      "count": 1
-    },
-    {
-      "language": "java",
-      "origin": "relationship",
-      "raw_kind": "imports",
-      "canonical_kind": "imports",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "java",
-      "origin": "relationship",
-      "raw_kind": "instantiates",
-      "canonical_kind": "instantiates",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "java",
-      "origin": "relationship",
-      "raw_kind": "references",
-      "canonical_kind": "references",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "java",
-      "origin": "relationship",
-      "raw_kind": "uses",
-      "canonical_kind": "uses",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "javascript",
-      "origin": "identifier",
-      "raw_kind": "call",
-      "canonical_kind": "calls",
-      "outcome": "unattempted",
-      "tier": null,
-      "method": null,
-      "span_present": true,
-      "applicability": "observed",
-      "count": 51
-    },
-    {
-      "language": "javascript",
-      "origin": "identifier",
-      "raw_kind": "member_access",
-      "canonical_kind": "references",
-      "outcome": "unattempted",
-      "tier": null,
-      "method": null,
-      "span_present": true,
-      "applicability": "observed",
-      "count": 3
-    },
-    {
-      "language": "javascript",
-      "origin": "identifier",
-      "raw_kind": "type_usage",
-      "canonical_kind": "uses",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "javascript",
-      "origin": "identifier",
-      "raw_kind": "variable_ref",
-      "canonical_kind": "references",
-      "outcome": "unattempted",
-      "tier": null,
-      "method": null,
-      "span_present": true,
-      "applicability": "observed",
-      "count": 54
-    },
-    {
-      "language": "javascript",
-      "origin": "pending_relationship",
-      "raw_kind": "calls",
-      "canonical_kind": "calls",
-      "outcome": "unresolved_pending",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "observed",
-      "count": 4
-    },
-    {
-      "language": "javascript",
-      "origin": "pending_relationship",
-      "raw_kind": "calls",
-      "canonical_kind": "calls",
-      "outcome": "unresolved_pending",
-      "tier": null,
-      "method": null,
-      "span_present": true,
-      "applicability": "observed",
-      "count": 4
-    },
-    {
-      "language": "javascript",
-      "origin": "pending_relationship",
-      "raw_kind": "extends",
-      "canonical_kind": "extends",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "javascript",
-      "origin": "pending_relationship",
-      "raw_kind": "implements",
-      "canonical_kind": "implements",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "javascript",
-      "origin": "pending_relationship",
-      "raw_kind": "imports",
-      "canonical_kind": "imports",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "javascript",
-      "origin": "pending_relationship",
-      "raw_kind": "instantiates",
-      "canonical_kind": "instantiates",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "javascript",
-      "origin": "pending_relationship",
-      "raw_kind": "references",
-      "canonical_kind": "references",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "javascript",
-      "origin": "pending_relationship",
-      "raw_kind": "uses",
-      "canonical_kind": "uses",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "javascript",
-      "origin": "relationship",
-      "raw_kind": "calls",
-      "canonical_kind": "calls",
-      "outcome": "resolved",
-      "tier": 1,
-      "method": "extraction_direct",
-      "span_present": true,
-      "applicability": "observed",
-      "count": 4
-    },
-    {
-      "language": "javascript",
-      "origin": "relationship",
-      "raw_kind": "extends",
-      "canonical_kind": "extends",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "javascript",
-      "origin": "relationship",
-      "raw_kind": "implements",
-      "canonical_kind": "implements",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "javascript",
-      "origin": "relationship",
-      "raw_kind": "imports",
-      "canonical_kind": "imports",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "javascript",
-      "origin": "relationship",
-      "raw_kind": "instantiates",
-      "canonical_kind": "instantiates",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "javascript",
-      "origin": "relationship",
-      "raw_kind": "references",
-      "canonical_kind": "references",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "javascript",
-      "origin": "relationship",
-      "raw_kind": "uses",
-      "canonical_kind": "uses",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "json",
-      "origin": "identifier",
-      "raw_kind": "call",
-      "canonical_kind": "calls",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "not_applicable",
-      "count": 0
-    },
-    {
-      "language": "json",
-      "origin": "identifier",
-      "raw_kind": "member_access",
-      "canonical_kind": "references",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "not_applicable",
-      "count": 0
-    },
-    {
-      "language": "json",
-      "origin": "identifier",
-      "raw_kind": "type_usage",
-      "canonical_kind": "uses",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "not_applicable",
-      "count": 0
-    },
-    {
-      "language": "json",
-      "origin": "identifier",
-      "raw_kind": "variable_ref",
-      "canonical_kind": "references",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "not_applicable",
-      "count": 0
-    },
-    {
-      "language": "json",
-      "origin": "pending_relationship",
-      "raw_kind": "calls",
-      "canonical_kind": "calls",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "json",
-      "origin": "pending_relationship",
-      "raw_kind": "extends",
-      "canonical_kind": "extends",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "json",
-      "origin": "pending_relationship",
-      "raw_kind": "implements",
-      "canonical_kind": "implements",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "json",
-      "origin": "pending_relationship",
-      "raw_kind": "imports",
-      "canonical_kind": "imports",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "json",
-      "origin": "pending_relationship",
-      "raw_kind": "instantiates",
-      "canonical_kind": "instantiates",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "json",
-      "origin": "pending_relationship",
-      "raw_kind": "references",
-      "canonical_kind": "references",
-      "outcome": "unattempted",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "observed",
-      "count": 2
-    },
-    {
-      "language": "json",
-      "origin": "pending_relationship",
-      "raw_kind": "uses",
-      "canonical_kind": "uses",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "json",
-      "origin": "relationship",
-      "raw_kind": "calls",
-      "canonical_kind": "calls",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "json",
-      "origin": "relationship",
-      "raw_kind": "extends",
-      "canonical_kind": "extends",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "json",
-      "origin": "relationship",
-      "raw_kind": "implements",
-      "canonical_kind": "implements",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "json",
-      "origin": "relationship",
-      "raw_kind": "imports",
-      "canonical_kind": "imports",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "json",
-      "origin": "relationship",
-      "raw_kind": "instantiates",
-      "canonical_kind": "instantiates",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "json",
-      "origin": "relationship",
-      "raw_kind": "references",
-      "canonical_kind": "references",
-      "outcome": "resolved",
-      "tier": 1,
-      "method": "extraction_direct",
-      "span_present": true,
-      "applicability": "observed",
-      "count": 1
-    },
-    {
-      "language": "json",
-      "origin": "relationship",
-      "raw_kind": "uses",
-      "canonical_kind": "uses",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "jsx",
-      "origin": "identifier",
-      "raw_kind": "call",
-      "canonical_kind": "calls",
-      "outcome": "unattempted",
-      "tier": null,
-      "method": null,
-      "span_present": true,
-      "applicability": "observed",
-      "count": 31
-    },
-    {
-      "language": "jsx",
-      "origin": "identifier",
-      "raw_kind": "member_access",
-      "canonical_kind": "references",
-      "outcome": "unattempted",
-      "tier": null,
-      "method": null,
-      "span_present": true,
-      "applicability": "observed",
-      "count": 1
-    },
-    {
-      "language": "jsx",
-      "origin": "identifier",
-      "raw_kind": "type_usage",
-      "canonical_kind": "uses",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "jsx",
-      "origin": "identifier",
-      "raw_kind": "variable_ref",
-      "canonical_kind": "references",
-      "outcome": "unattempted",
-      "tier": null,
-      "method": null,
-      "span_present": true,
-      "applicability": "observed",
-      "count": 39
-    },
-    {
-      "language": "jsx",
-      "origin": "pending_relationship",
-      "raw_kind": "calls",
-      "canonical_kind": "calls",
-      "outcome": "unresolved_pending",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "observed",
-      "count": 2
-    },
-    {
-      "language": "jsx",
-      "origin": "pending_relationship",
-      "raw_kind": "calls",
-      "canonical_kind": "calls",
-      "outcome": "unresolved_pending",
-      "tier": null,
-      "method": null,
-      "span_present": true,
-      "applicability": "observed",
-      "count": 2
-    },
-    {
-      "language": "jsx",
-      "origin": "pending_relationship",
-      "raw_kind": "extends",
-      "canonical_kind": "extends",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "jsx",
-      "origin": "pending_relationship",
-      "raw_kind": "implements",
-      "canonical_kind": "implements",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "jsx",
-      "origin": "pending_relationship",
-      "raw_kind": "imports",
-      "canonical_kind": "imports",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "jsx",
-      "origin": "pending_relationship",
-      "raw_kind": "instantiates",
-      "canonical_kind": "instantiates",
-      "outcome": "unresolved_pending",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "observed",
-      "count": 1
-    },
-    {
-      "language": "jsx",
-      "origin": "pending_relationship",
-      "raw_kind": "instantiates",
-      "canonical_kind": "instantiates",
-      "outcome": "unresolved_pending",
-      "tier": null,
-      "method": null,
-      "span_present": true,
-      "applicability": "observed",
-      "count": 1
-    },
-    {
-      "language": "jsx",
-      "origin": "pending_relationship",
-      "raw_kind": "references",
-      "canonical_kind": "references",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "jsx",
-      "origin": "pending_relationship",
-      "raw_kind": "uses",
-      "canonical_kind": "uses",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
-    },
-    {
-      "language": "jsx",
-      "origin": "relationship",
-      "raw_kind": "calls",
-      "canonical_kind": "calls",
-      "outcome": "resolved",
-      "tier": 1,
-      "method": "extraction_direct",
-      "span_present": true,
-      "applicability": "observed",
-      "count": 5
     },
     {
       "language": "jsx",
@@ -5190,7 +5228,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 25
+      "count": 32
     },
     {
       "language": "python",
@@ -5202,7 +5240,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 9
+      "count": 18
     },
     {
       "language": "python",
@@ -5226,7 +5264,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 23
+      "count": 33
     },
     {
       "language": "python",
@@ -5238,7 +5276,7 @@
       "method": null,
       "span_present": false,
       "applicability": "observed",
-      "count": 14
+      "count": 17
     },
     {
       "language": "python",
@@ -5250,7 +5288,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 14
+      "count": 17
     },
     {
       "language": "python",
@@ -5334,7 +5372,7 @@
       "method": "extraction_direct",
       "span_present": true,
       "applicability": "observed",
-      "count": 6
+      "count": 8
     },
     {
       "language": "python",
@@ -5345,7 +5383,7 @@
       "tier": null,
       "method": null,
       "span_present": false,
-      "applicability": "zero",
+      "applicability": "open_gap",
       "count": 0
     },
     {
@@ -5409,6 +5447,222 @@
       "count": 0
     },
     {
+      "language": "qmldir",
+      "origin": "identifier",
+      "raw_kind": "call",
+      "canonical_kind": "calls",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "not_applicable",
+      "count": 0
+    },
+    {
+      "language": "qmldir",
+      "origin": "identifier",
+      "raw_kind": "member_access",
+      "canonical_kind": "references",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "not_applicable",
+      "count": 0
+    },
+    {
+      "language": "qmldir",
+      "origin": "identifier",
+      "raw_kind": "type_usage",
+      "canonical_kind": "uses",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "not_applicable",
+      "count": 0
+    },
+    {
+      "language": "qmldir",
+      "origin": "identifier",
+      "raw_kind": "variable_ref",
+      "canonical_kind": "references",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "not_applicable",
+      "count": 0
+    },
+    {
+      "language": "qmldir",
+      "origin": "pending_relationship",
+      "raw_kind": "calls",
+      "canonical_kind": "calls",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "not_applicable",
+      "count": 0
+    },
+    {
+      "language": "qmldir",
+      "origin": "pending_relationship",
+      "raw_kind": "extends",
+      "canonical_kind": "extends",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "not_applicable",
+      "count": 0
+    },
+    {
+      "language": "qmldir",
+      "origin": "pending_relationship",
+      "raw_kind": "implements",
+      "canonical_kind": "implements",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "not_applicable",
+      "count": 0
+    },
+    {
+      "language": "qmldir",
+      "origin": "pending_relationship",
+      "raw_kind": "imports",
+      "canonical_kind": "imports",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "not_applicable",
+      "count": 0
+    },
+    {
+      "language": "qmldir",
+      "origin": "pending_relationship",
+      "raw_kind": "instantiates",
+      "canonical_kind": "instantiates",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "not_applicable",
+      "count": 0
+    },
+    {
+      "language": "qmldir",
+      "origin": "pending_relationship",
+      "raw_kind": "references",
+      "canonical_kind": "references",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "not_applicable",
+      "count": 0
+    },
+    {
+      "language": "qmldir",
+      "origin": "pending_relationship",
+      "raw_kind": "uses",
+      "canonical_kind": "uses",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "not_applicable",
+      "count": 0
+    },
+    {
+      "language": "qmldir",
+      "origin": "relationship",
+      "raw_kind": "calls",
+      "canonical_kind": "calls",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "not_applicable",
+      "count": 0
+    },
+    {
+      "language": "qmldir",
+      "origin": "relationship",
+      "raw_kind": "extends",
+      "canonical_kind": "extends",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "not_applicable",
+      "count": 0
+    },
+    {
+      "language": "qmldir",
+      "origin": "relationship",
+      "raw_kind": "implements",
+      "canonical_kind": "implements",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "not_applicable",
+      "count": 0
+    },
+    {
+      "language": "qmldir",
+      "origin": "relationship",
+      "raw_kind": "imports",
+      "canonical_kind": "imports",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "not_applicable",
+      "count": 0
+    },
+    {
+      "language": "qmldir",
+      "origin": "relationship",
+      "raw_kind": "instantiates",
+      "canonical_kind": "instantiates",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "not_applicable",
+      "count": 0
+    },
+    {
+      "language": "qmldir",
+      "origin": "relationship",
+      "raw_kind": "references",
+      "canonical_kind": "references",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "not_applicable",
+      "count": 0
+    },
+    {
+      "language": "qmldir",
+      "origin": "relationship",
+      "raw_kind": "uses",
+      "canonical_kind": "uses",
+      "outcome": "zero",
+      "tier": null,
+      "method": null,
+      "span_present": false,
+      "applicability": "not_applicable",
+      "count": 0
+    },
+    {
       "language": "qml",
       "origin": "identifier",
       "raw_kind": "call",
@@ -5418,7 +5672,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 8
+      "count": 10
     },
     {
       "language": "qml",
@@ -5430,7 +5684,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 1
+      "count": 3
     },
     {
       "language": "qml",
@@ -5442,7 +5696,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 4
+      "count": 24
     },
     {
       "language": "qml",
@@ -5454,7 +5708,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 33
+      "count": 89
     },
     {
       "language": "qml",
@@ -5521,12 +5775,24 @@
       "origin": "pending_relationship",
       "raw_kind": "instantiates",
       "canonical_kind": "instantiates",
-      "outcome": "zero",
+      "outcome": "unresolved_pending",
       "tier": null,
       "method": null,
       "span_present": false,
-      "applicability": "zero",
-      "count": 0
+      "applicability": "observed",
+      "count": 3
+    },
+    {
+      "language": "qml",
+      "origin": "pending_relationship",
+      "raw_kind": "instantiates",
+      "canonical_kind": "instantiates",
+      "outcome": "unresolved_pending",
+      "tier": null,
+      "method": null,
+      "span_present": true,
+      "applicability": "observed",
+      "count": 3
     },
     {
       "language": "qml",
@@ -5634,7 +5900,7 @@
       "method": "extraction_direct",
       "span_present": true,
       "applicability": "observed",
-      "count": 1
+      "count": 3
     },
     {
       "language": "razor",
@@ -6306,7 +6572,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 21
+      "count": 53
     },
     {
       "language": "ruby",
@@ -6318,7 +6584,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 11
+      "count": 23
     },
     {
       "language": "ruby",
@@ -6330,7 +6596,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 14
+      "count": 30
     },
     {
       "language": "ruby",
@@ -6342,7 +6608,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 17
+      "count": 21
     },
     {
       "language": "ruby",
@@ -6354,7 +6620,7 @@
       "method": null,
       "span_present": false,
       "applicability": "observed",
-      "count": 14
+      "count": 51
     },
     {
       "language": "ruby",
@@ -6366,19 +6632,31 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 14
+      "count": 51
     },
     {
       "language": "ruby",
       "origin": "pending_relationship",
       "raw_kind": "extends",
       "canonical_kind": "extends",
-      "outcome": "zero",
+      "outcome": "unresolved_pending",
       "tier": null,
       "method": null,
       "span_present": false,
-      "applicability": "zero",
-      "count": 0
+      "applicability": "observed",
+      "count": 4
+    },
+    {
+      "language": "ruby",
+      "origin": "pending_relationship",
+      "raw_kind": "extends",
+      "canonical_kind": "extends",
+      "outcome": "unresolved_pending",
+      "tier": null,
+      "method": null,
+      "span_present": true,
+      "applicability": "observed",
+      "count": 4
     },
     {
       "language": "ruby",
@@ -6462,7 +6740,7 @@
       "method": "extraction_direct",
       "span_present": true,
       "applicability": "observed",
-      "count": 2
+      "count": 4
     },
     {
       "language": "ruby",
@@ -6558,7 +6836,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 2
+      "count": 3
     },
     {
       "language": "rust",
@@ -6570,7 +6848,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 51
+      "count": 60
     },
     {
       "language": "rust",
@@ -6582,7 +6860,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 79
+      "count": 85
     },
     {
       "language": "rust",
@@ -6721,12 +6999,12 @@
       "origin": "relationship",
       "raw_kind": "implements",
       "canonical_kind": "implements",
-      "outcome": "zero",
-      "tier": null,
-      "method": null,
-      "span_present": false,
-      "applicability": "zero",
-      "count": 0
+      "outcome": "resolved",
+      "tier": 1,
+      "method": "extraction_direct",
+      "span_present": true,
+      "applicability": "observed",
+      "count": 1
     },
     {
       "language": "rust",
@@ -7038,7 +7316,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 4
+      "count": 10
     },
     {
       "language": "sql",
@@ -7710,7 +7988,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 37
+      "count": 51
     },
     {
       "language": "tsx",
@@ -7722,7 +8000,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 1
+      "count": 2
     },
     {
       "language": "tsx",
@@ -7734,7 +8012,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 16
+      "count": 23
     },
     {
       "language": "tsx",
@@ -7746,7 +8024,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 36
+      "count": 49
     },
     {
       "language": "tsx",
@@ -7758,7 +8036,7 @@
       "method": null,
       "span_present": false,
       "applicability": "observed",
-      "count": 2
+      "count": 3
     },
     {
       "language": "tsx",
@@ -7770,7 +8048,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 2
+      "count": 3
     },
     {
       "language": "tsx",
@@ -7950,7 +8228,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 43
+      "count": 66
     },
     {
       "language": "typescript",
@@ -7962,7 +8240,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 4
+      "count": 8
     },
     {
       "language": "typescript",
@@ -7974,7 +8252,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 22
+      "count": 27
     },
     {
       "language": "typescript",
@@ -7986,7 +8264,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 35
+      "count": 54
     },
     {
       "language": "typescript",
@@ -7998,7 +8276,7 @@
       "method": null,
       "span_present": false,
       "applicability": "observed",
-      "count": 2
+      "count": 3
     },
     {
       "language": "typescript",
@@ -8010,7 +8288,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 2
+      "count": 3
     },
     {
       "language": "typescript",
@@ -8106,7 +8384,7 @@
       "method": "extraction_direct",
       "span_present": true,
       "applicability": "observed",
-      "count": 4
+      "count": 3
     },
     {
       "language": "typescript",
