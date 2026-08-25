@@ -924,6 +924,11 @@
           "name": "test_roles",
           "source": "fixtures/extraction/typescript/test_roles/source.ts",
           "expected": "fixtures/extraction/typescript/test_roles/expected.json"
+        },
+        {
+          "name": "playwright_roles",
+          "source": "fixtures/extraction/typescript/playwright_roles/source.ts",
+          "expected": "fixtures/extraction/typescript/playwright_roles/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1136,6 +1141,11 @@
           "name": "test_roles",
           "source": "fixtures/extraction/tsx/test_roles/source.tsx",
           "expected": "fixtures/extraction/tsx/test_roles/expected.json"
+        },
+        {
+          "name": "qunit_roles",
+          "source": "fixtures/extraction/tsx/qunit_roles/source.tsx",
+          "expected": "fixtures/extraction/tsx/qunit_roles/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1354,6 +1364,16 @@
           "name": "test_roles",
           "source": "fixtures/extraction/javascript/test_roles/source.js",
           "expected": "fixtures/extraction/javascript/test_roles/expected.json"
+        },
+        {
+          "name": "jest_vitest_roles",
+          "source": "fixtures/extraction/javascript/jest_vitest_roles/source.js",
+          "expected": "fixtures/extraction/javascript/jest_vitest_roles/expected.json"
+        },
+        {
+          "name": "mocha_tdd_roles",
+          "source": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js",
+          "expected": "fixtures/extraction/javascript/mocha_tdd_roles/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1547,6 +1567,11 @@
           "name": "test_roles",
           "source": "fixtures/extraction/jsx/test_roles/source.jsx",
           "expected": "fixtures/extraction/jsx/test_roles/expected.json"
+        },
+        {
+          "name": "node_test_roles",
+          "source": "fixtures/extraction/jsx/node_test_roles/source.jsx",
+          "expected": "fixtures/extraction/jsx/node_test_roles/expected.json"
         }
       ],
       "target_capabilities": {

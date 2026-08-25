@@ -24,6 +24,7 @@ Every row below has `test_detection.open_gaps: []` in
 | XML | Apache Ant project/target/junit/test chain in `xml:test_roles` | supported | supported | not applicable |
 | Python | pytest collection prefixes, `@pytest.mark.parametrize`, `@pytest.fixture`, pytest xunit hooks, and unittest fixtures in `python:test_roles` | supported | supported | supported |
 | C# | NUnit, MSTest, and xUnit.net attributes plus the xUnit constructor/`IDisposable`/`IAsyncLifetime` lifecycle in `csharp:test_roles` | supported | supported | supported |
+| JavaScript family (`javascript`, `jsx`, `typescript`, `tsx`) | Jest/Vitest, Playwright, Mocha BDD and TDD, `node:test`, and QUnit call DSLs, plus testdeck method decorators, in `javascript:test_roles`, `javascript:jest_vitest_roles`, `javascript:mocha_tdd_roles`, `jsx:test_roles`, `jsx:node_test_roles`, `typescript:test_roles`, `typescript:playwright_roles`, `tsx:test_roles`, and `tsx:qunit_roles` | supported | supported | supported |
 
 The `not_applicable` cells are contract-level conclusions. Zig's `test`
 declarations provide no adopted lifecycle or suite syntax;
@@ -49,6 +50,7 @@ unclassified.
 - YAML: Google's [container-structure-test command tests](https://github.com/GoogleContainerTools/container-structure-test/blob/main/docs/tests/command_test.md) define the v2 `schemaVersion`, `commandTests`, `name`, `setup`, and `teardown` contract.
 - XML: Apache Ant's [JUnit task](https://ant.apache.org/manual/Tasks/junit.html) defines `<project>` targets containing `<junit>` and nested `<test>` elements; report XML and lookalike tags are outside that contract.
 - Python: [pytest test discovery](https://docs.pytest.org/en/stable/explanation/goodpractices.html#conventions-for-python-test-discovery) defines the `test*` function prefix and the `Test*` class prefix; [pytest fixtures](https://docs.pytest.org/en/stable/reference/fixture.html) define `@pytest.fixture`; [pytest xunit-style setup](https://docs.pytest.org/en/stable/how-to/xunit_setup.html) defines `setup_method`/`teardown_method` and the class, function, and module variants; [`unittest.TestLoader.testMethodPrefix`](https://docs.python.org/3/library/unittest.html#unittest.TestLoader.testMethodPrefix) defines the bare `test` method prefix, and `unittest` defines `setUp`/`tearDown`, their class and module variants, and `IsolatedAsyncioTestCase.asyncSetUp`/`asyncTearDown`.
+- JavaScript family: [Jest globals](https://jestjs.io/docs/api) and [Vitest API](https://vitest.dev/api/) define `describe`/`test`/`it`, the `only`/`skip`/`todo`/`failing`/`concurrent` run modifiers, the four `before*`/`after*` hooks, `describe.each`/`test.each`, and Vitest's `bench`; [Mocha interfaces](https://mochajs.org/interfaces/) define the BDD `describe`/`context`/`it`/`specify` set, the TDD `suite`/`test`/`setup`/`teardown`/`suiteSetup`/`suiteTeardown` set, and the `x`/`f` prefixed aliases; [Playwright test annotations](https://playwright.dev/docs/api/class-test) define `test`, `test.describe` with its `serial`/`parallel` modes, the `test.before*`/`test.after*` hooks, and `test.step`; the [Node.js test runner](https://nodejs.org/api/test.html) defines `test`/`describe`/`it`, the `before`/`after`/`beforeEach`/`afterEach` hooks, and the `TestContext` subtest methods `t.test` and `t.beforeEach`; [QUnit](https://qunitjs.com/api/QUnit/) defines `QUnit.module` and `QUnit.test` and passes lifecycle through a `hooks` callback parameter; [testdeck](https://testdeck.org/) defines the `@suite`, `@test`, and `@params` decorators.
 
 ## Python fixture-role reversal (2026-08-25)
 
@@ -151,6 +153,58 @@ two entries sit under `kind_coverage.structural_facts.open_gaps` rather than
 `test_case`, `test_container`, and `test_lifecycle` and each is already
 classified exactly once for csharp.
 
+## JavaScript family named contracts and exclusions (2026-08-25)
+
+The four dialects share one classifier,
+`crates/julie-extractors/src/javascript/test_symbols.rs`, so they share one
+contract. Three choices in it are deliberate.
+
+**Detection is gated.** The DSL vocabulary — `setup`, `teardown`, `before`,
+`after`, `context`, `suite` — is ordinary production vocabulary. A file is read
+for test DSL only when its path is a test path or it imports a named test
+framework. `javascript:mocha_tdd_roles` proves the path gate; every other
+JavaScript-family golden proves the import gate. The zod corpus in
+`docs/languages/typescript.md` shows why both are needed: a Vitest global setup
+file in `scripts/` carries real hooks that a path-only rule would drop.
+
+**`.each` declares cases, not a group.** `describe.each(table)("name", fn)`
+reports `parameterized_test`, not `test_container`. A table-driven `describe`
+runs one case per table row, so what it declares is a case set. Both `.each`
+spellings are in `javascript:jest_vitest_roles`.
+
+**Decorator support covers methods, not classes.** testdeck `@test` and
+`@params` on a method report `test_case` and `parameterized_test`. A testdeck
+`@suite` class reports no role, because the decorator pass classifies callables
+only. `typescript:test_roles` carries a decorated `@suite` class as the control
+that must stay unclassified; container evidence for TypeScript comes from
+`describe(...)` and Playwright `test.describe(...)` instead.
+
+Four constructs are named exclusions rather than open gaps, because the
+`test_detection` vocabulary is frozen to `test_case`, `test_container`, and
+`test_lifecycle` and each is already classified exactly once for all four
+dialects:
+
+- `test.step(...)`: a Playwright step is a report annotation inside a case, not
+  a case. Control in `typescript:playwright_roles`.
+- `hooks.beforeEach(...)` inside `QUnit.module("name", (hooks) => …)`: `hooks`
+  is a runtime callback parameter, so no name rule can separate it from any
+  other object named `hooks`. Control in `tsx:qunit_roles`.
+- Bare `QUnit.only(...)`, `QUnit.skip(...)`, `QUnit.todo(...)`: dropping the run
+  modifier leaves the namespace `QUnit` with no DSL word behind it. Controls in
+  `tsx:qunit_roles`.
+- An aliased decorator import (`import { test as testdeckTest }` used as
+  `@testdeckTest`): the annotation key is the written name, so the alias
+  resolves to nothing. Closing it needs import-aware annotation normalization.
+
+`tape` is adopted only as a gate: its module specifier opens detection, and its
+`test(t, …)` idiom is then covered by the shared `test` word. It gets no
+tape-specific rule and no separate golden.
+
+One residual false-positive source is recorded, not excluded: a *declared*
+callable literally named `describe`, `it`, or `test` inside a test file earns
+`test_case` through `detect_js_ts`. Measured cost across the express and zod
+corpora is 3 rows in 4,328; see `docs/languages/javascript.md`.
+
 ## Registered evidence and controls
 
 The reconciliation registers these new goldens in the capability matrix:
@@ -160,6 +214,12 @@ The reconciliation registers these new goldens in the capability matrix:
 `xml/test_roles`. Existing `rust/test_roles`, `c/test_roles`,
 `cpp/test_roles`, `zig/test_roles`, and `csharp/test_roles` remain registered
 and are included in the matrix above.
+
+The JavaScript-family closure adds five framework goldens across the four
+dialect rows: `javascript/jest_vitest_roles`, `javascript/mocha_tdd_roles`,
+`typescript/playwright_roles`, `jsx/node_test_roles`, and `tsx/qunit_roles`.
+The four existing `test_roles` goldens stay registered; `typescript/test_roles`
+gains the testdeck decorator evidence.
 
 The fixtures retain false-positive controls: qualified/member Mocha calls and
 documents missing the Mocha marker; missing pgTAP runners and schemas; rustdoc `ignore` and non-Rust
