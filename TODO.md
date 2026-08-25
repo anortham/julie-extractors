@@ -638,7 +638,7 @@ is rejected.
   The numbers above were measured 2026-07-27 on Miller's `.miller/symbols.db`
   (binary_version 2.18.0, sqlite schema 5, head revision 104).
 
-## 17. Fresh family-store recovery reports partial reference resolution — open
+## 17. Fresh family-store recovery reports partial reference resolution — closed (obsolete)
 
 - **Where:** store scan/resolve orchestration under
   `crates/julie-extract-cli/src/store/`; Miller consumer validation in
@@ -656,7 +656,9 @@ is rejected.
   regression proving missing family store → Miller refresh/`RootRebind` →
   complete resolution → readable workspace.
 
-## 18. Store resolve still has three measured follow-ups — open
+- **Closed 2026-08-25 as obsolete.** The producer path this entry blames was retired: the extractor no longer writes workspace resolution or `reference_resolution_status` (docs/decisions/2026-08-18-resolution-write-path-retirement.md); tests now assert the field is absent and ignored. The residual is Miller-side: `StoreWorkspaceCoordinator.RequireCommitted` must not demand a field the store no longer publishes. That belongs to Miller's backlog, not this repo.
+
+## 18. Store resolve still has three measured follow-ups — closed (obsolete)
 
 - **Where:** `crates/julie-extract-cli/src/store/resolution_session.rs`
   (`prime_identifier_children`, `prime_exact_children_keys`,
@@ -680,6 +682,8 @@ is rejected.
      the wall-time path.
 - **Do not:** re-add identifier name-prime (measured slower), change crossover
   first, or raise timeouts to hide the leftover cost.
+
+- **Closed 2026-08-25 as obsolete.** `resolution_session.rs` and every function this entry names were deleted when the resolution write path was retired (docs/decisions/2026-08-18-resolution-write-path-retirement.md). Miller computes resolution at query time from the fact tables, so these producer-side optimizations have no code to land in.
 
 ## 19. `store update` bypasses scan's discovery gates — closed (fix/store-queue-hygiene)
 
