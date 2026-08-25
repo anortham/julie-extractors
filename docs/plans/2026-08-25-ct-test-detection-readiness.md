@@ -22,6 +22,7 @@
 - Default tests stay fast. New tests go in the per-language targets; no real-world corpora in the default suite.
 - TDD for every behavior change. Test names state behavior; test bodies carry zero comments.
 - Widening a shared guard (path guard, vocabulary, annotation keys) requires a false-positive control test in the same task.
+- **Amendment (Task 1 finding):** the repo has ~30 test-flag write points, not one. Any task that touches a per-language writer must route it through the shared role writer (`apply_test_role` via `apply_callable_test_metadata` / `build_test_call_symbol`); direct inserts of the three boolean metadata keys are forbidden in changed code. Task 2 routes the shared `build_test_call_symbol`; Task 17 sweeps the remaining direct writers and adds the universality gate.
 - Do not back-port any of this into `/Users/murphy/source/julie`.
 
 ---
@@ -107,16 +108,17 @@ Shared files (`crates/julie-extractors/src/test_detection.rs`, `fixtures/extract
 **Approach:** Convert `is_test_lifecycle`'s per-language arms to return the direction enum; existing arms already know the hook names, so mapping each name to Setup or Teardown is local. Where a hook genuinely wraps both (e.g. `around`), use `Ambiguous` and emit `fixture_setup` (document the choice in the decision doc row). Keep the booleans' emitted values identical for currently-supported languages — this task changes metadata additively; role corrections come in language tasks. Update every existing golden `expected.json` that now carries the new key (regeneration, not hand-editing).
 
 **Acceptance criteria:**
-- [ ] Every symbol with any test flag also carries a correct `test_role` string; a contract test proves typed columns and metadata always agree.
-- [ ] `is_test_lifecycle` returns direction; all existing language arms compile and keep their current classifications.
-- [ ] Epoch is 6 with one compatibility ledger entry; no golden regression outside the additive key.
-- [ ] `cargo xtask test golden`, `cargo xtask test capability`, `cargo xtask test contract` pass.
-- [ ] Worker-scope verification passes and the change is committed per `serial-worker-commit`.
+- [x] Every symbol written through the shared helpers in `test_detection.rs` carries a correct `test_role` string; a contract test proves typed columns and metadata always agree. (Amended: ~30 write points exist; the other families are routed by Task 2, the language tasks, and the Task 17 sweep.)
+- [x] `is_test_lifecycle` returns direction; all existing language arms compile and keep their current classifications.
+- [x] Epoch is 6 with one compatibility ledger entry; no golden regression outside the additive key.
+- [x] `cargo xtask test golden`, `cargo xtask test capability`, `cargo xtask test contract` pass.
+- [x] Worker-scope verification passes and the change is committed per `serial-worker-commit`. (Commit c8440645.)
 
 ### Task 2: Shared path guards + generic container-scoping helper
 
 **Files:**
-- Modify: `crates/julie-extractors/src/test_detection.rs` (`is_test_path` at :21; generalize `normalize_qml_test_roles` at :262 into a reusable `normalize_scoped_test_roles`)
+- Modify: `crates/julie-extractors/src/test_detection.rs` (`is_test_path` at :21; generalize `normalize_qml_test_roles` at :262 into a reusable `normalize_scoped_test_roles`; promote `apply_test_role` to `pub(crate)`)
+- Modify: `crates/julie-extractors/src/test_calls.rs` (`build_test_call_symbol` routes through `apply_test_role` so the shared test-DSL call path emits `test_role`; regenerate affected goldens)
 - Test: `test_detection` unit tests — one positive and one false-positive control per new convention
 
 **Interfaces:**
@@ -138,6 +140,7 @@ Shared files (`crates/julie-extractors/src/test_detection.rs`, `fixtures/extract
 **Acceptance criteria:**
 - [ ] Every new convention has a passing accept test and a false-positive control test.
 - [ ] QML golden output unchanged after switching to the generic helper.
+- [ ] `build_test_call_symbol` emits `test_role` through `apply_test_role`; affected goldens regenerated; typed flags unchanged.
 - [ ] `cargo xtask test language qml` passes; `win-test` scheduled at branch gate (path logic changed).
 - [ ] Worker-scope verification passes and the change is committed per `serial-worker-commit`.
 
@@ -559,9 +562,10 @@ Shared files (`crates/julie-extractors/src/test_detection.rs`, `fixtures/extract
 
 **Dependency reason:** Depends on every earlier task's ledger rows.
 
-**What to build:** Reconcile the shared tables, run the full branch gate (including `win-test` — Task 2 changed path logic — and `scripts/check-agent-doc-sync.sh`), record the verification ledger, and checkpoint before commit.
+**What to build:** Route every remaining direct test-flag writer (the Task 1 inventory names them: `elixir/test_calls.rs`, `erlang/definition_forms.rs`, `sql/routines.rs`, `yaml/mod.rs`, `toml/test_detection.rs`, `xml/elements.rs`, `zig/functions.rs`, `vue/script.rs`, and any others `grep` for the three boolean keys still finds) through `apply_test_role`, add the universality gate, reconcile the shared tables, run the full branch gate (including `win-test` — Task 2 changed path logic — and `scripts/check-agent-doc-sync.sh`), record the verification ledger, and checkpoint before commit.
 
 **Acceptance criteria:**
+- [ ] Universality gate: a test proves no emitted symbol in any registered golden carries a test boolean without a matching `test_role`; all remaining direct writers routed through `apply_test_role`.
 - [ ] Branch gate green: `cargo xtask test default`, `golden`, `capability`, `contract`, strict report, doc-sync check, Windows suite.
 - [ ] Every language touched in this plan has: golden-backed ledger rows, a decision-doc row, and `docs/languages/<lang>.md`.
 - [ ] All open-gap entries have reason, required closure, and planned task.
