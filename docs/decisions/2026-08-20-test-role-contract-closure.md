@@ -6,7 +6,7 @@ Close the 28 legacy `test_detection` gaps against named language or tool
 contracts. A role is `supported` only when its contract is implemented and a
 registered golden emits the role. A role is `not_applicable` only when the
 adopted contract has no such role; it is not inferred from an empty extraction.
-Every row below has `open_gaps: []` in
+Every row below has `test_detection.open_gaps: []` in
 `fixtures/extraction/capabilities.json`.
 
 | Language | Named contract and evidence | `test_case` | `test_container` | `test_lifecycle` |
@@ -23,6 +23,7 @@ Every row below has `open_gaps: []` in
 | YAML | Google container-structure-test v2 command-test shape in `yaml:test_roles` | supported | supported | supported |
 | XML | Apache Ant project/target/junit/test chain in `xml:test_roles` | supported | supported | not applicable |
 | Python | pytest collection prefixes, `@pytest.mark.parametrize`, `@pytest.fixture`, pytest xunit hooks, and unittest fixtures in `python:test_roles` | supported | supported | supported |
+| C# | NUnit, MSTest, and xUnit.net attributes plus the xUnit constructor/`IDisposable`/`IAsyncLifetime` lifecycle in `csharp:test_roles` | supported | supported | supported |
 
 The `not_applicable` cells are contract-level conclusions. Rust's `cfg(test)`
 and Zig's `test` declarations provide no adopted lifecycle or suite syntax;
@@ -78,6 +79,31 @@ shares that vocabulary. And `@pytest.mark.parametrize` now reports
 runs one case per argument set. Real-world precision and recall measurements
 for all three changes are in `docs/languages/python.md`.
 
+- C#: [NUnit attributes](https://docs.nunit.org/articles/nunit/writing-tests/attributes.html) define `TestFixture`, `SetUpFixture`, `Test`, `TestCase`, `TestCaseSource`, `TestFixtureSource`, `SetUp`/`TearDown`, and `OneTimeSetUp`/`OneTimeTearDown`; [MSTest attributes](https://learn.microsoft.com/en-us/dotnet/core/testing/unit-testing-mstest-writing) define `TestClass`, `TestMethod`, `DataTestMethod`, `TestInitialize`/`TestCleanup`, `ClassInitialize`/`ClassCleanup`, and `AssemblyInitialize`/`AssemblyCleanup`; [xUnit.net shared context](https://xunit.net/docs/shared-context) defines the constructor, `IDisposable`, `IAsyncDisposable`, and `IAsyncLifetime` as the fixture hooks and `CollectionDefinition` as the collection declaration.
+
+## C# named exclusions
+
+`[TestFixtureSource]` is classified as a container, not a case: NUnit applies
+it to a fixture class to supply constructor arguments, so it declares a
+parameterized fixture rather than a parameterized method.
+
+The xUnit lifecycle rule is name-based, so it is deliberately scoped. A
+constructor, `InitializeAsync`, `Dispose`, or `DisposeAsync` earns a fixture
+role only inside a type the attribute or member pass already marked as a test
+container, and never overrides a role an attribute on the same member already
+set. `fixtures/extraction/csharp/test_roles/source.cs` carries
+`ManagedResource` — an ordinary `IDisposable` class with all four member names
+— as the control that must stay unclassified.
+
+Two named frameworks are excluded and recorded as `open_gaps` on the csharp
+row: SpecFlow/Reqnroll step bindings (the executable case lives in a `.feature`
+file, and `[Binding]`/`[Given]`/`[When]`/`[Then]` are unclassified) and
+Machine.Specifications (cases are delegate fields, not callable symbols). Those
+two entries sit under `kind_coverage.structural_facts.open_gaps` rather than
+`test_detection`, because the `test_detection` vocabulary is frozen to
+`test_case`, `test_container`, and `test_lifecycle` and each is already
+classified exactly once for csharp.
+
 ## Registered evidence and controls
 
 The reconciliation registers these new goldens in the capability matrix:
@@ -85,8 +111,8 @@ The reconciliation registers these new goldens in the capability matrix:
 `html/test_roles`, `json/test_roles`, `markdown/test_roles`, `sql/test_roles`,
 `toml/trycmd_roles`, `toml/nextest_roles`, `yaml/test_roles`, and
 `xml/test_roles`. Existing `rust/test_roles`, `c/test_roles`,
-`cpp/test_roles`, and `zig/test_roles` remain registered and are included in
-the matrix above.
+`cpp/test_roles`, `zig/test_roles`, and `csharp/test_roles` remain registered
+and are included in the matrix above.
 
 The fixtures retain false-positive controls: qualified/member Mocha calls and
 documents missing the Mocha marker; missing pgTAP runners and schemas; rustdoc `ignore` and non-Rust

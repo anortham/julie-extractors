@@ -305,10 +305,10 @@ fn detect_java_kotlin(annotation_keys: &[String]) -> bool {
 
 fn dotnet_test_lifecycle_direction(annotation: &str) -> TestLifecycleDirection {
     match annotation {
-        "setup" | "onetimesetup" | "testinitialize" | "classinitialize" => {
+        "setup" | "onetimesetup" | "testinitialize" | "classinitialize" | "assemblyinitialize" => {
             TestLifecycleDirection::Setup
         }
-        "teardown" | "onetimeteardown" | "testcleanup" | "classcleanup" => {
+        "teardown" | "onetimeteardown" | "testcleanup" | "classcleanup" | "assemblycleanup" => {
             TestLifecycleDirection::Teardown
         }
         _ => TestLifecycleDirection::None,
@@ -323,9 +323,28 @@ fn detect_csharp(annotation_keys: &[String]) -> bool {
 }
 
 fn is_dotnet_test_case_annotation(annotation: &str) -> bool {
+    matches!(annotation, "test" | "testmethod" | "fact")
+        || is_dotnet_parameterized_test_annotation(annotation)
+}
+
+/// Attributes that bind one method to a data set, so the runner reports one
+/// result per row instead of one result per method.
+fn is_dotnet_parameterized_test_annotation(annotation: &str) -> bool {
     matches!(
         annotation,
-        "test" | "testcase" | "testmethod" | "fact" | "theory"
+        "theory" | "datatestmethod" | "testcase" | "testcasesource"
+    )
+}
+
+/// Attributes that declare a type to be a test container on their own.
+///
+/// `testfixturesource` is NUnit's class-level parameterized-fixture attribute:
+/// it supplies constructor arguments to the fixture, so it names a container,
+/// not a case.
+fn is_dotnet_container_annotation(annotation: &str) -> bool {
+    matches!(
+        annotation,
+        "testfixture" | "testclass" | "collectiondefinition" | "setupfixture" | "testfixturesource"
     )
 }
 
@@ -545,19 +564,76 @@ pub(crate) fn mark_dotnet_test_containers(symbols: &mut [Symbol]) {
         .filter_map(|symbol| symbol.parent_id.clone())
         .collect();
 
+    let mut test_container_ids: HashSet<String> = HashSet::new();
     for symbol in symbols
         .iter_mut()
-        .filter(|symbol| symbol.kind == SymbolKind::Class)
+        .filter(|symbol| matches!(symbol.kind, SymbolKind::Class | SymbolKind::Struct))
     {
-        let has_container_attribute = symbol.annotations.iter().any(|annotation| {
-            matches!(
-                annotation.annotation_key.as_str(),
-                "testfixture" | "testclass"
-            )
-        });
+        let has_container_attribute = symbol
+            .annotations
+            .iter()
+            .any(|annotation| is_dotnet_container_annotation(&annotation.annotation_key));
         if has_container_attribute || containers_with_test_members.contains(&symbol.id) {
             mark_class_test_container(symbol);
+            test_container_ids.insert(symbol.id.clone());
         }
+    }
+
+    apply_dotnet_member_test_roles(symbols, &test_container_ids);
+}
+
+/// Upgrade data-driven cases and classify the xUnit lifecycle members that
+/// carry no attribute of their own.
+///
+/// xUnit has no setup or teardown attribute: the constructor and the
+/// `IAsyncLifetime`/`IDisposable` members are the fixture hooks. Those names are
+/// ordinary C# elsewhere, so they only earn a role inside a type the attribute
+/// or member pass already marked as a test container.
+fn apply_dotnet_member_test_roles(symbols: &mut [Symbol], test_container_ids: &HashSet<String>) {
+    for symbol in symbols
+        .iter_mut()
+        .filter(|symbol| is_callable(&symbol.kind))
+    {
+        let inside_container = symbol
+            .parent_id
+            .as_ref()
+            .is_some_and(|parent_id| test_container_ids.contains(parent_id));
+        let Some(role) = dotnet_member_test_role(symbol, inside_container) else {
+            continue;
+        };
+        apply_test_role(symbol.metadata.get_or_insert_with(Default::default), role);
+    }
+}
+
+fn dotnet_member_test_role(symbol: &Symbol, inside_container: bool) -> Option<TestRole> {
+    if has_dotnet_annotation(symbol, is_dotnet_parameterized_test_annotation) {
+        return Some(TestRole::ParameterizedTest);
+    }
+    let carries_own_role = has_dotnet_annotation(symbol, is_dotnet_test_case_annotation)
+        || has_dotnet_annotation(symbol, |key| {
+            dotnet_test_lifecycle_direction(key).is_lifecycle()
+        });
+    if carries_own_role || !inside_container {
+        return None;
+    }
+    xunit_lifecycle_direction(symbol).fixture_role()
+}
+
+fn has_dotnet_annotation(symbol: &Symbol, matches_key: impl Fn(&str) -> bool) -> bool {
+    symbol
+        .annotations
+        .iter()
+        .any(|annotation| matches_key(&annotation.annotation_key))
+}
+
+fn xunit_lifecycle_direction(symbol: &Symbol) -> TestLifecycleDirection {
+    if symbol.kind == SymbolKind::Constructor {
+        return TestLifecycleDirection::Setup;
+    }
+    match symbol.name.as_str() {
+        "InitializeAsync" => TestLifecycleDirection::Setup,
+        "Dispose" | "DisposeAsync" => TestLifecycleDirection::Teardown,
+        _ => TestLifecycleDirection::None,
     }
 }
 

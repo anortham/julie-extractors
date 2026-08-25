@@ -393,7 +393,7 @@
         "modifiers": "public",
         "parameters": "(int value)",
         "returnType": "void",
-        "test_role": "test_case",
+        "test_role": "parameterized_test",
         "type": "method"
       },
       "annotations": [
@@ -560,7 +560,7 @@
         "modifiers": "public",
         "parameters": "()",
         "returnType": "void",
-        "test_role": "test_case",
+        "test_role": "parameterized_test",
         "type": "method"
       },
       "annotations": [

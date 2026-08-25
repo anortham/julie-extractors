@@ -376,7 +376,7 @@
       "parent_key": "fixtures/extraction/vbnet/test_roles/source.vb:ManagedTestRoles:15:0",
       "metadata": {
         "is_test": true,
-        "test_role": "test_case",
+        "test_role": "parameterized_test",
         "vb_visibility": "public"
       },
       "annotations": [
@@ -530,7 +530,7 @@
       "parent_key": "fixtures/extraction/vbnet/test_roles/source.vb:ManagedTestRoles:15:0",
       "metadata": {
         "is_test": true,
-        "test_role": "test_case",
+        "test_role": "parameterized_test",
         "vb_visibility": "public"
       },
       "annotations": [
