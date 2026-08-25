@@ -681,12 +681,12 @@ is rejected.
 - **Do not:** re-add identifier name-prime (measured slower), change crossover
   first, or raise timeouts to hide the leftover cost.
 
-## 19. `store update` bypasses scan's discovery gates — open
+## 19. `store update` bypasses scan's discovery gates — closed (fix/store-queue-hygiene)
 
 - **Where:** `crates/julie-extract-cli/src/store/update.rs` (`execute_update`,
   ~130-137) and `store/executor.rs` (no reference to `select_file`,
   `FileSelection`, or `UnsupportedReason`).
-- **Status:** `open`.
+- **Status:** `closed`. `execute_update` runs the scan discovery decision before any read; a refused file reports terminal `unsupported` (exit 0) and writes zero queue rows.
 - **Evidence (2026-08-25 Miller bench-prep incident):** Miller submitted
   `store update` for tree-sitter-c-sharp's `src/parser.c` (32 MB generated C).
   `scan` excludes it (`MAX_SOURCE_FILE_BYTES`, `discovery.rs:597`), but the
@@ -700,12 +700,12 @@ is rejected.
   poison row. Regression: `store update` on an oversized file and on a
   `.min.js` must return `unsupported` and leave zero queue rows.
 
-## 20. Backlog quantum overrun overwrites the caller's own committed state — open
+## 20. Backlog quantum overrun overwrites the caller's own committed state — closed (fix/store-queue-hygiene)
 
 - **Where:** `crates/julie-extract-cli/src/store/import.rs` (~276-288) and
   `store/update.rs` (~39-52); drain in
   `crates/julie-extract-artifact/src/store/coordinator.rs` (~1356-1370).
-- **Status:** `open`.
+- **Status:** `closed`. The caller's report state now reflects only the caller's own request; backlog failures surface in a `warnings` array on the report.
 - **Evidence:** a committed `store import` was reported
   `state=failed, failure_class=coordinator_quantum` because a *backlog*
   request (someone else's poisoned update) blew the quantum after the caller's
@@ -716,12 +716,12 @@ is rejected.
 - **Proposed fix:** report the caller's own request's true terminal state;
   carry backlog failures as a warning field, never as the report state.
 
-## 21. Unschedulable requests requeue forever with no attempt counter — open
+## 21. Unschedulable requests requeue forever with no attempt counter — closed (fix/store-queue-hygiene)
 
 - **Where:** `crates/julie-extract-artifact/src/store/coordinator.rs`
   (requeue on overrun ~1449-1462; `Update` absent from renewable kinds
   ~88-90; candidate selection prefers interactive kinds ~1583-1619).
-- **Status:** `open`.
+- **Status:** `closed`. The coordinator counts overruns per request (`quantum_overruns` column, in-place ALTER) and fails the row with `coordinator_quantum` on the third; `Update` stays non-renewable on purpose.
 - **Evidence:** the quantum is measured after the work finishes, so a 29 s
   update extraction completed, was thrown away, and requeued — on every
   drain, forever. Nothing counts overruns, so the row never fails out, and
@@ -748,12 +748,12 @@ is rejected.
   pid is dead (matching the existing claimed-row takeover rule), and add
   `requests` pruning to `store maintain`.
 
-## 23. Publish discovery limits in `languages --json` — open
+## 23. Publish discovery limits in `languages --json` — closed (fix/store-queue-hygiene)
 
 - **Where:** `crates/julie-extract-cli/src/limits.rs`
   (`MAX_SOURCE_FILE_BYTES`) and `discovery.rs` (hard-exclude suffixes and
   directories); consumer contract surface `languages --json`.
-- **Status:** `open`.
+- **Status:** `closed`. `languages --json` publishes `discovery_limits` (max_source_file_bytes, hard-exclude directories and suffixes) sourced from the real constants; report schema stays 3.
 - **Why:** Miller now mirrors the 1 MiB limit and the hard-exclude sets as
   local constants (`ExtractSourceLimits`, 2026-08-25) to stop submitting
   files `scan` refuses. A mirrored constant drifts silently on the next limit
