@@ -680,3 +680,82 @@ is rejected.
      the wall-time path.
 - **Do not:** re-add identifier name-prime (measured slower), change crossover
   first, or raise timeouts to hide the leftover cost.
+
+## 19. `store update` bypasses scan's discovery gates — open
+
+- **Where:** `crates/julie-extract-cli/src/store/update.rs` (`execute_update`,
+  ~130-137) and `store/executor.rs` (no reference to `select_file`,
+  `FileSelection`, or `UnsupportedReason`).
+- **Status:** `open`.
+- **Evidence (2026-08-25 Miller bench-prep incident):** Miller submitted
+  `store update` for tree-sitter-c-sharp's `src/parser.c` (32 MB generated C).
+  `scan` excludes it (`MAX_SOURCE_FILE_BYTES`, `discovery.rs:597`), but the
+  update path read, hashed, and enqueued it; every later import spent 29-54 s
+  extracting it and died on the 4000 ms coordinator quantum. Live proof of the
+  same hole: three vendored `.min.js` files sit `indexed` in a manifest even
+  though `scan` hard-excludes `.min.js`.
+- **Proposed fix:** apply the same discovery decision `scan` uses before
+  enqueue: refuse an oversized or hard-excluded file and report it as
+  `unsupported` so the requester gets an honest terminal state instead of a
+  poison row. Regression: `store update` on an oversized file and on a
+  `.min.js` must return `unsupported` and leave zero queue rows.
+
+## 20. Backlog quantum overrun overwrites the caller's own committed state — open
+
+- **Where:** `crates/julie-extract-cli/src/store/import.rs` (~276-288) and
+  `store/update.rs` (~39-52); drain in
+  `crates/julie-extract-artifact/src/store/coordinator.rs` (~1356-1370).
+- **Status:** `open`.
+- **Evidence:** a committed `store import` was reported
+  `state=failed, failure_class=coordinator_quantum` because a *backlog*
+  request (someone else's poisoned update) blew the quantum after the caller's
+  own work had already committed. Miller logged
+  "coordinator_total 35173 failed" then "completed 157 true" — the revision
+  advanced on a scan reported failed, and Miller's persisted scan-failure
+  backoff throttled a healthy store.
+- **Proposed fix:** report the caller's own request's true terminal state;
+  carry backlog failures as a warning field, never as the report state.
+
+## 21. Unschedulable requests requeue forever with no attempt counter — open
+
+- **Where:** `crates/julie-extract-artifact/src/store/coordinator.rs`
+  (requeue on overrun ~1449-1462; `Update` absent from renewable kinds
+  ~88-90; candidate selection prefers interactive kinds ~1583-1619).
+- **Status:** `open`.
+- **Evidence:** the quantum is measured after the work finishes, so a 29 s
+  update extraction completed, was thrown away, and requeued — on every
+  drain, forever. Nothing counts overruns, so the row never fails out, and
+  one poison update starves every later import on the family. Deleting the
+  queued rows by hand dropped a 28,670 ms failing import to 17 ms committed.
+- **Proposed fix:** count overruns per request; after N (e.g. 3) fail the row
+  with a terminal `coordinator_quantum` state so the queue drains. `Import`
+  was already added to `permits_renewable_quantum` for the same bug class —
+  either make `Update` renewable or give it the counter.
+
+## 22. Nobody reaps dead-requester queue rows; `store maintain` skips `requests` — open
+
+- **Where:** `crates/julie-extract-artifact/src/store/coordinator.rs` (lease
+  takeover requeues claimed rows ~1010-1066; `requester_deadline` filters only
+  `acknowledge` ~2035-2038) and `store/maintenance.rs` (prunes store-log rows
+  and scratch, never `requests`).
+- **Status:** `open`.
+- **Evidence:** tree-sitter-razor's `coord.db` held a `claimed` update row
+  whose `claim_owner` was a dead CLI pid; nothing surfaced or reaped it. A
+  Miller family store held 2,163 committed update rows and 339 resolves, none
+  pruned. The only reap is lease takeover, which converts a claimed poison
+  row into a queued poison row.
+- **Proposed fix:** reap or age out `queued`/`claimed` rows whose requester
+  pid is dead (matching the existing claimed-row takeover rule), and add
+  `requests` pruning to `store maintain`.
+
+## 23. Publish discovery limits in `languages --json` — open
+
+- **Where:** `crates/julie-extract-cli/src/limits.rs`
+  (`MAX_SOURCE_FILE_BYTES`) and `discovery.rs` (hard-exclude suffixes and
+  directories); consumer contract surface `languages --json`.
+- **Status:** `open`.
+- **Why:** Miller now mirrors the 1 MiB limit and the hard-exclude sets as
+  local constants (`ExtractSourceLimits`, 2026-08-25) to stop submitting
+  files `scan` refuses. A mirrored constant drifts silently on the next limit
+  change. Publishing the limit and both hard-exclude sets in
+  `languages --json` lets Miller read them from the pinned binary instead.
