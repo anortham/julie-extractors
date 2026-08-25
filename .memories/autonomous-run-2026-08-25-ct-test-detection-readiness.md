@@ -29,13 +29,25 @@
 - Task 16 — artifact keeps dialect identities (jsx/tsx); Miller folds dialect→family at query time.
 - Windows gate — first run hit the win-test 1800 s timeout and a wrapper bytes/str crash; fixed the wrapper in hermes-skills and reran with a 2-hour timeout.
 
-External review: none (not requested for this run).
+## External review (grok, adversarial — user-requested after the merge)
+- **Policy:** no external-model policy declared in repo instructions — diff sent to xai with this note.
+- **Findings:** 6
+- **Verified real, fixed:** 6 (commit 92a541e1)
+  - [critical] unsupported-extension files skipped the oversize cap and were read whole for hashing — cap now fires before language routing
+  - [high] Python lifecycle names marked production methods as tests — now gated on is_test_path
+  - [high] describe.each published as parameterized_test — now test_container; only case words parameterize
+  - [high] bare integration/ marked production trees as test paths — segment dropped; cypress/ still covers Cypress
+  - [medium] detect_js_ts split paths only on '/' — now both separators
+  - [medium] api_surface test did not lock the test-role marker — locked; marker bumped to test-role-strings-v2
+- **Dismissed:** 0
+- **Flagged for your review:** 0
+- **Cost:** $0.25 across two invocations (the first was a broken run: the grok CLI truncated the 694 KB embedded diff; recovered by resuming the session and having grok read the diff from the repo)
 
 ## Review campaign
 - **State:** clean
-- **Evidence:** lead-only
-- **Round:** 1
-- **External invocations:** 0
+- **Evidence:** external-reviewed (grok adversarial, post-merge fix round)
+- **Round:** 2
+- **External invocations:** 2 (one broken + its recovery resume)
 - **Open critical/high:** 0
 - **Open medium/low:** 0 (minor deferrals listed in the SDD ledger)
 - **Open at/above floor:** 0
@@ -43,6 +55,7 @@ External review: none (not requested for this run).
 ## Tests
 - Linux branch gate at 91b14fd2: `cargo xtask test default`, `golden`, `capability`, `contract`, strict data-quality report, doc-sync check — all green.
 - Windows default suite on the win-test guest at 91b14fd2: exit 0, 53 test targets ok, 0 failures.
+- Fix round (92a541e1): Linux branch gate green again (all six scopes), Windows default suite green again (53 targets, 0 failures).
 - Commits after the gate run (c5b1023b, c7c427cf, this report) are docs/memories-only; the gate evidence carries over.
 - Security: gitleaks — 929 commits, no leaks. cargo audit — 173 dependencies, no vulnerabilities.
 
