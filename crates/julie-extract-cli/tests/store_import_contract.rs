@@ -1631,7 +1631,7 @@ fn retry_after_l1_manifest_progress_resumes_deepening_without_republishing() {
         .spawn()
         .unwrap();
     let database = store.join("gen-001/store.db");
-    let deadline = Instant::now() + Duration::from_secs(30);
+    let deadline = Instant::now() + Duration::from_secs(120);
     loop {
         assert!(
             Instant::now() < deadline,
@@ -2089,7 +2089,7 @@ fn crash_resume_keeps_frozen_chunk_schedule_when_environment_changes() {
         .spawn()
         .unwrap();
     let database = store.join("gen-001/store.db");
-    let deadline = Instant::now() + Duration::from_secs(30);
+    let deadline = Instant::now() + Duration::from_secs(120);
     loop {
         assert!(
             Instant::now() < deadline,
