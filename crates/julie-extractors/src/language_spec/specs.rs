@@ -307,7 +307,10 @@ pub(super) const LANGUAGE_SPECS: &[LanguageSpec] = &[
     ),
     spec(
         "xml",
-        &["xml", "xsd", "wsdl"],
+        &[
+            "xml", "xsd", "wsdl", "csproj", "props", "targets", "vbproj", "fsproj", "slnx",
+            "nuspec", "resx",
+        ],
         "tree-sitter-xml",
         DATA_ONLY_CAPABILITIES,
         parser_xml,

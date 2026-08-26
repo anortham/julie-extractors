@@ -6628,7 +6628,15 @@
       "extensions": [
         "xml",
         "xsd",
-        "wsdl"
+        "wsdl",
+        "csproj",
+        "props",
+        "targets",
+        "vbproj",
+        "fsproj",
+        "slnx",
+        "nuspec",
+        "resx"
       ],
       "dependency_status": "current",
       "capabilities": {

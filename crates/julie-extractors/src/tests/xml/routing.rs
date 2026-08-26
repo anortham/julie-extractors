@@ -30,6 +30,55 @@ fn xml_xsd_and_wsdl_extensions_all_route_to_the_xml_extractor() {
 }
 
 #[test]
+fn msbuild_and_dotnet_xml_extensions_route_to_the_xml_extractor() {
+    for file_path in [
+        "App.csproj",
+        "Directory.Build.props",
+        "Custom.targets",
+        "App.vbproj",
+        "App.fsproj",
+        "App.slnx",
+        "App.nuspec",
+        "Resources.resx",
+    ] {
+        let results = extract(file_path);
+
+        assert_eq!(names(&results), vec!["cfg", "a"], "{file_path} routing");
+        assert!(
+            results
+                .symbols
+                .iter()
+                .all(|symbol| symbol.language == "xml"),
+            "{file_path} should extract as xml"
+        );
+    }
+}
+
+#[test]
+fn a_csproj_document_extracts_its_named_msbuild_structure() {
+    const CSPROJ: &str = "<Project Sdk=\"Microsoft.NET.Sdk\">\n  <PropertyGroup>\n    <TargetFramework>net10.0</TargetFramework>\n  </PropertyGroup>\n  <ItemGroup>\n    <PackageReference Include=\"xunit.v3\" Version=\"1.0.0\"/>\n  </ItemGroup>\n</Project>\n";
+
+    let results = extract_canonical("App.csproj", CSPROJ, &PathBuf::from("/tmp/test"))
+        .expect("csproj extraction failed");
+
+    assert!(
+        results
+            .symbols
+            .iter()
+            .all(|symbol| symbol.language == "xml"),
+        "csproj content should extract as xml"
+    );
+}
+
+fn names(results: &crate::ExtractionResults) -> Vec<&str> {
+    results
+        .symbols
+        .iter()
+        .map(|symbol| symbol.name.as_str())
+        .collect()
+}
+
+#[test]
 fn the_xml_tier_emits_no_relationships_or_types() {
     let results = extract("config.xml");
 
