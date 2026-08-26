@@ -1385,12 +1385,12 @@ fn assert_v3_completion_and_manifest_bridge(store_database: &Path, oracle_databa
              JOIN manifest_entries me ON me.version_id = fv.version_id
              JOIN views v ON v.view_id = me.view_id AND v.current_generation = me.generation
              WHERE v.view_id = 'view-main'
-               AND (fv.extraction_epoch != 6 OR fv.complete_l1 IS NULL
+               AND (fv.extraction_epoch != ?1 OR fv.complete_l1 IS NULL
                     OR fv.complete_l2 IS NULL OR fv.complete_l3 IS NULL
                     OR me.status != 'indexed'
                     OR me.observed_content_hash != fv.content_hash
                     OR me.error_class IS NOT NULL OR me.error_json IS NOT NULL)",
-            [],
+            [julie_extractors::EXTRACTION_IDENTITY_EPOCH],
             |row| row.get(0),
         )
         .unwrap();

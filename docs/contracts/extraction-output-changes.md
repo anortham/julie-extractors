@@ -89,6 +89,29 @@ In CI, the `Extractor Compatibility` job downloads the latest published release 
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
+## 2.37.1
+
+classification: compatible
+
+The xml language spec now claims the MSBuild and .NET project XML extensions:
+`csproj`, `props`, `targets`, `vbproj`, `fsproj`, `slnx`, `nuspec`, and `resx`.
+`sln` stays unclaimed because it is not XML. Files with these extensions were
+previously dropped by discovery as `unsupported`; they now parse through the
+xml extractor and publish the same data-language facts as `.xml` files, in the
+existing schema 7 tables. No table, column, or JSONL field is added, removed,
+or renamed. A reader built for v2.37.0 still reads schema 7 / JSONL v5 / store
+schema 2.
+
+Extraction identity epoch is 7. Family-store file versions re-extract because
+identity is `(path, content_hash, extraction_epoch)`, and paths recorded as
+`unsupported` in earlier scans re-enter extraction.
+
+Consumer action: replace the binary and re-extract or rebuild standalone
+artifacts, or let epoch-7 family-store file versions populate on the next
+import or update. The compat fixture contains none of the new extensions, so
+the gate byte-matches; this entry declares the change on the strength of the
+spec diff.
+
 ## 2.36.0
 
 classification: compatible
