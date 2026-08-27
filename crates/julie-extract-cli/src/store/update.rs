@@ -10,14 +10,16 @@ use crate::paths::FileTarget;
 
 use super::args::{StoreLevelArg, StoreUpdateArgs};
 use super::executor::{
-    ImportScanControls, PlannedImportFile, RequestedLevel, StoreRequestExecutor,
-    UpdateRequestPayload, frozen_chunk_versions_from_environment, validate_target_within_root,
+    DeleteRequestPayload, ImportScanControls, PlannedImportFile, RequestedLevel,
+    StoreRequestExecutor, UpdateRequestPayload, frozen_chunk_versions_from_environment,
+    validate_target_within_root,
 };
 use super::import::{
     ImportClock, ImportPidLiveness, RequestReportSpec, StoreExecutionOutcome,
     absolute_runtime_path, canonical_control_paths, classify_failure, drain_when_available,
     mint_request_id, normalize_root_relative, now_millis, open_existing_store,
-    preflight_store_capacity, report_request, require_existing_view, root_scope_matches,
+    preflight_store_capacity, read_source_identity_or_missing, report_request,
+    require_existing_view, root_scope_matches,
 };
 use super::report::{
     StoreOperation, StoreOutputFormat, StoreReport, StoreRequestState, StoreRequestedLevel,
@@ -106,23 +108,39 @@ fn execute_update(
         deep_chunk_versions: 1,
     };
     let canonical_request = if let Some(existing) = existing_request {
-        if existing.kind != RequestKind::Update {
-            return Err("idempotency_conflict".to_string());
-        }
         let validator =
             StoreRequestExecutor::new(layout.store_db().to_path_buf(), family_id.clone(), None);
-        let payload = validator.validate_update_payload_json(&existing.payload_json)?;
-        let controls_match = payload.controls.matches_runtime_controls(&controls);
-        if payload.family_id != family_id
-            || !root_scope_matches(&args.root, &payload.root)
-            || payload.view_id != args.view
-            || payload.requested_level != requested_level
-            || payload.file.root_relative_path != root_relative_path
-            || !controls_match
-        {
-            return Err("idempotency_conflict".to_string());
+        match existing.kind {
+            RequestKind::Update => {
+                let payload = validator.validate_update_payload_json(&existing.payload_json)?;
+                let controls_match = payload.controls.matches_runtime_controls(&controls);
+                if payload.family_id != family_id
+                    || !root_scope_matches(&args.root, &payload.root)
+                    || payload.view_id != args.view
+                    || payload.requested_level != requested_level
+                    || payload.file.root_relative_path != root_relative_path
+                    || !controls_match
+                {
+                    return Err("idempotency_conflict".to_string());
+                }
+                existing
+            }
+            // An update of a vanished file enqueues a delete under the
+            // update's idempotency key, so a retry of that update must adopt
+            // the delete row instead of reporting a conflict.
+            RequestKind::Delete => {
+                let payload = validator.validate_delete_payload_json(&existing.payload_json)?;
+                if payload.family_id != family_id
+                    || !root_scope_matches(&args.root, &payload.root)
+                    || payload.view_id != args.view
+                    || payload.files != [root_relative_path.clone()]
+                {
+                    return Err("idempotency_conflict".to_string());
+                }
+                existing
+            }
+            _ => return Err("idempotency_conflict".to_string()),
         }
-        existing
     } else {
         let (l1_chunk_versions, deep_chunk_versions) = frozen_chunk_versions_from_environment()?;
         let controls = ImportScanControls {
@@ -148,25 +166,48 @@ fn execute_update(
             report.root = root_text;
             return Ok(report.with_unsupported(refusal));
         }
-        let (content_hash, content_bytes) =
-            crate::extraction::read_source_identity(&target).map_err(|error| error.message)?;
-        preflight_store_capacity(&args.store, content_bytes)?;
-        let payload = UpdateRequestPayload {
-            schema_version: 1,
-            family_id: family_id.clone(),
-            root: root_text,
-            view_id: args.view.clone(),
-            requested_level,
-            file: PlannedImportFile {
-                root_relative_path,
-                content_hash,
-                content_bytes,
-            },
-            controls,
+        let identity = read_source_identity_or_missing(&target)?;
+        let (request_kind, payload_json) = match identity {
+            Some((content_hash, content_bytes)) => {
+                preflight_store_capacity(&args.store, content_bytes)?;
+                let payload = UpdateRequestPayload {
+                    schema_version: 1,
+                    family_id: family_id.clone(),
+                    root: root_text,
+                    view_id: args.view.clone(),
+                    requested_level,
+                    file: PlannedImportFile {
+                        root_relative_path,
+                        content_hash,
+                        content_bytes,
+                    },
+                    controls,
+                };
+                let payload_json =
+                    serde_json::to_string(&payload).expect("update payload is serializable");
+                StoreRequestExecutor::new(layout.store_db().to_path_buf(), family_id.clone(), None)
+                    .validate_update_payload_json(&payload_json)?;
+                (RequestKind::Update, payload_json)
+            }
+            // The file vanished between the caller's delta enumeration and
+            // this read. It genuinely does not exist, so the correct durable
+            // outcome for this update is the same delete the caller would
+            // have requested, not a failed request.
+            None => {
+                let payload = DeleteRequestPayload {
+                    schema_version: 1,
+                    family_id: family_id.clone(),
+                    root: root_text,
+                    view_id: args.view.clone(),
+                    files: vec![root_relative_path],
+                };
+                let payload_json =
+                    serde_json::to_string(&payload).expect("delete payload is serializable");
+                StoreRequestExecutor::new(layout.store_db().to_path_buf(), family_id.clone(), None)
+                    .validate_delete_payload_json(&payload_json)?;
+                (RequestKind::Delete, payload_json)
+            }
         };
-        let payload_json = serde_json::to_string(&payload).expect("update payload is serializable");
-        StoreRequestExecutor::new(layout.store_db().to_path_buf(), family_id.clone(), None)
-            .validate_update_payload_json(&payload_json)?;
         let now = now_millis();
         let deadline_delta = i64::try_from(args.request.request_timeout_seconds)
             .unwrap_or(i64::MAX)
@@ -175,7 +216,7 @@ fn execute_update(
             .enqueue(CoordinatorRequest::new(
                 request_id,
                 idempotency_key,
-                RequestKind::Update,
+                request_kind,
                 payload_json,
                 format!("cli-{}", std::process::id()),
                 now.saturating_add(deadline_delta),
@@ -207,11 +248,21 @@ fn execute_update(
     let request = coordinator
         .request(&canonical_request_id)
         .map_err(|error| error.to_string())?;
-    let payload = StoreRequestExecutor::new(layout.store_db().to_path_buf(), family_id, None)
-        .validate_update_payload_json(&request.payload_json)?;
-    Ok(report_request(
-        &layout,
-        &request,
+    let validator = StoreRequestExecutor::new(layout.store_db().to_path_buf(), family_id, None);
+    // The report keeps operation "update" either way: callers match the
+    // report operation against the command they invoked.
+    let spec = if request.kind == RequestKind::Delete {
+        let payload = validator.validate_delete_payload_json(&request.payload_json)?;
+        RequestReportSpec {
+            operation: StoreOperation::Update,
+            family_id: payload.family_id,
+            view_id: payload.view_id,
+            root: payload.root,
+            requested_level,
+            l1_event_kind: "store_delete_l1_published",
+        }
+    } else {
+        let payload = validator.validate_update_payload_json(&request.payload_json)?;
         RequestReportSpec {
             operation: StoreOperation::Update,
             family_id: payload.family_id,
@@ -219,9 +270,9 @@ fn execute_update(
             root: payload.root,
             requested_level: payload.requested_level,
             l1_event_kind: "store_update_l1_published",
-        },
-    )?
-    .with_warnings(warnings))
+        }
+    };
+    Ok(report_request(&layout, &request, spec)?.with_warnings(warnings))
 }
 
 /// The discovery decision `scan` applies, run before the update path reads,

@@ -151,6 +151,43 @@ pub(crate) fn normalize_root_relative(path: &Path) -> Result<String, String> {
     Ok(parts.join("/"))
 }
 
+/// A file that vanished between discovery and this read is left out of the
+/// plan: the import then indexes the tree exactly as a slightly later
+/// discovery would have seen it, instead of failing the whole request.
+fn planned_import_files(
+    targets: Vec<crate::paths::FileTarget>,
+) -> Result<Vec<PlannedImportFile>, String> {
+    targets
+        .into_iter()
+        .filter_map(|target| match read_source_identity_or_missing(&target) {
+            Ok(Some((content_hash, content_bytes))) => Some(Ok(PlannedImportFile {
+                root_relative_path: target.root_relative_path,
+                content_hash,
+                content_bytes,
+            })),
+            Ok(None) => None,
+            Err(message) => Some(Err(message)),
+        })
+        .collect()
+}
+
+/// `Ok(None)` means the file no longer exists: a target that vanished between
+/// enumeration and this read is a deletion to record, not a failure. Only
+/// `NotFound` qualifies; every other read error keeps failing, because the
+/// file still exists and dropping it would serve a wrong index.
+pub(crate) fn read_source_identity_or_missing(
+    target: &crate::paths::FileTarget,
+) -> Result<Option<(String, u64)>, String> {
+    match std::fs::read(&target.absolute_path) {
+        Ok(bytes) => Ok(Some((
+            crate::extraction::content_hash_bytes(&bytes),
+            bytes.len() as u64,
+        ))),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(crate::extraction::read_error(target, &error).message),
+    }
+}
+
 pub(crate) struct RequestReportSpec {
     pub operation: StoreOperation,
     pub family_id: String,
@@ -389,20 +426,7 @@ fn execute_import(
             if let Some(error) = discovery.errors.first() {
                 return Err(error.message.clone());
             }
-            let mut files = discovery
-                .supported_files
-                .into_iter()
-                .map(|target| {
-                    let (content_hash, content_bytes) =
-                        crate::extraction::read_source_identity(&target)
-                            .map_err(|error| error.message)?;
-                    Ok(PlannedImportFile {
-                        root_relative_path: target.root_relative_path,
-                        content_hash,
-                        content_bytes,
-                    })
-                })
-                .collect::<Result<Vec<_>, String>>()?;
+            let mut files = planned_import_files(discovery.supported_files)?;
             files.sort_by(|left, right| left.root_relative_path.cmp(&right.root_relative_path));
             let source_bytes = files
                 .iter()
@@ -938,6 +962,51 @@ pub(crate) fn preflight_store_capacity(path: &Path, source_bytes: u64) -> Result
     let available = super::maintenance::filesystem_free_bytes(probe)
         .map_err(|error| format!("capacity_probe_failed:{error}"))?;
     ensure_store_capacity(available, required_store_capacity_bytes(source_bytes))
+}
+
+#[cfg(test)]
+mod planning_tests {
+    use super::planned_import_files;
+    use crate::paths::FileTarget;
+
+    #[test]
+    fn planning_skips_a_file_that_vanished_after_enumeration() {
+        let temp = tempfile::tempdir().unwrap();
+        let kept = temp.path().join("lib.rs");
+        std::fs::write(&kept, "pub fn answer() -> u32 { 1 }\n").unwrap();
+        let targets = vec![
+            FileTarget {
+                absolute_path: kept,
+                root_relative_path: "lib.rs".to_string(),
+            },
+            FileTarget {
+                absolute_path: temp.path().join("gone.rs"),
+                root_relative_path: "gone.rs".to_string(),
+            },
+        ];
+
+        let planned = planned_import_files(targets).unwrap();
+
+        assert_eq!(planned.len(), 1);
+        assert_eq!(planned[0].root_relative_path, "lib.rs");
+    }
+
+    #[test]
+    fn planning_still_fails_on_an_unreadable_existing_file() {
+        let temp = tempfile::tempdir().unwrap();
+        std::fs::create_dir(temp.path().join("blocked.rs")).unwrap();
+        let targets = vec![FileTarget {
+            absolute_path: temp.path().join("blocked.rs"),
+            root_relative_path: "blocked.rs".to_string(),
+        }];
+
+        let error = planned_import_files(targets).unwrap_err();
+
+        assert!(
+            error.starts_with("source file could not be read:"),
+            "{error}"
+        );
+    }
 }
 
 #[cfg(test)]

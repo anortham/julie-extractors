@@ -2396,8 +2396,11 @@ fn delete_reports_idempotency_conflict_before_parsing_an_update_payload() {
     assert_eq!(generation, 2);
 }
 
+/// An update of a vanished file records its outcome as a delete request under
+/// the update's idempotency key, so a retried update must adopt a delete row
+/// that names exactly its file instead of poisoning the key with a conflict.
 #[test]
-fn update_reports_idempotency_conflict_before_parsing_a_delete_payload() {
+fn update_adopts_a_delete_row_that_names_exactly_its_file() {
     let fixture = tempfile::tempdir().unwrap();
     let root = fixture.path().join("root");
     let store = fixture.path().join("store");
@@ -2466,6 +2469,95 @@ fn update_reports_idempotency_conflict_before_parsing_a_delete_payload() {
         "request-reverse-cross-kind-update",
         "--idempotency-key",
         "idem-reverse-cross-kind",
+        "--json",
+    ]);
+    assert_eq!(updated.status.code(), Some(0));
+    let report: Value = serde_json::from_slice(&updated.stdout).unwrap();
+    assert_eq!(report["operation"], "update");
+    assert_eq!(report["state"], "committed");
+    assert_eq!(report["failure_class"], "none");
+    let connection = Connection::open(store.join("gen-001/store.db")).unwrap();
+    let generation: i64 = connection
+        .query_row(
+            "SELECT current_generation FROM views WHERE view_id = 'view-main'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(generation, 2);
+}
+
+#[test]
+fn update_reports_idempotency_conflict_for_a_delete_row_naming_another_file() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("lib.rs"), "pub fn answer() {}\n").unwrap();
+    std::fs::write(root.join("util.rs"), "pub fn twice() {}\n").unwrap();
+    assert_eq!(
+        run_store(&[
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--level",
+            "l1",
+            "--request-id",
+            "request-mismatched-delete-seed",
+            "--idempotency-key",
+            "idem-mismatched-delete-seed",
+            "--json",
+        ])
+        .status
+        .code(),
+        Some(0)
+    );
+    assert_eq!(
+        run_store(&[
+            "store",
+            "delete",
+            "--store",
+            store.to_str().unwrap(),
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--file",
+            "util.rs",
+            "--request-id",
+            "request-mismatched-delete",
+            "--idempotency-key",
+            "idem-mismatched-delete",
+            "--json",
+        ])
+        .status
+        .code(),
+        Some(0)
+    );
+    let updated = run_store(&[
+        "store",
+        "update",
+        "--store",
+        store.to_str().unwrap(),
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--file",
+        "lib.rs",
+        "--level",
+        "l1",
+        "--request-id",
+        "request-mismatched-delete-update",
+        "--idempotency-key",
+        "idem-mismatched-delete",
         "--json",
     ]);
     assert_eq!(updated.status.code(), Some(1));

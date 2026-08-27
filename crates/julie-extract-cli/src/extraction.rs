@@ -86,14 +86,7 @@ pub(crate) fn extract_artifact_file(
 pub(crate) fn read_source_snapshot(
     target: &FileTarget,
 ) -> Result<SourceSnapshot, ExtractFileError> {
-    let bytes = fs::read(&target.absolute_path).map_err(|error| ExtractFileError {
-        kind: ExtractFileErrorKind::Read,
-        path: target.absolute_path.display().to_string(),
-        root_relative_path: target.root_relative_path.clone(),
-        message: format!("source file could not be read: {error}"),
-        content_hash: None,
-        content_bytes: None,
-    })?;
+    let bytes = fs::read(&target.absolute_path).map_err(|error| read_error(target, &error))?;
     let content_hash = content_hash_bytes(&bytes);
     let content_bytes = bytes.len() as i64;
     let content = decode_source_content(bytes)
@@ -108,15 +101,19 @@ pub(crate) fn read_source_snapshot(
 }
 
 pub(crate) fn read_source_identity(target: &FileTarget) -> Result<(String, u64), ExtractFileError> {
-    let bytes = fs::read(&target.absolute_path).map_err(|error| ExtractFileError {
+    let bytes = fs::read(&target.absolute_path).map_err(|error| read_error(target, &error))?;
+    Ok((content_hash_bytes(&bytes), bytes.len() as u64))
+}
+
+pub(crate) fn read_error(target: &FileTarget, error: &std::io::Error) -> ExtractFileError {
+    ExtractFileError {
         kind: ExtractFileErrorKind::Read,
         path: target.absolute_path.display().to_string(),
         root_relative_path: target.root_relative_path.clone(),
         message: format!("source file could not be read: {error}"),
         content_hash: None,
         content_bytes: None,
-    })?;
-    Ok((content_hash_bytes(&bytes), bytes.len() as u64))
+    }
 }
 
 fn decode_source_content(bytes: Vec<u8>) -> Result<String, SourceDecodeError> {
@@ -1116,7 +1113,7 @@ fn content_hash(content: &str) -> String {
     content_hash_bytes(content.as_bytes())
 }
 
-fn content_hash_bytes(content: &[u8]) -> String {
+pub(crate) fn content_hash_bytes(content: &[u8]) -> String {
     format!("blake3:{}", blake3::hash(content).to_hex())
 }
 
