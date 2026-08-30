@@ -127,7 +127,7 @@ pub use capability_snapshot::{
 ///
 /// **Stable.** Bump the suffix after `v` when the canonical extraction shape
 /// changes in a way downstream consumers must observe.
-pub const EXTRACTION_CONTRACT_VERSION: &str = "2026-06-30.ecmascript-swift-shape-v3.source-regions-v1.structural-facts-v1.complexity-metrics-v1.file-derived-component-symbols-v1.framework-route-facts-v1.react-nextjs-route-facts-v1.nuxt-route-facts-v1.web-route-facts-v3.http-boundary-facts-v1.containing-symbol-binding-v2.backend-http-boundary-v1.backend-http-boundary-v2.sql-tsql-facts-v1.test-role-strings-v2.csharp-visibility-v2";
+pub const EXTRACTION_CONTRACT_VERSION: &str = "2026-06-30.ecmascript-swift-shape-v3.source-regions-v1.structural-facts-v1.complexity-metrics-v1.file-derived-component-symbols-v1.framework-route-facts-v1.react-nextjs-route-facts-v1.nuxt-route-facts-v1.web-route-facts-v3.http-boundary-facts-v1.containing-symbol-binding-v2.backend-http-boundary-v1.backend-http-boundary-v2.sql-tsql-facts-v1.test-role-strings-v2.csharp-visibility-v2.go-subtests-v1";
 
 /// Epoch used in input-keyed file-version identity.
 pub const EXTRACTION_IDENTITY_EPOCH: u32 = 7;

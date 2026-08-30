@@ -81,3 +81,22 @@ var _ = Describe("calculator", func() {
 func orphanGinkgoHelper() {
 	It("never runs without a container", func() {})
 }
+
+func TestSubtests(testHandle *testing.T) {
+	testHandle.Run("literal child", func(child *testing.T) {
+		child.Run("nested child", func(grandchild *testing.T) {})
+	})
+}
+
+func TestDynamicSubtest(testHandle *testing.T) {
+	name := "dynamic child"
+	testHandle.Run(name, func(child *testing.T) {})
+}
+
+type customT struct{}
+
+func (receiver *customT) Run(name string, callback func()) {}
+
+func helperUnrelatedRun(receiver *customT) {
+	receiver.Run("unrelated receiver", func() {})
+}

@@ -644,12 +644,6 @@
           "not_applicable": [],
           "open_gaps": [
             {
-              "kind": "go.subtest_names",
-              "reason": "The standard library declares a subtest as `t.Run(\"name\", func(t *testing.T) { ... })` inside a parent test body. The subtest name is a call argument, not a declaration, and `go test -run Parent/name` addresses it, so a consumer that reads declared symbols alone cannot see or select a subtest.",
-              "required_closure": "capture the `t.Run` name argument as a test case scoped to the enclosing test function, with a golden fixture that also carries a non-literal subtest name and a non-testing `Run` call as controls",
-              "planned_closure_task": "docs/plans/2026-08-25-ct-test-detection-readiness.md Task 9 follow-up: Go t.Run subtest names"
-            },
-            {
               "kind": "go.module_manifest_language",
               "reason": "`go.mod` and `go.sum` carry the module path, the Go toolchain version, the require/replace/exclude graph, and the dependency checksums. Neither file has an extension, and no registered language claims an exact basename for them, so both are scanned as unsupported and publish no symbols or structural facts.",
               "required_closure": "register a Go module-manifest language keyed on the exact basenames `go.mod` and `go.sum`, the way `qmldir` is keyed on its exact basename, and register a golden fixture covering module, go, toolchain, require, replace, exclude, and checksum lines",

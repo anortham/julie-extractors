@@ -54,6 +54,10 @@ fn meta_bool(s: &Symbol, key: &str) -> bool {
         .unwrap_or(false)
 }
 
+fn meta_string<'a>(s: &'a Symbol, key: &str) -> Option<&'a str> {
+    s.metadata.as_ref()?.get(key)?.as_str()
+}
+
 // ── Wave-3 tests ─────────────────────────────────────────────────────────
 
 #[test]
@@ -337,4 +341,146 @@ func Testable(t *testing.T) {}
         .find(|s| s.name == "Testable")
         .unwrap_or_else(|| panic!("expected Testable, got: {syms:?}"));
     assert!(!meta_bool(control, "is_test"));
+}
+
+#[test]
+fn literal_t_run_with_arbitrary_parameter_name_emits_child_case() {
+    let code = r#"package math_test
+
+import "testing"
+
+func TestAdds(testHandle *testing.T) {
+    testHandle.Run("literal child", func(child *testing.T) {})
+}
+"#;
+    let syms = symbols(code);
+    let parent = syms
+        .iter()
+        .find(|s| s.name == "TestAdds")
+        .unwrap_or_else(|| panic!("expected TestAdds, got: {syms:?}"));
+    let child = syms
+        .iter()
+        .find(|s| s.name == "literal child")
+        .unwrap_or_else(|| panic!("expected literal child, got: {syms:?}"));
+
+    assert_eq!(meta_string(child, "test_role"), Some("test_case"));
+    assert_eq!(child.parent_id.as_deref(), Some(parent.id.as_str()));
+    assert_eq!(syms.iter().filter(|s| s.name == "literal child").count(), 1);
+}
+
+#[test]
+fn nested_literal_t_runs_preserve_parent_identity() {
+    let code = r#"package math_test
+
+import "testing"
+
+func TestAdds(t *testing.T) {
+    t.Run("outer", func(outer *testing.T) {
+        outer.Run("inner", func(inner *testing.T) {})
+    })
+}
+"#;
+    let syms = symbols(code);
+    let root = syms
+        .iter()
+        .find(|s| s.name == "TestAdds")
+        .unwrap_or_else(|| panic!("expected TestAdds, got: {syms:?}"));
+    let outer = syms
+        .iter()
+        .find(|s| s.name == "outer")
+        .unwrap_or_else(|| panic!("expected outer, got: {syms:?}"));
+    let inner = syms
+        .iter()
+        .find(|s| s.name == "inner")
+        .unwrap_or_else(|| panic!("expected inner, got: {syms:?}"));
+
+    assert_eq!(meta_string(outer, "test_role"), Some("test_case"));
+    assert_eq!(meta_string(inner, "test_role"), Some("test_case"));
+    assert_eq!(outer.parent_id.as_deref(), Some(root.id.as_str()));
+    assert_eq!(inner.parent_id.as_deref(), Some(outer.id.as_str()));
+}
+
+#[test]
+fn dynamic_t_run_names_are_not_test_cases() {
+    let code = r#"package math_test
+
+import "testing"
+
+func TestAdds(t *testing.T) {
+    name := "dynamic"
+    t.Run(name, func(t *testing.T) {})
+}
+"#;
+    let syms = symbols(code);
+
+    assert!(!syms.iter().any(|s| s.name == "dynamic"));
+}
+
+#[test]
+fn unrelated_run_receiver_types_are_not_test_cases() {
+    let code = r#"package math_test
+
+type customT struct{}
+
+func (receiver *customT) Run(name string, callback func()) {}
+
+func helper(receiver *customT) {
+    receiver.Run("unrelated receiver", func() {})
+}
+"#;
+    let syms = symbols(code);
+
+    assert!(!syms.iter().any(|s| s.name == "unrelated receiver"));
+}
+
+#[test]
+fn only_exact_run_member_is_a_standard_subtest() {
+    let code = r#"package math_test
+
+import "testing"
+
+func TestAdds(t *testing.T) {
+    t.Runner("wrong member", func(t *testing.T) {})
+}
+"#;
+    let syms = symbols(code);
+
+    assert!(!syms.iter().any(|s| s.name == "wrong member"));
+}
+
+#[test]
+fn non_literal_or_non_function_t_run_arguments_are_not_test_cases() {
+    let code = r#"package math_test
+
+import "testing"
+
+func TestAdds(t *testing.T) {
+    callback := func(*testing.T) {}
+    t.Run("callback value", callback)
+}
+"#;
+    let syms = symbols(code);
+
+    assert!(!syms.iter().any(|s| s.name == "callback value"));
+}
+
+#[test]
+fn t_run_without_an_enclosing_test_symbol_is_silent() {
+    let code = r#"package math_test
+
+import "testing"
+
+var fileScope = t.Run("file scope", func(t *testing.T) {})
+
+func helper(t *testing.T) {
+    t.Run("helper scope", func(t *testing.T) {})
+}
+"#;
+    let syms = symbols(code);
+
+    assert!(
+        !syms
+            .iter()
+            .any(|s| { matches!(s.name.as_str(), "file scope" | "helper scope") })
+    );
 }

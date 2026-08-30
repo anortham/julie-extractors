@@ -29,7 +29,7 @@
 //!
 //! The standard Go `testing.T`-based idiom (`func TestXxx(t *testing.T)` + `_test.go`
 //! path detection) was handled in task #48 via `classify_symbols_by_role`. This
-//! adapter is purely additive.
+//! module adds literal `testing.T.Run` subtest symbols to those declarations.
 
 use crate::base::{BaseExtractor, Symbol};
 use crate::test_calls::{
@@ -170,4 +170,93 @@ pub(super) fn extract_ginkgo_test_call(
         symbol: build_test_call_symbol(base, &node, &full_callee, name, category, parent_id),
         category,
     })
+}
+
+pub(super) fn extract_standard_subtest_call(
+    base: &mut BaseExtractor,
+    node: Node,
+    parent_id: Option<&str>,
+    enclosing_test: bool,
+) -> Option<Symbol> {
+    if !enclosing_test || node.kind() != "call_expression" {
+        return None;
+    }
+
+    let function_node = node.child_by_field_name("function")?;
+    if function_node.kind() != "selector_expression" {
+        return None;
+    }
+    let operand = function_node.child_by_field_name("operand")?;
+    let field = function_node.child_by_field_name("field")?;
+    if operand.kind() != "identifier"
+        || field.kind() != "field_identifier"
+        || base.get_node_text(&field) != "Run"
+    {
+        return None;
+    }
+
+    let receiver_name = base.get_node_text(&operand);
+    if !active_testing_t_receiver(base, node, &receiver_name) {
+        return None;
+    }
+
+    let arguments = node.child_by_field_name("arguments")?;
+    let mut cursor = arguments.walk();
+    let mut named_arguments = arguments.named_children(&mut cursor);
+    let name_node = named_arguments.next()?;
+    if !name_node.kind().contains("string_literal") {
+        return None;
+    }
+    let callback = named_arguments.next()?;
+    if callback.kind() != "func_literal" {
+        return None;
+    }
+
+    let name = base.decode_string_literal(&name_node)?;
+    Some(build_test_call_symbol(
+        base,
+        &node,
+        "Run",
+        name,
+        TestCallCategory::Test,
+        parent_id,
+    ))
+}
+
+fn active_testing_t_receiver(base: &BaseExtractor, call_node: Node, receiver_name: &str) -> bool {
+    let mut ancestor = call_node.parent();
+    while let Some(node) = ancestor {
+        if matches!(
+            node.kind(),
+            "function_declaration" | "method_declaration" | "func_literal"
+        ) {
+            if let Some(is_testing_t) = testing_t_parameter(base, node, receiver_name) {
+                return is_testing_t;
+            }
+        }
+        ancestor = node.parent();
+    }
+    false
+}
+
+fn testing_t_parameter(
+    base: &BaseExtractor,
+    function_node: Node,
+    receiver_name: &str,
+) -> Option<bool> {
+    let parameters = function_node.child_by_field_name("parameters")?;
+    let mut cursor = parameters.walk();
+    for parameter in parameters.named_children(&mut cursor) {
+        let type_node = parameter.child_by_field_name("type")?;
+        let mut parameter_cursor = parameter.walk();
+        let receiver_bound = parameter
+            .named_children(&mut parameter_cursor)
+            .any(|child| {
+                child.kind() == "identifier" && base.get_node_text(&child) == receiver_name
+            });
+        if receiver_bound {
+            return Some(base.get_node_text(&type_node) == "*testing.T");
+        }
+    }
+    None
 }

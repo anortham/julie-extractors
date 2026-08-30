@@ -35,6 +35,7 @@ fn test_public_contract_version_marks_current_fact_families() {
         "sql-tsql-facts-v1",
         "test-role-strings-v2",
         "csharp-visibility-v2",
+        "go-subtests-v1",
     ] {
         assert!(
             version.contains(marker),
