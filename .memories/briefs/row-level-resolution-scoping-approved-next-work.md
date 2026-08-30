@@ -1,9 +1,9 @@
 ---
 id: row-level-resolution-scoping-approved-next-work
 title: Row-level resolution scoping — approved next work
-status: active
+status: completed
 created: 2026-08-07T14:41:41.115Z
-updated: 2026-08-07T14:41:41.115Z
+updated: 2026-08-30T22:45:25.359Z
 tags:
   - resolution
   - performance

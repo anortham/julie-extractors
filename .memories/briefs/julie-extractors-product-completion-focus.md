@@ -1,9 +1,9 @@
 ---
 id: julie-extractors-product-completion-focus
 title: julie-extractors Product Completion Focus
-status: active
+status: completed
 created: 2026-06-01T13:24:06.835Z
-updated: 2026-06-02T19:39:28.214Z
+updated: 2026-08-30T22:44:43.141Z
 tags:
   - julie-extractors
   - product-bootstrap

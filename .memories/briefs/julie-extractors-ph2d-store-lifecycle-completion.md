@@ -1,9 +1,9 @@
 ---
 id: julie-extractors-ph2d-store-lifecycle-completion
 title: Julie Extractors Ph2d Store Lifecycle Completion
-status: active
+status: completed
 created: 2026-08-08T23:51:08.294Z
-updated: 2026-08-08T23:51:08.294Z
+updated: 2026-08-30T22:44:41.822Z
 tags:
   - ph2d
   - index-store

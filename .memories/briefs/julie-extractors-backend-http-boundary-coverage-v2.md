@@ -1,9 +1,9 @@
 ---
 id: julie-extractors-backend-http-boundary-coverage-v2
 title: julie-extractors Backend HTTP Boundary Coverage (v2.7.0 lane)
-status: active
+status: completed
 created: 2026-07-02T14:49:58.432Z
-updated: 2026-07-02T14:49:58.432Z
+updated: 2026-08-30T22:44:42.546Z
 tags:
   - julie-extractors
   - backend-http-boundary
