@@ -20,6 +20,14 @@ The command runs the C# unit-test modules and the golden extraction test with
 cargo xtask test golden
 ```
 
+## Visibility
+
+Explicit `internal` declarations publish `visibility = "internal"`; class
+metadata also records `csharp_visibility = "internal"`. Explicit `private` and
+member declarations without a visibility modifier remain `"private"`. The
+`fixtures/extraction/csharp/basic` fixture covers internal classes,
+constructors, methods, properties, and fields alongside private controls.
+
 ## Test roles
 
 The extractor adopts three .NET test frameworks by name: NUnit, MSTest

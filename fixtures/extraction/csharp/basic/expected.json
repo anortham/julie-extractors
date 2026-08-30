@@ -125,6 +125,98 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/csharp/basic/source.cs:DefaultPrivateField:95:4",
+      "name": "DefaultPrivateField",
+      "kind": "field",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "start_line": 95,
+      "start_column": 4,
+      "end_line": 95,
+      "end_column": 28,
+      "start_byte": 2249,
+      "end_byte": 2273,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "int DefaultPrivateField",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/csharp/basic/source.cs:VisibilityFixture:87:0",
+      "metadata": {
+        "isStatic": false
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/basic/source.cs:DefaultPrivateMethod:99:4",
+      "name": "DefaultPrivateMethod",
+      "kind": "method",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "start_line": 99,
+      "start_column": 4,
+      "end_line": 99,
+      "end_column": 36,
+      "start_byte": 2423,
+      "end_byte": 2455,
+      "body_span": {
+        "start_line": 99,
+        "start_column": 31,
+        "end_line": 99,
+        "end_column": 35,
+        "start_byte": 2450,
+        "end_byte": 2454
+      },
+      "body_hash": "0316a771a88a6a2831295d2f399a13fe",
+      "signature": "int DefaultPrivateMethod() => 3",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/csharp/basic/source.cs:VisibilityFixture:87:0",
+      "metadata": {
+        "isStatic": false
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/basic/source.cs:DefaultPrivateProperty:97:4",
+      "name": "DefaultPrivateProperty",
+      "kind": "property",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "start_line": 97,
+      "start_column": 4,
+      "end_line": 97,
+      "end_column": 44,
+      "start_byte": 2332,
+      "end_byte": 2372,
+      "body_span": {
+        "start_line": 97,
+        "start_column": 31,
+        "end_line": 97,
+        "end_column": 44,
+        "start_byte": 2359,
+        "end_byte": 2372
+      },
+      "body_hash": "128b54e8907b5ba0159a370391345ae3",
+      "signature": "int DefaultPrivateProperty { get; set; }",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/csharp/basic/source.cs:VisibilityFixture:87:0",
+      "metadata": {
+        "isStatic": false
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/csharp/basic/source.cs:Evaluate:36:4",
       "name": "Evaluate",
       "kind": "method",
@@ -151,6 +243,98 @@
       "parent_key": "fixtures/extraction/csharp/basic/source.cs:ComplexityFixture:32:0",
       "metadata": {
         "isStatic": true
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/basic/source.cs:ExplicitPrivateField:94:4",
+      "name": "ExplicitPrivateField",
+      "kind": "field",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "start_line": 94,
+      "start_column": 4,
+      "end_line": 94,
+      "end_column": 37,
+      "start_byte": 2211,
+      "end_byte": 2244,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "private int ExplicitPrivateField",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/csharp/basic/source.cs:VisibilityFixture:87:0",
+      "metadata": {
+        "isStatic": false
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/basic/source.cs:ExplicitPrivateMethod:98:4",
+      "name": "ExplicitPrivateMethod",
+      "kind": "method",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "start_line": 98,
+      "start_column": 4,
+      "end_line": 98,
+      "end_column": 45,
+      "start_byte": 2377,
+      "end_byte": 2418,
+      "body_span": {
+        "start_line": 98,
+        "start_column": 40,
+        "end_line": 98,
+        "end_column": 44,
+        "start_byte": 2413,
+        "end_byte": 2417
+      },
+      "body_hash": "577a7c40316bf8e9035ea4290a5d9dcd",
+      "signature": "private int ExplicitPrivateMethod() => 2",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/csharp/basic/source.cs:VisibilityFixture:87:0",
+      "metadata": {
+        "isStatic": false
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/basic/source.cs:ExplicitPrivateProperty:96:4",
+      "name": "ExplicitPrivateProperty",
+      "kind": "property",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "start_line": 96,
+      "start_column": 4,
+      "end_line": 96,
+      "end_column": 53,
+      "start_byte": 2278,
+      "end_byte": 2327,
+      "body_span": {
+        "start_line": 96,
+        "start_column": 40,
+        "end_line": 96,
+        "end_column": 53,
+        "start_byte": 2314,
+        "end_byte": 2327
+      },
+      "body_hash": "128b54e8907b5ba0159a370391345ae3",
+      "signature": "private int ExplicitPrivateProperty { get; set; }",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/csharp/basic/source.cs:VisibilityFixture:87:0",
+      "metadata": {
+        "isStatic": false
       },
       "annotations": [],
       "semantic_group": null,
@@ -309,6 +493,98 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/csharp/basic/source.cs:Worker:8:0",
+      "metadata": {
+        "isStatic": false
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/basic/source.cs:InternalField:92:4",
+      "name": "InternalField",
+      "kind": "field",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "start_line": 92,
+      "start_column": 4,
+      "end_line": 92,
+      "end_column": 31,
+      "start_byte": 2178,
+      "end_byte": 2205,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "internal int InternalField",
+      "doc_comment": null,
+      "visibility": "Internal",
+      "parent_key": "fixtures/extraction/csharp/basic/source.cs:VisibilityFixture:87:0",
+      "metadata": {
+        "isStatic": false
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/basic/source.cs:InternalMethod:90:4",
+      "name": "InternalMethod",
+      "kind": "method",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "start_line": 90,
+      "start_column": 4,
+      "end_line": 90,
+      "end_column": 39,
+      "start_byte": 2090,
+      "end_byte": 2125,
+      "body_span": {
+        "start_line": 90,
+        "start_column": 34,
+        "end_line": 90,
+        "end_column": 38,
+        "start_byte": 2120,
+        "end_byte": 2124
+      },
+      "body_hash": "42b19608a2f398f3ffd349de380e7069",
+      "signature": "internal int InternalMethod() => 1",
+      "doc_comment": null,
+      "visibility": "Internal",
+      "parent_key": "fixtures/extraction/csharp/basic/source.cs:VisibilityFixture:87:0",
+      "metadata": {
+        "isStatic": false
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/basic/source.cs:InternalProperty:91:4",
+      "name": "InternalProperty",
+      "kind": "property",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "start_line": 91,
+      "start_column": 4,
+      "end_line": 91,
+      "end_column": 47,
+      "start_byte": 2130,
+      "end_byte": 2173,
+      "body_span": {
+        "start_line": 91,
+        "start_column": 34,
+        "end_line": 91,
+        "end_column": 47,
+        "start_byte": 2160,
+        "end_byte": 2173
+      },
+      "body_hash": "128b54e8907b5ba0159a370391345ae3",
+      "signature": "internal int InternalProperty { get; set; }",
+      "doc_comment": null,
+      "visibility": "Internal",
+      "parent_key": "fixtures/extraction/csharp/basic/source.cs:VisibilityFixture:87:0",
       "metadata": {
         "isStatic": false
       },
@@ -561,6 +837,72 @@
       "parent_key": "fixtures/extraction/csharp/basic/source.cs:Fixture:1:0",
       "metadata": {
         "csharp_visibility": "public"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/basic/source.cs:VisibilityFixture:87:0",
+      "name": "VisibilityFixture",
+      "kind": "class",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "start_line": 87,
+      "start_column": 0,
+      "end_line": 100,
+      "end_column": 1,
+      "start_byte": 2014,
+      "end_byte": 2457,
+      "body_span": {
+        "start_line": 88,
+        "start_column": 0,
+        "end_line": 100,
+        "end_column": 1,
+        "start_byte": 2047,
+        "end_byte": 2457
+      },
+      "body_hash": "fbfc370d93717c909002372abf53f789",
+      "signature": "internal class VisibilityFixture",
+      "doc_comment": null,
+      "visibility": "Internal",
+      "parent_key": "fixtures/extraction/csharp/basic/source.cs:Fixture:1:0",
+      "metadata": {
+        "csharp_visibility": "internal"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/basic/source.cs:VisibilityFixture:89:4",
+      "name": "VisibilityFixture",
+      "kind": "constructor",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "start_line": 89,
+      "start_column": 4,
+      "end_line": 89,
+      "end_column": 36,
+      "start_byte": 2053,
+      "end_byte": 2085,
+      "body_span": {
+        "start_line": 89,
+        "start_column": 33,
+        "end_line": 89,
+        "end_column": 36,
+        "start_byte": 2082,
+        "end_byte": 2085
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "internal VisibilityFixture()",
+      "doc_comment": null,
+      "visibility": "Internal",
+      "parent_key": "fixtures/extraction/csharp/basic/source.cs:VisibilityFixture:87:0",
+      "metadata": {
+        "isStatic": false
       },
       "annotations": [],
       "semantic_group": null,
@@ -1811,7 +2153,61 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/csharp/basic/source.cs:DefaultPrivateField:95:4",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "csharp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/csharp/basic/source.cs:DefaultPrivateMethod:99:4",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "csharp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/csharp/basic/source.cs:DefaultPrivateProperty:97:4",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "csharp",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/csharp/basic/source.cs:Evaluate:36:4",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "csharp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/csharp/basic/source.cs:ExplicitPrivateField:94:4",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "csharp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/csharp/basic/source.cs:ExplicitPrivateMethod:98:4",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "csharp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/csharp/basic/source.cs:ExplicitPrivateProperty:96:4",
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
@@ -1830,6 +2226,33 @@
     },
     {
       "symbol_key": "fixtures/extraction/csharp/basic/source.cs:Id:15:4",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "csharp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/csharp/basic/source.cs:InternalField:92:4",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "csharp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/csharp/basic/source.cs:InternalMethod:90:4",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "csharp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/csharp/basic/source.cs:InternalProperty:91:4",
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
@@ -1973,18 +2396,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "csharp",
       "file_path": "fixtures/extraction/csharp/basic/source.cs",
-      "covered_lines": 86,
-      "covered_bytes": 2013,
+      "covered_lines": 101,
+      "covered_bytes": 2458,
       "decision_count": 2,
       "loop_count": 1,
       "max_nesting_depth": 2,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 86,
+      "end_line": 101,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 2013,
+      "end_byte": 2458,
       "metadata": {
         "metric_version": 1
       }
@@ -2013,6 +2436,28 @@
     },
     {
       "scope": "symbol",
+      "symbol_key": "fixtures/extraction/csharp/basic/source.cs:DefaultPrivateMethod:99:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "covered_lines": 1,
+      "covered_bytes": 4,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 99,
+      "start_column": 31,
+      "end_line": 99,
+      "end_column": 35,
+      "start_byte": 2450,
+      "end_byte": 2454,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
       "symbol_key": "fixtures/extraction/csharp/basic/source.cs:Evaluate:36:4",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "csharp",
@@ -2035,6 +2480,28 @@
     },
     {
       "scope": "symbol",
+      "symbol_key": "fixtures/extraction/csharp/basic/source.cs:ExplicitPrivateMethod:98:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "covered_lines": 1,
+      "covered_bytes": 4,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 98,
+      "start_column": 40,
+      "end_line": 98,
+      "end_column": 44,
+      "start_byte": 2413,
+      "end_byte": 2417,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
       "symbol_key": "fixtures/extraction/csharp/basic/source.cs:Helper:25:4",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "csharp",
@@ -2051,6 +2518,28 @@
       "end_column": 5,
       "start_byte": 471,
       "end_byte": 504,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/csharp/basic/source.cs:InternalMethod:90:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "covered_lines": 1,
+      "covered_bytes": 4,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 90,
+      "start_column": 34,
+      "end_line": 90,
+      "end_column": 38,
+      "start_byte": 2120,
+      "end_byte": 2124,
       "metadata": {
         "metric_version": 1
       }
@@ -2139,6 +2628,28 @@
       "end_column": 5,
       "start_byte": 1956,
       "end_byte": 2010,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/csharp/basic/source.cs:VisibilityFixture:89:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "covered_lines": 1,
+      "covered_bytes": 3,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 89,
+      "start_column": 33,
+      "end_line": 89,
+      "end_column": 36,
+      "start_byte": 2082,
+      "end_byte": 2085,
       "metadata": {
         "metric_version": 1
       }

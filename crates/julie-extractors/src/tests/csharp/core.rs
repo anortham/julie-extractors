@@ -136,6 +136,85 @@ namespace MyProject
     }
 
     #[test]
+    fn test_internal_visibility_is_preserved_for_types_and_members() {
+        let code = r#"
+namespace VisibilityFixture
+{
+    internal class InternalSurface
+    {
+        internal InternalSurface() { }
+        internal int InternalMethod() { return 1; }
+        internal int InternalProperty { get; set; }
+        internal int InternalField;
+
+        private int ExplicitPrivateField;
+        int DefaultPrivateField;
+        private int ExplicitPrivateProperty { get; set; }
+        int DefaultPrivateProperty { get; set; }
+        private int ExplicitPrivateMethod() { return 2; }
+        int DefaultPrivateMethod() { return 3; }
+    }
+}
+"#;
+
+        let mut parser = init_parser();
+        let tree = parser.parse(code, None).unwrap();
+
+        let workspace_root = PathBuf::from("/tmp/test");
+        let mut extractor = CSharpExtractor::new(
+            "c_sharp".to_string(),
+            "test.cs".to_string(),
+            code.to_string(),
+            &workspace_root,
+        );
+
+        let symbols = extractor.extract_symbols(&tree);
+        let internal_surface = symbols
+            .iter()
+            .find(|symbol| symbol.name == "InternalSurface")
+            .expect("InternalSurface class should be found");
+        assert_eq!(internal_surface.visibility, Some(Visibility::Internal));
+        assert_eq!(
+            internal_surface
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get("csharp_visibility"))
+                .and_then(|value| value.as_str()),
+            Some("internal")
+        );
+        assert_eq!(get_csharp_visibility(internal_surface), "internal");
+
+        for (name, kind) in [
+            ("InternalSurface", SymbolKind::Class),
+            ("InternalSurface", SymbolKind::Constructor),
+            ("InternalMethod", SymbolKind::Method),
+            ("InternalProperty", SymbolKind::Property),
+            ("InternalField", SymbolKind::Field),
+        ] {
+            let symbol = symbols
+                .iter()
+                .find(|symbol| symbol.name == name && symbol.kind == kind)
+                .unwrap_or_else(|| panic!("{name} should be found"));
+            assert_eq!(symbol.visibility, Some(Visibility::Internal));
+        }
+
+        for (name, kind) in [
+            ("ExplicitPrivateField", SymbolKind::Field),
+            ("DefaultPrivateField", SymbolKind::Field),
+            ("ExplicitPrivateProperty", SymbolKind::Property),
+            ("DefaultPrivateProperty", SymbolKind::Property),
+            ("ExplicitPrivateMethod", SymbolKind::Method),
+            ("DefaultPrivateMethod", SymbolKind::Method),
+        ] {
+            let symbol = symbols
+                .iter()
+                .find(|symbol| symbol.name == name && symbol.kind == kind)
+                .unwrap_or_else(|| panic!("{name} should be found"));
+            assert_eq!(symbol.visibility, Some(Visibility::Private));
+        }
+    }
+
+    #[test]
     fn test_interface_and_struct_extraction() {
         let code = r#"
 namespace MyProject
