@@ -81,11 +81,11 @@
 **Approach:** Write failing assertions first. Add `internal` and private controls to the canonical C# fixture, regenerate the golden once, inspect the diff, update capability and language documentation, then append the contract marker and its API-surface assertion. Remove the obsolete narration comment on the changed helper line.
 
 **Acceptance criteria:**
-- [ ] Focused tests fail before the helper correction and pass afterward.
-- [ ] Internal types, methods, properties, fields, and constructors covered by the shared helper persist `visibility = "internal"`.
-- [ ] Explicit private and default-private controls retain `visibility = "private"`.
-- [ ] `metadata_json.csharp_visibility` agrees with the enum-backed visibility column.
-- [ ] `fixtures/extraction/capabilities.json` and `docs/languages/csharp.md` no longer claim that internal maps to private.
-- [ ] `EXTRACTION_CONTRACT_VERSION` contains `csharp-visibility-v2` and its API-surface test passes.
+- [x] Focused tests fail before the helper correction and pass afterward.
+- [x] Internal types, methods, properties, fields, and constructors covered by the shared helper persist `visibility = "internal"`.
+- [x] Explicit private and default-private controls retain `visibility = "private"`.
+- [x] `metadata_json.csharp_visibility` agrees with the enum-backed visibility column.
+- [x] `fixtures/extraction/capabilities.json` and `docs/languages/csharp.md` no longer claim that internal maps to private.
+- [x] `EXTRACTION_CONTRACT_VERSION` contains `csharp-visibility-v2` and its API-surface test passes.
 - [ ] Golden, capability, strict data-quality, affected-change, and branch gates pass.
-- [ ] Worker-scope verification passes and the change is committed per `serial-worker-commit`.
+- [x] Worker-scope verification passes and the change is committed per `serial-worker-commit`.

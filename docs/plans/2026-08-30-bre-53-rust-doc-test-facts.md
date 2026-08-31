@@ -87,12 +87,12 @@
 **Approach:** Begin with failing tests for an outer-doc run fence, inner-doc run fence, multiple fences, and each mode. Add negative controls for `text`, another language, an unterminated fence, and ordinary comments. Derive line, column, and byte positions from mapped source offsets rather than reconstructed text lengths. Reuse normal containing-symbol attachment where the fact span is inside the documented declaration; handle file/module inner docs explicitly without fabricating a symbol. Regenerate the Rust structural-fact golden and inspect every new row.
 
 **Acceptance criteria:**
-- [ ] Executable untagged and Rust fences emit deterministic `rust.doc_test.v1` facts.
-- [ ] `ignore`, `no_run`, and `compile_fail` emit the exact corresponding `mode`; ordinary executable fences emit `run`.
-- [ ] `text`, explicit non-Rust, ordinary-comment, and unterminated fences remain silent.
-- [ ] Multiple fences retain distinct ids and exact source spans.
-- [ ] Outer docs attach to the documented symbol; inner docs use the nearest valid module/file context without a fabricated callable.
-- [ ] Registry metadata, emitted facts, capability claims, and golden evidence agree.
-- [ ] `EXTRACTION_CONTRACT_VERSION` contains `rust-doc-test-facts-v1` and its API-surface test passes.
+- [x] Executable untagged and Rust fences emit deterministic `rust.doc_test.v1` facts.
+- [x] `ignore`, `no_run`, and `compile_fail` emit the exact corresponding `mode`; ordinary executable fences emit `run`.
+- [x] `text`, explicit non-Rust, ordinary-comment, and unterminated fences remain silent.
+- [x] Multiple fences retain distinct ids and exact source spans.
+- [x] Outer docs attach to the documented symbol; inner docs use the nearest valid module/file context without a fabricated callable.
+- [x] Registry metadata, emitted facts, capability claims, and golden evidence agree.
+- [x] `EXTRACTION_CONTRACT_VERSION` contains `rust-doc-test-facts-v1` and its API-surface test passes.
 - [ ] Golden, capability, strict data-quality, affected-change, and branch gates pass.
-- [ ] Worker-scope verification passes and the change is committed per `serial-worker-commit`.
+- [x] Worker-scope verification passes and the change is committed per `serial-worker-commit`.

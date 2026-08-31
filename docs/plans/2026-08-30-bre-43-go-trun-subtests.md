@@ -84,12 +84,12 @@
 **Approach:** Start with failing tests for one literal child, one nested child, and a valid `*testing.T` parameter named something other than `t`. Add controls for a dynamic name, a receiver not bound to `*testing.T`, an ordinary `Run` method, an incorrect callback, and a file-scope call. Validate the active receiver binding and enclosing symbol's test role before materialization, decode only a literal first argument, and reuse the established symbol builder rather than adding a new symbol vocabulary. Regenerate the Go test-role golden and inspect all changed rows.
 
 **Acceptance criteria:**
-- [ ] A literal `t.Run` inside `TestXxx` emits one deterministic child `test_case` symbol.
-- [ ] Nested literal subtests preserve parent-child identity.
-- [ ] Receiver variable spelling is irrelevant when it is bound to `*testing.T`; dynamic names, unrelated receiver types, incorrect callback shapes, and calls outside an enclosing test remain silent.
-- [ ] Existing Ginkgo and testify focused tests and golden rows remain unchanged.
-- [ ] Capability gap `go.subtest_names` is removed and fixture evidence names the test-role golden.
-- [ ] `docs/languages/go.md` describes supported literal subtests and remaining dynamic-name limits.
-- [ ] `EXTRACTION_CONTRACT_VERSION` contains `go-subtests-v1` and its API-surface test passes.
+- [x] A literal `t.Run` inside `TestXxx` emits one deterministic child `test_case` symbol.
+- [x] Nested literal subtests preserve parent-child identity.
+- [x] Receiver variable spelling is irrelevant when it is bound to `*testing.T`; dynamic names, unrelated receiver types, incorrect callback shapes, and calls outside an enclosing test remain silent.
+- [x] Existing Ginkgo and testify focused tests and golden rows remain unchanged.
+- [x] Capability gap `go.subtest_names` is removed and fixture evidence names the test-role golden.
+- [x] `docs/languages/go.md` describes supported literal subtests and remaining dynamic-name limits.
+- [x] `EXTRACTION_CONTRACT_VERSION` contains `go-subtests-v1` and its API-surface test passes.
 - [ ] Golden, capability, strict data-quality, affected-change, and branch gates pass.
-- [ ] Worker-scope verification passes and the change is committed per `serial-worker-commit`.
+- [x] Worker-scope verification passes and the change is committed per `serial-worker-commit`.
