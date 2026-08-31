@@ -7,9 +7,6 @@ use std::process::{Command, ExitCode, Output};
 use rusqlite::types::ValueRef;
 use rusqlite::{Connection, OpenFlags};
 
-const COMPAT_BASELINE_EXTRACTION_IDENTITY_EPOCH: u32 = 5;
-const CURRENT_EXTRACTION_IDENTITY_EPOCH: u32 = 6;
-
 const DEFAULT_FIXTURE: &str = "fixtures/extraction/resolution_contract";
 const LEDGER_PATH: &str = "docs/contracts/extraction-output-changes.md";
 const VERSION_MANIFEST: &str = "crates/julie-extract-cli/Cargo.toml";
@@ -141,8 +138,6 @@ pub struct CompatReport {
     pub outcome: CompatOutcome,
     pub version: String,
     pub previous_binary_version: String,
-    pub previous_extraction_identity_epoch: u32,
-    pub current_extraction_identity_epoch: u32,
     pub previous_binary: PathBuf,
     pub current_binary: PathBuf,
     pub fixture: PathBuf,
@@ -223,21 +218,11 @@ pub fn verdict(diff: &ArtifactDiff, declaration: Option<&LedgerEntry>) -> Compat
     )
 }
 
-pub fn verdict_for_epochs(
-    diff: &ArtifactDiff,
-    previous_epoch: u32,
-    current_epoch: u32,
-    declaration: Option<&LedgerEntry>,
-) -> CompatOutcome {
-    if diff.is_identical() {
-        CompatOutcome::Pass
-    } else if current_epoch > previous_epoch
-        && declaration.is_some_and(LedgerEntry::authorizes_notice)
-    {
-        CompatOutcome::Notice
-    } else {
-        CompatOutcome::Fail
-    }
+fn notice_line(previous_version: &str, version: &str, classification: &str) -> String {
+    format!(
+        "NOTICE: extraction output differs from {previous_version} and is declared in \
+         {LEDGER_PATH} under `## {version}` (classification: {classification})"
+    )
 }
 
 pub fn fail_reason(version: &str, declaration: Option<&LedgerEntry>) -> String {
@@ -503,16 +488,9 @@ pub fn run(plan: CompatPlan) -> Result<CompatReport, CompatError> {
     let declaration = declared_change_for_current_build()?;
 
     Ok(CompatReport {
-        outcome: verdict_for_epochs(
-            &diff,
-            COMPAT_BASELINE_EXTRACTION_IDENTITY_EPOCH,
-            CURRENT_EXTRACTION_IDENTITY_EPOCH,
-            declaration.as_ref(),
-        ),
+        outcome: verdict(&diff, declaration.as_ref()),
         version,
         previous_binary_version: binary_version(&previous_binary)?,
-        previous_extraction_identity_epoch: COMPAT_BASELINE_EXTRACTION_IDENTITY_EPOCH,
-        current_extraction_identity_epoch: CURRENT_EXTRACTION_IDENTITY_EPOCH,
         previous_binary,
         current_binary,
         fixture,
@@ -546,11 +524,12 @@ fn print_report(report: &CompatReport) {
                 .and_then(|entry| entry.classification.clone())
                 .unwrap_or_else(|| "unclassified".to_string());
             println!(
-                "NOTICE: extraction output differs from {} at extraction identity epoch {} and is declared in {LEDGER_PATH} under `## {}` with epoch {} (classification: {classification})",
-                report.previous_binary_version,
-                report.previous_extraction_identity_epoch,
-                report.version,
-                report.current_extraction_identity_epoch,
+                "{}",
+                notice_line(
+                    &report.previous_binary_version,
+                    &report.version,
+                    &classification
+                )
             );
         }
         CompatOutcome::Fail => {
@@ -566,14 +545,12 @@ fn print_report(report: &CompatReport) {
 
 fn render_diff(report: &CompatReport) -> String {
     let mut rendered = format!(
-        "extraction output differs on {}\n  previous: {} ({}) epoch {}\n  current:  {} ({}) epoch {}\n",
+        "extraction output differs on {}\n  previous: {} ({})\n  current:  {} ({})\n",
         report.fixture.display(),
         report.previous_binary_version,
         report.previous_binary.display(),
-        report.previous_extraction_identity_epoch,
         report.version,
         report.current_binary.display(),
-        report.current_extraction_identity_epoch,
     );
 
     for difference in &report.diff.differences {
@@ -621,16 +598,7 @@ fn render_diff(report: &CompatReport) -> String {
 }
 
 fn report_fail_reason(report: &CompatReport) -> String {
-    if !report.diff.is_identical()
-        && report.current_extraction_identity_epoch <= report.previous_extraction_identity_epoch
-    {
-        format!(
-            "the extraction identity epoch remained {}; any extraction difference requires a strictly newer epoch and a classified ledger entry",
-            report.current_extraction_identity_epoch
-        )
-    } else {
-        fail_reason(&report.version, report.declaration.as_ref())
-    }
+    fail_reason(&report.version, report.declaration.as_ref())
 }
 
 pub fn dump_artifact(db_path: &Path) -> Result<ArtifactDump, CompatError> {
@@ -1005,8 +973,8 @@ fn repo_root() -> PathBuf {
 }
 
 #[cfg(test)]
-mod epoch_policy_tests {
-    use super::{ArtifactDiff, CompatOutcome, LedgerEntry, TableDifference, verdict_for_epochs};
+mod ledger_policy_tests {
+    use super::{ArtifactDiff, CompatOutcome, LedgerEntry, TableDifference, notice_line, verdict};
 
     fn difference() -> ArtifactDiff {
         ArtifactDiff {
@@ -1024,30 +992,44 @@ mod epoch_policy_tests {
     }
 
     #[test]
-    fn same_epoch_difference_fails_even_when_classified() {
+    fn declared_difference_reports_a_notice() {
         assert_eq!(
-            verdict_for_epochs(&difference(), 1, 1, Some(&declaration())),
-            CompatOutcome::Fail
-        );
-    }
-
-    #[test]
-    fn epoch_bump_requires_a_classified_difference() {
-        assert_eq!(
-            verdict_for_epochs(&difference(), 1, 2, None),
-            CompatOutcome::Fail
-        );
-        assert_eq!(
-            verdict_for_epochs(&difference(), 1, 2, Some(&declaration())),
+            verdict(&difference(), Some(&declaration())),
             CompatOutcome::Notice
         );
     }
 
     #[test]
-    fn byte_identical_output_passes_without_an_epoch_bump() {
+    fn undeclared_difference_fails() {
+        assert_eq!(verdict(&difference(), None), CompatOutcome::Fail);
+    }
+
+    #[test]
+    fn unclassified_declaration_does_not_authorize_a_notice() {
+        let unclassified = LedgerEntry {
+            version: "2.30.0".to_string(),
+            classification: None,
+        };
         assert_eq!(
-            verdict_for_epochs(&ArtifactDiff::default(), 1, 1, None),
-            CompatOutcome::Pass
+            verdict(&difference(), Some(&unclassified)),
+            CompatOutcome::Fail
         );
+    }
+
+    #[test]
+    fn byte_identical_output_passes_without_a_declaration() {
+        assert_eq!(verdict(&ArtifactDiff::default(), None), CompatOutcome::Pass);
+    }
+
+    #[test]
+    fn notice_line_names_the_ledger_entry_without_epoch_claims() {
+        let line = notice_line("2.37.2", "2.38.0", "compatible");
+        assert_eq!(
+            line,
+            "NOTICE: extraction output differs from 2.37.2 and is declared in \
+             docs/contracts/extraction-output-changes.md under `## 2.38.0` \
+             (classification: compatible)"
+        );
+        assert!(!line.contains("epoch"));
     }
 }
