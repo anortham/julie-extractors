@@ -11,11 +11,11 @@ copy them here.
 
 ## Session: bump extraction identity epoch (Miller dogfood 2026-08-31)
 
-Source bump is on branch `bump/extraction-epoch-8`. Miller F11/F19 still waits
-on a published extract pin.
+julie-extract v2.38.2 is published at epoch 8. Miller F11/F19 still waits
+on a miller pin of that extract release.
 
 **Goal:** Family stores re-extract C# after BRE-16. `EXTRACTION_IDENTITY_EPOCH`
-is 8 in this candidate. Remaining work is ship v2.38.2 and pin miller.
+is 8 in published julie-extract 2.38.2. Remaining work is pin miller.
 
 **Why:** BRE-16 already maps explicit C# `internal` to `Visibility::Internal`
 (`csharp-visibility-v2`, julie-extract 2.38.0 / miller pin 2.38.1). It did not
@@ -45,19 +45,20 @@ store mode therefore cannot rewrite L1.
   The isolated 2.38.1 scan proves extraction is already correct.
 - Treat miller's leftover `.miller/symbols.db` as source of truth. Miller
   reads the family store.
-- Pin miller before this extract release publishes. Miller 1.26.0 stays on
-  2.38.1 / epoch 7 until then.
+- Pin miller from this repo. Miller 1.26.0 stays on 2.38.1 / epoch 7 until
+  miller pins 2.38.2.
 
-**Done in source:**
+**Done:**
 
 - Bump `EXTRACTION_IDENTITY_EPOCH` (`crates/julie-extractors/src/lib.rs`) 7 → 8.
 - Update current-epoch tests, store-v1, architecture, and the 2.38.2 ledger.
 - Keep the capability snapshot keyed to epoch 8.
+- Ship julie-extract 2.38.2.
 
 **Still open:**
 
-- Ship julie-extract 2.38.2 and tell miller to pin it. Miller then
-  force-rescans on extractor upgrade and rewrites C# visibility for real.
+- Pin miller to julie-extract 2.38.2. Miller then force-rescans on extractor
+  upgrade and rewrites C# visibility for real.
 
 **Acceptance:**
 
@@ -75,12 +76,12 @@ miller branch `fix/v1.26.0-mcp-dogfood`. Reachability follow-up stays
 
 ## Open
 
-- **Ship epoch 8.** Source is 2.38.2 / epoch 8 on `bump/extraction-epoch-8`.
-  Miller cannot trust family-store C# `internal` until this release publishes
-  and miller pins it.
+- **Pin miller to julie-extract 2.38.2.** Epoch 8 is published. Miller 1.26.0
+  still pins 2.38.1 / epoch 7, so family-store C# `internal` stays stale until
+  that pin.
 - [BRE-16](https://linear.app/breakingdevelopment/issue/BRE-16/record-c-internal-as-visibilityinternal)
-  Extract mapping shipped in 2.38.0. Identity epoch 8 is in source; release
-  and miller pin remain. Miller follow-up: [BRE-17](https://linear.app/breakingdevelopment/issue/BRE-17).
+  Extract mapping shipped in 2.38.0. Identity epoch 8 shipped in 2.38.2.
+  Miller pin remains. Miller follow-up: [BRE-17](https://linear.app/breakingdevelopment/issue/BRE-17).
 - [BRE-51](https://linear.app/breakingdevelopment/issue/BRE-51/emit-go-trun-subtest-names-as-test-cases)
   Emit Go `t.Run` subtest names. Miller selection is parked as [BRE-54](https://linear.app/breakingdevelopment/issue/BRE-54).
 - [BRE-52](https://linear.app/breakingdevelopment/issue/BRE-52/add-an-f-source-extractor)
