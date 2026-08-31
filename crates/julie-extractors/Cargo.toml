@@ -45,6 +45,7 @@ tree-sitter-ruby = "0.23.1"
 tree-sitter-elixir = "0.3"
 tree-sitter-erlang = "=0.20.0"
 tree-sitter-rust = "0.24.2"
+tree-sitter-fsharp = "=0.3.0"
 tree-sitter-swift = "=0.7.3"
 tree-sitter-typescript = "0.23.2"
 

@@ -1,6 +1,6 @@
 //! # julie-extractors
 //!
-//! Tree-sitter-backed code extraction for 34 languages plus TSX/JSX variants.
+//! Tree-sitter-backed code extraction for 35 languages plus TSX/JSX variants.
 //! Produces a stable [`ExtractionResults`] shape: symbols, relationships,
 //! structured pending relationships, identifiers, type info, source regions,
 //! structural facts, complexity metrics, and parse diagnostics. Used by
@@ -35,7 +35,7 @@
 //! **Systems**: Rust, C, C++, Go, Zig
 //! **Web**: TypeScript, JavaScript, HTML, CSS, Vue, QML
 //! **Backend**: Python, Java, C#, VB.NET, PHP, Ruby, Swift, Kotlin, Dart
-//! **Functional**: Elixir, Scala
+//! **Functional**: Elixir, F#, Scala
 //! **Scripting**: Lua, R, Bash, PowerShell
 //! **Specialized**: GDScript, Razor, SQL, Regex
 //! **Documentation**: Markdown, JSON, TOML, YAML
@@ -71,6 +71,7 @@ pub mod css;
 pub mod dart;
 pub mod elixir;
 pub mod erlang;
+pub mod fsharp;
 pub mod gdscript;
 pub mod go;
 pub mod html;

@@ -242,7 +242,8 @@ define_structured_full_language_extractors![
         "powershell",
         crate::powershell::PowerShellExtractor
     ),
-    (extract_qml, "qml", crate::qml::QmlExtractor)
+    (extract_qml, "qml", crate::qml::QmlExtractor),
+    (extract_fsharp, "fsharp", crate::fsharp::FSharpExtractor)
 ];
 
 fn extract_lua(
@@ -699,6 +700,7 @@ const EXTRACTORS: &[(&str, ExtractFn)] = &[
     ("dart", extract_dart),
     ("elixir", extract_elixir),
     ("erlang", extract_erlang),
+    ("fsharp", extract_fsharp),
     ("lua", extract_lua),
     ("qml", extract_qml),
     ("qmldir", extract_qmldir),
@@ -883,7 +885,7 @@ mod registry_tests {
 
     #[test]
     fn registry_matches_supported_language_count() {
-        assert_eq!(supported_languages().len(), 39);
+        assert_eq!(supported_languages().len(), 40);
         assert!(
             capabilities_for_language("rust")
                 .unwrap()

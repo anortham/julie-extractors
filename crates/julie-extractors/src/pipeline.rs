@@ -144,13 +144,27 @@ pub(crate) fn parse_for_language(
     file_path: &str,
     content: &str,
 ) -> Result<Option<Tree>, anyhow::Error> {
-    let mut parser = configured_parser_for_language(language)?;
+    let mut parser = configured_parser_for_language_at(language, file_path)?;
     parse_with_parser(&mut parser, file_path, content)
 }
 
 pub(crate) fn configured_parser_for_language(language: &str) -> Result<Parser, anyhow::Error> {
     let mut parser = Parser::new();
     let tree_sitter_language = crate::language::get_tree_sitter_language(language)?;
+    parser
+        .set_language(&tree_sitter_language)
+        .map_err(|e| anyhow::anyhow!("Failed to set parser language for {}: {}", language, e))?;
+
+    Ok(parser)
+}
+
+pub(crate) fn configured_parser_for_language_at(
+    language: &str,
+    file_path: &str,
+) -> Result<Parser, anyhow::Error> {
+    let mut parser = Parser::new();
+    let tree_sitter_language =
+        crate::language_spec::get_tree_sitter_language_for_path(language, Path::new(file_path))?;
     parser
         .set_language(&tree_sitter_language)
         .map_err(|e| anyhow::anyhow!("Failed to set parser language for {}: {}", language, e))?;

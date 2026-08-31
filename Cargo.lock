@@ -521,6 +521,7 @@ dependencies = [
  "tree-sitter-dart",
  "tree-sitter-elixir",
  "tree-sitter-erlang",
+ "tree-sitter-fsharp",
  "tree-sitter-gdscript",
  "tree-sitter-go",
  "tree-sitter-html",
@@ -1103,6 +1104,16 @@ name = "tree-sitter-erlang"
 version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3107efc581d335488dc38d2f51ca8b7a6a98e36f07f95a8e963f031edda6f568"
+dependencies = [
+ "cc",
+ "tree-sitter-language",
+]
+
+[[package]]
+name = "tree-sitter-fsharp"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "054fba748f8bf3604fc14191b4e7da66d1b887de0e285e32cf6dbd2a3db3fc42"
 dependencies = [
  "cc",
  "tree-sitter-language",

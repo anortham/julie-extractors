@@ -26,6 +26,7 @@ pub mod erlang;
 pub mod express;
 pub mod extraction_levels;
 pub mod fastify;
+pub mod fsharp;
 pub mod gdscript;
 pub mod go;
 pub mod go_http;
