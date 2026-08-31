@@ -89,6 +89,35 @@ In CI, the `Extractor Compatibility` job downloads the latest published release 
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
+## 2.38.0
+
+classification: compatible
+
+F# support and three extractor corrections change extraction output without
+touching any table, column, or JSONL field. Artifacts stay schema 7, JSONL
+stays contract v5, family stores stay store schema 2, and the extraction
+identity epoch stays 7.
+
+- New language `fsharp` (`.fs`, `.fsx`, `.fsi`): new rows in every fact table
+  for F# sources, and a new `fsharp` row in the grammar inventory, which
+  shifts the dump order of every inventory row that sorts after it.
+- `language_capabilities.kind_coverage_json` widens with the pattern ids
+  `rust.doc_test.v1` and `fsharp.attribute.v1`.
+- Rust: `rust.doc_test.v1` structural facts record rustdoc fences in `///`
+  and `//!` line comments and in `/** ... */` and `/*! ... */` block doc
+  comments — new rows for rust sources that carry doc tests.
+- C#: a declaration marked `internal` now reports visibility `internal`
+  instead of `private`, so existing C# symbol rows change value on
+  re-extract.
+- Go: literal `t.Run` subtests emit test rows that did not exist before.
+
+`EXTRACTION_CONTRACT_VERSION` gains the suffixes `csharp-visibility-v2`,
+`go-subtests-v1`, `rust-doc-test-facts-v1`, and `fsharp-v1`.
+
+Consumer action: replace the binary and re-extract. An existing artifact keeps
+reading unchanged, but an index that merges 2.37.x and 2.38.0 output disagrees
+on C# visibility values and misses the new fact rows until re-extracted.
+
 ## 2.37.1
 
 classification: compatible
