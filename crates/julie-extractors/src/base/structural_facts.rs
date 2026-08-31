@@ -153,9 +153,6 @@ pub(crate) fn structural_fact_pattern_ids_for_language(language: &str) -> Vec<&'
     pattern_ids.extend(web_structural_fact_pattern_ids_for_language(language));
     pattern_ids.extend(data_structural_fact_pattern_ids_for_language(language));
     pattern_ids.extend(sql_structural_fact_pattern_ids_for_language(language));
-    if language == "fsharp" {
-        pattern_ids.push("code.marker.v1");
-    }
     if language == "rust" {
         pattern_ids.push("rust.doc_test.v1");
     }
