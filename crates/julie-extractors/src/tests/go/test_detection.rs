@@ -602,3 +602,49 @@ func TestAdds(t *testing.T) {
         )
     }));
 }
+
+#[test]
+fn named_result_bindings_shadow_the_testing_t_parameter() {
+    let code = r#"package math_test
+
+import "testing"
+
+type customT struct{}
+
+func (receiver *customT) Run(name string, callback func(*testing.T)) {}
+
+func TestAdds(t *testing.T) {
+    func() (t *customT) {
+        t.Run("named result shadow", func(*testing.T) {})
+        return nil
+    }()
+}
+"#;
+    let syms = symbols(code);
+
+    assert!(!syms.iter().any(|s| s.name == "named result shadow"));
+}
+
+#[test]
+fn select_receive_bindings_shadow_the_testing_t_parameter() {
+    let code = r#"package math_test
+
+import "testing"
+
+type customT struct{}
+
+func (receiver *customT) Run(name string, callback func(*testing.T)) {}
+
+func TestAdds(t *testing.T) {
+    channel := make(chan *customT)
+    select {
+    case t := <-channel:
+        t.Run("select receive shadow", func(*testing.T) {})
+    default:
+    }
+}
+"#;
+    let syms = symbols(code);
+
+    assert!(!syms.iter().any(|s| s.name == "select receive shadow"));
+}

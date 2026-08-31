@@ -265,6 +265,9 @@ fn active_testing_t_receiver(base: &BaseExtractor, call_node: Node, receiver_nam
             node.kind(),
             "function_declaration" | "method_declaration" | "func_literal"
         ) {
+            if named_result_binds_name(base, node, receiver_name) {
+                return false;
+            }
             if let Some(is_testing_t) = testing_t_parameter(base, node, receiver_name) {
                 return is_testing_t;
             }
@@ -286,6 +289,7 @@ fn scope_introduces_local_binding(
             .filter(|initializer| initializer.end_byte() <= call_node.start_byte())
             .is_some_and(|initializer| statement_binds_name(base, initializer, receiver_name)),
         "for_statement" => for_statement_introduces_binding(base, node, call_node, receiver_name),
+        "select_statement" => select_receive_binds_name(base, node, call_node, receiver_name),
         "type_switch_statement" => {
             let initializer_binding = node
                 .child_by_field_name("initializer")
@@ -365,6 +369,48 @@ fn switch_case_contains_call(switch: Node, call_node: Node) -> bool {
     false
 }
 
+fn select_receive_binds_name(
+    base: &BaseExtractor,
+    select: Node,
+    call_node: Node,
+    receiver_name: &str,
+) -> bool {
+    let mut ancestor = call_node.parent();
+    while let Some(node) = ancestor {
+        if node.id() == select.id() {
+            return false;
+        }
+        if node.kind() == "communication_case" {
+            let mut case_cursor = node.walk();
+            let Some(body) = node
+                .named_children(&mut case_cursor)
+                .find(|child| child.kind() == "statement_list")
+            else {
+                return false;
+            };
+            if call_node.start_byte() < body.start_byte() || call_node.end_byte() > body.end_byte()
+            {
+                return false;
+            }
+
+            let Some(communication) = node.child_by_field_name("communication") else {
+                return false;
+            };
+            if communication.kind() != "receive_statement"
+                || !base.get_node_text(&communication).contains(":=")
+            {
+                return false;
+            }
+            let Some(left) = communication.child_by_field_name("left") else {
+                return false;
+            };
+            return declaration_names_include(base, left, receiver_name);
+        }
+        ancestor = node.parent();
+    }
+    false
+}
+
 fn local_binding_before_call(
     base: &BaseExtractor,
     block: Node,
@@ -430,6 +476,20 @@ fn declaration_names_include(base: &BaseExtractor, node: Node, receiver_name: &s
     let mut cursor = node.walk();
     node.named_children(&mut cursor)
         .any(|child| child.kind() == "identifier" && base.get_node_text(&child) == receiver_name)
+}
+
+fn named_result_binds_name(base: &BaseExtractor, function_node: Node, receiver_name: &str) -> bool {
+    let Some(result) = function_node.child_by_field_name("result") else {
+        return false;
+    };
+    if result.kind() != "parameter_list" {
+        return false;
+    }
+    let mut result_cursor = result.walk();
+    result
+        .named_children(&mut result_cursor)
+        .filter(|parameter| parameter.kind() == "parameter_declaration")
+        .any(|parameter| declaration_names_include(base, parameter, receiver_name))
 }
 
 fn testing_t_parameter(
