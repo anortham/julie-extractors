@@ -538,3 +538,67 @@ func TestAdds(t *testing.T) {
             .any(|s| { matches!(s.name.as_str(), "var shadow" | "short shadow") })
     );
 }
+
+#[test]
+fn scope_introducing_initializers_shadow_the_testing_t_parameter() {
+    let code = r#"package math_test
+
+import "testing"
+
+type customT struct{}
+
+func (receiver *customT) Run(name string, callback func(*testing.T)) {}
+
+func TestAdds(t *testing.T) {
+    if t := &customT{}; true {
+        t.Run("if initializer", func(*testing.T) {})
+    }
+    for t := &customT{}; false; {
+        t.Run("for initializer", func(*testing.T) {})
+    }
+    values := []customT{{}}
+    for _, t := range values {
+        t.Run("range clause", func(*testing.T) {})
+    }
+}
+"#;
+    let syms = symbols(code);
+
+    assert!(!syms.iter().any(|s| {
+        matches!(
+            s.name.as_str(),
+            "if initializer" | "for initializer" | "range clause"
+        )
+    }));
+}
+
+#[test]
+fn switch_initializers_shadow_the_testing_t_parameter() {
+    let code = r#"package math_test
+
+import "testing"
+
+type customT struct{}
+
+func (receiver *customT) Run(name string, callback func(*testing.T)) {}
+
+func TestAdds(t *testing.T) {
+    switch t := &customT{}; true {
+    default:
+        t.Run("expression switch initializer", func(*testing.T) {})
+    }
+    switch t := interface{}(&customT{}).(type) {
+    case *customT:
+        t.Run("type switch initializer", func(*testing.T) {})
+    }
+}
+"#;
+    let syms = symbols(code);
+
+    assert!(!syms.iter().any(|s| {
+        matches!(
+            s.name.as_str(),
+            "expression switch initializer" | "type switch initializer"
+        )
+    }));
+}

@@ -254,6 +254,9 @@ fn is_testing_t_callback(base: &BaseExtractor, callback: Node) -> bool {
 fn active_testing_t_receiver(base: &BaseExtractor, call_node: Node, receiver_name: &str) -> bool {
     let mut ancestor = call_node.parent();
     while let Some(node) = ancestor {
+        if scope_introduces_local_binding(base, node, call_node, receiver_name) {
+            return false;
+        }
         if node.kind() == "block" && local_binding_before_call(base, node, call_node, receiver_name)
         {
             return false;
@@ -265,6 +268,97 @@ fn active_testing_t_receiver(base: &BaseExtractor, call_node: Node, receiver_nam
             if let Some(is_testing_t) = testing_t_parameter(base, node, receiver_name) {
                 return is_testing_t;
             }
+        }
+        ancestor = node.parent();
+    }
+    false
+}
+
+fn scope_introduces_local_binding(
+    base: &BaseExtractor,
+    node: Node,
+    call_node: Node,
+    receiver_name: &str,
+) -> bool {
+    match node.kind() {
+        "if_statement" | "expression_switch_statement" | "for_clause" => node
+            .child_by_field_name("initializer")
+            .filter(|initializer| initializer.end_byte() <= call_node.start_byte())
+            .is_some_and(|initializer| statement_binds_name(base, initializer, receiver_name)),
+        "for_statement" => for_statement_introduces_binding(base, node, call_node, receiver_name),
+        "type_switch_statement" => {
+            let initializer_binding = node
+                .child_by_field_name("initializer")
+                .filter(|initializer| initializer.end_byte() <= call_node.start_byte())
+                .is_some_and(|initializer| statement_binds_name(base, initializer, receiver_name));
+            let alias_binding = node.child_by_field_name("alias").is_some_and(|alias| {
+                switch_case_contains_call(node, call_node)
+                    && declaration_names_include(base, alias, receiver_name)
+            });
+            initializer_binding || alias_binding
+        }
+        _ => false,
+    }
+}
+
+fn for_statement_introduces_binding(
+    base: &BaseExtractor,
+    for_statement: Node,
+    call_node: Node,
+    receiver_name: &str,
+) -> bool {
+    let mut cursor = for_statement.walk();
+    for clause in for_statement.named_children(&mut cursor) {
+        match clause.kind() {
+            "for_clause" => {
+                if clause
+                    .child_by_field_name("initializer")
+                    .filter(|initializer| initializer.end_byte() <= call_node.start_byte())
+                    .is_some_and(|initializer| {
+                        statement_binds_name(base, initializer, receiver_name)
+                    })
+                {
+                    return true;
+                }
+            }
+            "range_clause" => {
+                if call_is_in_for_body(for_statement, call_node)
+                    && range_clause_binds_name(base, clause, receiver_name)
+                {
+                    return true;
+                }
+            }
+            _ => {}
+        }
+    }
+    false
+}
+
+fn call_is_in_for_body(for_statement: Node, call_node: Node) -> bool {
+    let Some(body) = for_statement.child_by_field_name("body") else {
+        return false;
+    };
+    call_node.start_byte() >= body.start_byte() && call_node.end_byte() <= body.end_byte()
+}
+
+fn range_clause_binds_name(base: &BaseExtractor, clause: Node, receiver_name: &str) -> bool {
+    if !base.get_node_text(&clause).contains(":=") {
+        return false;
+    }
+    let Some(left) = clause.child_by_field_name("left") else {
+        return false;
+    };
+    declaration_names_include(base, left, receiver_name)
+}
+
+fn switch_case_contains_call(switch: Node, call_node: Node) -> bool {
+    let mut ancestor = call_node.parent();
+    while let Some(node) = ancestor {
+        if node.id() == switch.id() {
+            return false;
+        }
+        if matches!(node.kind(), "type_case" | "default_case") {
+            return true;
         }
         ancestor = node.parent();
     }
