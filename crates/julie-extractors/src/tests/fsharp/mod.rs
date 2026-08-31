@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::path::Path;
 
 mod semantic_facts;
+mod test_detection;
 
 #[test]
 fn fsharp_extensions_select_one_artifact_language_case_insensitively() {

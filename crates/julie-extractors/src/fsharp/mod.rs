@@ -2,6 +2,7 @@ mod declarations;
 mod identifiers;
 mod literals;
 mod relationships;
+mod test_detection;
 mod types;
 
 use crate::base::{BaseExtractor, Identifier, Relationship, Symbol};
@@ -27,7 +28,8 @@ impl FSharpExtractor {
     }
 
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
-        let symbols = declarations::extract_symbols(self, tree.root_node());
+        let mut symbols = declarations::extract_symbols(self, tree.root_node());
+        test_detection::apply_test_roles(&mut symbols);
         self.base.type_info.clear();
         self.inferred_types = types::collect_types(self, tree.root_node(), &symbols);
         symbols
