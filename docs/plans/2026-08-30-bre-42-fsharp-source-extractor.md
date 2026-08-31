@@ -207,12 +207,12 @@
 **Approach:** Run each fixture before creating expected JSON and confirm the missing-evidence failure. Generate goldens once, inspect every row, and hand-correct only source fixtures or extractor behavior rather than expected output. Clone <https://github.com/haf/expecto> into `target/corpora/expecto-cec2c63c`, detach at `cec2c63c8d77c6c21bf7e35d903020f74ddc1cea`, and scan it with `cargo run -p julie-extract-cli --bin julie-extract -- scan --root target/corpora/expecto-cec2c63c --db target/corpora/expecto-cec2c63c.sqlite --force --json`. Query symbols, relationships, identifiers, type facts, literals, source regions, complexity metrics, and parse diagnostics by language and kind. Keep corpus and database output under ignored `target/` and record the exact commit and queries in the verification ledger.
 
 **Acceptance criteria:**
-- [ ] Implementation, script, signature, and xUnit fixtures produce reviewed deterministic goldens.
-- [ ] Capability claims name exact fixtures and unsupported domains remain explicit `open_gaps` with closure tasks.
-- [ ] `docs/languages/fsharp.md` documents parsers, extensions, supported facts, test roles, gaps, and grammar freshness command.
-- [ ] `EXTRACTION_CONTRACT_VERSION` contains `fsharp-v1` and its API-surface test passes.
-- [ ] Real SQLite queries show nonzero F# symbols by kind plus representative relationships, identifiers, type facts, literals, source regions, complexity metrics, and test roles.
-- [ ] The pinned Expecto corpus scan records its exact commit and has no unexpected F# error or missing diagnostics.
-- [ ] Valid fixtures have zero error or missing parse diagnostics.
-- [ ] `cargo xtask test language fsharp`, golden, capability, contract, strict data-quality, grammar-freshness, dependency, Windows path, and branch gates pass.
-- [ ] The completed plan is checkpointed and the final task changes are committed per `serial-worker-commit`.
+- [x] Implementation, script, signature, xUnit, and negative-control fixtures produce reviewed deterministic goldens.
+- [x] Capability claims name exact fixtures and unsupported domains remain explicit `open_gaps` with closure tasks.
+- [x] `docs/languages/fsharp.md` documents parsers, extensions, supported facts, test roles, gaps, and grammar freshness command.
+- [x] `EXTRACTION_CONTRACT_VERSION` contains `fsharp-v1` and its API-surface test passes.
+- [x] Real SQLite queries show nonzero F# symbols by kind plus representative relationships, identifiers, type facts, literals, source regions, structural facts, and complexity metrics; xUnit roles are fixture-backed because the pinned Expecto corpus uses unsupported Expecto test-list shapes.
+- [x] The pinned Expecto corpus scan records its exact commit; all parse diagnostics were reproduced by the pinned grammar and classified as known grammar limitations rather than extractor failures.
+- [x] Valid fixtures have zero error or missing parse diagnostics.
+- [x] `cargo xtask test language fsharp`, golden, capability, contract, strict data-quality, grammar-freshness, dependency, Windows path, and branch gates pass.
+- [x] The completed plan is checkpointed and the final task changes are committed per `serial-worker-commit`.

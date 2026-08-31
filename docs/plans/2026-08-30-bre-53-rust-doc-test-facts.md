@@ -94,5 +94,5 @@
 - [x] Outer docs attach to the documented symbol; inner docs use the nearest valid module/file context without a fabricated callable.
 - [x] Registry metadata, emitted facts, capability claims, and golden evidence agree.
 - [x] `EXTRACTION_CONTRACT_VERSION` contains `rust-doc-test-facts-v1` and its API-surface test passes.
-- [ ] Golden, capability, strict data-quality, affected-change, and branch gates pass.
+- [x] Golden, capability, strict data-quality, affected-change, and branch gates pass.
 - [x] Worker-scope verification passes and the change is committed per `serial-worker-commit`.

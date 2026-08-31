@@ -91,5 +91,5 @@
 - [x] Capability gap `go.subtest_names` is removed and fixture evidence names the test-role golden.
 - [x] `docs/languages/go.md` describes supported literal subtests and remaining dynamic-name limits.
 - [x] `EXTRACTION_CONTRACT_VERSION` contains `go-subtests-v1` and its API-surface test passes.
-- [ ] Golden, capability, strict data-quality, affected-change, and branch gates pass.
+- [x] Golden, capability, strict data-quality, affected-change, and branch gates pass.
 - [x] Worker-scope verification passes and the change is committed per `serial-worker-commit`.

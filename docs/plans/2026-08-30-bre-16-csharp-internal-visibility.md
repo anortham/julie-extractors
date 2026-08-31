@@ -87,5 +87,5 @@
 - [x] `metadata_json.csharp_visibility` agrees with the enum-backed visibility column.
 - [x] `fixtures/extraction/capabilities.json` and `docs/languages/csharp.md` no longer claim that internal maps to private.
 - [x] `EXTRACTION_CONTRACT_VERSION` contains `csharp-visibility-v2` and its API-surface test passes.
-- [ ] Golden, capability, strict data-quality, affected-change, and branch gates pass.
+- [x] Golden, capability, strict data-quality, affected-change, and branch gates pass.
 - [x] Worker-scope verification passes and the change is committed per `serial-worker-commit`.
