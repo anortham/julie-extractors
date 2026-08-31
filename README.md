@@ -93,7 +93,7 @@ artifacts. It keeps immutable file versions, coherent per-view manifests, durabl
 and retained store generations behind an atomic `CURRENT` pointer. This product no longer writes
 workspace-global reference resolution; Miller computes that at query time. See the
 [retirement decision](docs/decisions/2026-08-18-resolution-write-path-retirement.md).
-The current published release is v2.38.0. Historical release notes remain in
+The current published release is v2.38.1. Historical release notes remain in
 [docs/release-notes](docs/release-notes).
 
 ```bash
