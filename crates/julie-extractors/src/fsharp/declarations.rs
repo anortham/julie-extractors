@@ -363,20 +363,27 @@ fn find_doc_comment(base: &BaseExtractor, node: Node) -> Option<String> {
 }
 
 fn first_identifier_text(base: &BaseExtractor, node: Node) -> Option<String> {
+    first_identifier_text_at_depth(base, node, 0)
+}
+
+fn first_identifier_text_at_depth(base: &BaseExtractor, node: Node, depth: u32) -> Option<String> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
+    if node.kind() == "identifier" {
+        let text = base.get_node_text(&node).trim().to_string();
+        if !text.is_empty() {
+            return Some(text);
+        }
+    }
+
+    let child_depth = child_tree_depth(depth)?;
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if child.kind() == "identifier" {
-            let text = base.get_node_text(&child).trim().to_string();
-            if !text.is_empty() {
-                return Some(text);
-            }
-        }
         if matches!(child.kind(), "access_modifier" | "attributes" | "xml_doc") {
             continue;
         }
-        if child.is_named()
-            && let Some(name) = first_identifier_text(base, child)
-        {
+        if let Some(name) = first_identifier_text_at_depth(base, child, child_depth) {
             return Some(name);
         }
     }
