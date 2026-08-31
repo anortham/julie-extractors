@@ -132,7 +132,7 @@ fn retire_view_plans_without_apply_and_retires_only_with_apply() {
 fn retire_view_refuses_an_unknown_view_without_mutation() {
     let fixture = tempfile::tempdir().unwrap();
     let store = fixture.path().join("store");
-    StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
+    StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
     let store_db = store.join("gen-001/store.db");
     let before = std::fs::read(&store_db).unwrap();
 
@@ -275,7 +275,7 @@ fn import_view(fixture: &std::path::Path, store: &std::path::Path, view: &str, r
 fn inspect_is_read_only_and_emits_the_separate_versioned_report() {
     let fixture = tempfile::tempdir().unwrap();
     let store = fixture.path().join("store");
-    StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
+    StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
 
     let output = julie_extract(&[
         "store",
@@ -323,7 +323,7 @@ fn inspect_is_read_only_and_emits_the_separate_versioned_report() {
 fn gc_plans_without_apply_and_mutates_only_with_apply() {
     let fixture = tempfile::tempdir().unwrap();
     let store = fixture.path().join("store");
-    StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
+    StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
     let store_db = store.join("gen-001/store.db");
     let coord_db = store.join("coord.db");
     let store_before = std::fs::read(&store_db).unwrap();
@@ -383,7 +383,7 @@ fn gc_plans_without_apply_and_mutates_only_with_apply() {
 fn promote_builds_and_publishes_a_new_generation_only_with_apply() {
     let fixture = tempfile::tempdir().unwrap();
     let store = fixture.path().join("store");
-    StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
+    StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
 
     let planned = julie_extract(&[
         "store",
@@ -430,7 +430,7 @@ fn promote_builds_and_publishes_a_new_generation_only_with_apply() {
 fn repair_checkpoints_a_valid_generation_without_replacing_current() {
     let fixture = tempfile::tempdir().unwrap();
     let store = fixture.path().join("store");
-    StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
+    StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
 
     let output = julie_extract(&[
         "store",
@@ -464,7 +464,7 @@ fn repair_checkpoints_a_valid_generation_without_replacing_current() {
 fn cursor_advance_and_release_are_explicit_monotonic_mutations() {
     let fixture = tempfile::tempdir().unwrap();
     let store = fixture.path().join("store");
-    StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
+    StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
     let coord_db = store.join("coord.db");
 
     let planned = julie_extract(&[
@@ -564,7 +564,7 @@ fn cursor_advance_and_release_are_explicit_monotonic_mutations() {
 fn live_writer_reports_busy_as_json_stdout_without_mutation() {
     let fixture = tempfile::tempdir().unwrap();
     let store = fixture.path().join("store");
-    StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
+    StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
     let coordinator = rusqlite::Connection::open(store.join("coord.db")).unwrap();
     coordinator
         .execute(
@@ -604,7 +604,7 @@ fn live_writer_reports_busy_as_json_stdout_without_mutation() {
 fn incompatible_reader_floor_uses_exit_three_and_stable_failure_class() {
     let fixture = tempfile::tempdir().unwrap();
     let store = fixture.path().join("store");
-    StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
+    StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
     let connection = rusqlite::Connection::open(store.join("gen-001/store.db")).unwrap();
     connection
         .execute(
@@ -634,7 +634,7 @@ fn incompatible_reader_floor_uses_exit_three_and_stable_failure_class() {
 fn supplied_family_mismatch_is_an_incompatible_store_without_mutation() {
     let fixture = tempfile::tempdir().unwrap();
     let store = fixture.path().join("store");
-    StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
+    StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
     let store_db = store.join("gen-001/store.db");
     let before = std::fs::read(&store_db).unwrap();
 
@@ -661,7 +661,7 @@ fn supplied_family_mismatch_is_an_incompatible_store_without_mutation() {
 fn missing_current_with_named_generation_reports_recovery_required() {
     let fixture = tempfile::tempdir().unwrap();
     let store = fixture.path().join("store");
-    StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
+    StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
     std::fs::remove_file(store.join("CURRENT")).unwrap();
 
     let output = julie_extract(&[
@@ -687,7 +687,7 @@ fn missing_current_with_named_generation_reports_recovery_required() {
 fn repair_without_a_selectable_generation_reports_repair_unavailable() {
     let fixture = tempfile::tempdir().unwrap();
     let store = fixture.path().join("store");
-    StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
+    StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
     std::fs::remove_file(store.join("CURRENT")).unwrap();
 
     let output = julie_extract(&[
@@ -716,7 +716,7 @@ fn repair_without_a_selectable_generation_reports_repair_unavailable() {
 fn inspect_of_a_store_without_resolution_objects_succeeds() {
     let fixture = tempfile::tempdir().unwrap();
     let store = fixture.path().join("store");
-    StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
+    StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
     let store_db = store.join("gen-001/store.db");
     let store_before = std::fs::read(&store_db).unwrap();
 
@@ -740,7 +740,7 @@ fn inspect_of_a_store_without_resolution_objects_succeeds() {
 fn human_failures_use_stderr_and_name_the_stable_class() {
     let fixture = tempfile::tempdir().unwrap();
     let store = fixture.path().join("store");
-    StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
+    StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
     let coordinator = rusqlite::Connection::open(store.join("coord.db")).unwrap();
     coordinator
         .execute(
@@ -775,7 +775,7 @@ fn human_failures_use_stderr_and_name_the_stable_class() {
 fn apply_refuses_a_plan_when_the_coordinator_root_changes() {
     let fixture = tempfile::tempdir().unwrap();
     let store = fixture.path().join("store");
-    StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
+    StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
     let ready = fixture.path().join("plan-ready");
     let proceed = fixture.path().join("plan-proceed");
     let child = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
@@ -839,7 +839,7 @@ fn apply_refuses_a_plan_when_the_coordinator_root_changes() {
 fn maintenance_report_json_and_human_snapshots_are_stable() {
     let fixture = tempfile::tempdir().unwrap();
     let store = fixture.path().join("store");
-    StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
+    StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
 
     let json_output = julie_extract(&[
         "store",
@@ -992,7 +992,7 @@ fn maintenance_report_json_and_human_snapshots_are_stable() {
 fn promotion_capacity_refusal_happens_before_maintenance_mutation() {
     let fixture = tempfile::tempdir().unwrap();
     let store = fixture.path().join("store");
-    StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
+    StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
     let sparse = store.join("gen-001/capacity-probe");
     let file = std::fs::File::create(&sparse).unwrap();
     file.set_len(1_000_000_000_000).unwrap();

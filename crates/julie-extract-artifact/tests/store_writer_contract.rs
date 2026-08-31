@@ -1390,6 +1390,31 @@ fn pending_relationship(
     }
 }
 
+#[test]
+fn capability_snapshot_sync_moves_store_meta_to_the_written_epoch() {
+    let store = TestStore::new("meta-epoch");
+    let mut writer = store.writer();
+    writer.stage_capability_snapshot(1, capability_snapshot());
+    let version = StoreFileVersion::try_from_artifact_file(
+        1,
+        &fixture_file("src/lib.rs", "rust", "blake3:aaa"),
+    )
+    .unwrap();
+    writer
+        .write_level(&request("request-1"), &version, StoreLevel::L1)
+        .unwrap();
+
+    let connection = rusqlite::Connection::open(store.layout.store_db()).unwrap();
+    let recorded: String = connection
+        .query_row(
+            "SELECT value FROM store_meta WHERE key='extraction_identity_epoch'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(recorded, "1");
+}
+
 fn request(request_id: &str) -> StoreWriteRequest {
     StoreWriteRequest::routine(request_id, CREATED_AT)
 }
@@ -1564,7 +1589,7 @@ impl TestStore {
             std::process::id()
         ));
         fs::create_dir_all(&path).unwrap();
-        let layout = StoreLayout::create(&path, "family-writer", "2.30.0").unwrap();
+        let layout = StoreLayout::create(&path, "family-writer", "2.30.0", 7).unwrap();
         Self { path, layout }
     }
 

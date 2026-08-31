@@ -14,7 +14,7 @@ use julie_extract_artifact::store::{
 use rusqlite::{Connection, Transaction};
 
 fn layout(root: &Path) -> StoreLayout {
-    StoreLayout::create(root, "family-a", "2.30.0").unwrap()
+    StoreLayout::create(root, "family-a", "2.30.0", 7).unwrap()
 }
 
 #[allow(clippy::too_many_arguments)]

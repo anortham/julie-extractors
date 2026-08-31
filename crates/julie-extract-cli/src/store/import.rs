@@ -3,6 +3,8 @@ use std::path::{Component, Path};
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use julie_extractors::EXTRACTION_IDENTITY_EPOCH;
+
 use julie_extract_artifact::store::{
     CoordinatorError, CoordinatorPolicy, CoordinatorRequest, LeaseHolder, QUANTUM_OVERRUN_CODE,
     RequestKind, RequestState, StoreCoordinator, StoreLayout, same_path_identity,
@@ -433,8 +435,13 @@ fn execute_import(
                 .map(|file| file.content_bytes)
                 .fold(0_u64, u64::saturating_add);
             preflight_store_capacity(&args.store, source_bytes)?;
-            let layout = StoreLayout::create(&args.store, &args.family, env!("CARGO_PKG_VERSION"))
-                .map_err(|error| error.to_string())?;
+            let layout = StoreLayout::create(
+                &args.store,
+                &args.family,
+                env!("CARGO_PKG_VERSION"),
+                EXTRACTION_IDENTITY_EPOCH,
+            )
+            .map_err(|error| error.to_string())?;
             let progress = args
                 .scan
                 .progress_file

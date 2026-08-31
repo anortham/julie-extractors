@@ -1234,7 +1234,7 @@ impl TestStore {
             std::process::id()
         ));
         fs::create_dir_all(&path).unwrap();
-        let layout = StoreLayout::create(&path, "family-manifest", "2.30.0").unwrap();
+        let layout = StoreLayout::create(&path, "family-manifest", "2.30.0", 7).unwrap();
         Connection::open(layout.coordinator_db())
             .unwrap()
             .execute(

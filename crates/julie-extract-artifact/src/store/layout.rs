@@ -48,6 +48,7 @@ impl StoreLayout {
         root: impl AsRef<Path>,
         family_id: &str,
         creator_version: &str,
+        extraction_identity_epoch: u32,
     ) -> Result<Self, StoreLayoutError> {
         let root = root.as_ref();
         fs::create_dir_all(root)?;
@@ -109,7 +110,12 @@ impl StoreLayout {
             )?;
             fs::create_dir(partial_generation.join("bases"))?;
             let partial_store_db = partial_generation.join("store.db");
-            initialize_store_database(&partial_store_db, family_id, creator_version)?;
+            initialize_store_database(
+                &partial_store_db,
+                family_id,
+                creator_version,
+                extraction_identity_epoch,
+            )?;
             sync_file(&partial_store_db)?;
             fs::remove_file(partial_generation.join(PARTIAL_OWNER_FILE))?;
             sync_directory(&partial_generation)?;
@@ -686,14 +692,19 @@ pub(crate) fn initialize_store_database(
     path: &Path,
     family_id: &str,
     creator_version: &str,
+    extraction_identity_epoch: u32,
 ) -> Result<(), StoreLayoutError> {
     let mut connection = Connection::open(path)?;
     configure_writer_pragmas(&connection, WriterPragmaProfile::Routine)?;
     create_store_schema(&connection)?;
     let transaction = connection.transaction()?;
+    let extraction_identity_epoch = extraction_identity_epoch.to_string();
     for (key, value) in [
         ("family_id", family_id),
-        ("extraction_identity_epoch", "6"),
+        (
+            "extraction_identity_epoch",
+            extraction_identity_epoch.as_str(),
+        ),
         ("min_reader_version", creator_version),
         ("min_writer_version", creator_version),
         ("created_by_version", creator_version),
@@ -797,7 +808,7 @@ mod tests {
         use std::os::unix::fs::PermissionsExt;
 
         let temp = TempStore::new("scratch-reap-denied");
-        let layout = StoreLayout::create(&temp.path, "family-a", "2.30.0").unwrap();
+        let layout = StoreLayout::create(&temp.path, "family-a", "2.30.0", 7).unwrap();
         fs::write(layout.scratch_dir().join("resolve-exact-request.db"), b"x").unwrap();
         let original = fs::metadata(layout.scratch_dir()).unwrap().permissions();
         let mut denied = original.clone();

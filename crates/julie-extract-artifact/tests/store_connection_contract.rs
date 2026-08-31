@@ -12,7 +12,7 @@ use rusqlite::Connection;
 fn store_layout_creation_publishes_a_reopenable_generation() {
     let temp = TempStore::new("create");
 
-    let created = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let created = StoreLayout::create(temp.path(), "family-a", "2.30.0", 9).unwrap();
 
     assert_eq!(
         fs::read_to_string(temp.path().join("CURRENT")).unwrap(),
@@ -29,7 +29,7 @@ fn store_layout_creation_publishes_a_reopenable_generation() {
 
     let metadata = store_metadata(created.store_db());
     assert_eq!(metadata_value(&metadata, "family_id"), "family-a");
-    assert_eq!(metadata_value(&metadata, "extraction_identity_epoch"), "6");
+    assert_eq!(metadata_value(&metadata, "extraction_identity_epoch"), "9");
     assert_eq!(metadata_value(&metadata, "min_reader_version"), "2.30.0");
     assert_eq!(metadata_value(&metadata, "min_writer_version"), "2.30.0");
     assert_eq!(metadata_value(&metadata, "created_by_version"), "2.30.0");
@@ -112,7 +112,7 @@ fn open_never_follows_current_outside_the_family() {
 #[test]
 fn open_rejects_a_non_file_store_database() {
     let temp = TempStore::new("store-db-type");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     fs::remove_file(layout.store_db()).unwrap();
     fs::create_dir(layout.store_db()).unwrap();
 
@@ -130,7 +130,7 @@ fn open_rejects_a_non_file_store_database() {
 #[test]
 fn connection_factory_refuses_the_wrong_family() {
     let temp = TempStore::new("wrong-family");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     let factory = StoreConnectionFactory::new(layout, "family-b", "2.30.0");
 
     let error = factory.open_reader().unwrap_err();
@@ -145,7 +145,7 @@ fn connection_factory_refuses_the_wrong_family() {
 #[test]
 fn connection_factory_preserves_unknown_schema_as_a_typed_refusal() {
     let temp = TempStore::new("newer-schema");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     Connection::open(layout.store_db())
         .unwrap()
         .pragma_update(None, "user_version", 99)
@@ -167,7 +167,7 @@ fn connection_factory_preserves_unknown_schema_as_a_typed_refusal() {
 #[test]
 fn schema_v1_reader_and_writer_refuse_before_metadata_mutation() {
     let temp = TempStore::new("older-schema");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     let connection = Connection::open(layout.store_db()).unwrap();
     connection.pragma_update(None, "user_version", 1).unwrap();
     let before = metadata_value(&store_metadata(layout.store_db()), "binary_version").to_string();
@@ -202,7 +202,7 @@ fn schema_v1_reader_and_writer_refuse_before_metadata_mutation() {
 #[test]
 fn writer_open_does_not_install_resolution_scope_objects() {
     let temp = TempStore::new("legacy-v2-scope");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     let factory = StoreConnectionFactory::new(layout, "family-a", "2.30.0");
 
     let reader = factory.open_reader().unwrap();
@@ -236,7 +236,7 @@ fn writer_open_does_not_install_resolution_scope_objects() {
 #[test]
 fn below_reader_floor_is_typed_not_ready() {
     let temp = TempStore::new("reader-floor");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     set_metadata(layout.store_db(), "min_reader_version", "2.31.0");
     let factory = StoreConnectionFactory::new(layout, "family-a", "2.30.0");
 
@@ -252,7 +252,7 @@ fn below_reader_floor_is_typed_not_ready() {
 #[test]
 fn below_reader_floor_also_blocks_writes() {
     let temp = TempStore::new("reader-floor-writer");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     set_metadata(layout.store_db(), "min_reader_version", "2.31.0");
     let factory = StoreConnectionFactory::new(layout, "family-a", "2.30.0");
 
@@ -268,7 +268,7 @@ fn below_reader_floor_also_blocks_writes() {
 #[test]
 fn below_writer_floor_can_open_read_only_but_not_for_writes() {
     let temp = TempStore::new("writer-floor");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     set_metadata(layout.store_db(), "min_writer_version", "2.31.0");
     let factory = StoreConnectionFactory::new(layout, "family-a", "2.30.0");
 
@@ -293,7 +293,7 @@ fn below_writer_floor_can_open_read_only_but_not_for_writes() {
 #[test]
 fn writer_open_repairs_missing_read_index_without_changing_rows_or_identity() {
     let temp = TempStore::new("writer-schema-repair");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     let store = Connection::open(layout.store_db()).unwrap();
     store
         .execute(
@@ -394,7 +394,7 @@ fn writer_open_repairs_missing_read_index_without_changing_rows_or_identity() {
 #[test]
 fn writer_reasserts_and_reads_back_required_pragmas() {
     let temp = TempStore::new("writer-pragmas");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     let factory = StoreConnectionFactory::new(layout, "family-a", "2.30.0");
 
     let writer = factory.open_writer().unwrap();
@@ -412,7 +412,7 @@ fn writer_reasserts_and_reads_back_required_pragmas() {
 #[test]
 fn writer_detects_a_late_auto_vacuum_no_op() {
     let temp = TempStore::new("late-auto-vacuum");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     let connection = Connection::open(layout.store_db()).unwrap();
     connection
         .execute_batch("PRAGMA auto_vacuum = NONE; VACUUM;")
@@ -436,7 +436,7 @@ fn writer_detects_a_late_auto_vacuum_no_op() {
 #[test]
 fn explicit_binary_version_advance_refuses_an_older_direct_writer() {
     let temp = TempStore::new("binary-version");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     let factory = StoreConnectionFactory::new(layout.clone(), "family-a", "2.31.0");
     let mut writer = factory.open_writer().unwrap();
     factory.advance_binary_version(&mut writer).unwrap();
@@ -465,14 +465,14 @@ fn explicit_binary_version_advance_refuses_an_older_direct_writer() {
 #[test]
 fn creation_recovery_never_reaps_unowned_scaffolding() {
     let temp = TempStore::new("recovery-reap");
-    StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     let scaffolding = temp.path().join(".gen-002.partial");
     let unreferenced_generation = temp.path().join("gen-099");
     fs::create_dir(&scaffolding).unwrap();
     fs::create_dir(&unreferenced_generation).unwrap();
     fs::write(temp.path().join("CURRENT.partial"), "gen-002\n").unwrap();
 
-    let error = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap_err();
+    let error = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap_err();
 
     assert!(matches!(
         error,
@@ -485,10 +485,10 @@ fn creation_recovery_never_reaps_unowned_scaffolding() {
 #[test]
 fn creation_refuses_an_initialized_generation_without_current() {
     let temp = TempStore::new("recover-publish");
-    StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     fs::remove_file(temp.path().join("CURRENT")).unwrap();
 
-    let error = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap_err();
+    let error = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap_err();
 
     assert!(matches!(
         error,
@@ -519,7 +519,7 @@ fn creation_never_mutates_an_unpublished_adopted_generation() {
     assert_eq!(pragma_text(&connection, "journal_mode"), "delete");
     drop(connection);
 
-    let error = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap_err();
+    let error = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap_err();
 
     assert!(matches!(
         error,
@@ -551,7 +551,7 @@ fn creation_refuses_to_publish_a_generation_initialized_with_late_auto_vacuum() 
     assert_eq!(pragma_i64(&connection, "auto_vacuum"), 0);
     drop(connection);
 
-    let error = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap_err();
+    let error = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap_err();
 
     assert!(matches!(
         error,
@@ -581,7 +581,7 @@ fn creation_refuses_to_publish_an_adopted_generation_with_the_wrong_page_size() 
     assert_eq!(pragma_i64(&connection, "page_size"), 8192);
     drop(connection);
 
-    let error = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap_err();
+    let error = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap_err();
 
     assert!(matches!(
         error,
@@ -602,7 +602,7 @@ fn creation_refuses_an_existing_coordinator_with_the_wrong_page_size() {
     assert_eq!(pragma_i64(&connection, "page_size"), 8192);
     drop(connection);
 
-    let error = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap_err();
+    let error = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap_err();
 
     assert!(matches!(
         error,
@@ -636,7 +636,7 @@ fn creation_never_opens_an_external_coordinator_symlink() {
     let original = fs::read(&external_coordinator).unwrap();
     symlink(&external_coordinator, temp.path().join("coord.db")).unwrap();
 
-    let error = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap_err();
+    let error = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap_err();
 
     assert!(matches!(error, StoreLayoutError::PathEscapesRoot { .. }));
     let current_published = temp.path().join("CURRENT").exists();
@@ -666,7 +666,7 @@ fn creation_rejects_an_internal_coordinator_symlink() {
     let original = fs::read(&internal_target).unwrap();
     symlink(&internal_target, temp.path().join("coord.db")).unwrap();
 
-    let error = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap_err();
+    let error = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap_err();
 
     assert!(matches!(error, StoreLayoutError::UnexpectedPathType { .. }));
     assert!(!temp.path().join("CURRENT").exists());
@@ -683,7 +683,7 @@ fn creation_never_adopts_a_generation_symlink_outside_the_family() {
     Connection::open(outside.path().join("store.db")).unwrap();
     symlink(outside.path(), temp.path().join("gen-001")).unwrap();
 
-    let error = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap_err();
+    let error = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap_err();
 
     assert!(matches!(error, StoreLayoutError::PathEscapesRoot { .. }));
     assert!(!temp.path().join("CURRENT").exists());
@@ -692,7 +692,7 @@ fn creation_never_adopts_a_generation_symlink_outside_the_family() {
 #[test]
 fn promote_style_lease_release_still_blocks_foreign_open_writer() {
     let temp = TempStore::new("promote-lease-free");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     Connection::open(layout.coordinator_db())
         .unwrap()
         .execute(
@@ -747,7 +747,7 @@ fn promote_style_lease_release_still_blocks_foreign_open_writer() {
 #[test]
 fn pre_fenced_writer_rejects_lease_expired_by_wall_clock_despite_stale_checked_at() {
     let temp = TempStore::new("wall-time-lease");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     let now_ms = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()

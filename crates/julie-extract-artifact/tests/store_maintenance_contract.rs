@@ -279,7 +279,7 @@ fn capacity_is_conservative_and_demotion_cohort_is_bounded() {
 #[test]
 fn sqlite_inspection_covers_store_and_coordinator_roots_in_bounded_windows() {
     let temp = TempStore::new("sqlite-matrix");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     fs::create_dir(temp.path().join("gen-1000")).unwrap();
     seed_store_matrix(&layout);
     let factory = StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0");
@@ -350,7 +350,7 @@ fn sqlite_inspection_covers_store_and_coordinator_roots_in_bounded_windows() {
 #[test]
 fn retired_resolution_objects_are_absent_from_maintenance_plans() {
     let temp = TempStore::new("scope-predecessor-root");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     let plan = MaintenanceInspector::new(
         StoreConnectionFactory::new(layout, "family-a", "2.30.0"),
         FixedClock(20 * DAY_MS),
@@ -367,7 +367,7 @@ fn retired_resolution_objects_are_absent_from_maintenance_plans() {
 #[test]
 fn paged_inspection_refuses_a_concurrent_coordinator_commit() {
     let temp = TempStore::new("inspection-race");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     seed_store_matrix(&layout);
     let inspector = MaintenanceInspector::new(
         StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0"),
@@ -387,7 +387,7 @@ fn paged_inspection_refuses_a_concurrent_coordinator_commit() {
 #[test]
 fn dead_maintenance_owner_is_replaced_before_its_expiry() {
     let temp = TempStore::new("dead-maintenance-owner");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     let mut child = std::process::Command::new("sh")
         .args(["-c", "exit 0"])
         .spawn()
@@ -438,7 +438,7 @@ fn dead_maintenance_owner_is_replaced_before_its_expiry() {
 #[test]
 fn short_maintenance_lease_heartbeats_intent_and_writer_during_apply() {
     let temp = TempStore::new("short-lease-heartbeat");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     seed_gc_level_matrix(&layout);
     let plan = inspect_plan(&layout, 30 * DAY_MS);
     let calls = Arc::new(AtomicU64::new(0));
@@ -496,7 +496,7 @@ fn short_maintenance_lease_heartbeats_intent_and_writer_during_apply() {
 #[test]
 fn short_maintenance_lease_heartbeats_during_plan_validation() {
     let temp = TempStore::new("short-lease-validation-heartbeat");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     seed_gc_level_matrix(&layout);
     let plan = inspect_plan(&layout, 30 * DAY_MS);
     let calls = Arc::new(AtomicU64::new(0));
@@ -557,7 +557,7 @@ fn short_maintenance_lease_heartbeats_during_plan_validation() {
 #[test]
 fn maintenance_heartbeat_fails_closed_after_lease_takeover() {
     let temp = TempStore::new("heartbeat-takeover");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     seed_gc_level_matrix(&layout);
     let plan = inspect_plan(&layout, 30 * DAY_MS);
     let calls = Arc::new(AtomicU64::new(0));
@@ -705,7 +705,7 @@ fn maintenance_heartbeat_fails_closed_after_lease_takeover() {
 #[test]
 fn gc_demotes_l3_then_l2_and_only_then_purges_whole_unrooted_versions() {
     let temp = TempStore::new("gc-level-order");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     seed_gc_level_matrix(&layout);
 
     let first = inspect_plan(&layout, 30 * DAY_MS);
@@ -770,7 +770,7 @@ fn gc_demotes_l3_then_l2_and_only_then_purges_whole_unrooted_versions() {
 #[test]
 fn gc_steps_incremental_vacuum_until_the_freelist_is_empty() {
     let temp = TempStore::new("gc-physical-reclaim");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     seed_gc_level_matrix(&layout);
     let mut store = Connection::open(layout.store_db()).unwrap();
     store
@@ -822,7 +822,7 @@ fn gc_steps_incremental_vacuum_until_the_freelist_is_empty() {
 #[test]
 fn gc_persists_physical_retention_breaches_and_requests_compaction() {
     let temp = TempStore::new("gc-physical-retention");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     seed_gc_level_matrix(&layout);
     Connection::open(layout.store_db())
         .unwrap()
@@ -874,7 +874,7 @@ fn gc_persists_physical_retention_breaches_and_requests_compaction() {
 #[test]
 fn gc_retires_inactive_scope_batches_before_their_parent_manifests() {
     let temp = TempStore::new("gc-manifest-entry-order");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     let mut store = Connection::open(layout.store_db()).unwrap();
     store.execute_batch("PRAGMA foreign_keys=ON;").unwrap();
     let transaction = store.transaction().unwrap();
@@ -971,7 +971,7 @@ fn gc_retires_inactive_scope_batches_before_their_parent_manifests() {
 #[test]
 fn gc_archives_terminal_requests_before_pruning_their_store_log() {
     let temp = TempStore::new("gc-request-pruning");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     let store = Connection::open(layout.store_db()).unwrap();
     store
         .execute(
@@ -1062,7 +1062,7 @@ fn gc_archives_terminal_requests_before_pruning_their_store_log() {
 #[test]
 fn gc_prunes_aged_terminal_requests_and_keeps_queued_and_fresh_rows() {
     let temp = TempStore::new("gc-terminal-request-pruning");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     let store = Connection::open(layout.store_db()).unwrap();
     store
         .execute(
@@ -1184,7 +1184,7 @@ fn malformed_or_ahead_consumer_cursors_block_request_log_pruning() {
         [("malformed", "gen-bad", 0_i64), ("ahead", "gen-001", 2_i64)]
     {
         let temp = TempStore::new(name);
-        let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+        let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
         seed_terminal_request(&layout);
         Connection::open(layout.coordinator_db())
             .unwrap()
@@ -1245,7 +1245,7 @@ fn malformed_or_ahead_consumer_cursors_block_request_log_pruning() {
 #[test]
 fn hundred_version_cohorts_persist_a_cursor_and_resume_without_duplicates_or_gaps() {
     let temp = TempStore::new("gc-cohort-cursor");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     let mut store = Connection::open(layout.store_db()).unwrap();
     let transaction = store.transaction().unwrap();
     for version_id in 1..=101_i64 {
@@ -1327,7 +1327,7 @@ fn hundred_version_cohorts_persist_a_cursor_and_resume_without_duplicates_or_gap
 #[test]
 fn terminal_request_scratch_is_reaped_while_live_request_scratch_is_preserved() {
     let temp = TempStore::new("gc-scratch");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     let coord = Connection::open(layout.coordinator_db()).unwrap();
     coord
         .execute(
@@ -1401,7 +1401,7 @@ fn terminal_request_scratch_is_reaped_while_live_request_scratch_is_preserved() 
 #[test]
 fn apply_refuses_when_live_free_bytes_drop_below_required_headroom() {
     let temp = TempStore::new("gc-capacity-reprobe");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     seed_gc_level_matrix(&layout);
     Connection::open(layout.coordinator_db())
         .unwrap()
@@ -1457,7 +1457,7 @@ fn apply_refuses_when_live_free_bytes_drop_below_required_headroom() {
 #[test]
 fn apply_error_after_floor_raise_restores_floor_and_clears_intent_on_drop() {
     let temp = TempStore::new("floor-restore-on-error");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     seed_gc_level_matrix(&layout);
     let plan = inspect_plan(&layout, 30 * DAY_MS);
     let free_bytes = Arc::new(AtomicU64::new(512 * 1024 * 1024));
@@ -1522,7 +1522,7 @@ fn apply_error_after_floor_raise_restores_floor_and_clears_intent_on_drop() {
 #[test]
 fn acquire_raises_source_writer_floor_and_mirrors_intent() {
     let temp = TempStore::new("floor-raise");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     let plan = inspect_plan(&layout, 30 * DAY_MS);
     let executor = MaintenanceExecutor::acquire(
         StoreConnectionFactory::new(layout.clone(), "family-a", "2.31.0"),
@@ -1585,7 +1585,7 @@ fn acquire_raises_source_writer_floor_and_mirrors_intent() {
 #[test]
 fn finish_restores_serving_source_floor_and_clears_intent_mirrors() {
     let temp = TempStore::new("floor-restore");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     seed_gc_level_matrix(&layout);
     let plan = inspect_plan(&layout, 30 * DAY_MS);
     let mut executor = MaintenanceExecutor::acquire(
@@ -1640,7 +1640,7 @@ fn finish_restores_serving_source_floor_and_clears_intent_mirrors() {
 #[test]
 fn view_retirement_plan_counts_the_dead_view_without_writing() {
     let temp = TempStore::new("retire-plan");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     seed_two_view_matrix(&layout);
     let store_before = fs::read(layout.store_db()).unwrap();
     let coord_before = fs::read(layout.coordinator_db()).unwrap();
@@ -1659,7 +1659,7 @@ fn view_retirement_plan_counts_the_dead_view_without_writing() {
 #[test]
 fn view_retirement_plan_refuses_an_absent_view() {
     let temp = TempStore::new("retire-plan-absent");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     seed_two_view_matrix(&layout);
 
     let factory = StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0");
@@ -1672,7 +1672,7 @@ fn view_retirement_plan_refuses_an_absent_view() {
 #[test]
 fn retire_view_deletes_the_whole_view_and_leaves_maintenance_working() {
     let temp = TempStore::new("retire-apply");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     seed_two_view_matrix(&layout);
 
     let plan = inspect_plan(&layout, 30 * DAY_MS);
@@ -1776,7 +1776,7 @@ fn retire_view_deletes_the_whole_view_and_leaves_maintenance_working() {
 #[test]
 fn retire_view_refuses_an_absent_view_and_a_live_request_for_that_view() {
     let temp = TempStore::new("retire-refusals");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     seed_two_view_matrix(&layout);
 
     let plan = inspect_plan(&layout, 30 * DAY_MS);
@@ -1834,7 +1834,7 @@ fn retire_view_refuses_an_absent_view_and_a_live_request_for_that_view() {
 #[test]
 fn retire_view_refuses_while_a_live_writer_holds_the_store() {
     let temp = TempStore::new("retire-live-writer");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     seed_two_view_matrix(&layout);
     let plan = inspect_plan(&layout, 30 * DAY_MS);
     Connection::open(layout.coordinator_db())

@@ -336,7 +336,7 @@ impl TestStore {
             std::process::id()
         ));
         fs::create_dir_all(&path).unwrap();
-        let layout = StoreLayout::create(&path, "family-performance", "2.30.0").unwrap();
+        let layout = StoreLayout::create(&path, "family-performance", "2.30.0", 7).unwrap();
         Self { path, layout }
     }
 

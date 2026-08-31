@@ -440,7 +440,7 @@ impl StoreWriter {
                         extraction_epoch: version.extraction_epoch(),
                     });
                 }
-                match sync_capability_snapshot(
+                let counts = match sync_capability_snapshot(
                     transaction,
                     version.extraction_epoch(),
                     snapshot,
@@ -455,7 +455,16 @@ impl StoreWriter {
                             extraction_epoch: version.extraction_epoch(),
                         });
                     }
-                }
+                };
+                // Readers bind capability projections to store_meta's epoch,
+                // so it must follow the epoch the snapshot was written at.
+                transaction.execute(
+                    "INSERT INTO store_meta (key, value)
+                     VALUES ('extraction_identity_epoch', ?1)
+                     ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                    [version.extraction_epoch().to_string()],
+                )?;
+                counts
             }
             (StoreLevel::L1, None) if !initialized => {
                 return Err(StoreWriterError::CapabilitySnapshotRequired {

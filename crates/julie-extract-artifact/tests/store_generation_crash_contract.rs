@@ -31,7 +31,8 @@ fn every_promotion_boundary_recovers_the_same_generation_without_duplicates() {
         "generation_after_maintenance_finish",
     ] {
         let temp = TempStore::new(boundary);
-        let layout = StoreLayout::create(temp.path(), "family-generation-crash", "2.30.0").unwrap();
+        let layout =
+            StoreLayout::create(temp.path(), "family-generation-crash", "2.30.0", 7).unwrap();
         seed_source(&layout);
         let output = run_worker(temp.path(), boundary);
         assert!(
@@ -81,7 +82,7 @@ fn every_promotion_boundary_recovers_the_same_generation_without_duplicates() {
 #[test]
 fn dead_partial_owner_is_replaced_before_its_expiry() {
     let temp = TempStore::new("dead-partial-before-expiry");
-    let layout = StoreLayout::create(temp.path(), "family-generation-crash", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-generation-crash", "2.30.0", 7).unwrap();
     seed_source(&layout);
     let output = run_worker_with_lease(
         temp.path(),
@@ -114,7 +115,7 @@ fn dead_partial_owner_is_replaced_before_its_expiry() {
 #[test]
 fn crash_between_intent_and_floor_blocks_foreign_writers_via_intent_alone() {
     let temp = TempStore::new("intent-before-floor");
-    let layout = StoreLayout::create(temp.path(), "family-generation-crash", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-generation-crash", "2.30.0", 7).unwrap();
     seed_source(&layout);
     let output = run_worker_with_lease(
         temp.path(),
@@ -202,7 +203,7 @@ fn forward_rollback_crashes_recover_with_scope_explicitly_invalidated() {
     ] {
         let temp = TempStore::new(boundary);
         let initial =
-            StoreLayout::create(temp.path(), "family-generation-crash", "2.30.0").unwrap();
+            StoreLayout::create(temp.path(), "family-generation-crash", "2.30.0", 7).unwrap();
         seed_source(&initial);
         let initial_plan = inspect_plan(&initial);
         let mut promotion = GenerationLifecycle::acquire(

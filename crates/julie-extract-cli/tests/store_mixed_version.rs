@@ -288,7 +288,7 @@ fn malformed_recorded_binary_is_refused_even_with_downgrade_escape() {
 #[test]
 fn coordinator_uses_the_same_binary_floor_and_escape_policy_as_connections() {
     let fixture = tempfile::tempdir().unwrap();
-    let layout = StoreLayout::create(fixture.path(), FAMILY_ID, "2.30.0").unwrap();
+    let layout = StoreLayout::create(fixture.path(), FAMILY_ID, "2.30.0", 7).unwrap();
     set_meta(layout.store_db(), "binary_version", "2.31.0");
     let mut coordinator = StoreCoordinator::open(&layout).unwrap();
     let error = coordinator

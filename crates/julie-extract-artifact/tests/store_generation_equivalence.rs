@@ -14,7 +14,7 @@ static NEXT_TEMP_ID: AtomicU64 = AtomicU64::new(1);
 #[test]
 fn promotion_streams_exact_rows_and_advances_current() {
     let temp = TempStore::new("promotion");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     seed_source(&layout);
     seed_receipt(&layout, 31);
     let plan = MaintenanceInspector::new(
@@ -72,7 +72,7 @@ fn promotion_streams_exact_rows_and_advances_current() {
 #[test]
 fn promotion_does_not_create_resolution_scope_objects() {
     let temp = TempStore::new("promotion-scope-journal");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     Connection::open(layout.store_db())
         .unwrap()
         .execute_batch(
@@ -107,7 +107,7 @@ fn promotion_does_not_create_resolution_scope_objects() {
 #[test]
 fn promotion_ignores_leftover_base_files() {
     let temp = TempStore::new("base-identity");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     seed_source(&layout);
     seed_base(&layout, b"valid resolution base");
     fs::write(layout.bases_dir().join("base-a.db"), b"corrupt").unwrap();
@@ -118,7 +118,7 @@ fn promotion_ignores_leftover_base_files() {
 #[test]
 fn retained_cleanup_keeps_only_the_configured_retired_generations() {
     let temp = TempStore::new("generation-pins");
-    let initial = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let initial = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     seed_source(&initial);
     let policy = GenerationPolicy {
         retained_generation_limit: 1,
@@ -139,7 +139,7 @@ fn retained_cleanup_keeps_only_the_configured_retired_generations() {
 #[test]
 fn repair_stops_after_checkpoint_when_the_serving_generation_is_valid() {
     let temp = TempStore::new("repair-checkpoint");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     seed_source(&layout);
     let plan = inspect_plan(&layout, 1_000);
     let mut lifecycle = GenerationLifecycle::acquire(
@@ -176,7 +176,7 @@ fn repair_stops_after_checkpoint_when_the_serving_generation_is_valid() {
 #[test]
 fn logical_copy_is_bounded_by_the_configured_primary_key_window() {
     let temp = TempStore::new("copy-window");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     let mut store = Connection::open(layout.store_db()).unwrap();
     let transaction = store.transaction().unwrap();
     for version_id in 1..=101_i64 {
@@ -231,7 +231,7 @@ fn logical_copy_is_bounded_by_the_configured_primary_key_window() {
 #[test]
 fn family_allocators_scan_all_named_generations_and_receipts() {
     let temp = TempStore::new("family-allocators");
-    let initial = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let initial = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     seed_source(&initial);
     seed_base(&initial, b"valid resolution base");
     let second = promote_once(
@@ -300,7 +300,7 @@ fn family_allocators_scan_all_named_generations_and_receipts() {
 #[test]
 fn rollback_safety_window_retains_unpinned_generations() {
     let temp = TempStore::new("rollback-safety");
-    let initial = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let initial = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     seed_source(&initial);
     let policy = GenerationPolicy {
         retained_generation_limit: 1,
@@ -319,7 +319,7 @@ fn rollback_safety_window_retains_unpinned_generations() {
 #[test]
 fn retired_generation_cleanup_orders_numeric_suffixes() {
     let temp = TempStore::new("numeric-generation-retention");
-    let initial = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let initial = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     seed_source(&initial);
     fs::rename(temp.path().join("gen-001"), temp.path().join("gen-998")).unwrap();
     fs::write(temp.path().join("CURRENT"), "gen-998\n").unwrap();
@@ -342,7 +342,7 @@ fn retired_generation_cleanup_orders_numeric_suffixes() {
 #[test]
 fn forward_rollback_preserves_latest_logs_and_allocators_with_new_visible_identity() {
     let temp = TempStore::new("rollback");
-    let initial = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let initial = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     seed_source(&initial);
     let first_plan = inspect_plan(&initial, 1_000);
     let mut promotion = GenerationLifecycle::acquire(
@@ -445,7 +445,7 @@ fn forward_rollback_preserves_latest_logs_and_allocators_with_new_visible_identi
 #[test]
 fn forward_rollback_refuses_conflicting_immutable_identity() {
     let temp = TempStore::new("rollback-conflict");
-    let initial = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let initial = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     seed_source(&initial);
     let second = promote_once(
         &initial,
@@ -491,7 +491,7 @@ fn forward_rollback_refuses_conflicting_immutable_identity() {
 #[test]
 fn forward_rollback_rebinds_exact_resolution_with_fresh_manifest_and_delta_ids() {
     let temp = TempStore::new("rollback-resolution");
-    let initial = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let initial = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     seed_source(&initial);
     seed_base(&initial, b"valid resolution base");
     seed_exact_binding(&initial);

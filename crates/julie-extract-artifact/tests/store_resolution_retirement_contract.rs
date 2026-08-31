@@ -27,7 +27,7 @@ fn fresh_store_has_no_resolution_schema_objects() {
 #[test]
 fn legacy_store_reader_is_inert_and_writer_retires_resolution_objects() {
     let temp = TempStore::new("legacy-retirement");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     seed_legacy_resolution_world(&layout);
 
     let before_tables = retired_schema_objects(&Connection::open(layout.store_db()).unwrap());
@@ -84,7 +84,7 @@ fn legacy_store_reader_is_inert_and_writer_retires_resolution_objects() {
 #[test]
 fn first_gc_apply_on_unmigrated_legacy_store_does_not_stale_plan() {
     let temp = TempStore::new("legacy-gc-apply");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     seed_legacy_resolution_world(&layout);
     assert!(!leftover_resolution_files(&layout).is_empty());
 

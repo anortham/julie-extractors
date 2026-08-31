@@ -249,7 +249,7 @@ fn manifest_crash_worker() {
         return;
     };
     let point = std::env::var("JULIE_TEST_STORE_CRASH_POINT").unwrap();
-    let layout = StoreLayout::create(&root, "family-crash", "2.30.0").unwrap();
+    let layout = StoreLayout::create(&root, "family-crash", "2.30.0", 7).unwrap();
     let factory = StoreConnectionFactory::new(layout, "family-crash", "2.30.0");
     let version = StoreFileVersion::try_from_artifact_file(1, &fixture_file()).unwrap();
     let mut writer = StoreWriter::open(&factory).unwrap();
@@ -297,7 +297,7 @@ fn terminal_crash_worker() {
         return;
     };
     let point = std::env::var("JULIE_TEST_STORE_CRASH_POINT").unwrap();
-    let layout = StoreLayout::create(&root, "family-crash", "2.30.0").unwrap();
+    let layout = StoreLayout::create(&root, "family-crash", "2.30.0", 7).unwrap();
     let mut coordinator = StoreCoordinator::open(&layout).unwrap();
     coordinator
         .enqueue(CoordinatorRequest::new(
@@ -336,7 +336,7 @@ fn progress_crash_worker() {
         return;
     };
     let point = std::env::var("JULIE_TEST_STORE_CRASH_POINT").unwrap();
-    let layout = StoreLayout::create(&root, "family-crash", "2.30.0").unwrap();
+    let layout = StoreLayout::create(&root, "family-crash", "2.30.0", 7).unwrap();
     let factory = StoreConnectionFactory::new(layout, "family-crash", "2.30.0");
     let mut connection = factory.open_writer().unwrap();
     let transaction = connection.transaction().unwrap();
@@ -365,7 +365,7 @@ fn deep_crash_worker() {
         return;
     };
     let point = std::env::var("JULIE_TEST_STORE_CRASH_POINT").unwrap();
-    let layout = StoreLayout::create(&root, "family-crash", "2.30.0").unwrap();
+    let layout = StoreLayout::create(&root, "family-crash", "2.30.0", 7).unwrap();
     let factory = StoreConnectionFactory::new(layout, "family-crash", "2.30.0");
     let version = StoreFileVersion::try_from_artifact_file(1, &fixture_file()).unwrap();
     let request = StoreWriteRequest::routine("request-deep", "2026-08-08T00:00:00Z");
@@ -397,7 +397,7 @@ fn crash_after_l1_stamp_worker() {
     let Ok(root) = std::env::var("JULIE_TEST_STORE_CRASH_ROOT") else {
         return;
     };
-    let layout = StoreLayout::create(&root, "family-crash", "2.30.0").unwrap();
+    let layout = StoreLayout::create(&root, "family-crash", "2.30.0", 7).unwrap();
     let factory = StoreConnectionFactory::new(layout, "family-crash", "2.30.0");
     let version = StoreFileVersion::try_from_artifact_file(1, &fixture_file()).unwrap();
     let request = StoreWriteRequest::routine("request-crash", "2026-08-08T00:00:00Z");

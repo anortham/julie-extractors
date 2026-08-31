@@ -17,11 +17,11 @@ static NEXT_TEMP_ID: AtomicU64 = AtomicU64::new(1);
 #[test]
 fn opening_an_existing_generation_never_requests_a_store_write_lock() {
     let temp = TempStore::new("query-only-existing");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     let blocker = Connection::open(layout.store_db()).unwrap();
     blocker.execute_batch("BEGIN IMMEDIATE").unwrap();
 
-    let reopened = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let reopened = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
 
     assert_eq!(reopened.generation_name(), "gen-001");
     blocker.execute_batch("ROLLBACK").unwrap();
@@ -30,10 +30,10 @@ fn opening_an_existing_generation_never_requests_a_store_write_lock() {
 #[test]
 fn missing_current_beside_a_named_generation_requires_explicit_recovery() {
     let temp = TempStore::new("missing-current");
-    StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     fs::remove_file(temp.path().join("CURRENT")).unwrap();
 
-    let error = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap_err();
+    let error = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap_err();
 
     assert!(matches!(
         error,
@@ -46,7 +46,7 @@ fn missing_current_beside_a_named_generation_requires_explicit_recovery() {
 #[test]
 fn retired_and_replaced_generations_refuse_new_writers_but_existing_readers_survive() {
     let temp = TempStore::new("retired");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     let factory = StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0");
     let reader = factory.open_reader().unwrap();
     Connection::open(layout.store_db())
@@ -99,7 +99,7 @@ fn retired_and_replaced_generations_refuse_new_writers_but_existing_readers_surv
 #[test]
 fn foreign_maintenance_intent_blocks_writers_and_matching_fence_is_admitted() {
     let temp = TempStore::new("maintenance-fence");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     Connection::open(layout.coordinator_db())
         .unwrap()
         .execute(
@@ -195,7 +195,7 @@ fn foreign_maintenance_intent_blocks_writers_and_matching_fence_is_admitted() {
 #[test]
 fn writer_open_does_not_advance_binary_version_until_explicitly_requested() {
     let temp = TempStore::new("explicit-binary-advance");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     let factory = StoreConnectionFactory::new(layout.clone(), "family-a", "2.31.0");
 
     let mut writer = factory.open_writer().unwrap();
@@ -208,7 +208,7 @@ fn writer_open_does_not_advance_binary_version_until_explicitly_requested() {
 #[test]
 fn expired_writer_lease_cannot_authorize_a_later_write() {
     let temp = TempStore::new("expired-writer-lease");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     let factory = StoreConnectionFactory::new(layout.clone(), "family-a", "2.31.0");
     let mut writer = factory.open_writer().unwrap();
     Connection::open(layout.coordinator_db())
@@ -229,11 +229,11 @@ fn expired_writer_lease_cannot_authorize_a_later_write() {
 #[test]
 fn partial_generation_cleanup_requires_a_dead_owner_and_absent_or_expired_intent() {
     let temp = TempStore::new("partial-ownership");
-    StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     let partial = temp.path().join(".gen-002.partial");
     fs::create_dir(&partial).unwrap();
 
-    let error = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap_err();
+    let error = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap_err();
     assert!(matches!(
         error,
         StoreLayoutError::PartialGenerationRecoveryRequired { .. }
@@ -264,7 +264,7 @@ fn partial_generation_cleanup_requires_a_dead_owner_and_absent_or_expired_intent
         )
         .unwrap();
 
-    let error = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap_err();
+    let error = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap_err();
     assert!(matches!(
         error,
         StoreLayoutError::PartialGenerationRecoveryRequired { .. }
@@ -310,14 +310,14 @@ fn partial_generation_cleanup_requires_a_dead_owner_and_absent_or_expired_intent
         )
         .unwrap();
 
-    StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     assert!(!partial.exists());
 }
 
 #[test]
 fn promote_destination_keeps_pre_maintenance_floor_and_drops_tmp_mirrors() {
     let temp = TempStore::new("promote-floor");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     let plan = MaintenanceInspector::new(
         StoreConnectionFactory::new(layout.clone(), "family-a", "2.31.0"),
         FixedClock(1_000),
@@ -378,7 +378,7 @@ fn promote_destination_keeps_pre_maintenance_floor_and_drops_tmp_mirrors() {
 #[test]
 fn promotion_preserves_the_retired_v2_catalog() {
     let temp = TempStore::new("promote-legacy-scope");
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     let plan = MaintenanceInspector::new(
         StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0"),
         FixedClock(1_000),

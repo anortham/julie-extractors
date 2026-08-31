@@ -213,9 +213,24 @@ impl GenerationLifecycle {
         let partial_store = partial.join("store.db");
         let family_id = metadata_value(source.store_db(), "family_id")?;
         let binary_version = metadata_value(source.store_db(), "binary_version")?;
+        let extraction_identity_epoch =
+            metadata_value(source.store_db(), "extraction_identity_epoch")?;
+        let extraction_identity_epoch = extraction_identity_epoch.parse::<u32>().map_err(|_| {
+            GenerationError::Validation {
+                check: "extraction_identity_epoch",
+                detail: format!(
+                    "store_meta extraction_identity_epoch is not an integer: {extraction_identity_epoch}"
+                ),
+            }
+        })?;
         if !partial_store.exists() {
             fs::create_dir_all(partial.join("bases"))?;
-            initialize_store_database(&partial_store, &family_id, &binary_version)?;
+            initialize_store_database(
+                &partial_store,
+                &family_id,
+                &binary_version,
+                extraction_identity_epoch,
+            )?;
         }
 
         advance_family_allocator_marks(&source)?;

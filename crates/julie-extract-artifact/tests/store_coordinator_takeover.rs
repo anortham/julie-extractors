@@ -92,7 +92,7 @@ impl CoordinatorExecutor for CompleteExecutor {
 #[test]
 fn hard_killed_holder_is_taken_over_without_a_duplicate_terminal_effect() {
     let temp = TempDir::new();
-    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
     let mut coordinator = StoreCoordinator::open(&layout).unwrap();
     coordinator
         .enqueue(CoordinatorRequest::new(

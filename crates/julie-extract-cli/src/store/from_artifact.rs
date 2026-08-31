@@ -160,8 +160,13 @@ fn execute(
     );
     preflight_store_capacity(&args.store, source_bytes)
         .map_err(FromArtifactFailure::Operational)?;
-    let layout = StoreLayout::create(&args.store, &args.family, env!("CARGO_PKG_VERSION"))
-        .map_err(|error| FromArtifactFailure::Operational(error.to_string()))?;
+    let layout = StoreLayout::create(
+        &args.store,
+        &args.family,
+        env!("CARGO_PKG_VERSION"),
+        EXTRACTION_IDENTITY_EPOCH,
+    )
+    .map_err(|error| FromArtifactFailure::Operational(error.to_string()))?;
     let holder = lease_holder();
     let mut coordinator = open_coordinator(&layout, holder.clone())?;
     let now = now_millis();

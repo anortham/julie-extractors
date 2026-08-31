@@ -57,7 +57,7 @@ fn lifecycle_scale_worker() {
     let rows = rows.to_string_lossy().parse::<i64>().unwrap();
     let fixture = tempfile::tempdir().unwrap();
     let layout =
-        StoreLayout::create(fixture.path(), "scale-family", env!("CARGO_PKG_VERSION")).unwrap();
+        StoreLayout::create(fixture.path(), "scale-family", env!("CARGO_PKG_VERSION"), 7).unwrap();
     let mut connection = Connection::open(layout.store_db()).unwrap();
     let transaction = connection.transaction().unwrap();
     {

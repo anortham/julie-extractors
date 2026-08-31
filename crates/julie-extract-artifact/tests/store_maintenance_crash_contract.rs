@@ -114,7 +114,7 @@ fn coordinator_receipt_survives_death_before_store_log_pruning_and_retry_finishe
 #[test]
 fn leftover_resolution_files_are_gone_after_writer_open() {
     let temp = TempStore::new("reap");
-    let layout = StoreLayout::create(temp.path(), "family-maintenance-crash", "2.30.0").unwrap();
+    let layout = StoreLayout::create(temp.path(), "family-maintenance-crash", "2.30.0", 7).unwrap();
     fs::write(layout.bases_dir().join("base-orphan.db"), b"base-bytes").unwrap();
     fs::write(
         layout.scratch_dir().join("resolve-exact-failed-request.db"),
@@ -136,7 +136,7 @@ fn maintenance_store_crash_worker() {
     let Some((root, boundary)) = worker_context() else {
         return;
     };
-    let layout = StoreLayout::create(root, "family-maintenance-crash", "2.30.0").unwrap();
+    let layout = StoreLayout::create(root, "family-maintenance-crash", "2.30.0", 7).unwrap();
     seed_l3_candidate(&layout);
     run_gc(&layout, "gc-store-crash", 5_000);
     panic!("worker passed crash boundary {boundary}");
@@ -147,7 +147,7 @@ fn maintenance_coordinator_crash_worker() {
     let Some((root, boundary)) = worker_context() else {
         return;
     };
-    let layout = StoreLayout::create(root, "family-maintenance-crash", "2.30.0").unwrap();
+    let layout = StoreLayout::create(root, "family-maintenance-crash", "2.30.0", 7).unwrap();
     seed_terminal_request(&layout);
     run_gc(&layout, "gc-coordinator-crash", 250);
     panic!("worker passed crash boundary {boundary}");

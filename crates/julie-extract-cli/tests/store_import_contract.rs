@@ -21,7 +21,7 @@ fn one_drain_uses_each_queued_imports_own_root_plan_and_level() {
     std::fs::write(root_b.join("b.rs"), source_b).unwrap();
     let root_b = root_b.canonicalize().unwrap();
 
-    let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
+    let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
     let mut coordinator = StoreCoordinator::open(&layout).unwrap();
     coordinator
         .enqueue(CoordinatorRequest::new(
@@ -418,7 +418,7 @@ fn crafted_payload_cannot_redirect_progress_to_the_live_store_or_escape_root() {
     let outside = fixture.path().join("outside.rs");
     std::fs::write(&outside, "outside sentinel\n").unwrap();
     let root = root.canonicalize().unwrap();
-    let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
+    let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
     let redirected_progress = root.join("redirect.progress");
     std::fs::hard_link(layout.store_db(), &redirected_progress).unwrap();
     let mut coordinator = StoreCoordinator::open(&layout).unwrap();
@@ -653,7 +653,7 @@ fn nonholder_times_out_without_removing_the_durable_queued_request() {
     let store = fixture.path().join("store");
     std::fs::create_dir(&root).unwrap();
     std::fs::write(root.join("lib.rs"), "pub fn value() {}\n").unwrap();
-    let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
+    let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
     let mut blocker = StoreCoordinator::open(&layout).unwrap();
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -715,7 +715,7 @@ fn import_drains_as_soon_as_a_blocking_lease_is_released() {
     let store = fixture.path().join("store");
     std::fs::create_dir(&root).unwrap();
     std::fs::write(root.join("lib.rs"), "pub fn value() {}\n").unwrap();
-    let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
+    let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
     let mut blocker = StoreCoordinator::open(&layout).unwrap();
     let blocker_holder =
         LeaseHolder::new("live-holder", env!("CARGO_PKG_VERSION"), std::process::id());
@@ -795,7 +795,7 @@ fn successor_process_completes_a_queued_request_after_the_submitters_parent_exit
     let store = fixture.path().join("store");
     std::fs::create_dir(&root).unwrap();
     std::fs::write(root.join("lib.rs"), "pub fn value() {}\n").unwrap();
-    let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
+    let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
     let mut blocker = StoreCoordinator::open(&layout).unwrap();
     let blocker_holder =
         LeaseHolder::new("live-holder", env!("CARGO_PKG_VERSION"), std::process::id());
@@ -1975,7 +1975,7 @@ fn queued_request_keeps_frozen_chunk_schedule_when_environment_changes() {
             "content_bytes": contents.len(),
         }));
     }
-    let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
+    let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
     StoreCoordinator::open(&layout)
         .unwrap()
         .enqueue(CoordinatorRequest::new(

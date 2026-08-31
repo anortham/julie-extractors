@@ -14,7 +14,7 @@ fn lifecycle_writers_honor_floors_escape_limits_retained_readers_and_monotonic_g
     let future_version = next_minor_version(running_version);
     let fixture = tempfile::tempdir().unwrap();
     let store = fixture.path().join("store");
-    let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
+    let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
     set_meta(layout.store_db(), "binary_version", &future_version);
 
     let refused = maintain(&store, false);
