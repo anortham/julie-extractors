@@ -133,6 +133,13 @@ fn fsharp_explicit_types_and_generic_arguments_are_attached_to_declarations() {
             .get(&symbol.id)
             .map(|type_info| type_info.resolved_type.as_str())
     };
+    let inferred_for = |name: &str| {
+        let symbol = symbol(name);
+        results
+            .types
+            .get(&symbol.id)
+            .map(|type_info| type_info.is_inferred)
+    };
 
     assert_eq!(type_for("Name"), Some("string"));
     assert_eq!(type_for("Age"), Some("int"));
@@ -155,6 +162,15 @@ fn fsharp_explicit_types_and_generic_arguments_are_attached_to_declarations() {
         None,
         "unannotated non-literal stays unknown"
     );
+    for name in ["Name", "Age", "radius", "makePerson", "convert"] {
+        assert_eq!(
+            inferred_for(name),
+            Some(false),
+            "explicit type for {name} must not be marked inferred"
+        );
+    }
+    assert_eq!(inferred_for("inferredString"), Some(true));
+    assert_eq!(inferred_for("inferredInt"), Some(true));
 
     let usage = results
         .type_argument_usages

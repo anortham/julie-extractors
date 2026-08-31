@@ -55,6 +55,8 @@ macro_rules! define_structured_full_language_extractors {
                     Vec::new()
                 };
                 let types = ext.infer_types(&symbols);
+                let mut types = convert_types_map(types, $language);
+                types.extend(ext.base.type_info.clone());
                 let pending_relationships = ext.base.take_pending_relationships();
                 let structured_pending_relationships = ext.base.take_structured_pending_relationships();
                 Ok(ExtractionResults {
@@ -68,7 +70,7 @@ macro_rules! define_structured_full_language_extractors {
                     source_regions: Vec::new(),
         structural_facts: Vec::new(),
         complexity_metrics: Vec::new(),
-                    types: convert_types_map(types, $language),
+                    types,
                     parse_diagnostics: Vec::new(),
                 })
             }

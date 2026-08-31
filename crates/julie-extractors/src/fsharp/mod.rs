@@ -28,6 +28,7 @@ impl FSharpExtractor {
 
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let symbols = declarations::extract_symbols(self, tree.root_node());
+        self.base.type_info.clear();
         self.inferred_types = types::collect_types(self, tree.root_node(), &symbols);
         symbols
     }

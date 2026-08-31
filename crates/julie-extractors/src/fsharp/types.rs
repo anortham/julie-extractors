@@ -1,21 +1,25 @@
 use super::FSharpExtractor;
-use crate::base::{BaseExtractor, Symbol};
+use crate::base::{BaseExtractor, Symbol, TypeInfo};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::Node;
 
 pub(super) fn collect_types(
-    extractor: &FSharpExtractor,
+    extractor: &mut FSharpExtractor,
     root: Node,
     symbols: &[Symbol],
 ) -> HashMap<String, String> {
     let mut types = HashMap::new();
-    walk(&extractor.base, root, symbols, &mut types, 0);
+    extractor.base.type_info.clear();
+    walk(&mut extractor.base, root, symbols, &mut types, 0);
+    for (symbol_id, type_info) in &extractor.base.type_info {
+        types.insert(symbol_id.clone(), type_info.resolved_type.clone());
+    }
     types
 }
 
 fn walk(
-    base: &BaseExtractor,
+    base: &mut BaseExtractor,
     node: Node,
     symbols: &[Symbol],
     types: &mut HashMap<String, String>,
@@ -40,7 +44,7 @@ fn walk(
 }
 
 fn collect_definition_type(
-    base: &BaseExtractor,
+    base: &mut BaseExtractor,
     node: Node,
     symbols: &[Symbol],
     types: &mut HashMap<String, String>,
@@ -70,7 +74,7 @@ fn collect_definition_type(
 }
 
 fn collect_field_type(
-    base: &BaseExtractor,
+    base: &mut BaseExtractor,
     node: Node,
     symbols: &[Symbol],
     types: &mut HashMap<String, String>,
@@ -88,7 +92,7 @@ fn collect_field_type(
 }
 
 fn collect_member_type(
-    base: &BaseExtractor,
+    base: &mut BaseExtractor,
     node: Node,
     symbols: &[Symbol],
     types: &mut HashMap<String, String>,
@@ -111,13 +115,25 @@ fn collect_member_type(
 }
 
 fn insert_type(
-    base: &BaseExtractor,
+    base: &mut BaseExtractor,
     types: &mut HashMap<String, String>,
     symbol: &Symbol,
     node: Node,
 ) {
     let type_name = base.get_node_text(&node).trim().to_string();
     if !type_name.is_empty() {
+        base.type_info.insert(
+            symbol.id.clone(),
+            TypeInfo {
+                symbol_id: symbol.id.clone(),
+                resolved_type: type_name.clone(),
+                generic_params: None,
+                constraints: None,
+                is_inferred: false,
+                language: base.language.clone(),
+                metadata: None,
+            },
+        );
         types.insert(symbol.id.clone(), type_name);
     }
 }
