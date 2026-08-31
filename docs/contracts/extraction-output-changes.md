@@ -89,6 +89,26 @@ In CI, the `Extractor Compatibility` job downloads the latest published release 
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
+## 2.38.2
+
+classification: compatible
+
+Extraction identity epoch advances from 7 to 8. v2.38.0 already maps a C#
+declaration marked `internal` to visibility `internal` instead of `private`,
+but it left the identity epoch at 7. Family-store import reuses a completed
+`(path, content_hash, extraction_epoch)` identity, so an unchanged C# file
+kept its epoch-7 rows and never rewrote L1.
+
+No table, column, or JSONL field is added, removed, or renamed. Artifact
+dumps stay byte-identical to v2.38.1. A reader built for v2.38.1 still reads
+schema 7 / JSONL v5 / store schema 2. The capability snapshot is keyed to
+epoch 8 so a live store does not collide with the epoch-7 snapshot (39
+languages vs 40 after F#).
+
+Consumer action: replace the binary and let epoch-8 family-store file versions
+populate on the next import or update. Epoch 7 rows stay immutable. Do not
+delete live `file_versions` to force a rewrite.
+
 ## 2.38.0
 
 classification: compatible

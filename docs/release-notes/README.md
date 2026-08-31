@@ -9,6 +9,7 @@ published.
 
 Current notes:
 
+- `v2.38.2.md` (candidate; unpublished)
 - `v2.38.1.md` (current published release)
 - `v2.38.0.md`
 - `v2.37.2.md`
