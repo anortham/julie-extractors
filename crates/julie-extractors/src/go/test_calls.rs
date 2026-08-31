@@ -325,12 +325,11 @@ fn for_statement_introduces_binding(
                     return true;
                 }
             }
-            "range_clause" => {
+            "range_clause"
                 if call_is_in_for_body(for_statement, call_node)
-                    && range_clause_binds_name(base, clause, receiver_name)
-                {
-                    return true;
-                }
+                    && range_clause_binds_name(base, clause, receiver_name) =>
+            {
+                return true;
             }
             _ => {}
         }
