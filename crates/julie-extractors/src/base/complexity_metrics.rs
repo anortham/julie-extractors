@@ -197,6 +197,9 @@ fn collect_stats(
         || call_target_matches(node, source, config.call_decision_targets);
     let loop_kind = config.loop_node_kinds.contains(&node.kind())
         || call_target_matches(node, source, config.call_loop_targets);
+    let fsharp_guard = language == "fsharp"
+        && node.kind() == "rule"
+        && node.child_by_field_name("guard").is_some();
     // tree-sitter-ruby nests duplicate `if`/`for` wrappers around the same
     // construct; count only the outer node when parent and child share a kind.
     let decision = contains(span, node)
@@ -218,6 +221,9 @@ fn collect_stats(
     } else {
         nesting
     };
+    if language == "fsharp" && fsharp_guard && contains(span, node) {
+        stats.decision_count += 1;
+    }
 
     let Some(child_depth) = child_tree_depth(tree_depth) else {
         return;
@@ -609,6 +615,7 @@ fn config_for_language(language: &str) -> Option<ComplexityLanguageConfig> {
         "scala" => Some(SCALA_CONFIG),
         "elixir" => Some(ELIXIR_CONFIG),
         "erlang" => Some(ERLANG_CONFIG),
+        "fsharp" => Some(FSHARP_CONFIG),
         "lua" => Some(LUA_CONFIG),
         "vbnet" => Some(VBNET_CONFIG),
         "r" => Some(R_CONFIG),
@@ -637,6 +644,19 @@ const RUST_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
     loop_node_kinds: &["for_expression", "while_expression", "loop_expression"],
     parameter_container_node_kinds: &["parameters"],
     parameter_node_kinds: &["parameter", "self_parameter"],
+    ..DEFAULT_CONFIG
+};
+
+const FSHARP_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
+    decision_node_kinds: &["if_expression", "elif_expression", "rule", "try_expression"],
+    loop_node_kinds: &["for_expression", "while_expression"],
+    parameter_container_node_kinds: &["argument_patterns"],
+    parameter_node_kinds: &[
+        "typed_pattern",
+        "long_identifier",
+        "identifier_pattern",
+        "paren_pattern",
+    ],
     ..DEFAULT_CONFIG
 };
 

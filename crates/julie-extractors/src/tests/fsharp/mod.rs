@@ -4,6 +4,8 @@ use crate::pipeline::extract_canonical;
 use std::collections::HashMap;
 use std::path::Path;
 
+mod semantic_facts;
+
 #[test]
 fn fsharp_extensions_select_one_artifact_language_case_insensitively() {
     for file_path in ["src/model.fs", "src/script.FSX", "src/api.FSI"] {

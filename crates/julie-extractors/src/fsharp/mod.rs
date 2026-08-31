@@ -1,4 +1,8 @@
 mod declarations;
+mod identifiers;
+mod literals;
+mod relationships;
+mod types;
 
 use crate::base::{BaseExtractor, Identifier, Relationship, Symbol};
 use std::collections::HashMap;
@@ -6,6 +10,7 @@ use tree_sitter::{Node, Tree};
 
 pub struct FSharpExtractor {
     pub(crate) base: BaseExtractor,
+    inferred_types: HashMap<String, String>,
 }
 
 impl FSharpExtractor {
@@ -17,27 +22,26 @@ impl FSharpExtractor {
     ) -> Self {
         Self {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
+            inferred_types: HashMap::new(),
         }
     }
 
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
-        declarations::extract_symbols(self, tree.root_node())
+        let symbols = declarations::extract_symbols(self, tree.root_node());
+        self.inferred_types = types::collect_types(self, tree.root_node(), &symbols);
+        symbols
     }
 
-    pub fn extract_relationships(
-        &mut self,
-        _tree: &Tree,
-        _symbols: &[Symbol],
-    ) -> Vec<Relationship> {
-        Vec::new()
+    pub fn extract_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {
+        relationships::extract_relationships(self, tree, symbols)
     }
 
-    pub fn extract_identifiers(&mut self, _tree: &Tree, _symbols: &[Symbol]) -> Vec<Identifier> {
-        Vec::new()
+    pub fn extract_identifiers(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Identifier> {
+        identifiers::extract_identifiers(self, tree, symbols)
     }
 
     pub fn infer_types(&self, _symbols: &[Symbol]) -> HashMap<String, String> {
-        HashMap::new()
+        self.inferred_types.clone()
     }
 
     pub(crate) fn visit_node(
