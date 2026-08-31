@@ -6,4 +6,4 @@ let scriptMain name =
   Console.WriteLine(name)
   scriptValue
 
-// TODO: script marker
+// script comment
