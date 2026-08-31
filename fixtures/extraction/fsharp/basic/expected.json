@@ -1551,7 +1551,46 @@
     }
   ],
   "parse_diagnostics": [],
-  "structural_facts": [],
+  "structural_facts": [
+    {
+      "pattern_id": "fsharp.attribute.v1",
+      "capture_name": "attribute",
+      "node_kind": "attribute",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/basic/source.fs",
+      "containing_key": "fixtures/extraction/fsharp/basic/source.fs:Point:6:2",
+      "start_line": 6,
+      "start_column": 4,
+      "end_line": 6,
+      "end_column": 10,
+      "start_byte": 113,
+      "end_byte": 119,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    },
+    {
+      "pattern_id": "fsharp.attribute.v1",
+      "capture_name": "attribute",
+      "node_kind": "attribute",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/basic/source.fs",
+      "containing_key": "fixtures/extraction/fsharp/basic/source.fs:Value:20:11",
+      "start_line": 19,
+      "start_column": 6,
+      "end_line": 19,
+      "end_column": 14,
+      "start_byte": 334,
+      "end_byte": 342,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    }
+  ],
   "complexity_metrics": [
     {
       "scope": "file",
@@ -2142,7 +2181,47 @@
       "confidence": "1.000"
     }
   ],
-  "source_regions": [],
+  "source_regions": [
+    {
+      "kind": "doc_comment",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/basic/source.fs",
+      "containing_key": "fixtures/extraction/fsharp/basic/source.fs:Point:6:2",
+      "start_line": 5,
+      "start_column": 2,
+      "end_line": 5,
+      "end_column": 43,
+      "start_byte": 67,
+      "end_byte": 108,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/basic/source.fs",
+      "containing_key": "fixtures/extraction/fsharp/basic/source.fs:Value:20:11",
+      "start_line": 18,
+      "start_column": 4,
+      "end_line": 18,
+      "end_column": 33,
+      "start_byte": 298,
+      "end_byte": 327,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/basic/source.fs",
+      "containing_key": "fixtures/extraction/fsharp/basic/source.fs:literalString:38:2",
+      "start_line": 38,
+      "start_column": 22,
+      "end_line": 38,
+      "end_column": 29,
+      "start_byte": 772,
+      "end_byte": 779,
+      "metadata": null
+    }
+  ],
   "type_argument_usages": [
     {
       "identifier_key": "fixtures/extraction/fsharp/basic/source.fs:Result:type_usage:28:31",

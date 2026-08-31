@@ -96,6 +96,13 @@ const CPP_PATTERNS: &[StructuralPattern] = &[StructuralPattern {
     query_family: "preprocessor",
 }];
 
+const FSHARP_PATTERNS: &[StructuralPattern] = &[StructuralPattern {
+    pattern_id: "fsharp.attribute.v1",
+    capture_name: "attribute",
+    node_kinds: &["attribute"],
+    query_family: "metadata",
+}];
+
 pub fn collect_structural_facts(
     language: &str,
     tree: &Tree,
@@ -117,6 +124,9 @@ pub fn collect_structural_facts(
         0,
     );
     attach_containing_symbols(&mut facts, symbols);
+    if language == "fsharp" {
+        attach_fsharp_attribute_symbols(&mut facts, symbols);
+    }
     sort_structural_facts(&mut facts);
     facts
 }
@@ -219,10 +229,44 @@ fn fact_for_node(
     }
 }
 
+fn attach_fsharp_attribute_symbols(facts: &mut [StructuralFact], symbols: &[Symbol]) {
+    for fact in facts {
+        if fact.pattern_id != "fsharp.attribute.v1" {
+            continue;
+        }
+        if let Some(containing_symbol_id) = fact.containing_symbol_id.as_deref()
+            && symbols
+                .iter()
+                .any(|symbol| symbol.id == containing_symbol_id && !symbol.annotations.is_empty())
+        {
+            continue;
+        }
+        let parent_symbol_id = fact.containing_symbol_id.as_deref();
+        let annotated_symbol = symbols
+            .iter()
+            .filter(|symbol| !symbol.annotations.is_empty() && symbol.start_byte >= fact.end_byte)
+            .filter(|symbol| match parent_symbol_id {
+                Some(parent_symbol_id) => symbol.parent_id.as_deref() == Some(parent_symbol_id),
+                None => symbol.parent_id.is_none(),
+            })
+            .min_by_key(|symbol| (symbol.start_byte, symbol.end_byte))
+            .or_else(|| {
+                symbols
+                    .iter()
+                    .filter(|symbol| {
+                        !symbol.annotations.is_empty() && symbol.start_byte >= fact.end_byte
+                    })
+                    .min_by_key(|symbol| (symbol.start_byte, symbol.end_byte))
+            });
+        fact.containing_symbol_id = annotated_symbol.map(|symbol| symbol.id.clone());
+    }
+}
+
 fn patterns_for_language(language: &str) -> &'static [StructuralPattern] {
     match language {
         "c" => C_PATTERNS,
         "cpp" => CPP_PATTERNS,
+        "fsharp" => FSHARP_PATTERNS,
         "go" => GO_PATTERNS,
         "javascript" => JAVASCRIPT_PATTERNS,
         "jsx" => JSX_PATTERNS,

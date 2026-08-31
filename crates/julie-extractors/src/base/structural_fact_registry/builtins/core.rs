@@ -95,4 +95,11 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
         description: "A C++ `#define` object-like or function-like macro.",
         metadata_keys: BASE_KEYS,
     },
+    StructuralFactPatternSpec {
+        pattern_id: "fsharp.attribute.v1",
+        languages: &["fsharp"],
+        query_family: "metadata",
+        description: "An F# attribute applied to a declaration.",
+        metadata_keys: BASE_KEYS,
+    },
 ];

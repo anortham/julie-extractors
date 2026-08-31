@@ -253,6 +253,113 @@ fn fsharp_literals_cover_scalar_kinds_with_exact_source_spans() {
 }
 
 #[test]
+fn fsharp_source_regions_capture_comments_doc_comments_and_strings() {
+    use crate::base::SourceRegionKind;
+
+    let source = r#"module Regions =
+  // local comment
+  (* block comment *)
+  /// Explains message.
+  [<Obsolete>]
+  let message = "hello"
+"#;
+    let results = extract(source);
+    let message = results
+        .symbols
+        .iter()
+        .find(|symbol| symbol.name == "message")
+        .expect("expected message symbol");
+
+    let comment = results
+        .source_regions
+        .iter()
+        .find(|region| region.kind == SourceRegionKind::Comment)
+        .expect("expected regular comment source region");
+    assert_eq!(
+        &source[comment.start_byte as usize..comment.end_byte as usize],
+        "// local comment"
+    );
+
+    let block_comment = results
+        .source_regions
+        .iter()
+        .find(|region| {
+            &source[region.start_byte as usize..region.end_byte as usize] == "(* block comment *)"
+        })
+        .expect("expected block comment source region");
+    assert_eq!(block_comment.kind, SourceRegionKind::Comment);
+
+    let doc_comment = results
+        .source_regions
+        .iter()
+        .find(|region| region.kind == SourceRegionKind::DocComment)
+        .expect("expected doc comment source region");
+    assert_eq!(
+        doc_comment.containing_symbol_id.as_deref(),
+        Some(message.id.as_str())
+    );
+
+    let string_literal = results
+        .source_regions
+        .iter()
+        .find(|region| region.kind == SourceRegionKind::StringLiteral)
+        .expect("expected string literal source region");
+    assert_eq!(
+        &source[string_literal.start_byte as usize..string_literal.end_byte as usize],
+        "\"hello\""
+    );
+    assert_eq!(
+        string_literal.containing_symbol_id.as_deref(),
+        Some(message.id.as_str())
+    );
+}
+
+#[test]
+fn fsharp_attributes_emit_registered_structural_facts() {
+    let source = r#"module Metadata =
+  [<Obsolete>]
+  let message = "hello"
+"#;
+    let results = extract(source);
+    let message = results
+        .symbols
+        .iter()
+        .find(|symbol| symbol.name == "message")
+        .expect("expected message symbol");
+
+    let fact = results
+        .structural_facts
+        .iter()
+        .find(|fact| fact.pattern_id == "fsharp.attribute.v1")
+        .expect("expected F# attribute structural fact");
+    assert_eq!(fact.capture_name, "attribute");
+    assert_eq!(fact.node_kind, "attribute");
+    assert_eq!(
+        fact.containing_symbol_id.as_deref(),
+        Some(message.id.as_str())
+    );
+    assert_eq!(fact.confidence, 1.0);
+    assert_eq!(
+        fact.metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("pattern_version"))
+            .and_then(|value| value.as_u64()),
+        Some(1)
+    );
+    assert_eq!(
+        fact.metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("query_family"))
+            .and_then(|value| value.as_str()),
+        Some("metadata")
+    );
+    assert_eq!(
+        &source[fact.start_byte as usize..fact.end_byte as usize],
+        "Obsolete"
+    );
+}
+
+#[test]
 fn fsharp_complexity_counts_branches_guards_and_loops_not_patterns() {
     let source = r#"module Flow =
   let flow value =

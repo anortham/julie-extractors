@@ -38,6 +38,15 @@ pending calls and imports when the grammar supplies a caller scope. Explicit
 type annotations produce non-inferred type facts; scalar literal initializers
 produce inferred type facts. Generic type arguments are retained in
 `type_argument_usages` with nested argument positions.
+The F# extraction policy retains unclassified scalar literals as `other` rows;
+it does not assign URL, SQL, or route carriers without evidence.
+
+Comments, `///` XML documentation comments, and F# string forms publish exact
+`source_regions` spans. Attribute nodes publish the registered
+`fsharp.attribute.v1` structural fact with `metadata` query-family metadata and
+the annotated declaration as `containing_symbol_id`. The attribute fact captures
+the grammar's `attribute` node span (the attribute name, excluding `[<` and
+`>]`).
 
 F# xUnit functions carrying `[<Fact>]`, `[<Theory>]`, or qualified
 `[<Xunit.Fact>]` publish `is_test = true` and `test_role` values `test_case` or
@@ -51,16 +60,28 @@ truth for F# gaps. It records the current limits with a reason, required
 closure, and planned follow-up for:
 
 - top-level `.fsx` imports without an enclosing symbol;
-- F# domain-native structural facts and source-region rows;
+- F# domain-native facts beyond attributes, including computation expressions,
+  active patterns, and quotations;
 - test containers and lifecycle roles; and
 - Expecto, NUnit, and FsUnit role coverage.
 
 The pinned Expecto evidence scan also shows the current boundary: its F# files
 produce symbols, relationships, identifiers, types, type-argument usages,
-complexity metrics, and annotations, while this artifact path emits no F#
-literals, source regions, or xUnit roles for that corpus. Parse diagnostics are
-reported rather than hidden; see the Task 4 verification ledger for the exact
-counts and representative rows.
+complexity metrics, annotations, scalar literals, source regions, and attribute
+structural facts, while xUnit roles remain absent because the corpus does not
+use xUnit attributes. Parse diagnostics are reported rather than hidden; the
+121 `error` and 8 `missing` rows in the pinned scan are all upstream grammar
+limitations observed at concrete source forms, not extractor failures. They
+cover semicolonless multiline record fields (`Expecto.Sample`), qualified
+union-case patterns in record patterns (`Expecto.Tests/Prelude.fs` and
+`Expecto.Hopac.Tests/Tests.fs`), multiline ordinary strings with embedded
+escaped quotes (`Expecto.Tests/FsCheckTests.fs`), compact `function |` and
+no-space `->` forms (`Build/Program.fs` and `Expecto/Expecto.Impl.fs`),
+file-level `module internal` declarations (`Expecto/Async.fs`), numeric
+unit-of-measure aliases (`Expecto/Performance.fs`), pointer/flexible externs
+and type-extension/task-builder syntax (`Expecto/Logging.fs` and
+`Expecto/Expecto.fs`), and layout-heavy computation-expression/test-list
+forms (`Expecto/Progress.fs` and `Expecto.Tests/Tests.fs`).
 
 ## Grammar freshness
 

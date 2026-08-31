@@ -316,7 +316,65 @@
     }
   ],
   "parse_diagnostics": [],
-  "structural_facts": [],
+  "structural_facts": [
+    {
+      "pattern_id": "fsharp.attribute.v1",
+      "capture_name": "attribute",
+      "node_kind": "attribute",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/test_roles/source.fs",
+      "containing_key": "fixtures/extraction/fsharp/test_roles/source.fs:adds_numbers:6:0",
+      "start_line": 5,
+      "start_column": 2,
+      "end_line": 5,
+      "end_column": 6,
+      "start_byte": 34,
+      "end_byte": 38,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    },
+    {
+      "pattern_id": "fsharp.attribute.v1",
+      "capture_name": "attribute",
+      "node_kind": "attribute",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/test_roles/source.fs",
+      "containing_key": "fixtures/extraction/fsharp/test_roles/source.fs:adds_numbers_from_data:9:0",
+      "start_line": 8,
+      "start_column": 2,
+      "end_line": 8,
+      "end_column": 8,
+      "start_byte": 72,
+      "end_byte": 78,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    },
+    {
+      "pattern_id": "fsharp.attribute.v1",
+      "capture_name": "attribute",
+      "node_kind": "attribute",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/test_roles/source.fs",
+      "containing_key": "fixtures/extraction/fsharp/test_roles/source.fs:qualified_fact:12:0",
+      "start_line": 11,
+      "start_column": 2,
+      "end_line": 11,
+      "end_column": 12,
+      "start_byte": 136,
+      "end_byte": 146,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    }
+  ],
   "complexity_metrics": [
     {
       "scope": "file",

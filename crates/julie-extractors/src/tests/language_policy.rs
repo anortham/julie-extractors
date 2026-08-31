@@ -148,6 +148,17 @@ fn classify_literals_by_carrier_sets_kind_and_drops_bloat() {
     );
 }
 
+#[test]
+fn fsharp_policy_retains_unclassified_literals() {
+    let mut literals = vec![make_literal("fsharp", None, "42")];
+
+    classify_literals_by_carrier(&mut literals);
+
+    assert_eq!(literals.len(), 1);
+    assert_eq!(literals[0].kind, LiteralKind::Other);
+    assert_eq!(literals[0].literal_text, "42");
+}
+
 fn assert_policy_file_is_extraction_only<'a>(
     path: &'a PathBuf,
     supported: &BTreeSet<&str>,

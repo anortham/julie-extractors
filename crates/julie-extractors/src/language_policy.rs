@@ -27,6 +27,7 @@ const EMBEDDED_LITERAL_CARRIER_POLICIES: &[(&str, &str)] = &[
         "javascript",
         include_str!("../../../languages/javascript.toml"),
     ),
+    ("fsharp", include_str!("../../../languages/fsharp.toml")),
     ("kotlin", include_str!("../../../languages/kotlin.toml")),
     ("lua", include_str!("../../../languages/lua.toml")),
     ("php", include_str!("../../../languages/php.toml")),
@@ -57,6 +58,7 @@ pub struct LiteralCarrierPolicy {
     pub url: HashSet<String>,
     pub sql: HashSet<String>,
     pub route: HashSet<String>,
+    pub retain_unclassified: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -66,6 +68,8 @@ struct LanguagePolicyToml {
 
 #[derive(Debug, Default, Deserialize)]
 struct LiteralCarrierLists {
+    #[serde(default)]
+    retain_unclassified: bool,
     #[serde(default)]
     url: Vec<String>,
     #[serde(default)]
@@ -80,6 +84,7 @@ impl LiteralCarrierPolicy {
             url: lowercase_set(lists.url),
             sql: lowercase_set(lists.sql),
             route: lowercase_set(lists.route),
+            retain_unclassified: lists.retain_unclassified,
         }
     }
 }
@@ -106,7 +111,7 @@ pub fn classify_literals_with_policies(
             return false;
         };
         let Some(carrier) = literal.carrier.as_deref() else {
-            return false;
+            return policy.retain_unclassified;
         };
         let carrier = carrier.to_lowercase();
 
@@ -120,7 +125,7 @@ pub fn classify_literals_with_policies(
             literal.kind = LiteralKind::Route;
             true
         } else {
-            false
+            policy.retain_unclassified
         }
     });
 }

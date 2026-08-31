@@ -697,6 +697,19 @@ fn config_for_language(language: &str) -> Option<RegionLanguageConfig> {
             html_comment_node_kinds: &[],
             embedded_node_kinds: &[],
         }),
+        "fsharp" => Some(RegionLanguageConfig {
+            comment_node_kinds: &["line_comment", "block_comment", "xml_doc"],
+            string_literal_node_kinds: &[
+                "string",
+                "triple_quoted_string",
+                "verbatim_string",
+                "bytearray",
+                "verbatim_bytearray",
+            ],
+            quoted_string_literal_node_kinds: &[],
+            html_comment_node_kinds: &[],
+            embedded_node_kinds: &[],
+        }),
         "elixir" => Some(RegionLanguageConfig {
             comment_node_kinds: &["comment"],
             string_literal_node_kinds: &["string", "charlist"],
