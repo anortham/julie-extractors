@@ -29,7 +29,7 @@
 //!
 //! The standard Go `testing.T`-based idiom (`func TestXxx(t *testing.T)` + `_test.go`
 //! path detection) was handled in task #48 via `classify_symbols_by_role`. This
-//! adapter is purely additive.
+//! module adds literal `testing.T.Run` subtest symbols to those declarations.
 
 use crate::base::{BaseExtractor, Symbol};
 use crate::test_calls::{
@@ -170,4 +170,345 @@ pub(super) fn extract_ginkgo_test_call(
         symbol: build_test_call_symbol(base, &node, &full_callee, name, category, parent_id),
         category,
     })
+}
+
+pub(super) fn extract_standard_subtest_call(
+    base: &mut BaseExtractor,
+    node: Node,
+    parent_id: Option<&str>,
+    enclosing_test: bool,
+) -> Option<Symbol> {
+    if !enclosing_test || node.kind() != "call_expression" {
+        return None;
+    }
+
+    let function_node = node.child_by_field_name("function")?;
+    if function_node.kind() != "selector_expression" {
+        return None;
+    }
+    let operand = function_node.child_by_field_name("operand")?;
+    let field = function_node.child_by_field_name("field")?;
+    if operand.kind() != "identifier"
+        || field.kind() != "field_identifier"
+        || base.get_node_text(&field) != "Run"
+    {
+        return None;
+    }
+
+    let receiver_name = base.get_node_text(&operand);
+    if !active_testing_t_receiver(base, node, &receiver_name) {
+        return None;
+    }
+
+    let arguments = node.child_by_field_name("arguments")?;
+    let mut cursor = arguments.walk();
+    let mut named_arguments = arguments.named_children(&mut cursor);
+    let name_node = named_arguments.next()?;
+    if !name_node.kind().contains("string_literal") {
+        return None;
+    }
+    let callback = named_arguments.next()?;
+    if callback.kind() != "func_literal" || !is_testing_t_callback(base, callback) {
+        return None;
+    }
+
+    let name = base.decode_string_literal(&name_node)?;
+    Some(build_test_call_symbol(
+        base,
+        &node,
+        "Run",
+        name,
+        TestCallCategory::Test,
+        parent_id,
+    ))
+}
+
+fn is_testing_t_callback(base: &BaseExtractor, callback: Node) -> bool {
+    if callback.child_by_field_name("result").is_some() {
+        return false;
+    }
+
+    let Some(parameters) = callback.child_by_field_name("parameters") else {
+        return false;
+    };
+    let mut cursor = parameters.walk();
+    let parameters: Vec<Node> = parameters.named_children(&mut cursor).collect();
+    let [parameter] = parameters.as_slice() else {
+        return false;
+    };
+    if parameter.kind() != "parameter_declaration" {
+        return false;
+    }
+
+    let Some(type_node) = parameter.child_by_field_name("type") else {
+        return false;
+    };
+    let mut parameter_cursor = parameter.walk();
+    let name_count = parameter
+        .named_children(&mut parameter_cursor)
+        .filter(|child| child.kind() == "identifier")
+        .count();
+    name_count <= 1 && base.get_node_text(&type_node) == "*testing.T"
+}
+
+fn active_testing_t_receiver(base: &BaseExtractor, call_node: Node, receiver_name: &str) -> bool {
+    let mut ancestor = call_node.parent();
+    while let Some(node) = ancestor {
+        if scope_introduces_local_binding(base, node, call_node, receiver_name) {
+            return false;
+        }
+        if node.kind() == "block" && local_binding_before_call(base, node, call_node, receiver_name)
+        {
+            return false;
+        }
+        if matches!(
+            node.kind(),
+            "function_declaration" | "method_declaration" | "func_literal"
+        ) {
+            if named_result_binds_name(base, node, receiver_name) {
+                return false;
+            }
+            if let Some(is_testing_t) = testing_t_parameter(base, node, receiver_name) {
+                return is_testing_t;
+            }
+        }
+        ancestor = node.parent();
+    }
+    false
+}
+
+fn scope_introduces_local_binding(
+    base: &BaseExtractor,
+    node: Node,
+    call_node: Node,
+    receiver_name: &str,
+) -> bool {
+    match node.kind() {
+        "if_statement" | "expression_switch_statement" | "for_clause" => node
+            .child_by_field_name("initializer")
+            .filter(|initializer| initializer.end_byte() <= call_node.start_byte())
+            .is_some_and(|initializer| statement_binds_name(base, initializer, receiver_name)),
+        "for_statement" => for_statement_introduces_binding(base, node, call_node, receiver_name),
+        "select_statement" => select_receive_binds_name(base, node, call_node, receiver_name),
+        "type_switch_statement" => {
+            let initializer_binding = node
+                .child_by_field_name("initializer")
+                .filter(|initializer| initializer.end_byte() <= call_node.start_byte())
+                .is_some_and(|initializer| statement_binds_name(base, initializer, receiver_name));
+            let alias_binding = node.child_by_field_name("alias").is_some_and(|alias| {
+                switch_case_contains_call(node, call_node)
+                    && declaration_names_include(base, alias, receiver_name)
+            });
+            initializer_binding || alias_binding
+        }
+        _ => false,
+    }
+}
+
+fn for_statement_introduces_binding(
+    base: &BaseExtractor,
+    for_statement: Node,
+    call_node: Node,
+    receiver_name: &str,
+) -> bool {
+    let mut cursor = for_statement.walk();
+    for clause in for_statement.named_children(&mut cursor) {
+        match clause.kind() {
+            "for_clause" => {
+                if clause
+                    .child_by_field_name("initializer")
+                    .filter(|initializer| initializer.end_byte() <= call_node.start_byte())
+                    .is_some_and(|initializer| {
+                        statement_binds_name(base, initializer, receiver_name)
+                    })
+                {
+                    return true;
+                }
+            }
+            "range_clause"
+                if call_is_in_for_body(for_statement, call_node)
+                    && range_clause_binds_name(base, clause, receiver_name) =>
+            {
+                return true;
+            }
+            _ => {}
+        }
+    }
+    false
+}
+
+fn call_is_in_for_body(for_statement: Node, call_node: Node) -> bool {
+    let Some(body) = for_statement.child_by_field_name("body") else {
+        return false;
+    };
+    call_node.start_byte() >= body.start_byte() && call_node.end_byte() <= body.end_byte()
+}
+
+fn range_clause_binds_name(base: &BaseExtractor, clause: Node, receiver_name: &str) -> bool {
+    if !base.get_node_text(&clause).contains(":=") {
+        return false;
+    }
+    let Some(left) = clause.child_by_field_name("left") else {
+        return false;
+    };
+    declaration_names_include(base, left, receiver_name)
+}
+
+fn switch_case_contains_call(switch: Node, call_node: Node) -> bool {
+    let mut ancestor = call_node.parent();
+    while let Some(node) = ancestor {
+        if node.id() == switch.id() {
+            return false;
+        }
+        if matches!(node.kind(), "type_case" | "default_case") {
+            return true;
+        }
+        ancestor = node.parent();
+    }
+    false
+}
+
+fn select_receive_binds_name(
+    base: &BaseExtractor,
+    select: Node,
+    call_node: Node,
+    receiver_name: &str,
+) -> bool {
+    let mut ancestor = call_node.parent();
+    while let Some(node) = ancestor {
+        if node.id() == select.id() {
+            return false;
+        }
+        if node.kind() == "communication_case" {
+            let mut case_cursor = node.walk();
+            let Some(body) = node
+                .named_children(&mut case_cursor)
+                .find(|child| child.kind() == "statement_list")
+            else {
+                return false;
+            };
+            if call_node.start_byte() < body.start_byte() || call_node.end_byte() > body.end_byte()
+            {
+                return false;
+            }
+
+            let Some(communication) = node.child_by_field_name("communication") else {
+                return false;
+            };
+            if communication.kind() != "receive_statement"
+                || !base.get_node_text(&communication).contains(":=")
+            {
+                return false;
+            }
+            let Some(left) = communication.child_by_field_name("left") else {
+                return false;
+            };
+            return declaration_names_include(base, left, receiver_name);
+        }
+        ancestor = node.parent();
+    }
+    false
+}
+
+fn local_binding_before_call(
+    base: &BaseExtractor,
+    block: Node,
+    call_node: Node,
+    receiver_name: &str,
+) -> bool {
+    let mut block_cursor = block.walk();
+    let Some(statement_list) = block
+        .named_children(&mut block_cursor)
+        .find(|child| child.kind() == "statement_list")
+    else {
+        return false;
+    };
+
+    let mut statement_cursor = statement_list.walk();
+    statement_list
+        .named_children(&mut statement_cursor)
+        .take_while(|statement| statement.end_byte() <= call_node.start_byte())
+        .any(|statement| statement_binds_name(base, statement, receiver_name))
+}
+
+fn statement_binds_name(base: &BaseExtractor, statement: Node, receiver_name: &str) -> bool {
+    match statement.kind() {
+        "var_declaration" => var_declaration_binds_name(base, statement, receiver_name),
+        "short_var_declaration" => short_var_declaration_binds_name(base, statement, receiver_name),
+        _ => false,
+    }
+}
+
+fn var_declaration_binds_name(
+    base: &BaseExtractor,
+    declaration: Node,
+    receiver_name: &str,
+) -> bool {
+    let mut declaration_cursor = declaration.walk();
+    declaration
+        .named_children(&mut declaration_cursor)
+        .any(|child| match child.kind() {
+            "var_spec" => declaration_names_include(base, child, receiver_name),
+            "var_spec_list" => {
+                let mut list_cursor = child.walk();
+                child
+                    .named_children(&mut list_cursor)
+                    .filter(|spec| spec.kind() == "var_spec")
+                    .any(|spec| declaration_names_include(base, spec, receiver_name))
+            }
+            _ => false,
+        })
+}
+
+fn short_var_declaration_binds_name(
+    base: &BaseExtractor,
+    declaration: Node,
+    receiver_name: &str,
+) -> bool {
+    let Some(left) = declaration.child_by_field_name("left") else {
+        return false;
+    };
+    declaration_names_include(base, left, receiver_name)
+}
+
+fn declaration_names_include(base: &BaseExtractor, node: Node, receiver_name: &str) -> bool {
+    let mut cursor = node.walk();
+    node.named_children(&mut cursor)
+        .any(|child| child.kind() == "identifier" && base.get_node_text(&child) == receiver_name)
+}
+
+fn named_result_binds_name(base: &BaseExtractor, function_node: Node, receiver_name: &str) -> bool {
+    let Some(result) = function_node.child_by_field_name("result") else {
+        return false;
+    };
+    if result.kind() != "parameter_list" {
+        return false;
+    }
+    let mut result_cursor = result.walk();
+    result
+        .named_children(&mut result_cursor)
+        .filter(|parameter| parameter.kind() == "parameter_declaration")
+        .any(|parameter| declaration_names_include(base, parameter, receiver_name))
+}
+
+fn testing_t_parameter(
+    base: &BaseExtractor,
+    function_node: Node,
+    receiver_name: &str,
+) -> Option<bool> {
+    let parameters = function_node.child_by_field_name("parameters")?;
+    let mut cursor = parameters.walk();
+    for parameter in parameters.named_children(&mut cursor) {
+        let type_node = parameter.child_by_field_name("type")?;
+        let mut parameter_cursor = parameter.walk();
+        let receiver_bound = parameter
+            .named_children(&mut parameter_cursor)
+            .any(|child| {
+                child.kind() == "identifier" && base.get_node_text(&child) == receiver_name
+            });
+        if receiver_bound {
+            return Some(base.get_node_text(&type_node) == "*testing.T");
+        }
+    }
+    None
 }

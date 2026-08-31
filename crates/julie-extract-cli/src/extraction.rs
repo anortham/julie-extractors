@@ -1391,6 +1391,43 @@ mod tests {
     }
 
     #[test]
+    fn fsharp_artifact_mapping_preserves_literals() {
+        let source = "module Literals =\n  let answer = 42\n";
+        let target = FileTarget {
+            absolute_path: std::path::PathBuf::from("/tmp/test/Literals.fs"),
+            root_relative_path: "Literals.fs".to_string(),
+        };
+        let snapshot = SourceSnapshot {
+            content: source.to_string(),
+            content_hash: content_hash_bytes(source.as_bytes()),
+            content_bytes: source.len() as i64,
+            line_count: Some(2),
+        };
+
+        let canonical = extract_canonical_at(
+            &target.root_relative_path,
+            source,
+            std::path::Path::new("/tmp/test"),
+            ExtractionLevel::Full,
+        )
+        .expect("F# canonical extraction should succeed");
+        assert_eq!(canonical.literals.len(), 1);
+
+        let artifact = extract_artifact_file_from_snapshot_at(
+            std::path::Path::new("/tmp/test"),
+            &target,
+            "fsharp".to_string(),
+            "2026-08-30T00:00:00Z".to_string(),
+            snapshot,
+            ExtractionLevel::Full,
+        )
+        .expect("F# extraction should map to an artifact");
+
+        assert_eq!(artifact.literals.len(), 1);
+        assert_eq!(artifact.literals[0].literal_text, "42");
+    }
+
+    #[test]
     fn map_results_dedupes_structural_facts_by_id_before_artifact_write() {
         let mut results = ExtractionResults::empty();
         let fact = StructuralFact {

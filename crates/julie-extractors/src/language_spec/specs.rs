@@ -186,6 +186,14 @@ pub(super) const LANGUAGE_SPECS: &[LanguageSpec] = &[
         EMPTY,
     ),
     spec(
+        "fsharp",
+        &["fs", "fsx", "fsi"],
+        "tree-sitter-fsharp",
+        FULL_CAPABILITIES,
+        parser_fsharp,
+        FSHARP_DOCS,
+    ),
+    spec(
         "erlang",
         &["erl", "hrl"],
         "tree-sitter-erlang",

@@ -1,0 +1,590 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/fsharp/test_roles/source.fs:DomainTests:1:0",
+      "name": "DomainTests",
+      "kind": "module",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/test_roles/source.fs",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 14,
+      "end_column": 24,
+      "start_byte": 0,
+      "end_byte": 203,
+      "body_span": {
+        "start_line": 6,
+        "start_column": 17,
+        "end_line": 12,
+        "end_column": 21,
+        "start_byte": 58,
+        "end_byte": 170
+      },
+      "body_hash": "1d3b594ada1eca5c93f416b1521076a7",
+      "signature": "module DomainTests",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/fsharp/test_roles/source.fs:adds_numbers:6:0",
+      "name": "adds_numbers",
+      "kind": "function",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/test_roles/source.fs",
+      "start_line": 6,
+      "start_column": 0,
+      "end_line": 6,
+      "end_column": 27,
+      "start_byte": 41,
+      "end_byte": 68,
+      "body_span": {
+        "start_line": 6,
+        "start_column": 22,
+        "end_line": 6,
+        "end_column": 27,
+        "start_byte": 63,
+        "end_byte": 68
+      },
+      "body_hash": "2ab7ebc240f2433271a9f4135ab83b09",
+      "signature": "let adds_numbers () = 1 + 1",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/fsharp/test_roles/source.fs:DomainTests:1:0",
+      "metadata": {
+        "is_test": true,
+        "test_role": "test_case"
+      },
+      "annotations": [
+        {
+          "annotation": "Fact",
+          "annotation_key": "fact",
+          "raw_text": "Fact"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/fsharp/test_roles/source.fs:adds_numbers_from_data:9:0",
+      "name": "adds_numbers_from_data",
+      "kind": "function",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/test_roles/source.fs",
+      "start_line": 9,
+      "start_column": 0,
+      "end_line": 9,
+      "end_column": 51,
+      "start_byte": 81,
+      "end_byte": 132,
+      "body_span": {
+        "start_line": 9,
+        "start_column": 42,
+        "end_line": 9,
+        "end_column": 51,
+        "start_byte": 123,
+        "end_byte": 132
+      },
+      "body_hash": "2e6faa52e71bfef3d29bce5d1397ece2",
+      "signature": "let adds_numbers_from_data (value: int) = value + 1",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/fsharp/test_roles/source.fs:DomainTests:1:0",
+      "metadata": {
+        "is_test": true,
+        "test_role": "parameterized_test"
+      },
+      "annotations": [
+        {
+          "annotation": "Theory",
+          "annotation_key": "theory",
+          "raw_text": "Theory"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/fsharp/test_roles/source.fs:helper:14:0",
+      "name": "helper",
+      "kind": "function",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/test_roles/source.fs",
+      "start_line": 14,
+      "start_column": 0,
+      "end_line": 14,
+      "end_column": 24,
+      "start_byte": 179,
+      "end_byte": 203,
+      "body_span": {
+        "start_line": 14,
+        "start_column": 19,
+        "end_line": 14,
+        "end_column": 24,
+        "start_byte": 198,
+        "end_byte": 203
+      },
+      "body_hash": "2063c1608d6e0baf80249c42e2be5804",
+      "signature": "let helper value = value",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/fsharp/test_roles/source.fs:DomainTests:1:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/fsharp/test_roles/source.fs:qualified_fact:12:0",
+      "name": "qualified_fact",
+      "kind": "function",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/test_roles/source.fs",
+      "start_line": 12,
+      "start_column": 0,
+      "end_line": 12,
+      "end_column": 28,
+      "start_byte": 149,
+      "end_byte": 177,
+      "body_span": {
+        "start_line": 12,
+        "start_column": 24,
+        "end_line": 12,
+        "end_column": 28,
+        "start_byte": 173,
+        "end_byte": 177
+      },
+      "body_hash": "b326b5062b2f0e69046810717534cb09",
+      "signature": "let qualified_fact () = true",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/fsharp/test_roles/source.fs:DomainTests:1:0",
+      "metadata": {
+        "is_test": true,
+        "test_role": "test_case"
+      },
+      "annotations": [
+        {
+          "annotation": "Xunit.Fact",
+          "annotation_key": "xunit.fact",
+          "raw_text": "Xunit.Fact"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/fsharp/test_roles/source.fs:DomainTests:1:0",
+      "callee_name": "Xunit",
+      "kind": "imports",
+      "file_path": "fixtures/extraction/fsharp/test_roles/source.fs",
+      "line_number": 3,
+      "confidence": "0.950"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/fsharp/test_roles/source.fs:DomainTests:1:0",
+        "callee_name": "Xunit",
+        "kind": "imports",
+        "file_path": "fixtures/extraction/fsharp/test_roles/source.fs",
+        "line_number": 3,
+        "confidence": "0.950"
+      },
+      "target": {
+        "display_name": "Xunit",
+        "terminal_name": "Xunit",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": "open Xunit"
+      },
+      "caller_scope_key": "fixtures/extraction/fsharp/test_roles/source.fs:DomainTests:1:0",
+      "span": {
+        "start_line": 3,
+        "start_column": 5,
+        "end_line": 3,
+        "end_column": 10,
+        "start_byte": 25,
+        "end_byte": 30
+      }
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/fsharp/test_roles/source.fs:Fact:type_usage:11:8",
+      "name": "Fact",
+      "kind": "type_usage",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/test_roles/source.fs",
+      "start_line": 11,
+      "start_column": 8,
+      "end_line": 11,
+      "end_column": 12,
+      "start_byte": 142,
+      "end_byte": 146,
+      "containing_key": "fixtures/extraction/fsharp/test_roles/source.fs:DomainTests:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/fsharp/test_roles/source.fs:Fact:type_usage:5:2",
+      "name": "Fact",
+      "kind": "type_usage",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/test_roles/source.fs",
+      "start_line": 5,
+      "start_column": 2,
+      "end_line": 5,
+      "end_column": 6,
+      "start_byte": 34,
+      "end_byte": 38,
+      "containing_key": "fixtures/extraction/fsharp/test_roles/source.fs:DomainTests:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/fsharp/test_roles/source.fs:Theory:type_usage:8:2",
+      "name": "Theory",
+      "kind": "type_usage",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/test_roles/source.fs",
+      "start_line": 8,
+      "start_column": 2,
+      "end_line": 8,
+      "end_column": 8,
+      "start_byte": 72,
+      "end_byte": 78,
+      "containing_key": "fixtures/extraction/fsharp/test_roles/source.fs:DomainTests:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/fsharp/test_roles/source.fs:value:variable_ref:14:19",
+      "name": "value",
+      "kind": "variable_ref",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/test_roles/source.fs",
+      "start_line": 14,
+      "start_column": 19,
+      "end_line": 14,
+      "end_column": 24,
+      "start_byte": 198,
+      "end_byte": 203,
+      "containing_key": "fixtures/extraction/fsharp/test_roles/source.fs:helper:14:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/fsharp/test_roles/source.fs:value:variable_ref:9:42",
+      "name": "value",
+      "kind": "variable_ref",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/test_roles/source.fs",
+      "start_line": 9,
+      "start_column": 42,
+      "end_line": 9,
+      "end_column": 47,
+      "start_byte": 123,
+      "end_byte": 128,
+      "containing_key": "fixtures/extraction/fsharp/test_roles/source.fs:adds_numbers_from_data:9:0",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/fsharp/test_roles/source.fs:qualified_fact:12:0",
+      "resolved_type": "bool",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "fsharp",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "fsharp.attribute.v1",
+      "capture_name": "attribute",
+      "node_kind": "attribute",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/test_roles/source.fs",
+      "containing_key": "fixtures/extraction/fsharp/test_roles/source.fs:adds_numbers:6:0",
+      "start_line": 5,
+      "start_column": 2,
+      "end_line": 5,
+      "end_column": 6,
+      "start_byte": 34,
+      "end_byte": 38,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    },
+    {
+      "pattern_id": "fsharp.attribute.v1",
+      "capture_name": "attribute",
+      "node_kind": "attribute",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/test_roles/source.fs",
+      "containing_key": "fixtures/extraction/fsharp/test_roles/source.fs:adds_numbers_from_data:9:0",
+      "start_line": 8,
+      "start_column": 2,
+      "end_line": 8,
+      "end_column": 8,
+      "start_byte": 72,
+      "end_byte": 78,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    },
+    {
+      "pattern_id": "fsharp.attribute.v1",
+      "capture_name": "attribute",
+      "node_kind": "attribute",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/test_roles/source.fs",
+      "containing_key": "fixtures/extraction/fsharp/test_roles/source.fs:qualified_fact:12:0",
+      "start_line": 11,
+      "start_column": 2,
+      "end_line": 11,
+      "end_column": 12,
+      "start_byte": 136,
+      "end_byte": 146,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/test_roles/source.fs",
+      "covered_lines": 15,
+      "covered_bytes": 204,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 15,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 204,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/fsharp/test_roles/source.fs:adds_numbers:6:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/test_roles/source.fs",
+      "covered_lines": 1,
+      "covered_bytes": 5,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 6,
+      "start_column": 22,
+      "end_line": 6,
+      "end_column": 27,
+      "start_byte": 63,
+      "end_byte": 68,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/fsharp/test_roles/source.fs:adds_numbers_from_data:9:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/test_roles/source.fs",
+      "covered_lines": 1,
+      "covered_bytes": 9,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 9,
+      "start_column": 42,
+      "end_line": 9,
+      "end_column": 51,
+      "start_byte": 123,
+      "end_byte": 132,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/fsharp/test_roles/source.fs:helper:14:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/test_roles/source.fs",
+      "covered_lines": 1,
+      "covered_bytes": 5,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 14,
+      "start_column": 19,
+      "end_line": 14,
+      "end_column": 24,
+      "start_byte": 198,
+      "end_byte": 203,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/fsharp/test_roles/source.fs:qualified_fact:12:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/test_roles/source.fs",
+      "covered_lines": 1,
+      "covered_bytes": 4,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 12,
+      "start_column": 24,
+      "end_line": 12,
+      "end_column": 28,
+      "start_byte": 173,
+      "end_byte": 177,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [
+    {
+      "literal_text": "()",
+      "kind": "other",
+      "carrier": null,
+      "arg_position": 0,
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/test_roles/source.fs",
+      "start_line": 12,
+      "start_column": 19,
+      "end_line": 12,
+      "end_column": 21,
+      "start_byte": 168,
+      "end_byte": 170,
+      "containing_key": "fixtures/extraction/fsharp/test_roles/source.fs:qualified_fact:12:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "()",
+      "kind": "other",
+      "carrier": null,
+      "arg_position": 0,
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/test_roles/source.fs",
+      "start_line": 6,
+      "start_column": 17,
+      "end_line": 6,
+      "end_column": 19,
+      "start_byte": 58,
+      "end_byte": 60,
+      "containing_key": "fixtures/extraction/fsharp/test_roles/source.fs:adds_numbers:6:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "1",
+      "kind": "other",
+      "carrier": null,
+      "arg_position": 0,
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/test_roles/source.fs",
+      "start_line": 6,
+      "start_column": 22,
+      "end_line": 6,
+      "end_column": 23,
+      "start_byte": 63,
+      "end_byte": 64,
+      "containing_key": "fixtures/extraction/fsharp/test_roles/source.fs:adds_numbers:6:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "1",
+      "kind": "other",
+      "carrier": null,
+      "arg_position": 0,
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/test_roles/source.fs",
+      "start_line": 6,
+      "start_column": 26,
+      "end_line": 6,
+      "end_column": 27,
+      "start_byte": 67,
+      "end_byte": 68,
+      "containing_key": "fixtures/extraction/fsharp/test_roles/source.fs:adds_numbers:6:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "1",
+      "kind": "other",
+      "carrier": null,
+      "arg_position": 0,
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/test_roles/source.fs",
+      "start_line": 9,
+      "start_column": 50,
+      "end_line": 9,
+      "end_column": 51,
+      "start_byte": 131,
+      "end_byte": 132,
+      "containing_key": "fixtures/extraction/fsharp/test_roles/source.fs:adds_numbers_from_data:9:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "true",
+      "kind": "other",
+      "carrier": null,
+      "arg_position": 0,
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/test_roles/source.fs",
+      "start_line": 12,
+      "start_column": 24,
+      "end_line": 12,
+      "end_column": 28,
+      "start_byte": 173,
+      "end_byte": 177,
+      "containing_key": "fixtures/extraction/fsharp/test_roles/source.fs:qualified_fact:12:0",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [],
+  "type_argument_usages": []
+}

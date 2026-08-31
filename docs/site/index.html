@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>julie-extractors - hand-written code extraction for 38 languages</title>
-  <meta name="description" content="Source tree in, versioned SQLite artifact out. Hand-written tree-sitter extractors for 38 languages cover symbols, references, relationships, framework routes, and typed structural facts without query files.">
+  <title>julie-extractors - hand-written code extraction for 40 languages</title>
+  <meta name="description" content="Source tree in, versioned SQLite artifact out. Hand-written tree-sitter extractors for 40 languages cover symbols, references, relationships, framework routes, and typed structural facts without query files.">
   <link rel="canonical" href="https://anortham.github.io/julie-extractors/">
 
   <meta property="og:type" content="website">
-  <meta property="og:title" content="julie-extractors - hand-written code extraction for 38 languages">
+  <meta property="og:title" content="julie-extractors - hand-written code extraction for 40 languages">
   <meta property="og:description" content="Source tree in, versioned SQLite artifact out. Hand-written extractors with fixture-proven coverage and no query files.">
   <meta property="og:url" content="https://anortham.github.io/julie-extractors/">
 
@@ -32,7 +32,7 @@
       <p class="eyebrow">Source tree in, versioned artifact out</p>
       <h1>Extraction without shortcuts.</h1>
       <p class="hero-lede">
-        Each of 38 languages gets its own hand-written tree-sitter extractor. The output is one SQLite
+        Each of 40 languages gets its own hand-written tree-sitter extractor. The output is one SQLite
         artifact any tool can read: symbols with real signatures, resolved references, framework route
         facts, doc comments, and complexity metrics. There are no query files anywhere in the codebase,
         and no coverage claim without fixture evidence behind it.
@@ -68,7 +68,7 @@
       </div>
       <div class="feature-strip" aria-label="Product pillars">
         <div>
-          <strong>38 languages</strong>
+          <strong>40 languages</strong>
           <span>each with its own hand-written extractor, held to one fixture-proven quality bar</span>
         </div>
         <div>
@@ -89,7 +89,7 @@
       </div>
       <div class="prose">
         <p>
-          The capability snapshot (<code>julie-extract languages --json</code>) reports 38 languages.
+          The capability snapshot (<code>julie-extract languages --json</code>) reports 40 languages.
           Framework awareness rides on top as typed structural facts: route and endpoint definitions across
           Express, Fastify, NestJS, Next.js, Flask, FastAPI, Django, Rails, Laravel, Symfony, Phoenix,
           Spring, Ktor, Gin, Echo, Axum, Actix, ASP.NET, Nuxt, Vue, and React, plus htmx attributes, Alpine
@@ -98,9 +98,9 @@
       </div>
       <div class="language-cloud" aria-label="Supported languages">
         <span>bash</span><span>c</span><span>cpp</span><span>csharp</span><span>css</span><span>dart</span>
-        <span>elixir</span><span>erlang</span><span>gdscript</span><span>go</span><span>html</span><span>java</span>
+        <span>elixir</span><span>erlang</span><span>fsharp</span><span>gdscript</span><span>go</span><span>html</span><span>java</span>
         <span>javascript</span><span>json</span><span>jsx</span><span>kotlin</span><span>lua</span>
-        <span>markdown</span><span>php</span><span>powershell</span><span>python</span><span>qml</span>
+        <span>markdown</span><span>php</span><span>powershell</span><span>python</span><span>qml</span><span>qmldir</span>
         <span>r</span><span>razor</span><span>regex</span><span>ruby</span><span>rust</span><span>scala</span>
         <span>sql</span><span>swift</span><span>toml</span><span>tsx</span><span>typescript</span>
         <span>vbnet</span><span>vue</span><span>xml</span><span>yaml</span><span>zig</span>
@@ -128,21 +128,21 @@
       </div>
       <div class="metrics-table-wrap">
         <table class="metrics-table">
-          <caption>Fixture-proven native coverage by extraction domain (38 languages).</caption>
+          <caption>Fixture-proven native coverage by extraction domain (40 languages).</caption>
           <thead>
             <tr><th scope="col">Domain</th><th scope="col">Proven coverage</th><th scope="col">Applicable closure</th></tr>
           </thead>
           <tbody>
-            <tr><td>Symbols</td><td>38/38</td><td>38/38</td></tr>
-            <tr><td>Structural facts</td><td>38/38</td><td>38/38</td></tr>
-            <tr><td>Literals</td><td>38/38</td><td>38/38</td></tr>
-            <tr><td>Relationships</td><td>37/38</td><td>37/38</td></tr>
-            <tr><td>Body spans</td><td>37/38</td><td>37/37</td></tr>
-            <tr><td>Source regions</td><td>37/38</td><td>37/37</td></tr>
-            <tr><td>Doc comments</td><td>36/38</td><td>36/37</td></tr>
-            <tr><td>Identifiers</td><td>35/38</td><td>35/35</td></tr>
-            <tr><td>Complexity metrics</td><td>31/38</td><td>31/32</td></tr>
-            <tr><td>Types</td><td>30/38</td><td>30/30</td></tr>
+            <tr><td>Symbols</td><td>40/40</td><td>40/40</td></tr>
+            <tr><td>Structural facts</td><td>40/40</td><td>40/40</td></tr>
+            <tr><td>Literals</td><td>39/40</td><td>39/40</td></tr>
+            <tr><td>Relationships</td><td>38/40</td><td>38/40</td></tr>
+            <tr><td>Body spans</td><td>38/40</td><td>38/39</td></tr>
+            <tr><td>Source regions</td><td>38/40</td><td>38/39</td></tr>
+            <tr><td>Doc comments</td><td>37/40</td><td>37/39</td></tr>
+            <tr><td>Identifiers</td><td>36/40</td><td>36/37</td></tr>
+            <tr><td>Complexity metrics</td><td>32/40</td><td>32/34</td></tr>
+            <tr><td>Types</td><td>31/40</td><td>31/33</td></tr>
           </tbody>
         </table>
         <p class="metrics-note">

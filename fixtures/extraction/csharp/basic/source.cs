@@ -83,3 +83,18 @@ public sealed class Registry
         return Math.Max(requested * Scale, 1);
     }
 }
+
+internal class VisibilityFixture
+{
+    internal VisibilityFixture() { }
+    internal int InternalMethod() => 1;
+    internal int InternalProperty { get; set; }
+    internal int InternalField;
+
+    private int ExplicitPrivateField;
+    int DefaultPrivateField;
+    private int ExplicitPrivateProperty { get; set; }
+    int DefaultPrivateProperty { get; set; }
+    private int ExplicitPrivateMethod() => 2;
+    int DefaultPrivateMethod() => 3;
+}

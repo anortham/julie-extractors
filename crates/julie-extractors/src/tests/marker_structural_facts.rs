@@ -274,6 +274,11 @@ fn marker_language_matrix_covers_every_supported_comment_language() {
             source: "%% TODO: marker\n-module(main).\n",
         },
         MarkerFixture {
+            language: "fsharp",
+            file_path: "src/Program.fs",
+            source: "// TODO: marker\nmodule Main\nlet value = 1\n",
+        },
+        MarkerFixture {
             language: "lua",
             file_path: "src/main.lua",
             source: "-- TODO: marker\nlocal value = 1\n",

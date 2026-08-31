@@ -29,6 +29,7 @@ pub struct GoExtractor {
     ginkgo_enabled: bool,
     ginkgo_node_ids: HashSet<String>,
     ginkgo_scoped_ids: HashSet<String>,
+    test_role_ids: HashSet<String>,
 }
 
 impl GoExtractor {
@@ -43,6 +44,7 @@ impl GoExtractor {
             ginkgo_enabled: false,
             ginkgo_node_ids: HashSet::new(),
             ginkgo_scoped_ids: HashSet::new(),
+            test_role_ids: HashSet::new(),
         }
     }
 
@@ -76,6 +78,7 @@ impl GoExtractor {
     /// Extract symbols from Go source code - direct port from reference logic
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         self.ginkgo_enabled = test_calls::file_enables_ginkgo(&self.base, tree.root_node());
+        self.test_role_ids.clear();
 
         let mut symbols = Vec::new();
         self.walk_tree(tree.root_node(), &mut symbols, None, 0);
@@ -134,6 +137,20 @@ impl GoExtractor {
             self.ginkgo_scoped_ids.insert(call.symbol.id.clone());
         }
         Some(call.symbol)
+    }
+
+    fn extract_call(&mut self, node: Node, parent_id: Option<&str>) -> Option<Symbol> {
+        let enclosing_test = parent_id.is_some_and(|id| self.test_role_ids.contains(id));
+        if let Some(symbol) = test_calls::extract_standard_subtest_call(
+            &mut self.base,
+            node,
+            parent_id,
+            enclosing_test,
+        ) {
+            return Some(symbol);
+        }
+
+        self.extract_ginkgo_call(node, parent_id)
     }
 
     pub fn extract_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {
@@ -257,6 +274,15 @@ impl GoExtractor {
             _ => {
                 if let Some(symbol) = self.extract_symbol(node, parent_id.as_deref()) {
                     let symbol_id = symbol.id.clone();
+                    if symbol
+                        .metadata
+                        .as_ref()
+                        .and_then(|metadata| metadata.get("is_test"))
+                        .and_then(serde_json::Value::as_bool)
+                        == Some(true)
+                    {
+                        self.test_role_ids.insert(symbol_id.clone());
+                    }
                     symbols.push(symbol);
 
                     // Recursively walk children with the new parent_id
@@ -290,7 +316,7 @@ impl GoExtractor {
             "function_declaration" => self.extract_function(node, parent_id),
             "method_declaration" => self.extract_method(node, parent_id),
             // "field_declaration" handled in walk_tree (can produce multiple symbols)
-            "call_expression" => self.extract_ginkgo_call(node, parent_id),
+            "call_expression" => self.extract_call(node, parent_id),
             "ERROR" => self.extract_from_error_node(node, parent_id),
             _ => None,
         }

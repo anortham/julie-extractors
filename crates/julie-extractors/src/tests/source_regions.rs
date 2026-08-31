@@ -304,6 +304,16 @@ var name = "hi"
             expected_kinds: &[Comment, DocComment, StringLiteral],
         },
         SourceRegionFixture {
+            language: "fsharp",
+            file_path: "src/Program.fs",
+            source: r#"// plain
+/// doc
+module Worker
+let message = "hi"
+"#,
+            expected_kinds: &[Comment, DocComment, StringLiteral],
+        },
+        SourceRegionFixture {
             language: "sql",
             file_path: "schema.sql",
             source: r#"-- doc

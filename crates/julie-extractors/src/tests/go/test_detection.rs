@@ -54,6 +54,10 @@ fn meta_bool(s: &Symbol, key: &str) -> bool {
         .unwrap_or(false)
 }
 
+fn meta_string<'a>(s: &'a Symbol, key: &str) -> Option<&'a str> {
+    s.metadata.as_ref()?.get(key)?.as_str()
+}
+
 // ── Wave-3 tests ─────────────────────────────────────────────────────────
 
 #[test]
@@ -337,4 +341,310 @@ func Testable(t *testing.T) {}
         .find(|s| s.name == "Testable")
         .unwrap_or_else(|| panic!("expected Testable, got: {syms:?}"));
     assert!(!meta_bool(control, "is_test"));
+}
+
+#[test]
+fn literal_t_run_with_arbitrary_parameter_name_emits_child_case() {
+    let code = r#"package math_test
+
+import "testing"
+
+func TestAdds(testHandle *testing.T) {
+    testHandle.Run("literal child", func(child *testing.T) {})
+}
+"#;
+    let syms = symbols(code);
+    let parent = syms
+        .iter()
+        .find(|s| s.name == "TestAdds")
+        .unwrap_or_else(|| panic!("expected TestAdds, got: {syms:?}"));
+    let child = syms
+        .iter()
+        .find(|s| s.name == "literal child")
+        .unwrap_or_else(|| panic!("expected literal child, got: {syms:?}"));
+
+    assert_eq!(meta_string(child, "test_role"), Some("test_case"));
+    assert_eq!(child.parent_id.as_deref(), Some(parent.id.as_str()));
+    assert_eq!(syms.iter().filter(|s| s.name == "literal child").count(), 1);
+}
+
+#[test]
+fn nested_literal_t_runs_preserve_parent_identity() {
+    let code = r#"package math_test
+
+import "testing"
+
+func TestAdds(t *testing.T) {
+    t.Run("outer", func(outer *testing.T) {
+        outer.Run("inner", func(inner *testing.T) {})
+    })
+}
+"#;
+    let syms = symbols(code);
+    let root = syms
+        .iter()
+        .find(|s| s.name == "TestAdds")
+        .unwrap_or_else(|| panic!("expected TestAdds, got: {syms:?}"));
+    let outer = syms
+        .iter()
+        .find(|s| s.name == "outer")
+        .unwrap_or_else(|| panic!("expected outer, got: {syms:?}"));
+    let inner = syms
+        .iter()
+        .find(|s| s.name == "inner")
+        .unwrap_or_else(|| panic!("expected inner, got: {syms:?}"));
+
+    assert_eq!(meta_string(outer, "test_role"), Some("test_case"));
+    assert_eq!(meta_string(inner, "test_role"), Some("test_case"));
+    assert_eq!(outer.parent_id.as_deref(), Some(root.id.as_str()));
+    assert_eq!(inner.parent_id.as_deref(), Some(outer.id.as_str()));
+}
+
+#[test]
+fn dynamic_t_run_names_are_not_test_cases() {
+    let code = r#"package math_test
+
+import "testing"
+
+func TestAdds(t *testing.T) {
+    name := "dynamic"
+    t.Run(name, func(t *testing.T) {})
+}
+"#;
+    let syms = symbols(code);
+
+    assert!(!syms.iter().any(|s| s.name == "dynamic"));
+}
+
+#[test]
+fn unrelated_run_receiver_types_are_not_test_cases() {
+    let code = r#"package math_test
+
+type customT struct{}
+
+func (receiver *customT) Run(name string, callback func()) {}
+
+func helper(receiver *customT) {
+    receiver.Run("unrelated receiver", func() {})
+}
+"#;
+    let syms = symbols(code);
+
+    assert!(!syms.iter().any(|s| s.name == "unrelated receiver"));
+}
+
+#[test]
+fn only_exact_run_member_is_a_standard_subtest() {
+    let code = r#"package math_test
+
+import "testing"
+
+func TestAdds(t *testing.T) {
+    t.Runner("wrong member", func(t *testing.T) {})
+}
+"#;
+    let syms = symbols(code);
+
+    assert!(!syms.iter().any(|s| s.name == "wrong member"));
+}
+
+#[test]
+fn non_literal_or_non_function_t_run_arguments_are_not_test_cases() {
+    let code = r#"package math_test
+
+import "testing"
+
+func TestAdds(t *testing.T) {
+    callback := func(*testing.T) {}
+    t.Run("callback value", callback)
+}
+"#;
+    let syms = symbols(code);
+
+    assert!(!syms.iter().any(|s| s.name == "callback value"));
+}
+
+#[test]
+fn t_run_without_an_enclosing_test_symbol_is_silent() {
+    let code = r#"package math_test
+
+import "testing"
+
+var fileScope = t.Run("file scope", func(t *testing.T) {})
+
+func helper(t *testing.T) {
+    t.Run("helper scope", func(t *testing.T) {})
+}
+"#;
+    let syms = symbols(code);
+
+    assert!(
+        !syms
+            .iter()
+            .any(|s| { matches!(s.name.as_str(), "file scope" | "helper scope") })
+    );
+}
+
+#[test]
+fn t_run_requires_a_single_testing_t_callback_parameter() {
+    let code = r#"package math_test
+
+import "testing"
+
+func TestAdds(t *testing.T) {
+    t.Run("no callback parameter", func() {})
+    t.Run("wrong callback parameter type", func(value int) {})
+    t.Run("multiple callback parameters", func(first *testing.T, second *testing.T) {})
+}
+"#;
+    let syms = symbols(code);
+
+    assert!(!syms.iter().any(|s| {
+        matches!(
+            s.name.as_str(),
+            "no callback parameter"
+                | "wrong callback parameter type"
+                | "multiple callback parameters"
+        )
+    }));
+}
+
+#[test]
+fn local_var_bindings_shadow_the_testing_t_parameter() {
+    let code = r#"package math_test
+
+import "testing"
+
+type customT struct{}
+
+func (receiver *customT) Run(name string, callback func()) {}
+
+func TestAdds(t *testing.T) {
+    {
+        var t = &customT{}
+        t.Run("var shadow", func(*testing.T) {})
+    }
+    {
+        t := &customT{}
+        t.Run("short shadow", func(*testing.T) {})
+    }
+}
+"#;
+    let syms = symbols(code);
+
+    assert!(
+        !syms
+            .iter()
+            .any(|s| { matches!(s.name.as_str(), "var shadow" | "short shadow") })
+    );
+}
+
+#[test]
+fn scope_introducing_initializers_shadow_the_testing_t_parameter() {
+    let code = r#"package math_test
+
+import "testing"
+
+type customT struct{}
+
+func (receiver *customT) Run(name string, callback func(*testing.T)) {}
+
+func TestAdds(t *testing.T) {
+    if t := &customT{}; true {
+        t.Run("if initializer", func(*testing.T) {})
+    }
+    for t := &customT{}; false; {
+        t.Run("for initializer", func(*testing.T) {})
+    }
+    values := []customT{{}}
+    for _, t := range values {
+        t.Run("range clause", func(*testing.T) {})
+    }
+}
+"#;
+    let syms = symbols(code);
+
+    assert!(!syms.iter().any(|s| {
+        matches!(
+            s.name.as_str(),
+            "if initializer" | "for initializer" | "range clause"
+        )
+    }));
+}
+
+#[test]
+fn switch_initializers_shadow_the_testing_t_parameter() {
+    let code = r#"package math_test
+
+import "testing"
+
+type customT struct{}
+
+func (receiver *customT) Run(name string, callback func(*testing.T)) {}
+
+func TestAdds(t *testing.T) {
+    switch t := &customT{}; true {
+    default:
+        t.Run("expression switch initializer", func(*testing.T) {})
+    }
+    switch t := interface{}(&customT{}).(type) {
+    case *customT:
+        t.Run("type switch initializer", func(*testing.T) {})
+    }
+}
+"#;
+    let syms = symbols(code);
+
+    assert!(!syms.iter().any(|s| {
+        matches!(
+            s.name.as_str(),
+            "expression switch initializer" | "type switch initializer"
+        )
+    }));
+}
+
+#[test]
+fn named_result_bindings_shadow_the_testing_t_parameter() {
+    let code = r#"package math_test
+
+import "testing"
+
+type customT struct{}
+
+func (receiver *customT) Run(name string, callback func(*testing.T)) {}
+
+func TestAdds(t *testing.T) {
+    func() (t *customT) {
+        t.Run("named result shadow", func(*testing.T) {})
+        return nil
+    }()
+}
+"#;
+    let syms = symbols(code);
+
+    assert!(!syms.iter().any(|s| s.name == "named result shadow"));
+}
+
+#[test]
+fn select_receive_bindings_shadow_the_testing_t_parameter() {
+    let code = r#"package math_test
+
+import "testing"
+
+type customT struct{}
+
+func (receiver *customT) Run(name string, callback func(*testing.T)) {}
+
+func TestAdds(t *testing.T) {
+    channel := make(chan *customT)
+    select {
+    case t := <-channel:
+        t.Run("select receive shadow", func(*testing.T) {})
+    default:
+    }
+}
+"#;
+    let syms = symbols(code);
+
+    assert!(!syms.iter().any(|s| s.name == "select receive shadow"));
 }

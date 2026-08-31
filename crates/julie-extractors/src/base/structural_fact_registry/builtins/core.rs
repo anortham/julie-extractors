@@ -4,7 +4,18 @@
 //! Public registry access remains through
 //! [`super::super::structural_fact_pattern_specs`].
 
-use super::super::{BASE_KEYS, StructuralFactPatternSpec};
+use super::super::{ALWAYS, BASE_KEYS, MetadataKeySpec, STR, StructuralFactPatternSpec, key};
+
+const RUST_DOC_TEST_KEYS: &[MetadataKeySpec] = &[
+    BASE_KEYS[0],
+    BASE_KEYS[1],
+    key(
+        "mode",
+        STR,
+        ALWAYS,
+        "Rustdoc execution mode: run, ignore, no_run, or compile_fail.",
+    ),
+];
 
 pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
     StructuralFactPatternSpec {
@@ -13,6 +24,13 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
         query_family: "safety",
         description: "A Rust `unsafe { … }` block.",
         metadata_keys: BASE_KEYS,
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "rust.doc_test.v1",
+        languages: &["rust"],
+        query_family: "testing",
+        description: "An executable fenced Rust code block in a Rustdoc comment.",
+        metadata_keys: RUST_DOC_TEST_KEYS,
     },
     StructuralFactPatternSpec {
         pattern_id: "go.goroutine_launch.v1",
@@ -75,6 +93,13 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
         languages: &["cpp"],
         query_family: "preprocessor",
         description: "A C++ `#define` object-like or function-like macro.",
+        metadata_keys: BASE_KEYS,
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "fsharp.attribute.v1",
+        languages: &["fsharp"],
+        query_family: "metadata",
+        description: "An F# attribute applied to a declaration.",
         metadata_keys: BASE_KEYS,
     },
 ];

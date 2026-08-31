@@ -53,7 +53,7 @@ pub fn determine_visibility(modifiers: &[String], node_type: Option<&str>) -> Vi
         return Visibility::Protected;
     }
     if modifiers.contains(&"internal".to_string()) {
-        return Visibility::Private; // Map internal to Private, store actual value in metadata
+        return Visibility::Internal;
     }
 
     // Special cases for default visibility

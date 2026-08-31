@@ -213,6 +213,7 @@ const RAZOR_DOCS: &[DocCommentStyle] = &[DocCommentStyle::TripleSlash, DocCommen
 const GDSCRIPT_DOCS: &[DocCommentStyle] = &[DocCommentStyle::GdscriptDoubleHash];
 const ZIG_DOCS: &[DocCommentStyle] = &[DocCommentStyle::TripleSlash];
 const ERLANG_DOCS: &[DocCommentStyle] = &[DocCommentStyle::ErlangPercentBlock];
+const FSHARP_DOCS: &[DocCommentStyle] = &[DocCommentStyle::TripleSlash];
 
 macro_rules! parser {
     ($name:ident, $language:path) => {
@@ -247,6 +248,7 @@ parser!(parser_scala, tree_sitter_scala::LANGUAGE);
 parser!(parser_dart, tree_sitter_dart::LANGUAGE);
 parser!(parser_elixir, tree_sitter_elixir::LANGUAGE);
 parser!(parser_erlang, tree_sitter_erlang::LANGUAGE);
+parser!(parser_fsharp, tree_sitter_fsharp::LANGUAGE_FSHARP);
 parser!(parser_lua, tree_sitter_lua::LANGUAGE);
 parser!(parser_qml, tree_sitter_qmljs::LANGUAGE);
 parser!(parser_qmldir, tree_sitter_qmldir::LANGUAGE);
@@ -285,6 +287,22 @@ pub fn get_tree_sitter_language(language: &str) -> Result<tree_sitter::Language>
                 supported_languages().join(", ")
             )
         })
+}
+
+pub(crate) fn get_tree_sitter_language_for_path(
+    language: &str,
+    file_path: &Path,
+) -> Result<tree_sitter::Language> {
+    if language == "fsharp"
+        && file_path
+            .extension()
+            .and_then(|extension| extension.to_str())
+            .is_some_and(|extension| extension.eq_ignore_ascii_case("fsi"))
+    {
+        return Ok(tree_sitter_fsharp::LANGUAGE_SIGNATURE.into());
+    }
+
+    get_tree_sitter_language(language)
 }
 
 pub fn detect_language_from_extension(extension: &str) -> Option<&'static str> {

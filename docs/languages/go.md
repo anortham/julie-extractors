@@ -103,13 +103,13 @@ six rows out of 4,912 captured Ginkgo leaves and hooks:
   inside `func OffsetIt()`. Those three are real shared-behaviour nodes and are
   a recall cost of the rule, not a defect in the corpus.
 
-## Known gaps
+## Standard-library subtests
 
-`t.Run("name", func(t *testing.T){ ... })` subtests are not captured. The
-subtest name is a call argument, not a declaration, and `go test -run
-Parent/name` addresses it. The five corpora contain 363 literal `t.Run`
-subtests across 33 files, so the gap is material. It is recorded as
-`go.subtest_names`.
+Literal `t.Run("name", func(t *testing.T){ ... })` calls inside a test or
+subtest are captured as nested `test_case` symbols. The receiver must be an
+identifier bound to an active `*testing.T` parameter, and the callback must be
+a function literal. Dynamic names, unrelated `Run` methods, and calls outside
+an enclosing test symbol remain unclassified.
 
 ## Grammar freshness
 
