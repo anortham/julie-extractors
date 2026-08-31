@@ -9,9 +9,9 @@
       "start_line": 5,
       "start_column": 0,
       "end_line": 9,
-      "end_column": 17,
+      "end_column": 22,
       "start_byte": 39,
-      "end_byte": 119,
+      "end_byte": 124,
       "body_span": {
         "start_line": 6,
         "start_column": 2,
@@ -182,7 +182,30 @@
     }
   ],
   "parse_diagnostics": [],
-  "structural_facts": [],
+  "structural_facts": [
+    {
+      "pattern_id": "code.marker.v1",
+      "capture_name": "marker",
+      "node_kind": "comment",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/script/source.fsx",
+      "containing_key": "fixtures/extraction/fsharp/script/source.fsx:scriptMain:5:0",
+      "start_line": 9,
+      "start_column": 3,
+      "end_line": 9,
+      "end_column": 22,
+      "start_byte": 105,
+      "end_byte": 124,
+      "confidence": "1.000",
+      "metadata": {
+        "description": "script marker",
+        "marker": "TODO",
+        "pattern_version": 1,
+        "query_family": "marker",
+        "source_region_kind": "comment"
+      }
+    }
+  ],
   "complexity_metrics": [
     {
       "scope": "file",
@@ -191,7 +214,7 @@
       "language": "fsharp",
       "file_path": "fixtures/extraction/fsharp/script/source.fsx",
       "covered_lines": 10,
-      "covered_bytes": 120,
+      "covered_bytes": 125,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
@@ -201,7 +224,7 @@
       "end_line": 10,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 120,
+      "end_byte": 125,
       "metadata": {
         "metric_version": 1
       }
@@ -256,9 +279,9 @@
       "start_line": 9,
       "start_column": 0,
       "end_line": 9,
-      "end_column": 17,
+      "end_column": 22,
       "start_byte": 102,
-      "end_byte": 119,
+      "end_byte": 124,
       "metadata": null
     }
   ],

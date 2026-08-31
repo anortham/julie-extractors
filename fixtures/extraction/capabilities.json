@@ -4236,6 +4236,7 @@
         },
         "structural_facts": {
           "supported": [
+            "code.marker.v1",
             "fsharp.attribute.v1"
           ],
           "not_applicable": [],
