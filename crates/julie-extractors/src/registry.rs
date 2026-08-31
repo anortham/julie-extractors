@@ -31,6 +31,18 @@ pub struct LanguageRegistryEntry {
     pub extract: ExtractFn,
 }
 
+/// Every extractor that infers types must also keep the `TypeInfo` rows its
+/// base recorded during extraction; a recorded row wins over an inferred one.
+fn types_with_base_info(
+    inferred: HashMap<String, String>,
+    language: &str,
+    base: &crate::base::BaseExtractor,
+) -> HashMap<String, crate::base::TypeInfo> {
+    let mut types = convert_types_map(inferred, language);
+    types.extend(base.type_info.clone());
+    types
+}
+
 macro_rules! define_structured_full_language_extractors {
     ($(($fn_name:ident, $language:literal, $extractor:path)),+ $(,)?) => {
         $(
@@ -54,9 +66,7 @@ macro_rules! define_structured_full_language_extractors {
                 } else {
                     Vec::new()
                 };
-                let types = ext.infer_types(&symbols);
-                let mut types = convert_types_map(types, $language);
-                types.extend(ext.base.type_info.clone());
+                let types = types_with_base_info(ext.infer_types(&symbols), $language, &ext.base);
                 let pending_relationships = ext.base.take_pending_relationships();
                 let structured_pending_relationships = ext.base.take_structured_pending_relationships();
                 Ok(ExtractionResults {
@@ -114,7 +124,7 @@ macro_rules! define_structured_full_file_extractors {
                     source_regions: Vec::new(),
         structural_facts: Vec::new(),
         complexity_metrics: Vec::new(),
-                    types: convert_types_map(types, $language),
+                    types: types_with_base_info(types, $language, &ext.base),
                     parse_diagnostics: Vec::new(),
                 })
             }
@@ -157,7 +167,7 @@ macro_rules! define_no_pending_extractors {
                     source_regions: Vec::new(),
         structural_facts: Vec::new(),
         complexity_metrics: Vec::new(),
-                    types: convert_types_map(types, $language),
+                    types: types_with_base_info(types, $language, &ext.base),
                     parse_diagnostics: Vec::new(),
                 })
             }
@@ -380,7 +390,7 @@ fn extract_html(
         source_regions: Vec::new(),
         structural_facts: Vec::new(),
         complexity_metrics: Vec::new(),
-        types: convert_types_map(types, "html"),
+        types: types_with_base_info(types, "html", &ext.base),
         parse_diagnostics: Vec::new(),
     })
 }
@@ -424,7 +434,7 @@ fn extract_sql(
         source_regions: Vec::new(),
         structural_facts: Vec::new(),
         complexity_metrics: Vec::new(),
-        types: convert_types_map(types, "sql"),
+        types: types_with_base_info(types, "sql", &ext.base),
         parse_diagnostics: Vec::new(),
     })
 }
@@ -514,7 +524,7 @@ fn extract_erlang(
         source_regions: Vec::new(),
         structural_facts: Vec::new(),
         complexity_metrics: Vec::new(),
-        types: convert_types_map(types, "erlang"),
+        types: types_with_base_info(types, "erlang", &ext.base),
         parse_diagnostics: ext.parse_diagnostics(),
     })
 }
@@ -672,7 +682,7 @@ fn extract_vue(
         source_regions: Vec::new(),
         structural_facts: Vec::new(),
         complexity_metrics: Vec::new(),
-        types: convert_types_map(types, "vue"),
+        types: types_with_base_info(types, "vue", &ext.base),
         parse_diagnostics: Vec::new(),
     })
 }
@@ -884,6 +894,40 @@ pub fn capabilities_for_language(language: &str) -> Result<LanguageCapabilities,
 #[cfg(test)]
 mod registry_tests {
     use super::*;
+    use crate::base::{BaseExtractor, TypeInfo};
+
+    #[test]
+    fn types_with_base_info_keep_inferred_and_extractor_recorded_entries() {
+        let mut base = BaseExtractor::new(
+            "fsharp".to_string(),
+            "src/lib.fs".to_string(),
+            String::new(),
+            Path::new("/workspace"),
+        );
+        base.type_info.insert(
+            "recorded".to_string(),
+            TypeInfo {
+                symbol_id: "recorded".to_string(),
+                resolved_type: "int".to_string(),
+                generic_params: None,
+                constraints: None,
+                is_inferred: false,
+                language: "fsharp".to_string(),
+                metadata: None,
+            },
+        );
+        let inferred = HashMap::from([
+            ("inferred".to_string(), "string".to_string()),
+            ("recorded".to_string(), "obj".to_string()),
+        ]);
+
+        let types = types_with_base_info(inferred, "fsharp", &base);
+
+        assert_eq!(types.len(), 2);
+        assert_eq!(types["inferred"].resolved_type, "string");
+        assert_eq!(types["recorded"].resolved_type, "int");
+        assert!(!types["recorded"].is_inferred);
+    }
 
     #[test]
     fn registry_matches_supported_language_count() {

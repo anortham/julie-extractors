@@ -7,7 +7,7 @@ use super::attach_containing_symbols;
 use super::span::NormalizedSpan;
 use super::types::{StructuralFact, Symbol, stable_location_id};
 
-const PATTERN_ID: &str = "rust.doc_test.v1";
+pub(crate) const PATTERN_ID: &str = "rust.doc_test.v1";
 const CAPTURE_NAME: &str = "doc_test";
 const NODE_KIND: &str = "rustdoc_fence";
 
@@ -94,6 +94,9 @@ fn collect_doc_comment_lines(
     {
         lines.push(line);
     }
+    if node.kind() == "block_comment" {
+        collect_block_doc_comment_lines(node, content, lines);
+    }
 
     let mut cursor = node.walk();
     let Some(child_depth) = child_tree_depth(depth) else {
@@ -133,6 +136,92 @@ fn doc_comment_line(node: Node<'_>, content: &str) -> Option<DocCommentLine> {
     })
 }
 
+fn collect_block_doc_comment_lines(node: Node<'_>, content: &str, lines: &mut Vec<DocCommentLine>) {
+    let Some(raw) = content.get(node.start_byte()..node.end_byte()) else {
+        return;
+    };
+    let is_inner = raw.starts_with("/*!");
+    let is_outer = raw.starts_with("/**") && !raw.starts_with("/***") && raw != "/**/";
+    if !is_inner && !is_outer {
+        return;
+    }
+
+    let body_start = 3;
+    let body_end = raw.len() - if raw.ends_with("*/") { 2 } else { 0 };
+    let Some(body) = raw.get(body_start..body_end) else {
+        return;
+    };
+
+    let mut segments = Vec::new();
+    let mut offset = 0;
+    for segment in body.split('\n') {
+        segments.push((offset, segment));
+        offset += segment.len() + 1;
+    }
+
+    let star_strip = block_doc_star_column(&segments).map_or(0, |column| column + 1);
+    let segment_count = segments.len();
+    for (index, (segment_offset, text)) in segments.iter().enumerate() {
+        let line_start = node.start_byte() + body_start + segment_offset;
+        let strip = if index == 0 { 0 } else { star_strip };
+        // end_byte reaches the next segment so same_doc_block sees no gap
+        // between the synthesized lines of one block comment.
+        let end_byte = if index + 1 < segment_count {
+            line_start + text.len() + 1
+        } else {
+            node.end_byte()
+        };
+        lines.push(DocCommentLine {
+            parent_id: node.id(),
+            is_inner,
+            start_byte: line_start,
+            end_byte,
+            text_start_byte: line_start + strip,
+            text: text.get(strip..).unwrap_or("").to_string(),
+        });
+    }
+}
+
+/// Mirrors rustdoc's horizontal trim: every line after the first must carry a
+/// `*` decoration at one shared column, preceded only by blanks. A
+/// whitespace-only final line (the one holding `*/` indentation) is exempt.
+fn block_doc_star_column(segments: &[(usize, &str)]) -> Option<usize> {
+    let mut candidates = segments
+        .iter()
+        .skip(1)
+        .map(|(_, text)| *text)
+        .collect::<Vec<_>>();
+    if let Some(last) = candidates.last()
+        && last.trim().is_empty()
+    {
+        candidates.pop();
+    }
+    if candidates.is_empty() {
+        return None;
+    }
+
+    let mut column = None;
+    for text in candidates {
+        let mut star_at = None;
+        for (index, character) in text.char_indices() {
+            match character {
+                ' ' | '\t' => {}
+                '*' => {
+                    star_at = Some(index);
+                    break;
+                }
+                _ => return None,
+            }
+        }
+        match (column, star_at?) {
+            (None, index) => column = Some(index),
+            (Some(existing), index) if existing == index => {}
+            _ => return None,
+        }
+    }
+    column
+}
+
 fn same_doc_block(left: &DocCommentLine, right: &DocCommentLine, content: &str) -> bool {
     left.parent_id == right.parent_id
         && content
@@ -170,15 +259,26 @@ fn rustdoc_mode(info: &str) -> Option<&'static str> {
         .split(|character: char| character == ',' || character.is_whitespace())
         .filter(|token| !token.is_empty())
         .collect::<Vec<_>>();
-    let Some(first) = tokens.first().copied() else {
+    if tokens.is_empty() {
         return Some("run");
-    };
+    }
 
-    if first != "rust" && !matches!(first, "ignore" | "no_run" | "compile_fail") {
+    // Rustdoc keeps a fence that carries an unrecognized token only when a
+    // recognized attribute appears too; otherwise the fence is another language.
+    let mut recognized = false;
+    let mut unrecognized = false;
+    for token in &tokens {
+        if is_rustdoc_attribute(token) {
+            recognized = true;
+        } else {
+            unrecognized = true;
+        }
+    }
+    if unrecognized && !recognized {
         return None;
     }
 
-    if tokens.contains(&"ignore") {
+    if tokens.contains(&"ignore") || tokens.iter().any(|token| token.starts_with("ignore-")) {
         Some("ignore")
     } else if tokens.contains(&"compile_fail") {
         Some("compile_fail")
@@ -187,6 +287,26 @@ fn rustdoc_mode(info: &str) -> Option<&'static str> {
     } else {
         Some("run")
     }
+}
+
+fn is_rustdoc_attribute(token: &str) -> bool {
+    matches!(
+        token,
+        "rust"
+            | "ignore"
+            | "should_panic"
+            | "no_run"
+            | "compile_fail"
+            | "test_harness"
+            | "standalone_crate"
+    ) || token.starts_with("ignore-")
+        || is_rustdoc_edition(token)
+}
+
+fn is_rustdoc_edition(token: &str) -> bool {
+    token
+        .strip_prefix("edition")
+        .is_some_and(|year| year.len() == 4 && year.bytes().all(|byte| byte.is_ascii_digit()))
 }
 
 fn make_fact(

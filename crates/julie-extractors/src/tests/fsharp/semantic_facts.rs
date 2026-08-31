@@ -360,6 +360,45 @@ fn fsharp_attributes_emit_registered_structural_facts() {
 }
 
 #[test]
+fn fsharp_assembly_attributes_do_not_claim_unrelated_annotated_symbols() {
+    let source = r#"[<assembly: System.Reflection.AssemblyTitle("demo")>]
+do ()
+
+module Later =
+  [<Obsolete>]
+  let message = "hello"
+"#;
+    let results = extract(source);
+    let message = results
+        .symbols
+        .iter()
+        .find(|symbol| symbol.name == "message")
+        .expect("expected message symbol");
+
+    let module_start = source.find("module Later").expect("module offset") as u32;
+    let assembly_fact = results
+        .structural_facts
+        .iter()
+        .find(|fact| fact.pattern_id == "fsharp.attribute.v1" && fact.start_byte < module_start)
+        .expect("expected assembly attribute structural fact");
+    assert_ne!(
+        assembly_fact.containing_symbol_id.as_deref(),
+        Some(message.id.as_str()),
+        "assembly attribute must not attach to an unrelated module member"
+    );
+
+    let obsolete_fact = results
+        .structural_facts
+        .iter()
+        .find(|fact| fact.pattern_id == "fsharp.attribute.v1" && fact.start_byte >= module_start)
+        .expect("expected Obsolete attribute structural fact");
+    assert_eq!(
+        obsolete_fact.containing_symbol_id.as_deref(),
+        Some(message.id.as_str())
+    );
+}
+
+#[test]
 fn fsharp_complexity_counts_branches_guards_and_loops_not_patterns() {
     let source = r#"module Flow =
   let flow value =

@@ -135,10 +135,23 @@ The remaining gap sits under `kind_coverage.structural_facts.open_gaps` rather t
 already classified exactly once for rust.
 
 Rustdoc executable fences are emitted as `rust.doc_test.v1` structural facts.
-Untagged and `rust` fences carry `mode: "run"`; `ignore`, `no_run`, and
-`compile_fail` are preserved as explicit modes. `text` and non-Rust fences are
-silent, and facts retain their source fence span without creating a symbol or
-test role.
+Fence recognition follows rustdoc's own info-string rule. The recognized
+attributes are `rust`, `ignore`, `ignore-<reason>`, `should_panic`, `no_run`,
+`compile_fail`, `test_harness`, `standalone_crate`, and `edition<year>`. An
+untagged fence and any fence carrying a recognized attribute is a doc test; a
+fence whose tokens are all unrecognized, such as `text` or `python`, is silent.
+`mode` records `ignore`, `compile_fail`, or `no_run` when the fence asks for
+one, and `run` otherwise, so a `should_panic` or `edition2021` fence reports
+`run`. Facts retain their source fence span without creating a symbol or test
+role.
+
+The collector reads `///` and `//!` line comments and `/** ... */` and
+`/*! ... */` block doc comments. For a block comment it mirrors rustdoc's
+horizontal trim: when every line after the first carries a `*` gutter at one
+shared column, preceded only by blanks, the gutter is stripped before fence
+scanning, and a whitespace-only final line is exempt. Fence spans still point
+at the original source bytes. `/* ... */`, `/***`, and `/**/` are not doc
+comments and stay silent.
 
 One smaller under-report is not a separate gap row. rstest also builds a case
 matrix from `#[values(..)]`, but that attribute sits on a **parameter**, not on

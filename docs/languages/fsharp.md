@@ -46,7 +46,9 @@ Comments, `///` XML documentation comments, and F# string forms publish exact
 `fsharp.attribute.v1` structural fact with `metadata` query-family metadata and
 the annotated declaration as `containing_symbol_id`. The attribute fact captures
 the grammar's `attribute` node span (the attribute name, excluding `[<` and
-`>]`).
+`>]`). The annotated declaration must sit in the attribute's own scope; an
+attribute with no in-scope annotated target, such as `[<assembly: ...>]`, keeps
+its lexical container as `containing_symbol_id`.
 
 F# xUnit functions carrying `[<Fact>]`, `[<Theory>]`, or qualified
 `[<Xunit.Fact>]` publish `is_test = true` and `test_role` values `test_case` or

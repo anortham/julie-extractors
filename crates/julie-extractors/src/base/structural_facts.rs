@@ -154,7 +154,7 @@ pub(crate) fn structural_fact_pattern_ids_for_language(language: &str) -> Vec<&'
     pattern_ids.extend(data_structural_fact_pattern_ids_for_language(language));
     pattern_ids.extend(sql_structural_fact_pattern_ids_for_language(language));
     if language == "rust" {
-        pattern_ids.push("rust.doc_test.v1");
+        pattern_ids.push(super::rust_doc_test_facts::PATTERN_ID);
     }
     pattern_ids.sort();
     pattern_ids.dedup();
@@ -249,16 +249,10 @@ fn attach_fsharp_attribute_symbols(facts: &mut [StructuralFact], symbols: &[Symb
                 Some(parent_symbol_id) => symbol.parent_id.as_deref() == Some(parent_symbol_id),
                 None => symbol.parent_id.is_none(),
             })
-            .min_by_key(|symbol| (symbol.start_byte, symbol.end_byte))
-            .or_else(|| {
-                symbols
-                    .iter()
-                    .filter(|symbol| {
-                        !symbol.annotations.is_empty() && symbol.start_byte >= fact.end_byte
-                    })
-                    .min_by_key(|symbol| (symbol.start_byte, symbol.end_byte))
-            });
-        fact.containing_symbol_id = annotated_symbol.map(|symbol| symbol.id.clone());
+            .min_by_key(|symbol| (symbol.start_byte, symbol.end_byte));
+        if let Some(annotated_symbol) = annotated_symbol {
+            fact.containing_symbol_id = Some(annotated_symbol.id.clone());
+        }
     }
 }
 

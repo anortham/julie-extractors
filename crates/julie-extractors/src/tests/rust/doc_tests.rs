@@ -245,3 +245,168 @@ fn rust_doc_test_facts_are_rust_only() {
         collect_rust_doc_test_facts("python", &tree, "src/lib.py", source, &symbols).is_empty()
     );
 }
+
+#[test]
+fn rust_doc_test_facts_recognize_the_rustdoc_attribute_vocabulary() {
+    let source = r#"/// ```should_panic
+/// panic!("boom");
+/// ```
+///
+/// ```edition2021
+/// let value = 1;
+/// ```
+///
+/// ```ignore-windows
+/// let value = 1;
+/// ```
+///
+/// ```no_run,should_panic
+/// panic!("boom");
+/// ```
+///
+/// ```test_harness
+/// let value = 1;
+/// ```
+pub fn documented() {}
+"#;
+
+    let (facts, _) = rust_doc_facts(source);
+    let modes = facts
+        .iter()
+        .map(|fact| {
+            fact.metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get("mode"))
+                .and_then(|value| value.as_str())
+                .expect("doc-test facts carry a mode")
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        modes,
+        vec!["run", "run", "ignore", "no_run", "run"],
+        "tree facts: {facts:?}"
+    );
+}
+
+#[test]
+fn rust_doc_test_facts_keep_a_fence_that_mixes_known_and_unknown_tokens() {
+    let source = r#"/// ```rust,custom-tooling
+/// let value = 1;
+/// ```
+pub fn documented() {}
+"#;
+
+    let (facts, _) = rust_doc_facts(source);
+    assert_eq!(facts.len(), 1, "tree facts: {facts:?}");
+    assert_fact_contract(&facts[0], "run");
+}
+
+#[test]
+fn rust_doc_test_facts_extract_fences_from_outer_block_doc_comments() {
+    let source = r#"/** Adds numbers.
+
+```
+assert_eq!(1 + 1, 2);
+```
+*/
+pub fn add() {}
+"#;
+
+    let (facts, results) = rust_doc_facts(source);
+    assert_eq!(facts.len(), 1, "tree facts: {facts:?}");
+    assert_fact_contract(&facts[0], "run");
+    assert_eq!(
+        &source[facts[0].start_byte as usize..facts[0].end_byte as usize],
+        "```\nassert_eq!(1 + 1, 2);\n```"
+    );
+    let add_id = results
+        .symbols
+        .iter()
+        .find(|symbol| symbol.name == "add")
+        .map(|symbol| symbol.id.as_str())
+        .expect("add function symbol");
+    assert_eq!(facts[0].containing_symbol_id.as_deref(), Some(add_id));
+}
+
+#[test]
+fn rust_doc_test_facts_strip_star_prefixes_in_block_doc_comments() {
+    let source = r#"/**
+ * Example:
+ * ```rust,no_run
+ * let value = 1;
+ * ```
+ */
+pub fn starred() {}
+"#;
+
+    let (facts, results) = rust_doc_facts(source);
+    assert_eq!(facts.len(), 1, "tree facts: {facts:?}");
+    assert_fact_contract(&facts[0], "no_run");
+    assert_eq!(
+        &source[facts[0].start_byte as usize..facts[0].end_byte as usize],
+        "```rust,no_run\n * let value = 1;\n * ```"
+    );
+    let starred_id = results
+        .symbols
+        .iter()
+        .find(|symbol| symbol.name == "starred")
+        .map(|symbol| symbol.id.as_str())
+        .expect("starred function symbol");
+    assert_eq!(facts[0].containing_symbol_id.as_deref(), Some(starred_id));
+}
+
+#[test]
+fn rust_doc_test_facts_attach_inner_block_doc_fences_to_the_module() {
+    let source = r#"mod nested_block {
+    /*!
+     * ```
+     * assert_eq!(2 + 2, 4);
+     * ```
+     */
+}
+"#;
+
+    let (facts, results) = rust_doc_facts(source);
+    assert_eq!(facts.len(), 1, "tree facts: {facts:?}");
+    assert_fact_contract(&facts[0], "run");
+    let nested_id = results
+        .symbols
+        .iter()
+        .find(|symbol| symbol.name == "nested_block")
+        .map(|symbol| symbol.id.as_str())
+        .expect("nested_block module symbol");
+    assert_eq!(facts[0].containing_symbol_id.as_deref(), Some(nested_id));
+}
+
+#[test]
+fn rust_doc_test_facts_ignore_fences_in_non_doc_block_comments() {
+    let source = r#"/*
+```rust
+let value = 1;
+```
+*/
+
+/***
+```rust
+let value = 2;
+```
+*/
+pub fn not_documented() {}
+"#;
+
+    let (facts, _) = rust_doc_facts(source);
+    assert!(facts.is_empty(), "tree facts: {facts:?}");
+}
+
+#[test]
+fn rust_doc_test_facts_do_not_pair_block_doc_fences_across_comment_kinds() {
+    let source = r#"/** ```rust
+let unterminated = true;
+*/
+/// ```
+pub fn documented() {}
+"#;
+
+    let (facts, _) = rust_doc_facts(source);
+    assert!(facts.is_empty(), "tree facts: {facts:?}");
+}
