@@ -208,7 +208,7 @@ pub(super) fn extract_standard_subtest_call(
         return None;
     }
     let callback = named_arguments.next()?;
-    if callback.kind() != "func_literal" {
+    if callback.kind() != "func_literal" || !is_testing_t_callback(base, callback) {
         return None;
     }
 
@@ -223,9 +223,41 @@ pub(super) fn extract_standard_subtest_call(
     ))
 }
 
+fn is_testing_t_callback(base: &BaseExtractor, callback: Node) -> bool {
+    if callback.child_by_field_name("result").is_some() {
+        return false;
+    }
+
+    let Some(parameters) = callback.child_by_field_name("parameters") else {
+        return false;
+    };
+    let mut cursor = parameters.walk();
+    let parameters: Vec<Node> = parameters.named_children(&mut cursor).collect();
+    let [parameter] = parameters.as_slice() else {
+        return false;
+    };
+    if parameter.kind() != "parameter_declaration" {
+        return false;
+    }
+
+    let Some(type_node) = parameter.child_by_field_name("type") else {
+        return false;
+    };
+    let mut parameter_cursor = parameter.walk();
+    let name_count = parameter
+        .named_children(&mut parameter_cursor)
+        .filter(|child| child.kind() == "identifier")
+        .count();
+    name_count <= 1 && base.get_node_text(&type_node) == "*testing.T"
+}
+
 fn active_testing_t_receiver(base: &BaseExtractor, call_node: Node, receiver_name: &str) -> bool {
     let mut ancestor = call_node.parent();
     while let Some(node) = ancestor {
+        if node.kind() == "block" && local_binding_before_call(base, node, call_node, receiver_name)
+        {
+            return false;
+        }
         if matches!(
             node.kind(),
             "function_declaration" | "method_declaration" | "func_literal"
@@ -237,6 +269,73 @@ fn active_testing_t_receiver(base: &BaseExtractor, call_node: Node, receiver_nam
         ancestor = node.parent();
     }
     false
+}
+
+fn local_binding_before_call(
+    base: &BaseExtractor,
+    block: Node,
+    call_node: Node,
+    receiver_name: &str,
+) -> bool {
+    let mut block_cursor = block.walk();
+    let Some(statement_list) = block
+        .named_children(&mut block_cursor)
+        .find(|child| child.kind() == "statement_list")
+    else {
+        return false;
+    };
+
+    let mut statement_cursor = statement_list.walk();
+    statement_list
+        .named_children(&mut statement_cursor)
+        .take_while(|statement| statement.end_byte() <= call_node.start_byte())
+        .any(|statement| statement_binds_name(base, statement, receiver_name))
+}
+
+fn statement_binds_name(base: &BaseExtractor, statement: Node, receiver_name: &str) -> bool {
+    match statement.kind() {
+        "var_declaration" => var_declaration_binds_name(base, statement, receiver_name),
+        "short_var_declaration" => short_var_declaration_binds_name(base, statement, receiver_name),
+        _ => false,
+    }
+}
+
+fn var_declaration_binds_name(
+    base: &BaseExtractor,
+    declaration: Node,
+    receiver_name: &str,
+) -> bool {
+    let mut declaration_cursor = declaration.walk();
+    declaration
+        .named_children(&mut declaration_cursor)
+        .any(|child| match child.kind() {
+            "var_spec" => declaration_names_include(base, child, receiver_name),
+            "var_spec_list" => {
+                let mut list_cursor = child.walk();
+                child
+                    .named_children(&mut list_cursor)
+                    .filter(|spec| spec.kind() == "var_spec")
+                    .any(|spec| declaration_names_include(base, spec, receiver_name))
+            }
+            _ => false,
+        })
+}
+
+fn short_var_declaration_binds_name(
+    base: &BaseExtractor,
+    declaration: Node,
+    receiver_name: &str,
+) -> bool {
+    let Some(left) = declaration.child_by_field_name("left") else {
+        return false;
+    };
+    declaration_names_include(base, left, receiver_name)
+}
+
+fn declaration_names_include(base: &BaseExtractor, node: Node, receiver_name: &str) -> bool {
+    let mut cursor = node.walk();
+    node.named_children(&mut cursor)
+        .any(|child| child.kind() == "identifier" && base.get_node_text(&child) == receiver_name)
 }
 
 fn testing_t_parameter(

@@ -484,3 +484,57 @@ func helper(t *testing.T) {
             .any(|s| { matches!(s.name.as_str(), "file scope" | "helper scope") })
     );
 }
+
+#[test]
+fn t_run_requires_a_single_testing_t_callback_parameter() {
+    let code = r#"package math_test
+
+import "testing"
+
+func TestAdds(t *testing.T) {
+    t.Run("no callback parameter", func() {})
+    t.Run("wrong callback parameter type", func(value int) {})
+    t.Run("multiple callback parameters", func(first *testing.T, second *testing.T) {})
+}
+"#;
+    let syms = symbols(code);
+
+    assert!(!syms.iter().any(|s| {
+        matches!(
+            s.name.as_str(),
+            "no callback parameter"
+                | "wrong callback parameter type"
+                | "multiple callback parameters"
+        )
+    }));
+}
+
+#[test]
+fn local_var_bindings_shadow_the_testing_t_parameter() {
+    let code = r#"package math_test
+
+import "testing"
+
+type customT struct{}
+
+func (receiver *customT) Run(name string, callback func()) {}
+
+func TestAdds(t *testing.T) {
+    {
+        var t = &customT{}
+        t.Run("var shadow", func(*testing.T) {})
+    }
+    {
+        t := &customT{}
+        t.Run("short shadow", func(*testing.T) {})
+    }
+}
+"#;
+    let syms = symbols(code);
+
+    assert!(
+        !syms
+            .iter()
+            .any(|s| { matches!(s.name.as_str(), "var shadow" | "short shadow") })
+    );
+}
