@@ -119,7 +119,7 @@ so the container pass never strips a role a function's own attribute earned.
 
 ### Recorded gaps
 
-Two named Rust test surfaces are not classified. Both are recorded as
+One named Rust test surface is not classified. It is recorded as
 `open_gaps` on the rust row in `fixtures/extraction/capabilities.json`:
 
 - `rust.benchmark_harness_roles` — nightly `#[bench]`, criterion, and divan.
@@ -129,15 +129,16 @@ Two named Rust test surfaces are not classified. Both are recorded as
   `criterion_group!`/`criterion_main!` and `#[divan::bench]`, so the cases live
   in a macro invocation rather than in a callable symbol the role writer can
   reach.
-- `rust.doc_test_cases` — `cargo test` runs the executable examples in `///`
-  and `//!` comments, and Miller's Rust provider lists them as cases. A
-  doc-test lives inside doc-comment text, not in a callable symbol, so it has
-  no symbol to carry a role and no span to address.
-
-Both sit under `kind_coverage.structural_facts.open_gaps` rather than
+The remaining gap sits under `kind_coverage.structural_facts.open_gaps` rather than
 `test_detection`, because the `test_detection` vocabulary is frozen to
 `test_case`, `test_container`, and `test_lifecycle` and each of those is
 already classified exactly once for rust.
+
+Rustdoc executable fences are emitted as `rust.doc_test.v1` structural facts.
+Untagged and `rust` fences carry `mode: "run"`; `ignore`, `no_run`, and
+`compile_fail` are preserved as explicit modes. `text` and non-Rust fences are
+silent, and facts retain their source fence span without creating a symbol or
+test role.
 
 One smaller under-report is not a separate gap row. rstest also builds a case
 matrix from `#[values(..)]`, but that attribute sits on a **parameter**, not on

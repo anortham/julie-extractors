@@ -28,6 +28,7 @@ pub mod marker_structural_facts;
 mod markup_scan;
 pub mod relationship_resolution;
 mod results_normalization;
+mod rust_doc_test_facts;
 pub mod source_regions;
 pub mod span;
 mod sql_structural_facts;
@@ -55,6 +56,7 @@ pub use marker_structural_facts::collect_marker_structural_facts;
 pub use relationship_resolution::{
     LocalTargetResolution, ScopedSymbolIndex, StructuredPendingRelationship, UnresolvedTarget,
 };
+pub(crate) use rust_doc_test_facts::collect_rust_doc_test_facts;
 pub use source_regions::collect_source_regions;
 pub use span::{NormalizedSpan, RecordOffset, normalize_file_path};
 pub use sql_structural_facts::collect_sql_structural_facts;

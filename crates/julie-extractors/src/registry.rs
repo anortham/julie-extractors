@@ -5,6 +5,7 @@ use crate::base::collect_complexity_metrics;
 use crate::base::collect_data_structural_facts;
 use crate::base::collect_framework_structural_facts;
 use crate::base::collect_marker_structural_facts;
+use crate::base::collect_rust_doc_test_facts;
 use crate::base::collect_source_regions;
 use crate::base::collect_sql_structural_facts;
 use crate::base::collect_structural_facts;
@@ -788,6 +789,13 @@ pub fn extract_for_language_at(
             collect_source_regions(language, tree, file_path, content, &results.symbols);
         results.structural_facts =
             collect_structural_facts(language, tree, file_path, &results.symbols);
+        results.structural_facts.extend(collect_rust_doc_test_facts(
+            language,
+            tree,
+            file_path,
+            content,
+            &results.symbols,
+        ));
         results
             .structural_facts
             .extend(collect_framework_structural_facts(
