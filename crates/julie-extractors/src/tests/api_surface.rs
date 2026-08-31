@@ -37,6 +37,7 @@ fn test_public_contract_version_marks_current_fact_families() {
         "csharp-visibility-v2",
         "go-subtests-v1",
         "rust-doc-test-facts-v1",
+        "fsharp-v1",
     ] {
         assert!(
             version.contains(marker),

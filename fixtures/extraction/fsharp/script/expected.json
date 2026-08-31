@@ -1,0 +1,252 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/fsharp/script/source.fsx:scriptMain:5:0",
+      "name": "scriptMain",
+      "kind": "function",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/script/source.fsx",
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 7,
+      "end_column": 13,
+      "start_byte": 39,
+      "end_byte": 100,
+      "body_span": {
+        "start_line": 6,
+        "start_column": 2,
+        "end_line": 7,
+        "end_column": 13,
+        "start_byte": 63,
+        "end_byte": 100
+      },
+      "body_hash": "cb66dd30e2cec901cb0a460f6ffa095e",
+      "signature": "let scriptMain name =",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/fsharp/script/source.fsx:scriptValue:3:0",
+      "name": "scriptValue",
+      "kind": "variable",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/script/source.fsx",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 24,
+      "start_byte": 13,
+      "end_byte": 37,
+      "body_span": {
+        "start_line": 3,
+        "start_column": 23,
+        "end_line": 3,
+        "end_column": 24,
+        "start_byte": 36,
+        "end_byte": 37
+      },
+      "body_hash": "8f14e45fceea167a5a36dedd4bea2543",
+      "signature": "let scriptValue: int = 7",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/fsharp/script/source.fsx:scriptMain:5:0",
+      "callee_name": "WriteLine",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/fsharp/script/source.fsx",
+      "line_number": 6,
+      "confidence": "0.800"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/fsharp/script/source.fsx:scriptMain:5:0",
+        "callee_name": "WriteLine",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/fsharp/script/source.fsx",
+        "line_number": 6,
+        "confidence": "0.800"
+      },
+      "target": {
+        "display_name": "Console.WriteLine",
+        "terminal_name": "WriteLine",
+        "receiver": null,
+        "namespace_path": [
+          "Console"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/fsharp/script/source.fsx:scriptMain:5:0",
+      "span": {
+        "start_line": 6,
+        "start_column": 10,
+        "end_line": 6,
+        "end_column": 19,
+        "start_byte": 71,
+        "end_byte": 80
+      }
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/fsharp/script/source.fsx:WriteLine:call:6:10",
+      "name": "WriteLine",
+      "kind": "call",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/script/source.fsx",
+      "start_line": 6,
+      "start_column": 10,
+      "end_line": 6,
+      "end_column": 19,
+      "start_byte": 71,
+      "end_byte": 80,
+      "containing_key": "fixtures/extraction/fsharp/script/source.fsx:scriptMain:5:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/fsharp/script/source.fsx:int:type_usage:3:17",
+      "name": "int",
+      "kind": "type_usage",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/script/source.fsx",
+      "start_line": 3,
+      "start_column": 17,
+      "end_line": 3,
+      "end_column": 20,
+      "start_byte": 30,
+      "end_byte": 33,
+      "containing_key": "fixtures/extraction/fsharp/script/source.fsx:scriptValue:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/fsharp/script/source.fsx:name:variable_ref:6:20",
+      "name": "name",
+      "kind": "variable_ref",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/script/source.fsx",
+      "start_line": 6,
+      "start_column": 20,
+      "end_line": 6,
+      "end_column": 24,
+      "start_byte": 81,
+      "end_byte": 85,
+      "containing_key": "fixtures/extraction/fsharp/script/source.fsx:scriptMain:5:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/fsharp/script/source.fsx:scriptValue:variable_ref:7:2",
+      "name": "scriptValue",
+      "kind": "variable_ref",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/script/source.fsx",
+      "start_line": 7,
+      "start_column": 2,
+      "end_line": 7,
+      "end_column": 13,
+      "start_byte": 89,
+      "end_byte": 100,
+      "containing_key": "fixtures/extraction/fsharp/script/source.fsx:scriptMain:5:0",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/fsharp/script/source.fsx:scriptValue:3:0",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "fsharp",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/script/source.fsx",
+      "covered_lines": 8,
+      "covered_bytes": 101,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 8,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 101,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/fsharp/script/source.fsx:scriptMain:5:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/script/source.fsx",
+      "covered_lines": 2,
+      "covered_bytes": 37,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 6,
+      "start_column": 2,
+      "end_line": 7,
+      "end_column": 13,
+      "start_byte": 63,
+      "end_byte": 100,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [
+    {
+      "literal_text": "7",
+      "kind": "other",
+      "carrier": null,
+      "arg_position": 0,
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/script/source.fsx",
+      "start_line": 3,
+      "start_column": 23,
+      "end_line": 3,
+      "end_column": 24,
+      "start_byte": 36,
+      "end_byte": 37,
+      "containing_key": "fixtures/extraction/fsharp/script/source.fsx:scriptValue:3:0",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [],
+  "type_argument_usages": []
+}

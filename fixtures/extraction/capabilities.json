@@ -4128,6 +4128,192 @@
       }
     },
     {
+      "language": "fsharp",
+      "parser_crate": "tree-sitter-fsharp",
+      "extensions": [
+        "fs",
+        "fsx",
+        "fsi"
+      ],
+      "dependency_status": "current",
+      "capabilities": {
+        "symbols": true,
+        "relationships": true,
+        "pending_relationships": true,
+        "identifiers": true,
+        "types": true
+      },
+      "fixtures": [
+        {
+          "name": "basic",
+          "source": "fixtures/extraction/fsharp/basic/source.fs",
+          "expected": "fixtures/extraction/fsharp/basic/expected.json"
+        },
+        {
+          "name": "script",
+          "source": "fixtures/extraction/fsharp/script/source.fsx",
+          "expected": "fixtures/extraction/fsharp/script/expected.json"
+        },
+        {
+          "name": "negative",
+          "source": "fixtures/extraction/fsharp/negative/source.fs",
+          "expected": "fixtures/extraction/fsharp/negative/expected.json"
+        },
+        {
+          "name": "signature",
+          "source": "fixtures/extraction/fsharp/signature/source.fsi",
+          "expected": "fixtures/extraction/fsharp/signature/expected.json"
+        },
+        {
+          "name": "test_roles",
+          "source": "fixtures/extraction/fsharp/test_roles/source.fs",
+          "expected": "fixtures/extraction/fsharp/test_roles/expected.json"
+        }
+      ],
+      "target_capabilities": {
+        "symbols": true,
+        "relationships": true,
+        "pending_relationships": true,
+        "identifiers": true,
+        "types": true
+      },
+      "capability_gaps": [],
+      "kind_coverage": {
+        "symbols": {
+          "supported": [
+            "class",
+            "enum_member",
+            "field",
+            "function",
+            "method",
+            "module",
+            "namespace",
+            "property",
+            "struct",
+            "union",
+            "variable"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "relationships": {
+          "supported": [
+            "calls",
+            "extends"
+          ],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "imports",
+              "reason": "The script fixture's `open System` declaration has no enclosing F# symbol, so the current extractor intentionally does not attach an import relationship to a fabricated caller; enclosed module imports remain pending evidence but are conservatively unclaimed until this scope distinction is represented.",
+              "required_closure": "publish a file-scoped import fact or another explicit caller identity for top-level `.fsx` imports without inventing a symbol row, then split the capability claim for enclosed imports",
+              "planned_closure_task": "BRE-42 follow-up: top-level F# script import facts"
+            }
+          ]
+        },
+        "identifiers": {
+          "supported": [
+            "call",
+            "member_access",
+            "type_usage",
+            "variable_ref"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "body_spans": {
+          "supported": [
+            "class",
+            "function",
+            "method",
+            "module",
+            "namespace",
+            "struct",
+            "variable"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "fsharp.domain_native_facts",
+              "reason": "The F# fixtures prove declaration and semantic facts, but no F# domain-native structural fact family is published for attributes, computation expressions, active patterns, or quotations.",
+              "required_closure": "define fixture-backed F# structural fact kinds for the supported grammar-native domains and register their schemas before claiming them",
+              "planned_closure_task": "BRE-42 follow-up: F# domain-native structural facts"
+            }
+          ]
+        },
+        "complexity_metrics": {
+          "supported": [
+            "file",
+            "symbol"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "annotations": {
+          "supported": [
+            "function",
+            "property",
+            "struct"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [
+            "field",
+            "property",
+            "struct"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [
+            "other"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "fsharp.source_regions",
+              "reason": "The F# fixtures contain comments and strings, but normal extraction currently publishes no F# source-region rows for those sites.",
+              "required_closure": "emit comment, doc-comment, and string-literal source regions with exact spans for F# files",
+              "planned_closure_task": "BRE-42 follow-up: F# source-region facts"
+            }
+          ]
+        },
+        "test_detection": {
+          "supported": [
+            "test_case"
+          ],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_container",
+              "reason": "F# xUnit functions emit test_case roles, but no framework-owned test container is classified; Expecto test lists, NUnit fixtures, and FsUnit host containers remain unclassified.",
+              "required_closure": "determine language-native applicability for F# test containers, then define and extract framework-specific roles with non-container controls for xUnit, Expecto, NUnit, and FsUnit",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "F# xUnit functions emit test_case roles, but no setup, teardown, or other lifecycle symbol is classified; Expecto, NUnit, and FsUnit lifecycle forms remain unclassified.",
+              "required_closure": "determine language-native applicability for F# test lifecycles, then define and extract lifecycle roles for supported frameworks with explicit setup and teardown controls",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
+        }
+      }
+    },
+    {
       "language": "erlang",
       "parser_crate": "tree-sitter-erlang",
       "extensions": [

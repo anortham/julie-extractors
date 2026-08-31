@@ -46,12 +46,12 @@ The old pre-parsed-tree factory helper is now internal-only. External callers sh
 
 ## Supported Languages
 
-The crate ships 33 concrete extractors:
+The crate ships 34 concrete extractors:
 
 - Systems: Rust, C, C++, Go, Zig
 - Web: TypeScript, JavaScript, HTML, CSS, Vue, QML
 - Backend: Python, Java, C#, PHP, Ruby, Swift, Kotlin, Dart
-- Functional: Elixir, Scala
+- Functional: Elixir, F#, Scala
 - Scripting: Lua, R, Bash, PowerShell
 - Specialized: GDScript, Razor, SQL, Regex
 - Documentation and data: Markdown, JSON, TOML, YAML
