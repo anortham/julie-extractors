@@ -94,14 +94,14 @@
 **Approach:** Write failing extension/parser tests for `.fs`, `.fsx`, `.fsi`, uppercase extensions, and unsupported suffixes. Keep the public one-argument parser lookup unchanged and use the new internal path-aware helper only in normal parse entry points. Build declaration extraction through named grammar fields and existing `BaseExtractor` builders; do not infer node shapes. Add unit fixtures in strings for each declaration kind and verify ids, spans, parents, hashes, docs, and annotations.
 
 **Acceptance criteria:**
-- [ ] `tree-sitter-fsharp = "=0.3.0"` resolves with Tree-sitter 0.26.11 and the lockfile records the intended source.
-- [ ] `.fs` and `.fsx` use `LANGUAGE_FSHARP`; `.fsi` uses `LANGUAGE_SIGNATURE`.
-- [ ] Public `get_tree_sitter_language("fsharp")` returns the implementation grammar and existing callers remain source-compatible.
-- [ ] All three extensions emit `language = "fsharp"`.
-- [ ] Foundational declarations emit deterministic symbols, parentage, spans, body hashes, doc comments, and annotations.
-- [ ] Valid declaration tests pass with no parse diagnostics; malformed controls retain diagnostics.
-- [ ] Focused parser, API, and F# tests pass and the crate builds.
-- [ ] Task changes are committed per `serial-worker-commit`.
+- [x] `tree-sitter-fsharp = "=0.3.0"` resolves with Tree-sitter 0.26.11 and the lockfile records the intended source.
+- [x] `.fs` and `.fsx` use `LANGUAGE_FSHARP`; `.fsi` uses `LANGUAGE_SIGNATURE`.
+- [x] Public `get_tree_sitter_language("fsharp")` returns the implementation grammar and existing callers remain source-compatible.
+- [x] All three extensions emit `language = "fsharp"`.
+- [x] Foundational declarations emit deterministic symbols, parentage, spans, body hashes, doc comments, and annotations.
+- [x] Valid declaration tests pass with no parse diagnostics; malformed controls retain diagnostics.
+- [x] Focused parser, API, and F# tests pass and the crate builds.
+- [x] Task changes are committed per `serial-worker-commit`.
 
 ### Task 2: Add F# semantic facts and metrics
 
@@ -128,17 +128,17 @@
 
 **What to build:** Fill the normal general-purpose-language fact domains using F# syntax and exact spans. Add complexity recognition for `if`, `match` clauses and guards, loops, and exception branches only where the grammar exposes stable nodes.
 
-**Approach:** Add failing tests one fact domain at a time. Prefer structured pending relationships for qualified or imported targets and preserve unresolved facts for Miller. Emit identifier occurrences for declarations and references without duplicating the symbol's own identity row. Infer types only from explicit annotations or grammar-stable literals; mark inferred facts honestly. Use shared literal and span helpers.
+**Approach:** Add failing tests one fact domain at a time. Prefer structured pending relationships for qualified or imported targets and preserve unresolved facts for Miller. Keep declaration identity in symbol rows; the existing `IdentifierKind` contract is usage-only, so emit call, member, type, and variable-reference occurrences without fabricating a declaration kind. Infer types only from explicit annotations or grammar-stable literals; mark inferred facts honestly. Use shared literal and span helpers.
 
 **Acceptance criteria:**
-- [ ] Imports and local/cross-file relationship candidates emit with exact caller and target evidence.
-- [ ] Declaration, call, member, and type identifiers have stable distinct occurrence ids.
-- [ ] Explicit type annotations, generic arguments, record/union fields, and literal inference emit useful type facts.
-- [ ] String, character, numeric, boolean, and unit literals use exact source spans.
-- [ ] Complexity counts cover grammar-stable F# branches and loops without counting pattern syntax as control flow.
-- [ ] Negative controls avoid guessed types, relationships, and duplicate identifiers.
-- [ ] Focused semantic tests pass and the crate builds.
-- [ ] Task changes are committed per `serial-worker-commit`.
+- [x] Imports and local/cross-file relationship candidates emit with exact caller and target evidence.
+- [x] Call, member, type, and variable-reference identifiers have stable distinct occurrence ids; declarations remain canonical symbol rows.
+- [x] Explicit type annotations, generic arguments, record/union fields, and literal inference emit useful type facts with honest provenance.
+- [x] String, character, numeric, boolean, and unit literals use exact source spans.
+- [x] Complexity counts cover grammar-stable F# branches and loops without counting pattern syntax as control flow.
+- [x] Negative controls avoid guessed types, relationships, and duplicate identifiers.
+- [x] Focused semantic tests pass and the crate builds.
+- [x] Task changes are committed per `serial-worker-commit`.
 
 ### Task 3: Add F# xUnit test roles
 
@@ -164,13 +164,13 @@
 **Approach:** Start with failing Fact and Theory cases, then add qualified attribute spellings and negative controls. Use normalized annotation keys instead of raw text matching. Record unsupported Expecto, NUnit, FsUnit, container, and lifecycle shapes as explicit capability gaps unless the task adds matching fixture-backed behavior.
 
 **Acceptance criteria:**
-- [ ] `[<Fact>]` functions emit `test_case` and `[<Theory>]` functions emit `parameterized_test`.
-- [ ] Qualified xUnit attribute spellings normalize to the same roles.
-- [ ] Attribute-like names, non-callable targets, and unannotated test-looking functions remain silent.
-- [ ] Annotation markers, booleans, and `test_role` strings agree.
-- [ ] Unsupported F# test ecosystems remain honest capability gaps.
-- [ ] Focused test-detection tests pass and the crate builds.
-- [ ] Task changes are committed per `serial-worker-commit`.
+- [x] `[<Fact>]` functions emit `test_case` and `[<Theory>]` functions emit `parameterized_test`.
+- [x] Qualified xUnit attribute spellings normalize to the same roles.
+- [x] Attribute-like names, non-callable targets, and unannotated test-looking functions remain silent.
+- [x] Annotation markers, booleans, and `test_role` strings agree.
+- [x] Unsupported F# test ecosystems remain honest capability gaps.
+- [x] Focused test-detection tests pass and the crate builds.
+- [x] Task changes are committed per `serial-worker-commit`.
 
 ### Task 4: Publish F# evidence and contracts
 
