@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::{Node, Tree};
 
 use super::attach_containing_symbols;
@@ -39,7 +40,7 @@ pub(crate) fn collect_rust_doc_test_facts(
     }
 
     let mut lines = Vec::new();
-    collect_doc_comment_lines(tree.root_node(), content, &mut lines);
+    collect_doc_comment_lines(tree.root_node(), content, &mut lines, 0);
     lines.sort_by_key(|line| line.start_byte);
 
     let mut facts = Vec::new();
@@ -78,7 +79,16 @@ pub(crate) fn collect_rust_doc_test_facts(
     facts
 }
 
-fn collect_doc_comment_lines(node: Node<'_>, content: &str, lines: &mut Vec<DocCommentLine>) {
+fn collect_doc_comment_lines(
+    node: Node<'_>,
+    content: &str,
+    lines: &mut Vec<DocCommentLine>,
+    depth: u32,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind() == "line_comment"
         && let Some(line) = doc_comment_line(node, content)
     {
@@ -86,8 +96,11 @@ fn collect_doc_comment_lines(node: Node<'_>, content: &str, lines: &mut Vec<DocC
     }
 
     let mut cursor = node.walk();
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     for child in node.children(&mut cursor) {
-        collect_doc_comment_lines(child, content, lines);
+        collect_doc_comment_lines(child, content, lines, child_depth);
     }
 }
 
