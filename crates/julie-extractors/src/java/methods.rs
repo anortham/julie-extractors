@@ -104,11 +104,13 @@ pub(super) fn extract_method(
         annotations,
     };
 
-    Some(
-        extractor
-            .base_mut()
-            .create_symbol(&node, name, SymbolKind::Method, options),
-    )
+    let symbol = extractor
+        .base_mut()
+        .create_symbol(&node, name, SymbolKind::Method, options);
+    if let Some(type_node) = node.child_by_field_name("type") {
+        super::type_facts::record_return_type(extractor.base_mut(), &symbol.id, type_node);
+    }
+    Some(symbol)
 }
 
 /// Extract constructor declaration from a node

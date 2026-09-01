@@ -100,11 +100,20 @@ pub(super) fn extract_fields(
                 ..Default::default()
             };
 
-            Some(
+            let symbol =
                 extractor
                     .base_mut()
-                    .create_symbol(&node, name, symbol_kind.clone(), options),
-            )
+                    .create_symbol(&node, name, symbol_kind.clone(), options);
+            if let Some(type_node) = node.child_by_field_name("type")
+                && declarator.child_by_field_name("dimensions").is_none()
+            {
+                super::type_facts::record_declared_type(
+                    extractor.base_mut(),
+                    &symbol.id,
+                    type_node,
+                );
+            }
+            Some(symbol)
         })
         .collect()
 }

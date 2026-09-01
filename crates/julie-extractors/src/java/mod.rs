@@ -6,10 +6,13 @@
 /// - classes: Class, interface, enum, record extraction
 /// - methods: Method and constructor extraction
 /// - fields: Field and property extraction
+/// - parameters: Parameter symbol extraction for callables
+/// - locals: Local variable symbol extraction
 /// - annotations: Annotation extraction
 /// - imports_packages: Import and package declaration extraction
 /// - relationships: Inheritance and implementation relationship extraction
 /// - types: Type inference from signatures
+/// - type_facts: Declared-type fact recording
 /// - identifiers: LSP identifier tracking for references
 mod annotations;
 mod classes;
@@ -17,8 +20,11 @@ mod fields;
 mod helpers;
 mod identifiers;
 mod imports_packages;
+mod locals;
 mod methods;
+mod parameters;
 mod relationships;
+mod type_facts;
 mod types;
 
 use crate::base::{
@@ -111,9 +117,30 @@ impl JavaExtractor {
             return;
         }
 
+        if node.kind() == "local_variable_declaration" {
+            symbols.extend(locals::extract_locals(self, node, parent_id));
+
+            let Some(child_depth) = child_tree_depth(depth) else {
+                return;
+            };
+            for child in node.children(&mut node.walk()) {
+                self.walk_tree(child, symbols, parent_id, child_depth);
+            }
+            return;
+        }
+
         if let Some(symbol) = self.extract_symbol(node, parent_id) {
             let symbol_id = symbol.id.clone();
             symbols.push(symbol);
+
+            if matches!(
+                node.kind(),
+                "method_declaration" | "constructor_declaration"
+            ) {
+                symbols.extend(parameters::extract_parameter_symbols(
+                    self, node, &symbol_id,
+                ));
+            }
 
             if node.kind() == "record_declaration" {
                 let components = classes::extract_record_components(self, node, Some(&symbol_id));
