@@ -122,14 +122,15 @@ fn extract_identifier_from_node(
                 // Find containing symbol (which function/method contains this call)
                 let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
-                // Create identifier for this function call
                 let identifier = {
+                    let receiver_type = self_receiver_type(extractor, node);
                     let base = extractor.get_base_mut();
-                    base.create_identifier(
+                    base.create_identifier_with_receiver_type(
                         &identifier_node,
                         name,
                         IdentifierKind::Call,
                         containing_symbol_id,
+                        receiver_type,
                     )
                 };
 
@@ -555,4 +556,44 @@ fn find_containing_symbol_id(
     containing_symbols
         .find(node)
         .map(|symbol| symbol.id.clone())
+}
+
+pub(super) fn self_receiver_type(
+    extractor: &RustExtractor,
+    node: tree_sitter::Node,
+) -> Option<String> {
+    let callee = if node.kind() == "call_expression" {
+        let function = node.child_by_field_name("function")?;
+        if function.kind() == "generic_function" {
+            function.child_by_field_name("function").unwrap_or(function)
+        } else {
+            function
+        }
+    } else if node.kind() == "generic_function" {
+        node.child_by_field_name("function").unwrap_or(node)
+    } else {
+        node
+    };
+
+    let is_self_receiver = match callee.kind() {
+        "field_expression" => {
+            let value = callee.child_by_field_name("value")?;
+            extractor.base.get_node_text(&value) == "self"
+        }
+        "scoped_identifier" => {
+            let path = callee.child_by_field_name("path")?;
+            extractor.base.get_node_text(&path) == "Self"
+        }
+        _ => false,
+    };
+    if !is_self_receiver {
+        return None;
+    }
+
+    let start = node.start_byte();
+    extractor
+        .get_impl_blocks()
+        .iter()
+        .find(|block| start >= block.start_byte && start < block.end_byte)
+        .map(|block| block.type_name.clone())
 }

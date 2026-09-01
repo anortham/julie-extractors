@@ -387,15 +387,19 @@ fn add_structured_pending_call(
     call_node: Node,
     unresolved_target: UnresolvedTarget,
     confidence: f32,
+    receiver_type: Option<String>,
 ) {
-    let mut pending = extractor.get_base_mut().create_pending_relationship(
-        caller.id.clone(),
-        unresolved_target,
-        RelationshipKind::Calls,
-        &call_node,
-        Some(caller.id.clone()),
-        Some(confidence),
-    );
+    let mut pending = extractor
+        .get_base_mut()
+        .create_pending_relationship(
+            caller.id.clone(),
+            unresolved_target,
+            RelationshipKind::Calls,
+            &call_node,
+            Some(caller.id.clone()),
+            Some(confidence),
+        )
+        .with_receiver_type(receiver_type);
     pending.pending.callee_name = pending.target.terminal_name.clone();
     extractor.add_structured_pending_relationship(pending);
 }
@@ -418,11 +422,19 @@ fn handle_call_target(
         return;
     };
 
+    let receiver_type = super::identifiers::self_receiver_type(extractor, call_node);
     let line_number = call_node.start_position().row as u32 + 1;
     let file_path = extractor.get_base_mut().file_path.clone();
 
     if !unresolved_target.namespace_path.is_empty() {
-        add_structured_pending_call(extractor, &caller, call_node, unresolved_target, 0.7);
+        add_structured_pending_call(
+            extractor,
+            &caller,
+            call_node,
+            unresolved_target,
+            0.7,
+            receiver_type,
+        );
         return;
     }
 
@@ -432,10 +444,24 @@ fn handle_call_target(
         unresolved_target.receiver.as_deref(),
     ) {
         LocalTargetResolution::Import(_) => {
-            add_structured_pending_call(extractor, &caller, call_node, unresolved_target, 0.8);
+            add_structured_pending_call(
+                extractor,
+                &caller,
+                call_node,
+                unresolved_target,
+                0.8,
+                receiver_type,
+            );
         }
         LocalTargetResolution::ReceiverQualified => {
-            add_structured_pending_call(extractor, &caller, call_node, unresolved_target, 0.7);
+            add_structured_pending_call(
+                extractor,
+                &caller,
+                call_node,
+                unresolved_target,
+                0.7,
+                receiver_type,
+            );
         }
         LocalTargetResolution::Resolved(called_symbol) => {
             // Target is a local function/method - create resolved Relationship
@@ -459,7 +485,14 @@ fn handle_call_target(
             });
         }
         LocalTargetResolution::Ambiguous | LocalTargetResolution::Missing => {
-            add_structured_pending_call(extractor, &caller, call_node, unresolved_target, 0.7);
+            add_structured_pending_call(
+                extractor,
+                &caller,
+                call_node,
+                unresolved_target,
+                0.7,
+                receiver_type,
+            );
         }
     }
 }

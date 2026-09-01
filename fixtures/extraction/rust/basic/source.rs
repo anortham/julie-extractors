@@ -8,6 +8,8 @@ pub mod fixture {
 
     impl Worker {
         pub fn run(&self) -> i32 {
+            self.mark();
+            Self::mark();
             record_run(self.id);
             helper(self.id)
         }
