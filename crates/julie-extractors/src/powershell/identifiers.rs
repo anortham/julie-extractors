@@ -75,41 +75,34 @@ fn extract_identifier_from_node(
             }
         }
 
-        // PowerShell invocation expressions: function calls
-        "invocation_expression" => {
-            // Extract function name from invocation
-            let mut cursor = node.walk();
-            for child in node.children(&mut cursor) {
-                if child.kind() == "command_name" || child.kind() == "identifier" {
-                    let name = base.get_node_text(&child);
-                    let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
-
-                    base.create_identifier(
-                        &child,
-                        name,
-                        IdentifierKind::Call,
-                        containing_symbol_id,
-                    );
-                    break;
-                } else if child.kind() == "member_access_expression" {
-                    // For member access in invocation (e.g., $obj.Method())
-                    // Extract the rightmost identifier (the method name)
-                    let text = base.get_node_text(&child);
-                    if let Some(last_dot_pos) = text.rfind('.')
-                        && last_dot_pos + 1 < text.len()
-                    {
-                        let method_name = &text[last_dot_pos + 1..];
+        // PowerShell invocation expressions: $obj.Method() / $this.Run()
+        // Grammar spelling is `invokation_expression` (typo in tree-sitter-powershell).
+        "invocation_expression" | "invokation_expression" => {
+            if let Some((name_node, name)) = super::type_facts::invocation_member_name(base, node) {
+                let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                let receiver_type = super::type_facts::this_receiver_type(base, node);
+                base.create_identifier_with_receiver_type(
+                    &name_node,
+                    name,
+                    IdentifierKind::Call,
+                    containing_symbol_id,
+                    receiver_type,
+                );
+            } else {
+                let mut cursor = node.walk();
+                for child in node.children(&mut cursor) {
+                    if child.kind() == "command_name" || child.kind() == "identifier" {
+                        let name = base.get_node_text(&child);
                         let containing_symbol_id =
                             find_containing_symbol_id(base, node, symbol_map);
-
                         base.create_identifier(
                             &child,
-                            method_name.to_string(),
+                            name,
                             IdentifierKind::Call,
                             containing_symbol_id,
                         );
+                        break;
                     }
-                    break;
                 }
             }
         }

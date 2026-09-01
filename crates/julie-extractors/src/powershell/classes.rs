@@ -5,6 +5,7 @@ use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
 use tree_sitter::Node;
 
 use super::documentation;
+use super::type_facts;
 use super::helpers::{
     extract_enum_member_value, extract_inheritance, extract_property_type, find_class_name_node,
     find_enum_member_name_node, find_enum_name_node, find_method_name_node,
@@ -58,13 +59,18 @@ pub(super) fn extract_method(
         Visibility::Public
     };
 
+    let kind = type_facts::enclosing_class_name(base, node)
+        .filter(|class_name| class_name.eq_ignore_ascii_case(&name))
+        .map(|_| SymbolKind::Constructor)
+        .unwrap_or(SymbolKind::Method);
+
     // Extract doc comment (PowerShell comment-based help)
     let doc_comment = documentation::extract_powershell_doc_comment(base, &node);
 
     Some(base.create_symbol(
         &node,
         name,
-        SymbolKind::Method,
+        kind,
         SymbolOptions {
             signature: Some(signature),
             visibility: Some(visibility),
@@ -97,7 +103,7 @@ pub(super) fn extract_property(
     // Extract doc comment (PowerShell comment-based help)
     let doc_comment = documentation::extract_powershell_doc_comment(base, &node);
 
-    Some(base.create_symbol(
+    let symbol = base.create_symbol(
         &node,
         name,
         SymbolKind::Property,
@@ -109,7 +115,9 @@ pub(super) fn extract_property(
             doc_comment,
             annotations: Vec::new(),
         },
-    ))
+    );
+    type_facts::record_declared_type_literal(base, &symbol.id, node);
+    Some(symbol)
 }
 
 /// Extract enum symbols

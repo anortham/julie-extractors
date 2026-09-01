@@ -147,13 +147,11 @@ fn extract_fixture(source: &str) -> crate::ExtractionResults {
 #[test]
 fn basic_fixture_emits_nested_type_arguments_via_canonical_pipeline() {
     let results = extract_fixture(FIXTURE_SOURCE);
-    assert_eq!(
-        results.type_argument_usages.len(),
-        1,
-        "fixture should emit one Dictionary[string, List[int]] usage, got {:?}",
-        results.type_argument_usages
-    );
-    let usage = &results.type_argument_usages[0];
+    let usage = results
+        .type_argument_usages
+        .iter()
+        .find(|usage| top_level(usage) == vec![(0, "string"), (1, "List")])
+        .expect("fixture should emit Dictionary[string, List[int]] usage");
     assert_eq!(top_level(usage), vec![(0, "string"), (1, "List")]);
     assert!(usage.arguments[0].children.is_empty());
     assert_eq!(

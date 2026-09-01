@@ -22,6 +22,7 @@ pub mod identifiers;
 pub mod imports;
 pub mod relationships;
 pub mod test_calls;
+pub mod type_facts;
 pub mod types;
 pub mod variables;
 
@@ -71,8 +72,12 @@ impl PowerShellExtractor {
         let mut current_parent_id = parent_id;
 
         if let Some(symbol) = self.extract_symbol_from_node(node, current_parent_id.as_deref()) {
-            // If this is a function, extract its parameters
-            if symbol.kind == crate::base::SymbolKind::Function {
+            if matches!(
+                symbol.kind,
+                crate::base::SymbolKind::Function
+                    | crate::base::SymbolKind::Method
+                    | crate::base::SymbolKind::Constructor
+            ) {
                 let parameters =
                     functions::extract_function_parameters(&mut self.base, node, &symbol.id);
                 symbols.extend(parameters);

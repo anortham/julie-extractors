@@ -39,3 +39,30 @@ class Worker {
         return Invoke-Helper $this.Id
     }
 }
+
+function Get-Name {
+    [CmdletBinding()]
+    param(
+        [Parameter()]
+        [string]
+        $Name
+    )
+}
+
+class Widget {
+    [string]$Title
+
+    Widget() {}
+
+    [void] Run([Foo]$f) {
+        $this.Run($f)
+        $other.Run($f)
+    }
+}
+
+function Use-Facts {
+    [System.Collections.Generic.List[string]]$items = @()
+    $w = [Widget]::new()
+    $n = New-Object Widget
+    $g = Get-Thing
+}

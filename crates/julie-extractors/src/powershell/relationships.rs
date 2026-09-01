@@ -25,6 +25,9 @@ pub(super) fn walk_tree_for_relationships(
         "command" | "command_expression" | "pipeline" | "pipeline_expression" => {
             extract_command_relationships(extractor, node, symbols, relationships);
         }
+        "invocation_expression" | "invokation_expression" => {
+            extract_invocation_relationships(extractor, node, symbols);
+        }
         "class_definition" | "class_statement" => {
             extract_inheritance_relationships(&extractor.base, node, symbols, relationships);
         }
@@ -138,4 +141,37 @@ fn extract_inheritance_relationships(
             ));
         }
     }
+}
+
+fn extract_invocation_relationships(
+    extractor: &mut super::PowerShellExtractor,
+    node: Node,
+    symbols: &[Symbol],
+) {
+    let Some((name_node, method_name)) =
+        super::type_facts::invocation_member_name(&extractor.base, node)
+    else {
+        return;
+    };
+    let Some(caller) = extractor.base.find_containing_symbol(&node, symbols).filter(|symbol| {
+        matches!(
+            symbol.kind,
+            SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor
+        )
+    }) else {
+        return;
+    };
+    let receiver_type = super::type_facts::this_receiver_type(&extractor.base, node);
+    let pending = extractor
+        .base
+        .create_pending_relationship_at_target(
+            caller.id.clone(),
+            UnresolvedTarget::simple(method_name),
+            RelationshipKind::Calls,
+            &name_node,
+            Some(caller.id.clone()),
+            Some(0.7),
+        )
+        .with_receiver_type(receiver_type);
+    extractor.add_structured_pending_relationship(pending);
 }
