@@ -62,7 +62,7 @@ fn fact<'a>(
 fn no_fact(extractor: &VbNetExtractor, symbols: &[Symbol], name: &str, kind: SymbolKind) {
     let symbol = symbol(symbols, name, kind);
     assert!(
-        extractor.base.type_info.get(&symbol.id).is_none(),
+        !extractor.base.type_info.contains_key(&symbol.id),
         "unexpected type fact for {name}"
     );
 }

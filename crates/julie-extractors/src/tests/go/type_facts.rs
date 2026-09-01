@@ -45,7 +45,7 @@ mod go_type_fact_tests {
 
     fn no_fact(extractor: &GoExtractor, symbol: &Symbol) {
         assert!(
-            extractor.base.type_info.get(&symbol.id).is_none(),
+            !extractor.base.type_info.contains_key(&symbol.id),
             "expected no type fact for `{}`",
             symbol.name
         );
@@ -451,7 +451,7 @@ func Handle(items []Store, index map[string]Store, rest ...Store) {}
             let params = parameter_symbols(&symbols, name);
             assert_eq!(params.len(), 1, "expected one `{name}` parameter symbol");
             assert!(
-                extractor.base.type_info.get(&params[0].id).is_none(),
+                !extractor.base.type_info.contains_key(&params[0].id),
                 "expected no type fact for `{name}`"
             );
         }
@@ -489,13 +489,13 @@ type Registry struct {
             .iter()
             .find(|s| s.name == "Names" && s.kind == SymbolKind::Field)
             .expect("missing Names field");
-        assert!(extractor.base.type_info.get(&names.id).is_none());
+        assert!(!extractor.base.type_info.contains_key(&names.id));
 
         let embedded = symbols
             .iter()
             .find(|s| s.kind == SymbolKind::Field && s.name == "Store")
             .expect("missing embedded Store field");
-        assert!(extractor.base.type_info.get(&embedded.id).is_none());
+        assert!(!extractor.base.type_info.contains_key(&embedded.id));
     }
 
     #[test]

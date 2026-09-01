@@ -52,7 +52,7 @@ fn declared_metadata(fact: &TypeInfo) -> Option<&str> {
 
 fn no_fact(extractor: &FSharpExtractor, symbol: &Symbol) {
     assert!(
-        extractor.base.type_info.get(&symbol.id).is_none(),
+        !extractor.base.type_info.contains_key(&symbol.id),
         "expected no type fact for `{}`",
         symbol.name
     );

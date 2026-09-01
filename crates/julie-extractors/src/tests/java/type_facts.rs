@@ -93,7 +93,7 @@ class Sample {
 "#;
     let (symbols, extractor) = extract(source);
     let local = symbol(&symbols, "streamed", SymbolKind::Variable);
-    assert!(extractor.base.type_info.get(&local.id).is_none());
+    assert!(!extractor.base.type_info.contains_key(&local.id));
 }
 
 #[test]
@@ -221,7 +221,7 @@ class Sample {
             .and_then(|v| v.as_str()),
         Some("parameter")
     );
-    assert!(extractor.base.type_info.get(&parts.id).is_none());
+    assert!(!extractor.base.type_info.contains_key(&parts.id));
 }
 
 #[test]
@@ -244,7 +244,7 @@ class Sample {
             .and_then(|v| v.as_str()),
         Some("parameter")
     );
-    assert!(extractor.base.type_info.get(&item.id).is_none());
+    assert!(!extractor.base.type_info.contains_key(&item.id));
 }
 
 #[test]
@@ -269,8 +269,8 @@ class Sample {
             .and_then(|v| v.as_str()),
         Some("parameter")
     );
-    assert!(extractor.base.type_info.get(&item.id).is_none());
-    assert!(extractor.base.type_info.get(&extra.id).is_none());
+    assert!(!extractor.base.type_info.contains_key(&item.id));
+    assert!(!extractor.base.type_info.contains_key(&extra.id));
 }
 
 #[test]
@@ -314,7 +314,7 @@ class Sample {
     let method = symbol(&symbols, "run", SymbolKind::Method);
     let failure = symbol(&symbols, "failure", SymbolKind::Variable);
     assert_eq!(failure.parent_id.as_deref(), Some(method.id.as_str()));
-    assert!(extractor.base.type_info.get(&failure.id).is_none());
+    assert!(!extractor.base.type_info.contains_key(&failure.id));
 }
 
 #[test]
@@ -388,7 +388,7 @@ class Sample {
 "#;
     let (symbols, extractor) = extract(source);
     let job = symbol(&symbols, "job", SymbolKind::Variable);
-    assert!(extractor.base.type_info.get(&job.id).is_none());
+    assert!(!extractor.base.type_info.contains_key(&job.id));
 }
 
 #[test]
@@ -520,9 +520,9 @@ class Sample {
 "#;
     let (symbols, extractor) = extract(source);
     let reset = symbol(&symbols, "reset", SymbolKind::Method);
-    assert!(extractor.base.type_info.get(&reset.id).is_none());
+    assert!(!extractor.base.type_info.contains_key(&reset.id));
     let ctor = symbol(&symbols, "Sample", SymbolKind::Constructor);
-    assert!(extractor.base.type_info.get(&ctor.id).is_none());
+    assert!(!extractor.base.type_info.contains_key(&ctor.id));
 }
 
 fn extract_with_calls(source: &str) -> (Vec<Symbol>, JavaExtractor) {

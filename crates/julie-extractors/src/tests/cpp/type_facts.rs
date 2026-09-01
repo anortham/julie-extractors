@@ -40,7 +40,7 @@ mod cpp_type_fact_tests {
 
     fn no_fact(extractor: &CppExtractor, symbol: &Symbol) {
         assert!(
-            extractor.base.type_info.get(&symbol.id).is_none(),
+            !extractor.base.type_info.contains_key(&symbol.id),
             "expected no type fact for `{}`",
             symbol.name
         );

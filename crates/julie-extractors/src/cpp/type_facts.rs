@@ -116,9 +116,7 @@ fn structural_base_name(base: &BaseExtractor, node: Node, depth: u32) -> Option<
                 node = node.child_by_field_name("name")?;
             }
             "qualified_identifier" => {
-                let Some(child_depth) = child_tree_depth(depth) else {
-                    return None;
-                };
+                let child_depth = child_tree_depth(depth)?;
                 let scope = node.child_by_field_name("scope")?;
                 let name = node.child_by_field_name("name")?;
                 let scope_text = structural_base_name(base, scope, child_depth)

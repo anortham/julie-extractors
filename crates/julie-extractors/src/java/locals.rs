@@ -202,10 +202,8 @@ fn binding_symbol(
             ..Default::default()
         },
     );
-    if record_type {
-        if let Some(type_node) = type_node {
-            type_facts::record_declared_type(extractor.base_mut(), &symbol.id, type_node);
-        }
+    if record_type && let Some(type_node) = type_node {
+        type_facts::record_declared_type(extractor.base_mut(), &symbol.id, type_node);
     }
     symbol
 }

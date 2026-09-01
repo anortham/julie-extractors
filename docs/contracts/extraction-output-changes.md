@@ -89,6 +89,50 @@ In CI, the `Extractor Compatibility` job downloads the latest published release 
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
+## 2.39.0
+
+classification: compatible
+
+Receiver-type facts waves 1 and 2 change extraction output for every
+general-purpose language (wave 1: csharp, typescript, javascript, python, rust,
+go, java; wave 2: the remaining twenty plus wave-1 refinements), and the
+`RAZORBACK` marker token widens `code.marker.v1`, without touching any table,
+column, or JSONL field. Artifacts stay schema 7, JSONL stays contract v5, and
+family stores stay store schema 2. The extraction identity epoch advances from
+8 to 9, so family-store import writes fresh epoch-9 file versions instead of
+reusing epoch-8 identities that predate these rows.
+
+- New `variable` symbol rows for parameters (`metadata_json.role = "parameter"`)
+  and function-local declarations, parented to the enclosing callable.
+- New `structural_facts` rows for `RAZORBACK` comments under `code.marker.v1`.
+- Wave 1 dropped legacy `types` values that can never match a type symbol
+  (whitespace, commas, dangling `<` or `>`) and the TypeScript `unique symbol`
+  annotation row; 66 rows left the goldens.
+- New `type_facts` rows for declared and same-file inferred types; every
+  `resolved_type` is a base type name, with the full declared text in
+  `metadata_json.declared` when it differs.
+- `receiver_type` keys in `identifiers.metadata_json` and
+  `pending_relationships.metadata_json` for self-style call sites.
+- Kind changes on existing rows: function-local `val`/`let`/`const`/`final`
+  rows become `variable` (kotlin, swift, gdscript, scala, zig, dart, ruby);
+  ruby `@x`/`@@x` and razor `@code` fields become `field`; powershell class
+  constructors become `constructor`; kotlin and scala primary-constructor
+  parameters are `property` rows under the class.
+- Span changes on existing rows: dart callable symbols span the whole
+  declaration; R6 and RefClass members span their own argument. Containing
+  and caller-scope keys inside those bodies move with them.
+- Legacy inference rows that carried non-base-name text (`[Foo]`,
+  `List<String>`, `void Function()`, `*Worker`, `final`, `inferred`) are gone.
+- `language_capabilities` rows change for the nineteen closed `open_gaps`
+  entries; lua and r claim `types`.
+
+`EXTRACTION_CONTRACT_VERSION` gains the suffixes `marker-razorback-v1`,
+`receiver-type-facts-v1`, and `receiver-type-facts-v2`.
+
+Consumer action: replace the binary and re-extract. An existing artifact keeps
+reading unchanged, but an index that merges 2.38.x and 2.39.0 output disagrees
+on the kinds and spans above and misses the new fact rows until re-extracted.
+
 ## 2.38.2
 
 classification: compatible

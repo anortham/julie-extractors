@@ -204,12 +204,12 @@ public class Sample {
         .iter()
         .find(|s| s.name == "Reset" && s.kind == SymbolKind::Method)
         .unwrap();
-    assert!(extractor.base.type_info.get(&reset.id).is_none());
+    assert!(!extractor.base.type_info.contains_key(&reset.id));
     let ctor = symbols
         .iter()
         .find(|s| s.name == "Sample" && s.kind == SymbolKind::Constructor)
         .unwrap();
-    assert!(extractor.base.type_info.get(&ctor.id).is_none());
+    assert!(!extractor.base.type_info.contains_key(&ctor.id));
 }
 
 #[test]
@@ -226,7 +226,7 @@ public class Sample {
         .iter()
         .find(|s| s.name == "streamed" && s.kind == SymbolKind::Variable)
         .unwrap();
-    assert!(extractor.base.type_info.get(&symbol.id).is_none());
+    assert!(!extractor.base.type_info.contains_key(&symbol.id));
 }
 
 #[test]
@@ -243,7 +243,7 @@ public class Sample {
         .iter()
         .find(|s| s.name == "pair" && s.kind == SymbolKind::Variable)
         .unwrap();
-    assert!(extractor.base.type_info.get(&symbol.id).is_none());
+    assert!(!extractor.base.type_info.contains_key(&symbol.id));
 }
 
 #[test]

@@ -87,7 +87,7 @@ end
         let n = ns[0];
         assert_eq!(n.kind, SymbolKind::Variable);
         assert_eq!(n.parent_id.as_deref(), Some(run.id.as_str()));
-        assert!(extractor.base.type_info.get(&n.id).is_none());
+        assert!(!extractor.base.type_info.contains_key(&n.id));
     }
 
     #[test]
@@ -104,7 +104,7 @@ end
         let xs = parameter_symbols(&symbols, "x");
         assert_eq!(xs.len(), 1);
         assert_eq!(xs[0].parent_id.as_deref(), Some(go.id.as_str()));
-        assert!(extractor.base.type_info.get(&xs[0].id).is_none());
+        assert!(!extractor.base.type_info.contains_key(&xs[0].id));
 
         let y = local(&symbols, "y");
         assert_eq!(y.kind, SymbolKind::Variable);
@@ -138,7 +138,7 @@ end
             let var = local(&symbols, name);
             assert_eq!(var.kind, SymbolKind::Variable);
             assert_eq!(var.parent_id.as_deref(), Some(go.id.as_str()));
-            assert!(extractor.base.type_info.get(&var.id).is_none());
+            assert!(!extractor.base.type_info.contains_key(&var.id));
         }
     }
 
@@ -173,7 +173,7 @@ end
 
         let u = local(&symbols, "u");
         assert_eq!(u.kind, SymbolKind::Variable);
-        assert!(extractor.base.type_info.get(&u.id).is_none());
+        assert!(!extractor.base.type_info.contains_key(&u.id));
     }
 
     #[test]
@@ -188,7 +188,7 @@ end
 
         let y = local(&symbols, "y");
         assert_eq!(y.kind, SymbolKind::Variable);
-        assert!(extractor.base.type_info.get(&y.id).is_none());
+        assert!(!extractor.base.type_info.contains_key(&y.id));
     }
 
     #[test]
@@ -204,7 +204,7 @@ end
 
         let y = local(&symbols, "y");
         assert_eq!(y.kind, SymbolKind::Variable);
-        assert!(extractor.base.type_info.get(&y.id).is_none());
+        assert!(!extractor.base.type_info.contains_key(&y.id));
 
         let identifiers = extractor.extract_identifiers(&tree, &symbols);
         assert!(
@@ -226,7 +226,7 @@ end
 
         let y = local(&symbols, "y");
         assert_eq!(y.kind, SymbolKind::Variable);
-        assert!(extractor.base.type_info.get(&y.id).is_none());
+        assert!(!extractor.base.type_info.contains_key(&y.id));
 
         let identifiers = extractor.extract_identifiers(&tree, &symbols);
         assert!(

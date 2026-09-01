@@ -176,7 +176,7 @@ fn run() {
     let (symbols, extractor) = extract(source);
     let local = symbol(&symbols, "value", SymbolKind::Variable);
     assert_eq!(local.signature.as_deref(), Some("let value"));
-    assert!(extractor.base.type_info.get(&local.id).is_none());
+    assert!(!extractor.base.type_info.contains_key(&local.id));
 }
 
 #[test]
@@ -272,7 +272,7 @@ fn run(pair: (u32, u32)) {
 "#;
     let (symbols, extractor) = extract(source);
     let param = symbol(&symbols, "pair", SymbolKind::Variable);
-    assert!(extractor.base.type_info.get(&param.id).is_none());
+    assert!(!extractor.base.type_info.contains_key(&param.id));
 }
 
 #[test]
@@ -368,7 +368,7 @@ trait Walker {
     let method = symbol(&symbols, "walk", SymbolKind::Function);
     let self_param = symbol(&symbols, "self", SymbolKind::Variable);
     assert_eq!(self_param.parent_id.as_deref(), Some(method.id.as_str()));
-    assert!(extractor.base.type_info.get(&self_param.id).is_none());
+    assert!(!extractor.base.type_info.contains_key(&self_param.id));
     let local = symbol(&symbols, "steps", SymbolKind::Variable);
     assert_eq!(local.parent_id.as_deref(), Some(method.id.as_str()));
 }

@@ -168,7 +168,7 @@ fn function_pointer_parameter_is_a_symbol_without_a_fact() {
     let function = symbol(&symbols, "handler", SymbolKind::Function);
     let cb = parameter(&symbols, "cb");
     assert_eq!(cb.parent_id.as_deref(), Some(function.id.as_str()));
-    assert!(extractor.base.type_info.get(&cb.id).is_none());
+    assert!(!extractor.base.type_info.contains_key(&cb.id));
 }
 
 #[test]
@@ -196,10 +196,10 @@ fn multi_word_sized_types_record_no_fact_and_single_word_sized_types_record_the_
     for name in ["a", "b"] {
         let param = parameter(&symbols, name);
         assert_eq!(param.parent_id.as_deref(), Some(function.id.as_str()));
-        assert!(extractor.base.type_info.get(&param.id).is_none());
+        assert!(!extractor.base.type_info.contains_key(&param.id));
     }
     let e = symbol(&symbols, "e", SymbolKind::Variable);
-    assert!(extractor.base.type_info.get(&e.id).is_none());
+    assert!(!extractor.base.type_info.contains_key(&e.id));
 
     assert_eq!(
         fact(&extractor, parameter(&symbols, "c")).resolved_type,
@@ -229,7 +229,7 @@ fn legacy_signature_inference_rejects_test_macro_text() {
     let types = extractor.infer_types(&symbols);
     for symbol in symbols.iter().filter(|s| s.name != "count") {
         assert!(
-            types.get(&symbol.id).is_none(),
+            !types.contains_key(&symbol.id),
             "unexpected type row for `{}`",
             symbol.name
         );

@@ -86,7 +86,7 @@ mod typescript_type_fact_tests {
         let (symbols, extractor) = extract("const graph = new ns.GraphTraversal();");
 
         let graph = symbol(&symbols, "graph");
-        assert!(extractor.base.type_info.get(&graph.id).is_none());
+        assert!(!extractor.base.type_info.contains_key(&graph.id));
     }
 
     #[test]
@@ -103,7 +103,7 @@ const d: "literal" = w;
         for name in ["a", "b", "c", "d"] {
             let local = symbol(&symbols, name);
             assert!(
-                extractor.base.type_info.get(&local.id).is_none(),
+                !extractor.base.type_info.contains_key(&local.id),
                 "`{name}` must not carry a type fact"
             );
         }
@@ -161,7 +161,7 @@ class Worker {
         let mode = symbol(&symbols, "mode");
         assert_eq!(mode.kind, SymbolKind::Variable);
         assert_eq!(mode.parent_id.as_deref(), Some(run.id.as_str()));
-        assert!(extractor.base.type_info.get(&mode.id).is_none());
+        assert!(!extractor.base.type_info.contains_key(&mode.id));
     }
 
     #[test]
@@ -172,7 +172,7 @@ class Worker {
         let mode = symbol(&symbols, "mode");
         assert_eq!(mode.kind, SymbolKind::Variable);
         assert_eq!(mode.parent_id.as_deref(), Some(run.id.as_str()));
-        assert!(extractor.base.type_info.get(&mode.id).is_none());
+        assert!(!extractor.base.type_info.contains_key(&mode.id));
     }
 
     #[test]
@@ -206,7 +206,7 @@ class Worker {
         assert_eq!(fact(&extractor, maybe).resolved_type, "GraphNode");
 
         let inline = symbol(&symbols, "inline");
-        assert!(extractor.base.type_info.get(&inline.id).is_none());
+        assert!(!extractor.base.type_info.contains_key(&inline.id));
     }
 
     #[test]
@@ -214,7 +214,7 @@ class Worker {
         let (symbols, extractor) = extract("const $output: unique symbol = Symbol();");
 
         let output = symbol(&symbols, "$output");
-        assert!(extractor.base.type_info.get(&output.id).is_none());
+        assert!(!extractor.base.type_info.contains_key(&output.id));
     }
 
     #[test]

@@ -38,6 +38,7 @@ pub(super) fn function_clause(extractor: &ErlangExtractor, node: &Node) -> Optio
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn extract_function(
     extractor: &mut ErlangExtractor,
     node: &Node,

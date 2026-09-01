@@ -224,10 +224,10 @@ fn generic_argument_type(node: Node) -> Option<Node> {
         if is_type_node(&child) {
             return Some(child);
         }
-        if matches!(child.kind(), "type_attributes" | "types" | "type_attribute") {
-            if let Some(inner) = first_type_or_named_child(child) {
-                return Some(inner);
-            }
+        if matches!(child.kind(), "type_attributes" | "types" | "type_attribute")
+            && let Some(inner) = first_type_or_named_child(child)
+        {
+            return Some(inner);
         }
     }
     None

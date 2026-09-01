@@ -62,7 +62,7 @@ mod javascript_type_fact_tests {
         let (symbols, extractor) = extract("const graph = new ns.GraphTraversal();");
 
         let graph = symbol(&symbols, "graph");
-        assert!(extractor.base.type_info.get(&graph.id).is_none());
+        assert!(!extractor.base.type_info.contains_key(&graph.id));
     }
 
     #[test]
@@ -76,7 +76,7 @@ mod javascript_type_fact_tests {
             let param = params[0];
             assert_eq!(param.kind, SymbolKind::Variable);
             assert_eq!(param.parent_id.as_deref(), Some(process.id.as_str()));
-            assert!(extractor.base.type_info.get(&param.id).is_none());
+            assert!(!extractor.base.type_info.contains_key(&param.id));
         }
     }
 

@@ -156,10 +156,10 @@ impl PhpExtractor {
         if let Some(sym) = symbol {
             current_parent_id = Some(sym.id.clone());
             symbols.push(sym);
-            if matches!(node.kind(), "function_definition" | "method_declaration") {
-                if let Some(callable_id) = current_parent_id.as_deref() {
-                    symbols.extend(extract_parameter_symbols(self, node, callable_id));
-                }
+            if matches!(node.kind(), "function_definition" | "method_declaration")
+                && let Some(callable_id) = current_parent_id.as_deref()
+            {
+                symbols.extend(extract_parameter_symbols(self, node, callable_id));
             }
         }
 

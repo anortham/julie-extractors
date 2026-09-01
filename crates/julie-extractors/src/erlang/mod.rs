@@ -208,23 +208,23 @@ impl ErlangExtractor {
                 "callback" => attributes::extract_callback(self, declaration, parent_id),
                 "fun_decl" => {
                     let clause = definition_forms::function_clause(self, declaration);
-                    if let Some(clause) = clause {
-                        if emitted.insert(clause.identity.clone()) {
-                            let clause_count =
-                                clause_counts.get(&clause.identity).copied().unwrap_or(1);
-                            let clauses = self.clause_run(declarations, index, &clause.identity);
-                            if let Some(extent) = self.clause_run_extent(clauses) {
-                                symbols.extend(definition_forms::extract_function(
-                                    self,
-                                    declaration,
-                                    extent,
-                                    &clause,
-                                    clause_count,
-                                    parent_id,
-                                    clauses,
-                                    &same_file_records,
-                                ));
-                            }
+                    if let Some(clause) = clause
+                        && emitted.insert(clause.identity.clone())
+                    {
+                        let clause_count =
+                            clause_counts.get(&clause.identity).copied().unwrap_or(1);
+                        let clauses = self.clause_run(declarations, index, &clause.identity);
+                        if let Some(extent) = self.clause_run_extent(clauses) {
+                            symbols.extend(definition_forms::extract_function(
+                                self,
+                                declaration,
+                                extent,
+                                &clause,
+                                clause_count,
+                                parent_id,
+                                clauses,
+                                &same_file_records,
+                            ));
                         }
                     }
                     None

@@ -14,10 +14,10 @@ pub(super) fn extract_parameter_symbols(
 ) -> Vec<Symbol> {
     let mut symbols = Vec::new();
     for field in ["receiver", "parameters"] {
-        if let Some(list_node) = callable_node.child_by_field_name(field) {
-            if list_node.kind() == "parameter_list" {
-                extract_from_parameter_list(base, list_node, callable_id, &mut symbols);
-            }
+        if let Some(list_node) = callable_node.child_by_field_name(field)
+            && list_node.kind() == "parameter_list"
+        {
+            extract_from_parameter_list(base, list_node, callable_id, &mut symbols);
         }
     }
     symbols
@@ -65,10 +65,8 @@ fn extract_from_parameter_list(
                     ..Default::default()
                 },
             );
-            if records_facts {
-                if let Some(type_node) = type_node {
-                    super::type_facts::record_type_node_fact(base, &symbol.id, type_node, false);
-                }
+            if records_facts && let Some(type_node) = type_node {
+                super::type_facts::record_type_node_fact(base, &symbol.id, type_node, false);
             }
             symbols.push(symbol);
         }

@@ -78,9 +78,7 @@ pub(super) fn extract_assignment(
 
 fn class_parent_id(base: &BaseExtractor, mut parent_id: Option<String>) -> Option<String> {
     while let Some(id) = parent_id {
-        let Some(symbol) = base.symbol_map.get(&id) else {
-            return None;
-        };
+        let symbol = base.symbol_map.get(&id)?;
         if matches!(symbol.kind, SymbolKind::Class | SymbolKind::Module) {
             return Some(id);
         }

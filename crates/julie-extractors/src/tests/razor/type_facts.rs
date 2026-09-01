@@ -37,7 +37,7 @@ fn fact<'a>(extractor: &'a RazorExtractor, symbol: &Symbol) -> &'a TypeInfo {
 
 fn no_fact(extractor: &RazorExtractor, symbol: &Symbol) {
     assert!(
-        extractor.base.type_info.get(&symbol.id).is_none(),
+        !extractor.base.type_info.contains_key(&symbol.id),
         "expected no type fact for `{}`",
         symbol.name
     );

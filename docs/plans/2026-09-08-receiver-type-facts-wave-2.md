@@ -930,9 +930,19 @@ Commit modes: serial tasks use `serial-worker-commit`. Batches A, B, and C use `
 | affected-change | go walker traversal budget | `cargo test -p julie-extractors --lib -- tests::go::type_facts tests::traversal_guard_convention` | fd34fe46 | 15 passed | 2026-09-01 |
 | affected-change | lib suite after Batch C merge | `cargo test -p julie-extractors --lib` | 1952697b | 3860 passed | 2026-09-01 |
 | replay | 0 corrupt resolved_type; params in 21 langs; receiver_type on applicable langs | `julie-extract scan` of 21 basic fixtures | 7bb6f63b | pass | 2026-09-01 |
-| branch-gate | workspace tests | `cargo test --workspace` | pending-closeout | 4811 passed | 2026-09-01 |
-| branch-gate | golden | `cargo xtask test golden` | pending-closeout | 6 passed | 2026-09-01 |
-| branch-gate | capability | `cargo xtask test capability` | pending-closeout | 39 passed | 2026-09-01 |
-| branch-gate | quality report | `node scripts/language-data-quality-report.mjs --strict` | pending-closeout | silent_cells=0 quality_bar_debts=0 | 2026-09-01 |
+| branch-gate | workspace tests | `cargo test --workspace` | 6e8bbc49 | 4811 passed | 2026-09-01 |
+| branch-gate | golden | `cargo xtask test golden` | 6e8bbc49 | 6 passed | 2026-09-01 |
+| branch-gate | capability | `cargo xtask test capability` | 6e8bbc49 | 39 passed | 2026-09-01 |
+| branch-gate | quality report | `node scripts/language-data-quality-report.mjs --strict` | 6e8bbc49 | silent_cells=0 quality_bar_debts=0 | 2026-09-01 |
+| branch-gate | diff check at closeout | `git diff --check main...HEAD` | 6e8bbc49 | FAIL: blank line at EOF in bash and zig basic sources; fixed in cfafec90 | 2026-09-01 |
+| review | six per-language reviews; escalation triggers hit in dart, powershell, qml (containing shifts) and legacy inference leaked non-base-name values | lead review of `git diff 54ad36bd...6e8bbc49` | 6e8bbc49 | 5 Critical/Important groups fixed, plan mismatches ruled in the decision doc | 2026-09-01 |
+| worker-red-green | review fixes per language | `cargo xtask test language <lang>` for all 26 languages | cfafec90 | pass | 2026-09-01 |
+| branch-gate | fmt | `cargo fmt --all -- --check` | cfafec90 | pass | 2026-09-01 |
+| branch-gate | diff check | `git diff --check main` | cfafec90 | pass | 2026-09-01 |
+| branch-gate | quality report | `node scripts/language-data-quality-report.mjs --strict` | cfafec90 | silent_cells=0 quality_bar_debts=0 | 2026-09-01 |
+| branch-gate | workspace tests | `cargo test --workspace` | cfafec90 | 4911 passed | 2026-09-01 |
+| branch-gate | capability | `cargo xtask test capability` | cfafec90 | pass | 2026-09-01 |
+| branch-gate | golden | `cargo xtask test golden` | cfafec90 | pass | 2026-09-01 |
+| replay | 0 corrupt resolved_type across every fixture dir (two-ended query); params in 21 langs; receiver_type on applicable langs | `julie-extract scan` of all 21 language fixture trees | cfafec90 | pass (vbnet `Integer()`/`Worker()` are kept array suffixes) | 2026-09-01 |
 
 Security scope: none declared in this plan, so the branch gate runs no security commands.

@@ -57,7 +57,7 @@ fn declared_metadata(fact: &TypeInfo) -> Option<&serde_json::Value> {
 
 fn no_fact(extractor: &PowerShellExtractor, symbol: &Symbol) {
     assert!(
-        extractor.base.type_info.get(&symbol.id).is_none(),
+        !extractor.base.type_info.contains_key(&symbol.id),
         "expected no type fact for `{}`",
         symbol.name
     );
@@ -305,7 +305,7 @@ class Widget {
         .find(|s| s.name == "Widget" && s.kind == SymbolKind::Class)
         .expect("missing class Widget");
     assert_eq!(ctor.parent_id.as_deref(), Some(class.id.as_str()));
-    assert!(extractor.base.type_info.get(&ctor.id).is_none());
+    assert!(!extractor.base.type_info.contains_key(&ctor.id));
 }
 
 #[test]

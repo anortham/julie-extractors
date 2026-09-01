@@ -65,7 +65,7 @@ fn fact<'a>(
 fn no_fact(extractor: &QmlExtractor, symbols: &[Symbol], name: &str, kind: SymbolKind) {
     let symbol = symbol(symbols, name, kind);
     assert!(
-        extractor.base.type_info.get(&symbol.id).is_none(),
+        !extractor.base.type_info.contains_key(&symbol.id),
         "unexpected type fact for {name}"
     );
 }
@@ -116,7 +116,7 @@ Item {
         assert_eq!(param.kind, SymbolKind::Variable);
         assert_eq!(role(param), Some("parameter"));
         assert_eq!(param.parent_id.as_deref(), Some(function.id.as_str()));
-        assert!(extractor.base.type_info.get(&param.id).is_none());
+        assert!(!extractor.base.type_info.contains_key(&param.id));
     }
 }
 

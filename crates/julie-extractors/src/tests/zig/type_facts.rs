@@ -45,7 +45,7 @@ mod zig_type_fact_tests {
 
     fn no_fact(extractor: &ZigExtractor, symbol: &Symbol) {
         assert!(
-            extractor.base.type_info.get(&symbol.id).is_none(),
+            !extractor.base.type_info.contains_key(&symbol.id),
             "expected no type fact for `{}`",
             symbol.name
         );
@@ -443,7 +443,7 @@ fn demo(self: *Store, event: []const u8) void {
         };
         for name in ["a", "b", "c", "buf", "demo", "make"] {
             assert!(
-                results.types.get(&id_of(name)).is_none(),
+                !results.types.contains_key(&id_of(name)),
                 "unexpected type row for `{name}`"
             );
         }
