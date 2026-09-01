@@ -89,12 +89,14 @@ fn extract_identifier_from_node(
                 if let Some(last_identifier) = identifiers.last() {
                     let name = base.get_node_text(last_identifier);
                     let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                    let receiver_type = super::type_facts::self_receiver_type(base, node);
 
-                    base.create_identifier(
+                    base.create_identifier_with_receiver_type(
                         last_identifier,
                         name,
                         IdentifierKind::Call,
                         containing_symbol_id,
+                        receiver_type,
                     );
                 }
             }

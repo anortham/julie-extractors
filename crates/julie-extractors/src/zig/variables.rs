@@ -6,6 +6,8 @@ use tree_sitter::Node;
 
 use super::helpers::extract_variable_declaration_annotations;
 use super::imports;
+use super::type_facts;
+
 
 // Static regexes compiled once for performance
 static PAREN_PARAMS_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\(([^)]+)\)").unwrap());
@@ -26,7 +28,7 @@ pub(super) fn extract_variable(
     is_public_fn: fn(&BaseExtractor, Node) -> bool,
 ) -> Option<Symbol> {
     let node_text = base.get_node_text(&node);
-    let is_const = node.kind() == "const_declaration" || node_text.contains("const");
+    let is_const = type_facts::has_keyword(node, "const");
     let is_public = is_public_fn(base, node);
 
     // Check for @import, Zig's module import mechanism.
@@ -365,7 +367,9 @@ fn extract_standard_variable(
         }
     }
 
-    let symbol_kind = if is_const {
+    let symbol_kind = if type_facts::nearest_callable_ancestor(node) {
+        SymbolKind::Variable
+    } else if is_const {
         SymbolKind::Constant
     } else {
         SymbolKind::Variable
@@ -385,7 +389,7 @@ fn extract_standard_variable(
 
     let annotations = extract_variable_declaration_annotations(base, node);
 
-    Some(base.create_symbol(
+    let symbol = base.create_symbol(
         &node,
         name,
         symbol_kind,
@@ -397,5 +401,11 @@ fn extract_standard_variable(
             doc_comment: base.extract_documentation(&node),
             annotations,
         },
-    ))
+    );
+    if let Some(declared_type) = node.child_by_field_name("type") {
+        type_facts::record_declared_type(base, &symbol.id, declared_type);
+    } else if let Some(value) = type_facts::initializer_node(node) {
+        type_facts::record_initializer_type(base, &symbol.id, value);
+    }
+    Some(symbol)
 }

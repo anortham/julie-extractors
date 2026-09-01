@@ -210,7 +210,6 @@ fn extract_function_call_relationships(
                 unresolved_target.receiver.as_deref(),
             ) {
                 LocalTargetResolution::Resolved(called_symbol) => {
-                    // Called function found locally - create resolved relationship
                     if caller_symbol.id != called_symbol.id {
                         relationships.push(Relationship {
                             id: format!(
@@ -231,21 +230,39 @@ fn extract_function_call_relationships(
                             metadata: None,
                         });
                     }
+                    if unresolved_target.receiver.is_some() {
+                        let receiver_type =
+                            super::type_facts::self_receiver_type(&extractor.base, node);
+                        let pending = extractor
+                            .get_base_mut()
+                            .create_pending_relationship(
+                                caller_symbol.id.clone(),
+                                unresolved_target,
+                                RelationshipKind::Calls,
+                                &node,
+                                Some(caller_symbol.id.clone()),
+                                Some(0.7),
+                            )
+                            .with_receiver_type(receiver_type);
+                        extractor.add_structured_pending_relationship(pending);
+                    }
                 }
                 LocalTargetResolution::Import(_)
                 | LocalTargetResolution::Ambiguous
                 | LocalTargetResolution::Missing
                 | LocalTargetResolution::ReceiverQualified => {
-                    // Called function not found locally - likely from another file
-                    // Create pending relationship for cross-file resolution
-                    let pending = extractor.get_base_mut().create_pending_relationship(
-                        caller_symbol.id.clone(),
-                        unresolved_target,
-                        RelationshipKind::Calls,
-                        &node,
-                        Some(caller_symbol.id.clone()),
-                        Some(0.7),
-                    );
+                    let receiver_type = super::type_facts::self_receiver_type(&extractor.base, node);
+                    let pending = extractor
+                        .get_base_mut()
+                        .create_pending_relationship(
+                            caller_symbol.id.clone(),
+                            unresolved_target,
+                            RelationshipKind::Calls,
+                            &node,
+                            Some(caller_symbol.id.clone()),
+                            Some(0.7),
+                        )
+                        .with_receiver_type(receiver_type);
                     extractor.add_structured_pending_relationship(pending);
                 }
             }

@@ -50,9 +50,14 @@ pub fn getUserScores() std.StringHashMap(i32) {
         }
 
         assert!(!results.types.is_empty());
+        assert!(
+            results
+                .types
+                .values()
+                .any(|type_info| type_info.resolved_type == "i32" && !type_info.is_inferred)
+        );
         for type_info in results.types.values() {
             assert_eq!(type_info.language, "zig");
-            assert!(type_info.is_inferred);
         }
     }
 

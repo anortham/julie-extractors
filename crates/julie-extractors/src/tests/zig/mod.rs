@@ -6,6 +6,8 @@ mod identifiers;
 #[cfg(test)]
 mod task15;
 
+mod type_facts;
+
 #[cfg(test)]
 mod zig_extractor_tests {
     use crate::base::{RelationshipKind, SymbolKind};
