@@ -43,6 +43,14 @@ Namespace Fixture
         Private Shared Sub FetchUrl(url As String)
         End Sub
 
+        Public Sub ProbeFacts(ByVal a As Worker, ByRef b As Worker)
+            Dim nullableSeed As Integer?
+            Dim built = New Worker()
+            Dim asNew As New Worker()
+            Dim fromBuild = Build()
+            Me.Run()
+        End Sub
+
         Public Function Evaluate(count As Integer, enabled As Boolean) As Integer
             Dim total As Integer = 0
             If enabled Then

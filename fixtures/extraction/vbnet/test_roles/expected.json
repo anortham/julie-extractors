@@ -543,6 +543,39 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/vbnet/test_roles/source.vb:value:22:52",
+      "name": "value",
+      "kind": "variable",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/test_roles/source.vb",
+      "start_line": 22,
+      "start_column": 52,
+      "end_line": 22,
+      "end_column": 68,
+      "start_byte": 468,
+      "end_byte": 484,
+      "body_span": {
+        "start_line": 22,
+        "start_column": 61,
+        "end_line": 22,
+        "end_column": 68,
+        "start_byte": 477,
+        "end_byte": 484
+      },
+      "body_hash": "a0faef0851b4294c06f2b94bb1cb2044",
+      "signature": "value As Integer",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/vbnet/test_roles/source.vb:NUnitParameterizedCase:22:4",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [],
@@ -555,7 +588,16 @@
       "resolved_type": "String",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
+      "language": "vbnet",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/vbnet/test_roles/source.vb:value:22:52",
+      "resolved_type": "Integer",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "vbnet",
       "metadata": null
     }

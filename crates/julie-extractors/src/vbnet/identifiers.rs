@@ -55,19 +55,25 @@ fn extract_identifier_from_node(
                 } else if child.kind() == "member_access_expression"
                     || child.kind() == "member_access"
                 {
-                    let mut mc = child.walk();
-                    let children: Vec<_> = child.children(&mut mc).collect();
-                    if let Some(name_node) =
-                        children.iter().rev().find(|c| c.kind() == "identifier")
-                    {
-                        let name = base.get_node_text(name_node);
+                    let name_node = child.child_by_field_name("member").or_else(|| {
+                        let mut mc = child.walk();
+                        let children: Vec<_> = child.children(&mut mc).collect();
+                        children
+                            .into_iter()
+                            .rev()
+                            .find(|c| c.kind() == "identifier")
+                    });
+                    if let Some(name_node) = name_node {
+                        let name = base.get_node_text(&name_node);
                         let containing_symbol_id =
                             find_containing_symbol_id(base, node, symbol_map);
-                        base.create_identifier(
-                            name_node,
+                        let receiver_type = self_receiver_type(base, child);
+                        base.create_identifier_with_receiver_type(
+                            &name_node,
                             name,
                             IdentifierKind::Call,
                             containing_symbol_id,
+                            receiver_type,
                         );
                     }
                     break;
@@ -442,4 +448,66 @@ fn decode_vbnet_interpolated(base: &BaseExtractor, interp: &Node) -> String {
     s.replace("\"\"", "\"")
         .replace("{{", "{")
         .replace("}}", "}")
+}
+
+pub(super) fn self_receiver_type(base: &BaseExtractor, node: Node) -> Option<String> {
+    let member_access = match node.kind() {
+        "member_access" | "member_access_expression" => node,
+        "invocation" | "invocation_expression" => {
+            let target = node.child_by_field_name("target").or_else(|| {
+                let mut cursor = node.walk();
+                node.children(&mut cursor).next()
+            })?;
+            if matches!(target.kind(), "member_access" | "member_access_expression") {
+                target
+            } else {
+                return None;
+            }
+        }
+        _ => return None,
+    };
+    let object = member_access.child_by_field_name("object")?;
+    if object.kind() != "me_expression" {
+        return None;
+    }
+    let text = base.get_node_text(&object);
+    if text.eq_ignore_ascii_case("Me") || text.eq_ignore_ascii_case("MyClass") {
+        enclosing_type_name(base, member_access)
+    } else if text.eq_ignore_ascii_case("MyBase") {
+        declared_base_type_name(base, member_access)
+    } else {
+        None
+    }
+}
+
+fn enclosing_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
+    let mut current = node.parent();
+    while let Some(candidate) = current {
+        if matches!(
+            candidate.kind(),
+            "class_block" | "structure_block" | "module_block"
+        ) {
+            return candidate
+                .child_by_field_name("name")
+                .map(|name_node| base.get_node_text(&name_node));
+        }
+        current = candidate.parent();
+    }
+    None
+}
+
+fn declared_base_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
+    let mut current = node.parent();
+    while let Some(candidate) = current {
+        if matches!(candidate.kind(), "class_block" | "structure_block") {
+            let inherits = super::helpers::extract_inherits(base, &candidate);
+            let first = inherits.into_iter().next()?;
+            return first
+                .rsplit('.')
+                .next()
+                .map(|name| name.trim().to_string());
+        }
+        current = candidate.parent();
+    }
+    None
 }

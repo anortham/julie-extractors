@@ -1,4 +1,5 @@
 use super::helpers;
+use super::type_facts;
 use crate::base::{
     AnnotationMarker, BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility,
     normalize_annotations,
@@ -142,7 +143,11 @@ pub fn extract_property(
         annotations,
     };
 
-    Some(base.create_symbol(&node, name, SymbolKind::Property, options))
+    let symbol = base.create_symbol(&node, name, SymbolKind::Property, options);
+    if let Some(type_node) = type_facts::declared_type_node(node) {
+        type_facts::record_declared_type(base, &symbol.id, type_node);
+    }
+    Some(symbol)
 }
 
 pub fn extract_field(
@@ -185,7 +190,11 @@ pub fn extract_fields(
                 annotations: annotations.clone(),
             };
 
-            Some(base.create_symbol(&node, name, SymbolKind::Field, options))
+            let symbol = base.create_symbol(&node, name, SymbolKind::Field, options);
+            if let Some(type_node) = type_facts::declared_type_node(declarator) {
+                type_facts::record_declared_type(base, &symbol.id, type_node);
+            }
+            Some(symbol)
         })
         .collect()
 }

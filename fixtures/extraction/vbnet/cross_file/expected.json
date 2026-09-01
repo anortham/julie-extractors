@@ -153,6 +153,63 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/vbnet/cross_file/source.vb:value:15:32",
+      "name": "value",
+      "kind": "variable",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/cross_file/source.vb",
+      "start_line": 15,
+      "start_column": 32,
+      "end_line": 15,
+      "end_column": 48,
+      "start_byte": 497,
+      "end_byte": 513,
+      "body_span": {
+        "start_line": 15,
+        "start_column": 41,
+        "end_line": 15,
+        "end_column": 48,
+        "start_byte": 506,
+        "end_byte": 513
+      },
+      "body_hash": "a0faef0851b4294c06f2b94bb1cb2044",
+      "signature": "value As Integer",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/vbnet/cross_file/source.vb:Helper:15:8",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/vbnet/cross_file/source.vb:x:11:16",
+      "name": "x",
+      "kind": "variable",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/cross_file/source.vb",
+      "start_line": 11,
+      "start_column": 16,
+      "end_line": 11,
+      "end_column": 17,
+      "start_byte": 386,
+      "end_byte": 387,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "Dim x",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/vbnet/cross_file/source.vb:Run:10:8",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [
@@ -297,6 +354,26 @@
       "is_inferred": true,
       "language": "vbnet",
       "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/vbnet/cross_file/source.vb:value:15:32",
+      "resolved_type": "Integer",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "vbnet",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/vbnet/cross_file/source.vb:x:11:16",
+      "resolved_type": "OtherClass",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "vbnet",
+      "metadata": {
+        "declared": "OtherClass()"
+      }
     }
   ],
   "parse_diagnostics": [],
