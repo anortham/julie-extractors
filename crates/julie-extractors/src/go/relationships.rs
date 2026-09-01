@@ -220,14 +220,17 @@ impl super::GoExtractor {
                     return;
                 }
 
-                let pending = self.base.create_pending_relationship(
-                    caller.id.clone(),
-                    target,
-                    RelationshipKind::Calls,
-                    &node,
-                    Some(caller.id.clone()),
-                    Some(0.7),
-                );
+                let pending = self
+                    .base
+                    .create_pending_relationship(
+                        caller.id.clone(),
+                        target,
+                        RelationshipKind::Calls,
+                        &node,
+                        Some(caller.id.clone()),
+                        Some(0.7),
+                    )
+                    .with_receiver_type(self.method_self_receiver_type(*func_node));
                 self.add_structured_pending_relationship(pending);
                 return;
             }
@@ -281,11 +284,9 @@ impl super::GoExtractor {
         let mut current = node.parent();
         while let Some(parent) = current {
             if parent.kind() == "function_declaration" || parent.kind() == "method_declaration" {
-                // Extract the function name
                 let name = parent
-                    .children(&mut parent.walk())
-                    .find(|c| c.kind() == "identifier")
-                    .map(|n| self.base.get_node_text(&n))
+                    .child_by_field_name("name")
+                    .map(|name_node| self.base.get_node_text(&name_node))
                     .unwrap_or_default();
 
                 if !name.is_empty() {

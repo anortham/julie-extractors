@@ -57,6 +57,15 @@ fn generic_rules(generic_node: Node) -> Option<&'static TypeNameRules> {
     (base_node.kind() == "type_identifier").then_some(&GENERIC_INSTANTIATION_RULES)
 }
 
+/// The type node of a `Foo{...}` or `&Foo{...}` initializer, or of a same-file
+/// `NewFoo(...)` call whose result is a single named type or pointer to one.
+pub(super) fn inferred_rhs_type_node<'a>(
+    base: &BaseExtractor,
+    value_node: Node<'a>,
+) -> Option<Node<'a>> {
+    composite_literal_type_node(value_node).or_else(|| constructor_result_type_node(base, value_node))
+}
+
 /// The type node of a `Foo{...}` or `&Foo{...}` initializer, when present.
 pub(super) fn composite_literal_type_node(value_node: Node) -> Option<Node> {
     let literal = match value_node.kind() {
@@ -69,4 +78,106 @@ pub(super) fn composite_literal_type_node(value_node: Node) -> Option<Node> {
         _ => return None,
     };
     literal.child_by_field_name("type")
+}
+
+fn constructor_result_type_node<'a>(
+    base: &BaseExtractor,
+    value_node: Node<'a>,
+) -> Option<Node<'a>> {
+    if value_node.kind() != "call_expression" {
+        return None;
+    }
+    let function = value_node.child_by_field_name("function")?;
+    if function.kind() != "identifier" {
+        return None;
+    }
+    let name = base.get_node_text(&function);
+    let declaration = same_file_function_declaration(value_node, &name, base)?;
+    let result = declaration.child_by_field_name("result")?;
+    match result.kind() {
+        "type_identifier" => named_constructor_result(base, result, result),
+        "pointer_type" => {
+            let inner = result.named_child(0)?;
+            named_constructor_result(base, inner, result)
+        }
+        _ => None,
+    }
+}
+
+fn named_constructor_result<'a>(
+    base: &BaseExtractor,
+    type_id: Node,
+    result: Node<'a>,
+) -> Option<Node<'a>> {
+    if type_id.kind() != "type_identifier" {
+        return None;
+    }
+    let name = base.get_node_text(&type_id);
+    if is_predeclared_type(&name) {
+        return None;
+    }
+    Some(result)
+}
+
+fn same_file_function_declaration<'a>(
+    node: Node<'a>,
+    name: &str,
+    base: &BaseExtractor,
+) -> Option<Node<'a>> {
+    find_function_declaration(file_root(node), name, base)
+}
+
+fn file_root(mut node: Node) -> Node {
+    while let Some(parent) = node.parent() {
+        node = parent;
+    }
+    node
+}
+
+fn find_function_declaration<'a>(
+    node: Node<'a>,
+    name: &str,
+    base: &BaseExtractor,
+) -> Option<Node<'a>> {
+    if node.kind() == "function_declaration"
+        && let Some(name_node) = node.child_by_field_name("name")
+        && base.get_node_text(&name_node) == name
+    {
+        return Some(node);
+    }
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if let Some(found) = find_function_declaration(child, name, base) {
+            return Some(found);
+        }
+    }
+    None
+}
+
+fn is_predeclared_type(name: &str) -> bool {
+    matches!(
+        name,
+        "any"
+            | "bool"
+            | "byte"
+            | "comparable"
+            | "complex64"
+            | "complex128"
+            | "error"
+            | "float32"
+            | "float64"
+            | "int"
+            | "int8"
+            | "int16"
+            | "int32"
+            | "int64"
+            | "rune"
+            | "string"
+            | "uint"
+            | "uint8"
+            | "uint16"
+            | "uint32"
+            | "uint64"
+            | "uintptr"
+    )
 }

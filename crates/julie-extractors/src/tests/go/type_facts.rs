@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod go_type_fact_tests {
-    use crate::base::{Symbol, SymbolKind, TypeInfo};
+    use crate::base::{IdentifierKind, Symbol, SymbolKind, TypeInfo};
     use crate::go::GoExtractor;
     use crate::tests::helpers::init_parser;
     use std::path::PathBuf;
@@ -41,6 +41,14 @@ mod go_type_fact_tests {
 
     fn declared_metadata(fact: &TypeInfo) -> Option<&serde_json::Value> {
         fact.metadata.as_ref().and_then(|m| m.get("declared"))
+    }
+
+    fn no_fact(extractor: &GoExtractor, symbol: &Symbol) {
+        assert!(
+            extractor.base.type_info.get(&symbol.id).is_none(),
+            "expected no type fact for `{}`",
+            symbol.name
+        );
     }
 
     fn parameter_symbols<'a>(symbols: &'a [Symbol], name: &str) -> Vec<&'a Symbol> {
@@ -175,38 +183,161 @@ func Use() {
         assert_eq!(a_fact.resolved_type, "Store");
         assert!(a_fact.is_inferred);
 
-        assert!(
-            !symbols
-                .iter()
-                .any(|s| s.name == "b" && s.kind == SymbolKind::Variable)
-        );
+        let b = variable(&symbols, "b");
+        no_fact(&extractor, b);
     }
 
     #[test]
-    fn constructor_call_local_records_nothing() {
-        let (symbols, _extractor) = extract(
+    fn constructor_call_same_file_records_inferred_fact() {
+        let (symbols, extractor) = extract(
             r#"
 package main
 
+type Store struct{}
+
+func NewStore() *Store {
+    return &Store{}
+}
+
 func Use() {
-    s := NewStore()
-    m := map[string]int{}
-    items := []int{1, 2}
-    _ = s
-    _ = m
-    _ = items
+    x := NewStore()
+    _ = x
 }
 "#,
         );
 
-        for name in ["s", "m", "items"] {
-            assert!(
-                !symbols
-                    .iter()
-                    .any(|s| s.name == name && s.kind == SymbolKind::Variable),
-                "expected no variable symbol for `{name}`"
-            );
-        }
+        let use_fn = symbol(&symbols, "Use");
+        let x = variable(&symbols, "x");
+        assert_eq!(x.parent_id.as_deref(), Some(use_fn.id.as_str()));
+        let x_fact = fact(&extractor, x);
+        assert_eq!(x_fact.resolved_type, "Store");
+        assert!(x_fact.is_inferred);
+        assert_eq!(
+            declared_metadata(x_fact),
+            Some(&serde_json::json!("*Store"))
+        );
+    }
+
+    #[test]
+    fn constructor_call_imported_records_no_fact() {
+        let (symbols, extractor) = extract(
+            r#"
+package main
+
+func Use() {
+    x := pkg.NewFoo()
+    _ = x
+}
+"#,
+        );
+
+        let x = variable(&symbols, "x");
+        no_fact(&extractor, x);
+    }
+
+    #[test]
+    fn constructor_call_unknown_records_no_fact() {
+        let (symbols, extractor) = extract(
+            r#"
+package main
+
+func Use() {
+    x := unknown()
+    _ = x
+}
+"#,
+        );
+
+        let x = variable(&symbols, "x");
+        no_fact(&extractor, x);
+    }
+
+    #[test]
+    fn constructor_call_error_result_records_no_fact() {
+        let (symbols, extractor) = extract(
+            r#"
+package main
+
+func helper() error {
+    return nil
+}
+
+func Use() {
+    x := helper()
+    _ = x
+}
+"#,
+        );
+
+        let x = variable(&symbols, "x");
+        no_fact(&extractor, x);
+    }
+
+    #[test]
+    fn method_call_on_enclosing_receiver_records_receiver_type() {
+        let code = r#"
+package main
+
+type Client struct{}
+
+func (c *Client) Get() {}
+
+func (c *Client) Run() {
+    c.Get()
+    other.Get()
+}
+"#;
+        let tree = init_parser(code, "go");
+        let mut extractor = GoExtractor::new(
+            "go".to_string(),
+            "test.go".to_string(),
+            code.to_string(),
+            &PathBuf::from("/tmp/test"),
+        );
+        let symbols = extractor.extract_symbols(&tree);
+        let identifiers = extractor.extract_identifiers(&tree, &symbols);
+        extractor.extract_relationships(&tree, &symbols);
+
+        let get_calls: Vec<_> = identifiers
+            .iter()
+            .filter(|id| id.name == "Get" && id.kind == IdentifierKind::Call)
+            .collect();
+        assert_eq!(get_calls.len(), 2);
+        assert_eq!(
+            get_calls
+                .iter()
+                .filter(|id| id.receiver_type.as_deref() == Some("Client"))
+                .count(),
+            1
+        );
+        assert_eq!(
+            get_calls
+                .iter()
+                .filter(|id| id.receiver_type.is_none())
+                .count(),
+            1
+        );
+
+        let get_pending: Vec<_> = extractor
+            .get_structured_pending_relationships()
+            .into_iter()
+            .filter(|pending| pending.target.terminal_name == "Get")
+            .collect();
+        assert_eq!(get_pending.len(), 2);
+        assert_eq!(
+            get_pending
+                .iter()
+                .filter(|pending| pending.receiver_type.as_deref() == Some("Client"))
+                .count(),
+            1
+        );
+        assert_eq!(
+            get_pending
+                .iter()
+                .filter(|pending| pending.receiver_type.is_none())
+                .count(),
+            1
+        );
     }
 
     #[test]

@@ -254,12 +254,12 @@ impl super::GoExtractor {
                 if name_node.kind() != "identifier" {
                     return None;
                 }
-                let type_node = super::type_facts::composite_literal_type_node(value_node)
-                    .filter(|type_node| super::type_facts::binds_base_type(*type_node))?;
                 let name = self.get_node_text(name_node);
                 if name == "_" {
                     return None;
                 }
+                let type_node = super::type_facts::inferred_rhs_type_node(&self.base, value_node)
+                    .filter(|type_node| super::type_facts::binds_base_type(*type_node));
                 let visibility = if self.is_public(&name) {
                     Some(Visibility::Public)
                 } else {
@@ -279,12 +279,14 @@ impl super::GoExtractor {
                         annotations: Vec::new(),
                     },
                 );
-                super::type_facts::record_type_node_fact(
-                    &mut self.base,
-                    &symbol.id,
-                    type_node,
-                    true,
-                );
+                if let Some(type_node) = type_node {
+                    super::type_facts::record_type_node_fact(
+                        &mut self.base,
+                        &symbol.id,
+                        type_node,
+                        true,
+                    );
+                }
                 Some(symbol)
             })
             .collect()

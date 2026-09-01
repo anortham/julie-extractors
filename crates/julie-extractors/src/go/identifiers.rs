@@ -65,11 +65,13 @@ impl super::GoExtractor {
                                 let name = self.base.get_node_text(&field_node);
                                 let containing_symbol_id =
                                     self.find_containing_symbol_id(node, symbol_map);
-                                let identifier = self.base.create_identifier(
+                                let receiver_type = self.method_self_receiver_type(child);
+                                let identifier = self.base.create_identifier_with_receiver_type(
                                     &field_node,
                                     name,
                                     IdentifierKind::Call,
                                     containing_symbol_id,
+                                    receiver_type,
                                 );
                                 call_id = Some(identifier);
                             }
@@ -156,6 +158,47 @@ impl super::GoExtractor {
 
             _ => {}
         }
+    }
+
+    pub(super) fn method_self_receiver_type(&self, node: Node) -> Option<String> {
+        let selector = match node.kind() {
+            "selector_expression" => node,
+            "call_expression" => {
+                let mut cursor = node.walk();
+                node.children(&mut cursor)
+                    .find(|child| child.kind() == "selector_expression")?
+            }
+            _ => return None,
+        };
+        let operand = selector.child_by_field_name("operand")?;
+        if operand.kind() != "identifier" {
+            return None;
+        }
+        let operand_name = self.get_node_text(operand);
+        let mut current = selector;
+        while let Some(parent) = current.parent() {
+            if parent.kind() == "method_declaration" {
+                let receiver_list = parent.child_by_field_name("receiver")?;
+                let mut cursor = receiver_list.walk();
+                let param_decl = receiver_list
+                    .children(&mut cursor)
+                    .find(|child| child.kind() == "parameter_declaration")?;
+                let mut param_cursor = param_decl.walk();
+                let receiver_name = param_decl
+                    .children(&mut param_cursor)
+                    .find(|child| child.kind() == "identifier")?;
+                if self.get_node_text(receiver_name) != operand_name {
+                    return None;
+                }
+                let receiver_type = self.extract_receiver_type_from_param(param_decl);
+                if receiver_type.is_empty() {
+                    return None;
+                }
+                return Some(receiver_type);
+            }
+            current = parent;
+        }
+        None
     }
 
     /// Find the ID of the symbol that contains this node
