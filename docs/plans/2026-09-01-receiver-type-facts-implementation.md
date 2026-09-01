@@ -135,11 +135,11 @@ Commit modes: serial tasks use `serial-worker-commit`; Batch B uses `parallel-le
 **Approach:** RED with unit tests over C# snippets asserting exact `resolved_type`, `is_inferred`, and `metadata.declared` for: explicit local, `var` + `new` generic (`var x = new Dictionary<string, int>()` → `Dictionary`, declared `Dictionary<string, int>`), nullable field (`GraphTraversal? _t` → `GraphTraversal`), generic field (truncation regression), property, constant. Then regenerate C# goldens with the xtask fixture updater and review diffs: only type_facts rows change in this task.
 
 **Acceptance criteria:**
-- [ ] The six unit cases above pass.
-- [ ] No C# `resolved_type` contains whitespace or a trailing `<` fragment in regenerated goldens.
-- [ ] Declared types carry `is_inferred=false`; `new`-derived carry `is_inferred=true`.
-- [ ] `cargo xtask test language csharp` passes.
-- [ ] Change committed (serial-worker-commit).
+- [x] The six unit cases above pass.
+- [x] No C# `resolved_type` contains whitespace or a trailing `<` fragment in regenerated goldens.
+- [x] Declared types carry `is_inferred=false`; `new`-derived carry `is_inferred=true`.
+- [x] `cargo xtask test language csharp` passes.
+- [x] Change committed (serial-worker-commit).
 
 ### Task 3: C# parameters + receiver metadata
 
