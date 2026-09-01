@@ -5,6 +5,7 @@ mod literals;
 mod structural_facts;
 mod test_detection; // Miller bridge test-roles: describe→test_container + setup/setup_all lifecycle
 mod type_arguments;
+mod type_facts;
 
 #[cfg(test)]
 mod elixir_tests {

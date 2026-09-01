@@ -95,9 +95,22 @@ fn extract_identifier_from_node(
                 }
             }
         }
+        "map" => {
+            if let Some(struct_node) = find_child_by_type(&node, "struct") {
+                let name = base.get_node_text(&struct_node);
+                if !name.is_empty() {
+                    let containing = find_containing_symbol_id(base, node, symbol_map);
+                    base.create_identifier(
+                        &struct_node,
+                        name,
+                        IdentifierKind::TypeUsage,
+                        containing,
+                    );
+                }
+            }
+        }
         "alias"
-            // Standalone module reference (not part of a definition)
-            if !is_in_definition_context(&node) => {
+            if !is_in_definition_context(&node) && !is_map_struct_child(&node) => {
                 let name = base.get_node_text(&node);
                 let containing = find_containing_symbol_id(base, node, symbol_map);
                 base.create_identifier(&node, name, IdentifierKind::TypeUsage, containing);
@@ -258,6 +271,10 @@ fn is_definition_keyword(name: &str) -> bool {
             | "alias"
             | "require"
     )
+}
+
+fn is_map_struct_child(node: &Node) -> bool {
+    node.parent().is_some_and(|parent| parent.kind() == "struct")
 }
 
 fn is_in_definition_context(node: &Node) -> bool {

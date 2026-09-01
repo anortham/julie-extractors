@@ -7,6 +7,8 @@ use super::attributes;
 use super::definition_forms;
 use super::helpers;
 use super::test_calls;
+use super::parameters;
+use super::type_facts;
 use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility, normalize_annotations};
 use crate::test_detection::apply_callable_test_metadata;
 use crate::tree_traversal::child_tree_depth;
@@ -29,10 +31,12 @@ pub(super) fn dispatch_call(
     let target_name = helpers::extract_call_target_name(&extractor.base, node)?;
     match target_name.as_str() {
         "defmodule" => extract_defmodule(extractor, node, symbols, parent_id, depth),
-        "def" => extract_def(extractor, node, parent_id, Visibility::Public),
-        "defp" => extract_def(extractor, node, parent_id, Visibility::Private),
-        "defmacro" => extract_defmacro(extractor, node, parent_id, Visibility::Public),
-        "defmacrop" => extract_defmacro(extractor, node, parent_id, Visibility::Private),
+        "def" => extract_def(extractor, node, symbols, parent_id, depth, Visibility::Public),
+        "defp" => extract_def(extractor, node, symbols, parent_id, depth, Visibility::Private),
+        "defmacro" => extract_defmacro(extractor, node, symbols, parent_id, depth, Visibility::Public),
+        "defmacrop" => {
+            extract_defmacro(extractor, node, symbols, parent_id, depth, Visibility::Private)
+        }
         "defguard" => {
             definition_forms::extract_defguard(extractor, node, parent_id, Visibility::Public)
         }
@@ -118,7 +122,9 @@ fn extract_defmodule(
 fn extract_def(
     extractor: &mut ElixirExtractor,
     node: &Node,
+    symbols: &mut Vec<Symbol>,
     parent_id: Option<&str>,
+    depth: u32,
     visibility: Visibility,
 ) -> Option<(Symbol, bool)> {
     let (fn_name, params) = helpers::extract_function_head(&extractor.base, node)?;
@@ -137,7 +143,6 @@ fn extract_def(
         .map(|annotation| annotation.annotation_key.clone())
         .collect::<Vec<_>>();
 
-    // Test detection
     let mut test_metadata = HashMap::new();
     apply_callable_test_metadata(
         "elixir",
@@ -163,7 +168,7 @@ fn extract_def(
             annotations,
         },
     );
-
+    extract_callable_bindings(extractor, node, &symbol.id, symbols, depth);
     Some((symbol, false))
 }
 
@@ -174,7 +179,9 @@ fn extract_def(
 fn extract_defmacro(
     extractor: &mut ElixirExtractor,
     node: &Node,
+    symbols: &mut Vec<Symbol>,
     parent_id: Option<&str>,
+    depth: u32,
     visibility: Visibility,
 ) -> Option<(Symbol, bool)> {
     let (macro_name, params) = helpers::extract_function_head(&extractor.base, node)?;
@@ -210,8 +217,23 @@ fn extract_defmacro(
             annotations,
         },
     );
-
+    extract_callable_bindings(extractor, node, &symbol.id, symbols, depth);
     Some((symbol, false))
+}
+
+fn extract_callable_bindings(
+    extractor: &mut ElixirExtractor,
+    node: &Node,
+    callable_id: &str,
+    symbols: &mut Vec<Symbol>,
+    depth: u32,
+) {
+    symbols.extend(parameters::extract_parameter_symbols(
+        &mut extractor.base,
+        *node,
+        callable_id,
+    ));
+    type_facts::extract_body_locals(&mut extractor.base, node, callable_id, symbols, depth);
 }
 
 // ========================================================================

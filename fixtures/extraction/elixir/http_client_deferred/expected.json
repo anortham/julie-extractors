@@ -38,6 +38,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/elixir/http_client_deferred/source.ex:client:4:11",
+      "name": "client",
+      "kind": "variable",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client_deferred/source.ex",
+      "start_line": 4,
+      "start_column": 11,
+      "end_line": 4,
+      "end_column": 17,
+      "start_byte": 99,
+      "end_byte": 105,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "client",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/elixir/http_client_deferred/source.ex:load:4:2",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/elixir/http_client_deferred/source.ex:load:4:2",
       "name": "load",
       "kind": "function",
