@@ -76,7 +76,7 @@ class Widget {
     val unknown = Unknown()
     val imported = scala.collection.mutable.ListBuffer()
     val built = build()
-    this.m()
+    this.missingWave2()
     other.m()
   }
   def m(): Unit = ()

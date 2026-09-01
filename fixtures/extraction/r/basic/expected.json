@@ -11,16 +11,16 @@
       "end_line": 39,
       "end_column": 1,
       "start_byte": 432,
-      "end_byte": 614,
+      "end_byte": 619,
       "body_span": {
         "start_line": 32,
         "start_column": 30,
         "end_line": 37,
         "end_column": 5,
         "start_byte": 529,
-        "end_byte": 608
+        "end_byte": 613
       },
-      "body_hash": "d74ac5c4870a7d15809880aa7f5fafa7",
+      "body_hash": "75adf66e0e6b4412c9e20416dc392f5c",
       "signature": "Worker <- R6Class(\"Worker\")",
       "doc_comment": null,
       "visibility": null,
@@ -215,16 +215,16 @@
       "end_line": 39,
       "end_column": 1,
       "start_byte": 442,
-      "end_byte": 614,
+      "end_byte": 619,
       "body_span": {
         "start_line": 32,
         "start_column": 30,
         "end_line": 37,
         "end_column": 5,
         "start_byte": 529,
-        "end_byte": 608
+        "end_byte": 613
       },
-      "body_hash": "d74ac5c4870a7d15809880aa7f5fafa7",
+      "body_hash": "75adf66e0e6b4412c9e20416dc392f5c",
       "signature": "id = NULL",
       "doc_comment": null,
       "visibility": null,
@@ -275,16 +275,16 @@
       "end_line": 39,
       "end_column": 1,
       "start_byte": 442,
-      "end_byte": 614,
+      "end_byte": 619,
       "body_span": {
         "start_line": 32,
         "start_column": 30,
         "end_line": 37,
         "end_column": 5,
         "start_byte": 529,
-        "end_byte": 608
+        "end_byte": 613
       },
-      "body_hash": "d74ac5c4870a7d15809880aa7f5fafa7",
+      "body_hash": "75adf66e0e6b4412c9e20416dc392f5c",
       "signature": "initialize = function(id)",
       "doc_comment": null,
       "visibility": null,
@@ -333,16 +333,16 @@
       "end_line": 39,
       "end_column": 1,
       "start_byte": 442,
-      "end_byte": 614,
+      "end_byte": 619,
       "body_span": {
         "start_line": 32,
         "start_column": 30,
         "end_line": 37,
         "end_column": 5,
         "start_byte": 529,
-        "end_byte": 608
+        "end_byte": 613
       },
-      "body_hash": "d74ac5c4870a7d15809880aa7f5fafa7",
+      "body_hash": "75adf66e0e6b4412c9e20416dc392f5c",
       "signature": "run = function()",
       "doc_comment": null,
       "visibility": null,
@@ -545,24 +545,6 @@
   ],
   "relationships": [
     {
-      "from_key": "fixtures/extraction/r/basic/source.r:initialize:28:10",
-      "to_key": "fixtures/extraction/r/basic/source.r:helper:5:0",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/r/basic/source.r",
-      "line_number": 36,
-      "span": {
-        "start_line": 36,
-        "start_column": 6,
-        "end_line": 36,
-        "end_column": 21,
-        "start_byte": 587,
-        "end_byte": 602
-      },
-      "reference_site_is_exact": false,
-      "confidence": "1.000",
-      "metadata": null
-    },
-    {
       "from_key": "fixtures/extraction/r/basic/source.r:run_worker:11:0",
       "to_key": "fixtures/extraction/r/basic/source.r:helper:5:0",
       "kind": "calls",
@@ -609,7 +591,7 @@
       "confidence": "0.700"
     },
     {
-      "from_key": "fixtures/extraction/r/basic/source.r:initialize:28:10",
+      "from_key": "fixtures/extraction/r/basic/source.r:run:28:10",
       "callee_name": "R6::R6Class",
       "kind": "calls",
       "file_path": "fixtures/extraction/r/basic/source.r",
@@ -617,7 +599,7 @@
       "confidence": "0.700"
     },
     {
-      "from_key": "fixtures/extraction/r/basic/source.r:initialize:28:10",
+      "from_key": "fixtures/extraction/r/basic/source.r:run:28:10",
       "callee_name": "self.id",
       "kind": "uses",
       "file_path": "fixtures/extraction/r/basic/source.r",
@@ -625,8 +607,16 @@
       "confidence": "0.600"
     },
     {
-      "from_key": "fixtures/extraction/r/basic/source.r:initialize:28:10",
-      "callee_name": "self.id",
+      "from_key": "fixtures/extraction/r/basic/source.r:run:28:10",
+      "callee_name": "self.missing_wave2",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/r/basic/source.r",
+      "line_number": 36,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/r/basic/source.r:run:28:10",
+      "callee_name": "self.missing_wave2",
       "kind": "uses",
       "file_path": "fixtures/extraction/r/basic/source.r",
       "line_number": 36,
@@ -662,7 +652,7 @@
     },
     {
       "pending": {
-        "from_key": "fixtures/extraction/r/basic/source.r:initialize:28:10",
+        "from_key": "fixtures/extraction/r/basic/source.r:run:28:10",
         "callee_name": "R6::R6Class",
         "kind": "calls",
         "file_path": "fixtures/extraction/r/basic/source.r",
@@ -678,19 +668,19 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/r/basic/source.r:initialize:28:10",
+      "caller_scope_key": "fixtures/extraction/r/basic/source.r:run:28:10",
       "span": {
         "start_line": 28,
         "start_column": 10,
         "end_line": 39,
         "end_column": 1,
         "start_byte": 442,
-        "end_byte": 614
+        "end_byte": 619
       }
     },
     {
       "pending": {
-        "from_key": "fixtures/extraction/r/basic/source.r:initialize:28:10",
+        "from_key": "fixtures/extraction/r/basic/source.r:run:28:10",
         "callee_name": "self.id",
         "kind": "uses",
         "file_path": "fixtures/extraction/r/basic/source.r",
@@ -704,7 +694,7 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/r/basic/source.r:initialize:28:10",
+      "caller_scope_key": "fixtures/extraction/r/basic/source.r:run:28:10",
       "span": {
         "start_line": 33,
         "start_column": 6,
@@ -716,28 +706,55 @@
     },
     {
       "pending": {
-        "from_key": "fixtures/extraction/r/basic/source.r:initialize:28:10",
-        "callee_name": "self.id",
+        "from_key": "fixtures/extraction/r/basic/source.r:run:28:10",
+        "callee_name": "self.missing_wave2",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/r/basic/source.r",
+        "line_number": 36,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "self.missing_wave2",
+        "terminal_name": "missing_wave2",
+        "receiver": "self",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/r/basic/source.r:run:28:10",
+      "span": {
+        "start_line": 36,
+        "start_column": 6,
+        "end_line": 36,
+        "end_column": 26,
+        "start_byte": 587,
+        "end_byte": 607
+      },
+      "receiver_type": "Worker"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/r/basic/source.r:run:28:10",
+        "callee_name": "self.missing_wave2",
         "kind": "uses",
         "file_path": "fixtures/extraction/r/basic/source.r",
         "line_number": 36,
         "confidence": "0.600"
       },
       "target": {
-        "display_name": "self.id",
-        "terminal_name": "id",
+        "display_name": "self.missing_wave2",
+        "terminal_name": "missing_wave2",
         "receiver": "self",
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/r/basic/source.r:initialize:28:10",
+      "caller_scope_key": "fixtures/extraction/r/basic/source.r:run:28:10",
       "span": {
         "start_line": 36,
-        "start_column": 13,
+        "start_column": 6,
         "end_line": 36,
-        "end_column": 20,
-        "start_byte": 594,
-        "end_byte": 601
+        "end_column": 24,
+        "start_byte": 587,
+        "end_byte": 605
       }
     }
   ],
@@ -754,7 +771,7 @@
       "end_column": 21,
       "start_byte": 442,
       "end_byte": 453,
-      "containing_key": "fixtures/extraction/r/basic/source.r:initialize:28:10",
+      "containing_key": "fixtures/extraction/r/basic/source.r:run:28:10",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -871,22 +888,6 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/r/basic/source.r:helper:call:36:6",
-      "name": "helper",
-      "kind": "call",
-      "language": "r",
-      "file_path": "fixtures/extraction/r/basic/source.r",
-      "start_line": 36,
-      "start_column": 6,
-      "end_line": 36,
-      "end_column": 12,
-      "start_byte": 587,
-      "end_byte": 593,
-      "containing_key": "fixtures/extraction/r/basic/source.r:initialize:28:10",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
       "key": "fixtures/extraction/r/basic/source.r:i:variable_ref:18:9",
       "name": "i",
       "kind": "variable_ref",
@@ -930,23 +931,7 @@
       "end_column": 13,
       "start_byte": 542,
       "end_byte": 544,
-      "containing_key": "fixtures/extraction/r/basic/source.r:initialize:28:10",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/r/basic/source.r:id:member_access:36:18",
-      "name": "id",
-      "kind": "member_access",
-      "language": "r",
-      "file_path": "fixtures/extraction/r/basic/source.r",
-      "start_line": 36,
-      "start_column": 18,
-      "end_line": 36,
-      "end_column": 20,
-      "start_byte": 599,
-      "end_byte": 601,
-      "containing_key": "fixtures/extraction/r/basic/source.r:initialize:28:10",
+      "containing_key": "fixtures/extraction/r/basic/source.r:run:28:10",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -978,7 +963,7 @@
       "end_column": 6,
       "start_byte": 488,
       "end_byte": 490,
-      "containing_key": "fixtures/extraction/r/basic/source.r:initialize:28:10",
+      "containing_key": "fixtures/extraction/r/basic/source.r:run:28:10",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -994,7 +979,7 @@
       "end_column": 19,
       "start_byte": 548,
       "end_byte": 550,
-      "containing_key": "fixtures/extraction/r/basic/source.r:initialize:28:10",
+      "containing_key": "fixtures/extraction/r/basic/source.r:run:28:10",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1010,7 +995,7 @@
       "end_column": 14,
       "start_byte": 503,
       "end_byte": 513,
-      "containing_key": "fixtures/extraction/r/basic/source.r:initialize:28:10",
+      "containing_key": "fixtures/extraction/r/basic/source.r:run:28:10",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1042,9 +1027,26 @@
       "end_column": 15,
       "start_byte": 478,
       "end_byte": 482,
-      "containing_key": "fixtures/extraction/r/basic/source.r:initialize:28:10",
+      "containing_key": "fixtures/extraction/r/basic/source.r:run:28:10",
       "target_key": null,
       "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/r/basic/source.r:missing_wave2:call:36:6",
+      "name": "missing_wave2",
+      "kind": "call",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/basic/source.r",
+      "start_line": 36,
+      "start_column": 6,
+      "end_line": 36,
+      "end_column": 24,
+      "start_byte": 587,
+      "end_byte": 605,
+      "containing_key": "fixtures/extraction/r/basic/source.r:run:28:10",
+      "target_key": null,
+      "confidence": "1.000",
+      "receiver_type": "Worker"
     },
     {
       "key": "fixtures/extraction/r/basic/source.r:public:variable_ref:30:2",
@@ -1058,7 +1060,7 @@
       "end_column": 8,
       "start_byte": 469,
       "end_byte": 475,
-      "containing_key": "fixtures/extraction/r/basic/source.r:initialize:28:10",
+      "containing_key": "fixtures/extraction/r/basic/source.r:run:28:10",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1074,7 +1076,7 @@
       "end_column": 7,
       "start_byte": 562,
       "end_byte": 565,
-      "containing_key": "fixtures/extraction/r/basic/source.r:initialize:28:10",
+      "containing_key": "fixtures/extraction/r/basic/source.r:run:28:10",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1279,7 +1281,7 @@
       "language": "r",
       "file_path": "fixtures/extraction/r/basic/source.r",
       "covered_lines": 40,
-      "covered_bytes": 615,
+      "covered_bytes": 620,
       "decision_count": 3,
       "loop_count": 1,
       "max_nesting_depth": 2,
@@ -1289,7 +1291,7 @@
       "end_line": 40,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 615,
+      "end_byte": 620,
       "metadata": {
         "metric_version": 1
       }
@@ -1345,7 +1347,7 @@
       "language": "r",
       "file_path": "fixtures/extraction/r/basic/source.r",
       "covered_lines": 6,
-      "covered_bytes": 79,
+      "covered_bytes": 84,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
@@ -1355,7 +1357,7 @@
       "end_line": 37,
       "end_column": 5,
       "start_byte": 529,
-      "end_byte": 608,
+      "end_byte": 613,
       "metadata": {
         "metric_version": 1
       }
@@ -1367,7 +1369,7 @@
       "language": "r",
       "file_path": "fixtures/extraction/r/basic/source.r",
       "covered_lines": 6,
-      "covered_bytes": 79,
+      "covered_bytes": 84,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
@@ -1377,7 +1379,7 @@
       "end_line": 37,
       "end_column": 5,
       "start_byte": 529,
-      "end_byte": 608,
+      "end_byte": 613,
       "metadata": {
         "metric_version": 1
       }
@@ -1419,7 +1421,7 @@
       "end_column": 10,
       "start_byte": 457,
       "end_byte": 465,
-      "containing_key": "fixtures/extraction/r/basic/source.r:initialize:28:10",
+      "containing_key": "fixtures/extraction/r/basic/source.r:run:28:10",
       "confidence": "1.000"
     }
   ],

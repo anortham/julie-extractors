@@ -174,16 +174,16 @@
       "end_line": 84,
       "end_column": 1,
       "start_byte": 1404,
-      "end_byte": 1767,
+      "end_byte": 1778,
       "body_span": {
         "start_line": 70,
         "start_column": 13,
         "end_line": 84,
         "end_column": 1,
         "start_byte": 1417,
-        "end_byte": 1767
+        "end_byte": 1778
       },
-      "body_hash": "194046253fcc4d481a241d78b5c63a2a",
+      "body_hash": "c6dfacf23b85bbc8b3aff83393052d00",
       "signature": "class Widget",
       "doc_comment": null,
       "visibility": "Public",
@@ -412,15 +412,15 @@
       "start_column": 2,
       "end_line": 83,
       "end_column": 48,
-      "start_byte": 1719,
-      "end_byte": 1765,
+      "start_byte": 1730,
+      "end_byte": 1776,
       "body_span": {
         "start_line": 83,
         "start_column": 46,
         "end_line": 83,
         "end_column": 48,
-        "start_byte": 1763,
-        "end_byte": 1765
+        "start_byte": 1774,
+        "end_byte": 1776
       },
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
       "signature": "def annotate(x: Foo, xs: List[Foo]): Unit",
@@ -447,15 +447,15 @@
       "start_column": 0,
       "end_line": 86,
       "end_column": 20,
-      "start_byte": 1769,
-      "end_byte": 1789,
+      "start_byte": 1780,
+      "end_byte": 1800,
       "body_span": {
         "start_line": 86,
         "start_column": 19,
         "end_line": 86,
         "end_column": 20,
-        "start_byte": 1788,
-        "end_byte": 1789
+        "start_byte": 1799,
+        "end_byte": 1800
       },
       "body_hash": "c4ca4238a0b923820dcc509a6f75849b",
       "signature": "def build(): Int",
@@ -1054,15 +1054,15 @@
       "start_column": 2,
       "end_line": 82,
       "end_column": 20,
-      "start_byte": 1698,
-      "end_byte": 1716,
+      "start_byte": 1709,
+      "end_byte": 1727,
       "body_span": {
         "start_line": 82,
         "start_column": 18,
         "end_line": 82,
         "end_column": 20,
-        "start_byte": 1714,
-        "end_byte": 1716
+        "start_byte": 1725,
+        "end_byte": 1727
       },
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
       "signature": "def m(): Unit",
@@ -1125,16 +1125,16 @@
       "end_line": 81,
       "end_column": 3,
       "start_byte": 1452,
-      "end_byte": 1695,
+      "end_byte": 1706,
       "body_span": {
         "start_line": 72,
         "start_column": 21,
         "end_line": 81,
         "end_column": 3,
         "start_byte": 1471,
-        "end_byte": 1695
+        "end_byte": 1706
       },
-      "body_hash": "0700cdf5d301947ba9796f0d3ca4745c",
+      "body_hash": "00bef4a98ece7d4cc82d26cbef46c677",
       "signature": "def ping(): Unit",
       "doc_comment": null,
       "visibility": "Public",
@@ -1544,8 +1544,8 @@
       "start_column": 15,
       "end_line": 83,
       "end_column": 21,
-      "start_byte": 1732,
-      "end_byte": 1738,
+      "start_byte": 1743,
+      "end_byte": 1749,
       "body_span": null,
       "body_hash": null,
       "signature": "x: Foo",
@@ -1570,8 +1570,8 @@
       "start_column": 23,
       "end_line": 83,
       "end_column": 36,
-      "start_byte": 1740,
-      "end_byte": 1753,
+      "start_byte": 1751,
+      "end_byte": 1764,
       "body_span": null,
       "body_hash": null,
       "signature": "xs: List[Foo]",
@@ -1639,24 +1639,6 @@
         "end_column": 54,
         "start_byte": 637,
         "end_byte": 687
-      },
-      "reference_site_is_exact": false,
-      "confidence": "0.900",
-      "metadata": null
-    },
-    {
-      "from_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
-      "to_key": "fixtures/extraction/scala/basic/source.scala:m:82:2",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/scala/basic/source.scala",
-      "line_number": 79,
-      "span": {
-        "start_line": 79,
-        "start_column": 4,
-        "end_line": 79,
-        "end_column": 12,
-        "start_byte": 1669,
-        "end_byte": 1677
       },
       "reference_site_is_exact": false,
       "confidence": "0.900",
@@ -1772,6 +1754,22 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/scala/basic/source.scala",
       "line_number": 80,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+      "callee_name": "this.missingWave2",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "line_number": 79,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+      "callee_name": "this.missingWave2",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "line_number": 79,
       "confidence": "0.700"
     },
     {
@@ -1985,8 +1983,8 @@
         "start_column": 4,
         "end_line": 80,
         "end_column": 13,
-        "start_byte": 1682,
-        "end_byte": 1691
+        "start_byte": 1693,
+        "end_byte": 1702
       }
     },
     {
@@ -2011,9 +2009,63 @@
         "start_column": 4,
         "end_line": 80,
         "end_column": 13,
-        "start_byte": 1682,
-        "end_byte": 1691
+        "start_byte": 1693,
+        "end_byte": 1702
       }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+        "callee_name": "this.missingWave2",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/scala/basic/source.scala",
+        "line_number": 79,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "this.missingWave2",
+        "terminal_name": "missingWave2",
+        "receiver": "this",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+      "span": {
+        "start_line": 79,
+        "start_column": 4,
+        "end_line": 79,
+        "end_column": 23,
+        "start_byte": 1669,
+        "end_byte": 1688
+      },
+      "receiver_type": "Widget"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+        "callee_name": "this.missingWave2",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/scala/basic/source.scala",
+        "line_number": 79,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "this.missingWave2",
+        "terminal_name": "missingWave2",
+        "receiver": "this",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+      "span": {
+        "start_line": 79,
+        "start_column": 4,
+        "end_line": 79,
+        "end_column": 23,
+        "start_byte": 1669,
+        "end_byte": 1688
+      },
+      "receiver_type": "Widget"
     },
     {
       "pending": {
@@ -2279,8 +2331,8 @@
       "start_column": 18,
       "end_line": 83,
       "end_column": 21,
-      "start_byte": 1735,
-      "end_byte": 1738,
+      "start_byte": 1746,
+      "end_byte": 1749,
       "containing_key": "fixtures/extraction/scala/basic/source.scala:annotate:83:2",
       "target_key": null,
       "confidence": "1.000"
@@ -2295,8 +2347,8 @@
       "start_column": 32,
       "end_line": 83,
       "end_column": 35,
-      "start_byte": 1749,
-      "end_byte": 1752,
+      "start_byte": 1760,
+      "end_byte": 1763,
       "containing_key": "fixtures/extraction/scala/basic/source.scala:annotate:83:2",
       "target_key": null,
       "confidence": "1.000"
@@ -2375,8 +2427,8 @@
       "start_column": 27,
       "end_line": 83,
       "end_column": 31,
-      "start_byte": 1744,
-      "end_byte": 1748,
+      "start_byte": 1755,
+      "end_byte": 1759,
       "containing_key": "fixtures/extraction/scala/basic/source.scala:annotate:83:2",
       "target_key": null,
       "confidence": "1.000"
@@ -2750,23 +2802,6 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/scala/basic/source.scala:m:call:79:9",
-      "name": "m",
-      "kind": "call",
-      "language": "scala",
-      "file_path": "fixtures/extraction/scala/basic/source.scala",
-      "start_line": 79,
-      "start_column": 9,
-      "end_line": 79,
-      "end_column": 10,
-      "start_byte": 1674,
-      "end_byte": 1675,
-      "containing_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
-      "target_key": null,
-      "confidence": "1.000",
-      "receiver_type": "Widget"
-    },
-    {
       "key": "fixtures/extraction/scala/basic/source.scala:m:call:80:10",
       "name": "m",
       "kind": "call",
@@ -2776,11 +2811,28 @@
       "start_column": 10,
       "end_line": 80,
       "end_column": 11,
-      "start_byte": 1688,
-      "end_byte": 1689,
+      "start_byte": 1699,
+      "end_byte": 1700,
       "containing_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
       "target_key": null,
       "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:missingWave2:call:79:9",
+      "name": "missingWave2",
+      "kind": "call",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 79,
+      "start_column": 9,
+      "end_line": 79,
+      "end_column": 21,
+      "start_byte": 1674,
+      "end_byte": 1686,
+      "containing_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+      "target_key": null,
+      "confidence": "1.000",
+      "receiver_type": "Widget"
     },
     {
       "key": "fixtures/extraction/scala/basic/source.scala:mutable:member_access:77:36",
@@ -2840,8 +2892,8 @@
       "start_column": 4,
       "end_line": 80,
       "end_column": 9,
-      "start_byte": 1682,
-      "end_byte": 1687,
+      "start_byte": 1693,
+      "end_byte": 1698,
       "containing_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
       "target_key": null,
       "confidence": "1.000"
@@ -3539,7 +3591,7 @@
       "language": "scala",
       "file_path": "fixtures/extraction/scala/basic/source.scala",
       "covered_lines": 87,
-      "covered_bytes": 1790,
+      "covered_bytes": 1801,
       "decision_count": 4,
       "loop_count": 2,
       "max_nesting_depth": 3,
@@ -3549,7 +3601,7 @@
       "end_line": 87,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 1790,
+      "end_byte": 1801,
       "metadata": {
         "metric_version": 1
       }
@@ -3592,8 +3644,8 @@
       "start_column": 2,
       "end_line": 83,
       "end_column": 48,
-      "start_byte": 1719,
-      "end_byte": 1765,
+      "start_byte": 1730,
+      "end_byte": 1776,
       "metadata": {
         "metric_version": 1
       }
@@ -3614,8 +3666,8 @@
       "start_column": 0,
       "end_line": 86,
       "end_column": 20,
-      "start_byte": 1769,
-      "end_byte": 1789,
+      "start_byte": 1780,
+      "end_byte": 1800,
       "metadata": {
         "metric_version": 1
       }
@@ -3790,8 +3842,8 @@
       "start_column": 2,
       "end_line": 82,
       "end_column": 20,
-      "start_byte": 1698,
-      "end_byte": 1716,
+      "start_byte": 1709,
+      "end_byte": 1727,
       "metadata": {
         "metric_version": 1
       }
@@ -3825,7 +3877,7 @@
       "language": "scala",
       "file_path": "fixtures/extraction/scala/basic/source.scala",
       "covered_lines": 10,
-      "covered_bytes": 224,
+      "covered_bytes": 235,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
@@ -3835,7 +3887,7 @@
       "end_line": 81,
       "end_column": 3,
       "start_byte": 1471,
-      "end_byte": 1695,
+      "end_byte": 1706,
       "metadata": {
         "metric_version": 1
       }

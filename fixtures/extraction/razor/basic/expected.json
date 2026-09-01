@@ -38,15 +38,15 @@
       "start_column": 8,
       "end_line": 44,
       "end_column": 9,
-      "start_byte": 544,
-      "end_byte": 919,
+      "start_byte": 545,
+      "end_byte": 920,
       "body_span": {
         "start_line": 30,
         "start_column": 8,
         "end_line": 44,
         "end_column": 9,
-        "start_byte": 598,
-        "end_byte": 919
+        "start_byte": 599,
+        "end_byte": 920
       },
       "body_hash": "c9d03a05323e80b62076f80bf083aa30",
       "signature": "private int Evaluate(int count, bool enabled)",
@@ -75,15 +75,15 @@
       "start_column": 8,
       "end_line": 63,
       "end_column": 9,
-      "start_byte": 1220,
-      "end_byte": 1336,
+      "start_byte": 1221,
+      "end_byte": 1337,
       "body_span": {
         "start_line": 61,
         "start_column": 8,
         "end_line": 63,
         "end_column": 9,
-        "start_byte": 1261,
-        "end_byte": 1336
+        "start_byte": 1262,
+        "end_byte": 1337
       },
       "body_hash": "f7512297d3d5831fc6e8b3775c13b89a",
       "signature": "public static void FetchStatus()",
@@ -112,15 +112,15 @@
       "start_column": 8,
       "end_line": 67,
       "end_column": 9,
-      "start_byte": 1346,
-      "end_byte": 1406,
+      "start_byte": 1347,
+      "end_byte": 1407,
       "body_span": {
         "start_line": 66,
         "start_column": 8,
         "end_line": 67,
         "end_column": 9,
-        "start_byte": 1395,
-        "end_byte": 1406
+        "start_byte": 1396,
+        "end_byte": 1407
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "private static void FetchUrl(string url)",
@@ -149,15 +149,15 @@
       "start_column": 8,
       "end_line": 27,
       "end_column": 9,
-      "start_byte": 446,
-      "end_byte": 534,
+      "start_byte": 447,
+      "end_byte": 535,
       "body_span": {
         "start_line": 25,
         "start_column": 8,
         "end_line": 27,
         "end_column": 9,
-        "start_byte": 490,
-        "end_byte": 534
+        "start_byte": 491,
+        "end_byte": 535
       },
       "body_hash": "8217709fe97c66b74484b7e325107e67",
       "signature": "private string Format(string value)",
@@ -186,15 +186,15 @@
       "start_column": 8,
       "end_line": 49,
       "end_column": 9,
-      "start_byte": 929,
-      "end_byte": 1015,
+      "start_byte": 930,
+      "end_byte": 1016,
       "body_span": {
         "start_line": 47,
         "start_column": 8,
         "end_line": 49,
         "end_column": 9,
-        "start_byte": 974,
-        "end_byte": 1015
+        "start_byte": 975,
+        "end_byte": 1016
       },
       "body_hash": "9d7bfc03ef03477a6cc1004df50e77c5",
       "signature": "private static int Helper(int value)",
@@ -223,15 +223,15 @@
       "start_column": 8,
       "end_line": 58,
       "end_column": 9,
-      "start_byte": 1134,
-      "end_byte": 1210,
+      "start_byte": 1135,
+      "end_byte": 1211,
       "body_span": {
         "start_line": 57,
         "start_column": 8,
         "end_line": 58,
         "end_column": 9,
-        "start_byte": 1199,
-        "end_byte": 1210
+        "start_byte": 1200,
+        "end_byte": 1211
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "private static void ObserveRun(string eventName, int id)",
@@ -260,15 +260,15 @@
       "start_column": 8,
       "end_line": 54,
       "end_column": 9,
-      "start_byte": 1025,
-      "end_byte": 1124,
+      "start_byte": 1026,
+      "end_byte": 1125,
       "body_span": {
         "start_line": 52,
         "start_column": 8,
         "end_line": 54,
         "end_column": 9,
-        "start_byte": 1071,
-        "end_byte": 1124
+        "start_byte": 1072,
+        "end_byte": 1125
       },
       "body_hash": "234fe8f08ce59e07c1c4bc62740f6625",
       "signature": "private static void RecordRun(int id)",
@@ -298,16 +298,16 @@
       "end_line": 22,
       "end_column": 9,
       "start_byte": 315,
-      "end_byte": 436,
+      "end_byte": 437,
       "body_span": {
         "start_line": 19,
         "start_column": 8,
         "end_line": 22,
         "end_column": 9,
         "start_byte": 367,
-        "end_byte": 436
+        "end_byte": 437
       },
-      "body_hash": "7e4e1a3d57aff77f285156fbaa83de44",
+      "body_hash": "b87494f1629e02b04f43c693120201e4",
       "signature": "[Authorize] private int Run(int id)",
       "doc_comment": null,
       "visibility": "Private",
@@ -383,16 +383,16 @@
       "end_line": 68,
       "end_column": 5,
       "start_byte": 117,
-      "end_byte": 1412,
+      "end_byte": 1413,
       "body_span": {
         "start_line": 11,
         "start_column": 4,
         "end_line": 68,
         "end_column": 5,
         "start_byte": 176,
-        "end_byte": 1412
+        "end_byte": 1413
       },
-      "body_hash": "cbb557b340ab1cdb50ca19f8096f510c",
+      "body_hash": "eb9f10e0a901ea70ee8f85971f3b7fa6",
       "signature": "[Route(\"/worker\")] public class WorkerPage",
       "doc_comment": null,
       "visibility": "Public",
@@ -423,8 +423,8 @@
       "start_column": 29,
       "end_line": 29,
       "end_column": 38,
-      "start_byte": 565,
-      "end_byte": 574,
+      "start_byte": 566,
+      "end_byte": 575,
       "body_span": null,
       "body_hash": null,
       "signature": "int count",
@@ -451,8 +451,8 @@
       "start_column": 40,
       "end_line": 29,
       "end_column": 52,
-      "start_byte": 576,
-      "end_byte": 588,
+      "start_byte": 577,
+      "end_byte": 589,
       "body_span": null,
       "body_hash": null,
       "signature": "bool enabled",
@@ -479,8 +479,8 @@
       "start_column": 39,
       "end_line": 56,
       "end_column": 55,
-      "start_byte": 1165,
-      "end_byte": 1181,
+      "start_byte": 1166,
+      "end_byte": 1182,
       "body_span": null,
       "body_hash": null,
       "signature": "string eventName",
@@ -507,8 +507,8 @@
       "start_column": 21,
       "end_line": 34,
       "end_column": 30,
-      "start_byte": 687,
-      "end_byte": 696,
+      "start_byte": 688,
+      "end_byte": 697,
       "body_span": null,
       "body_hash": null,
       "signature": "int i = 1",
@@ -563,8 +563,8 @@
       "start_column": 38,
       "end_line": 51,
       "end_column": 44,
-      "start_byte": 1055,
-      "end_byte": 1061,
+      "start_byte": 1056,
+      "end_byte": 1062,
       "body_span": null,
       "body_hash": null,
       "signature": "int id",
@@ -591,8 +591,8 @@
       "start_column": 57,
       "end_line": 56,
       "end_column": 63,
-      "start_byte": 1183,
-      "end_byte": 1189,
+      "start_byte": 1184,
+      "end_byte": 1190,
       "body_span": null,
       "body_hash": null,
       "signature": "int id",
@@ -649,16 +649,16 @@
       "end_line": 70,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 1415,
+      "end_byte": 1416,
       "body_span": {
         "start_line": 8,
         "start_column": 6,
         "end_line": 69,
         "end_column": 1,
         "start_byte": 111,
-        "end_byte": 1414
+        "end_byte": 1415
       },
-      "body_hash": "5f1e09341074d99b3aee589ebbe8466d",
+      "body_hash": "48b8258d44a0718fe021c25f62b9a7ed",
       "signature": "component source",
       "doc_comment": null,
       "visibility": "Public",
@@ -682,8 +682,8 @@
       "start_column": 12,
       "end_line": 31,
       "end_column": 26,
-      "start_byte": 612,
-      "end_byte": 626,
+      "start_byte": 613,
+      "end_byte": 627,
       "body_span": null,
       "body_hash": null,
       "signature": "int total = 0",
@@ -711,8 +711,8 @@
       "start_column": 37,
       "end_line": 65,
       "end_column": 47,
-      "start_byte": 1375,
-      "end_byte": 1385,
+      "start_byte": 1376,
+      "end_byte": 1386,
       "body_span": null,
       "body_hash": null,
       "signature": "string url",
@@ -739,8 +739,8 @@
       "start_column": 30,
       "end_line": 24,
       "end_column": 42,
-      "start_byte": 468,
-      "end_byte": 480,
+      "start_byte": 469,
+      "end_byte": 481,
       "body_span": null,
       "body_hash": null,
       "signature": "string value",
@@ -767,8 +767,8 @@
       "start_column": 34,
       "end_line": 46,
       "end_column": 43,
-      "start_byte": 955,
-      "end_byte": 964,
+      "start_byte": 956,
+      "end_byte": 965,
       "body_span": null,
       "body_hash": null,
       "signature": "int value",
@@ -798,8 +798,8 @@
         "start_column": 12,
         "end_line": 62,
         "end_column": 62,
-        "start_byte": 1275,
-        "end_byte": 1325
+        "start_byte": 1276,
+        "end_byte": 1326
       },
       "reference_site_is_exact": false,
       "confidence": "0.900",
@@ -818,8 +818,8 @@
         "start_column": 19,
         "end_line": 26,
         "end_column": 31,
-        "start_byte": 511,
-        "end_byte": 523
+        "start_byte": 512,
+        "end_byte": 524
       },
       "reference_site_is_exact": false,
       "confidence": "0.900",
@@ -838,8 +838,8 @@
         "start_column": 12,
         "end_line": 53,
         "end_column": 40,
-        "start_byte": 1085,
-        "end_byte": 1113
+        "start_byte": 1086,
+        "end_byte": 1114
       },
       "reference_site_is_exact": false,
       "confidence": "0.900",
@@ -858,8 +858,8 @@
         "start_column": 19,
         "end_line": 21,
         "end_column": 29,
-        "start_byte": 415,
-        "end_byte": 425
+        "start_byte": 416,
+        "end_byte": 426
       },
       "reference_site_is_exact": false,
       "confidence": "0.900",
@@ -869,7 +869,7 @@
     },
     {
       "from_key": "fixtures/extraction/razor/basic/source.razor:Run:17:8",
-      "to_key": "fixtures/extraction/razor/basic/source.razor:RecordRun:51:8",
+      "to_key": "unresolved:method:this.Refresh",
       "kind": "calls",
       "file_path": "fixtures/extraction/razor/basic/source.razor",
       "line_number": 20,
@@ -877,14 +877,14 @@
         "start_line": 20,
         "start_column": 12,
         "end_line": 20,
-        "end_column": 25,
+        "end_column": 26,
         "start_byte": 381,
-        "end_byte": 394
+        "end_byte": 395
       },
       "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": {
-        "method": "RecordRun"
+        "method": "this.Refresh"
       }
     },
     {
@@ -958,8 +958,8 @@
       "start_column": 12,
       "end_line": 62,
       "end_column": 20,
-      "start_byte": 1275,
-      "end_byte": 1283,
+      "start_byte": 1276,
+      "end_byte": 1284,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:FetchStatus:60:8",
       "target_key": null,
       "confidence": "1.000"
@@ -990,8 +990,8 @@
       "start_column": 19,
       "end_line": 21,
       "end_column": 25,
-      "start_byte": 415,
-      "end_byte": 421,
+      "start_byte": 416,
+      "end_byte": 422,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:Run:17:8",
       "target_key": null,
       "confidence": "1.000"
@@ -1022,27 +1022,28 @@
       "start_column": 12,
       "end_line": 53,
       "end_column": 22,
-      "start_byte": 1085,
-      "end_byte": 1095,
+      "start_byte": 1086,
+      "end_byte": 1096,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:RecordRun:51:8",
       "target_key": null,
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/razor/basic/source.razor:RecordRun:call:20:12",
-      "name": "RecordRun",
+      "key": "fixtures/extraction/razor/basic/source.razor:Refresh:call:20:17",
+      "name": "Refresh",
       "kind": "call",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/basic/source.razor",
       "start_line": 20,
-      "start_column": 12,
+      "start_column": 17,
       "end_line": 20,
-      "end_column": 21,
-      "start_byte": 381,
-      "end_byte": 390,
+      "end_column": 24,
+      "start_byte": 386,
+      "end_byte": 393,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:Run:17:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "WorkerPage"
     },
     {
       "key": "fixtures/extraction/razor/basic/source.razor:Title:variable_ref:3:12",
@@ -1102,8 +1103,8 @@
       "start_column": 25,
       "end_line": 26,
       "end_column": 29,
-      "start_byte": 517,
-      "end_byte": 521,
+      "start_byte": 518,
+      "end_byte": 522,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:Format:24:8",
       "target_key": null,
       "confidence": "1.000"
@@ -1118,8 +1119,8 @@
       "start_column": 37,
       "end_line": 34,
       "end_column": 42,
-      "start_byte": 703,
-      "end_byte": 708,
+      "start_byte": 704,
+      "end_byte": 709,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:Evaluate:29:8",
       "target_key": null,
       "confidence": "1.000"
@@ -1134,8 +1135,8 @@
       "start_column": 21,
       "end_line": 39,
       "end_column": 26,
-      "start_byte": 818,
-      "end_byte": 823,
+      "start_byte": 819,
+      "end_byte": 824,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:Evaluate:29:8",
       "target_key": null,
       "confidence": "1.000"
@@ -1150,8 +1151,8 @@
       "start_column": 16,
       "end_line": 32,
       "end_column": 23,
-      "start_byte": 643,
-      "end_byte": 650,
+      "start_byte": 644,
+      "end_byte": 651,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:Evaluate:29:8",
       "target_key": null,
       "confidence": "1.000"
@@ -1166,8 +1167,8 @@
       "start_column": 32,
       "end_line": 34,
       "end_column": 33,
-      "start_byte": 698,
-      "end_byte": 699,
+      "start_byte": 699,
+      "end_byte": 700,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:Evaluate:29:8",
       "target_key": null,
       "confidence": "1.000"
@@ -1182,8 +1183,8 @@
       "start_column": 44,
       "end_line": 34,
       "end_column": 45,
-      "start_byte": 710,
-      "end_byte": 711,
+      "start_byte": 711,
+      "end_byte": 712,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:Evaluate:29:8",
       "target_key": null,
       "confidence": "1.000"
@@ -1198,25 +1199,9 @@
       "start_column": 29,
       "end_line": 36,
       "end_column": 30,
-      "start_byte": 762,
-      "end_byte": 763,
+      "start_byte": 763,
+      "end_byte": 764,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:Evaluate:29:8",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/razor/basic/source.razor:id:variable_ref:20:22",
-      "name": "id",
-      "kind": "variable_ref",
-      "language": "razor",
-      "file_path": "fixtures/extraction/razor/basic/source.razor",
-      "start_line": 20,
-      "start_column": 22,
-      "end_line": 20,
-      "end_column": 24,
-      "start_byte": 391,
-      "end_byte": 393,
-      "containing_key": "fixtures/extraction/razor/basic/source.razor:Run:17:8",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1230,8 +1215,8 @@
       "start_column": 26,
       "end_line": 21,
       "end_column": 28,
-      "start_byte": 422,
-      "end_byte": 424,
+      "start_byte": 423,
+      "end_byte": 425,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:Run:17:8",
       "target_key": null,
       "confidence": "1.000"
@@ -1246,8 +1231,8 @@
       "start_column": 37,
       "end_line": 53,
       "end_column": 39,
-      "start_byte": 1110,
-      "end_byte": 1112,
+      "start_byte": 1111,
+      "end_byte": 1113,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:RecordRun:51:8",
       "target_key": null,
       "confidence": "1.000"
@@ -1262,8 +1247,8 @@
       "start_column": 20,
       "end_line": 36,
       "end_column": 25,
-      "start_byte": 753,
-      "end_byte": 758,
+      "start_byte": 754,
+      "end_byte": 759,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:Evaluate:29:8",
       "target_key": null,
       "confidence": "1.000"
@@ -1278,8 +1263,8 @@
       "start_column": 19,
       "end_line": 43,
       "end_column": 24,
-      "start_byte": 903,
-      "end_byte": 908,
+      "start_byte": 904,
+      "end_byte": 909,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:Evaluate:29:8",
       "target_key": null,
       "confidence": "1.000"
@@ -1294,8 +1279,8 @@
       "start_column": 19,
       "end_line": 26,
       "end_column": 24,
-      "start_byte": 511,
-      "end_byte": 516,
+      "start_byte": 512,
+      "end_byte": 517,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:Format:24:8",
       "target_key": null,
       "confidence": "1.000"
@@ -1310,8 +1295,8 @@
       "start_column": 19,
       "end_line": 48,
       "end_column": 24,
-      "start_byte": 995,
-      "end_byte": 1000,
+      "start_byte": 996,
+      "end_byte": 1001,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:Helper:46:8",
       "target_key": null,
       "confidence": "1.000"
@@ -1575,7 +1560,7 @@
       "end_line": 69,
       "end_column": 1,
       "start_byte": 105,
-      "end_byte": 1414,
+      "end_byte": 1415,
       "confidence": "1.000",
       "metadata": {
         "block_type": "code",
@@ -1642,7 +1627,7 @@
       "language": "razor",
       "file_path": "fixtures/extraction/razor/basic/source.razor",
       "covered_lines": 70,
-      "covered_bytes": 1415,
+      "covered_bytes": 1416,
       "decision_count": 2,
       "loop_count": 1,
       "max_nesting_depth": 2,
@@ -1652,7 +1637,7 @@
       "end_line": 70,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 1415,
+      "end_byte": 1416,
       "metadata": {
         "metric_version": 1
       }
@@ -1673,8 +1658,8 @@
       "start_column": 8,
       "end_line": 44,
       "end_column": 9,
-      "start_byte": 598,
-      "end_byte": 919,
+      "start_byte": 599,
+      "end_byte": 920,
       "metadata": {
         "metric_version": 1
       }
@@ -1695,8 +1680,8 @@
       "start_column": 8,
       "end_line": 63,
       "end_column": 9,
-      "start_byte": 1261,
-      "end_byte": 1336,
+      "start_byte": 1262,
+      "end_byte": 1337,
       "metadata": {
         "metric_version": 1
       }
@@ -1717,8 +1702,8 @@
       "start_column": 8,
       "end_line": 67,
       "end_column": 9,
-      "start_byte": 1395,
-      "end_byte": 1406,
+      "start_byte": 1396,
+      "end_byte": 1407,
       "metadata": {
         "metric_version": 1
       }
@@ -1739,8 +1724,8 @@
       "start_column": 8,
       "end_line": 27,
       "end_column": 9,
-      "start_byte": 490,
-      "end_byte": 534,
+      "start_byte": 491,
+      "end_byte": 535,
       "metadata": {
         "metric_version": 1
       }
@@ -1761,8 +1746,8 @@
       "start_column": 8,
       "end_line": 49,
       "end_column": 9,
-      "start_byte": 974,
-      "end_byte": 1015,
+      "start_byte": 975,
+      "end_byte": 1016,
       "metadata": {
         "metric_version": 1
       }
@@ -1783,8 +1768,8 @@
       "start_column": 8,
       "end_line": 58,
       "end_column": 9,
-      "start_byte": 1199,
-      "end_byte": 1210,
+      "start_byte": 1200,
+      "end_byte": 1211,
       "metadata": {
         "metric_version": 1
       }
@@ -1805,8 +1790,8 @@
       "start_column": 8,
       "end_line": 54,
       "end_column": 9,
-      "start_byte": 1071,
-      "end_byte": 1124,
+      "start_byte": 1072,
+      "end_byte": 1125,
       "metadata": {
         "metric_version": 1
       }
@@ -1818,7 +1803,7 @@
       "language": "razor",
       "file_path": "fixtures/extraction/razor/basic/source.razor",
       "covered_lines": 4,
-      "covered_bytes": 69,
+      "covered_bytes": 70,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
@@ -1828,7 +1813,7 @@
       "end_line": 22,
       "end_column": 9,
       "start_byte": 367,
-      "end_byte": 436,
+      "end_byte": 437,
       "metadata": {
         "metric_version": 1
       }
@@ -1846,8 +1831,8 @@
       "start_column": 21,
       "end_line": 62,
       "end_column": 61,
-      "start_byte": 1284,
-      "end_byte": 1324,
+      "start_byte": 1285,
+      "end_byte": 1325,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:FetchStatus:60:8",
       "confidence": "1.000"
     },
@@ -1862,8 +1847,8 @@
       "start_column": 23,
       "end_line": 53,
       "end_column": 35,
-      "start_byte": 1096,
-      "end_byte": 1108,
+      "start_byte": 1097,
+      "end_byte": 1109,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:RecordRun:51:8",
       "confidence": "1.000"
     }
@@ -1879,7 +1864,7 @@
       "end_line": 69,
       "end_column": 1,
       "start_byte": 105,
-      "end_byte": 1414,
+      "end_byte": 1415,
       "metadata": {
         "block_type": "code",
         "embedded_language": "csharp",
@@ -1908,8 +1893,8 @@
       "start_column": 21,
       "end_line": 62,
       "end_column": 61,
-      "start_byte": 1284,
-      "end_byte": 1324,
+      "start_byte": 1285,
+      "end_byte": 1325,
       "metadata": null
     },
     {
@@ -1921,8 +1906,8 @@
       "start_column": 23,
       "end_line": 53,
       "end_column": 35,
-      "start_byte": 1096,
-      "end_byte": 1108,
+      "start_byte": 1097,
+      "end_byte": 1109,
       "metadata": null
     },
     {

@@ -22,7 +22,7 @@ class Worker
     u = Unknown.new
     n = Net::HTTP.new
     v = build
-    self.helper
+    self.missing_wave2
   end
 
   def run

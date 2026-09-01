@@ -251,16 +251,16 @@
       "end_line": 50,
       "end_column": 1,
       "start_byte": 418,
-      "end_byte": 748,
+      "end_byte": 749,
       "body_span": {
         "start_line": 31,
         "start_column": 0,
         "end_line": 50,
         "end_column": 1,
         "start_byte": 441,
-        "end_byte": 748
+        "end_byte": 749
       },
-      "body_hash": "e8ddb7770f2ed0350bd6450f59e618b4",
+      "body_hash": "8ffe5215b3249dd92eb8b399a1b9353d",
       "signature": "#[Entity]\nclass Worker use Timestampable;",
       "doc_comment": null,
       "visibility": "Public",
@@ -360,8 +360,8 @@
       "start_column": 18,
       "end_line": 92,
       "end_column": 28,
-      "start_byte": 1509,
-      "end_byte": 1519,
+      "start_byte": 1510,
+      "end_byte": 1520,
       "body_span": null,
       "body_hash": null,
       "signature": "int $count",
@@ -386,8 +386,8 @@
       "start_column": 30,
       "end_line": 92,
       "end_column": 43,
-      "start_byte": 1521,
-      "end_byte": 1534,
+      "start_byte": 1522,
+      "end_byte": 1535,
       "body_span": null,
       "body_hash": null,
       "signature": "bool $enabled",
@@ -412,15 +412,15 @@
       "start_column": 0,
       "end_line": 106,
       "end_column": 1,
-      "start_byte": 1491,
-      "end_byte": 1810,
+      "start_byte": 1492,
+      "end_byte": 1811,
       "body_span": {
         "start_line": 93,
         "start_column": 0,
         "end_line": 106,
         "end_column": 1,
-        "start_byte": 1541,
-        "end_byte": 1810
+        "start_byte": 1542,
+        "end_byte": 1811
       },
       "body_hash": "1e84ac42646cef87166e0a081287d3db",
       "signature": "function evaluate(int $count, bool $enabled): int",
@@ -448,8 +448,8 @@
       "start_column": 20,
       "end_line": 70,
       "end_column": 33,
-      "start_byte": 1127,
-      "end_byte": 1140,
+      "start_byte": 1128,
+      "end_byte": 1141,
       "body_span": null,
       "body_hash": null,
       "signature": "string $event",
@@ -474,15 +474,15 @@
       "start_column": 0,
       "end_line": 78,
       "end_column": 1,
-      "start_byte": 1212,
-      "end_byte": 1300,
+      "start_byte": 1213,
+      "end_byte": 1301,
       "body_span": {
         "start_line": 76,
         "start_column": 0,
         "end_line": 78,
         "end_column": 1,
-        "start_byte": 1241,
-        "end_byte": 1300
+        "start_byte": 1242,
+        "end_byte": 1301
       },
       "body_hash": "a11bdf56c3f6c0881c2fb97b75f5dee7",
       "signature": "function fetchStatus(): void",
@@ -510,15 +510,15 @@
       "start_column": 0,
       "end_line": 82,
       "end_column": 1,
-      "start_byte": 1302,
-      "end_byte": 1342,
+      "start_byte": 1303,
+      "end_byte": 1343,
       "body_span": {
         "start_line": 81,
         "start_column": 0,
         "end_line": 82,
         "end_column": 1,
-        "start_byte": 1339,
-        "end_byte": 1342
+        "start_byte": 1340,
+        "end_byte": 1343
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "function fetchUrl(string $url): void",
@@ -546,15 +546,15 @@
       "start_column": 0,
       "end_line": 61,
       "end_column": 1,
-      "start_byte": 856,
-      "end_byte": 915,
+      "start_byte": 857,
+      "end_byte": 916,
       "body_span": {
         "start_line": 59,
         "start_column": 0,
         "end_line": 61,
         "end_column": 1,
-        "start_byte": 889,
-        "end_byte": 915
+        "start_byte": 890,
+        "end_byte": 916
       },
       "body_hash": "a11f3d97dba261f8e4ba132210054a01",
       "signature": "function helper(int $value): int",
@@ -582,8 +582,8 @@
       "start_column": 13,
       "end_line": 96,
       "end_column": 19,
-      "start_byte": 1592,
-      "end_byte": 1598,
+      "start_byte": 1593,
+      "end_byte": 1599,
       "body_span": null,
       "body_hash": null,
       "signature": "$i = 0",
@@ -696,8 +696,8 @@
       "start_column": 19,
       "end_line": 64,
       "end_column": 26,
-      "start_byte": 994,
-      "end_byte": 1001,
+      "start_byte": 995,
+      "end_byte": 1002,
       "body_span": null,
       "body_hash": null,
       "signature": "int $id",
@@ -722,8 +722,8 @@
       "start_column": 35,
       "end_line": 70,
       "end_column": 42,
-      "start_byte": 1142,
-      "end_byte": 1149,
+      "start_byte": 1143,
+      "end_byte": 1150,
       "body_span": null,
       "body_hash": null,
       "signature": "int $id",
@@ -748,15 +748,15 @@
       "start_column": 4,
       "end_line": 88,
       "end_column": 5,
-      "start_byte": 1387,
-      "end_byte": 1458,
+      "start_byte": 1388,
+      "end_byte": 1459,
       "body_span": {
         "start_line": 86,
         "start_column": 41,
         "end_line": 88,
         "end_column": 5,
-        "start_byte": 1424,
-        "end_byte": 1458
+        "start_byte": 1425,
+        "end_byte": 1459
       },
       "body_hash": "59258e9b9fdea9b6bd58a4378cce8b39",
       "signature": "$mapper = function (int $input): int {\n        return $input + 1;\n    }",
@@ -782,15 +782,15 @@
       "start_column": 0,
       "end_line": 72,
       "end_column": 1,
-      "start_byte": 1107,
-      "end_byte": 1160,
+      "start_byte": 1108,
+      "end_byte": 1161,
       "body_span": {
         "start_line": 71,
         "start_column": 0,
         "end_line": 72,
         "end_column": 1,
-        "start_byte": 1157,
-        "end_byte": 1160
+        "start_byte": 1158,
+        "end_byte": 1161
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "function observeRun(string $event, int $id): void",
@@ -872,15 +872,15 @@
       "start_column": 0,
       "end_line": 67,
       "end_column": 1,
-      "start_byte": 975,
-      "end_byte": 1047,
+      "start_byte": 976,
+      "end_byte": 1048,
       "body_span": {
         "start_line": 65,
         "start_column": 0,
         "end_line": 67,
         "end_column": 1,
-        "start_byte": 1009,
-        "end_byte": 1047
+        "start_byte": 1010,
+        "end_byte": 1048
       },
       "body_hash": "e5e03f3d0ead90a532820081014faf0b",
       "signature": "function recordRun(int $id): void",
@@ -909,16 +909,16 @@
       "end_line": 49,
       "end_column": 5,
       "start_byte": 623,
-      "end_byte": 746,
+      "end_byte": 747,
       "body_span": {
         "start_line": 46,
         "start_column": 4,
         "end_line": 49,
         "end_column": 5,
         "start_byte": 675,
-        "end_byte": 746
+        "end_byte": 747
       },
-      "body_hash": "efb88418761fda54abe5103e6d646cdc",
+      "body_hash": "eaa912505234b2618f5f18e9aed5057a",
       "signature": "#[Route('/run')]\npublic function run(): int",
       "doc_comment": null,
       "visibility": "Public",
@@ -950,15 +950,15 @@
       "start_column": 8,
       "end_line": 103,
       "end_column": 9,
-      "start_byte": 1693,
-      "end_byte": 1782,
+      "start_byte": 1694,
+      "end_byte": 1783,
       "body_span": {
         "start_line": 100,
         "start_column": 30,
         "end_line": 103,
         "end_column": 9,
-        "start_byte": 1715,
-        "end_byte": 1782
+        "start_byte": 1716,
+        "end_byte": 1783
       },
       "body_hash": "01ab691d3df3d32001433f8fd6b6c2e8",
       "signature": "$total = match (true) {\n            $count > 10 => 1,\n            default => 0,\n        }",
@@ -984,8 +984,8 @@
       "start_column": 4,
       "end_line": 94,
       "end_column": 14,
-      "start_byte": 1547,
-      "end_byte": 1557,
+      "start_byte": 1548,
+      "end_byte": 1558,
       "body_span": null,
       "body_hash": null,
       "signature": "$total = 0",
@@ -1011,8 +1011,8 @@
       "start_column": 18,
       "end_line": 80,
       "end_column": 29,
-      "start_byte": 1320,
-      "end_byte": 1331,
+      "start_byte": 1321,
+      "end_byte": 1332,
       "body_span": null,
       "body_hash": null,
       "signature": "string $url",
@@ -1037,8 +1037,8 @@
       "start_column": 16,
       "end_line": 58,
       "end_column": 26,
-      "start_byte": 872,
-      "end_byte": 882,
+      "start_byte": 873,
+      "end_byte": 883,
       "body_span": null,
       "body_hash": null,
       "signature": "int $value",
@@ -1063,8 +1063,8 @@
       "start_column": 20,
       "end_line": 84,
       "end_column": 30,
-      "start_byte": 1364,
-      "end_byte": 1374,
+      "start_byte": 1365,
+      "end_byte": 1375,
       "body_span": null,
       "body_hash": null,
       "signature": "int $value",
@@ -1089,15 +1089,15 @@
       "start_column": 0,
       "end_line": 90,
       "end_column": 1,
-      "start_byte": 1344,
-      "end_byte": 1489,
+      "start_byte": 1345,
+      "end_byte": 1490,
       "body_span": {
         "start_line": 85,
         "start_column": 0,
         "end_line": 90,
         "end_column": 1,
-        "start_byte": 1381,
-        "end_byte": 1489
+        "start_byte": 1382,
+        "end_byte": 1490
       },
       "body_hash": "0b596c8d5340fad0778c5b9f40f588b5",
       "signature": "function withMapper(int $value): int",
@@ -1128,8 +1128,8 @@
         "start_column": 4,
         "end_line": 77,
         "end_column": 54,
-        "start_byte": 1247,
-        "end_byte": 1297
+        "start_byte": 1248,
+        "end_byte": 1298
       },
       "reference_site_is_exact": false,
       "confidence": "0.900",
@@ -1146,8 +1146,8 @@
         "start_column": 4,
         "end_line": 66,
         "end_column": 33,
-        "start_byte": 1015,
-        "end_byte": 1044
+        "start_byte": 1016,
+        "end_byte": 1045
       },
       "reference_site_is_exact": false,
       "confidence": "0.900",
@@ -1164,26 +1164,8 @@
         "start_column": 15,
         "end_line": 48,
         "end_column": 32,
-        "start_byte": 722,
-        "end_byte": 739
-      },
-      "reference_site_is_exact": false,
-      "confidence": "0.900",
-      "metadata": null
-    },
-    {
-      "from_key": "fixtures/extraction/php/basic/source.php:run:44:4",
-      "to_key": "fixtures/extraction/php/basic/source.php:recordRun:64:0",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/php/basic/source.php",
-      "line_number": 47,
-      "span": {
-        "start_line": 47,
-        "start_column": 8,
-        "end_line": 47,
-        "end_column": 28,
-        "start_byte": 685,
-        "end_byte": 705
+        "start_byte": 723,
+        "end_byte": 740
       },
       "reference_site_is_exact": false,
       "confidence": "0.900",
@@ -1191,6 +1173,14 @@
     }
   ],
   "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/php/basic/source.php:run:44:4",
+      "callee_name": "this.missingWave2",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/php/basic/source.php",
+      "line_number": 47,
+      "confidence": "0.700"
+    },
     {
       "from_key": "fixtures/extraction/php/basic/source.php:withMapper:84:0",
       "callee_name": "$mapper",
@@ -1201,6 +1191,33 @@
     }
   ],
   "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/php/basic/source.php:run:44:4",
+        "callee_name": "this.missingWave2",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/php/basic/source.php",
+        "line_number": 47,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "this.missingWave2",
+        "terminal_name": "missingWave2",
+        "receiver": "this",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/php/basic/source.php:run:44:4",
+      "span": {
+        "start_line": 47,
+        "start_column": 8,
+        "end_line": 47,
+        "end_column": 29,
+        "start_byte": 685,
+        "end_byte": 706
+      },
+      "receiver_type": "Worker"
+    },
     {
       "pending": {
         "from_key": "fixtures/extraction/php/basic/source.php:withMapper:84:0",
@@ -1223,8 +1240,8 @@
         "start_column": 11,
         "end_line": 89,
         "end_column": 26,
-        "start_byte": 1471,
-        "end_byte": 1486
+        "start_byte": 1472,
+        "end_byte": 1487
       }
     }
   ],
@@ -1239,8 +1256,8 @@
       "start_column": 11,
       "end_line": 89,
       "end_column": 18,
-      "start_byte": 1471,
-      "end_byte": 1478,
+      "start_byte": 1472,
+      "end_byte": 1479,
       "containing_key": "fixtures/extraction/php/basic/source.php:withMapper:84:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1255,8 +1272,8 @@
       "start_column": 12,
       "end_line": 101,
       "end_column": 18,
-      "start_byte": 1729,
-      "end_byte": 1735,
+      "start_byte": 1730,
+      "end_byte": 1736,
       "containing_key": "fixtures/extraction/php/basic/source.php:evaluate:92:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1271,8 +1288,8 @@
       "start_column": 26,
       "end_line": 96,
       "end_column": 32,
-      "start_byte": 1605,
-      "end_byte": 1611,
+      "start_byte": 1606,
+      "end_byte": 1612,
       "containing_key": "fixtures/extraction/php/basic/source.php:evaluate:92:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1287,8 +1304,8 @@
       "start_column": 14,
       "end_line": 99,
       "end_column": 20,
-      "start_byte": 1671,
-      "end_byte": 1677,
+      "start_byte": 1672,
+      "end_byte": 1678,
       "containing_key": "fixtures/extraction/php/basic/source.php:evaluate:92:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1303,8 +1320,8 @@
       "start_column": 8,
       "end_line": 95,
       "end_column": 16,
-      "start_byte": 1567,
-      "end_byte": 1575,
+      "start_byte": 1568,
+      "end_byte": 1576,
       "containing_key": "fixtures/extraction/php/basic/source.php:evaluate:92:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1319,8 +1336,8 @@
       "start_column": 4,
       "end_line": 77,
       "end_column": 12,
-      "start_byte": 1247,
-      "end_byte": 1255,
+      "start_byte": 1248,
+      "end_byte": 1256,
       "containing_key": "fixtures/extraction/php/basic/source.php:fetchStatus:75:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1335,8 +1352,8 @@
       "start_column": 15,
       "end_line": 48,
       "end_column": 21,
-      "start_byte": 722,
-      "end_byte": 728,
+      "start_byte": 723,
+      "end_byte": 729,
       "containing_key": "fixtures/extraction/php/basic/source.php:run:44:4",
       "target_key": null,
       "confidence": "1.000"
@@ -1351,8 +1368,8 @@
       "start_column": 21,
       "end_line": 96,
       "end_column": 23,
-      "start_byte": 1600,
-      "end_byte": 1602,
+      "start_byte": 1601,
+      "end_byte": 1603,
       "containing_key": "fixtures/extraction/php/basic/source.php:evaluate:92:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1367,8 +1384,8 @@
       "start_column": 34,
       "end_line": 96,
       "end_column": 36,
-      "start_byte": 1613,
-      "end_byte": 1615,
+      "start_byte": 1614,
+      "end_byte": 1616,
       "containing_key": "fixtures/extraction/php/basic/source.php:evaluate:92:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1383,8 +1400,8 @@
       "start_column": 22,
       "end_line": 97,
       "end_column": 24,
-      "start_byte": 1643,
-      "end_byte": 1645,
+      "start_byte": 1644,
+      "end_byte": 1646,
       "containing_key": "fixtures/extraction/php/basic/source.php:evaluate:92:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1406,22 +1423,6 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/php/basic/source.php:id:member_access:47:25",
-      "name": "id",
-      "kind": "member_access",
-      "language": "php",
-      "file_path": "fixtures/extraction/php/basic/source.php",
-      "start_line": 47,
-      "start_column": 25,
-      "end_line": 47,
-      "end_column": 27,
-      "start_byte": 702,
-      "end_byte": 704,
-      "containing_key": "fixtures/extraction/php/basic/source.php:run:44:4",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
       "key": "fixtures/extraction/php/basic/source.php:id:member_access:48:29",
       "name": "id",
       "kind": "member_access",
@@ -1431,8 +1432,8 @@
       "start_column": 29,
       "end_line": 48,
       "end_column": 31,
-      "start_byte": 736,
-      "end_byte": 738,
+      "start_byte": 737,
+      "end_byte": 739,
       "containing_key": "fixtures/extraction/php/basic/source.php:run:44:4",
       "target_key": null,
       "confidence": "1.000"
@@ -1463,8 +1464,8 @@
       "start_column": 29,
       "end_line": 66,
       "end_column": 32,
-      "start_byte": 1040,
-      "end_byte": 1043,
+      "start_byte": 1041,
+      "end_byte": 1044,
       "containing_key": "fixtures/extraction/php/basic/source.php:recordRun:64:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1479,8 +1480,8 @@
       "start_column": 15,
       "end_line": 87,
       "end_column": 21,
-      "start_byte": 1441,
-      "end_byte": 1447,
+      "start_byte": 1442,
+      "end_byte": 1448,
       "containing_key": "fixtures/extraction/php/basic/source.php:withMapper:84:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1495,11 +1496,28 @@
       "start_column": 11,
       "end_line": 89,
       "end_column": 18,
-      "start_byte": 1471,
-      "end_byte": 1478,
+      "start_byte": 1472,
+      "end_byte": 1479,
       "containing_key": "fixtures/extraction/php/basic/source.php:withMapper:84:0",
       "target_key": null,
       "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/php/basic/source.php:missingWave2:call:47:15",
+      "name": "missingWave2",
+      "kind": "call",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/basic/source.php",
+      "start_line": 47,
+      "start_column": 15,
+      "end_line": 47,
+      "end_column": 27,
+      "start_byte": 692,
+      "end_byte": 704,
+      "containing_key": "fixtures/extraction/php/basic/source.php:run:44:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "receiver_type": "Worker"
     },
     {
       "key": "fixtures/extraction/php/basic/source.php:observeRun:call:66:4",
@@ -1511,25 +1529,9 @@
       "start_column": 4,
       "end_line": 66,
       "end_column": 14,
-      "start_byte": 1015,
-      "end_byte": 1025,
+      "start_byte": 1016,
+      "end_byte": 1026,
       "containing_key": "fixtures/extraction/php/basic/source.php:recordRun:64:0",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/php/basic/source.php:recordRun:call:47:8",
-      "name": "recordRun",
-      "kind": "call",
-      "language": "php",
-      "file_path": "fixtures/extraction/php/basic/source.php",
-      "start_line": 47,
-      "start_column": 8,
-      "end_line": 47,
-      "end_column": 17,
-      "start_byte": 685,
-      "end_byte": 694,
-      "containing_key": "fixtures/extraction/php/basic/source.php:run:44:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1543,8 +1545,8 @@
       "start_column": 11,
       "end_line": 105,
       "end_column": 17,
-      "start_byte": 1801,
-      "end_byte": 1807,
+      "start_byte": 1802,
+      "end_byte": 1808,
       "containing_key": "fixtures/extraction/php/basic/source.php:evaluate:92:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1559,8 +1561,8 @@
       "start_column": 12,
       "end_line": 97,
       "end_column": 18,
-      "start_byte": 1633,
-      "end_byte": 1639,
+      "start_byte": 1634,
+      "end_byte": 1640,
       "containing_key": "fixtures/extraction/php/basic/source.php:evaluate:92:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1575,8 +1577,8 @@
       "start_column": 11,
       "end_line": 60,
       "end_column": 17,
-      "start_byte": 902,
-      "end_byte": 908,
+      "start_byte": 903,
+      "end_byte": 909,
       "containing_key": "fixtures/extraction/php/basic/source.php:helper:58:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1591,8 +1593,8 @@
       "start_column": 19,
       "end_line": 89,
       "end_column": 25,
-      "start_byte": 1479,
-      "end_byte": 1485,
+      "start_byte": 1480,
+      "end_byte": 1486,
       "containing_key": "fixtures/extraction/php/basic/source.php:withMapper:84:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1901,8 +1903,8 @@
       "start_column": 14,
       "end_line": 88,
       "end_column": 5,
-      "start_byte": 1397,
-      "end_byte": 1458,
+      "start_byte": 1398,
+      "end_byte": 1459,
       "confidence": "1.000",
       "metadata": {
         "pattern_version": 1,
@@ -2040,8 +2042,8 @@
       "start_column": 17,
       "end_line": 103,
       "end_column": 9,
-      "start_byte": 1702,
-      "end_byte": 1782,
+      "start_byte": 1703,
+      "end_byte": 1783,
       "confidence": "1.000",
       "metadata": {
         "pattern_version": 1,
@@ -2118,7 +2120,7 @@
       "language": "php",
       "file_path": "fixtures/extraction/php/basic/source.php",
       "covered_lines": 107,
-      "covered_bytes": 1811,
+      "covered_bytes": 1812,
       "decision_count": 5,
       "loop_count": 1,
       "max_nesting_depth": 4,
@@ -2128,7 +2130,7 @@
       "end_line": 107,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 1811,
+      "end_byte": 1812,
       "metadata": {
         "metric_version": 1
       }
@@ -2193,8 +2195,8 @@
       "start_column": 0,
       "end_line": 106,
       "end_column": 1,
-      "start_byte": 1541,
-      "end_byte": 1810,
+      "start_byte": 1542,
+      "end_byte": 1811,
       "metadata": {
         "metric_version": 1
       }
@@ -2215,8 +2217,8 @@
       "start_column": 0,
       "end_line": 78,
       "end_column": 1,
-      "start_byte": 1241,
-      "end_byte": 1300,
+      "start_byte": 1242,
+      "end_byte": 1301,
       "metadata": {
         "metric_version": 1
       }
@@ -2237,8 +2239,8 @@
       "start_column": 0,
       "end_line": 82,
       "end_column": 1,
-      "start_byte": 1339,
-      "end_byte": 1342,
+      "start_byte": 1340,
+      "end_byte": 1343,
       "metadata": {
         "metric_version": 1
       }
@@ -2259,8 +2261,8 @@
       "start_column": 0,
       "end_line": 61,
       "end_column": 1,
-      "start_byte": 889,
-      "end_byte": 915,
+      "start_byte": 890,
+      "end_byte": 916,
       "metadata": {
         "metric_version": 1
       }
@@ -2281,8 +2283,8 @@
       "start_column": 0,
       "end_line": 72,
       "end_column": 1,
-      "start_byte": 1157,
-      "end_byte": 1160,
+      "start_byte": 1158,
+      "end_byte": 1161,
       "metadata": {
         "metric_version": 1
       }
@@ -2303,8 +2305,8 @@
       "start_column": 0,
       "end_line": 67,
       "end_column": 1,
-      "start_byte": 1009,
-      "end_byte": 1047,
+      "start_byte": 1010,
+      "end_byte": 1048,
       "metadata": {
         "metric_version": 1
       }
@@ -2316,7 +2318,7 @@
       "language": "php",
       "file_path": "fixtures/extraction/php/basic/source.php",
       "covered_lines": 4,
-      "covered_bytes": 71,
+      "covered_bytes": 72,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
@@ -2326,7 +2328,7 @@
       "end_line": 49,
       "end_column": 5,
       "start_byte": 675,
-      "end_byte": 746,
+      "end_byte": 747,
       "metadata": {
         "metric_version": 1
       }
@@ -2347,8 +2349,8 @@
       "start_column": 0,
       "end_line": 90,
       "end_column": 1,
-      "start_byte": 1381,
-      "end_byte": 1489,
+      "start_byte": 1382,
+      "end_byte": 1490,
       "metadata": {
         "metric_version": 1
       }
@@ -2366,8 +2368,8 @@
       "start_column": 13,
       "end_line": 77,
       "end_column": 53,
-      "start_byte": 1256,
-      "end_byte": 1296,
+      "start_byte": 1257,
+      "end_byte": 1297,
       "containing_key": "fixtures/extraction/php/basic/source.php:fetchStatus:75:0",
       "confidence": "1.000"
     },
@@ -2382,8 +2384,8 @@
       "start_column": 15,
       "end_line": 66,
       "end_column": 27,
-      "start_byte": 1026,
-      "end_byte": 1038,
+      "start_byte": 1027,
+      "end_byte": 1039,
       "containing_key": "fixtures/extraction/php/basic/source.php:recordRun:64:0",
       "confidence": "1.000"
     }
@@ -2398,8 +2400,8 @@
       "start_column": 0,
       "end_line": 74,
       "end_column": 49,
-      "start_byte": 1162,
-      "end_byte": 1211,
+      "start_byte": 1163,
+      "end_byte": 1212,
       "metadata": null
     },
     {
@@ -2411,8 +2413,8 @@
       "start_column": 0,
       "end_line": 57,
       "end_column": 3,
-      "start_byte": 750,
-      "end_byte": 855,
+      "start_byte": 751,
+      "end_byte": 856,
       "metadata": null
     },
     {
@@ -2424,8 +2426,8 @@
       "start_column": 0,
       "end_line": 69,
       "end_column": 57,
-      "start_byte": 1049,
-      "end_byte": 1106,
+      "start_byte": 1050,
+      "end_byte": 1107,
       "metadata": null
     },
     {
@@ -2437,8 +2439,8 @@
       "start_column": 0,
       "end_line": 63,
       "end_column": 57,
-      "start_byte": 917,
-      "end_byte": 974,
+      "start_byte": 918,
+      "end_byte": 975,
       "metadata": null
     },
     {
@@ -2463,8 +2465,8 @@
       "start_column": 20,
       "end_line": 70,
       "end_column": 26,
-      "start_byte": 1127,
-      "end_byte": 1133,
+      "start_byte": 1128,
+      "end_byte": 1134,
       "metadata": null
     },
     {
@@ -2476,8 +2478,8 @@
       "start_column": 13,
       "end_line": 77,
       "end_column": 53,
-      "start_byte": 1256,
-      "end_byte": 1296,
+      "start_byte": 1257,
+      "end_byte": 1297,
       "metadata": null
     },
     {
@@ -2502,8 +2504,8 @@
       "start_column": 15,
       "end_line": 66,
       "end_column": 27,
-      "start_byte": 1026,
-      "end_byte": 1038,
+      "start_byte": 1027,
+      "end_byte": 1039,
       "metadata": null
     },
     {
@@ -2528,8 +2530,8 @@
       "start_column": 18,
       "end_line": 80,
       "end_column": 24,
-      "start_byte": 1320,
-      "end_byte": 1326,
+      "start_byte": 1321,
+      "end_byte": 1327,
       "metadata": null
     }
   ],

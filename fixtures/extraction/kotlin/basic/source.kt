@@ -56,7 +56,7 @@ class Worker(
     }
 
     fun persist() {
-        this.recordRun(id)
+        this.missingWave2()
     }
 }
 

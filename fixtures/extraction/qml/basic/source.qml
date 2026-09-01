@@ -43,6 +43,7 @@ Item {
     }
 
     function seed() {
+        this.missingWave2()
         let localCard = new LocalCard()
         let d = new Date()
         let n = compute()

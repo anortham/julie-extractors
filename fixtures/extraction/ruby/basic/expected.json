@@ -90,16 +90,16 @@
       "end_line": 57,
       "end_column": 3,
       "start_byte": 62,
-      "end_byte": 730,
+      "end_byte": 737,
       "body_span": {
         "start_line": 8,
         "start_column": 2,
         "end_line": 56,
         "end_column": 5,
         "start_byte": 77,
-        "end_byte": 726
+        "end_byte": 733
       },
-      "body_hash": "311763cb0a818fa4f6ccd49368c7eab2",
+      "body_hash": "f5cf8d4fee3f649abc6597ddaa64e2d1",
       "signature": "class Worker\n  include Enumerable",
       "doc_comment": null,
       "visibility": "Public",
@@ -120,8 +120,8 @@
       "start_column": 9,
       "end_line": 34,
       "end_column": 26,
-      "start_byte": 428,
-      "end_byte": 445,
+      "start_byte": 435,
+      "end_byte": 452,
       "body_span": null,
       "body_hash": null,
       "signature": "ZeroDivisionError",
@@ -171,16 +171,16 @@
       "end_line": 26,
       "end_column": 5,
       "start_byte": 199,
-      "end_byte": 337,
+      "end_byte": 344,
       "body_span": {
         "start_line": 21,
         "start_column": 4,
         "end_line": 25,
-        "end_column": 15,
+        "end_column": 22,
         "start_byte": 245,
-        "end_byte": 331
+        "end_byte": 338
       },
-      "body_hash": "a57279c5c7f935c832c5a9e15ae76194",
+      "body_hash": "2a542b9530a200fb24e888efa0355b71",
       "signature": "def assemble(a, b = 1, *rest, key:, &blk)",
       "doc_comment": null,
       "visibility": "Public",
@@ -253,8 +253,8 @@
       "start_column": 15,
       "end_line": 45,
       "end_column": 20,
-      "start_byte": 554,
-      "end_byte": 559,
+      "start_byte": 561,
+      "end_byte": 566,
       "body_span": null,
       "body_hash": null,
       "signature": "count",
@@ -279,8 +279,8 @@
       "start_column": 22,
       "end_line": 45,
       "end_column": 29,
-      "start_byte": 561,
-      "end_byte": 568,
+      "start_byte": 568,
+      "end_byte": 575,
       "body_span": null,
       "body_hash": null,
       "signature": "enabled",
@@ -305,15 +305,15 @@
       "start_column": 2,
       "end_line": 56,
       "end_column": 5,
-      "start_byte": 541,
-      "end_byte": 726,
+      "start_byte": 548,
+      "end_byte": 733,
       "body_span": {
         "start_line": 46,
         "start_column": 4,
         "end_line": 55,
         "end_column": 9,
-        "start_byte": 574,
-        "end_byte": 720
+        "start_byte": 581,
+        "end_byte": 727
       },
       "body_hash": "e8b77a6ea2ab4f3d619b8e47fa26d5b7",
       "signature": "def evaluate(count, enabled)",
@@ -360,15 +360,15 @@
       "start_column": 2,
       "end_line": 43,
       "end_column": 5,
-      "start_byte": 500,
-      "end_byte": 537,
+      "start_byte": 507,
+      "end_byte": 544,
       "body_span": {
         "start_line": 42,
         "start_column": 4,
         "end_line": 42,
         "end_column": 13,
-        "start_byte": 522,
-        "end_byte": 531
+        "start_byte": 529,
+        "end_byte": 538
       },
       "body_hash": "2e6faa52e71bfef3d29bce5d1397ece2",
       "signature": "def helper(value)",
@@ -579,15 +579,15 @@
       "start_column": 2,
       "end_line": 36,
       "end_column": 5,
-      "start_byte": 399,
-      "end_byte": 457,
+      "start_byte": 406,
+      "end_byte": 464,
       "body_span": {
         "start_line": 33,
         "start_column": 4,
         "end_line": 35,
         "end_column": 5,
-        "start_byte": 413,
-        "end_byte": 451
+        "start_byte": 420,
+        "end_byte": 458
       },
       "body_hash": "e980ef58cf82c20907c7985ba827f543",
       "signature": "def risky()",
@@ -610,15 +610,15 @@
       "start_column": 2,
       "end_line": 30,
       "end_column": 5,
-      "start_byte": 341,
-      "end_byte": 395,
+      "start_byte": 348,
+      "end_byte": 402,
       "body_span": {
         "start_line": 29,
         "start_column": 4,
         "end_line": 29,
         "end_column": 40,
-        "start_byte": 353,
-        "end_byte": 389
+        "start_byte": 360,
+        "end_byte": 396
       },
       "body_hash": "621109aec749a69e2150b4c31729191c",
       "signature": "def run()",
@@ -641,8 +641,8 @@
       "start_column": 4,
       "end_line": 46,
       "end_column": 13,
-      "start_byte": 574,
-      "end_byte": 583,
+      "start_byte": 581,
+      "end_byte": 590,
       "body_span": null,
       "body_hash": null,
       "signature": "total = 0",
@@ -665,8 +665,8 @@
       "start_column": 8,
       "end_line": 49,
       "end_column": 18,
-      "start_byte": 632,
-      "end_byte": 642,
+      "start_byte": 639,
+      "end_byte": 649,
       "body_span": null,
       "body_hash": null,
       "signature": "total = i",
@@ -689,8 +689,8 @@
       "start_column": 6,
       "end_line": 53,
       "end_column": 16,
-      "start_byte": 692,
-      "end_byte": 702,
+      "start_byte": 699,
+      "end_byte": 709,
       "body_span": null,
       "body_hash": null,
       "signature": "total = 1",
@@ -761,8 +761,8 @@
       "start_column": 13,
       "end_line": 41,
       "end_column": 18,
-      "start_byte": 511,
-      "end_byte": 516,
+      "start_byte": 518,
+      "end_byte": 523,
       "body_span": null,
       "body_hash": null,
       "signature": "value",
@@ -804,24 +804,6 @@
   ],
   "relationships": [
     {
-      "from_key": "fixtures/extraction/ruby/basic/source.rb:assemble:20:2",
-      "to_key": "fixtures/extraction/ruby/basic/source.rb:helper:41:2",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/ruby/basic/source.rb",
-      "line_number": 25,
-      "span": {
-        "start_line": 25,
-        "start_column": 4,
-        "end_line": 25,
-        "end_column": 15,
-        "start_byte": 320,
-        "end_byte": 331
-      },
-      "reference_site_is_exact": false,
-      "confidence": "0.900",
-      "metadata": null
-    },
-    {
       "from_key": "fixtures/extraction/ruby/basic/source.rb:run:28:2",
       "to_key": "fixtures/extraction/ruby/basic/source.rb:helper:41:2",
       "kind": "calls",
@@ -832,8 +814,8 @@
         "start_column": 25,
         "end_line": 29,
         "end_column": 38,
-        "start_byte": 374,
-        "end_byte": 387
+        "start_byte": 381,
+        "end_byte": 394
       },
       "reference_site_is_exact": false,
       "confidence": "0.900",
@@ -879,6 +861,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/ruby/basic/source.rb",
       "line_number": 21,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/ruby/basic/source.rb:assemble:20:2",
+      "callee_name": "self.missing_wave2",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/ruby/basic/source.rb",
+      "line_number": 25,
       "confidence": "0.700"
     },
     {
@@ -1039,6 +1029,33 @@
     },
     {
       "pending": {
+        "from_key": "fixtures/extraction/ruby/basic/source.rb:assemble:20:2",
+        "callee_name": "self.missing_wave2",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/ruby/basic/source.rb",
+        "line_number": 25,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "self.missing_wave2",
+        "terminal_name": "missing_wave2",
+        "receiver": "self",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/ruby/basic/source.rb:assemble:20:2",
+      "span": {
+        "start_line": 25,
+        "start_column": 4,
+        "end_line": 25,
+        "end_column": 22,
+        "start_byte": 320,
+        "end_byte": 338
+      },
+      "receiver_type": "Worker"
+    },
+    {
+      "pending": {
         "from_key": "fixtures/extraction/ruby/basic/source.rb:helper:2:0",
         "callee_name": "require_relative \"./helper\"",
         "kind": "calls",
@@ -1111,8 +1128,8 @@
         "start_column": 4,
         "end_line": 29,
         "end_column": 40,
-        "start_byte": 353,
-        "end_byte": 389
+        "start_byte": 360,
+        "end_byte": 396
       }
     }
   ],
@@ -1207,8 +1224,8 @@
       "start_column": 9,
       "end_line": 34,
       "end_column": 26,
-      "start_byte": 428,
-      "end_byte": 445,
+      "start_byte": 435,
+      "end_byte": 452,
       "containing_key": "fixtures/extraction/ruby/basic/source.rb:risky:32:2",
       "target_key": null,
       "confidence": "1.000"
@@ -1239,8 +1256,8 @@
       "start_column": 19,
       "end_line": 48,
       "end_column": 24,
-      "start_byte": 618,
-      "end_byte": 623,
+      "start_byte": 625,
+      "end_byte": 630,
       "containing_key": "fixtures/extraction/ruby/basic/source.rb:evaluate:45:2",
       "target_key": null,
       "confidence": "1.000"
@@ -1255,8 +1272,8 @@
       "start_column": 19,
       "end_line": 52,
       "end_column": 24,
-      "start_byte": 680,
-      "end_byte": 685,
+      "start_byte": 687,
+      "end_byte": 692,
       "containing_key": "fixtures/extraction/ruby/basic/source.rb:evaluate:45:2",
       "target_key": null,
       "confidence": "1.000"
@@ -1271,8 +1288,8 @@
       "start_column": 7,
       "end_line": 47,
       "end_column": 14,
-      "start_byte": 591,
-      "end_byte": 598,
+      "start_byte": 598,
+      "end_byte": 605,
       "containing_key": "fixtures/extraction/ruby/basic/source.rb:evaluate:45:2",
       "target_key": null,
       "confidence": "1.000"
@@ -1287,28 +1304,11 @@
       "start_column": 25,
       "end_line": 29,
       "end_column": 31,
-      "start_byte": 374,
-      "end_byte": 380,
+      "start_byte": 381,
+      "end_byte": 387,
       "containing_key": "fixtures/extraction/ruby/basic/source.rb:run:28:2",
       "target_key": null,
       "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/ruby/basic/source.rb:helper:member_access:25:9",
-      "name": "helper",
-      "kind": "member_access",
-      "language": "ruby",
-      "file_path": "fixtures/extraction/ruby/basic/source.rb",
-      "start_line": 25,
-      "start_column": 9,
-      "end_line": 25,
-      "end_column": 15,
-      "start_byte": 325,
-      "end_byte": 331,
-      "containing_key": "fixtures/extraction/ruby/basic/source.rb:assemble:20:2",
-      "target_key": null,
-      "confidence": "1.000",
-      "receiver_type": "Worker"
     },
     {
       "key": "fixtures/extraction/ruby/basic/source.rb:i:variable_ref:49:17",
@@ -1320,8 +1320,8 @@
       "start_column": 17,
       "end_line": 49,
       "end_column": 18,
-      "start_byte": 641,
-      "end_byte": 642,
+      "start_byte": 648,
+      "end_byte": 649,
       "containing_key": "fixtures/extraction/ruby/basic/source.rb:evaluate:45:2",
       "target_key": null,
       "confidence": "1.000"
@@ -1368,11 +1368,28 @@
       "start_column": 11,
       "end_line": 29,
       "end_column": 14,
-      "start_byte": 360,
-      "end_byte": 363,
+      "start_byte": 367,
+      "end_byte": 370,
       "containing_key": "fixtures/extraction/ruby/basic/source.rb:run:28:2",
       "target_key": null,
       "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/ruby/basic/source.rb:missing_wave2:member_access:25:9",
+      "name": "missing_wave2",
+      "kind": "member_access",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/basic/source.rb",
+      "start_line": 25,
+      "start_column": 9,
+      "end_line": 25,
+      "end_column": 22,
+      "start_byte": 325,
+      "end_byte": 338,
+      "containing_key": "fixtures/extraction/ruby/basic/source.rb:assemble:20:2",
+      "target_key": null,
+      "confidence": "1.000",
+      "receiver_type": "Worker"
     },
     {
       "key": "fixtures/extraction/ruby/basic/source.rb:new:member_access:21:15",
@@ -1464,8 +1481,8 @@
       "start_column": 8,
       "end_line": 49,
       "end_column": 13,
-      "start_byte": 632,
-      "end_byte": 637,
+      "start_byte": 639,
+      "end_byte": 644,
       "containing_key": "fixtures/extraction/ruby/basic/source.rb:evaluate:45:2",
       "target_key": null,
       "confidence": "1.000"
@@ -1480,8 +1497,8 @@
       "start_column": 10,
       "end_line": 52,
       "end_column": 15,
-      "start_byte": 671,
-      "end_byte": 676,
+      "start_byte": 678,
+      "end_byte": 683,
       "containing_key": "fixtures/extraction/ruby/basic/source.rb:evaluate:45:2",
       "target_key": null,
       "confidence": "1.000"
@@ -1496,8 +1513,8 @@
       "start_column": 6,
       "end_line": 53,
       "end_column": 11,
-      "start_byte": 692,
-      "end_byte": 697,
+      "start_byte": 699,
+      "end_byte": 704,
       "containing_key": "fixtures/extraction/ruby/basic/source.rb:evaluate:45:2",
       "target_key": null,
       "confidence": "1.000"
@@ -1512,8 +1529,8 @@
       "start_column": 4,
       "end_line": 55,
       "end_column": 9,
-      "start_byte": 715,
-      "end_byte": 720,
+      "start_byte": 722,
+      "end_byte": 727,
       "containing_key": "fixtures/extraction/ruby/basic/source.rb:evaluate:45:2",
       "target_key": null,
       "confidence": "1.000"
@@ -1528,8 +1545,8 @@
       "start_column": 32,
       "end_line": 29,
       "end_column": 37,
-      "start_byte": 381,
-      "end_byte": 386,
+      "start_byte": 388,
+      "end_byte": 393,
       "containing_key": "fixtures/extraction/ruby/basic/source.rb:run:28:2",
       "target_key": null,
       "confidence": "1.000"
@@ -1544,8 +1561,8 @@
       "start_column": 4,
       "end_line": 42,
       "end_column": 9,
-      "start_byte": 522,
-      "end_byte": 527,
+      "start_byte": 529,
+      "end_byte": 534,
       "containing_key": "fixtures/extraction/ruby/basic/source.rb:helper:41:2",
       "target_key": null,
       "confidence": "1.000"
@@ -1611,8 +1628,8 @@
       "start_column": 15,
       "end_line": 29,
       "end_column": 40,
-      "start_byte": 364,
-      "end_byte": 389,
+      "start_byte": 371,
+      "end_byte": 396,
       "confidence": "1.000",
       "metadata": {
         "pattern_version": 1,
@@ -1693,8 +1710,8 @@
       "start_column": 2,
       "end_line": 35,
       "end_column": 5,
-      "start_byte": 421,
-      "end_byte": 451,
+      "start_byte": 428,
+      "end_byte": 458,
       "confidence": "1.000",
       "metadata": {
         "exception_type": "ZeroDivisionError",
@@ -1711,7 +1728,7 @@
       "language": "ruby",
       "file_path": "fixtures/extraction/ruby/basic/source.rb",
       "covered_lines": 58,
-      "covered_bytes": 731,
+      "covered_bytes": 738,
       "decision_count": 2,
       "loop_count": 2,
       "max_nesting_depth": 2,
@@ -1721,7 +1738,7 @@
       "end_line": 58,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 731,
+      "end_byte": 738,
       "metadata": {
         "metric_version": 1
       }
@@ -1733,7 +1750,7 @@
       "language": "ruby",
       "file_path": "fixtures/extraction/ruby/basic/source.rb",
       "covered_lines": 5,
-      "covered_bytes": 86,
+      "covered_bytes": 93,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
@@ -1741,9 +1758,9 @@
       "start_line": 21,
       "start_column": 4,
       "end_line": 25,
-      "end_column": 15,
+      "end_column": 22,
       "start_byte": 245,
-      "end_byte": 331,
+      "end_byte": 338,
       "metadata": {
         "metric_version": 1
       }
@@ -1764,8 +1781,8 @@
       "start_column": 4,
       "end_line": 55,
       "end_column": 9,
-      "start_byte": 574,
-      "end_byte": 720,
+      "start_byte": 581,
+      "end_byte": 727,
       "metadata": {
         "metric_version": 1
       }
@@ -1786,8 +1803,8 @@
       "start_column": 4,
       "end_line": 42,
       "end_column": 13,
-      "start_byte": 522,
-      "end_byte": 531,
+      "start_byte": 529,
+      "end_byte": 538,
       "metadata": {
         "metric_version": 1
       }
@@ -1852,8 +1869,8 @@
       "start_column": 4,
       "end_line": 35,
       "end_column": 5,
-      "start_byte": 413,
-      "end_byte": 451,
+      "start_byte": 420,
+      "end_byte": 458,
       "metadata": {
         "metric_version": 1
       }
@@ -1874,8 +1891,8 @@
       "start_column": 4,
       "end_line": 29,
       "end_column": 40,
-      "start_byte": 353,
-      "end_byte": 389,
+      "start_byte": 360,
+      "end_byte": 396,
       "metadata": {
         "metric_version": 1
       }
@@ -1925,8 +1942,8 @@
       "start_column": 2,
       "end_line": 40,
       "end_column": 27,
-      "start_byte": 472,
-      "end_byte": 497,
+      "start_byte": 479,
+      "end_byte": 504,
       "metadata": null
     },
     {
