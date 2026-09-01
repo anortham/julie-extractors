@@ -256,15 +256,14 @@ fn extract_method_call_relationship(
     let line_number = node.start_position().row as u32 + 1;
     let file_path = extractor.base().file_path.clone();
     let target = unresolved_call_target(extractor, node, &method_name);
+    let receiver_type = super::identifiers::self_receiver_type(extractor.base(), node);
 
-    // Check if we can resolve the callee locally
     match symbol_index.resolve_call_target(
         &target.terminal_name,
         Some(caller),
         target.receiver.as_deref(),
     ) {
         LocalTargetResolution::Resolved(called_symbol) => {
-            // Target is a local method - create resolved Relationship
             relationships.push(Relationship {
                 id: format!(
                     "{}_{}_{:?}_{}",
@@ -285,29 +284,33 @@ fn extract_method_call_relationship(
             });
         }
         LocalTargetResolution::Import(_) => {
-            let pending = extractor.base().create_pending_relationship(
-                caller.id.clone(),
-                target,
-                RelationshipKind::Calls,
-                &node,
-                Some(caller.id.clone()),
-                Some(0.8),
-            );
+            let pending = extractor
+                .base()
+                .create_pending_relationship(
+                    caller.id.clone(),
+                    target,
+                    RelationshipKind::Calls,
+                    &node,
+                    Some(caller.id.clone()),
+                    Some(0.8),
+                )
+                .with_receiver_type(receiver_type);
             extractor.add_structured_pending_relationship(pending);
         }
         LocalTargetResolution::Ambiguous
         | LocalTargetResolution::ReceiverQualified
         | LocalTargetResolution::Missing => {
-            // Target not found in local symbols - likely a method on imported type
-            // Create PendingRelationship for cross-file resolution
-            let pending = extractor.base().create_pending_relationship(
-                caller.id.clone(),
-                target,
-                RelationshipKind::Calls,
-                &node,
-                Some(caller.id.clone()),
-                Some(0.7),
-            );
+            let pending = extractor
+                .base()
+                .create_pending_relationship(
+                    caller.id.clone(),
+                    target,
+                    RelationshipKind::Calls,
+                    &node,
+                    Some(caller.id.clone()),
+                    Some(0.7),
+                )
+                .with_receiver_type(receiver_type);
             extractor.add_structured_pending_relationship(pending);
         }
     }

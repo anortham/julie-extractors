@@ -129,6 +129,15 @@ impl JavaExtractor {
             return;
         }
 
+        symbols.extend(locals::extract_bindings(self, node, parent_id));
+        if node.kind() == "lambda_expression" {
+            if let Some(parent) = parent_id {
+                symbols.extend(parameters::extract_lambda_parameter_symbols(
+                    self, node, parent,
+                ));
+            }
+        }
+
         if let Some(symbol) = self.extract_symbol(node, parent_id) {
             let symbol_id = symbol.id.clone();
             symbols.push(symbol);

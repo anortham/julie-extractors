@@ -70,19 +70,19 @@
       "file_path": "fixtures/extraction/java/basic/source.java",
       "start_line": 7,
       "start_column": 0,
-      "end_line": 88,
+      "end_line": 97,
       "end_column": 1,
       "start_byte": 52,
-      "end_byte": 2036,
+      "end_byte": 2233,
       "body_span": {
         "start_line": 7,
         "start_column": 28,
-        "end_line": 88,
+        "end_line": 97,
         "end_column": 1,
         "start_byte": 80,
-        "end_byte": 2036
+        "end_byte": 2233
       },
-      "body_hash": "20226c66f85529c4a99c9f972bb43ae9",
+      "body_hash": "68590c52308c5cfd84cf29bee89c931e",
       "signature": "class Worker implements Job",
       "doc_comment": null,
       "visibility": "Private",
@@ -120,6 +120,61 @@
       "body_hash": "f6c32db1fa2c97e7417673d90c1b3ef7",
       "signature": "static void auditViaQualifiedCall()",
       "doc_comment": "/** Fully-qualified static call: the terminal receiver `Worker` must stay name-visible. */",
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/java/basic/source.java:Worker:7:0",
+      "metadata": null,
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/java/basic/source.java:bound:91:38",
+      "name": "bound",
+      "kind": "variable",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "start_line": 91,
+      "start_column": 38,
+      "end_line": 91,
+      "end_column": 43,
+      "start_byte": 2136,
+      "end_byte": 2141,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "Worker bound",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/java/basic/source.java:consume:89:4",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/java/basic/source.java:consume:89:4",
+      "name": "consume",
+      "kind": "method",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "start_line": 89,
+      "start_column": 4,
+      "end_line": 96,
+      "end_column": 5,
+      "start_byte": 2040,
+      "end_byte": 2231,
+      "body_span": {
+        "start_line": 89,
+        "start_column": 29,
+        "end_line": 96,
+        "end_column": 5,
+        "start_byte": 2065,
+        "end_byte": 2231
+      },
+      "body_hash": "a3387f702617809830f70b858421637b",
+      "signature": "void consume(Job[] jobs)",
+      "doc_comment": null,
       "visibility": "Private",
       "parent_key": "fixtures/extraction/java/basic/source.java:Worker:7:0",
       "metadata": null,
@@ -488,6 +543,30 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/java/basic/source.java:ignored:32:17",
+      "name": "ignored",
+      "kind": "variable",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "start_line": 32,
+      "start_column": 17,
+      "end_line": 32,
+      "end_column": 34,
+      "start_byte": 590,
+      "end_byte": 607,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "Exception ignored",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/java/basic/source.java:readConfig:29:4",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/java/basic/source.java:index:9:4",
       "name": "index",
       "kind": "property",
@@ -506,6 +585,56 @@
       "visibility": "Private",
       "parent_key": "fixtures/extraction/java/basic/source.java:Worker:7:0",
       "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/java/basic/source.java:job:90:17",
+      "name": "job",
+      "kind": "variable",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "start_line": 90,
+      "start_column": 17,
+      "end_line": 90,
+      "end_column": 20,
+      "start_byte": 2084,
+      "end_byte": 2087,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "Job job",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/java/basic/source.java:consume:89:4",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/java/basic/source.java:jobs:89:17",
+      "name": "jobs",
+      "kind": "variable",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "start_line": 89,
+      "start_column": 17,
+      "end_line": 89,
+      "end_column": 27,
+      "start_byte": 2053,
+      "end_byte": 2063,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "Job[] jobs",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/java/basic/source.java:consume:89:4",
+      "metadata": {
+        "role": "parameter"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -803,6 +932,37 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/java/basic/source.java:stream:30:13",
+      "name": "stream",
+      "kind": "variable",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "start_line": 30,
+      "start_column": 13,
+      "end_line": 30,
+      "end_column": 48,
+      "start_byte": 506,
+      "end_byte": 541,
+      "body_span": {
+        "start_line": 30,
+        "start_column": 46,
+        "end_line": 30,
+        "end_column": 48,
+        "start_byte": 539,
+        "end_byte": 541
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "AutoCloseable stream",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/java/basic/source.java:readConfig:29:4",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/java/basic/source.java:task:41:29",
       "name": "task",
       "kind": "variable",
@@ -946,10 +1106,10 @@
       "span": {
         "start_line": 7,
         "start_column": 0,
-        "end_line": 88,
+        "end_line": 97,
         "end_column": 1,
         "start_byte": 52,
-        "end_byte": 2036
+        "end_byte": 2233
       },
       "reference_site_is_exact": false,
       "confidence": "1.000",
@@ -988,6 +1148,24 @@
         "end_column": 60,
         "start_byte": 1975,
         "end_byte": 2027
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
+      "metadata": null
+    },
+    {
+      "from_key": "fixtures/extraction/java/basic/source.java:consume:89:4",
+      "to_key": "fixtures/extraction/java/basic/source.java:recordRun:57:4",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "line_number": 95,
+      "span": {
+        "start_line": 95,
+        "start_column": 8,
+        "end_line": 95,
+        "end_column": 26,
+        "start_byte": 2206,
+        "end_byte": 2224
       },
       "reference_site_is_exact": false,
       "confidence": "0.900",
@@ -1104,6 +1282,22 @@
   ],
   "pending_relationships": [
     {
+      "from_key": "fixtures/extraction/java/basic/source.java:consume:89:4",
+      "callee_name": "bound.run",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "line_number": 92,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/java/basic/source.java:consume:89:4",
+      "callee_name": "bound.run",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "line_number": 92,
+      "confidence": "0.700"
+    },
+    {
       "from_key": "fixtures/extraction/java/basic/source.java:observeAsync:40:4",
       "callee_name": "task.run",
       "kind": "calls",
@@ -1153,6 +1347,58 @@
     }
   ],
   "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/java/basic/source.java:consume:89:4",
+        "callee_name": "bound.run",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/java/basic/source.java",
+        "line_number": 92,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "bound.run",
+        "terminal_name": "run",
+        "receiver": "bound",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/java/basic/source.java:consume:89:4",
+      "span": {
+        "start_line": 92,
+        "start_column": 16,
+        "end_line": 92,
+        "end_column": 27,
+        "start_byte": 2161,
+        "end_byte": 2172
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/java/basic/source.java:consume:89:4",
+        "callee_name": "bound.run",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/java/basic/source.java",
+        "line_number": 92,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "bound.run",
+        "terminal_name": "run",
+        "receiver": "bound",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/java/basic/source.java:consume:89:4",
+      "span": {
+        "start_line": 92,
+        "start_column": 16,
+        "end_line": 92,
+        "end_column": 27,
+        "start_byte": 2161,
+        "end_byte": 2172
+      }
+    },
     {
       "pending": {
         "from_key": "fixtures/extraction/java/basic/source.java:observeAsync:40:4",
@@ -1392,6 +1638,38 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/java/basic/source.java:Job:type_usage:89:17",
+      "name": "Job",
+      "kind": "type_usage",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "start_line": 89,
+      "start_column": 17,
+      "end_line": 89,
+      "end_column": 20,
+      "start_byte": 2053,
+      "end_byte": 2056,
+      "containing_key": "fixtures/extraction/java/basic/source.java:consume:89:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/java/basic/source.java:Job:type_usage:90:13",
+      "name": "Job",
+      "kind": "type_usage",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "start_line": 90,
+      "start_column": 13,
+      "end_line": 90,
+      "end_column": 16,
+      "start_byte": 2080,
+      "end_byte": 2083,
+      "containing_key": "fixtures/extraction/java/basic/source.java:consume:89:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/java/basic/source.java:List:type_usage:9:24",
       "name": "List",
       "kind": "type_usage",
@@ -1564,6 +1842,38 @@
       "start_byte": 1983,
       "end_byte": 1989,
       "containing_key": "fixtures/extraction/java/basic/source.java:auditViaQualifiedCall:84:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/java/basic/source.java:Worker:type_usage:91:31",
+      "name": "Worker",
+      "kind": "type_usage",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "start_line": 91,
+      "start_column": 31,
+      "end_line": 91,
+      "end_column": 37,
+      "start_byte": 2129,
+      "end_byte": 2135,
+      "containing_key": "fixtures/extraction/java/basic/source.java:consume:89:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/java/basic/source.java:bound:variable_ref:92:16",
+      "name": "bound",
+      "kind": "variable_ref",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "start_line": 92,
+      "start_column": 16,
+      "end_line": 92,
+      "end_column": 21,
+      "start_byte": 2161,
+      "end_byte": 2166,
+      "containing_key": "fixtures/extraction/java/basic/source.java:consume:89:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1840,6 +2150,54 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/java/basic/source.java:id:variable_ref:95:23",
+      "name": "id",
+      "kind": "variable_ref",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "start_line": 95,
+      "start_column": 23,
+      "end_line": 95,
+      "end_column": 25,
+      "start_byte": 2221,
+      "end_byte": 2223,
+      "containing_key": "fixtures/extraction/java/basic/source.java:consume:89:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/java/basic/source.java:job:variable_ref:91:16",
+      "name": "job",
+      "kind": "variable_ref",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "start_line": 91,
+      "start_column": 16,
+      "end_line": 91,
+      "end_column": 19,
+      "start_byte": 2114,
+      "end_byte": 2117,
+      "containing_key": "fixtures/extraction/java/basic/source.java:consume:89:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/java/basic/source.java:jobs:variable_ref:90:23",
+      "name": "jobs",
+      "kind": "variable_ref",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "start_line": 90,
+      "start_column": 23,
+      "end_line": 90,
+      "end_column": 27,
+      "start_byte": 2090,
+      "end_byte": 2094,
+      "containing_key": "fixtures/extraction/java/basic/source.java:consume:89:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/java/basic/source.java:latest:variable_ref:86:53",
       "name": "latest",
       "kind": "variable_ref",
@@ -1936,6 +2294,23 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/java/basic/source.java:recordRun:call:95:13",
+      "name": "recordRun",
+      "kind": "call",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "start_line": 95,
+      "start_column": 13,
+      "end_line": 95,
+      "end_column": 22,
+      "start_byte": 2211,
+      "end_byte": 2220,
+      "containing_key": "fixtures/extraction/java/basic/source.java:consume:89:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "receiver_type": "Worker"
+    },
+    {
       "key": "fixtures/extraction/java/basic/source.java:run:call:42:38",
       "name": "run",
       "kind": "call",
@@ -1964,6 +2339,22 @@
       "start_byte": 850,
       "end_byte": 853,
       "containing_key": "fixtures/extraction/java/basic/source.java:observeAsync:40:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/java/basic/source.java:run:call:92:22",
+      "name": "run",
+      "kind": "call",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "start_line": 92,
+      "start_column": 22,
+      "end_line": 92,
+      "end_column": 25,
+      "start_byte": 2167,
+      "end_byte": 2170,
+      "containing_key": "fixtures/extraction/java/basic/source.java:consume:89:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2091,6 +2482,24 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/java/basic/source.java:bound:91:38",
+      "resolved_type": "Worker",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "java",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/java/basic/source.java:consume:89:4",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "java",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/java/basic/source.java:count:73:24",
       "resolved_type": "int",
       "generic_params": null,
@@ -2199,6 +2608,15 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/java/basic/source.java:ignored:32:17",
+      "resolved_type": "Exception",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "java",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/java/basic/source.java:index:9:4",
       "resolved_type": "Map",
       "generic_params": null,
@@ -2208,6 +2626,24 @@
       "metadata": {
         "declared": "Map<String, List<Integer>>"
       }
+    },
+    {
+      "symbol_key": "fixtures/extraction/java/basic/source.java:job:90:17",
+      "resolved_type": "Job",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "java",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/java/basic/source.java:jobs:89:17",
+      "resolved_type": "Job[]",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "java",
+      "metadata": null
     },
     {
       "symbol_key": "fixtures/extraction/java/basic/source.java:latest:85:12",
@@ -2266,6 +2702,15 @@
     {
       "symbol_key": "fixtures/extraction/java/basic/source.java:run:4:4",
       "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "java",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/java/basic/source.java:stream:30:13",
+      "resolved_type": "AutoCloseable",
       "generic_params": null,
       "constraints": null,
       "is_inferred": false,
@@ -2444,18 +2889,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "java",
       "file_path": "fixtures/extraction/java/basic/source.java",
-      "covered_lines": 89,
-      "covered_bytes": 2037,
-      "decision_count": 2,
-      "loop_count": 1,
+      "covered_lines": 98,
+      "covered_bytes": 2234,
+      "decision_count": 3,
+      "loop_count": 2,
       "max_nesting_depth": 2,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 89,
+      "end_line": 98,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 2037,
+      "end_byte": 2234,
       "metadata": {
         "metric_version": 1
       }
@@ -2500,6 +2945,28 @@
       "end_column": 5,
       "start_byte": 1910,
       "end_byte": 2034,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/java/basic/source.java:consume:89:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "covered_lines": 8,
+      "covered_bytes": 166,
+      "decision_count": 1,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
+      "parameter_count": 1,
+      "start_line": 89,
+      "start_column": 29,
+      "end_line": 96,
+      "end_column": 5,
+      "start_byte": 2065,
+      "end_byte": 2231,
       "metadata": {
         "metric_version": 1
       }

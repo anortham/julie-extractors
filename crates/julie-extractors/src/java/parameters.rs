@@ -87,3 +87,58 @@ fn declared_parameter_type(param_node: Node<'_>) -> Option<Node<'_>> {
     }
     param_node.child_by_field_name("type")
 }
+
+pub(super) fn extract_lambda_parameter_symbols(
+    extractor: &mut JavaExtractor,
+    node: Node,
+    callable_id: &str,
+) -> Vec<Symbol> {
+    if node.kind() != "lambda_expression" {
+        return Vec::new();
+    }
+    let Some(params_node) = node.child_by_field_name("parameters") else {
+        return Vec::new();
+    };
+    match params_node.kind() {
+        "formal_parameters" => extract_parameter_symbols(extractor, node, callable_id),
+        "inferred_parameters" => {
+            let mut symbols = Vec::new();
+            let mut cursor = params_node.walk();
+            for child in params_node.named_children(&mut cursor) {
+                if child.kind() == "identifier" {
+                    symbols.push(inferred_parameter_symbol(extractor, child, callable_id));
+                }
+            }
+            symbols
+        }
+        "identifier" => vec![inferred_parameter_symbol(
+            extractor,
+            params_node,
+            callable_id,
+        )],
+        _ => Vec::new(),
+    }
+}
+
+fn inferred_parameter_symbol(
+    extractor: &mut JavaExtractor,
+    name_node: Node,
+    callable_id: &str,
+) -> Symbol {
+    let name = extractor.base().get_node_text(&name_node);
+    let metadata = HashMap::from([(
+        "role".to_string(),
+        serde_json::Value::String("parameter".to_string()),
+    )]);
+    extractor.base_mut().create_symbol(
+        &name_node,
+        name.clone(),
+        SymbolKind::Variable,
+        SymbolOptions {
+            signature: Some(name),
+            parent_id: Some(callable_id.to_string()),
+            metadata: Some(metadata),
+            ..Default::default()
+        },
+    )
+}
