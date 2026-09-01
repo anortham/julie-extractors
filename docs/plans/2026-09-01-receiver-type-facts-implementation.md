@@ -249,9 +249,9 @@ Commit modes: serial tasks use `serial-worker-commit`; Batch B uses `parallel-le
 **Approach:** TDD per shape. `Foo::new(...)` initializer rule: record `Foo` (inferred) only when the call path's final segment is `new` or the initializer is a struct expression.
 
 **Acceptance criteria:**
-- [ ] The four production shapes above carry correct facts.
-- [ ] `cargo xtask test language rust` passes.
-- [ ] Verified diff handed to the lead (parallel-lead-commit).
+- [x] The four production shapes above carry correct facts (self parameter resolves to the impl target type; receiver_type metadata rides Task 3b).
+- [x] `cargo xtask test language rust` passes.
+- [x] Verified work committed serial-worker-commit on the plan branch (b2e6d3dc) after lead review.
 
 ### Task 7: Go
 
