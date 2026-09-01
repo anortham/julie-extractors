@@ -73,8 +73,14 @@ fn extract_identifier_from_node(
                     .map(|ta| extract_type_arguments(base, ta, decompose_kotlin_type_arg));
                 let name = identifier_name(base, child);
                 let containing = find_containing_symbol_id(base, node, symbol_map);
-                let identifier =
-                    base.create_identifier(child, name, IdentifierKind::Call, containing);
+                let receiver_type = self_receiver_type(base, node);
+                let identifier = base.create_identifier_with_receiver_type(
+                    child,
+                    name,
+                    IdentifierKind::Call,
+                    containing,
+                    receiver_type,
+                );
                 if let Some(args) = arguments
                     && !args.is_empty()
                 {
@@ -89,9 +95,15 @@ fn extract_identifier_from_node(
                 let arguments = type_args_node
                     .map(|ta| extract_type_arguments(base, ta, decompose_kotlin_type_arg));
                 let containing = find_containing_symbol_id(base, node, symbol_map);
+                let receiver_type = self_receiver_type(base, node);
                 if let Some((name_node, name)) = nav_name {
-                    let identifier =
-                        base.create_identifier(&name_node, name, IdentifierKind::Call, containing);
+                    let identifier = base.create_identifier_with_receiver_type(
+                        &name_node,
+                        name,
+                        IdentifierKind::Call,
+                        containing,
+                        receiver_type,
+                    );
                     if let Some(args) = arguments
                         && !args.is_empty()
                     {
@@ -566,4 +578,60 @@ fn extract_rightmost_identifier<'a>(
 /// does, so both sides must strip for the names to match.
 fn identifier_name(base: &BaseExtractor, node: &Node) -> String {
     super::helpers::strip_backticks(&base.get_node_text(node)).to_string()
+}
+
+pub(super) fn self_receiver_type(base: &BaseExtractor, node: Node) -> Option<String> {
+    let nav = {
+        let mut cursor = node.walk();
+        node.children(&mut cursor)
+            .find(|child| child.kind() == "navigation_expression")
+    }?;
+    let receiver = {
+        let mut cursor = nav.walk();
+        nav.named_children(&mut cursor).next()
+    }?;
+    match receiver.kind() {
+        "this_expression" => enclosing_type_name(base, node),
+        "super_expression" => declared_superclass_name(base, node),
+        _ => None,
+    }
+}
+
+fn enclosing_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
+    let mut current = node.parent();
+    while let Some(candidate) = current {
+        if matches!(
+            candidate.kind(),
+            "class_declaration"
+                | "object_declaration"
+                | "enum_declaration"
+                | "interface_declaration"
+                | "companion_object"
+        ) {
+            return super::helpers::declared_name(base, &candidate).map(|(name, _)| name);
+        }
+        current = candidate.parent();
+    }
+    None
+}
+
+fn declared_superclass_name(base: &BaseExtractor, node: Node) -> Option<String> {
+    let mut current = node.parent();
+    while let Some(candidate) = current {
+        if matches!(
+            candidate.kind(),
+            "class_declaration" | "object_declaration" | "enum_declaration"
+        ) {
+            let name = super::helpers::collect_base_type_names(base, &candidate)
+                .into_iter()
+                .next()?;
+            let base_name = match name.split_once('<') {
+                Some((head, _)) => head.trim().to_string(),
+                None => name.trim().to_string(),
+            };
+            return Some(base_name);
+        }
+        current = candidate.parent();
+    }
+    None
 }

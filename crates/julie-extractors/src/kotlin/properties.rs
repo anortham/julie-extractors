@@ -4,9 +4,10 @@
 //! and related metadata.
 
 use super::helpers;
+use super::type_facts;
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
 use serde_json::Value;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use tree_sitter::Node;
 
 /// Extract a Kotlin property declaration
@@ -14,6 +15,8 @@ pub(super) fn extract_property(
     base: &mut BaseExtractor,
     node: &Node,
     parent_id: Option<&str>,
+    parent_kind: Option<SymbolKind>,
+    type_names: &HashSet<String>,
 ) -> Option<Symbol> {
     // Look for name in variable_declaration first (the proper place for property names)
     let mut name_node = None;
@@ -84,9 +87,13 @@ pub(super) fn extract_property(
         signature.push_str(&format!(" {}", delegation));
     }
 
-    // Determine symbol kind - const val should be Constant
     let is_const = modifiers.contains(&"const".to_string());
-    let symbol_kind = if is_const && is_val {
+    let symbol_kind = if matches!(
+        parent_kind,
+        Some(SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor | SymbolKind::Operator)
+    ) {
+        SymbolKind::Variable
+    } else if is_const && is_val {
         SymbolKind::Constant
     } else {
         SymbolKind::Property
@@ -113,7 +120,7 @@ pub(super) fn extract_property(
     // Extract KDoc comment
     let doc_comment = base.find_doc_comment(node);
 
-    Some(base.create_symbol(
+    let symbol = base.create_symbol(
         node,
         name,
         symbol_kind,
@@ -125,7 +132,9 @@ pub(super) fn extract_property(
             doc_comment,
             annotations,
         },
-    ))
+    );
+    type_facts::record_property_facts(base, &symbol.id, *node, type_names);
+    Some(symbol)
 }
 
 /// Extract constructor parameters and create symbols for them
@@ -260,7 +269,9 @@ pub(super) fn extract_constructor_parameters(
                         annotations,
                     },
                 );
-
+                if let Some(type_node) = type_node {
+                    type_facts::record_declared_type(base, &property_symbol.id, type_node);
+                }
                 symbols.push(property_symbol);
             }
         }

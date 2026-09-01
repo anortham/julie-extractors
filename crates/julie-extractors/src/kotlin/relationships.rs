@@ -346,6 +346,7 @@ fn extract_function_call_relationship(
     let target = unresolved_call_target(extractor, node, &function_name);
     let line_number = node.start_position().row as u32 + 1;
     let file_path = extractor.base().file_path.clone();
+    let receiver_type = super::identifiers::self_receiver_type(extractor.base(), node);
 
     match symbol_index.resolve_call_target(
         function_name.as_str(),
@@ -353,27 +354,33 @@ fn extract_function_call_relationship(
         target.receiver.as_deref(),
     ) {
         LocalTargetResolution::Import(_) => {
-            let pending = extractor.base().create_pending_relationship(
-                caller.id.clone(),
-                target,
-                RelationshipKind::Calls,
-                &node,
-                Some(caller.id.clone()),
-                Some(0.8),
-            );
+            let pending = extractor
+                .base()
+                .create_pending_relationship(
+                    caller.id.clone(),
+                    target,
+                    RelationshipKind::Calls,
+                    &node,
+                    Some(caller.id.clone()),
+                    Some(0.8),
+                )
+                .with_receiver_type(receiver_type);
             extractor.add_structured_pending_relationship(pending);
         }
         LocalTargetResolution::Resolved(called_symbol)
             if extractor.is_dsl_call_symbol(&called_symbol.id) =>
         {
-            let pending = extractor.base().create_pending_relationship(
-                caller.id.clone(),
-                target,
-                RelationshipKind::Calls,
-                &node,
-                Some(caller.id.clone()),
-                Some(0.7),
-            );
+            let pending = extractor
+                .base()
+                .create_pending_relationship(
+                    caller.id.clone(),
+                    target,
+                    RelationshipKind::Calls,
+                    &node,
+                    Some(caller.id.clone()),
+                    Some(0.7),
+                )
+                .with_receiver_type(receiver_type);
             extractor.add_structured_pending_relationship(pending);
         }
         LocalTargetResolution::Resolved(called_symbol) => {
@@ -399,14 +406,17 @@ fn extract_function_call_relationship(
         LocalTargetResolution::Ambiguous
         | LocalTargetResolution::ReceiverQualified
         | LocalTargetResolution::Missing => {
-            let pending = extractor.base().create_pending_relationship(
-                caller.id.clone(),
-                target,
-                RelationshipKind::Calls,
-                &node,
-                Some(caller.id.clone()),
-                Some(0.7),
-            );
+            let pending = extractor
+                .base()
+                .create_pending_relationship(
+                    caller.id.clone(),
+                    target,
+                    RelationshipKind::Calls,
+                    &node,
+                    Some(caller.id.clone()),
+                    Some(0.7),
+                )
+                .with_receiver_type(receiver_type);
             extractor.add_structured_pending_relationship(pending);
         }
     }

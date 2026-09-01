@@ -1,6 +1,58 @@
 {
   "symbols": [
     {
+      "key": "fixtures/extraction/kotlin/http_client/source.kt:client:6:22",
+      "name": "client",
+      "kind": "variable",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "start_line": 6,
+      "start_column": 22,
+      "end_line": 6,
+      "end_column": 40,
+      "start_byte": 162,
+      "end_byte": 180,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "client: HttpClient",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/http_client/source.kt:id:6:42",
+      "name": "id",
+      "kind": "variable",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "start_line": 6,
+      "start_column": 42,
+      "end_line": 6,
+      "end_column": 52,
+      "start_byte": 182,
+      "end_byte": 192,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "id: String",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/kotlin/http_client/source.kt:io.ktor.client.HttpClient:1:0",
       "name": "io.ktor.client.HttpClient",
       "kind": "import",
@@ -510,6 +562,24 @@
     }
   ],
   "types": [
+    {
+      "symbol_key": "fixtures/extraction/kotlin/http_client/source.kt:client:6:22",
+      "resolved_type": "HttpClient",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "kotlin",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/kotlin/http_client/source.kt:id:6:42",
+      "resolved_type": "String",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "kotlin",
+      "metadata": null
+    },
     {
       "symbol_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
       "resolved_type": "String",

@@ -35,6 +35,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:body:18:56",
+      "name": "body",
+      "kind": "variable",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/http_client_deferred/source.kt",
+      "start_line": 18,
+      "start_column": 56,
+      "end_line": 18,
+      "end_column": 81,
+      "start_byte": 512,
+      "end_byte": 537,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "body: okhttp3.RequestBody",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:create:14:4",
       "name": "create",
       "kind": "method",
@@ -188,6 +214,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:rest:18:36",
+      "name": "rest",
+      "kind": "variable",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/http_client_deferred/source.kt",
+      "start_line": 18,
+      "start_column": 36,
+      "end_line": 18,
+      "end_column": 54,
+      "start_byte": 492,
+      "end_byte": 510,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "rest: RestTemplate",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:retrofit2.http.GET:5:0",
       "name": "retrofit2.http.GET",
       "kind": "import",
@@ -240,6 +292,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:url:18:83",
+      "name": "url",
+      "kind": "variable",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/http_client_deferred/source.kt",
+      "start_line": 18,
+      "start_column": 83,
+      "end_line": 18,
+      "end_column": 94,
+      "start_byte": 539,
+      "end_byte": 550,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "url: String",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:users:11:4",
       "name": "users",
       "kind": "method",
@@ -276,6 +354,32 @@
           "raw_text": "GET(\"/users\")"
         }
       ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:web:18:20",
+      "name": "web",
+      "kind": "variable",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/http_client_deferred/source.kt",
+      "start_line": 18,
+      "start_column": 20,
+      "end_line": 18,
+      "end_column": 34,
+      "start_byte": 476,
+      "end_byte": 490,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "web: WebClient",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
       "semantic_group": null,
       "confidence": null,
       "content_type": null
@@ -1806,6 +1910,15 @@
   ],
   "types": [
     {
+      "symbol_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:body:18:56",
+      "resolved_type": "okhttp3.RequestBody",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "kotlin",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:create:14:4",
       "resolved_type": "Unit",
       "generic_params": null,
@@ -1815,11 +1928,38 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:rest:18:36",
+      "resolved_type": "RestTemplate",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "kotlin",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:url:18:83",
+      "resolved_type": "String",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "kotlin",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:users:11:4",
       "resolved_type": "List<String>",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
+      "language": "kotlin",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:web:18:20",
+      "resolved_type": "WebClient",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "kotlin",
       "metadata": null
     }

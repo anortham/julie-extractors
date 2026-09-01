@@ -54,9 +54,14 @@ class Worker(
 
     private fun fetchUrl(url: String) {
     }
+
+    fun persist() {
+        this.recordRun(id)
+    }
 }
 
 fun evaluate(count: Int, enabled: Boolean): Int {
+    val maybe: Job? = null
     var total = 0
     if (enabled) {
         for (i in 0 until count) {

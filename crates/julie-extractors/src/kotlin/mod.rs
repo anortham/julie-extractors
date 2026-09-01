@@ -14,9 +14,11 @@
 mod declarations;
 mod helpers;
 mod identifiers;
+mod parameters;
 mod properties;
 mod relationships;
 pub(crate) mod test_calls;
+mod type_facts;
 mod types;
 
 use crate::base::{
@@ -37,6 +39,7 @@ pub struct KotlinExtractor {
     /// matcher they exercise, and without this set every such call resolved to
     /// the case that contains it.
     dsl_call_symbol_ids: HashSet<String>,
+    same_file_type_names: HashSet<String>,
 }
 
 impl KotlinExtractor {
@@ -49,6 +52,7 @@ impl KotlinExtractor {
         Self {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
             dsl_call_symbol_ids: HashSet::new(),
+            same_file_type_names: HashSet::new(),
         }
     }
 
@@ -80,6 +84,7 @@ impl KotlinExtractor {
     }
 
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
+        self.same_file_type_names = type_facts::collect_type_names(&self.base, tree.root_node());
         let mut symbols = Vec::new();
         self.visit_node(tree.root_node(), &mut symbols, None, 0);
         crate::test_detection::mark_kotlin_test_containers(&mut symbols);
@@ -127,7 +132,17 @@ impl KotlinExtractor {
                     declarations::extract_function(&mut self.base, &node, parent_id.as_deref());
             }
             "property_declaration" | "property_signature" => {
-                symbol = properties::extract_property(&mut self.base, &node, parent_id.as_deref());
+                let parent_kind = parent_id.as_deref().and_then(|pid| {
+                    symbols.iter().find(|s| s.id == pid).map(|s| s.kind.clone())
+                });
+                let type_names = self.same_file_type_names.clone();
+                symbol = properties::extract_property(
+                    &mut self.base,
+                    &node,
+                    parent_id.as_deref(),
+                    parent_kind,
+                    &type_names,
+                );
             }
             "enum_class_body" => {
                 types::extract_enum_members(&mut self.base, &node, symbols, parent_id.as_deref());
@@ -222,9 +237,19 @@ impl KotlinExtractor {
             _ => {}
         }
 
-        if let Some(ref sym) = symbol {
+        if let Some(sym) = &symbol {
             symbols.push(sym.clone());
             new_parent_id = Some(sym.id.clone());
+            if matches!(
+                node.kind(),
+                "function_declaration" | "secondary_constructor"
+            ) {
+                symbols.extend(parameters::extract_parameter_symbols(
+                    &mut self.base,
+                    node,
+                    &sym.id,
+                ));
+            }
         }
 
         // Recursively visit children

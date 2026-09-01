@@ -2298,4 +2298,5 @@ mod literals;
 mod structural_facts;
 mod test_detection; // Miller bridge Wave-3: Kotest/Spek call-style adapter
 mod type_arguments;
+mod type_facts;
 mod types; // Phase 4: Type extraction verification tests // Cross-file relationship resolution tests
