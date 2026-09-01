@@ -81,8 +81,14 @@ fn canonical_qml_extraction_emits_property_and_function_types() {
         Some("void")
     );
 
+    let title_type = results.types.get(&title.id).expect("title type");
+    let worker_id_type = results.types.get(&worker_id.id).expect("workerId type");
+    let build_index_type = results.types.get(&build_index.id).expect("buildIndex type");
+    assert!(!title_type.is_inferred);
+    assert!(!worker_id_type.is_inferred);
+    assert!(build_index_type.is_inferred);
+
     for type_info in results.types.values() {
         assert_eq!(type_info.language, "qml");
-        assert!(type_info.is_inferred);
     }
 }

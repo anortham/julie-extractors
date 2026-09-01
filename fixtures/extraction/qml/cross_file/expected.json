@@ -1861,7 +1861,7 @@
       "resolved_type": "string",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "qml",
       "metadata": null
     },
@@ -1870,7 +1870,7 @@
       "resolved_type": "string",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "qml",
       "metadata": null
     }
