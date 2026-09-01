@@ -245,7 +245,7 @@ fn handle_call_target(
     };
 
     let caller_id = caller_symbol.id.clone();
-
+    let receiver_type = super::identifiers::this_receiver_type(&extractor.base, call_node);
     // Check if we can resolve the callee locally
     match scoped_index.resolve_call_target(
         &target.terminal_name,
@@ -268,14 +268,17 @@ fn handle_call_target(
         | LocalTargetResolution::ReceiverQualified => {
             // Target not found/ambiguous in local symbols - keep unresolved for
             // cross-file resolution.
-            let pending = extractor.get_base_mut().create_pending_relationship(
-                caller_id.clone(),
-                target,
-                RelationshipKind::Calls,
-                &call_node,
-                Some(caller_id),
-                Some(0.7),
-            );
+            let pending = extractor
+                .get_base_mut()
+                .create_pending_relationship(
+                    caller_id.clone(),
+                    target,
+                    RelationshipKind::Calls,
+                    &call_node,
+                    Some(caller_id),
+                    Some(0.7),
+                )
+                .with_receiver_type(receiver_type);
             extractor.add_structured_pending_relationship(pending);
         }
     }

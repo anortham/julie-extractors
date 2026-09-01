@@ -50,5 +50,6 @@ pub mod test_calls;
 pub mod test_detection;
 pub mod testing;
 pub mod type_arguments;
+pub mod type_facts;
 pub mod type_usage;
 pub mod types;

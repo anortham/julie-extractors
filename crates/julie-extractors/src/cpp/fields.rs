@@ -7,6 +7,7 @@ use tree_sitter::Node;
 
 use super::helpers;
 use super::signatures;
+use super::type_facts;
 use super::visibility;
 
 /// Extract field declaration (class member variable)
@@ -63,7 +64,7 @@ pub(super) fn extract_field(
         let signature = signatures::build_field_signature(base, node, &name);
         let vis = visibility::extract_visibility_from_node(base, node);
 
-        symbols.push(base.create_symbol(
+        let symbol = base.create_symbol(
             &node,
             name,
             kind,
@@ -75,7 +76,9 @@ pub(super) fn extract_field(
                 doc_comment: doc_comment.clone(),
                 annotations: Vec::new(),
             },
-        ));
+        );
+        type_facts::record_field_fact(base, &symbol.id, node, Some(declarator));
+        symbols.push(symbol);
     }
 
     symbols
@@ -130,7 +133,7 @@ fn extract_fields_without_declarators(
         let signature = signatures::build_field_signature(base, node, &name);
         let vis = visibility::extract_visibility_from_node(base, node);
 
-        symbols.push(base.create_symbol(
+        let symbol = base.create_symbol(
             &node,
             name,
             kind,
@@ -142,7 +145,9 @@ fn extract_fields_without_declarators(
                 doc_comment: doc_comment.clone(),
                 annotations: Vec::new(),
             },
-        ));
+        );
+        type_facts::record_field_fact(base, &symbol.id, node, None);
+        symbols.push(symbol);
     }
 
     symbols
@@ -221,7 +226,7 @@ pub(super) fn extract_multi_declarations(
             let name = base.get_node_text(&name_node);
             let signature = signatures::build_variable_signature(base, node, &name);
 
-            Some(base.create_symbol(
+            let symbol = base.create_symbol(
                 &node,
                 name,
                 kind.clone(),
@@ -233,7 +238,9 @@ pub(super) fn extract_multi_declarations(
                     doc_comment: doc_comment.clone(),
                     annotations: Vec::new(),
                 },
-            ))
+            );
+            type_facts::record_variable_fact(base, &symbol.id, node, *declarator);
+            Some(symbol)
         })
         .collect()
 }
