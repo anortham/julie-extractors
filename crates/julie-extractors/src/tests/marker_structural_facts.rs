@@ -118,6 +118,21 @@ pub fn documented() {}
 }
 
 #[test]
+fn razorback_debt_comments_emit_marker_facts() {
+    let source = "// razorback: global lock, per-account locks if throughput matters\n";
+    let results = extract("src/main.rs", source);
+    let facts = marker_facts(&results);
+
+    assert_eq!(facts.len(), 1, "{facts:#?}");
+    assert_eq!(metadata_string(facts[0], "marker"), Some("RAZORBACK"));
+    assert_eq!(metadata_string(facts[0], "owner"), None);
+    assert_eq!(
+        metadata_string(facts[0], "description"),
+        Some("global lock, per-account locks if throughput matters")
+    );
+}
+
+#[test]
 fn marker_matching_is_case_insensitive_but_requires_the_first_semantic_token() {
     let source = r#"// todo: lower case
 // note TODO: prose only

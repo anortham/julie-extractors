@@ -48,7 +48,7 @@ const KEYS: &[MetadataKeySpec] = &[
         "marker",
         STR,
         ALWAYS,
-        "Normalized uppercase marker token: TODO, FIXME, HACK, or XXX.",
+        "Normalized uppercase marker token: TODO, FIXME, HACK, XXX, or RAZORBACK.",
     ),
     key(
         "owner",
@@ -74,6 +74,6 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[StructuralFactPatternSp
     pattern_id: "code.marker.v1",
     languages: LANGUAGES,
     query_family: "marker",
-    description: "An actionable TODO, FIXME, HACK, or XXX at the start of a comment line.",
+    description: "An actionable TODO, FIXME, HACK, XXX, or RAZORBACK at the start of a comment line.",
     metadata_keys: KEYS,
 }];

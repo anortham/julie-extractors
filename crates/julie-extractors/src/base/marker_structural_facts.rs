@@ -9,7 +9,7 @@ use super::types::{SourceRegion, SourceRegionKind, StructuralFact, stable_locati
 const PATTERN_ID: &str = "code.marker.v1";
 const CAPTURE_NAME: &str = "marker";
 const QUERY_FAMILY: &str = "marker";
-const MARKERS: [&str; 4] = ["TODO", "FIXME", "HACK", "XXX"];
+const MARKERS: [&str; 5] = ["TODO", "FIXME", "HACK", "XXX", "RAZORBACK"];
 
 pub fn collect_marker_structural_facts(
     content: &str,

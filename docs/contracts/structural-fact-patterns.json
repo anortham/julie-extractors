@@ -751,7 +751,7 @@
     "query_family": "preprocessor"
   },
   {
-    "description": "An actionable TODO, FIXME, HACK, or XXX at the start of a comment line.",
+    "description": "An actionable TODO, FIXME, HACK, XXX, or RAZORBACK at the start of a comment line.",
     "languages": [
       "rust",
       "c",
@@ -806,7 +806,7 @@
         "value_type": "string"
       },
       {
-        "description": "Normalized uppercase marker token: TODO, FIXME, HACK, or XXX.",
+        "description": "Normalized uppercase marker token: TODO, FIXME, HACK, XXX, or RAZORBACK.",
         "key": "marker",
         "presence": "always",
         "value_type": "string"

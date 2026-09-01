@@ -17,7 +17,7 @@ fn test_public_contract_version_marks_current_fact_families() {
     let _structural_fact: Option<crate::StructuralFact> = None;
     let _complexity_metric: Option<crate::ComplexityMetric> = None;
 
-    assert_eq!(extraction_identity_epoch, 8);
+    assert_eq!(extraction_identity_epoch, 9);
 
     for marker in [
         "source-regions-v1",
@@ -38,6 +38,7 @@ fn test_public_contract_version_marks_current_fact_families() {
         "go-subtests-v1",
         "rust-doc-test-facts-v1",
         "fsharp-v1",
+        "marker-razorback-v1",
     ] {
         assert!(
             version.contains(marker),
