@@ -2,6 +2,7 @@
 
 use crate::base::BaseExtractor;
 use crate::base::types::TypeNameRules;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
 
 const TYPE_NAME_RULES: TypeNameRules = TypeNameRules {
@@ -124,7 +125,7 @@ fn same_file_function_declaration<'a>(
     name: &str,
     base: &BaseExtractor,
 ) -> Option<Node<'a>> {
-    find_function_declaration(file_root(node), name, base)
+    find_function_declaration(file_root(node), name, base, 0)
 }
 
 fn file_root(mut node: Node) -> Node {
@@ -138,16 +139,23 @@ fn find_function_declaration<'a>(
     node: Node<'a>,
     name: &str,
     base: &BaseExtractor,
+    depth: u32,
 ) -> Option<Node<'a>> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
     if node.kind() == "function_declaration"
         && let Some(name_node) = node.child_by_field_name("name")
         && base.get_node_text(&name_node) == name
     {
         return Some(node);
     }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return None;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if let Some(found) = find_function_declaration(child, name, base) {
+        if let Some(found) = find_function_declaration(child, name, base, child_depth) {
             return Some(found);
         }
     }
