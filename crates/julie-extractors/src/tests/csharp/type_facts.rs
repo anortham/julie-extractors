@@ -165,6 +165,25 @@ public class Sample {
 }
 
 #[test]
+fn indexer_records_declared_return_type() {
+    let source = r#"
+public class Sample {
+  public IReadOnlyList<Foo> this[int i] { get { return null; } }
+  public GraphTraversal? this[string key] { get { return null; } }
+}
+"#;
+    let (symbols, extractor) = extract(source);
+    let generic = fact(&extractor, &symbols, "this[int i]", SymbolKind::Property);
+    assert_eq!(generic.resolved_type, "IReadOnlyList");
+    assert!(!generic.is_inferred);
+    assert_eq!(declared(generic), Some("IReadOnlyList<Foo>"));
+    let nullable = fact(&extractor, &symbols, "this[string key]", SymbolKind::Property);
+    assert_eq!(nullable.resolved_type, "GraphTraversal");
+    assert!(!nullable.is_inferred);
+    assert_eq!(declared(nullable), Some("GraphTraversal?"));
+}
+
+#[test]
 fn void_method_and_constructor_record_no_fact() {
     let source = r#"
 public class Sample {
