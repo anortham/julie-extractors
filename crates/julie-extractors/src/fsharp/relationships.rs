@@ -147,8 +147,9 @@ fn extract_call(
         namespace_path,
         import_context: None,
     };
+    let receiver_type = super::identifiers::instance_receiver_type(&extractor.base, node);
     if target.receiver.is_some() || !target.namespace_path.is_empty() {
-        add_pending(extractor, &caller, target, target_node);
+        add_pending(extractor, &caller, target, target_node, receiver_type);
         return;
     }
     match symbol_index.resolve_call_target(&terminal_name, Some(&caller), None) {
@@ -165,8 +166,11 @@ fn extract_call(
         LocalTargetResolution::Import(_)
         | LocalTargetResolution::ReceiverQualified
         | LocalTargetResolution::Ambiguous
-        | LocalTargetResolution::Missing => add_pending(extractor, &caller, target, target_node),
+        | LocalTargetResolution::Missing => {
+            add_pending(extractor, &caller, target, target_node, receiver_type)
+        }
     }
+
 }
 
 fn add_pending(
@@ -174,18 +178,23 @@ fn add_pending(
     caller: &Symbol,
     target: UnresolvedTarget,
     target_node: Node,
+    receiver_type: Option<String>,
 ) {
-    let mut pending = extractor.base().create_pending_relationship_at_target(
-        caller.id.clone(),
-        target,
-        RelationshipKind::Calls,
-        &target_node,
-        Some(caller.id.clone()),
-        Some(0.8),
-    );
+    let mut pending = extractor
+        .base()
+        .create_pending_relationship_at_target(
+            caller.id.clone(),
+            target,
+            RelationshipKind::Calls,
+            &target_node,
+            Some(caller.id.clone()),
+            Some(0.8),
+        )
+        .with_receiver_type(receiver_type);
     pending.pending.callee_name = pending.target.terminal_name.clone();
     extractor.base.add_structured_pending_relationship(pending);
 }
+
 
 fn extract_type_relationship(
     extractor: &mut FSharpExtractor,

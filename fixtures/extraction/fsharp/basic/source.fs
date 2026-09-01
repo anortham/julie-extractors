@@ -10,6 +10,11 @@ module Domain =
     | Circle of radius: float
     | Empty
 
+  type Id = int
+  type Foo() = class end
+  type Bar() = class end
+
+
   type Base() = class end
 
   type Calculator(value: int) =
@@ -24,8 +29,16 @@ module Domain =
 
     static member Create() = Calculator(0)
 
+    member this.Helper() = 0
+    member this.Run(a: Bar) = this.Helper()
+    member x.Go() = x.Helper()
+    member this.CallOther(other: Calculator) = other.Helper()
+
+
   let createPoint: Point = { X = 1; Y = 2 }
   let convert (value: Point) : Result<Point, string> = Ok value
+
+  let f (x: Foo) (xs: Foo list) y = y
 
   let local value = value + 1
 

@@ -39,8 +39,15 @@ pub(super) fn visit_node(
         .map(|symbol| symbol.id.clone())
         .or(parent_id);
     if let Some(symbol) = symbol {
+        let callable_id = symbol.id.clone();
         symbols.push(symbol);
+        symbols.extend(super::parameters::extract_parameter_symbols(
+            extractor.base(),
+            node,
+            &callable_id,
+        ));
     }
+
 
     let Some(child_depth) = child_tree_depth(depth) else {
         return;
@@ -119,6 +126,8 @@ fn extract_type(base: &mut BaseExtractor, node: Node, parent_id: Option<String>)
     let name = base.get_node_text(&name_node).trim().to_string();
     let kind = match body.kind() {
         "record_type_defn" => SymbolKind::Struct,
+        "union_type_defn" if is_type_abbrev_union(base, body) => SymbolKind::Type,
+
         "union_type_defn" => SymbolKind::Union,
         "interface_type_defn" => SymbolKind::Interface,
         "enum_type_defn" => SymbolKind::Enum,
@@ -126,6 +135,7 @@ fn extract_type(base: &mut BaseExtractor, node: Node, parent_id: Option<String>)
         "anon_type_defn" => SymbolKind::Class,
         _ => SymbolKind::Type,
     };
+
     create_symbol(base, node, name, kind, parent_id)
 }
 
@@ -401,3 +411,46 @@ fn direct_child_matching<'a>(node: Node<'a>, kinds: &[&str]) -> Option<Node<'a>>
     node.children(&mut cursor)
         .find(|child| kinds.contains(&child.kind()))
 }
+
+fn is_type_abbrev_union(base: &BaseExtractor, body: Node) -> bool {
+    let mut cases = Vec::new();
+    collect_union_cases(body, 0, &mut cases);
+    if cases.len() != 1 {
+        return false;
+    }
+    let case = cases[0];
+    let mut cursor = case.walk();
+    if case
+        .children(&mut cursor)
+        .any(|child| matches!(child.kind(), ":" | "of" | "union_type_fields"))
+    {
+        return false;
+    }
+    let Some(name) = direct_child_of_kind(case, "identifier") else {
+        return false;
+    };
+    base.get_node_text(&name)
+        .trim()
+        .chars()
+        .next()
+        .is_some_and(char::is_lowercase)
+}
+
+
+fn collect_union_cases<'a>(node: Node<'a>, depth: u32, out: &mut Vec<Node<'a>>) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+    if node.kind() == "union_type_case" {
+        out.push(node);
+        return;
+    }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        collect_union_cases(child, child_depth, out);
+    }
+}
+

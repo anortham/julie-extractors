@@ -228,12 +228,129 @@ fn emit(
         .base()
         .find_containing_symbol(&node, symbols)
         .map(|symbol| symbol.id.clone());
-    Some(extractor.base().create_identifier(
-        &node,
-        name.trim().to_string(),
-        kind,
-        containing_symbol_id,
-    ))
+    let receiver_type = (kind == IdentifierKind::Call)
+        .then(|| instance_receiver_type(&extractor.base, node))
+        .flatten();
+    Some(
+        extractor
+            .base()
+            .create_identifier_with_receiver_type(
+                &node,
+                name.trim().to_string(),
+                kind,
+                containing_symbol_id,
+                receiver_type,
+            ),
+    )
+}
+
+pub(super) fn instance_receiver_type(base: &BaseExtractor, node: Node) -> Option<String> {
+    let application = ancestor_kind(node, "application_expression")?;
+    let receiver = call_receiver_text(base, application)?;
+    let instance = enclosing_member_instance(base, node)?;
+    if receiver != instance {
+        return None;
+    }
+    enclosing_type_name(base, node)
+}
+
+
+
+
+fn call_receiver_text(base: &BaseExtractor, node: Node) -> Option<String> {
+    let head = first_named_child(node)?;
+    match head.kind() {
+        "application_expression" => call_receiver_text(base, head),
+        "dot_expression" => {
+            let receiver_node = head.child_by_field_name("base")?;
+            let text = base.get_node_text(&receiver_node);
+            let text = text.trim();
+            if text.is_empty() {
+                None
+            } else {
+                Some(text.to_string())
+            }
+        }
+        "long_identifier_or_op" | "long_identifier" => {
+            let display = base.get_node_text(&head);
+            let segments: Vec<_> = display
+                .split('.')
+                .map(str::trim)
+                .filter(|segment| !segment.is_empty())
+                .collect();
+            if segments.len() < 2 {
+                return None;
+            }
+            let prefix = &segments[..segments.len() - 1];
+            if prefix
+                .first()
+                .is_some_and(|segment| segment.chars().next().is_some_and(char::is_lowercase))
+            {
+                Some(prefix.join("."))
+            } else {
+                None
+            }
+        }
+        _ => None,
+
+    }
+}
+
+fn enclosing_member_instance(base: &BaseExtractor, node: Node) -> Option<String> {
+    let member = ancestor_kind(node, "member_defn")?;
+    let mut cursor = member.walk();
+    let definition = member
+        .children(&mut cursor)
+        .find(|child| child.kind() == "method_or_prop_defn")?;
+    let name = definition.child_by_field_name("name")?;
+    let instance = name.child_by_field_name("instance")?;
+    let text = base.get_node_text(&instance);
+    let text = text.trim();
+    if text.is_empty() {
+        None
+    } else {
+        Some(text.to_string())
+    }
+}
+
+fn enclosing_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
+    let type_definition = ancestor_kind(node, "type_definition")?;
+    let mut cursor = type_definition.walk();
+    let body = type_definition.children(&mut cursor).find(|child| {
+        matches!(
+            child.kind(),
+            "anon_type_defn"
+                | "delegate_type_defn"
+                | "enum_type_defn"
+                | "interface_type_defn"
+                | "record_type_defn"
+                | "type_abbrev_defn"
+                | "union_type_defn"
+        )
+    })?;
+    let mut body_cursor = body.walk();
+    let type_name = body
+        .children(&mut body_cursor)
+        .find(|child| child.kind() == "type_name")?;
+    let name_node = type_name.child_by_field_name("type_name")?;
+    let text = base.get_node_text(&name_node);
+    let text = text.trim();
+    if text.is_empty() {
+        None
+    } else {
+        Some(text.to_string())
+    }
+}
+
+fn ancestor_kind<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
+    let mut current = Some(node);
+    while let Some(candidate) = current {
+        if candidate.kind() == kind {
+            return Some(candidate);
+        }
+        current = candidate.parent();
+    }
+    None
 }
 
 fn call_head<'a>(base: &BaseExtractor, node: Node<'a>) -> Option<(Node<'a>, String)> {

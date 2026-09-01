@@ -1,6 +1,32 @@
 {
   "symbols": [
     {
+      "key": "fixtures/extraction/fsharp/script/source.fsx:name:5:15",
+      "name": "name",
+      "kind": "variable",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/script/source.fsx",
+      "start_line": 5,
+      "start_column": 15,
+      "end_line": 5,
+      "end_column": 19,
+      "start_byte": 54,
+      "end_byte": 58,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "name",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/fsharp/script/source.fsx:scriptMain:5:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/fsharp/script/source.fsx:scriptMain:5:0",
       "name": "scriptMain",
       "kind": "function",
