@@ -317,9 +317,16 @@ interface User {
         // Verify TypeInfo structure is correct
         for type_info in results.types.values() {
             assert_eq!(type_info.language, "typescript");
-            assert!(type_info.is_inferred); // From infer_types()
             assert!(!type_info.resolved_type.is_empty());
         }
+
+        assert!(
+            results
+                .types
+                .values()
+                .any(|type_info| !type_info.is_inferred),
+            "Expected declared parameter facts with is_inferred=false"
+        );
     }
 
     #[test]

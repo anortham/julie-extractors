@@ -111,7 +111,7 @@ impl super::JavaScriptExtractor {
         // Extract JSDoc comment
         let doc_comment = self.base.find_doc_comment(&doc_node);
 
-        Some(self.base.create_symbol(
+        let symbol = self.base.create_symbol(
             &node,
             name,
             SymbolKind::Variable,
@@ -123,7 +123,16 @@ impl super::JavaScriptExtractor {
                 doc_comment,
                 annotations: Vec::new(),
             },
-        ))
+        );
+        if let Some(value) = &value_node {
+            super::type_facts::record_new_expression_fact(
+                &mut self.base,
+                &symbol.id,
+                *value,
+                &super::type_facts::TYPE_NAME_RULES,
+            );
+        }
+        Some(symbol)
     }
 
     /// Extract destructuring variables - implementation's extractDestructuringVariables

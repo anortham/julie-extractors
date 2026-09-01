@@ -173,6 +173,58 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/typescript/basic/source.ts:count:23:18",
+      "name": "count",
+      "kind": "variable",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/basic/source.ts",
+      "start_line": 23,
+      "start_column": 18,
+      "end_line": 23,
+      "end_column": 31,
+      "start_byte": 375,
+      "end_byte": 388,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "count: number",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/typescript/basic/source.ts:evaluate:23:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/typescript/basic/source.ts:enabled:23:33",
+      "name": "enabled",
+      "kind": "variable",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/basic/source.ts",
+      "start_line": 23,
+      "start_column": 33,
+      "end_line": 23,
+      "end_column": 49,
+      "start_byte": 390,
+      "end_byte": 406,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "enabled: boolean",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/typescript/basic/source.ts:evaluate:23:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/typescript/basic/source.ts:evaluate:23:0",
       "name": "evaluate",
       "kind": "function",
@@ -271,6 +323,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/typescript/basic/source.ts:id:7:16",
+      "name": "id",
+      "kind": "variable",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/basic/source.ts",
+      "start_line": 7,
+      "start_column": 16,
+      "end_line": 7,
+      "end_column": 34,
+      "start_byte": 111,
+      "end_byte": 129,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "private id: number",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/typescript/basic/source.ts:constructor:7:4",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/typescript/basic/source.ts:run:2:4",
       "name": "run",
       "kind": "method",
@@ -358,6 +436,32 @@
       "visibility": null,
       "parent_key": "fixtures/extraction/typescript/basic/source.ts:evaluate:23:0",
       "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/typescript/basic/source.ts:value:19:16",
+      "name": "value",
+      "kind": "variable",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/basic/source.ts",
+      "start_line": 19,
+      "start_column": 16,
+      "end_line": 19,
+      "end_column": 29,
+      "start_byte": 307,
+      "end_byte": 320,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "value: number",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/typescript/basic/source.ts:helper:19:0",
+      "metadata": {
+        "role": "parameter"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -600,6 +704,24 @@
   ],
   "types": [
     {
+      "symbol_key": "fixtures/extraction/typescript/basic/source.ts:count:23:18",
+      "resolved_type": "number",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "typescript",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/typescript/basic/source.ts:enabled:23:33",
+      "resolved_type": "boolean",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "typescript",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/typescript/basic/source.ts:evaluate:23:0",
       "resolved_type": "function",
       "generic_params": null,
@@ -627,11 +749,29 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/typescript/basic/source.ts:id:7:16",
+      "resolved_type": "number",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "typescript",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/typescript/basic/source.ts:total:24:8",
       "resolved_type": "number",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
+      "language": "typescript",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/typescript/basic/source.ts:value:19:16",
+      "resolved_type": "number",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "typescript",
       "metadata": null
     }

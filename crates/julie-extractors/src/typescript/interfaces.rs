@@ -267,7 +267,7 @@ pub(super) fn extract_property(
     metadata.insert("isStatic".to_string(), serde_json::json!(is_static));
     metadata.insert("isReadonly".to_string(), serde_json::json!(is_readonly));
 
-    Some(extractor.base_mut().create_symbol(
+    let symbol = extractor.base_mut().create_symbol(
         &node,
         name,
         SymbolKind::Property,
@@ -279,5 +279,7 @@ pub(super) fn extract_property(
             metadata: Some(metadata),
             ..Default::default()
         },
-    ))
+    );
+    super::type_facts::record_annotation_fact(extractor.base_mut(), &symbol.id, node);
+    Some(symbol)
 }

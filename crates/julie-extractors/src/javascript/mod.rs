@@ -15,11 +15,13 @@ mod helpers;
 // variable_ref rule-1/4 predicate shared with the TypeScript and Vue extractors.
 pub(crate) mod identifiers;
 mod imports;
+pub(crate) mod parameters;
 mod relationships;
 mod signatures;
 // pub(crate): test_symbols carries the JS-family test classifier, shared with
 // the TypeScript extractor because ts/tsx run the same test DSL.
 pub(crate) mod test_symbols;
+pub(crate) mod type_facts;
 mod types;
 mod variables;
 mod visibility;
@@ -751,6 +753,18 @@ impl JavaScriptExtractor {
 
         let current_parent_id = if let Some(sym) = &symbol {
             symbols.push(sym.clone());
+            if parameters::is_parameter_owner(node.kind())
+                && matches!(
+                    sym.kind,
+                    SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor
+                )
+            {
+                for (param_symbol, _) in
+                    parameters::extract_parameter_symbols(&mut self.base, node, &sym.id)
+                {
+                    symbols.push(param_symbol);
+                }
+            }
             Some(sym.id.clone())
         } else {
             parent_id

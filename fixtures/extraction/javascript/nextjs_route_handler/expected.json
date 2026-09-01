@@ -251,6 +251,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/javascript/nextjs_route_handler/app/api/messages/route.js:request:5:27",
+      "name": "request",
+      "kind": "variable",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/nextjs_route_handler/app/api/messages/route.js",
+      "start_line": 5,
+      "start_column": 27,
+      "end_line": 5,
+      "end_column": 34,
+      "start_byte": 101,
+      "end_byte": 108,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "request",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/javascript/nextjs_route_handler/app/api/messages/route.js:POST:5:20",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/javascript/nextjs_route_handler/app/api/messages/route.js:serialize:11:0",
       "name": "serialize",
       "kind": "export",
@@ -347,6 +373,32 @@
         "isPrivate": false,
         "isStatic": false,
         "value": "201"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/javascript/nextjs_route_handler/app/api/messages/route.js:value:11:26",
+      "name": "value",
+      "kind": "variable",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/nextjs_route_handler/app/api/messages/route.js",
+      "start_line": 11,
+      "start_column": 26,
+      "end_line": 11,
+      "end_column": 31,
+      "start_byte": 278,
+      "end_byte": 283,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "value",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/javascript/nextjs_route_handler/app/api/messages/route.js:serialize:11:7",
+      "metadata": {
+        "role": "parameter"
       },
       "annotations": [],
       "semantic_group": null,

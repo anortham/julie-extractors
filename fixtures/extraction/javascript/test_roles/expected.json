@@ -1,6 +1,32 @@
 {
   "symbols": [
     {
+      "key": "fixtures/extraction/javascript/test_roles/source.js:_name:11:7",
+      "name": "_name",
+      "kind": "variable",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/test_roles/source.js",
+      "start_line": 11,
+      "start_column": 7,
+      "end_line": 11,
+      "end_column": 12,
+      "start_byte": 235,
+      "end_byte": 240,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "_name",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/javascript/test_roles/source.js:test:11:2",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/javascript/test_roles/source.js:beforeEach:1:0",
       "name": "beforeEach",
       "kind": "import",
@@ -67,6 +93,32 @@
         "is_test": true,
         "test_lifecycle": true,
         "test_role": "fixture_setup"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/javascript/test_roles/source.js:callback:11:14",
+      "name": "callback",
+      "kind": "variable",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/test_roles/source.js",
+      "start_line": 11,
+      "start_column": 14,
+      "end_line": 11,
+      "end_column": 22,
+      "start_byte": 242,
+      "end_byte": 250,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "callback",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/javascript/test_roles/source.js:test:11:2",
+      "metadata": {
+        "role": "parameter"
       },
       "annotations": [],
       "semantic_group": null,
@@ -371,44 +423,8 @@
       "metadata": null
     }
   ],
-  "pending_relationships": [
-    {
-      "from_key": "fixtures/extraction/javascript/test_roles/source.js:test:11:2",
-      "callee_name": "callback",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/javascript/test_roles/source.js",
-      "line_number": 12,
-      "confidence": "0.700"
-    }
-  ],
-  "structured_pending_relationships": [
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/javascript/test_roles/source.js:test:11:2",
-        "callee_name": "callback",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/javascript/test_roles/source.js",
-        "line_number": 12,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "callback",
-        "terminal_name": "callback",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/javascript/test_roles/source.js:test:11:2",
-      "span": {
-        "start_line": 12,
-        "start_column": 4,
-        "end_line": 12,
-        "end_column": 14,
-        "start_byte": 258,
-        "end_byte": 268
-      }
-    }
-  ],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
   "identifiers": [
     {
       "key": "fixtures/extraction/javascript/test_roles/source.js:beforeEach:call:4:2",

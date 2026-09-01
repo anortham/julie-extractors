@@ -531,6 +531,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:left:27:17",
+      "name": "left",
+      "kind": "variable",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js",
+      "start_line": 27,
+      "start_column": 17,
+      "end_line": 27,
+      "end_column": 21,
+      "start_byte": 592,
+      "end_byte": 596,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "left",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:add:27:16",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:multiplies:19:4",
       "name": "multiplies",
       "kind": "function",
@@ -558,6 +584,84 @@
       "metadata": {
         "is_test": true,
         "test_role": "test_case"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:name:31:8",
+      "name": "name",
+      "kind": "variable",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js",
+      "start_line": 31,
+      "start_column": 8,
+      "end_line": 31,
+      "end_column": 12,
+      "start_byte": 653,
+      "end_byte": 657,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "name",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:suite:31:2",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:right:27:23",
+      "name": "right",
+      "kind": "variable",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js",
+      "start_line": 27,
+      "start_column": 23,
+      "end_line": 27,
+      "end_column": 28,
+      "start_byte": 598,
+      "end_byte": 603,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "right",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:add:27:16",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:run:31:14",
+      "name": "run",
+      "kind": "variable",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js",
+      "start_line": 31,
+      "start_column": 14,
+      "end_line": 31,
+      "end_column": 17,
+      "start_byte": 659,
+      "end_byte": 662,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "run",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:suite:31:2",
+      "metadata": {
+        "role": "parameter"
       },
       "annotations": [],
       "semantic_group": null,
@@ -971,14 +1075,6 @@
       "confidence": "0.700"
     },
     {
-      "from_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:suite:31:2",
-      "callee_name": "run",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js",
-      "line_number": 32,
-      "confidence": "0.700"
-    },
-    {
       "from_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:with two operands:18:2",
       "callee_name": "it",
       "kind": "calls",
@@ -1072,32 +1168,6 @@
         "end_column": 37,
         "start_byte": 127,
         "end_byte": 162
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:suite:31:2",
-        "callee_name": "run",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js",
-        "line_number": 32,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "run",
-        "terminal_name": "run",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:suite:31:2",
-      "span": {
-        "start_line": 32,
-        "start_column": 11,
-        "end_line": 32,
-        "end_column": 20,
-        "start_byte": 677,
-        "end_byte": 686
       }
     },
     {

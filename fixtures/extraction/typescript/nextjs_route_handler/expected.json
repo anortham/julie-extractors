@@ -203,6 +203,32 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:request:4:4",
+      "name": "request",
+      "kind": "variable",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts",
+      "start_line": 4,
+      "start_column": 4,
+      "end_line": 4,
+      "end_column": 20,
+      "start_byte": 76,
+      "end_byte": 92,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "request: Request",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:GET:3:7",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [],
@@ -386,6 +412,24 @@
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
+      "language": "typescript",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:id:5:28",
+      "resolved_type": "string",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "typescript",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:request:4:4",
+      "resolved_type": "Request",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "typescript",
       "metadata": null
     }

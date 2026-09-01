@@ -196,7 +196,7 @@ pub(super) fn extract_variable(
     // Extract JSDoc comment
     let doc_comment = extractor.base().find_doc_comment(&node);
 
-    Some(extractor.base_mut().create_symbol(
+    let symbol = extractor.base_mut().create_symbol(
         &node,
         name,
         SymbolKind::Variable,
@@ -205,7 +205,9 @@ pub(super) fn extract_variable(
             doc_comment,
             ..Default::default()
         },
-    ))
+    );
+    super::type_facts::record_variable_type_facts(extractor.base_mut(), &symbol.id, node);
+    Some(symbol)
 }
 
 /// Build a function signature string (e.g., "foo(x, y): string")

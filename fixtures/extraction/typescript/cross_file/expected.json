@@ -288,7 +288,7 @@
     },
     {
       "symbol_key": "fixtures/extraction/typescript/cross_file/source.ts:x:13:10",
-      "resolved_type": "any",
+      "resolved_type": "Foo",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
