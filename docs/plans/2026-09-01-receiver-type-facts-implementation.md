@@ -106,11 +106,11 @@ Commit modes: serial tasks use `serial-worker-commit`; Batch B uses `parallel-le
 **Approach:** TDD the normalizer with table-driven cases: `List<int>` → `List`, `IReadOnlyDictionary<string, IReadOnlyList<GraphNeighbour>>` → `IReadOnlyDictionary`, `GraphTraversal?` → `GraphTraversal`, `ref Foo` → `Foo`, `&mut Foo` → `Foo`, `*Store` → `Store`, `string[]` → `string[]` (unchanged), `Foo.Bar` → `Foo.Bar` (namespaces kept; Miller matches bare names, dotted stays unmatched — record as-is). Append `.receiver-type-facts-v1` to `EXTRACTION_CONTRACT_VERSION` and add it to the api_surface marker list.
 
 **Acceptance criteria:**
-- [ ] `strip_type_decorations` passes the table above.
-- [ ] `record_declared_type_fact` records base name + `declared` metadata and never overwrites an existing row.
-- [ ] api_surface test asserts the new marker and epoch 9.
-- [ ] Decision doc states the consumer contract, metadata keys, and the static-internal caveat, concretely.
-- [ ] Worker-scope verification passes and the change is committed (serial-worker-commit).
+- [x] `strip_type_decorations` passes the table above.
+- [x] `record_declared_type_fact` records base name + `declared` metadata and never overwrites an existing row.
+- [x] api_surface test asserts the new marker and epoch 9.
+- [x] Decision doc states the consumer contract, metadata keys, and the static-internal caveat, concretely.
+- [x] Worker-scope verification passes and the change is committed (serial-worker-commit).
 
 ### Task 2: C# type-fact correctness
 
