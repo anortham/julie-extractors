@@ -1,7 +1,5 @@
 use crate::base::BaseExtractor;
 use crate::base::types::TypeNameRules;
-use serde_json::Value;
-use std::collections::HashMap;
 use tree_sitter::Node;
 
 pub(super) const RUST_TYPE_NAME_RULES: TypeNameRules = TypeNameRules {
@@ -64,21 +62,15 @@ fn record_type_node(base: &mut BaseExtractor, symbol_id: &str, type_node: Node, 
     let Some(name_node) = base_type_name_node(type_node) else {
         return;
     };
-    if base.type_info.contains_key(symbol_id) {
-        return;
-    }
     let base_name = base.get_node_text(&name_node);
-    base.record_declared_type_fact(symbol_id, &base_name, &RUST_TYPE_NAME_RULES, is_inferred);
-    let declared = base.get_node_text(&type_node).trim().to_string();
-    if let Some(fact) = base.type_info.get_mut(symbol_id) {
-        if fact.resolved_type == declared {
-            fact.metadata = None;
-        } else {
-            fact.metadata
-                .get_or_insert_with(HashMap::new)
-                .insert("declared".to_string(), Value::String(declared));
-        }
-    }
+    let declared = base.get_node_text(&type_node);
+    base.record_declared_type_fact_with_declared(
+        symbol_id,
+        &base_name,
+        &declared,
+        &RUST_TYPE_NAME_RULES,
+        is_inferred,
+    );
 }
 
 /// Structurally reduce a type-position node to the single node naming its base

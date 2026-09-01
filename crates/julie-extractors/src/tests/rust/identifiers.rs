@@ -296,3 +296,96 @@ pub fn evaluate(seed: i32, unused_param: i32) -> i32 {
         "comment-only GhostToken must not be extracted at all"
     );
 }
+
+fn call_named<'a>(identifiers: &'a [Identifier], name: &str) -> &'a Identifier {
+    identifiers
+        .iter()
+        .find(|id| id.name == name && id.kind == IdentifierKind::Call)
+        .unwrap_or_else(|| panic!("missing call identifier {name}"))
+}
+
+#[test]
+fn self_call_inside_impl_records_enclosing_type_as_receiver_type() {
+    let code = r#"
+struct Store;
+
+impl Store {
+    fn run(&self) {
+        self.helper();
+    }
+}
+"#;
+    let (_symbols, identifiers) = extract_all(code);
+    assert_eq!(
+        call_named(&identifiers, "helper").receiver_type.as_deref(),
+        Some("Store")
+    );
+}
+
+#[test]
+fn self_call_inside_trait_impl_records_type_target_as_receiver_type() {
+    let code = r#"
+struct Store;
+
+trait Persist {
+    fn persist(&self);
+}
+
+impl Persist for Store {
+    fn persist(&self) {
+        self.helper();
+    }
+}
+"#;
+    let (_symbols, identifiers) = extract_all(code);
+    assert_eq!(
+        call_named(&identifiers, "helper").receiver_type.as_deref(),
+        Some("Store")
+    );
+}
+
+#[test]
+fn self_call_inside_trait_default_method_has_no_receiver_type() {
+    let code = r#"
+trait Persist {
+    fn persist(&self) {
+        self.helper();
+    }
+}
+"#;
+    let (_symbols, identifiers) = extract_all(code);
+    assert_eq!(call_named(&identifiers, "helper").receiver_type, None);
+}
+
+#[test]
+fn other_receiver_call_has_no_receiver_type() {
+    let code = r#"
+struct Store;
+
+impl Store {
+    fn run(&self, other: Store) {
+        other.helper();
+    }
+}
+"#;
+    let (_symbols, identifiers) = extract_all(code);
+    assert_eq!(call_named(&identifiers, "helper").receiver_type, None);
+}
+
+#[test]
+fn self_type_call_inside_impl_records_enclosing_type_as_receiver_type() {
+    let code = r#"
+struct Store;
+
+impl Store {
+    fn run() {
+        Self::helper();
+    }
+}
+"#;
+    let (_symbols, identifiers) = extract_all(code);
+    assert_eq!(
+        call_named(&identifiers, "helper").receiver_type.as_deref(),
+        Some("Store")
+    );
+}
