@@ -293,7 +293,11 @@ pub fn extract_property(
         annotations,
     };
 
-    Some(base.create_symbol(&node, name, SymbolKind::Property, options))
+    let symbol = base.create_symbol(&node, name, SymbolKind::Property, options);
+    if let Some(type_node) = node.child_by_field_name("type") {
+        super::type_inference::record_declared_type(base, &symbol.id, type_node);
+    }
+    Some(symbol)
 }
 
 /// Extract delegate

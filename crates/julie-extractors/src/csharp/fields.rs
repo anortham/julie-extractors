@@ -2,7 +2,7 @@ use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions};
 use std::collections::HashMap;
 use tree_sitter::Node;
 
-use super::helpers;
+use super::{helpers, type_inference};
 
 /// Extract field
 pub fn extract_field(
@@ -31,6 +31,7 @@ pub fn extract_fields(
     let Some(var_declaration) = var_declaration else {
         return Vec::new();
     };
+    let type_node = var_declaration.child_by_field_name("type");
     let mut var_cursor = var_declaration.walk();
     let declarators: Vec<Node> = var_declaration
         .children(&mut var_cursor)
@@ -85,7 +86,11 @@ pub fn extract_fields(
                 annotations: annotations.clone(),
             };
 
-            Some(base.create_symbol(&node, name, symbol_kind.clone(), options))
+            let symbol = base.create_symbol(&node, name, symbol_kind.clone(), options);
+            if let Some(type_node) = type_node {
+                type_inference::record_declared_type(base, &symbol.id, type_node);
+            }
+            Some(symbol)
         })
         .collect()
 }

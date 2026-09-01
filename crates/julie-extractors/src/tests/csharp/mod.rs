@@ -67,4 +67,5 @@ pub mod metadata;
 pub mod runtime;
 mod test_containers;
 mod type_arguments; // Phase 2: ordered/nested generic type-argument capture (Miller bridge)
+mod type_facts;
 mod types; // Phase 4: Type extraction verification tests

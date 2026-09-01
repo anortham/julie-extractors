@@ -1946,7 +1946,7 @@
       "resolved_type": "bool",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
       "metadata": null
     },
@@ -1955,25 +1955,27 @@
       "resolved_type": "string",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
       "metadata": null
     },
     {
       "symbol_key": "fixtures/extraction/csharp/csharp14/source.cs:Order:40:4",
-      "resolved_type": "Order?",
+      "resolved_type": "Order",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
-      "metadata": null
+      "metadata": {
+        "declared": "Order?"
+      }
     },
     {
       "symbol_key": "fixtures/extraction/csharp/csharp14/source.cs:Value:69:4",
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
       "metadata": null
     },
@@ -1991,6 +1993,24 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
+      "is_inferred": false,
+      "language": "csharp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/csharp/csharp14/source.cs:counter:18:4",
+      "resolved_type": "MutableCounter",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "csharp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/csharp/csharp14/source.cs:customer:14:4",
+      "resolved_type": "FileAppCustomer",
+      "generic_params": null,
+      "constraints": null,
       "is_inferred": true,
       "language": "csharp",
       "metadata": null
@@ -2006,28 +2026,32 @@
     },
     {
       "symbol_key": "fixtures/extraction/csharp/csharp14/source.cs:parse:17:14",
-      "resolved_type": "TryParse<int>",
+      "resolved_type": "TryParse",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
-      "metadata": null
+      "metadata": {
+        "declared": "TryParse<int>"
+      }
     },
     {
       "symbol_key": "fixtures/extraction/csharp/csharp14/source.cs:predicate:31:42",
-      "resolved_type": "Func<TSource, bool>",
+      "resolved_type": "Func",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
-      "metadata": null
+      "metadata": {
+        "declared": "Func<TSource, bool>"
+      }
     },
     {
       "symbol_key": "fixtures/extraction/csharp/csharp14/source.cs:result:23:39",
       "resolved_type": "T",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
       "metadata": null
     },
@@ -2036,7 +2060,7 @@
       "resolved_type": "string",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
       "metadata": null
     }

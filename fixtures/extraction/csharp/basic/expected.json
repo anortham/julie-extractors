@@ -2130,7 +2130,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
       "metadata": null
     },
@@ -2148,7 +2148,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
       "metadata": null
     },
@@ -2157,7 +2157,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
       "metadata": null
     },
@@ -2175,7 +2175,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
       "metadata": null
     },
@@ -2193,7 +2193,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
       "metadata": null
     },
@@ -2211,7 +2211,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
       "metadata": null
     },
@@ -2229,7 +2229,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
       "metadata": null
     },
@@ -2238,7 +2238,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
       "metadata": null
     },
@@ -2256,7 +2256,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
       "metadata": null
     },
@@ -2265,7 +2265,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
       "metadata": null
     },
@@ -2301,7 +2301,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
       "metadata": null
     },
@@ -2319,7 +2319,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
       "metadata": null
     },
@@ -2328,7 +2328,7 @@
       "resolved_type": "bool",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
       "metadata": null
     },
@@ -2337,25 +2337,27 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
       "metadata": null
     },
     {
       "symbol_key": "fixtures/extraction/csharp/basic/source.cs:index:34:4",
-      "resolved_type": "Dictionary<string,",
+      "resolved_type": "Dictionary",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
-      "metadata": null
+      "metadata": {
+        "declared": "Dictionary<string, List<int>>"
+      }
     },
     {
       "symbol_key": "fixtures/extraction/csharp/basic/source.cs:requested:69:25",
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
       "metadata": null
     },
@@ -2364,13 +2366,22 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
       "metadata": null
     },
     {
       "symbol_key": "fixtures/extraction/csharp/basic/source.cs:seed:52:28",
       "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "csharp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/csharp/basic/source.cs:slot:72:12",
+      "resolved_type": "Registry",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
@@ -2382,7 +2393,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
       "metadata": null
     }

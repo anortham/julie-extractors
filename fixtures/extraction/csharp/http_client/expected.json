@@ -607,6 +607,15 @@
       "resolved_type": "HttpClient",
       "generic_params": null,
       "constraints": null,
+      "is_inferred": false,
+      "language": "csharp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/csharp/http_client/source.cs:req:10:12",
+      "resolved_type": "HttpRequestMessage",
+      "generic_params": null,
+      "constraints": null,
       "is_inferred": true,
       "language": "csharp",
       "metadata": null

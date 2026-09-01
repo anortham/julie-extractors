@@ -287,7 +287,8 @@ fn emit_declarators(
     parent_id: Option<String>,
     out: &mut Vec<Symbol>,
 ) {
-    let declared_type = type_name_from_declaration(base, declaration);
+    let type_node = type_node_from_declaration(declaration);
+    let declared_type = type_node.map(|node| base.get_node_text(&node));
     let is_var = declared_type
         .as_deref()
         .is_some_and(|t| t == "var" || t == "using" || t == "implicit_type");
@@ -305,6 +306,17 @@ fn emit_declarators(
             is_var,
             "local",
         ) {
+            if is_var {
+                if let Some(initializer) = declarator_initializer_node(child) {
+                    super::type_inference::record_new_expression_type(
+                        base,
+                        &symbol.id,
+                        initializer,
+                    );
+                }
+            } else if let Some(type_node) = type_node {
+                super::type_inference::record_declared_type(base, &symbol.id, type_node);
+            }
             out.push(symbol);
         }
     }
@@ -332,7 +344,7 @@ fn extract_named_binding(
         "isInferred".to_string(),
         serde_json::json!(is_var || declared_type.is_none()),
     );
-    Some(base.create_symbol(
+    let symbol = base.create_symbol(
         &node,
         name.to_string(),
         SymbolKind::Variable,
@@ -344,7 +356,11 @@ fn extract_named_binding(
             doc_comment: None,
             annotations: Vec::new(),
         },
-    ))
+    );
+    if !is_var && let Some(type_node) = node.child_by_field_name("type") {
+        super::type_inference::record_declared_type(base, &symbol.id, type_node);
+    }
+    Some(symbol)
 }
 
 /// Extract a formal parameter (`parameter`, `parameter_array`).
@@ -380,7 +396,7 @@ pub fn extract_parameter(
         serde_json::json!(is_var || declared_type.is_none()),
     );
 
-    Some(base.create_symbol(
+    let symbol = base.create_symbol(
         &node,
         name,
         SymbolKind::Variable,
@@ -392,7 +408,11 @@ pub fn extract_parameter(
             doc_comment: None,
             annotations: Vec::new(),
         },
-    ))
+    );
+    if !is_var && let Some(type_node) = node.child_by_field_name("type") {
+        super::type_inference::record_declared_type(base, &symbol.id, type_node);
+    }
+    Some(symbol)
 }
 
 fn extract_declarator(
@@ -406,14 +426,7 @@ fn extract_declarator(
     let name_node = find_child(node, "identifier")?;
     let name = base.get_node_text(&name_node);
 
-    let mut initializer = None;
-    let mut cursor = node.walk();
-    let children: Vec<Node> = node.children(&mut cursor).collect();
-    if let Some(eq) = children.iter().position(|c| c.kind() == "=")
-        && eq + 1 < children.len()
-    {
-        initializer = Some(base.get_node_text(&children[eq + 1]));
-    }
+    let initializer = declarator_initializer_node(node).map(|init| base.get_node_text(&init));
 
     let mut signature_parts = Vec::new();
     if let Some(ty) = declared_type {
@@ -453,18 +466,35 @@ fn extract_declarator(
 }
 
 fn type_name_from_declaration(base: &BaseExtractor, declaration: Node) -> Option<String> {
-    let mut cursor = declaration.walk();
-    for child in declaration.children(&mut cursor) {
-        match child.kind() {
-            "predefined_type" | "identifier" | "generic_name" | "qualified_name"
-            | "nullable_type" | "array_type" | "tuple_type" | "pointer_type" | "ref_type"
-            | "implicit_type" => {
-                return Some(base.get_node_text(&child));
-            }
-            _ => {}
-        }
-    }
-    None
+    type_node_from_declaration(declaration).map(|node| base.get_node_text(&node))
+}
+
+fn type_node_from_declaration(declaration: Node) -> Option<Node> {
+    declaration.child_by_field_name("type").or_else(|| {
+        let mut cursor = declaration.walk();
+        declaration.children(&mut cursor).find(|child| {
+            matches!(
+                child.kind(),
+                "predefined_type"
+                    | "identifier"
+                    | "generic_name"
+                    | "qualified_name"
+                    | "nullable_type"
+                    | "array_type"
+                    | "tuple_type"
+                    | "pointer_type"
+                    | "ref_type"
+                    | "implicit_type"
+            )
+        })
+    })
+}
+
+fn declarator_initializer_node(declarator: Node) -> Option<Node> {
+    let mut cursor = declarator.walk();
+    let children: Vec<Node> = declarator.children(&mut cursor).collect();
+    let eq = children.iter().position(|c| c.kind() == "=")?;
+    children.get(eq + 1).copied()
 }
 
 fn parameter_name(base: &BaseExtractor, node: Node) -> Option<String> {

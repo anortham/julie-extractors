@@ -310,6 +310,15 @@
       "is_inferred": true,
       "language": "csharp",
       "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/csharp/cross_file/Source.cs:x:15:12",
+      "resolved_type": "OtherClass",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "csharp",
+      "metadata": null
     }
   ],
   "parse_diagnostics": [],

@@ -381,10 +381,10 @@
   "types": [
     {
       "symbol_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Navigation:7:4",
-      "resolved_type": "[Inject]",
+      "resolved_type": "NavigationManager",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
       "metadata": null
     },
@@ -399,10 +399,10 @@
     },
     {
       "symbol_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Theme:10:4",
-      "resolved_type": "[CascadingParameter]",
+      "resolved_type": "ThemeContext",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
       "metadata": null
     }
