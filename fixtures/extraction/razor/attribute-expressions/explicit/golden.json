@@ -1,17 +1,17 @@
 {
   "symbols": [
     {
-      "key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:ContactList:22:12",
+      "key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:ContactList:22:4",
       "name": "ContactList",
       "kind": "variable",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor",
       "start_line": 22,
-      "start_column": 12,
+      "start_column": 4,
       "end_line": 22,
-      "end_column": 49,
-      "start_byte": 1003,
-      "end_byte": 1040,
+      "end_column": 50,
+      "start_byte": 995,
+      "end_byte": 1041,
       "body_span": {
         "start_line": 22,
         "start_column": 47,
@@ -21,13 +21,14 @@
         "end_byte": 1040
       },
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
-      "signature": "ContactCollection ContactList = new()",
+      "signature": "private ContactCollection ContactList = new()",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "initializer": "new()",
-        "type": "variable-declaration",
+        "modifiers": "private",
+        "type": "local-variable",
         "variableType": "ContactCollection"
       },
       "annotations": [],
@@ -36,26 +37,27 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:GroupMode:16:12",
+      "key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:GroupMode:16:4",
       "name": "GroupMode",
       "kind": "variable",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor",
       "start_line": 16,
-      "start_column": 12,
+      "start_column": 4,
       "end_line": 16,
-      "end_column": 33,
-      "start_byte": 802,
-      "end_byte": 823,
+      "end_column": 34,
+      "start_byte": 794,
+      "end_byte": 824,
       "body_span": null,
       "body_hash": null,
-      "signature": "string GroupMode = \"\"",
+      "signature": "private string GroupMode = \"\"",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "initializer": "\"\"",
-        "type": "variable-declaration",
+        "modifiers": "private",
+        "type": "local-variable",
         "variableType": "string"
       },
       "annotations": [],
@@ -64,17 +66,17 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:Ready:19:12",
+      "key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:Ready:19:4",
       "name": "Ready",
       "kind": "variable",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor",
       "start_line": 19,
-      "start_column": 12,
+      "start_column": 4,
       "end_line": 19,
-      "end_column": 32,
-      "start_byte": 902,
-      "end_byte": 922,
+      "end_column": 33,
+      "start_byte": 894,
+      "end_byte": 923,
       "body_span": {
         "start_line": 19,
         "start_column": 30,
@@ -84,13 +86,14 @@
         "end_byte": 922
       },
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
-      "signature": "object Ready = new()",
+      "signature": "private object Ready = new()",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "initializer": "new()",
-        "type": "variable-declaration",
+        "modifiers": "private",
+        "type": "local-variable",
         "variableType": "object"
       },
       "annotations": [],
@@ -99,17 +102,17 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:area:17:12",
+      "key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:area:17:4",
       "name": "area",
       "kind": "variable",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor",
       "start_line": 17,
-      "start_column": 12,
+      "start_column": 4,
       "end_line": 17,
-      "end_column": 29,
-      "start_byte": 837,
-      "end_byte": 854,
+      "end_column": 30,
+      "start_byte": 829,
+      "end_byte": 855,
       "body_span": {
         "start_line": 17,
         "start_column": 27,
@@ -119,13 +122,14 @@
         "end_byte": 854
       },
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
-      "signature": "Area area = new()",
+      "signature": "private Area area = new()",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "initializer": "new()",
-        "type": "variable-declaration",
+        "modifiers": "private",
+        "type": "local-variable",
         "variableType": "Area"
       },
       "annotations": [],
@@ -168,17 +172,17 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:context:23:12",
+      "key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:context:23:4",
       "name": "context",
       "kind": "variable",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor",
       "start_line": 23,
-      "start_column": 12,
+      "start_column": 4,
       "end_line": 23,
-      "end_column": 35,
-      "start_byte": 1054,
-      "end_byte": 1077,
+      "end_column": 36,
+      "start_byte": 1046,
+      "end_byte": 1078,
       "body_span": {
         "start_line": 23,
         "start_column": 33,
@@ -188,13 +192,14 @@
         "end_byte": 1077
       },
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
-      "signature": "Context context = new()",
+      "signature": "private Context context = new()",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "initializer": "new()",
-        "type": "variable-declaration",
+        "modifiers": "private",
+        "type": "local-variable",
         "variableType": "Context"
       },
       "annotations": [],
@@ -237,26 +242,27 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:mode:15:12",
+      "key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:mode:15:4",
       "name": "mode",
       "kind": "variable",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor",
       "start_line": 15,
-      "start_column": 12,
+      "start_column": 4,
       "end_line": 15,
-      "end_column": 28,
-      "start_byte": 772,
-      "end_byte": 788,
+      "end_column": 29,
+      "start_byte": 764,
+      "end_byte": 789,
       "body_span": null,
       "body_hash": null,
-      "signature": "string mode = \"\"",
+      "signature": "private string mode = \"\"",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "initializer": "\"\"",
-        "type": "variable-declaration",
+        "modifiers": "private",
+        "type": "local-variable",
         "variableType": "string"
       },
       "annotations": [],
@@ -299,44 +305,9 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:model:14:12",
-      "name": "model",
-      "kind": "variable",
-      "language": "razor",
-      "file_path": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor",
-      "start_line": 14,
-      "start_column": 12,
-      "end_line": 14,
-      "end_column": 31,
-      "start_byte": 739,
-      "end_byte": 758,
-      "body_span": {
-        "start_line": 14,
-        "start_column": 29,
-        "end_line": 14,
-        "end_column": 31,
-        "start_byte": 756,
-        "end_byte": 758
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
-      "signature": "Model model = new()",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:model:14:4",
-      "metadata": {
-        "initializer": "new()",
-        "type": "variable-declaration",
-        "variableType": "Model"
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
       "key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:model:14:4",
       "name": "model",
-      "kind": "variable",
+      "kind": "field",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor",
       "start_line": 14,
@@ -404,25 +375,26 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:mutating:20:12",
+      "key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:mutating:20:4",
       "name": "mutating",
       "kind": "variable",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor",
       "start_line": 20,
-      "start_column": 12,
+      "start_column": 4,
       "end_line": 20,
-      "end_column": 25,
-      "start_byte": 936,
-      "end_byte": 949,
+      "end_column": 26,
+      "start_byte": 928,
+      "end_byte": 950,
       "body_span": null,
       "body_hash": null,
-      "signature": "bool mutating",
+      "signature": "private bool mutating",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
-        "type": "variable-declaration",
+        "modifiers": "private",
+        "type": "local-variable",
         "variableType": "bool"
       },
       "annotations": [],
@@ -465,17 +437,17 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:result:21:12",
+      "key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:result:21:4",
       "name": "result",
       "kind": "variable",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor",
       "start_line": 21,
-      "start_column": 12,
+      "start_column": 4,
       "end_line": 21,
-      "end_column": 38,
-      "start_byte": 963,
-      "end_byte": 989,
+      "end_column": 39,
+      "start_byte": 955,
+      "end_byte": 990,
       "body_span": {
         "start_line": 21,
         "start_column": 36,
@@ -485,13 +457,14 @@
         "end_byte": 989
       },
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
-      "signature": "ResultModel result = new()",
+      "signature": "private ResultModel result = new()",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "initializer": "new()",
-        "type": "variable-declaration",
+        "modifiers": "private",
+        "type": "local-variable",
         "variableType": "ResultModel"
       },
       "annotations": [],
@@ -568,17 +541,17 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:state:18:12",
+      "key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:state:18:4",
       "name": "state",
       "kind": "variable",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor",
       "start_line": 18,
-      "start_column": 12,
+      "start_column": 4,
       "end_line": 18,
-      "end_column": 32,
-      "start_byte": 868,
-      "end_byte": 888,
+      "end_column": 33,
+      "start_byte": 860,
+      "end_byte": 889,
       "body_span": {
         "start_line": 18,
         "start_column": 30,
@@ -588,13 +561,14 @@
         "end_byte": 888
       },
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
-      "signature": "object state = new()",
+      "signature": "private object state = new()",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "initializer": "new()",
-        "type": "variable-declaration",
+        "modifiers": "private",
+        "type": "local-variable",
         "variableType": "object"
       },
       "annotations": [],
@@ -1315,38 +1289,38 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:ContactList:22:12",
+      "symbol_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:ContactList:22:4",
       "resolved_type": "ContactCollection",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "razor",
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:GroupMode:16:12",
+      "symbol_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:GroupMode:16:4",
       "resolved_type": "string",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "razor",
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:Ready:19:12",
+      "symbol_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:Ready:19:4",
       "resolved_type": "object",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "razor",
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:area:17:12",
+      "symbol_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:area:17:4",
       "resolved_type": "Area",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "razor",
       "metadata": null
     },
@@ -1360,11 +1334,11 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:context:23:12",
+      "symbol_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:context:23:4",
       "resolved_type": "Context",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "razor",
       "metadata": null
     },
@@ -1378,11 +1352,11 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:mode:15:12",
+      "symbol_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:mode:15:4",
       "resolved_type": "string",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "razor",
       "metadata": null
     },
@@ -1396,20 +1370,11 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:model:14:12",
-      "resolved_type": "Model",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:model:14:4",
       "resolved_type": "Model",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "razor",
       "metadata": null
     },
@@ -1423,11 +1388,11 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:mutating:20:12",
+      "symbol_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:mutating:20:4",
       "resolved_type": "bool",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "razor",
       "metadata": null
     },
@@ -1441,11 +1406,11 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:result:21:12",
+      "symbol_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:result:21:4",
       "resolved_type": "ResultModel",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "razor",
       "metadata": null
     },
@@ -1468,11 +1433,11 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:state:18:12",
+      "symbol_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:state:18:4",
       "resolved_type": "object",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "razor",
       "metadata": null
     },
@@ -2072,7 +2037,7 @@
       "kind": "string_literal",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor",
-      "containing_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:GroupMode:16:12",
+      "containing_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:GroupMode:16:4",
       "start_line": 16,
       "start_column": 31,
       "end_line": 16,
@@ -2085,7 +2050,7 @@
       "kind": "string_literal",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor",
-      "containing_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:mode:15:12",
+      "containing_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:mode:15:4",
       "start_line": 15,
       "start_column": 26,
       "end_line": 15,

@@ -60,7 +60,13 @@ impl super::RazorExtractor {
                 symbol = self.extract_field(node, parent_id);
             }
             "variable_declaration" => {
-                symbol = self.extract_variable_declaration(node, parent_id);
+                let already_emitted = node.parent().is_some_and(|parent| {
+                    parent.kind() == "local_declaration_statement"
+                        || (parent.kind() == "field_declaration" && !is_var_declaration(parent))
+                });
+                if !already_emitted {
+                    symbol = self.extract_variable_declaration(node, parent_id);
+                }
             }
             // Assignment expressions (ViewData["Title"] = "Home", Layout = "_Layout", etc.)
             // are USAGES, not definitions. Tracked via identifier extraction for reference relationships.
@@ -80,12 +86,25 @@ impl super::RazorExtractor {
             _ => {}
         }
 
-        let new_parent_id = if let Some(sym) = &symbol {
-            symbols.push(sym.clone());
-            Some(sym.id.as_str())
+        let parent_owned: Option<String> = if let Some(sym) = symbol {
+            let id = sym.id.clone();
+            symbols.push(sym);
+            if matches!(
+                node.kind(),
+                "method_declaration" | "local_function_statement"
+            ) {
+                symbols.extend(super::parameters::extract_parameter_symbols(
+                    &mut self.base,
+                    node,
+                    &id,
+                ));
+            }
+            Some(id)
         } else {
-            current_parent_id
+            current_parent_id.map(str::to_string)
         };
+        let new_parent_id = parent_owned.as_deref();
+
 
         // Recursively visit children
         let Some(child_depth) = child_tree_depth(depth) else {
@@ -321,7 +340,7 @@ impl super::RazorExtractor {
             &mut metadata,
         );
 
-        Some(self.base.create_symbol(
+        let symbol = self.base.create_symbol(
             &node,
             name,
             SymbolKind::Method,
@@ -333,7 +352,11 @@ impl super::RazorExtractor {
                 doc_comment,
                 annotations,
             },
-        ))
+        );
+        if let Some(returns) = node.child_by_field_name("returns") {
+            super::type_facts::record_return_type(&mut self.base, &symbol.id, returns);
+        }
+        Some(symbol)
     }
 
     /// Extract property declaration
@@ -431,7 +454,7 @@ impl super::RazorExtractor {
         // Extract C# XML doc comment
         let doc_comment = self.base.find_doc_comment(&node);
 
-        Some(self.base.create_symbol(
+        let symbol = self.base.create_symbol(
             &node,
             name,
             SymbolKind::Property,
@@ -464,6 +487,18 @@ impl super::RazorExtractor {
                 doc_comment,
                 annotations: normalize_annotations(&attributes, "csharp"),
             },
-        ))
+        );
+        if let Some(type_node) = node.child_by_field_name("type") {
+            super::type_facts::record_declared_type(&mut self.base, &symbol.id, type_node);
+        }
+        Some(symbol)
     }
+}
+
+fn is_var_declaration(node: Node) -> bool {
+    let mut cursor = node.walk();
+    node.children(&mut cursor)
+        .find(|child| child.kind() == "variable_declaration")
+        .and_then(|decl| decl.child_by_field_name("type"))
+        .is_some_and(|ty| ty.kind() == "implicit_type" || ty.kind() == "var")
 }

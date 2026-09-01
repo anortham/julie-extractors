@@ -13,6 +13,13 @@ impl super::RazorExtractor {
 
         // Find variable declarator in field declaration
         if let Some(var_decl) = self.find_child_by_type(node, "variable_declaration") {
+            if var_decl
+                .child_by_field_name("type")
+                .is_some_and(|ty| ty.kind() == "implicit_type")
+            {
+                return None;
+            }
+
             // Extract type
             if let Some(type_node) = self.find_child_by_types(
                 var_decl,
@@ -53,10 +60,13 @@ impl super::RazorExtractor {
         }
         signature_parts.push(field_name.clone());
 
-        Some(self.base.create_symbol(
+        let type_node = self
+            .find_child_by_type(node, "variable_declaration")
+            .and_then(|decl| decl.child_by_field_name("type"));
+        let symbol = self.base.create_symbol(
             &node,
             field_name,
-            SymbolKind::Variable,
+            SymbolKind::Field,
             SymbolOptions {
                 signature: Some(signature_parts.join(" ")),
                 visibility: Some(self.determine_visibility(&modifiers)),
@@ -83,7 +93,11 @@ impl super::RazorExtractor {
                 doc_comment: None,
                 annotations: Vec::new(),
             },
-        ))
+        );
+        if let Some(type_node) = type_node {
+            super::type_facts::record_declared_type(&mut self.base, &symbol.id, type_node);
+        }
+        Some(symbol)
     }
 
     /// Extract local function statement
@@ -177,7 +191,7 @@ impl super::RazorExtractor {
             &mut metadata,
         );
 
-        Some(self.base.create_symbol(
+        let symbol = self.base.create_symbol(
             &node,
             name,
             SymbolKind::Method,
@@ -189,7 +203,11 @@ impl super::RazorExtractor {
                 doc_comment: None,
                 annotations: Vec::new(),
             },
-        ))
+        );
+        if let Some(returns) = node.child_by_field_name("returns") {
+            super::type_facts::record_return_type(&mut self.base, &symbol.id, returns);
+        }
+        Some(symbol)
     }
 
     /// Extract local variable declaration
@@ -198,30 +216,19 @@ impl super::RazorExtractor {
         node: Node,
         parent_id: Option<&str>,
     ) -> Option<Symbol> {
-        // Extract variable name and type from local declaration
-        let mut variable_name: Option<String> = None;
-        let mut variable_type = None;
-        let mut initializer = None;
+        let var_decl = self.find_child_by_type(node, "variable_declaration")?;
+        let var_declarator = self.find_child_by_type(var_decl, "variable_declarator")?;
+        let identifier = self.find_child_by_type(var_declarator, "identifier")?;
+        let variable_name = self.base.get_node_text(&identifier);
 
-        // Find variable declarator
-        if let Some(var_declarator) = self.find_child_by_type(node, "variable_declarator") {
-            if let Some(identifier) = self.find_child_by_type(var_declarator, "identifier") {
-                variable_name = Some(self.base.get_node_text(&identifier));
-            }
+        let mut cursor = var_declarator.walk();
+        let children: Vec<_> = var_declarator.children(&mut cursor).collect();
+        let equals_pos = children.iter().position(|c| c.kind() == "=");
+        let initializer_node = equals_pos.and_then(|pos| children.get(pos + 1).copied());
+        let initializer = initializer_node.map(|init| self.base.get_node_text(&init));
 
-            // Look for initializer (= expression)
-            let mut cursor = var_declarator.walk();
-            let children: Vec<_> = var_declarator.children(&mut cursor).collect();
-            if let Some(equals_pos) = children.iter().position(|c| c.kind() == "=")
-                && equals_pos + 1 < children.len()
-            {
-                initializer = Some(self.base.get_node_text(&children[equals_pos + 1]));
-            }
-        }
-
-        // Find variable type declaration
-        if let Some(var_decl) = self.find_child_by_type(node, "variable_declaration")
-            && let Some(type_node) = self.find_child_by_types(
+        let type_node = var_decl.child_by_field_name("type").or_else(|| {
+            self.find_child_by_types(
                 var_decl,
                 &[
                     "predefined_type",
@@ -230,18 +237,23 @@ impl super::RazorExtractor {
                     "qualified_name",
                     "nullable_type",
                     "array_type",
+                    "implicit_type",
                 ],
             )
-        {
-            variable_type = Some(self.base.get_node_text(&type_node));
-        }
-
-        // If we couldn't resolve the variable name, skip this symbol
-        let variable_name = variable_name?;
-
+        });
+        let variable_type = type_node.and_then(|ty| {
+            let text = self.base.get_node_text(&ty);
+            if ty.kind() == "implicit_type" || text == "var" {
+                None
+            } else {
+                Some(text)
+            }
+        });
+        let is_var = type_node.is_some_and(|ty| {
+            ty.kind() == "implicit_type" || self.base.get_node_text(&ty) == "var"
+        });
         let modifiers = self.extract_modifiers(node);
         let attributes = self.extract_attributes(node);
-
         let mut signature_parts = Vec::new();
         if !attributes.is_empty() {
             signature_parts.push(attributes.join(" "));
@@ -249,15 +261,17 @@ impl super::RazorExtractor {
         if !modifiers.is_empty() {
             signature_parts.push(modifiers.join(" "));
         }
-        if let Some(ref var_type) = variable_type {
+        if let Some(var_type) = &variable_type {
             signature_parts.push(var_type.clone());
+        } else {
+            signature_parts.push("var".to_string());
         }
         signature_parts.push(variable_name.clone());
-        if let Some(ref init) = initializer {
+        if let Some(init) = &initializer {
             signature_parts.push(format!("= {}", init));
         }
 
-        Some(self.base.create_symbol(
+        let symbol = self.base.create_symbol(
             &node,
             variable_name,
             SymbolKind::Variable,
@@ -289,6 +303,14 @@ impl super::RazorExtractor {
                 doc_comment: None,
                 annotations: Vec::new(),
             },
-        ))
+        );
+        if is_var {
+            if let Some(init) = initializer_node {
+                super::type_facts::record_new_expression_type(&mut self.base, &symbol.id, init);
+            }
+        } else if let Some(type_node) = type_node {
+            super::type_facts::record_declared_type(&mut self.base, &symbol.id, type_node);
+        }
+        Some(symbol)
     }
 }

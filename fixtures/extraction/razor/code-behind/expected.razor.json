@@ -659,7 +659,7 @@
       "resolved_type": "Task",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "razor",
       "metadata": null
     },
@@ -686,7 +686,7 @@
       "resolved_type": "ThemeContext",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "razor",
       "metadata": null
     },

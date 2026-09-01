@@ -60,6 +60,9 @@ mod identifiers;
 mod relationship_helpers;
 mod relationships;
 mod stubs;
+mod parameters;
+mod type_facts;
+
 mod type_inference;
 
 pub struct RazorExtractor {

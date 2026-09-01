@@ -139,9 +139,9 @@
       "start_line": 16,
       "start_column": 8,
       "end_line": 16,
-      "end_column": 38,
+      "end_column": 39,
       "start_byte": 449,
-      "end_byte": 479,
+      "end_byte": 480,
       "body_span": {
         "start_line": 16,
         "start_column": 36,
@@ -157,7 +157,8 @@
       "parent_key": "fixtures/extraction/razor/cross_file/source.razor:Entry:15:4",
       "metadata": {
         "initializer": "new ItemFromOther()",
-        "type": "variable-declaration"
+        "modifiers": "",
+        "type": "local-variable"
       },
       "annotations": [],
       "semantic_group": null,
@@ -370,7 +371,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "razor",
       "metadata": null
     },
@@ -385,7 +386,7 @@
     },
     {
       "symbol_key": "fixtures/extraction/razor/cross_file/source.razor:item:16:8",
-      "resolved_type": "var",
+      "resolved_type": "ItemFromOther",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,

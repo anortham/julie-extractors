@@ -402,12 +402,14 @@
     },
     {
       "symbol_key": "fixtures/extraction/razor/typeparam/GenericList.razor:Items:7:4",
-      "resolved_type": "IReadOnlyList<TItem>",
+      "resolved_type": "IReadOnlyList",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "razor",
-      "metadata": null
+      "metadata": {
+        "declared": "IReadOnlyList<TItem>"
+      }
     }
   ],
   "parse_diagnostics": [],
