@@ -372,12 +372,26 @@ Commit modes: serial tasks use `serial-worker-commit`; Batch B uses `parallel-le
 **Approach:** Follow the existing capabilities.json row shapes; run the full branch gate; fix anything it finds.
 
 **Acceptance criteria:**
-- [ ] `node scripts/language-data-quality-report.mjs --strict` passes with silent_cells=0, quality_bar_debts=0.
-- [ ] Branch gate green: `cargo test --workspace`, `cargo xtask test capability`, fmt, diff check.
-- [ ] `open_gaps` entries exist for every wave-2 general-purpose language with the named closure plan.
-- [ ] Spec doc status updated.
-- [ ] Change committed (serial-worker-commit).
+- [x] `node scripts/language-data-quality-report.mjs --strict` passes with silent_cells=0, quality_bar_debts=0 at 9ae59cba (lead re-ran independently, exit 0).
+- [x] Branch gate green at 9ae59cba: `cargo test --workspace`, `cargo xtask test capability` (40), fmt, golden zero drift.
+- [x] `open_gaps` entries exist for all 18 wave-2 languages plus a python parent-linkage entry, each naming `docs/plans/2026-09-08-receiver-type-facts-wave-2.md` (19 verified by count).
+- [x] Spec doc status updated (proposed → wave 1 landed, wave 2 planned).
+- [x] Change committed (serial-worker-commit, 9ae59cba).
 
 ## Verification Ledger
 
-(appended during execution)
+| Scope | Invariant | Command | Commit | Result | Time |
+|-------|-----------|---------|--------|--------|------|
+| worker-red-green | normalizer table + record helper + contract marker | cargo test -p julie-extractors api_surface / strip_type_decorations / record_declared_type_fact; fmt | b1ac7ee | pass | 2026-09-01T14:01Z |
+| worker-red-green | C# type facts correct incl. returns | cargo xtask test language csharp (135+1); type_facts 12 | e27c01e | pass | 2026-09-01T14:35Z |
+| lead affected-change | zero corrupt resolved_type on miller 2-file sample | julie-extract scan + SQL corrupt-row query | e27c01e | pass (0 rows) | 2026-09-01T14:36Z |
+| worker-red-green | TS/JS fact shapes + param symbols; no regressions | cargo xtask test language typescript (129+1), javascript (74+1); 26 unit | d4a781e | pass | 2026-09-01T14:24Z |
+| lead affected-change | no crate regression after Task 3 + Task 4 merge + golden reconciliation | cargo test -p julie-extractors --lib | cb108eb | pass (3604) | 2026-09-01T14:48Z |
+| lead affected-change | merged tree healthy across all wave-1 languages | cargo test -p julie-extractors --lib; golden suite; cargo test -p julie-extract-cli; fmt | aab5341 | pass (3671 lib; 6/6 golden; 26 CLI; fmt) | 2026-09-01T15:20Z |
+| lead affected-change | Task 9 hard gates: 0 untyped new-initializer locals, 0 corrupt resolved_type rows across 8 dbs, params with facts in 6 languages | julie-extract scan + SQL gate queries | 8cf506ea | pass | 2026-09-01T16:40Z |
+| branch-gate | strict quality: silent_cells=0, quality_bar_debts=0 | node scripts/language-data-quality-report.mjs --strict | 9ae59cba | pass (exit 0; open_gap_backlog 66 report-only; lead re-ran, exit 0) | 2026-09-01T18:10Z |
+| branch-gate | capability claims parse, unique, evidence-backed | cargo xtask test capability | 9ae59cba | pass (40) | 2026-09-01T17:58Z |
+| branch-gate | golden fixtures zero drift | cargo xtask test golden | 9ae59cba | pass (6/6) | 2026-09-01T18:01Z |
+| branch-gate | whole workspace green + fmt | cargo test --workspace; cargo fmt --check | 9ae59cba | pass | 2026-09-01T18:08Z |
+
+Security scope: none declared in this plan, so the branch gate ran no security commands.
