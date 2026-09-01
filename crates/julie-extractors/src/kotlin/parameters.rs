@@ -32,9 +32,9 @@ pub(super) fn extract_parameter_symbols(
     for param_node in param_nodes {
         let name_node = {
             let mut cursor = param_node.walk();
-            param_node.children(&mut cursor).find(|child| {
-                child.kind() == "identifier" || child.kind() == "simple_identifier"
-            })
+            param_node
+                .children(&mut cursor)
+                .find(|child| child.kind() == "identifier" || child.kind() == "simple_identifier")
         };
         let Some(name_node) = name_node else {
             continue;

@@ -94,14 +94,9 @@ impl ZigExtractor {
 
         if let Some(symbol) = self.extract_symbol_from_node(node, parent_id.as_ref()) {
             current_parent_id = Some(symbol.id.clone());
-            if matches!(
-                node.kind(),
-                "function_declaration" | "function_definition"
-            ) {
+            if matches!(node.kind(), "function_declaration" | "function_definition") {
                 symbols.extend(parameters::extract_parameter_symbols(
-                    self,
-                    node,
-                    &symbol.id,
+                    self, node, &symbol.id,
                 ));
             }
             symbols.push(symbol);

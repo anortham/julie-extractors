@@ -215,12 +215,10 @@ fn extract_target_from_call(
     function_node: &Node,
 ) -> (UnresolvedTarget, Option<String>) {
     match function_node.kind() {
-        "identifier" => {
-            (
-                UnresolvedTarget::simple(base.get_node_text(function_node)),
-                None,
-            )
-        }
+        "identifier" => (
+            UnresolvedTarget::simple(base.get_node_text(function_node)),
+            None,
+        ),
         "attribute" => {
             if let Some(attribute_node) = function_node.child_by_field_name("attribute") {
                 let terminal_name = base.get_node_text(&attribute_node);

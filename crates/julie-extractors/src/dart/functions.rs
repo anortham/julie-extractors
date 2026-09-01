@@ -393,9 +393,7 @@ fn method_name_target<'a>(node: &Node<'a>) -> Node<'a> {
                 .unwrap_or(*node);
             find_child_by_type(&signature, "function_signature").unwrap_or(signature)
         }
-        "method_signature" => {
-            find_child_by_type(node, "function_signature").unwrap_or(*node)
-        }
+        "method_signature" => find_child_by_type(node, "function_signature").unwrap_or(*node),
         _ => *node,
     }
 }

@@ -129,7 +129,10 @@ class Service {
     let property = symbol(&symbols, "svc", SymbolKind::Property);
     let parameter = symbol(&symbols, "svc", SymbolKind::Variable);
     assert_eq!(role(parameter), Some("parameter"));
-    assert_eq!(parameter.parent_id.as_deref(), Some(constructor.id.as_str()));
+    assert_eq!(
+        parameter.parent_id.as_deref(),
+        Some(constructor.id.as_str())
+    );
     assert_eq!(property.parent_id.as_deref(), Some(class.id.as_str()));
     let property_fact = fact(&extractor, &symbols, "svc", SymbolKind::Property);
     assert_eq!(property_fact.resolved_type, "Foo");

@@ -16,8 +16,8 @@ pub(super) fn extract_variable(
     node: Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    let name_node = type_facts::assignment_variable_node(node)
-        .or_else(|| find_variable_name_node(node))?;
+    let name_node =
+        type_facts::assignment_variable_node(node).or_else(|| find_variable_name_node(node))?;
     let mut name = base.get_node_text(&name_node);
 
     // Remove $ prefix and scope qualifiers

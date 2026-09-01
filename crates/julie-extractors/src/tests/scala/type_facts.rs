@@ -105,10 +105,11 @@ def f(x: Foo, xs: List[Foo]): Unit = ()
     assert_eq!(declared(xs_fact), Some("List[Foo]"));
     assert!(symbols.iter().all(|symbol| {
         role(symbol) != Some("parameter")
-            || symbol.parent_id.as_deref() != symbols
-                .iter()
-                .find(|candidate| candidate.kind == SymbolKind::Class)
-                .map(|class| class.id.as_str())
+            || symbol.parent_id.as_deref()
+                != symbols
+                    .iter()
+                    .find(|candidate| candidate.kind == SymbolKind::Class)
+                    .map(|class| class.id.as_str())
     }));
 }
 

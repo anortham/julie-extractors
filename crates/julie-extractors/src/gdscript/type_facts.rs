@@ -66,11 +66,9 @@ fn constructor_type_name(base: &BaseExtractor, value_node: Node) -> Option<Strin
         }
         if child.kind() == "attribute_call" {
             let mut call_cursor = child.walk();
-            constructs = child
-                .children(&mut call_cursor)
-                .any(|call_child| {
-                    call_child.kind() == "identifier" && base.get_node_text(&call_child) == "new"
-                });
+            constructs = child.children(&mut call_cursor).any(|call_child| {
+                call_child.kind() == "identifier" && base.get_node_text(&call_child) == "new"
+            });
         }
     }
     constructs.then_some(class_name).flatten()
@@ -89,12 +87,7 @@ fn file_root(mut node: Node) -> Node {
     node
 }
 
-fn collect_class_names(
-    base: &BaseExtractor,
-    node: Node,
-    depth: u32,
-    names: &mut HashSet<String>,
-) {
+fn collect_class_names(base: &BaseExtractor, node: Node, depth: u32, names: &mut HashSet<String>) {
     if !should_visit_tree_depth(depth) {
         return;
     }

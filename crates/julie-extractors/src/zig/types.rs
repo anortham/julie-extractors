@@ -1,8 +1,7 @@
+use super::type_facts;
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
 use std::collections::HashMap;
 use tree_sitter::Node;
-use super::type_facts;
-
 
 /// Extract struct type declarations
 pub(super) fn extract_struct(

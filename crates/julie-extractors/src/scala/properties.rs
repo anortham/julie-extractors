@@ -175,7 +175,6 @@ pub(super) fn extract_case_class_constructor_fields(
         return;
     };
 
-
     let class_parameters = node
         .children(&mut node.walk())
         .find(|child| child.kind() == "class_parameters");

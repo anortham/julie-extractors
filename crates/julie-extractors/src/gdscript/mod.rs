@@ -372,8 +372,10 @@ impl GDScriptExtractor {
 
         if let Some(symbol) = extracted_symbol {
             let symbol_id = symbol.id.clone();
-            let extract_params =
-                matches!(node.kind(), "function_definition" | "constructor_definition");
+            let extract_params = matches!(
+                node.kind(),
+                "function_definition" | "constructor_definition"
+            );
             symbols.push(symbol);
             if extract_params {
                 symbols.extend(parameters::extract_parameter_symbols(

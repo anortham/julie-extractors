@@ -8,7 +8,6 @@ use super::helpers::extract_variable_declaration_annotations;
 use super::imports;
 use super::type_facts;
 
-
 // Static regexes compiled once for performance
 static PAREN_PARAMS_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\(([^)]+)\)").unwrap());
 static ENUM_BACKING_TYPE_RE: LazyLock<Regex> =

@@ -105,7 +105,6 @@ impl super::RazorExtractor {
         };
         let new_parent_id = parent_owned.as_deref();
 
-
         // Recursively visit children
         let Some(child_depth) = child_tree_depth(depth) else {
             return;

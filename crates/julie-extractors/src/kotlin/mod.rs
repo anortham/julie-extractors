@@ -132,9 +132,9 @@ impl KotlinExtractor {
                     declarations::extract_function(&mut self.base, &node, parent_id.as_deref());
             }
             "property_declaration" | "property_signature" => {
-                let parent_kind = parent_id.as_deref().and_then(|pid| {
-                    symbols.iter().find(|s| s.id == pid).map(|s| s.kind.clone())
-                });
+                let parent_kind = parent_id
+                    .as_deref()
+                    .and_then(|pid| symbols.iter().find(|s| s.id == pid).map(|s| s.kind.clone()));
                 let type_names = self.same_file_type_names.clone();
                 symbol = properties::extract_property(
                     &mut self.base,

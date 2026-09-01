@@ -8,8 +8,8 @@ mod relationships;
 mod structural_facts;
 mod symbols;
 mod test_roles;
-mod types;
 mod type_facts;
+mod types;
 mod visibility;
 
 #[cfg(test)]

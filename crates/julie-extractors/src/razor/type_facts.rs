@@ -1,7 +1,7 @@
 //! Declared-type fact recording for C# nodes inside Razor code blocks.
 
-use crate::base::types::TypeNameRules;
 use crate::base::BaseExtractor;
+use crate::base::types::TypeNameRules;
 use tree_sitter::Node;
 
 pub(super) const RAZOR_TYPE_NAME_RULES: TypeNameRules = TypeNameRules {

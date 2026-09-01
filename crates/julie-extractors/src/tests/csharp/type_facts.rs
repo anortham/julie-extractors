@@ -177,7 +177,12 @@ public class Sample {
     assert_eq!(generic.resolved_type, "IReadOnlyList");
     assert!(!generic.is_inferred);
     assert_eq!(declared(generic), Some("IReadOnlyList<Foo>"));
-    let nullable = fact(&extractor, &symbols, "this[string key]", SymbolKind::Property);
+    let nullable = fact(
+        &extractor,
+        &symbols,
+        "this[string key]",
+        SymbolKind::Property,
+    );
     assert_eq!(nullable.resolved_type, "GraphTraversal");
     assert!(!nullable.is_inferred);
     assert_eq!(declared(nullable), Some("GraphTraversal?"));

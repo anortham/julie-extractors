@@ -34,10 +34,7 @@ fn walk_for_locals(
     if is_nested_function(node.kind()) {
         return;
     }
-    if matches!(
-        node.kind(),
-        "lexical_declaration" | "variable_declaration"
-    ) {
+    if matches!(node.kind(), "lexical_declaration" | "variable_declaration") {
         extract_declaration(base, node, function_id, symbols);
         return;
     }

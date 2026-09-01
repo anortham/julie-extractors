@@ -16,8 +16,7 @@ pub(super) fn extract_parameter_symbols(
     let class_node = enclosing_class_node(callable_node);
     let mut symbols = Vec::new();
     for param_node in collect_formal_parameters(list) {
-        let Some((name_node, span_node, type_node)) =
-            parameter_parts(param_node, class_node)
+        let Some((name_node, span_node, type_node)) = parameter_parts(param_node, class_node)
         else {
             continue;
         };
@@ -107,9 +106,8 @@ fn parameter_parts<'a>(
     if let Some(constructor_param) = find_child_by_type(&param_node, "constructor_param") {
         let name_node = find_child_by_type(&constructor_param, "identifier")?;
         let type_node = declared_type_node(constructor_param).or_else(|| {
-            class_node.and_then(|class_node| {
-                field_type_in_class(class_node, &get_node_text(&name_node))
-            })
+            class_node
+                .and_then(|class_node| field_type_in_class(class_node, &get_node_text(&name_node)))
         });
         return Some((name_node, param_node, type_node));
     }

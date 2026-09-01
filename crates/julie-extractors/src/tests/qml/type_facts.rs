@@ -270,10 +270,7 @@ Item {
             })
             .unwrap_or_else(|| panic!("missing pending format on {receiver}"))
     };
-    assert_eq!(
-        pending_for("root").receiver_type.as_deref(),
-        Some("Widget")
-    );
+    assert_eq!(pending_for("root").receiver_type.as_deref(), Some("Widget"));
     assert_eq!(pending_for("other").receiver_type, None);
     let helper_pending = pending
         .iter()

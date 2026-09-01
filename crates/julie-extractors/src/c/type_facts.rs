@@ -58,8 +58,13 @@ fn declared_prefix(base: &BaseExtractor, decl: Node) -> String {
     let mut cursor = decl.walk();
     for child in decl.children(&mut cursor) {
         match child.kind() {
-            "type_qualifier" | "primitive_type" | "type_identifier" | "sized_type_specifier"
-            | "struct_specifier" | "union_specifier" | "enum_specifier" => {
+            "type_qualifier"
+            | "primitive_type"
+            | "type_identifier"
+            | "sized_type_specifier"
+            | "struct_specifier"
+            | "union_specifier"
+            | "enum_specifier" => {
                 parts.push(base.get_node_text(&child));
             }
             _ => {}

@@ -502,10 +502,7 @@ fn declared_base_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
         if matches!(candidate.kind(), "class_block" | "structure_block") {
             let inherits = super::helpers::extract_inherits(base, &candidate);
             let first = inherits.into_iter().next()?;
-            return first
-                .rsplit('.')
-                .next()
-                .map(|name| name.trim().to_string());
+            return first.rsplit('.').next().map(|name| name.trim().to_string());
         }
         current = candidate.parent();
     }

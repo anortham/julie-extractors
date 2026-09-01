@@ -127,7 +127,7 @@ const DOMAIN_APPLICABILITY = {
   },
   types: {
     not_applicable: ["css", "json", "markdown", "toml", "yaml"],
-    convention_only: ["lua", "r"],
+    convention_only: [],
     native_debt: [],
     quality_debt: [],
   },

@@ -15,10 +15,10 @@ mod core;
 mod functions;
 pub(crate) mod helpers;
 mod identifiers;
+mod parameters;
 mod relationships;
 mod tables;
 pub(crate) mod test_calls;
-mod parameters;
 mod type_facts;
 mod variables;
 

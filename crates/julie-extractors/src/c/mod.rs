@@ -280,9 +280,7 @@ impl CExtractor {
             symbols.push(sym);
             if attach_parameters {
                 symbols.extend(parameters::extract_parameter_symbols(
-                    self,
-                    node,
-                    &symbol_id,
+                    self, node, &symbol_id,
                 ));
             }
             Some(symbol_id)

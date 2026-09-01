@@ -90,7 +90,12 @@ pub(super) fn extract_property(
     let is_const = modifiers.contains(&"const".to_string());
     let symbol_kind = if matches!(
         parent_kind,
-        Some(SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor | SymbolKind::Operator)
+        Some(
+            SymbolKind::Function
+                | SymbolKind::Method
+                | SymbolKind::Constructor
+                | SymbolKind::Operator
+        )
     ) {
         SymbolKind::Variable
     } else if is_const && is_val {

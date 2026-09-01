@@ -4,9 +4,9 @@
 
 mod identifiers;
 mod imports;
+mod locals;
 mod relationships;
 mod semantics;
-mod locals;
 mod type_facts;
 mod typeinfo;
 

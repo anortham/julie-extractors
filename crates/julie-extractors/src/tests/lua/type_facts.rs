@@ -152,7 +152,11 @@ fn self_colon_and_dot_calls_record_receiver_type_on_identifier_and_pending() {
         .iter()
         .filter(|id| id.kind == IdentifierKind::Call)
         .collect();
-    let log_calls: Vec<_> = calls.iter().filter(|id| id.name == "log").copied().collect();
+    let log_calls: Vec<_> = calls
+        .iter()
+        .filter(|id| id.name == "log")
+        .copied()
+        .collect();
     assert_eq!(log_calls.len(), 2);
     assert_eq!(log_calls[0].receiver_type.as_deref(), Some("Account"));
     assert_eq!(log_calls[1].receiver_type, None);
@@ -166,7 +170,9 @@ fn self_colon_and_dot_calls_record_receiver_type_on_identifier_and_pending() {
     let pending_for = |receiver: &str| {
         pending
             .iter()
-            .find(|p| p.target.terminal_name == "log" && p.target.receiver.as_deref() == Some(receiver))
+            .find(|p| {
+                p.target.terminal_name == "log" && p.target.receiver.as_deref() == Some(receiver)
+            })
             .unwrap_or_else(|| panic!("missing pending log on {receiver}"))
     };
     assert_eq!(

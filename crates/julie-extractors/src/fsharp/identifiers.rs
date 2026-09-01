@@ -231,17 +231,13 @@ fn emit(
     let receiver_type = (kind == IdentifierKind::Call)
         .then(|| instance_receiver_type(&extractor.base, node))
         .flatten();
-    Some(
-        extractor
-            .base()
-            .create_identifier_with_receiver_type(
-                &node,
-                name.trim().to_string(),
-                kind,
-                containing_symbol_id,
-                receiver_type,
-            ),
-    )
+    Some(extractor.base().create_identifier_with_receiver_type(
+        &node,
+        name.trim().to_string(),
+        kind,
+        containing_symbol_id,
+        receiver_type,
+    ))
 }
 
 pub(super) fn instance_receiver_type(base: &BaseExtractor, node: Node) -> Option<String> {
@@ -253,9 +249,6 @@ pub(super) fn instance_receiver_type(base: &BaseExtractor, node: Node) -> Option
     }
     enclosing_type_name(base, node)
 }
-
-
-
 
 fn call_receiver_text(base: &BaseExtractor, node: Node) -> Option<String> {
     let head = first_named_child(node)?;
@@ -292,7 +285,6 @@ fn call_receiver_text(base: &BaseExtractor, node: Node) -> Option<String> {
             }
         }
         _ => None,
-
     }
 }
 

@@ -48,7 +48,6 @@ pub(super) fn visit_node(
         ));
     }
 
-
     let Some(child_depth) = child_tree_depth(depth) else {
         return;
     };
@@ -436,7 +435,6 @@ fn is_type_abbrev_union(base: &BaseExtractor, body: Node) -> bool {
         .is_some_and(char::is_lowercase)
 }
 
-
 fn collect_union_cases<'a>(node: Node<'a>, depth: u32, out: &mut Vec<Node<'a>>) {
     if !should_visit_tree_depth(depth) {
         return;
@@ -453,4 +451,3 @@ fn collect_union_cases<'a>(node: Node<'a>, depth: u32, out: &mut Vec<Node<'a>>) 
         collect_union_cases(child, child_depth, out);
     }
 }
-

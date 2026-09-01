@@ -30,7 +30,10 @@ pub(super) fn record_constructor_call(
         let mut cursor = value.walk();
         value.children(&mut cursor).collect()
     };
-    if children.iter().any(|child| child.kind() == "navigation_expression") {
+    if children
+        .iter()
+        .any(|child| child.kind() == "navigation_expression")
+    {
         return;
     }
     let Some(callee) = children
@@ -137,10 +140,7 @@ fn unwrap_type_wrappers(node: Node) -> Option<Node> {
     let mut current = node;
     for _ in 0..8 {
         match current.kind() {
-            "type"
-            | "type_reference"
-            | "nullable_type"
-            | "parenthesized_type"
+            "type" | "type_reference" | "nullable_type" | "parenthesized_type"
             | "non_nullable_type" => {
                 let mut cursor = current.walk();
                 current = current.named_children(&mut cursor).next()?;

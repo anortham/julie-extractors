@@ -170,7 +170,6 @@ fn extract_call(
             add_pending(extractor, &caller, target, target_node, receiver_type)
         }
     }
-
 }
 
 fn add_pending(
@@ -194,7 +193,6 @@ fn add_pending(
     pending.pending.callee_name = pending.target.terminal_name.clone();
     extractor.base.add_structured_pending_relationship(pending);
 }
-
 
 fn extract_type_relationship(
     extractor: &mut FSharpExtractor,

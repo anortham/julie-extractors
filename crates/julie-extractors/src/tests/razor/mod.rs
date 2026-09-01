@@ -2230,9 +2230,8 @@ mod structural_facts;
 mod task9_fixtures;
 mod test_containers;
 mod type_arguments; // Phase 2: Generic type-argument capture
-mod types; // Phase 4: Type extraction verification tests
 mod type_facts;
-
+mod types; // Phase 4: Type extraction verification tests
 
 #[cfg(test)]
 mod blazor_extraction_tests {

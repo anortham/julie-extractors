@@ -2,8 +2,8 @@ use crate::base::{Symbol, SymbolKind, SymbolOptions};
 use std::collections::HashMap;
 use tree_sitter::Node;
 
-use super::text_args::clean_r_name;
 use super::RExtractor;
+use super::text_args::clean_r_name;
 
 pub(super) fn extract_parameter_symbols(
     extractor: &mut RExtractor,
@@ -73,9 +73,9 @@ fn parameters_node(func_def: Node) -> Option<Node> {
         return Some(node);
     }
     let mut cursor = func_def.walk();
-    func_def.children(&mut cursor).find(|child| {
-        child.kind() == "formal_parameters" || child.kind() == "parameters"
-    })
+    func_def
+        .children(&mut cursor)
+        .find(|child| child.kind() == "formal_parameters" || child.kind() == "parameters")
 }
 
 fn parameter_symbol(
@@ -84,7 +84,9 @@ fn parameter_symbol(
     parent_id: &str,
 ) -> Option<Symbol> {
     let name = parameter_name(extractor, param_node)?;
-    Some(named_parameter_symbol_on(extractor, param_node, name, parent_id))
+    Some(named_parameter_symbol_on(
+        extractor, param_node, name, parent_id,
+    ))
 }
 
 fn named_parameter_symbol(
@@ -103,12 +105,14 @@ fn named_parameter_symbol(
 
 fn parameter_name(extractor: &RExtractor, param_node: Node) -> Option<String> {
     if let Some(name_node) = param_node.child_by_field_name("name") {
-        return clean_r_name(&extractor.base.get_node_text(&name_node)).filter(|name| name != "...");
+        return clean_r_name(&extractor.base.get_node_text(&name_node))
+            .filter(|name| name != "...");
     }
     let mut cursor = param_node.walk();
     for child in param_node.named_children(&mut cursor) {
         if child.kind() == "identifier" {
-            return clean_r_name(&extractor.base.get_node_text(&child)).filter(|name| name != "...");
+            return clean_r_name(&extractor.base.get_node_text(&child))
+                .filter(|name| name != "...");
         }
     }
     let text = extractor.base.get_node_text(&param_node);

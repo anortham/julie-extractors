@@ -14,9 +14,10 @@ impl SwiftExtractor {
         node: Node,
         parent_id: Option<&str>,
     ) -> Option<Symbol> {
-        let name_node = node
-            .child_by_field_name("name")
-            .or_else(|| node.children(&mut node.walk()).find(|c| c.kind() == "pattern"))?;
+        let name_node = node.child_by_field_name("name").or_else(|| {
+            node.children(&mut node.walk())
+                .find(|c| c.kind() == "pattern")
+        })?;
         let name = name_node
             .child_by_field_name("bound_identifier")
             .map(|n| self.base.get_node_text(&n))

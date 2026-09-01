@@ -337,7 +337,11 @@ pub(super) fn call_name(extractor: &RExtractor, call: Node) -> Option<String> {
     }
 }
 
-pub(super) fn positional_string_argument(extractor: &RExtractor, args: Node, index: usize) -> Option<String> {
+pub(super) fn positional_string_argument(
+    extractor: &RExtractor,
+    args: Node,
+    index: usize,
+) -> Option<String> {
     split_top_level_arguments(argument_list_text(&extractor.base.get_node_text(&args)).as_str())
         .into_iter()
         .filter(|argument| !argument.contains('='))

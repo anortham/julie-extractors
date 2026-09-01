@@ -12,7 +12,6 @@ pub(super) const FSHARP_TYPE_NAME_RULES: TypeNameRules = TypeNameRules {
     generic_open: &['<'],
 };
 
-
 pub(super) fn collect_types(
     extractor: &mut FSharpExtractor,
     root: Node,
@@ -90,7 +89,6 @@ fn collect_definition_type(
     if let Some(type_name) = same_file_constructor_type(base, body, symbols) {
         record_named_type(base, &symbol.id, &type_name, &type_name, true);
     }
-
 }
 
 fn collect_field_type(
@@ -248,7 +246,10 @@ fn first_type_or_named_child(node: Node) -> Option<Node> {
 fn last_named_child_of_kind<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
     let mut cursor = node.walk();
     let children: Vec<_> = node.named_children(&mut cursor).collect();
-    children.into_iter().rev().find(|child| child.kind() == kind)
+    children
+        .into_iter()
+        .rev()
+        .find(|child| child.kind() == kind)
 }
 
 fn same_file_constructor_type(
@@ -286,7 +287,6 @@ fn same_file_constructor_type(
         })
         .then(|| name.to_string())
 }
-
 
 fn literal_type(node: Node) -> Option<&'static str> {
     if node.kind() != "const" {

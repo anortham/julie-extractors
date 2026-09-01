@@ -1492,7 +1492,53 @@
       "confidence": "1.000"
     }
   ],
-  "types": [],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/lua/basic/source.lua:boxed:44:6",
+      "resolved_type": "Worker",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "lua",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/lua/basic/source.lua:self:15:19",
+      "resolved_type": "Worker",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "lua",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/lua/basic/source.lua:self:19:19",
+      "resolved_type": "Worker",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "lua",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/lua/basic/source.lua:self:23:19",
+      "resolved_type": "Worker",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "lua",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/lua/basic/source.lua:worker:43:6",
+      "resolved_type": "Worker",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "lua",
+      "metadata": null
+    }
+  ],
   "parse_diagnostics": [],
   "structural_facts": [
     {

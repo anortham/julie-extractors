@@ -3,7 +3,6 @@ use super::type_facts;
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
 use tree_sitter::Node;
 
-
 /// Extract a symbol from an assignment node
 pub(super) fn extract_assignment(
     base: &mut BaseExtractor,

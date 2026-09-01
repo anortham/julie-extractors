@@ -251,7 +251,8 @@ fn extract_function_call_relationships(
                 | LocalTargetResolution::Ambiguous
                 | LocalTargetResolution::Missing
                 | LocalTargetResolution::ReceiverQualified => {
-                    let receiver_type = super::type_facts::self_receiver_type(&extractor.base, node);
+                    let receiver_type =
+                        super::type_facts::self_receiver_type(&extractor.base, node);
                     let pending = extractor
                         .get_base_mut()
                         .create_pending_relationship(

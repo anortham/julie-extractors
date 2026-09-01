@@ -159,7 +159,9 @@ function Use {
     assert!(!items_fact.is_inferred);
     assert_eq!(
         declared_metadata(items_fact),
-        Some(&serde_json::json!("[System.Collections.Generic.List[string]]"))
+        Some(&serde_json::json!(
+            "[System.Collections.Generic.List[string]]"
+        ))
     );
     assert_no_stray_brackets(&extractor);
 }

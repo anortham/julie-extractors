@@ -30,15 +30,7 @@ pub(super) fn extract_parameter_symbols(
             continue;
         };
         for pattern in named_children(&args) {
-            walk_pattern(
-                extractor,
-                pattern,
-                callable_id,
-                None,
-                seen,
-                &mut symbols,
-                0,
-            );
+            walk_pattern(extractor, pattern, callable_id, None, seen, &mut symbols, 0);
         }
     }
     symbols
@@ -58,14 +50,7 @@ fn walk_pattern(
     }
 
     match node.kind() {
-        "var" => emit_parameter(
-            extractor,
-            node,
-            callable_id,
-            declared_record,
-            seen,
-            symbols,
-        ),
+        "var" => emit_parameter(extractor, node, callable_id, declared_record, seen, symbols),
         "match_expr" => {
             let lhs = node.child_by_field_name("lhs");
             let rhs = node.child_by_field_name("rhs");

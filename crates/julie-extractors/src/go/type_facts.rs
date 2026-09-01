@@ -64,7 +64,8 @@ pub(super) fn inferred_rhs_type_node<'a>(
     base: &BaseExtractor,
     value_node: Node<'a>,
 ) -> Option<Node<'a>> {
-    composite_literal_type_node(value_node).or_else(|| constructor_result_type_node(base, value_node))
+    composite_literal_type_node(value_node)
+        .or_else(|| constructor_result_type_node(base, value_node))
 }
 
 /// The type node of a `Foo{...}` or `&Foo{...}` initializer, when present.

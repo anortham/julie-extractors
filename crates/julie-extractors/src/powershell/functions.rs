@@ -11,12 +11,12 @@ use std::sync::LazyLock;
 use tree_sitter::Node;
 
 use super::documentation;
-use super::type_facts;
 use super::helpers::{
     extract_command_annotation_attributes, extract_function_name_from_param_block,
     extract_parameter_annotation_attributes, extract_parameter_attributes, find_function_name_node,
     find_nodes_by_type, find_parameter_name_node, has_attribute, has_parameter_attribute,
 };
+use super::type_facts;
 
 static FUNCTION_NAME_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"function\s+([A-Za-z][A-Za-z0-9-_]*)").unwrap());

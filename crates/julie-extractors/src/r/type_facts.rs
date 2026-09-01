@@ -2,9 +2,9 @@ use crate::base::BaseExtractor;
 use crate::base::types::{SymbolKind, TypeNameRules};
 use tree_sitter::Node;
 
+use super::RExtractor;
 use super::idioms::{assignment_name, call_name, positional_string_argument};
 use super::text_args::clean_r_name;
-use super::RExtractor;
 
 pub(super) const R_TYPE_NAME_RULES: TypeNameRules = TypeNameRules {
     nullable_suffixes: &[],
@@ -16,10 +16,7 @@ pub(super) fn record_constructor_fact(base: &mut BaseExtractor, symbol_id: &str,
     base.record_declared_type_fact(symbol_id, class_name, &R_TYPE_NAME_RULES, true);
 }
 
-pub(super) fn same_file_constructor_class(
-    extractor: &RExtractor,
-    right: Node,
-) -> Option<String> {
+pub(super) fn same_file_constructor_class(extractor: &RExtractor, right: Node) -> Option<String> {
     if right.kind() != "call" {
         return None;
     }

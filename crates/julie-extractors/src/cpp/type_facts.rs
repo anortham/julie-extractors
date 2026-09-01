@@ -25,7 +25,8 @@ pub(super) fn record_variable_fact(
             "init_declarator" => declarator.child_by_field_name("value"),
             _ => None,
         };
-        if let Some(name) = value.and_then(|value| inferred_constructor_name(base, value, declaration))
+        if let Some(name) =
+            value.and_then(|value| inferred_constructor_name(base, value, declaration))
         {
             base.record_declared_type_fact_with_declared(
                 symbol_id,
@@ -40,11 +41,7 @@ pub(super) fn record_variable_fact(
     record_stated_type(base, symbol_id, declaration, type_node, Some(declarator));
 }
 
-pub(super) fn record_parameter_fact(
-    base: &mut BaseExtractor,
-    symbol_id: &str,
-    param_node: Node,
-) {
+pub(super) fn record_parameter_fact(base: &mut BaseExtractor, symbol_id: &str, param_node: Node) {
     let Some(type_node) = param_node.child_by_field_name("type") else {
         return;
     };
@@ -96,10 +93,7 @@ fn record_stated_type(
 }
 
 fn is_auto_type(type_node: Node) -> bool {
-    matches!(
-        type_node.kind(),
-        "placeholder_type_specifier" | "auto"
-    )
+    matches!(type_node.kind(), "placeholder_type_specifier" | "auto")
 }
 
 fn structural_base_name(base: &BaseExtractor, node: Node, depth: u32) -> Option<String> {
@@ -215,11 +209,7 @@ fn reference_kind(base: &BaseExtractor, node: Node) -> &'static str {
     "&"
 }
 
-fn inferred_constructor_name(
-    base: &BaseExtractor,
-    value: Node,
-    origin: Node,
-) -> Option<String> {
+fn inferred_constructor_name(base: &BaseExtractor, value: Node, origin: Node) -> Option<String> {
     match value.kind() {
         "call_expression" => {
             let function = value.child_by_field_name("function")?;
@@ -260,9 +250,9 @@ fn find_named_type(node: Node, base: &BaseExtractor, name: &str, depth: u32) -> 
         node.kind(),
         "class_specifier" | "struct_specifier" | "union_specifier"
     ) {
-        let found = node.children(&mut node.walk()).any(|child| {
-            child.kind() == "type_identifier" && base.get_node_text(&child) == name
-        });
+        let found = node
+            .children(&mut node.walk())
+            .any(|child| child.kind() == "type_identifier" && base.get_node_text(&child) == name);
         if found {
             return true;
         }

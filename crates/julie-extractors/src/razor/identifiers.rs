@@ -564,7 +564,6 @@ fn self_receiver_type(base: &BaseExtractor, node: Node) -> Option<String> {
             .or_else(|| component_name_from_file_path(&base.file_path)),
         _ => None,
     }
-
 }
 
 fn enclosing_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
@@ -585,7 +584,6 @@ fn enclosing_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
     }
     None
 }
-
 
 fn component_name_from_file_path(file_path: &str) -> Option<String> {
     let path = std::path::Path::new(file_path);

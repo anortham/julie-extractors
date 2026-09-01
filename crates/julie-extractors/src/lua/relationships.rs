@@ -1,6 +1,6 @@
+use super::type_facts;
 use crate::base::{BaseExtractor, RelationshipKind, Symbol, SymbolKind, UnresolvedTarget};
 use crate::lua::{LuaExtractor, helpers};
-use super::type_facts;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
@@ -117,10 +117,7 @@ fn process_function_call(
                         Some(caller_symbol.id.clone()),
                         Some(0.7),
                     )
-                    .with_receiver_type(type_facts::call_receiver_type(
-                        extractor.base(),
-                        node,
-                    ));
+                    .with_receiver_type(type_facts::call_receiver_type(extractor.base(), node));
                 extractor.add_structured_pending_relationship(pending);
             }
         }

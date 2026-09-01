@@ -278,6 +278,7 @@ fn extract_lua(
     } else {
         Vec::new()
     };
+    let types = types_with_base_info(ext.infer_types(&symbols), "lua", &ext.base);
     let pending_relationships = ext.base.take_pending_relationships();
     let structured_pending_relationships = ext.base.take_structured_pending_relationships();
     Ok(ExtractionResults {
@@ -291,7 +292,7 @@ fn extract_lua(
         source_regions: Vec::new(),
         structural_facts: Vec::new(),
         complexity_metrics: Vec::new(),
-        types: HashMap::new(),
+        types,
         parse_diagnostics: Vec::new(),
     })
 }
@@ -316,6 +317,7 @@ fn extract_r(
     } else {
         Vec::new()
     };
+    let types = types_with_base_info(ext.infer_types(&symbols), "r", &ext.base);
     let pending_relationships = ext.base.take_pending_relationships();
     let structured_pending_relationships = ext.base.take_structured_pending_relationships();
     Ok(ExtractionResults {
@@ -329,7 +331,7 @@ fn extract_r(
         source_regions: Vec::new(),
         structural_facts: Vec::new(),
         complexity_metrics: Vec::new(),
-        types: HashMap::new(),
+        types,
         parse_diagnostics: Vec::new(),
     })
 }

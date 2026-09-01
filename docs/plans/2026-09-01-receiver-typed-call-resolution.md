@@ -1,23 +1,18 @@
 # Receiver-typed call resolution (cross-parent same-name calls)
 
-Status: wave 1 landed, wave 2 planned. Owner repo: julie-extractors. Consumer: Miller
+Status: wave 1 landed, wave 2 landed. Owner repo: julie-extractors. Consumer: Miller
 query-time resolution (policy v6).
 
-Delivery state (2026-09-01): wave 1 landed on branch
-`worktree-receiver-typed-call-resolution` for csharp, typescript, javascript, python,
-rust, go, and java — declared-type facts for locals, parameters, and fields; parameter
-symbols (kind `variable`, metadata role `parameter`); and `receiver_type` call metadata
-for self-style receivers in csharp, typescript, and javascript. Evidence:
-`docs/findings/2026-09-01-receiver-type-facts-evidence.md`. Wave 2 is planned in
-`docs/plans/2026-09-08-receiver-type-facts-wave-2.md` and tracked as `open_gaps`
-entries in `fixtures/extraction/capabilities.json` for the remaining general-purpose
-languages. Wave-2 refinements for wave-1 languages: python local re-parenting to the
-enclosing callable, go `:=` type facts beyond gated initializers, java bindings
-(try-with-resources, enhanced-for, catch, lambda, instanceof, record components),
-csharp indexer return types, and `receiver_type` emission for python, rust, go, and
-java. The reproduced `SymbolGraph.ShortestPathWithEvidence` example names an `internal`
-receiver type, which policy v6's static tier refuses cross-file, so that exact chain
-also needs a Miller-side policy change (see the findings doc).
+Delivery state (2026-09-01): wave 1 landed for csharp, typescript, javascript, python,
+rust, go, and java. Wave 2 landed on branch `worktree-receiver-type-facts-wave-2`
+for the remaining general-purpose languages, plus wave-1 refinements (python local
+re-parenting, go `:=` constructor results, java bindings, csharp indexer return
+types, and `receiver_type` for python, rust, go, and java). Evidence:
+`docs/findings/2026-09-01-receiver-type-facts-evidence.md` and
+`docs/findings/2026-09-08-receiver-type-facts-wave-2-evidence.md`. The reproduced
+`SymbolGraph.ShortestPathWithEvidence` example names an `internal` receiver type,
+which policy v6's static tier refuses cross-file, so that exact chain also needs a
+Miller-side policy change.
 
 ## Problem
 

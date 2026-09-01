@@ -541,6 +541,37 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/r/basic/source.r:w:41:0",
+      "name": "w",
+      "kind": "variable",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/basic/source.r",
+      "start_line": 41,
+      "start_column": 0,
+      "end_line": 41,
+      "end_column": 17,
+      "start_byte": 621,
+      "end_byte": 638,
+      "body_span": {
+        "start_line": 41,
+        "start_column": 15,
+        "end_line": 41,
+        "end_column": 17,
+        "start_byte": 636,
+        "end_byte": 638
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": null,
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [
@@ -1049,6 +1080,22 @@
       "receiver_type": "Worker"
     },
     {
+      "key": "fixtures/extraction/r/basic/source.r:new:call:41:5",
+      "name": "new",
+      "kind": "call",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/basic/source.r",
+      "start_line": 41,
+      "start_column": 5,
+      "end_line": 41,
+      "end_column": 15,
+      "start_byte": 626,
+      "end_byte": 636,
+      "containing_key": "fixtures/extraction/r/basic/source.r:w:41:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/r/basic/source.r:public:variable_ref:30:2",
       "name": "public",
       "kind": "variable_ref",
@@ -1209,7 +1256,17 @@
       "confidence": "1.000"
     }
   ],
-  "types": [],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/r/basic/source.r:w:41:0",
+      "resolved_type": "Worker",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "r",
+      "metadata": null
+    }
+  ],
   "parse_diagnostics": [],
   "structural_facts": [
     {
@@ -1280,18 +1337,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "r",
       "file_path": "fixtures/extraction/r/basic/source.r",
-      "covered_lines": 40,
-      "covered_bytes": 620,
+      "covered_lines": 42,
+      "covered_bytes": 639,
       "decision_count": 3,
       "loop_count": 1,
       "max_nesting_depth": 2,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 40,
+      "end_line": 42,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 620,
+      "end_byte": 639,
       "metadata": {
         "metric_version": 1
       }

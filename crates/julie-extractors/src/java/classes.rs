@@ -344,12 +344,10 @@ pub(super) fn extract_record_components(
             parent_id: parent_id.map(|s| s.to_string()),
             ..Default::default()
         };
-        let symbol = extractor.base_mut().create_symbol(
-            &parameter,
-            name,
-            SymbolKind::Property,
-            options,
-        );
+        let symbol =
+            extractor
+                .base_mut()
+                .create_symbol(&parameter, name, SymbolKind::Property, options);
         if parameter.child_by_field_name("dimensions").is_none() {
             if let Some(type_node) = parameter.child_by_field_name("type") {
                 type_facts::record_declared_type(extractor.base_mut(), &symbol.id, type_node);

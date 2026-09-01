@@ -235,8 +235,7 @@ fn extract_call_relationships(
                 // Target not found in local symbols - likely a method on imported type
                 // or a call to an external function
                 // Create PendingRelationship for cross-file resolution
-                let receiver_type =
-                    super::identifiers::call_receiver_type(&extractor.base, node);
+                let receiver_type = super::identifiers::call_receiver_type(&extractor.base, node);
                 let pending = base
                     .create_pending_relationship(
                         caller_symbol.id.clone(),

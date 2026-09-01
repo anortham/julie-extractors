@@ -1,5 +1,5 @@
-use crate::base::{BaseExtractor, Symbol, SymbolKind};
 use crate::base::types::TypeNameRules;
+use crate::base::{BaseExtractor, Symbol, SymbolKind};
 use crate::lua::helpers;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashSet;
@@ -83,7 +83,10 @@ fn walk_constructor_facts(
     if !should_visit_tree_depth(depth) {
         return;
     }
-    if matches!(node.kind(), "variable_declaration" | "local_variable_declaration") {
+    if matches!(
+        node.kind(),
+        "variable_declaration" | "local_variable_declaration"
+    ) {
         record_declaration_constructor_facts(base, node, symbols, class_names);
     }
     let Some(child_depth) = child_tree_depth(depth) else {
@@ -167,7 +170,6 @@ fn constructor_type_name(base: &BaseExtractor, expression: Node) -> Option<Strin
     }
     None
 }
-
 
 fn symbol_for_name_node<'a>(
     symbols: &'a [Symbol],

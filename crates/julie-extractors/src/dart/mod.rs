@@ -61,9 +61,8 @@ fn is_dart_callable(kind: &str) -> bool {
 }
 
 fn wrapped_constructor_signature(node: Node) -> bool {
-    node.parent().is_some_and(|parent| {
-        matches!(parent.kind(), "method_signature" | "method_declaration")
-    })
+    node.parent()
+        .is_some_and(|parent| matches!(parent.kind(), "method_signature" | "method_declaration"))
 }
 
 impl DartExtractor {
@@ -155,11 +154,7 @@ impl DartExtractor {
                         current_parent_id.as_deref(),
                     )
                 } else {
-                    functions::extract_method(
-                        &mut self.base,
-                        &node,
-                        current_parent_id.as_deref(),
-                    )
+                    functions::extract_method(&mut self.base, &node, current_parent_id.as_deref())
                 };
             }
             "method_signature" => {

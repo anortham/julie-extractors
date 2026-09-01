@@ -153,7 +153,7 @@
               "kind": "actix.resource_route_guard_forms",
               "reason": "actix `web::resource(\"/x\").route(web::get().to(h))` and guard-based route forms register routes without a `web::scope` prefix chain, so they are not covered by actix.scope_route.v1 (which anchors on scope prefixes) and stay silent.",
               "required_closure": "add a `web::resource`/route-guard collector emitting a resource route fact with the resource path and method-router verb, fixture-backed",
-              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2a (actix idioms) \u2014 future actix.resource_route.v1"
+              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2a (actix idioms) — future actix.resource_route.v1"
             },
             {
               "kind": "axum.param_flavor_under_report",
@@ -169,7 +169,7 @@
             },
             {
               "kind": "rust.http_client.instance_receiver",
-              "reason": "The reqwest builder form (`client.get(\"url\")`) requires a same-file-proven reqwest receiver (inline `reqwest::Client::new()` chain, a single-assigned local, or a `reqwest::Client` typed param) \u2014 a struct-field or cross-file client (`self.client.get(...)`) is syntactically identical to a non-HTTP `.get(...)` and stays silent by M2 (a false client edge is worse than a miss).",
+              "reason": "The reqwest builder form (`client.get(\"url\")`) requires a same-file-proven reqwest receiver (inline `reqwest::Client::new()` chain, a single-assigned local, or a `reqwest::Client` typed param) — a struct-field or cross-file client (`self.client.get(...)`) is syntactically identical to a non-HTTP `.get(...)` and stays silent by M2 (a false client edge is worse than a miss).",
               "required_closure": "extend reqwest builder detection to struct-field/typed receivers if in-file type resolution becomes available; scoped `reqwest::get(\"url\")` and proven-receiver forms already emit",
               "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2b (deferred clients open_gaps)"
             },
@@ -177,7 +177,7 @@
               "kind": "rust.benchmark_harness_roles",
               "reason": "Rust benchmarks run under three harnesses the extractor does not classify. Nightly `#[bench]` is an attribute macro, so widening the test-attribute list would report it as `test_case`, which is wrong: a benchmark measures time and reports no pass or fail. Criterion and divan declare their cases through `criterion_group!`/`criterion_main!` and `#[divan::bench]`, so the case list lives in a macro invocation rather than in a callable symbol the role writer can reach. All three stay unclassified today.",
               "required_closure": "add a benchmark unit to the published test-role vocabulary, which is frozen to test_case, test_container, and test_lifecycle today, then emit it for `#[bench]`, `#[divan::bench]`, and the criterion group macro arguments, fixture-backed",
-              "planned_closure_task": "docs/languages/rust.md section 'Recorded gaps' \u2014 future rust.benchmark.v1 structural fact, sequenced after the test-role vocabulary gains a benchmark unit"
+              "planned_closure_task": "docs/languages/rust.md section 'Recorded gaps' — future rust.benchmark.v1 structural fact, sequenced after the test-role vocabulary gains a benchmark unit"
             }
           ]
         },
@@ -286,17 +286,11 @@
             "field",
             "function",
             "import",
-            "struct"
+            "struct",
+            "variable"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "variable",
-              "reason": "One c golden emits `variable` symbols incidentally, but the kind is unclaimed: function parameters produce no symbol rows, declared types on locals and parameters (`struct foo *x`) record no declared-type `type_facts`, and call sites carry no `receiver_type` metadata; existing golden type rows come from legacy inference, not the wave-1 declared-type contract.",
-              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — then register golden evidence and move `variable` to supported",
-              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
-            }
-          ]
+          "open_gaps": []
         },
         "relationships": {
           "supported": [
@@ -374,14 +368,14 @@
           "not_applicable": [],
           "open_gaps": []
         },
-      "test_detection": {
-        "supported": [
-          "test_case",
-          "test_container",
-          "test_lifecycle"
-        ],
-        "not_applicable": [],
-        "open_gaps": []
+        "test_detection": {
+          "supported": [
+            "test_case",
+            "test_container",
+            "test_lifecycle"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -443,17 +437,11 @@
             "constructor",
             "field",
             "function",
-            "method"
+            "method",
+            "variable"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "variable",
-              "reason": "One cpp golden emits `variable` symbols incidentally, but the kind is unclaimed: function parameters produce no symbol rows, declared types on locals and parameters (`Foo x`, `const Foo& x`) record no declared-type `type_facts`, and `obj.method()` calls carry no `receiver_type` metadata; existing golden type rows come from legacy inference, not the wave-1 declared-type contract.",
-              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — then register golden evidence and move `variable` to supported",
-              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
-            }
-          ]
+          "open_gaps": []
         },
         "relationships": {
           "supported": [
@@ -533,14 +521,14 @@
           "not_applicable": [],
           "open_gaps": []
         },
-      "test_detection": {
-        "supported": [
-          "test_case",
-          "test_container",
-          "test_lifecycle"
-        ],
-        "not_applicable": [],
-        "open_gaps": []
+        "test_detection": {
+          "supported": [
+            "test_case",
+            "test_container",
+            "test_lifecycle"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -761,6 +749,7 @@
       "kind_coverage": {
         "symbols": {
           "supported": [
+            "constant",
             "field",
             "function",
             "import",
@@ -769,14 +758,7 @@
             "variable"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "constant",
-              "reason": "One zig golden emits an unclaimed `constant` symbol, and zig claims `variable` for container-level declarations, but function parameters (`fn f(x: Foo)`) produce no symbol rows, typed `const`/`var`/parameter declarations record no declared-type `type_facts` (existing golden type rows come from legacy inference, not the wave-1 declared-type contract), and method calls carry no `receiver_type` metadata.",
-              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — and classify container-level `const` declarations as `constant` symbols, then register golden evidence and move `constant` to supported",
-              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
-            }
-          ]
+          "open_gaps": []
         },
         "relationships": {
           "supported": [
@@ -857,15 +839,15 @@
           "not_applicable": [],
           "open_gaps": []
         },
-      "test_detection": {
-        "supported": [
-          "test_case"
-        ],
-        "not_applicable": [
-          "test_container",
-          "test_lifecycle"
-        ],
-        "open_gaps": []
+        "test_detection": {
+          "supported": [
+            "test_case"
+          ],
+          "not_applicable": [
+            "test_container",
+            "test_lifecycle"
+          ],
+          "open_gaps": []
         }
       }
     },
@@ -1879,14 +1861,14 @@
           "not_applicable": [],
           "open_gaps": []
         },
-      "test_detection": {
-        "supported": [
-          "test_case",
-          "test_container",
-          "test_lifecycle"
-        ],
-        "not_applicable": [],
-        "open_gaps": []
+        "test_detection": {
+          "supported": [
+            "test_case",
+            "test_container",
+            "test_lifecycle"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -1933,7 +1915,7 @@
           "capability": "pending_relationships",
           "status": "exception",
           "reason": "CSS @import directives resolve at extraction time and current relationship extraction emits direct edges. CSS has no forward-reference construct that would benefit from pending relationships.",
-          "required_closure": "N/A \u2014 domain limitation.",
+          "required_closure": "N/A — domain limitation.",
           "evidence": {
             "kind": "test",
             "value": "css_pending_relationships_intra_document_only",
@@ -1944,7 +1926,7 @@
           "capability": "types",
           "status": "exception",
           "reason": "CSS has no static type system. Custom property values are runtime strings; there is no type metadata to extract.",
-          "required_closure": "N/A \u2014 domain limitation.",
+          "required_closure": "N/A — domain limitation.",
           "evidence": {
             "kind": "fixture",
             "value": "fixtures/extraction/css/basic/expected.json",
@@ -2297,17 +2279,11 @@
             "function",
             "import",
             "method",
-            "property"
+            "property",
+            "variable"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "variable",
-              "reason": "Wave 1 of the receiver-type-facts plan added python parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, and goldens emit them, but local variable symbols parent to the enclosing class or to file scope, never to the enclosing function or method. Miller's scope-walk receiver lookup cannot find python locals until they re-parent to the enclosing callable, so the kind stays out of `supported` to keep the parent-linkage claim honest; parameters, the common receiver shape, work today (see docs/findings/2026-09-01-receiver-type-facts-evidence.md).",
-              "required_closure": "re-parent python local variable symbols to the enclosing function, method, or constructor, keep parameter symbols and declared-type `type_facts` rows intact, add `receiver_type` call-site metadata for `self.`/`cls.` receivers, register golden evidence, then move `variable` to supported",
-              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
-            }
-          ]
+          "open_gaps": []
         },
         "relationships": {
           "supported": [
@@ -2818,17 +2794,11 @@
             "interface",
             "method",
             "namespace",
-            "property"
+            "property",
+            "variable"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "variable",
-              "reason": "vbnet goldens emit no `variable` symbols: `Dim x As Foo` locals and typed method parameters produce no symbol rows, so declared types record no declared-type `type_facts` (existing golden type rows come from legacy inference, not the wave-1 declared-type contract), and `Me.Method()` calls carry no `receiver_type` metadata.",
-              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — then register golden evidence and move `variable` to supported",
-              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
-            }
-          ]
+          "open_gaps": []
         },
         "relationships": {
           "supported": [
@@ -2992,6 +2962,7 @@
         "symbols": {
           "supported": [
             "class",
+            "constant",
             "constructor",
             "function",
             "import",
@@ -3001,14 +2972,7 @@
             "variable"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "constant",
-              "reason": "No php golden emits a `constant` symbol for class constants (`const X`), and while php claims `variable` and `property`, typed parameters and promoted constructor properties produce no parameter symbols, declared parameter/property types record no declared-type `type_facts` (existing golden type rows come from legacy inference, not the wave-1 declared-type contract), and `$this->m()` calls carry no `receiver_type` metadata.",
-              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — and extract class constants as `constant` symbols, then register golden evidence and move `constant` to supported",
-              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
-            }
-          ]
+          "open_gaps": []
         },
         "relationships": {
           "supported": [
@@ -3066,7 +3030,7 @@
             },
             {
               "kind": "php.http_client.instance_receiver",
-              "reason": "Guzzle and Symfony variable receivers are proven only via a typed parameter (`Client`/`ClientInterface`/`HttpClientInterface`/`HttpClient`) or a same-scope `new \\GuzzleHttp\\Client()` / `HttpClient::create()` assignment \u2014 a property (`$this->client->get(...)`) or cross-file/DI-provided receiver is syntactically identical to a non-HTTP call and stays silent by M2 (a false client edge is worse than a miss). Cross-function curl handles also stay silent.",
+              "reason": "Guzzle and Symfony variable receivers are proven only via a typed parameter (`Client`/`ClientInterface`/`HttpClientInterface`/`HttpClient`) or a same-scope `new \\GuzzleHttp\\Client()` / `HttpClient::create()` assignment — a property (`$this->client->get(...)`) or cross-file/DI-provided receiver is syntactically identical to a non-HTTP call and stays silent by M2 (a false client edge is worse than a miss). Cross-function curl handles also stay silent.",
               "required_closure": "extend receiver proofs to promoted-property/class-property receivers if in-file type resolution becomes available; typed-param and same-scope construction forms already emit",
               "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2b (deferred clients open_gaps)"
             },
@@ -3199,6 +3163,7 @@
             "class",
             "constant",
             "constructor",
+            "field",
             "function",
             "import",
             "method",
@@ -3206,14 +3171,7 @@
             "variable"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "field",
-              "reason": "No ruby golden emits a `field` symbol for instance or class variables (`@x`, `@@x`), method parameters produce no parameter symbols, core ruby syntax states no declared types (RBS/Sorbet annotations are out of scope), and `self.m` calls carry no `receiver_type` metadata; existing golden type rows come from legacy inference, not the wave-1 declared-type contract.",
-              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — and extract instance/class variables as `field` symbols, then register golden evidence and move `field` to supported",
-              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
-            }
-          ]
+          "open_gaps": []
         },
         "relationships": {
           "supported": [
@@ -3387,17 +3345,11 @@
             "interface",
             "method",
             "property",
-            "struct"
+            "struct",
+            "variable"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "variable",
-              "reason": "swift goldens emit no `variable` symbols: `let`/`var` locals and typed function parameters (`func f(x: Foo)`) produce no symbol rows, so declared types record no declared-type `type_facts` (existing golden type rows come from legacy inference, not the wave-1 declared-type contract), and `self.m()` calls carry no `receiver_type` metadata.",
-              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — then register golden evidence and move `variable` to supported",
-              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
-            }
-          ]
+          "open_gaps": []
         },
         "relationships": {
           "supported": [
@@ -3592,17 +3544,11 @@
             "method",
             "namespace",
             "property",
-            "type"
+            "type",
+            "variable"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "variable",
-              "reason": "kotlin goldens emit no `variable` symbols: `val`/`var` locals and typed function parameters (`fun f(x: Foo)`) produce no symbol rows, so declared types record no declared-type `type_facts` (existing golden type rows come from legacy inference, not the wave-1 declared-type contract), and `this.m()` calls carry no `receiver_type` metadata.",
-              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — then register golden evidence and move `variable` to supported",
-              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
-            }
-          ]
+          "open_gaps": []
         },
         "relationships": {
           "supported": [
@@ -3657,7 +3603,7 @@
             },
             {
               "kind": "kotlin.http_client.instance_receiver",
-              "reason": "Ktor/WebClient/RestTemplate receivers are proven only via a typed function or primary-constructor parameter, an exact `WebClient.create()`/`RestTemplate` builder chain, or (Ktor) a same-file `HttpClient(...)` local \u2014 class-property, DI-provided, or cross-file receivers are syntactically identical to non-HTTP fluent calls and stay silent by M2. Retrofit `@HTTP(method = ...)` annotations also stay silent (no static verb element support).",
+              "reason": "Ktor/WebClient/RestTemplate receivers are proven only via a typed function or primary-constructor parameter, an exact `WebClient.create()`/`RestTemplate` builder chain, or (Ktor) a same-file `HttpClient(...)` local — class-property, DI-provided, or cross-file receivers are syntactically identical to non-HTTP fluent calls and stay silent by M2. Retrofit `@HTTP(method = ...)` annotations also stay silent (no static verb element support).",
               "required_closure": "extend receiver proofs to class-property/field receivers if in-file type resolution becomes available; add `@HTTP` static-element parsing if demanded",
               "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2b (deferred clients open_gaps)"
             },
@@ -3771,10 +3717,14 @@
         "symbols": {
           "supported": [
             "class",
+            "constructor",
+            "function",
             "import",
             "method",
             "namespace",
-            "trait"
+            "property",
+            "trait",
+            "variable"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -3861,13 +3811,13 @@
           "open_gaps": []
         },
         "test_detection": {
-              "supported": [
-                "test_case",
-                "test_container",
-                "test_lifecycle"
-              ],
-              "not_applicable": [],
-              "open_gaps": []
+          "supported": [
+            "test_case",
+            "test_container",
+            "test_lifecycle"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -3918,17 +3868,11 @@
             "field",
             "function",
             "import",
-            "method"
+            "method",
+            "variable"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "variable",
-              "reason": "dart goldens emit no `variable` symbols: `Foo x = ...`/`final x = ...` locals and typed function parameters produce no symbol rows, so declared types record no declared-type `type_facts` (existing golden type rows come from legacy inference, not the wave-1 declared-type contract), and `this.m()` calls carry no `receiver_type` metadata.",
-              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — then register golden evidence and move `variable` to supported",
-              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
-            }
-          ]
+          "open_gaps": []
         },
         "relationships": {
           "supported": [
@@ -3986,7 +3930,8 @@
         },
         "doc_comments": {
           "supported": [
-            "function"
+            "function",
+            "variable"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -4078,17 +4023,11 @@
           "supported": [
             "function",
             "import",
-            "module"
+            "module",
+            "variable"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "variable",
-              "reason": "elixir goldens emit no `variable` symbols: pattern-bound names and function parameters produce no symbol rows, elixir states types only in `@spec` and struct annotations rather than declaration sites, so the wave-2 plan must scope which declared-type `type_facts` are feasible, and calls carry no `receiver_type` metadata.",
-              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — then register golden evidence and move `variable` to supported",
-              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
-            }
-          ]
+          "open_gaps": []
         },
         "relationships": {
           "supported": [
@@ -4133,7 +4072,7 @@
           "open_gaps": [
             {
               "kind": "phoenix.non_route_macros",
-              "reason": "The Phoenix lane emits route/resource/forward facts only; the `pipe_through`, `live` (LiveView), `socket`, and `channel` router macros carry no request\u2192handler HTTP boundary path literal in the same shape, so they emit nothing.",
+              "reason": "The Phoenix lane emits route/resource/forward facts only; the `pipe_through`, `live` (LiveView), `socket`, and `channel` router macros carry no request→handler HTTP boundary path literal in the same shape, so they emit nothing.",
               "required_closure": "add collectors for the LiveView (`live`) and socket/channel surfaces if a live-route or websocket boundary lane is opened; `pipe_through` references a pipeline, not a route, and stays evidence-only",
               "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2a (Phoenix non-route macro exclusions)"
             },
@@ -4145,7 +4084,7 @@
             },
             {
               "kind": "elixir.http_client.tesla_middleware_base_url",
-              "reason": "Tesla client middleware base URLs (`Tesla.client([{Tesla.Middleware.BaseUrl, \"https://api\"}])`) are declared apart from the request call, so `Tesla.get(client, \"/path\")` emits only the static path argument \u2014 the middleware base URL is not joined into target_path in-file.",
+              "reason": "Tesla client middleware base URLs (`Tesla.client([{Tesla.Middleware.BaseUrl, \"https://api\"}])`) are declared apart from the request call, so `Tesla.get(client, \"/path\")` emits only the static path argument — the middleware base URL is not joined into target_path in-file.",
               "required_closure": "join same-file Tesla middleware base URLs into request facts if a same-file client-binding model is designed; static URL arguments already emit",
               "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2b (deferred clients open_gaps)"
             },
@@ -4271,18 +4210,12 @@
             "namespace",
             "property",
             "struct",
+            "type",
             "union",
             "variable"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "type",
-              "reason": "No fsharp golden emits a `type` symbol for type abbreviations (`type Name = ...`), and while fsharp claims `variable` and `field`, typed let/member parameters produce no parameter symbols, declared parameter types record no declared-type `type_facts` (existing golden type rows come from legacy inference, not the wave-1 declared-type contract), and `this.M()` calls carry no `receiver_type` metadata.",
-              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — and extract type abbreviations as `type` symbols, then register golden evidence and move `type` to supported",
-              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
-            }
-          ]
+          "open_gaps": []
         },
         "relationships": {
           "supported": [
@@ -4463,17 +4396,11 @@
             "function",
             "module",
             "struct",
-            "type"
+            "type",
+            "variable"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "variable",
-              "reason": "erlang goldens emit no `variable` symbols: pattern-bound variables and function-clause parameters produce no symbol rows, type information lives only in `-spec` and `-type` attributes rather than declaration sites, so the wave-2 plan must scope which declared-type `type_facts` are feasible, and calls carry no `receiver_type` metadata.",
-              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — then register golden evidence and move `variable` to supported",
-              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
-            }
-          ]
+          "open_gaps": []
         },
         "relationships": {
           "supported": [
@@ -4579,7 +4506,7 @@
         "relationships": true,
         "pending_relationships": true,
         "identifiers": true,
-        "types": false
+        "types": true
       },
       "fixtures": [
         {
@@ -4603,21 +4530,9 @@
         "relationships": true,
         "pending_relationships": true,
         "identifiers": true,
-        "types": false
+        "types": true
       },
-      "capability_gaps": [
-        {
-          "capability": "types",
-          "status": "exception",
-          "reason": "Lua is a dynamically typed language with no static type annotations in core syntax. Luau-style annotations are out of scope for the base Lua extractor.",
-          "required_closure": "Out of scope \u2014 Lua is dynamic. Luau-style type annotations would be a separate language target.",
-          "evidence": {
-            "kind": "fixture",
-            "value": "fixtures/extraction/lua/basic/expected.json",
-            "command": "cargo xtask test golden"
-          }
-        }
-      ],
+      "capability_gaps": [],
       "kind_coverage": {
         "symbols": {
           "supported": [
@@ -4625,17 +4540,11 @@
             "field",
             "function",
             "import",
-            "method"
+            "method",
+            "variable"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "variable",
-              "reason": "Some lua goldens emit `variable` symbols the row does not claim, function parameters produce no symbol rows, core lua states no declared types (Luau annotations are out of scope, per the recorded types exception), so the wave-2 plan must scope constructor-shaped initializer facts, and `obj:m()` calls carry no `receiver_type` metadata.",
-              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — then register golden evidence and move `variable` to supported",
-              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
-            }
-          ]
+          "open_gaps": []
         },
         "relationships": {
           "supported": [
@@ -4881,13 +4790,13 @@
           "open_gaps": []
         },
         "test_detection": {
-              "supported": [
-                "test_case",
-                "test_container",
-                "test_lifecycle"
-              ],
-              "not_applicable": [],
-              "open_gaps": []
+          "supported": [
+            "test_case",
+            "test_container",
+            "test_lifecycle"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -5081,7 +4990,7 @@
         "relationships": true,
         "pending_relationships": true,
         "identifiers": true,
-        "types": false
+        "types": true
       },
       "fixtures": [
         {
@@ -5110,37 +5019,19 @@
         "relationships": true,
         "pending_relationships": true,
         "identifiers": true,
-        "types": false
+        "types": true
       },
-      "capability_gaps": [
-        {
-          "capability": "types",
-          "status": "exception",
-          "reason": "R is a dynamically typed language with no static type system. roxygen @param type tags are documentation-only and not currently extracted as TypeInfo.",
-          "required_closure": "N/A \u2014 domain limitation. Future work could harvest roxygen type annotations into TypeInfo.",
-          "evidence": {
-            "kind": "fixture",
-            "value": "fixtures/extraction/r/basic/expected.json",
-            "command": "cargo xtask test golden"
-          }
-        }
-      ],
+      "capability_gaps": [],
       "kind_coverage": {
         "symbols": {
           "supported": [
+            "class",
             "function",
             "import",
             "variable"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "class",
-              "reason": "No r golden emits a `class` symbol for S4/R6 class definitions (`setClass`, `R6Class`), so a receiver cannot bind to a workspace type; function parameters produce no parameter symbols, r states no declared types in syntax (per the recorded types exception), so the wave-2 plan must scope constructor-shaped initializer facts, and `obj$m()` calls carry no `receiver_type` metadata.",
-              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — and extract S4/R6 class definitions as `class` symbols, then register golden evidence and move `class` to supported",
-              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
-            }
-          ]
+          "open_gaps": []
         },
         "relationships": {
           "supported": [
@@ -5217,14 +5108,14 @@
           "open_gaps": []
         },
         "test_detection": {
-              "supported": [
-                "test_case",
-                "test_container"
-              ],
-              "not_applicable": [
-                "test_lifecycle"
-              ],
-              "open_gaps": []
+          "supported": [
+            "test_case",
+            "test_container"
+          ],
+          "not_applicable": [
+            "test_lifecycle"
+          ],
+          "open_gaps": []
         }
       }
     },
@@ -5271,19 +5162,13 @@
       "kind_coverage": {
         "symbols": {
           "supported": [
+            "constant",
             "function",
             "import",
             "variable"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "constant",
-              "reason": "One bash golden emits an unclaimed `constant` symbol (an exported uppercase assignment); bash functions take positional parameters (`$1`) with no declaration site and the syntax states no types, so the wave-2 plan must scope which of the three receiver-type fact shapes are feasible, and calls carry no `receiver_type` metadata.",
-              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — and classify constant-shaped assignments (readonly and exported uppercase) as `constant` symbols, then register golden evidence and move `constant` to supported",
-              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
-            }
-          ]
+          "open_gaps": []
         },
         "relationships": {
           "supported": [
@@ -5361,13 +5246,13 @@
           "open_gaps": []
         },
         "test_detection": {
-              "supported": [
-                "test_case",
-                "test_container",
-                "test_lifecycle"
-              ],
-              "not_applicable": [],
-              "open_gaps": []
+          "supported": [
+            "test_case",
+            "test_container",
+            "test_lifecycle"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -5416,6 +5301,7 @@
         "symbols": {
           "supported": [
             "class",
+            "constructor",
             "function",
             "import",
             "method",
@@ -5423,14 +5309,7 @@
             "variable"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "constructor",
-              "reason": "No powershell golden emits a `constructor` symbol for class constructors, and while powershell claims `variable` and `property`, `[Foo]$x` typed parameters produce no parameter symbols, declared parameter/variable types record no declared-type `type_facts` (existing golden type rows come from legacy inference, not the wave-1 declared-type contract), and `$this.M()` calls carry no `receiver_type` metadata.",
-              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — and extract class constructors as `constructor` symbols, then register golden evidence and move `constructor` to supported",
-              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
-            }
-          ]
+          "open_gaps": []
         },
         "relationships": {
           "supported": [
@@ -5481,7 +5360,8 @@
         },
         "annotations": {
           "supported": [
-            "function"
+            "function",
+            "variable"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -5568,17 +5448,11 @@
             "event",
             "field",
             "function",
-            "method"
+            "method",
+            "variable"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "variable",
-              "reason": "gdscript goldens emit no `variable` symbols: `var x: Foo` locals and typed func parameters produce no symbol rows, so declared types record no declared-type `type_facts` (existing golden type rows come from legacy inference, not the wave-1 declared-type contract), and `self.m()` calls carry no `receiver_type` metadata.",
-              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — then register golden evidence and move `variable` to supported",
-              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
-            }
-          ]
+          "open_gaps": []
         },
         "relationships": {
           "supported": [
@@ -5659,13 +5533,13 @@
           "open_gaps": []
         },
         "test_detection": {
-              "supported": [
-                "test_case",
-                "test_container",
-                "test_lifecycle"
-              ],
-              "not_applicable": [],
-              "open_gaps": []
+          "supported": [
+            "test_case",
+            "test_container",
+            "test_lifecycle"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -5772,8 +5646,8 @@
         {
           "capability": "pending_relationships",
           "status": "exception",
-          "reason": "Razor cross-file references resolve through the embedded C# pipeline, not Razor\u2019s own pending path. Locked by razor_pending_relationships_handled_by_csharp_embed test (Phase 4b.razor).",
-          "required_closure": "N/A \u2014 domain classification. Locking test in crates/julie-extractors/src/tests/razor/cross_file_pending.rs enforces no-pending classification.",
+          "reason": "Razor cross-file references resolve through the embedded C# pipeline, not Razor’s own pending path. Locked by razor_pending_relationships_handled_by_csharp_embed test (Phase 4b.razor).",
+          "required_closure": "N/A — domain classification. Locking test in crates/julie-extractors/src/tests/razor/cross_file_pending.rs enforces no-pending classification.",
           "evidence": {
             "kind": "test",
             "value": "razor_pending_relationships_handled_by_csharp_embed",
@@ -5785,20 +5659,14 @@
         "symbols": {
           "supported": [
             "class",
+            "field",
             "import",
             "method",
             "property",
             "variable"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "field",
-              "reason": "No razor golden emits a `field` symbol for `@code`/`@functions` block fields, and while razor claims `variable` and `property`, typed parameters in code blocks produce no parameter symbols, declared types record no declared-type `type_facts` (existing golden type rows come from legacy inference, not the wave-1 declared-type contract), and `this.M()` calls in code blocks carry no `receiver_type` metadata.",
-              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — and extract `@code`/`@functions` block fields as `field` symbols, then register golden evidence and move `field` to supported",
-              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
-            }
-          ]
+          "open_gaps": []
         },
         "relationships": {
           "supported": [
@@ -6054,14 +5922,14 @@
           "not_applicable": [],
           "open_gaps": []
         },
-      "test_detection": {
-        "supported": [
-          "test_case",
-          "test_container",
-          "test_lifecycle"
-        ],
-        "not_applicable": [],
-        "open_gaps": []
+        "test_detection": {
+          "supported": [
+            "test_case",
+            "test_container",
+            "test_lifecycle"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -6103,7 +5971,7 @@
           "capability": "pending_relationships",
           "status": "exception",
           "reason": "Regex backreferences are within-pattern only; there is no cross-file forward-reference construct in regex syntax.",
-          "required_closure": "N/A \u2014 domain limitation.",
+          "required_closure": "N/A — domain limitation.",
           "evidence": {
             "kind": "test",
             "value": "regex_pending_relationships_within_pattern_only",
@@ -6266,7 +6134,7 @@
           "capability": "pending_relationships",
           "status": "exception",
           "reason": "Markdown links and footnote references are within-document. Cross-file links are URL/path strings, not symbol references.",
-          "required_closure": "N/A \u2014 domain limitation.",
+          "required_closure": "N/A — domain limitation.",
           "evidence": {
             "kind": "test",
             "value": "markdown_pending_relationships_intra_document_only",
@@ -6277,7 +6145,7 @@
           "capability": "types",
           "status": "exception",
           "reason": "Markdown is a presentation format with no static type system.",
-          "required_closure": "N/A \u2014 domain limitation.",
+          "required_closure": "N/A — domain limitation.",
           "evidence": {
             "kind": "fixture",
             "value": "fixtures/extraction/markdown/basic/expected.json",
@@ -6288,7 +6156,7 @@
           "capability": "identifiers",
           "status": "exception",
           "reason": "Markdown headings, links, and frontmatter are modeled as symbols and relationships; the extractor emits no code identifiers.",
-          "required_closure": "N/A \u2014 domain limitation. Add a new symbol/relationship kind before treating markdown text as identifiers.",
+          "required_closure": "N/A — domain limitation. Add a new symbol/relationship kind before treating markdown text as identifiers.",
           "evidence": {
             "kind": "fixture",
             "value": "fixtures/extraction/markdown/basic/expected.json",
@@ -6392,15 +6260,15 @@
           "not_applicable": [],
           "open_gaps": []
         },
-      "test_detection": {
-        "supported": [
-          "test_case"
-        ],
-        "not_applicable": [
-          "test_container",
-          "test_lifecycle"
-        ],
-        "open_gaps": []
+        "test_detection": {
+          "supported": [
+            "test_case"
+          ],
+          "not_applicable": [
+            "test_container",
+            "test_lifecycle"
+          ],
+          "open_gaps": []
         }
       }
     },
@@ -6459,7 +6327,7 @@
           "capability": "types",
           "status": "exception",
           "reason": "JSON has no static type system. JSON Schema type keywords are runtime hints, not extracted as TypeInfo. Domain limitation, not a gap.",
-          "required_closure": "N/A \u2014 domain limitation. JSON Schema type extraction would require a schema-aware extractor mode outside the tree-sitter scope.",
+          "required_closure": "N/A — domain limitation. JSON Schema type extraction would require a schema-aware extractor mode outside the tree-sitter scope.",
           "evidence": {
             "kind": "fixture",
             "value": "fixtures/extraction/json/basic/expected.json",
@@ -6470,7 +6338,7 @@
           "capability": "identifiers",
           "status": "exception",
           "reason": "JSON object keys are modeled as symbols and relationships; the extractor emits no code identifiers.",
-          "required_closure": "N/A \u2014 domain limitation. JSON Schema-aware identifier output would require a separate schema mode.",
+          "required_closure": "N/A — domain limitation. JSON Schema-aware identifier output would require a separate schema mode.",
           "evidence": {
             "kind": "fixture",
             "value": "fixtures/extraction/json/basic/expected.json",
@@ -6569,15 +6437,15 @@
           "not_applicable": [],
           "open_gaps": []
         },
-      "test_detection": {
-        "supported": [
-          "test_case",
-          "test_container"
-        ],
-        "not_applicable": [
-          "test_lifecycle"
-        ],
-        "open_gaps": []
+        "test_detection": {
+          "supported": [
+            "test_case",
+            "test_container"
+          ],
+          "not_applicable": [
+            "test_lifecycle"
+          ],
+          "open_gaps": []
         }
       }
     },
@@ -6639,7 +6507,7 @@
           "capability": "pending_relationships",
           "status": "exception",
           "reason": "TOML has no cross-document construct that requires deferred resolution. All references in TOML are file-local (Cargo deps, pyproject tool tables). Domain limitation, not a gap.",
-          "required_closure": "N/A \u2014 domain limitation. TOML resolution is always intra-file.",
+          "required_closure": "N/A — domain limitation. TOML resolution is always intra-file.",
           "evidence": {
             "kind": "fixture",
             "value": "fixtures/extraction/toml/basic/expected.json",
@@ -6650,7 +6518,7 @@
           "capability": "types",
           "status": "exception",
           "reason": "TOML has no static type system. Value types (string/int/array) are format-level, not extracted as TypeInfo. Domain limitation, not a gap.",
-          "required_closure": "N/A \u2014 domain limitation.",
+          "required_closure": "N/A — domain limitation.",
           "evidence": {
             "kind": "fixture",
             "value": "fixtures/extraction/toml/basic/expected.json",
@@ -6661,7 +6529,7 @@
           "capability": "identifiers",
           "status": "exception",
           "reason": "TOML tables and keys are modeled as symbols and relationships; the extractor emits no code identifiers.",
-          "required_closure": "N/A \u2014 domain limitation. TOML key references remain symbol/relationship data.",
+          "required_closure": "N/A — domain limitation. TOML key references remain symbol/relationship data.",
           "evidence": {
             "kind": "fixture",
             "value": "fixtures/extraction/toml/basic/expected.json",
@@ -6759,14 +6627,14 @@
           "not_applicable": [],
           "open_gaps": []
         },
-      "test_detection": {
-        "supported": [
-          "test_case",
-          "test_container",
-          "test_lifecycle"
-        ],
-        "not_applicable": [],
-        "open_gaps": []
+        "test_detection": {
+          "supported": [
+            "test_case",
+            "test_container",
+            "test_lifecycle"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -6814,7 +6682,7 @@
           "capability": "pending_relationships",
           "status": "exception",
           "reason": "YAML anchors/aliases are within-document. YAML has no cross-document forward-reference construct.",
-          "required_closure": "N/A \u2014 domain limitation.",
+          "required_closure": "N/A — domain limitation.",
           "evidence": {
             "kind": "test",
             "value": "yaml_pending_relationships_intra_document_only",
@@ -6825,7 +6693,7 @@
           "capability": "types",
           "status": "exception",
           "reason": "YAML has no static type system. Tag types (!!str, !!int) are format-level, not extracted as TypeInfo.",
-          "required_closure": "N/A \u2014 domain limitation.",
+          "required_closure": "N/A — domain limitation.",
           "evidence": {
             "kind": "fixture",
             "value": "fixtures/extraction/yaml/basic/expected.json",
@@ -6922,14 +6790,14 @@
           "not_applicable": [],
           "open_gaps": []
         },
-      "test_detection": {
-        "supported": [
-          "test_case",
-          "test_container",
-          "test_lifecycle"
-        ],
-        "not_applicable": [],
-        "open_gaps": []
+        "test_detection": {
+          "supported": [
+            "test_case",
+            "test_container",
+            "test_lifecycle"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -7123,15 +6991,15 @@
           "not_applicable": [],
           "open_gaps": []
         },
-      "test_detection": {
-        "supported": [
-          "test_case",
-          "test_container"
-        ],
-        "not_applicable": [
-          "test_lifecycle"
-        ],
-        "open_gaps": []
+        "test_detection": {
+          "supported": [
+            "test_case",
+            "test_container"
+          ],
+          "not_applicable": [
+            "test_lifecycle"
+          ],
+          "open_gaps": []
         }
       }
     }

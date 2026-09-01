@@ -8,7 +8,6 @@ mod semantic_facts;
 mod test_detection;
 mod type_facts;
 
-
 #[test]
 fn fsharp_extensions_select_one_artifact_language_case_insensitively() {
     for file_path in ["src/model.fs", "src/script.FSX", "src/api.FSI"] {
@@ -102,7 +101,6 @@ module Domain =
             "add",
             "x",
             "y",
-
         ]
     );
     assert!(

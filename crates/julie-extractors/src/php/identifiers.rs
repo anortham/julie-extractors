@@ -38,13 +38,15 @@ pub(super) fn extract_identifier_from_node(
                 let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
                 let receiver_type = php_call_receiver_type(extractor.get_base(), node);
 
-                extractor.get_base_mut().create_identifier_with_receiver_type(
-                    &name_node,
-                    name,
-                    IdentifierKind::Call,
-                    containing_symbol_id,
-                    receiver_type,
-                );
+                extractor
+                    .get_base_mut()
+                    .create_identifier_with_receiver_type(
+                        &name_node,
+                        name,
+                        IdentifierKind::Call,
+                        containing_symbol_id,
+                        receiver_type,
+                    );
             }
             // Phase 3b: capture string-literal call-arguments config-free.
             record_php_call_arg_literals(extractor, node, symbol_map);
@@ -58,13 +60,15 @@ pub(super) fn extract_identifier_from_node(
                 let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
                 let receiver_type = php_call_receiver_type(extractor.get_base(), node);
 
-                extractor.get_base_mut().create_identifier_with_receiver_type(
-                    &name_node,
-                    name,
-                    IdentifierKind::Call,
-                    containing_symbol_id,
-                    receiver_type,
-                );
+                extractor
+                    .get_base_mut()
+                    .create_identifier_with_receiver_type(
+                        &name_node,
+                        name,
+                        IdentifierKind::Call,
+                        containing_symbol_id,
+                        receiver_type,
+                    );
             }
             // Phase 3b: capture string-literal call-arguments config-free.
             record_php_call_arg_literals(extractor, node, symbol_map);
@@ -443,7 +447,6 @@ fn declared_parent_class_name(base: &BaseExtractor, node: Node) -> Option<String
     }
     None
 }
-
 
 // ============================================================================
 // String-literal call-argument capture (Miller bridge Phase 3b)

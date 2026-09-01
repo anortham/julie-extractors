@@ -28,7 +28,6 @@ pub(super) fn declared_type_node(node: Node) -> Option<Node> {
         .and_then(|value| value.child_by_field_name("type"))
 }
 
-
 pub(super) fn constructor_type_node(initializer: Node) -> Option<Node> {
     match initializer.kind() {
         "new_expression" => initializer.child_by_field_name("type"),
@@ -116,5 +115,6 @@ fn single_identifier(node: Node) -> Option<Node> {
 
 fn named_child_of_kind<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
     let mut cursor = node.walk();
-    node.children(&mut cursor).find(|child| child.kind() == kind)
+    node.children(&mut cursor)
+        .find(|child| child.kind() == kind)
 }

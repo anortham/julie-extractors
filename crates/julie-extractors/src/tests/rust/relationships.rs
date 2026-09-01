@@ -398,10 +398,7 @@ trait Persist {
 }
 "#;
     let (_symbols, _relationships, pending) = extract_with_relationships(code);
-    assert_eq!(
-        pending_named(&pending, "self.helper").receiver_type,
-        None
-    );
+    assert_eq!(pending_named(&pending, "self.helper").receiver_type, None);
 }
 
 #[test]
@@ -416,10 +413,7 @@ impl Store {
 }
 "#;
     let (_symbols, _relationships, pending) = extract_with_relationships(code);
-    assert_eq!(
-        pending_named(&pending, "other.helper").receiver_type,
-        None
-    );
+    assert_eq!(pending_named(&pending, "other.helper").receiver_type, None);
 }
 
 #[test]

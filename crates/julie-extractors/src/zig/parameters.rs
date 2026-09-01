@@ -2,8 +2,8 @@ use crate::base::{Symbol, SymbolKind, SymbolOptions};
 use std::collections::HashMap;
 use tree_sitter::Node;
 
-use super::type_facts;
 use super::ZigExtractor;
+use super::type_facts;
 
 pub(super) fn extract_parameter_symbols(
     extractor: &mut ZigExtractor,

@@ -249,7 +249,9 @@ class Bar extends Resource:
     );
     let bar_persist = pending
         .iter()
-        .filter(|p| p.target.terminal_name == "persist" && p.target.receiver.as_deref() == Some("self"))
+        .filter(|p| {
+            p.target.terminal_name == "persist" && p.target.receiver.as_deref() == Some("self")
+        })
         .collect::<Vec<_>>();
     assert!(
         bar_persist

@@ -1,6 +1,6 @@
+use super::DartExtractor;
 use super::helpers::{find_child_by_type, get_node_text};
 use super::type_facts;
-use super::DartExtractor;
 use crate::base::{Symbol, SymbolKind, SymbolOptions};
 use tree_sitter::Node;
 

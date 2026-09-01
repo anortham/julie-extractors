@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod cpp_type_fact_tests {
+    use super::super::parse_cpp;
     use crate::base::{IdentifierKind, Symbol, SymbolKind, TypeInfo};
     use crate::cpp::CppExtractor;
-    use super::super::parse_cpp;
     use std::path::PathBuf;
     use tree_sitter::Parser;
 
@@ -251,7 +251,10 @@ class Box {
         let ptr_fact = fact(&extractor, ptr);
         assert_eq!(ptr_fact.resolved_type, "Foo");
         assert!(!ptr_fact.is_inferred);
-        assert_eq!(declared_metadata(ptr_fact), Some(&serde_json::json!("Foo*")));
+        assert_eq!(
+            declared_metadata(ptr_fact),
+            Some(&serde_json::json!("Foo*"))
+        );
         assert_no_pointer_or_reference_resolved(&extractor);
     }
 

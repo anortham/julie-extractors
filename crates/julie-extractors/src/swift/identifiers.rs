@@ -561,15 +561,11 @@ pub(super) fn self_receiver_type(base: &BaseExtractor, node: Node) -> Option<Str
             .find(|child| child.kind() == "navigation_expression")?,
         _ => return None,
     };
-    let receiver = navigation
-        .child_by_field_name("target")
-        .or_else(|| {
-            navigation
-                .children(&mut navigation.walk())
-                .find(|child| {
-                    matches!(child.kind(), "self_expression" | "super_expression")
-                })
-        })?;
+    let receiver = navigation.child_by_field_name("target").or_else(|| {
+        navigation
+            .children(&mut navigation.walk())
+            .find(|child| matches!(child.kind(), "self_expression" | "super_expression"))
+    })?;
     match receiver.kind() {
         "self_expression" => enclosing_type_name(base, navigation),
         "super_expression" => first_inheritance_name(base, navigation),
@@ -607,10 +603,7 @@ fn first_inheritance_name(base: &BaseExtractor, node: Node) -> Option<String> {
     while let Some(parent) = current {
         if matches!(
             parent.kind(),
-            "class_declaration"
-                | "struct_declaration"
-                | "enum_declaration"
-                | "actor_declaration"
+            "class_declaration" | "struct_declaration" | "enum_declaration" | "actor_declaration"
         ) {
             return first_inheritance_entry(base, parent);
         }
@@ -643,8 +636,8 @@ fn first_inheritance_entry(base: &BaseExtractor, node: Node) -> Option<String> {
                     .map(|n| base.get_node_text(&n))
                     .or_else(|| Some(base.get_node_text(child)));
             }
-            "class_body" | "struct_body" | "enum_body" | "protocol_body"
-            | "where_clause" | "type_parameters" => break,
+            "class_body" | "struct_body" | "enum_body" | "protocol_body" | "where_clause"
+            | "type_parameters" => break,
             _ => {}
         }
     }

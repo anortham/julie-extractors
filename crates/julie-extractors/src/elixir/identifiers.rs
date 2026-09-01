@@ -51,15 +51,16 @@ fn extract_identifier_from_node(
         "call" => {
             // Check if this is a definition macro — skip those
             if let Some(target) = node.child_by_field_name("target")
-                && target.kind() == "identifier" {
-                    let name = base.get_node_text(&target);
-                    if is_definition_keyword(&name) {
-                        return;
-                    }
-                    // Regular function call
-                    let containing = find_containing_symbol_id(base, node, symbol_map);
-                    base.create_identifier(&target, name, IdentifierKind::Call, containing);
+                && target.kind() == "identifier"
+            {
+                let name = base.get_node_text(&target);
+                if is_definition_keyword(&name) {
+                    return;
                 }
+                // Regular function call
+                let containing = find_containing_symbol_id(base, node, symbol_map);
+                base.create_identifier(&target, name, IdentifierKind::Call, containing);
+            }
             // Phase 3b: capture string-literal call-arguments config-free; the
             // carrier classification + bloat gate run later in the artifact language-policy pass.
             record_elixir_call_arg_literals(base, node, symbol_map);
@@ -109,12 +110,11 @@ fn extract_identifier_from_node(
                 }
             }
         }
-        "alias"
-            if !is_in_definition_context(&node) && !is_map_struct_child(&node) => {
-                let name = base.get_node_text(&node);
-                let containing = find_containing_symbol_id(base, node, symbol_map);
-                base.create_identifier(&node, name, IdentifierKind::TypeUsage, containing);
-            }
+        "alias" if !is_in_definition_context(&node) && !is_map_struct_child(&node) => {
+            let name = base.get_node_text(&node);
+            let containing = find_containing_symbol_id(base, node, symbol_map);
+            base.create_identifier(&node, name, IdentifierKind::TypeUsage, containing);
+        }
         // `variable_ref` complement arm (locked contract — see the doc comment
         // in csharp/identifiers.rs): a bare `identifier` used as a value or as
         // the variable receiver of a dot access (`conn` in `conn.status`) — the
@@ -274,7 +274,8 @@ fn is_definition_keyword(name: &str) -> bool {
 }
 
 fn is_map_struct_child(node: &Node) -> bool {
-    node.parent().is_some_and(|parent| parent.kind() == "struct")
+    node.parent()
+        .is_some_and(|parent| parent.kind() == "struct")
 }
 
 fn is_in_definition_context(node: &Node) -> bool {

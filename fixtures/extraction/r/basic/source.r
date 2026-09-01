@@ -37,3 +37,5 @@ Worker <- R6::R6Class(
     }
   )
 )
+
+w <- Worker$new()

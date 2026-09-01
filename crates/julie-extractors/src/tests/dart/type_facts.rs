@@ -193,11 +193,7 @@ class Worker {
     let constructor = symbol(&symbols, "Worker", SymbolKind::Constructor);
     let initializing = symbols
         .iter()
-        .find(|s| {
-            s.name == "id"
-                && s.kind == SymbolKind::Variable
-                && role(s) == Some("parameter")
-        })
+        .find(|s| s.name == "id" && s.kind == SymbolKind::Variable && role(s) == Some("parameter"))
         .expect("missing this.id parameter");
     assert_eq!(
         initializing.parent_id.as_deref(),

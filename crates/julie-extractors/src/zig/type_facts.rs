@@ -305,10 +305,14 @@ pub(super) fn initializer_node(node: Node) -> Option<Node> {
     let mut cursor = node.walk();
     let children: Vec<Node> = node.children(&mut cursor).collect();
     let eq = children.iter().position(|child| child.kind() == "=")?;
-    children[eq + 1..].iter().copied().find(|child| child.is_named())
+    children[eq + 1..]
+        .iter()
+        .copied()
+        .find(|child| child.is_named())
 }
 
 pub(super) fn has_keyword(node: Node, keyword: &str) -> bool {
     let mut cursor = node.walk();
-    node.children(&mut cursor).any(|child| child.kind() == keyword)
+    node.children(&mut cursor)
+        .any(|child| child.kind() == keyword)
 }

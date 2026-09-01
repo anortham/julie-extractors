@@ -11,8 +11,8 @@ mod namespaces;
 mod parameters;
 mod relationships;
 pub(crate) mod test_calls;
-mod types;
 mod type_facts;
+mod types;
 
 use crate::base::{
     BaseExtractor, Identifier, PendingRelationship, Relationship, StructuredPendingRelationship,
@@ -28,8 +28,8 @@ use call_relationships::extract_call_relationships;
 use functions::extract_function;
 use helpers::{determine_visibility, extract_modifiers, find_child, find_child_text};
 use identifiers::extract_identifier_from_node;
-use members::{extract_constant, extract_property};
 use locals::extract_assignment;
+use members::{extract_constant, extract_property};
 use namespaces::{extract_namespace, extract_use};
 use parameters::extract_parameter_symbols;
 use relationships::{extract_class_relationships, extract_interface_relationships};
@@ -156,10 +156,7 @@ impl PhpExtractor {
         if let Some(sym) = symbol {
             current_parent_id = Some(sym.id.clone());
             symbols.push(sym);
-            if matches!(
-                node.kind(),
-                "function_definition" | "method_declaration"
-            ) {
+            if matches!(node.kind(), "function_definition" | "method_declaration") {
                 if let Some(callable_id) = current_parent_id.as_deref() {
                     symbols.extend(extract_parameter_symbols(self, node, callable_id));
                 }

@@ -6,8 +6,8 @@ use super::ElixirExtractor;
 use super::attributes;
 use super::definition_forms;
 use super::helpers;
-use super::test_calls;
 use super::parameters;
+use super::test_calls;
 use super::type_facts;
 use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility, normalize_annotations};
 use crate::test_detection::apply_callable_test_metadata;
@@ -31,12 +31,38 @@ pub(super) fn dispatch_call(
     let target_name = helpers::extract_call_target_name(&extractor.base, node)?;
     match target_name.as_str() {
         "defmodule" => extract_defmodule(extractor, node, symbols, parent_id, depth),
-        "def" => extract_def(extractor, node, symbols, parent_id, depth, Visibility::Public),
-        "defp" => extract_def(extractor, node, symbols, parent_id, depth, Visibility::Private),
-        "defmacro" => extract_defmacro(extractor, node, symbols, parent_id, depth, Visibility::Public),
-        "defmacrop" => {
-            extract_defmacro(extractor, node, symbols, parent_id, depth, Visibility::Private)
-        }
+        "def" => extract_def(
+            extractor,
+            node,
+            symbols,
+            parent_id,
+            depth,
+            Visibility::Public,
+        ),
+        "defp" => extract_def(
+            extractor,
+            node,
+            symbols,
+            parent_id,
+            depth,
+            Visibility::Private,
+        ),
+        "defmacro" => extract_defmacro(
+            extractor,
+            node,
+            symbols,
+            parent_id,
+            depth,
+            Visibility::Public,
+        ),
+        "defmacrop" => extract_defmacro(
+            extractor,
+            node,
+            symbols,
+            parent_id,
+            depth,
+            Visibility::Private,
+        ),
         "defguard" => {
             definition_forms::extract_defguard(extractor, node, parent_id, Visibility::Public)
         }

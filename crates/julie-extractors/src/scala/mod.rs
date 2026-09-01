@@ -162,10 +162,7 @@ impl ScalaExtractor {
         if let Some(ref sym) = symbol {
             symbols.push(sym.clone());
             new_parent_id = Some(sym.id.clone());
-            if matches!(
-                node.kind(),
-                "function_definition" | "function_declaration"
-            ) {
+            if matches!(node.kind(), "function_definition" | "function_declaration") {
                 symbols.extend(parameters::extract_parameter_symbols(
                     &mut self.base,
                     node,

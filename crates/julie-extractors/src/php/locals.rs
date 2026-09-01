@@ -1,6 +1,4 @@
-use super::{
-    PhpExtractor, namespaces::extract_variable_assignment, type_facts,
-};
+use super::{PhpExtractor, namespaces::extract_variable_assignment, type_facts};
 use crate::base::Symbol;
 use tree_sitter::Node;
 

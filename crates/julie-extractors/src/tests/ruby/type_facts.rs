@@ -113,7 +113,10 @@ end
     let start = parameter(&symbols, "start");
     let source_param = parameter(&symbols, "source");
     assert_eq!(start.parent_id.as_deref(), Some(ctor.id.as_str()));
-    assert_eq!(source_param.parent_id.as_deref(), Some(singleton.id.as_str()));
+    assert_eq!(
+        source_param.parent_id.as_deref(),
+        Some(singleton.id.as_str())
+    );
     no_fact(&extractor, &symbols, "start", SymbolKind::Variable);
     no_fact(&extractor, &symbols, "source", SymbolKind::Variable);
 }
@@ -139,10 +142,7 @@ end
     let class = symbol(&symbols, "Widget", SymbolKind::Class);
     let count = symbol(&symbols, "@count", SymbolKind::Field);
     assert_eq!(count.parent_id.as_deref(), Some(class.id.as_str()));
-    assert_eq!(
-        symbols.iter().filter(|s| s.name == "@count").count(),
-        1
-    );
+    assert_eq!(symbols.iter().filter(|s| s.name == "@count").count(), 1);
     assert!(
         !symbols
             .iter()
@@ -166,10 +166,7 @@ end
     let class = symbol(&symbols, "Widget", SymbolKind::Class);
     let total = symbol(&symbols, "@@total", SymbolKind::Field);
     assert_eq!(total.parent_id.as_deref(), Some(class.id.as_str()));
-    assert_eq!(
-        symbols.iter().filter(|s| s.name == "@@total").count(),
-        1
-    );
+    assert_eq!(symbols.iter().filter(|s| s.name == "@@total").count(), 1);
 }
 
 #[test]
@@ -244,11 +241,7 @@ end
         .find(|id| id.receiver_type.as_deref() == Some("Widget"))
         .unwrap_or_else(|| panic!("missing self.helper receiver_type"));
     assert_ne!(self_helper.kind, IdentifierKind::VariableRef);
-    assert!(
-        helpers
-            .iter()
-            .any(|id| id.receiver_type.is_none())
-    );
+    assert!(helpers.iter().any(|id| id.receiver_type.is_none()));
 
     let pending = extractor.get_structured_pending_relationships();
     let pending_for = |receiver: &str| {

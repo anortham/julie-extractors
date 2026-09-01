@@ -57,10 +57,10 @@ mod directives;
 mod expressions;
 mod helpers;
 mod identifiers;
+mod parameters;
 mod relationship_helpers;
 mod relationships;
 mod stubs;
-mod parameters;
 mod type_facts;
 
 mod type_inference;

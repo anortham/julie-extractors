@@ -227,9 +227,7 @@ impl super::DartExtractor {
             {
                 if matches!(
                     parent.kind(),
-                    "function_declaration"
-                        | "method_declaration"
-                        | "local_function_declaration"
+                    "function_declaration" | "method_declaration" | "local_function_declaration"
                 ) && let Some(sym) = self.lookup_func_symbol(&parent, symbol_map)
                 {
                     return Some(sym);

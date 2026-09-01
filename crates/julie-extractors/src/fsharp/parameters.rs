@@ -38,7 +38,11 @@ pub(super) fn extract_parameter_symbols(
     symbols
 }
 
-pub(super) fn record_parameter_facts(base: &mut BaseExtractor, callable_node: Node, symbols: &[Symbol]) {
+pub(super) fn record_parameter_facts(
+    base: &mut BaseExtractor,
+    callable_node: Node,
+    symbols: &[Symbol],
+) {
     for binding in pattern_bindings(base, callable_node) {
         let Some(type_node) = binding.type_node else {
             continue;
@@ -101,7 +105,6 @@ fn pattern_roots(node: Node<'_>) -> Vec<Node<'_>> {
             for i in 0..definition.child_count() {
                 if definition.field_name_for_child(i as u32) == Some("args")
                     && let Some(child) = definition.child(i as u32)
-
                 {
                     args.push(child);
                 }
@@ -144,7 +147,14 @@ fn collect_bindings<'a>(
         }
         "long_identifier" | "long_identifier_or_op" | "identifier_pattern" => {
             if let Some(name_node) = terminal_identifier(node) {
-                collect_bindings(base, name_node, inherited_type, span.or(Some(node)), depth, out);
+                collect_bindings(
+                    base,
+                    name_node,
+                    inherited_type,
+                    span.or(Some(node)),
+                    depth,
+                    out,
+                );
             }
         }
         _ => {

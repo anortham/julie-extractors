@@ -79,22 +79,24 @@ fn is_googletest_macro(base: &BaseExtractor, callable_node: Node) -> bool {
 
 fn callable_parameter_list(callable_node: Node) -> Option<Node> {
     let declarator = callable_declarator(callable_node)?;
-    let func = function_declarators::unwrap_to_function_declarator(declarator).unwrap_or(declarator);
-    func.child_by_field_name("parameters")
-        .or_else(|| {
-            func.children(&mut func.walk())
-                .find(|child| child.kind() == "parameter_list")
-        })
+    let func =
+        function_declarators::unwrap_to_function_declarator(declarator).unwrap_or(declarator);
+    func.child_by_field_name("parameters").or_else(|| {
+        func.children(&mut func.walk())
+            .find(|child| child.kind() == "parameter_list")
+    })
 }
 
 fn callable_declarator(callable_node: Node) -> Option<Node> {
     callable_node.child_by_field_name("declarator").or_else(|| {
-        callable_node.children(&mut callable_node.walk()).find(|child| {
-            matches!(
-                child.kind(),
-                "function_declarator" | "pointer_declarator" | "reference_declarator"
-            )
-        })
+        callable_node
+            .children(&mut callable_node.walk())
+            .find(|child| {
+                matches!(
+                    child.kind(),
+                    "function_declarator" | "pointer_declarator" | "reference_declarator"
+                )
+            })
     })
 }
 

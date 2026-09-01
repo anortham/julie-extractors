@@ -16,7 +16,6 @@ pub mod structural_facts;
 pub mod test_detection;
 mod type_facts;
 
-
 use crate::base::{Relationship, RelationshipKind, Symbol, SymbolKind, Visibility};
 use crate::php::PhpExtractor;
 use tree_sitter::Parser;

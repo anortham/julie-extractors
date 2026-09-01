@@ -132,9 +132,14 @@ impl RExtractor {
                     let symbol = self.base.create_symbol(&node, name, kind, options);
                     self.symbols.push(symbol.clone());
                     if symbol.kind == SymbolKind::Variable
-                        && let Some(class_name) = type_facts::same_file_constructor_class(self, right)
+                        && let Some(class_name) =
+                            type_facts::same_file_constructor_class(self, right)
                     {
-                        type_facts::record_constructor_fact(&mut self.base, &symbol.id, &class_name);
+                        type_facts::record_constructor_fact(
+                            &mut self.base,
+                            &symbol.id,
+                            &class_name,
+                        );
                     }
                     Some(symbol)
                 }
@@ -220,8 +225,7 @@ impl RExtractor {
         };
         let symbol = self.base.create_symbol(&node, name, kind, options);
         self.symbols.push(symbol.clone());
-        let parameter_symbols =
-            parameters::extract_parameter_symbols(self, func_def, &symbol.id);
+        let parameter_symbols = parameters::extract_parameter_symbols(self, func_def, &symbol.id);
         self.symbols.extend(parameter_symbols);
         symbol
     }

@@ -442,9 +442,9 @@ fn field_value_is_this(base: &BaseExtractor, field_expression: Node) -> bool {
         return value.kind() == "this" || base.get_node_text(&value) == "this";
     }
     let mut cursor = field_expression.walk();
-    field_expression.children(&mut cursor).any(|child| {
-        child.kind() == "this" || base.get_node_text(&child) == "this"
-    })
+    field_expression
+        .children(&mut cursor)
+        .any(|child| child.kind() == "this" || base.get_node_text(&child) == "this")
 }
 
 /// Record type arguments for the outermost generic use site.

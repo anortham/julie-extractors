@@ -142,8 +142,7 @@ fn emit_match_local(
             extractor,
             lhs,
             callable_id,
-            record_expr_name(&extractor.base, &rhs)
-                .filter(|name| same_file_records.contains(name)),
+            record_expr_name(&extractor.base, &rhs).filter(|name| same_file_records.contains(name)),
             seen,
             symbols,
         );
@@ -155,8 +154,7 @@ fn emit_match_local(
             extractor,
             rhs,
             callable_id,
-            record_expr_name(&extractor.base, &lhs)
-                .filter(|name| same_file_records.contains(name)),
+            record_expr_name(&extractor.base, &lhs).filter(|name| same_file_records.contains(name)),
             seen,
             symbols,
         );

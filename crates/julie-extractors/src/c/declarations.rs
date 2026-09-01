@@ -12,8 +12,8 @@ use std::collections::HashMap;
 
 use super::helpers;
 use super::signatures;
-use super::typedefs;
 use super::type_facts;
+use super::typedefs;
 use super::types;
 
 /// Extract an include directive as a symbol
@@ -334,12 +334,7 @@ pub(super) fn extract_variable_declaration(
             annotations: Vec::new(),
         },
     );
-    type_facts::record_declared_from_declaration(
-        &mut extractor.base,
-        &symbol.id,
-        node,
-        declarator,
-    );
+    type_facts::record_declared_from_declaration(&mut extractor.base, &symbol.id, node, declarator);
     Some(symbol)
 }
 

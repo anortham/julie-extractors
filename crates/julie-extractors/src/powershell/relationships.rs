@@ -153,12 +153,16 @@ fn extract_invocation_relationships(
     else {
         return;
     };
-    let Some(caller) = extractor.base.find_containing_symbol(&node, symbols).filter(|symbol| {
-        matches!(
-            symbol.kind,
-            SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor
-        )
-    }) else {
+    let Some(caller) = extractor
+        .base
+        .find_containing_symbol(&node, symbols)
+        .filter(|symbol| {
+            matches!(
+                symbol.kind,
+                SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor
+            )
+        })
+    else {
         return;
     };
     let receiver_type = super::type_facts::this_receiver_type(&extractor.base, node);

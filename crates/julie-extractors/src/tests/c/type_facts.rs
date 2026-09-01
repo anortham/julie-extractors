@@ -53,9 +53,7 @@ fn parameter<'a>(symbols: &'a [Symbol], name: &str) -> &'a Symbol {
     let matches: Vec<_> = symbols
         .iter()
         .filter(|s| {
-            s.name == name
-                && s.kind == SymbolKind::Variable
-                && role(s) == Some("parameter")
+            s.name == name && s.kind == SymbolKind::Variable && role(s) == Some("parameter")
         })
         .collect();
     assert_eq!(

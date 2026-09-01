@@ -26,11 +26,7 @@ const EXPR_WRAPPERS: &[&str] = &[
     "expression_with_unary_operator",
 ];
 
-pub(super) fn record_declared_type_literal(
-    base: &mut BaseExtractor,
-    symbol_id: &str,
-    node: Node,
-) {
+pub(super) fn record_declared_type_literal(base: &mut BaseExtractor, symbol_id: &str, node: Node) {
     let Some(type_node) = find_first_kind(node, "type_literal", 0) else {
         return;
     };
@@ -105,12 +101,7 @@ fn record_type_literal(
     );
 }
 
-fn record_inferred_rhs(
-    base: &mut BaseExtractor,
-    symbol_id: &str,
-    value: Node,
-    origin: Node,
-) {
+fn record_inferred_rhs(base: &mut BaseExtractor, symbol_id: &str, value: Node, origin: Node) {
     let core = unwrap_expr(value);
     if let Some(type_name) = inferred_constructor_name(base, core, origin) {
         base.record_declared_type_fact_with_declared(
@@ -237,7 +228,8 @@ fn strip_variable_name(raw: &str) -> String {
 
 fn direct_child<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
     let mut cursor = node.walk();
-    node.children(&mut cursor).find(|child| child.kind() == kind)
+    node.children(&mut cursor)
+        .find(|child| child.kind() == kind)
 }
 
 fn first_named_child(node: Node) -> Option<Node> {

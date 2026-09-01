@@ -554,7 +554,8 @@ mod record_declared_type_fact_with_declared_tests {
             &RULES,
             false,
         );
-        extractor.record_declared_type_fact_with_declared("sym-1", "list", "int list", &RULES, true);
+        extractor
+            .record_declared_type_fact_with_declared("sym-1", "list", "int list", &RULES, true);
 
         let fact = &extractor.type_info["sym-1"];
         assert_eq!(fact.resolved_type, "foo");

@@ -1,5 +1,5 @@
-use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, find_child_by_type};
 use crate::base::types::TypeNameRules;
+use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, find_child_by_type};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
 
