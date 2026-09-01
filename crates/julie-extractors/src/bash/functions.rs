@@ -75,11 +75,15 @@ impl super::BashExtractor {
                 if !seen_params.contains(&param_name) {
                     seen_params.insert(param_name.clone());
 
+                    let mut metadata = HashMap::new();
+                    metadata.insert("role".to_string(), serde_json::json!("parameter"));
+
                     let options = SymbolOptions {
                         signature: Some(format!("{} (positional parameter)", param_name)),
                         visibility: Some(Visibility::Public),
                         parent_id: Some(parent_id.to_string()),
                         doc_comment: self.base.find_doc_comment(&node),
+                        metadata: Some(metadata),
                         ..Default::default()
                     };
 

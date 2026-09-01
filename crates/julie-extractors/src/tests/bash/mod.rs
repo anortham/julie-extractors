@@ -1681,4 +1681,6 @@ mod doc_comments;
 mod literals; // Miller bridge Phase 3b: string-literal command-argument capture
 mod structural_facts;
 mod test_detection; // shellspec/bats call-style test detection (Miller bridge test-roles)
+mod type_facts;
+
 mod types; // Phase 4: Type extraction verification tests

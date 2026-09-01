@@ -24,3 +24,5 @@ evaluate() {
 }
 
 export APP_ENV="production"
+readonly MAX=3
+
