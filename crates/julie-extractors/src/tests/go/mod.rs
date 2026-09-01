@@ -13,6 +13,7 @@ mod literals;
 mod test_detection;
 mod type_arguments;
 mod type_assertions;
+mod type_facts;
 
 #[cfg(test)]
 mod go_extractor_tests {

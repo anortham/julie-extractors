@@ -1035,6 +1035,58 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/go/test_roles/source_test.go:b:19:19",
+      "name": "b",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+      "start_line": 19,
+      "start_column": 19,
+      "end_line": 19,
+      "end_column": 31,
+      "start_byte": 347,
+      "end_byte": 359,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "b *testing.B",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/test_roles/source_test.go:BenchmarkAdds:19:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/go/test_roles/source_test.go:c:71:6",
+      "name": "c",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+      "start_line": 71,
+      "start_column": 6,
+      "end_line": 71,
+      "end_column": 23,
+      "start_byte": 1288,
+      "end_byte": 1305,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "c *recordingClock",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/test_roles/source_test.go:Advance:71:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/go/test_roles/source_test.go:calculator:73:8",
       "name": "calculator",
       "kind": "function",
@@ -1069,6 +1121,39 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/go/test_roles/source_test.go:callback:98:42",
+      "name": "callback",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+      "start_line": 98,
+      "start_column": 42,
+      "end_line": 98,
+      "end_column": 57,
+      "start_byte": 1932,
+      "end_byte": 1947,
+      "body_span": {
+        "start_line": 98,
+        "start_column": 55,
+        "end_line": 98,
+        "end_column": 57,
+        "start_byte": 1945,
+        "end_byte": 1947
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "callback func()",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/test_roles/source_test.go:Run:98:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/go/test_roles/source_test.go:customT:96:5",
       "name": "customT",
       "kind": "struct",
@@ -1094,6 +1179,58 @@
       "visibility": "Private",
       "parent_key": null,
       "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/go/test_roles/source_test.go:delta:71:33",
+      "name": "delta",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+      "start_line": 71,
+      "start_column": 33,
+      "end_line": 71,
+      "end_column": 44,
+      "start_byte": 1315,
+      "end_byte": 1326,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "delta int64",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/test_roles/source_test.go:Advance:71:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/go/test_roles/source_test.go:f:21:14",
+      "name": "f",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+      "start_line": 21,
+      "start_column": 14,
+      "end_line": 21,
+      "end_column": 26,
+      "start_byte": 379,
+      "end_byte": 391,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "f *testing.F",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/test_roles/source_test.go:FuzzAdds:21:0",
+      "metadata": {
+        "role": "parameter"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -1162,6 +1299,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/go/test_roles/source_test.go:left:29:16",
+      "name": "left",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+      "start_line": 29,
+      "start_column": 16,
+      "end_line": 29,
+      "end_column": 24,
+      "start_byte": 505,
+      "end_byte": 513,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "left int",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/test_roles/source_test.go:helperAdds:29:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/go/test_roles/source_test.go:literal child:86:1",
       "name": "literal child",
       "kind": "function",
@@ -1189,6 +1352,58 @@
       "metadata": {
         "is_test": true,
         "test_role": "test_case"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/go/test_roles/source_test.go:m:13:14",
+      "name": "m",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+      "start_line": 13,
+      "start_column": 14,
+      "end_line": 13,
+      "end_column": 26,
+      "start_byte": 268,
+      "end_byte": 280,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "m *testing.M",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/test_roles/source_test.go:TestMain:13:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/go/test_roles/source_test.go:name:98:29",
+      "name": "name",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+      "start_line": 98,
+      "start_column": 29,
+      "end_line": 98,
+      "end_column": 40,
+      "start_byte": 1919,
+      "end_byte": 1930,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "name string",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/test_roles/source_test.go:Run:98:0",
+      "metadata": {
+        "role": "parameter"
       },
       "annotations": [],
       "semantic_group": null,
@@ -1316,6 +1531,58 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/go/test_roles/source_test.go:receiver:100:24",
+      "name": "receiver",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+      "start_line": 100,
+      "start_column": 24,
+      "end_line": 100,
+      "end_column": 41,
+      "start_byte": 1977,
+      "end_byte": 1994,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "receiver *customT",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/test_roles/source_test.go:helperUnrelatedRun:100:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/go/test_roles/source_test.go:receiver:98:6",
+      "name": "receiver",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+      "start_line": 98,
+      "start_column": 6,
+      "end_line": 98,
+      "end_column": 23,
+      "start_byte": 1896,
+      "end_byte": 1913,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "receiver *customT",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/test_roles/source_test.go:Run:98:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/go/test_roles/source_test.go:recordingClock:66:5",
       "name": "recordingClock",
       "kind": "struct",
@@ -1378,6 +1645,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/go/test_roles/source_test.go:right:29:26",
+      "name": "right",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+      "start_line": 29,
+      "start_column": 26,
+      "end_line": 29,
+      "end_column": 35,
+      "start_byte": 515,
+      "end_byte": 524,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "right int",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/test_roles/source_test.go:helperAdds:29:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/go/test_roles/source_test.go:roles:3:8",
       "name": "roles",
       "kind": "module",
@@ -1396,6 +1689,318 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/go/test_roles/source_test.go:s:38:6",
+      "name": "s",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+      "start_line": 38,
+      "start_column": 6,
+      "end_line": 38,
+      "end_column": 24,
+      "start_byte": 619,
+      "end_byte": 637,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "s *CalculatorSuite",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/test_roles/source_test.go:SetupSuite:38:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/go/test_roles/source_test.go:s:40:6",
+      "name": "s",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+      "start_line": 40,
+      "start_column": 6,
+      "end_line": 40,
+      "end_column": 24,
+      "start_byte": 662,
+      "end_byte": 680,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "s *CalculatorSuite",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/test_roles/source_test.go:SetupTest:40:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/go/test_roles/source_test.go:s:42:6",
+      "name": "s",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+      "start_line": 42,
+      "start_column": 6,
+      "end_line": 42,
+      "end_column": 24,
+      "start_byte": 704,
+      "end_byte": 722,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "s *CalculatorSuite",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/test_roles/source_test.go:BeforeTest:42:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/go/test_roles/source_test.go:s:44:6",
+      "name": "s",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+      "start_line": 44,
+      "start_column": 6,
+      "end_line": 44,
+      "end_column": 24,
+      "start_byte": 780,
+      "end_byte": 798,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "s *CalculatorSuite",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/test_roles/source_test.go:TestAddition:44:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/go/test_roles/source_test.go:s:46:6",
+      "name": "s",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+      "start_line": 46,
+      "start_column": 6,
+      "end_line": 46,
+      "end_column": 24,
+      "start_byte": 825,
+      "end_byte": 843,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "s *CalculatorSuite",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/test_roles/source_test.go:AfterTest:46:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/go/test_roles/source_test.go:s:48:6",
+      "name": "s",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+      "start_line": 48,
+      "start_column": 6,
+      "end_line": 48,
+      "end_column": 24,
+      "start_byte": 900,
+      "end_byte": 918,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "s *CalculatorSuite",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/test_roles/source_test.go:TearDownTest:48:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/go/test_roles/source_test.go:s:50:6",
+      "name": "s",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+      "start_line": 50,
+      "start_column": 6,
+      "end_line": 50,
+      "end_column": 24,
+      "start_byte": 945,
+      "end_byte": 963,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "s *CalculatorSuite",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/test_roles/source_test.go:TearDownSuite:50:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/go/test_roles/source_test.go:s:52:6",
+      "name": "s",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+      "start_line": 52,
+      "start_column": 6,
+      "end_line": 52,
+      "end_column": 24,
+      "start_byte": 991,
+      "end_byte": 1009,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "s *CalculatorSuite",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/test_roles/source_test.go:reset:52:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/go/test_roles/source_test.go:s:58:6",
+      "name": "s",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+      "start_line": 58,
+      "start_column": 6,
+      "end_line": 58,
+      "end_column": 21,
+      "start_byte": 1070,
+      "end_byte": 1085,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "s *GoCheckSuite",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/test_roles/source_test.go:SetUpSuite:58:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/go/test_roles/source_test.go:s:60:6",
+      "name": "s",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+      "start_line": 60,
+      "start_column": 6,
+      "end_line": 60,
+      "end_column": 21,
+      "start_byte": 1110,
+      "end_byte": 1125,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "s *GoCheckSuite",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/test_roles/source_test.go:SetUpTest:60:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/go/test_roles/source_test.go:s:62:6",
+      "name": "s",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+      "start_line": 62,
+      "start_column": 6,
+      "end_line": 62,
+      "end_column": 21,
+      "start_byte": 1149,
+      "end_byte": 1164,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "s *GoCheckSuite",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/test_roles/source_test.go:TestDivides:62:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/go/test_roles/source_test.go:s:64:6",
+      "name": "s",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+      "start_line": 64,
+      "start_column": 6,
+      "end_line": 64,
+      "end_column": 21,
+      "start_byte": 1190,
+      "end_byte": 1205,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "s *GoCheckSuite",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/test_roles/source_test.go:TearDownSuite:64:0",
+      "metadata": {
+        "role": "parameter"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -1426,6 +2031,58 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/go/test_roles/source_test.go:suiteName:42:37",
+      "name": "suiteName",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+      "start_line": 42,
+      "start_column": 37,
+      "end_line": 42,
+      "end_column": 53,
+      "start_byte": 735,
+      "end_byte": 751,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "suiteName string",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/test_roles/source_test.go:BeforeTest:42:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/go/test_roles/source_test.go:suiteName:46:36",
+      "name": "suiteName",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+      "start_line": 46,
+      "start_column": 36,
+      "end_line": 46,
+      "end_column": 52,
+      "start_byte": 855,
+      "end_byte": 871,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "suiteName string",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/test_roles/source_test.go:AfterTest:46:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/go/test_roles/source_test.go:sync:6:1",
       "name": "sync",
       "kind": "import",
@@ -1444,6 +2101,188 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/go/test_roles/source_test.go:t:17:14",
+      "name": "t",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+      "start_line": 17,
+      "start_column": 14,
+      "end_line": 17,
+      "end_column": 26,
+      "start_byte": 310,
+      "end_byte": 322,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "t *testing.T",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/test_roles/source_test.go:TestAdds:17:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/go/test_roles/source_test.go:t:25:14",
+      "name": "t",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+      "start_line": 25,
+      "start_column": 14,
+      "end_line": 25,
+      "end_column": 26,
+      "start_byte": 434,
+      "end_byte": 446,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "t *testing.T",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/test_roles/source_test.go:Testable:25:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/go/test_roles/source_test.go:t:27:19",
+      "name": "t",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+      "start_line": 27,
+      "start_column": 19,
+      "end_line": 27,
+      "end_column": 31,
+      "start_byte": 471,
+      "end_byte": 483,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "t *testing.T",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/test_roles/source_test.go:AddsLikeATest:27:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/go/test_roles/source_test.go:testHandle:85:18",
+      "name": "testHandle",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+      "start_line": 85,
+      "start_column": 18,
+      "end_line": 85,
+      "end_column": 39,
+      "start_byte": 1591,
+      "end_byte": 1612,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "testHandle *testing.T",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/test_roles/source_test.go:TestSubtests:85:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/go/test_roles/source_test.go:testHandle:91:24",
+      "name": "testHandle",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+      "start_line": 91,
+      "start_column": 24,
+      "end_line": 91,
+      "end_column": 45,
+      "start_byte": 1765,
+      "end_byte": 1786,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "testHandle *testing.T",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/test_roles/source_test.go:TestDynamicSubtest:91:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/go/test_roles/source_test.go:testName:42:55",
+      "name": "testName",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+      "start_line": 42,
+      "start_column": 55,
+      "end_line": 42,
+      "end_column": 70,
+      "start_byte": 753,
+      "end_byte": 768,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "testName string",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/test_roles/source_test.go:BeforeTest:42:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/go/test_roles/source_test.go:testName:46:54",
+      "name": "testName",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+      "start_line": 46,
+      "start_column": 54,
+      "end_line": 46,
+      "end_column": 69,
+      "start_byte": 873,
+      "end_byte": 888,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "testName string",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/test_roles/source_test.go:AfterTest:46:0",
+      "metadata": {
+        "role": "parameter"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -2728,11 +3567,363 @@
   ],
   "types": [
     {
+      "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:b:19:19",
+      "resolved_type": "testing.B",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": {
+        "declared": "*testing.B"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:c:71:6",
+      "resolved_type": "recordingClock",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": {
+        "declared": "*recordingClock"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:delta:71:33",
+      "resolved_type": "int64",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:f:21:14",
+      "resolved_type": "testing.F",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": {
+        "declared": "*testing.F"
+      }
+    },
+    {
       "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:helperAdds:29:0",
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
+      "language": "go",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:left:29:16",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:m:13:14",
+      "resolved_type": "testing.M",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": {
+        "declared": "*testing.M"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:name:98:29",
+      "resolved_type": "string",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:now:68:1",
+      "resolved_type": "int64",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:receiver:100:24",
+      "resolved_type": "customT",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": {
+        "declared": "*customT"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:receiver:98:6",
+      "resolved_type": "customT",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": {
+        "declared": "*customT"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:right:29:26",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:s:38:6",
+      "resolved_type": "CalculatorSuite",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": {
+        "declared": "*CalculatorSuite"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:s:40:6",
+      "resolved_type": "CalculatorSuite",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": {
+        "declared": "*CalculatorSuite"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:s:42:6",
+      "resolved_type": "CalculatorSuite",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": {
+        "declared": "*CalculatorSuite"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:s:44:6",
+      "resolved_type": "CalculatorSuite",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": {
+        "declared": "*CalculatorSuite"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:s:46:6",
+      "resolved_type": "CalculatorSuite",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": {
+        "declared": "*CalculatorSuite"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:s:48:6",
+      "resolved_type": "CalculatorSuite",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": {
+        "declared": "*CalculatorSuite"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:s:50:6",
+      "resolved_type": "CalculatorSuite",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": {
+        "declared": "*CalculatorSuite"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:s:52:6",
+      "resolved_type": "CalculatorSuite",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": {
+        "declared": "*CalculatorSuite"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:s:58:6",
+      "resolved_type": "GoCheckSuite",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": {
+        "declared": "*GoCheckSuite"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:s:60:6",
+      "resolved_type": "GoCheckSuite",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": {
+        "declared": "*GoCheckSuite"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:s:62:6",
+      "resolved_type": "GoCheckSuite",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": {
+        "declared": "*GoCheckSuite"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:s:64:6",
+      "resolved_type": "GoCheckSuite",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": {
+        "declared": "*GoCheckSuite"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:suiteName:42:37",
+      "resolved_type": "string",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:suiteName:46:36",
+      "resolved_type": "string",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:t:17:14",
+      "resolved_type": "testing.T",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": {
+        "declared": "*testing.T"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:t:25:14",
+      "resolved_type": "testing.T",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": {
+        "declared": "*testing.T"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:t:27:19",
+      "resolved_type": "testing.T",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": {
+        "declared": "*testing.T"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:testHandle:85:18",
+      "resolved_type": "testing.T",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": {
+        "declared": "*testing.T"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:testHandle:91:24",
+      "resolved_type": "testing.T",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": {
+        "declared": "*testing.T"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:testName:42:55",
+      "resolved_type": "string",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:testName:46:54",
+      "resolved_type": "string",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:total:35:1",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/test_roles/source_test.go:value:55:1",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "go",
       "metadata": null
     }

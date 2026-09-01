@@ -49,9 +49,10 @@ func GetUserScores() map[string]int {
             })
             .collect();
 
-        assert_eq!(type_map.len(), 2);
+        assert_eq!(type_map.len(), 3);
         assert_eq!(type_map.get("GetUserName"), Some(&"string"));
         assert_eq!(type_map.get("GetUserScores"), Some(&"map[string]int"));
+        assert_eq!(type_map.get("userId"), Some(&"int"));
         assert!(!type_map.contains_key("GetAllUsers"));
     }
 

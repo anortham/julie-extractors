@@ -349,6 +349,12 @@ impl super::GoExtractor {
                         annotations,
                     },
                 );
+                super::type_facts::record_type_node_fact(
+                    &mut self.base,
+                    &symbol.id,
+                    type_node,
+                    false,
+                );
 
                 symbols.push(symbol);
             }

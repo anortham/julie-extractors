@@ -270,7 +270,26 @@
       "confidence": "1.000"
     }
   ],
-  "types": [],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/go/malformed_recovery/source.go:field:11:4",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/malformed_recovery/source.go:value:7:4",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": null
+    }
+  ],
   "parse_diagnostics": [
     {
       "kind": "Error",

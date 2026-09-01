@@ -265,6 +265,84 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/go/basic/source.go:count:47:14",
+      "name": "count",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/basic/source.go",
+      "start_line": 47,
+      "start_column": 14,
+      "end_line": 47,
+      "end_column": 23,
+      "start_byte": 841,
+      "end_byte": 850,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "count int",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/basic/source.go:Evaluate:47:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/go/basic/source.go:enabled:47:25",
+      "name": "enabled",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/basic/source.go",
+      "start_line": 47,
+      "start_column": 25,
+      "end_line": 47,
+      "end_column": 37,
+      "start_byte": 852,
+      "end_byte": 864,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "enabled bool",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/basic/source.go:Evaluate:47:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/go/basic/source.go:event:30:16",
+      "name": "event",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/basic/source.go",
+      "start_line": 30,
+      "start_column": 16,
+      "end_line": 30,
+      "end_column": 28,
+      "start_byte": 521,
+      "end_byte": 533,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "event string",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/basic/source.go:observeRun:30:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/go/basic/source.go:fixture:1:8",
       "name": "fixture",
       "kind": "module",
@@ -344,6 +422,84 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/go/basic/source.go:id:15:15",
+      "name": "id",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/basic/source.go",
+      "start_line": 15,
+      "start_column": 15,
+      "end_line": 15,
+      "end_column": 21,
+      "start_byte": 206,
+      "end_byte": 212,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "id int",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/basic/source.go:NewWorker:15:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/go/basic/source.go:id:25:15",
+      "name": "id",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/basic/source.go",
+      "start_line": 25,
+      "start_column": 15,
+      "end_line": 25,
+      "end_column": 21,
+      "start_byte": 397,
+      "end_byte": 403,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "id int",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/basic/source.go:recordRun:25:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/go/basic/source.go:id:30:30",
+      "name": "id",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/basic/source.go",
+      "start_line": 30,
+      "start_column": 30,
+      "end_line": 30,
+      "end_column": 36,
+      "start_byte": 535,
+      "end_byte": 541,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "id int",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/basic/source.go:observeRun:30:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/go/basic/source.go:observeRun:30:0",
       "name": "observeRun",
       "kind": "function",
@@ -400,6 +556,58 @@
       "visibility": "Private",
       "parent_key": null,
       "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/go/basic/source.go:value:36:12",
+      "name": "value",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/basic/source.go",
+      "start_line": 36,
+      "start_column": 12,
+      "end_line": 36,
+      "end_column": 21,
+      "start_byte": 613,
+      "end_byte": 622,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "value int",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/basic/source.go:helper:36:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/go/basic/source.go:w:19:6",
+      "name": "w",
+      "kind": "variable",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/basic/source.go",
+      "start_line": 19,
+      "start_column": 6,
+      "end_line": 19,
+      "end_column": 14,
+      "start_byte": 255,
+      "end_byte": 263,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "w Worker",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/go/basic/source.go:Run:19:0",
+      "metadata": {
+        "role": "parameter"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -924,6 +1132,15 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/go/basic/source.go:ID:10:1",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/go/basic/source.go:NewWorker:15:0",
       "resolved_type": "Worker",
       "generic_params": null,
@@ -942,6 +1159,33 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/go/basic/source.go:count:47:14",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/basic/source.go:enabled:47:25",
+      "resolved_type": "bool",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/basic/source.go:event:30:16",
+      "resolved_type": "string",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/go/basic/source.go:helper:36:0",
       "resolved_type": "int",
       "generic_params": null,
@@ -949,6 +1193,62 @@
       "is_inferred": true,
       "language": "go",
       "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/basic/source.go:id:15:15",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/basic/source.go:id:25:15",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/basic/source.go:id:30:30",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/basic/source.go:value:36:12",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/basic/source.go:w:19:6",
+      "resolved_type": "Worker",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/basic/source.go:workerIndex:13:4",
+      "resolved_type": "Map",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": {
+        "declared": "Map[string, List[int]]"
+      }
     }
   ],
   "parse_diagnostics": [],
