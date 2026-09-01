@@ -168,3 +168,17 @@ pub(super) fn get_name(base: &Base, node: &Node) -> Option<String> {
                 .map(|n| base.get_node_text(&n))
         })
 }
+
+pub(super) fn enclosing_type_name(base: &Base, node: &Node) -> Option<String> {
+    let mut current = node.parent();
+    while let Some(candidate) = current {
+        if matches!(
+            candidate.kind(),
+            "class_definition" | "object_definition" | "trait_definition" | "enum_definition"
+        ) {
+            return get_name(base, &candidate);
+        }
+        current = candidate.parent();
+    }
+    None
+}

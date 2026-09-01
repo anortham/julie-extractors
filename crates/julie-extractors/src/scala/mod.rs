@@ -11,9 +11,11 @@
 mod declarations;
 mod helpers;
 mod identifiers;
+mod parameters;
 mod properties;
 mod relationships;
 pub(crate) mod test_calls;
+mod type_facts;
 mod types;
 
 use crate::base::{
@@ -160,6 +162,16 @@ impl ScalaExtractor {
         if let Some(ref sym) = symbol {
             symbols.push(sym.clone());
             new_parent_id = Some(sym.id.clone());
+            if matches!(
+                node.kind(),
+                "function_definition" | "function_declaration"
+            ) {
+                symbols.extend(parameters::extract_parameter_symbols(
+                    &mut self.base,
+                    node,
+                    &sym.id,
+                ));
+            }
             if node.kind() == "class_definition" {
                 class_symbol_id = Some(sym.id.clone());
             }

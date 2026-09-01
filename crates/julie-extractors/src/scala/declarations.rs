@@ -57,27 +57,24 @@ pub(super) fn extract_function(
         signature.push_str(&format!(": {}", rt));
     }
 
-    // Determine method vs function
-    let symbol_kind = if parent_id.is_some() {
-        SymbolKind::Method
+    let (name, symbol_kind, type_label) = if name == "this" {
+        if let Some(class_name) = helpers::enclosing_type_name(base, node) {
+            (class_name, SymbolKind::Constructor, "constructor")
+        } else if parent_id.is_some() {
+            (name, SymbolKind::Method, "method")
+        } else {
+            (name, SymbolKind::Function, "function")
+        }
+    } else if parent_id.is_some() {
+        (name, SymbolKind::Method, "method")
     } else {
-        SymbolKind::Function
+        (name, SymbolKind::Function, "function")
     };
 
     let visibility = helpers::determine_visibility(&modifiers);
 
     let mut metadata = HashMap::from([
-        (
-            "type".to_string(),
-            Value::String(
-                if parent_id.is_some() {
-                    "method"
-                } else {
-                    "function"
-                }
-                .to_string(),
-            ),
-        ),
+        ("type".to_string(), Value::String(type_label.to_string())),
         ("modifiers".to_string(), Value::String(modifiers.join(","))),
     ]);
 

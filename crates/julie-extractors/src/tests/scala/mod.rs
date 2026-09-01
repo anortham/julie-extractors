@@ -8,6 +8,7 @@ mod structural_facts;
 mod task14;
 mod test_detection; // Miller bridge Wave-3: ScalaTest/MUnit call-style adapter
 mod type_arguments;
+mod type_facts;
 
 use crate::base::{IdentifierKind, RelationshipKind, SymbolKind};
 use crate::scala::ScalaExtractor;

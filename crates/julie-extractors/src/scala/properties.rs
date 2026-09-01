@@ -3,6 +3,7 @@
 //! Handles immutable vals and mutable vars.
 
 use super::helpers;
+use super::type_facts;
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -12,7 +13,7 @@ fn val_kind_for_scope(node: &Node) -> SymbolKind {
     let mut current = node.parent();
     while let Some(ancestor) = current {
         match ancestor.kind() {
-            "function_definition" | "function_declaration" => return SymbolKind::Constant,
+            "function_definition" | "function_declaration" => return SymbolKind::Variable,
             "class_definition" | "object_definition" => return SymbolKind::Property,
             _ => {
                 current = ancestor.parent();
@@ -85,7 +86,7 @@ pub(super) fn extract_val(
         metadata.insert("propertyType".to_string(), Value::String(rt.clone()));
     }
 
-    Some(base.create_symbol(
+    let symbol = base.create_symbol(
         node,
         name,
         symbol_kind,
@@ -97,7 +98,9 @@ pub(super) fn extract_val(
             doc_comment,
             annotations,
         },
-    ))
+    );
+    record_binding_type_fact(base, &symbol.id, node);
+    Some(symbol)
 }
 
 /// Extract a Scala var (mutable variable)
@@ -144,7 +147,7 @@ pub(super) fn extract_var(
         metadata.insert("propertyType".to_string(), Value::String(rt.clone()));
     }
 
-    Some(base.create_symbol(
+    let symbol = base.create_symbol(
         node,
         name,
         SymbolKind::Variable,
@@ -156,7 +159,9 @@ pub(super) fn extract_var(
             doc_comment,
             annotations: Vec::new(),
         },
-    ))
+    );
+    record_binding_type_fact(base, &symbol.id, node);
+    Some(symbol)
 }
 
 /// Extract case class constructor parameters as property symbols.
@@ -170,10 +175,6 @@ pub(super) fn extract_case_class_constructor_fields(
         return;
     };
 
-    let class_modifiers = helpers::extract_modifiers(base, node);
-    if !class_modifiers.iter().any(|modifier| modifier == "case") {
-        return;
-    }
 
     let class_parameters = node
         .children(&mut node.walk())
@@ -261,7 +262,7 @@ pub(super) fn extract_case_class_constructor_fields(
             );
         }
 
-        symbols.push(base.create_symbol(
+        let symbol = base.create_symbol(
             &parameter,
             name,
             SymbolKind::Property,
@@ -273,6 +274,18 @@ pub(super) fn extract_case_class_constructor_fields(
                 doc_comment,
                 annotations,
             },
-        ));
+        );
+        if let Some(type_node) = parameter.child_by_field_name("type") {
+            type_facts::record_declared_type(base, &symbol.id, type_node);
+        }
+        symbols.push(symbol);
+    }
+}
+
+fn record_binding_type_fact(base: &mut BaseExtractor, symbol_id: &str, node: &Node) {
+    if let Some(type_node) = node.child_by_field_name("type") {
+        type_facts::record_declared_type(base, symbol_id, type_node);
+    } else if let Some(value) = node.child_by_field_name("value") {
+        type_facts::record_initializer_type(base, symbol_id, value);
     }
 }

@@ -61,3 +61,26 @@ extension (value: Int)
 
 @deprecated("legacy", since = "1.0")
 def legacyHook(): Unit = ()
+
+class Foo
+
+case class Payload(a: Foo)
+class Query(a: Foo)
+
+class Widget {
+  def this(seed: Foo) = this()
+  def ping(): Unit = {
+    val typed: Foo = null
+    val constructed = new Foo()
+    val sameFile = Foo()
+    val unknown = Unknown()
+    val imported = scala.collection.mutable.ListBuffer()
+    val built = build()
+    this.m()
+    other.m()
+  }
+  def m(): Unit = ()
+  def annotate(x: Foo, xs: List[Foo]): Unit = ()
+}
+
+def build(): Int = 1
