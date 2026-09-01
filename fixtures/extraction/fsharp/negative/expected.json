@@ -56,6 +56,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/fsharp/negative/source.fs:input:4:13",
+      "name": "input",
+      "kind": "variable",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/negative/source.fs",
+      "start_line": 4,
+      "start_column": 13,
+      "end_line": 4,
+      "end_column": 18,
+      "start_byte": 48,
+      "end_byte": 53,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "input",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/fsharp/negative/source.fs:caller:4:2",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/fsharp/negative/source.fs:value:2:2",
       "name": "value",
       "kind": "variable",

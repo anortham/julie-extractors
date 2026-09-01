@@ -2,6 +2,8 @@ mod declarations;
 mod identifiers;
 mod literals;
 mod relationships;
+mod parameters;
+
 mod test_detection;
 mod types;
 

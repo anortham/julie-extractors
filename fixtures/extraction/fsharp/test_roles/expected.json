@@ -181,6 +181,58 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/fsharp/test_roles/source.fs:value:14:11",
+      "name": "value",
+      "kind": "variable",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/test_roles/source.fs",
+      "start_line": 14,
+      "start_column": 11,
+      "end_line": 14,
+      "end_column": 16,
+      "start_byte": 190,
+      "end_byte": 195,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "value",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/fsharp/test_roles/source.fs:helper:14:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/fsharp/test_roles/source.fs:value:9:28",
+      "name": "value",
+      "kind": "variable",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/test_roles/source.fs",
+      "start_line": 9,
+      "start_column": 28,
+      "end_line": 9,
+      "end_column": 38,
+      "start_byte": 109,
+      "end_byte": 119,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "value: int",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/fsharp/test_roles/source.fs:adds_numbers_from_data:9:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [],
@@ -311,6 +363,15 @@
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
+      "language": "fsharp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/fsharp/test_roles/source.fs:value:9:28",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "fsharp",
       "metadata": null
     }

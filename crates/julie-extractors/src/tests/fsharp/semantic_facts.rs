@@ -145,11 +145,18 @@ fn fsharp_explicit_types_and_generic_arguments_are_attached_to_declarations() {
     assert_eq!(type_for("Age"), Some("int"));
     assert_eq!(type_for("radius"), Some("float"));
     assert_eq!(type_for("makePerson"), Some("Person"));
+    assert_eq!(type_for("convert"), Some("Result"));
     assert_eq!(
-        type_for("convert"),
-        Some("Result<Person, string>"),
-        "return annotation should be preserved exactly"
+        results
+            .types
+            .get(&symbol("convert").id)
+            .and_then(|type_info| type_info.metadata.as_ref())
+            .and_then(|metadata| metadata.get("declared"))
+            .and_then(|value| value.as_str()),
+        Some("Result<Person, string>")
     );
+    assert_eq!(type_for("nested"), Some("Map"));
+
     assert_eq!(type_for("inferredString"), Some("string"));
     assert_eq!(type_for("inferredInt"), Some("int"));
     assert_eq!(

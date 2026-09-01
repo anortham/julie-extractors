@@ -6,6 +6,8 @@ use std::path::Path;
 
 mod semantic_facts;
 mod test_detection;
+mod type_facts;
+
 
 #[test]
 fn fsharp_extensions_select_one_artifact_language_case_insensitively() {
@@ -98,6 +100,9 @@ module Domain =
             "Create",
             "Answer",
             "add",
+            "x",
+            "y",
+
         ]
     );
     assert!(
