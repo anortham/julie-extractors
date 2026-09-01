@@ -80,7 +80,8 @@ pub(super) fn extract_function(
     node: &Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    let name_node = find_child_by_type(node, "identifier")?;
+    let target = function_signature_target(node);
+    let name_node = find_child_by_type(&target, "identifier")?;
     let name = get_node_text(&name_node);
 
     let is_async = is_async_function(node, &base.content);
@@ -94,13 +95,12 @@ pub(super) fn extract_function(
     } else {
         SymbolKind::Function
     };
-
     let mut symbol = base.create_symbol(
         node,
         name,
         symbol_kind,
         SymbolOptions {
-            signature: signatures::extract_function_signature(node, &base.content),
+            signature: signatures::extract_function_signature(&target, &base.content),
             visibility: Some(if is_private {
                 Visibility::Private
             } else {
@@ -134,13 +134,7 @@ pub(super) fn extract_method(
     node: &Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    // For method_signature nodes, look inside the nested function_signature
-    let target_node = if node.kind() == "method_signature" {
-        find_child_by_type(node, "function_signature").unwrap_or(*node)
-    } else {
-        *node
-    };
-
+    let target_node = method_name_target(node);
     let name_node = find_child_by_type(&target_node, "identifier")?;
     let name = get_node_text(&name_node);
 
@@ -379,4 +373,45 @@ fn annotation_keys(annotations: &[AnnotationMarker]) -> Vec<String> {
         .iter()
         .map(|annotation| annotation.annotation_key.clone())
         .collect()
+}
+
+fn function_signature_target<'a>(node: &Node<'a>) -> Node<'a> {
+    match node.kind() {
+        "function_declaration" | "lambda_expression" | "local_function_declaration" => {
+            find_child_by_type(node, "function_signature").unwrap_or(*node)
+        }
+        _ => *node,
+    }
+}
+
+fn method_name_target<'a>(node: &Node<'a>) -> Node<'a> {
+    match node.kind() {
+        "method_declaration" => {
+            let signature = node
+                .child_by_field_name("signature")
+                .or_else(|| find_child_by_type(node, "method_signature"))
+                .unwrap_or(*node);
+            find_child_by_type(&signature, "function_signature").unwrap_or(signature)
+        }
+        "method_signature" => {
+            find_child_by_type(node, "function_signature").unwrap_or(*node)
+        }
+        _ => *node,
+    }
+}
+
+pub(super) fn nested_constructor_signature<'a>(node: &Node<'a>) -> Option<Node<'a>> {
+    let signature = if node.kind() == "method_declaration" {
+        node.child_by_field_name("signature")
+            .or_else(|| find_child_by_type(node, "method_signature"))
+            .unwrap_or(*node)
+    } else {
+        *node
+    };
+    find_child_by_type(&signature, "constructor_signature")
+        .or_else(|| find_child_by_type(&signature, "factory_constructor_signature"))
+        .or_else(|| find_child_by_type(&signature, "constant_constructor_signature"))
+        .or_else(|| find_child_by_type(node, "constructor_signature"))
+        .or_else(|| find_child_by_type(node, "factory_constructor_signature"))
+        .or_else(|| find_child_by_type(node, "constant_constructor_signature"))
 }

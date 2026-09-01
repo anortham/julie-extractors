@@ -42,11 +42,13 @@ fn extract_identifier_from_node(
             if let Some(target_node) = call_target_name_node(node.child_by_field_name("function")) {
                 let name = get_node_text(&target_node);
                 let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
-                base.create_identifier(
+                let receiver_type = self_receiver_type(base, node);
+                base.create_identifier_with_receiver_type(
                     &target_node,
                     name,
                     IdentifierKind::Call,
                     containing_symbol_id,
+                    receiver_type,
                 );
             }
             // Phase 3b: capture string-literal call-arguments (config-free;
@@ -389,7 +391,7 @@ fn is_type_declaration_name(node: &Node) -> bool {
     false
 }
 
-fn call_target_name_node(function_node: Option<Node>) -> Option<Node> {
+pub(super) fn call_target_name_node(function_node: Option<Node>) -> Option<Node> {
     let function_node = function_node?;
     match function_node.kind() {
         "identifier" => Some(function_node),
@@ -401,6 +403,38 @@ fn call_target_name_node(function_node: Option<Node>) -> Option<Node> {
         }
         _ => None,
     }
+}
+
+pub(super) fn self_receiver_type(base: &BaseExtractor, node: Node) -> Option<String> {
+    let function = if node.kind() == "call_expression" {
+        node.child_by_field_name("function")?
+    } else {
+        node
+    };
+    if !matches!(
+        function.kind(),
+        "member_expression" | "null_aware_member_expression"
+    ) {
+        return None;
+    }
+    let object = function.child_by_field_name("object")?;
+    match object.kind() {
+        "this" => enclosing_class_name(base, node),
+        "super" => super::relationships::first_extends_name(node),
+        _ => None,
+    }
+}
+
+fn enclosing_class_name(base: &BaseExtractor, node: Node) -> Option<String> {
+    let mut current = node.parent();
+    while let Some(candidate) = current {
+        if matches!(candidate.kind(), "class_definition" | "class_declaration") {
+            return find_child_by_type(&candidate, "identifier")
+                .map(|name_node| base.get_node_text(&name_node));
+        }
+        current = candidate.parent();
+    }
+    None
 }
 
 fn is_call_function_node(node: Node) -> bool {
