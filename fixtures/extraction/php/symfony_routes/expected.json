@@ -183,6 +183,58 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/php/symfony_routes/source.php:id:39:33",
+      "name": "id",
+      "kind": "variable",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/symfony_routes/source.php",
+      "start_line": 39,
+      "start_column": 33,
+      "end_line": 39,
+      "end_column": 36,
+      "start_byte": 751,
+      "end_byte": 754,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "$id",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/php/symfony_routes/source.php:interpolated:38:4",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/symfony_routes/source.php:id:9:25",
+      "name": "id",
+      "kind": "variable",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/symfony_routes/source.php",
+      "start_line": 9,
+      "start_column": 25,
+      "end_line": 9,
+      "end_column": 28,
+      "start_byte": 166,
+      "end_byte": 169,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "$id",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/php/symfony_routes/source.php:show:8:4",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/php/symfony_routes/source.php:interpolated:38:4",
       "name": "interpolated",
       "kind": "method",
@@ -301,6 +353,32 @@
           "raw_text": "Route('/users/{id}', methods: ['GET'])"
         }
       ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/symfony_routes/source.php:suffix:45:33",
+      "name": "suffix",
+      "kind": "variable",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/symfony_routes/source.php",
+      "start_line": 45,
+      "start_column": 33,
+      "end_line": 45,
+      "end_column": 40,
+      "start_byte": 856,
+      "end_byte": 863,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "$suffix",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/php/symfony_routes/source.php:concatenated:44:4",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
       "semantic_group": null,
       "confidence": null,
       "content_type": null

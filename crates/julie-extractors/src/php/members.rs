@@ -2,7 +2,7 @@
 
 use super::{
     PhpExtractor, determine_visibility, extract_modifiers, find_child,
-    functions::extract_attribute_markers,
+    functions::extract_attribute_markers, type_facts,
 };
 use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility};
 use std::collections::HashMap;
@@ -93,26 +93,28 @@ pub(super) fn extract_property(
     let doc_comment = extractor.get_base().find_doc_comment(&node);
     let resolved_parent_id = resolve_property_parent_id(extractor, parent_id);
 
-    Some(
-        extractor.get_base_mut().create_symbol(
-            &node,
-            name.replace('$', ""), // Remove $ from property name
-            SymbolKind::Property,
-            SymbolOptions {
-                signature: Some(signature),
-                visibility: Some(determine_visibility(&modifiers)),
-                parent_id: resolved_parent_id,
-                metadata: Some(
-                    metadata
-                        .into_iter()
-                        .map(|(k, v)| (k, serde_json::Value::String(v)))
-                        .collect(),
-                ),
-                doc_comment,
-                annotations,
-            },
-        ),
-    )
+    let symbol = extractor.get_base_mut().create_symbol(
+        &node,
+        name.replace('$', ""),
+        SymbolKind::Property,
+        SymbolOptions {
+            signature: Some(signature),
+            visibility: Some(determine_visibility(&modifiers)),
+            parent_id: resolved_parent_id,
+            metadata: Some(
+                metadata
+                    .into_iter()
+                    .map(|(k, v)| (k, serde_json::Value::String(v)))
+                    .collect(),
+            ),
+            doc_comment,
+            annotations,
+        },
+    );
+    if let Some(type_node) = type_node {
+        type_facts::record_declared_type(extractor.get_base_mut(), &symbol.id, type_node);
+    }
+    Some(symbol)
 }
 
 fn promoted_parameter_name_node<'a>(extractor: &PhpExtractor, node: &Node<'a>) -> Option<Node<'a>> {

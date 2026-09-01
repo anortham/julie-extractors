@@ -318,6 +318,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/php/test_roles/ArithmeticTest.php:left:70:33",
+      "name": "left",
+      "kind": "variable",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/test_roles/ArithmeticTest.php",
+      "start_line": 70,
+      "start_column": 33,
+      "end_line": 70,
+      "end_column": 42,
+      "start_byte": 1106,
+      "end_byte": 1115,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "int $left",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/php/test_roles/ArithmeticTest.php:testAddsRows:69:4",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/php/test_roles/ArithmeticTest.php:multipliesNumbers:60:4",
       "name": "multipliesNumbers",
       "kind": "method",
@@ -469,6 +495,32 @@
         "test_lifecycle": true,
         "test_role": "fixture_setup",
         "type": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/test_roles/ArithmeticTest.php:right:70:44",
+      "name": "right",
+      "kind": "variable",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/test_roles/ArithmeticTest.php",
+      "start_line": 70,
+      "start_column": 44,
+      "end_line": 70,
+      "end_column": 54,
+      "start_byte": 1117,
+      "end_byte": 1127,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "int $right",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/php/test_roles/ArithmeticTest.php:testAddsRows:69:4",
+      "metadata": {
+        "role": "parameter"
       },
       "annotations": [],
       "semantic_group": null,
@@ -2374,6 +2426,15 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/php/test_roles/ArithmeticTest.php:left:70:33",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "php",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/php/test_roles/ArithmeticTest.php:multipliesNumbers:60:4",
       "resolved_type": "void",
       "generic_params": null,
@@ -2406,6 +2467,15 @@
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
+      "language": "php",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/php/test_roles/ArithmeticTest.php:right:70:44",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "php",
       "metadata": null
     },
@@ -2474,7 +2544,7 @@
     },
     {
       "symbol_key": "fixtures/extraction/php/test_roles/PestFeatureTest.php:ordinary:19:0",
-      "resolved_type": "variable_assignment",
+      "resolved_type": "stdClass",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,

@@ -14,6 +14,8 @@ pub mod literals;
 pub mod phpdoc_comments;
 pub mod structural_facts;
 pub mod test_detection;
+mod type_facts;
+
 
 use crate::base::{Relationship, RelationshipKind, Symbol, SymbolKind, Visibility};
 use crate::php::PhpExtractor;
@@ -290,7 +292,9 @@ final class Rectangle extends Shape
         );
 
         // Properties with visibility and types
-        let color = symbols.iter().find(|s| s.name == "color");
+        let color = symbols
+            .iter()
+            .find(|s| s.name == "color" && s.kind == SymbolKind::Property);
         assert!(color.is_some());
         assert_eq!(color.unwrap().kind, SymbolKind::Property);
         assert_eq!(

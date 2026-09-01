@@ -182,6 +182,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/php/http_client_deferred/source.php:guzzle:9:55",
+      "name": "guzzle",
+      "kind": "variable",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client_deferred/source.php",
+      "start_line": 9,
+      "start_column": 55,
+      "end_line": 9,
+      "end_column": 69,
+      "start_byte": 309,
+      "end_byte": 323,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "Client $guzzle",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/php/http_client_deferred/source.php:noUrl:25:4",
       "name": "noUrl",
       "kind": "variable",
@@ -209,6 +235,32 @@
       "metadata": {
         "type": "variable_assignment",
         "value": "curl_init()"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/http_client_deferred/source.php:symfony:9:25",
+      "name": "symfony",
+      "kind": "variable",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client_deferred/source.php",
+      "start_line": 9,
+      "start_column": 25,
+      "end_line": 9,
+      "end_column": 53,
+      "start_byte": 279,
+      "end_byte": 307,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "HttpClientInterface $symfony",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
+      "metadata": {
+        "role": "parameter"
       },
       "annotations": [],
       "semantic_group": null,
@@ -1176,11 +1228,29 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/php/http_client_deferred/source.php:guzzle:9:55",
+      "resolved_type": "Client",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "php",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/php/http_client_deferred/source.php:noUrl:25:4",
       "resolved_type": "variable_assignment",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
+      "language": "php",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/php/http_client_deferred/source.php:symfony:9:25",
+      "resolved_type": "HttpClientInterface",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "php",
       "metadata": null
     }

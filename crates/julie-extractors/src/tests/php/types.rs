@@ -63,8 +63,9 @@ class UserService {
 
         for type_info in results.types.values() {
             assert_eq!(type_info.language, "php");
-            assert!(type_info.is_inferred);
             assert!(!type_info.resolved_type.is_empty());
         }
+        assert!(results.types.values().any(|type_info| !type_info.is_inferred));
+        assert!(results.types.values().any(|type_info| type_info.is_inferred));
     }
 }

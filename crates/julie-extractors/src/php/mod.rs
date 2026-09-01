@@ -5,11 +5,14 @@ mod call_relationships;
 mod functions;
 mod helpers;
 mod identifiers;
+mod locals;
 mod members;
 mod namespaces;
+mod parameters;
 mod relationships;
 pub(crate) mod test_calls;
 mod types;
+mod type_facts;
 
 use crate::base::{
     BaseExtractor, Identifier, PendingRelationship, Relationship, StructuredPendingRelationship,
@@ -26,7 +29,9 @@ use functions::extract_function;
 use helpers::{determine_visibility, extract_modifiers, find_child, find_child_text};
 use identifiers::extract_identifier_from_node;
 use members::{extract_constant, extract_property};
-use namespaces::{extract_namespace, extract_use, extract_variable_assignment};
+use locals::extract_assignment;
+use namespaces::{extract_namespace, extract_use};
+use parameters::extract_parameter_symbols;
 use relationships::{extract_class_relationships, extract_interface_relationships};
 use test_calls::extract_php_pest_test_call;
 use types::{
@@ -140,9 +145,7 @@ impl PhpExtractor {
             }
             "enum_case" => extract_enum_case(self, node, parent_id.as_deref()),
             "anonymous_class" => extract_anonymous_class(self, node, parent_id.as_deref()),
-            "assignment_expression" => {
-                extract_variable_assignment(self, node, parent_id.as_deref())
-            }
+            "assignment_expression" => extract_assignment(self, node, parent_id.as_deref()),
             // Pest call-style tests: test(...)/it(...)/describe(...)/lifecycle hooks.
             "function_call_expression" => {
                 extract_php_pest_test_call(&mut self.base, node, parent_id.as_deref())
@@ -153,6 +156,14 @@ impl PhpExtractor {
         if let Some(sym) = symbol {
             current_parent_id = Some(sym.id.clone());
             symbols.push(sym);
+            if matches!(
+                node.kind(),
+                "function_definition" | "method_declaration"
+            ) {
+                if let Some(callable_id) = current_parent_id.as_deref() {
+                    symbols.extend(extract_parameter_symbols(self, node, callable_id));
+                }
+            }
         }
 
         // Recursively visit children

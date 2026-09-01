@@ -53,6 +53,58 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/php/http_client/source.php:base:6:41",
+      "name": "base",
+      "kind": "variable",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "start_line": 6,
+      "start_column": 41,
+      "end_line": 6,
+      "end_column": 46,
+      "start_byte": 109,
+      "end_byte": 114,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "$base",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/http_client/source.php:client:6:20",
+      "name": "client",
+      "kind": "variable",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "start_line": 6,
+      "start_column": 20,
+      "end_line": 6,
+      "end_column": 34,
+      "start_byte": 88,
+      "end_byte": 102,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "Client $client",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
       "name": "fetchUsers",
       "kind": "function",
@@ -81,6 +133,32 @@
         "modifiers": "",
         "parameters": "(Client $client, $id, $base)",
         "type": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/http_client/source.php:id:6:36",
+      "name": "id",
+      "kind": "variable",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "start_line": 6,
+      "start_column": 36,
+      "end_line": 6,
+      "end_column": 39,
+      "start_byte": 104,
+      "end_byte": 107,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "$id",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "metadata": {
+        "role": "parameter"
       },
       "annotations": [],
       "semantic_group": null,
@@ -687,6 +765,15 @@
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
+      "language": "php",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/php/http_client/source.php:client:6:20",
+      "resolved_type": "Client",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "php",
       "metadata": null
     }

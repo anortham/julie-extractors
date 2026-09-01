@@ -36,12 +36,14 @@ pub(super) fn extract_identifier_from_node(
             if let Some(name_node) = node.child_by_field_name("name") {
                 let name = extractor.get_base().get_node_text(&name_node);
                 let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+                let receiver_type = php_call_receiver_type(extractor.get_base(), node);
 
-                extractor.get_base_mut().create_identifier(
+                extractor.get_base_mut().create_identifier_with_receiver_type(
                     &name_node,
                     name,
                     IdentifierKind::Call,
                     containing_symbol_id,
+                    receiver_type,
                 );
             }
             // Phase 3b: capture string-literal call-arguments config-free.
@@ -54,12 +56,14 @@ pub(super) fn extract_identifier_from_node(
             if let Some(name_node) = node.child_by_field_name("name") {
                 let name = extractor.get_base().get_node_text(&name_node);
                 let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+                let receiver_type = php_call_receiver_type(extractor.get_base(), node);
 
-                extractor.get_base_mut().create_identifier(
+                extractor.get_base_mut().create_identifier_with_receiver_type(
                     &name_node,
                     name,
                     IdentifierKind::Call,
                     containing_symbol_id,
+                    receiver_type,
                 );
             }
             // Phase 3b: capture string-literal call-arguments config-free.
@@ -372,6 +376,74 @@ fn find_containing_symbol_id(
         .find_containing_symbol_from_map(&node, symbol_map)
         .map(|s| s.id.clone())
 }
+
+pub(super) fn php_call_receiver_type(base: &BaseExtractor, node: Node) -> Option<String> {
+    match node.kind() {
+        "member_call_expression" => {
+            let object = node.child_by_field_name("object")?;
+            if base.get_node_text(&object) == "$this" {
+                enclosing_type_name(base, node)
+            } else {
+                None
+            }
+        }
+        "scoped_call_expression" => {
+            let scope = node
+                .child_by_field_name("scope")
+                .or_else(|| node.child_by_field_name("class"))?;
+            match base.get_node_text(&scope).as_str() {
+                "self" | "static" => enclosing_type_name(base, node),
+                "parent" => declared_parent_class_name(base, node),
+                _ => None,
+            }
+        }
+        _ => None,
+    }
+}
+
+fn enclosing_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
+    let mut current = node.parent();
+    while let Some(candidate) = current {
+        if matches!(
+            candidate.kind(),
+            "class_declaration"
+                | "trait_declaration"
+                | "interface_declaration"
+                | "enum_declaration"
+        ) {
+            return candidate
+                .child_by_field_name("name")
+                .map(|name_node| base.get_node_text(&name_node));
+        }
+        current = candidate.parent();
+    }
+    None
+}
+
+fn declared_parent_class_name(base: &BaseExtractor, node: Node) -> Option<String> {
+    let mut current = node.parent();
+    while let Some(candidate) = current {
+        if candidate.kind() == "class_declaration" {
+            let mut cursor = candidate.walk();
+            let extends = candidate
+                .children(&mut cursor)
+                .find(|child| child.kind() == "base_clause")?;
+            let name = base
+                .get_node_text(&extends)
+                .replace("extends", "")
+                .trim()
+                .trim_start_matches('\\')
+                .to_string();
+            if name.is_empty() {
+                return None;
+            }
+            return Some(name);
+        }
+        current = candidate.parent();
+    }
+    None
+}
+
 
 // ============================================================================
 // String-literal call-argument capture (Miller bridge Phase 3b)

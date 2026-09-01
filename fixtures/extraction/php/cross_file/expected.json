@@ -386,7 +386,8 @@
       "end_byte": 451,
       "containing_key": "fixtures/extraction/php/cross_file/source.php:entry:13:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "Worker"
     },
     {
       "key": "fixtures/extraction/php/cross_file/source.php:localHelper:call:21:31",
@@ -402,7 +403,8 @@
       "end_byte": 624,
       "containing_key": "fixtures/extraction/php/cross_file/source.php:entry:13:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "Worker"
     },
     {
       "key": "fixtures/extraction/php/cross_file/source.php:total:variable_ref:17:16",
@@ -503,7 +505,7 @@
     },
     {
       "symbol_key": "fixtures/extraction/php/cross_file/source.php:x:20:8",
-      "resolved_type": "variable_assignment",
+      "resolved_type": "Other",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,

@@ -1,7 +1,7 @@
 // PHP Extractor - call and object creation relationships
 
 use super::{
-    PhpExtractor,
+    PhpExtractor, identifiers,
     relationships::{strip_php_namespace, unresolved_php_type_target},
 };
 use crate::base::{
@@ -245,14 +245,18 @@ fn add_pending_relationship(
     kind: RelationshipKind,
     confidence: f32,
 ) {
-    let pending = extractor.get_base().create_pending_relationship(
-        caller_symbol.id.clone(),
-        target,
-        kind,
-        &node,
-        Some(caller_symbol.id.clone()),
-        Some(confidence),
-    );
+    let receiver_type = identifiers::php_call_receiver_type(extractor.get_base(), node);
+    let pending = extractor
+        .get_base()
+        .create_pending_relationship(
+            caller_symbol.id.clone(),
+            target,
+            kind,
+            &node,
+            Some(caller_symbol.id.clone()),
+            Some(confidence),
+        )
+        .with_receiver_type(receiver_type);
     extractor.add_structured_pending_relationship(pending);
 }
 

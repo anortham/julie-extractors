@@ -34,6 +34,8 @@ class Worker
     #[Required]
     public int $id;
 
+    public const STATUS = 'ready';
+
     public function __construct(int $id)
     {
         $this->id = $id;
