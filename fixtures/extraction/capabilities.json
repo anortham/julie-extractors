@@ -84,7 +84,8 @@
             "interface",
             "method",
             "namespace",
-            "struct"
+            "struct",
+            "variable"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -288,7 +289,14 @@
             "struct"
           ],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "variable",
+              "reason": "One c golden emits `variable` symbols incidentally, but the kind is unclaimed: function parameters produce no symbol rows, declared types on locals and parameters (`struct foo *x`) record no declared-type `type_facts`, and call sites carry no `receiver_type` metadata; existing golden type rows come from legacy inference, not the wave-1 declared-type contract.",
+              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — then register golden evidence and move `variable` to supported",
+              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
+            }
+          ]
         },
         "relationships": {
           "supported": [
@@ -438,7 +446,14 @@
             "method"
           ],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "variable",
+              "reason": "One cpp golden emits `variable` symbols incidentally, but the kind is unclaimed: function parameters produce no symbol rows, declared types on locals and parameters (`Foo x`, `const Foo& x`) record no declared-type `type_facts`, and `obj.method()` calls carry no `receiver_type` metadata; existing golden type rows come from legacy inference, not the wave-1 declared-type contract.",
+              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — then register golden evidence and move `variable` to supported",
+              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
+            }
+          ]
         },
         "relationships": {
           "supported": [
@@ -591,7 +606,8 @@
             "import",
             "method",
             "module",
-            "struct"
+            "struct",
+            "variable"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -753,7 +769,14 @@
             "variable"
           ],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "constant",
+              "reason": "One zig golden emits an unclaimed `constant` symbol, and zig claims `variable` for container-level declarations, but function parameters (`fn f(x: Foo)`) produce no symbol rows, typed `const`/`var`/parameter declarations record no declared-type `type_facts` (existing golden type rows come from legacy inference, not the wave-1 declared-type contract), and method calls carry no `receiver_type` metadata.",
+              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — and classify container-level `const` declarations as `constant` symbols, then register golden evidence and move `constant` to supported",
+              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
+            }
+          ]
         },
         "relationships": {
           "supported": [
@@ -1400,7 +1423,8 @@
             "export",
             "function",
             "import",
-            "method"
+            "method",
+            "variable"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -2276,7 +2300,14 @@
             "property"
           ],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "variable",
+              "reason": "Wave 1 of the receiver-type-facts plan added python parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, and goldens emit them, but local variable symbols parent to the enclosing class or to file scope, never to the enclosing function or method. Miller's scope-walk receiver lookup cannot find python locals until they re-parent to the enclosing callable, so the kind stays out of `supported` to keep the parent-linkage claim honest; parameters, the common receiver shape, work today (see docs/findings/2026-09-01-receiver-type-facts-evidence.md).",
+              "required_closure": "re-parent python local variable symbols to the enclosing function, method, or constructor, keep parameter symbols and declared-type `type_facts` rows intact, add `receiver_type` call-site metadata for `self.`/`cls.` receivers, register golden evidence, then move `variable` to supported",
+              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
+            }
+          ]
         },
         "relationships": {
           "supported": [
@@ -2438,7 +2469,8 @@
             "interface",
             "method",
             "namespace",
-            "property"
+            "property",
+            "variable"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -2789,7 +2821,14 @@
             "property"
           ],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "variable",
+              "reason": "vbnet goldens emit no `variable` symbols: `Dim x As Foo` locals and typed method parameters produce no symbol rows, so declared types record no declared-type `type_facts` (existing golden type rows come from legacy inference, not the wave-1 declared-type contract), and `Me.Method()` calls carry no `receiver_type` metadata.",
+              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — then register golden evidence and move `variable` to supported",
+              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
+            }
+          ]
         },
         "relationships": {
           "supported": [
@@ -2962,7 +3001,14 @@
             "variable"
           ],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "constant",
+              "reason": "No php golden emits a `constant` symbol for class constants (`const X`), and while php claims `variable` and `property`, typed parameters and promoted constructor properties produce no parameter symbols, declared parameter/property types record no declared-type `type_facts` (existing golden type rows come from legacy inference, not the wave-1 declared-type contract), and `$this->m()` calls carry no `receiver_type` metadata.",
+              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — and extract class constants as `constant` symbols, then register golden evidence and move `constant` to supported",
+              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
+            }
+          ]
         },
         "relationships": {
           "supported": [
@@ -3160,7 +3206,14 @@
             "variable"
           ],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "field",
+              "reason": "No ruby golden emits a `field` symbol for instance or class variables (`@x`, `@@x`), method parameters produce no parameter symbols, core ruby syntax states no declared types (RBS/Sorbet annotations are out of scope), and `self.m` calls carry no `receiver_type` metadata; existing golden type rows come from legacy inference, not the wave-1 declared-type contract.",
+              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — and extract instance/class variables as `field` symbols, then register golden evidence and move `field` to supported",
+              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
+            }
+          ]
         },
         "relationships": {
           "supported": [
@@ -3337,7 +3390,14 @@
             "struct"
           ],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "variable",
+              "reason": "swift goldens emit no `variable` symbols: `let`/`var` locals and typed function parameters (`func f(x: Foo)`) produce no symbol rows, so declared types record no declared-type `type_facts` (existing golden type rows come from legacy inference, not the wave-1 declared-type contract), and `self.m()` calls carry no `receiver_type` metadata.",
+              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — then register golden evidence and move `variable` to supported",
+              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
+            }
+          ]
         },
         "relationships": {
           "supported": [
@@ -3535,7 +3595,14 @@
             "type"
           ],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "variable",
+              "reason": "kotlin goldens emit no `variable` symbols: `val`/`var` locals and typed function parameters (`fun f(x: Foo)`) produce no symbol rows, so declared types record no declared-type `type_facts` (existing golden type rows come from legacy inference, not the wave-1 declared-type contract), and `this.m()` calls carry no `receiver_type` metadata.",
+              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — then register golden evidence and move `variable` to supported",
+              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
+            }
+          ]
         },
         "relationships": {
           "supported": [
@@ -3854,7 +3921,14 @@
             "method"
           ],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "variable",
+              "reason": "dart goldens emit no `variable` symbols: `Foo x = ...`/`final x = ...` locals and typed function parameters produce no symbol rows, so declared types record no declared-type `type_facts` (existing golden type rows come from legacy inference, not the wave-1 declared-type contract), and `this.m()` calls carry no `receiver_type` metadata.",
+              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — then register golden evidence and move `variable` to supported",
+              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
+            }
+          ]
         },
         "relationships": {
           "supported": [
@@ -4007,7 +4081,14 @@
             "module"
           ],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "variable",
+              "reason": "elixir goldens emit no `variable` symbols: pattern-bound names and function parameters produce no symbol rows, elixir states types only in `@spec` and struct annotations rather than declaration sites, so the wave-2 plan must scope which declared-type `type_facts` are feasible, and calls carry no `receiver_type` metadata.",
+              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — then register golden evidence and move `variable` to supported",
+              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
+            }
+          ]
         },
         "relationships": {
           "supported": [
@@ -4194,7 +4275,14 @@
             "variable"
           ],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "type",
+              "reason": "No fsharp golden emits a `type` symbol for type abbreviations (`type Name = ...`), and while fsharp claims `variable` and `field`, typed let/member parameters produce no parameter symbols, declared parameter types record no declared-type `type_facts` (existing golden type rows come from legacy inference, not the wave-1 declared-type contract), and `this.M()` calls carry no `receiver_type` metadata.",
+              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — and extract type abbreviations as `type` symbols, then register golden evidence and move `type` to supported",
+              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
+            }
+          ]
         },
         "relationships": {
           "supported": [
@@ -4378,7 +4466,14 @@
             "type"
           ],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "variable",
+              "reason": "erlang goldens emit no `variable` symbols: pattern-bound variables and function-clause parameters produce no symbol rows, type information lives only in `-spec` and `-type` attributes rather than declaration sites, so the wave-2 plan must scope which declared-type `type_facts` are feasible, and calls carry no `receiver_type` metadata.",
+              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — then register golden evidence and move `variable` to supported",
+              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
+            }
+          ]
         },
         "relationships": {
           "supported": [
@@ -4533,7 +4628,14 @@
             "method"
           ],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "variable",
+              "reason": "Some lua goldens emit `variable` symbols the row does not claim, function parameters produce no symbol rows, core lua states no declared types (Luau annotations are out of scope, per the recorded types exception), so the wave-2 plan must scope constructor-shaped initializer facts, and `obj:m()` calls carry no `receiver_type` metadata.",
+              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — then register golden evidence and move `variable` to supported",
+              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
+            }
+          ]
         },
         "relationships": {
           "supported": [
@@ -5031,7 +5133,14 @@
             "variable"
           ],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "class",
+              "reason": "No r golden emits a `class` symbol for S4/R6 class definitions (`setClass`, `R6Class`), so a receiver cannot bind to a workspace type; function parameters produce no parameter symbols, r states no declared types in syntax (per the recorded types exception), so the wave-2 plan must scope constructor-shaped initializer facts, and `obj$m()` calls carry no `receiver_type` metadata.",
+              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — and extract S4/R6 class definitions as `class` symbols, then register golden evidence and move `class` to supported",
+              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
+            }
+          ]
         },
         "relationships": {
           "supported": [
@@ -5167,7 +5276,14 @@
             "variable"
           ],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "constant",
+              "reason": "One bash golden emits an unclaimed `constant` symbol (an exported uppercase assignment); bash functions take positional parameters (`$1`) with no declaration site and the syntax states no types, so the wave-2 plan must scope which of the three receiver-type fact shapes are feasible, and calls carry no `receiver_type` metadata.",
+              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — and classify constant-shaped assignments (readonly and exported uppercase) as `constant` symbols, then register golden evidence and move `constant` to supported",
+              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
+            }
+          ]
         },
         "relationships": {
           "supported": [
@@ -5307,7 +5423,14 @@
             "variable"
           ],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "constructor",
+              "reason": "No powershell golden emits a `constructor` symbol for class constructors, and while powershell claims `variable` and `property`, `[Foo]$x` typed parameters produce no parameter symbols, declared parameter/variable types record no declared-type `type_facts` (existing golden type rows come from legacy inference, not the wave-1 declared-type contract), and `$this.M()` calls carry no `receiver_type` metadata.",
+              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — and extract class constructors as `constructor` symbols, then register golden evidence and move `constructor` to supported",
+              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
+            }
+          ]
         },
         "relationships": {
           "supported": [
@@ -5448,7 +5571,14 @@
             "method"
           ],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "variable",
+              "reason": "gdscript goldens emit no `variable` symbols: `var x: Foo` locals and typed func parameters produce no symbol rows, so declared types record no declared-type `type_facts` (existing golden type rows come from legacy inference, not the wave-1 declared-type contract), and `self.m()` calls carry no `receiver_type` metadata.",
+              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — then register golden evidence and move `variable` to supported",
+              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
+            }
+          ]
         },
         "relationships": {
           "supported": [
@@ -5661,7 +5791,14 @@
             "variable"
           ],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "field",
+              "reason": "No razor golden emits a `field` symbol for `@code`/`@functions` block fields, and while razor claims `variable` and `property`, typed parameters in code blocks produce no parameter symbols, declared types record no declared-type `type_facts` (existing golden type rows come from legacy inference, not the wave-1 declared-type contract), and `this.M()` calls in code blocks carry no `receiver_type` metadata.",
+              "required_closure": "emit the three wave-1 receiver-type fact shapes — parameter symbols (kind `variable`, metadata role `parameter`) with declared-type facts, declared-type `type_facts` rows for typed locals and fields, and `receiver_type` call-site metadata for self-style receivers — and extract `@code`/`@functions` block fields as `field` symbols, then register golden evidence and move `field` to supported",
+              "planned_closure_task": "docs/plans/2026-09-08-receiver-type-facts-wave-2.md"
+            }
+          ]
         },
         "relationships": {
           "supported": [
