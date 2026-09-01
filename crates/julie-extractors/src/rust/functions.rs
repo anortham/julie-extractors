@@ -214,7 +214,15 @@ pub(super) fn process_impl_blocks(
                             Value::Bool(parent_id.is_some()),
                         );
 
+                        let method_id = method_symbol.id.clone();
                         symbols.push(method_symbol);
+                        super::locals::extract_callable_locals(
+                            extractor,
+                            child,
+                            Some(method_id),
+                            Some(&impl_block.type_name),
+                            symbols,
+                        );
                     }
                 }
             }

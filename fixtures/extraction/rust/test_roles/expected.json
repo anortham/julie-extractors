@@ -409,6 +409,84 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/rust/test_roles/source.rs:input:18:46",
+      "name": "input",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "start_line": 18,
+      "start_column": 46,
+      "end_line": 18,
+      "end_column": 56,
+      "start_byte": 307,
+      "end_byte": 317,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "input: u32",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/test_roles/source.rs:extracts_rstest_parameterized_case:18:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/test_roles/source.rs:left:24:38",
+      "name": "left",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "start_line": 24,
+      "start_column": 38,
+      "end_line": 24,
+      "end_column": 47,
+      "start_byte": 422,
+      "end_byte": 431,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "left: u32",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/test_roles/source.rs:extracts_rstest_named_case:24:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/test_roles/source.rs:left:30:42",
+      "name": "left",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "start_line": 30,
+      "start_column": 42,
+      "end_line": 30,
+      "end_column": 51,
+      "start_byte": 564,
+      "end_byte": 573,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "left: u32",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/test_roles/source.rs:extracts_test_case_macro_parameterized:30:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/rust/test_roles/source.rs:negated_cfg_support:68:0",
       "name": "negated_cfg_support",
       "kind": "namespace",
@@ -589,6 +667,58 @@
           "raw_text": "tokio::main"
         }
       ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/test_roles/source.rs:right:24:57",
+      "name": "right",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "start_line": 24,
+      "start_column": 57,
+      "end_line": 24,
+      "end_column": 67,
+      "start_byte": 441,
+      "end_byte": 451,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "right: u32",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/test_roles/source.rs:extracts_rstest_named_case:24:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/test_roles/source.rs:right:30:53",
+      "name": "right",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "start_line": 30,
+      "start_column": 53,
+      "end_line": 30,
+      "end_column": 63,
+      "start_byte": 575,
+      "end_byte": 585,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "right: u32",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/test_roles/source.rs:extracts_test_case_macro_parameterized:30:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
       "semantic_group": null,
       "confidence": null,
       "content_type": null
@@ -945,6 +1075,51 @@
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/test_roles/source.rs:input:18:46",
+      "resolved_type": "u32",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/test_roles/source.rs:left:24:38",
+      "resolved_type": "u32",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/test_roles/source.rs:left:30:42",
+      "resolved_type": "u32",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/test_roles/source.rs:right:24:57",
+      "resolved_type": "u32",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/test_roles/source.rs:right:30:53",
+      "resolved_type": "u32",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "rust",
       "metadata": null
     }

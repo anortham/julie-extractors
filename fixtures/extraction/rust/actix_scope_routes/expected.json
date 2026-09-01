@@ -1,6 +1,32 @@
 {
   "symbols": [
     {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:_cfg:52:16",
+      "name": "_cfg",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 52,
+      "start_column": 16,
+      "end_line": 52,
+      "end_column": 45,
+      "start_byte": 1985,
+      "end_byte": 2014,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "_cfg: &mut web::ServiceConfig",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_config:52:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:actix_web:5:0",
       "name": "actix_web",
       "kind": "import",
@@ -212,6 +238,58 @@
       "visibility": "Private",
       "parent_key": null,
       "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:id:33:31",
+      "name": "id",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 33,
+      "start_column": 31,
+      "end_line": 33,
+      "end_column": 38,
+      "start_byte": 1467,
+      "end_byte": 1474,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "id: u32",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:prefix:33:15",
+      "name": "prefix",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 33,
+      "start_column": 15,
+      "end_line": 33,
+      "end_column": 29,
+      "start_byte": 1451,
+      "end_byte": 1465,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "prefix: String",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "metadata": {
+        "role": "parameter"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -2982,6 +3060,17 @@
   ],
   "types": [
     {
+      "symbol_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:_cfg:52:16",
+      "resolved_type": "ServiceConfig",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": {
+        "declared": "&mut web::ServiceConfig"
+      }
+    },
+    {
       "symbol_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_scope:22:0",
       "resolved_type": "App<()>",
       "generic_params": null,
@@ -3023,6 +3112,24 @@
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:id:33:31",
+      "resolved_type": "u32",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:prefix:33:15",
+      "resolved_type": "String",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "rust",
       "metadata": null
     },

@@ -94,6 +94,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/rust/basic/source.rs:count:48:20",
+      "name": "count",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/basic/source.rs",
+      "start_line": 48,
+      "start_column": 20,
+      "end_line": 48,
+      "end_column": 30,
+      "start_byte": 1001,
+      "end_byte": 1011,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "count: i32",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/basic/source.rs:evaluate:48:4",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/rust/basic/source.rs:double:31:4",
       "name": "double",
       "kind": "function",
@@ -125,6 +151,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/rust/basic/source.rs:enabled:48:32",
+      "name": "enabled",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/basic/source.rs",
+      "start_line": 48,
+      "start_column": 32,
+      "end_line": 48,
+      "end_column": 45,
+      "start_byte": 1013,
+      "end_byte": 1026,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "enabled: bool",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/basic/source.rs:evaluate:48:4",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/rust/basic/source.rs:evaluate:48:4",
       "name": "evaluate",
       "kind": "function",
@@ -150,6 +202,32 @@
       "visibility": "Public",
       "parent_key": "fixtures/extraction/rust/basic/source.rs:fixture:3:0",
       "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/basic/source.rs:event:22:23",
+      "name": "event",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/basic/source.rs",
+      "start_line": 22,
+      "start_column": 23,
+      "end_line": 22,
+      "end_column": 34,
+      "start_byte": 474,
+      "end_byte": 485,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "event: &str",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/basic/source.rs:observe_run:22:4",
+      "metadata": {
+        "role": "parameter"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -280,6 +358,58 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/rust/basic/source.rs:id:17:22",
+      "name": "id",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/basic/source.rs",
+      "start_line": 17,
+      "start_column": 22,
+      "end_line": 17,
+      "end_column": 29,
+      "start_byte": 335,
+      "end_byte": 342,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "id: i32",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/basic/source.rs:record_run:17:4",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/basic/source.rs:id:22:36",
+      "name": "id",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/basic/source.rs",
+      "start_line": 22,
+      "start_column": 36,
+      "end_line": 22,
+      "end_column": 43,
+      "start_byte": 487,
+      "end_byte": 494,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "id: i32",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/basic/source.rs:observe_run:22:4",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/rust/basic/source.rs:id:6:8",
       "name": "id",
       "kind": "field",
@@ -393,6 +523,136 @@
       "metadata": {
         "impl_parent_id_resolved": true,
         "impl_type_name": "Worker"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/basic/source.rs:self:10:19",
+      "name": "self",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/basic/source.rs",
+      "start_line": 10,
+      "start_column": 19,
+      "end_line": 10,
+      "end_column": 24,
+      "start_byte": 160,
+      "end_byte": 165,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "&self",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/basic/source.rs:run:10:8",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/basic/source.rs:total:49:8",
+      "name": "total",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/basic/source.rs",
+      "start_line": 49,
+      "start_column": 8,
+      "end_line": 49,
+      "end_column": 26,
+      "start_byte": 1045,
+      "end_byte": 1063,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "let mut total",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/basic/source.rs:evaluate:48:4",
+      "metadata": {
+        "role": "local"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/basic/source.rs:url:40:17",
+      "name": "url",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/basic/source.rs",
+      "start_line": 40,
+      "start_column": 17,
+      "end_line": 40,
+      "end_column": 26,
+      "start_byte": 855,
+      "end_byte": 864,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "url: &str",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/basic/source.rs:fetch_url:40:4",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/basic/source.rs:value:26:18",
+      "name": "value",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/basic/source.rs",
+      "start_line": 26,
+      "start_column": 18,
+      "end_line": 26,
+      "end_column": 28,
+      "start_byte": 552,
+      "end_byte": 562,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "value: i32",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/basic/source.rs:helper:26:4",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/basic/source.rs:value:31:18",
+      "name": "value",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/basic/source.rs",
+      "start_line": 31,
+      "start_column": 18,
+      "end_line": 31,
+      "end_column": 28,
+      "start_byte": 645,
+      "end_byte": 655,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "value: i32",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/basic/source.rs:double:31:4",
+      "metadata": {
+        "role": "parameter"
       },
       "annotations": [],
       "semantic_group": null,
@@ -964,11 +1224,29 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/rust/basic/source.rs:count:48:20",
+      "resolved_type": "i32",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/rust/basic/source.rs:double:31:4",
       "resolved_type": "i32",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/basic/source.rs:enabled:48:32",
+      "resolved_type": "bool",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "rust",
       "metadata": null
     },
@@ -982,6 +1260,17 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/rust/basic/source.rs:event:22:23",
+      "resolved_type": "str",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": {
+        "declared": "&str"
+      }
+    },
+    {
       "symbol_key": "fixtures/extraction/rust/basic/source.rs:helper:26:4",
       "resolved_type": "i32",
       "generic_params": null,
@@ -991,11 +1280,29 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/rust/basic/source.rs:id:17:22",
+      "resolved_type": "i32",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/basic/source.rs:id:22:36",
+      "resolved_type": "i32",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/rust/basic/source.rs:id:6:8",
       "resolved_type": "i32",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "rust",
       "metadata": null
     },
@@ -1005,6 +1312,44 @@
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/basic/source.rs:self:10:19",
+      "resolved_type": "Worker",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/basic/source.rs:url:40:17",
+      "resolved_type": "str",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": {
+        "declared": "&str"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/basic/source.rs:value:26:18",
+      "resolved_type": "i32",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/basic/source.rs:value:31:18",
+      "resolved_type": "i32",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "rust",
       "metadata": null
     }

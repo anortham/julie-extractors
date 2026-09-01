@@ -92,6 +92,84 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/structural_facts/source.rs:value:20:17",
+      "name": "value",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/structural_facts/source.rs",
+      "start_line": 20,
+      "start_column": 17,
+      "end_line": 20,
+      "end_column": 28,
+      "start_byte": 333,
+      "end_byte": 344,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "value: &i32",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/structural_facts/source.rs:read_flag:20:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/structural_facts/source.rs:value:32:19",
+      "name": "value",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/structural_facts/source.rs",
+      "start_line": 32,
+      "start_column": 19,
+      "end_line": 32,
+      "end_column": 29,
+      "start_byte": 500,
+      "end_byte": 510,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "value: i32",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/structural_facts/source.rs:double_flag:32:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/structural_facts/source.rs:value:43:18",
+      "name": "value",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/structural_facts/source.rs",
+      "start_line": 43,
+      "start_column": 18,
+      "end_line": 43,
+      "end_column": 28,
+      "start_byte": 637,
+      "end_byte": 647,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "value: i32",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/structural_facts/source.rs:halve_flag:43:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [],
@@ -243,6 +321,35 @@
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/structural_facts/source.rs:value:20:17",
+      "resolved_type": "i32",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": {
+        "declared": "&i32"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/structural_facts/source.rs:value:32:19",
+      "resolved_type": "i32",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/structural_facts/source.rs:value:43:18",
+      "resolved_type": "i32",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "rust",
       "metadata": null
     }

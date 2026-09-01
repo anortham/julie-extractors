@@ -22,8 +22,10 @@ static VAR_TYPE_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r":\s*([^=\s{]
 mod functions;
 mod helpers;
 mod identifiers;
+mod locals;
 mod relationships;
 mod signatures;
+mod type_facts;
 mod types;
 
 // Re-export types
@@ -153,6 +155,31 @@ impl RustExtractor {
             }
             "function_signature_item" => {
                 signatures::extract_function_signature(self, node, parent_id)
+            }
+            "parameter" => {
+                if !locals::is_callable_parameter(node)
+                    || (is_inside_impl(node) && !self.is_processing_impl_blocks)
+                {
+                    None
+                } else {
+                    locals::extract_parameter(self, node, parent_id)
+                }
+            }
+            "self_parameter" => {
+                if !locals::is_callable_parameter(node)
+                    || (is_inside_impl(node) && !self.is_processing_impl_blocks)
+                {
+                    None
+                } else {
+                    locals::extract_self_parameter(self, node, parent_id, None)
+                }
+            }
+            "let_declaration" => {
+                if is_inside_impl(node) && !self.is_processing_impl_blocks {
+                    None
+                } else {
+                    locals::extract_let_local(self, node, parent_id)
+                }
             }
             "associated_type" => signatures::extract_associated_type(self, node, parent_id),
             "field_declaration" => types::extract_field(self, node, parent_id),

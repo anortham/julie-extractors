@@ -97,6 +97,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/rust/trait_impl/source.rs:result:18:15",
+      "name": "result",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/trait_impl/source.rs",
+      "start_line": 18,
+      "start_column": 15,
+      "end_line": 18,
+      "end_column": 26,
+      "start_byte": 285,
+      "end_byte": 296,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "result: u32",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/trait_impl/source.rs:new:18:4",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/rust/trait_impl/source.rs:result:8:4",
       "name": "result",
       "kind": "field",
@@ -180,6 +206,58 @@
       "visibility": "Public",
       "parent_key": "fixtures/extraction/rust/trait_impl/source.rs:Runnable:2:0",
       "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/trait_impl/source.rs:self:12:11",
+      "name": "self",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/trait_impl/source.rs",
+      "start_line": 12,
+      "start_column": 11,
+      "end_line": 12,
+      "end_column": 16,
+      "start_byte": 209,
+      "end_byte": 214,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "&self",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/trait_impl/source.rs:run:12:4",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/trait_impl/source.rs:self:3:11",
+      "name": "self",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/trait_impl/source.rs",
+      "start_line": 3,
+      "start_column": 11,
+      "end_line": 3,
+      "end_column": 16,
+      "start_byte": 74,
+      "end_byte": 79,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "&self",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/trait_impl/source.rs:run:3:4",
+      "metadata": {
+        "role": "parameter"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -333,11 +411,20 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/rust/trait_impl/source.rs:result:18:15",
+      "resolved_type": "u32",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/rust/trait_impl/source.rs:result:8:4",
       "resolved_type": "u32",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "rust",
       "metadata": null
     },
@@ -356,6 +443,15 @@
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/trait_impl/source.rs:self:12:11",
+      "resolved_type": "FixedJob",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "rust",
       "metadata": null
     }

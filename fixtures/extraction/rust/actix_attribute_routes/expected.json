@@ -236,6 +236,84 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:path:22:17",
+      "name": "path",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_attribute_routes/source.rs",
+      "start_line": 22,
+      "start_column": 17,
+      "end_line": 22,
+      "end_column": 37,
+      "start_byte": 817,
+      "end_byte": 837,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "path: web::Path<u32>",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:destroy:22:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:path:8:14",
+      "name": "path",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_attribute_routes/source.rs",
+      "start_line": 8,
+      "start_column": 14,
+      "end_line": 8,
+      "end_column": 34,
+      "start_byte": 364,
+      "end_byte": 384,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "path: web::Path<u32>",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:show:8:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:self:37:20",
+      "name": "self",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_attribute_routes/source.rs",
+      "start_line": 37,
+      "start_column": 20,
+      "end_line": 37,
+      "end_column": 25,
+      "start_byte": 1240,
+      "end_byte": 1245,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "&self",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:health:37:4",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:show:8:0",
       "name": "show",
       "kind": "function",
@@ -1335,6 +1413,37 @@
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:path:22:17",
+      "resolved_type": "Path",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": {
+        "declared": "web::Path<u32>"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:path:8:14",
+      "resolved_type": "Path",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": {
+        "declared": "web::Path<u32>"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:self:37:20",
+      "resolved_type": "Api",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "rust",
       "metadata": null
     },

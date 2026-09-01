@@ -119,8 +119,8 @@ pub(super) fn extract_field(
     let base = extractor.get_base_mut();
     let name = base.get_node_text(&node.child_by_field_name("name")?);
     let visibility = extract_visibility(base, node);
-    let type_text = node
-        .child_by_field_name("type")
+    let type_node = node.child_by_field_name("type");
+    let type_text = type_node
         .map(|t| base.get_node_text(&t))
         .unwrap_or_default();
 
@@ -136,7 +136,7 @@ pub(super) fn extract_field(
         Visibility::Public
     };
 
-    Some(base.create_symbol(
+    let symbol = base.create_symbol(
         &node,
         name,
         SymbolKind::Field,
@@ -148,7 +148,11 @@ pub(super) fn extract_field(
             metadata: Some(HashMap::new()),
             annotations: Vec::new(),
         },
-    ))
+    );
+    if let Some(type_node) = type_node {
+        super::type_facts::record_declared_type(base, &symbol.id, type_node);
+    }
+    Some(symbol)
 }
 
 /// Extract enum variant (e.g., `Quit`, `Move { x: i32 }`, `Write(String)`)

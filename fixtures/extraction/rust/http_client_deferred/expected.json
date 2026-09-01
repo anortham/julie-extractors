@@ -179,6 +179,84 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:map:18:25",
+      "name": "map",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 18,
+      "start_column": 25,
+      "end_line": 18,
+      "end_column": 67,
+      "start_byte": 642,
+      "end_byte": 684,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "map: std::collections::HashMap<&str, &str>",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:self:36:11",
+      "name": "self",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 36,
+      "start_column": 11,
+      "end_line": 36,
+      "end_column": 15,
+      "start_byte": 1085,
+      "end_byte": 1089,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "self",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/http_client_deferred/source.rs:uri:36:4",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:self:39:12",
+      "name": "self",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 39,
+      "start_column": 12,
+      "end_line": 39,
+      "end_column": 16,
+      "start_byte": 1141,
+      "end_byte": 1145,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "self",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/http_client_deferred/source.rs:body:39:4",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
       "name": "silent",
       "kind": "function",
@@ -261,6 +339,32 @@
       "metadata": {
         "impl_parent_id_resolved": true,
         "impl_type_name": "OtherBuilder"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:url:18:14",
+      "name": "url",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 18,
+      "start_column": 14,
+      "end_line": 18,
+      "end_column": 23,
+      "start_byte": 631,
+      "end_byte": 640,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "url: &str",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "metadata": {
+        "role": "parameter"
       },
       "annotations": [],
       "semantic_group": null,
@@ -1714,6 +1818,35 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/rust/http_client_deferred/source.rs:map:18:25",
+      "resolved_type": "HashMap",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": {
+        "declared": "std::collections::HashMap<&str, &str>"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/http_client_deferred/source.rs:self:36:11",
+      "resolved_type": "OtherBuilder",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/http_client_deferred/source.rs:self:39:12",
+      "resolved_type": "OtherBuilder",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/rust/http_client_deferred/source.rs:uri:36:4",
       "resolved_type": "Self",
       "generic_params": null,
@@ -1721,6 +1854,17 @@
       "is_inferred": true,
       "language": "rust",
       "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/http_client_deferred/source.rs:url:18:14",
+      "resolved_type": "str",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": {
+        "declared": "&str"
+      }
     }
   ],
   "parse_diagnostics": [],

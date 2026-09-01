@@ -25,6 +25,39 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/rust/http_client/source.rs:client:9:4",
+      "name": "client",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client/source.rs",
+      "start_line": 9,
+      "start_column": 4,
+      "end_line": 9,
+      "end_column": 31,
+      "start_byte": 413,
+      "end_byte": 440,
+      "body_span": {
+        "start_line": 9,
+        "start_column": 28,
+        "end_line": 9,
+        "end_column": 30,
+        "start_byte": 437,
+        "end_byte": 439
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "let client",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/http_client/source.rs:load:7:0",
+      "metadata": {
+        "role": "local"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/rust/http_client/source.rs:dynamic:16:0",
       "name": "dynamic",
       "kind": "function",
@@ -50,6 +83,32 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client/source.rs:id:16:21",
+      "name": "id",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client/source.rs",
+      "start_line": 16,
+      "start_column": 21,
+      "end_line": 16,
+      "end_column": 28,
+      "start_byte": 664,
+      "end_byte": 671,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "id: u32",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/http_client/source.rs:dynamic:16:0",
+      "metadata": {
+        "role": "parameter"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -851,11 +910,29 @@
   ],
   "types": [
     {
+      "symbol_key": "fixtures/extraction/rust/http_client/source.rs:client:9:4",
+      "resolved_type": "Client",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "rust",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/rust/http_client/source.rs:dynamic:16:0",
       "resolved_type": "Result<(), reqwest::Error>",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/http_client/source.rs:id:16:21",
+      "resolved_type": "u32",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "rust",
       "metadata": null
     },

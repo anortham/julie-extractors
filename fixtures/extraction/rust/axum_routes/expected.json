@@ -149,6 +149,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/rust/axum_routes/source.rs:app:20:17",
+      "name": "app",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/axum_routes/source.rs",
+      "start_line": 20,
+      "start_column": 17,
+      "end_line": 20,
+      "end_column": 28,
+      "start_byte": 695,
+      "end_byte": 706,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "app: Router",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/axum_routes/source.rs:add_admin:20:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/rust/axum_routes/source.rs:axum:3:0",
       "name": "axum",
       "kind": "import",
@@ -360,6 +386,32 @@
       "visibility": "Private",
       "parent_key": null,
       "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/axum_routes/source.rs:id:26:15",
+      "name": "id",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/axum_routes/source.rs",
+      "start_line": 26,
+      "start_column": 15,
+      "end_line": 26,
+      "end_column": 22,
+      "start_byte": 887,
+      "end_byte": 894,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "id: u32",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/axum_routes/source.rs:dynamic:26:0",
+      "metadata": {
+        "role": "parameter"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -1993,11 +2045,29 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/rust/axum_routes/source.rs:app:20:17",
+      "resolved_type": "Router",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/rust/axum_routes/source.rs:dynamic:26:0",
       "resolved_type": "Router",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/axum_routes/source.rs:id:26:15",
+      "resolved_type": "u32",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "rust",
       "metadata": null
     }
