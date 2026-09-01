@@ -77,12 +77,19 @@ impl super::JavaScriptExtractor {
                                 let name = self.base.get_node_text(&property_node);
                                 let containing_symbol_id =
                                     self.find_containing_symbol_id(node, symbol_map);
+                                let receiver_type = function_node
+                                    .child_by_field_name("object")
+                                    .filter(|object| object.kind() == "this")
+                                    .and_then(|_| {
+                                        ecmascript_enclosing_class_name(&self.base, node)
+                                    });
 
-                                self.base.create_identifier(
+                                self.base.create_identifier_with_receiver_type(
                                     &property_node,
                                     name,
                                     IdentifierKind::Call,
                                     containing_symbol_id,
+                                    receiver_type,
                                 );
                             }
                         }
@@ -299,6 +306,28 @@ impl super::JavaScriptExtractor {
 // Rule 5 note: `this` / `true` / `false` / `null` / `undefined` are distinct
 // node kinds in both grammars (never `identifier`), so keywords are structurally
 // excluded and no name-based builtin filter is needed.
+
+/// The enclosing class name for a `this.`-receiver call: the nearest class-like
+/// ancestor's declared name. Shared by the JavaScript and TypeScript extractors;
+/// an anonymous class expression yields nothing.
+pub(crate) fn ecmascript_enclosing_class_name(
+    base: &crate::base::BaseExtractor,
+    node: Node,
+) -> Option<String> {
+    let mut current = node.parent();
+    while let Some(candidate) = current {
+        if matches!(
+            candidate.kind(),
+            "class_declaration" | "abstract_class_declaration" | "class"
+        ) {
+            return candidate
+                .child_by_field_name("name")
+                .map(|name_node| base.get_node_text(&name_node));
+        }
+        current = candidate.parent();
+    }
+    None
+}
 
 /// Rule 1/4 predicate: is this bare `identifier` a value read or a member-access
 /// receiver — the complement of the Call/MemberAccess/TypeUsage arms? The default

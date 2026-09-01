@@ -412,6 +412,7 @@ fn create_identifier_with_offset(
         containing_symbol_id,
         target_symbol_id: None,
         confidence: 1.0,
+        receiver_type: None,
         code_context: None,
     };
 

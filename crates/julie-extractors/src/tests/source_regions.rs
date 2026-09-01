@@ -443,10 +443,13 @@ pub fn greet() {
         .iter()
         .find(|region| region.kind == SourceRegionKind::StringLiteral)
         .expect("expected string literal source region");
-    assert_eq!(
-        string_literal.containing_symbol_id.as_deref(),
-        Some(greet.id.as_str())
-    );
+    let literal_owner = results
+        .symbols
+        .iter()
+        .find(|symbol| Some(symbol.id.as_str()) == string_literal.containing_symbol_id.as_deref())
+        .expect("string literal containing symbol must exist");
+    assert_eq!(literal_owner.name, "name");
+    assert_eq!(literal_owner.parent_id.as_deref(), Some(greet.id.as_str()));
     assert!(string_literal.end_byte > string_literal.start_byte);
 }
 

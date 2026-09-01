@@ -373,6 +373,11 @@ pub struct Identifier {
     pub target_symbol_id: Option<String>,
     /// Confidence score for identifier extraction (0.0 to 1.0)
     pub confidence: f32,
+    /// Enclosing type name, recorded only when the call's receiver is the
+    /// language's self reference (`this`/`base`). Rides into the artifact
+    /// identifier `metadata_json` under key `"receiver_type"`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub receiver_type: Option<String>,
     /// Always `None`. Per-identifier code context was write-only dead weight —
     /// roughly half of all identifier bytes in the scan spool and the artifact —
     /// and no consumer ever read it, so extractors stopped populating it.

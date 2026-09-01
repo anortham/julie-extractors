@@ -605,6 +605,87 @@ public class Decorated {
     }
 
     #[test]
+    fn this_receiver_call_records_enclosing_type_as_receiver_type() {
+        let source = r#"
+public class OrderService : ServiceBase
+{
+    public void Process()
+    {
+        this.Persist();
+        base.Restore();
+        Log();
+    }
+}
+"#;
+        let results =
+            crate::extract_canonical("OrderService.cs", source, std::path::Path::new("/tmp/test"))
+                .expect("canonical C# extraction must succeed");
+
+        let call = |name: &str| {
+            results
+                .identifiers
+                .iter()
+                .find(|id| id.name == name && id.kind == IdentifierKind::Call)
+                .unwrap_or_else(|| panic!("missing call identifier {name}"))
+        };
+        assert_eq!(
+            call("Persist").receiver_type.as_deref(),
+            Some("OrderService")
+        );
+        assert_eq!(
+            call("Restore").receiver_type.as_deref(),
+            Some("ServiceBase")
+        );
+        assert_eq!(call("Log").receiver_type, None);
+
+        let pending = |name: &str| {
+            results
+                .structured_pending_relationships
+                .iter()
+                .find(|p| p.target.terminal_name == name)
+                .unwrap_or_else(|| panic!("missing structured pending for {name}"))
+        };
+        assert_eq!(
+            pending("Persist").receiver_type.as_deref(),
+            Some("OrderService")
+        );
+        assert_eq!(
+            pending("Restore").receiver_type.as_deref(),
+            Some("ServiceBase")
+        );
+        assert_eq!(pending("Log").receiver_type, None);
+    }
+
+    #[test]
+    fn base_receiver_without_declared_base_type_records_no_receiver_type() {
+        let source = r#"
+public class Standalone
+{
+    public void Run()
+    {
+        base.Finish();
+    }
+}
+"#;
+        let results =
+            crate::extract_canonical("Standalone.cs", source, std::path::Path::new("/tmp/test"))
+                .expect("canonical C# extraction must succeed");
+
+        let finish = results
+            .identifiers
+            .iter()
+            .find(|id| id.name == "Finish" && id.kind == IdentifierKind::Call)
+            .expect("missing call identifier Finish");
+        assert_eq!(finish.receiver_type, None);
+        let pending = results
+            .structured_pending_relationships
+            .iter()
+            .find(|p| p.target.terminal_name == "Finish")
+            .expect("missing structured pending for Finish");
+        assert_eq!(pending.receiver_type, None);
+    }
+
+    #[test]
     fn test_csharp_object_creation_emits_constructor_call_identifier() {
         let csharp_code = r#"
 public class User {}

@@ -6,7 +6,9 @@
 mod type_arguments;
 
 use crate::base::{Identifier, IdentifierKind, Symbol, extract_type_arguments};
-use crate::javascript::identifiers::is_ecmascript_value_read_identifier;
+use crate::javascript::identifiers::{
+    ecmascript_enclosing_class_name, is_ecmascript_value_read_identifier,
+};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use crate::typescript::TypeScriptExtractor;
 use std::collections::HashMap;
@@ -88,12 +90,19 @@ fn extract_identifier_from_node(
                             let name = extractor.base().get_node_text(&property_node);
                             let containing_symbol_id =
                                 find_containing_symbol_id(extractor, node, symbol_map);
+                            let receiver_type = function_node
+                                .child_by_field_name("object")
+                                .filter(|object| object.kind() == "this")
+                                .and_then(|_| {
+                                    ecmascript_enclosing_class_name(extractor.base(), node)
+                                });
 
-                            extractor.base_mut().create_identifier(
+                            extractor.base_mut().create_identifier_with_receiver_type(
                                 &property_node,
                                 name,
                                 IdentifierKind::Call,
                                 containing_symbol_id,
+                                receiver_type,
                             );
                         }
                     }

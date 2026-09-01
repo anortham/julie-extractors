@@ -60,11 +60,13 @@ fn extract_identifier_from_node(
                         let name = base.get_node_text(&name_node);
                         let containing_symbol_id =
                             find_containing_symbol_id(base, node, symbol_map);
-                        base.create_identifier(
+                        let receiver_type = self_receiver_type(base, child);
+                        base.create_identifier_with_receiver_type(
                             &name_node,
                             name,
                             IdentifierKind::Call,
                             containing_symbol_id,
+                            receiver_type,
                         );
                     }
                     break;
@@ -280,6 +282,70 @@ fn direct_identifier<'a>(base: &BaseExtractor, node: Node<'a>) -> Option<(Node<'
         }
     }
 
+    None
+}
+
+/// The self-receiver type name for a call: when the receiver token is exactly
+/// `this`, the nearest enclosing type declaration's name; when it is exactly
+/// `base`, the first declared base-list entry's name, only when a base list is
+/// syntactically present. Accepts an `invocation_expression` or the
+/// `member_access_expression` it invokes.
+pub(super) fn self_receiver_type(base: &BaseExtractor, node: Node) -> Option<String> {
+    let member_access = match node.kind() {
+        "member_access_expression" => node,
+        "invocation_expression" => node
+            .child_by_field_name("function")
+            .filter(|function| function.kind() == "member_access_expression")?,
+        _ => return None,
+    };
+    let receiver = member_access.child(0)?;
+    match receiver.kind() {
+        "this" => enclosing_type_name(base, member_access),
+        "base" => declared_base_type_name(base, member_access),
+        _ => None,
+    }
+}
+
+fn enclosing_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
+    let mut current = node.parent();
+    while let Some(candidate) = current {
+        if matches!(
+            candidate.kind(),
+            "class_declaration"
+                | "struct_declaration"
+                | "record_declaration"
+                | "interface_declaration"
+        ) {
+            return candidate
+                .child_by_field_name("name")
+                .map(|name_node| base.get_node_text(&name_node));
+        }
+        current = candidate.parent();
+    }
+    None
+}
+
+fn declared_base_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
+    let mut current = node.parent();
+    while let Some(candidate) = current {
+        if matches!(candidate.kind(), "class_declaration" | "record_declaration") {
+            let mut cursor = candidate.walk();
+            let base_list = candidate
+                .children(&mut cursor)
+                .find(|child| child.kind() == "base_list")?;
+            let mut entry_cursor = base_list.walk();
+            let first_entry = base_list
+                .named_children(&mut entry_cursor)
+                .find(|entry| entry.kind() != "argument_list")?;
+            let type_node = if first_entry.kind() == "primary_constructor_base_type" {
+                first_entry.child_by_field_name("type")?
+            } else {
+                first_entry
+            };
+            return terminal_type_identifier(base, type_node, 0).map(|(_, name)| name);
+        }
+        current = candidate.parent();
+    }
     None
 }
 

@@ -94,6 +94,20 @@ impl BaseExtractor {
         kind: IdentifierKind,
         containing_symbol_id: Option<String>,
     ) -> Identifier {
+        self.create_identifier_with_receiver_type(node, name, kind, containing_symbol_id, None)
+    }
+
+    /// Create an identifier that carries a `receiver_type`: the enclosing type
+    /// name recorded when the call's receiver is the language's self reference
+    /// (`this`/`base`).
+    pub fn create_identifier_with_receiver_type(
+        &mut self,
+        node: &Node,
+        name: String,
+        kind: IdentifierKind,
+        containing_symbol_id: Option<String>,
+        receiver_type: Option<String>,
+    ) -> Identifier {
         let span = NormalizedSpan::from_node(node);
 
         // Generate unique ID for this identifier
@@ -114,6 +128,7 @@ impl BaseExtractor {
             containing_symbol_id,
             target_symbol_id: None, // Unresolved - will be resolved on-demand in C#
             confidence: 1.0,        // Default high confidence for tree-sitter extractions
+            receiver_type,
             code_context: None,
         };
 

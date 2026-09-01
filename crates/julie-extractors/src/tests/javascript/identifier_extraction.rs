@@ -22,6 +22,42 @@ fn init_parser() -> Parser {
 }
 
 #[test]
+fn this_receiver_call_records_enclosing_class_as_receiver_type() {
+    let js_code = r#"
+class OrderService {
+    process() {
+        this.persist();
+        log();
+    }
+}
+"#;
+    let mut parser = init_parser();
+    let tree = parser.parse(js_code, None).unwrap();
+
+    let workspace_root = PathBuf::from("/tmp/test");
+    let mut extractor = JavaScriptExtractor::new(
+        "javascript".to_string(),
+        "orderService.js".to_string(),
+        js_code.to_string(),
+        &workspace_root,
+    );
+    let symbols = extractor.extract_symbols(&tree);
+    let identifiers = extractor.extract_identifiers(&tree, &symbols);
+
+    let persist = identifiers
+        .iter()
+        .find(|id| id.name == "persist" && id.kind == IdentifierKind::Call)
+        .expect("missing call identifier persist");
+    assert_eq!(persist.receiver_type.as_deref(), Some("OrderService"));
+
+    let log = identifiers
+        .iter()
+        .find(|id| id.name == "log" && id.kind == IdentifierKind::Call)
+        .expect("missing call identifier log");
+    assert_eq!(log.receiver_type, None);
+}
+
+#[test]
 fn test_extract_function_calls() {
     let js_code = r#"
 function add(a, b) {

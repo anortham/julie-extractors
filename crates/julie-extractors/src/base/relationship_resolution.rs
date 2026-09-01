@@ -60,6 +60,15 @@ pub struct StructuredPendingRelationship {
     pub span: Option<PendingSpan>,
     #[serde(default)]
     pub reference_site_is_exact: bool,
+    /// Enclosing type name, recorded only when the call's receiver is the
+    /// language's self reference (`this`/`base`). Rides into the artifact
+    /// pending `metadata_json` under key `"receiver_type"`.
+    #[serde(
+        rename = "receiverType",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub receiver_type: Option<String>,
 }
 
 impl StructuredPendingRelationship {
@@ -78,6 +87,7 @@ impl StructuredPendingRelationship {
             caller_scope_symbol_id,
             span: None,
             reference_site_is_exact: false,
+            receiver_type: None,
             pending: PendingRelationship {
                 from_symbol_id,
                 callee_name: display_name,
@@ -97,6 +107,11 @@ impl StructuredPendingRelationship {
     pub fn with_target_span(mut self, span: PendingSpan) -> Self {
         self.span = Some(span);
         self.reference_site_is_exact = true;
+        self
+    }
+
+    pub fn with_receiver_type(mut self, receiver_type: Option<String>) -> Self {
+        self.receiver_type = receiver_type;
         self
     }
 

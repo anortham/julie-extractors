@@ -42,6 +42,45 @@ fn test_extract_function_calls() {
 }
 
 #[test]
+fn this_receiver_call_records_enclosing_class_as_receiver_type() {
+    let code = r#"
+class OrderService {
+    process(): void {
+        this.persist();
+        log();
+    }
+}
+"#;
+    let mut parser = tree_sitter::Parser::new();
+    parser
+        .set_language(&tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into())
+        .unwrap();
+    let tree = parser.parse(code, None).unwrap();
+
+    let workspace_root = PathBuf::from("/tmp/test");
+    let mut extractor = TypeScriptExtractor::new(
+        "typescript".to_string(),
+        "orderService.ts".to_string(),
+        code.to_string(),
+        &workspace_root,
+    );
+    let symbols = extractor.extract_symbols(&tree);
+    let identifiers = extractor.extract_identifiers(&tree, &symbols);
+
+    let persist = identifiers
+        .iter()
+        .find(|id| id.name == "persist" && id.kind == IdentifierKind::Call)
+        .expect("missing call identifier persist");
+    assert_eq!(persist.receiver_type.as_deref(), Some("OrderService"));
+
+    let log = identifiers
+        .iter()
+        .find(|id| id.name == "log" && id.kind == IdentifierKind::Call)
+        .expect("missing call identifier log");
+    assert_eq!(log.receiver_type, None);
+}
+
+#[test]
 fn test_typescript_new_expression_emits_constructor_call_identifier() {
     let code = r#"
 class ServiceClient {}

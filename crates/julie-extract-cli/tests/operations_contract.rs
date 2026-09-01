@@ -278,7 +278,10 @@ fn scan_creates_sqlite_artifact_with_expected_rows() {
         report["counts"]["totals"]["complexity_metrics"],
         complexity_metric_count
     );
-    assert_eq!(symbols_for_path(&db, "src/a.rs"), vec!["alpha", "helper"]);
+    assert_eq!(
+        symbols_for_path(&db, "src/a.rs"),
+        vec!["alpha", "helper", "message"]
+    );
     assert_eq!(symbols_for_path(&db, "src/b.rs"), vec!["beta"]);
 }
 
@@ -556,6 +559,73 @@ describe("math", () => {
 }
 
 #[test]
+fn scan_persists_receiver_type_metadata_on_identifiers_and_pending_relationships() {
+    let fixture = FixtureRoot::with_file(
+        "src/OrderService.cs",
+        r#"
+public class OrderService : ServiceBase
+{
+    public void Process()
+    {
+        this.Persist();
+        Log();
+    }
+}
+"#,
+    );
+    let db = fixture.path("artifact.sqlite");
+
+    assert_success(julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]));
+
+    let conn = Connection::open(&db).unwrap();
+    let identifier_receiver_type: String = conn
+        .query_row(
+            "SELECT json_extract(metadata_json, '$.receiver_type') FROM identifiers \
+             WHERE name = 'Persist' AND kind = 'call'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(identifier_receiver_type, "OrderService");
+
+    let pending_receiver_type: String = conn
+        .query_row(
+            "SELECT json_extract(metadata_json, '$.receiver_type') FROM pending_relationships \
+             WHERE target_terminal_name = 'Persist'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(pending_receiver_type, "OrderService");
+
+    assert_eq!(
+        scalar_i64(
+            &db,
+            "SELECT COUNT(*) FROM identifiers \
+             WHERE name = 'Log' AND json_extract(metadata_json, '$.receiver_type') IS NOT NULL",
+        ),
+        0,
+        "calls without a self receiver must not carry receiver_type metadata"
+    );
+    assert_eq!(
+        scalar_i64(
+            &db,
+            "SELECT COUNT(*) FROM pending_relationships \
+             WHERE target_terminal_name = 'Log' AND metadata_json IS NOT NULL",
+        ),
+        0,
+        "pendings without a self receiver must keep metadata_json NULL"
+    );
+}
+
+#[test]
 fn scan_metadata_fingerprints_are_computed_sha256_hashes() {
     let fixture = FixtureRoot::new();
     let db = fixture.path("artifact.sqlite");
@@ -823,7 +893,10 @@ fn scan_preserves_existing_rows_when_discovery_cannot_read_directory() {
     assert_eq!(report["counts"]["files_deleted"], 0);
     assert_eq!(report["errors"][0]["code"], "read_failed");
     assert_eq!(report["errors"][0]["root_relative_path"], "src");
-    assert_eq!(symbols_for_path(&db, "src/a.rs"), vec!["alpha", "helper"]);
+    assert_eq!(
+        symbols_for_path(&db, "src/a.rs"),
+        vec!["alpha", "helper", "message"]
+    );
     assert_eq!(symbols_for_path(&db, "src/b.rs"), vec!["beta"]);
 }
 
@@ -950,7 +1023,10 @@ fn scan_preserves_existing_symbols_when_changed_file_becomes_unreadable() {
     assert_eq!(report["errors"][0]["code"], "read_failed");
     assert_eq!(report["errors"][0]["root_relative_path"], "src/a.rs");
 
-    assert_eq!(symbols_for_path(&db, "src/a.rs"), vec!["alpha", "helper"]);
+    assert_eq!(
+        symbols_for_path(&db, "src/a.rs"),
+        vec!["alpha", "helper", "message"]
+    );
     assert_eq!(symbols_for_path(&db, "src/b.rs"), vec!["beta"]);
     assert_eq!(file_status_for_path(&db, "src/a.rs"), "failed_preserved");
     assert_eq!(diagnostics_for_path(&db, "src/a.rs"), vec!["error"]);
@@ -1352,7 +1428,7 @@ fn info_is_read_only_for_artifact_metadata_and_revisions() {
     assert_eq!(report["status"], "ok");
     assert_eq!(report["operation"], "info");
     assert_eq!(report["counts"]["totals"]["files"], 2);
-    assert_eq!(report["counts"]["totals"]["symbols"], 3);
+    assert_eq!(report["counts"]["totals"]["symbols"], 4);
     assert_eq!(artifact_fingerprint(&db), before);
 }
 
@@ -1453,7 +1529,7 @@ fn info_reports_missing_noncritical_metadata_as_warning() {
     assert_eq!(report["counts"]["totals"]["files"], 2);
     assert_eq!(table_count(&db, "extraction_revisions"), 1);
     assert_eq!(table_count(&db, "files"), 2);
-    assert_eq!(table_count(&db, "symbols"), 3);
+    assert_eq!(table_count(&db, "symbols"), 4);
     // 11 base metadata keys + the `index_level` key every scan stamps, minus the
     // deleted `updated_at`.
     assert_eq!(table_count(&db, "artifact_metadata"), 11);
@@ -1492,7 +1568,7 @@ fn export_jsonl_emits_valid_jsonl_records_from_scanned_artifact() {
     assert_eq!(report["mode"], "jsonl");
     assert_eq!(report["artifact"]["jsonl_schema_version"], 5);
     assert_eq!(report["counts"]["rows_written"]["files"], 2);
-    assert_eq!(report["counts"]["rows_written"]["symbols"], 3);
+    assert_eq!(report["counts"]["rows_written"]["symbols"], 4);
     let records = std::fs::read_to_string(&out).unwrap();
     let parsed = records
         .lines()

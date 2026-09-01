@@ -538,6 +538,12 @@ fn map_identifiers(
                     );
                 }
             }
+            if let Some(receiver_type) = identifier.receiver_type.as_ref() {
+                metadata.insert(
+                    "receiver_type".to_string(),
+                    serde_json::Value::String(receiver_type.clone()),
+                );
+            }
             Ok(ArtifactIdentifier {
                 identifier_id: identifier.id.clone(),
                 reference_site_id: exact_reference_site_id(
@@ -743,7 +749,13 @@ fn map_structured_pending(
             ReferenceSiteProvenance::Spanless
         },
         confidence: f64::from(pending.pending.confidence),
-        metadata_json: None,
+        metadata_json: pending.receiver_type.as_ref().map(|receiver_type| {
+            serde_json::Value::Object(serde_json::Map::from_iter([(
+                "receiver_type".to_string(),
+                serde_json::Value::String(receiver_type.clone()),
+            )]))
+            .to_string()
+        }),
     })
 }
 

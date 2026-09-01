@@ -219,6 +219,7 @@ fn extract_pseudo_calls_from_selector_node(
                     containing_symbol_id,
                     target_symbol_id: None,
                     confidence: 1.0,
+                    receiver_type: None,
                     code_context: None,
                 });
             }

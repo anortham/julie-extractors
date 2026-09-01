@@ -487,6 +487,7 @@ fn handle_call_target(
     let Some(caller) = caller else {
         return;
     };
+    let receiver_type = super::identifiers::self_receiver_type(base, call_node);
 
     let line_number = call_node.start_position().row as u32 + 1;
     let file_path = base.file_path.clone();
@@ -519,14 +520,17 @@ fn handle_call_target(
             });
         }
         LocalTargetResolution::Import(_) => {
-            let pending = extractor.get_base().create_pending_relationship(
-                caller.id.clone(),
-                target,
-                RelationshipKind::Calls,
-                &call_node,
-                Some(caller.id.clone()),
-                Some(0.8),
-            );
+            let pending = extractor
+                .get_base()
+                .create_pending_relationship(
+                    caller.id.clone(),
+                    target,
+                    RelationshipKind::Calls,
+                    &call_node,
+                    Some(caller.id.clone()),
+                    Some(0.8),
+                )
+                .with_receiver_type(receiver_type);
             extractor.add_structured_pending_relationship(pending);
         }
         LocalTargetResolution::Ambiguous
@@ -534,14 +538,17 @@ fn handle_call_target(
         | LocalTargetResolution::Missing => {
             // Target not found in local symbols - likely a method on imported type
             // Create PendingRelationship for cross-file resolution
-            let pending = extractor.get_base().create_pending_relationship(
-                caller.id.clone(),
-                target,
-                RelationshipKind::Calls,
-                &call_node,
-                Some(caller.id.clone()),
-                Some(0.7),
-            );
+            let pending = extractor
+                .get_base()
+                .create_pending_relationship(
+                    caller.id.clone(),
+                    target,
+                    RelationshipKind::Calls,
+                    &call_node,
+                    Some(caller.id.clone()),
+                    Some(0.7),
+                )
+                .with_receiver_type(receiver_type);
             extractor.add_structured_pending_relationship(pending);
         }
     }

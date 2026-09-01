@@ -137,6 +137,7 @@ fn test_identifier(
         containing_symbol_id: None,
         target_symbol_id: None,
         confidence: 1.0,
+        receiver_type: None,
         code_context: None,
     }
 }

@@ -197,6 +197,8 @@ struct NormalizedStructuredPendingRelationship {
     target: NormalizedUnresolvedTarget,
     caller_scope_key: Option<String>,
     span: Option<NormalizedBodySpan>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    receiver_type: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -224,6 +226,8 @@ struct NormalizedIdentifier {
     containing_key: Option<String>,
     target_key: Option<String>,
     confidence: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    receiver_type: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -848,6 +852,7 @@ fn normalize_structured_pending(
             .as_ref()
             .map(|id| lookup_symbol_key(id, symbol_keys)),
         span: pending.span.map(normalize_body_span),
+        receiver_type: pending.receiver_type.clone(),
     }
 }
 
@@ -886,6 +891,7 @@ fn normalize_identifier(
             .as_ref()
             .map(|id| lookup_symbol_key(id, symbol_keys)),
         confidence: normalize_confidence(identifier.confidence),
+        receiver_type: identifier.receiver_type.clone(),
     }
 }
 
