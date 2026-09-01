@@ -49,4 +49,14 @@ defmodule Fixture.Worker do
       if count > 0, do: 1, else: 0
     end
   end
+
+  def bind(%Worker{} = w, n), do: {w, n}
+
+  def assemble(x) do
+    y = %Job{id: x}
+    z = Map.new()
+    q = %{a: 1}
+    {y, z, q}
+  end
+
 end

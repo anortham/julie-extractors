@@ -116,6 +116,30 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/elixir/cross_file/source.ex:total:11:4",
+      "name": "total",
+      "kind": "variable",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/cross_file/source.ex",
+      "start_line": 11,
+      "start_column": 4,
+      "end_line": 11,
+      "end_column": 9,
+      "start_byte": 365,
+      "end_byte": 370,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "total =\n      if local_helper() > 0 do\n        for i <- 1..2, reduce: 0 do\n          acc -> acc + i\n        end\n      else\n        0\n      end",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [
