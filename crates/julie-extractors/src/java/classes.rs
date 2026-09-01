@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use tree_sitter::Node;
 
 use super::helpers;
+use super::type_facts;
 
 /// Extract class declaration from a node
 pub(super) fn extract_class(
@@ -343,13 +344,18 @@ pub(super) fn extract_record_components(
             parent_id: parent_id.map(|s| s.to_string()),
             ..Default::default()
         };
-
-        components.push(extractor.base_mut().create_symbol(
+        let symbol = extractor.base_mut().create_symbol(
             &parameter,
             name,
             SymbolKind::Property,
             options,
-        ));
+        );
+        if parameter.child_by_field_name("dimensions").is_none() {
+            if let Some(type_node) = parameter.child_by_field_name("type") {
+                type_facts::record_declared_type(extractor.base_mut(), &symbol.id, type_node);
+            }
+        }
+        components.push(symbol);
     }
 
     components

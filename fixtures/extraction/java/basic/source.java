@@ -85,4 +85,13 @@ class Worker implements Job {
         int latest = fixture.Worker.evaluate(2, true);
         fixture.Worker.observeRun("qualified-audit", latest);
     }
+
+    void consume(Job[] jobs) {
+        for (Job job : jobs) {
+            if (job instanceof Worker bound) {
+                bound.run();
+            }
+        }
+        this.recordRun(id);
+    }
 }

@@ -1,4 +1,4 @@
-use crate::base::{Symbol, SymbolKind, TypeInfo};
+use crate::base::{IdentifierKind, Symbol, SymbolKind, TypeInfo};
 use crate::java::JavaExtractor;
 use std::path::PathBuf;
 
@@ -225,7 +225,7 @@ class Sample {
 }
 
 #[test]
-fn lambda_parameters_produce_no_symbols() {
+fn inferred_lambda_parameter_becomes_symbol_without_fact() {
     let source = r#"
 class Sample {
   void run(List<Job> jobs) {
@@ -233,12 +233,73 @@ class Sample {
   }
 }
 "#;
-    let (symbols, _extractor) = extract(source);
-    assert!(!symbols.iter().any(|s| s.name == "item"));
+    let (symbols, extractor) = extract(source);
+    let method = symbol(&symbols, "run", SymbolKind::Method);
+    let item = symbol(&symbols, "item", SymbolKind::Variable);
+    assert_eq!(item.parent_id.as_deref(), Some(method.id.as_str()));
+    assert_eq!(
+        item.metadata
+            .as_ref()
+            .and_then(|m| m.get("role"))
+            .and_then(|v| v.as_str()),
+        Some("parameter")
+    );
+    assert!(extractor.base.type_info.get(&item.id).is_none());
 }
 
 #[test]
-fn catch_parameter_produces_no_symbol() {
+fn parenthesized_inferred_lambda_parameters_become_symbols_without_facts() {
+    let source = r#"
+class Sample {
+  void run(List<Job> jobs) {
+    jobs.forEach((item, extra) -> process(item));
+  }
+}
+"#;
+    let (symbols, extractor) = extract(source);
+    let method = symbol(&symbols, "run", SymbolKind::Method);
+    let item = symbol(&symbols, "item", SymbolKind::Variable);
+    let extra = symbol(&symbols, "extra", SymbolKind::Variable);
+    assert_eq!(item.parent_id.as_deref(), Some(method.id.as_str()));
+    assert_eq!(extra.parent_id.as_deref(), Some(method.id.as_str()));
+    assert_eq!(
+        item.metadata
+            .as_ref()
+            .and_then(|m| m.get("role"))
+            .and_then(|v| v.as_str()),
+        Some("parameter")
+    );
+    assert!(extractor.base.type_info.get(&item.id).is_none());
+    assert!(extractor.base.type_info.get(&extra.id).is_none());
+}
+
+#[test]
+fn typed_lambda_parameter_records_declared_type() {
+    let source = r#"
+class Sample {
+  void run(List<Job> jobs) {
+    jobs.forEach((Job item) -> process(item));
+  }
+}
+"#;
+    let (symbols, extractor) = extract(source);
+    let method = symbol(&symbols, "run", SymbolKind::Method);
+    let item = symbol(&symbols, "item", SymbolKind::Variable);
+    assert_eq!(item.parent_id.as_deref(), Some(method.id.as_str()));
+    assert_eq!(
+        item.metadata
+            .as_ref()
+            .and_then(|m| m.get("role"))
+            .and_then(|v| v.as_str()),
+        Some("parameter")
+    );
+    let item_fact = fact(&extractor, &symbols, "item", SymbolKind::Variable);
+    assert_eq!(item_fact.resolved_type, "Job");
+    assert!(!item_fact.is_inferred);
+}
+
+#[test]
+fn catch_multi_type_parameter_becomes_symbol_without_fact() {
     let source = r#"
 class Sample {
   void run() {
@@ -249,8 +310,123 @@ class Sample {
   }
 }
 "#;
-    let (symbols, _extractor) = extract(source);
-    assert!(!symbols.iter().any(|s| s.name == "failure"));
+    let (symbols, extractor) = extract(source);
+    let method = symbol(&symbols, "run", SymbolKind::Method);
+    let failure = symbol(&symbols, "failure", SymbolKind::Variable);
+    assert_eq!(failure.parent_id.as_deref(), Some(method.id.as_str()));
+    assert!(extractor.base.type_info.get(&failure.id).is_none());
+}
+
+#[test]
+fn catch_parameter_records_declared_type() {
+    let source = r#"
+class Sample {
+  void run() {
+    try {
+      fetch();
+    } catch (IllegalStateException failure) {
+    }
+  }
+}
+"#;
+    let (symbols, extractor) = extract(source);
+    let method = symbol(&symbols, "run", SymbolKind::Method);
+    let failure = symbol(&symbols, "failure", SymbolKind::Variable);
+    assert_eq!(failure.parent_id.as_deref(), Some(method.id.as_str()));
+    let failure_fact = fact(&extractor, &symbols, "failure", SymbolKind::Variable);
+    assert_eq!(failure_fact.resolved_type, "IllegalStateException");
+    assert!(!failure_fact.is_inferred);
+}
+
+#[test]
+fn resource_records_declared_type() {
+    let source = r#"
+class Sample {
+  void run() {
+    try (Reader in = open()) {
+    }
+  }
+}
+"#;
+    let (symbols, extractor) = extract(source);
+    let method = symbol(&symbols, "run", SymbolKind::Method);
+    let resource = symbol(&symbols, "in", SymbolKind::Variable);
+    assert_eq!(resource.parent_id.as_deref(), Some(method.id.as_str()));
+    let resource_fact = fact(&extractor, &symbols, "in", SymbolKind::Variable);
+    assert_eq!(resource_fact.resolved_type, "Reader");
+    assert!(!resource_fact.is_inferred);
+}
+
+#[test]
+fn enhanced_for_variable_records_declared_type() {
+    let source = r#"
+class Sample {
+  void run(List<Job> jobs) {
+    for (Job job : jobs) {
+    }
+  }
+}
+"#;
+    let (symbols, extractor) = extract(source);
+    let method = symbol(&symbols, "run", SymbolKind::Method);
+    let job = symbol(&symbols, "job", SymbolKind::Variable);
+    assert_eq!(job.parent_id.as_deref(), Some(method.id.as_str()));
+    let job_fact = fact(&extractor, &symbols, "job", SymbolKind::Variable);
+    assert_eq!(job_fact.resolved_type, "Job");
+    assert!(!job_fact.is_inferred);
+}
+
+#[test]
+fn enhanced_for_var_records_no_fact() {
+    let source = r#"
+class Sample {
+  void run(List<Job> jobs) {
+    for (var job : jobs) {
+    }
+  }
+}
+"#;
+    let (symbols, extractor) = extract(source);
+    let job = symbol(&symbols, "job", SymbolKind::Variable);
+    assert!(extractor.base.type_info.get(&job.id).is_none());
+}
+
+#[test]
+fn instanceof_pattern_binding_records_declared_type() {
+    let source = r#"
+class Sample {
+  void run(Object value) {
+    if (value instanceof Job bound) {
+    }
+  }
+}
+"#;
+    let (symbols, extractor) = extract(source);
+    let method = symbol(&symbols, "run", SymbolKind::Method);
+    let bound = symbol(&symbols, "bound", SymbolKind::Variable);
+    assert_eq!(bound.parent_id.as_deref(), Some(method.id.as_str()));
+    let bound_fact = fact(&extractor, &symbols, "bound", SymbolKind::Variable);
+    assert_eq!(bound_fact.resolved_type, "Job");
+    assert!(!bound_fact.is_inferred);
+}
+
+#[test]
+fn record_components_record_declared_types() {
+    let source = r#"
+record Packet(String name, int size) {}
+"#;
+    let (symbols, extractor) = extract(source);
+    let packet = symbol(&symbols, "Packet", SymbolKind::Class);
+    let name = symbol(&symbols, "name", SymbolKind::Property);
+    let size = symbol(&symbols, "size", SymbolKind::Property);
+    assert_eq!(name.parent_id.as_deref(), Some(packet.id.as_str()));
+    assert_eq!(size.parent_id.as_deref(), Some(packet.id.as_str()));
+    let name_fact = fact(&extractor, &symbols, "name", SymbolKind::Property);
+    assert_eq!(name_fact.resolved_type, "String");
+    assert!(!name_fact.is_inferred);
+    let size_fact = fact(&extractor, &symbols, "size", SymbolKind::Property);
+    assert_eq!(size_fact.resolved_type, "int");
+    assert!(!size_fact.is_inferred);
 }
 
 #[test]
@@ -347,4 +523,79 @@ class Sample {
     assert!(extractor.base.type_info.get(&reset.id).is_none());
     let ctor = symbol(&symbols, "Sample", SymbolKind::Constructor);
     assert!(extractor.base.type_info.get(&ctor.id).is_none());
+}
+
+fn extract_with_calls(source: &str) -> (Vec<Symbol>, JavaExtractor) {
+    let mut parser = tree_sitter::Parser::new();
+    parser
+        .set_language(&tree_sitter_java::LANGUAGE.into())
+        .unwrap();
+    let tree = parser.parse(source, None).unwrap();
+    let workspace_root = PathBuf::from("/tmp/test");
+    let mut extractor = JavaExtractor::new(
+        "java".to_string(),
+        "type_facts.java".to_string(),
+        source.to_string(),
+        &workspace_root,
+    );
+    let symbols = extractor.extract_symbols(&tree);
+    extractor.extract_identifiers(&tree, &symbols);
+    extractor.extract_relationships(&tree, &symbols);
+    (symbols, extractor)
+}
+
+#[test]
+fn this_and_super_calls_record_receiver_type_on_identifier_and_pending() {
+    let source = r#"
+class ServiceBase {}
+class OrderService extends ServiceBase {
+  void process(Worker other) {
+    this.persist();
+    super.restore();
+    other.fetch();
+  }
+}
+class Solo {
+  void run() {
+    super.absent();
+  }
+}
+"#;
+    let (_symbols, extractor) = extract_with_calls(source);
+    let call = |name: &str| {
+        extractor
+            .base
+            .identifiers
+            .iter()
+            .find(|id| id.name == name && id.kind == IdentifierKind::Call)
+            .unwrap_or_else(|| panic!("missing call identifier {name}"))
+    };
+    assert_eq!(
+        call("persist").receiver_type.as_deref(),
+        Some("OrderService")
+    );
+    assert_eq!(
+        call("restore").receiver_type.as_deref(),
+        Some("ServiceBase")
+    );
+    assert_eq!(call("fetch").receiver_type, None);
+    assert_eq!(call("absent").receiver_type, None);
+
+    let pending = |name: &str| {
+        extractor
+            .get_structured_pending_relationships()
+            .into_iter()
+            .find(|p| p.target.terminal_name == name)
+            .unwrap_or_else(|| panic!("missing structured pending for {name}"))
+    };
+    assert_eq!(
+        pending("persist").receiver_type.as_deref(),
+        Some("OrderService")
+    );
+    assert_eq!(
+        pending("restore").receiver_type.as_deref(),
+        Some("ServiceBase")
+    );
+    assert_eq!(pending("fetch").receiver_type, None);
+    assert_eq!(pending("absent").receiver_type, None);
 }

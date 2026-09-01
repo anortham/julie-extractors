@@ -5,6 +5,8 @@ use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
+use super::helpers;
+
 /// Extract all identifier usages (function calls, member access, etc.)
 /// Following the Rust extractor reference implementation pattern
 pub(super) fn extract_identifiers(
@@ -59,12 +61,14 @@ fn extract_identifier_from_node(
             if let Some(name_node) = node.child_by_field_name("name") {
                 let name = extractor.base().get_node_text(&name_node);
                 let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+                let receiver_type = self_receiver_type(extractor.base(), node);
 
-                let identifier = extractor.base_mut().create_identifier(
+                let identifier = extractor.base_mut().create_identifier_with_receiver_type(
                     &name_node,
                     name,
                     IdentifierKind::Call,
                     containing_symbol_id,
+                    receiver_type,
                 );
                 // Generic method calls: `list.<String>stream()` carry a `type_arguments`
                 // field directly on the method_invocation node.
@@ -86,12 +90,14 @@ fn extract_identifier_from_node(
                         let name = extractor.base().get_node_text(&child);
                         let containing_symbol_id =
                             find_containing_symbol_id(extractor, node, symbol_map);
+                        let receiver_type = self_receiver_type(extractor.base(), node);
 
-                        extractor.base_mut().create_identifier(
+                        extractor.base_mut().create_identifier_with_receiver_type(
                             &child,
                             name,
                             IdentifierKind::Call,
                             containing_symbol_id,
+                            receiver_type,
                         );
                         break;
                     }
@@ -450,4 +456,52 @@ fn java_carrier(base: &BaseExtractor, call_node: Node) -> Option<String> {
         (None, Some(n)) => Some(n),
         _ => None,
     }
+}
+
+pub(super) fn self_receiver_type(base: &BaseExtractor, node: Node) -> Option<String> {
+    let object = node.child_by_field_name("object")?;
+    match object.kind() {
+        "this" => enclosing_type_name(base, node),
+        "super" => declared_superclass_name(base, node),
+        _ => None,
+    }
+}
+
+fn enclosing_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
+    let mut current = node.parent();
+    while let Some(candidate) = current {
+        if matches!(
+            candidate.kind(),
+            "class_declaration"
+                | "interface_declaration"
+                | "enum_declaration"
+                | "record_declaration"
+                | "annotation_type_declaration"
+        ) {
+            return candidate
+                .child_by_field_name("name")
+                .or_else(|| {
+                    candidate
+                        .children(&mut candidate.walk())
+                        .find(|child| child.kind() == "identifier")
+                })
+                .map(|name_node| base.get_node_text(&name_node));
+        }
+        current = candidate.parent();
+    }
+    None
+}
+
+fn declared_superclass_name(base: &BaseExtractor, node: Node) -> Option<String> {
+    let mut current = node.parent();
+    while let Some(candidate) = current {
+        if matches!(
+            candidate.kind(),
+            "class_declaration" | "enum_declaration" | "record_declaration"
+        ) {
+            return helpers::extract_superclass(base, candidate);
+        }
+        current = candidate.parent();
+    }
+    None
 }
