@@ -1,5 +1,6 @@
 use crate::base::{BaseExtractor, RelationshipKind, Symbol, SymbolKind, UnresolvedTarget};
 use crate::lua::{LuaExtractor, helpers};
+use super::type_facts;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
@@ -106,14 +107,20 @@ fn process_function_call(
             None => {
                 // Target not found in local symbols - likely a cross-file call
                 // Create PendingRelationship for cross-file resolution
-                let pending = extractor.base().create_pending_relationship(
-                    caller_symbol.id.clone(),
-                    target,
-                    RelationshipKind::Calls,
-                    &node,
-                    Some(caller_symbol.id.clone()),
-                    Some(0.7),
-                );
+                let pending = extractor
+                    .base()
+                    .create_pending_relationship(
+                        caller_symbol.id.clone(),
+                        target,
+                        RelationshipKind::Calls,
+                        &node,
+                        Some(caller_symbol.id.clone()),
+                        Some(0.7),
+                    )
+                    .with_receiver_type(type_facts::call_receiver_type(
+                        extractor.base(),
+                        node,
+                    ));
                 extractor.add_structured_pending_relationship(pending);
             }
         }
@@ -131,11 +138,10 @@ fn find_enclosing_function<'a>(
             | "function_definition_statement"
             | "local_function_declaration"
             | "local_function_definition_statement" => {
-                if let Some(identifier) = helpers::find_child_by_type(&parent, "identifier") {
-                    let caller_name = base.get_node_text(&identifier);
-                    if let Some(symbol) = symbol_map.get(caller_name.as_str()) {
-                        return Some(*symbol);
-                    }
+                if let Some(caller_name) = callable_name(base, parent)
+                    && let Some(symbol) = symbol_map.get(caller_name.as_str())
+                {
+                    return Some(*symbol);
                 }
             }
             _ => {}
@@ -143,4 +149,21 @@ fn find_enclosing_function<'a>(
         node = parent;
     }
     None
+}
+
+fn callable_name(base: &BaseExtractor, node: Node) -> Option<String> {
+    if let Some(name) = node.child_by_field_name("name") {
+        return match name.kind() {
+            "identifier" => Some(base.get_node_text(&name)),
+            "method_index_expression" => name
+                .child_by_field_name("method")
+                .map(|method| base.get_node_text(&method)),
+            "dot_index_expression" => name
+                .child_by_field_name("field")
+                .map(|field| base.get_node_text(&field)),
+            _ => None,
+        };
+    }
+    helpers::find_child_by_type(&node, "identifier")
+        .map(|identifier| base.get_node_text(&identifier))
 }

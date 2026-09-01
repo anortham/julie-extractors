@@ -1,4 +1,5 @@
 use super::helpers;
+use super::parameters;
 /// Function and method definition extraction
 ///
 /// Handles extraction of:
@@ -144,6 +145,11 @@ pub(super) fn extract_function_definition_statement(
 
     let symbol = base.create_symbol(&node, name, kind, options);
     symbols.push(symbol.clone());
+    symbols.extend(parameters::extract_parameter_symbols(
+        base,
+        node,
+        &symbol.id,
+    ));
     Some(symbol)
 }
 
@@ -173,5 +179,10 @@ pub(super) fn extract_local_function_definition_statement(
 
     let symbol = base.create_symbol(&node, name, SymbolKind::Function, options);
     symbols.push(symbol.clone());
+    symbols.extend(parameters::extract_parameter_symbols(
+        base,
+        node,
+        &symbol.id,
+    ));
     Some(symbol)
 }
