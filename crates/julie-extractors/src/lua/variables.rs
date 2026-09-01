@@ -13,7 +13,7 @@ use std::collections::HashMap;
 use tree_sitter::Node;
 
 /// Collect non-comma children from an expression_list node.
-fn collect_expression_nodes<'a>(expr_list: Node<'a>) -> Vec<Node<'a>> {
+pub(super) fn collect_expression_nodes<'a>(expr_list: Node<'a>) -> Vec<Node<'a>> {
     let mut cursor = expr_list.walk();
     expr_list
         .children(&mut cursor)

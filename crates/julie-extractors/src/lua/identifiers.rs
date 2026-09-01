@@ -1,4 +1,5 @@
 use super::helpers;
+use super::type_facts;
 /// Identifier extraction for LSP-quality find_references
 ///
 /// Extracts all identifier usages:
@@ -90,12 +91,14 @@ fn extract_identifier_from_node(
                         let name = extractor.base().get_node_text(last_identifier);
                         let containing_symbol_id =
                             find_containing_symbol_id(extractor, node, symbol_map);
+                        let receiver_type = type_facts::call_receiver_type(extractor.base(), node);
 
-                        extractor.base_mut().create_identifier(
+                        extractor.base_mut().create_identifier_with_receiver_type(
                             last_identifier,
                             name,
                             IdentifierKind::Call,
                             containing_symbol_id,
+                            receiver_type,
                         );
                     }
                 }
@@ -117,12 +120,14 @@ fn extract_identifier_from_node(
             if let Some(method_node) = identifiers.last() {
                 let name = extractor.base().get_node_text(method_node);
                 let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+                let receiver_type = type_facts::call_receiver_type(extractor.base(), node);
 
-                extractor.base_mut().create_identifier(
+                extractor.base_mut().create_identifier_with_receiver_type(
                     method_node,
                     name,
                     IdentifierKind::Call,
                     containing_symbol_id,
+                    receiver_type,
                 );
             }
         }

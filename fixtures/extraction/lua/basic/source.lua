@@ -20,6 +20,10 @@ function Worker:run()
     return helper(self.id)
 end
 
+function Worker:log()
+    return self:run()
+end
+
 local function evaluate(count, enabled)
     local total = 0
     if enabled then
@@ -35,5 +39,8 @@ end
 local co = coroutine.create(function()
     return 1
 end)
+
+local worker = Worker.new(1)
+local boxed = setmetatable({}, Worker)
 
 return Worker

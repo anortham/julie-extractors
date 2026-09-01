@@ -18,6 +18,8 @@ mod identifiers;
 mod relationships;
 mod tables;
 pub(crate) mod test_calls;
+mod parameters;
+mod type_facts;
 mod variables;
 
 use crate::base::{
@@ -55,8 +57,12 @@ impl LuaExtractor {
         // Use core module to traverse and extract symbols
         core::traverse_tree(&mut self.symbols, &mut self.base, tree.root_node(), None, 0);
 
-        // Post-process to detect Lua class patterns
         classes::detect_lua_classes(&mut self.symbols);
+        type_facts::record_inferred_constructor_facts(
+            &mut self.base,
+            tree.root_node(),
+            &self.symbols,
+        );
 
         self.symbols.clone()
     }

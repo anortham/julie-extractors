@@ -16,6 +16,7 @@ pub mod relationships;
 pub mod tables;
 pub mod test_detection; // busted call-style test detection (Miller bridge test-roles)
 pub mod variables;
+pub mod type_facts;
 
 use crate::base::{SymbolKind, Visibility};
 use crate::lua::LuaExtractor;
