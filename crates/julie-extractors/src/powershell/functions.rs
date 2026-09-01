@@ -11,6 +11,7 @@ use std::sync::LazyLock;
 use tree_sitter::Node;
 
 use super::documentation;
+use super::type_facts;
 use super::helpers::{
     extract_command_annotation_attributes, extract_function_name_from_param_block,
     extract_parameter_annotation_attributes, extract_parameter_attributes, find_function_name_node,
@@ -151,12 +152,12 @@ pub(super) fn extract_function_parameters(
                         signature: Some(signature),
                         visibility: Some(Visibility::Public),
                         parent_id: Some(parent_id.to_string()),
-                        metadata: None,
+                        metadata: Some(parameter_role_metadata()),
                         doc_comment,
                         annotations,
                     },
                 );
-
+                type_facts::record_declared_type_literal(base, &param_symbol.id, param_def);
                 parameters.push(param_symbol);
             }
         }
@@ -199,15 +200,44 @@ pub(super) fn extract_function_parameters(
                         signature: Some(signature),
                         visibility: Some(Visibility::Public),
                         parent_id: Some(parent_id.to_string()),
-                        metadata: None,
+                        metadata: Some(parameter_role_metadata()),
                         doc_comment,
                         annotations,
                     },
                 );
 
+                type_facts::record_declared_type_literal(base, &param_symbol.id, script_param);
                 parameters.push(param_symbol);
             }
         }
+    }
+
+    let method_params = find_nodes_by_type(func_node, "class_method_parameter");
+    for method_param in method_params {
+        let mut cursor = method_param.walk();
+        let Some(variable_node) = method_param
+            .children(&mut cursor)
+            .find(|child| child.kind() == "variable")
+        else {
+            continue;
+        };
+        let param_name = base.get_node_text(&variable_node).replace("$", "");
+        let signature = base.get_node_text(&method_param);
+        let param_symbol = base.create_symbol(
+            &method_param,
+            param_name,
+            SymbolKind::Variable,
+            SymbolOptions {
+                signature: Some(signature),
+                visibility: Some(Visibility::Public),
+                parent_id: Some(parent_id.to_string()),
+                metadata: Some(parameter_role_metadata()),
+                doc_comment: None,
+                annotations: Vec::new(),
+            },
+        );
+        type_facts::record_declared_type_literal(base, &param_symbol.id, method_param);
+        parameters.push(param_symbol);
     }
 
     parameters
@@ -290,4 +320,11 @@ fn extract_script_parameter_signature(base: &BaseExtractor, node: Node) -> Optio
     } else {
         Some(name)
     }
+}
+
+fn parameter_role_metadata() -> HashMap<String, serde_json::Value> {
+    HashMap::from([(
+        "role".to_string(),
+        serde_json::Value::String("parameter".to_string()),
+    )])
 }

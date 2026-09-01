@@ -63,7 +63,13 @@ function Get-AllUsers {
         assert!(!results.types.is_empty());
         for type_info in results.types.values() {
             assert_eq!(type_info.language, "powershell");
-            assert!(type_info.is_inferred);
         }
+        assert!(
+            results
+                .types
+                .values()
+                .any(|type_info| type_info.resolved_type == "int" && !type_info.is_inferred),
+            "typed parameter [int]$UserId should record a declared int fact"
+        );
     }
 }
