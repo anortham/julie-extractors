@@ -91,6 +91,133 @@ namespace App {
 }
 
 #[test]
+fn parameters_of_constructors_local_functions_indexers_and_operators_link_to_their_callable() {
+    let source = r#"
+namespace App {
+  public class Service {
+    public Service(int seed) { }
+    public int this[int index] => index;
+    public static Service operator +(Service left, Service right) => left;
+    public int Run(int outer) {
+      int Local(int inner) => inner + outer;
+      return Local(outer);
+    }
+  }
+}
+"#;
+    let (symbols, _) = extract(source);
+    let symbol = |name: &str| {
+        symbols
+            .iter()
+            .find(|s| s.name == name)
+            .unwrap_or_else(|| panic!("missing symbol {name}"))
+    };
+    let parameter = |name: &str| {
+        let found = symbol(name);
+        assert_eq!(found.kind, SymbolKind::Variable);
+        assert_eq!(
+            found
+                .metadata
+                .as_ref()
+                .and_then(|m| m.get("role"))
+                .and_then(|v| v.as_str()),
+            Some("parameter"),
+            "{name} must carry role=parameter"
+        );
+        found
+    };
+
+    let constructor = symbols
+        .iter()
+        .find(|s| s.kind == SymbolKind::Constructor)
+        .expect("missing constructor symbol");
+    assert_eq!(
+        parameter("seed").parent_id.as_deref(),
+        Some(constructor.id.as_str())
+    );
+    assert_eq!(
+        parameter("index").parent_id.as_deref(),
+        Some(symbol("this[int index]").id.as_str())
+    );
+    let operator = symbol("operator +");
+    assert_eq!(
+        parameter("left").parent_id.as_deref(),
+        Some(operator.id.as_str())
+    );
+    assert_eq!(
+        parameter("right").parent_id.as_deref(),
+        Some(operator.id.as_str())
+    );
+    assert_eq!(
+        parameter("inner").parent_id.as_deref(),
+        Some(symbol("Local").id.as_str())
+    );
+    assert_eq!(
+        parameter("outer").parent_id.as_deref(),
+        Some(symbol("Run").id.as_str())
+    );
+}
+
+#[test]
+fn lambda_parameters_link_to_the_lambda_symbol() {
+    let source = r#"
+namespace App {
+  public class Service {
+    public void Run() {
+      System.Func<int, int> typed = (int explicitParam) => explicitParam;
+      System.Func<int, int> bare = simpleParam => simpleParam;
+    }
+  }
+}
+"#;
+    let (symbols, _) = extract(source);
+    let parameters: Vec<_> = symbols
+        .iter()
+        .filter(|s| {
+            s.metadata
+                .as_ref()
+                .and_then(|m| m.get("role"))
+                .and_then(|v| v.as_str())
+                == Some("parameter")
+        })
+        .collect();
+
+    let explicit = parameters
+        .iter()
+        .find(|s| s.name == "explicitParam")
+        .expect("typed lambda parameter must be a symbol");
+    let explicit_parent = symbols
+        .iter()
+        .find(|s| Some(s.id.as_str()) == explicit.parent_id.as_deref())
+        .expect("typed lambda parameter must have a parent");
+    assert_eq!(
+        explicit_parent
+            .metadata
+            .as_ref()
+            .and_then(|m| m.get("type"))
+            .and_then(|v| v.as_str()),
+        Some("lambda")
+    );
+
+    let bare = parameters
+        .iter()
+        .find(|s| s.name == "simpleParam")
+        .expect("bare lambda parameter must be a symbol");
+    let bare_parent = symbols
+        .iter()
+        .find(|s| Some(s.id.as_str()) == bare.parent_id.as_deref())
+        .expect("bare lambda parameter must have a parent");
+    assert_eq!(
+        bare_parent
+            .metadata
+            .as_ref()
+            .and_then(|m| m.get("type"))
+            .and_then(|v| v.as_str()),
+        Some("lambda")
+    );
+}
+
+#[test]
 fn infers_declared_types_for_locals_and_parameters() {
     let source = r#"
 namespace App {

@@ -498,6 +498,9 @@ fn declarator_initializer_node(declarator: Node) -> Option<Node> {
 }
 
 fn parameter_name(base: &BaseExtractor, node: Node) -> Option<String> {
+    if node.kind() == "implicit_parameter" {
+        return Some(base.get_node_text(&node));
+    }
     if let Some(name) = node.child_by_field_name("name") {
         return Some(base.get_node_text(&name));
     }
