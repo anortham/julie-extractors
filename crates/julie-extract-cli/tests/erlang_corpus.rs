@@ -41,20 +41,22 @@ use tempfile::TempDir;
 /// declared after the first broken macro (`span/3`, `execute/2`, `list_handlers/1`,
 /// `report_cb/1`) plus the four private helpers between them (`assert_event_names/1`,
 /// `assert_event_prefix/1`, `assert_event_name/1`, `merge_ctx/2`). Its 24 = 1 module
-/// + 11 `-type` + 12 functions.
+/// + 11 `-type` + 12 functions. Receiver-type facts add one `variable` symbol per
+/// distinct parameter name under each function (metadata role `parameter`, no
+/// visibility), so `telemetry.erl` now carries 52 rows: those 24 plus 28 parameters.
 const BASELINE: &[FileBaseline] = &[
-    FileBaseline::new("certifi-2.15.0/src/certifi.erl", 3, 0),
-    FileBaseline::new("certifi-2.15.0/src/certifi_pt.erl", 5, 0),
-    FileBaseline::new("telemetry-1.3.0/src/telemetry.erl", 24, 45),
+    FileBaseline::new("certifi-2.15.0/src/certifi.erl", 5, 0),
+    FileBaseline::new("certifi-2.15.0/src/certifi_pt.erl", 14, 0),
+    FileBaseline::new("telemetry-1.3.0/src/telemetry.erl", 52, 45),
     FileBaseline::new("telemetry-1.3.0/src/telemetry.hrl", 13, 2),
-    FileBaseline::new("telemetry-1.3.0/src/telemetry_app.erl", 3, 0),
-    FileBaseline::new("telemetry-1.3.0/src/telemetry_handler_table.erl", 15, 0),
-    FileBaseline::new("telemetry-1.3.0/src/telemetry_sup.erl", 4, 0),
-    FileBaseline::new("telemetry-1.3.0/src/telemetry_test.erl", 3, 0),
-    FileBaseline::new("unicode_util_compat-0.7.1/src/string_compat.erl", 152, 0),
+    FileBaseline::new("telemetry-1.3.0/src/telemetry_app.erl", 6, 0),
+    FileBaseline::new("telemetry-1.3.0/src/telemetry_handler_table.erl", 40, 0),
+    FileBaseline::new("telemetry-1.3.0/src/telemetry_sup.erl", 6, 0),
+    FileBaseline::new("telemetry-1.3.0/src/telemetry_test.erl", 12, 0),
+    FileBaseline::new("unicode_util_compat-0.7.1/src/string_compat.erl", 729, 0),
     FileBaseline::new(
         "unicode_util_compat-0.7.1/src/unicode_util_compat.erl",
-        58,
+        206,
         0,
     ),
 ];
@@ -330,7 +332,7 @@ fn symbols_in(connection: &Connection, path: &str) -> BTreeSet<(String, String, 
             Ok((
                 row.get::<_, String>(0)?,
                 row.get::<_, String>(1)?,
-                row.get::<_, String>(2)?,
+                row.get::<_, Option<String>>(2)?.unwrap_or_default(),
             ))
         })
         .expect("query symbols")
