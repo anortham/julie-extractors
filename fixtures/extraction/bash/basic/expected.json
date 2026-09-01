@@ -18,7 +18,9 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/bash/basic/source.sh:evaluate:12:0",
-      "metadata": {},
+      "metadata": {
+        "role": "parameter"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -42,7 +44,9 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/bash/basic/source.sh:helper:3:0",
-      "metadata": {},
+      "metadata": {
+        "role": "parameter"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -66,7 +70,9 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/bash/basic/source.sh:run_worker:8:0",
-      "metadata": {},
+      "metadata": {
+        "role": "parameter"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -90,7 +96,9 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/bash/basic/source.sh:evaluate:12:0",
-      "metadata": {},
+      "metadata": {
+        "role": "parameter"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -145,6 +153,54 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/bash/basic/source.sh:MAX:27:9",
+      "name": "MAX",
+      "kind": "constant",
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/basic/source.sh",
+      "start_line": 27,
+      "start_column": 9,
+      "end_line": 27,
+      "end_column": 14,
+      "start_byte": 424,
+      "end_byte": 429,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "MAX=3",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/bash/basic/source.sh:MAX:27:9",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/bash/basic/source.sh:MAX:27:9",
+      "name": "MAX",
+      "kind": "constant",
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/basic/source.sh",
+      "start_line": 27,
+      "start_column": 9,
+      "end_line": 27,
+      "end_column": 14,
+      "start_byte": 424,
+      "end_byte": 429,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "readonly MAX",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/bash/basic/source.sh:bash:1:0",
       "name": "bash",
       "kind": "variable",
@@ -152,10 +208,10 @@
       "file_path": "fixtures/extraction/bash/basic/source.sh",
       "start_line": 1,
       "start_column": 0,
-      "end_line": 27,
+      "end_line": 29,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 415,
+      "end_byte": 431,
       "body_span": {
         "start_line": 3,
         "start_column": 9,
@@ -733,6 +789,15 @@
       "metadata": null
     },
     {
+      "symbol_key": "unresolved:MAX",
+      "resolved_type": "integer",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "bash",
+      "metadata": null
+    },
+    {
       "symbol_key": "unresolved:bash",
       "resolved_type": "string",
       "generic_params": null,
@@ -884,18 +949,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "bash",
       "file_path": "fixtures/extraction/bash/basic/source.sh",
-      "covered_lines": 27,
-      "covered_bytes": 415,
+      "covered_lines": 29,
+      "covered_bytes": 431,
       "decision_count": 2,
       "loop_count": 1,
       "max_nesting_depth": 2,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 27,
+      "end_line": 29,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 415,
+      "end_byte": 431,
       "metadata": {
         "metric_version": 1
       }
