@@ -109,11 +109,15 @@ fn extract_identifier_from_node(
                             let containing_symbol_id =
                                 find_containing_symbol_id(extractor, node, symbol_map);
 
-                            extractor.base.create_identifier(
+                            extractor.base.create_identifier_with_receiver_type(
                                 &property_node,
                                 name,
                                 IdentifierKind::Call,
                                 containing_symbol_id,
+                                super::relationships::call_receiver_type(
+                                    &extractor.base,
+                                    function_node,
+                                ),
                             );
                         }
                     }
@@ -244,18 +248,37 @@ fn find_containing_symbol_id(
     node: Node,
     symbol_map: &HashMap<String, &Symbol>,
 ) -> Option<String> {
+    let node_start = node.start_byte() as u32;
+    let node_end = node.end_byte() as u32;
     let mut current = node;
 
     while let Some(parent) = current.parent() {
-        let parent_line = parent.start_position().row + 1;
-
-        // Check if this parent matches any symbol by line number
+        let parent_line = (parent.start_position().row + 1) as u32;
+        let mut best: Option<&Symbol> = None;
         for symbol in symbol_map.values() {
-            if symbol.start_line == parent_line as u32 {
-                return Some(symbol.id.clone());
+            if symbol.start_line != parent_line
+                || symbol.start_byte > node_start
+                || symbol.end_byte < node_end
+            {
+                continue;
+            }
+            let span = symbol.end_byte.saturating_sub(symbol.start_byte);
+            let take = match best {
+                None => true,
+                Some(current_best) => {
+                    let current_span = current_best
+                        .end_byte
+                        .saturating_sub(current_best.start_byte);
+                    span < current_span || (span == current_span && symbol.id < current_best.id)
+                }
+            };
+            if take {
+                best = Some(*symbol);
             }
         }
-
+        if let Some(symbol) = best {
+            return Some(symbol.id.clone());
+        }
         current = parent;
     }
 

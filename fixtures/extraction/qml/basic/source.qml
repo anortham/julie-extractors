@@ -4,6 +4,10 @@ Item {
     id: root
     property string title: "Worker"
     property int workerId: 0
+    property LocalCard card
+    property list<Item> rows
+    property var payload
+    property alias label: title
     signal activated(string value)
 
     /**
@@ -33,6 +37,16 @@ Item {
     }
 
     function fetchUrl(url) {
+    }
+
+    function formatPair(title, count) {
+    }
+
+    function seed() {
+        let localCard = new LocalCard()
+        let d = new Date()
+        let n = compute()
+        let graph = new ns.GraphTraversal()
     }
 
     function evaluate(count, enabled) {

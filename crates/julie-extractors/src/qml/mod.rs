@@ -6,6 +6,8 @@ mod identifiers;
 mod imports;
 mod relationships;
 mod semantics;
+mod locals;
+mod type_facts;
 mod typeinfo;
 
 pub(crate) use imports::{import_kind, source_kind as import_source_kind};
@@ -134,6 +136,7 @@ impl QmlExtractor {
                     let symbol =
                         self.base
                             .create_symbol(&node, name, SymbolKind::Property, options);
+                    type_facts::record_property_type(&mut self.base, &symbol.id, node);
                     self.symbols.push(symbol);
                 }
             }
@@ -324,6 +327,22 @@ impl QmlExtractor {
                     let symbol =
                         self.base
                             .create_symbol(&node, name, SymbolKind::Function, options);
+                    let function_id = symbol.id.clone();
+                    self.symbols.extend(
+                        crate::javascript::parameters::extract_parameter_symbols(
+                            &mut self.base,
+                            node,
+                            &function_id,
+                        )
+                        .into_iter()
+                        .map(|(param, _)| param),
+                    );
+                    self.symbols.extend(locals::extract_function_locals(
+                        &mut self.base,
+                        node,
+                        &function_id,
+                        depth,
+                    ));
                     self.symbols.push(symbol);
                 }
             }
@@ -392,18 +411,24 @@ impl QmlExtractor {
                 if let Some(caller_symbol) =
                     self.find_containing_function_in_symbols(node, symbol_map)
                 {
-                    let pending = self.base.create_pending_relationship(
-                        caller_symbol.id.clone(),
-                        semantics::build_unresolved_target(
+                    let pending = self
+                        .base
+                        .create_pending_relationship(
+                            caller_symbol.id.clone(),
+                            semantics::build_unresolved_target(
+                                &self.base,
+                                function_node,
+                                &function_name,
+                            ),
+                            crate::base::RelationshipKind::Calls,
+                            &node,
+                            Some(caller_symbol.id.clone()),
+                            Some(0.7),
+                        )
+                        .with_receiver_type(relationships::call_receiver_type(
                             &self.base,
                             function_node,
-                            &function_name,
-                        ),
-                        crate::base::RelationshipKind::Calls,
-                        &node,
-                        Some(caller_symbol.id.clone()),
-                        Some(0.7),
-                    );
+                        ));
                     self.add_structured_pending_relationship(pending);
                 }
             }

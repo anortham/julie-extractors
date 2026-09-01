@@ -1,7 +1,9 @@
 // QML Relationship Extraction
 // Extracts relationships between QML symbols: function calls, signal connections, component instantiation
 
-use crate::base::{Relationship, RelationshipKind, Symbol, SymbolKind, UnresolvedTarget};
+use crate::base::{
+    BaseExtractor, Relationship, RelationshipKind, Symbol, SymbolKind, UnresolvedTarget,
+};
 use crate::qml::QmlExtractor;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
@@ -424,4 +426,86 @@ fn find_containing_component<'a>(node: Node, symbols: &'a [Symbol]) -> Option<&'
         current = parent;
     }
     None
+}
+
+pub(super) fn call_receiver_type(base: &BaseExtractor, function_node: Node) -> Option<String> {
+    if function_node.kind() != "member_expression" {
+        return None;
+    }
+    let object = function_node.child_by_field_name("object")?;
+    let (type_name, object_id) = enclosing_object_type_and_id(base, function_node)?;
+    match object.kind() {
+        "this" => Some(type_name),
+        "identifier" if object_id.as_deref() == Some(base.get_node_text(&object).as_str()) => {
+            Some(type_name)
+        }
+        _ => None,
+    }
+}
+
+fn enclosing_object_type_and_id(
+    base: &BaseExtractor,
+    node: Node,
+) -> Option<(String, Option<String>)> {
+    let mut current = node.parent();
+    while let Some(candidate) = current {
+        if candidate.kind() == "ui_object_definition" {
+            let type_name = object_type_name(base, candidate)?;
+            let object_id = object_id_binding(base, candidate);
+            return Some((type_name, object_id));
+        }
+        current = candidate.parent();
+    }
+    None
+}
+
+fn object_type_name(base: &BaseExtractor, object_node: Node) -> Option<String> {
+    if is_root_object(object_node) {
+        return std::path::Path::new(&base.file_path)
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .map(|s| s.to_string());
+    }
+    object_node
+        .child_by_field_name("type_name")
+        .map(|name_node| base.get_node_text(&name_node))
+}
+
+fn is_root_object(object_node: Node) -> bool {
+    let mut current = object_node.parent();
+    while let Some(parent) = current {
+        if parent.kind() == "ui_object_definition" {
+            return false;
+        }
+        current = parent.parent();
+    }
+    true
+}
+
+fn object_id_binding(base: &BaseExtractor, object_node: Node) -> Option<String> {
+    let initializer = object_node.child_by_field_name("initializer")?;
+    let mut cursor = initializer.walk();
+    for child in initializer.named_children(&mut cursor) {
+        if child.kind() != "ui_binding" {
+            continue;
+        }
+        let Some(name_node) = child.child_by_field_name("name") else {
+            continue;
+        };
+        if base.get_node_text(&name_node) != "id" {
+            continue;
+        }
+        return id_binding_value(base, child);
+    }
+    None
+}
+
+fn id_binding_value(base: &BaseExtractor, binding_node: Node) -> Option<String> {
+    let value_node = binding_node.child_by_field_name("value")?;
+    if value_node.kind() == "expression_statement" {
+        return value_node
+            .named_child(0)
+            .map(|inner| base.get_node_text(&inner));
+    }
+    Some(base.get_node_text(&value_node))
 }
