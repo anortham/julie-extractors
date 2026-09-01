@@ -325,16 +325,19 @@ fn enclosing_member_visibility(extractor: &RExtractor, node: Node) -> Option<Str
     None
 }
 
-fn call_name(extractor: &RExtractor, call: Node) -> Option<String> {
+pub(super) fn call_name(extractor: &RExtractor, call: Node) -> Option<String> {
     let callee = call.child(0)?;
-    if callee.kind() == "identifier" {
-        clean_r_name(&extractor.base.get_node_text(&callee))
-    } else {
-        None
+    match callee.kind() {
+        "identifier" => clean_r_name(&extractor.base.get_node_text(&callee)),
+        "namespace_operator" => {
+            let rhs = callee.child(2)?;
+            clean_r_name(&extractor.base.get_node_text(&rhs))
+        }
+        _ => None,
     }
 }
 
-fn positional_string_argument(extractor: &RExtractor, args: Node, index: usize) -> Option<String> {
+pub(super) fn positional_string_argument(extractor: &RExtractor, args: Node, index: usize) -> Option<String> {
     split_top_level_arguments(argument_list_text(&extractor.base.get_node_text(&args)).as_str())
         .into_iter()
         .filter(|argument| !argument.contains('='))
