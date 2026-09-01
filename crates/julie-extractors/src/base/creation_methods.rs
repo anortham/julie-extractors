@@ -368,12 +368,34 @@ impl BaseExtractor {
         rules: &TypeNameRules,
         is_inferred: bool,
     ) {
+        self.record_declared_type_fact_with_declared(
+            symbol_id,
+            declared_text,
+            declared_text,
+            rules,
+            is_inferred,
+        );
+    }
+
+    /// Record a declared-type fact when the language already reduced the type
+    /// node to a structural base name. `resolved_type` comes from
+    /// [`strip_type_decorations`] on `base_text`. `declared_text` lands in
+    /// `metadata["declared"]` when it differs from `resolved_type`. An
+    /// existing row for the symbol wins; empty results record nothing.
+    pub fn record_declared_type_fact_with_declared(
+        &mut self,
+        symbol_id: &str,
+        base_text: &str,
+        declared_text: &str,
+        rules: &TypeNameRules,
+        is_inferred: bool,
+    ) {
         if self.type_info.contains_key(symbol_id) {
             return;
         }
 
         let declared = declared_text.trim();
-        let resolved_type = strip_type_decorations(declared, rules);
+        let resolved_type = strip_type_decorations(base_text, rules);
         if resolved_type.is_empty() {
             return;
         }
@@ -469,6 +491,99 @@ mod record_declared_type_fact_tests {
         base.record_declared_type_fact("sym-1", "<int>", &RULES, false);
 
         assert!(base.type_info.is_empty());
+    }
+}
+
+#[cfg(test)]
+mod record_declared_type_fact_with_declared_tests {
+    use super::super::types::TypeNameRules;
+    use crate::base::BaseExtractor;
+    use std::path::Path;
+
+    const RULES: TypeNameRules = TypeNameRules {
+        nullable_suffixes: &[],
+        reference_prefixes: &[],
+        generic_open: &[],
+    };
+
+    fn base() -> BaseExtractor {
+        BaseExtractor::new(
+            "csharp".to_string(),
+            "/repo/src/App.cs".to_string(),
+            "class App {}".to_string(),
+            Path::new("/repo"),
+        )
+    }
+
+    #[test]
+    fn record_declared_type_fact_with_declared_uses_base_text_for_resolved_type() {
+        let cases: &[(&str, &str, &str, Option<&str>)] = &[
+            ("foo", "struct foo *", "foo", Some("struct foo *")),
+            ("list", "int list", "list", Some("int list")),
+            ("Foo", "Foo", "Foo", None),
+        ];
+
+        for (i, (base_text, declared_text, resolved, declared_meta)) in cases.iter().enumerate() {
+            let mut extractor = base();
+            let symbol_id = format!("sym-{i}");
+            extractor.record_declared_type_fact_with_declared(
+                &symbol_id,
+                base_text,
+                declared_text,
+                &RULES,
+                false,
+            );
+            let fact = &extractor.type_info[&symbol_id];
+            assert_eq!(fact.resolved_type, *resolved);
+            assert_eq!(
+                fact.metadata.as_ref().and_then(|m| m.get("declared")),
+                declared_meta
+                    .map(|text| serde_json::Value::String(text.to_string()))
+                    .as_ref()
+            );
+        }
+    }
+
+    #[test]
+    fn record_declared_type_fact_with_declared_keeps_the_first_row_for_a_symbol() {
+        let mut extractor = base();
+        extractor.record_declared_type_fact_with_declared(
+            "sym-1",
+            "foo",
+            "struct foo *",
+            &RULES,
+            false,
+        );
+        extractor.record_declared_type_fact_with_declared("sym-1", "list", "int list", &RULES, true);
+
+        let fact = &extractor.type_info["sym-1"];
+        assert_eq!(fact.resolved_type, "foo");
+        assert!(!fact.is_inferred);
+        assert_eq!(
+            fact.metadata.as_ref().and_then(|m| m.get("declared")),
+            Some(&serde_json::Value::String("struct foo *".to_string()))
+        );
+    }
+
+    #[test]
+    fn record_declared_type_fact_with_declared_skips_empty_base() {
+        let mut extractor = base();
+        extractor.record_declared_type_fact_with_declared(
+            "sym-1",
+            "",
+            "struct foo *",
+            &RULES,
+            false,
+        );
+        extractor.record_declared_type_fact_with_declared(
+            "sym-1",
+            "   ",
+            "struct foo *",
+            &RULES,
+            false,
+        );
+
+        assert!(extractor.type_info.is_empty());
     }
 }
 
