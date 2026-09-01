@@ -291,6 +291,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/typescript/http_client_axios/source.ts:payload:12:33",
+      "name": "payload",
+      "kind": "variable",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/http_client_axios/source.ts",
+      "start_line": 12,
+      "start_column": 33,
+      "end_line": 12,
+      "end_column": 46,
+      "start_byte": 233,
+      "end_byte": 246,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "payload: User",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/typescript/http_client_axios/source.ts:createUser:12:7",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/typescript/http_client_axios/source.ts:response:8:8",
       "name": "response",
       "kind": "variable",
@@ -316,6 +342,32 @@
       "visibility": null,
       "parent_key": "fixtures/extraction/typescript/http_client_axios/source.ts:loadUsers:7:7",
       "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/typescript/http_client_axios/source.ts:url:16:31",
+      "name": "url",
+      "kind": "variable",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/http_client_axios/source.ts",
+      "start_line": 16,
+      "start_column": 31,
+      "end_line": 16,
+      "end_column": 42,
+      "start_byte": 363,
+      "end_byte": 374,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "url: string",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/typescript/http_client_axios/source.ts:dynamicRequest:16:7",
+      "metadata": {
+        "role": "parameter"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -632,11 +684,29 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/typescript/http_client_axios/source.ts:payload:12:33",
+      "resolved_type": "User",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "typescript",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/typescript/http_client_axios/source.ts:response:8:8",
       "resolved_type": "any",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
+      "language": "typescript",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/typescript/http_client_axios/source.ts:url:16:31",
+      "resolved_type": "string",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "typescript",
       "metadata": null
     }
@@ -902,19 +972,6 @@
       "kind": "string_literal",
       "language": "typescript",
       "file_path": "fixtures/extraction/typescript/http_client_axios/source.ts",
-      "containing_key": "fixtures/extraction/typescript/http_client_axios/source.ts:dynamicRequest:16:7",
-      "start_line": 16,
-      "start_column": 36,
-      "end_line": 16,
-      "end_column": 42,
-      "start_byte": 368,
-      "end_byte": 374,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "typescript",
-      "file_path": "fixtures/extraction/typescript/http_client_axios/source.ts",
       "containing_key": "fixtures/extraction/typescript/http_client_axios/source.ts:response:8:8",
       "start_line": 8,
       "start_column": 43,
@@ -922,6 +979,19 @@
       "end_column": 55,
       "start_byte": 158,
       "end_byte": 170,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/http_client_axios/source.ts",
+      "containing_key": "fixtures/extraction/typescript/http_client_axios/source.ts:url:16:31",
+      "start_line": 16,
+      "start_column": 36,
+      "end_line": 16,
+      "end_column": 42,
+      "start_byte": 368,
+      "end_byte": 374,
       "metadata": null
     }
   ],

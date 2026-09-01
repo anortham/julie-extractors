@@ -203,6 +203,58 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/typescript/http_client_fetch/source.ts:payload:5:33",
+      "name": "payload",
+      "kind": "variable",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/http_client_fetch/source.ts",
+      "start_line": 5,
+      "start_column": 33,
+      "end_line": 5,
+      "end_column": 50,
+      "start_byte": 121,
+      "end_byte": 138,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "payload: BodyInit",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/typescript/http_client_fetch/source.ts:createUser:5:7",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/typescript/http_client_fetch/source.ts:url:9:29",
+      "name": "url",
+      "kind": "variable",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/http_client_fetch/source.ts",
+      "start_line": 9,
+      "start_column": 29,
+      "end_line": 9,
+      "end_column": 40,
+      "start_byte": 258,
+      "end_byte": 269,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "url: string",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/typescript/http_client_fetch/source.ts:dynamicFetch:9:7",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [],
@@ -429,6 +481,24 @@
       "is_inferred": true,
       "language": "typescript",
       "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/typescript/http_client_fetch/source.ts:payload:5:33",
+      "resolved_type": "BodyInit",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "typescript",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/typescript/http_client_fetch/source.ts:url:9:29",
+      "resolved_type": "string",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "typescript",
+      "metadata": null
     }
   ],
   "parse_diagnostics": [],
@@ -639,19 +709,6 @@
       "kind": "string_literal",
       "language": "typescript",
       "file_path": "fixtures/extraction/typescript/http_client_fetch/source.ts",
-      "containing_key": "fixtures/extraction/typescript/http_client_fetch/source.ts:dynamicFetch:9:7",
-      "start_line": 9,
-      "start_column": 34,
-      "end_line": 9,
-      "end_column": 40,
-      "start_byte": 263,
-      "end_byte": 269,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "typescript",
-      "file_path": "fixtures/extraction/typescript/http_client_fetch/source.ts",
       "containing_key": "fixtures/extraction/typescript/http_client_fetch/source.ts:loadUsers:1:7",
       "start_line": 2,
       "start_column": 15,
@@ -659,6 +716,19 @@
       "end_column": 27,
       "start_byte": 70,
       "end_byte": 82,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/http_client_fetch/source.ts",
+      "containing_key": "fixtures/extraction/typescript/http_client_fetch/source.ts:url:9:29",
+      "start_line": 9,
+      "start_column": 34,
+      "end_line": 9,
+      "end_column": 40,
+      "start_byte": 263,
+      "end_byte": 269,
       "metadata": null
     }
   ],

@@ -22,6 +22,7 @@ pub mod inference;
 mod interfaces;
 pub(crate) mod relationships;
 mod symbols;
+mod type_facts;
 
 use crate::base::{
     BaseExtractor, Identifier, PendingRelationship, Relationship, RelationshipKind,

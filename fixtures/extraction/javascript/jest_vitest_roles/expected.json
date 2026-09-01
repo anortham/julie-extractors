@@ -509,6 +509,58 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:items:12:15",
+      "name": "items",
+      "kind": "variable",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/jest_vitest_roles/source.js",
+      "start_line": 12,
+      "start_column": 15,
+      "end_line": 12,
+      "end_column": 20,
+      "start_byte": 129,
+      "end_byte": 134,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "items",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:total:12:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:items:40:33",
+      "name": "items",
+      "kind": "variable",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/jest_vitest_roles/source.js",
+      "start_line": 40,
+      "start_column": 33,
+      "end_line": 40,
+      "end_column": 38,
+      "start_byte": 980,
+      "end_byte": 985,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "items",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:testTotalsHelper:40:7",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:keeps a disabled case:24:2",
       "name": "keeps a disabled case",
       "kind": "function",
@@ -849,6 +901,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:name:45:7",
+      "name": "name",
+      "kind": "variable",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/jest_vitest_roles/source.js",
+      "start_line": 45,
+      "start_column": 7,
+      "end_line": 45,
+      "end_column": 11,
+      "start_byte": 1041,
+      "end_byte": 1045,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "name",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:test:45:2",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:reporter:44:6",
       "name": "reporter",
       "kind": "variable",
@@ -878,6 +956,32 @@
         "initializer": "{\n  test(name, run) {\n    return run(name);\n  },\n}",
         "isConst": true,
         "isLet": false
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:run:45:13",
+      "name": "run",
+      "kind": "variable",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/jest_vitest_roles/source.js",
+      "start_line": 45,
+      "start_column": 13,
+      "end_line": 45,
+      "end_column": 16,
+      "start_byte": 1047,
+      "end_byte": 1050,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "run",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:test:45:2",
+      "metadata": {
+        "role": "parameter"
       },
       "annotations": [],
       "semantic_group": null,
@@ -1298,14 +1402,6 @@
       "file_path": "fixtures/extraction/javascript/jest_vitest_roles/source.js",
       "line_number": 29,
       "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:test:45:2",
-      "callee_name": "run",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/javascript/jest_vitest_roles/source.js",
-      "line_number": 46,
-      "confidence": "0.700"
     }
   ],
   "structured_pending_relationships": [
@@ -1437,32 +1533,6 @@
         "end_column": 52,
         "start_byte": 620,
         "end_byte": 670
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:test:45:2",
-        "callee_name": "run",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/javascript/jest_vitest_roles/source.js",
-        "line_number": 46,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "run",
-        "terminal_name": "run",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:test:45:2",
-      "span": {
-        "start_line": 46,
-        "start_column": 11,
-        "end_line": 46,
-        "end_column": 20,
-        "start_byte": 1065,
-        "end_byte": 1074
       }
     }
   ],

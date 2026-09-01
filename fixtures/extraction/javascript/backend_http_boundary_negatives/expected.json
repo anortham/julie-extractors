@@ -1,6 +1,32 @@
 {
   "symbols": [
     {
+      "key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:app:1:27",
+      "name": "app",
+      "kind": "variable",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js",
+      "start_line": 1,
+      "start_column": 27,
+      "end_line": 1,
+      "end_column": 30,
+      "start_byte": 27,
+      "end_byte": 30,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "app",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:module.exports:1:17",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:exports:1:0",
       "name": "exports",
       "kind": "method",

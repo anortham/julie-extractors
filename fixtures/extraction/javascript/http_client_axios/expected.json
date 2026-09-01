@@ -307,6 +307,58 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/javascript/http_client_axios/source.js:payload:7:33",
+      "name": "payload",
+      "kind": "variable",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/http_client_axios/source.js",
+      "start_line": 7,
+      "start_column": 33,
+      "end_line": 7,
+      "end_column": 40,
+      "start_byte": 134,
+      "end_byte": 141,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "payload",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/javascript/http_client_axios/source.js:createUser:7:7",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/javascript/http_client_axios/source.js:url:11:31",
+      "name": "url",
+      "kind": "variable",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/http_client_axios/source.js",
+      "start_line": 11,
+      "start_column": 31,
+      "end_line": 11,
+      "end_column": 34,
+      "start_byte": 244,
+      "end_byte": 247,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "url",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/javascript/http_client_axios/source.js:dynamicRequest:11:7",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [],

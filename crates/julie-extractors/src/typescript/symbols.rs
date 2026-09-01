@@ -151,7 +151,30 @@ fn visit_node(
         if is_parent_scope_kind(&sym.kind) {
             next_parent_id = Some(sym.id.clone());
         }
+        let parameter_source = matches!(
+            sym.kind,
+            SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor
+        )
+        .then(|| callable_node_for(node))
+        .flatten();
+        let sym_id = sym.id.clone();
         symbols.push(sym);
+        if let Some(callable_node) = parameter_source {
+            for (param_symbol, param_node) in
+                crate::javascript::parameters::extract_parameter_symbols(
+                    extractor.base_mut(),
+                    callable_node,
+                    &sym_id,
+                )
+            {
+                super::type_facts::record_annotation_fact(
+                    extractor.base_mut(),
+                    &param_symbol.id,
+                    param_node,
+                );
+                symbols.push(param_symbol);
+            }
+        }
     }
 
     // Recursively visit children
@@ -167,6 +190,15 @@ fn visit_node(
             next_parent_id.clone(),
             child_depth,
         );
+    }
+}
+
+fn callable_node_for(node: Node) -> Option<Node> {
+    if node.kind() == "variable_declarator" {
+        node.child_by_field_name("value")
+            .filter(|value| value.kind() == "arrow_function")
+    } else {
+        Some(node)
     }
 }
 
