@@ -5,7 +5,7 @@
 
 -behaviour(gen_server).
 
--export([open/1, balance/1, deposit/2, history/1]).
+-export([open/1, balance/1, deposit/2, history/1, run/2, go/1, scratch/0]).
 -export_type([account/0]).
 -import(lists, [reverse/1]).
 
@@ -13,6 +13,8 @@
 -define(LOG(Msg), io:format("~p~n", [Msg])).
 
 -record(account, {id :: integer(), balance = 0 :: integer()}).
+-record(state, {n = 0}).
+-record(req, {id}).
 
 -type account() :: #account{}.
 -opaque token() :: binary().
@@ -48,3 +50,16 @@ history(Acct) ->
 
 balance_test() ->
     0 = balance(#account{id = 1}).
+
+run(#state{} = S, N) ->
+    {S, N};
+run(S, 0) ->
+    S.
+
+go(X) ->
+    R = #req{id = X},
+    R.
+
+scratch() ->
+    M = maps:new(),
+    M.
