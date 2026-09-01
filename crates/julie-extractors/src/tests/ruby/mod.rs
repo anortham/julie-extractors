@@ -16,6 +16,7 @@ pub mod rspec;
 pub mod struct_and_module_function;
 pub mod structural_facts;
 pub mod test_detection;
+pub mod type_facts;
 pub mod types;
 
 use crate::base::{RelationshipKind, SymbolKind, Visibility};
@@ -227,10 +228,9 @@ end
         });
         assert!(phone_accessor.is_some());
 
-        // Class variable
         let population = symbols.iter().find(|s| s.name == "@@population");
         assert!(population.is_some());
-        assert_eq!(population.unwrap().kind, SymbolKind::Variable);
+        assert_eq!(population.unwrap().kind, SymbolKind::Field);
         assert!(
             population
                 .unwrap()
@@ -902,15 +902,13 @@ end
                 .contains("[:active, :inactive, :pending]")
         );
 
-        // Instance variables
         let name_var = symbols.iter().find(|s| s.name == "@name");
         assert!(name_var.is_some());
-        assert_eq!(name_var.unwrap().kind, SymbolKind::Variable);
+        assert_eq!(name_var.unwrap().kind, SymbolKind::Field);
 
-        // Class variables
         let user_count = symbols.iter().find(|s| s.name == "@@user_count");
         assert!(user_count.is_some());
-        assert_eq!(user_count.unwrap().kind, SymbolKind::Variable);
+        assert_eq!(user_count.unwrap().kind, SymbolKind::Field);
 
         // Global variable
         let global_var = symbols.iter().find(|s| s.name == "$global_variable");
@@ -1503,40 +1501,23 @@ end
         let (mut extractor, tree) = create_extractor_and_parse(ruby_code);
         let symbols = extractor.extract_symbols(&tree);
 
-        // Count occurrences of each variable
         let foo_count = symbols.iter().filter(|s| s.name == "@foo").count();
         let bar_count = symbols.iter().filter(|s| s.name == "@bar").count();
         let class_var_count = symbols.iter().filter(|s| s.name == "@@class_var").count();
         let global_var_count = symbols.iter().filter(|s| s.name == "$global_var").count();
 
-        // Each variable should appear EXACTLY the number of times it's assigned
-        // @foo is assigned twice (initialize and update), so should appear twice
-        // Others are assigned once, so should appear once
-        assert_eq!(
-            foo_count, 2,
-            "Instance variable @foo should appear exactly twice (two assignments)"
-        );
-        assert_eq!(
-            bar_count, 1,
-            "Instance variable @bar should appear exactly once (no duplicates)"
-        );
-        assert_eq!(
-            class_var_count, 1,
-            "Class variable @@class_var should appear exactly once (no duplicates)"
-        );
-        assert_eq!(
-            global_var_count, 1,
-            "Global variable $global_var should appear exactly once (no duplicates)"
-        );
+        assert_eq!(foo_count, 1);
+        assert_eq!(bar_count, 1);
+        assert_eq!(class_var_count, 1);
+        assert_eq!(global_var_count, 1);
 
-        // Verify they are all Variable kind
         let foo = symbols.iter().find(|s| s.name == "@foo");
         assert!(foo.is_some());
-        assert_eq!(foo.unwrap().kind, SymbolKind::Variable);
+        assert_eq!(foo.unwrap().kind, SymbolKind::Field);
 
         let bar = symbols.iter().find(|s| s.name == "@bar");
         assert!(bar.is_some());
-        assert_eq!(bar.unwrap().kind, SymbolKind::Variable);
+        assert_eq!(bar.unwrap().kind, SymbolKind::Field);
     }
 }
 

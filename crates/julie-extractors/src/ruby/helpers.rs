@@ -64,7 +64,8 @@ pub(super) fn infer_symbol_kind_from_assignment(
 ) -> SymbolKind {
     match left_node.kind() {
         "constant" => SymbolKind::Constant,
-        "class_variable" | "instance_variable" | "global_variable" => SymbolKind::Variable,
+        "class_variable" | "instance_variable" => SymbolKind::Field,
+        "global_variable" => SymbolKind::Variable,
         _ => {
             let text = base_get_text(left_node);
             if text.chars().all(|c| c.is_uppercase() || c == '_') {

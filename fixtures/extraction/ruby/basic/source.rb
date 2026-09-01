@@ -1,6 +1,9 @@
 require "json"
 require_relative "./helper"
 
+class Widget
+end
+
 class Worker
   include Enumerable
 
@@ -8,6 +11,18 @@ class Worker
 
   def initialize(id)
     @id = id
+  end
+
+  def reset
+    @id = 0
+  end
+
+  def assemble(a, b = 1, *rest, key:, &blk)
+    w = Widget.new
+    u = Unknown.new
+    n = Net::HTTP.new
+    v = build
+    self.helper
   end
 
   def run

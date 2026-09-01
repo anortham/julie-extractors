@@ -1,6 +1,5 @@
 use super::helpers::{extract_method_name_from_call, is_assignment_target};
-/// Identifier extraction for Ruby symbols
-/// Handles LSP-quality find_references functionality
+use super::type_facts;
 use crate::base::{BaseExtractor, Identifier, IdentifierKind, Symbol};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
@@ -60,17 +59,17 @@ fn extract_identifier_from_node(
         "call" => {
             // Check if this call has a receiver (member access)
             if let Some(_receiver) = node.child_by_field_name("receiver") {
-                // This is member access like obj.method
-                // Extract the method name (rightmost identifier)
                 if let Some(method_node) = node.child_by_field_name("method") {
                     let name = base.get_node_text(&method_node);
                     let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                    let receiver_type = type_facts::self_receiver_type(base, node);
 
-                    base.create_identifier(
+                    base.create_identifier_with_receiver_type(
                         &method_node,
                         name,
                         IdentifierKind::MemberAccess,
                         containing_symbol_id,
+                        receiver_type,
                     );
                 }
             } else {

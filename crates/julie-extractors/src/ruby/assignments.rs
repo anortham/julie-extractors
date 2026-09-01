@@ -1,8 +1,8 @@
 use super::helpers::infer_symbol_kind_from_assignment;
-/// Assignment handling for Ruby symbols
-/// Includes support for regular assignments, parallel assignments, and rest assignments
+use super::type_facts;
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
 use tree_sitter::Node;
+
 
 /// Extract a symbol from an assignment node
 pub(super) fn extract_assignment(
@@ -32,8 +32,17 @@ pub(super) fn extract_assignment(
     };
 
     let kind = infer_symbol_kind_from_assignment(&left_side, |n| base.get_node_text(n));
-
-    Some(base.create_symbol(
+    let parent_id = if kind == SymbolKind::Field {
+        let class_parent = class_parent_id(base, parent_id.clone());
+        if field_already_recorded(base, &name, class_parent.as_deref()) {
+            return None;
+        }
+        class_parent
+    } else {
+        parent_id
+    };
+    let record_constructor = kind == SymbolKind::Variable;
+    let symbol = base.create_symbol(
         &node,
         name,
         kind,
@@ -45,7 +54,32 @@ pub(super) fn extract_assignment(
             doc_comment: None,
             annotations: Vec::new(),
         },
-    ))
+    );
+    if record_constructor && let Some(right) = right_side {
+        type_facts::record_same_file_new_fact(base, &symbol.id, right);
+    }
+    Some(symbol)
+}
+
+fn class_parent_id(base: &BaseExtractor, mut parent_id: Option<String>) -> Option<String> {
+    while let Some(id) = parent_id {
+        let Some(symbol) = base.symbol_map.get(&id) else {
+            return None;
+        };
+        if matches!(symbol.kind, SymbolKind::Class | SymbolKind::Module) {
+            return Some(id);
+        }
+        parent_id = symbol.parent_id.clone();
+    }
+    None
+}
+
+fn field_already_recorded(base: &BaseExtractor, name: &str, parent_id: Option<&str>) -> bool {
+    base.symbol_map.values().any(|symbol| {
+        symbol.name == name
+            && symbol.kind == SymbolKind::Field
+            && symbol.parent_id.as_deref() == parent_id
+    })
 }
 
 /// Handle parallel assignment patterns (a, b, c = 1, 2, 3)
