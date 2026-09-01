@@ -194,10 +194,10 @@ Commit modes: serial tasks use `serial-worker-commit`; Batch B uses `parallel-le
 **Approach:** TDD per shape; skip-not-guess for types the syntax does not state plainly. Regenerate both languages' goldens.
 
 **Acceptance criteria:**
-- [ ] TS typed locals/params/fields and `new`-locals carry correct facts; JS `new`-locals and parameter symbols exist.
-- [ ] Union/intersection/inline-object annotations produce no type fact.
-- [ ] `cargo xtask test language typescript` and `cargo xtask test language javascript` pass.
-- [ ] Verified diff handed to the lead (parallel-lead-commit).
+- [x] TS typed locals/params/fields and `new`-locals carry correct facts; JS `new`-locals and parameter symbols exist.
+- [x] Union/intersection/inline-object annotations produce no type fact.
+- [x] `cargo xtask test language typescript` and `cargo xtask test language javascript` pass.
+- [x] Verified work merged by the lead (isolated-worktree serial commit d4a781e5, merge 6ab52916). `receiver_type` deferred to Task 3b (no metadata channel existed).
 
 ### Task 5: Python
 
@@ -306,6 +306,23 @@ Commit modes: serial tasks use `serial-worker-commit`; Batch B uses `parallel-le
 - [ ] Local, parameter, field, and `new`-local facts pass; `this.` calls carry `receiver_type`.
 - [ ] `cargo xtask test language java` passes.
 - [ ] Verified diff handed to the lead (parallel-lead-commit).
+
+### Task 3b: receiver_type metadata channel (added during execution)
+
+**Files:**
+- Modify: `crates/julie-extractors/src/base/types.rs` (Identifier), `crates/julie-extractors/src/base/relationship_resolution.rs` (StructuredPendingRelationship), `crates/julie-extractors/src/base/creation_methods.rs`, `crates/julie-extract-cli/src/extraction.rs` (map_identifiers, map_structured_pending), per-language emission call sites for csharp/typescript/javascript, matching tests.
+
+**Why added:** Task 4 proved no channel exists from extractor code to identifier or pending metadata — `Identifier` and `StructuredPendingRelationship` carry no metadata field; identifier `receiver` metadata is assembled CLI-side. Every language task's `receiver_type` deliverable is blocked on this plumbing.
+
+**What to build:** An optional `receiver_type: Option<String>` carried on `Identifier` and `StructuredPendingRelationship`, written into artifact `metadata_json` under key `"receiver_type"` by the CLI mapping (no schema change — the columns exist). Emission for `this`/`base` (C#) and `this` (TS/JS) receivers = enclosing type name. Python/Rust/Go/Java emission follows in their wave-2-or-later follow-ups or a small batch after this lands.
+
+**Serialization required:** Yes — owns base/ and CLI files every lane touches.
+
+**Acceptance criteria:**
+- [ ] Extractor-set `receiver_type` reaches `identifiers.metadata_json` and `pending_relationships.metadata_json` in a scanned artifact.
+- [ ] C# and TS/JS `this`-receiver call sites carry it; absent receivers serialize nothing.
+- [ ] Affected contract tests updated; `cargo test -p julie-extractors --lib` and CLI contract tests for the mapping pass.
+- [ ] Change committed (serial-worker-commit).
 
 ### Task 9: Evidence scan
 
