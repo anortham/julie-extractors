@@ -11,7 +11,8 @@ use super::relationship_resolution::{StructuredPendingRelationship, UnresolvedTa
 use super::span::NormalizedSpan;
 use super::types::IdentifierKind;
 use super::types::{
-    Identifier, Relationship, RelationshipKind, Symbol, SymbolKind, SymbolOptions, Visibility,
+    Identifier, Relationship, RelationshipKind, Symbol, SymbolKind, SymbolOptions, TypeInfo,
+    TypeNameRules, Visibility, strip_type_decorations,
 };
 
 impl BaseExtractor {
@@ -339,6 +340,120 @@ impl BaseExtractor {
         }
 
         None
+    }
+
+    /// Record a declared-type fact for a symbol: `resolved_type` is the base
+    /// type name per [`strip_type_decorations`], and the full declared text
+    /// lands in `metadata["declared"]` when it differs. An existing row for
+    /// the symbol wins; recorded rows in turn win over legacy inferred maps.
+    pub fn record_declared_type_fact(
+        &mut self,
+        symbol_id: &str,
+        declared_text: &str,
+        rules: &TypeNameRules,
+        is_inferred: bool,
+    ) {
+        if self.type_info.contains_key(symbol_id) {
+            return;
+        }
+
+        let declared = declared_text.trim();
+        let resolved_type = strip_type_decorations(declared, rules);
+        if resolved_type.is_empty() {
+            return;
+        }
+
+        let metadata = (resolved_type != declared).then(|| {
+            HashMap::from([(
+                "declared".to_string(),
+                serde_json::Value::String(declared.to_string()),
+            )])
+        });
+
+        self.type_info.insert(
+            symbol_id.to_string(),
+            TypeInfo {
+                symbol_id: symbol_id.to_string(),
+                resolved_type,
+                generic_params: None,
+                constraints: None,
+                is_inferred,
+                language: self.language.clone(),
+                metadata,
+            },
+        );
+    }
+}
+
+#[cfg(test)]
+mod record_declared_type_fact_tests {
+    use super::super::types::TypeNameRules;
+    use crate::base::BaseExtractor;
+    use std::path::Path;
+
+    const RULES: TypeNameRules = TypeNameRules {
+        nullable_suffixes: &["?"],
+        reference_prefixes: &["ref"],
+        generic_open: &['<'],
+    };
+
+    fn base() -> BaseExtractor {
+        BaseExtractor::new(
+            "csharp".to_string(),
+            "/repo/src/App.cs".to_string(),
+            "class App {}".to_string(),
+            Path::new("/repo"),
+        )
+    }
+
+    #[test]
+    fn record_declared_type_fact_stores_base_name_and_declared_metadata() {
+        let mut base = base();
+
+        base.record_declared_type_fact("sym-1", "List<int>", &RULES, false);
+
+        let fact = &base.type_info["sym-1"];
+        assert_eq!(fact.symbol_id, "sym-1");
+        assert_eq!(fact.resolved_type, "List");
+        assert_eq!(fact.language, "csharp");
+        assert!(!fact.is_inferred);
+        assert_eq!(
+            fact.metadata.as_ref().and_then(|m| m.get("declared")),
+            Some(&serde_json::Value::String("List<int>".to_string()))
+        );
+    }
+
+    #[test]
+    fn record_declared_type_fact_omits_declared_metadata_for_undecorated_names() {
+        let mut base = base();
+
+        base.record_declared_type_fact("sym-1", "GraphTraversal", &RULES, true);
+
+        let fact = &base.type_info["sym-1"];
+        assert_eq!(fact.resolved_type, "GraphTraversal");
+        assert!(fact.is_inferred);
+        assert_eq!(fact.metadata, None);
+    }
+
+    #[test]
+    fn record_declared_type_fact_keeps_the_first_row_for_a_symbol() {
+        let mut base = base();
+
+        base.record_declared_type_fact("sym-1", "GraphTraversal", &RULES, false);
+        base.record_declared_type_fact("sym-1", "List<int>", &RULES, true);
+
+        let fact = &base.type_info["sym-1"];
+        assert_eq!(fact.resolved_type, "GraphTraversal");
+        assert!(!fact.is_inferred);
+    }
+
+    #[test]
+    fn record_declared_type_fact_skips_text_that_normalizes_to_nothing() {
+        let mut base = base();
+
+        base.record_declared_type_fact("sym-1", "<int>", &RULES, false);
+
+        assert!(base.type_info.is_empty());
     }
 }
 

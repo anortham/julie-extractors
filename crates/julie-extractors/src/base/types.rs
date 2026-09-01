@@ -487,6 +487,60 @@ pub struct TypeInfo {
     pub metadata: Option<HashMap<String, serde_json::Value>>,
 }
 
+/// Per-language declared-type decorations that [`strip_type_decorations`]
+/// removes to produce the base type name Miller matches verbatim against
+/// type-like symbol names.
+#[derive(Debug, Clone, Copy)]
+pub struct TypeNameRules {
+    /// Suffixes marking nullability, stripped from the end (for example `?`).
+    pub nullable_suffixes: &'static [&'static str],
+    /// By-ref, pointer, and borrow markers stripped from the front (for
+    /// example `ref`, `out`, `in`, `&`, `*`, `mut`). A prefix that ends in a
+    /// letter or digit only matches when whitespace follows it.
+    pub reference_prefixes: &'static [&'static str],
+    /// Characters that open a generic argument list; the name is cut at the
+    /// first one (for example `<`).
+    pub generic_open: &'static [char],
+}
+
+/// Reduce declared type text to the base type name: drop reference prefixes,
+/// generic argument lists, and nullable suffixes. Array suffixes (`[]`) and
+/// namespace qualifiers stay untouched.
+pub fn strip_type_decorations(declared: &str, rules: &TypeNameRules) -> String {
+    let mut name = declared.trim();
+
+    'prefixes: loop {
+        for prefix in rules.reference_prefixes {
+            let Some(rest) = name.strip_prefix(prefix) else {
+                continue;
+            };
+            let word_prefix = prefix.ends_with(|c: char| c.is_alphanumeric());
+            if word_prefix && !rest.starts_with(char::is_whitespace) {
+                continue;
+            }
+            name = rest.trim_start();
+            continue 'prefixes;
+        }
+        break;
+    }
+
+    if let Some(generic_start) = name.find(rules.generic_open) {
+        name = name[..generic_start].trim_end();
+    }
+
+    'suffixes: loop {
+        for suffix in rules.nullable_suffixes {
+            if let Some(rest) = name.strip_suffix(suffix) {
+                name = rest.trim_end();
+                continue 'suffixes;
+            }
+        }
+        break;
+    }
+
+    name.to_string()
+}
+
 /// Options for creating symbols - matches createSymbol options
 #[derive(Debug, Clone, Default)]
 pub struct SymbolOptions {
@@ -562,4 +616,46 @@ pub struct ExtractionResults {
     pub structural_facts: Vec<StructuralFact>,
     pub complexity_metrics: Vec<ComplexityMetric>,
     pub parse_diagnostics: Vec<ParseDiagnostic>,
+}
+
+#[cfg(test)]
+mod strip_type_decorations_tests {
+    use super::{TypeNameRules, strip_type_decorations};
+
+    const RULES: TypeNameRules = TypeNameRules {
+        nullable_suffixes: &["?"],
+        reference_prefixes: &["ref", "out", "in", "&", "*", "mut"],
+        generic_open: &['<'],
+    };
+
+    #[test]
+    fn strip_type_decorations_reduces_declared_text_to_the_base_type_name() {
+        let cases = [
+            ("List<int>", "List"),
+            (
+                "IReadOnlyDictionary<string, IReadOnlyList<GraphNeighbour>>",
+                "IReadOnlyDictionary",
+            ),
+            ("GraphTraversal?", "GraphTraversal"),
+            ("ref Foo", "Foo"),
+            ("&mut Foo", "Foo"),
+            ("*Store", "Store"),
+            ("string[]", "string[]"),
+            ("Foo.Bar", "Foo.Bar"),
+        ];
+
+        for (declared, expected) in cases {
+            assert_eq!(
+                strip_type_decorations(declared, &RULES),
+                expected,
+                "declared `{declared}` should normalize to `{expected}`"
+            );
+        }
+    }
+
+    #[test]
+    fn strip_type_decorations_keeps_names_that_merely_start_with_a_word_prefix() {
+        assert_eq!(strip_type_decorations("int", &RULES), "int");
+        assert_eq!(strip_type_decorations("reference", &RULES), "reference");
+    }
 }
