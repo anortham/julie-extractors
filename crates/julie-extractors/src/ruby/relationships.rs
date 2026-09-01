@@ -304,14 +304,17 @@ fn extract_call_relationships(
                 | LocalTargetResolution::Ambiguous
                 | LocalTargetResolution::ReceiverQualified
                 | LocalTargetResolution::Missing => {
-                    let pending = base.create_pending_relationship(
-                        caller_symbol.id.clone(),
-                        target,
-                        RelationshipKind::Calls,
-                        &node,
-                        Some(caller_symbol.id.clone()),
-                        Some(0.7),
-                    );
+                    let receiver_type = super::type_facts::self_receiver_type(base, node);
+                    let pending = base
+                        .create_pending_relationship(
+                            caller_symbol.id.clone(),
+                            target,
+                            RelationshipKind::Calls,
+                            &node,
+                            Some(caller_symbol.id.clone()),
+                            Some(0.7),
+                        )
+                        .with_receiver_type(receiver_type);
                     extractor.add_structured_pending_relationship(pending);
                 }
             }

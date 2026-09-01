@@ -21,9 +21,11 @@ mod assignments;
 mod calls;
 pub(crate) mod helpers;
 mod identifiers;
+mod parameters;
 mod relationships;
 mod signatures;
 mod symbols;
+mod type_facts;
 
 /// Ruby extractor that handles Ruby-specific constructs
 pub struct RubyExtractor {
@@ -147,6 +149,7 @@ impl RubyExtractor {
         }
 
         let mut symbol_opt: Option<Symbol> = None;
+        let mut extra_symbols = Vec::new();
 
         match node.kind() {
             "module" => {
@@ -179,6 +182,10 @@ impl RubyExtractor {
                     parent_id.clone(),
                     self.current_visibility.clone(),
                 );
+                if let Some(symbol) = &symbol_opt {
+                    extra_symbols =
+                        parameters::extract_parameter_symbols(&mut self.base, node, &symbol.id);
+                }
             }
             "singleton_method" => {
                 symbol_opt = symbols::extract_singleton_method(
@@ -187,6 +194,10 @@ impl RubyExtractor {
                     parent_id.clone(),
                     self.current_visibility.clone(),
                 );
+                if let Some(symbol) = &symbol_opt {
+                    extra_symbols =
+                        parameters::extract_parameter_symbols(&mut self.base, node, &symbol.id);
+                }
             }
             "call" => {
                 let call_symbols = calls::extract_call(&mut self.base, node, parent_id.clone());
@@ -210,9 +221,7 @@ impl RubyExtractor {
                     symbols.push(symbol);
                 }
             }
-            "class_variable" | "instance_variable" | "global_variable"
-                if !helpers::is_part_of_assignment(&node) =>
-            {
+            "global_variable" if !helpers::is_part_of_assignment(&node) => {
                 symbol_opt = Some(symbols::extract_variable(&mut self.base, node));
             }
             "constant" => {
@@ -274,6 +283,7 @@ impl RubyExtractor {
         let current_parent_id = if let Some(symbol) = symbol_opt {
             let symbol_id = symbol.id.clone();
             symbols.push(symbol);
+            symbols.extend(std::mem::take(&mut extra_symbols));
             Some(symbol_id)
         } else {
             parent_id
