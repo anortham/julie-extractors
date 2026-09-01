@@ -41,9 +41,11 @@ use tempfile::TempDir;
 /// declared after the first broken macro (`span/3`, `execute/2`, `list_handlers/1`,
 /// `report_cb/1`) plus the four private helpers between them (`assert_event_names/1`,
 /// `assert_event_prefix/1`, `assert_event_name/1`, `merge_ctx/2`). Its 24 = 1 module
-/// + 11 `-type` + 12 functions. Receiver-type facts add one `variable` symbol per
-/// distinct parameter name under each function (metadata role `parameter`, no
-/// visibility), so `telemetry.erl` now carries 52 rows: those 24 plus 28 parameters.
+/// + 11 `-type` + 12 functions.
+///
+/// Receiver-type facts add one `variable` symbol per distinct parameter name under
+/// each function (metadata role `parameter`, no visibility), so `telemetry.erl` now
+/// carries 52 rows: those 24 plus 28 parameters.
 const BASELINE: &[FileBaseline] = &[
     FileBaseline::new("certifi-2.15.0/src/certifi.erl", 5, 0),
     FileBaseline::new("certifi-2.15.0/src/certifi_pt.erl", 14, 0),
