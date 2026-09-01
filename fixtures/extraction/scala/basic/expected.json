@@ -35,6 +35,33 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/scala/basic/source.scala:Foo:65:0",
+      "name": "Foo",
+      "kind": "class",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 65,
+      "start_column": 0,
+      "end_line": 65,
+      "end_column": 9,
+      "start_byte": 1345,
+      "end_byte": 1354,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "class Foo",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "modifiers": "",
+        "type": "class"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/scala/basic/source.scala:Job:3:0",
       "name": "Job",
       "kind": "trait",
@@ -62,6 +89,142 @@
       "metadata": {
         "modifiers": "",
         "type": "trait"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:Payload:67:0",
+      "name": "Payload",
+      "kind": "class",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 67,
+      "start_column": 0,
+      "end_line": 67,
+      "end_column": 26,
+      "start_byte": 1356,
+      "end_byte": 1382,
+      "body_span": {
+        "start_line": 67,
+        "start_column": 18,
+        "end_line": 67,
+        "end_column": 26,
+        "start_byte": 1374,
+        "end_byte": 1382
+      },
+      "body_hash": "4e625427db56a785175d9a687ae6d0a5",
+      "signature": "case class Payload(a: Foo)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "modifiers": "case",
+        "type": "class"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:Query:68:0",
+      "name": "Query",
+      "kind": "class",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 68,
+      "start_column": 0,
+      "end_line": 68,
+      "end_column": 19,
+      "start_byte": 1383,
+      "end_byte": 1402,
+      "body_span": {
+        "start_line": 68,
+        "start_column": 11,
+        "end_line": 68,
+        "end_column": 19,
+        "start_byte": 1394,
+        "end_byte": 1402
+      },
+      "body_hash": "4e625427db56a785175d9a687ae6d0a5",
+      "signature": "class Query(a: Foo)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "modifiers": "",
+        "type": "class"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:Widget:70:0",
+      "name": "Widget",
+      "kind": "class",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 70,
+      "start_column": 0,
+      "end_line": 84,
+      "end_column": 1,
+      "start_byte": 1404,
+      "end_byte": 1767,
+      "body_span": {
+        "start_line": 70,
+        "start_column": 13,
+        "end_line": 84,
+        "end_column": 1,
+        "start_byte": 1417,
+        "end_byte": 1767
+      },
+      "body_hash": "194046253fcc4d481a241d78b5c63a2a",
+      "signature": "class Widget",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "modifiers": "",
+        "type": "class"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:Widget:71:2",
+      "name": "Widget",
+      "kind": "constructor",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 71,
+      "start_column": 2,
+      "end_line": 71,
+      "end_column": 30,
+      "start_byte": 1421,
+      "end_byte": 1449,
+      "body_span": {
+        "start_line": 71,
+        "start_column": 24,
+        "end_line": 71,
+        "end_column": 30,
+        "start_byte": 1443,
+        "end_byte": 1449
+      },
+      "body_hash": "73f8416a3af08b25bd50e9a4a354f26d",
+      "signature": "def this(seed: Foo)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/scala/basic/source.scala:Widget:70:0",
+      "metadata": {
+        "modifiers": "",
+        "type": "constructor"
       },
       "annotations": [],
       "semantic_group": null,
@@ -182,6 +345,230 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/scala/basic/source.scala:a:67:19",
+      "name": "a",
+      "kind": "property",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 67,
+      "start_column": 19,
+      "end_line": 67,
+      "end_column": 25,
+      "start_byte": 1375,
+      "end_byte": 1381,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "val a: Foo",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/scala/basic/source.scala:Payload:67:0",
+      "metadata": {
+        "binding": "val",
+        "modifiers": "",
+        "propertyType": "Foo",
+        "type": "property"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:a:68:12",
+      "name": "a",
+      "kind": "property",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 68,
+      "start_column": 12,
+      "end_line": 68,
+      "end_column": 18,
+      "start_byte": 1395,
+      "end_byte": 1401,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "val a: Foo",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/scala/basic/source.scala:Query:68:0",
+      "metadata": {
+        "binding": "val",
+        "modifiers": "",
+        "propertyType": "Foo",
+        "type": "property"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:annotate:83:2",
+      "name": "annotate",
+      "kind": "method",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 83,
+      "start_column": 2,
+      "end_line": 83,
+      "end_column": 48,
+      "start_byte": 1719,
+      "end_byte": 1765,
+      "body_span": {
+        "start_line": 83,
+        "start_column": 46,
+        "end_line": 83,
+        "end_column": 48,
+        "start_byte": 1763,
+        "end_byte": 1765
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "def annotate(x: Foo, xs: List[Foo]): Unit",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/scala/basic/source.scala:Widget:70:0",
+      "metadata": {
+        "modifiers": "",
+        "returnType": "Unit",
+        "type": "method"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:build:86:0",
+      "name": "build",
+      "kind": "function",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 86,
+      "start_column": 0,
+      "end_line": 86,
+      "end_column": 20,
+      "start_byte": 1769,
+      "end_byte": 1789,
+      "body_span": {
+        "start_line": 86,
+        "start_column": 19,
+        "end_line": 86,
+        "end_column": 20,
+        "start_byte": 1788,
+        "end_byte": 1789
+      },
+      "body_hash": "c4ca4238a0b923820dcc509a6f75849b",
+      "signature": "def build(): Int",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "modifiers": "",
+        "returnType": "Int",
+        "type": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:built:78:4",
+      "name": "built",
+      "kind": "variable",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 78,
+      "start_column": 4,
+      "end_line": 78,
+      "end_column": 23,
+      "start_byte": 1645,
+      "end_byte": 1664,
+      "body_span": {
+        "start_line": 78,
+        "start_column": 21,
+        "end_line": 78,
+        "end_column": 23,
+        "start_byte": 1662,
+        "end_byte": 1664
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "val built",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+      "metadata": {
+        "binding": "val",
+        "modifiers": "",
+        "type": "val"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:constructed:74:4",
+      "name": "constructed",
+      "kind": "variable",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 74,
+      "start_column": 4,
+      "end_line": 74,
+      "end_column": 31,
+      "start_byte": 1503,
+      "end_byte": 1530,
+      "body_span": {
+        "start_line": 74,
+        "start_column": 29,
+        "end_line": 74,
+        "end_column": 31,
+        "start_byte": 1528,
+        "end_byte": 1530
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "val constructed",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+      "metadata": {
+        "binding": "val",
+        "modifiers": "",
+        "type": "val"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:count:32:15",
+      "name": "count",
+      "kind": "variable",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 32,
+      "start_column": 15,
+      "end_line": 32,
+      "end_column": 25,
+      "start_byte": 756,
+      "end_byte": 766,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "count: Int",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/scala/basic/source.scala:evaluate:32:2",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/scala/basic/source.scala:doubled:60:2",
       "name": "doubled",
       "kind": "method",
@@ -223,6 +610,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/scala/basic/source.scala:enabled:32:27",
+      "name": "enabled",
+      "kind": "variable",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 32,
+      "start_column": 27,
+      "end_line": 32,
+      "end_column": 43,
+      "start_byte": 768,
+      "end_byte": 784,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "enabled: Boolean",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/scala/basic/source.scala:evaluate:32:2",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/scala/basic/source.scala:evaluate:32:2",
       "name": "evaluate",
       "kind": "method",
@@ -251,6 +664,32 @@
         "modifiers": "",
         "returnType": "Int",
         "type": "method"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:event:23:25",
+      "name": "event",
+      "kind": "variable",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 23,
+      "start_column": 25,
+      "end_line": 23,
+      "end_column": 38,
+      "start_byte": 515,
+      "end_byte": 528,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "event: String",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/scala/basic/source.scala:observeRun:23:2",
+      "metadata": {
+        "role": "parameter"
       },
       "annotations": [],
       "semantic_group": null,
@@ -423,6 +862,148 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/scala/basic/source.scala:id:18:24",
+      "name": "id",
+      "kind": "variable",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 18,
+      "start_column": 24,
+      "end_line": 18,
+      "end_column": 31,
+      "start_byte": 373,
+      "end_byte": 380,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "id: Int",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/scala/basic/source.scala:recordRun:18:2",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:id:23:40",
+      "name": "id",
+      "kind": "variable",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 23,
+      "start_column": 40,
+      "end_line": 23,
+      "end_column": 47,
+      "start_byte": 530,
+      "end_byte": 537,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "id: Int",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/scala/basic/source.scala:observeRun:23:2",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:id:8:13",
+      "name": "id",
+      "kind": "property",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 8,
+      "start_column": 13,
+      "end_line": 8,
+      "end_column": 24,
+      "start_byte": 105,
+      "end_byte": 116,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "val id: Int",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/scala/basic/source.scala:Worker:7:0",
+      "metadata": {
+        "binding": "val",
+        "modifiers": "",
+        "propertyType": "Int",
+        "type": "property"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:imported:77:4",
+      "name": "imported",
+      "kind": "variable",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 77,
+      "start_column": 4,
+      "end_line": 77,
+      "end_column": 56,
+      "start_byte": 1588,
+      "end_byte": 1640,
+      "body_span": {
+        "start_line": 77,
+        "start_column": 54,
+        "end_line": 77,
+        "end_column": 56,
+        "start_byte": 1638,
+        "end_byte": 1640
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "val imported",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+      "metadata": {
+        "binding": "val",
+        "modifiers": "",
+        "type": "val"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:items:42:19",
+      "name": "items",
+      "kind": "variable",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 42,
+      "start_column": 19,
+      "end_line": 42,
+      "end_column": 35,
+      "start_byte": 981,
+      "end_byte": 997,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "items: List[Int]",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/scala/basic/source.scala:scanPositive:42:2",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/scala/basic/source.scala:legacyHook:62:0",
       "name": "legacyHook",
       "kind": "function",
@@ -464,6 +1045,41 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/scala/basic/source.scala:m:82:2",
+      "name": "m",
+      "kind": "method",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 82,
+      "start_column": 2,
+      "end_line": 82,
+      "end_column": 20,
+      "start_byte": 1698,
+      "end_byte": 1716,
+      "body_span": {
+        "start_line": 82,
+        "start_column": 18,
+        "end_line": 82,
+        "end_column": 20,
+        "start_byte": 1714,
+        "end_byte": 1716
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "def m(): Unit",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/scala/basic/source.scala:Widget:70:0",
+      "metadata": {
+        "modifiers": "",
+        "returnType": "Unit",
+        "type": "method"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/scala/basic/source.scala:observeRun:23:2",
       "name": "observeRun",
       "kind": "method",
@@ -490,6 +1106,41 @@
       "parent_key": "fixtures/extraction/scala/basic/source.scala:Worker:7:0",
       "metadata": {
         "modifiers": "private",
+        "returnType": "Unit",
+        "type": "method"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+      "name": "ping",
+      "kind": "method",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 72,
+      "start_column": 2,
+      "end_line": 81,
+      "end_column": 3,
+      "start_byte": 1452,
+      "end_byte": 1695,
+      "body_span": {
+        "start_line": 72,
+        "start_column": 21,
+        "end_line": 81,
+        "end_column": 3,
+        "start_byte": 1471,
+        "end_byte": 1695
+      },
+      "body_hash": "0700cdf5d301947ba9796f0d3ca4745c",
+      "signature": "def ping(): Unit",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/scala/basic/source.scala:Widget:70:0",
+      "metadata": {
+        "modifiers": "",
         "returnType": "Unit",
         "type": "method"
       },
@@ -645,6 +1296,41 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/scala/basic/source.scala:sameFile:75:4",
+      "name": "sameFile",
+      "kind": "variable",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 75,
+      "start_column": 4,
+      "end_line": 75,
+      "end_column": 24,
+      "start_byte": 1535,
+      "end_byte": 1555,
+      "body_span": {
+        "start_line": 75,
+        "start_column": 22,
+        "end_line": 75,
+        "end_column": 24,
+        "start_byte": 1553,
+        "end_byte": 1555
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "val sameFile",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+      "metadata": {
+        "binding": "val",
+        "modifiers": "",
+        "type": "val"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/scala/basic/source.scala:scanPositive:42:2",
       "name": "scanPositive",
       "kind": "method",
@@ -680,6 +1366,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/scala/basic/source.scala:seed:71:11",
+      "name": "seed",
+      "kind": "variable",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 71,
+      "start_column": 11,
+      "end_line": 71,
+      "end_column": 20,
+      "start_byte": 1430,
+      "end_byte": 1439,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "seed: Foo",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/scala/basic/source.scala:Widget:71:2",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/scala/basic/source.scala:total:33:4",
       "name": "total",
       "kind": "variable",
@@ -700,6 +1412,174 @@
       "metadata": {
         "modifiers": "",
         "type": "var"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:typed:73:4",
+      "name": "typed",
+      "kind": "variable",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 73,
+      "start_column": 4,
+      "end_line": 73,
+      "end_column": 25,
+      "start_byte": 1477,
+      "end_byte": 1498,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "val typed: Foo",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+      "metadata": {
+        "binding": "val",
+        "modifiers": "",
+        "propertyType": "Foo",
+        "type": "val"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:unknown:76:4",
+      "name": "unknown",
+      "kind": "variable",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 76,
+      "start_column": 4,
+      "end_line": 76,
+      "end_column": 27,
+      "start_byte": 1560,
+      "end_byte": 1583,
+      "body_span": {
+        "start_line": 76,
+        "start_column": 25,
+        "end_line": 76,
+        "end_column": 27,
+        "start_byte": 1581,
+        "end_byte": 1583
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "val unknown",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+      "metadata": {
+        "binding": "val",
+        "modifiers": "",
+        "type": "val"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:url:30:23",
+      "name": "url",
+      "kind": "variable",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 30,
+      "start_column": 23,
+      "end_line": 30,
+      "end_column": 34,
+      "start_byte": 716,
+      "end_byte": 727,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "url: String",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/scala/basic/source.scala:fetchUrl:30:2",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:value:15:21",
+      "name": "value",
+      "kind": "variable",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 15,
+      "start_column": 21,
+      "end_line": 15,
+      "end_column": 31,
+      "start_byte": 259,
+      "end_byte": 269,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "value: Int",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/scala/basic/source.scala:helper:15:2",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:x:83:15",
+      "name": "x",
+      "kind": "variable",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 83,
+      "start_column": 15,
+      "end_line": 83,
+      "end_column": 21,
+      "start_byte": 1732,
+      "end_byte": 1738,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "x: Foo",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/scala/basic/source.scala:annotate:83:2",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:xs:83:23",
+      "name": "xs",
+      "kind": "variable",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 83,
+      "start_column": 23,
+      "end_line": 83,
+      "end_column": 36,
+      "start_byte": 1740,
+      "end_byte": 1753,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "xs: List[Foo]",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/scala/basic/source.scala:annotate:83:2",
+      "metadata": {
+        "role": "parameter"
       },
       "annotations": [],
       "semantic_group": null,
@@ -729,6 +1609,24 @@
       }
     },
     {
+      "from_key": "fixtures/extraction/scala/basic/source.scala:built:78:4",
+      "to_key": "fixtures/extraction/scala/basic/source.scala:build:86:0",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "line_number": 78,
+      "span": {
+        "start_line": 78,
+        "start_column": 16,
+        "end_line": 78,
+        "end_column": 23,
+        "start_byte": 1657,
+        "end_byte": 1664
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
+      "metadata": null
+    },
+    {
       "from_key": "fixtures/extraction/scala/basic/source.scala:fetchStatus:26:2",
       "to_key": "fixtures/extraction/scala/basic/source.scala:fetchUrl:30:2",
       "kind": "calls",
@@ -741,6 +1639,24 @@
         "end_column": 54,
         "start_byte": 637,
         "end_byte": 687
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
+      "metadata": null
+    },
+    {
+      "from_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+      "to_key": "fixtures/extraction/scala/basic/source.scala:m:82:2",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "line_number": 79,
+      "span": {
+        "start_line": 79,
+        "start_column": 4,
+        "end_line": 79,
+        "end_column": 12,
+        "start_byte": 1669,
+        "end_byte": 1677
       },
       "reference_site_is_exact": false,
       "confidence": "0.900",
@@ -801,9 +1717,590 @@
       "metadata": null
     }
   ],
-  "pending_relationships": [],
-  "structured_pending_relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/scala/basic/source.scala:Widget:71:2",
+      "callee_name": "this",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "line_number": 71,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/scala/basic/source.scala:Widget:71:2",
+      "callee_name": "this",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "line_number": 71,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/scala/basic/source.scala:imported:77:4",
+      "callee_name": "scala.collection.mutable.ListBuffer",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "line_number": 77,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/scala/basic/source.scala:imported:77:4",
+      "callee_name": "scala.collection.mutable.ListBuffer",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "line_number": 77,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/scala/basic/source.scala:imported:77:4",
+      "callee_name": "scala.collection.mutable.ListBuffer",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "line_number": 77,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+      "callee_name": "other.m",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "line_number": 80,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+      "callee_name": "other.m",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "line_number": 80,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/scala/basic/source.scala:sameFile:75:4",
+      "callee_name": "Foo",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "line_number": 75,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/scala/basic/source.scala:sameFile:75:4",
+      "callee_name": "Foo",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "line_number": 75,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/scala/basic/source.scala:sameFile:75:4",
+      "callee_name": "Foo",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "line_number": 75,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/scala/basic/source.scala:unknown:76:4",
+      "callee_name": "Unknown",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "line_number": 76,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/scala/basic/source.scala:unknown:76:4",
+      "callee_name": "Unknown",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "line_number": 76,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/scala/basic/source.scala:unknown:76:4",
+      "callee_name": "Unknown",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "line_number": 76,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/scala/basic/source.scala:Widget:71:2",
+        "callee_name": "this",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/scala/basic/source.scala",
+        "line_number": 71,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "this",
+        "terminal_name": "this",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/scala/basic/source.scala:Widget:71:2",
+      "span": {
+        "start_line": 71,
+        "start_column": 24,
+        "end_line": 71,
+        "end_column": 30,
+        "start_byte": 1443,
+        "end_byte": 1449
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/scala/basic/source.scala:Widget:71:2",
+        "callee_name": "this",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/scala/basic/source.scala",
+        "line_number": 71,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "this",
+        "terminal_name": "this",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/scala/basic/source.scala:Widget:71:2",
+      "span": {
+        "start_line": 71,
+        "start_column": 24,
+        "end_line": 71,
+        "end_column": 30,
+        "start_byte": 1443,
+        "end_byte": 1449
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/scala/basic/source.scala:imported:77:4",
+        "callee_name": "scala.collection.mutable.ListBuffer",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/scala/basic/source.scala",
+        "line_number": 77,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "scala.collection.mutable.ListBuffer",
+        "terminal_name": "ListBuffer",
+        "receiver": "mutable",
+        "namespace_path": [
+          "scala",
+          "collection"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/scala/basic/source.scala:imported:77:4",
+      "span": {
+        "start_line": 77,
+        "start_column": 19,
+        "end_line": 77,
+        "end_column": 56,
+        "start_byte": 1603,
+        "end_byte": 1640
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/scala/basic/source.scala:imported:77:4",
+        "callee_name": "scala.collection.mutable.ListBuffer",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/scala/basic/source.scala",
+        "line_number": 77,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "scala.collection.mutable.ListBuffer",
+        "terminal_name": "ListBuffer",
+        "receiver": "mutable",
+        "namespace_path": [
+          "scala",
+          "collection"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/scala/basic/source.scala:imported:77:4",
+      "span": {
+        "start_line": 77,
+        "start_column": 19,
+        "end_line": 77,
+        "end_column": 56,
+        "start_byte": 1603,
+        "end_byte": 1640
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/scala/basic/source.scala:imported:77:4",
+        "callee_name": "scala.collection.mutable.ListBuffer",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/scala/basic/source.scala",
+        "line_number": 77,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "scala.collection.mutable.ListBuffer",
+        "terminal_name": "ListBuffer",
+        "receiver": "mutable",
+        "namespace_path": [
+          "scala",
+          "collection"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/scala/basic/source.scala:imported:77:4",
+      "span": {
+        "start_line": 77,
+        "start_column": 19,
+        "end_line": 77,
+        "end_column": 56,
+        "start_byte": 1603,
+        "end_byte": 1640
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+        "callee_name": "other.m",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/scala/basic/source.scala",
+        "line_number": 80,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "other.m",
+        "terminal_name": "m",
+        "receiver": "other",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+      "span": {
+        "start_line": 80,
+        "start_column": 4,
+        "end_line": 80,
+        "end_column": 13,
+        "start_byte": 1682,
+        "end_byte": 1691
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+        "callee_name": "other.m",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/scala/basic/source.scala",
+        "line_number": 80,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "other.m",
+        "terminal_name": "m",
+        "receiver": "other",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+      "span": {
+        "start_line": 80,
+        "start_column": 4,
+        "end_line": 80,
+        "end_column": 13,
+        "start_byte": 1682,
+        "end_byte": 1691
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/scala/basic/source.scala:sameFile:75:4",
+        "callee_name": "Foo",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/scala/basic/source.scala",
+        "line_number": 75,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Foo",
+        "terminal_name": "Foo",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/scala/basic/source.scala:sameFile:75:4",
+      "span": {
+        "start_line": 75,
+        "start_column": 19,
+        "end_line": 75,
+        "end_column": 24,
+        "start_byte": 1550,
+        "end_byte": 1555
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/scala/basic/source.scala:sameFile:75:4",
+        "callee_name": "Foo",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/scala/basic/source.scala",
+        "line_number": 75,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Foo",
+        "terminal_name": "Foo",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/scala/basic/source.scala:sameFile:75:4",
+      "span": {
+        "start_line": 75,
+        "start_column": 19,
+        "end_line": 75,
+        "end_column": 24,
+        "start_byte": 1550,
+        "end_byte": 1555
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/scala/basic/source.scala:sameFile:75:4",
+        "callee_name": "Foo",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/scala/basic/source.scala",
+        "line_number": 75,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Foo",
+        "terminal_name": "Foo",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/scala/basic/source.scala:sameFile:75:4",
+      "span": {
+        "start_line": 75,
+        "start_column": 19,
+        "end_line": 75,
+        "end_column": 24,
+        "start_byte": 1550,
+        "end_byte": 1555
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/scala/basic/source.scala:unknown:76:4",
+        "callee_name": "Unknown",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/scala/basic/source.scala",
+        "line_number": 76,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Unknown",
+        "terminal_name": "Unknown",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/scala/basic/source.scala:unknown:76:4",
+      "span": {
+        "start_line": 76,
+        "start_column": 18,
+        "end_line": 76,
+        "end_column": 27,
+        "start_byte": 1574,
+        "end_byte": 1583
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/scala/basic/source.scala:unknown:76:4",
+        "callee_name": "Unknown",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/scala/basic/source.scala",
+        "line_number": 76,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Unknown",
+        "terminal_name": "Unknown",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/scala/basic/source.scala:unknown:76:4",
+      "span": {
+        "start_line": 76,
+        "start_column": 18,
+        "end_line": 76,
+        "end_column": 27,
+        "start_byte": 1574,
+        "end_byte": 1583
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/scala/basic/source.scala:unknown:76:4",
+        "callee_name": "Unknown",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/scala/basic/source.scala",
+        "line_number": 76,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Unknown",
+        "terminal_name": "Unknown",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/scala/basic/source.scala:unknown:76:4",
+      "span": {
+        "start_line": 76,
+        "start_column": 18,
+        "end_line": 76,
+        "end_column": 27,
+        "start_byte": 1574,
+        "end_byte": 1583
+      }
+    }
+  ],
   "identifiers": [
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:Foo:call:75:19",
+      "name": "Foo",
+      "kind": "call",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 75,
+      "start_column": 19,
+      "end_line": 75,
+      "end_column": 22,
+      "start_byte": 1550,
+      "end_byte": 1553,
+      "containing_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:Foo:type_usage:67:22",
+      "name": "Foo",
+      "kind": "type_usage",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 67,
+      "start_column": 22,
+      "end_line": 67,
+      "end_column": 25,
+      "start_byte": 1378,
+      "end_byte": 1381,
+      "containing_key": "fixtures/extraction/scala/basic/source.scala:Payload:67:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:Foo:type_usage:68:15",
+      "name": "Foo",
+      "kind": "type_usage",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 68,
+      "start_column": 15,
+      "end_line": 68,
+      "end_column": 18,
+      "start_byte": 1398,
+      "end_byte": 1401,
+      "containing_key": "fixtures/extraction/scala/basic/source.scala:Query:68:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:Foo:type_usage:71:17",
+      "name": "Foo",
+      "kind": "type_usage",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 71,
+      "start_column": 17,
+      "end_line": 71,
+      "end_column": 20,
+      "start_byte": 1436,
+      "end_byte": 1439,
+      "containing_key": "fixtures/extraction/scala/basic/source.scala:Widget:71:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:Foo:type_usage:73:15",
+      "name": "Foo",
+      "kind": "type_usage",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 73,
+      "start_column": 15,
+      "end_line": 73,
+      "end_column": 18,
+      "start_byte": 1488,
+      "end_byte": 1491,
+      "containing_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:Foo:type_usage:74:26",
+      "name": "Foo",
+      "kind": "type_usage",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 74,
+      "start_column": 26,
+      "end_line": 74,
+      "end_column": 29,
+      "start_byte": 1525,
+      "end_byte": 1528,
+      "containing_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:Foo:type_usage:83:18",
+      "name": "Foo",
+      "kind": "type_usage",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 83,
+      "start_column": 18,
+      "end_line": 83,
+      "end_column": 21,
+      "start_byte": 1735,
+      "end_byte": 1738,
+      "containing_key": "fixtures/extraction/scala/basic/source.scala:annotate:83:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:Foo:type_usage:83:32",
+      "name": "Foo",
+      "kind": "type_usage",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 83,
+      "start_column": 32,
+      "end_line": 83,
+      "end_column": 35,
+      "start_byte": 1749,
+      "end_byte": 1752,
+      "containing_key": "fixtures/extraction/scala/basic/source.scala:annotate:83:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
     {
       "key": "fixtures/extraction/scala/basic/source.scala:Int:member_access:49:31",
       "name": "Int",
@@ -869,6 +2366,38 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/scala/basic/source.scala:List:type_usage:83:27",
+      "name": "List",
+      "kind": "type_usage",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 83,
+      "start_column": 27,
+      "end_line": 83,
+      "end_column": 31,
+      "start_byte": 1744,
+      "end_byte": 1748,
+      "containing_key": "fixtures/extraction/scala/basic/source.scala:annotate:83:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:ListBuffer:call:77:44",
+      "name": "ListBuffer",
+      "kind": "call",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 77,
+      "start_column": 44,
+      "end_line": 77,
+      "end_column": 54,
+      "start_byte": 1628,
+      "end_byte": 1638,
+      "containing_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/scala/basic/source.scala:Ordering:type_usage:49:6",
       "name": "Ordering",
       "kind": "type_usage",
@@ -897,6 +2426,54 @@
       "start_byte": 1106,
       "end_byte": 1114,
       "containing_key": "fixtures/extraction/scala/basic/source.scala:<anonymous>:49:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:Unknown:call:76:18",
+      "name": "Unknown",
+      "kind": "call",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 76,
+      "start_column": 18,
+      "end_line": 76,
+      "end_column": 25,
+      "start_byte": 1574,
+      "end_byte": 1581,
+      "containing_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:build:call:78:16",
+      "name": "build",
+      "kind": "call",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 78,
+      "start_column": 16,
+      "end_line": 78,
+      "end_column": 21,
+      "start_byte": 1657,
+      "end_byte": 1662,
+      "containing_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:collection:member_access:77:25",
+      "name": "collection",
+      "kind": "member_access",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 77,
+      "start_column": 25,
+      "end_line": 77,
+      "end_column": 35,
+      "start_byte": 1609,
+      "end_byte": 1619,
+      "containing_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1173,6 +2750,55 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/scala/basic/source.scala:m:call:79:9",
+      "name": "m",
+      "kind": "call",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 79,
+      "start_column": 9,
+      "end_line": 79,
+      "end_column": 10,
+      "start_byte": 1674,
+      "end_byte": 1675,
+      "containing_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+      "target_key": null,
+      "confidence": "1.000",
+      "receiver_type": "Widget"
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:m:call:80:10",
+      "name": "m",
+      "kind": "call",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 80,
+      "start_column": 10,
+      "end_line": 80,
+      "end_column": 11,
+      "start_byte": 1688,
+      "end_byte": 1689,
+      "containing_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:mutable:member_access:77:36",
+      "name": "mutable",
+      "kind": "member_access",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 77,
+      "start_column": 36,
+      "end_line": 77,
+      "end_column": 43,
+      "start_byte": 1620,
+      "end_byte": 1627,
+      "containing_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/scala/basic/source.scala:observeRun:call:19:4",
       "name": "observeRun",
       "kind": "call",
@@ -1205,6 +2831,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/scala/basic/source.scala:other:variable_ref:80:4",
+      "name": "other",
+      "kind": "variable_ref",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 80,
+      "start_column": 4,
+      "end_line": 80,
+      "end_column": 9,
+      "start_byte": 1682,
+      "end_byte": 1687,
+      "containing_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/scala/basic/source.scala:recordRun:call:11:4",
       "name": "recordRun",
       "kind": "call",
@@ -1221,6 +2863,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/scala/basic/source.scala:scala:variable_ref:77:19",
+      "name": "scala",
+      "kind": "variable_ref",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 77,
+      "start_column": 19,
+      "end_line": 77,
+      "end_column": 24,
+      "start_byte": 1603,
+      "end_byte": 1608,
+      "containing_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/scala/basic/source.scala:singleton:type_usage:51:1",
       "name": "singleton",
       "kind": "type_usage",
@@ -1233,6 +2891,38 @@
       "start_byte": 1121,
       "end_byte": 1130,
       "containing_key": "fixtures/extraction/scala/basic/source.scala:WorkerRegistry:51:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:this:call:71:24",
+      "name": "this",
+      "kind": "call",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 71,
+      "start_column": 24,
+      "end_line": 71,
+      "end_column": 28,
+      "start_byte": 1443,
+      "end_byte": 1447,
+      "containing_key": "fixtures/extraction/scala/basic/source.scala:Widget:71:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:this:variable_ref:79:4",
+      "name": "this",
+      "kind": "variable_ref",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 79,
+      "start_column": 4,
+      "end_line": 79,
+      "end_column": 8,
+      "start_byte": 1669,
+      "end_byte": 1673,
+      "containing_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1319,6 +3009,60 @@
   ],
   "types": [
     {
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:a:67:19",
+      "resolved_type": "Foo",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "scala",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:a:68:12",
+      "resolved_type": "Foo",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "scala",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:annotate:83:2",
+      "resolved_type": "Unit",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "scala",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:build:86:0",
+      "resolved_type": "Int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "scala",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:constructed:74:4",
+      "resolved_type": "Foo",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "scala",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:count:32:15",
+      "resolved_type": "Int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "scala",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/scala/basic/source.scala:doubled:60:2",
       "resolved_type": "Int",
       "generic_params": null,
@@ -1328,11 +3072,29 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:enabled:32:27",
+      "resolved_type": "Boolean",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "scala",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/scala/basic/source.scala:evaluate:32:2",
       "resolved_type": "Int",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
+      "language": "scala",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:event:23:25",
+      "resolved_type": "String",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "scala",
       "metadata": null
     },
@@ -1364,6 +3126,44 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:id:18:24",
+      "resolved_type": "Int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "scala",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:id:23:40",
+      "resolved_type": "Int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "scala",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:id:8:13",
+      "resolved_type": "Int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "scala",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:items:42:19",
+      "resolved_type": "List",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "scala",
+      "metadata": {
+        "declared": "List[Int]"
+      }
+    },
+    {
       "symbol_key": "fixtures/extraction/scala/basic/source.scala:legacyHook:62:0",
       "resolved_type": "Unit",
       "generic_params": null,
@@ -1373,7 +3173,25 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:m:82:2",
+      "resolved_type": "Unit",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "scala",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/scala/basic/source.scala:observeRun:23:2",
+      "resolved_type": "Unit",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "scala",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
       "resolved_type": "Unit",
       "generic_params": null,
       "constraints": null,
@@ -1413,6 +3231,15 @@
       "resolved_type": "Int",
       "generic_params": null,
       "constraints": null,
+      "is_inferred": false,
+      "language": "scala",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:sameFile:75:4",
+      "resolved_type": "Foo",
+      "generic_params": null,
+      "constraints": null,
       "is_inferred": true,
       "language": "scala",
       "metadata": null
@@ -1425,6 +3252,62 @@
       "is_inferred": true,
       "language": "scala",
       "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:seed:71:11",
+      "resolved_type": "Foo",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "scala",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:typed:73:4",
+      "resolved_type": "Foo",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "scala",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:url:30:23",
+      "resolved_type": "String",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "scala",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:value:15:21",
+      "resolved_type": "Int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "scala",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:x:83:15",
+      "resolved_type": "Foo",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "scala",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:xs:83:23",
+      "resolved_type": "List",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "scala",
+      "metadata": {
+        "declared": "List[Foo]"
+      }
     }
   ],
   "parse_diagnostics": [],
@@ -1655,18 +3538,84 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "scala",
       "file_path": "fixtures/extraction/scala/basic/source.scala",
-      "covered_lines": 64,
-      "covered_bytes": 1344,
+      "covered_lines": 87,
+      "covered_bytes": 1790,
       "decision_count": 4,
       "loop_count": 2,
       "max_nesting_depth": 3,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 64,
+      "end_line": 87,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 1344,
+      "end_byte": 1790,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:Widget:71:2",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "covered_lines": 1,
+      "covered_bytes": 28,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 71,
+      "start_column": 2,
+      "end_line": 71,
+      "end_column": 30,
+      "start_byte": 1421,
+      "end_byte": 1449,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:annotate:83:2",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "covered_lines": 1,
+      "covered_bytes": 46,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 2,
+      "start_line": 83,
+      "start_column": 2,
+      "end_line": 83,
+      "end_column": 48,
+      "start_byte": 1719,
+      "end_byte": 1765,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:build:86:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "covered_lines": 1,
+      "covered_bytes": 20,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 86,
+      "start_column": 0,
+      "end_line": 86,
+      "end_column": 20,
+      "start_byte": 1769,
+      "end_byte": 1789,
       "metadata": {
         "metric_version": 1
       }
@@ -1827,6 +3776,28 @@
     },
     {
       "scope": "symbol",
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:m:82:2",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "covered_lines": 1,
+      "covered_bytes": 18,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 82,
+      "start_column": 2,
+      "end_line": 82,
+      "end_column": 20,
+      "start_byte": 1698,
+      "end_byte": 1716,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
       "symbol_key": "fixtures/extraction/scala/basic/source.scala:observeRun:23:2",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "scala",
@@ -1843,6 +3814,28 @@
       "end_column": 59,
       "start_byte": 492,
       "end_byte": 549,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "covered_lines": 10,
+      "covered_bytes": 224,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 72,
+      "start_column": 21,
+      "end_line": 81,
+      "end_column": 3,
+      "start_byte": 1471,
+      "end_byte": 1695,
       "metadata": {
         "metric_version": 1
       }
@@ -2136,6 +4129,18 @@
         {
           "ordinal": 0,
           "type_name": "Int",
+          "children": []
+        }
+      ]
+    },
+    {
+      "identifier_key": "fixtures/extraction/scala/basic/source.scala:List:type_usage:83:27",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "arguments": [
+        {
+          "ordinal": 0,
+          "type_name": "Foo",
           "children": []
         }
       ]

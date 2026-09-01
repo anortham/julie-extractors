@@ -239,6 +239,7 @@ fn extract_single_call(
     };
 
     let target = unresolved_call_target(extractor, node, &function_name);
+    let receiver_type = super::identifiers::self_receiver_type(extractor.base(), node);
     let line_number = node.start_position().row as u32 + 1;
     let file_path = extractor.base().file_path.clone();
 
@@ -248,14 +249,17 @@ fn extract_single_call(
         target.receiver.as_deref(),
     ) {
         LocalTargetResolution::Import(_) => {
-            let pending = extractor.base().create_pending_relationship(
-                caller.id.clone(),
-                target,
-                RelationshipKind::Calls,
-                &node,
-                Some(caller.id.clone()),
-                Some(0.8),
-            );
+            let pending = extractor
+                .base()
+                .create_pending_relationship(
+                    caller.id.clone(),
+                    target,
+                    RelationshipKind::Calls,
+                    &node,
+                    Some(caller.id.clone()),
+                    Some(0.8),
+                )
+                .with_receiver_type(receiver_type.clone());
             extractor.add_structured_pending_relationship(pending);
         }
         LocalTargetResolution::Resolved(called_symbol) => {
@@ -281,14 +285,17 @@ fn extract_single_call(
         LocalTargetResolution::Ambiguous
         | LocalTargetResolution::ReceiverQualified
         | LocalTargetResolution::Missing => {
-            let pending = extractor.base().create_pending_relationship(
-                caller.id.clone(),
-                target,
-                RelationshipKind::Calls,
-                &node,
-                Some(caller.id.clone()),
-                Some(0.7),
-            );
+            let pending = extractor
+                .base()
+                .create_pending_relationship(
+                    caller.id.clone(),
+                    target,
+                    RelationshipKind::Calls,
+                    &node,
+                    Some(caller.id.clone()),
+                    Some(0.7),
+                )
+                .with_receiver_type(receiver_type);
             extractor.add_structured_pending_relationship(pending);
         }
     }
@@ -314,6 +321,19 @@ fn unresolved_call_target(
         .find(|child| child.kind() == "field_expression");
 
     if let Some(field_expression) = field_expression {
+        if super::identifiers::self_receiver_type(extractor.base(), field_expression).is_some() {
+            let terminal_name = field_expression
+                .child_by_field_name("field")
+                .map(|field| extractor.base().get_node_text(&field))
+                .unwrap_or_else(|| fallback_name.to_string());
+            return UnresolvedTarget {
+                display_name: format!("this.{terminal_name}"),
+                terminal_name,
+                receiver: Some("this".to_string()),
+                namespace_path: Vec::new(),
+                import_context: None,
+            };
+        }
         let mut identifiers = Vec::new();
         collect_identifiers(extractor, field_expression, &mut identifiers);
         if identifiers.len() < 2 {

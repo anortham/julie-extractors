@@ -65,7 +65,14 @@ fn extract_identifier_from_node(
                 } else if child.kind() == "field_expression" {
                     if let Some((name_node, name)) = extract_rightmost_identifier(base, &child) {
                         let containing = find_containing_symbol_id(base, node, symbol_map);
-                        base.create_identifier(&name_node, name, IdentifierKind::Call, containing);
+                        let receiver_type = self_receiver_type(base, child);
+                        base.create_identifier_with_receiver_type(
+                            &name_node,
+                            name,
+                            IdentifierKind::Call,
+                            containing,
+                            receiver_type,
+                        );
                     }
                     return;
                 } else if child.kind() == "generic_function" {
@@ -82,11 +89,13 @@ fn extract_identifier_from_node(
                             ))
                         } else if func.kind() == "field_expression" {
                             extract_rightmost_identifier(base, &func).map(|(name_node, name)| {
-                                base.create_identifier(
+                                let receiver_type = self_receiver_type(base, func);
+                                base.create_identifier_with_receiver_type(
                                     &name_node,
                                     name,
                                     IdentifierKind::Call,
                                     containing,
+                                    receiver_type,
                                 )
                             })
                         } else {
@@ -410,6 +419,32 @@ fn extract_rightmost_identifier<'a>(
         .collect();
 
     identifiers.last().map(|n| (*n, base.get_node_text(n)))
+}
+
+pub(super) fn self_receiver_type(base: &BaseExtractor, node: Node) -> Option<String> {
+    let field_expression = match node.kind() {
+        "field_expression" => node,
+        "call_expression" => {
+            let mut cursor = node.walk();
+            node.children(&mut cursor)
+                .find(|child| child.kind() == "field_expression")?
+        }
+        _ => return None,
+    };
+    if !field_value_is_this(base, field_expression) {
+        return None;
+    }
+    super::helpers::enclosing_type_name(base, &field_expression)
+}
+
+fn field_value_is_this(base: &BaseExtractor, field_expression: Node) -> bool {
+    if let Some(value) = field_expression.child_by_field_name("value") {
+        return value.kind() == "this" || base.get_node_text(&value) == "this";
+    }
+    let mut cursor = field_expression.walk();
+    field_expression.children(&mut cursor).any(|child| {
+        child.kind() == "this" || base.get_node_text(&child) == "this"
+    })
 }
 
 /// Record type arguments for the outermost generic use site.
