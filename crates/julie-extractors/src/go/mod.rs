@@ -1,10 +1,12 @@
 mod functions;
 mod helpers;
 mod identifiers;
+mod parameters;
 mod relationships;
 mod signatures;
 mod specs;
 pub(crate) mod test_calls;
+mod type_facts;
 mod types;
 
 use crate::base::{
@@ -261,6 +263,10 @@ impl GoExtractor {
                 let var_symbols = self.extract_var_symbols(node, parent_id.as_deref());
                 symbols.extend(var_symbols);
             }
+            "short_var_declaration" => {
+                let local_symbols = self.extract_short_var_symbols(node, parent_id.as_deref());
+                symbols.extend(local_symbols);
+            }
             "const_declaration" => {
                 let const_symbols = self.extract_const_symbols(node, parent_id.as_deref());
                 symbols.extend(const_symbols);
@@ -284,6 +290,11 @@ impl GoExtractor {
                         self.test_role_ids.insert(symbol_id.clone());
                     }
                     symbols.push(symbol);
+                    if matches!(node.kind(), "function_declaration" | "method_declaration") {
+                        let parameter_symbols =
+                            parameters::extract_parameter_symbols(&mut self.base, node, &symbol_id);
+                        symbols.extend(parameter_symbols);
+                    }
 
                     // Recursively walk children with the new parent_id
                     let Some(child_depth) = child_tree_depth(depth) else {

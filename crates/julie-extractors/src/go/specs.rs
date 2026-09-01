@@ -178,6 +178,7 @@ impl super::GoExtractor {
         }
 
         let doc_comment = self.base.find_doc_comment(&node);
+        let type_node = node.child_by_field_name("type");
         identifiers
             .into_iter()
             .enumerate()
@@ -201,7 +202,7 @@ impl super::GoExtractor {
                     format!("var {}", name)
                 };
 
-                self.base.create_symbol(
+                let symbol = self.base.create_symbol(
                     &node,
                     name,
                     SymbolKind::Variable,
@@ -213,7 +214,78 @@ impl super::GoExtractor {
                         doc_comment: doc_comment.clone(),
                         annotations: Vec::new(),
                     },
-                )
+                );
+                if let Some(type_node) = type_node {
+                    super::type_facts::record_type_node_fact(
+                        &mut self.base,
+                        &symbol.id,
+                        type_node,
+                        false,
+                    );
+                }
+                symbol
+            })
+            .collect()
+    }
+
+    pub(super) fn extract_short_var_symbols(
+        &mut self,
+        node: Node,
+        parent_id: Option<&str>,
+    ) -> Vec<Symbol> {
+        let Some(left) = node.child_by_field_name("left") else {
+            return Vec::new();
+        };
+        let Some(right) = node.child_by_field_name("right") else {
+            return Vec::new();
+        };
+        let mut left_cursor = left.walk();
+        let names: Vec<Node> = left.named_children(&mut left_cursor).collect();
+        let mut right_cursor = right.walk();
+        let values: Vec<Node> = right.named_children(&mut right_cursor).collect();
+        if names.len() != values.len() {
+            return Vec::new();
+        }
+
+        names
+            .into_iter()
+            .zip(values)
+            .filter_map(|(name_node, value_node)| {
+                if name_node.kind() != "identifier" {
+                    return None;
+                }
+                let type_node = super::type_facts::composite_literal_type_node(value_node)
+                    .filter(|type_node| super::type_facts::binds_base_type(*type_node))?;
+                let name = self.get_node_text(name_node);
+                if name == "_" {
+                    return None;
+                }
+                let visibility = if self.is_public(&name) {
+                    Some(Visibility::Public)
+                } else {
+                    Some(Visibility::Private)
+                };
+                let signature = format!("{} := {}", name, self.get_node_text(value_node));
+                let symbol = self.base.create_symbol(
+                    &name_node,
+                    name,
+                    SymbolKind::Variable,
+                    SymbolOptions {
+                        signature: Some(signature),
+                        visibility,
+                        parent_id: parent_id.map(|s| s.to_string()),
+                        metadata: None,
+                        doc_comment: None,
+                        annotations: Vec::new(),
+                    },
+                );
+                super::type_facts::record_type_node_fact(
+                    &mut self.base,
+                    &symbol.id,
+                    type_node,
+                    true,
+                );
+                Some(symbol)
             })
             .collect()
     }
