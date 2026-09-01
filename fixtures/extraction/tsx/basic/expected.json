@@ -206,6 +206,58 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/tsx/basic/source.tsx:count:36:18",
+      "name": "count",
+      "kind": "variable",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/basic/source.tsx",
+      "start_line": 36,
+      "start_column": 18,
+      "end_line": 36,
+      "end_column": 31,
+      "start_byte": 641,
+      "end_byte": 654,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "count: number",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/tsx/basic/source.tsx:evaluate:36:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/tsx/basic/source.tsx:enabled:36:33",
+      "name": "enabled",
+      "kind": "variable",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/basic/source.tsx",
+      "start_line": 36,
+      "start_column": 33,
+      "end_line": 36,
+      "end_column": 49,
+      "start_byte": 656,
+      "end_byte": 672,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "enabled: boolean",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/tsx/basic/source.tsx:evaluate:36:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/tsx/basic/source.tsx:evaluate:36:0",
       "name": "evaluate",
       "kind": "function",
@@ -236,6 +288,32 @@
         "parameters": [],
         "returnType": ": number",
         "typeParameters": []
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/tsx/basic/source.tsx:event:16:20",
+      "name": "event",
+      "kind": "variable",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/basic/source.tsx",
+      "start_line": 16,
+      "start_column": 20,
+      "end_line": 16,
+      "end_column": 33,
+      "start_byte": 265,
+      "end_byte": 278,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "event: string",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/tsx/basic/source.tsx:observeRun:16:0",
+      "metadata": {
+        "role": "parameter"
       },
       "annotations": [],
       "semantic_group": null,
@@ -367,6 +445,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/tsx/basic/source.tsx:label:7:16",
+      "name": "label",
+      "kind": "variable",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/basic/source.tsx",
+      "start_line": 7,
+      "start_column": 16,
+      "end_line": 7,
+      "end_column": 36,
+      "start_byte": 94,
+      "end_byte": 114,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "public label: string",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/tsx/basic/source.tsx:constructor:7:4",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/tsx/basic/source.tsx:observeRun:16:0",
       "name": "observeRun",
       "kind": "function",
@@ -403,6 +507,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/tsx/basic/source.tsx:props:20:22",
+      "name": "props",
+      "kind": "variable",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/basic/source.tsx",
+      "start_line": 20,
+      "start_column": 22,
+      "end_line": 20,
+      "end_column": 34,
+      "start_byte": 323,
+      "end_byte": 335,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "props: Props",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/tsx/basic/source.tsx:Badge:20:7",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/tsx/basic/source.tsx:total:37:8",
       "name": "total",
       "kind": "variable",
@@ -421,6 +551,32 @@
       "visibility": null,
       "parent_key": "fixtures/extraction/tsx/basic/source.tsx:evaluate:36:0",
       "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/tsx/basic/source.tsx:value:32:16",
+      "name": "value",
+      "kind": "variable",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/basic/source.tsx",
+      "start_line": 32,
+      "start_column": 16,
+      "end_line": 32,
+      "end_column": 29,
+      "start_byte": 570,
+      "end_byte": 583,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "value: string",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/tsx/basic/source.tsx:format:32:0",
+      "metadata": {
+        "role": "parameter"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -847,11 +1003,38 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/tsx/basic/source.tsx:count:36:18",
+      "resolved_type": "number",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "tsx",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/tsx/basic/source.tsx:enabled:36:33",
+      "resolved_type": "boolean",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "tsx",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/tsx/basic/source.tsx:evaluate:36:0",
       "resolved_type": "function",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
+      "language": "tsx",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/tsx/basic/source.tsx:event:16:20",
+      "resolved_type": "string",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "tsx",
       "metadata": null
     },
@@ -883,11 +1066,38 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/tsx/basic/source.tsx:label:2:4",
+      "resolved_type": "string",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "tsx",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/tsx/basic/source.tsx:label:7:16",
+      "resolved_type": "string",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "tsx",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/tsx/basic/source.tsx:observeRun:16:0",
       "resolved_type": "function",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
+      "language": "tsx",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/tsx/basic/source.tsx:props:20:22",
+      "resolved_type": "Props",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "tsx",
       "metadata": null
     },
@@ -901,13 +1111,24 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/tsx/basic/source.tsx:workerIndex:10:6",
-      "resolved_type": "any",
+      "symbol_key": "fixtures/extraction/tsx/basic/source.tsx:value:32:16",
+      "resolved_type": "string",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "tsx",
       "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/tsx/basic/source.tsx:workerIndex:10:6",
+      "resolved_type": "Map",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "tsx",
+      "metadata": {
+        "declared": "Map<string, Array<number>>"
+      }
     }
   ],
   "parse_diagnostics": [],
@@ -1172,13 +1393,13 @@
       "kind": "string_literal",
       "language": "tsx",
       "file_path": "fixtures/extraction/tsx/basic/source.tsx",
-      "containing_key": "fixtures/extraction/tsx/basic/source.tsx:constructor:7:4",
-      "start_line": 7,
-      "start_column": 30,
-      "end_line": 7,
-      "end_column": 36,
-      "start_byte": 108,
-      "end_byte": 114,
+      "containing_key": "fixtures/extraction/tsx/basic/source.tsx:event:16:20",
+      "start_line": 16,
+      "start_column": 27,
+      "end_line": 16,
+      "end_column": 33,
+      "start_byte": 272,
+      "end_byte": 278,
       "metadata": null
     },
     {
@@ -1192,19 +1413,6 @@
       "end_column": 31,
       "start_byte": 225,
       "end_byte": 239,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "tsx",
-      "file_path": "fixtures/extraction/tsx/basic/source.tsx",
-      "containing_key": "fixtures/extraction/tsx/basic/source.tsx:format:32:0",
-      "start_line": 32,
-      "start_column": 23,
-      "end_line": 32,
-      "end_column": 29,
-      "start_byte": 577,
-      "end_byte": 583,
       "metadata": null
     },
     {
@@ -1237,13 +1445,26 @@
       "kind": "string_literal",
       "language": "tsx",
       "file_path": "fixtures/extraction/tsx/basic/source.tsx",
-      "containing_key": "fixtures/extraction/tsx/basic/source.tsx:observeRun:16:0",
-      "start_line": 16,
-      "start_column": 27,
-      "end_line": 16,
-      "end_column": 33,
-      "start_byte": 272,
-      "end_byte": 278,
+      "containing_key": "fixtures/extraction/tsx/basic/source.tsx:label:7:16",
+      "start_line": 7,
+      "start_column": 30,
+      "end_line": 7,
+      "end_column": 36,
+      "start_byte": 108,
+      "end_byte": 114,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/basic/source.tsx",
+      "containing_key": "fixtures/extraction/tsx/basic/source.tsx:value:32:16",
+      "start_line": 32,
+      "start_column": 23,
+      "end_line": 32,
+      "end_column": 29,
+      "start_byte": 577,
+      "end_byte": 583,
       "metadata": null
     },
     {

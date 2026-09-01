@@ -276,7 +276,17 @@
       "confidence": "1.000"
     }
   ],
-  "types": [],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/jsx/cross_file/source.jsx:x:13:10",
+      "resolved_type": "Foo",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "jsx",
+      "metadata": null
+    }
+  ],
   "parse_diagnostics": [],
   "structural_facts": [],
   "complexity_metrics": [

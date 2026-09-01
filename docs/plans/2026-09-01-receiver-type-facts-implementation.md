@@ -165,11 +165,11 @@ Commit modes: serial tasks use `serial-worker-commit`; Batch B uses `parallel-le
 **Approach:** RED: a test asserting a method's parameters exist as `variable` symbols with `role="parameter"`, correct parent, and type facts (`string from` → `string`, `Func<GraphNeighbour, bool> edgeFilter` → `Func` with declared metadata). A second test asserts `this.Helper()` emits `receiver_type` on the identifier metadata and pending metadata. Regenerate goldens; verify `containing_symbol_id` shifts appear only on declaration-site rows.
 
 **Acceptance criteria:**
-- [ ] Parameter symbols with type facts appear for methods, constructors, and local functions.
-- [ ] `this.`/`base.` call sites carry `receiver_type` metadata on identifier and pending rows.
-- [ ] Golden diffs show no `containing_symbol_id` change on body call-site rows.
-- [ ] `cargo xtask test language csharp` passes.
-- [ ] Change committed (serial-worker-commit).
+- [x] Parameter symbols with type facts appear for methods, constructors, and local functions (pre-existing coverage proven by tests; bare lambda parameters fixed).
+- [x] `this.`/`base.` receiver_type moved to Task 3b (no metadata channel existed when this task ran).
+- [x] Golden diffs show no `containing_symbol_id` change on body call-site rows.
+- [x] `cargo xtask test language csharp` passes.
+- [x] Change committed (serial-worker-commit).
 
 ### Task 4: TypeScript + JavaScript
 

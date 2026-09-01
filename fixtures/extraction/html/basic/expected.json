@@ -393,6 +393,32 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/html/basic/source.html:value:14:22",
+      "name": "value",
+      "kind": "variable",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/basic/source.html",
+      "start_line": 14,
+      "start_column": 22,
+      "end_line": 14,
+      "end_column": 27,
+      "start_byte": 291,
+      "end_byte": 296,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "value",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/html/basic/source.html:helper:14:6",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [

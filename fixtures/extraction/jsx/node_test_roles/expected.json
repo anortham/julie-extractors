@@ -485,6 +485,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/jsx/node_test_roles/source.jsx:label:25:21",
+      "name": "label",
+      "kind": "variable",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/node_test_roles/source.jsx",
+      "start_line": 25,
+      "start_column": 21,
+      "end_line": 25,
+      "end_column": 26,
+      "start_byte": 596,
+      "end_byte": 601,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "label",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/jsx/node_test_roles/source.jsx:renderPanel:25:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/jsx/node_test_roles/source.jsx:mounts:19:8",
       "name": "mounts",
       "kind": "function",
@@ -512,6 +538,32 @@
       "metadata": {
         "is_test": true,
         "test_role": "test_case"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/jsx/node_test_roles/source.jsx:name:30:5",
+      "name": "name",
+      "kind": "variable",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/node_test_roles/source.jsx",
+      "start_line": 30,
+      "start_column": 5,
+      "end_line": 30,
+      "end_column": 9,
+      "start_byte": 664,
+      "end_byte": 668,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "name",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/jsx/node_test_roles/source.jsx:it:30:2",
+      "metadata": {
+        "role": "parameter"
       },
       "annotations": [],
       "semantic_group": null,
@@ -653,6 +705,32 @@
       "metadata": {
         "is_test": true,
         "test_role": "test_case"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/jsx/node_test_roles/source.jsx:run:30:11",
+      "name": "run",
+      "kind": "variable",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/node_test_roles/source.jsx",
+      "start_line": 30,
+      "start_column": 11,
+      "end_line": 30,
+      "end_column": 14,
+      "start_byte": 670,
+      "end_byte": 673,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "run",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/jsx/node_test_roles/source.jsx:it:30:2",
+      "metadata": {
+        "role": "parameter"
       },
       "annotations": [],
       "semantic_group": null,
@@ -841,44 +919,8 @@
       "metadata": null
     }
   ],
-  "pending_relationships": [
-    {
-      "from_key": "fixtures/extraction/jsx/node_test_roles/source.jsx:it:30:2",
-      "callee_name": "run",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/jsx/node_test_roles/source.jsx",
-      "line_number": 31,
-      "confidence": "0.700"
-    }
-  ],
-  "structured_pending_relationships": [
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/jsx/node_test_roles/source.jsx:it:30:2",
-        "callee_name": "run",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/jsx/node_test_roles/source.jsx",
-        "line_number": 31,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "run",
-        "terminal_name": "run",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/jsx/node_test_roles/source.jsx:it:30:2",
-      "span": {
-        "start_line": 31,
-        "start_column": 11,
-        "end_line": 31,
-        "end_column": 20,
-        "start_byte": 688,
-        "end_byte": 697
-      }
-    }
-  ],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
   "identifiers": [
     {
       "key": "fixtures/extraction/jsx/node_test_roles/source.jsx:after:call:11:2",

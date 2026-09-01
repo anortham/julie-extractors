@@ -237,6 +237,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/tsx/qunit_roles/source.tsx:label:27:21",
+      "name": "label",
+      "kind": "variable",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/qunit_roles/source.tsx",
+      "start_line": 27,
+      "start_column": 21,
+      "end_line": 27,
+      "end_column": 34,
+      "start_byte": 750,
+      "end_byte": 763,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "label: string",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:renderBadge:27:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/tsx/qunit_roles/source.tsx:label:7:28",
       "name": "label",
       "kind": "property",
@@ -295,6 +321,32 @@
         "parameters": [],
         "returnType": ": void",
         "typeParameters": []
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/tsx/qunit_roles/source.tsx:name:32:9",
+      "name": "name",
+      "kind": "variable",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/qunit_roles/source.tsx",
+      "start_line": 32,
+      "start_column": 9,
+      "end_line": 32,
+      "end_column": 21,
+      "start_byte": 843,
+      "end_byte": 855,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "name: string",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:module:32:2",
+      "metadata": {
+        "role": "parameter"
       },
       "annotations": [],
       "semantic_group": null,
@@ -366,6 +418,72 @@
       "metadata": {
         "is_test": true,
         "test_role": "test_case"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/tsx/qunit_roles/source.tsx:run:11:43",
+      "name": "run",
+      "kind": "variable",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/qunit_roles/source.tsx",
+      "start_line": 11,
+      "start_column": 43,
+      "end_line": 11,
+      "end_column": 58,
+      "start_byte": 238,
+      "end_byte": 253,
+      "body_span": {
+        "start_line": 11,
+        "start_column": 48,
+        "end_line": 11,
+        "end_column": 50,
+        "start_byte": 243,
+        "end_byte": 245
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "run: () => void",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:beforeEach:11:32",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/tsx/qunit_roles/source.tsx:run:32:23",
+      "name": "run",
+      "kind": "variable",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/qunit_roles/source.tsx",
+      "start_line": 32,
+      "start_column": 23,
+      "end_line": 32,
+      "end_column": 38,
+      "start_byte": 857,
+      "end_byte": 872,
+      "body_span": {
+        "start_line": 32,
+        "start_column": 28,
+        "end_line": 32,
+        "end_column": 30,
+        "start_byte": 862,
+        "end_byte": 864
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "run: () => void",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:module:32:2",
+      "metadata": {
+        "role": "parameter"
       },
       "annotations": [],
       "semantic_group": null,
@@ -1050,6 +1168,33 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:label:27:21",
+      "resolved_type": "string",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "tsx",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:label:7:28",
+      "resolved_type": "string",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "tsx",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:name:32:9",
+      "resolved_type": "string",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "tsx",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:renderBadge:27:0",
       "resolved_type": "function",
       "generic_params": null,
@@ -1505,6 +1650,19 @@
       "kind": "string_literal",
       "language": "tsx",
       "file_path": "fixtures/extraction/tsx/qunit_roles/source.tsx",
+      "containing_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:label:27:21",
+      "start_line": 27,
+      "start_column": 28,
+      "end_line": 27,
+      "end_column": 34,
+      "start_byte": 757,
+      "end_byte": 763,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/qunit_roles/source.tsx",
       "containing_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:label:7:28",
       "start_line": 7,
       "start_column": 35,
@@ -1518,26 +1676,13 @@
       "kind": "string_literal",
       "language": "tsx",
       "file_path": "fixtures/extraction/tsx/qunit_roles/source.tsx",
-      "containing_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:module:32:2",
+      "containing_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:name:32:9",
       "start_line": 32,
       "start_column": 15,
       "end_line": 32,
       "end_column": 21,
       "start_byte": 849,
       "end_byte": 855,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "tsx",
-      "file_path": "fixtures/extraction/tsx/qunit_roles/source.tsx",
-      "containing_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:renderBadge:27:0",
-      "start_line": 27,
-      "start_column": 28,
-      "end_line": 27,
-      "end_column": 34,
-      "start_byte": 757,
-      "end_byte": 763,
       "metadata": null
     },
     {

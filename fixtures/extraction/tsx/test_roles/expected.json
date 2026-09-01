@@ -1,6 +1,32 @@
 {
   "symbols": [
     {
+      "key": "fixtures/extraction/tsx/test_roles/source.tsx:_name:16:7",
+      "name": "_name",
+      "kind": "variable",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/test_roles/source.tsx",
+      "start_line": 16,
+      "start_column": 7,
+      "end_line": 16,
+      "end_column": 20,
+      "start_byte": 327,
+      "end_byte": 340,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "_name: string",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/tsx/test_roles/source.tsx:test:16:2",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/tsx/test_roles/source.tsx:beforeEach:1:0",
       "name": "beforeEach",
       "kind": "import",
@@ -67,6 +93,39 @@
         "is_test": true,
         "test_lifecycle": true,
         "test_role": "fixture_setup"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/tsx/test_roles/source.tsx:callback:16:22",
+      "name": "callback",
+      "kind": "variable",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/test_roles/source.tsx",
+      "start_line": 16,
+      "start_column": 22,
+      "end_line": 16,
+      "end_column": 49,
+      "start_byte": 342,
+      "end_byte": 369,
+      "body_span": {
+        "start_line": 16,
+        "start_column": 32,
+        "end_line": 16,
+        "end_column": 34,
+        "start_byte": 352,
+        "end_byte": 354
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "callback: () => JSX.Element",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/tsx/test_roles/source.tsx:test:16:2",
+      "metadata": {
+        "role": "parameter"
       },
       "annotations": [],
       "semantic_group": null,
@@ -386,44 +445,8 @@
       "metadata": null
     }
   ],
-  "pending_relationships": [
-    {
-      "from_key": "fixtures/extraction/tsx/test_roles/source.tsx:test:16:2",
-      "callee_name": "callback",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/tsx/test_roles/source.tsx",
-      "line_number": 17,
-      "confidence": "0.700"
-    }
-  ],
-  "structured_pending_relationships": [
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/tsx/test_roles/source.tsx:test:16:2",
-        "callee_name": "callback",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/tsx/test_roles/source.tsx",
-        "line_number": 17,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "callback",
-        "terminal_name": "callback",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/tsx/test_roles/source.tsx:test:16:2",
-      "span": {
-        "start_line": 17,
-        "start_column": 11,
-        "end_line": 17,
-        "end_column": 21,
-        "start_byte": 397,
-        "end_byte": 407
-      }
-    }
-  ],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
   "identifiers": [
     {
       "key": "fixtures/extraction/tsx/test_roles/source.tsx:Element:type_usage:11:37",
@@ -587,6 +610,15 @@
     }
   ],
   "types": [
+    {
+      "symbol_key": "fixtures/extraction/tsx/test_roles/source.tsx:_name:16:7",
+      "resolved_type": "string",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "tsx",
+      "metadata": null
+    },
     {
       "symbol_key": "fixtures/extraction/tsx/test_roles/source.tsx:ordinary:15:6",
       "resolved_type": "object",
@@ -806,6 +838,19 @@
       "kind": "string_literal",
       "language": "tsx",
       "file_path": "fixtures/extraction/tsx/test_roles/source.tsx",
+      "containing_key": "fixtures/extraction/tsx/test_roles/source.tsx:_name:16:7",
+      "start_line": 16,
+      "start_column": 14,
+      "end_line": 16,
+      "end_column": 20,
+      "start_byte": 334,
+      "end_byte": 340,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/test_roles/source.tsx",
       "containing_key": "fixtures/extraction/tsx/test_roles/source.tsx:beforeEach:1:0",
       "start_line": 1,
       "start_column": 43,
@@ -826,19 +871,6 @@
       "end_column": 32,
       "start_byte": 115,
       "end_byte": 140,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "tsx",
-      "file_path": "fixtures/extraction/tsx/test_roles/source.tsx",
-      "containing_key": "fixtures/extraction/tsx/test_roles/source.tsx:test:16:2",
-      "start_line": 16,
-      "start_column": 14,
-      "end_line": 16,
-      "end_column": 20,
-      "start_byte": 334,
-      "end_byte": 340,
       "metadata": null
     },
     {

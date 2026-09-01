@@ -277,6 +277,58 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/jsx/http_client_fetch/source.jsx:payload:5:33",
+      "name": "payload",
+      "kind": "variable",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/http_client_fetch/source.jsx",
+      "start_line": 5,
+      "start_column": 33,
+      "end_line": 5,
+      "end_column": 40,
+      "start_byte": 102,
+      "end_byte": 109,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "payload",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/jsx/http_client_fetch/source.jsx:createUser:5:7",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/jsx/http_client_fetch/source.jsx:url:9:29",
+      "name": "url",
+      "kind": "variable",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/http_client_fetch/source.jsx",
+      "start_line": 9,
+      "start_column": 29,
+      "end_line": 9,
+      "end_column": 32,
+      "start_byte": 210,
+      "end_byte": 213,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "url",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/jsx/http_client_fetch/source.jsx:dynamicFetch:9:7",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [],

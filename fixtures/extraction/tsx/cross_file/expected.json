@@ -303,7 +303,7 @@
     },
     {
       "symbol_key": "fixtures/extraction/tsx/cross_file/source.tsx:x:13:10",
-      "resolved_type": "any",
+      "resolved_type": "Foo",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
