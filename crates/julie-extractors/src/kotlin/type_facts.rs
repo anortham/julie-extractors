@@ -1,10 +1,10 @@
 //! Declared-type fact recording for Kotlin.
 
 use super::helpers;
-use crate::base::BaseExtractor;
-use crate::base::types::TypeNameRules;
+use crate::base::types::{TypeNameRules, strip_type_decorations};
+use crate::base::{BaseExtractor, Symbol};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use tree_sitter::Node;
 
 pub(super) const KOTLIN_TYPE_NAME_RULES: TypeNameRules = TypeNameRules {
@@ -12,6 +12,44 @@ pub(super) const KOTLIN_TYPE_NAME_RULES: TypeNameRules = TypeNameRules {
     reference_prefixes: &[],
     generic_open: &['<'],
 };
+
+const DECLARED_TYPE_METADATA_KEYS: [&str; 3] = ["returnType", "propertyType", "dataType"];
+
+/// Base type names for symbols whose metadata carries declared type text.
+/// Shapes with no single base name (function types, backticked names with
+/// spaces) record nothing.
+pub(super) fn metadata_base_types(symbols: &[Symbol]) -> HashMap<String, String> {
+    symbols
+        .iter()
+        .filter_map(|symbol| {
+            let declared = declared_type_metadata(symbol)?;
+            Some((symbol.id.clone(), base_type_name_from_text(declared)?))
+        })
+        .collect()
+}
+
+fn declared_type_metadata(symbol: &Symbol) -> Option<&str> {
+    let metadata = symbol.metadata.as_ref()?;
+    DECLARED_TYPE_METADATA_KEYS
+        .iter()
+        .find_map(|key| metadata.get(*key).and_then(serde_json::Value::as_str))
+}
+
+fn base_type_name_from_text(declared: &str) -> Option<String> {
+    let stripped = strip_type_decorations(declared, &KOTLIN_TYPE_NAME_RULES);
+    let segments: Vec<&str> = stripped.split('.').map(helpers::strip_backticks).collect();
+    let is_qualified_name =
+        !stripped.is_empty() && segments.iter().all(|segment| is_type_name_segment(segment));
+    is_qualified_name.then(|| segments.join("."))
+}
+
+fn is_type_name_segment(segment: &str) -> bool {
+    let mut chars = segment.chars();
+    chars
+        .next()
+        .is_some_and(|first| first.is_alphabetic() || first == '_')
+        && chars.all(|c| c.is_alphanumeric() || c == '_')
+}
 
 pub(super) fn record_declared_type(base: &mut BaseExtractor, symbol_id: &str, type_node: Node) {
     record_type_node(base, symbol_id, type_node, false);
@@ -95,10 +133,8 @@ fn collect_type_names_into(
     if !should_visit_tree_depth(depth) {
         return;
     }
-    if matches!(
-        node.kind(),
-        "class_declaration" | "object_declaration" | "enum_declaration"
-    ) && let Some((name, _)) = helpers::declared_name(base, &node)
+    if matches!(node.kind(), "class_declaration" | "object_declaration")
+        && let Some((name, _)) = helpers::declared_name(base, &node)
     {
         names.insert(name);
     }

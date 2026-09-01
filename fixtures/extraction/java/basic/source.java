@@ -95,3 +95,19 @@ class Worker implements Job {
         this.recordRun(id);
     }
 }
+
+class Supervisor extends Worker {
+    Supervisor(int id) {
+        super(id);
+    }
+
+    @Override
+    public int run() {
+        return super.run();
+    }
+
+    void combine(BinaryOperator<Integer> op) {
+        BinaryOperator<Integer> sum = (left, right) -> left + right;
+        sum.apply(1, 2);
+    }
+}

@@ -1287,7 +1287,7 @@
       "end_column": 44,
       "start_byte": 406,
       "end_byte": 411,
-      "containing_key": "fixtures/extraction/qml/basic/source.qml:m:20:24",
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:buildIndex:20:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1303,7 +1303,7 @@
       "end_column": 24,
       "start_byte": 911,
       "end_byte": 915,
-      "containing_key": "fixtures/extraction/qml/basic/source.qml:d:48:12",
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:seed:45:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1319,7 +1319,7 @@
       "end_column": 41,
       "start_byte": 971,
       "end_byte": 985,
-      "containing_key": "fixtures/extraction/qml/basic/source.qml:graph:50:12",
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:seed:45:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1367,7 +1367,7 @@
       "end_column": 37,
       "start_byte": 879,
       "end_byte": 888,
-      "containing_key": "fixtures/extraction/qml/basic/source.qml:localCard:47:12",
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:seed:45:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1383,7 +1383,7 @@
       "end_column": 30,
       "start_byte": 394,
       "end_byte": 397,
-      "containing_key": "fixtures/extraction/qml/basic/source.qml:m:20:24",
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:buildIndex:20:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1431,7 +1431,7 @@
       "end_column": 49,
       "start_byte": 412,
       "end_byte": 416,
-      "containing_key": "fixtures/extraction/qml/basic/source.qml:m:20:24",
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:buildIndex:20:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1463,7 +1463,7 @@
       "end_column": 23,
       "start_byte": 934,
       "end_byte": 941,
-      "containing_key": "fixtures/extraction/qml/basic/source.qml:n:49:12",
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:seed:45:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1479,7 +1479,7 @@
       "end_column": 36,
       "start_byte": 785,
       "end_byte": 790,
-      "containing_key": "fixtures/extraction/qml/basic/source.qml:count:42:31",
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:formatPair:42:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1495,7 +1495,7 @@
       "end_column": 27,
       "start_byte": 1017,
       "end_byte": 1022,
-      "containing_key": "fixtures/extraction/qml/basic/source.qml:count:53:22",
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:evaluate:53:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1543,7 +1543,7 @@
       "end_column": 13,
       "start_byte": 903,
       "end_byte": 904,
-      "containing_key": "fixtures/extraction/qml/basic/source.qml:d:48:12",
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:seed:45:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1559,7 +1559,7 @@
       "end_column": 36,
       "start_byte": 1024,
       "end_byte": 1031,
-      "containing_key": "fixtures/extraction/qml/basic/source.qml:enabled:53:29",
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:evaluate:53:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1591,7 +1591,7 @@
       "end_column": 29,
       "start_byte": 603,
       "end_byte": 608,
-      "containing_key": "fixtures/extraction/qml/basic/source.qml:event:32:24",
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:observeRun:32:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1639,7 +1639,7 @@
       "end_column": 17,
       "start_byte": 956,
       "end_byte": 961,
-      "containing_key": "fixtures/extraction/qml/basic/source.qml:graph:50:12",
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:seed:45:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1655,7 +1655,7 @@
       "end_column": 22,
       "start_byte": 1101,
       "end_byte": 1102,
-      "containing_key": "fixtures/extraction/qml/basic/source.qml:i:56:21",
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:evaluate:53:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1719,7 +1719,7 @@
       "end_column": 25,
       "start_byte": 529,
       "end_byte": 531,
-      "containing_key": "fixtures/extraction/qml/basic/source.qml:id:28:23",
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:recordRun:28:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1751,7 +1751,7 @@
       "end_column": 33,
       "start_byte": 610,
       "end_byte": 612,
-      "containing_key": "fixtures/extraction/qml/basic/source.qml:id:32:31",
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:observeRun:32:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1783,7 +1783,7 @@
       "end_column": 21,
       "start_byte": 863,
       "end_byte": 872,
-      "containing_key": "fixtures/extraction/qml/basic/source.qml:localCard:47:12",
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:seed:45:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1799,7 +1799,7 @@
       "end_column": 25,
       "start_byte": 391,
       "end_byte": 392,
-      "containing_key": "fixtures/extraction/qml/basic/source.qml:m:20:24",
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:buildIndex:20:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1848,7 +1848,7 @@
       "end_column": 13,
       "start_byte": 930,
       "end_byte": 931,
-      "containing_key": "fixtures/extraction/qml/basic/source.qml:n:49:12",
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:seed:45:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1960,7 +1960,7 @@
       "end_column": 29,
       "start_byte": 778,
       "end_byte": 783,
-      "containing_key": "fixtures/extraction/qml/basic/source.qml:title:42:24",
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:formatPair:42:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1976,7 +1976,7 @@
       "end_column": 17,
       "start_byte": 1047,
       "end_byte": 1052,
-      "containing_key": "fixtures/extraction/qml/basic/source.qml:total:54:12",
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:evaluate:53:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2056,7 +2056,7 @@
       "end_column": 25,
       "start_byte": 740,
       "end_byte": 743,
-      "containing_key": "fixtures/extraction/qml/basic/source.qml:url:39:22",
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:fetchUrl:39:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2088,7 +2088,7 @@
       "end_column": 25,
       "start_byte": 323,
       "end_byte": 328,
-      "containing_key": "fixtures/extraction/qml/basic/source.qml:value:16:20",
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:format:16:4",
       "target_key": null,
       "confidence": "1.000"
     },

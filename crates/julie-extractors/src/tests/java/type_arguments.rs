@@ -180,12 +180,26 @@ fn basic_fixture_emits_nested_type_arguments_via_canonical_pipeline() {
     let results = extract_fixture(FIXTURE_SOURCE);
     assert_eq!(
         results.type_argument_usages.len(),
-        1,
-        "fixture should emit one Map<String, List<Integer>> usage, got {:?}",
+        3,
+        "fixture should emit one Map<String, List<Integer>> usage and two BinaryOperator<Integer> usages, got {:?}",
         results.type_argument_usages
     );
-    let usage = &results.type_argument_usages[0];
-    assert_eq!(top_level(usage), vec![(0, "String"), (1, "List")]);
+    let operator_usages: Vec<_> = results
+        .type_argument_usages
+        .iter()
+        .filter(|usage| top_level(usage) == vec![(0, "Integer")])
+        .collect();
+    assert_eq!(operator_usages.len(), 2);
+    assert!(
+        operator_usages
+            .iter()
+            .all(|usage| usage.arguments[0].children.is_empty())
+    );
+    let usage = results
+        .type_argument_usages
+        .iter()
+        .find(|usage| top_level(usage) == vec![(0, "String"), (1, "List")])
+        .expect("Map<String, List<Integer>> usage");
     assert!(usage.arguments[0].children.is_empty());
     assert_eq!(
         usage.arguments[1]

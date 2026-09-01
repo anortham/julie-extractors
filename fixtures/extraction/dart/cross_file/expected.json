@@ -296,15 +296,6 @@
       "is_inferred": true,
       "language": "dart",
       "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/dart/cross_file/source.dart:x:13:2",
-      "resolved_type": "var",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "dart",
-      "metadata": null
     }
   ],
   "parse_diagnostics": [],

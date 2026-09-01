@@ -2410,7 +2410,7 @@
   "types": [
     {
       "symbol_key": "fixtures/extraction/elixir/basic/source.ex:run:10:2",
-      "resolved_type": "integer()",
+      "resolved_type": "integer",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,

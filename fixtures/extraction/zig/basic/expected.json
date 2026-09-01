@@ -10,15 +10,15 @@
       "start_column": 4,
       "end_line": 18,
       "end_column": 25,
-      "start_byte": 286,
-      "end_byte": 307,
+      "start_byte": 347,
+      "end_byte": 368,
       "body_span": {
         "start_line": 18,
         "start_column": 22,
         "end_line": 18,
         "end_column": 24,
-        "start_byte": 304,
-        "end_byte": 306
+        "start_byte": 365,
+        "end_byte": 367
       },
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
       "signature": "const Self: @This()",
@@ -41,15 +41,15 @@
       "start_column": 0,
       "end_line": 77,
       "end_column": 2,
-      "start_byte": 1449,
-      "end_byte": 1490,
+      "start_byte": 1510,
+      "end_byte": 1551,
       "body_span": {
         "start_line": 75,
         "start_column": 21,
         "end_line": 77,
         "end_column": 1,
-        "start_byte": 1470,
-        "end_byte": 1489
+        "start_byte": 1531,
+        "end_byte": 1550
       },
       "body_hash": "6207896b847ce3bcb736e936369776ca",
       "signature": "const Store = struct",
@@ -72,8 +72,8 @@
       "start_column": 12,
       "end_line": 42,
       "end_column": 28,
-      "start_byte": 773,
-      "end_byte": 789,
+      "start_byte": 834,
+      "end_byte": 850,
       "body_span": null,
       "body_hash": null,
       "signature": "comptime T: type",
@@ -99,16 +99,16 @@
       "end_line": 19,
       "end_column": 2,
       "start_byte": 67,
-      "end_byte": 310,
+      "end_byte": 371,
       "body_span": {
         "start_line": 5,
         "start_column": 26,
         "end_line": 19,
         "end_column": 1,
         "start_byte": 93,
-        "end_byte": 309
+        "end_byte": 370
       },
-      "body_hash": "819c88719af3225c5581d1669fcbd3eb",
+      "body_hash": "414fd7640656c7d8a9138d2c4ff89355",
       "signature": "const Worker = struct",
       "doc_comment": null,
       "visibility": "Public",
@@ -129,15 +129,15 @@
       "start_column": 4,
       "end_line": 87,
       "end_column": 29,
-      "start_byte": 1695,
-      "end_byte": 1720,
+      "start_byte": 1756,
+      "end_byte": 1781,
       "body_span": {
         "start_line": 87,
         "start_column": 9,
         "end_line": 87,
         "end_column": 28,
-        "start_byte": 1700,
-        "end_byte": 1719
+        "start_byte": 1761,
+        "end_byte": 1780
       },
       "body_hash": "8db49737bfd2e4b361dc761f8b6714df",
       "signature": "var _: inferred",
@@ -160,15 +160,15 @@
       "start_column": 4,
       "end_line": 83,
       "end_column": 24,
-      "start_byte": 1567,
-      "end_byte": 1587,
+      "start_byte": 1628,
+      "end_byte": 1648,
       "body_span": {
         "start_line": 83,
         "start_column": 21,
         "end_line": 83,
         "end_column": 23,
-        "start_byte": 1584,
-        "end_byte": 1586
+        "start_byte": 1645,
+        "end_byte": 1647
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "const a: Unknown{}",
@@ -191,15 +191,15 @@
       "start_column": 4,
       "end_line": 84,
       "end_column": 48,
-      "start_byte": 1592,
-      "end_byte": 1636,
+      "start_byte": 1653,
+      "end_byte": 1697,
       "body_span": {
         "start_line": 84,
         "start_column": 27,
         "end_line": 84,
         "end_column": 47,
-        "start_byte": 1615,
-        "end_byte": 1635
+        "start_byte": 1676,
+        "end_byte": 1696
       },
       "body_hash": "15c3c1ea3885740c676c9dbed792a458",
       "signature": "const b: std.ArrayList(u8).init(undefined)",
@@ -222,8 +222,8 @@
       "start_column": 4,
       "end_line": 86,
       "end_column": 31,
-      "start_byte": 1663,
-      "end_byte": 1690,
+      "start_byte": 1724,
+      "end_byte": 1751,
       "body_span": null,
       "body_hash": null,
       "signature": "var buf: inferred",
@@ -246,15 +246,15 @@
       "start_column": 4,
       "end_line": 85,
       "end_column": 21,
-      "start_byte": 1641,
-      "end_byte": 1658,
+      "start_byte": 1702,
+      "end_byte": 1719,
       "body_span": {
         "start_line": 85,
         "start_column": 18,
         "end_line": 85,
         "end_column": 20,
-        "start_byte": 1655,
-        "end_byte": 1657
+        "start_byte": 1716,
+        "end_byte": 1718
       },
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
       "signature": "const c: make()",
@@ -277,8 +277,8 @@
       "start_column": 16,
       "end_line": 61,
       "end_column": 26,
-      "start_byte": 1156,
-      "end_byte": 1166,
+      "start_byte": 1217,
+      "end_byte": 1227,
       "body_span": null,
       "body_hash": null,
       "signature": "count: i32",
@@ -303,15 +303,15 @@
       "start_column": 0,
       "end_line": 88,
       "end_column": 1,
-      "start_byte": 1511,
-      "end_byte": 1722,
+      "start_byte": 1572,
+      "end_byte": 1783,
       "body_span": {
         "start_line": 81,
         "start_column": 15,
         "end_line": 88,
         "end_column": 1,
-        "start_byte": 1526,
-        "end_byte": 1722
+        "start_byte": 1587,
+        "end_byte": 1783
       },
       "body_hash": "647d017e7c45d9e8be358b81d62c60b9",
       "signature": "fn demo() void",
@@ -334,8 +334,8 @@
       "start_column": 28,
       "end_line": 61,
       "end_column": 41,
-      "start_byte": 1168,
-      "end_byte": 1181,
+      "start_byte": 1229,
+      "end_byte": 1242,
       "body_span": null,
       "body_hash": null,
       "signature": "enabled: bool",
@@ -360,15 +360,15 @@
       "start_column": 0,
       "end_line": 71,
       "end_column": 1,
-      "start_byte": 1140,
-      "end_byte": 1390,
+      "start_byte": 1201,
+      "end_byte": 1451,
       "body_span": {
         "start_line": 61,
         "start_column": 47,
         "end_line": 71,
         "end_column": 1,
-        "start_byte": 1187,
-        "end_byte": 1390
+        "start_byte": 1248,
+        "end_byte": 1451
       },
       "body_hash": "d48e4eadbe53bf65bafcdb3a0891b79d",
       "signature": "pub fn evaluate(count: i32, enabled: bool) i32",
@@ -391,8 +391,8 @@
       "start_column": 15,
       "end_line": 27,
       "end_column": 32,
-      "start_byte": 505,
-      "end_byte": 522,
+      "start_byte": 566,
+      "end_byte": 583,
       "body_span": null,
       "body_hash": null,
       "signature": "event: []const u8",
@@ -417,15 +417,15 @@
       "start_column": 0,
       "end_line": 40,
       "end_column": 1,
-      "start_byte": 698,
-      "end_byte": 759,
+      "start_byte": 759,
+      "end_byte": 820,
       "body_span": {
         "start_line": 38,
         "start_column": 36,
         "end_line": 40,
         "end_column": 1,
-        "start_byte": 734,
-        "end_byte": 759
+        "start_byte": 795,
+        "end_byte": 820
       },
       "body_hash": "9d7bfc03ef03477a6cc1004df50e77c5",
       "signature": "inline fn fast_path(value: i32) i32",
@@ -454,15 +454,15 @@
       "start_column": 0,
       "end_line": 53,
       "end_column": 1,
-      "start_byte": 940,
-      "end_byte": 1027,
+      "start_byte": 1001,
+      "end_byte": 1088,
       "body_span": {
         "start_line": 51,
         "start_column": 27,
         "end_line": 53,
         "end_column": 1,
-        "start_byte": 967,
-        "end_byte": 1027
+        "start_byte": 1028,
+        "end_byte": 1088
       },
       "body_hash": "5bc4124a32393f1c92d7dba33b24c53b",
       "signature": "pub fn fetch_status() void",
@@ -485,15 +485,15 @@
       "start_column": 0,
       "end_line": 55,
       "end_column": 37,
-      "start_byte": 1029,
-      "end_byte": 1066,
+      "start_byte": 1090,
+      "end_byte": 1127,
       "body_span": {
         "start_line": 55,
         "start_column": 35,
         "end_line": 55,
         "end_column": 37,
-        "start_byte": 1064,
-        "end_byte": 1066
+        "start_byte": 1125,
+        "end_byte": 1127
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "fn fetch_url(url: []const u8) void",
@@ -516,15 +516,15 @@
       "start_column": 0,
       "end_line": 48,
       "end_column": 1,
-      "start_byte": 826,
-      "end_byte": 891,
+      "start_byte": 887,
+      "end_byte": 952,
       "body_span": {
         "start_line": 46,
         "start_column": 36,
         "end_line": 48,
         "end_column": 1,
-        "start_byte": 862,
-        "end_byte": 891
+        "start_byte": 923,
+        "end_byte": 952
       },
       "body_hash": "e98131fa72a39fc4ec29fd382432b9fc",
       "signature": "export fn ffi_entry(value: i32) i32",
@@ -584,15 +584,15 @@
       "start_column": 0,
       "end_line": 32,
       "end_column": 1,
-      "start_byte": 569,
-      "end_byte": 624,
+      "start_byte": 630,
+      "end_byte": 685,
       "body_span": {
         "start_line": 30,
         "start_column": 30,
         "end_line": 32,
         "end_column": 1,
-        "start_byte": 599,
-        "end_byte": 624
+        "start_byte": 660,
+        "end_byte": 685
       },
       "body_hash": "9d7bfc03ef03477a6cc1004df50e77c5",
       "signature": "pub fn helper(value: i32) i32",
@@ -615,15 +615,15 @@
       "start_column": 0,
       "end_line": 36,
       "end_column": 1,
-      "start_byte": 626,
-      "end_byte": 696,
+      "start_byte": 687,
+      "end_byte": 757,
       "body_span": {
         "start_line": 34,
         "start_column": 34,
         "end_line": 36,
         "end_column": 1,
-        "start_byte": 660,
-        "end_byte": 696
+        "start_byte": 721,
+        "end_byte": 757
       },
       "body_hash": "74704e173f34c3873ed49d043b4deeb5",
       "signature": "fn hypotenuse(x: f64, y: f64) f64",
@@ -646,8 +646,8 @@
       "start_column": 14,
       "end_line": 22,
       "end_column": 21,
-      "start_byte": 381,
-      "end_byte": 388,
+      "start_byte": 442,
+      "end_byte": 449,
       "body_span": null,
       "body_hash": null,
       "signature": "id: i32",
@@ -672,8 +672,8 @@
       "start_column": 34,
       "end_line": 27,
       "end_column": 41,
-      "start_byte": 524,
-      "end_byte": 531,
+      "start_byte": 585,
+      "end_byte": 592,
       "body_span": null,
       "body_hash": null,
       "signature": "id: i32",
@@ -722,15 +722,15 @@
       "start_column": 0,
       "end_line": 44,
       "end_column": 1,
-      "start_byte": 761,
-      "end_byte": 824,
+      "start_byte": 822,
+      "end_byte": 885,
       "body_span": {
         "start_line": 42,
         "start_column": 42,
         "end_line": 44,
         "end_column": 1,
-        "start_byte": 803,
-        "end_byte": 824
+        "start_byte": 864,
+        "end_byte": 885
       },
       "body_hash": "1a580ed16aee74ac1c591b31a20dafcf",
       "signature": "fn identity(comptime T: type, value: T) void",
@@ -753,8 +753,8 @@
       "start_column": 4,
       "end_line": 76,
       "end_column": 14,
-      "start_byte": 1476,
-      "end_byte": 1486,
+      "start_byte": 1537,
+      "end_byte": 1547,
       "body_span": null,
       "body_hash": null,
       "signature": "items: i32",
@@ -777,15 +777,15 @@
       "start_column": 0,
       "end_line": 79,
       "end_column": 17,
-      "start_byte": 1492,
-      "end_byte": 1509,
+      "start_byte": 1553,
+      "end_byte": 1570,
       "body_span": {
         "start_line": 79,
         "start_column": 15,
         "end_line": 79,
         "end_column": 17,
-        "start_byte": 1507,
-        "end_byte": 1509
+        "start_byte": 1568,
+        "end_byte": 1570
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "fn make() void",
@@ -808,21 +808,52 @@
       "start_column": 0,
       "end_line": 27,
       "end_column": 50,
-      "start_byte": 490,
-      "end_byte": 540,
+      "start_byte": 551,
+      "end_byte": 601,
       "body_span": {
         "start_line": 27,
         "start_column": 48,
         "end_line": 27,
         "end_column": 50,
-        "start_byte": 538,
-        "end_byte": 540
+        "start_byte": 599,
+        "end_byte": 601
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "fn observe_run(event: []const u8, id: i32) void",
       "doc_comment": "/// Records a named worker event for downstream hooks.",
       "visibility": "Private",
       "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/zig/basic/source.zig:probe:17:4",
+      "name": "probe",
+      "kind": "method",
+      "language": "zig",
+      "file_path": "fixtures/extraction/zig/basic/source.zig",
+      "start_line": 17,
+      "start_column": 4,
+      "end_line": 17,
+      "end_column": 61,
+      "start_byte": 285,
+      "end_byte": 342,
+      "body_span": {
+        "start_line": 17,
+        "start_column": 37,
+        "end_line": 17,
+        "end_column": 61,
+        "start_byte": 318,
+        "end_byte": 342
+      },
+      "body_hash": "b58eb4f0668d4924dfcf97eb01fe1371",
+      "signature": "pub fn probe(self: *Worker) void",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/zig/basic/source.zig:Worker:5:0",
       "metadata": {},
       "annotations": [],
       "semantic_group": null,
@@ -839,15 +870,15 @@
       "start_column": 0,
       "end_line": 24,
       "end_column": 1,
-      "start_byte": 367,
-      "end_byte": 433,
+      "start_byte": 428,
+      "end_byte": 494,
       "body_span": {
         "start_line": 22,
         "start_column": 28,
         "end_line": 24,
         "end_column": 1,
-        "start_byte": 395,
-        "end_byte": 433
+        "start_byte": 456,
+        "end_byte": 494
       },
       "body_hash": "23ea4427b8202048110cbda34115b677",
       "signature": "fn record_run(id: i32) void",
@@ -901,15 +932,15 @@
       "start_column": 0,
       "end_line": 59,
       "end_column": 1,
-      "start_byte": 1068,
-      "end_byte": 1138,
+      "start_byte": 1129,
+      "end_byte": 1199,
       "body_span": {
         "start_line": 57,
         "start_column": 37,
         "end_line": 59,
         "end_column": 1,
-        "start_byte": 1105,
-        "end_byte": 1138
+        "start_byte": 1166,
+        "end_byte": 1199
       },
       "body_hash": "c5302f00dd77c3e83197c886a62ed115",
       "signature": "pub fn runWorker(worker: Worker) i32",
@@ -932,15 +963,15 @@
       "start_column": 4,
       "end_line": 82,
       "end_column": 34,
-      "start_byte": 1532,
-      "end_byte": 1562,
+      "start_byte": 1593,
+      "end_byte": 1623,
       "body_span": {
         "start_line": 82,
         "start_column": 19,
         "end_line": 82,
         "end_column": 33,
-        "start_byte": 1547,
-        "end_byte": 1561
+        "start_byte": 1608,
+        "end_byte": 1622
       },
       "body_hash": "be9b7f3d195105757245b5f17e3335c4",
       "signature": "const s: Store{ .items = 1 }",
@@ -971,6 +1002,32 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/zig/basic/source.zig:go:13:4",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/zig/basic/source.zig:self:17:17",
+      "name": "self",
+      "kind": "variable",
+      "language": "zig",
+      "file_path": "fixtures/extraction/zig/basic/source.zig",
+      "start_line": 17,
+      "start_column": 17,
+      "end_line": 17,
+      "end_column": 30,
+      "start_byte": 298,
+      "end_byte": 311,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "self: *Worker",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/zig/basic/source.zig:probe:17:4",
       "metadata": {
         "role": "parameter"
       },
@@ -1048,8 +1105,8 @@
       "start_column": 4,
       "end_line": 62,
       "end_column": 23,
-      "start_byte": 1193,
-      "end_byte": 1212,
+      "start_byte": 1254,
+      "end_byte": 1273,
       "body_span": null,
       "body_hash": null,
       "signature": "var total: inferred",
@@ -1072,8 +1129,8 @@
       "start_column": 12,
       "end_line": 65,
       "end_column": 23,
-      "start_byte": 1273,
-      "end_byte": 1284,
+      "start_byte": 1334,
+      "end_byte": 1345,
       "body_span": null,
       "body_hash": null,
       "signature": "var total: inferred",
@@ -1096,15 +1153,15 @@
       "start_column": 8,
       "end_line": 68,
       "end_column": 41,
-      "start_byte": 1331,
-      "end_byte": 1364,
+      "start_byte": 1392,
+      "end_byte": 1425,
       "body_span": {
         "start_line": 68,
         "start_column": 19,
         "end_line": 68,
         "end_column": 31,
-        "start_byte": 1342,
-        "end_byte": 1354
+        "start_byte": 1403,
+        "end_byte": 1415
       },
       "body_hash": "3ac9a57c724fb0aead3e5cafcbb8208f",
       "signature": "var total: inferred",
@@ -1127,8 +1184,8 @@
       "start_column": 13,
       "end_line": 55,
       "end_column": 28,
-      "start_byte": 1042,
-      "end_byte": 1057,
+      "start_byte": 1103,
+      "end_byte": 1118,
       "body_span": null,
       "body_hash": null,
       "signature": "url: []const u8",
@@ -1153,8 +1210,8 @@
       "start_column": 14,
       "end_line": 30,
       "end_column": 24,
-      "start_byte": 583,
-      "end_byte": 593,
+      "start_byte": 644,
+      "end_byte": 654,
       "body_span": null,
       "body_hash": null,
       "signature": "value: i32",
@@ -1179,8 +1236,8 @@
       "start_column": 20,
       "end_line": 38,
       "end_column": 30,
-      "start_byte": 718,
-      "end_byte": 728,
+      "start_byte": 779,
+      "end_byte": 789,
       "body_span": null,
       "body_hash": null,
       "signature": "value: i32",
@@ -1205,8 +1262,8 @@
       "start_column": 30,
       "end_line": 42,
       "end_column": 38,
-      "start_byte": 791,
-      "end_byte": 799,
+      "start_byte": 852,
+      "end_byte": 860,
       "body_span": null,
       "body_hash": null,
       "signature": "value: T",
@@ -1231,8 +1288,8 @@
       "start_column": 20,
       "end_line": 46,
       "end_column": 30,
-      "start_byte": 846,
-      "end_byte": 856,
+      "start_byte": 907,
+      "end_byte": 917,
       "body_span": null,
       "body_hash": null,
       "signature": "value: i32",
@@ -1257,8 +1314,8 @@
       "start_column": 17,
       "end_line": 57,
       "end_column": 31,
-      "start_byte": 1085,
-      "end_byte": 1099,
+      "start_byte": 1146,
+      "end_byte": 1160,
       "body_span": null,
       "body_hash": null,
       "signature": "worker: Worker",
@@ -1283,15 +1340,15 @@
       "start_column": 0,
       "end_line": 73,
       "end_column": 55,
-      "start_byte": 1392,
-      "end_byte": 1447,
+      "start_byte": 1453,
+      "end_byte": 1508,
       "body_span": {
         "start_line": 73,
         "start_column": 20,
         "end_line": 73,
         "end_column": 42,
-        "start_byte": 1412,
-        "end_byte": 1434
+        "start_byte": 1473,
+        "end_byte": 1495
       },
       "body_hash": "b57f0b4c867dc189d038b99b15605013",
       "signature": "var workerIndex: inferred",
@@ -1344,8 +1401,8 @@
       "start_column": 14,
       "end_line": 34,
       "end_column": 20,
-      "start_byte": 640,
-      "end_byte": 646,
+      "start_byte": 701,
+      "end_byte": 707,
       "body_span": null,
       "body_hash": null,
       "signature": "x: f64",
@@ -1370,8 +1427,8 @@
       "start_column": 22,
       "end_line": 34,
       "end_column": 28,
-      "start_byte": 648,
-      "end_byte": 654,
+      "start_byte": 709,
+      "end_byte": 715,
       "body_span": null,
       "body_hash": null,
       "signature": "y: f64",
@@ -1399,8 +1456,8 @@
         "start_column": 14,
         "end_line": 85,
         "end_column": 20,
-        "start_byte": 1651,
-        "end_byte": 1657
+        "start_byte": 1712,
+        "end_byte": 1718
       },
       "reference_site_is_exact": false,
       "confidence": "0.900",
@@ -1417,8 +1474,8 @@
         "start_column": 4,
         "end_line": 52,
         "end_column": 55,
-        "start_byte": 973,
-        "end_byte": 1024
+        "start_byte": 1034,
+        "end_byte": 1085
       },
       "reference_site_is_exact": false,
       "confidence": "0.900",
@@ -1435,8 +1492,8 @@
         "start_column": 11,
         "end_line": 47,
         "end_column": 24,
-        "start_byte": 875,
-        "end_byte": 888
+        "start_byte": 936,
+        "end_byte": 949
       },
       "reference_site_is_exact": false,
       "confidence": "0.900",
@@ -1471,8 +1528,8 @@
         "start_column": 4,
         "end_line": 23,
         "end_column": 33,
-        "start_byte": 401,
-        "end_byte": 430
+        "start_byte": 462,
+        "end_byte": 491
       },
       "reference_site_is_exact": false,
       "confidence": "0.900",
@@ -1525,8 +1582,8 @@
         "start_column": 11,
         "end_line": 58,
         "end_column": 28,
-        "start_byte": 1118,
-        "end_byte": 1135
+        "start_byte": 1179,
+        "end_byte": 1196
       },
       "reference_site_is_exact": false,
       "confidence": "0.900",
@@ -1543,11 +1600,11 @@
       "confidence": "0.700"
     },
     {
-      "from_key": "fixtures/extraction/zig/basic/source.zig:go:13:4",
-      "callee_name": "self.run",
+      "from_key": "fixtures/extraction/zig/basic/source.zig:probe:17:4",
+      "callee_name": "self.missingWave2",
       "kind": "calls",
       "file_path": "fixtures/extraction/zig/basic/source.zig",
-      "line_number": 14,
+      "line_number": 17,
       "confidence": "0.700"
     }
   ],
@@ -1574,34 +1631,34 @@
         "start_column": 14,
         "end_line": 84,
         "end_column": 31,
-        "start_byte": 1602,
-        "end_byte": 1619
+        "start_byte": 1663,
+        "end_byte": 1680
       }
     },
     {
       "pending": {
-        "from_key": "fixtures/extraction/zig/basic/source.zig:go:13:4",
-        "callee_name": "self.run",
+        "from_key": "fixtures/extraction/zig/basic/source.zig:probe:17:4",
+        "callee_name": "self.missingWave2",
         "kind": "calls",
         "file_path": "fixtures/extraction/zig/basic/source.zig",
-        "line_number": 14,
+        "line_number": 17,
         "confidence": "0.700"
       },
       "target": {
-        "display_name": "self.run",
-        "terminal_name": "run",
+        "display_name": "self.missingWave2",
+        "terminal_name": "missingWave2",
         "receiver": "self",
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/zig/basic/source.zig:go:13:4",
+      "caller_scope_key": "fixtures/extraction/zig/basic/source.zig:probe:17:4",
       "span": {
-        "start_line": 14,
-        "start_column": 15,
-        "end_line": 14,
-        "end_column": 25,
-        "start_byte": 262,
-        "end_byte": 272
+        "start_line": 17,
+        "start_column": 39,
+        "end_line": 17,
+        "end_column": 58,
+        "start_byte": 320,
+        "end_byte": 339
       },
       "receiver_type": "Worker"
     }
@@ -1617,8 +1674,8 @@
       "start_column": 26,
       "end_line": 73,
       "end_column": 35,
-      "start_byte": 1418,
-      "end_byte": 1427,
+      "start_byte": 1479,
+      "end_byte": 1488,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:workerIndex:73:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1633,8 +1690,8 @@
       "start_column": 18,
       "end_line": 84,
       "end_column": 27,
-      "start_byte": 1606,
-      "end_byte": 1615,
+      "start_byte": 1667,
+      "end_byte": 1676,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:demo:81:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1649,8 +1706,8 @@
       "start_column": 21,
       "end_line": 73,
       "end_column": 24,
-      "start_byte": 1413,
-      "end_byte": 1416,
+      "start_byte": 1474,
+      "end_byte": 1477,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:workerIndex:73:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1665,8 +1722,8 @@
       "start_column": 17,
       "end_line": 73,
       "end_column": 20,
-      "start_byte": 1409,
-      "end_byte": 1412,
+      "start_byte": 1470,
+      "end_byte": 1473,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:workerIndex:73:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1681,8 +1738,8 @@
       "start_column": 14,
       "end_line": 82,
       "end_column": 19,
-      "start_byte": 1542,
-      "end_byte": 1547,
+      "start_byte": 1603,
+      "end_byte": 1608,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:demo:81:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1697,8 +1754,8 @@
       "start_column": 37,
       "end_line": 42,
       "end_column": 38,
-      "start_byte": 798,
-      "end_byte": 799,
+      "start_byte": 859,
+      "end_byte": 860,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:identity:42:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1713,8 +1770,8 @@
       "start_column": 14,
       "end_line": 83,
       "end_column": 21,
-      "start_byte": 1577,
-      "end_byte": 1584,
+      "start_byte": 1638,
+      "end_byte": 1645,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:demo:81:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1729,8 +1786,8 @@
       "start_column": 36,
       "end_line": 73,
       "end_column": 40,
-      "start_byte": 1428,
-      "end_byte": 1432,
+      "start_byte": 1489,
+      "end_byte": 1493,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:workerIndex:73:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1752,6 +1809,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/zig/basic/source.zig:Worker:type_usage:17:24",
+      "name": "Worker",
+      "kind": "type_usage",
+      "language": "zig",
+      "file_path": "fixtures/extraction/zig/basic/source.zig",
+      "start_line": 17,
+      "start_column": 24,
+      "end_line": 17,
+      "end_column": 30,
+      "start_byte": 305,
+      "end_byte": 311,
+      "containing_key": "fixtures/extraction/zig/basic/source.zig:probe:17:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/zig/basic/source.zig:Worker:type_usage:57:25",
       "name": "Worker",
       "kind": "type_usage",
@@ -1761,8 +1834,8 @@
       "start_column": 25,
       "end_line": 57,
       "end_column": 31,
-      "start_byte": 1093,
-      "end_byte": 1099,
+      "start_byte": 1154,
+      "end_byte": 1160,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:runWorker:57:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1793,8 +1866,8 @@
       "start_column": 14,
       "end_line": 87,
       "end_column": 15,
-      "start_byte": 1705,
-      "end_byte": 1706,
+      "start_byte": 1766,
+      "end_byte": 1767,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:demo:81:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1809,8 +1882,8 @@
       "start_column": 17,
       "end_line": 87,
       "end_column": 18,
-      "start_byte": 1708,
-      "end_byte": 1709,
+      "start_byte": 1769,
+      "end_byte": 1770,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:demo:81:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1825,8 +1898,8 @@
       "start_column": 23,
       "end_line": 87,
       "end_column": 26,
-      "start_byte": 1714,
-      "end_byte": 1717,
+      "start_byte": 1775,
+      "end_byte": 1778,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:demo:81:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1841,8 +1914,8 @@
       "start_column": 20,
       "end_line": 87,
       "end_column": 21,
-      "start_byte": 1711,
-      "end_byte": 1712,
+      "start_byte": 1772,
+      "end_byte": 1773,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:demo:81:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1857,8 +1930,8 @@
       "start_column": 16,
       "end_line": 64,
       "end_column": 21,
-      "start_byte": 1248,
-      "end_byte": 1253,
+      "start_byte": 1309,
+      "end_byte": 1314,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:evaluate:61:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1873,8 +1946,8 @@
       "start_column": 15,
       "end_line": 67,
       "end_column": 20,
-      "start_byte": 1310,
-      "end_byte": 1315,
+      "start_byte": 1371,
+      "end_byte": 1376,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:evaluate:61:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1889,8 +1962,8 @@
       "start_column": 20,
       "end_line": 68,
       "end_column": 25,
-      "start_byte": 1343,
-      "end_byte": 1348,
+      "start_byte": 1404,
+      "end_byte": 1409,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:evaluate:61:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1905,8 +1978,8 @@
       "start_column": 8,
       "end_line": 63,
       "end_column": 15,
-      "start_byte": 1221,
-      "end_byte": 1228,
+      "start_byte": 1282,
+      "end_byte": 1289,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:evaluate:61:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1921,8 +1994,8 @@
       "start_column": 4,
       "end_line": 52,
       "end_column": 13,
-      "start_byte": 973,
-      "end_byte": 982,
+      "start_byte": 1034,
+      "end_byte": 1043,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:fetch_status:51:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1953,8 +2026,8 @@
       "start_column": 11,
       "end_line": 47,
       "end_column": 17,
-      "start_byte": 875,
-      "end_byte": 881,
+      "start_byte": 936,
+      "end_byte": 942,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:ffi_entry:46:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1969,8 +2042,8 @@
       "start_column": 11,
       "end_line": 58,
       "end_column": 17,
-      "start_byte": 1118,
-      "end_byte": 1124,
+      "start_byte": 1179,
+      "end_byte": 1185,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:runWorker:57:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1985,8 +2058,8 @@
       "start_column": 21,
       "end_line": 65,
       "end_column": 22,
-      "start_byte": 1282,
-      "end_byte": 1283,
+      "start_byte": 1343,
+      "end_byte": 1344,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:evaluate:61:0",
       "target_key": null,
       "confidence": "1.000"
@@ -2001,8 +2074,8 @@
       "start_column": 30,
       "end_line": 23,
       "end_column": 32,
-      "start_byte": 427,
-      "end_byte": 429,
+      "start_byte": 488,
+      "end_byte": 490,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:record_run:22:0",
       "target_key": null,
       "confidence": "1.000"
@@ -2017,8 +2090,8 @@
       "start_column": 32,
       "end_line": 84,
       "end_column": 36,
-      "start_byte": 1620,
-      "end_byte": 1624,
+      "start_byte": 1681,
+      "end_byte": 1685,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:demo:81:0",
       "target_key": null,
       "confidence": "1.000"
@@ -2033,8 +2106,8 @@
       "start_column": 22,
       "end_line": 82,
       "end_column": 27,
-      "start_byte": 1550,
-      "end_byte": 1555,
+      "start_byte": 1611,
+      "end_byte": 1616,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:demo:81:0",
       "target_key": null,
       "confidence": "1.000"
@@ -2049,11 +2122,28 @@
       "start_column": 14,
       "end_line": 85,
       "end_column": 18,
-      "start_byte": 1651,
-      "end_byte": 1655,
+      "start_byte": 1712,
+      "end_byte": 1716,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:demo:81:0",
       "target_key": null,
       "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/zig/basic/source.zig:missingWave2:call:17:44",
+      "name": "missingWave2",
+      "kind": "call",
+      "language": "zig",
+      "file_path": "fixtures/extraction/zig/basic/source.zig",
+      "start_line": 17,
+      "start_column": 44,
+      "end_line": 17,
+      "end_column": 56,
+      "start_byte": 325,
+      "end_byte": 337,
+      "containing_key": "fixtures/extraction/zig/basic/source.zig:probe:17:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "receiver_type": "Worker"
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:observe_run:call:23:4",
@@ -2065,8 +2155,8 @@
       "start_column": 4,
       "end_line": 23,
       "end_column": 15,
-      "start_byte": 401,
-      "end_byte": 412,
+      "start_byte": 462,
+      "end_byte": 473,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:record_run:22:0",
       "target_key": null,
       "confidence": "1.000"
@@ -2114,8 +2204,8 @@
       "start_column": 11,
       "end_line": 87,
       "end_column": 12,
-      "start_byte": 1702,
-      "end_byte": 1703,
+      "start_byte": 1763,
+      "end_byte": 1764,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:demo:81:0",
       "target_key": null,
       "confidence": "1.000"
@@ -2153,6 +2243,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/zig/basic/source.zig:self:variable_ref:17:39",
+      "name": "self",
+      "kind": "variable_ref",
+      "language": "zig",
+      "file_path": "fixtures/extraction/zig/basic/source.zig",
+      "start_line": 17,
+      "start_column": 39,
+      "end_line": 17,
+      "end_column": 43,
+      "start_byte": 320,
+      "end_byte": 324,
+      "containing_key": "fixtures/extraction/zig/basic/source.zig:probe:17:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/zig/basic/source.zig:self:variable_ref:9:19",
       "name": "self",
       "kind": "variable_ref",
@@ -2178,8 +2284,8 @@
       "start_column": 14,
       "end_line": 84,
       "end_column": 17,
-      "start_byte": 1602,
-      "end_byte": 1605,
+      "start_byte": 1663,
+      "end_byte": 1666,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:demo:81:0",
       "target_key": null,
       "confidence": "1.000"
@@ -2194,8 +2300,8 @@
       "start_column": 12,
       "end_line": 65,
       "end_column": 17,
-      "start_byte": 1273,
-      "end_byte": 1278,
+      "start_byte": 1334,
+      "end_byte": 1339,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:evaluate:61:0",
       "target_key": null,
       "confidence": "1.000"
@@ -2210,8 +2316,8 @@
       "start_column": 11,
       "end_line": 70,
       "end_column": 16,
-      "start_byte": 1382,
-      "end_byte": 1387,
+      "start_byte": 1443,
+      "end_byte": 1448,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:evaluate:61:0",
       "target_key": null,
       "confidence": "1.000"
@@ -2226,8 +2332,8 @@
       "start_column": 11,
       "end_line": 31,
       "end_column": 16,
-      "start_byte": 612,
-      "end_byte": 617,
+      "start_byte": 673,
+      "end_byte": 678,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:helper:30:0",
       "target_key": null,
       "confidence": "1.000"
@@ -2242,8 +2348,8 @@
       "start_column": 11,
       "end_line": 39,
       "end_column": 16,
-      "start_byte": 747,
-      "end_byte": 752,
+      "start_byte": 808,
+      "end_byte": 813,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:fast_path:38:0",
       "target_key": null,
       "confidence": "1.000"
@@ -2258,8 +2364,8 @@
       "start_column": 11,
       "end_line": 43,
       "end_column": 16,
-      "start_byte": 816,
-      "end_byte": 821,
+      "start_byte": 877,
+      "end_byte": 882,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:identity:42:0",
       "target_key": null,
       "confidence": "1.000"
@@ -2274,8 +2380,8 @@
       "start_column": 18,
       "end_line": 47,
       "end_column": 23,
-      "start_byte": 882,
-      "end_byte": 887,
+      "start_byte": 943,
+      "end_byte": 948,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:ffi_entry:46:0",
       "target_key": null,
       "confidence": "1.000"
@@ -2290,8 +2396,8 @@
       "start_column": 18,
       "end_line": 58,
       "end_column": 24,
-      "start_byte": 1125,
-      "end_byte": 1131,
+      "start_byte": 1186,
+      "end_byte": 1192,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:runWorker:57:0",
       "target_key": null,
       "confidence": "1.000"
@@ -2306,8 +2412,8 @@
       "start_column": 17,
       "end_line": 35,
       "end_column": 18,
-      "start_byte": 679,
-      "end_byte": 680,
+      "start_byte": 740,
+      "end_byte": 741,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:hypotenuse:34:0",
       "target_key": null,
       "confidence": "1.000"
@@ -2322,8 +2428,8 @@
       "start_column": 21,
       "end_line": 35,
       "end_column": 22,
-      "start_byte": 683,
-      "end_byte": 684,
+      "start_byte": 744,
+      "end_byte": 745,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:hypotenuse:34:0",
       "target_key": null,
       "confidence": "1.000"
@@ -2338,8 +2444,8 @@
       "start_column": 25,
       "end_line": 35,
       "end_column": 26,
-      "start_byte": 687,
-      "end_byte": 688,
+      "start_byte": 748,
+      "end_byte": 749,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:hypotenuse:34:0",
       "target_key": null,
       "confidence": "1.000"
@@ -2354,8 +2460,8 @@
       "start_column": 29,
       "end_line": 35,
       "end_column": 30,
-      "start_byte": 691,
-      "end_byte": 692,
+      "start_byte": 752,
+      "end_byte": 753,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:hypotenuse:34:0",
       "target_key": null,
       "confidence": "1.000"
@@ -2390,51 +2496,6 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/zig/basic/source.zig:_:87:4",
-      "resolved_type": "inferred",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "zig",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/zig/basic/source.zig:a:83:4",
-      "resolved_type": "Unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "zig",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/zig/basic/source.zig:b:84:4",
-      "resolved_type": "std",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "zig",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/zig/basic/source.zig:buf:86:4",
-      "resolved_type": "inferred",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "zig",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/zig/basic/source.zig:c:85:4",
-      "resolved_type": "make",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "zig",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/zig/basic/source.zig:count:61:16",
       "resolved_type": "i32",
       "generic_params": null,
@@ -2453,76 +2514,15 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/zig/basic/source.zig:evaluate:61:0",
-      "resolved_type": "i32",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "zig",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/zig/basic/source.zig:event:27:15",
-      "resolved_type": "[]const",
+      "resolved_type": "u8",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "zig",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/zig/basic/source.zig:fast_path:38:0",
-      "resolved_type": "i32",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "zig",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/zig/basic/source.zig:fetch_url:55:0",
-      "resolved_type": "[]const",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "zig",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/zig/basic/source.zig:ffi_entry:46:0",
-      "resolved_type": "i32",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "zig",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/zig/basic/source.zig:go:13:4",
-      "resolved_type": "*Worker",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "zig",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/zig/basic/source.zig:helper:30:0",
-      "resolved_type": "i32",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "zig",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/zig/basic/source.zig:hypotenuse:34:0",
-      "resolved_type": "f64",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "zig",
-      "metadata": null
+      "metadata": {
+        "declared": "[]const u8"
+      }
     },
     {
       "symbol_key": "fixtures/extraction/zig/basic/source.zig:id:22:14",
@@ -2552,56 +2552,11 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/zig/basic/source.zig:identity:42:0",
-      "resolved_type": "type",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "zig",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/zig/basic/source.zig:items:76:4",
       "resolved_type": "i32",
       "generic_params": null,
       "constraints": null,
       "is_inferred": false,
-      "language": "zig",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/zig/basic/source.zig:observe_run:27:0",
-      "resolved_type": "[]const",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "zig",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/zig/basic/source.zig:record_run:22:0",
-      "resolved_type": "i32",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "zig",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/zig/basic/source.zig:run:8:4",
-      "resolved_type": "Worker",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "zig",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/zig/basic/source.zig:runWorker:57:0",
-      "resolved_type": "Worker",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
       "language": "zig",
       "metadata": null
     },
@@ -2616,6 +2571,17 @@
     },
     {
       "symbol_key": "fixtures/extraction/zig/basic/source.zig:self:13:14",
+      "resolved_type": "Worker",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "zig",
+      "metadata": {
+        "declared": "*Worker"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/zig/basic/source.zig:self:17:17",
       "resolved_type": "Worker",
       "generic_params": null,
       "constraints": null,
@@ -2644,31 +2610,15 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/zig/basic/source.zig:total:65:12",
-      "resolved_type": "inferred",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "zig",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/zig/basic/source.zig:total:68:8",
-      "resolved_type": "inferred",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "zig",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/zig/basic/source.zig:url:55:13",
-      "resolved_type": "[]const",
+      "resolved_type": "u8",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "zig",
-      "metadata": null
+      "metadata": {
+        "declared": "[]const u8"
+      }
     },
     {
       "symbol_key": "fixtures/extraction/zig/basic/source.zig:value:30:14",
@@ -2767,8 +2717,8 @@
       "start_column": 17,
       "end_line": 18,
       "end_column": 24,
-      "start_byte": 299,
-      "end_byte": 306,
+      "start_byte": 360,
+      "end_byte": 367,
       "confidence": "1.000",
       "metadata": {
         "builtin_name": "This",
@@ -2787,8 +2737,8 @@
       "start_column": 11,
       "end_line": 35,
       "end_column": 31,
-      "start_byte": 673,
-      "end_byte": 693,
+      "start_byte": 734,
+      "end_byte": 754,
       "confidence": "1.000",
       "metadata": {
         "builtin_name": "sqrt",
@@ -2827,8 +2777,8 @@
       "start_column": 12,
       "end_line": 42,
       "end_column": 28,
-      "start_byte": 773,
-      "end_byte": 789,
+      "start_byte": 834,
+      "end_byte": 850,
       "confidence": "1.000",
       "metadata": {
         "parameter_name": "T",
@@ -2847,8 +2797,8 @@
       "start_column": 0,
       "end_line": 48,
       "end_column": 1,
-      "start_byte": 826,
-      "end_byte": 891,
+      "start_byte": 887,
+      "end_byte": 952,
       "confidence": "1.000",
       "metadata": {
         "function_name": "ffi_entry",
@@ -2867,8 +2817,8 @@
       "start_column": 0,
       "end_line": 40,
       "end_column": 1,
-      "start_byte": 698,
-      "end_byte": 759,
+      "start_byte": 759,
+      "end_byte": 820,
       "confidence": "1.000",
       "metadata": {
         "function_name": "fast_path",
@@ -2904,18 +2854,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "zig",
       "file_path": "fixtures/extraction/zig/basic/source.zig",
-      "covered_lines": 90,
-      "covered_bytes": 1724,
+      "covered_lines": 89,
+      "covered_bytes": 1784,
       "decision_count": 3,
       "loop_count": 1,
       "max_nesting_depth": 3,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 90,
+      "end_line": 89,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 1724,
+      "end_byte": 1784,
       "metadata": {
         "metric_version": 1
       }
@@ -2936,8 +2886,8 @@
       "start_column": 15,
       "end_line": 88,
       "end_column": 1,
-      "start_byte": 1526,
-      "end_byte": 1722,
+      "start_byte": 1587,
+      "end_byte": 1783,
       "metadata": {
         "metric_version": 1
       }
@@ -2958,8 +2908,8 @@
       "start_column": 47,
       "end_line": 71,
       "end_column": 1,
-      "start_byte": 1187,
-      "end_byte": 1390,
+      "start_byte": 1248,
+      "end_byte": 1451,
       "metadata": {
         "metric_version": 1
       }
@@ -2980,8 +2930,8 @@
       "start_column": 36,
       "end_line": 40,
       "end_column": 1,
-      "start_byte": 734,
-      "end_byte": 759,
+      "start_byte": 795,
+      "end_byte": 820,
       "metadata": {
         "metric_version": 1
       }
@@ -3002,8 +2952,8 @@
       "start_column": 27,
       "end_line": 53,
       "end_column": 1,
-      "start_byte": 967,
-      "end_byte": 1027,
+      "start_byte": 1028,
+      "end_byte": 1088,
       "metadata": {
         "metric_version": 1
       }
@@ -3024,8 +2974,8 @@
       "start_column": 35,
       "end_line": 55,
       "end_column": 37,
-      "start_byte": 1064,
-      "end_byte": 1066,
+      "start_byte": 1125,
+      "end_byte": 1127,
       "metadata": {
         "metric_version": 1
       }
@@ -3046,8 +2996,8 @@
       "start_column": 36,
       "end_line": 48,
       "end_column": 1,
-      "start_byte": 862,
-      "end_byte": 891,
+      "start_byte": 923,
+      "end_byte": 952,
       "metadata": {
         "metric_version": 1
       }
@@ -3090,8 +3040,8 @@
       "start_column": 30,
       "end_line": 32,
       "end_column": 1,
-      "start_byte": 599,
-      "end_byte": 624,
+      "start_byte": 660,
+      "end_byte": 685,
       "metadata": {
         "metric_version": 1
       }
@@ -3112,8 +3062,8 @@
       "start_column": 34,
       "end_line": 36,
       "end_column": 1,
-      "start_byte": 660,
-      "end_byte": 696,
+      "start_byte": 721,
+      "end_byte": 757,
       "metadata": {
         "metric_version": 1
       }
@@ -3134,8 +3084,8 @@
       "start_column": 42,
       "end_line": 44,
       "end_column": 1,
-      "start_byte": 803,
-      "end_byte": 824,
+      "start_byte": 864,
+      "end_byte": 885,
       "metadata": {
         "metric_version": 1
       }
@@ -3156,8 +3106,8 @@
       "start_column": 15,
       "end_line": 79,
       "end_column": 17,
-      "start_byte": 1507,
-      "end_byte": 1509,
+      "start_byte": 1568,
+      "end_byte": 1570,
       "metadata": {
         "metric_version": 1
       }
@@ -3178,8 +3128,30 @@
       "start_column": 48,
       "end_line": 27,
       "end_column": 50,
-      "start_byte": 538,
-      "end_byte": 540,
+      "start_byte": 599,
+      "end_byte": 601,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/zig/basic/source.zig:probe:17:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "zig",
+      "file_path": "fixtures/extraction/zig/basic/source.zig",
+      "covered_lines": 1,
+      "covered_bytes": 24,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 17,
+      "start_column": 37,
+      "end_line": 17,
+      "end_column": 61,
+      "start_byte": 318,
+      "end_byte": 342,
       "metadata": {
         "metric_version": 1
       }
@@ -3200,8 +3172,8 @@
       "start_column": 28,
       "end_line": 24,
       "end_column": 1,
-      "start_byte": 395,
-      "end_byte": 433,
+      "start_byte": 456,
+      "end_byte": 494,
       "metadata": {
         "metric_version": 1
       }
@@ -3244,8 +3216,8 @@
       "start_column": 37,
       "end_line": 59,
       "end_column": 1,
-      "start_byte": 1105,
-      "end_byte": 1138,
+      "start_byte": 1166,
+      "end_byte": 1199,
       "metadata": {
         "metric_version": 1
       }
@@ -3263,8 +3235,8 @@
       "start_column": 14,
       "end_line": 52,
       "end_column": 54,
-      "start_byte": 983,
-      "end_byte": 1023,
+      "start_byte": 1044,
+      "end_byte": 1084,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:fetch_status:51:0",
       "confidence": "1.000"
     },
@@ -3279,8 +3251,8 @@
       "start_column": 16,
       "end_line": 23,
       "end_column": 28,
-      "start_byte": 413,
-      "end_byte": 425,
+      "start_byte": 474,
+      "end_byte": 486,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:record_run:22:0",
       "confidence": "1.000"
     }
@@ -3295,8 +3267,8 @@
       "start_column": 0,
       "end_line": 50,
       "end_column": 46,
-      "start_byte": 893,
-      "end_byte": 939,
+      "start_byte": 954,
+      "end_byte": 1000,
       "metadata": null
     },
     {
@@ -3308,8 +3280,8 @@
       "start_column": 0,
       "end_line": 29,
       "end_column": 26,
-      "start_byte": 542,
-      "end_byte": 568,
+      "start_byte": 603,
+      "end_byte": 629,
       "metadata": null
     },
     {
@@ -3321,8 +3293,8 @@
       "start_column": 0,
       "end_line": 26,
       "end_column": 54,
-      "start_byte": 435,
-      "end_byte": 489,
+      "start_byte": 496,
+      "end_byte": 550,
       "metadata": null
     },
     {
@@ -3334,8 +3306,8 @@
       "start_column": 0,
       "end_line": 21,
       "end_column": 54,
-      "start_byte": 312,
-      "end_byte": 366,
+      "start_byte": 373,
+      "end_byte": 427,
       "metadata": null
     },
     {
@@ -3347,8 +3319,8 @@
       "start_column": 14,
       "end_line": 52,
       "end_column": 54,
-      "start_byte": 983,
-      "end_byte": 1023,
+      "start_byte": 1044,
+      "end_byte": 1084,
       "metadata": null
     },
     {
@@ -3360,8 +3332,8 @@
       "start_column": 16,
       "end_line": 23,
       "end_column": 28,
-      "start_byte": 413,
-      "end_byte": 425,
+      "start_byte": 474,
+      "end_byte": 486,
       "metadata": null
     },
     {

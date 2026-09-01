@@ -16,15 +16,5 @@ pub(super) fn extract_assignment(
 }
 
 fn assignment_value_node(node: Node<'_>) -> Option<Node<'_>> {
-    let mut cursor = node.walk();
-    let mut found_assignment = false;
-    for child in node.children(&mut cursor) {
-        if found_assignment {
-            return Some(child);
-        }
-        if child.kind() == "=" {
-            found_assignment = true;
-        }
-    }
-    None
+    node.child_by_field_name("right")
 }

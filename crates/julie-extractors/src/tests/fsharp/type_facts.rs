@@ -230,6 +230,7 @@ module Domain =
 
     let id = symbol(&symbols, "Id");
     assert_eq!(id.kind, SymbolKind::Type);
+    assert!(!symbols.iter().any(|s| s.name == "int"));
 }
 
 #[test]
@@ -328,4 +329,34 @@ module Domain =
 
     let x = variable(&symbols, "x");
     no_fact(&extractor, x);
+}
+
+#[test]
+fn type_abbrev_to_named_type_emits_type_symbol_without_case() {
+    let (symbols, _) = extract(
+        r#"
+module Domain =
+  type Alias = Foo
+"#,
+    );
+
+    let alias = symbol(&symbols, "Alias");
+    assert_eq!(alias.kind, SymbolKind::Type);
+    assert!(!symbols.iter().any(|s| s.name == "Foo"));
+}
+
+#[test]
+fn single_case_union_with_bar_keeps_union_kind_and_case() {
+    let (symbols, _) = extract(
+        r#"
+module Domain =
+  type Flag = | On
+"#,
+    );
+
+    let flag = symbol(&symbols, "Flag");
+    assert_eq!(flag.kind, SymbolKind::Union);
+    let on = symbol(&symbols, "On");
+    assert_eq!(on.kind, SymbolKind::EnumMember);
+    assert_eq!(on.parent_id.as_deref(), Some(flag.id.as_str()));
 }

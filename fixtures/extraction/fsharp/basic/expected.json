@@ -760,30 +760,6 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/fsharp/basic/source.fs:int:13:12",
-      "name": "int",
-      "kind": "enum_member",
-      "language": "fsharp",
-      "file_path": "fixtures/extraction/fsharp/basic/source.fs",
-      "start_line": 13,
-      "start_column": 12,
-      "end_line": 13,
-      "end_column": 15,
-      "start_byte": 227,
-      "end_byte": 230,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "int",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": "fixtures/extraction/fsharp/basic/source.fs:Id:13:2",
-      "metadata": {},
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
       "key": "fixtures/extraction/fsharp/basic/source.fs:literalBool:56:2",
       "name": "literalBool",
       "kind": "variable",
@@ -1286,42 +1262,6 @@
       },
       "reference_site_is_exact": true,
       "confidence": "0.900",
-      "metadata": null
-    },
-    {
-      "from_key": "fixtures/extraction/fsharp/basic/source.fs:Point:6:2",
-      "to_key": "fixtures/extraction/fsharp/basic/source.fs:int:13:12",
-      "kind": "uses",
-      "file_path": "fixtures/extraction/fsharp/basic/source.fs",
-      "line_number": 7,
-      "span": {
-        "start_line": 7,
-        "start_column": 20,
-        "end_line": 7,
-        "end_column": 23,
-        "start_byte": 142,
-        "end_byte": 145
-      },
-      "reference_site_is_exact": true,
-      "confidence": "0.800",
-      "metadata": null
-    },
-    {
-      "from_key": "fixtures/extraction/fsharp/basic/source.fs:Point:6:2",
-      "to_key": "fixtures/extraction/fsharp/basic/source.fs:int:13:12",
-      "kind": "uses",
-      "file_path": "fixtures/extraction/fsharp/basic/source.fs",
-      "line_number": 7,
-      "span": {
-        "start_line": 7,
-        "start_column": 28,
-        "end_line": 7,
-        "end_column": 31,
-        "start_byte": 150,
-        "end_byte": 153
-      },
-      "reference_site_is_exact": true,
-      "confidence": "0.800",
       "metadata": null
     },
     {

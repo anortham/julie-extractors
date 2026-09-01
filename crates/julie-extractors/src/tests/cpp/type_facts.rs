@@ -368,4 +368,107 @@ void Foo::run() {
                 .all(|pending| pending.receiver_type.as_deref() == Some("Foo"))
         );
     }
+
+    #[test]
+    fn this_call_inside_namespace_qualified_method_records_final_scope_segment() {
+        let code = r#"
+namespace ns {
+class Worker {
+public:
+    void m();
+};
+}
+
+void ns::Worker::m() {
+    this->ping();
+}
+"#;
+        let (identifiers, extractor) = extract_calls(code);
+        let ping_calls: Vec<_> = identifiers
+            .iter()
+            .filter(|id| id.name == "ping" && id.kind == IdentifierKind::Call)
+            .collect();
+        assert_eq!(ping_calls.len(), 1);
+        assert_eq!(ping_calls[0].receiver_type.as_deref(), Some("Worker"));
+
+        let ping_pending: Vec<_> = extractor
+            .get_structured_pending_relationships()
+            .into_iter()
+            .filter(|pending| pending.target.terminal_name == "ping")
+            .collect();
+        assert_eq!(ping_pending.len(), 1);
+        assert_eq!(ping_pending[0].receiver_type.as_deref(), Some("Worker"));
+    }
+
+    #[test]
+    fn function_pointer_parameter_is_a_symbol_without_a_fact() {
+        let (symbols, extractor) = extract(
+            r#"
+void handler(void (*cb)(int), int n) {}
+"#,
+        );
+
+        let handler = symbol(&symbols, "handler");
+        let cb = parameter_symbols(&symbols, "cb");
+        assert_eq!(cb.len(), 1);
+        assert_eq!(cb[0].kind, SymbolKind::Variable);
+        assert_eq!(cb[0].parent_id.as_deref(), Some(handler.id.as_str()));
+        no_fact(&extractor, cb[0]);
+
+        let n = parameter_symbols(&symbols, "n");
+        assert_eq!(fact(&extractor, n[0]).resolved_type, "int");
+    }
+
+    #[test]
+    fn multi_word_sized_types_record_no_fact_and_single_word_sized_types_record_the_word() {
+        let (symbols, extractor) = extract(
+            r#"
+void sized(unsigned int a, long long b, unsigned c, long d) {
+    unsigned long e = 0;
+}
+"#,
+        );
+
+        for name in ["a", "b"] {
+            let param = parameter_symbols(&symbols, name);
+            assert_eq!(param.len(), 1);
+            no_fact(&extractor, param[0]);
+        }
+        no_fact(&extractor, variable(&symbols, "e"));
+        assert_eq!(
+            fact(&extractor, parameter_symbols(&symbols, "c")[0]).resolved_type,
+            "unsigned"
+        );
+        assert_eq!(
+            fact(&extractor, parameter_symbols(&symbols, "d")[0]).resolved_type,
+            "long"
+        );
+        for fact in extractor.base.type_info.values() {
+            assert!(!fact.resolved_type.contains(char::is_whitespace));
+        }
+    }
+
+    #[test]
+    fn trailing_qualifier_keeps_declared_text_in_source_order() {
+        let (symbols, extractor) = extract(
+            r#"
+class Foo {};
+
+void f(Foo const& a, const Foo& b) {}
+"#,
+        );
+
+        let a_fact = fact(&extractor, parameter_symbols(&symbols, "a")[0]);
+        assert_eq!(a_fact.resolved_type, "Foo");
+        assert_eq!(
+            declared_metadata(a_fact),
+            Some(&serde_json::json!("Foo const&"))
+        );
+        let b_fact = fact(&extractor, parameter_symbols(&symbols, "b")[0]);
+        assert_eq!(b_fact.resolved_type, "Foo");
+        assert_eq!(
+            declared_metadata(b_fact),
+            Some(&serde_json::json!("const Foo&"))
+        );
+    }
 }

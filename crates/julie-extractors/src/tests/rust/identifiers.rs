@@ -389,3 +389,31 @@ impl Store {
         Some("Store")
     );
 }
+
+#[test]
+fn self_call_inside_nested_impl_records_innermost_type_as_receiver_type() {
+    let code = r#"
+struct Store;
+struct Local;
+
+impl Store {
+    fn run(&self) {
+        impl Local {
+            fn inner(&self) {
+                self.helper();
+            }
+        }
+        self.finish();
+    }
+}
+"#;
+    let (_symbols, identifiers) = extract_all(code);
+    assert_eq!(
+        call_named(&identifiers, "helper").receiver_type.as_deref(),
+        Some("Local")
+    );
+    assert_eq!(
+        call_named(&identifiers, "finish").receiver_type.as_deref(),
+        Some("Store")
+    );
+}

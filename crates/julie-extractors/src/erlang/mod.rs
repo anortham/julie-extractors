@@ -212,9 +212,8 @@ impl ErlangExtractor {
                         if emitted.insert(clause.identity.clone()) {
                             let clause_count =
                                 clause_counts.get(&clause.identity).copied().unwrap_or(1);
-                            if let Some(extent) =
-                                self.clause_run_extent(declarations, index, &clause.identity)
-                            {
+                            let clauses = self.clause_run(declarations, index, &clause.identity);
+                            if let Some(extent) = self.clause_run_extent(clauses) {
                                 symbols.extend(definition_forms::extract_function(
                                     self,
                                     declaration,
@@ -222,8 +221,7 @@ impl ErlangExtractor {
                                     &clause,
                                     clause_count,
                                     parent_id,
-                                    declarations,
-                                    index,
+                                    clauses,
                                     &same_file_records,
                                 ));
                             }
@@ -373,27 +371,33 @@ impl ErlangExtractor {
     /// the first declaration that is not another clause of the same function.
     /// Without this the symbol would cover clause one alone, and its body hash
     /// would not move when a later clause changed.
-    fn clause_run_extent(
+    /// The consecutive `fun_decl` siblings starting at `first` that share one
+    /// name/arity identity.
+    fn clause_run<'a, 'tree>(
         &self,
-        declarations: &[Node],
+        declarations: &'a [Node<'tree>],
         first: usize,
         identity: &NameArity,
-    ) -> Option<NormalizedSpan> {
-        let start_byte = declarations.get(first)?.start_byte();
-        let mut end_byte = declarations[first].end_byte();
+    ) -> &'a [Node<'tree>] {
+        let run = declarations.get(first..).unwrap_or_default();
+        let same_identity = run
+            .iter()
+            .skip(1)
+            .take_while(|declaration| {
+                declaration.kind() == "fun_decl"
+                    && definition_forms::function_clause(self, declaration)
+                        .is_some_and(|clause| &clause.identity == identity)
+            })
+            .count();
+        &run[..(same_identity + 1).min(run.len())]
+    }
 
-        for declaration in declarations.get(first + 1..)? {
-            if declaration.kind() != "fun_decl" {
-                break;
-            }
-            let Some(clause) = definition_forms::function_clause(self, declaration) else {
-                break;
-            };
-            if &clause.identity != identity {
-                break;
-            }
-            end_byte = end_byte.max(declaration.end_byte());
-        }
+    fn clause_run_extent(&self, clauses: &[Node]) -> Option<NormalizedSpan> {
+        let start_byte = clauses.first()?.start_byte();
+        let end_byte = clauses
+            .iter()
+            .map(|declaration| declaration.end_byte())
+            .max()?;
 
         NormalizedSpan::from_content_range_with_line_starts(
             &self.base.content,

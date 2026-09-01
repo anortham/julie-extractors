@@ -152,3 +152,95 @@ run() ->
     let (symbols, extractor) = extract(source);
     no_fact(&extractor, &symbols, "Client", SymbolKind::Variable);
 }
+
+#[test]
+fn artifact_types_never_carry_non_base_names() {
+    let source = r#"
+-module(bank).
+
+-record(account, {id}).
+
+-type account() :: #account{}.
+-opaque token() :: binary().
+-type result(T) :: {ok, T} | {error, term()}.
+
+-spec listing() -> [atom()].
+listing() ->
+    [].
+
+-spec pair() -> {ok, integer()}.
+pair() ->
+    {ok, 1}.
+
+-spec status() -> ok.
+status() ->
+    ok.
+
+-spec size() -> non_neg_integer().
+size() ->
+    0.
+
+-spec remote() -> unicode:chardata().
+remote() ->
+    <<>>.
+
+-spec callback() -> fun(() -> ok).
+callback() ->
+    fun() -> ok end.
+
+-spec annotated() -> Result :: integer().
+annotated() ->
+    1.
+"#;
+    let tree = parse(source);
+    let results = crate::factory::extract_symbols_and_relationships(
+        &tree,
+        "bank.erl",
+        source,
+        "erlang",
+        &PathBuf::from("/tmp/test"),
+    )
+    .unwrap();
+    let resolved = |name: &str, kind: SymbolKind| -> Option<String> {
+        let symbol = symbol(&results.symbols, name, kind);
+        results
+            .types
+            .get(&symbol.id)
+            .map(|info| info.resolved_type.clone())
+    };
+    assert_eq!(
+        resolved("account", SymbolKind::Type).as_deref(),
+        Some("account")
+    );
+    assert_eq!(
+        resolved("token", SymbolKind::Type).as_deref(),
+        Some("binary")
+    );
+    assert_eq!(resolved("result", SymbolKind::Type), None);
+    assert_eq!(resolved("listing", SymbolKind::Function), None);
+    assert_eq!(resolved("pair", SymbolKind::Function), None);
+    assert_eq!(
+        resolved("status", SymbolKind::Function).as_deref(),
+        Some("ok")
+    );
+    assert_eq!(
+        resolved("size", SymbolKind::Function).as_deref(),
+        Some("non_neg_integer")
+    );
+    assert_eq!(
+        resolved("remote", SymbolKind::Function).as_deref(),
+        Some("unicode:chardata")
+    );
+    assert_eq!(resolved("callback", SymbolKind::Function), None);
+    assert_eq!(
+        resolved("annotated", SymbolKind::Function).as_deref(),
+        Some("integer")
+    );
+    for info in results.types.values() {
+        let value = info.resolved_type.as_str();
+        assert!(
+            !value.contains(['[', '(', '{', '#', '|', ' ']),
+            "non-base resolved_type {value}"
+        );
+    }
+}

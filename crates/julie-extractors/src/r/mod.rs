@@ -21,6 +21,7 @@ use tree_sitter::{Node, Tree};
 pub struct RExtractor {
     pub(crate) base: BaseExtractor,
     symbols: Vec<Symbol>,
+    same_file_class_names: std::collections::HashSet<String>,
 }
 
 impl RExtractor {
@@ -33,12 +34,14 @@ impl RExtractor {
         Self {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
             symbols: Vec::new(),
+            same_file_class_names: std::collections::HashSet::new(),
         }
     }
 
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let root_node = tree.root_node();
         self.symbols.clear();
+        self.same_file_class_names = type_facts::collect_same_file_class_names(self, root_node);
 
         // Build exclusion set once for S3 checking
         let non_s3: std::collections::HashSet<&str> =

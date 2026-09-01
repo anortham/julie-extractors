@@ -432,10 +432,10 @@ fn declared_parent_class_name(base: &BaseExtractor, node: Node) -> Option<String
             let extends = candidate
                 .children(&mut cursor)
                 .find(|child| child.kind() == "base_clause")?;
+            let mut cursor = extends.walk();
+            let parent_name = extends.named_children(&mut cursor).next()?;
             let name = base
-                .get_node_text(&extends)
-                .replace("extends", "")
-                .trim()
+                .get_node_text(&parent_name)
                 .trim_start_matches('\\')
                 .to_string();
             if name.is_empty() {

@@ -17,6 +17,7 @@
         [Authorize]
         private int Run(int id)
         {
+            RecordRun(id);
             this.Refresh();
             return Helper(id);
         }

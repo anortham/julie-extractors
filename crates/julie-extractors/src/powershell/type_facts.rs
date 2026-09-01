@@ -11,6 +11,14 @@ pub(super) const TYPE_NAME_RULES: TypeNameRules = TypeNameRules {
     generic_open: &['['],
 };
 
+/// Array base names such as `string[]` are reduced structurally, so the
+/// `[` generic opener must not cut the array suffix off again.
+const ARRAY_TYPE_NAME_RULES: TypeNameRules = TypeNameRules {
+    nullable_suffixes: &[],
+    reference_prefixes: &[],
+    generic_open: &[],
+};
+
 const EXPR_WRAPPERS: &[&str] = &[
     "pipeline",
     "pipeline_chain",
@@ -85,20 +93,47 @@ fn record_type_literal(
     type_node: Node,
     is_inferred: bool,
 ) {
-    let declared = base.get_node_text(&type_node);
-    let Some(base_text) = inner_type_text(&declared) else {
+    let Some(reduced) = reduce_type_literal(base, type_node) else {
         return;
     };
-    if base_text.eq_ignore_ascii_case("void") {
+    if reduced.base_name.eq_ignore_ascii_case("void") {
         return;
     }
+    let declared = base.get_node_text(&type_node);
+    let rules = if reduced.is_array {
+        &ARRAY_TYPE_NAME_RULES
+    } else {
+        &TYPE_NAME_RULES
+    };
     base.record_declared_type_fact_with_declared(
         symbol_id,
-        base_text,
+        &reduced.base_name,
         declared.trim(),
-        &TYPE_NAME_RULES,
+        rules,
         is_inferred,
     );
+}
+
+struct ReducedType {
+    base_name: String,
+    is_array: bool,
+}
+
+fn reduce_type_literal(base: &BaseExtractor, type_literal: Node) -> Option<ReducedType> {
+    let spec = direct_child(type_literal, "type_spec")?;
+    if direct_child(spec, "array_type_name").is_some() {
+        return Some(ReducedType {
+            base_name: base.get_node_text(&spec).trim().to_string(),
+            is_array: true,
+        });
+    }
+    let name = direct_child(spec, "generic_type_name")
+        .and_then(|generic| direct_child(generic, "type_name"))
+        .or_else(|| direct_child(spec, "type_name"))?;
+    Some(ReducedType {
+        base_name: base.get_node_text(&name).trim().to_string(),
+        is_array: false,
+    })
 }
 
 fn record_inferred_rhs(base: &mut BaseExtractor, symbol_id: &str, value: Node, origin: Node) {
@@ -122,12 +157,11 @@ fn inferred_constructor_name(base: &BaseExtractor, core: Node, origin: Node) -> 
                 return None;
             }
             let type_node = direct_child(core, "type_literal")?;
-            let declared = base.get_node_text(&type_node);
-            let inner = inner_type_text(&declared)?;
-            if inner.contains('.') {
+            let reduced = reduce_type_literal(base, type_node)?;
+            if reduced.is_array || reduced.base_name.contains('.') {
                 return None;
             }
-            same_file_class(base, origin, inner).then(|| inner.to_string())
+            same_file_class(base, origin, &reduced.base_name).then_some(reduced.base_name)
         }
         "command" | "command_expression" => new_object_type_name(base, core, origin),
         _ => None,
@@ -203,19 +237,6 @@ fn unwrap_expr(node: Node) -> Node {
         };
         current = child;
     }
-}
-
-fn inner_type_text(declared: &str) -> Option<&str> {
-    let trimmed = declared.trim();
-    let inner = trimmed
-        .strip_prefix('[')
-        .and_then(|rest| rest.strip_suffix(']'))
-        .map(str::trim)
-        .filter(|inner| !inner.is_empty())?;
-    if inner.eq_ignore_ascii_case("void") {
-        return None;
-    }
-    Some(inner)
 }
 
 fn strip_variable_name(raw: &str) -> String {

@@ -230,22 +230,6 @@ fn extract_function_call_relationships(
                             metadata: None,
                         });
                     }
-                    if unresolved_target.receiver.is_some() {
-                        let receiver_type =
-                            super::type_facts::self_receiver_type(&extractor.base, node);
-                        let pending = extractor
-                            .get_base_mut()
-                            .create_pending_relationship(
-                                caller_symbol.id.clone(),
-                                unresolved_target,
-                                RelationshipKind::Calls,
-                                &node,
-                                Some(caller_symbol.id.clone()),
-                                Some(0.7),
-                            )
-                            .with_receiver_type(receiver_type);
-                        extractor.add_structured_pending_relationship(pending);
-                    }
                 }
                 LocalTargetResolution::Import(_)
                 | LocalTargetResolution::Ambiguous

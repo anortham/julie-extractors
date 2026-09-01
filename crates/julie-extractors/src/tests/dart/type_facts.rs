@@ -251,3 +251,173 @@ class Solo {
     assert_eq!(pending("fetch").receiver_type, None);
     assert_eq!(pending("absent").receiver_type, None);
 }
+
+#[test]
+fn nested_local_function_is_a_symbol_and_parents_its_parameters_and_locals() {
+    let source = r#"
+class Foo {}
+void outer() {
+  void inner(int z) {
+    final w = Foo();
+  }
+}
+"#;
+    let (symbols, extractor) = extract(source);
+    let outer = symbol(&symbols, "outer", SymbolKind::Function);
+    let inner = symbol(&symbols, "inner", SymbolKind::Function);
+    assert_eq!(inner.parent_id.as_deref(), Some(outer.id.as_str()));
+    let z = symbol(&symbols, "z", SymbolKind::Variable);
+    assert_eq!(role(z), Some("parameter"));
+    assert_eq!(z.parent_id.as_deref(), Some(inner.id.as_str()));
+    let w = symbol(&symbols, "w", SymbolKind::Variable);
+    assert_eq!(w.parent_id.as_deref(), Some(inner.id.as_str()));
+    assert_eq!(
+        fact(&extractor, &symbols, "w", SymbolKind::Variable).resolved_type,
+        "Foo"
+    );
+}
+
+#[test]
+fn function_and_record_types_record_no_fact() {
+    let source = r#"
+void run(void Function() cb, (int, String) pair) {
+  void Function(int) handler = (int v) {};
+}
+"#;
+    let (symbols, extractor) = extract(source);
+    for name in ["cb", "pair", "handler"] {
+        no_fact(&extractor, &symbols, name, SymbolKind::Variable);
+    }
+}
+
+#[test]
+fn generic_and_qualified_types_reduce_to_the_base_name() {
+    let source = r#"
+void run(Map<String, int> m, prefix.Foo p, List<int>? xs) {}
+"#;
+    let (symbols, extractor) = extract(source);
+    let m = fact(&extractor, &symbols, "m", SymbolKind::Variable);
+    assert_eq!(m.resolved_type, "Map");
+    assert!(!m.is_inferred);
+    assert_eq!(declared(m), Some("Map<String, int>"));
+    let p = fact(&extractor, &symbols, "p", SymbolKind::Variable);
+    assert_eq!(p.resolved_type, "prefix.Foo");
+    assert_eq!(declared(p), None);
+    let xs = fact(&extractor, &symbols, "xs", SymbolKind::Variable);
+    assert_eq!(xs.resolved_type, "List");
+    assert_eq!(declared(xs), Some("List<int>?"));
+}
+
+#[test]
+fn artifact_types_never_carry_keyword_text_for_locals() {
+    let source = r#"
+class Worker {
+  Future<int> load() async {
+    return 1;
+  }
+}
+void run() {
+  final a = Unknown();
+  final b = http.Client();
+  final c = build();
+  var total = 0;
+  const limit = 3;
+}
+"#;
+    let results = crate::pipeline::extract_canonical_at(
+        "type_facts.dart",
+        source,
+        std::path::Path::new("/repo"),
+        crate::ExtractionLevel::Full,
+    )
+    .unwrap();
+    let keyword_rows: Vec<(String, String)> = results
+        .types
+        .values()
+        .filter(|info| {
+            matches!(
+                info.resolved_type.as_str(),
+                "final" | "var" | "const" | "async" | "late" | "static"
+            )
+        })
+        .map(|info| (info.symbol_id.clone(), info.resolved_type.clone()))
+        .collect();
+    assert!(keyword_rows.is_empty(), "keyword rows: {keyword_rows:?}");
+    for name in ["a", "b", "c", "total", "limit"] {
+        let local = symbol(&results.symbols, name, SymbolKind::Variable);
+        assert!(
+            !results.types.contains_key(&local.id),
+            "unexpected artifact type for {name}"
+        );
+    }
+}
+
+#[test]
+fn artifact_types_prefer_declared_facts_over_legacy_rows() {
+    let source = r#"
+class Foo {}
+class Holder {
+  final Foo item = Foo();
+}
+"#;
+    let results = crate::pipeline::extract_canonical_at(
+        "type_facts.dart",
+        source,
+        std::path::Path::new("/repo"),
+        crate::ExtractionLevel::Full,
+    )
+    .unwrap();
+    let item = symbol(&results.symbols, "item", SymbolKind::Field);
+    let info = results.types.get(&item.id).expect("missing field type");
+    assert_eq!(info.resolved_type, "Foo");
+    assert!(!info.is_inferred);
+}
+
+#[test]
+fn constructor_declared_after_use_records_inferred_fact() {
+    let source = r#"
+void run() {
+  final x = Foo();
+  var y = Foo.named();
+}
+class Foo {
+  Foo();
+  Foo.named();
+}
+"#;
+    let (symbols, extractor) = extract(source);
+    for name in ["x", "y"] {
+        let fact = fact(&extractor, &symbols, name, SymbolKind::Variable);
+        assert_eq!(fact.resolved_type, "Foo");
+        assert!(fact.is_inferred);
+    }
+}
+
+#[test]
+fn every_declarator_in_a_local_declaration_becomes_a_symbol() {
+    let source = r#"
+class Foo {}
+void run() {
+  int a = 1, b = 2;
+  String s, t;
+  final u = Foo(), v = Foo();
+}
+"#;
+    let (symbols, extractor) = extract(source);
+    let function = symbol(&symbols, "run", SymbolKind::Function);
+    for (name, expected, inferred) in [
+        ("a", "int", false),
+        ("b", "int", false),
+        ("s", "String", false),
+        ("t", "String", false),
+        ("u", "Foo", true),
+        ("v", "Foo", true),
+    ] {
+        let local = symbol(&symbols, name, SymbolKind::Variable);
+        assert_eq!(local.parent_id.as_deref(), Some(function.id.as_str()));
+        assert_eq!(local.name, name);
+        let fact = fact(&extractor, &symbols, name, SymbolKind::Variable);
+        assert_eq!(fact.resolved_type, expected);
+        assert_eq!(fact.is_inferred, inferred);
+    }
+}

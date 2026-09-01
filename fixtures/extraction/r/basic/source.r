@@ -33,6 +33,7 @@ Worker <- R6::R6Class(
       self$id <- id
     },
     run = function() {
+      helper(self$id)
       self$missing_wave2()
     }
   )

@@ -214,6 +214,27 @@ fn local_function_parameter_records_declared_fact() {
 }
 
 #[test]
+fn local_function_records_return_type_fact() {
+    let (symbols, extractor) = extract(
+        r#"
+@page "/"
+
+@code {
+    void Run() {
+        Widget Inner() {
+            return null;
+        }
+    }
+}
+"#,
+    );
+    let inner = symbol(&symbols, "Inner", SymbolKind::Method);
+    let fact = fact(&extractor, inner);
+    assert_eq!(fact.resolved_type, "Widget");
+    assert!(!fact.is_inferred);
+}
+
+#[test]
 fn no_code_field_row_is_kind_variable() {
     let (symbols, _) = extract(code_block());
     let field_rows: Vec<_> = symbols

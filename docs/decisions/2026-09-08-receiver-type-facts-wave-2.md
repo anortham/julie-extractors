@@ -124,56 +124,54 @@ functions, not method receivers. Wave 2 records no `receiver_type`.
 ### Ruby: declared types
 
 Core Ruby syntax states no declared types. RBS and Sorbet annotations are
-out of scope (`fixtures/extraction/capabilities.json`, ruby `field` open
-gap). Wave 2 records inferred facts only from same-file `Foo.new(...)`.
+out of scope. Wave 2 records inferred facts only from same-file
+`Foo.new(...)`.
 
 ### Lua: declared types
 
-Core Lua states no declared types. The types capability is an exception:
-Luau-style annotations are out of scope
-(`fixtures/extraction/capabilities.json`, lua `types` exception). Wave 2
-records inferred facts only from same-file constructor shapes.
+Core Lua states no declared types. Luau-style annotations are out of
+scope. Wave 2 records inferred facts only from same-file constructor
+shapes, and the closeout claims the lua `types` capability on that
+evidence.
 
 ### R: declared types
 
-R has no static type system. The types capability is an exception: roxygen
-`@param` tags are documentation only
-(`fixtures/extraction/capabilities.json`, r `types` exception). Wave 2
-records inferred facts only from same-file constructor shapes.
+R has no static type system. Roxygen `@param` tags are documentation
+only. Wave 2 records inferred facts only from same-file constructor
+shapes, and the closeout claims the r `types` capability on that
+evidence.
 
 ### Elixir: `receiver_type`
 
 Elixir has no self receiver keyword. Calls are module and function calls,
-not method receivers on `this` or `self`. The elixir open gap records that
-calls carry no `receiver_type` metadata. Wave 2 records no `receiver_type`.
+not method receivers on `this` or `self`. Calls carry no `receiver_type`
+metadata. Wave 2 records no `receiver_type`.
 
 ### Elixir: declared types outside struct patterns
 
 Elixir states types in `@spec` and struct annotations, not at local
-declaration sites (`fixtures/extraction/capabilities.json`, elixir
-`variable` open gap). Wave 2 records inferred facts from `%Foo{...}`
+declaration sites. Wave 2 records inferred facts from `%Foo{...}`
 struct patterns. It records no declared-type facts for other locals.
 
 ### Erlang: `receiver_type`
 
 Erlang has no self receiver keyword. Calls are local or MFA calls, not
-method receivers. The erlang open gap records that calls carry no
-`receiver_type` metadata. Wave 2 records no `receiver_type`.
+method receivers. Calls carry no `receiver_type` metadata. Wave 2
+records no `receiver_type`.
 
 ### Erlang: declared types outside record patterns
 
 Erlang type information lives in `-spec` and `-type` attributes, not at
-declaration sites (`fixtures/extraction/capabilities.json`, erlang
-`variable` open gap). Wave 2 records inferred facts from `#foo{...}`
+declaration sites. Wave 2 records inferred facts from `#foo{...}`
 record patterns. It records no declared-type facts for other locals.
 
 ### Bash: `receiver_type`, declared types, inferred types
 
 Bash has no self receiver, no declared types, and no constructor-shaped
 initializers. Functions take positional parameters (`$1`) with no
-declaration site (`fixtures/extraction/capabilities.json`, bash `constant`
-open gap). Wave 2 records no `receiver_type`, no declared-type facts, and
-no inferred-type facts.
+declaration site. Wave 2 records no `receiver_type` and no declared-type
+facts. The pre-existing literal inference (`readonly MAX=3` -> `integer`)
+stays; wave 2 adds no inferred facts.
 
 ### Razor: pending-row `receiver_type`
 
@@ -194,3 +192,36 @@ declared_text, rules, is_inferred)`:
   from `resolved_type`.
 - An existing row for the symbol wins.
 - Empty results record nothing.
+
+## Review outcomes (2026-09-01)
+
+The post-implementation review of the wave-2 branch fixed the defects it
+found and recorded these rulings where the code and the plan disagreed.
+
+- Dart callable spans: `function_declaration` and `method_declaration`
+  symbols now span the whole declaration instead of the signature only.
+  Identifiers inside a method body are contained by the method, not the
+  class. The golden containing keys moved on purpose; the old spans made
+  the Miller scope walk skip every Dart method body.
+- Elixir `%Foo{}`: an unqualified struct literal records an inferred fact
+  without the same-file check. The compiler rejects a struct literal whose
+  module does not define a struct, so the name is never a guess. Only an
+  `alias` child counts; `%__MODULE__{}` and `%var{}` record nothing.
+- Lua `local x = setmetatable({}, Foo)`: the pre-existing class heuristic
+  still classifies this local as `class`, because the same shape declares
+  Lua classes. The inferred fact `Foo` records on that symbol. Task 21
+  asked for kind `variable`; the class classification wins until a
+  separate decision changes the Lua class heuristic.
+- VB.NET arrays: `Worker()` and `Integer()` stay as recorded array types.
+  The contract keeps array suffixes, and the VB generic opener `(` never
+  runs on an `array_type`.
+- Ruby `self.m`: the receiver_type rides the `member_access` identifier
+  row, which is the row Ruby emits for the call, plus the pending row.
+- Legacy inference: every legacy `infer_types` path in the wave-2
+  languages now records only base type names or nothing. Wave-2 facts win
+  over legacy rows for the same symbol. Function types, tuples, unions,
+  slices, and keyword text (`final`, `var`, `async`) record nothing.
+- R6 members: `R6Class` and `setRefClass` member symbols span their own
+  `name = value` argument, not the whole class call.
+- Go `a, err := f()`: every `:=` target is a `variable` symbol; targets
+  with no matching value record no fact.

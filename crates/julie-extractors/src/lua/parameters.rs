@@ -10,9 +10,10 @@ pub(super) fn extract_parameter_symbols(
 ) -> Vec<Symbol> {
     let mut symbols = Vec::new();
     let params_node = callable_node.child_by_field_name("parameters");
-    if let Some(owner) = type_facts::colon_method_owner_name(base, callable_node) {
-        let span_node = params_node.unwrap_or(callable_node);
-        let self_symbol = parameter_symbol(base, span_node, "self", callable_id);
+    if let Some(owner) = type_facts::colon_method_owner_name(base, callable_node)
+        && let Some(method_name) = type_facts::colon_method_name_node(callable_node)
+    {
+        let self_symbol = parameter_symbol(base, method_name, "self", None, callable_id);
         type_facts::record_declared_owner_fact(base, &self_symbol.id, &owner);
         symbols.push(self_symbol);
     }
@@ -25,7 +26,13 @@ pub(super) fn extract_parameter_symbols(
             continue;
         }
         let name = base.get_node_text(&name_node);
-        symbols.push(parameter_symbol(base, name_node, name, callable_id));
+        symbols.push(parameter_symbol(
+            base,
+            name_node,
+            name.clone(),
+            Some(name),
+            callable_id,
+        ));
     }
     symbols
 }
@@ -34,10 +41,10 @@ fn parameter_symbol(
     base: &mut BaseExtractor,
     node: Node,
     name: impl Into<String>,
+    signature: Option<String>,
     callable_id: &str,
 ) -> Symbol {
     let name = name.into();
-    let signature = base.get_node_text(&node);
     let metadata = HashMap::from([(
         "role".to_string(),
         serde_json::Value::String("parameter".to_string()),
@@ -47,7 +54,7 @@ fn parameter_symbol(
         name,
         SymbolKind::Variable,
         SymbolOptions {
-            signature: Some(signature),
+            signature,
             parent_id: Some(callable_id.to_string()),
             metadata: Some(metadata),
             ..Default::default()

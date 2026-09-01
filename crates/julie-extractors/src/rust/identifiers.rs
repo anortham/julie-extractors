@@ -594,6 +594,7 @@ pub(super) fn self_receiver_type(
     extractor
         .get_impl_blocks()
         .iter()
-        .find(|block| start >= block.start_byte && start < block.end_byte)
+        .filter(|block| start >= block.start_byte && start < block.end_byte)
+        .min_by_key(|block| block.end_byte - block.start_byte)
         .map(|block| block.type_name.clone())
 }

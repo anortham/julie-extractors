@@ -115,6 +115,7 @@ fn declarator_name(node: Node, depth: u32) -> Option<Node> {
         | "reference_declarator"
         | "array_declarator"
         | "parenthesized_declarator"
+        | "function_declarator"
         | "init_declarator" => {
             let child_depth = child_tree_depth(depth)?;
             if let Some(inner) = node.child_by_field_name("declarator") {

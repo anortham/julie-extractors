@@ -172,12 +172,21 @@ fn basic_fixture_emits_nested_type_arguments_via_canonical_pipeline() {
     let results = extract_fixture(FIXTURE_SOURCE);
     assert_eq!(
         results.type_argument_usages.len(),
-        1,
-        "fixture should emit one Dictionary(Of String, List(Of Integer)) usage, got {:?}",
+        2,
+        "fixture should emit the Dictionary(Of String, List(Of Integer)) and System.Collections.Generic.List(Of String) usages, got {:?}",
         results.type_argument_usages
     );
-    let usage = &results.type_argument_usages[0];
-    assert_eq!(top_level(usage), vec![(0, "String"), (1, "List")]);
+    let qualified_list = results
+        .type_argument_usages
+        .iter()
+        .find(|usage| top_level(usage) == vec![(0, "String")])
+        .expect("System.Collections.Generic.List(Of String) usage");
+    assert!(qualified_list.arguments[0].children.is_empty());
+    let usage = results
+        .type_argument_usages
+        .iter()
+        .find(|usage| top_level(usage) == vec![(0, "String"), (1, "List")])
+        .expect("Dictionary(Of String, List(Of Integer)) usage");
     assert!(usage.arguments[0].children.is_empty());
     assert_eq!(
         usage.arguments[1]

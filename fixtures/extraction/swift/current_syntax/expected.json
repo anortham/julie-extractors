@@ -863,15 +863,6 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/swift/current_syntax/source.swift:failed:14:4",
-      "resolved_type": "enum-case",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/swift/current_syntax/source.swift:formatter:43:0",
       "resolved_type": "Any",
       "generic_params": null,

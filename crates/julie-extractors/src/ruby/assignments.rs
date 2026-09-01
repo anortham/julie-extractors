@@ -1,13 +1,21 @@
 use super::helpers::infer_symbol_kind_from_assignment;
 use super::type_facts;
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
+use std::collections::HashSet;
 use tree_sitter::Node;
+
+/// Per-file state that assignment extraction reads and updates.
+pub(super) struct AssignmentContext<'a> {
+    pub(super) same_file_class_names: &'a HashSet<String>,
+    pub(super) recorded_fields: &'a mut HashSet<(Option<String>, String)>,
+}
 
 /// Extract a symbol from an assignment node
 pub(super) fn extract_assignment(
     base: &mut BaseExtractor,
     node: Node,
     parent_id: Option<String>,
+    context: AssignmentContext<'_>,
 ) -> Option<Symbol> {
     // Handle various assignment patterns including parallel assignment
     let left_side = node
@@ -33,7 +41,10 @@ pub(super) fn extract_assignment(
     let kind = infer_symbol_kind_from_assignment(&left_side, |n| base.get_node_text(n));
     let parent_id = if kind == SymbolKind::Field {
         let class_parent = class_parent_id(base, parent_id.clone());
-        if field_already_recorded(base, &name, class_parent.as_deref()) {
+        if !context
+            .recorded_fields
+            .insert((class_parent.clone(), name.clone()))
+        {
             return None;
         }
         class_parent
@@ -55,7 +66,12 @@ pub(super) fn extract_assignment(
         },
     );
     if record_constructor && let Some(right) = right_side {
-        type_facts::record_same_file_new_fact(base, &symbol.id, right);
+        type_facts::record_same_file_new_fact(
+            base,
+            &symbol.id,
+            right,
+            context.same_file_class_names,
+        );
     }
     Some(symbol)
 }
@@ -71,14 +87,6 @@ fn class_parent_id(base: &BaseExtractor, mut parent_id: Option<String>) -> Optio
         parent_id = symbol.parent_id.clone();
     }
     None
-}
-
-fn field_already_recorded(base: &BaseExtractor, name: &str, parent_id: Option<&str>) -> bool {
-    base.symbol_map.values().any(|symbol| {
-        symbol.name == name
-            && symbol.kind == SymbolKind::Field
-            && symbol.parent_id.as_deref() == parent_id
-    })
 }
 
 /// Handle parallel assignment patterns (a, b, c = 1, 2, 3)

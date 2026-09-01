@@ -44,6 +44,7 @@ class Worker
     #[Route('/run')]
     public function run(): int
     {
+        recordRun($this->id);
         $this->missingWave2();
         return helper($this->id);
     }

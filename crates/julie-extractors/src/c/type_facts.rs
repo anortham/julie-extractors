@@ -45,12 +45,22 @@ pub(super) fn record_declared_from_declaration(
 
 fn base_type_name_node(node: Node) -> Option<Node> {
     match node.kind() {
-        "primitive_type" | "type_identifier" | "sized_type_specifier" => Some(node),
+        "primitive_type" | "type_identifier" => Some(node),
+        "sized_type_specifier" => single_word_sized_type(node),
         "struct_specifier" | "union_specifier" | "enum_specifier" => {
             node.child_by_field_name("name")
         }
         _ => None,
     }
+}
+
+fn single_word_sized_type(node: Node) -> Option<Node> {
+    let mut cursor = node.walk();
+    let words = node
+        .children(&mut cursor)
+        .filter(|child| child.kind() != "type_qualifier")
+        .count();
+    (words == 1).then_some(node)
 }
 
 fn declared_prefix(base: &BaseExtractor, decl: Node) -> String {

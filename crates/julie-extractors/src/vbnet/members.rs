@@ -145,7 +145,12 @@ pub fn extract_property(
 
     let symbol = base.create_symbol(&node, name, SymbolKind::Property, options);
     if let Some(type_node) = type_facts::declared_type_node(node) {
-        type_facts::record_declared_type(base, &symbol.id, type_node);
+        type_facts::record_declared_type(
+            base,
+            &symbol.id,
+            type_node,
+            type_facts::declarator_rank_node(node),
+        );
     }
     Some(symbol)
 }
@@ -192,7 +197,12 @@ pub fn extract_fields(
 
             let symbol = base.create_symbol(&node, name, SymbolKind::Field, options);
             if let Some(type_node) = type_facts::declared_type_node(declarator) {
-                type_facts::record_declared_type(base, &symbol.id, type_node);
+                type_facts::record_declared_type(
+                    base,
+                    &symbol.id,
+                    type_node,
+                    type_facts::declarator_rank_node(declarator),
+                );
             }
             Some(symbol)
         })

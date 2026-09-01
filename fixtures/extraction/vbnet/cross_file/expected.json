@@ -371,9 +371,7 @@
       "constraints": null,
       "is_inferred": false,
       "language": "vbnet",
-      "metadata": {
-        "declared": "OtherClass()"
-      }
+      "metadata": null
     }
   ],
   "parse_diagnostics": [],

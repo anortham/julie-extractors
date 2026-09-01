@@ -14,7 +14,7 @@ pub const Worker = struct {
         return self.run();
     }
 
-
+    pub fn probe(self: *Worker) void { self.missingWave2(); }
     const Self = @This();
 };
 
@@ -86,4 +86,3 @@ fn demo() void {
     var buf: [8]u8 = undefined;
     _ = .{ s, a, b, c, buf };
 }
-

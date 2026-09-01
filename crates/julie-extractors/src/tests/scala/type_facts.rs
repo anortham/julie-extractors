@@ -321,3 +321,54 @@ class Widget {
     assert_eq!(pending_for("this").receiver_type.as_deref(), Some("Widget"));
     assert_eq!(pending_for("other").receiver_type, None);
 }
+
+#[test]
+fn artifact_types_never_carry_non_base_names() {
+    let source = r#"
+class Box {
+  def items: List[Int] = Nil
+  def pair: (Int, String) = (1, "a")
+  def handler: Int => String = _.toString
+  def qualified: scala.collection.immutable.Map[String, Int] = Map.empty
+  def nested: Map[String, List[Int]] = Map.empty
+  def plain: Foo = new Foo
+}
+"#;
+    let mut parser = tree_sitter::Parser::new();
+    parser
+        .set_language(&tree_sitter_scala::LANGUAGE.into())
+        .unwrap();
+    let tree = parser.parse(source, None).unwrap();
+    let workspace_root = PathBuf::from("/tmp/test");
+    let results = crate::factory::extract_symbols_and_relationships(
+        &tree,
+        "type_facts.scala",
+        source,
+        "scala",
+        &workspace_root,
+    )
+    .unwrap();
+    let resolved = |name: &str| -> Option<String> {
+        let symbol = symbol(&results.symbols, name, SymbolKind::Method);
+        results
+            .types
+            .get(&symbol.id)
+            .map(|info| info.resolved_type.clone())
+    };
+    assert_eq!(resolved("items").as_deref(), Some("List"));
+    assert_eq!(resolved("pair"), None);
+    assert_eq!(resolved("handler"), None);
+    assert_eq!(
+        resolved("qualified").as_deref(),
+        Some("scala.collection.immutable.Map")
+    );
+    assert_eq!(resolved("nested").as_deref(), Some("Map"));
+    assert_eq!(resolved("plain").as_deref(), Some("Foo"));
+    for info in results.types.values() {
+        let value = info.resolved_type.as_str();
+        assert!(
+            !value.contains(['[', '(', '<', '?', '=', ' ']),
+            "non-base resolved_type {value}"
+        );
+    }
+}

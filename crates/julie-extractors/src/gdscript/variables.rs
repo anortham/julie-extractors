@@ -7,7 +7,7 @@ use crate::base::{
     BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility, normalize_annotations,
 };
 use serde_json::Value;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use tree_sitter::Node;
 
 /// Extract variable statement (var declarations)
@@ -15,6 +15,7 @@ pub(super) fn extract_variable_statement(
     base: &mut BaseExtractor,
     node: Node,
     parent_id: Option<&String>,
+    same_file_class_names: &HashSet<String>,
 ) -> Option<Symbol> {
     let parent_node = node.parent()?;
     let mut name_node = None;
@@ -90,7 +91,7 @@ pub(super) fn extract_variable_statement(
             annotations: annotation_markers,
         },
     );
-    type_facts::record_statement_type_facts(base, &symbol.id, parent_node);
+    type_facts::record_statement_type_facts(base, &symbol.id, parent_node, same_file_class_names);
     Some(symbol)
 }
 
@@ -99,6 +100,7 @@ pub(super) fn extract_constant_statement(
     base: &mut BaseExtractor,
     node: Node,
     parent_id: Option<&String>,
+    same_file_class_names: &HashSet<String>,
 ) -> Option<Symbol> {
     let parent_node = node.parent()?;
     let mut name_node = None;
@@ -142,11 +144,16 @@ pub(super) fn extract_constant_statement(
     }
 
     let doc_comment = base.find_doc_comment(&node);
+    let kind = if nearest_callable_ancestor(parent_node) {
+        SymbolKind::Variable
+    } else {
+        SymbolKind::Constant
+    };
 
     let symbol = base.create_symbol(
         &node,
         name,
-        SymbolKind::Constant,
+        kind,
         SymbolOptions {
             signature: Some(full_signature),
             visibility: Some(Visibility::Public),
@@ -156,7 +163,7 @@ pub(super) fn extract_constant_statement(
             annotations: annotation_markers,
         },
     );
-    type_facts::record_statement_type_facts(base, &symbol.id, parent_node);
+    type_facts::record_statement_type_facts(base, &symbol.id, parent_node, same_file_class_names);
     Some(symbol)
 }
 
@@ -166,6 +173,7 @@ pub(super) fn extract_variable_from_statement(
     node: Node,
     parent_id: Option<&String>,
     symbols: &[Symbol],
+    same_file_class_names: &HashSet<String>,
 ) -> Option<Symbol> {
     // For variable_statement nodes, find the var child and extract from there
     let var_node = find_child_by_type(&node, "var")?;
@@ -183,7 +191,12 @@ pub(super) fn extract_variable_from_statement(
         parent_id.cloned().unwrap_or_default()
     };
 
-    extract_variable_statement(base, var_node, Some(&actual_parent_id))
+    extract_variable_statement(
+        base,
+        var_node,
+        Some(&actual_parent_id),
+        same_file_class_names,
+    )
 }
 
 /// Find the closest preceding class_name parent for proper scope assignment

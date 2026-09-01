@@ -80,7 +80,15 @@ fn parameter_symbols<'a>(symbols: &'a [Symbol], name: &str) -> Vec<&'a Symbol> {
 fn assert_no_stray_brackets(extractor: &PowerShellExtractor) {
     for info in extractor.base.type_info.values() {
         let resolved = &info.resolved_type;
-        let without_array = resolved.strip_suffix("[]").unwrap_or(resolved);
+        let without_array = resolved
+            .strip_suffix(']')
+            .and_then(|head| head.rfind('['))
+            .filter(|open| {
+                resolved[open + 1..resolved.len() - 1]
+                    .chars()
+                    .all(|c| c == ',')
+            })
+            .map_or(resolved.as_str(), |open| &resolved[..open]);
         assert!(
             !without_array.contains('[') && !without_array.contains(']'),
             "resolved_type `{}` keeps a non-array bracket",
@@ -375,4 +383,124 @@ class Widget {
             .count(),
         1
     );
+}
+
+#[test]
+fn array_types_keep_array_suffix() {
+    let (symbols, extractor) = extract(
+        r#"
+class Box {
+    [void] Run([Foo[]]$fs) {}
+}
+function Use {
+    [string[]]$xs = @()
+    [int[,]]$grid = $null
+}
+"#,
+    );
+
+    let xs = variable(&symbols, "xs");
+    let xs_fact = fact(&extractor, xs);
+    assert_eq!(xs_fact.resolved_type, "string[]");
+    assert!(!xs_fact.is_inferred);
+    assert_eq!(
+        declared_metadata(xs_fact),
+        Some(&serde_json::json!("[string[]]"))
+    );
+    let grid = variable(&symbols, "grid");
+    assert_eq!(fact(&extractor, grid).resolved_type, "int[,]");
+    let fs = parameter_symbols(&symbols, "fs");
+    assert_eq!(fs.len(), 1);
+    assert_eq!(fact(&extractor, fs[0]).resolved_type, "Foo[]");
+    assert_no_stray_brackets(&extractor);
+}
+
+#[test]
+fn nested_generic_records_base_name_and_declared_text() {
+    let (symbols, extractor) = extract(
+        r#"
+function Use {
+    [Dictionary[string, List[int]]]$index = @{}
+}
+"#,
+    );
+
+    let index = variable(&symbols, "index");
+    let index_fact = fact(&extractor, index);
+    assert_eq!(index_fact.resolved_type, "Dictionary");
+    assert_eq!(
+        declared_metadata(index_fact),
+        Some(&serde_json::json!("[Dictionary[string, List[int]]]"))
+    );
+    assert_no_stray_brackets(&extractor);
+}
+
+#[test]
+fn identifier_inside_constructor_body_is_contained_by_constructor() {
+    let (symbols, extractor) = extract_with_calls(
+        r#"
+class Worker {
+    [int]$Id
+
+    Worker([int]$id) {
+        $this.Id = $id
+    }
+}
+"#,
+    );
+
+    let ctor = symbols
+        .iter()
+        .find(|s| s.name == "Worker" && s.kind == SymbolKind::Constructor)
+        .expect("missing constructor Worker");
+    let body_identifiers: Vec<_> = extractor
+        .base
+        .identifiers
+        .iter()
+        .filter(|id| id.start_line == 6)
+        .collect();
+    assert!(!body_identifiers.is_empty());
+    for identifier in body_identifiers {
+        assert_eq!(
+            identifier.containing_symbol_id.as_deref(),
+            Some(ctor.id.as_str()),
+            "identifier `{}` is not contained by the constructor",
+            identifier.name
+        );
+    }
+}
+
+#[test]
+fn artifact_types_prefer_recorded_facts_over_legacy_inference() {
+    let code = r#"
+class Widget {}
+function Use {
+    $w = [Widget]::new()
+    $other = [Foo]::Build()
+}
+"#;
+    let tree = init_parser(code, "powershell");
+    let results = crate::factory::extract_symbols_and_relationships(
+        &tree,
+        "test.ps1",
+        code,
+        "powershell",
+        &PathBuf::from("/tmp/test"),
+    )
+    .expect("extraction succeeds");
+
+    let widget_rows: Vec<_> = results
+        .types
+        .values()
+        .filter(|info| info.resolved_type.eq_ignore_ascii_case("Widget"))
+        .collect();
+    assert_eq!(widget_rows.len(), 1);
+    assert_eq!(widget_rows[0].resolved_type, "Widget");
+    let foo_rows: Vec<_> = results
+        .types
+        .values()
+        .filter(|info| info.resolved_type.eq_ignore_ascii_case("Foo"))
+        .collect();
+    assert_eq!(foo_rows.len(), 1);
+    assert_eq!(foo_rows[0].resolved_type, "Foo");
 }

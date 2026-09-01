@@ -468,8 +468,31 @@ pub(super) fn self_receiver_type(base: &BaseExtractor, node: Node) -> Option<Str
 }
 
 fn enclosing_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
+    let declaration = enclosing_named_type_declaration(node)?;
+    declaration
+        .child_by_field_name("name")
+        .or_else(|| {
+            declaration
+                .children(&mut declaration.walk())
+                .find(|child| child.kind() == "identifier")
+        })
+        .map(|name_node| base.get_node_text(&name_node))
+}
+
+fn declared_superclass_name(base: &BaseExtractor, node: Node) -> Option<String> {
+    let declaration = enclosing_named_type_declaration(node)?;
+    helpers::extract_superclass_base_name(base, declaration)
+}
+
+/// The nearest named type declaration around `node`. An anonymous class body
+/// (`new Foo() { ... }`) reached first has no name to report, so it ends the
+/// walk with `None` instead of leaking the outer class.
+fn enclosing_named_type_declaration(node: Node) -> Option<Node> {
     let mut current = node.parent();
     while let Some(candidate) = current {
+        if is_anonymous_class_body(candidate) {
+            return None;
+        }
         if matches!(
             candidate.kind(),
             "class_declaration"
@@ -478,30 +501,16 @@ fn enclosing_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
                 | "record_declaration"
                 | "annotation_type_declaration"
         ) {
-            return candidate
-                .child_by_field_name("name")
-                .or_else(|| {
-                    candidate
-                        .children(&mut candidate.walk())
-                        .find(|child| child.kind() == "identifier")
-                })
-                .map(|name_node| base.get_node_text(&name_node));
+            return Some(candidate);
         }
         current = candidate.parent();
     }
     None
 }
 
-fn declared_superclass_name(base: &BaseExtractor, node: Node) -> Option<String> {
-    let mut current = node.parent();
-    while let Some(candidate) = current {
-        if matches!(
-            candidate.kind(),
-            "class_declaration" | "enum_declaration" | "record_declaration"
-        ) {
-            return helpers::extract_superclass(base, candidate);
-        }
-        current = candidate.parent();
-    }
-    None
+fn is_anonymous_class_body(node: Node) -> bool {
+    node.kind() == "class_body"
+        && node
+            .parent()
+            .is_some_and(|parent| parent.kind() == "object_creation_expression")
 }

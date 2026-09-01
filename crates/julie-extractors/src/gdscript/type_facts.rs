@@ -14,6 +14,7 @@ pub(super) fn record_statement_type_facts(
     base: &mut BaseExtractor,
     symbol_id: &str,
     statement: Node,
+    same_file_class_names: &HashSet<String>,
 ) {
     if let Some(type_node) = statement.child_by_field_name("type")
         && type_node.kind() == "type"
@@ -22,7 +23,7 @@ pub(super) fn record_statement_type_facts(
         return;
     }
     if let Some(value) = statement.child_by_field_name("value") {
-        record_same_file_new_fact(base, symbol_id, value);
+        record_same_file_new_fact(base, symbol_id, value, same_file_class_names);
     }
 }
 
@@ -38,56 +39,54 @@ pub(super) fn record_declared_type_node(
     base.record_declared_type_fact(symbol_id, &declared, &TYPE_NAME_RULES, false);
 }
 
+/// Record `Foo.new(...)` when `Foo` is a bare identifier naming a class
+/// declared in the same file.
 pub(super) fn record_same_file_new_fact(
     base: &mut BaseExtractor,
     symbol_id: &str,
     value_node: Node,
+    same_file_class_names: &HashSet<String>,
 ) {
     let Some(class_name) = constructor_type_name(base, value_node) else {
         return;
     };
-    if !same_file_class_names(base, value_node).contains(&class_name) {
+    if !same_file_class_names.contains(&class_name) {
         return;
     }
     base.record_declared_type_fact(symbol_id, &class_name, &TYPE_NAME_RULES, true);
 }
 
 fn constructor_type_name(base: &BaseExtractor, value_node: Node) -> Option<String> {
-    let attribute = match value_node.kind() {
-        "attribute" => value_node,
-        _ => return None,
-    };
-    let mut cursor = attribute.walk();
-    let mut class_name = None;
-    let mut constructs = false;
-    for child in attribute.children(&mut cursor) {
-        if child.kind() == "identifier" && class_name.is_none() {
-            class_name = Some(base.get_node_text(&child));
-        }
-        if child.kind() == "attribute_call" {
-            let mut call_cursor = child.walk();
-            constructs = child.children(&mut call_cursor).any(|call_child| {
-                call_child.kind() == "identifier" && base.get_node_text(&call_child) == "new"
-            });
-        }
+    if value_node.kind() != "attribute" {
+        return None;
     }
-    constructs.then_some(class_name).flatten()
+    let mut cursor = value_node.walk();
+    let children: Vec<Node> = value_node.named_children(&mut cursor).collect();
+    let [receiver, call] = children.as_slice() else {
+        return None;
+    };
+    if receiver.kind() != "identifier" || call.kind() != "attribute_call" {
+        return None;
+    }
+    let mut call_cursor = call.walk();
+    let constructs = call.children(&mut call_cursor).any(|call_child| {
+        call_child.kind() == "identifier" && base.get_node_text(&call_child) == "new"
+    });
+    constructs.then(|| base.get_node_text(receiver))
 }
 
-fn same_file_class_names(base: &BaseExtractor, node: Node) -> HashSet<String> {
+pub(super) fn collect_class_names(base: &BaseExtractor, root: Node) -> HashSet<String> {
     let mut names = HashSet::new();
-    collect_class_names(base, file_root(node), 0, &mut names);
+    collect_class_names_into(base, root, 0, &mut names);
     names
 }
 
-fn file_root(mut node: Node) -> Node {
-    while let Some(parent) = node.parent() {
-        node = parent;
-    }
-    node
-}
-
-fn collect_class_names(base: &BaseExtractor, node: Node, depth: u32, names: &mut HashSet<String>) {
+fn collect_class_names_into(
+    base: &BaseExtractor,
+    node: Node,
+    depth: u32,
+    names: &mut HashSet<String>,
+) {
     if !should_visit_tree_depth(depth) {
         return;
     }
@@ -101,6 +100,6 @@ fn collect_class_names(base: &BaseExtractor, node: Node, depth: u32, names: &mut
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_class_names(base, child, child_depth, names);
+        collect_class_names_into(base, child, child_depth, names);
     }
 }

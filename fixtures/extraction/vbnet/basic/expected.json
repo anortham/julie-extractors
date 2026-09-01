@@ -140,19 +140,19 @@
       "file_path": "fixtures/extraction/vbnet/basic/source.vb",
       "start_line": 1,
       "start_column": 0,
-      "end_line": 66,
+      "end_line": 71,
       "end_column": 13,
       "start_byte": 0,
-      "end_byte": 1927,
+      "end_byte": 2144,
       "body_span": {
         "start_line": 3,
         "start_column": 20,
-        "end_line": 54,
-        "end_column": 70,
+        "end_line": 68,
+        "end_column": 67,
         "start_byte": 64,
-        "end_byte": 1600
+        "end_byte": 2100
       },
-      "body_hash": "66442f95243b347fc8556a113d030368",
+      "body_hash": "eaf50bec6d40f5925bdfa0ea7da006e0",
       "signature": "Namespace Fixture",
       "doc_comment": null,
       "visibility": "Public",
@@ -407,6 +407,39 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/vbnet/basic/source.vb:ProbeShapes:66:8",
+      "name": "ProbeShapes",
+      "kind": "method",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/basic/source.vb",
+      "start_line": 66,
+      "start_column": 8,
+      "end_line": 70,
+      "end_column": 0,
+      "start_byte": 1909,
+      "end_byte": 2117,
+      "body_span": {
+        "start_line": 66,
+        "start_column": 30,
+        "end_line": 68,
+        "end_column": 67,
+        "start_byte": 1931,
+        "end_byte": 2100
+      },
+      "body_hash": "8206a8464713a0d3faac5a42ed0d632f",
+      "signature": "public Sub ProbeShapes(ByVal ids() As Integer, ByRef pool As Worker())",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/vbnet/basic/source.vb:Worker:6:4",
+      "metadata": {
+        "vb_visibility": "public"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/vbnet/basic/source.vb:RecordRun:31:8",
       "name": "RecordRun",
       "kind": "method",
@@ -521,19 +554,19 @@
       "file_path": "fixtures/extraction/vbnet/basic/source.vb",
       "start_line": 6,
       "start_column": 4,
-      "end_line": 66,
+      "end_line": 71,
       "end_column": 0,
       "start_byte": 101,
-      "end_byte": 1914,
+      "end_byte": 2131,
       "body_span": {
         "start_line": 11,
         "start_column": 44,
-        "end_line": 54,
-        "end_column": 70,
+        "end_line": 68,
+        "end_column": 67,
         "start_byte": 238,
-        "end_byte": 1600
+        "end_byte": 2100
       },
-      "body_hash": "7d1061a93f963a61b452c75b2893ae06",
+      "body_hash": "ab32e8e8259e67a6fa2ef4e8a9b7ea59",
       "signature": "public Class Worker Implements IJob",
       "doc_comment": null,
       "visibility": "Public",
@@ -633,6 +666,30 @@
       "metadata": {
         "role": "parameter"
       },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/vbnet/basic/source.vb:builder:67:16",
+      "name": "builder",
+      "kind": "variable",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/basic/source.vb",
+      "start_line": 67,
+      "start_column": 16,
+      "end_line": 67,
+      "end_column": 23,
+      "start_byte": 1996,
+      "end_byte": 2003,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "Dim builder",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/vbnet/basic/source.vb:ProbeShapes:66:8",
+      "metadata": {},
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -885,6 +942,63 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/vbnet/basic/source.vb:ids:66:31",
+      "name": "ids",
+      "kind": "variable",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/basic/source.vb",
+      "start_line": 66,
+      "start_column": 31,
+      "end_line": 66,
+      "end_column": 53,
+      "start_byte": 1932,
+      "end_byte": 1954,
+      "body_span": {
+        "start_line": 66,
+        "start_column": 40,
+        "end_line": 66,
+        "end_column": 42,
+        "start_byte": 1941,
+        "end_byte": 1943
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "ByVal ids() As Integer",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/vbnet/basic/source.vb:ProbeShapes:66:8",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/vbnet/basic/source.vb:names:68:16",
+      "name": "names",
+      "kind": "variable",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/basic/source.vb",
+      "start_line": 68,
+      "start_column": 16,
+      "end_line": 68,
+      "end_column": 21,
+      "start_byte": 2049,
+      "end_byte": 2054,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "Dim names",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/vbnet/basic/source.vb:ProbeShapes:66:8",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/vbnet/basic/source.vb:nullableSeed:47:16",
       "name": "nullableSeed",
       "kind": "variable",
@@ -903,6 +1017,39 @@
       "visibility": "Private",
       "parent_key": "fixtures/extraction/vbnet/basic/source.vb:ProbeFacts:46:8",
       "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/vbnet/basic/source.vb:pool:66:55",
+      "name": "pool",
+      "kind": "variable",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/basic/source.vb",
+      "start_line": 66,
+      "start_column": 55,
+      "end_line": 66,
+      "end_column": 77,
+      "start_byte": 1956,
+      "end_byte": 1978,
+      "body_span": {
+        "start_line": 66,
+        "start_column": 75,
+        "end_line": 66,
+        "end_column": 77,
+        "start_byte": 1976,
+        "end_byte": 1978
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "ByRef pool As Worker()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/vbnet/basic/source.vb:ProbeShapes:66:8",
+      "metadata": {
+        "role": "parameter"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -1150,10 +1297,10 @@
       "span": {
         "start_line": 6,
         "start_column": 4,
-        "end_line": 66,
+        "end_line": 71,
         "end_column": 0,
         "start_byte": 101,
-        "end_byte": 1914
+        "end_byte": 2131
       },
       "reference_site_is_exact": false,
       "confidence": "1.000",
@@ -1414,6 +1561,22 @@
       "receiver_type": "Worker"
     },
     {
+      "key": "fixtures/extraction/vbnet/basic/source.vb:System.Collections.Generic.List:type_usage:68:25",
+      "name": "System.Collections.Generic.List",
+      "kind": "type_usage",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/basic/source.vb",
+      "start_line": 68,
+      "start_column": 25,
+      "end_line": 68,
+      "end_column": 56,
+      "start_byte": 2058,
+      "end_byte": 2089,
+      "containing_key": "fixtures/extraction/vbnet/basic/source.vb:ProbeShapes:66:8",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/vbnet/basic/source.vb:count:variable_ref:57:40",
       "name": "count",
       "kind": "variable_ref",
@@ -1615,13 +1778,20 @@
       "constraints": null,
       "is_inferred": false,
       "language": "vbnet",
-      "metadata": {
-        "declared": "Worker()"
-      }
+      "metadata": null
     },
     {
       "symbol_key": "fixtures/extraction/vbnet/basic/source.vb:b:46:49",
       "resolved_type": "Worker",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "vbnet",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/vbnet/basic/source.vb:builder:67:16",
+      "resolved_type": "System.Text.StringBuilder",
       "generic_params": null,
       "constraints": null,
       "is_inferred": false,
@@ -1692,6 +1862,26 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/vbnet/basic/source.vb:ids:66:31",
+      "resolved_type": "Integer()",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "vbnet",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/vbnet/basic/source.vb:names:68:16",
+      "resolved_type": "System.Collections.Generic.List",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "vbnet",
+      "metadata": {
+        "declared": "System.Collections.Generic.List(Of String)"
+      }
+    },
+    {
       "symbol_key": "fixtures/extraction/vbnet/basic/source.vb:nullableSeed:47:16",
       "resolved_type": "Integer",
       "generic_params": null,
@@ -1701,6 +1891,15 @@
       "metadata": {
         "declared": "Integer?"
       }
+    },
+    {
+      "symbol_key": "fixtures/extraction/vbnet/basic/source.vb:pool:66:55",
+      "resolved_type": "Worker()",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "vbnet",
+      "metadata": null
     },
     {
       "symbol_key": "fixtures/extraction/vbnet/basic/source.vb:sender:22:32",
@@ -1898,18 +2097,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "vbnet",
       "file_path": "fixtures/extraction/vbnet/basic/source.vb",
-      "covered_lines": 67,
-      "covered_bytes": 1928,
+      "covered_lines": 72,
+      "covered_bytes": 2145,
       "decision_count": 2,
       "loop_count": 1,
       "max_nesting_depth": 2,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 67,
+      "end_line": 72,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 1928,
+      "end_byte": 2145,
       "metadata": {
         "metric_version": 1
       }
@@ -2064,6 +2263,28 @@
       "end_column": 20,
       "start_byte": 1301,
       "end_byte": 1512,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/vbnet/basic/source.vb:ProbeShapes:66:8",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/basic/source.vb",
+      "covered_lines": 3,
+      "covered_bytes": 169,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 2,
+      "start_line": 66,
+      "start_column": 30,
+      "end_line": 68,
+      "end_column": 67,
+      "start_byte": 1931,
+      "end_byte": 2100,
       "metadata": {
         "metric_version": 1
       }
@@ -2270,6 +2491,18 @@
               "children": []
             }
           ]
+        }
+      ]
+    },
+    {
+      "identifier_key": "fixtures/extraction/vbnet/basic/source.vb:System.Collections.Generic.List:type_usage:68:25",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/basic/source.vb",
+      "arguments": [
+        {
+          "ordinal": 0,
+          "type_name": "String",
+          "children": []
         }
       ]
     }

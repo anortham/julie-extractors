@@ -976,6 +976,39 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/csharp/basic/source.cs:WorkerIndex:102:0",
+      "name": "WorkerIndex",
+      "kind": "class",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "start_line": 102,
+      "start_column": 0,
+      "end_line": 105,
+      "end_column": 1,
+      "start_byte": 2459,
+      "end_byte": 2548,
+      "body_span": {
+        "start_line": 103,
+        "start_column": 0,
+        "end_line": 105,
+        "end_column": 1,
+        "start_byte": 2491,
+        "end_byte": 2548
+      },
+      "body_hash": "ff5d281253b381242204b2419801a4f3",
+      "signature": "public sealed class WorkerIndex",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/csharp/basic/source.cs:Fixture:1:0",
+      "metadata": {
+        "csharp_visibility": "public"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/csharp/basic/source.cs:count:36:31",
       "name": "count",
       "kind": "variable",
@@ -1025,6 +1058,34 @@
         "isInferred": false,
         "role": "parameter",
         "variableType": "bool"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/basic/source.cs:i:104:38",
+      "name": "i",
+      "kind": "variable",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "start_line": 104,
+      "start_column": 38,
+      "end_line": 104,
+      "end_column": 43,
+      "start_byte": 2531,
+      "end_byte": 2536,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "int i",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/csharp/basic/source.cs:this[int i]:104:4",
+      "metadata": {
+        "isInferred": false,
+        "role": "parameter",
+        "variableType": "int"
       },
       "annotations": [],
       "semantic_group": null,
@@ -1300,6 +1361,32 @@
         "isInferred": true,
         "role": "local",
         "variableType": "var"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/basic/source.cs:this[int i]:104:4",
+      "name": "this[int i]",
+      "kind": "property",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "start_line": 104,
+      "start_column": 4,
+      "end_line": 104,
+      "end_column": 53,
+      "start_byte": 2497,
+      "end_byte": 2546,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "public IReadOnlyList<Worker> this[int i]",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/csharp/basic/source.cs:WorkerIndex:102:0",
+      "metadata": {
+        "isStatic": false
       },
       "annotations": [],
       "semantic_group": null,
@@ -1724,6 +1811,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/csharp/basic/source.cs:IReadOnlyList:type_usage:104:11",
+      "name": "IReadOnlyList",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "start_line": 104,
+      "start_column": 11,
+      "end_line": 104,
+      "end_column": 24,
+      "start_byte": 2504,
+      "end_byte": 2517,
+      "containing_key": "fixtures/extraction/csharp/basic/source.cs:WorkerIndex:102:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/csharp/basic/source.cs:Id:variable_ref:19:22",
       "name": "Id",
       "kind": "variable_ref",
@@ -1864,6 +1967,22 @@
       "start_byte": 1994,
       "end_byte": 1999,
       "containing_key": "fixtures/extraction/csharp/basic/source.cs:Scaled:81:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/basic/source.cs:Worker:type_usage:104:25",
+      "name": "Worker",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "start_line": 104,
+      "start_column": 25,
+      "end_line": 104,
+      "end_column": 31,
+      "start_byte": 2518,
+      "end_byte": 2524,
+      "containing_key": "fixtures/extraction/csharp/basic/source.cs:WorkerIndex:102:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2333,6 +2452,15 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/csharp/basic/source.cs:i:104:38",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "csharp",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/csharp/basic/source.cs:id:10:18",
       "resolved_type": "int",
       "generic_params": null,
@@ -2389,6 +2517,17 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/csharp/basic/source.cs:this[int i]:104:4",
+      "resolved_type": "IReadOnlyList",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "csharp",
+      "metadata": {
+        "declared": "IReadOnlyList<Worker>"
+      }
+    },
+    {
       "symbol_key": "fixtures/extraction/csharp/basic/source.cs:value:26:30",
       "resolved_type": "int",
       "generic_params": null,
@@ -2407,18 +2546,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "csharp",
       "file_path": "fixtures/extraction/csharp/basic/source.cs",
-      "covered_lines": 101,
-      "covered_bytes": 2458,
+      "covered_lines": 106,
+      "covered_bytes": 2549,
       "decision_count": 2,
       "loop_count": 1,
       "max_nesting_depth": 2,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 101,
+      "end_line": 106,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 2458,
+      "end_byte": 2549,
       "metadata": {
         "metric_version": 1
       }
@@ -2842,6 +2981,18 @@
               "children": []
             }
           ]
+        }
+      ]
+    },
+    {
+      "identifier_key": "fixtures/extraction/csharp/basic/source.cs:IReadOnlyList:type_usage:104:11",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "arguments": [
+        {
+          "ordinal": 0,
+          "type_name": "Worker",
+          "children": []
         }
       ]
     }

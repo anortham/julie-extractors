@@ -186,3 +186,18 @@ fn self_colon_and_dot_calls_record_receiver_type_on_identifier_and_pending() {
         .expect("missing pending m");
     assert_eq!(pending_m.receiver_type.as_deref(), Some("Account"));
 }
+
+#[test]
+fn implicit_self_symbol_spans_method_name_without_parameter_list_signature() {
+    let (symbols, _) = extract(account_class_source());
+    let self_param = symbol(&symbols, "self", SymbolKind::Variable);
+    let amount = symbol(&symbols, "amount", SymbolKind::Variable);
+
+    assert_eq!(self_param.signature, None);
+    assert_eq!(self_param.start_line, amount.start_line);
+    assert!(self_param.start_column < amount.start_column);
+    assert_eq!(
+        self_param.end_column - self_param.start_column,
+        "deposit".len() as u32
+    );
+}

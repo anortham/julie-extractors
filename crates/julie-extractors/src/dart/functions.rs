@@ -80,6 +80,29 @@ pub(super) fn extract_function(
     node: &Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
+    let symbol_kind = if parent_id.is_some() {
+        SymbolKind::Method
+    } else {
+        SymbolKind::Function
+    };
+    extract_callable_with_kind(base, node, parent_id, symbol_kind)
+}
+
+/// Extract a function declared inside another callable body
+pub(super) fn extract_local_function(
+    base: &mut BaseExtractor,
+    node: &Node,
+    parent_id: Option<&str>,
+) -> Option<Symbol> {
+    extract_callable_with_kind(base, node, parent_id, SymbolKind::Function)
+}
+
+fn extract_callable_with_kind(
+    base: &mut BaseExtractor,
+    node: &Node,
+    parent_id: Option<&str>,
+    symbol_kind: SymbolKind,
+) -> Option<Symbol> {
     let target = function_signature_target(node);
     let name_node = find_child_by_type(&target, "identifier")?;
     let name = get_node_text(&name_node);
@@ -89,12 +112,6 @@ pub(super) fn extract_function(
     let annotations = extract_annotation_markers(node);
     let annotation_keys = annotation_keys(&annotations);
 
-    // Use Method kind if inside a class (has parent_id), otherwise Function
-    let symbol_kind = if parent_id.is_some() {
-        SymbolKind::Method
-    } else {
-        SymbolKind::Function
-    };
     let mut symbol = base.create_symbol(
         node,
         name,

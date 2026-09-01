@@ -437,14 +437,14 @@ pub(super) fn self_receiver_type(base: &BaseExtractor, node: Node) -> Option<Str
     super::helpers::enclosing_type_name(base, &field_expression)
 }
 
+/// tree-sitter-scala aliases the `this` keyword to `identifier` inside
+/// expressions, so the receiver check must read the token text.
 fn field_value_is_this(base: &BaseExtractor, field_expression: Node) -> bool {
-    if let Some(value) = field_expression.child_by_field_name("value") {
-        return value.kind() == "this" || base.get_node_text(&value) == "this";
-    }
-    let mut cursor = field_expression.walk();
     field_expression
-        .children(&mut cursor)
-        .any(|child| child.kind() == "this" || base.get_node_text(&child) == "this")
+        .child_by_field_name("value")
+        .is_some_and(|value| {
+            matches!(value.kind(), "identifier" | "this") && base.get_node_text(&value) == "this"
+        })
 }
 
 /// Record type arguments for the outermost generic use site.

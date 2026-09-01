@@ -260,3 +260,34 @@ public class Sample {
     assert_eq!(fact.resolved_type, "GraphTraversal");
     assert!(!fact.is_inferred);
 }
+
+#[test]
+fn indexer_array_and_qualified_return_types_record_facts() {
+    let source = r#"
+public class Sample {
+  public int[] this[int i] { get { return null; } }
+  public Ns.Foo this[string key] { get { return null; } }
+}
+"#;
+    let (symbols, extractor) = extract(source);
+    let array = fact(&extractor, &symbols, "this[int i]", SymbolKind::Property);
+    assert_eq!(array.resolved_type, "int[]");
+    assert!(!array.is_inferred);
+    let qualified = fact(
+        &extractor,
+        &symbols,
+        "this[string key]",
+        SymbolKind::Property,
+    );
+    assert_eq!(qualified.resolved_type, "Ns.Foo");
+    assert!(!qualified.is_inferred);
+    let signatures: Vec<&str> = symbols
+        .iter()
+        .filter(|s| s.kind == SymbolKind::Property)
+        .filter_map(|s| s.signature.as_deref())
+        .collect();
+    assert_eq!(
+        signatures,
+        vec!["public int[] this[int i]", "public Ns.Foo this[string key]"]
+    );
+}

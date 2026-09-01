@@ -190,12 +190,7 @@ pub fn extract_indexer(
     let visibility = helpers::determine_visibility(&modifiers, None);
 
     let mut cursor = node.walk();
-    let return_type_node = node.children(&mut cursor).find(|c| {
-        matches!(
-            c.kind(),
-            "predefined_type" | "identifier" | "generic_name" | "nullable_type"
-        )
-    });
+    let return_type_node = node.child_by_field_name("type");
     let return_type = return_type_node
         .map(|node| base.get_node_text(&node))
         .unwrap_or_else(|| "object".to_string());

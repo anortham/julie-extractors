@@ -164,3 +164,57 @@ f <- fit(x)
     no_fact(&extractor, &symbols, "d", SymbolKind::Variable);
     no_fact(&extractor, &symbols, "f", SymbolKind::Variable);
 }
+
+#[test]
+fn class_declared_after_use_still_records_inferred_fact() {
+    let source = r#"
+x <- Foo()
+w <- Worker$new()
+setClass("Foo")
+Worker <- R6::R6Class("Worker", public = list(run = function() NULL))
+"#;
+    let (symbols, extractor) = extract(source);
+    let x = fact(&extractor, &symbols, "x", SymbolKind::Variable);
+    assert_eq!(x.resolved_type, "Foo");
+    assert!(x.is_inferred);
+    let w = fact(&extractor, &symbols, "w", SymbolKind::Variable);
+    assert_eq!(w.resolved_type, "Worker");
+    assert!(w.is_inferred);
+}
+
+#[test]
+fn r6_method_symbols_span_only_their_own_definitions() {
+    let source = r#"
+Worker <- R6::R6Class(
+  "Worker",
+  public = list(
+    id = NULL,
+    initialize = function(id) {
+      self$id <- id
+    },
+    run = function() {
+      helper(self$id)
+    }
+  )
+)
+"#;
+    let (symbols, identifiers, _extractor) = extract_calls(source);
+    let initialize = symbol(&symbols, "initialize", SymbolKind::Method);
+    let run = symbol(&symbols, "run", SymbolKind::Method);
+    assert_eq!((initialize.start_line, initialize.end_line), (6, 8));
+    assert_eq!((run.start_line, run.end_line), (9, 11));
+    assert_eq!(
+        initialize.signature.as_deref(),
+        Some("initialize = function(id)")
+    );
+    assert_eq!(run.signature.as_deref(), Some("run = function()"));
+
+    let helper = identifiers
+        .iter()
+        .find(|id| id.name == "helper" && id.kind == IdentifierKind::Call)
+        .unwrap_or_else(|| panic!("missing helper call"));
+    assert_eq!(
+        helper.containing_symbol_id.as_deref(),
+        Some(run.id.as_str())
+    );
+}

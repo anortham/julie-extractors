@@ -1801,7 +1801,7 @@
     },
     {
       "symbol_key": "fixtures/extraction/erlang/basic/source.erl:account:19:0",
-      "resolved_type": "#account{}",
+      "resolved_type": "account",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
@@ -1810,7 +1810,7 @@
     },
     {
       "symbol_key": "fixtures/extraction/erlang/basic/source.erl:open:26:0",
-      "resolved_type": "#account{}",
+      "resolved_type": "account",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
@@ -1819,7 +1819,7 @@
     },
     {
       "symbol_key": "fixtures/extraction/erlang/basic/source.erl:token:20:0",
-      "resolved_type": "binary()",
+      "resolved_type": "binary",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,

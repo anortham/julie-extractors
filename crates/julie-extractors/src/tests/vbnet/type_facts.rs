@@ -335,3 +335,112 @@ End Class
     assert_eq!(pending("Fetch").receiver_type, None);
     assert_eq!(pending("Absent").receiver_type, None);
 }
+
+#[test]
+fn qualified_types_keep_namespace_qualifiers() {
+    let source = r#"
+Class Sample
+    Private Builder As System.Text.StringBuilder
+    Private Items As System.Collections.Generic.List(Of T)
+    Sub Run(ByVal seed As System.Text.StringBuilder)
+        Dim local As System.Collections.Generic.List(Of Integer)
+    End Sub
+End Class
+"#;
+    let (symbols, extractor) = extract(source);
+    let builder = fact(&extractor, &symbols, "Builder", SymbolKind::Field);
+    assert_eq!(builder.resolved_type, "System.Text.StringBuilder");
+    assert!(!builder.is_inferred);
+    assert_eq!(declared(builder), None);
+    let items = fact(&extractor, &symbols, "Items", SymbolKind::Field);
+    assert_eq!(items.resolved_type, "System.Collections.Generic.List");
+    assert_eq!(
+        declared(items),
+        Some("System.Collections.Generic.List(Of T)")
+    );
+    let seed = fact(&extractor, &symbols, "seed", SymbolKind::Variable);
+    assert_eq!(seed.resolved_type, "System.Text.StringBuilder");
+    let local = fact(&extractor, &symbols, "local", SymbolKind::Variable);
+    assert_eq!(local.resolved_type, "System.Collections.Generic.List");
+    assert_eq!(
+        declared(local),
+        Some("System.Collections.Generic.List(Of Integer)")
+    );
+}
+
+#[test]
+fn array_types_keep_array_suffix() {
+    let source = r#"
+Class Sample
+    Private Workers As Worker()
+    Private Grid As Integer(,)
+    Private Nullables As Integer?()
+    Sub Run(zs As List(Of Foo)())
+        Dim local As Worker()
+    End Sub
+End Class
+"#;
+    let (symbols, extractor) = extract(source);
+    let workers = fact(&extractor, &symbols, "Workers", SymbolKind::Field);
+    assert_eq!(workers.resolved_type, "Worker()");
+    assert!(!workers.is_inferred);
+    assert_eq!(declared(workers), None);
+    let grid = fact(&extractor, &symbols, "Grid", SymbolKind::Field);
+    assert_eq!(grid.resolved_type, "Integer(,)");
+    assert_eq!(declared(grid), None);
+    let nullables = fact(&extractor, &symbols, "Nullables", SymbolKind::Field);
+    assert_eq!(nullables.resolved_type, "Integer()");
+    assert_eq!(declared(nullables), Some("Integer?()"));
+    let zs = fact(&extractor, &symbols, "zs", SymbolKind::Variable);
+    assert_eq!(zs.resolved_type, "List()");
+    assert_eq!(declared(zs), Some("List(Of Foo)()"));
+    let local = fact(&extractor, &symbols, "local", SymbolKind::Variable);
+    assert_eq!(local.resolved_type, "Worker()");
+    assert_eq!(declared(local), None);
+}
+
+#[test]
+fn declarator_rank_records_array_type() {
+    let source = r#"
+Class Sample
+    Private Names() As String
+    Sub Run(ByVal xs() As Integer, ByRef ys(,) As Foo)
+        Dim ws() As Integer
+        Dim vs(10) As Integer
+        Dim generics() As List(Of Foo)
+    End Sub
+End Class
+"#;
+    let (symbols, extractor) = extract(source);
+    let names = fact(&extractor, &symbols, "Names", SymbolKind::Field);
+    assert_eq!(names.resolved_type, "String()");
+    assert_eq!(declared(names), None);
+    let xs = fact(&extractor, &symbols, "xs", SymbolKind::Variable);
+    assert_eq!(xs.resolved_type, "Integer()");
+    assert!(!xs.is_inferred);
+    assert_eq!(declared(xs), None);
+    let ys = fact(&extractor, &symbols, "ys", SymbolKind::Variable);
+    assert_eq!(ys.resolved_type, "Foo(,)");
+    let ws = fact(&extractor, &symbols, "ws", SymbolKind::Variable);
+    assert_eq!(ws.resolved_type, "Integer()");
+    let vs = fact(&extractor, &symbols, "vs", SymbolKind::Variable);
+    assert_eq!(vs.resolved_type, "Integer()");
+    assert_eq!(declared(vs), None);
+    let generics = fact(&extractor, &symbols, "generics", SymbolKind::Variable);
+    assert_eq!(generics.resolved_type, "List()");
+    assert_eq!(declared(generics), Some("List(Of Foo)()"));
+}
+
+#[test]
+fn lambda_parameters_do_not_become_symbols() {
+    let source = r#"
+Class Sample
+    Sub Run()
+        Dim square = Function(a As Integer) a * a
+    End Sub
+End Class
+"#;
+    let (symbols, _extractor) = extract(source);
+    assert!(symbols.iter().any(|s| s.name == "square"));
+    assert!(!symbols.iter().any(|s| s.name == "a"));
+}

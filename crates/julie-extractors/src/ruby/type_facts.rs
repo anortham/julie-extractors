@@ -15,14 +15,21 @@ pub(super) fn record_same_file_new_fact(
     base: &mut BaseExtractor,
     symbol_id: &str,
     value_node: Node,
+    same_file_class_names: &HashSet<String>,
 ) {
     let Some(class_name) = constructor_type_name(base, value_node) else {
         return;
     };
-    if !same_file_class_names(base, value_node).contains(&class_name) {
+    if !same_file_class_names.contains(&class_name) {
         return;
     }
     base.record_declared_type_fact(symbol_id, &class_name, &TYPE_NAME_RULES, true);
+}
+
+pub(super) fn collect_same_file_class_names(base: &BaseExtractor, root: Node) -> HashSet<String> {
+    let mut names = HashSet::new();
+    collect_class_names(base, root, 0, &mut names);
+    names
 }
 
 pub(super) fn self_receiver_type(base: &BaseExtractor, call_node: Node) -> Option<String> {
@@ -46,19 +53,6 @@ fn constructor_type_name(base: &BaseExtractor, value_node: Node) -> Option<Strin
         return None;
     }
     Some(base.get_node_text(&receiver))
-}
-
-fn same_file_class_names(base: &BaseExtractor, node: Node) -> HashSet<String> {
-    let mut names = HashSet::new();
-    collect_class_names(base, file_root(node), 0, &mut names);
-    names
-}
-
-fn file_root(mut node: Node) -> Node {
-    while let Some(parent) = node.parent() {
-        node = parent;
-    }
-    node
 }
 
 fn collect_class_names(base: &BaseExtractor, node: Node, depth: u32, names: &mut HashSet<String>) {

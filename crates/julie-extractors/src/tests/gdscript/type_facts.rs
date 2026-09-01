@@ -271,3 +271,45 @@ class Bar extends Resource:
     );
     assert_eq!(pending_for("fetch", "other").receiver_type, None);
 }
+
+#[test]
+fn function_local_const_is_variable_and_class_const_stays_constant() {
+    let source = r#"
+class_name Sample
+const LIMIT: int = 3
+func run():
+    const LOCAL: int = 2
+"#;
+    let (symbols, extractor) = extract(source);
+    let method = symbol(&symbols, "run", SymbolKind::Method);
+    let limit = symbol(&symbols, "LIMIT", SymbolKind::Constant);
+    let local = symbol(&symbols, "LOCAL", SymbolKind::Variable);
+    assert_eq!(limit.kind, SymbolKind::Constant);
+    assert_eq!(local.parent_id.as_deref(), Some(method.id.as_str()));
+    assert!(
+        !symbols
+            .iter()
+            .any(|s| s.name == "LOCAL" && s.kind == SymbolKind::Constant)
+    );
+    let local_fact = fact(&extractor, &symbols, "LOCAL", SymbolKind::Variable);
+    assert_eq!(local_fact.resolved_type, "int");
+    assert!(!local_fact.is_inferred);
+}
+
+#[test]
+fn qualified_new_initializer_records_no_fact() {
+    let source = r#"
+class_name Sample
+class Foo:
+    pass
+func run():
+    var direct := Foo.new()
+    var nested = a.Foo.new()
+    var chained = Foo.inner.new()
+"#;
+    let (symbols, extractor) = extract(source);
+    let direct = fact(&extractor, &symbols, "direct", SymbolKind::Variable);
+    assert_eq!(direct.resolved_type, "Foo");
+    no_fact(&extractor, &symbols, "nested", SymbolKind::Variable);
+    no_fact(&extractor, &symbols, "chained", SymbolKind::Variable);
+}

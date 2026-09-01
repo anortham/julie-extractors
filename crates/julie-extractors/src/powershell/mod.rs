@@ -276,7 +276,7 @@ impl PowerShellExtractor {
 
     /// Infer types for symbols
     pub fn infer_types(&self, symbols: &[Symbol]) -> std::collections::HashMap<String, String> {
-        types::infer_types(symbols)
+        types::infer_types(symbols, &self.base.type_info)
     }
 
     /// Extract identifiers (function calls, member access, etc.)

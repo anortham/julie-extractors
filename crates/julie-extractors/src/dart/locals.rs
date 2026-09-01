@@ -12,24 +12,59 @@ pub(super) fn extract_locals(
     let Some(definition) = find_child_by_type(&node, "initialized_variable_definition") else {
         return Vec::new();
     };
-    let Some(name_node) = definition
-        .child_by_field_name("name")
-        .filter(|name| name.kind() == "identifier")
-        .or_else(|| find_child_by_type(&definition, "identifier"))
-    else {
-        return Vec::new();
-    };
-    let name = get_node_text(&name_node);
-    if name.is_empty() {
-        return Vec::new();
-    }
-    let signature = extractor.base.get_node_text(&definition);
     let type_node = definition
         .child_by_field_name("type")
         .or_else(|| find_child_by_type(&definition, "type"));
-    let value = definition.child_by_field_name("value");
+    let extra_declarators: Vec<Node> = {
+        let mut cursor = definition.walk();
+        definition
+            .named_children(&mut cursor)
+            .filter(|child| child.kind() == "initialized_identifier")
+            .collect()
+    };
+    let first_signature = match extra_declarators.first() {
+        Some(next) => extractor.base.content[definition.start_byte()..next.start_byte()]
+            .trim_end()
+            .trim_end_matches(',')
+            .trim_end()
+            .to_string(),
+        None => extractor.base.get_node_text(&definition),
+    };
+    let mut symbols = Vec::new();
+    symbols.extend(extract_local(
+        extractor,
+        definition,
+        first_signature,
+        type_node,
+        parent_id,
+    ));
+    for declarator in extra_declarators {
+        let signature = extractor.base.get_node_text(&declarator);
+        symbols.extend(extract_local(
+            extractor, declarator, signature, type_node, parent_id,
+        ));
+    }
+    symbols
+}
+
+fn extract_local(
+    extractor: &mut DartExtractor,
+    declarator: Node,
+    signature: String,
+    type_node: Option<Node>,
+    parent_id: Option<&str>,
+) -> Option<Symbol> {
+    let name_node = declarator
+        .child_by_field_name("name")
+        .filter(|name| name.kind() == "identifier")
+        .or_else(|| find_child_by_type(&declarator, "identifier"))?;
+    let name = get_node_text(&name_node);
+    if name.is_empty() {
+        return None;
+    }
+    let value = declarator.child_by_field_name("value");
     let symbol = extractor.base.create_symbol(
-        &definition,
+        &declarator,
         name,
         SymbolKind::Variable,
         SymbolOptions {
@@ -49,5 +84,5 @@ pub(super) fn extract_locals(
     {
         type_facts::record_constructor_fact(&mut extractor.base, &symbol.id, &class_name);
     }
-    vec![symbol]
+    Some(symbol)
 }

@@ -97,16 +97,11 @@ fn extract_identifier_from_node(
             }
         }
         "map" => {
-            if let Some(struct_node) = find_child_by_type(&node, "struct") {
-                let name = base.get_node_text(&struct_node);
+            if let Some(alias) = super::type_facts::struct_alias(node) {
+                let name = base.get_node_text(&alias);
                 if !name.is_empty() {
                     let containing = find_containing_symbol_id(base, node, symbol_map);
-                    base.create_identifier(
-                        &struct_node,
-                        name,
-                        IdentifierKind::TypeUsage,
-                        containing,
-                    );
+                    base.create_identifier(&alias, name, IdentifierKind::TypeUsage, containing);
                 }
             }
         }

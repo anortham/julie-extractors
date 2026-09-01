@@ -746,15 +746,6 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/dart/test_roles/source.dart:callback:17:29",
-      "resolved_type": "void Function()",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": false,
-      "language": "dart",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0",
       "resolved_type": "void",
       "generic_params": null,

@@ -190,4 +190,130 @@ end
         assert_eq!(y.kind, SymbolKind::Variable);
         assert!(extractor.base.type_info.get(&y.id).is_none());
     }
+
+    #[test]
+    fn module_struct_literal_local_has_no_fact_and_no_type_usage() {
+        let (symbols, mut extractor, tree) = extract(
+            r#"
+defmodule App do
+  defstruct [:id]
+  def go, do: y = %__MODULE__{}
+end
+"#,
+        );
+
+        let y = local(&symbols, "y");
+        assert_eq!(y.kind, SymbolKind::Variable);
+        assert!(extractor.base.type_info.get(&y.id).is_none());
+
+        let identifiers = extractor.extract_identifiers(&tree, &symbols);
+        assert!(
+            identifiers
+                .iter()
+                .all(|id| !(id.kind == IdentifierKind::TypeUsage && id.name == "__MODULE__"))
+        );
+    }
+
+    #[test]
+    fn variable_struct_literal_local_has_no_fact_and_no_type_usage() {
+        let (symbols, mut extractor, tree) = extract(
+            r#"
+defmodule App do
+  def go(mod), do: y = %mod{}
+end
+"#,
+        );
+
+        let y = local(&symbols, "y");
+        assert_eq!(y.kind, SymbolKind::Variable);
+        assert!(extractor.base.type_info.get(&y.id).is_none());
+
+        let identifiers = extractor.extract_identifiers(&tree, &symbols);
+        assert!(
+            identifiers
+                .iter()
+                .all(|id| !(id.kind == IdentifierKind::TypeUsage && id.name == "mod"))
+        );
+    }
+
+    #[test]
+    fn quoted_assignments_inside_defmacro_are_not_macro_locals() {
+        let (symbols, _, _) = extract(
+            r#"
+defmodule App do
+  defmacro build(opts) do
+    prefix = "x"
+    quote do
+      inner = unquote(opts)
+      inner
+    end
+  end
+end
+"#,
+        );
+
+        let build = symbol(&symbols, "build");
+        let prefix = local(&symbols, "prefix");
+        assert_eq!(prefix.parent_id.as_deref(), Some(build.id.as_str()));
+        assert!(symbols.iter().all(|s| s.name != "inner"));
+    }
+}
+
+#[cfg(test)]
+mod elixir_spec_type_tests {
+    use crate::base::SymbolKind;
+    use std::path::PathBuf;
+
+    #[test]
+    fn spec_return_types_reduce_to_base_names_in_the_artifact() {
+        let source = r#"defmodule Fixture.Specs do
+  @spec count() :: integer()
+  def count, do: 1
+
+  @spec start() :: GenServer.on_start()
+  def start, do: :ok
+
+  @spec pair() :: {:ok, integer()}
+  def pair, do: {:ok, 1}
+
+  @spec items() :: [term()]
+  def items, do: []
+end
+"#;
+        let mut parser = tree_sitter::Parser::new();
+        parser
+            .set_language(&tree_sitter_elixir::LANGUAGE.into())
+            .unwrap();
+        let tree = parser.parse(source, None).unwrap();
+        let results = crate::factory::extract_symbols_and_relationships(
+            &tree,
+            "specs.ex",
+            source,
+            "elixir",
+            &PathBuf::from("/tmp/test"),
+        )
+        .unwrap();
+        let resolved = |name: &str| -> Option<String> {
+            let symbol = results
+                .symbols
+                .iter()
+                .find(|s| s.name == name && s.kind == SymbolKind::Function)
+                .unwrap_or_else(|| panic!("missing function `{name}`"));
+            results
+                .types
+                .get(&symbol.id)
+                .map(|info| info.resolved_type.clone())
+        };
+        assert_eq!(resolved("count").as_deref(), Some("integer"));
+        assert_eq!(resolved("start").as_deref(), Some("GenServer.on_start"));
+        assert_eq!(resolved("pair"), None);
+        assert_eq!(resolved("items"), None);
+        for info in results.types.values() {
+            let value = info.resolved_type.as_str();
+            assert!(
+                !value.contains(['[', '(', '{', '<', '?', ' ']),
+                "non-base resolved_type {value}"
+            );
+        }
+    }
 }

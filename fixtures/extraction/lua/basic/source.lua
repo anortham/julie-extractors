@@ -21,7 +21,8 @@ function Worker:run()
 end
 
 function Worker:log()
-    return self:missing_wave2()
+    self:missing_wave2()
+    return self:run()
 end
 
 local function evaluate(count, enabled)

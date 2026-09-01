@@ -33,6 +33,39 @@ use tree_sitter::{Node, Tree};
 // Static regex compiled once for performance
 static TYPE_SIGNATURE_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(\w+)\s+\w+").unwrap());
 
+const SIGNATURE_MODIFIERS: &[&str] = &[
+    "final",
+    "var",
+    "const",
+    "late",
+    "static",
+    "async",
+    "external",
+    "covariant",
+    "required",
+];
+
+fn is_variable_like(kind: &SymbolKind) -> bool {
+    matches!(
+        kind,
+        SymbolKind::Variable | SymbolKind::Constant | SymbolKind::Field | SymbolKind::Property
+    )
+}
+
+fn legacy_signature_type(signature: &str, kind: &SymbolKind) -> Option<String> {
+    let mut rest = signature.trim_start();
+    while let Some(word) = rest.split_whitespace().next()
+        && SIGNATURE_MODIFIERS.contains(&word)
+    {
+        rest = rest[word.len()..].trim_start();
+    }
+    let type_text = TYPE_SIGNATURE_RE.captures(rest)?.get(1)?.as_str();
+    if SIGNATURE_MODIFIERS.contains(&type_text) || (is_variable_like(kind) && type_text == "void") {
+        return None;
+    }
+    Some(type_text.to_string())
+}
+
 /// Dart language extractor that handles Dart-specific constructs including Flutter
 pub struct DartExtractor {
     pub(crate) base: BaseExtractor,
@@ -50,6 +83,7 @@ fn is_dart_callable(kind: &str) -> bool {
     matches!(
         kind,
         "function_declaration"
+            | "local_function_declaration"
             | "lambda_expression"
             | "function_signature"
             | "method_signature"
@@ -84,6 +118,7 @@ impl DartExtractor {
         // WORKAROUND: Set global content cache for get_node_text() helper
         helpers::set_dart_content_cache(&self.base.content);
 
+        self.same_file_type_names = type_facts::collect_type_names(&self.base, tree.root_node());
         let mut symbols = Vec::new();
         self.visit_node(tree.root_node(), &mut symbols, None, 0);
         symbols
@@ -119,6 +154,13 @@ impl DartExtractor {
             }
             "function_declaration" | "lambda_expression" => {
                 symbol = functions::extract_function(
+                    &mut self.base,
+                    &node,
+                    current_parent_id.as_deref(),
+                );
+            }
+            "local_function_declaration" => {
+                symbol = functions::extract_local_function(
                     &mut self.base,
                     &node,
                     current_parent_id.as_deref(),
@@ -461,25 +503,14 @@ impl DartExtractor {
     pub fn infer_types(&self, symbols: &[Symbol]) -> HashMap<String, String> {
         let mut types = HashMap::new();
         for symbol in symbols {
-            if let Some(signature) = &symbol.signature
-                && let Some(captures) = TYPE_SIGNATURE_RE.captures(signature)
-                && let Some(type_match) = captures.get(1)
-            {
-                types.insert(symbol.id.clone(), type_match.as_str().to_string());
+            if self.base.type_info.contains_key(&symbol.id) {
+                continue;
             }
-            if let Some(is_final) = symbol.metadata.as_ref().and_then(|m| m.get("isFinal"))
-                && is_final.as_bool() == Some(true)
-            {
-                types
-                    .entry(symbol.id.clone())
-                    .or_insert_with(|| "final".to_string());
-            }
-            if let Some(is_const) = symbol.metadata.as_ref().and_then(|m| m.get("isConst"))
-                && is_const.as_bool() == Some(true)
-            {
-                types
-                    .entry(symbol.id.clone())
-                    .or_insert_with(|| "const".to_string());
+            let Some(signature) = &symbol.signature else {
+                continue;
+            };
+            if let Some(type_text) = legacy_signature_type(signature, &symbol.kind) {
+                types.insert(symbol.id.clone(), type_text);
             }
         }
         types

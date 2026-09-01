@@ -366,7 +366,7 @@ fn extract_standard_variable(
         }
     }
 
-    let symbol_kind = if type_facts::nearest_callable_ancestor(node) {
+    let symbol_kind = if type_facts::nearest_symbol_ancestor_is_callable(node) {
         SymbolKind::Variable
     } else if is_const {
         SymbolKind::Constant

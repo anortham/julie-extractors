@@ -8,19 +8,19 @@
       "file_path": "fixtures/extraction/r/basic/source.r",
       "start_line": 28,
       "start_column": 0,
-      "end_line": 39,
+      "end_line": 40,
       "end_column": 1,
       "start_byte": 432,
-      "end_byte": 619,
+      "end_byte": 641,
       "body_span": {
         "start_line": 32,
         "start_column": 30,
-        "end_line": 37,
+        "end_line": 38,
         "end_column": 5,
         "start_byte": 529,
-        "end_byte": 613
+        "end_byte": 635
       },
-      "body_hash": "75adf66e0e6b4412c9e20416dc392f5c",
+      "body_hash": "67c5476129175df28719628b008d9355",
       "signature": "Worker <- R6Class(\"Worker\")",
       "doc_comment": null,
       "visibility": null,
@@ -205,26 +205,19 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/r/basic/source.r:id:28:10",
+      "key": "fixtures/extraction/r/basic/source.r:id:31:4",
       "name": "id",
       "kind": "field",
       "language": "r",
       "file_path": "fixtures/extraction/r/basic/source.r",
-      "start_line": 28,
-      "start_column": 10,
-      "end_line": 39,
-      "end_column": 1,
-      "start_byte": 442,
-      "end_byte": 619,
-      "body_span": {
-        "start_line": 32,
-        "start_column": 30,
-        "end_line": 37,
-        "end_column": 5,
-        "start_byte": 529,
-        "end_byte": 613
-      },
-      "body_hash": "75adf66e0e6b4412c9e20416dc392f5c",
+      "start_line": 31,
+      "start_column": 4,
+      "end_line": 31,
+      "end_column": 13,
+      "start_byte": 488,
+      "end_byte": 497,
+      "body_span": null,
+      "body_hash": null,
       "signature": "id = NULL",
       "doc_comment": null,
       "visibility": null,
@@ -255,7 +248,7 @@
       "signature": "id",
       "doc_comment": null,
       "visibility": null,
-      "parent_key": "fixtures/extraction/r/basic/source.r:initialize:28:10",
+      "parent_key": "fixtures/extraction/r/basic/source.r:initialize:32:4",
       "metadata": {
         "role": "parameter"
       },
@@ -265,26 +258,26 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/r/basic/source.r:initialize:28:10",
+      "key": "fixtures/extraction/r/basic/source.r:initialize:32:4",
       "name": "initialize",
       "kind": "method",
       "language": "r",
       "file_path": "fixtures/extraction/r/basic/source.r",
-      "start_line": 28,
-      "start_column": 10,
-      "end_line": 39,
-      "end_column": 1,
-      "start_byte": 442,
-      "end_byte": 619,
+      "start_line": 32,
+      "start_column": 4,
+      "end_line": 34,
+      "end_column": 5,
+      "start_byte": 503,
+      "end_byte": 556,
       "body_span": {
         "start_line": 32,
         "start_column": 30,
-        "end_line": 37,
+        "end_line": 34,
         "end_column": 5,
         "start_byte": 529,
-        "end_byte": 613
+        "end_byte": 556
       },
-      "body_hash": "75adf66e0e6b4412c9e20416dc392f5c",
+      "body_hash": "2320041585b79dad53a9ecba872a143e",
       "signature": "initialize = function(id)",
       "doc_comment": null,
       "visibility": null,
@@ -323,26 +316,26 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/r/basic/source.r:run:28:10",
+      "key": "fixtures/extraction/r/basic/source.r:run:35:4",
       "name": "run",
       "kind": "method",
       "language": "r",
       "file_path": "fixtures/extraction/r/basic/source.r",
-      "start_line": 28,
-      "start_column": 10,
-      "end_line": 39,
-      "end_column": 1,
-      "start_byte": 442,
-      "end_byte": 619,
+      "start_line": 35,
+      "start_column": 4,
+      "end_line": 38,
+      "end_column": 5,
+      "start_byte": 562,
+      "end_byte": 635,
       "body_span": {
-        "start_line": 32,
-        "start_column": 30,
-        "end_line": 37,
+        "start_line": 35,
+        "start_column": 21,
+        "end_line": 38,
         "end_column": 5,
-        "start_byte": 529,
-        "end_byte": 613
+        "start_byte": 579,
+        "end_byte": 635
       },
-      "body_hash": "75adf66e0e6b4412c9e20416dc392f5c",
+      "body_hash": "247e5c36fe0a130469449c4009117bbf",
       "signature": "run = function()",
       "doc_comment": null,
       "visibility": null,
@@ -543,24 +536,24 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/r/basic/source.r:w:41:0",
+      "key": "fixtures/extraction/r/basic/source.r:w:42:0",
       "name": "w",
       "kind": "variable",
       "language": "r",
       "file_path": "fixtures/extraction/r/basic/source.r",
-      "start_line": 41,
+      "start_line": 42,
       "start_column": 0,
-      "end_line": 41,
+      "end_line": 42,
       "end_column": 17,
-      "start_byte": 621,
-      "end_byte": 638,
+      "start_byte": 643,
+      "end_byte": 660,
       "body_span": {
-        "start_line": 41,
+        "start_line": 42,
         "start_column": 15,
-        "end_line": 41,
+        "end_line": 42,
         "end_column": 17,
-        "start_byte": 636,
-        "end_byte": 638
+        "start_byte": 658,
+        "end_byte": 660
       },
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
       "signature": null,
@@ -575,6 +568,24 @@
     }
   ],
   "relationships": [
+    {
+      "from_key": "fixtures/extraction/r/basic/source.r:run:35:4",
+      "to_key": "fixtures/extraction/r/basic/source.r:helper:5:0",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/r/basic/source.r",
+      "line_number": 36,
+      "span": {
+        "start_line": 36,
+        "start_column": 6,
+        "end_line": 36,
+        "end_column": 21,
+        "start_byte": 587,
+        "end_byte": 602
+      },
+      "reference_site_is_exact": false,
+      "confidence": "1.000",
+      "metadata": null
+    },
     {
       "from_key": "fixtures/extraction/r/basic/source.r:run_worker:11:0",
       "to_key": "fixtures/extraction/r/basic/source.r:helper:5:0",
@@ -622,15 +633,7 @@
       "confidence": "0.700"
     },
     {
-      "from_key": "fixtures/extraction/r/basic/source.r:run:28:10",
-      "callee_name": "R6::R6Class",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/r/basic/source.r",
-      "line_number": 28,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/r/basic/source.r:run:28:10",
+      "from_key": "fixtures/extraction/r/basic/source.r:initialize:32:4",
       "callee_name": "self.id",
       "kind": "uses",
       "file_path": "fixtures/extraction/r/basic/source.r",
@@ -638,19 +641,27 @@
       "confidence": "0.600"
     },
     {
-      "from_key": "fixtures/extraction/r/basic/source.r:run:28:10",
-      "callee_name": "self.missing_wave2",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/r/basic/source.r",
-      "line_number": 36,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/r/basic/source.r:run:28:10",
-      "callee_name": "self.missing_wave2",
+      "from_key": "fixtures/extraction/r/basic/source.r:run:35:4",
+      "callee_name": "self.id",
       "kind": "uses",
       "file_path": "fixtures/extraction/r/basic/source.r",
       "line_number": 36,
+      "confidence": "0.600"
+    },
+    {
+      "from_key": "fixtures/extraction/r/basic/source.r:run:35:4",
+      "callee_name": "self.missing_wave2",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/r/basic/source.r",
+      "line_number": 37,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/r/basic/source.r:run:35:4",
+      "callee_name": "self.missing_wave2",
+      "kind": "uses",
+      "file_path": "fixtures/extraction/r/basic/source.r",
+      "line_number": 37,
       "confidence": "0.600"
     }
   ],
@@ -683,35 +694,7 @@
     },
     {
       "pending": {
-        "from_key": "fixtures/extraction/r/basic/source.r:run:28:10",
-        "callee_name": "R6::R6Class",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/r/basic/source.r",
-        "line_number": 28,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "R6::R6Class",
-        "terminal_name": "R6Class",
-        "receiver": null,
-        "namespace_path": [
-          "R6"
-        ],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/r/basic/source.r:run:28:10",
-      "span": {
-        "start_line": 28,
-        "start_column": 10,
-        "end_line": 39,
-        "end_column": 1,
-        "start_byte": 442,
-        "end_byte": 619
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/r/basic/source.r:run:28:10",
+        "from_key": "fixtures/extraction/r/basic/source.r:initialize:32:4",
         "callee_name": "self.id",
         "kind": "uses",
         "file_path": "fixtures/extraction/r/basic/source.r",
@@ -725,7 +708,7 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/r/basic/source.r:run:28:10",
+      "caller_scope_key": "fixtures/extraction/r/basic/source.r:initialize:32:4",
       "span": {
         "start_line": 33,
         "start_column": 6,
@@ -737,11 +720,37 @@
     },
     {
       "pending": {
-        "from_key": "fixtures/extraction/r/basic/source.r:run:28:10",
+        "from_key": "fixtures/extraction/r/basic/source.r:run:35:4",
+        "callee_name": "self.id",
+        "kind": "uses",
+        "file_path": "fixtures/extraction/r/basic/source.r",
+        "line_number": 36,
+        "confidence": "0.600"
+      },
+      "target": {
+        "display_name": "self.id",
+        "terminal_name": "id",
+        "receiver": "self",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/r/basic/source.r:run:35:4",
+      "span": {
+        "start_line": 36,
+        "start_column": 13,
+        "end_line": 36,
+        "end_column": 20,
+        "start_byte": 594,
+        "end_byte": 601
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/r/basic/source.r:run:35:4",
         "callee_name": "self.missing_wave2",
         "kind": "calls",
         "file_path": "fixtures/extraction/r/basic/source.r",
-        "line_number": 36,
+        "line_number": 37,
         "confidence": "0.700"
       },
       "target": {
@@ -751,24 +760,24 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/r/basic/source.r:run:28:10",
+      "caller_scope_key": "fixtures/extraction/r/basic/source.r:run:35:4",
       "span": {
-        "start_line": 36,
+        "start_line": 37,
         "start_column": 6,
-        "end_line": 36,
+        "end_line": 37,
         "end_column": 26,
-        "start_byte": 587,
-        "end_byte": 607
+        "start_byte": 609,
+        "end_byte": 629
       },
       "receiver_type": "Worker"
     },
     {
       "pending": {
-        "from_key": "fixtures/extraction/r/basic/source.r:run:28:10",
+        "from_key": "fixtures/extraction/r/basic/source.r:run:35:4",
         "callee_name": "self.missing_wave2",
         "kind": "uses",
         "file_path": "fixtures/extraction/r/basic/source.r",
-        "line_number": 36,
+        "line_number": 37,
         "confidence": "0.600"
       },
       "target": {
@@ -778,14 +787,14 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/r/basic/source.r:run:28:10",
+      "caller_scope_key": "fixtures/extraction/r/basic/source.r:run:35:4",
       "span": {
-        "start_line": 36,
+        "start_line": 37,
         "start_column": 6,
-        "end_line": 36,
+        "end_line": 37,
         "end_column": 24,
-        "start_byte": 587,
-        "end_byte": 605
+        "start_byte": 609,
+        "end_byte": 627
       }
     }
   ],
@@ -802,7 +811,7 @@
       "end_column": 21,
       "start_byte": 442,
       "end_byte": 453,
-      "containing_key": "fixtures/extraction/r/basic/source.r:run:28:10",
+      "containing_key": "fixtures/extraction/r/basic/source.r:Worker:28:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -919,6 +928,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/r/basic/source.r:helper:call:36:6",
+      "name": "helper",
+      "kind": "call",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/basic/source.r",
+      "start_line": 36,
+      "start_column": 6,
+      "end_line": 36,
+      "end_column": 12,
+      "start_byte": 587,
+      "end_byte": 593,
+      "containing_key": "fixtures/extraction/r/basic/source.r:run:35:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/r/basic/source.r:i:variable_ref:18:9",
       "name": "i",
       "kind": "variable_ref",
@@ -962,7 +987,23 @@
       "end_column": 13,
       "start_byte": 542,
       "end_byte": 544,
-      "containing_key": "fixtures/extraction/r/basic/source.r:run:28:10",
+      "containing_key": "fixtures/extraction/r/basic/source.r:initialize:32:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/r/basic/source.r:id:member_access:36:18",
+      "name": "id",
+      "kind": "member_access",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/basic/source.r",
+      "start_line": 36,
+      "start_column": 18,
+      "end_line": 36,
+      "end_column": 20,
+      "start_byte": 599,
+      "end_byte": 601,
+      "containing_key": "fixtures/extraction/r/basic/source.r:run:35:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -994,7 +1035,7 @@
       "end_column": 6,
       "start_byte": 488,
       "end_byte": 490,
-      "containing_key": "fixtures/extraction/r/basic/source.r:run:28:10",
+      "containing_key": "fixtures/extraction/r/basic/source.r:Worker:28:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1010,7 +1051,7 @@
       "end_column": 19,
       "start_byte": 548,
       "end_byte": 550,
-      "containing_key": "fixtures/extraction/r/basic/source.r:run:28:10",
+      "containing_key": "fixtures/extraction/r/basic/source.r:initialize:32:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1026,7 +1067,7 @@
       "end_column": 14,
       "start_byte": 503,
       "end_byte": 513,
-      "containing_key": "fixtures/extraction/r/basic/source.r:run:28:10",
+      "containing_key": "fixtures/extraction/r/basic/source.r:initialize:32:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1058,40 +1099,40 @@
       "end_column": 15,
       "start_byte": 478,
       "end_byte": 482,
-      "containing_key": "fixtures/extraction/r/basic/source.r:run:28:10",
+      "containing_key": "fixtures/extraction/r/basic/source.r:Worker:28:0",
       "target_key": null,
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/r/basic/source.r:missing_wave2:call:36:6",
+      "key": "fixtures/extraction/r/basic/source.r:missing_wave2:call:37:6",
       "name": "missing_wave2",
       "kind": "call",
       "language": "r",
       "file_path": "fixtures/extraction/r/basic/source.r",
-      "start_line": 36,
+      "start_line": 37,
       "start_column": 6,
-      "end_line": 36,
+      "end_line": 37,
       "end_column": 24,
-      "start_byte": 587,
-      "end_byte": 605,
-      "containing_key": "fixtures/extraction/r/basic/source.r:run:28:10",
+      "start_byte": 609,
+      "end_byte": 627,
+      "containing_key": "fixtures/extraction/r/basic/source.r:run:35:4",
       "target_key": null,
       "confidence": "1.000",
       "receiver_type": "Worker"
     },
     {
-      "key": "fixtures/extraction/r/basic/source.r:new:call:41:5",
+      "key": "fixtures/extraction/r/basic/source.r:new:call:42:5",
       "name": "new",
       "kind": "call",
       "language": "r",
       "file_path": "fixtures/extraction/r/basic/source.r",
-      "start_line": 41,
+      "start_line": 42,
       "start_column": 5,
-      "end_line": 41,
+      "end_line": 42,
       "end_column": 15,
-      "start_byte": 626,
-      "end_byte": 636,
-      "containing_key": "fixtures/extraction/r/basic/source.r:w:41:0",
+      "start_byte": 648,
+      "end_byte": 658,
+      "containing_key": "fixtures/extraction/r/basic/source.r:w:42:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1107,7 +1148,7 @@
       "end_column": 8,
       "start_byte": 469,
       "end_byte": 475,
-      "containing_key": "fixtures/extraction/r/basic/source.r:run:28:10",
+      "containing_key": "fixtures/extraction/r/basic/source.r:Worker:28:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1123,7 +1164,7 @@
       "end_column": 7,
       "start_byte": 562,
       "end_byte": 565,
-      "containing_key": "fixtures/extraction/r/basic/source.r:run:28:10",
+      "containing_key": "fixtures/extraction/r/basic/source.r:run:35:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1258,7 +1299,7 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/r/basic/source.r:w:41:0",
+      "symbol_key": "fixtures/extraction/r/basic/source.r:w:42:0",
       "resolved_type": "Worker",
       "generic_params": null,
       "constraints": null,
@@ -1337,18 +1378,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "r",
       "file_path": "fixtures/extraction/r/basic/source.r",
-      "covered_lines": 42,
-      "covered_bytes": 639,
+      "covered_lines": 43,
+      "covered_bytes": 661,
       "decision_count": 3,
       "loop_count": 1,
       "max_nesting_depth": 2,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 42,
+      "end_line": 43,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 639,
+      "end_byte": 661,
       "metadata": {
         "metric_version": 1
       }
@@ -1399,44 +1440,44 @@
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/r/basic/source.r:initialize:28:10",
+      "symbol_key": "fixtures/extraction/r/basic/source.r:initialize:32:4",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "r",
       "file_path": "fixtures/extraction/r/basic/source.r",
-      "covered_lines": 6,
-      "covered_bytes": 84,
+      "covered_lines": 3,
+      "covered_bytes": 27,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 1,
       "start_line": 32,
       "start_column": 30,
-      "end_line": 37,
+      "end_line": 34,
       "end_column": 5,
       "start_byte": 529,
-      "end_byte": 613,
+      "end_byte": 556,
       "metadata": {
         "metric_version": 1
       }
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/r/basic/source.r:run:28:10",
+      "symbol_key": "fixtures/extraction/r/basic/source.r:run:35:4",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "r",
       "file_path": "fixtures/extraction/r/basic/source.r",
-      "covered_lines": 6,
-      "covered_bytes": 84,
+      "covered_lines": 4,
+      "covered_bytes": 56,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
-      "parameter_count": 1,
-      "start_line": 32,
-      "start_column": 30,
-      "end_line": 37,
+      "parameter_count": 0,
+      "start_line": 35,
+      "start_column": 21,
+      "end_line": 38,
       "end_column": 5,
-      "start_byte": 529,
-      "end_byte": 613,
+      "start_byte": 579,
+      "end_byte": 635,
       "metadata": {
         "metric_version": 1
       }
@@ -1478,7 +1519,7 @@
       "end_column": 10,
       "start_byte": 457,
       "end_byte": 465,
-      "containing_key": "fixtures/extraction/r/basic/source.r:run:28:10",
+      "containing_key": "fixtures/extraction/r/basic/source.r:Worker:28:0",
       "confidence": "1.000"
     }
   ],
@@ -1513,7 +1554,7 @@
       "kind": "string_literal",
       "language": "r",
       "file_path": "fixtures/extraction/r/basic/source.r",
-      "containing_key": "fixtures/extraction/r/basic/source.r:id:28:10",
+      "containing_key": "fixtures/extraction/r/basic/source.r:Worker:28:0",
       "start_line": 29,
       "start_column": 2,
       "end_line": 29,

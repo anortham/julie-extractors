@@ -265,3 +265,75 @@ class Solo {
     assert_eq!(pending("fetch").receiver_type, None);
     assert_eq!(pending("absent").receiver_type, None);
 }
+
+#[test]
+fn secondary_constructor_parameters_become_symbols_with_declared_facts() {
+    let source = r#"
+class Sample(val seed: Int) {
+    constructor(x: Int) : this(x)
+}
+"#;
+    let (symbols, extractor) = extract(source);
+    let constructor = symbol(&symbols, "Sample", SymbolKind::Constructor);
+    let x = symbol(&symbols, "x", SymbolKind::Variable);
+    assert_eq!(role(x), Some("parameter"));
+    assert_eq!(x.parent_id.as_deref(), Some(constructor.id.as_str()));
+    let x_fact = fact(&extractor, &symbols, "x", SymbolKind::Variable);
+    assert_eq!(x_fact.resolved_type, "Int");
+    assert!(!x_fact.is_inferred);
+}
+
+#[test]
+fn artifact_types_never_carry_non_base_names() {
+    let source = r#"
+class Box {
+    fun items(): List<String> = emptyList()
+    fun pair(): Pair<Int, String> = Pair(1, "a")
+    fun handler(): (Int) -> String = { it.toString() }
+    fun maybe(): String? = null
+    fun qualified(): kotlin.collections.Map<String, Int> = emptyMap()
+    fun nested(): Map<String, List<Int>>? = null
+    fun escaped(): `Weird Name` = `Weird Name`()
+    fun ticked(): `Plain` = `Plain`()
+}
+"#;
+    let mut parser = tree_sitter::Parser::new();
+    parser
+        .set_language(&tree_sitter_kotlin_ng::LANGUAGE.into())
+        .unwrap();
+    let tree = parser.parse(source, None).unwrap();
+    let workspace_root = PathBuf::from("/tmp/test");
+    let results = crate::factory::extract_symbols_and_relationships(
+        &tree,
+        "type_facts.kt",
+        source,
+        "kotlin",
+        &workspace_root,
+    )
+    .unwrap();
+    let resolved = |name: &str| -> Option<String> {
+        let symbol = symbol(&results.symbols, name, SymbolKind::Method);
+        results
+            .types
+            .get(&symbol.id)
+            .map(|info| info.resolved_type.clone())
+    };
+    assert_eq!(resolved("items").as_deref(), Some("List"));
+    assert_eq!(resolved("pair").as_deref(), Some("Pair"));
+    assert_eq!(resolved("handler"), None);
+    assert_eq!(resolved("maybe").as_deref(), Some("String"));
+    assert_eq!(
+        resolved("qualified").as_deref(),
+        Some("kotlin.collections.Map")
+    );
+    assert_eq!(resolved("nested").as_deref(), Some("Map"));
+    assert_eq!(resolved("escaped"), None);
+    assert_eq!(resolved("ticked").as_deref(), Some("Plain"));
+    for info in results.types.values() {
+        let value = info.resolved_type.as_str();
+        assert!(
+            !value.contains(['[', '(', '<', '?', '`', '>', ' ']),
+            "non-base resolved_type {value}"
+        );
+    }
+}

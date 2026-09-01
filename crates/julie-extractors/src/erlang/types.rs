@@ -7,21 +7,24 @@
 //! false call edges. This walk therefore reads the same declarations
 //! independently and produces only type facts.
 //!
-//! Only declared text is recorded; nothing is inferred from function bodies.
+//! Only the declared base type name is recorded; nothing is inferred from
+//! function bodies. A declared shape with no single base name (list, tuple,
+//! union, fun, range, map, binary, type variable) records nothing.
 
 use std::collections::HashMap;
 
 use tree_sitter::Node;
 
-use super::helpers::{NameArity, arg_count, find_child_by_type, first_atom_text, named_children};
+use super::helpers::{NameArity, arg_count, find_child_by_type, first_atom_text, unquote_atom};
 use crate::base::{BaseExtractor, Symbol, SymbolKind};
 
 const ARITY_METADATA_KEY: &str = "arity";
 const CALLBACK_METADATA_KEY: &str = "callback";
 
-/// Declared type forms keyed by the `(name, arity)` identity they annotate.
-/// Specs, callbacks, and type aliases occupy separate Erlang namespaces, so a
-/// module may declare `handle/1` in all three without collision.
+/// Declared base type names keyed by the `(name, arity)` identity they
+/// annotate. Specs, callbacks, and type aliases occupy separate Erlang
+/// namespaces, so a module may declare `handle/1` in all three without
+/// collision.
 #[derive(Debug, Default, Clone)]
 pub(crate) struct DeclaredTypes {
     specs: HashMap<NameArity, String>,
@@ -79,40 +82,63 @@ fn insert(
     }
 }
 
-/// `-spec open(integer()) -> {ok, account()}.` and `-callback init(term()) -> ok.`
+/// `-spec open(integer()) -> account().` and `-callback init(term()) -> ok.`
 /// share the `atom` + `type_sig` shape. A multi-clause spec carries one
 /// `type_sig` per clause; the first is used, matching how a multi-clause
 /// function takes its signature from the first clause head.
 fn signature_form(base: &BaseExtractor, declaration: &Node) -> Option<(NameArity, String)> {
     let name = first_atom_text(base, declaration)?;
     let signature = find_child_by_type(declaration, "type_sig")?;
-    let arguments = find_child_by_type(&signature, "expr_args")?;
-    let return_type = named_children(&signature).into_iter().nth(1)?;
+    let arguments = signature.child_by_field_name("args")?;
+    let return_type = signature.child_by_field_name("ty")?;
 
     Some((
         (name, arg_count(&arguments)),
-        collapse_whitespace(&base.get_node_text(&return_type)),
+        base_type_name(base, &return_type)?,
     ))
 }
 
-/// `-type result(T) :: {ok, T}.` names the alias in a `type_name` child and
-/// carries the declared form as the sibling that follows it.
+/// `-type account() :: #account{}.` names the alias in a `type_name` child and
+/// carries the declared form in the `ty` field.
 fn alias_form(base: &BaseExtractor, declaration: &Node) -> Option<(NameArity, String)> {
     let type_name = find_child_by_type(declaration, "type_name")?;
     let name = first_atom_text(base, &type_name)?;
     let arity = find_child_by_type(&type_name, "var_args")
         .map(|parameters| arg_count(&parameters))
         .unwrap_or(0);
-    let declared = named_children(declaration).into_iter().nth(1)?;
+    let declared = declaration.child_by_field_name("ty")?;
 
-    Some((
-        (name, arity),
-        collapse_whitespace(&base.get_node_text(&declared)),
-    ))
+    Some(((name, arity), base_type_name(base, &declared)?))
 }
 
-fn collapse_whitespace(text: &str) -> String {
-    text.split_whitespace().collect::<Vec<_>>().join(" ")
+/// The single name a declared type node states: `foo()` and `mod:foo()` name
+/// `foo` and `mod:foo`, `#foo{}` names `foo`, a bare atom names itself, and an
+/// annotation (`Result :: foo()`) names its type.
+fn base_type_name(base: &BaseExtractor, declared: &Node) -> Option<String> {
+    match declared.kind() {
+        "atom" => Some(unquote_atom(&base.get_node_text(declared))),
+        "call" => atom_name(base, &declared.child_by_field_name("expr")?),
+        "remote" => remote_type_name(base, declared),
+        "record_expr" => first_atom_text(base, &declared.child_by_field_name("name")?),
+        "record_name" => first_atom_text(base, declared),
+        "ann_type" => base_type_name(base, &declared.child_by_field_name("ty")?),
+        "paren_expr" => base_type_name(base, &declared.child_by_field_name("expr")?),
+        _ => None,
+    }
+}
+
+/// `mod:foo()` parses as `remote{module: remote_module{module}, fun: call}`.
+fn remote_type_name(base: &BaseExtractor, declared: &Node) -> Option<String> {
+    let module = declared
+        .child_by_field_name("module")?
+        .child_by_field_name("module")?;
+    let module = atom_name(base, &module)?;
+    let name = base_type_name(base, &declared.child_by_field_name("fun")?)?;
+    Some(format!("{module}:{name}"))
+}
+
+fn atom_name(base: &BaseExtractor, node: &Node) -> Option<String> {
+    (node.kind() == "atom").then(|| unquote_atom(&base.get_node_text(node)))
 }
 
 fn metadata_arity(symbol: &Symbol) -> Option<u32> {

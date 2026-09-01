@@ -117,9 +117,7 @@
       "visibility": "Private",
       "parent_key": "fixtures/extraction/razor/attribute-expressions/directives/source.razor:Badge:8:4",
       "metadata": {
-        "isInferred": false,
-        "role": "parameter",
-        "variableType": "State"
+        "role": "parameter"
       },
       "annotations": [],
       "semantic_group": null,

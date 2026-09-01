@@ -142,7 +142,7 @@ impl CExtractor {
                 // Extract return type (everything before function name)
                 if let Some(name_pos) = signature.find(name) {
                     let type_part = signature[..name_pos].trim();
-                    if !type_part.is_empty() {
+                    if is_type_text(type_part) {
                         return Some(type_part.to_string());
                     }
                 }
@@ -152,7 +152,7 @@ impl CExtractor {
                 // Extract type (everything before variable name)
                 if let Some(name_pos) = signature.find(name) {
                     let type_part = signature[..name_pos].trim();
-                    if !type_part.is_empty() {
+                    if is_type_text(type_part) {
                         return Some(type_part.to_string());
                     }
                 }
@@ -297,4 +297,11 @@ impl CExtractor {
             self.visit_node(child, symbols, current_parent_id.clone(), child_depth);
         }
     }
+}
+
+fn is_type_text(text: &str) -> bool {
+    !text.is_empty()
+        && text
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '_' | ' ' | '*'))
 }

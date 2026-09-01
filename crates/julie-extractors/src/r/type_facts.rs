@@ -1,5 +1,7 @@
 use crate::base::BaseExtractor;
-use crate::base::types::{SymbolKind, TypeNameRules};
+use crate::base::types::TypeNameRules;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
+use std::collections::HashSet;
 use tree_sitter::Node;
 
 use super::RExtractor;
@@ -20,12 +22,12 @@ pub(super) fn same_file_constructor_class(extractor: &RExtractor, right: Node) -
     if right.kind() != "call" {
         return None;
     }
-    let callee = right.child(0)?;
+    let callee = right.child_by_field_name("function")?;
     match callee.kind() {
         "identifier" => {
             let name = clean_r_name(&extractor.base.get_node_text(&callee))?;
             if name == "new" {
-                let args = right.child(1)?;
+                let args = right.child_by_field_name("arguments")?;
                 let class_name = positional_string_argument(extractor, args, 0)?;
                 same_file_class(extractor, &class_name)
             } else {
@@ -33,11 +35,11 @@ pub(super) fn same_file_constructor_class(extractor: &RExtractor, right: Node) -
             }
         }
         "extract_operator" => {
-            let object = callee.child(0)?;
+            let object = callee.child_by_field_name("lhs")?;
             if object.kind() != "identifier" {
                 return None;
             }
-            let method = callee.child(2)?;
+            let method = callee.child_by_field_name("rhs")?;
             if extractor.base.get_node_text(&method) != "new" {
                 return None;
             }
@@ -52,7 +54,7 @@ pub(super) fn self_receiver_type(extractor: &RExtractor, function_node: Node) ->
     if function_node.kind() != "extract_operator" {
         return None;
     }
-    let object = function_node.child(0)?;
+    let object = function_node.child_by_field_name("lhs")?;
     if extractor.base.get_node_text(&object) != "self" {
         return None;
     }
@@ -61,10 +63,64 @@ pub(super) fn self_receiver_type(extractor: &RExtractor, function_node: Node) ->
 
 fn same_file_class(extractor: &RExtractor, name: &str) -> Option<String> {
     extractor
-        .symbols
-        .iter()
-        .any(|symbol| symbol.name == name && symbol.kind == SymbolKind::Class)
+        .same_file_class_names
+        .contains(name)
         .then(|| name.to_string())
+}
+
+pub(super) fn collect_same_file_class_names(extractor: &RExtractor, root: Node) -> HashSet<String> {
+    let mut names = HashSet::new();
+    collect_class_names(extractor, root, 0, &mut names);
+    names
+}
+
+fn collect_class_names(
+    extractor: &RExtractor,
+    node: Node,
+    depth: u32,
+    names: &mut HashSet<String>,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+    if node.kind() == "call"
+        && let Some(name) = declared_class_name(extractor, node)
+    {
+        names.insert(name);
+    }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        collect_class_names(extractor, child, child_depth, names);
+    }
+}
+
+fn declared_class_name(extractor: &RExtractor, call: Node) -> Option<String> {
+    match call_name(extractor, call)?.as_str() {
+        "setClass" => {
+            let args = call.child_by_field_name("arguments")?;
+            positional_string_argument(extractor, args, 0)
+        }
+        "R6Class" | "setRefClass" => {
+            let assignment = call.parent()?;
+            if assignment.kind() != "binary_operator"
+                || assignment.child_by_field_name("rhs")? != call
+            {
+                return None;
+            }
+            let operator = assignment.child_by_field_name("operator")?;
+            if !matches!(
+                extractor.base.get_node_text(&operator).as_str(),
+                "<-" | "=" | "<<-"
+            ) {
+                return None;
+            }
+            assignment_name(extractor, assignment.child_by_field_name("lhs")?)
+        }
+        _ => None,
+    }
 }
 
 pub(super) fn enclosing_r6_class_name(extractor: &RExtractor, node: Node) -> Option<String> {
@@ -93,13 +149,13 @@ pub(super) fn argument_name(extractor: &RExtractor, node: Node) -> Option<String
             let name_node = node.child_by_field_name("name")?;
             clean_r_name(&extractor.base.get_node_text(&name_node))
         }
-        "binary_operator" => assignment_name(extractor, node.child(0)?),
+        "binary_operator" => assignment_name(extractor, node.child_by_field_name("lhs")?),
         _ => None,
     }
 }
 
 fn r6_class_name(extractor: &RExtractor, call: Node) -> Option<String> {
-    if let Some(args) = call.child(1)
+    if let Some(args) = call.child_by_field_name("arguments")
         && let Some(name) = positional_string_argument(extractor, args, 0)
     {
         return Some(name);
@@ -108,5 +164,5 @@ fn r6_class_name(extractor: &RExtractor, call: Node) -> Option<String> {
     if parent.kind() != "binary_operator" {
         return None;
     }
-    assignment_name(extractor, parent.child(0)?)
+    assignment_name(extractor, parent.child_by_field_name("lhs")?)
 }

@@ -1947,7 +1947,7 @@
     },
     {
       "symbol_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:users:11:4",
-      "resolved_type": "List<String>",
+      "resolved_type": "List",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,

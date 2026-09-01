@@ -602,11 +602,7 @@ fn enclosing_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
     while let Some(candidate) = current {
         if matches!(
             candidate.kind(),
-            "class_declaration"
-                | "object_declaration"
-                | "enum_declaration"
-                | "interface_declaration"
-                | "companion_object"
+            "class_declaration" | "object_declaration" | "companion_object"
         ) {
             return super::helpers::declared_name(base, &candidate).map(|(name, _)| name);
         }
@@ -618,10 +614,7 @@ fn enclosing_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
 fn declared_superclass_name(base: &BaseExtractor, node: Node) -> Option<String> {
     let mut current = node.parent();
     while let Some(candidate) = current {
-        if matches!(
-            candidate.kind(),
-            "class_declaration" | "object_declaration" | "enum_declaration"
-        ) {
+        if matches!(candidate.kind(), "class_declaration" | "object_declaration") {
             let name = super::helpers::collect_base_type_names(base, &candidate)
                 .into_iter()
                 .next()?;

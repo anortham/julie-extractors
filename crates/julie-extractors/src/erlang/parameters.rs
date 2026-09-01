@@ -5,7 +5,7 @@ use std::collections::HashSet;
 use tree_sitter::Node;
 
 use super::ErlangExtractor;
-use super::helpers::{first_atom_text, named_children};
+use super::helpers::named_children;
 use super::type_facts;
 use crate::base::{Symbol, SymbolKind, SymbolOptions};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
@@ -22,11 +22,7 @@ pub(super) fn extract_parameter_symbols(
         else {
             continue;
         };
-        let Some(args) = clause
-            .child_by_field_name("args")
-            .or_else(|| super::helpers::find_child_by_type(&clause, "expr_args"))
-            .or_else(|| super::helpers::find_child_by_type(&clause, "var_args"))
-        else {
+        let Some(args) = clause.child_by_field_name("args") else {
             continue;
         };
         for pattern in named_children(&args) {
@@ -54,8 +50,12 @@ fn walk_pattern(
         "match_expr" => {
             let lhs = node.child_by_field_name("lhs");
             let rhs = node.child_by_field_name("rhs");
-            let rec_lhs = lhs.as_ref().and_then(|side| record_name(extractor, side));
-            let rec_rhs = rhs.as_ref().and_then(|side| record_name(extractor, side));
+            let rec_lhs = lhs
+                .as_ref()
+                .and_then(|side| type_facts::record_expr_name(&extractor.base, side));
+            let rec_rhs = rhs
+                .as_ref()
+                .and_then(|side| type_facts::record_expr_name(&extractor.base, side));
             let Some(child_depth) = child_tree_depth(depth) else {
                 return;
             };
@@ -99,16 +99,6 @@ fn walk_pattern(
             }
         }
     }
-}
-
-fn record_name(extractor: &ErlangExtractor, node: &Node) -> Option<String> {
-    type_facts::record_expr_name(&extractor.base, node).or_else(|| {
-        if node.kind() == "record_name" {
-            first_atom_text(&extractor.base, node)
-        } else {
-            None
-        }
-    })
 }
 
 fn emit_parameter(

@@ -183,3 +183,57 @@ fn function_prototype_does_not_create_parameter_symbols() {
         .collect();
     assert!(params.is_empty());
 }
+
+#[test]
+fn multi_word_sized_types_record_no_fact_and_single_word_sized_types_record_the_word() {
+    let source = r#"
+        void sized(unsigned int a, long long b, unsigned c, long d) {
+            unsigned long e = 0;
+        }
+    "#;
+    let (symbols, extractor) = extract(source);
+    let function = symbol(&symbols, "sized", SymbolKind::Function);
+    for name in ["a", "b"] {
+        let param = parameter(&symbols, name);
+        assert_eq!(param.parent_id.as_deref(), Some(function.id.as_str()));
+        assert!(extractor.base.type_info.get(&param.id).is_none());
+    }
+    let e = symbol(&symbols, "e", SymbolKind::Variable);
+    assert!(extractor.base.type_info.get(&e.id).is_none());
+
+    assert_eq!(
+        fact(&extractor, parameter(&symbols, "c")).resolved_type,
+        "unsigned"
+    );
+    assert_eq!(
+        fact(&extractor, parameter(&symbols, "d")).resolved_type,
+        "long"
+    );
+    for fact in extractor.base.type_info.values() {
+        assert!(!fact.resolved_type.contains(char::is_whitespace));
+    }
+}
+
+#[test]
+fn legacy_signature_inference_rejects_test_macro_text() {
+    let source = r#"
+        TestSuite(math, .init = setup_suite);
+
+        Test(math, addition) {
+            cr_assert_eq(2 + 2, 4);
+        }
+
+        int count(void) { return 1; }
+    "#;
+    let (symbols, extractor) = extract(source);
+    let types = extractor.infer_types(&symbols);
+    for symbol in symbols.iter().filter(|s| s.name != "count") {
+        assert!(
+            types.get(&symbol.id).is_none(),
+            "unexpected type row for `{}`",
+            symbol.name
+        );
+    }
+    let count = symbol(&symbols, "count", SymbolKind::Function);
+    assert_eq!(types.get(&count.id).map(String::as_str), Some("int"));
+}

@@ -1,7 +1,9 @@
 // QML Identifier Extraction
 // Extracts identifier usages: function calls, member access, variable references
 
-use crate::base::{BaseExtractor, Identifier, IdentifierKind, Symbol, extract_type_arguments};
+use crate::base::{
+    BaseExtractor, Identifier, IdentifierKind, Symbol, SymbolKind, extract_type_arguments,
+};
 use crate::qml::QmlExtractor;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
@@ -242,6 +244,17 @@ fn extract_identifier_from_node(
     }
 }
 
+/// JS parameters and locals never contain identifiers. `.qmltypes`
+/// `Parameter {}` descriptor blocks keep the same kind but carry
+/// `typeinfo_kind` metadata and do contain their own bindings.
+fn is_js_parameter_or_local(symbol: &Symbol) -> bool {
+    symbol.kind == SymbolKind::Variable
+        && !symbol
+            .metadata
+            .as_ref()
+            .is_some_and(|metadata| metadata.contains_key("typeinfo_kind"))
+}
+
 /// Find the containing symbol ID for a node
 fn find_containing_symbol_id(
     _extractor: &QmlExtractor,
@@ -256,7 +269,8 @@ fn find_containing_symbol_id(
         let parent_line = (parent.start_position().row + 1) as u32;
         let mut best: Option<&Symbol> = None;
         for symbol in symbol_map.values() {
-            if symbol.start_line != parent_line
+            if is_js_parameter_or_local(symbol)
+                || symbol.start_line != parent_line
                 || symbol.start_byte > node_start
                 || symbol.end_byte < node_end
             {

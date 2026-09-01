@@ -91,5 +91,5 @@ pub mod real_world; // Real-world validation (ggplot2, dplyr)
 pub mod relationships; // Relationship extraction (calls, pipes, library usage)
 pub mod structural_facts;
 pub mod test_detection; // testthat call-style test detection (Miller bridge test-roles)
-pub mod tidyverse;
-pub mod type_facts; // %>% pipes, dplyr verbs, ggplot2 patterns
+pub mod tidyverse; // %>% pipes, dplyr verbs, ggplot2 patterns
+pub mod type_facts;

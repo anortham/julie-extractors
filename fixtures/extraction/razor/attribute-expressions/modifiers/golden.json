@@ -130,9 +130,7 @@
       "visibility": "Private",
       "parent_key": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor:SetValue:10:4",
       "metadata": {
-        "isInferred": false,
-        "role": "parameter",
-        "variableType": "string"
+        "role": "parameter"
       },
       "annotations": [],
       "semantic_group": null,

@@ -98,3 +98,8 @@ internal class VisibilityFixture
     private int ExplicitPrivateMethod() => 2;
     int DefaultPrivateMethod() => 3;
 }
+
+public sealed class WorkerIndex
+{
+    public IReadOnlyList<Worker> this[int i] => null;
+}

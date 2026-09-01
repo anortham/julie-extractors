@@ -497,4 +497,71 @@ type Registry struct {
             .expect("missing embedded Store field");
         assert!(extractor.base.type_info.get(&embedded.id).is_none());
     }
+
+    #[test]
+    fn mismatched_short_var_targets_become_symbols_without_facts() {
+        let (symbols, extractor) = extract(
+            r#"
+package main
+
+type Store struct{}
+
+func Open() (*Store, error) { return nil, nil }
+
+func Use(m map[string]int) {
+    s, err := Open()
+    val, ok := m["k"]
+    _, skip := m["x"]
+    _, _ = s, err
+    _, _, _ = val, ok, skip
+}
+"#,
+        );
+
+        let callable = symbol(&symbols, "Use");
+        for name in ["s", "err", "val", "ok", "skip"] {
+            let local = variable(&symbols, name);
+            assert_eq!(local.parent_id.as_deref(), Some(callable.id.as_str()));
+            no_fact(&extractor, local);
+        }
+        assert!(symbols.iter().all(|s| s.name != "_"));
+    }
+
+    #[test]
+    fn method_call_on_generic_receiver_records_base_receiver_type() {
+        let code = r#"
+package main
+
+type Client[T any] struct{}
+
+func (c *Client[T]) Get() {}
+
+func (c Client[T]) Run() {
+    c.Get()
+}
+"#;
+        let tree = init_parser(code, "go");
+        let mut extractor = GoExtractor::new(
+            "go".to_string(),
+            "test.go".to_string(),
+            code.to_string(),
+            &PathBuf::from("/tmp/test"),
+        );
+        let symbols = extractor.extract_symbols(&tree);
+        let identifiers = extractor.extract_identifiers(&tree, &symbols);
+        extractor.extract_relationships(&tree, &symbols);
+
+        let get_call = identifiers
+            .iter()
+            .find(|id| id.name == "Get" && id.kind == IdentifierKind::Call)
+            .expect("missing Get call");
+        assert_eq!(get_call.receiver_type.as_deref(), Some("Client"));
+
+        let get_pending = extractor
+            .get_structured_pending_relationships()
+            .into_iter()
+            .find(|pending| pending.target.terminal_name == "Get")
+            .expect("missing Get pending relationship");
+        assert_eq!(get_pending.receiver_type.as_deref(), Some("Client"));
+    }
 }

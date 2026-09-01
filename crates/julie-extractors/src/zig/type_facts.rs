@@ -46,15 +46,15 @@ pub(super) fn record_initializer_type(base: &mut BaseExtractor, symbol_id: &str,
     }
 }
 
-pub(super) fn nearest_callable_ancestor(mut node: Node) -> bool {
+pub(super) fn nearest_symbol_ancestor_is_callable(node: Node) -> bool {
     let mut current = node.parent();
     while let Some(parent) = current {
         match parent.kind() {
-            "function_declaration" | "function_definition" | "test_declaration" => return true,
+            "function_declaration" | "test_declaration" => return true,
+            "struct_declaration" | "union_declaration" | "enum_declaration"
+            | "opaque_declaration" => return false,
             _ => current = parent.parent(),
         }
-        node = parent;
-        let _ = node;
     }
     false
 }
@@ -123,7 +123,7 @@ fn base_type_name_node(node: Node) -> Option<Node> {
     loop {
         match node.kind() {
             "identifier" | "builtin_type" => return Some(node),
-            "pointer_type" | "nullable_type" => {
+            "pointer_type" | "nullable_type" | "slice_type" => {
                 node = inner_type_child(node)?;
             }
             "parenthesized_expression" => {
@@ -136,28 +136,29 @@ fn base_type_name_node(node: Node) -> Option<Node> {
                 }
                 return None;
             }
-            "array_type" | "slice_type" | "field_expression" => return None,
             _ => return None,
         }
     }
 }
 
 fn inner_type_child(node: Node) -> Option<Node> {
+    let sentinel = node.child_by_field_name("sentinel").map(|child| child.id());
     let mut cursor = node.walk();
     node.named_children(&mut cursor).find(|child| {
-        matches!(
-            child.kind(),
-            "identifier"
-                | "builtin_type"
-                | "pointer_type"
-                | "nullable_type"
-                | "call_expression"
-                | "parenthesized_expression"
-                | "builtin_function"
-                | "field_expression"
-                | "array_type"
-                | "slice_type"
-        )
+        Some(child.id()) != sentinel
+            && matches!(
+                child.kind(),
+                "identifier"
+                    | "builtin_type"
+                    | "pointer_type"
+                    | "nullable_type"
+                    | "call_expression"
+                    | "parenthesized_expression"
+                    | "builtin_function"
+                    | "field_expression"
+                    | "array_type"
+                    | "slice_type"
+            )
     })
 }
 
@@ -201,18 +202,13 @@ fn builtin_identifier(base: &BaseExtractor, node: Node) -> Option<String> {
     Some(base.get_node_text(&ident))
 }
 
-fn enclosing_function(mut node: Node) -> Option<Node> {
+fn enclosing_function(node: Node) -> Option<Node> {
     let mut current = node.parent();
     while let Some(parent) = current {
-        if matches!(
-            parent.kind(),
-            "function_declaration" | "function_definition"
-        ) {
+        if parent.kind() == "function_declaration" {
             return Some(parent);
         }
         current = parent.parent();
-        node = parent;
-        let _ = node;
     }
     None
 }
@@ -228,7 +224,7 @@ fn first_parameter(func_decl: Node) -> Option<Node> {
         .find(|child| child.kind() == "parameter")
 }
 
-fn enclosing_container_name(base: &BaseExtractor, mut node: Node) -> Option<String> {
+fn enclosing_container_name(base: &BaseExtractor, node: Node) -> Option<String> {
     let mut current = node.parent();
     while let Some(parent) = current {
         if matches!(
@@ -249,8 +245,6 @@ fn enclosing_container_name(base: &BaseExtractor, mut node: Node) -> Option<Stri
             return None;
         }
         current = parent.parent();
-        node = parent;
-        let _ = node;
     }
     None
 }

@@ -11,9 +11,7 @@ pub(super) fn extract_dim_statement(
 ) -> Vec<Symbol> {
     let same_file = same_file_type_names(symbols);
     let mut out = Vec::new();
-    let mut pending_name: Option<Node> = None;
-    let mut pending_type: Option<Node> = None;
-    let mut pending_init: Option<Node> = None;
+    let mut pending = DimBinding::default();
 
     for i in 0..node.child_count() {
         let Some(child) = node.child(i as u32) else {
@@ -22,42 +20,38 @@ pub(super) fn extract_dim_statement(
         let field = node.field_name_for_child(i as u32);
         match field {
             Some("name") => {
-                flush_dim_binding(
-                    base,
-                    parent_id.clone(),
-                    &same_file,
-                    &mut out,
-                    pending_name,
-                    pending_type,
-                    pending_init,
-                );
-                pending_name = Some(child);
-                pending_type = None;
-                pending_init = None;
+                flush_dim_binding(base, parent_id.clone(), &same_file, &mut out, pending);
+                pending = DimBinding {
+                    name: Some(child),
+                    ..Default::default()
+                };
             }
             Some("value") if child.kind() == "new_expression" => {
-                pending_type = child.child_by_field_name("type");
+                pending.type_node = child.child_by_field_name("type");
             }
             Some("initializer") => {
-                pending_init = Some(child);
+                pending.initializer = Some(child);
             }
             _ if child.kind() == "as_clause" => {
-                pending_type = child.child_by_field_name("type");
+                pending.type_node = child.child_by_field_name("type");
+            }
+            _ if child.kind() == "array_rank_specifier" => {
+                pending.rank = Some(child);
             }
             _ => {}
         }
     }
 
-    flush_dim_binding(
-        base,
-        parent_id,
-        &same_file,
-        &mut out,
-        pending_name,
-        pending_type,
-        pending_init,
-    );
+    flush_dim_binding(base, parent_id, &same_file, &mut out, pending);
     out
+}
+
+#[derive(Default, Clone, Copy)]
+struct DimBinding<'a> {
+    name: Option<Node<'a>>,
+    type_node: Option<Node<'a>>,
+    rank: Option<Node<'a>>,
+    initializer: Option<Node<'a>>,
 }
 
 fn flush_dim_binding(
@@ -65,10 +59,14 @@ fn flush_dim_binding(
     parent_id: Option<String>,
     same_file: &HashSet<String>,
     out: &mut Vec<Symbol>,
-    name_node: Option<Node>,
-    type_node: Option<Node>,
-    initializer: Option<Node>,
+    binding: DimBinding,
 ) {
+    let DimBinding {
+        name: name_node,
+        type_node,
+        rank,
+        initializer,
+    } = binding;
     let Some(name_node) = name_node else {
         return;
     };
@@ -86,7 +84,7 @@ fn flush_dim_binding(
         },
     );
     if let Some(type_node) = type_node {
-        type_facts::record_declared_type(base, &symbol.id, type_node);
+        type_facts::record_declared_type(base, &symbol.id, type_node, rank);
     } else if let Some(initializer) = initializer
         && let Some(constructed) = type_facts::constructor_type_node(initializer)
         && let Some(class_name) = type_facts::simple_unqualified_name(base, constructed)

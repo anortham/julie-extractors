@@ -599,3 +599,71 @@ class Solo {
     assert_eq!(pending("fetch").receiver_type, None);
     assert_eq!(pending("absent").receiver_type, None);
 }
+
+#[test]
+fn super_call_inside_generic_superclass_records_base_name() {
+    let source = r#"
+class Base<T> {}
+class Foo extends Base<String> {
+  void run() {
+    super.persist();
+  }
+}
+"#;
+    let (_symbols, extractor) = extract_with_calls(source);
+    let call = extractor
+        .base
+        .identifiers
+        .iter()
+        .find(|id| id.name == "persist" && id.kind == IdentifierKind::Call)
+        .expect("missing call identifier persist");
+    assert_eq!(call.receiver_type.as_deref(), Some("Base"));
+
+    let pending = extractor
+        .get_structured_pending_relationships()
+        .into_iter()
+        .find(|p| p.target.terminal_name == "persist")
+        .expect("missing structured pending for persist");
+    assert_eq!(pending.receiver_type.as_deref(), Some("Base"));
+}
+
+#[test]
+fn self_calls_inside_anonymous_class_body_record_no_receiver_type() {
+    let source = r#"
+class Base {}
+class Outer extends Base {
+  void run() {
+    Runnable task = new Runnable() {
+      public void run() {
+        this.persist();
+        super.restore();
+      }
+    };
+    this.finish();
+  }
+}
+"#;
+    let (_symbols, extractor) = extract_with_calls(source);
+    let call = |name: &str| {
+        extractor
+            .base
+            .identifiers
+            .iter()
+            .find(|id| id.name == name && id.kind == IdentifierKind::Call)
+            .unwrap_or_else(|| panic!("missing call identifier {name}"))
+    };
+    assert_eq!(call("persist").receiver_type, None);
+    assert_eq!(call("restore").receiver_type, None);
+    assert_eq!(call("finish").receiver_type.as_deref(), Some("Outer"));
+
+    let pending = |name: &str| {
+        extractor
+            .get_structured_pending_relationships()
+            .into_iter()
+            .find(|p| p.target.terminal_name == name)
+            .unwrap_or_else(|| panic!("missing structured pending for {name}"))
+    };
+    assert_eq!(pending("persist").receiver_type, None);
+    assert_eq!(pending("restore").receiver_type, None);
+    assert_eq!(pending("finish").receiver_type.as_deref(), Some("Outer"));
+}

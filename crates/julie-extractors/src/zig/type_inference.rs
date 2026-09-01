@@ -1,54 +1,20 @@
-use crate::base::Symbol;
-use regex::Regex;
+use crate::base::{Symbol, SymbolKind};
 use std::collections::HashMap;
-use std::sync::LazyLock;
 
-// Static regex compiled once for performance
-static ZIG_TYPE_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r":\s*([\w\[\]!?*]+)").unwrap());
-
-/// Infer types from symbols using Zig-specific rules
+/// Type rows for Zig symbols whose kind or metadata states the type category.
 pub(super) fn infer_types(symbols: &[Symbol]) -> HashMap<String, String> {
     let mut types = HashMap::new();
 
-    // Zig type inference based on symbol metadata and signatures
     for symbol in symbols {
-        if let Some(signature) = &symbol.signature {
-            // Extract Zig types from signatures
-            if let Some(type_match) = ZIG_TYPE_RE.captures(signature) {
-                types.insert(symbol.id.clone(), type_match[1].to_string());
-            }
-        }
-
-        // Use metadata for Zig-specific types
-        if let Some(is_error) = symbol
-            .metadata
-            .as_ref()
-            .and_then(|m| m.get("isErrorType"))
-            .and_then(|v| v.as_bool())
-            && is_error
-        {
+        if metadata_flag(symbol, "isErrorType") {
             types.insert(symbol.id.clone(), "error".to_string());
         }
-        if let Some(is_type_alias) = symbol
-            .metadata
-            .as_ref()
-            .and_then(|m| m.get("isTypeAlias"))
-            .and_then(|v| v.as_bool())
-            && is_type_alias
-        {
+        if metadata_flag(symbol, "isTypeAlias") {
             types.insert(symbol.id.clone(), "type".to_string());
         }
 
-        use crate::base::SymbolKind;
         match symbol.kind {
-            SymbolKind::Struct
-                if symbol
-                    .metadata
-                    .as_ref()
-                    .and_then(|m| m.get("isErrorType"))
-                    .and_then(|v| v.as_bool())
-                    != Some(true) =>
-            {
+            SymbolKind::Struct if !metadata_flag(symbol, "isErrorType") => {
                 types.insert(symbol.id.clone(), "struct".to_string());
             }
             SymbolKind::Enum => {
@@ -59,4 +25,13 @@ pub(super) fn infer_types(symbols: &[Symbol]) -> HashMap<String, String> {
     }
 
     types
+}
+
+fn metadata_flag(symbol: &Symbol, key: &str) -> bool {
+    symbol
+        .metadata
+        .as_ref()
+        .and_then(|m| m.get(key))
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false)
 }

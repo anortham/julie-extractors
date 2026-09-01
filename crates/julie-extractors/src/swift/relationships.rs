@@ -280,48 +280,30 @@ impl SwiftExtractor {
         }
     }
 
-    /// Implementation of infer_types method
+    /// Legacy metadata-derived types. Every value is reduced to a base type
+    /// name; metadata text with no single base name records nothing. Rows the
+    /// base recorded during extraction win over these in the registry.
     pub fn infer_types(&self, symbols: &[Symbol]) -> HashMap<String, String> {
         let mut types = HashMap::new();
         for symbol in symbols {
-            // For functions/methods, prefer returnType over generic type
-            if matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method) {
-                if let Some(return_type) =
-                    symbol.metadata.as_ref().and_then(|m| m.get("returnType"))
-                    && let Some(return_type_str) = return_type.as_str()
-                {
-                    types.insert(symbol.id.clone(), return_type_str.to_string());
-                    continue;
+            let metadata_text = |key: &str| {
+                symbol
+                    .metadata
+                    .as_ref()
+                    .and_then(|m| m.get(key))
+                    .and_then(|value| value.as_str())
+            };
+            let declared = match symbol.kind {
+                SymbolKind::Function | SymbolKind::Method => {
+                    metadata_text("returnType").or_else(|| metadata_text("type"))
                 }
-            }
-            // For properties/variables, prefer propertyType or variableType
-            else if matches!(symbol.kind, SymbolKind::Property | SymbolKind::Variable) {
-                if let Some(property_type) =
-                    symbol.metadata.as_ref().and_then(|m| m.get("propertyType"))
-                    && let Some(property_type_str) = property_type.as_str()
-                {
-                    types.insert(symbol.id.clone(), property_type_str.to_string());
-                    continue;
-                }
-                if let Some(variable_type) =
-                    symbol.metadata.as_ref().and_then(|m| m.get("variableType"))
-                    && let Some(variable_type_str) = variable_type.as_str()
-                {
-                    types.insert(symbol.id.clone(), variable_type_str.to_string());
-                    continue;
-                }
-            }
-
-            // Fallback to generic type from metadata
-            if let Some(symbol_type) = symbol.metadata.as_ref().and_then(|m| m.get("type")) {
-                if let Some(symbol_type_str) = symbol_type.as_str() {
-                    types.insert(symbol.id.clone(), symbol_type_str.to_string());
-                }
-            } else if let Some(return_type) =
-                symbol.metadata.as_ref().and_then(|m| m.get("returnType"))
-                && let Some(return_type_str) = return_type.as_str()
-            {
-                types.insert(symbol.id.clone(), return_type_str.to_string());
+                SymbolKind::Property | SymbolKind::Variable => metadata_text("propertyType")
+                    .or_else(|| metadata_text("variableType"))
+                    .or_else(|| metadata_text("type")),
+                _ => metadata_text("type").or_else(|| metadata_text("returnType")),
+            };
+            if let Some(resolved) = declared.and_then(super::type_facts::legacy_base_type_name) {
+                types.insert(symbol.id.clone(), resolved);
             }
         }
         types

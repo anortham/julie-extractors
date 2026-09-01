@@ -634,24 +634,6 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/c/test_roles/source.c:math.addition:3:0",
-      "resolved_type": "Test(\"",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "c",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/c/test_roles/source.c:math:1:0",
-      "resolved_type": "TestSuite(\"",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "c",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/c/test_roles/source.c:setup_suite:7:0",
       "resolved_type": "void",
       "generic_params": null,

@@ -243,13 +243,15 @@ impl super::GoExtractor {
         let names: Vec<Node> = left.named_children(&mut left_cursor).collect();
         let mut right_cursor = right.walk();
         let values: Vec<Node> = right.named_children(&mut right_cursor).collect();
-        if names.len() != values.len() {
-            return Vec::new();
-        }
+        let positional_values: Vec<Option<Node>> = if names.len() == values.len() {
+            values.into_iter().map(Some).collect()
+        } else {
+            vec![None; names.len()]
+        };
 
         names
             .into_iter()
-            .zip(values)
+            .zip(positional_values)
             .filter_map(|(name_node, value_node)| {
                 if name_node.kind() != "identifier" {
                     return None;
@@ -258,14 +260,22 @@ impl super::GoExtractor {
                 if name == "_" {
                     return None;
                 }
-                let type_node = super::type_facts::inferred_rhs_type_node(&self.base, value_node)
+                let type_node = value_node
+                    .and_then(|value_node| {
+                        super::type_facts::inferred_rhs_type_node(&self.base, value_node)
+                    })
                     .filter(|type_node| super::type_facts::binds_base_type(*type_node));
                 let visibility = if self.is_public(&name) {
                     Some(Visibility::Public)
                 } else {
                     Some(Visibility::Private)
                 };
-                let signature = format!("{} := {}", name, self.get_node_text(value_node));
+                let signature = match value_node {
+                    Some(value_node) => {
+                        format!("{} := {}", name, self.get_node_text(value_node))
+                    }
+                    None => self.get_node_text(node),
+                };
                 let symbol = self.base.create_symbol(
                     &name_node,
                     name,

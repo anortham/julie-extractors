@@ -127,7 +127,7 @@ class UserService {
             end_byte: 6,
             body_span: None,
             body_hash: None,
-            signature: None,
+            signature: Some("final int status".to_string()),
             doc_comment: None,
             visibility: None,
             parent_id: None,
@@ -172,21 +172,19 @@ class UserService {
         );
         let inferred_types = extractor.infer_types(&[final_symbol, const_symbol]);
 
-        assert!(
-            inferred_types.contains_key("dart-final-id"),
-            "Missing final type keyed by symbol id"
-        );
-        assert!(
-            inferred_types.contains_key("dart-const-id"),
-            "Missing const type keyed by symbol id"
-        );
         assert_eq!(
             inferred_types.get("dart-final-id").map(String::as_str),
-            Some("final")
+            Some("int")
         );
-        assert_eq!(
-            inferred_types.get("dart-const-id").map(String::as_str),
-            Some("const")
+        assert!(
+            !inferred_types.contains_key("dart-const-id"),
+            "keyword metadata alone must not produce a type row"
+        );
+        assert!(
+            inferred_types
+                .values()
+                .all(|value| value != "final" && value != "const"),
+            "keyword text leaked into types: {inferred_types:?}"
         );
     }
 }

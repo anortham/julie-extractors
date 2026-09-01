@@ -30,20 +30,29 @@ pub(super) fn unqualified_struct_name(base: &BaseExtractor, node: Node) -> Optio
     if node.kind() != "map" {
         return None;
     }
-    let struct_node = find_child_by_type(&node, "struct")?;
-    let mut cursor = struct_node.walk();
-    let inner = struct_node.named_children(&mut cursor).next()?;
-    match inner.kind() {
-        "alias" | "identifier" => {
-            let name = base.get_node_text(&inner);
-            if name.is_empty() || name.contains('.') {
-                None
-            } else {
-                Some(name)
-            }
-        }
-        _ => None,
+    let alias = struct_alias(node)?;
+    let name = base.get_node_text(&alias);
+    if name.is_empty() || name.contains('.') {
+        None
+    } else {
+        Some(name)
     }
+}
+
+pub(super) fn struct_alias(map_node: Node) -> Option<Node> {
+    let struct_node = find_child_by_type(&map_node, "struct")?;
+    let mut cursor = struct_node.walk();
+    struct_node
+        .named_children(&mut cursor)
+        .next()
+        .filter(|inner| inner.kind() == "alias")
+}
+
+fn is_quote_call(base: &BaseExtractor, node: Node) -> bool {
+    node.kind() == "call"
+        && node.child_by_field_name("target").is_some_and(|target| {
+            target.kind() == "identifier" && base.get_node_text(&target) == "quote"
+        })
 }
 
 pub(super) fn extract_body_locals(
@@ -73,7 +82,7 @@ fn walk_assignments(
     symbols: &mut Vec<Symbol>,
     depth: u32,
 ) {
-    if !should_visit_tree_depth(depth) {
+    if !should_visit_tree_depth(depth) || is_quote_call(base, node) {
         return;
     }
 

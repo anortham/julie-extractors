@@ -62,13 +62,6 @@ fn extract_parameter(
 
     let mut metadata = HashMap::new();
     metadata.insert("role".to_string(), serde_json::json!("parameter"));
-    if let Some(ty) = &declared_type {
-        metadata.insert("variableType".to_string(), serde_json::json!(ty));
-    }
-    metadata.insert(
-        "isInferred".to_string(),
-        serde_json::json!(is_var || declared_type.is_none()),
-    );
 
     let symbol = base.create_symbol(
         &node,

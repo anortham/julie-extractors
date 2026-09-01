@@ -1356,20 +1356,13 @@ class NetworkDataSource: DataSource {
                 Some(&"Double".to_string())
             );
 
-            // Property types
             let configuration = symbols.iter().find(|s| s.name == "configuration");
             assert!(configuration.is_some());
-            assert_eq!(
-                types.get(&configuration.unwrap().id),
-                Some(&"[String: Any]".to_string())
-            );
+            assert_eq!(types.get(&configuration.unwrap().id), None);
 
             let processor = symbols.iter().find(|s| s.name == "processor");
             assert!(processor.is_some());
-            assert_eq!(
-                types.get(&processor.unwrap().id),
-                Some(&"(String) -> String".to_string())
-            );
+            assert_eq!(types.get(&processor.unwrap().id), None);
         }
 
         #[test]

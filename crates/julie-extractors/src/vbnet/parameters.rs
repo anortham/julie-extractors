@@ -26,7 +26,12 @@ pub(super) fn extract_parameter(
         },
     );
     if let Some(type_node) = type_facts::declared_type_node(node) {
-        type_facts::record_declared_type(base, &symbol.id, type_node);
+        type_facts::record_declared_type(
+            base,
+            &symbol.id,
+            type_node,
+            type_facts::declarator_rank_node(node),
+        );
     }
     Some(symbol)
 }

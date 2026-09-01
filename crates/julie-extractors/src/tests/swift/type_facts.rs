@@ -267,3 +267,97 @@ extension OrderService {
             .all(|p| p.receiver_type.as_deref() == Some("OrderService"))
     );
 }
+
+#[test]
+fn super_call_receiver_type_reduces_generic_base_to_name() {
+    let source = r#"
+class Base<T> {}
+class Foo: Base<Int> {
+    func run() {
+        super.restore()
+    }
+}
+"#;
+    let (_symbols, extractor) = extract_calls(source);
+    let restore = extractor
+        .base
+        .identifiers
+        .iter()
+        .find(|id| id.name == "restore" && id.kind == IdentifierKind::Call)
+        .expect("missing call identifier restore");
+    assert_eq!(restore.receiver_type.as_deref(), Some("Base"));
+    let pending = extractor
+        .get_structured_pending_relationships()
+        .into_iter()
+        .find(|p| p.target.terminal_name == "restore")
+        .expect("missing structured pending for restore");
+    assert_eq!(pending.receiver_type.as_deref(), Some("Base"));
+}
+
+#[test]
+fn qualified_type_records_namespace_qualified_base_name() {
+    let source = r#"
+func run() {
+    let plain: Foo.Bar = make()
+    let generic: Foo.Bar<Int>? = nil
+}
+"#;
+    let (symbols, extractor) = extract(source);
+    let plain = fact(&extractor, &symbols, "plain", SymbolKind::Variable);
+    assert_eq!(plain.resolved_type, "Foo.Bar");
+    assert!(!plain.is_inferred);
+    assert_eq!(declared(plain), None);
+    let generic = fact(&extractor, &symbols, "generic", SymbolKind::Variable);
+    assert_eq!(generic.resolved_type, "Foo.Bar");
+    assert_eq!(declared(generic), Some("Foo.Bar<Int>?"));
+}
+
+#[test]
+fn artifact_types_never_carry_non_base_names() {
+    let source = r#"
+class Box {
+    var items: [Foo] = []
+    var lookup: [String: Foo] = [:]
+    var pair: (Foo, Bar)? = nil
+    var handler: () -> Void = {}
+    var optional: Foo? = nil
+    var generic: Array<Foo>? = []
+    var qualified: Foo.Bar = Foo.Bar()
+}
+"#;
+    let mut parser = tree_sitter::Parser::new();
+    parser
+        .set_language(&tree_sitter_swift::LANGUAGE.into())
+        .unwrap();
+    let tree = parser.parse(source, None).unwrap();
+    let workspace_root = PathBuf::from("/tmp/test");
+    let results = crate::factory::extract_symbols_and_relationships(
+        &tree,
+        "type_facts.swift",
+        source,
+        "swift",
+        &workspace_root,
+    )
+    .unwrap();
+    let resolved = |name: &str| -> Option<String> {
+        let symbol = symbol(&results.symbols, name, SymbolKind::Property);
+        results
+            .types
+            .get(&symbol.id)
+            .map(|info| info.resolved_type.clone())
+    };
+    assert_eq!(resolved("items"), None);
+    assert_eq!(resolved("lookup"), None);
+    assert_eq!(resolved("pair"), None);
+    assert_eq!(resolved("handler"), None);
+    assert_eq!(resolved("optional").as_deref(), Some("Foo"));
+    assert_eq!(resolved("generic").as_deref(), Some("Array"));
+    assert_eq!(resolved("qualified").as_deref(), Some("Foo.Bar"));
+    for info in results.types.values() {
+        let value = info.resolved_type.as_str();
+        assert!(
+            !value.contains(['[', '(', '<', '?', '!', ' ']),
+            "non-base resolved_type {value}"
+        );
+    }
+}

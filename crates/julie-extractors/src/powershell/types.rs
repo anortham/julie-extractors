@@ -1,7 +1,7 @@
 //! PowerShell type inference and type annotation handling
 //! Infers types from type annotations, assignments, and values
 
-use crate::base::{Symbol, SymbolKind};
+use crate::base::{Symbol, SymbolKind, TypeInfo};
 use regex::Regex;
 use std::collections::HashMap;
 use std::sync::LazyLock;
@@ -13,11 +13,18 @@ static FLOAT_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^\d+\.\d+$").un
 static BOOL_VAR_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^\$(true|false)$").unwrap());
 static TYPE_BRACKET_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^\[.*\]$").unwrap());
 
-/// Infer types from symbols (variables, properties) based on annotations and assignments
-pub(super) fn infer_types(symbols: &[Symbol]) -> HashMap<String, String> {
+/// Infer types from symbols (variables, properties) based on annotations and assignments.
+/// Symbols that already carry a recorded type fact are skipped so the recorded fact wins.
+pub(super) fn infer_types(
+    symbols: &[Symbol],
+    recorded_facts: &HashMap<String, TypeInfo>,
+) -> HashMap<String, String> {
     let mut types = HashMap::new();
 
     for symbol in symbols {
+        if recorded_facts.contains_key(&symbol.id) {
+            continue;
+        }
         if symbol.kind == SymbolKind::Variable || symbol.kind == SymbolKind::Property {
             let signature = symbol.signature.as_ref().map_or("", |s| s.as_str());
             let mut type_name = "object".to_string();
@@ -26,7 +33,7 @@ pub(super) fn infer_types(symbols: &[Symbol]) -> HashMap<String, String> {
             if let Some(captures) = TYPE_ANNOTATION_RE.captures(signature) {
                 let captured_type = captures.get(1).map_or("", |m| m.as_str());
                 if !captured_type.is_empty() {
-                    type_name = captured_type.to_lowercase();
+                    type_name = captured_type.to_string();
                 }
             } else if signature.contains("=") {
                 // Infer from value

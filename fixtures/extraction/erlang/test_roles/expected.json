@@ -265,15 +265,6 @@
       "is_inferred": true,
       "language": "erlang",
       "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/erlang/test_roles/source.erl:deposit_test_:23:0",
-      "resolved_type": "[term()]",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "erlang",
-      "metadata": null
     }
   ],
   "parse_diagnostics": [],

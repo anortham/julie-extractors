@@ -636,9 +636,7 @@
       "visibility": "Private",
       "parent_key": "fixtures/extraction/razor/test_roles/source.razor:NUnitParameterizedCase:20:8",
       "metadata": {
-        "isInferred": false,
-        "role": "parameter",
-        "variableType": "int"
+        "role": "parameter"
       },
       "annotations": [],
       "semantic_group": null,

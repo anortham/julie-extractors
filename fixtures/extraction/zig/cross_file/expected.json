@@ -314,26 +314,7 @@
       "confidence": "1.000"
     }
   ],
-  "types": [
-    {
-      "symbol_key": "fixtures/extraction/zig/cross_file/source.zig:_:17:4",
-      "resolved_type": "inferred",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "zig",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/zig/cross_file/source.zig:total:13:4",
-      "resolved_type": "inferred",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "zig",
-      "metadata": null
-    }
-  ],
+  "types": [],
   "parse_diagnostics": [],
   "structural_facts": [
     {

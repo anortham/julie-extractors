@@ -62,5 +62,10 @@ Namespace Fixture
             End If
             Return total
         End Function
+
+        Public Sub ProbeShapes(ByVal ids() As Integer, ByRef pool As Worker())
+            Dim builder As System.Text.StringBuilder
+            Dim names As System.Collections.Generic.List(Of String)
+        End Sub
     End Class
 End Namespace

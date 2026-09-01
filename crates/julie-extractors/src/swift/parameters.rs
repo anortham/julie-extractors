@@ -54,22 +54,8 @@ pub(super) fn extract_parameter_symbols(
 
 fn parameter_nodes(callable_node: Node) -> Vec<Node> {
     let mut cursor = callable_node.walk();
-    let direct: Vec<Node> = callable_node
+    callable_node
         .named_children(&mut cursor)
-        .filter(|child| child.kind() == "parameter")
-        .collect();
-    if !direct.is_empty() {
-        return direct;
-    }
-    let Some(clause) = callable_node
-        .children(&mut callable_node.walk())
-        .find(|child| child.kind() == "parameter_clause")
-    else {
-        return Vec::new();
-    };
-    let mut clause_cursor = clause.walk();
-    clause
-        .named_children(&mut clause_cursor)
         .filter(|child| child.kind() == "parameter")
         .collect()
 }

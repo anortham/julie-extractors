@@ -1,5 +1,7 @@
+use super::helpers::find_child_by_type;
 use crate::base::BaseExtractor;
 use crate::base::types::TypeNameRules;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashSet;
 use tree_sitter::Node;
 
@@ -10,15 +12,76 @@ pub(super) const DART_TYPE_NAME_RULES: TypeNameRules = TypeNameRules {
 };
 
 pub(super) fn record_declared_type(base: &mut BaseExtractor, symbol_id: &str, type_node: Node) {
-    let declared = base.get_node_text(&type_node);
-    if declared.is_empty() || declared == "void" || declared == "var" {
+    let Some(base_name) = base_type_name(base, type_node) else {
         return;
+    };
+    let declared = base.get_node_text(&type_node);
+    base.record_declared_type_fact_with_declared(
+        symbol_id,
+        &base_name,
+        &declared,
+        &DART_TYPE_NAME_RULES,
+        false,
+    );
+}
+
+fn base_type_name(base: &BaseExtractor, type_node: Node) -> Option<String> {
+    let container = match type_node.kind() {
+        "type" | "nullable_type" => type_node,
+        "type_identifier" => return Some(base.get_node_text(&type_node)),
+        _ => return None,
+    };
+    let mut segments = Vec::new();
+    let mut cursor = container.walk();
+    for child in container.named_children(&mut cursor) {
+        match child.kind() {
+            "type_identifier" => segments.push(base.get_node_text(&child)),
+            "type_arguments" => {}
+            _ => return None,
+        }
     }
-    base.record_declared_type_fact(symbol_id, &declared, &DART_TYPE_NAME_RULES, false);
+    if segments.is_empty() {
+        None
+    } else {
+        Some(segments.join("."))
+    }
 }
 
 pub(super) fn record_constructor_fact(base: &mut BaseExtractor, symbol_id: &str, class_name: &str) {
     base.record_declared_type_fact(symbol_id, class_name, &DART_TYPE_NAME_RULES, true);
+}
+
+pub(super) fn collect_type_names(base: &BaseExtractor, root: Node) -> HashSet<String> {
+    let mut names = HashSet::new();
+    collect_type_names_into(base, root, 0, &mut names);
+    names
+}
+
+fn collect_type_names_into(
+    base: &BaseExtractor,
+    node: Node,
+    depth: u32,
+    names: &mut HashSet<String>,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+    if matches!(
+        node.kind(),
+        "class_definition" | "class_declaration" | "mixin_declaration" | "enum_declaration"
+    ) && let Some(name_node) = node
+        .child_by_field_name("name")
+        .or_else(|| find_child_by_type(&node, "identifier"))
+    {
+        names.insert(base.get_node_text(&name_node));
+    }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        collect_type_names_into(base, child, child_depth, names);
+    }
 }
 
 pub(super) fn inferred_constructor_name(

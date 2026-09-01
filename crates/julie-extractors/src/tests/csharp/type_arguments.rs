@@ -187,12 +187,21 @@ fn basic_fixture_emits_nested_type_arguments_via_canonical_pipeline() {
     let results = extract_fixture(FIXTURE_SOURCE);
     assert_eq!(
         results.type_argument_usages.len(),
-        1,
-        "fixture should emit one Dictionary<string, List<int>> usage, got {:?}",
+        2,
+        "fixture should emit Dictionary<string, List<int>> and IReadOnlyList<Worker> usages, got {:?}",
         results.type_argument_usages
     );
-    let usage = &results.type_argument_usages[0];
-    assert_eq!(top_level(usage), vec![(0, "string"), (1, "List")]);
+    let indexer_usage = results
+        .type_argument_usages
+        .iter()
+        .find(|usage| top_level(usage) == vec![(0, "Worker")])
+        .expect("IReadOnlyList<Worker> indexer usage");
+    assert!(indexer_usage.arguments[0].children.is_empty());
+    let usage = results
+        .type_argument_usages
+        .iter()
+        .find(|usage| top_level(usage) == vec![(0, "string"), (1, "List")])
+        .expect("Dictionary<string, List<int>> usage");
     assert!(usage.arguments[0].children.is_empty());
     assert_eq!(
         usage.arguments[1]

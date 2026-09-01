@@ -175,9 +175,7 @@ impl VbNetExtractor {
             "operator_declaration" => members::extract_operator(&mut self.base, node, parent_id),
             "const_declaration" => members::extract_const(&mut self.base, node, parent_id),
             "declare_statement" => members::extract_declare(&mut self.base, node, parent_id),
-            "parameter" | "lambda_parameter" => {
-                parameters::extract_parameter(&mut self.base, node, parent_id)
-            }
+            "parameter" => parameters::extract_parameter(&mut self.base, node, parent_id),
             _ => None,
         }
     }

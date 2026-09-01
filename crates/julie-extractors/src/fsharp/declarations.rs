@@ -125,8 +125,7 @@ fn extract_type(base: &mut BaseExtractor, node: Node, parent_id: Option<String>)
     let name = base.get_node_text(&name_node).trim().to_string();
     let kind = match body.kind() {
         "record_type_defn" => SymbolKind::Struct,
-        "union_type_defn" if is_type_abbrev_union(base, body) => SymbolKind::Type,
-
+        "union_type_defn" if is_type_abbreviation(body) => SymbolKind::Type,
         "union_type_defn" => SymbolKind::Union,
         "interface_type_defn" => SymbolKind::Interface,
         "enum_type_defn" => SymbolKind::Enum,
@@ -152,6 +151,9 @@ fn extract_union_case(
     node: Node,
     parent_id: Option<String>,
 ) -> Option<Symbol> {
+    if in_type_abbreviation(node) {
+        return None;
+    }
     let name = direct_child_of_kind(node, "identifier")
         .map(|name| base.get_node_text(&name).trim().to_string())?;
     create_symbol(base, node, name, SymbolKind::EnumMember, parent_id)
@@ -411,7 +413,7 @@ fn direct_child_matching<'a>(node: Node<'a>, kinds: &[&str]) -> Option<Node<'a>>
         .find(|child| kinds.contains(&child.kind()))
 }
 
-fn is_type_abbrev_union(base: &BaseExtractor, body: Node) -> bool {
+fn is_type_abbreviation(body: Node) -> bool {
     let mut cases = Vec::new();
     collect_union_cases(body, 0, &mut cases);
     if cases.len() != 1 {
@@ -425,14 +427,31 @@ fn is_type_abbrev_union(base: &BaseExtractor, body: Node) -> bool {
     {
         return false;
     }
-    let Some(name) = direct_child_of_kind(case, "identifier") else {
+    if direct_child_of_kind(case, "identifier").is_none() {
         return false;
-    };
-    base.get_node_text(&name)
-        .trim()
-        .chars()
-        .next()
-        .is_some_and(char::is_lowercase)
+    }
+    !has_case_bar(body)
+}
+
+fn has_case_bar(body: Node) -> bool {
+    let mut cursor = body.walk();
+    body.children(&mut cursor)
+        .filter(|child| child.kind() == "union_type_cases")
+        .any(|cases| {
+            let mut inner = cases.walk();
+            cases.children(&mut inner).any(|child| child.kind() == "|")
+        })
+}
+
+fn in_type_abbreviation(case: Node) -> bool {
+    let mut current = case.parent();
+    while let Some(node) = current {
+        if node.kind() == "union_type_defn" {
+            return is_type_abbreviation(node);
+        }
+        current = node.parent();
+    }
+    false
 }
 
 fn collect_union_cases<'a>(node: Node<'a>, depth: u32, out: &mut Vec<Node<'a>>) {

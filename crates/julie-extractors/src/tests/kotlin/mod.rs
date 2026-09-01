@@ -1224,19 +1224,16 @@ class UserRepository : Repository<User> {
         // Function return types
         let fetch_users = symbols.iter().find(|s| s.name == "fetchUsers");
         assert!(fetch_users.is_some());
-        assert_eq!(types.get(&fetch_users.unwrap().id).unwrap(), "List<User>");
+        assert_eq!(types.get(&fetch_users.unwrap().id).unwrap(), "List");
 
         let fetch_user_by_id = symbols.iter().find(|s| s.name == "fetchUserById");
         assert!(fetch_user_by_id.is_some());
-        assert_eq!(types.get(&fetch_user_by_id.unwrap().id).unwrap(), "User?");
+        assert_eq!(types.get(&fetch_user_by_id.unwrap().id).unwrap(), "User");
 
         // Property types
         let cache = symbols.iter().find(|s| s.name == "cache");
         assert!(cache.is_some());
-        assert_eq!(
-            types.get(&cache.unwrap().id).unwrap(),
-            "MutableMap<String, Any>"
-        );
+        assert_eq!(types.get(&cache.unwrap().id).unwrap(), "MutableMap");
 
         let is_enabled = symbols.iter().find(|s| s.name == "isEnabled");
         assert!(is_enabled.is_some());

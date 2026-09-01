@@ -10,11 +10,10 @@ mod error_handling;
 mod functions;
 mod helpers;
 mod identifiers;
-mod parameters;
-mod type_facts;
-
 mod imports;
+mod parameters;
 mod relationships;
+mod type_facts;
 mod type_inference;
 mod types;
 mod variables;

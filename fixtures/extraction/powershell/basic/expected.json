@@ -369,6 +369,43 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/powershell/basic/source.ps1:Use-Arrays:70:0",
+      "name": "Use-Arrays",
+      "kind": "function",
+      "language": "powershell",
+      "file_path": "fixtures/extraction/powershell/basic/source.ps1",
+      "start_line": 70,
+      "start_column": 0,
+      "end_line": 73,
+      "end_column": 1,
+      "start_byte": 1097,
+      "end_byte": 1173,
+      "body_span": {
+        "start_line": 70,
+        "start_column": 20,
+        "end_line": 73,
+        "end_column": 1,
+        "start_byte": 1117,
+        "end_byte": 1173
+      },
+      "body_hash": "d5c4a1478f13815e5ac50e908d1be852",
+      "signature": "function Use-Arrays()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [
+        {
+          "annotation": "int[,]",
+          "annotation_key": "int[,]",
+          "raw_text": "int[,]"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/powershell/basic/source.ps1:Use-Facts:63:0",
       "name": "Use-Facts",
       "kind": "function",
@@ -626,6 +663,30 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/powershell/basic/source.ps1:grid:72:4",
+      "name": "grid",
+      "kind": "variable",
+      "language": "powershell",
+      "file_path": "fixtures/extraction/powershell/basic/source.ps1",
+      "start_line": 72,
+      "start_column": 4,
+      "end_line": 72,
+      "end_column": 25,
+      "start_byte": 1150,
+      "end_byte": 1171,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "[int[,]]$grid = $null",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/powershell/basic/source.ps1:Use-Arrays:70:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/powershell/basic/source.ps1:i:16:13",
       "name": "i",
       "kind": "variable",
@@ -724,6 +785,37 @@
       "doc_comment": null,
       "visibility": "Private",
       "parent_key": "fixtures/extraction/powershell/basic/source.ps1:Use-Facts:63:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/powershell/basic/source.ps1:names:71:4",
+      "name": "names",
+      "kind": "variable",
+      "language": "powershell",
+      "file_path": "fixtures/extraction/powershell/basic/source.ps1",
+      "start_line": 71,
+      "start_column": 4,
+      "end_line": 71,
+      "end_column": 26,
+      "start_byte": 1123,
+      "end_byte": 1145,
+      "body_span": {
+        "start_line": 71,
+        "start_column": 24,
+        "end_line": 71,
+        "end_column": 26,
+        "start_byte": 1143,
+        "end_byte": 1145
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "[string[]]$names = @()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/powershell/basic/source.ps1:Use-Arrays:70:0",
       "metadata": {},
       "annotations": [],
       "semantic_group": null,
@@ -1261,7 +1353,7 @@
       "end_column": 16,
       "start_byte": 616,
       "end_byte": 618,
-      "containing_key": "fixtures/extraction/powershell/basic/source.ps1:Worker:31:0",
+      "containing_key": "fixtures/extraction/powershell/basic/source.ps1:Worker:34:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1518,7 +1610,7 @@
       "end_column": 22,
       "start_byte": 621,
       "end_byte": 624,
-      "containing_key": "fixtures/extraction/powershell/basic/source.ps1:Worker:31:0",
+      "containing_key": "fixtures/extraction/powershell/basic/source.ps1:Worker:34:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1677,6 +1769,17 @@
       }
     },
     {
+      "symbol_key": "fixtures/extraction/powershell/basic/source.ps1:grid:72:4",
+      "resolved_type": "int[,]",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "powershell",
+      "metadata": {
+        "declared": "[int[,]]"
+      }
+    },
+    {
       "symbol_key": "fixtures/extraction/powershell/basic/source.ps1:id:34:11",
       "resolved_type": "int",
       "generic_params": null,
@@ -1708,6 +1811,17 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/powershell/basic/source.ps1:names:71:4",
+      "resolved_type": "string[]",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "powershell",
+      "metadata": {
+        "declared": "[string[]]"
+      }
+    },
+    {
       "symbol_key": "fixtures/extraction/powershell/basic/source.ps1:script:WorkerIndex:29:0",
       "resolved_type": "Dictionary",
       "generic_params": null,
@@ -1721,69 +1835,6 @@
     {
       "symbol_key": "fixtures/extraction/powershell/basic/source.ps1:w:65:4",
       "resolved_type": "Widget",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "powershell",
-      "metadata": null
-    },
-    {
-      "symbol_key": "unresolved:Count",
-      "resolved_type": "int",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "powershell",
-      "metadata": null
-    },
-    {
-      "symbol_key": "unresolved:Enabled",
-      "resolved_type": "bool",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "powershell",
-      "metadata": null
-    },
-    {
-      "symbol_key": "unresolved:Id",
-      "resolved_type": "int",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "powershell",
-      "metadata": null
-    },
-    {
-      "symbol_key": "unresolved:Name",
-      "resolved_type": "string",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "powershell",
-      "metadata": null
-    },
-    {
-      "symbol_key": "unresolved:Title",
-      "resolved_type": "string",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "powershell",
-      "metadata": null
-    },
-    {
-      "symbol_key": "unresolved:Value",
-      "resolved_type": "int",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "powershell",
-      "metadata": null
-    },
-    {
-      "symbol_key": "unresolved:f",
-      "resolved_type": "foo",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
@@ -1809,42 +1860,6 @@
       "metadata": null
     },
     {
-      "symbol_key": "unresolved:id",
-      "resolved_type": "int",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "powershell",
-      "metadata": null
-    },
-    {
-      "symbol_key": "unresolved:items",
-      "resolved_type": "string",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "powershell",
-      "metadata": null
-    },
-    {
-      "symbol_key": "unresolved:n",
-      "resolved_type": "object",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "powershell",
-      "metadata": null
-    },
-    {
-      "symbol_key": "unresolved:script:WorkerIndex",
-      "resolved_type": "int",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "powershell",
-      "metadata": null
-    },
-    {
       "symbol_key": "unresolved:this",
       "resolved_type": "object",
       "generic_params": null,
@@ -1856,15 +1871,6 @@
     {
       "symbol_key": "unresolved:total",
       "resolved_type": "int",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "powershell",
-      "metadata": null
-    },
-    {
-      "symbol_key": "unresolved:w",
-      "resolved_type": "widget",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
@@ -2058,18 +2064,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "powershell",
       "file_path": "fixtures/extraction/powershell/basic/source.ps1",
-      "covered_lines": 69,
-      "covered_bytes": 1096,
+      "covered_lines": 74,
+      "covered_bytes": 1174,
       "decision_count": 2,
       "loop_count": 1,
       "max_nesting_depth": 2,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 69,
+      "end_line": 74,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 1096,
+      "end_byte": 1174,
       "metadata": {
         "metric_version": 1
       }
@@ -2224,6 +2230,28 @@
       "end_column": 5,
       "start_byte": 888,
       "end_byte": 940,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/powershell/basic/source.ps1:Use-Arrays:70:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "powershell",
+      "file_path": "fixtures/extraction/powershell/basic/source.ps1",
+      "covered_lines": 4,
+      "covered_bytes": 56,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 70,
+      "start_column": 20,
+      "end_line": 73,
+      "end_column": 1,
+      "start_byte": 1117,
+      "end_byte": 1173,
       "metadata": {
         "metric_version": 1
       }

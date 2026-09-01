@@ -48,15 +48,29 @@ pub(super) fn determine_visibility(modifiers: &[String]) -> Visibility {
 
 /// Extract superclass from a class declaration node
 pub(super) fn extract_superclass(base: &BaseExtractor, node: Node) -> Option<String> {
+    let type_node = superclass_type_node(node)?;
+    Some(base.get_node_text(&type_node))
+}
+
+/// The superclass base name: `Base<T>` reduces to `Base`.
+pub(super) fn extract_superclass_base_name(base: &BaseExtractor, node: Node) -> Option<String> {
+    let type_node = superclass_type_node(node)?;
+    let base_node = match type_node.kind() {
+        "generic_type" => type_node
+            .children(&mut type_node.walk())
+            .find(|c| matches!(c.kind(), "type_identifier" | "scoped_type_identifier"))?,
+        _ => type_node,
+    };
+    Some(base.get_node_text(&base_node))
+}
+
+fn superclass_type_node(node: Node) -> Option<Node> {
     let superclass_node = node
         .children(&mut node.walk())
         .find(|c| c.kind() == "superclass")?;
-
-    let type_node = superclass_node
+    superclass_node
         .children(&mut superclass_node.walk())
-        .find(|c| matches!(c.kind(), "type_identifier" | "generic_type"))?;
-
-    Some(base.get_node_text(&type_node))
+        .find(|c| matches!(c.kind(), "type_identifier" | "generic_type"))
 }
 
 /// Extract implemented interfaces from a class/enum/record

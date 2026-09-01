@@ -278,3 +278,48 @@ Item {
         .expect("missing pending helper");
     assert_eq!(helper_pending.receiver_type.as_deref(), Some("Widget"));
 }
+
+#[test]
+fn identifiers_are_contained_by_callables_not_parameters_or_locals() {
+    let source = r#"
+Item {
+    function buildIndex(m: Map<string, User>) {
+        let n = compute()
+        return n
+    }
+}
+"#;
+    let (symbols, extractor) = extract_calls(source, "Widget.qml");
+    let build_index = symbol(&symbols, "buildIndex", SymbolKind::Function);
+    assert!(
+        symbols
+            .iter()
+            .any(|s| s.name == "m" && s.kind == SymbolKind::Variable)
+    );
+    assert!(
+        symbols
+            .iter()
+            .any(|s| s.name == "n" && s.kind == SymbolKind::Variable)
+    );
+
+    let identifier = |name: &str, kind: IdentifierKind| {
+        extractor
+            .base
+            .identifiers
+            .iter()
+            .find(|id| id.name == name && id.kind == kind)
+            .unwrap_or_else(|| panic!("missing identifier {name}"))
+    };
+    assert_eq!(
+        identifier("Map", IdentifierKind::TypeUsage)
+            .containing_symbol_id
+            .as_deref(),
+        Some(build_index.id.as_str())
+    );
+    assert_eq!(
+        identifier("compute", IdentifierKind::Call)
+            .containing_symbol_id
+            .as_deref(),
+        Some(build_index.id.as_str())
+    );
+}

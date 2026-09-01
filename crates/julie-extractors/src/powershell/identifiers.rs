@@ -75,7 +75,6 @@ fn extract_identifier_from_node(
             }
         }
 
-        // PowerShell invocation expressions: $obj.Method() / $this.Run()
         // Grammar spelling is `invokation_expression` (typo in tree-sitter-powershell).
         "invocation_expression" | "invokation_expression" => {
             if let Some((name_node, name)) = super::type_facts::invocation_member_name(base, node) {
@@ -579,7 +578,7 @@ fn find_containing_symbol_id(
     base.find_containing_symbol_from_map_filtered(&node, symbol_map, |symbol| {
         matches!(
             symbol.kind,
-            SymbolKind::Function | SymbolKind::Method | SymbolKind::Class
+            SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor | SymbolKind::Class
         )
     })
     .map(|s| s.id.clone())

@@ -56,8 +56,11 @@ class Worker(
     }
 
     fun persist() {
+        this.recordRun(id)
         this.missingWave2()
     }
+
+    constructor(label: String) : this(label.length)
 }
 
 fun evaluate(count: Int, enabled: Boolean): Int {

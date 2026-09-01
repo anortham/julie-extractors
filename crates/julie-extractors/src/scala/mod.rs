@@ -194,19 +194,7 @@ impl ScalaExtractor {
     }
 
     pub fn infer_types(&self, symbols: &[Symbol]) -> HashMap<String, String> {
-        let mut types = HashMap::new();
-        for symbol in symbols {
-            if let Some(serde_json::Value::String(s)) =
-                symbol.metadata.as_ref().and_then(|m| m.get("returnType"))
-            {
-                types.insert(symbol.id.clone(), s.clone());
-            } else if let Some(serde_json::Value::String(s)) =
-                symbol.metadata.as_ref().and_then(|m| m.get("propertyType"))
-            {
-                types.insert(symbol.id.clone(), s.clone());
-            }
-        }
-        types
+        type_facts::metadata_base_types(symbols)
     }
 
     pub fn extract_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {

@@ -204,7 +204,7 @@ impl super::RazorExtractor {
                 annotations: Vec::new(),
             },
         );
-        if let Some(returns) = node.child_by_field_name("returns") {
+        if let Some(returns) = node.child_by_field_name("type") {
             super::type_facts::record_return_type(&mut self.base, &symbol.id, returns);
         }
         Some(symbol)

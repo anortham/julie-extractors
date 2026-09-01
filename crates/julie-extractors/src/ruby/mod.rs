@@ -31,6 +31,8 @@ mod type_facts;
 pub struct RubyExtractor {
     pub(crate) base: BaseExtractor,
     current_visibility: Visibility,
+    same_file_class_names: std::collections::HashSet<String>,
+    recorded_fields: std::collections::HashSet<(Option<String>, String)>,
 }
 
 impl RubyExtractor {
@@ -38,6 +40,8 @@ impl RubyExtractor {
         Self {
             base: BaseExtractor::new("ruby".to_string(), file_path, content, workspace_root),
             current_visibility: Visibility::Public,
+            same_file_class_names: std::collections::HashSet::new(),
+            recorded_fields: std::collections::HashSet::new(),
         }
     }
 
@@ -48,6 +52,9 @@ impl RubyExtractor {
 
         // Clear any previous symbols from symbol_map
         self.base.symbol_map.clear();
+        self.same_file_class_names =
+            type_facts::collect_same_file_class_names(&self.base, tree.root_node());
+        self.recorded_fields.clear();
 
         self.traverse_tree(tree.root_node(), &mut symbols);
 
@@ -215,9 +222,15 @@ impl RubyExtractor {
                 {
                     symbols.extend(field_props);
                     symbol_opt = Some(struct_class);
-                } else if let Some(symbol) =
-                    assignments::extract_assignment(&mut self.base, node, parent_id.clone())
-                {
+                } else if let Some(symbol) = assignments::extract_assignment(
+                    &mut self.base,
+                    node,
+                    parent_id.clone(),
+                    assignments::AssignmentContext {
+                        same_file_class_names: &self.same_file_class_names,
+                        recorded_fields: &mut self.recorded_fields,
+                    },
+                ) {
                     symbols.push(symbol);
                 }
             }

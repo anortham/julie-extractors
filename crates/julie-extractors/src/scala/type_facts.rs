@@ -1,6 +1,7 @@
-use crate::base::BaseExtractor;
-use crate::base::types::TypeNameRules;
+use crate::base::types::{TypeNameRules, strip_type_decorations};
+use crate::base::{BaseExtractor, Symbol};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
+use std::collections::HashMap;
 use tree_sitter::Node;
 
 pub(super) const SCALA_TYPE_NAME_RULES: TypeNameRules = TypeNameRules {
@@ -8,6 +9,42 @@ pub(super) const SCALA_TYPE_NAME_RULES: TypeNameRules = TypeNameRules {
     reference_prefixes: &[],
     generic_open: &['['],
 };
+
+const DECLARED_TYPE_METADATA_KEYS: [&str; 2] = ["returnType", "propertyType"];
+
+/// Base type names for symbols whose metadata carries declared type text.
+/// Shapes with no single base name (tuples, function types, compound types)
+/// record nothing.
+pub(super) fn metadata_base_types(symbols: &[Symbol]) -> HashMap<String, String> {
+    symbols
+        .iter()
+        .filter_map(|symbol| {
+            let declared = declared_type_metadata(symbol)?;
+            Some((symbol.id.clone(), base_type_name_from_text(declared)?))
+        })
+        .collect()
+}
+
+fn declared_type_metadata(symbol: &Symbol) -> Option<&str> {
+    let metadata = symbol.metadata.as_ref()?;
+    DECLARED_TYPE_METADATA_KEYS
+        .iter()
+        .find_map(|key| metadata.get(*key).and_then(serde_json::Value::as_str))
+}
+
+fn base_type_name_from_text(declared: &str) -> Option<String> {
+    let name = strip_type_decorations(declared, &SCALA_TYPE_NAME_RULES);
+    let is_qualified_name = !name.is_empty() && name.split('.').all(is_type_name_segment);
+    is_qualified_name.then_some(name)
+}
+
+fn is_type_name_segment(segment: &str) -> bool {
+    let mut chars = segment.chars();
+    chars
+        .next()
+        .is_some_and(|first| first.is_alphabetic() || first == '_' || first == '$')
+        && chars.all(|c| c.is_alphanumeric() || c == '_' || c == '$')
+}
 
 pub(super) fn record_declared_type(base: &mut BaseExtractor, symbol_id: &str, type_node: Node) {
     record_type_node(base, symbol_id, type_node, false);
@@ -92,13 +129,7 @@ fn same_file_constructor_class(base: &BaseExtractor, value: Node) -> Option<Stri
 }
 
 fn call_callee(value: Node) -> Option<Node> {
-    let mut cursor = value.walk();
-    let callee = value.children(&mut cursor).find(|child| {
-        matches!(
-            child.kind(),
-            "identifier" | "generic_function" | "field_expression"
-        )
-    })?;
+    let callee = value.child_by_field_name("function")?;
     if callee.kind() == "generic_function" {
         callee.child_by_field_name("function")
     } else {

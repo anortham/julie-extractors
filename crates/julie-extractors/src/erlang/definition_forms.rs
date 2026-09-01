@@ -27,8 +27,7 @@ pub(super) struct FunctionClause {
 pub(super) fn function_clause(extractor: &ErlangExtractor, node: &Node) -> Option<FunctionClause> {
     let clause = find_child_by_type(node, "function_clause")?;
     let name = first_atom_text(&extractor.base, &clause)?;
-    let args = find_child_by_type(&clause, "expr_args")
-        .or_else(|| find_child_by_type(&clause, "var_args"))?;
+    let args = clause.child_by_field_name("args")?;
 
     Some(FunctionClause {
         identity: (name, arg_count(&args)),
@@ -46,8 +45,7 @@ pub(super) fn extract_function(
     clause: &FunctionClause,
     clause_count: usize,
     parent_id: Option<&str>,
-    declarations: &[Node],
-    first_index: usize,
+    clauses: &[Node],
     same_file_records: &HashSet<String>,
 ) -> Vec<Symbol> {
     let (name, arity) = clause.identity.clone();
@@ -89,48 +87,22 @@ pub(super) fn extract_function(
     );
     apply_clause_body_span(extractor, &mut symbol, clause.body_start);
     let callable_id = symbol.id.clone();
-    let clauses = matching_clauses(extractor, declarations, first_index, &clause.identity);
     let mut seen = HashSet::new();
     let mut symbols = vec![symbol];
     symbols.extend(super::parameters::extract_parameter_symbols(
         extractor,
-        &clauses,
+        clauses,
         &callable_id,
         &mut seen,
     ));
     symbols.extend(super::type_facts::extract_body_locals(
         extractor,
-        &clauses,
+        clauses,
         &callable_id,
         same_file_records,
         &mut seen,
     ));
     symbols
-}
-
-fn matching_clauses<'a>(
-    extractor: &ErlangExtractor,
-    declarations: &'a [Node],
-    first: usize,
-    identity: &NameArity,
-) -> Vec<Node<'a>> {
-    let Some(first_node) = declarations.get(first).copied() else {
-        return Vec::new();
-    };
-    let mut clauses = vec![first_node];
-    for declaration in declarations.iter().skip(first + 1) {
-        if declaration.kind() != "fun_decl" {
-            break;
-        }
-        let Some(clause) = function_clause(extractor, declaration) else {
-            break;
-        };
-        if &clause.identity != identity {
-            break;
-        }
-        clauses.push(*declaration);
-    }
-    clauses
 }
 
 /// Replace the inferred body span with the clause bodies the symbol actually

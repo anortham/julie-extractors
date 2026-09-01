@@ -7,8 +7,8 @@ use tree_sitter::Node;
 
 pub(super) const TYPE_NAME_RULES: TypeNameRules = TypeNameRules {
     nullable_suffixes: &[],
-    reference_prefixes: &[],
-    generic_open: &[],
+    reference_prefixes: &["const", "volatile", "struct", "class"],
+    generic_open: &['<'],
 };
 
 pub(super) fn record_variable_fact(
@@ -79,6 +79,9 @@ fn record_stated_type(
     type_node: Node,
     declarator: Option<Node>,
 ) {
+    if declarator.is_some_and(|declarator| contains_function_declarator(declarator, 0)) {
+        return;
+    }
     let Some(base_name) = structural_base_name(base, type_node, 0) else {
         return;
     };
@@ -103,12 +106,11 @@ fn structural_base_name(base: &BaseExtractor, node: Node, depth: u32) -> Option<
     let mut node = node;
     loop {
         match node.kind() {
-            "type_identifier"
-            | "identifier"
-            | "primitive_type"
-            | "sized_type_specifier"
-            | "namespace_identifier" => {
+            "type_identifier" | "identifier" | "primitive_type" | "namespace_identifier" => {
                 return Some(base.get_node_text(&node));
+            }
+            "sized_type_specifier" => {
+                return single_word_sized_type(node).map(|node| base.get_node_text(&node));
             }
             "template_type" => {
                 node = node.child_by_field_name("name")?;
@@ -141,24 +143,52 @@ fn declared_type_text(
     type_node: Node,
     declarator: Option<Node>,
 ) -> String {
-    let mut declared = String::new();
+    let mut start = type_node.start_byte();
+    let mut end = type_node.end_byte();
     let mut cursor = container.walk();
     for child in container.children(&mut cursor) {
         if child.kind() == "type_qualifier" {
-            if !declared.is_empty() {
-                declared.push(' ');
-            }
-            declared.push_str(&base.get_node_text(&child));
+            start = start.min(child.start_byte());
+            end = end.max(child.end_byte());
         }
     }
-    if !declared.is_empty() {
-        declared.push(' ');
-    }
-    declared.push_str(&base.get_node_text(&type_node));
+    let mut declared = base.content[start..end].to_string();
     if let Some(declarator) = declarator {
         declared.push_str(&decoration_suffix(base, declarator, 0));
     }
     declared
+}
+
+fn single_word_sized_type(node: Node) -> Option<Node> {
+    let mut cursor = node.walk();
+    let words = node
+        .children(&mut cursor)
+        .filter(|child| child.kind() != "type_qualifier")
+        .count();
+    (words == 1).then_some(node)
+}
+
+fn contains_function_declarator(node: Node, depth: u32) -> bool {
+    if !should_visit_tree_depth(depth) {
+        return false;
+    }
+    if node.kind() == "function_declarator" {
+        return true;
+    }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return false;
+    };
+    match node.kind() {
+        "pointer_declarator"
+        | "reference_declarator"
+        | "array_declarator"
+        | "parenthesized_declarator"
+        | "init_declarator" => node
+            .child_by_field_name("declarator")
+            .or_else(|| node.named_child(0))
+            .is_some_and(|inner| contains_function_declarator(inner, child_depth)),
+        _ => false,
+    }
 }
 
 fn decoration_suffix(base: &BaseExtractor, node: Node, depth: u32) -> String {

@@ -326,11 +326,11 @@ fn enclosing_member_visibility(extractor: &RExtractor, node: Node) -> Option<Str
 }
 
 pub(super) fn call_name(extractor: &RExtractor, call: Node) -> Option<String> {
-    let callee = call.child(0)?;
+    let callee = call.child_by_field_name("function")?;
     match callee.kind() {
         "identifier" => clean_r_name(&extractor.base.get_node_text(&callee)),
         "namespace_operator" => {
-            let rhs = callee.child(2)?;
+            let rhs = callee.child_by_field_name("rhs")?;
             clean_r_name(&extractor.base.get_node_text(&rhs))
         }
         _ => None,
@@ -424,91 +424,100 @@ fn extract_class_list_members(
     class_symbol: &Symbol,
     class_system: &str,
 ) {
-    for visibility in ["public", "private", "fields", "methods"] {
-        let Some(body) = named_list_body(&extractor.base.get_node_text(&call), visibility) else {
+    let Some(args) = call.child_by_field_name("arguments") else {
+        return;
+    };
+    let mut cursor = args.walk();
+    let member_lists = args
+        .children_by_field_name("argument", &mut cursor)
+        .filter_map(|argument| {
+            let visibility = member_list_visibility(extractor, argument)?;
+            let list_call = argument.child_by_field_name("value")?;
+            if list_call.kind() != "call"
+                || call_name(extractor, list_call).as_deref() != Some("list")
+            {
+                return None;
+            }
+            Some((list_call, visibility))
+        })
+        .collect::<Vec<_>>();
+
+    for (list_call, member_visibility) in member_lists {
+        let Some(list_args) = list_call.child_by_field_name("arguments") else {
             continue;
         };
-        let member_visibility = match visibility {
-            "private" => "private",
-            _ => "public",
-        };
-        for entry in split_top_level_arguments(&body) {
-            let Some((raw_name, value)) = entry.split_once('=') else {
-                continue;
-            };
-            let Some(name) = clean_r_name(raw_name) else {
-                continue;
-            };
-            let value = value.trim();
-            let is_method = value.starts_with("function");
-            let kind = if is_method {
-                SymbolKind::Method
-            } else {
-                SymbolKind::Field
-            };
-            let mut metadata = HashMap::new();
-            metadata.insert(
-                "r_class_system".to_string(),
-                serde_json::Value::String(class_system.to_string()),
+        let mut cursor = list_args.walk();
+        let members = list_args
+            .children_by_field_name("argument", &mut cursor)
+            .collect::<Vec<_>>();
+        for member in members {
+            extract_class_list_member(
+                extractor,
+                member,
+                class_symbol,
+                class_system,
+                member_visibility,
             );
-            metadata.insert(
-                "member_visibility".to_string(),
-                serde_json::Value::String(member_visibility.to_string()),
-            );
-            let signature = if is_method {
-                Some(format!("{} = {}", name, function_signature(value)))
-            } else {
-                Some(format!("{name} = {value}"))
-            };
-            let symbol = extractor.base.create_symbol(
-                &call,
-                name,
-                kind,
-                SymbolOptions {
-                    parent_id: Some(class_symbol.id.clone()),
-                    signature,
-                    metadata: Some(metadata),
-                    ..Default::default()
-                },
-            );
-            extractor.symbols.push(symbol);
         }
     }
 }
 
-fn named_list_body(call_text: &str, name: &str) -> Option<String> {
-    let needle = format!("{name} = list");
-    let start = call_text.find(&needle)?;
-    let after_needle = &call_text[start + needle.len()..];
-    let open_offset = after_needle.find('(')?;
-    let body_start = start + needle.len() + open_offset + 1;
-    let mut depth = 1usize;
-    let mut quote: Option<char> = None;
-    let mut escaped = false;
-
-    for (offset, ch) in call_text[body_start..].char_indices() {
-        if let Some(active_quote) = quote {
-            if escaped {
-                escaped = false;
-            } else if ch == '\\' {
-                escaped = true;
-            } else if ch == active_quote {
-                quote = None;
-            }
-            continue;
-        }
-
-        match ch {
-            '"' | '\'' | '`' => quote = Some(ch),
-            '(' => depth += 1,
-            ')' => {
-                depth -= 1;
-                if depth == 0 {
-                    return Some(call_text[body_start..body_start + offset].to_string());
-                }
-            }
-            _ => {}
-        }
+fn member_list_visibility(extractor: &RExtractor, argument: Node) -> Option<&'static str> {
+    let name_node = argument.child_by_field_name("name")?;
+    match clean_r_name(&extractor.base.get_node_text(&name_node))?.as_str() {
+        "private" => Some("private"),
+        "public" | "fields" | "methods" => Some("public"),
+        _ => None,
     }
-    None
+}
+
+fn extract_class_list_member(
+    extractor: &mut RExtractor,
+    member: Node,
+    class_symbol: &Symbol,
+    class_system: &str,
+    member_visibility: &str,
+) {
+    let Some(name_node) = member.child_by_field_name("name") else {
+        return;
+    };
+    let Some(name) = clean_r_name(&extractor.base.get_node_text(&name_node)) else {
+        return;
+    };
+    let Some(value) = member.child_by_field_name("value") else {
+        return;
+    };
+    let value_text = extractor.base.get_node_text(&value);
+    let is_method = value.kind() == "function_definition";
+    let kind = if is_method {
+        SymbolKind::Method
+    } else {
+        SymbolKind::Field
+    };
+    let mut metadata = HashMap::new();
+    metadata.insert(
+        "r_class_system".to_string(),
+        serde_json::Value::String(class_system.to_string()),
+    );
+    metadata.insert(
+        "member_visibility".to_string(),
+        serde_json::Value::String(member_visibility.to_string()),
+    );
+    let signature = if is_method {
+        format!("{name} = {}", function_signature(&value_text))
+    } else {
+        format!("{name} = {}", value_text.trim())
+    };
+    let symbol = extractor.base.create_symbol(
+        &member,
+        name,
+        kind,
+        SymbolOptions {
+            parent_id: Some(class_symbol.id.clone()),
+            signature: Some(signature),
+            metadata: Some(metadata),
+            ..Default::default()
+        },
+    );
+    extractor.symbols.push(symbol);
 }

@@ -225,7 +225,94 @@ const Store = struct {
 
     pub fn go(self: *Store) void {
         self.run();
-        other.run();
+        self.missing();
+        other.missing();
+    }
+};
+"#;
+        let tree = init_parser(code, "zig");
+        let mut extractor = ZigExtractor::new(
+            "zig".to_string(),
+            "test.zig".to_string(),
+            code.to_string(),
+            &PathBuf::from("/tmp/test"),
+        );
+        let symbols = extractor.extract_symbols(&tree);
+        let identifiers = extractor.extract_identifiers(&tree, &symbols);
+        let relationships = extractor.extract_relationships(&tree, &symbols);
+
+        let run_calls: Vec<_> = identifiers
+            .iter()
+            .filter(|id| id.name == "run" && id.kind == IdentifierKind::Call)
+            .collect();
+        assert_eq!(run_calls.len(), 1);
+        assert_eq!(run_calls[0].receiver_type.as_deref(), Some("Store"));
+
+        let missing_calls: Vec<_> = identifiers
+            .iter()
+            .filter(|id| id.name == "missing" && id.kind == IdentifierKind::Call)
+            .collect();
+        assert_eq!(missing_calls.len(), 2);
+        assert_eq!(
+            missing_calls
+                .iter()
+                .filter(|id| id.receiver_type.as_deref() == Some("Store"))
+                .count(),
+            1
+        );
+        assert_eq!(
+            missing_calls
+                .iter()
+                .filter(|id| id.receiver_type.is_none())
+                .count(),
+            1
+        );
+
+        let run = symbol(&symbols, "run");
+        let go = symbol(&symbols, "go");
+        assert_eq!(
+            relationships
+                .iter()
+                .filter(|rel| rel.from_symbol_id == go.id && rel.to_symbol_id == run.id)
+                .count(),
+            1
+        );
+
+        let pending = extractor.get_structured_pending_relationships();
+        assert!(
+            pending
+                .iter()
+                .all(|pending| pending.target.terminal_name != "run")
+        );
+        let missing_pending: Vec<_> = pending
+            .iter()
+            .filter(|pending| pending.target.terminal_name == "missing")
+            .collect();
+        assert_eq!(missing_pending.len(), 2);
+        assert_eq!(
+            missing_pending
+                .iter()
+                .filter(|pending| pending.receiver_type.as_deref() == Some("Store"))
+                .count(),
+            1
+        );
+        assert_eq!(
+            missing_pending
+                .iter()
+                .filter(|pending| pending.receiver_type.is_none())
+                .count(),
+            1
+        );
+    }
+
+    #[test]
+    fn union_method_self_call_records_receiver_type() {
+        let code = r#"
+const Packet = union {
+    id: u8,
+
+    pub fn go(self: *Packet) void {
+        self.missing();
     }
 };
 "#;
@@ -240,46 +327,138 @@ const Store = struct {
         let identifiers = extractor.extract_identifiers(&tree, &symbols);
         extractor.extract_relationships(&tree, &symbols);
 
-        let run_calls: Vec<_> = identifiers
+        let missing_calls: Vec<_> = identifiers
             .iter()
-            .filter(|id| id.name == "run" && id.kind == IdentifierKind::Call)
+            .filter(|id| id.name == "missing" && id.kind == IdentifierKind::Call)
             .collect();
-        assert_eq!(run_calls.len(), 2);
-        assert_eq!(
-            run_calls
-                .iter()
-                .filter(|id| id.receiver_type.as_deref() == Some("Store"))
-                .count(),
-            1
-        );
-        assert_eq!(
-            run_calls
-                .iter()
-                .filter(|id| id.receiver_type.is_none())
-                .count(),
-            1
-        );
+        assert_eq!(missing_calls.len(), 1);
+        assert_eq!(missing_calls[0].receiver_type.as_deref(), Some("Packet"));
 
-        let run_pending: Vec<_> = extractor
+        let missing_pending: Vec<_> = extractor
             .get_structured_pending_relationships()
             .into_iter()
-            .filter(|pending| pending.target.terminal_name == "run")
+            .filter(|pending| pending.target.terminal_name == "missing")
             .collect();
-        assert_eq!(run_pending.len(), 2);
-        assert_eq!(
-            run_pending
-                .iter()
-                .filter(|pending| pending.receiver_type.as_deref() == Some("Store"))
-                .count(),
-            1
+        assert_eq!(missing_pending.len(), 1);
+        assert_eq!(missing_pending[0].receiver_type.as_deref(), Some("Packet"));
+    }
+
+    #[test]
+    fn container_const_inside_generic_function_stays_constant() {
+        let (symbols, _) = extract(
+            r#"
+fn List(comptime T: type) type {
+    return struct {
+        pub const Item = T;
+        var count: u32 = 0;
+
+        pub fn reset(self: *@This()) void {
+            const scratch = 1;
+        }
+    };
+}
+"#,
         );
-        assert_eq!(
-            run_pending
-                .iter()
-                .filter(|pending| pending.receiver_type.is_none())
-                .count(),
-            1
+
+        assert_eq!(symbol(&symbols, "Item").kind, SymbolKind::Constant);
+        assert_eq!(symbol(&symbols, "count").kind, SymbolKind::Variable);
+        assert_eq!(symbol(&symbols, "scratch").kind, SymbolKind::Variable);
+    }
+
+    #[test]
+    fn slice_type_records_element_base_with_declared_slice() {
+        let (symbols, extractor) = extract(
+            r#"
+const Store = struct {
+    name: []const u8,
+};
+
+fn f(name: []const u8, path: [:0]const u8) void {}
+"#,
         );
+
+        let field = symbols
+            .iter()
+            .find(|s| s.name == "name" && s.kind == SymbolKind::Field)
+            .expect("missing name field");
+        let field_fact = fact(&extractor, field);
+        assert_eq!(field_fact.resolved_type, "u8");
+        assert!(!field_fact.is_inferred);
+        assert_eq!(
+            declared_metadata(field_fact),
+            Some(&serde_json::json!("[]const u8"))
+        );
+
+        let f = symbol(&symbols, "f");
+        let name_fact = param_fact(&extractor, &symbols, f, "name");
+        assert_eq!(name_fact.resolved_type, "u8");
+        assert_eq!(
+            declared_metadata(name_fact),
+            Some(&serde_json::json!("[]const u8"))
+        );
+        let path_fact = param_fact(&extractor, &symbols, f, "path");
+        assert_eq!(path_fact.resolved_type, "u8");
+        assert_eq!(
+            declared_metadata(path_fact),
+            Some(&serde_json::json!("[:0]const u8"))
+        );
+    }
+
+    #[test]
+    fn artifact_types_carry_no_rows_for_negative_case_locals() {
+        let code = r#"
+const Store = struct {
+    items: i32,
+};
+
+fn make() void {}
+
+fn demo(self: *Store, event: []const u8) void {
+    const s = Store{ .items = 1 };
+    const a = Unknown{};
+    const b = std.ArrayList(u8).init(undefined);
+    const c = make();
+    var buf: [8]u8 = undefined;
+    _ = .{ s, a, b, c, buf };
+}
+"#;
+        let tree = init_parser(code, "zig");
+        let results = crate::factory::extract_symbols_and_relationships(
+            &tree,
+            "test.zig",
+            code,
+            "zig",
+            &PathBuf::from("/tmp/test"),
+        )
+        .expect("zig extraction");
+
+        let id_of = |name: &str| {
+            results
+                .symbols
+                .iter()
+                .find(|s| s.name == name)
+                .unwrap_or_else(|| panic!("missing symbol `{name}`"))
+                .id
+                .clone()
+        };
+        for name in ["a", "b", "c", "buf", "demo", "make"] {
+            assert!(
+                results.types.get(&id_of(name)).is_none(),
+                "unexpected type row for `{name}`"
+            );
+        }
+        assert_eq!(results.types[&id_of("s")].resolved_type, "Store");
+        assert_eq!(results.types[&id_of("event")].resolved_type, "u8");
+        assert_eq!(results.types[&id_of("self")].resolved_type, "Store");
+        for info in results.types.values() {
+            let value = info.resolved_type.as_str();
+            assert!(
+                !value.contains(char::is_whitespace)
+                    && !value.contains(['(', '[', '<', '*', '&', '?'])
+                    && !matches!(value, "inferred" | "Unknown" | "std" | "make"),
+                "corrupt resolved_type `{value}`"
+            );
+        }
     }
 
     #[test]
@@ -290,6 +469,7 @@ const Store = struct {
 
     pub fn go(self: *@This()) void {
         self.run();
+        self.missing();
     }
 };
 "#;
@@ -304,19 +484,30 @@ const Store = struct {
         let identifiers = extractor.extract_identifiers(&tree, &symbols);
         extractor.extract_relationships(&tree, &symbols);
 
-        let run_calls: Vec<_> = identifiers
+        let self_calls: Vec<_> = identifiers
             .iter()
-            .filter(|id| id.name == "run" && id.kind == IdentifierKind::Call)
+            .filter(|id| {
+                (id.name == "run" || id.name == "missing") && id.kind == IdentifierKind::Call
+            })
             .collect();
-        assert_eq!(run_calls.len(), 1);
-        assert_eq!(run_calls[0].receiver_type.as_deref(), Some("Store"));
+        assert_eq!(self_calls.len(), 2);
+        assert!(
+            self_calls
+                .iter()
+                .all(|id| id.receiver_type.as_deref() == Some("Store"))
+        );
 
-        let run_pending: Vec<_> = extractor
-            .get_structured_pending_relationships()
-            .into_iter()
-            .filter(|pending| pending.target.terminal_name == "run")
+        let pending = extractor.get_structured_pending_relationships();
+        assert!(
+            pending
+                .iter()
+                .all(|pending| pending.target.terminal_name != "run")
+        );
+        let missing_pending: Vec<_> = pending
+            .iter()
+            .filter(|pending| pending.target.terminal_name == "missing")
             .collect();
-        assert_eq!(run_pending.len(), 1);
-        assert_eq!(run_pending[0].receiver_type.as_deref(), Some("Store"));
+        assert_eq!(missing_pending.len(), 1);
+        assert_eq!(missing_pending[0].receiver_type.as_deref(), Some("Store"));
     }
 }

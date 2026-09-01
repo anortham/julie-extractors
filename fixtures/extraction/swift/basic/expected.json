@@ -2964,15 +2964,6 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/swift/basic/source.swift:current:38:4",
-      "resolved_type": "enum-case",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/swift/basic/source.swift:enabled:64:28",
       "resolved_type": "Bool",
       "generic_params": null,
@@ -3092,24 +3083,6 @@
     {
       "symbol_key": "fixtures/extraction/swift/basic/source.swift:init:76:4",
       "resolved_type": "initializer",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/swift/basic/source.swift:items:85:8",
-      "resolved_type": "[Foo]",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/swift/basic/source.swift:legacy:36:4",
-      "resolved_type": "enum-case",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,

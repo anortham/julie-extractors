@@ -66,3 +66,8 @@ function Use-Facts {
     $n = New-Object Widget
     $g = Get-Thing
 }
+
+function Use-Arrays {
+    [string[]]$names = @()
+    [int[,]]$grid = $null
+}

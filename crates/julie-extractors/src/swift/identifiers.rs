@@ -574,72 +574,30 @@ pub(super) fn self_receiver_type(base: &BaseExtractor, node: Node) -> Option<Str
 }
 
 fn enclosing_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
-    let mut current = Some(node);
-    while let Some(parent) = current {
-        match parent.kind() {
-            "class_declaration" | "actor_declaration" => {
-                return parent
-                    .child_by_field_name("name")
-                    .map(|name| base.get_node_text(&name));
-            }
-            "struct_declaration" | "enum_declaration" | "extension_declaration" => {
-                return parent
-                    .child_by_field_name("name")
-                    .or_else(|| {
-                        parent
-                            .children(&mut parent.walk())
-                            .find(|child| child.kind() == "type_identifier")
-                    })
-                    .map(|name| base.get_node_text(&name));
-            }
-            _ => current = parent.parent(),
-        }
-    }
-    None
+    let declaration = enclosing_class_declaration(node)?;
+    declaration
+        .child_by_field_name("name")
+        .map(|name| base.get_node_text(&name))
 }
 
 fn first_inheritance_name(base: &BaseExtractor, node: Node) -> Option<String> {
-    let mut current = Some(node);
-    while let Some(parent) = current {
-        if matches!(
-            parent.kind(),
-            "class_declaration" | "struct_declaration" | "enum_declaration" | "actor_declaration"
-        ) {
-            return first_inheritance_entry(base, parent);
-        }
-        current = parent.parent();
-    }
-    None
+    let declaration = enclosing_class_declaration(node)?;
+    let specifier = declaration
+        .children(&mut declaration.walk())
+        .find(|child| child.kind() == "inheritance_specifier")?;
+    let inherited = specifier
+        .child_by_field_name("inherits_from")
+        .or_else(|| specifier.named_children(&mut specifier.walk()).next())?;
+    super::type_facts::base_type_name(base, inherited)
 }
 
-fn first_inheritance_entry(base: &BaseExtractor, node: Node) -> Option<String> {
-    if let Some(inheritance) = node
-        .children(&mut node.walk())
-        .find(|child| child.kind() == "type_inheritance_clause")
-    {
-        let name = inheritance
-            .children(&mut inheritance.walk())
-            .find(|child| matches!(child.kind(), "type_identifier" | "type" | "user_type"))
-            .map(|child| base.get_node_text(&child));
-        if name.is_some() {
-            return name;
+fn enclosing_class_declaration(node: Node) -> Option<Node> {
+    let mut current = Some(node);
+    while let Some(parent) = current {
+        if parent.kind() == "class_declaration" {
+            return Some(parent);
         }
-    }
-    let children: Vec<_> = node.children(&mut node.walk()).collect();
-    let start = children.iter().position(|child| child.kind() == ":")?;
-    for child in &children[start + 1..] {
-        match child.kind() {
-            "inheritance_specifier" => {
-                return child
-                    .children(&mut child.walk())
-                    .find(|c| matches!(c.kind(), "user_type" | "type_identifier" | "type"))
-                    .map(|n| base.get_node_text(&n))
-                    .or_else(|| Some(base.get_node_text(child)));
-            }
-            "class_body" | "struct_body" | "enum_body" | "protocol_body" | "where_clause"
-            | "type_parameters" => break,
-            _ => {}
-        }
+        current = parent.parent();
     }
     None
 }

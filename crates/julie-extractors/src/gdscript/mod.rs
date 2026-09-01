@@ -42,6 +42,7 @@ pub struct GDScriptExtractor {
     pending_inheritance: HashMap<String, String>, // className -> baseClassName
     processed_positions: HashSet<String>,         // Track processed node positions
     current_class_context: Option<String>,        // Current class ID for scope tracking
+    same_file_class_names: HashSet<String>,
 }
 
 impl GDScriptExtractor {
@@ -56,6 +57,7 @@ impl GDScriptExtractor {
             pending_inheritance: HashMap::new(),
             processed_positions: HashSet::new(),
             current_class_context: None,
+            same_file_class_names: HashSet::new(),
         }
     }
 
@@ -66,6 +68,7 @@ impl GDScriptExtractor {
         self.current_class_context = None;
 
         let root_node = tree.root_node();
+        self.same_file_class_names = type_facts::collect_class_names(&self.base, root_node);
         // First pass: collect inheritance information
         classes::collect_inheritance_info(&mut self.base, root_node, &mut self.pending_inheritance);
 
@@ -301,8 +304,12 @@ impl GDScriptExtractor {
                 // Skip if this var node is part of a variable_statement
                 if let Some(parent) = node.parent()
                     && parent.kind() != "variable_statement"
-                    && let Some(symbol) =
-                        variables::extract_variable_statement(&mut self.base, node, parent_id)
+                    && let Some(symbol) = variables::extract_variable_statement(
+                        &mut self.base,
+                        node,
+                        parent_id,
+                        &self.same_file_class_names,
+                    )
                 {
                     extracted_symbol = Some(symbol);
                 }
@@ -313,14 +320,18 @@ impl GDScriptExtractor {
                     node,
                     parent_id,
                     symbols,
+                    &self.same_file_class_names,
                 ) {
                     extracted_symbol = Some(symbol);
                 }
             }
             "const" => {
-                if let Some(symbol) =
-                    variables::extract_constant_statement(&mut self.base, node, parent_id)
-                {
+                if let Some(symbol) = variables::extract_constant_statement(
+                    &mut self.base,
+                    node,
+                    parent_id,
+                    &self.same_file_class_names,
+                ) {
                     extracted_symbol = Some(symbol);
                 }
             }

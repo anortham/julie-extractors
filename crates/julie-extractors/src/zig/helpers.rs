@@ -25,7 +25,7 @@ pub(super) fn is_inside_struct(node: Node) -> bool {
     let mut current = node.parent();
     while let Some(parent) = current {
         match parent.kind() {
-            "struct_declaration" | "container_declaration" | "enum_declaration" => {
+            "struct_declaration" | "union_declaration" | "enum_declaration" => {
                 return true;
             }
             _ => {

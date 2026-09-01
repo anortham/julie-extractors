@@ -115,23 +115,14 @@ impl super::GoExtractor {
         body_parts.join("; ")
     }
 
-    /// Extract type from receiver parameter (handle *Type and Type)
+    /// Extract the base type name from a receiver parameter: `Type`, `*Type`,
+    /// `Type[T]`, and `*Type[T]` all reduce to `Type`.
     pub(super) fn extract_receiver_type_from_param(&self, param_decl: Node) -> String {
-        let mut cursor = param_decl.walk();
-        for child in param_decl.children(&mut cursor) {
-            if child.kind() == "type_identifier" {
-                return self.get_node_text(child);
-            } else if child.kind() == "pointer_type" {
-                // Handle pointer types like *User
-                let type_id = child
-                    .children(&mut child.walk())
-                    .find(|c| c.kind() == "type_identifier");
-                return type_id
-                    .map(|tid| self.get_node_text(tid))
-                    .unwrap_or_default();
-            }
-        }
-        String::new()
+        param_decl
+            .child_by_field_name("type")
+            .and_then(receiver_base_type_node)
+            .map(|type_node| self.get_node_text(type_node))
+            .unwrap_or_default()
     }
 
     /// Extract return type from function signatures like "func getName() string"
@@ -341,6 +332,15 @@ pub(super) fn finalize_function_symbol(mut symbol: Symbol, doc_comment: Option<S
         symbol.doc_comment = None;
     }
     symbol
+}
+
+fn receiver_base_type_node(type_node: Node) -> Option<Node> {
+    match type_node.kind() {
+        "type_identifier" => Some(type_node),
+        "pointer_type" => receiver_base_type_node(type_node.named_child(0)?),
+        "generic_type" => receiver_base_type_node(type_node.child_by_field_name("type")?),
+        _ => None,
+    }
 }
 
 fn select_go_doc_comment_block(comments_nearest_first: &[String]) -> Option<String> {

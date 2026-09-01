@@ -2586,33 +2586,6 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/dart/basic/source.dart:a:38:4",
-      "resolved_type": "final",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "dart",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/dart/basic/source.dart:b:39:4",
-      "resolved_type": "final",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "dart",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/dart/basic/source.dart:c:40:4",
-      "resolved_type": "final",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "dart",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/dart/basic/source.dart:constructed:35:4",
       "resolved_type": "Foo",
       "generic_params": null,
@@ -2685,15 +2658,6 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/dart/basic/source.dart:i:69:9",
-      "resolved_type": "var",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "dart",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/dart/basic/source.dart:id:50:15",
       "resolved_type": "int",
       "generic_params": null,
@@ -2732,15 +2696,6 @@
     {
       "symbol_key": "fixtures/extraction/dart/basic/source.dart:inferred:34:4",
       "resolved_type": "Foo",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "dart",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/dart/basic/source.dart:loadRemote:16:2",
-      "resolved_type": "async",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
@@ -2806,15 +2761,6 @@
     {
       "symbol_key": "fixtures/extraction/dart/basic/source.dart:run:2:2",
       "resolved_type": "int",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "dart",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/dart/basic/source.dart:total:67:2",
-      "resolved_type": "var",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,

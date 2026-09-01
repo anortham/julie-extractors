@@ -33,11 +33,17 @@ pub(super) fn record_inferred_constructor_facts(
 }
 
 pub(super) fn colon_method_owner_name(base: &BaseExtractor, function_node: Node) -> Option<String> {
-    let name = function_node.child_by_field_name("name")?;
-    if name.kind() != "method_index_expression" {
-        return None;
-    }
-    identifier_table_name(base, name)
+    identifier_table_name(base, colon_method_index(function_node)?)
+}
+
+pub(super) fn colon_method_name_node(function_node: Node) -> Option<Node> {
+    colon_method_index(function_node)?.child_by_field_name("method")
+}
+
+fn colon_method_index(function_node: Node) -> Option<Node> {
+    function_node
+        .child_by_field_name("name")
+        .filter(|name| name.kind() == "method_index_expression")
 }
 
 pub(super) fn enclosing_colon_owner_name(base: &BaseExtractor, mut node: Node) -> Option<String> {
@@ -83,10 +89,7 @@ fn walk_constructor_facts(
     if !should_visit_tree_depth(depth) {
         return;
     }
-    if matches!(
-        node.kind(),
-        "variable_declaration" | "local_variable_declaration"
-    ) {
+    if node.kind() == "variable_declaration" {
         record_declaration_constructor_facts(base, node, symbols, class_names);
     }
     let Some(child_depth) = child_tree_depth(depth) else {

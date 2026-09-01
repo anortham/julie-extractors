@@ -325,14 +325,29 @@ fn qualified_declarator_scope(base: &BaseExtractor, node: Node) -> Option<String
     loop {
         match current.kind() {
             "qualified_identifier" => {
+                let name = current.child_by_field_name("name")?;
+                if name.kind() == "qualified_identifier" {
+                    current = name;
+                    continue;
+                }
                 let scope = current.child_by_field_name("scope")?;
-                return Some(base.get_node_text(&scope));
+                return scope_segment_name(base, scope);
             }
             "function_declarator" | "pointer_declarator" | "reference_declarator" => {
                 current = current.child_by_field_name("declarator")?;
             }
             _ => return None,
         }
+    }
+}
+
+fn scope_segment_name(base: &BaseExtractor, scope: Node) -> Option<String> {
+    match scope.kind() {
+        "namespace_identifier" => Some(base.get_node_text(&scope)),
+        "template_type" => scope
+            .child_by_field_name("name")
+            .map(|name| base.get_node_text(&name)),
+        _ => None,
     }
 }
 

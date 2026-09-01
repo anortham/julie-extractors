@@ -844,17 +844,7 @@
     }
   ],
   "identifiers": [],
-  "types": [
-    {
-      "symbol_key": "fixtures/extraction/erlang/test_roles_common_test/source.erl:all:26:0",
-      "resolved_type": "[atom()]",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "erlang",
-      "metadata": null
-    }
-  ],
+  "types": [],
   "parse_diagnostics": [],
   "structural_facts": [
     {
