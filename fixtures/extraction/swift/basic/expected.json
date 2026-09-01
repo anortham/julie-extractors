@@ -1475,15 +1475,6 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/swift/basic/source.swift:mapping:8:4",
-      "resolved_type": "Array<Dictionary<String, Int>>",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/swift/basic/source.swift:next:18:8",
       "resolved_type": "Any",
       "generic_params": null,

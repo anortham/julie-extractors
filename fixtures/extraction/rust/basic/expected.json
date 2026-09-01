@@ -1215,15 +1215,6 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/rust/basic/source.rs:build_index:44:4",
-      "resolved_type": "HashMap<String, Vec<u8>>",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "rust",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/rust/basic/source.rs:count:48:20",
       "resolved_type": "i32",
       "generic_params": null,

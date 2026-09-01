@@ -917,15 +917,6 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/vbnet/basic/source.vb:Index:11:8",
-      "resolved_type": "Dictionary(Of String, List(Of Integer))",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "vbnet",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/vbnet/basic/source.vb:Run:16:8",
       "resolved_type": "Integer",
       "generic_params": null,

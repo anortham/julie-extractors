@@ -3089,26 +3089,8 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:create:42:0",
-      "resolved_type": "impl Responder",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "rust",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
       "resolved_type": "App<()>",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "rust",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:health:45:0",
-      "resolved_type": "impl Responder",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
@@ -3134,26 +3116,8 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:report_index:48:0",
-      "resolved_type": "impl Responder",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "rust",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:reports_scope:27:0",
       "resolved_type": "App<()>",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "rust",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:show:39:0",
-      "resolved_type": "impl Responder",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,

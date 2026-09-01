@@ -55,22 +55,29 @@ fn annotation_type_node(annotated_node: Node<'_>) -> Option<Node<'_>> {
 }
 
 fn declared_type_text(base: &BaseExtractor, type_node: Node) -> Option<String> {
-    if is_plain_named_type(type_node.kind()) {
+    if is_plain_named_type(type_node) {
         return Some(base.get_node_text(&type_node));
     }
     if type_node.kind() == "array_type" {
         let mut cursor = type_node.walk();
         let element = type_node.named_children(&mut cursor).next()?;
-        if is_plain_named_type(element.kind()) {
+        if is_plain_named_type(element) {
             return Some(base.get_node_text(&type_node));
         }
     }
     None
 }
 
-fn is_plain_named_type(node_kind: &str) -> bool {
-    matches!(
-        node_kind,
-        "type_identifier" | "nested_type_identifier" | "predefined_type" | "generic_type"
-    )
+fn is_plain_named_type(type_node: Node) -> bool {
+    match type_node.kind() {
+        "type_identifier" | "nested_type_identifier" | "generic_type" => true,
+        "predefined_type" => !is_unique_symbol_operator(type_node),
+        _ => false,
+    }
+}
+
+fn is_unique_symbol_operator(predefined_type_node: Node) -> bool {
+    predefined_type_node
+        .child(0)
+        .is_some_and(|child| child.kind() == "unique symbol")
 }

@@ -919,29 +919,11 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/rust/http_client/source.rs:dynamic:16:0",
-      "resolved_type": "Result<(), reqwest::Error>",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "rust",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/rust/http_client/source.rs:id:16:21",
       "resolved_type": "u32",
       "generic_params": null,
       "constraints": null,
       "is_inferred": false,
-      "language": "rust",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/rust/http_client/source.rs:load:7:0",
-      "resolved_type": "Result<(), reqwest::Error>",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
       "language": "rust",
       "metadata": null
     }

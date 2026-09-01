@@ -226,15 +226,6 @@
       "is_inferred": true,
       "language": "c",
       "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/c/cross_file/source.c:local_helper:9:0",
-      "resolved_type": "static int",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "c",
-      "metadata": null
     }
   ],
   "parse_diagnostics": [],

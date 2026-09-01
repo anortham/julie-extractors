@@ -1372,15 +1372,6 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/kotlin/basic/source.kt:index:20:4",
-      "resolved_type": "List<Map<String, Int>>",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "kotlin",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/kotlin/basic/source.kt:loadRemote:28:4",
       "resolved_type": "Int",
       "generic_params": null,

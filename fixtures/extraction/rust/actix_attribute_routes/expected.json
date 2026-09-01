@@ -1381,42 +1381,6 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:create:14:0",
-      "resolved_type": "impl Responder",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "rust",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:destroy:22:0",
-      "resolved_type": "impl Responder",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "rust",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:health:37:4",
-      "resolved_type": "impl Responder",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "rust",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:list:46:0",
-      "resolved_type": "impl Responder",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "rust",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:path:22:17",
       "resolved_type": "Path",
       "generic_params": null,
@@ -1444,24 +1408,6 @@
       "generic_params": null,
       "constraints": null,
       "is_inferred": false,
-      "language": "rust",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:show:8:0",
-      "resolved_type": "impl Responder",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "rust",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:thing:28:0",
-      "resolved_type": "impl Responder",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
       "language": "rust",
       "metadata": null
     }

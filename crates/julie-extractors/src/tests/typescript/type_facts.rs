@@ -210,6 +210,22 @@ class Worker {
     }
 
     #[test]
+    fn unique_symbol_annotation_records_no_fact() {
+        let (symbols, extractor) = extract("const $output: unique symbol = Symbol();");
+
+        let output = symbol(&symbols, "$output");
+        assert!(extractor.base.type_info.get(&output.id).is_none());
+    }
+
+    #[test]
+    fn plain_symbol_annotation_still_records_fact() {
+        let (symbols, extractor) = extract("const token: symbol = Symbol();");
+
+        let token = symbol(&symbols, "token");
+        assert_eq!(fact(&extractor, token).resolved_type, "symbol");
+    }
+
+    #[test]
     fn destructured_parameters_get_no_symbols() {
         let (symbols, _extractor) = extract("function draw({x, y}: Point) {}");
 

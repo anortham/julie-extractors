@@ -11,12 +11,18 @@ use std::collections::HashMap;
 use std::path::Path;
 
 /// Convert a raw type map from `infer_types()` into the richer `TypeInfo` structure.
+///
+/// Legacy inferred values sometimes carry raw source text instead of a type
+/// name. Values that can never verbatim-match a type symbol (whitespace, a
+/// comma, a trailing `<`, or a `>` without `<`) are dropped; everything else
+/// is kept exactly as-is because these rows predate the base-name contract.
 pub(crate) fn convert_types_map(
     types: HashMap<String, String>,
     language: &str,
 ) -> HashMap<String, TypeInfo> {
     types
         .into_iter()
+        .filter(|(_, type_string)| is_bindable_type_name(type_string))
         .map(|(symbol_id, type_string)| {
             (
                 symbol_id.clone(),
@@ -32,6 +38,13 @@ pub(crate) fn convert_types_map(
             )
         })
         .collect()
+}
+
+fn is_bindable_type_name(value: &str) -> bool {
+    if value.chars().any(char::is_whitespace) || value.contains(',') || value.ends_with('<') {
+        return false;
+    }
+    !value.contains('>') || value.contains('<')
 }
 
 #[cfg(test)]

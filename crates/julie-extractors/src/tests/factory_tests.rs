@@ -30,6 +30,61 @@ fn test_convert_types_map_basic() {
 }
 
 #[test]
+fn test_convert_types_map_drops_unbindable_values() {
+    let junk = [
+        "self.data or {}",
+        "unique symbol",
+        "Result<Vec<String>,",
+        "HashMap<",
+        "String, Error>",
+        "TSource>",
+        "\tint",
+        "line\nbreak",
+    ];
+    let mut types = HashMap::new();
+    for (index, value) in junk.iter().enumerate() {
+        types.insert(format!("sym_{index}"), value.to_string());
+    }
+
+    let result = convert_types_map(types, "python");
+
+    assert!(
+        result.is_empty(),
+        "junk values must be dropped, kept: {:?}",
+        result
+            .values()
+            .map(|t| &t.resolved_type)
+            .collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn test_convert_types_map_keeps_bindable_values() {
+    let clean = [
+        "Foo[]",
+        "mod.Foo",
+        "Dictionary<string>",
+        "IEnumerable<TSource>",
+        "&str",
+        "Option<Vec<String>>",
+    ];
+    let mut types = HashMap::new();
+    for (index, value) in clean.iter().enumerate() {
+        types.insert(format!("sym_{index}"), value.to_string());
+    }
+
+    let result = convert_types_map(types, "rust");
+
+    assert_eq!(result.len(), clean.len());
+    for value in clean {
+        assert!(
+            result.values().any(|t| t.resolved_type == value),
+            "`{value}` must be kept exactly as-is"
+        );
+    }
+}
+
+#[test]
 fn test_convert_types_map_empty() {
     let types: HashMap<String, String> = HashMap::new();
     let result = convert_types_map(types, "python");

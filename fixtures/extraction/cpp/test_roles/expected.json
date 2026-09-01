@@ -2153,33 +2153,6 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:SetUp:11:4",
-      "resolved_type": "override static void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "cpp",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:SetUp:19:4",
-      "resolved_type": "override static void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "cpp",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:SetUp:27:4",
-      "resolved_type": "override static void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "cpp",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:SetUp:35:4",
       "resolved_type": "void",
       "generic_params": null,
@@ -2189,53 +2162,8 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:SetUp:43:9",
-      "resolved_type": "override static",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "cpp",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:SetUp:51:9",
-      "resolved_type": "override static",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "cpp",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:SetUp:78:0",
       "resolved_type": "void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "cpp",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:SetUpTestSuite:13:4",
-      "resolved_type": "override void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "cpp",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:SetUpTestSuite:21:4",
-      "resolved_type": "override void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "cpp",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:SetUpTestSuite:29:4",
-      "resolved_type": "override void",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
@@ -2270,80 +2198,8 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:TearDown:12:4",
-      "resolved_type": "override static void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "cpp",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:TearDown:20:4",
-      "resolved_type": "override static void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "cpp",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:TearDown:28:4",
-      "resolved_type": "override static void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "cpp",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:TearDown:36:4",
       "resolved_type": "void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "cpp",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:TearDown:44:9",
-      "resolved_type": "override static",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "cpp",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:TearDown:52:9",
-      "resolved_type": "override static",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "cpp",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:TearDownTestSuite:14:4",
-      "resolved_type": "override void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "cpp",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:TearDownTestSuite:22:4",
-      "resolved_type": "override void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "cpp",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:TearDownTestSuite:30:4",
-      "resolved_type": "override void",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,

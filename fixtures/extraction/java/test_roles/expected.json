@@ -4279,161 +4279,8 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/java/test_roles/test_source.java:addsEachPair:55:4",
-      "resolved_type": "ParameterizedTest void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "java",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/java/test_roles/test_source.java:addsRepeatedly:60:4",
-      "resolved_type": "RepeatedTest void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "java",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/java/test_roles/test_source.java:addsTwoNumbers:40:4",
-      "resolved_type": "Test void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "java",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/java/test_roles/test_source.java:addsWithJUnit4:85:4",
-      "resolved_type": "Test public void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "java",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/java/test_roles/test_source.java:addsWithTestNg:133:4",
       "resolved_type": "void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "java",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/java/test_roles/test_source.java:after:80:4",
-      "resolved_type": "After public void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "java",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/java/test_roles/test_source.java:afterAll:25:4",
-      "resolved_type": "AfterAll static void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "java",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/java/test_roles/test_source.java:afterGroups:118:4",
-      "resolved_type": "AfterGroups public void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "java",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/java/test_roles/test_source.java:afterMethod:128:4",
-      "resolved_type": "AfterMethod public void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "java",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/java/test_roles/test_source.java:afterSuite:98:4",
-      "resolved_type": "AfterSuite public void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "java",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/java/test_roles/test_source.java:afterTest:108:4",
-      "resolved_type": "AfterTest public void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "java",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/java/test_roles/test_source.java:before:75:4",
-      "resolved_type": "Before public void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "java",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/java/test_roles/test_source.java:beforeAll:20:4",
-      "resolved_type": "BeforeAll static void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "java",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/java/test_roles/test_source.java:beforeGroups:113:4",
-      "resolved_type": "BeforeGroups public void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "java",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/java/test_roles/test_source.java:beforeMethod:123:4",
-      "resolved_type": "BeforeMethod public void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "java",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/java/test_roles/test_source.java:beforeSuite:93:4",
-      "resolved_type": "BeforeSuite public void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "java",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/java/test_roles/test_source.java:beforeTest:103:4",
-      "resolved_type": "BeforeTest public void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "java",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/java/test_roles/test_source.java:buildsDynamicCases:45:4",
-      "resolved_type": "TestFactory void",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
@@ -4468,29 +4315,11 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/java/test_roles/test_source.java:reportsZero:67:8",
-      "resolved_type": "Test void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "java",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/java/test_roles/test_source.java:running:12:4",
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
       "is_inferred": false,
-      "language": "java",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/java/test_roles/test_source.java:runsTemplate:50:4",
-      "resolved_type": "TestTemplate void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
       "language": "java",
       "metadata": null
     },
@@ -4506,24 +4335,6 @@
     {
       "symbol_key": "fixtures/extraction/java/test_roles/test_source.java:seed:14:4",
       "resolved_type": "void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "java",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/java/test_roles/test_source.java:setUp:30:4",
-      "resolved_type": "BeforeEach void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "java",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/java/test_roles/test_source.java:tearDown:35:4",
-      "resolved_type": "AfterEach void",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,

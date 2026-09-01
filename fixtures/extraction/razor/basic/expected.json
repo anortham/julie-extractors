@@ -1201,24 +1201,6 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/razor/basic/source.razor:index:15:16",
-      "resolved_type": "Dictionary<string, List<int>>",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/basic/source.razor:index:15:8",
-      "resolved_type": "Dictionary<string, List<int>>",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/razor/basic/source.razor:source:1:0",
       "resolved_type": "unknown",
       "generic_params": null,

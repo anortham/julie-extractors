@@ -1059,15 +1059,6 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/erlang/basic/source.erl:init:20:0",
-      "resolved_type": "{ok, term()}",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "erlang",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/erlang/basic/source.erl:open:24:0",
       "resolved_type": "#account{}",
       "generic_params": null,

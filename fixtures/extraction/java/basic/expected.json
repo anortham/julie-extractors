@@ -2136,15 +2136,6 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/java/basic/source.java:fetchUrl:70:4",
-      "resolved_type": "static void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "java",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/java/basic/source.java:guardedFetch:23:4",
       "resolved_type": "void",
       "generic_params": null,
@@ -2246,15 +2237,6 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/java/basic/source.java:observeRun:62:4",
-      "resolved_type": "static void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "java",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/java/basic/source.java:openStream:36:4",
       "resolved_type": "AutoCloseable",
       "generic_params": null,
@@ -2266,15 +2248,6 @@
     {
       "symbol_key": "fixtures/extraction/java/basic/source.java:readConfig:29:4",
       "resolved_type": "void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "java",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/java/basic/source.java:recordRun:57:4",
-      "resolved_type": "static void",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,

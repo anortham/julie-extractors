@@ -541,17 +541,7 @@
       "confidence": "1.000"
     }
   ],
-  "types": [
-    {
-      "symbol_key": "fixtures/extraction/erlang/cross_file/source.erl:settle:26:0",
-      "resolved_type": "{ok, integer()}",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "erlang",
-      "metadata": null
-    }
-  ],
+  "types": [],
   "parse_diagnostics": [],
   "structural_facts": [
     {

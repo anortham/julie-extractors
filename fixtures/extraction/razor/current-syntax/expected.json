@@ -688,24 +688,6 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/razor/current-syntax/source.razor:t:17:3",
-      "resolved_type": "Func<dynamic, object>",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/current-syntax/source.razor:t:17:3",
-      "resolved_type": "Func<dynamic, object>",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/razor/current-syntax/source.razor:value:12:30",
       "resolved_type": "unknown",
       "generic_params": null,

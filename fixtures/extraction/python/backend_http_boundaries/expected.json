@@ -1487,15 +1487,6 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/python/backend_http_boundaries/source.py:urlpatterns:29:0",
-      "resolved_type": "pk>/\", views.detail, name",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "python",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/python/backend_http_boundaries/source.py:user_id:11:17",
       "resolved_type": "str",
       "generic_params": null,
