@@ -1,6 +1,8 @@
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
 use std::collections::HashMap;
 use tree_sitter::Node;
+use super::type_facts;
+
 
 /// Extract struct type declarations
 pub(super) fn extract_struct(
@@ -169,19 +171,23 @@ pub(super) fn extract_struct_field(
 
     let signature = format!("{}: {}", field_name, field_type);
 
-    Some(base.create_symbol(
+    let symbol = base.create_symbol(
         &node,
         field_name,
         SymbolKind::Field,
         SymbolOptions {
             signature: Some(signature),
-            visibility: Some(Visibility::Public), // Zig struct fields are generally public
+            visibility: Some(Visibility::Public),
             parent_id: parent_id.cloned(),
             metadata: None,
             doc_comment: None,
             annotations: Vec::new(),
         },
-    ))
+    );
+    if let Some(declared_type) = node.child_by_field_name("type").or(type_node) {
+        type_facts::record_declared_type(base, &symbol.id, declared_type);
+    }
+    Some(symbol)
 }
 
 /// Extract error type declarations (error_declaration)

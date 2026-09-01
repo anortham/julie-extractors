@@ -10,6 +10,11 @@ pub const Worker = struct {
         return helper(self.id);
     }
 
+    pub fn go(self: *Worker) i32 {
+        return self.run();
+    }
+
+
     const Self = @This();
 };
 
@@ -66,3 +71,19 @@ pub fn evaluate(count: i32, enabled: bool) i32 {
 }
 
 var workerIndex: Map(Key, ArrayList(User)) = undefined;
+
+const Store = struct {
+    items: i32,
+};
+
+fn make() void {}
+
+fn demo() void {
+    const s = Store{ .items = 1 };
+    const a = Unknown{};
+    const b = std.ArrayList(u8).init(undefined);
+    const c = make();
+    var buf: [8]u8 = undefined;
+    _ = .{ s, a, b, c, buf };
+}
+

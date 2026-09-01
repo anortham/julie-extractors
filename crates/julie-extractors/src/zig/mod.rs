@@ -10,6 +10,9 @@ mod error_handling;
 mod functions;
 mod helpers;
 mod identifiers;
+mod parameters;
+mod type_facts;
+
 mod imports;
 mod relationships;
 mod type_inference;
@@ -91,6 +94,16 @@ impl ZigExtractor {
 
         if let Some(symbol) = self.extract_symbol_from_node(node, parent_id.as_ref()) {
             current_parent_id = Some(symbol.id.clone());
+            if matches!(
+                node.kind(),
+                "function_declaration" | "function_definition"
+            ) {
+                symbols.extend(parameters::extract_parameter_symbols(
+                    self,
+                    node,
+                    &symbol.id,
+                ));
+            }
             symbols.push(symbol);
         }
 
