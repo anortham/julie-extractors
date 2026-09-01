@@ -1,6 +1,32 @@
 {
   "symbols": [
     {
+      "key": "fixtures/extraction/erlang/test_roles/source.erl:_Account:26:11",
+      "name": "_Account",
+      "kind": "variable",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles/source.erl",
+      "start_line": 26,
+      "start_column": 11,
+      "end_line": 26,
+      "end_column": 19,
+      "start_byte": 901,
+      "end_byte": 909,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "_Account",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/erlang/test_roles/source.erl:check_test:26:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/erlang/test_roles/source.erl:balance_test:19:0",
       "name": "balance_test",
       "kind": "function",

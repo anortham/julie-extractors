@@ -29,8 +29,10 @@ mod doc;
 mod helpers;
 mod identifiers;
 mod lexical;
+mod parameters;
 mod recovery;
 mod relationships;
+mod type_facts;
 mod types;
 
 const EXPORT_ALL_OPTION: &str = "export_all";
@@ -176,6 +178,7 @@ impl ErlangExtractor {
         self.collect_exports(declarations);
         self.test_module = self.classify_test_module(declarations);
         self.declared_types = types::collect(&self.base, declarations);
+        let same_file_records = type_facts::same_file_record_names(&self.base, declarations);
 
         let clause_counts = self.clause_counts(declarations);
         let module_doc = self.module_doc(declarations);
@@ -205,23 +208,28 @@ impl ErlangExtractor {
                 "callback" => attributes::extract_callback(self, declaration, parent_id),
                 "fun_decl" => {
                     let clause = definition_forms::function_clause(self, declaration);
-                    clause.and_then(|clause| {
-                        if !emitted.insert(clause.identity.clone()) {
-                            return None;
+                    if let Some(clause) = clause {
+                        if emitted.insert(clause.identity.clone()) {
+                            let clause_count =
+                                clause_counts.get(&clause.identity).copied().unwrap_or(1);
+                            if let Some(extent) =
+                                self.clause_run_extent(declarations, index, &clause.identity)
+                            {
+                                symbols.extend(definition_forms::extract_function(
+                                    self,
+                                    declaration,
+                                    extent,
+                                    &clause,
+                                    clause_count,
+                                    parent_id,
+                                    declarations,
+                                    index,
+                                    &same_file_records,
+                                ));
+                            }
                         }
-                        let clause_count =
-                            clause_counts.get(&clause.identity).copied().unwrap_or(1);
-                        let extent =
-                            self.clause_run_extent(declarations, index, &clause.identity)?;
-                        Some(definition_forms::extract_function(
-                            self,
-                            declaration,
-                            extent,
-                            &clause,
-                            clause_count,
-                            parent_id,
-                        ))
-                    })
+                    }
+                    None
                 }
                 _ => None,
             };
