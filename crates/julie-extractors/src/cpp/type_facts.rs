@@ -82,7 +82,7 @@ fn record_stated_type(
     type_node: Node,
     declarator: Option<Node>,
 ) {
-    let Some(base_name) = structural_base_name(base, type_node) else {
+    let Some(base_name) = structural_base_name(base, type_node, 0) else {
         return;
     };
     let declared = declared_type_text(base, container, type_node, declarator);
@@ -102,7 +102,10 @@ fn is_auto_type(type_node: Node) -> bool {
     )
 }
 
-fn structural_base_name(base: &BaseExtractor, node: Node) -> Option<String> {
+fn structural_base_name(base: &BaseExtractor, node: Node, depth: u32) -> Option<String> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
     let mut node = node;
     loop {
         match node.kind() {
@@ -117,11 +120,14 @@ fn structural_base_name(base: &BaseExtractor, node: Node) -> Option<String> {
                 node = node.child_by_field_name("name")?;
             }
             "qualified_identifier" => {
+                let Some(child_depth) = child_tree_depth(depth) else {
+                    return None;
+                };
                 let scope = node.child_by_field_name("scope")?;
                 let name = node.child_by_field_name("name")?;
-                let scope_text = structural_base_name(base, scope)
+                let scope_text = structural_base_name(base, scope, child_depth)
                     .unwrap_or_else(|| base.get_node_text(&scope));
-                let name_text = structural_base_name(base, name)?;
+                let name_text = structural_base_name(base, name, child_depth)?;
                 return Some(format!("{scope_text}::{name_text}"));
             }
             "class_specifier" | "struct_specifier" | "union_specifier" | "enum_specifier" => {
@@ -228,7 +234,7 @@ fn inferred_constructor_name(
             if type_node.kind() == "qualified_identifier" {
                 return None;
             }
-            let name = structural_base_name(base, type_node)?;
+            let name = structural_base_name(base, type_node, 0)?;
             same_file_defines_type(base, origin, &name).then_some(name)
         }
         _ => None,

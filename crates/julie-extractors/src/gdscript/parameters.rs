@@ -1,5 +1,6 @@
 use super::type_facts;
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::Node;
 
@@ -15,7 +16,7 @@ pub(super) fn extract_parameter_symbols(
     let mut symbols = Vec::new();
     let mut cursor = params_node.walk();
     for param_node in params_node.named_children(&mut cursor) {
-        symbols.extend(extract_one_parameter(base, param_node, callable_id));
+        symbols.extend(extract_one_parameter(base, param_node, callable_id, 0));
     }
     symbols
 }
@@ -24,12 +25,19 @@ fn extract_one_parameter(
     base: &mut BaseExtractor,
     param_node: Node,
     callable_id: &str,
+    depth: u32,
 ) -> Vec<Symbol> {
+    if !should_visit_tree_depth(depth) {
+        return Vec::new();
+    }
     if param_node.kind() == "variadic_parameter" {
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return Vec::new();
+        };
         let mut nested = Vec::new();
         let mut cursor = param_node.walk();
         for child in param_node.named_children(&mut cursor) {
-            nested.extend(extract_one_parameter(base, child, callable_id));
+            nested.extend(extract_one_parameter(base, child, callable_id, child_depth));
         }
         return nested;
     }
