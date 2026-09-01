@@ -78,7 +78,11 @@ pub(super) fn extract_assignment(extractor: &mut PythonExtractor, node: Node) ->
     // Infer visibility from name
     let visibility = signatures::infer_visibility(&name);
 
-    let parent_id = helpers::find_parent_class_id(extractor, &node);
+    let parent_id = if symbol_kind == crate::base::SymbolKind::Property {
+        helpers::find_parent_class_id(extractor, &node)
+    } else {
+        helpers::find_enclosing_callable_id(extractor, &node)
+    };
 
     let mut metadata = HashMap::new();
     metadata.insert(
@@ -144,7 +148,7 @@ fn extract_multiple_assignment_targets(
         String::new()
     };
 
-    let parent_id = helpers::find_parent_class_id(extractor, &left_node);
+    let parent_id = helpers::find_enclosing_callable_id(extractor, &left_node);
 
     // Iterate through all identifiers in the pattern
     let mut cursor = left_node.walk();

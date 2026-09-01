@@ -1560,7 +1560,8 @@
         "end_column": 24,
         "start_byte": 1115,
         "end_byte": 1126
-      }
+      },
+      "receiver_type": "ArithmeticTest"
     },
     {
       "pending": {
@@ -1586,7 +1587,8 @@
         "end_column": 24,
         "start_byte": 1241,
         "end_byte": 1252
-      }
+      },
+      "receiver_type": "ArithmeticTest"
     }
   ],
   "identifiers": [
@@ -1620,7 +1622,8 @@
       "end_byte": 1126,
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:testAdditionInPlace:66:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "ArithmeticTest"
     },
     {
       "key": "fixtures/extraction/python/test_roles/test_source.py:assertEqual:call:71:13",
@@ -1636,7 +1639,8 @@
       "end_byte": 1252,
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:test_guarded_case:70:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "ArithmeticTest"
     },
     {
       "key": "fixtures/extraction/python/test_roles/test_source.py:asyncio:member_access:28:13",

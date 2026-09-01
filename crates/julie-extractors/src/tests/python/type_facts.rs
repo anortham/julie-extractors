@@ -1,4 +1,4 @@
-use crate::base::{Symbol, SymbolKind, TypeInfo};
+use crate::base::{Identifier, IdentifierKind, Symbol, SymbolKind, TypeInfo};
 use crate::python::PythonExtractor;
 use std::path::PathBuf;
 
@@ -16,6 +16,24 @@ fn extract(source: &str) -> (Vec<Symbol>, PythonExtractor) {
     );
     let symbols = extractor.extract_symbols(&tree);
     (symbols, extractor)
+}
+
+fn extract_calls(source: &str) -> (Vec<Symbol>, Vec<Identifier>, PythonExtractor) {
+    let mut parser = tree_sitter::Parser::new();
+    parser
+        .set_language(&tree_sitter_python::LANGUAGE.into())
+        .unwrap();
+    let tree = parser.parse(source, None).unwrap();
+    let workspace_root = PathBuf::from("/tmp/test");
+    let mut extractor = PythonExtractor::new(
+        "type_facts.py".to_string(),
+        source.to_string(),
+        &workspace_root,
+    );
+    let symbols = extractor.extract_symbols(&tree);
+    let identifiers = extractor.extract_identifiers(&tree, &symbols);
+    extractor.extract_relationships(&tree, &symbols);
+    (symbols, identifiers, extractor)
 }
 
 fn symbol<'a>(symbols: &'a [Symbol], name: &str, kind: SymbolKind) -> &'a Symbol {
@@ -265,4 +283,65 @@ def run(task: Task):
     let fact = fact(&extractor, &symbols, "task", SymbolKind::Variable);
     assert_eq!(fact.resolved_type, "Task");
     assert!(!fact.is_inferred);
+}
+
+#[test]
+fn method_local_parents_to_method_not_class() {
+    let source = r#"
+class Widget:
+    count = 0
+    def ping(self):
+        local = 1
+        a, b = 2, 3
+        self.attr = 4
+
+def run():
+    x = 5
+"#;
+    let (symbols, _) = extract(source);
+    let widget = symbol(&symbols, "Widget", SymbolKind::Class);
+    let ping = symbol(&symbols, "ping", SymbolKind::Method);
+    let run = symbol(&symbols, "run", SymbolKind::Function);
+    let local = symbol(&symbols, "local", SymbolKind::Variable);
+    let a = symbol(&symbols, "a", SymbolKind::Variable);
+    let count = symbol(&symbols, "count", SymbolKind::Variable);
+    let attr = symbol(&symbols, "attr", SymbolKind::Property);
+    let x = symbol(&symbols, "x", SymbolKind::Variable);
+    assert_eq!(local.parent_id.as_deref(), Some(ping.id.as_str()));
+    assert_eq!(a.parent_id.as_deref(), Some(ping.id.as_str()));
+    assert_eq!(x.parent_id.as_deref(), Some(run.id.as_str()));
+    assert_eq!(count.parent_id.as_deref(), Some(widget.id.as_str()));
+    assert_eq!(attr.parent_id.as_deref(), Some(widget.id.as_str()));
+}
+
+#[test]
+fn self_and_cls_calls_record_enclosing_class_as_receiver_type() {
+    let source = r#"
+class Widget:
+    def ping(self):
+        self.helper()
+        cls.helper()
+        other.helper()
+"#;
+    let (_, identifiers, extractor) = extract_calls(source);
+    let helpers: Vec<_> = identifiers
+        .iter()
+        .filter(|id| id.name == "helper" && id.kind == IdentifierKind::Call)
+        .collect();
+    assert_eq!(helpers.len(), 3);
+    assert_eq!(helpers[0].receiver_type.as_deref(), Some("Widget"));
+    assert_eq!(helpers[1].receiver_type.as_deref(), Some("Widget"));
+    assert_eq!(helpers[2].receiver_type, None);
+    let pending = extractor.get_structured_pending_relationships();
+    let pending_for = |receiver: &str| {
+        pending
+            .iter()
+            .find(|p| {
+                p.target.terminal_name == "helper" && p.target.receiver.as_deref() == Some(receiver)
+            })
+            .unwrap_or_else(|| panic!("missing pending helper on {receiver}"))
+    };
+    assert_eq!(pending_for("self").receiver_type.as_deref(), Some("Widget"));
+    assert_eq!(pending_for("cls").receiver_type.as_deref(), Some("Widget"));
+    assert_eq!(pending_for("other").receiver_type, None);
 }

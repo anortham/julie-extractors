@@ -1,6 +1,7 @@
 /// Identifier extraction for LSP-quality find_references
 /// Tracks function calls, member access, and other identifier usages
 use super::PythonExtractor;
+use super::helpers;
 use super::type_arguments::record_outermost_python_type_arguments;
 use crate::base::{BaseExtractor, Identifier, IdentifierKind, Symbol};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
@@ -81,12 +82,17 @@ fn extract_identifier_from_node(
                             let name = extractor.base_mut().get_node_text(&attr_node);
                             let containing_symbol_id =
                                 find_containing_symbol_id(extractor, node, symbol_map);
+                            let receiver_type = helpers::self_or_cls_receiver_type(
+                                extractor.base(),
+                                &function_node,
+                            );
 
-                            extractor.base_mut().create_identifier(
+                            extractor.base_mut().create_identifier_with_receiver_type(
                                 &attr_node,
                                 name,
                                 IdentifierKind::Call,
                                 containing_symbol_id,
+                                receiver_type,
                             );
                         }
                     }

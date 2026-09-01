@@ -26,6 +26,66 @@ pub fn find_parent_class_id(extractor: &PythonExtractor, node: &Node) -> Option<
     None
 }
 
+/// Walk ancestors and return the id of the first function_definition or
+/// async_function_definition. A class_definition reached first returns the class id.
+pub fn find_enclosing_callable_id(extractor: &PythonExtractor, node: &Node) -> Option<String> {
+    let mut current = *node;
+    while let Some(parent) = current.parent() {
+        match parent.kind() {
+            "function_definition" | "async_function_definition" => {
+                let name_text = match parent.child_by_field_name("name") {
+                    Some(name_node) => extractor.base().get_node_text(&name_node),
+                    None => {
+                        current = parent;
+                        continue;
+                    }
+                };
+                return Some(extractor.base().generate_id_for_node(&name_text, &parent));
+            }
+            "class_definition" => {
+                let class_name = match parent.child_by_field_name("name") {
+                    Some(name_node) => extractor.base().get_node_text(&name_node),
+                    None => {
+                        current = parent;
+                        continue;
+                    }
+                };
+                return Some(extractor.base().generate_id_for_node(&class_name, &parent));
+            }
+            _ => current = parent,
+        }
+    }
+    None
+}
+
+pub fn enclosing_class_name(base: &crate::base::BaseExtractor, node: &Node) -> Option<String> {
+    let mut current = *node;
+    while let Some(parent) = current.parent() {
+        if parent.kind() == "class_definition" {
+            let name_node = parent.child_by_field_name("name")?;
+            return Some(base.get_node_text(&name_node));
+        }
+        current = parent;
+    }
+    None
+}
+
+pub fn self_or_cls_receiver_type(
+    base: &crate::base::BaseExtractor,
+    function_node: &Node,
+) -> Option<String> {
+    if function_node.kind() != "attribute" {
+        return None;
+    }
+    let object = function_node.child_by_field_name("object")?;
+    let receiver = base.get_node_text(&object);
+    if receiver == "self" || receiver == "cls" {
+        enclosing_class_name(base, function_node)
+    } else {
+        None
+    }
+}
+
 /// Extract argument list from a superclasses node
 pub fn extract_argument_list(extractor: &PythonExtractor, node: &Node) -> Vec<String> {
     let mut args = Vec::new();
