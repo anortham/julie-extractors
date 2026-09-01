@@ -1,6 +1,7 @@
 //! Variable and constant extraction for GDScript
 
 use super::helpers::{extract_variable_annotations, find_child_by_type};
+use super::type_facts;
 use super::types::extract_variable_type;
 use crate::base::{
     BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility, normalize_annotations,
@@ -69,13 +70,17 @@ pub(super) fn extract_variable_statement(
     metadata.insert("isExported".to_string(), Value::Bool(is_exported));
     metadata.insert("isOnReady".to_string(), Value::Bool(is_onready));
 
-    // Extract doc comment
     let doc_comment = base.find_doc_comment(&node);
+    let kind = if nearest_callable_ancestor(parent_node) {
+        SymbolKind::Variable
+    } else {
+        SymbolKind::Field
+    };
 
-    Some(base.create_symbol(
+    let symbol = base.create_symbol(
         &node,
         name,
-        SymbolKind::Field,
+        kind,
         SymbolOptions {
             signature: Some(full_signature),
             visibility: Some(visibility),
@@ -84,7 +89,9 @@ pub(super) fn extract_variable_statement(
             doc_comment,
             annotations: annotation_markers,
         },
-    ))
+    );
+    type_facts::record_statement_type_facts(base, &symbol.id, parent_node);
+    Some(symbol)
 }
 
 /// Extract constant statement (const declarations)
@@ -134,10 +141,9 @@ pub(super) fn extract_constant_statement(
         metadata.insert("annotations".to_string(), Value::Array(annotations_json));
     }
 
-    // Extract doc comment
     let doc_comment = base.find_doc_comment(&node);
 
-    Some(base.create_symbol(
+    let symbol = base.create_symbol(
         &node,
         name,
         SymbolKind::Constant,
@@ -149,7 +155,9 @@ pub(super) fn extract_constant_statement(
             doc_comment,
             annotations: annotation_markers,
         },
-    ))
+    );
+    type_facts::record_statement_type_facts(base, &symbol.id, parent_node);
+    Some(symbol)
 }
 
 /// Extract variable from variable_statement node
@@ -231,4 +239,17 @@ pub(super) fn find_closest_class_name_parent(
     }
 
     None
+}
+
+fn nearest_callable_ancestor(mut node: Node) -> bool {
+    while let Some(parent) = node.parent() {
+        if matches!(
+            parent.kind(),
+            "function_definition" | "constructor_definition"
+        ) {
+            return true;
+        }
+        node = parent;
+    }
+    false
 }

@@ -44,3 +44,21 @@ func evaluate(count: int, enabled: bool) -> int:
         _:
             total += 2
     return total
+
+func typed_params(x: Foo, y := 2, z) -> void:
+    var typed_local: Foo = null
+    var inferred_local := Foo.new()
+    var unknown_local = Unknown.new()
+    var loaded = load("res://x.tscn").instantiate()
+    var made = make()
+    var items: Array[Foo]
+    self.persist()
+    super.restore()
+
+class Foo:
+    pass
+
+class Bar extends Resource:
+    func inner_run() -> void:
+        self.persist()
+        super.restore()

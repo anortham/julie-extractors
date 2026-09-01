@@ -48,5 +48,6 @@ pub mod signals;
 pub mod structural_facts;
 pub mod test_detection; // GUT (extends GutTest) container detection (base_types metadata)
 pub mod type_arguments;
+pub mod type_facts;
 pub mod types;
 pub mod ui;

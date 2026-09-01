@@ -153,13 +153,19 @@ fn extract_fixture(source: &str) -> crate::ExtractionResults {
 #[test]
 fn basic_fixture_emits_nested_type_arguments_via_canonical_pipeline() {
     let results = extract_fixture(FIXTURE_SOURCE);
-    assert_eq!(
-        results.type_argument_usages.len(),
-        1,
-        "fixture should emit one Array[Array[int]] usage, got {:?}",
-        results.type_argument_usages
-    );
-    let usage = &results.type_argument_usages[0];
+    let usage = results
+        .type_argument_usages
+        .iter()
+        .find(|usage| {
+            top_level(usage) == vec![(0, "Array")]
+                && usage.arguments[0]
+                    .children
+                    .iter()
+                    .map(|c| (c.ordinal, c.type_name.as_str()))
+                    .collect::<Vec<_>>()
+                    == vec![(0, "int")]
+        })
+        .expect("fixture should emit Array[Array[int]] usage");
     assert_eq!(top_level(usage), vec![(0, "Array")]);
     assert_eq!(
         usage.arguments[0]

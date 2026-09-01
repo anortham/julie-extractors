@@ -1,6 +1,54 @@
 {
   "symbols": [
     {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:Bar:61:0",
+      "name": "Bar",
+      "kind": "class",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 61,
+      "start_column": 0,
+      "end_line": 61,
+      "end_column": 5,
+      "start_byte": 1225,
+      "end_byte": 1230,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "class Bar:",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/gdscript/basic/source.gd:source:2:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:Foo:58:0",
+      "name": "Foo",
+      "kind": "class",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 58,
+      "start_column": 0,
+      "end_line": 58,
+      "end_column": 5,
+      "start_byte": 1204,
+      "end_byte": 1209,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "class Foo:",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/gdscript/basic/source.gd:source:2:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/gdscript/basic/source.gd:Worker:1:0",
       "name": "Worker",
       "kind": "class",
@@ -20,6 +68,32 @@
       "parent_key": "fixtures/extraction/gdscript/basic/source.gd:source:2:0",
       "metadata": {
         "baseClass": "Node"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:_event:23:17",
+      "name": "_event",
+      "kind": "variable",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 23,
+      "start_column": 17,
+      "end_line": 23,
+      "end_column": 31,
+      "start_byte": 403,
+      "end_byte": 417,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "_event: String",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/gdscript/basic/source.gd:observe_run:23:0",
+      "metadata": {
+        "role": "parameter"
       },
       "annotations": [],
       "semantic_group": null,
@@ -58,6 +132,58 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:_url:29:15",
+      "name": "_url",
+      "kind": "variable",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 29,
+      "start_column": 15,
+      "end_line": 29,
+      "end_column": 27,
+      "start_byte": 556,
+      "end_byte": 568,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "_url: String",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/gdscript/basic/source.gd:fetch_url:29:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:_worker_id:23:33",
+      "name": "_worker_id",
+      "kind": "variable",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 23,
+      "start_column": 33,
+      "end_line": 23,
+      "end_column": 48,
+      "start_byte": 419,
+      "end_byte": 434,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "_worker_id: int",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/gdscript/basic/source.gd:observe_run:23:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/gdscript/basic/source.gd:activated:4:0",
       "name": "activated",
       "kind": "event",
@@ -83,6 +209,58 @@
       "visibility": "Public",
       "parent_key": "fixtures/extraction/gdscript/basic/source.gd:source:2:0",
       "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:count:32:14",
+      "name": "count",
+      "kind": "variable",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 32,
+      "start_column": 14,
+      "end_line": 32,
+      "end_column": 24,
+      "start_byte": 603,
+      "end_byte": 613,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "count: int",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/gdscript/basic/source.gd:evaluate:32:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:enabled:32:26",
+      "name": "enabled",
+      "kind": "variable",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 32,
+      "start_column": 26,
+      "end_line": 32,
+      "end_column": 39,
+      "start_byte": 615,
+      "end_byte": 628,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "enabled: bool",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/gdscript/basic/source.gd:evaluate:32:0",
+      "metadata": {
+        "role": "parameter"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -250,6 +428,149 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:inferred_local:50:4",
+      "name": "inferred_local",
+      "kind": "variable",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 50,
+      "start_column": 4,
+      "end_line": 50,
+      "end_column": 7,
+      "start_byte": 994,
+      "end_byte": 997,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "var inferred_local := Foo.new()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "metadata": {
+        "dataType": "Variant",
+        "isExported": false,
+        "isOnReady": false
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:inner_run:62:4",
+      "name": "inner_run",
+      "kind": "method",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 62,
+      "start_column": 4,
+      "end_line": 64,
+      "end_column": 23,
+      "start_byte": 1257,
+      "end_byte": 1329,
+      "body_span": {
+        "start_line": 62,
+        "start_column": 29,
+        "end_line": 64,
+        "end_column": 23,
+        "start_byte": 1282,
+        "end_byte": 1329
+      },
+      "body_hash": "7a0fcfeb88d0bfb07ffd2f3c96ea7e03",
+      "signature": "func inner_run() -> void:",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/gdscript/basic/source.gd:Bar:61:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:items:54:4",
+      "name": "items",
+      "kind": "variable",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 54,
+      "start_column": 4,
+      "end_line": 54,
+      "end_column": 7,
+      "start_byte": 1142,
+      "end_byte": 1145,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "var items: Array[Foo]",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "metadata": {
+        "dataType": "Array[Foo]",
+        "isExported": false,
+        "isOnReady": false
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:loaded:52:4",
+      "name": "loaded",
+      "kind": "variable",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 52,
+      "start_column": 4,
+      "end_line": 52,
+      "end_column": 7,
+      "start_byte": 1068,
+      "end_byte": 1071,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "var loaded = load(\"res://x.tscn\").instantiate()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "metadata": {
+        "dataType": "unknown",
+        "isExported": false,
+        "isOnReady": false
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:made:53:4",
+      "name": "made",
+      "kind": "variable",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 53,
+      "start_column": 4,
+      "end_line": 53,
+      "end_column": 7,
+      "start_byte": 1120,
+      "end_byte": 1123,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "var made = make()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "metadata": {
+        "dataType": "unknown",
+        "isExported": false,
+        "isOnReady": false
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/gdscript/basic/source.gd:observe_run:23:0",
       "name": "observe_run",
       "kind": "method",
@@ -374,7 +695,7 @@
     {
       "key": "fixtures/extraction/gdscript/basic/source.gd:total:33:4",
       "name": "total",
-      "kind": "field",
+      "kind": "variable",
       "language": "gdscript",
       "file_path": "fixtures/extraction/gdscript/basic/source.gd",
       "start_line": 33,
@@ -393,6 +714,171 @@
         "dataType": "int",
         "isExported": false,
         "isOnReady": false
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:typed_local:49:4",
+      "name": "typed_local",
+      "kind": "variable",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 49,
+      "start_column": 4,
+      "end_line": 49,
+      "end_column": 7,
+      "start_byte": 962,
+      "end_byte": 965,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "var typed_local: Foo = null",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "metadata": {
+        "dataType": "Foo",
+        "isExported": false,
+        "isOnReady": false
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "name": "typed_params",
+      "kind": "method",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 48,
+      "start_column": 0,
+      "end_line": 56,
+      "end_column": 19,
+      "start_byte": 912,
+      "end_byte": 1202,
+      "body_span": {
+        "start_line": 48,
+        "start_column": 45,
+        "end_line": 56,
+        "end_column": 19,
+        "start_byte": 957,
+        "end_byte": 1202
+      },
+      "body_hash": "95f2149ed455af9de7a480dc132b9cc1",
+      "signature": "func typed_params(x: Foo, y := 2, z) -> void:",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/gdscript/basic/source.gd:Worker:1:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:unknown_local:51:4",
+      "name": "unknown_local",
+      "kind": "variable",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 51,
+      "start_column": 4,
+      "end_line": 51,
+      "end_column": 7,
+      "start_byte": 1030,
+      "end_byte": 1033,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "var unknown_local = Unknown.new()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "metadata": {
+        "dataType": "unknown",
+        "isExported": false,
+        "isOnReady": false
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:value:17:12",
+      "name": "value",
+      "kind": "variable",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 17,
+      "start_column": 12,
+      "end_line": 17,
+      "end_column": 22,
+      "start_byte": 261,
+      "end_byte": 271,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "value: int",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/gdscript/basic/source.gd:helper:17:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:value:9:11",
+      "name": "value",
+      "kind": "variable",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 9,
+      "start_column": 11,
+      "end_line": 9,
+      "end_column": 21,
+      "start_byte": 125,
+      "end_byte": 135,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "value: int",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/gdscript/basic/source.gd:_init:9:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:worker_id:20:16",
+      "name": "worker_id",
+      "kind": "variable",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 20,
+      "start_column": 16,
+      "end_line": 20,
+      "end_column": 30,
+      "start_byte": 319,
+      "end_byte": 333,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "worker_id: int",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/gdscript/basic/source.gd:record_run:20:0",
+      "metadata": {
+        "role": "parameter"
       },
       "annotations": [],
       "semantic_group": null,
@@ -421,6 +907,84 @@
         "dataType": "Array[Array[int]]",
         "isExported": false,
         "isOnReady": false
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:x:48:18",
+      "name": "x",
+      "kind": "variable",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 48,
+      "start_column": 18,
+      "end_line": 48,
+      "end_column": 24,
+      "start_byte": 930,
+      "end_byte": 936,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "x: Foo",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:y:48:26",
+      "name": "y",
+      "kind": "variable",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 48,
+      "start_column": 26,
+      "end_line": 48,
+      "end_column": 32,
+      "start_byte": 938,
+      "end_byte": 944,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "y := 2",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:z:48:34",
+      "name": "z",
+      "kind": "variable",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 48,
+      "start_column": 34,
+      "end_line": 48,
+      "end_column": 35,
+      "start_byte": 946,
+      "end_byte": 947,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "z",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "metadata": {
+        "role": "parameter"
       },
       "annotations": [],
       "semantic_group": null,
@@ -510,6 +1074,78 @@
       "file_path": "fixtures/extraction/gdscript/basic/source.gd",
       "line_number": 35,
       "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/gdscript/basic/source.gd:inner_run:62:4",
+      "callee_name": "self.persist()",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "line_number": 63,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/gdscript/basic/source.gd:inner_run:62:4",
+      "callee_name": "super.restore()",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "line_number": 64,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "callee_name": "Foo.new()",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "line_number": 50,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "callee_name": "Unknown.new()",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "line_number": 51,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "callee_name": "load",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "line_number": 52,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "callee_name": "load(\"res://x.tscn\").instantiate()",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "line_number": 52,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "callee_name": "make",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "line_number": 53,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "callee_name": "self.persist()",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "line_number": 55,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "callee_name": "super.restore()",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "line_number": 56,
+      "confidence": "0.700"
     }
   ],
   "structured_pending_relationships": [
@@ -538,9 +1174,263 @@
         "start_byte": 689,
         "end_byte": 708
       }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/gdscript/basic/source.gd:inner_run:62:4",
+        "callee_name": "self.persist()",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+        "line_number": 63,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "self.persist()",
+        "terminal_name": "persist",
+        "receiver": "self",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/gdscript/basic/source.gd:inner_run:62:4",
+      "span": {
+        "start_line": 63,
+        "start_column": 8,
+        "end_line": 63,
+        "end_column": 22,
+        "start_byte": 1291,
+        "end_byte": 1305
+      },
+      "receiver_type": "Bar"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/gdscript/basic/source.gd:inner_run:62:4",
+        "callee_name": "super.restore()",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+        "line_number": 64,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "super.restore()",
+        "terminal_name": "restore",
+        "receiver": "super",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/gdscript/basic/source.gd:inner_run:62:4",
+      "span": {
+        "start_line": 64,
+        "start_column": 8,
+        "end_line": 64,
+        "end_column": 23,
+        "start_byte": 1314,
+        "end_byte": 1329
+      },
+      "receiver_type": "Resource"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+        "callee_name": "Foo.new()",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+        "line_number": 50,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Foo.new()",
+        "terminal_name": "new",
+        "receiver": "Foo",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "span": {
+        "start_line": 50,
+        "start_column": 26,
+        "end_line": 50,
+        "end_column": 35,
+        "start_byte": 1016,
+        "end_byte": 1025
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+        "callee_name": "Unknown.new()",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+        "line_number": 51,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Unknown.new()",
+        "terminal_name": "new",
+        "receiver": "Unknown",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "span": {
+        "start_line": 51,
+        "start_column": 24,
+        "end_line": 51,
+        "end_column": 37,
+        "start_byte": 1050,
+        "end_byte": 1063
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+        "callee_name": "load",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+        "line_number": 52,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "load",
+        "terminal_name": "load",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "span": {
+        "start_line": 52,
+        "start_column": 17,
+        "end_line": 52,
+        "end_column": 37,
+        "start_byte": 1081,
+        "end_byte": 1101
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+        "callee_name": "load(\"res://x.tscn\").instantiate()",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+        "line_number": 52,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "load(\"res://x.tscn\").instantiate()",
+        "terminal_name": "instantiate",
+        "receiver": "load(\"res://x.tscn\")",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "span": {
+        "start_line": 52,
+        "start_column": 17,
+        "end_line": 52,
+        "end_column": 51,
+        "start_byte": 1081,
+        "end_byte": 1115
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+        "callee_name": "make",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+        "line_number": 53,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "make",
+        "terminal_name": "make",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "span": {
+        "start_line": 53,
+        "start_column": 15,
+        "end_line": 53,
+        "end_column": 21,
+        "start_byte": 1131,
+        "end_byte": 1137
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+        "callee_name": "self.persist()",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+        "line_number": 55,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "self.persist()",
+        "terminal_name": "persist",
+        "receiver": "self",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "span": {
+        "start_line": 55,
+        "start_column": 4,
+        "end_line": 55,
+        "end_column": 18,
+        "start_byte": 1168,
+        "end_byte": 1182
+      },
+      "receiver_type": "Worker"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+        "callee_name": "super.restore()",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+        "line_number": 56,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "super.restore()",
+        "terminal_name": "restore",
+        "receiver": "super",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "span": {
+        "start_line": 56,
+        "start_column": 4,
+        "end_line": 56,
+        "end_column": 19,
+        "start_byte": 1187,
+        "end_byte": 1202
+      },
+      "receiver_type": "Node"
     }
   ],
   "identifiers": [
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:Array:type_usage:54:15",
+      "name": "Array",
+      "kind": "type_usage",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 54,
+      "start_column": 15,
+      "end_line": 54,
+      "end_column": 20,
+      "start_byte": 1153,
+      "end_byte": 1158,
+      "containing_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
     {
       "key": "fixtures/extraction/gdscript/basic/source.gd:Array:type_usage:7:18",
       "name": "Array",
@@ -558,6 +1448,54 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:Foo:type_usage:48:21",
+      "name": "Foo",
+      "kind": "type_usage",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 48,
+      "start_column": 21,
+      "end_line": 48,
+      "end_column": 24,
+      "start_byte": 933,
+      "end_byte": 936,
+      "containing_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:Foo:type_usage:49:21",
+      "name": "Foo",
+      "kind": "type_usage",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 49,
+      "start_column": 21,
+      "end_line": 49,
+      "end_column": 24,
+      "start_byte": 979,
+      "end_byte": 982,
+      "containing_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:Foo:variable_ref:50:26",
+      "name": "Foo",
+      "kind": "variable_ref",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 50,
+      "start_column": 26,
+      "end_line": 50,
+      "end_column": 29,
+      "start_byte": 1016,
+      "end_byte": 1019,
+      "containing_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/gdscript/basic/source.gd:Node:type_usage:2:8",
       "name": "Node",
       "kind": "type_usage",
@@ -570,6 +1508,22 @@
       "start_byte": 26,
       "end_byte": 30,
       "containing_key": "fixtures/extraction/gdscript/basic/source.gd:source:2:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:Resource:type_usage:61:18",
+      "name": "Resource",
+      "kind": "type_usage",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 61,
+      "start_column": 18,
+      "end_line": 61,
+      "end_column": 26,
+      "start_byte": 1243,
+      "end_byte": 1251,
+      "containing_key": null,
       "target_key": null,
       "confidence": "1.000"
     },
@@ -602,6 +1556,22 @@
       "start_byte": 562,
       "end_byte": 568,
       "containing_key": "fixtures/extraction/gdscript/basic/source.gd:fetch_url:29:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:Unknown:variable_ref:51:24",
+      "name": "Unknown",
+      "kind": "variable_ref",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 51,
+      "start_column": 24,
+      "end_line": 51,
+      "end_column": 31,
+      "start_byte": 1050,
+      "end_byte": 1057,
+      "containing_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -766,6 +1736,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:instantiate:call:52:38",
+      "name": "instantiate",
+      "kind": "call",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 52,
+      "start_column": 38,
+      "end_line": 52,
+      "end_column": 49,
+      "start_byte": 1102,
+      "end_byte": 1113,
+      "containing_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/gdscript/basic/source.gd:int:type_usage:12:14",
       "name": "int",
       "kind": "type_usage",
@@ -910,6 +1896,54 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:make:call:53:15",
+      "name": "make",
+      "kind": "call",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 53,
+      "start_column": 15,
+      "end_line": 53,
+      "end_column": 19,
+      "start_byte": 1131,
+      "end_byte": 1135,
+      "containing_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:new:call:50:30",
+      "name": "new",
+      "kind": "call",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 50,
+      "start_column": 30,
+      "end_line": 50,
+      "end_column": 33,
+      "start_byte": 1020,
+      "end_byte": 1023,
+      "containing_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:new:call:51:32",
+      "name": "new",
+      "kind": "call",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 51,
+      "start_column": 32,
+      "end_line": 51,
+      "end_column": 35,
+      "start_byte": 1058,
+      "end_byte": 1061,
+      "containing_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/gdscript/basic/source.gd:observe_run:call:21:4",
       "name": "observe_run",
       "kind": "call",
@@ -924,6 +1958,40 @@
       "containing_key": "fixtures/extraction/gdscript/basic/source.gd:record_run:20:0",
       "target_key": null,
       "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:persist:call:55:9",
+      "name": "persist",
+      "kind": "call",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 55,
+      "start_column": 9,
+      "end_line": 55,
+      "end_column": 16,
+      "start_byte": 1173,
+      "end_byte": 1180,
+      "containing_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "receiver_type": "Worker"
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:persist:call:63:13",
+      "name": "persist",
+      "kind": "call",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 63,
+      "start_column": 13,
+      "end_line": 63,
+      "end_column": 20,
+      "start_byte": 1296,
+      "end_byte": 1303,
+      "containing_key": "fixtures/extraction/gdscript/basic/source.gd:inner_run:62:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "receiver_type": "Bar"
     },
     {
       "key": "fixtures/extraction/gdscript/basic/source.gd:range:call:35:17",
@@ -956,6 +2024,40 @@
       "containing_key": "fixtures/extraction/gdscript/basic/source.gd:run:12:0",
       "target_key": null,
       "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:restore:call:56:10",
+      "name": "restore",
+      "kind": "call",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 56,
+      "start_column": 10,
+      "end_line": 56,
+      "end_column": 17,
+      "start_byte": 1193,
+      "end_byte": 1200,
+      "containing_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "receiver_type": "Node"
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:restore:call:64:14",
+      "name": "restore",
+      "kind": "call",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 64,
+      "start_column": 14,
+      "end_line": 64,
+      "end_column": 21,
+      "start_byte": 1320,
+      "end_byte": 1327,
+      "containing_key": "fixtures/extraction/gdscript/basic/source.gd:inner_run:62:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "receiver_type": "Resource"
     },
     {
       "key": "fixtures/extraction/gdscript/basic/source.gd:total:variable_ref:36:12",
@@ -1134,6 +2236,38 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:void:type_usage:48:40",
+      "name": "void",
+      "kind": "type_usage",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 48,
+      "start_column": 40,
+      "end_line": 48,
+      "end_column": 44,
+      "start_byte": 952,
+      "end_byte": 956,
+      "containing_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:void:type_usage:62:24",
+      "name": "void",
+      "kind": "type_usage",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 62,
+      "start_column": 24,
+      "end_line": 62,
+      "end_column": 28,
+      "start_byte": 1277,
+      "end_byte": 1281,
+      "containing_key": "fixtures/extraction/gdscript/basic/source.gd:inner_run:62:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/gdscript/basic/source.gd:void:type_usage:9:26",
       "name": "void",
       "kind": "type_usage",
@@ -1168,11 +2302,56 @@
   ],
   "types": [
     {
+      "symbol_key": "fixtures/extraction/gdscript/basic/source.gd:_event:23:17",
+      "resolved_type": "String",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "gdscript",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/gdscript/basic/source.gd:_init:9:0",
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
+      "language": "gdscript",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/gdscript/basic/source.gd:_url:29:15",
+      "resolved_type": "String",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "gdscript",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/gdscript/basic/source.gd:_worker_id:23:33",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "gdscript",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/gdscript/basic/source.gd:count:32:14",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "gdscript",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/gdscript/basic/source.gd:enabled:32:26",
+      "resolved_type": "bool",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "gdscript",
       "metadata": null
     },
@@ -1217,9 +2396,38 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
+      "is_inferred": false,
+      "language": "gdscript",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/gdscript/basic/source.gd:inferred_local:50:4",
+      "resolved_type": "Foo",
+      "generic_params": null,
+      "constraints": null,
       "is_inferred": true,
       "language": "gdscript",
       "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/gdscript/basic/source.gd:inner_run:62:4",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "gdscript",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/gdscript/basic/source.gd:items:54:4",
+      "resolved_type": "Array",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "gdscript",
+      "metadata": {
+        "declared": "Array[Foo]"
+      }
     },
     {
       "symbol_key": "fixtures/extraction/gdscript/basic/source.gd:observe_run:23:0",
@@ -1249,11 +2457,67 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/gdscript/basic/source.gd:typed_local:49:4",
+      "resolved_type": "Foo",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "gdscript",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "gdscript",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/gdscript/basic/source.gd:value:17:12",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "gdscript",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/gdscript/basic/source.gd:value:9:11",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "gdscript",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/gdscript/basic/source.gd:worker_id:20:16",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "gdscript",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/gdscript/basic/source.gd:worker_index:7:0",
       "resolved_type": "Array",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
+      "language": "gdscript",
+      "metadata": {
+        "declared": "Array[Array[int]]"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/gdscript/basic/source.gd:x:48:18",
+      "resolved_type": "Foo",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "gdscript",
       "metadata": null
     }
@@ -1299,6 +2563,26 @@
         "exported_variable": "id",
         "pattern_version": 1,
         "query_family": "metadata"
+      }
+    },
+    {
+      "pattern_id": "gdscript.extends_declaration.v1",
+      "capture_name": "extends_declaration",
+      "node_kind": "extends_statement",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "containing_key": "fixtures/extraction/gdscript/basic/source.gd:Bar:61:0",
+      "start_line": 61,
+      "start_column": 10,
+      "end_line": 61,
+      "end_column": 26,
+      "start_byte": 1235,
+      "end_byte": 1251,
+      "confidence": "1.000",
+      "metadata": {
+        "base_type": "Resource",
+        "pattern_version": 1,
+        "query_family": "inheritance"
       }
     },
     {
@@ -1368,18 +2652,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "gdscript",
       "file_path": "fixtures/extraction/gdscript/basic/source.gd",
-      "covered_lines": 47,
-      "covered_bytes": 911,
+      "covered_lines": 65,
+      "covered_bytes": 1330,
       "decision_count": 6,
       "loop_count": 1,
       "max_nesting_depth": 2,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 47,
+      "end_line": 65,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 911,
+      "end_byte": 1330,
       "metadata": {
         "metric_version": 1
       }
@@ -1496,6 +2780,28 @@
     },
     {
       "scope": "symbol",
+      "symbol_key": "fixtures/extraction/gdscript/basic/source.gd:inner_run:62:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "covered_lines": 3,
+      "covered_bytes": 47,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 62,
+      "start_column": 29,
+      "end_line": 64,
+      "end_column": 23,
+      "start_byte": 1282,
+      "end_byte": 1329,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
       "symbol_key": "fixtures/extraction/gdscript/basic/source.gd:observe_run:23:0",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "gdscript",
@@ -1559,6 +2865,28 @@
       "metadata": {
         "metric_version": 1
       }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "covered_lines": 9,
+      "covered_bytes": 245,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 3,
+      "start_line": 48,
+      "start_column": 45,
+      "end_line": 56,
+      "end_column": 19,
+      "start_byte": 957,
+      "end_byte": 1202,
+      "metadata": {
+        "metric_version": 1
+      }
     }
   ],
   "literals": [
@@ -1576,6 +2904,22 @@
       "start_byte": 498,
       "end_byte": 538,
       "containing_key": "fixtures/extraction/gdscript/basic/source.gd:fetch_status:26:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "res://x.tscn",
+      "kind": "other",
+      "carrier": "load",
+      "arg_position": 0,
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 52,
+      "start_column": 22,
+      "end_line": 52,
+      "end_column": 36,
+      "start_byte": 1086,
+      "end_byte": 1100,
+      "containing_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
       "confidence": "1.000"
     },
     {
@@ -1634,9 +2978,34 @@
       "start_byte": 360,
       "end_byte": 372,
       "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "containing_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "start_line": 52,
+      "start_column": 22,
+      "end_line": 52,
+      "end_column": 36,
+      "start_byte": 1086,
+      "end_byte": 1100,
+      "metadata": null
     }
   ],
   "type_argument_usages": [
+    {
+      "identifier_key": "fixtures/extraction/gdscript/basic/source.gd:Array:type_usage:54:15",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "arguments": [
+        {
+          "ordinal": 0,
+          "type_name": "Foo",
+          "children": []
+        }
+      ]
+    },
     {
       "identifier_key": "fixtures/extraction/gdscript/basic/source.gd:Array:type_usage:7:18",
       "language": "gdscript",
