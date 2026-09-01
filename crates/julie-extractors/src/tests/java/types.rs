@@ -62,8 +62,14 @@ public class Calculator {
 
         for type_info in results.types.values() {
             assert_eq!(type_info.language, "java");
-            assert!(type_info.is_inferred);
             assert!(!type_info.resolved_type.is_empty());
         }
+
+        let declared_param = results
+            .types
+            .values()
+            .find(|t| t.resolved_type == "int")
+            .expect("declared parameter type should be recorded");
+        assert!(!declared_param.is_inferred);
     }
 }

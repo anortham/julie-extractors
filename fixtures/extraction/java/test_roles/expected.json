@@ -1063,6 +1063,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/java/test_roles/test_source.java:first:6:21",
+      "name": "first",
+      "kind": "variable",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/test_roles/test_source.java",
+      "start_line": 6,
+      "start_column": 21,
+      "end_line": 6,
+      "end_column": 30,
+      "start_byte": 123,
+      "end_byte": 132,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "int first",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/java/test_roles/test_source.java:total:6:4",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/java/test_roles/test_source.java:fixtures.extraction.java.test_roles:1:0",
       "name": "fixtures.extraction.java.test_roles",
       "kind": "namespace",
@@ -1217,6 +1243,32 @@
           "raw_text": "org.junit.jupiter.api.TestTemplate"
         }
       ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/java/test_roles/test_source.java:second:6:32",
+      "name": "second",
+      "kind": "variable",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/test_roles/test_source.java",
+      "start_line": 6,
+      "start_column": 32,
+      "end_line": 6,
+      "end_column": 42,
+      "start_byte": 134,
+      "end_byte": 144,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "int second",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/java/test_roles/test_source.java:total:6:4",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
       "semantic_group": null,
       "confidence": null,
       "content_type": null
@@ -4398,11 +4450,20 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/java/test_roles/test_source.java:first:6:21",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "java",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/java/test_roles/test_source.java:helperTotal:137:4",
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "java",
       "metadata": null
     },
@@ -4420,7 +4481,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "java",
       "metadata": null
     },
@@ -4430,6 +4491,15 @@
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
+      "language": "java",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/java/test_roles/test_source.java:second:6:32",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "java",
       "metadata": null
     },
@@ -4483,7 +4553,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "java",
       "metadata": null
     }

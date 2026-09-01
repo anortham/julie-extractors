@@ -116,6 +116,37 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/java/cross_file/Source.java:o:13:14",
+      "name": "o",
+      "kind": "variable",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/cross_file/Source.java",
+      "start_line": 13,
+      "start_column": 14,
+      "end_line": 13,
+      "end_column": 29,
+      "start_byte": 432,
+      "end_byte": 447,
+      "body_span": {
+        "start_line": 13,
+        "start_column": 27,
+        "end_line": 13,
+        "end_column": 29,
+        "start_byte": 445,
+        "end_byte": 447
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "Other o = new Other()",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/java/cross_file/Source.java:entry:12:4",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [
@@ -266,7 +297,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "java",
       "metadata": null
     },
@@ -275,7 +306,16 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
+      "language": "java",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/java/cross_file/Source.java:o:13:14",
+      "resolved_type": "Other",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "java",
       "metadata": null
     }
