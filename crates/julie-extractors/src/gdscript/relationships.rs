@@ -235,14 +235,18 @@ fn extract_call_relationships(
                 // Target not found in local symbols - likely a method on imported type
                 // or a call to an external function
                 // Create PendingRelationship for cross-file resolution
-                let pending = base.create_pending_relationship(
-                    caller_symbol.id.clone(),
-                    target,
-                    RelationshipKind::Calls,
-                    &node,
-                    Some(caller_symbol.id.clone()),
-                    Some(0.7),
-                );
+                let receiver_type =
+                    super::identifiers::call_receiver_type(&extractor.base, node);
+                let pending = base
+                    .create_pending_relationship(
+                        caller_symbol.id.clone(),
+                        target,
+                        RelationshipKind::Calls,
+                        &node,
+                        Some(caller_symbol.id.clone()),
+                        Some(0.7),
+                    )
+                    .with_receiver_type(receiver_type);
                 extractor.add_structured_pending_relationship(pending);
             }
         }

@@ -78,11 +78,13 @@ fn extract_identifier_from_node(
 
                     let name = base.get_node_text(&name_node);
                     let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
-                    base.create_identifier(
+                    let receiver_type = call_receiver_type(base, child);
+                    base.create_identifier_with_receiver_type(
                         &name_node,
                         name,
                         IdentifierKind::Call,
                         containing_symbol_id,
+                        receiver_type,
                     );
                     break;
                 }
@@ -108,11 +110,13 @@ fn extract_identifier_from_node(
             if let Some(name_node) = attribute_call_name_node(node) {
                 let name = base.get_node_text(&name_node);
                 let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
-                base.create_identifier(
+                let receiver_type = call_receiver_type(base, node);
+                base.create_identifier_with_receiver_type(
                     &name_node,
                     name,
                     IdentifierKind::Call,
                     containing_symbol_id,
+                    receiver_type,
                 );
                 return;
             }
@@ -406,6 +410,104 @@ fn attribute_call_name_node(node: Node) -> Option<Node> {
     attribute_call
         .children(&mut call_cursor)
         .find(|child| child.kind() == "identifier")
+}
+
+pub(super) fn call_receiver_type(base: &BaseExtractor, node: Node) -> Option<String> {
+    let attribute = if node.kind() == "attribute" {
+        node
+    } else if node.kind() == "call" {
+        let mut cursor = node.walk();
+        node.children(&mut cursor)
+            .find(|child| child.kind() == "attribute")?
+    } else {
+        return None;
+    };
+    attribute_receiver_type(base, attribute)
+}
+
+fn attribute_receiver_type(base: &BaseExtractor, node: Node) -> Option<String> {
+    let mut cursor = node.walk();
+    let receiver = node
+        .children(&mut cursor)
+        .find(|child| child.is_named() && child.kind() != "attribute_call")?;
+    if receiver.kind() != "identifier" {
+        return None;
+    }
+    match base.get_node_text(&receiver).as_str() {
+        "self" => enclosing_type_name(base, node),
+        "super" => declared_extends_name(base, node),
+        _ => None,
+    }
+}
+
+fn enclosing_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
+    let mut current = node.parent();
+    while let Some(candidate) = current {
+        match candidate.kind() {
+            "class_definition" => {
+                return candidate
+                    .child_by_field_name("name")
+                    .map(|name_node| base.get_node_text(&name_node));
+            }
+            "source" => {
+                let mut cursor = candidate.walk();
+                for child in candidate.children(&mut cursor) {
+                    if child.kind() == "class_name_statement"
+                        && let Some(name_node) = child.child_by_field_name("name")
+                    {
+                        return Some(base.get_node_text(&name_node));
+                    }
+                }
+                return None;
+            }
+            _ => current = candidate.parent(),
+        }
+    }
+    None
+}
+
+fn declared_extends_name(base: &BaseExtractor, node: Node) -> Option<String> {
+    let mut current = node.parent();
+    while let Some(candidate) = current {
+        match candidate.kind() {
+            "class_definition" => {
+                return candidate
+                    .child_by_field_name("extends")
+                    .and_then(|extends| extends_type_name(base, extends));
+            }
+            "source" => {
+                let mut cursor = candidate.walk();
+                for child in candidate.children(&mut cursor) {
+                    if child.kind() == "extends_statement" {
+                        return extends_type_name(base, child);
+                    }
+                    if child.kind() == "class_name_statement"
+                        && let Some(extends) = child.child_by_field_name("extends")
+                    {
+                        return extends_type_name(base, extends);
+                    }
+                }
+                return None;
+            }
+            _ => current = candidate.parent(),
+        }
+    }
+    None
+}
+
+fn extends_type_name(base: &BaseExtractor, extends_node: Node) -> Option<String> {
+    let mut cursor = extends_node.walk();
+    let type_node = extends_node
+        .children(&mut cursor)
+        .find(|child| child.kind() == "type")?;
+    let mut type_cursor = type_node.walk();
+    if let Some(identifier) = type_node
+        .children(&mut type_cursor)
+        .find(|child| child.kind() == "identifier")
+    {
+        return Some(base.get_node_text(&identifier));
+    }
+    Some(base.get_node_text(&type_node))
 }
 
 // ============================================================================

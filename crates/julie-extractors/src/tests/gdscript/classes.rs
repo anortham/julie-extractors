@@ -172,7 +172,9 @@ var experience: float:
                 .contains("@tool")
         );
 
-        let health = symbols.iter().find(|s| s.name == "health");
+        let health = symbols
+            .iter()
+            .find(|s| s.name == "health" && s.kind == SymbolKind::Field);
         assert!(health.is_some());
         let health = health.unwrap();
         assert_eq!(health.kind, SymbolKind::Field);

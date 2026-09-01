@@ -15,8 +15,10 @@ mod enums;
 mod functions;
 mod helpers;
 mod identifiers;
+mod parameters;
 mod relationships;
 mod signals;
+mod type_facts;
 mod types;
 mod variables;
 
@@ -370,7 +372,16 @@ impl GDScriptExtractor {
 
         if let Some(symbol) = extracted_symbol {
             let symbol_id = symbol.id.clone();
+            let extract_params =
+                matches!(node.kind(), "function_definition" | "constructor_definition");
             symbols.push(symbol);
+            if extract_params {
+                symbols.extend(parameters::extract_parameter_symbols(
+                    &mut self.base,
+                    node,
+                    &symbol_id,
+                ));
+            }
 
             // Traverse children with current symbol as parent
             let Some(child_depth) = child_tree_depth(depth) else {

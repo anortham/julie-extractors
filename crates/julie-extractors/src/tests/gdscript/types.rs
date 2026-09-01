@@ -71,8 +71,19 @@ func _ready() -> void:
 
         for type_info in results.types.values() {
             assert_eq!(type_info.language, "gdscript");
-            assert!(type_info.is_inferred);
         }
+        assert!(
+            results
+                .types
+                .values()
+                .any(|type_info| type_info.is_inferred && type_info.resolved_type == "float")
+        );
+        assert!(
+            results
+                .types
+                .values()
+                .any(|type_info| !type_info.is_inferred && type_info.resolved_type == "int")
+        );
     }
 
     #[test]
