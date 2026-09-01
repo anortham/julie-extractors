@@ -55,7 +55,18 @@ mod tests {
         assert!(!results.types.is_empty());
         for type_info in results.types.values() {
             assert_eq!(type_info.language, "razor");
-            assert!(type_info.is_inferred);
         }
+        let list = results
+            .types
+            .values()
+            .find(|type_info| type_info.resolved_type == "List")
+            .expect("declared List field fact");
+        assert!(!list.is_inferred);
+        let search_term = results
+            .types
+            .values()
+            .find(|type_info| type_info.resolved_type == "string")
+            .expect("declared string field fact");
+        assert!(!search_term.is_inferred);
     }
 }

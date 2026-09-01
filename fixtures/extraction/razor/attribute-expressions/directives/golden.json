@@ -97,6 +97,34 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/razor/attribute-expressions/directives/source.razor:state:8:26",
+      "name": "state",
+      "kind": "variable",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/attribute-expressions/directives/source.razor",
+      "start_line": 8,
+      "start_column": 26,
+      "end_line": 8,
+      "end_column": 37,
+      "start_byte": 222,
+      "end_byte": 233,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "State state",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/razor/attribute-expressions/directives/source.razor:Badge:8:4",
+      "metadata": {
+        "isInferred": false,
+        "role": "parameter",
+        "variableType": "State"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [],
@@ -251,12 +279,14 @@
   "types": [
     {
       "symbol_key": "fixtures/extraction/razor/attribute-expressions/directives/source.razor:Badge:8:4",
-      "resolved_type": "RenderFragment?",
+      "resolved_type": "RenderFragment",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "razor",
-      "metadata": null
+      "metadata": {
+        "declared": "RenderFragment?"
+      }
     },
     {
       "symbol_key": "fixtures/extraction/razor/attribute-expressions/directives/source.razor:PageRenderMode:5:21",
@@ -273,6 +303,15 @@
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
+      "language": "razor",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/razor/attribute-expressions/directives/source.razor:state:8:26",
+      "resolved_type": "State",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "razor",
       "metadata": null
     }

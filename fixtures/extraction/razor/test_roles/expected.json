@@ -130,37 +130,9 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/razor/test_roles/source.razor:Marker:27:15",
-      "name": "Marker",
-      "kind": "variable",
-      "language": "razor",
-      "file_path": "fixtures/extraction/razor/test_roles/source.razor",
-      "start_line": 27,
-      "start_column": 15,
-      "end_line": 27,
-      "end_column": 53,
-      "start_byte": 636,
-      "end_byte": 674,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "string Marker = \"[TestFixture] [Fact]\"",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": "fixtures/extraction/razor/test_roles/source.razor:Marker:27:8",
-      "metadata": {
-        "initializer": "\"[TestFixture] [Fact]\"",
-        "type": "variable-declaration",
-        "variableType": "string"
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
       "key": "fixtures/extraction/razor/test_roles/source.razor:Marker:27:8",
       "name": "Marker",
-      "kind": "variable",
+      "kind": "field",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/test_roles/source.razor",
       "start_line": 27,
@@ -644,6 +616,34 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/razor/test_roles/source.razor:value:20:57",
+      "name": "value",
+      "kind": "variable",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/test_roles/source.razor",
+      "start_line": 20,
+      "start_column": 57,
+      "end_line": 20,
+      "end_column": 66,
+      "start_byte": 506,
+      "end_byte": 515,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "int value",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/razor/test_roles/source.razor:NUnitParameterizedCase:20:8",
+      "metadata": {
+        "isInferred": false,
+        "role": "parameter",
+        "variableType": "int"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [],
@@ -679,20 +679,11 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/razor/test_roles/source.razor:Marker:27:15",
-      "resolved_type": "string",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/razor/test_roles/source.razor:Marker:27:8",
       "resolved_type": "string",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "razor",
       "metadata": null
     },
@@ -792,6 +783,15 @@
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
+      "language": "razor",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/razor/test_roles/source.razor:value:20:57",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "razor",
       "metadata": null
     }
@@ -1065,7 +1065,7 @@
       "kind": "string_literal",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/test_roles/source.razor",
-      "containing_key": "fixtures/extraction/razor/test_roles/source.razor:Marker:27:15",
+      "containing_key": "fixtures/extraction/razor/test_roles/source.razor:Marker:27:8",
       "start_line": 27,
       "start_column": 31,
       "end_line": 27,

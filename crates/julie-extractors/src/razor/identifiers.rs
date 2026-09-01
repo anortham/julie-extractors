@@ -75,12 +75,13 @@ impl super::RazorExtractor {
                             let name = self.base.get_node_text(&name_node);
                             let containing_symbol_id =
                                 self.find_containing_symbol_id(node, symbol_map);
-
-                            self.base.create_identifier(
+                            let receiver_type = self_receiver_type(&self.base, child);
+                            self.base.create_identifier_with_receiver_type(
                                 &name_node,
                                 name,
                                 IdentifierKind::Call,
                                 containing_symbol_id,
+                                receiver_type,
                             );
                         }
                         break;
@@ -547,4 +548,58 @@ fn is_csharp_builtin_type(name: &str) -> bool {
             | "var"
             | "void"
     )
+}
+
+fn self_receiver_type(base: &BaseExtractor, node: Node) -> Option<String> {
+    let member_access = match node.kind() {
+        "member_access_expression" => node,
+        "invocation_expression" => node
+            .child_by_field_name("function")
+            .filter(|function| function.kind() == "member_access_expression")?,
+        _ => return None,
+    };
+    let receiver = member_access.child(0)?;
+    match receiver.kind() {
+        "this" => enclosing_type_name(base, member_access)
+            .or_else(|| component_name_from_file_path(&base.file_path)),
+        _ => None,
+    }
+
+}
+
+fn enclosing_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
+    let mut current = node.parent();
+    while let Some(candidate) = current {
+        if matches!(
+            candidate.kind(),
+            "class_declaration"
+                | "struct_declaration"
+                | "record_declaration"
+                | "interface_declaration"
+        ) {
+            return candidate
+                .child_by_field_name("name")
+                .map(|name_node| base.get_node_text(&name_node));
+        }
+        current = candidate.parent();
+    }
+    None
+}
+
+
+fn component_name_from_file_path(file_path: &str) -> Option<String> {
+    let path = std::path::Path::new(file_path);
+    if path.extension().and_then(|extension| extension.to_str()) != Some("razor") {
+        return None;
+    }
+    if matches!(
+        path.file_stem().and_then(|stem| stem.to_str()),
+        Some("_Imports" | "_ViewImports")
+    ) {
+        return None;
+    }
+    path.file_stem()
+        .and_then(|stem| stem.to_str())
+        .filter(|stem| !stem.is_empty())
+        .map(ToOwned::to_owned)
 }

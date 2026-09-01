@@ -112,6 +112,34 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor:next:10:26",
+      "name": "next",
+      "kind": "variable",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor",
+      "start_line": 10,
+      "start_column": 26,
+      "end_line": 10,
+      "end_column": 37,
+      "start_byte": 412,
+      "end_byte": 423,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "string next",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor:SetValue:10:4",
+      "metadata": {
+        "isInferred": false,
+        "role": "parameter",
+        "variableType": "string"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor:source:1:0",
       "name": "source",
       "kind": "class",
@@ -146,37 +174,9 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor:value:7:12",
-      "name": "value",
-      "kind": "variable",
-      "language": "razor",
-      "file_path": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor",
-      "start_line": 7,
-      "start_column": 12,
-      "end_line": 7,
-      "end_column": 29,
-      "start_byte": 258,
-      "end_byte": 275,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "string value = \"\"",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor:value:7:4",
-      "metadata": {
-        "initializer": "\"\"",
-        "type": "variable-declaration",
-        "variableType": "string"
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
       "key": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor:value:7:4",
       "name": "value",
-      "kind": "variable",
+      "kind": "field",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor",
       "start_line": 7,
@@ -470,7 +470,7 @@
       "resolved_type": "Task",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "razor",
       "metadata": null
     },
@@ -488,7 +488,16 @@
       "resolved_type": "Task",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
+      "language": "razor",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor:next:10:26",
+      "resolved_type": "string",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "razor",
       "metadata": null
     },
@@ -502,20 +511,11 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor:value:7:12",
-      "resolved_type": "string",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor:value:7:4",
       "resolved_type": "string",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "razor",
       "metadata": null
     }
@@ -681,7 +681,7 @@
       "kind": "string_literal",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor",
-      "containing_key": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor:value:7:12",
+      "containing_key": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor:value:7:4",
       "start_line": 7,
       "start_column": 27,
       "end_line": 7,
