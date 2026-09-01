@@ -20,6 +20,7 @@ pub(crate) mod imports;
 pub(crate) mod relationships;
 pub(crate) mod signatures;
 pub(crate) mod type_arguments;
+pub(crate) mod type_facts;
 pub(crate) mod types;
 
 use crate::base::{
@@ -27,7 +28,7 @@ use crate::base::{
 };
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use regex::Regex;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::LazyLock;
 use tree_sitter::{Node, Tree};
 
@@ -45,17 +46,20 @@ static VAR_ANNOTATION_RE: LazyLock<Regex> =
 /// Python extractor for extracting symbols and relationships from Python source code
 pub struct PythonExtractor {
     pub(crate) base: BaseExtractor,
+    pub(crate) same_file_class_names: HashSet<String>,
 }
 
 impl PythonExtractor {
     pub fn new(file_path: String, content: String, workspace_root: &std::path::Path) -> Self {
         Self {
             base: BaseExtractor::new("python".to_string(), file_path, content, workspace_root),
+            same_file_class_names: HashSet::new(),
         }
     }
 
     /// Extract all symbols from Python source code
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
+        self.same_file_class_names = types::collect_class_names(self, tree.root_node());
         let mut symbols = Vec::new();
         self.traverse_tree(tree.root_node(), &mut symbols, 0);
         crate::test_detection::mark_python_test_containers(&mut symbols);
@@ -75,12 +79,18 @@ impl PythonExtractor {
             }
             "function_definition" => {
                 if let Some(symbol) = functions::extract_function(self, node) {
+                    let parameter_symbols =
+                        signatures::extract_parameter_symbols(self, node, &symbol.id);
                     symbols.push(symbol);
+                    symbols.extend(parameter_symbols);
                 }
             }
             "async_function_definition" => {
                 if let Some(symbol) = functions::extract_async_function(self, node) {
+                    let parameter_symbols =
+                        signatures::extract_parameter_symbols(self, node, &symbol.id);
                     symbols.push(symbol);
+                    symbols.extend(parameter_symbols);
                 }
             }
             "assignment" => {

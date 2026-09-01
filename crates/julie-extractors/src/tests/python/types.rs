@@ -64,9 +64,15 @@ class UserService:
         // Verify TypeInfo structure is correct
         for type_info in results.types.values() {
             assert_eq!(type_info.language, "python");
-            assert!(type_info.is_inferred); // From infer_types()
             assert!(!type_info.resolved_type.is_empty());
         }
+
+        let declared_param = results
+            .types
+            .values()
+            .find(|t| t.resolved_type == "float" && !t.is_inferred)
+            .expect("declared parameter type should be recorded");
+        assert!(!declared_param.is_inferred);
     }
 
     #[test]

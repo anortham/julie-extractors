@@ -1,7 +1,9 @@
 /// Function signatures and parameter extraction
 /// Handles parameter lists, type hints, return types, and visibility inference
 use super::PythonExtractor;
-use crate::base::Visibility;
+use super::type_facts;
+use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility};
+use std::collections::HashMap;
 use tree_sitter::Node;
 
 /// Extract function parameters from a parameters node
@@ -67,6 +69,86 @@ pub fn extract_parameters(extractor: &PythonExtractor, parameters_node: &Node) -
     }
 
     params
+}
+
+/// Create one `variable` symbol per parameter of a function or method, with
+/// `role: "parameter"` metadata and the callable as parent. Annotated
+/// parameters also record a declared-type fact; `self` and `cls` never do.
+pub(super) fn extract_parameter_symbols(
+    extractor: &mut PythonExtractor,
+    function_node: Node,
+    parent_id: &str,
+) -> Vec<Symbol> {
+    let Some(parameters_node) = function_node.child_by_field_name("parameters") else {
+        return Vec::new();
+    };
+
+    let mut symbols = Vec::new();
+    let mut cursor = parameters_node.walk();
+    for parameter in parameters_node.named_children(&mut cursor) {
+        let Some(name_node) = parameter_name_node(parameter) else {
+            continue;
+        };
+        let name = extractor.base().get_node_text(&name_node);
+        let signature = extractor.base().get_node_text(&parameter);
+        let metadata = HashMap::from([("role".to_string(), serde_json::json!("parameter"))]);
+
+        let symbol = extractor.base_mut().create_symbol(
+            &parameter,
+            name.clone(),
+            SymbolKind::Variable,
+            SymbolOptions {
+                signature: Some(signature),
+                visibility: Some(infer_visibility(&name)),
+                parent_id: Some(parent_id.to_string()),
+                metadata: Some(metadata),
+                doc_comment: None,
+                annotations: Vec::new(),
+            },
+        );
+
+        if name != "self"
+            && name != "cls"
+            && let Some(type_node) = parameter.child_by_field_name("type")
+        {
+            type_facts::record_annotation_fact(extractor.base_mut(), &symbol.id, type_node);
+        }
+
+        symbols.push(symbol);
+    }
+
+    symbols
+}
+
+fn parameter_name_node(parameter: Node) -> Option<Node> {
+    match parameter.kind() {
+        "identifier" => Some(parameter),
+        "typed_parameter" => {
+            let type_id = parameter.child_by_field_name("type").map(|node| node.id());
+            let mut cursor = parameter.walk();
+            parameter
+                .named_children(&mut cursor)
+                .find(|child| Some(child.id()) != type_id)
+                .and_then(binding_identifier)
+        }
+        "default_parameter" | "typed_default_parameter" => parameter
+            .child_by_field_name("name")
+            .and_then(binding_identifier),
+        "list_splat_pattern" | "dictionary_splat_pattern" => binding_identifier(parameter),
+        _ => None,
+    }
+}
+
+fn binding_identifier(node: Node) -> Option<Node> {
+    match node.kind() {
+        "identifier" => Some(node),
+        "list_splat_pattern" | "dictionary_splat_pattern" => {
+            let mut cursor = node.walk();
+            node.named_children(&mut cursor)
+                .find(|child| child.kind() == "identifier")
+        }
+        _ => None,
+    }
 }
 
 /// Infer visibility from a symbol name
