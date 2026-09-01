@@ -35,6 +35,40 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/swift/basic/source.swift:Foo:100:0",
+      "name": "Foo",
+      "kind": "class",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 100,
+      "start_column": 0,
+      "end_line": 100,
+      "end_column": 12,
+      "start_byte": 1905,
+      "end_byte": 1917,
+      "body_span": {
+        "start_line": 100,
+        "start_column": 10,
+        "end_line": 100,
+        "end_column": 12,
+        "start_byte": 1915,
+        "end_byte": 1917
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "class Foo",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "modifiers": "",
+        "type": "class"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/swift/basic/source.swift:Job:1:0",
       "name": "Job",
       "kind": "interface",
@@ -106,6 +140,113 @@
           "raw_text": "available(*, deprecated, message: \"use ModernHandler\")"
         }
       ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:ReceiverBox:105:0",
+      "name": "ReceiverBox",
+      "kind": "module",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 105,
+      "start_column": 0,
+      "end_line": 109,
+      "end_column": 1,
+      "start_byte": 1962,
+      "end_byte": 2035,
+      "body_span": {
+        "start_line": 105,
+        "start_column": 22,
+        "end_line": 109,
+        "end_column": 1,
+        "start_byte": 1984,
+        "end_byte": 2035
+      },
+      "body_hash": "4854ab2ef872d3721ec0aa8649f6e518",
+      "signature": "extension ReceiverBox",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "extendedType": "ReceiverBox",
+        "modifiers": "",
+        "symbol_role": "extension",
+        "type": "extension"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:ReceiverBox:74:0",
+      "name": "ReceiverBox",
+      "kind": "class",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 74,
+      "start_column": 0,
+      "end_line": 97,
+      "end_column": 1,
+      "start_byte": 1332,
+      "end_byte": 1882,
+      "body_span": {
+        "start_line": 74,
+        "start_column": 31,
+        "end_line": 97,
+        "end_column": 1,
+        "start_byte": 1363,
+        "end_byte": 1882
+      },
+      "body_hash": "6b8838adeab852e366ff8de9af2b584c",
+      "signature": "class ReceiverBox: ServiceBase",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "base_types": [
+          "ServiceBase"
+        ],
+        "modifiers": "",
+        "type": "class"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:ServiceBase:99:0",
+      "name": "ServiceBase",
+      "kind": "class",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 99,
+      "start_column": 0,
+      "end_line": 99,
+      "end_column": 20,
+      "start_byte": 1884,
+      "end_byte": 1904,
+      "body_span": {
+        "start_line": 99,
+        "start_column": 18,
+        "end_line": 99,
+        "end_column": 20,
+        "start_byte": 1902,
+        "end_byte": 1904
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "class ServiceBase",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "modifiers": "",
+        "type": "class"
+      },
+      "annotations": [],
       "semantic_group": null,
       "confidence": null,
       "content_type": null
@@ -268,6 +409,68 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/swift/basic/source.swift:constructed:81:8",
+      "name": "constructed",
+      "kind": "variable",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 81,
+      "start_column": 8,
+      "end_line": 81,
+      "end_column": 31,
+      "start_byte": 1518,
+      "end_byte": 1541,
+      "body_span": {
+        "start_line": 81,
+        "start_column": 29,
+        "end_line": 81,
+        "end_column": 31,
+        "start_byte": 1539,
+        "end_byte": 1541
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "let constructed",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "metadata": {
+        "keyword": "let",
+        "modifiers": "",
+        "propertyType": "Any",
+        "type": "property"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:count:64:14",
+      "name": "count",
+      "kind": "variable",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 64,
+      "start_column": 14,
+      "end_line": 64,
+      "end_column": 26,
+      "start_byte": 1171,
+      "end_byte": 1183,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "_ count: Int",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/swift/basic/source.swift:evaluate:64:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/swift/basic/source.swift:current:38:4",
       "name": "current",
       "kind": "enum_member",
@@ -287,6 +490,32 @@
       "parent_key": "fixtures/extraction/swift/basic/source.swift:WorkerStatus:35:0",
       "metadata": {
         "type": "enum-case"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:enabled:64:28",
+      "name": "enabled",
+      "kind": "variable",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 64,
+      "start_column": 28,
+      "end_line": 64,
+      "end_column": 41,
+      "start_byte": 1185,
+      "end_byte": 1198,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "enabled: Bool",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/swift/basic/source.swift:evaluate:64:0",
+      "metadata": {
+        "role": "parameter"
       },
       "annotations": [],
       "semantic_group": null,
@@ -322,6 +551,68 @@
         "modifiers": "",
         "parameters": "(_ count: Int, enabled: Bool)",
         "returnType": "Int",
+        "type": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:event:52:16",
+      "name": "event",
+      "kind": "variable",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 52,
+      "start_column": 16,
+      "end_line": 52,
+      "end_column": 31,
+      "start_byte": 942,
+      "end_byte": 957,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "_ event: String",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/swift/basic/source.swift:observeRun:52:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:extra:106:4",
+      "name": "extra",
+      "kind": "method",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 106,
+      "start_column": 4,
+      "end_line": 108,
+      "end_column": 5,
+      "start_byte": 1990,
+      "end_byte": 2033,
+      "body_span": {
+        "start_line": 106,
+        "start_column": 17,
+        "end_line": 108,
+        "end_column": 5,
+        "start_byte": 2003,
+        "end_byte": 2033
+      },
+      "body_hash": "2432a996f0939894688ddcc5a8e7a187",
+      "signature": "func extra()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/swift/basic/source.swift:ReceiverBox:105:0",
+      "metadata": {
+        "modifiers": "",
+        "parameters": "()",
+        "returnType": "Void",
         "type": "function"
       },
       "annotations": [],
@@ -444,6 +735,94 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/swift/basic/source.swift:helpered:84:8",
+      "name": "helpered",
+      "kind": "variable",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 84,
+      "start_column": 8,
+      "end_line": 84,
+      "end_column": 32,
+      "start_byte": 1620,
+      "end_byte": 1644,
+      "body_span": {
+        "start_line": 84,
+        "start_column": 30,
+        "end_line": 84,
+        "end_column": 32,
+        "start_byte": 1642,
+        "end_byte": 1644
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "let helpered",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "metadata": {
+        "keyword": "let",
+        "modifiers": "",
+        "propertyType": "Any",
+        "type": "property"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:id:47:15",
+      "name": "id",
+      "kind": "variable",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 47,
+      "start_column": 15,
+      "end_line": 47,
+      "end_column": 24,
+      "start_byte": 818,
+      "end_byte": 827,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "_ id: Int",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/swift/basic/source.swift:recordRun:47:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:id:52:33",
+      "name": "id",
+      "kind": "variable",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 52,
+      "start_column": 33,
+      "end_line": 52,
+      "end_column": 40,
+      "start_byte": 959,
+      "end_byte": 966,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "id: Int",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/swift/basic/source.swift:observeRun:52:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/swift/basic/source.swift:id:7:4",
       "name": "id",
       "kind": "property",
@@ -465,6 +844,42 @@
         "keyword": "let",
         "modifiers": "",
         "propertyType": "Int",
+        "type": "property"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:imported:83:8",
+      "name": "imported",
+      "kind": "variable",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 83,
+      "start_column": 8,
+      "end_line": 83,
+      "end_column": 37,
+      "start_byte": 1582,
+      "end_byte": 1611,
+      "body_span": {
+        "start_line": 83,
+        "start_column": 35,
+        "end_line": 83,
+        "end_column": 37,
+        "start_byte": 1609,
+        "end_byte": 1611
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "let imported",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "metadata": {
+        "keyword": "let",
+        "modifiers": "",
+        "propertyType": "Any",
         "type": "property"
       },
       "annotations": [],
@@ -502,6 +917,70 @@
         "parameters": "()",
         "returnType": "Void",
         "type": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:init:76:4",
+      "name": "init",
+      "kind": "constructor",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 76,
+      "start_column": 4,
+      "end_line": 78,
+      "end_column": 5,
+      "start_byte": 1389,
+      "end_byte": 1439,
+      "body_span": {
+        "start_line": 76,
+        "start_column": 20,
+        "end_line": 78,
+        "end_column": 5,
+        "start_byte": 1405,
+        "end_byte": 1439
+      },
+      "body_hash": "bc02504015ff45171f38e1002e65cd93",
+      "signature": "init(seed: Bar)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/swift/basic/source.swift:ReceiverBox:74:0",
+      "metadata": {
+        "modifiers": "",
+        "parameters": "(seed: Bar)",
+        "type": "initializer"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:items:85:8",
+      "name": "items",
+      "kind": "variable",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 85,
+      "start_column": 8,
+      "end_line": 85,
+      "end_column": 29,
+      "start_byte": 1653,
+      "end_byte": 1674,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "var items: [Foo]",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "metadata": {
+        "keyword": "var",
+        "modifiers": "",
+        "propertyType": "[Foo]",
+        "type": "property"
       },
       "annotations": [],
       "semantic_group": null,
@@ -549,6 +1028,42 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/swift/basic/source.swift:makeFoo:101:0",
+      "name": "makeFoo",
+      "kind": "function",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 101,
+      "start_column": 0,
+      "end_line": 103,
+      "end_column": 1,
+      "start_byte": 1918,
+      "end_byte": 1960,
+      "body_span": {
+        "start_line": 101,
+        "start_column": 22,
+        "end_line": 103,
+        "end_column": 1,
+        "start_byte": 1940,
+        "end_byte": 1960
+      },
+      "body_hash": "f0716788c3f350528ccc13b39d7ca4ec",
+      "signature": "func makeFoo() -> Foo",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "modifiers": "",
+        "parameters": "()",
+        "returnType": "Foo",
+        "type": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/swift/basic/source.swift:mapping:8:4",
       "name": "mapping",
       "kind": "property",
@@ -580,7 +1095,7 @@
     {
       "key": "fixtures/extraction/swift/basic/source.swift:next:18:8",
       "name": "next",
-      "kind": "property",
+      "kind": "variable",
       "language": "swift",
       "file_path": "fixtures/extraction/swift/basic/source.swift",
       "start_line": 18,
@@ -643,6 +1158,35 @@
         "parameters": "(_ event: String, id: Int)",
         "returnType": "Void",
         "type": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:optional:80:8",
+      "name": "optional",
+      "kind": "variable",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 80,
+      "start_column": 8,
+      "end_line": 80,
+      "end_column": 32,
+      "start_byte": 1485,
+      "end_byte": 1509,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "let optional: Foo?",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "metadata": {
+        "keyword": "let",
+        "modifiers": "",
+        "propertyType": "Foo?",
+        "type": "property"
       },
       "annotations": [],
       "semantic_group": null,
@@ -757,6 +1301,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/swift/basic/source.swift:seed:76:9",
+      "name": "seed",
+      "kind": "variable",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 76,
+      "start_column": 9,
+      "end_line": 76,
+      "end_column": 18,
+      "start_byte": 1394,
+      "end_byte": 1403,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "seed: Bar",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/swift/basic/source.swift:init:76:4",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/swift/basic/source.swift:status:29:4",
       "name": "status",
       "kind": "property",
@@ -793,9 +1363,38 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/swift/basic/source.swift:stored:75:4",
+      "name": "stored",
+      "kind": "property",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 75,
+      "start_column": 4,
+      "end_line": 75,
+      "end_column": 19,
+      "start_byte": 1369,
+      "end_byte": 1384,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "let stored: Foo",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/swift/basic/source.swift:ReceiverBox:74:0",
+      "metadata": {
+        "keyword": "let",
+        "modifiers": "",
+        "propertyType": "Foo",
+        "type": "property"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/swift/basic/source.swift:total:65:4",
       "name": "total",
-      "kind": "property",
+      "kind": "variable",
       "language": "swift",
       "file_path": "fixtures/extraction/swift/basic/source.swift",
       "start_line": 65,
@@ -820,9 +1419,205 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:unknown:82:8",
+      "name": "unknown",
+      "kind": "variable",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 82,
+      "start_column": 8,
+      "end_line": 82,
+      "end_column": 31,
+      "start_byte": 1550,
+      "end_byte": 1573,
+      "body_span": {
+        "start_line": 82,
+        "start_column": 29,
+        "end_line": 82,
+        "end_column": 31,
+        "start_byte": 1571,
+        "end_byte": 1573
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "let unknown",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "metadata": {
+        "keyword": "let",
+        "modifiers": "",
+        "propertyType": "Any",
+        "type": "property"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:url:61:14",
+      "name": "url",
+      "kind": "variable",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 61,
+      "start_column": 14,
+      "end_line": 61,
+      "end_column": 27,
+      "start_byte": 1137,
+      "end_byte": 1150,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "_ url: String",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/swift/basic/source.swift:fetchUrl:61:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "name": "use",
+      "kind": "method",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 79,
+      "start_column": 4,
+      "end_line": 96,
+      "end_column": 5,
+      "start_byte": 1444,
+      "end_byte": 1880,
+      "body_span": {
+        "start_line": 79,
+        "start_column": 35,
+        "end_line": 96,
+        "end_column": 5,
+        "start_byte": 1475,
+        "end_byte": 1880
+      },
+      "body_hash": "ff3c544e74e341b0648acf86494093f6",
+      "signature": "func use(x: Foo, y: inout Bar)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/swift/basic/source.swift:ReceiverBox:74:0",
+      "metadata": {
+        "modifiers": "",
+        "parameters": "(x: Foo, y: inout Bar)",
+        "returnType": "Void",
+        "type": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:value:42:12",
+      "name": "value",
+      "kind": "variable",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 42,
+      "start_column": 12,
+      "end_line": 42,
+      "end_column": 24,
+      "start_byte": 708,
+      "end_byte": 720,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "_ value: Int",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/swift/basic/source.swift:helper:42:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:x:79:13",
+      "name": "x",
+      "kind": "variable",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 79,
+      "start_column": 13,
+      "end_line": 79,
+      "end_column": 19,
+      "start_byte": 1453,
+      "end_byte": 1459,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "x: Foo",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:y:79:21",
+      "name": "y",
+      "kind": "variable",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 79,
+      "start_column": 21,
+      "end_line": 79,
+      "end_column": 33,
+      "start_byte": 1461,
+      "end_byte": 1473,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "y: inout Bar",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [
+    {
+      "from_key": "fixtures/extraction/swift/basic/source.swift:ReceiverBox:74:0",
+      "to_key": "fixtures/extraction/swift/basic/source.swift:ServiceBase:99:0",
+      "kind": "extends",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "line_number": 74,
+      "span": {
+        "start_line": 74,
+        "start_column": 0,
+        "end_line": 97,
+        "end_column": 1,
+        "start_byte": 1332,
+        "end_byte": 1882
+      },
+      "reference_site_is_exact": false,
+      "confidence": "1.000",
+      "metadata": {
+        "baseType": "ServiceBase"
+      }
+    },
     {
       "from_key": "fixtures/extraction/swift/basic/source.swift:Worker:5:0",
       "to_key": "fixtures/extraction/swift/basic/source.swift:Job:1:0",
@@ -932,10 +1727,271 @@
       "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": null
+    },
+    {
+      "from_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "to_key": "fixtures/extraction/swift/basic/source.swift:makeFoo:101:0",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "line_number": 84,
+      "span": {
+        "start_line": 84,
+        "start_column": 23,
+        "end_line": 84,
+        "end_column": 32,
+        "start_byte": 1635,
+        "end_byte": 1644
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
+      "metadata": null
     }
   ],
-  "pending_relationships": [],
-  "structured_pending_relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/swift/basic/source.swift:extra:106:4",
+      "callee_name": "self.persist",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "line_number": 107,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/swift/basic/source.swift:makeFoo:101:0",
+      "callee_name": "Foo",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "line_number": 102,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "callee_name": "Foo",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "line_number": 81,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "callee_name": "UIKit.UIView",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "line_number": 83,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "callee_name": "Unknown",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "line_number": 82,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "callee_name": "self.persist",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "line_number": 86,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "callee_name": "super.restore",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "line_number": 87,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/swift/basic/source.swift:extra:106:4",
+        "callee_name": "self.persist",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/swift/basic/source.swift",
+        "line_number": 107,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "self.persist",
+        "terminal_name": "persist",
+        "receiver": "self",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/swift/basic/source.swift:extra:106:4",
+      "span": {
+        "start_line": 107,
+        "start_column": 8,
+        "end_line": 107,
+        "end_column": 22,
+        "start_byte": 2013,
+        "end_byte": 2027
+      },
+      "receiver_type": "ReceiverBox"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/swift/basic/source.swift:makeFoo:101:0",
+        "callee_name": "Foo",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/swift/basic/source.swift",
+        "line_number": 102,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Foo",
+        "terminal_name": "Foo",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/swift/basic/source.swift:makeFoo:101:0",
+      "span": {
+        "start_line": 102,
+        "start_column": 11,
+        "end_line": 102,
+        "end_column": 16,
+        "start_byte": 1953,
+        "end_byte": 1958
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+        "callee_name": "Foo",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/swift/basic/source.swift",
+        "line_number": 81,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Foo",
+        "terminal_name": "Foo",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "span": {
+        "start_line": 81,
+        "start_column": 26,
+        "end_line": 81,
+        "end_column": 31,
+        "start_byte": 1536,
+        "end_byte": 1541
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+        "callee_name": "UIKit.UIView",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/swift/basic/source.swift",
+        "line_number": 83,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "UIKit.UIView",
+        "terminal_name": "UIView",
+        "receiver": "UIKit",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "span": {
+        "start_line": 83,
+        "start_column": 23,
+        "end_line": 83,
+        "end_column": 37,
+        "start_byte": 1597,
+        "end_byte": 1611
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+        "callee_name": "Unknown",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/swift/basic/source.swift",
+        "line_number": 82,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Unknown",
+        "terminal_name": "Unknown",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "span": {
+        "start_line": 82,
+        "start_column": 22,
+        "end_line": 82,
+        "end_column": 31,
+        "start_byte": 1564,
+        "end_byte": 1573
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+        "callee_name": "self.persist",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/swift/basic/source.swift",
+        "line_number": 86,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "self.persist",
+        "terminal_name": "persist",
+        "receiver": "self",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "span": {
+        "start_line": 86,
+        "start_column": 8,
+        "end_line": 86,
+        "end_column": 22,
+        "start_byte": 1683,
+        "end_byte": 1697
+      },
+      "receiver_type": "ReceiverBox"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+        "callee_name": "super.restore",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/swift/basic/source.swift",
+        "line_number": 87,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "super.restore",
+        "terminal_name": "restore",
+        "receiver": "super",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "span": {
+        "start_line": 87,
+        "start_column": 8,
+        "end_line": 87,
+        "end_column": 23,
+        "start_byte": 1706,
+        "end_byte": 1721
+      },
+      "receiver_type": "ServiceBase"
+    }
+  ],
   "identifiers": [
     {
       "key": "fixtures/extraction/swift/basic/source.swift:Array:type_usage:8:17",
@@ -954,6 +2010,38 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/swift/basic/source.swift:Bar:type_usage:76:15",
+      "name": "Bar",
+      "kind": "type_usage",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 76,
+      "start_column": 15,
+      "end_line": 76,
+      "end_column": 18,
+      "start_byte": 1400,
+      "end_byte": 1403,
+      "containing_key": "fixtures/extraction/swift/basic/source.swift:init:76:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:Bar:type_usage:79:30",
+      "name": "Bar",
+      "kind": "type_usage",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 79,
+      "start_column": 30,
+      "end_line": 79,
+      "end_column": 33,
+      "start_byte": 1470,
+      "end_byte": 1473,
+      "containing_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/swift/basic/source.swift:Dictionary:type_usage:8:23",
       "name": "Dictionary",
       "kind": "type_usage",
@@ -966,6 +2054,118 @@
       "start_byte": 111,
       "end_byte": 121,
       "containing_key": "fixtures/extraction/swift/basic/source.swift:Worker:5:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:Foo:call:102:11",
+      "name": "Foo",
+      "kind": "call",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 102,
+      "start_column": 11,
+      "end_line": 102,
+      "end_column": 14,
+      "start_byte": 1953,
+      "end_byte": 1956,
+      "containing_key": "fixtures/extraction/swift/basic/source.swift:makeFoo:101:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:Foo:call:81:26",
+      "name": "Foo",
+      "kind": "call",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 81,
+      "start_column": 26,
+      "end_line": 81,
+      "end_column": 29,
+      "start_byte": 1536,
+      "end_byte": 1539,
+      "containing_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:Foo:type_usage:101:18",
+      "name": "Foo",
+      "kind": "type_usage",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 101,
+      "start_column": 18,
+      "end_line": 101,
+      "end_column": 21,
+      "start_byte": 1936,
+      "end_byte": 1939,
+      "containing_key": "fixtures/extraction/swift/basic/source.swift:makeFoo:101:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:Foo:type_usage:75:16",
+      "name": "Foo",
+      "kind": "type_usage",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 75,
+      "start_column": 16,
+      "end_line": 75,
+      "end_column": 19,
+      "start_byte": 1381,
+      "end_byte": 1384,
+      "containing_key": "fixtures/extraction/swift/basic/source.swift:ReceiverBox:74:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:Foo:type_usage:79:16",
+      "name": "Foo",
+      "kind": "type_usage",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 79,
+      "start_column": 16,
+      "end_line": 79,
+      "end_column": 19,
+      "start_byte": 1456,
+      "end_byte": 1459,
+      "containing_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:Foo:type_usage:80:22",
+      "name": "Foo",
+      "kind": "type_usage",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 80,
+      "start_column": 22,
+      "end_line": 80,
+      "end_column": 25,
+      "start_byte": 1499,
+      "end_byte": 1502,
+      "containing_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:Foo:type_usage:85:20",
+      "name": "Foo",
+      "kind": "type_usage",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 85,
+      "start_column": 20,
+      "end_line": 85,
+      "end_column": 23,
+      "start_byte": 1665,
+      "end_byte": 1668,
+      "containing_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1014,6 +2214,86 @@
       "start_byte": 446,
       "end_byte": 455,
       "containing_key": "fixtures/extraction/swift/basic/source.swift:Worker:27:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:ReceiverBox:type_usage:105:10",
+      "name": "ReceiverBox",
+      "kind": "type_usage",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 105,
+      "start_column": 10,
+      "end_line": 105,
+      "end_column": 21,
+      "start_byte": 1972,
+      "end_byte": 1983,
+      "containing_key": "fixtures/extraction/swift/basic/source.swift:ReceiverBox:105:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:ServiceBase:type_usage:74:19",
+      "name": "ServiceBase",
+      "kind": "type_usage",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 74,
+      "start_column": 19,
+      "end_line": 74,
+      "end_column": 30,
+      "start_byte": 1351,
+      "end_byte": 1362,
+      "containing_key": "fixtures/extraction/swift/basic/source.swift:ReceiverBox:74:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:UIKit:variable_ref:83:23",
+      "name": "UIKit",
+      "kind": "variable_ref",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 83,
+      "start_column": 23,
+      "end_line": 83,
+      "end_column": 28,
+      "start_byte": 1597,
+      "end_byte": 1602,
+      "containing_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:UIView:call:83:29",
+      "name": "UIView",
+      "kind": "call",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 83,
+      "start_column": 29,
+      "end_line": 83,
+      "end_column": 35,
+      "start_byte": 1603,
+      "end_byte": 1609,
+      "containing_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:Unknown:call:82:22",
+      "name": "Unknown",
+      "kind": "call",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 82,
+      "start_column": 22,
+      "end_line": 82,
+      "end_column": 29,
+      "start_byte": 1564,
+      "end_byte": 1571,
+      "containing_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1114,6 +2394,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/swift/basic/source.swift:constructed:variable_ref:89:12",
+      "name": "constructed",
+      "kind": "variable_ref",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 89,
+      "start_column": 12,
+      "end_line": 89,
+      "end_column": 23,
+      "start_byte": 1755,
+      "end_byte": 1766,
+      "containing_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/swift/basic/source.swift:count:variable_ref:67:21",
       "name": "count",
       "kind": "variable_ref",
@@ -1174,6 +2470,22 @@
       "start_byte": 198,
       "end_byte": 204,
       "containing_key": "fixtures/extraction/swift/basic/source.swift:run:10:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:helpered:variable_ref:92:12",
+      "name": "helpered",
+      "kind": "variable_ref",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 92,
+      "start_column": 12,
+      "end_line": 92,
+      "end_column": 20,
+      "start_byte": 1820,
+      "end_byte": 1828,
+      "containing_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1242,6 +2554,54 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/swift/basic/source.swift:imported:variable_ref:91:12",
+      "name": "imported",
+      "kind": "variable_ref",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 91,
+      "start_column": 12,
+      "end_line": 91,
+      "end_column": 20,
+      "start_byte": 1799,
+      "end_byte": 1807,
+      "containing_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:items:variable_ref:93:12",
+      "name": "items",
+      "kind": "variable_ref",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 93,
+      "start_column": 12,
+      "end_line": 93,
+      "end_column": 17,
+      "start_byte": 1841,
+      "end_byte": 1846,
+      "containing_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:makeFoo:call:84:23",
+      "name": "makeFoo",
+      "kind": "call",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 84,
+      "start_column": 23,
+      "end_line": 84,
+      "end_column": 30,
+      "start_byte": 1635,
+      "end_byte": 1642,
+      "containing_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/swift/basic/source.swift:next:variable_ref:19:12",
       "name": "next",
       "kind": "variable_ref",
@@ -1274,6 +2634,56 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/swift/basic/source.swift:optional:variable_ref:88:12",
+      "name": "optional",
+      "kind": "variable_ref",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 88,
+      "start_column": 12,
+      "end_line": 88,
+      "end_column": 20,
+      "start_byte": 1734,
+      "end_byte": 1742,
+      "containing_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:persist:call:107:13",
+      "name": "persist",
+      "kind": "call",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 107,
+      "start_column": 13,
+      "end_line": 107,
+      "end_column": 20,
+      "start_byte": 2018,
+      "end_byte": 2025,
+      "containing_key": "fixtures/extraction/swift/basic/source.swift:extra:106:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "receiver_type": "ReceiverBox"
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:persist:call:86:13",
+      "name": "persist",
+      "kind": "call",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 86,
+      "start_column": 13,
+      "end_line": 86,
+      "end_column": 20,
+      "start_byte": 1688,
+      "end_byte": 1695,
+      "containing_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "receiver_type": "ReceiverBox"
+    },
+    {
       "key": "fixtures/extraction/swift/basic/source.swift:recordRun:call:11:8",
       "name": "recordRun",
       "kind": "call",
@@ -1286,6 +2696,55 @@
       "start_byte": 169,
       "end_byte": 178,
       "containing_key": "fixtures/extraction/swift/basic/source.swift:run:10:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:restore:call:87:14",
+      "name": "restore",
+      "kind": "call",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 87,
+      "start_column": 14,
+      "end_line": 87,
+      "end_column": 21,
+      "start_byte": 1712,
+      "end_byte": 1719,
+      "containing_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "receiver_type": "ServiceBase"
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:seed:variable_ref:77:22",
+      "name": "seed",
+      "kind": "variable_ref",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 77,
+      "start_column": 22,
+      "end_line": 77,
+      "end_column": 26,
+      "start_byte": 1429,
+      "end_byte": 1433,
+      "containing_key": "fixtures/extraction/swift/basic/source.swift:init:76:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:stored:member_access:77:13",
+      "name": "stored",
+      "kind": "member_access",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 77,
+      "start_column": 13,
+      "end_line": 77,
+      "end_column": 19,
+      "start_byte": 1420,
+      "end_byte": 1426,
+      "containing_key": "fixtures/extraction/swift/basic/source.swift:init:76:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1322,6 +2781,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/swift/basic/source.swift:unknown:variable_ref:90:12",
+      "name": "unknown",
+      "kind": "variable_ref",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 90,
+      "start_column": 12,
+      "end_line": 90,
+      "end_column": 19,
+      "start_byte": 1779,
+      "end_byte": 1786,
+      "containing_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/swift/basic/source.swift:value:variable_ref:43:4",
       "name": "value",
       "kind": "variable_ref",
@@ -1336,11 +2811,52 @@
       "containing_key": "fixtures/extraction/swift/basic/source.swift:helper:42:0",
       "target_key": null,
       "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:x:variable_ref:94:12",
+      "name": "x",
+      "kind": "variable_ref",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 94,
+      "start_column": 12,
+      "end_line": 94,
+      "end_column": 13,
+      "start_byte": 1859,
+      "end_byte": 1860,
+      "containing_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:y:variable_ref:95:12",
+      "name": "y",
+      "kind": "variable_ref",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 95,
+      "start_column": 12,
+      "end_line": 95,
+      "end_column": 13,
+      "start_byte": 1873,
+      "end_byte": 1874,
+      "containing_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "target_key": null,
+      "confidence": "1.000"
     }
   ],
   "types": [
     {
       "symbol_key": "fixtures/extraction/swift/basic/source.swift:Counter:16:0",
+      "resolved_type": "class",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "swift",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:Foo:100:0",
       "resolved_type": "class",
       "generic_params": null,
       "constraints": null,
@@ -1360,6 +2876,33 @@
     {
       "symbol_key": "fixtures/extraction/swift/basic/source.swift:LegacyHandler:32:0",
       "resolved_type": "typealias",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "swift",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:ReceiverBox:105:0",
+      "resolved_type": "extension",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "swift",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:ReceiverBox:74:0",
+      "resolved_type": "class",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "swift",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:ServiceBase:99:0",
+      "resolved_type": "class",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
@@ -1403,6 +2946,24 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:constructed:81:8",
+      "resolved_type": "Foo",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "swift",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:count:64:14",
+      "resolved_type": "Int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "swift",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/swift/basic/source.swift:current:38:4",
       "resolved_type": "enum-case",
       "generic_params": null,
@@ -1412,8 +2973,35 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:enabled:64:28",
+      "resolved_type": "Bool",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "swift",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/swift/basic/source.swift:evaluate:64:0",
       "resolved_type": "Int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "swift",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:event:52:16",
+      "resolved_type": "String",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "swift",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:extra:106:4",
+      "resolved_type": "Void",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
@@ -1448,8 +3036,44 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:helpered:84:8",
+      "resolved_type": "Any",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "swift",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:id:47:15",
+      "resolved_type": "Int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "swift",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:id:52:33",
+      "resolved_type": "Int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "swift",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/swift/basic/source.swift:id:7:4",
       "resolved_type": "Int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "swift",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:imported:83:8",
+      "resolved_type": "Any",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
@@ -1466,6 +3090,24 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:init:76:4",
+      "resolved_type": "initializer",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "swift",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:items:85:8",
+      "resolved_type": "[Foo]",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "swift",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/swift/basic/source.swift:legacy:36:4",
       "resolved_type": "enum-case",
       "generic_params": null,
@@ -1473,6 +3115,26 @@
       "is_inferred": true,
       "language": "swift",
       "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:makeFoo:101:0",
+      "resolved_type": "Foo",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "swift",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:mapping:8:4",
+      "resolved_type": "Array",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "swift",
+      "metadata": {
+        "declared": "Array<Dictionary<String, Int>>"
+      }
     },
     {
       "symbol_key": "fixtures/extraction/swift/basic/source.swift:next:18:8",
@@ -1491,6 +3153,17 @@
       "is_inferred": true,
       "language": "swift",
       "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:optional:80:8",
+      "resolved_type": "Foo",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "swift",
+      "metadata": {
+        "declared": "Foo?"
+      }
     },
     {
       "symbol_key": "fixtures/extraction/swift/basic/source.swift:recordRun:47:0",
@@ -1520,11 +3193,29 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:seed:76:9",
+      "resolved_type": "Bar",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "swift",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/swift/basic/source.swift:status:29:4",
       "resolved_type": "String",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
+      "language": "swift",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:stored:75:4",
+      "resolved_type": "Foo",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "swift",
       "metadata": null
     },
@@ -1536,6 +3227,62 @@
       "is_inferred": true,
       "language": "swift",
       "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:unknown:82:8",
+      "resolved_type": "Any",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "swift",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:url:61:14",
+      "resolved_type": "String",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "swift",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "resolved_type": "Void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "swift",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:value:42:12",
+      "resolved_type": "Int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "swift",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:x:79:13",
+      "resolved_type": "Foo",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "swift",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:y:79:21",
+      "resolved_type": "Bar",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "swift",
+      "metadata": {
+        "declared": "inout Bar"
+      }
     }
   ],
   "parse_diagnostics": [],
@@ -1686,7 +3433,7 @@
       "node_kind": "await_expression",
       "language": "swift",
       "file_path": "fixtures/extraction/swift/basic/source.swift",
-      "containing_key": "fixtures/extraction/swift/basic/source.swift:next:18:8",
+      "containing_key": "fixtures/extraction/swift/basic/source.swift:increment:17:4",
       "start_line": 18,
       "start_column": 19,
       "end_line": 18,
@@ -1707,18 +3454,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "swift",
       "file_path": "fixtures/extraction/swift/basic/source.swift",
-      "covered_lines": 73,
-      "covered_bytes": 1331,
+      "covered_lines": 110,
+      "covered_bytes": 2036,
       "decision_count": 1,
       "loop_count": 1,
       "max_nesting_depth": 2,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 73,
+      "end_line": 110,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 1331,
+      "end_byte": 2036,
       "metadata": {
         "metric_version": 1
       }
@@ -1763,6 +3510,28 @@
       "end_column": 1,
       "start_byte": 1207,
       "end_byte": 1330,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:extra:106:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "covered_lines": 3,
+      "covered_bytes": 30,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 106,
+      "start_column": 17,
+      "end_line": 108,
+      "end_column": 5,
+      "start_byte": 2003,
+      "end_byte": 2033,
       "metadata": {
         "metric_version": 1
       }
@@ -1857,6 +3626,50 @@
     },
     {
       "scope": "symbol",
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:init:76:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "covered_lines": 3,
+      "covered_bytes": 34,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 76,
+      "start_column": 20,
+      "end_line": 78,
+      "end_column": 5,
+      "start_byte": 1405,
+      "end_byte": 1439,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:makeFoo:101:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "covered_lines": 3,
+      "covered_bytes": 20,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 101,
+      "start_column": 22,
+      "end_line": 103,
+      "end_column": 1,
+      "start_byte": 1940,
+      "end_byte": 1960,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
       "symbol_key": "fixtures/extraction/swift/basic/source.swift:observeRun:52:0",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "swift",
@@ -1939,6 +3752,28 @@
       "end_column": 14,
       "start_byte": 27,
       "end_byte": 29,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "covered_lines": 18,
+      "covered_bytes": 405,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 2,
+      "start_line": 79,
+      "start_column": 35,
+      "end_line": 96,
+      "end_column": 5,
+      "start_byte": 1475,
+      "end_byte": 1880,
       "metadata": {
         "metric_version": 1
       }

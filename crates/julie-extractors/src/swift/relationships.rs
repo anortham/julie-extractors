@@ -384,6 +384,8 @@ impl SwiftExtractor {
             return;
         };
 
+        let receiver_type = super::identifiers::self_receiver_type(&self.base, node);
+
         let Some(caller) = self.base.find_containing_symbol(&node, symbols) else {
             return;
         };
@@ -425,14 +427,17 @@ impl SwiftExtractor {
                     return;
                 }
 
-                let pending = self.base.create_pending_relationship(
-                    caller.id.clone(),
-                    target,
-                    RelationshipKind::Calls,
-                    &node,
-                    Some(caller.id.clone()),
-                    Some(0.7),
-                );
+                let pending = self
+                    .base
+                    .create_pending_relationship(
+                        caller.id.clone(),
+                        target,
+                        RelationshipKind::Calls,
+                        &node,
+                        Some(caller.id.clone()),
+                        Some(0.7),
+                    )
+                    .with_receiver_type(receiver_type);
                 self.add_structured_pending_relationship(pending);
             }
         }
@@ -530,6 +535,7 @@ impl SwiftExtractor {
             } else if child.kind() == "postfix_expression"
                 || child.kind() == "member_access_expression"
                 || child.kind() == "navigation_expression"
+                || child.kind() == "navigation_suffix"
             {
                 // Recursively look in nested expressions
                 if let Some(child_depth) = child_depth

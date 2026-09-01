@@ -6,22 +6,26 @@ pub(super) mod enum_cases;
 pub(super) mod extensions;
 pub(super) mod external_symbols;
 pub(super) mod identifiers;
+pub(super) mod parameters;
 pub(super) mod properties;
 pub(super) mod protocol;
 pub(super) mod relationships;
 pub(super) mod signatures;
 pub(crate) mod test_calls;
 pub(super) mod test_roles;
+pub(super) mod type_facts;
 pub(super) mod types;
 
 use crate::base::{BaseExtractor, PendingRelationship, StructuredPendingRelationship, Symbol};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
+use std::collections::HashSet;
 use tree_sitter::{Node, Tree};
 
 /// Swift extractor for extracting symbols and relationships from Swift source code
 /// Implementation of comprehensive Swift extractor with full Swift language support
 pub struct SwiftExtractor {
     pub(crate) base: BaseExtractor,
+    pub(crate) same_file_type_names: HashSet<String>,
 }
 
 impl SwiftExtractor {
@@ -33,6 +37,7 @@ impl SwiftExtractor {
     ) -> Self {
         Self {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
+            same_file_type_names: HashSet::new(),
         }
     }
 
@@ -66,6 +71,7 @@ impl SwiftExtractor {
     /// Extract all symbols from Swift source code
     /// Implementation of extractSymbols method with comprehensive Swift support
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
+        self.same_file_type_names = type_facts::collect_type_names(&self.base, tree.root_node());
         let mut symbols = Vec::new();
         self.visit_node(tree.root_node(), &mut symbols, None, 0);
         test_roles::apply_swift_test_roles(&mut symbols);
@@ -130,11 +136,6 @@ impl SwiftExtractor {
             "deinit_declaration" => {
                 symbol = Some(self.extract_deinitializer(node, parent_id.as_deref()));
             }
-            "variable_declaration" => {
-                if let Some(var_symbol) = self.extract_variable(node, parent_id.as_deref()) {
-                    symbol = Some(var_symbol);
-                }
-            }
             "property_declaration" => {
                 symbol = self.extract_property(node, parent_id.as_deref());
             }
@@ -155,9 +156,12 @@ impl SwiftExtractor {
             _ => {}
         }
 
-        if let Some(ref sym) = symbol {
+        if let Some(sym) = &symbol {
             symbols.push(sym.clone());
             current_parent_id = Some(sym.id.clone());
+            if matches!(node.kind(), "function_declaration" | "init_declaration") {
+                symbols.extend(parameters::extract_parameter_symbols(self, node, &sym.id));
+            }
         }
 
         // Recursively visit children

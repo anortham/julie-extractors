@@ -11,6 +11,7 @@ mod structural_facts;
 mod task14;
 mod test_detection; // Miller bridge test-roles: base_types + Swift Testing annotations
 mod type_arguments;
+mod type_facts;
 
 use crate::base::{RelationshipKind, SymbolKind, Visibility};
 use crate::swift::SwiftExtractor;
