@@ -5,9 +5,11 @@
 mod identifiers;
 mod idioms;
 mod non_s3;
+mod parameters;
 mod relationships;
 pub(crate) mod test_calls;
 mod text_args;
+mod type_facts;
 
 use crate::base::{BaseExtractor, Identifier, PendingRelationship, Relationship, Symbol};
 use crate::base::{SymbolKind, SymbolOptions};
@@ -62,6 +64,10 @@ impl RExtractor {
         let current_symbol: Option<Symbol> = match node.kind() {
             "binary_operator" => self.extract_from_binary_op(node, &parent_id, non_s3),
             "call" => self.extract_from_call(node, &parent_id),
+            "function_definition" => {
+                parameters::extract_class_method_parameters(self, node);
+                None
+            }
             _ => None,
         };
 
@@ -125,6 +131,11 @@ impl RExtractor {
                     };
                     let symbol = self.base.create_symbol(&node, name, kind, options);
                     self.symbols.push(symbol.clone());
+                    if symbol.kind == SymbolKind::Variable
+                        && let Some(class_name) = type_facts::same_file_constructor_class(self, right)
+                    {
+                        type_facts::record_constructor_fact(&mut self.base, &symbol.id, &class_name);
+                    }
                     Some(symbol)
                 }
             }
@@ -209,6 +220,9 @@ impl RExtractor {
         };
         let symbol = self.base.create_symbol(&node, name, kind, options);
         self.symbols.push(symbol.clone());
+        let parameter_symbols =
+            parameters::extract_parameter_symbols(self, func_def, &symbol.id);
+        self.symbols.extend(parameter_symbols);
         symbol
     }
 

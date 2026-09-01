@@ -79,12 +79,13 @@ fn extract_identifier_from_node(
                 };
 
                 let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
-
-                extractor.base.create_identifier(
+                let receiver_type = super::type_facts::self_receiver_type(extractor, function_node);
+                extractor.base.create_identifier_with_receiver_type(
                     &function_node,
                     name,
                     IdentifierKind::Call,
                     containing_symbol_id,
+                    receiver_type,
                 );
             }
             // Phase 3b: capture string-literal call-arguments config-free; the

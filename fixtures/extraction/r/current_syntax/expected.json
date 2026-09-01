@@ -135,6 +135,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/r/current_syntax/source.R:return:1:28",
+      "name": "return",
+      "kind": "variable",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/current_syntax/source.R",
+      "start_line": 1,
+      "start_column": 28,
+      "end_line": 1,
+      "end_column": 34,
+      "start_byte": 28,
+      "end_byte": 34,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "return",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/r/current_syntax/source.R:return_identity:1:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/r/current_syntax/source.R:return_identity:1:0",
       "name": "return_identity",
       "kind": "function",

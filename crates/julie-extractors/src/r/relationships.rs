@@ -111,17 +111,22 @@ fn extract_call_relationships(
                         metadata: None,
                     };
                     relationships.push(relationship);
-                } else if !is_builtin_function(&function_name) {
-                    // Unknown non-builtin function - create PendingRelationship
-                    // for cross-file resolution
-                    let pending = extractor.base.create_pending_relationship(
-                        caller_symbol.id.clone(),
-                        target,
-                        RelationshipKind::Calls,
-                        &node,
-                        Some(caller_symbol.id.clone()),
-                        Some(0.7),
-                    );
+                } else if function_node.kind() != "identifier"
+                    || !is_builtin_function(&function_name)
+                {
+                    let receiver_type =
+                        super::type_facts::self_receiver_type(extractor, function_node);
+                    let pending = extractor
+                        .base
+                        .create_pending_relationship(
+                            caller_symbol.id.clone(),
+                            target,
+                            RelationshipKind::Calls,
+                            &node,
+                            Some(caller_symbol.id.clone()),
+                            Some(0.7),
+                        )
+                        .with_receiver_type(receiver_type);
                     extractor.add_structured_pending_relationship(pending);
                 }
                 // Built-in functions (print, mean, length, etc.) are silently
