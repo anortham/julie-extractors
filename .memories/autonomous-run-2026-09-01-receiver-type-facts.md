@@ -3,7 +3,7 @@
 **Status:** Complete
 **Plan:** docs/plans/2026-09-01-receiver-type-facts-implementation.md
 **Branch:** worktree-receiver-typed-call-resolution
-**PR:** pending — awaiting the user's integration decision (push needs approval)
+**PR:** not created — user chose a local fast-forward merge to main
 **Duration:** ~4h 20m wall clock (14:00Z–18:20Z, includes a session rate-limit pause)
 **Phases:** 1/1 complete
 **Tasks:** 12/12 complete (10 planned + Task 3b and the Task 9 corrupt-row fix, both added during execution)
@@ -65,7 +65,7 @@ External review: none (not requested for this run).
 
 ## Next steps
 
-- Integration decision: merge to main locally, or push and open a PR (push needs the user's approval).
+- Integration: user approved a local fast-forward merge to main (executed at the end of this run; no push).
 - Author docs/plans/2026-09-08-receiver-type-facts-wave-2.md at exactly that path (19 open_gaps entries reference it); decide there whether scala and qml join the wave-2 list.
 - Remove the four merged agent worktrees from a non-isolated session.
 - Deferred wave-1 refinements (also listed in the spec doc): python local re-parenting, go `:=` extension, java binding forms, csharp indexer return types, `receiver_type` for python/rust/go/java.
