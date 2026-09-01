@@ -276,9 +276,9 @@ Commit modes: serial tasks use `serial-worker-commit`; Batch B uses `parallel-le
 **Approach:** TDD per shape; the method-receiver test asserts the receiver symbol's fact binds `s` → `Store`.
 
 **Acceptance criteria:**
-- [ ] Receiver, parameter, local (declared + composite literal), and field facts pass.
-- [ ] `cargo xtask test language go` passes.
-- [ ] Verified diff handed to the lead (parallel-lead-commit).
+- [x] Receiver, parameter, local (declared + composite literal), and field facts pass.
+- [x] `cargo xtask test language go` passes.
+- [x] Verified work reviewed by the lead (worker commit 7cedd599 on its worktree branch; merged after Task 3b).
 
 ### Task 8: Java
 
@@ -303,9 +303,9 @@ Commit modes: serial tasks use `serial-worker-commit`; Batch B uses `parallel-le
 **Approach:** TDD per shape; regenerate goldens.
 
 **Acceptance criteria:**
-- [ ] Local, parameter, field, and `new`-local facts pass; `this.` calls carry `receiver_type`.
-- [ ] `cargo xtask test language java` passes.
-- [ ] Verified diff handed to the lead (parallel-lead-commit).
+- [x] Local, parameter, field, and `new`-local facts pass; `this.`/`super.` receiver_type rides Task 3b's channel (descoped here).
+- [x] `cargo xtask test language java` passes.
+- [x] Verified work reviewed by the lead (worker commit 5c8d6845 on its worktree branch; merged after Task 3b).
 
 ### Task 3b: receiver_type metadata channel (added during execution)
 
@@ -319,10 +319,10 @@ Commit modes: serial tasks use `serial-worker-commit`; Batch B uses `parallel-le
 **Serialization required:** Yes — owns base/ and CLI files every lane touches.
 
 **Acceptance criteria:**
-- [ ] Extractor-set `receiver_type` reaches `identifiers.metadata_json` and `pending_relationships.metadata_json` in a scanned artifact.
-- [ ] C# and TS/JS `this`-receiver call sites carry it; absent receivers serialize nothing.
-- [ ] Affected contract tests updated; `cargo test -p julie-extractors --lib` and CLI contract tests for the mapping pass.
-- [ ] Change committed (serial-worker-commit).
+- [x] Extractor-set `receiver_type` reaches `identifiers.metadata_json` and `pending_relationships.metadata_json` in a scanned artifact (new CLI contract test).
+- [x] C# `this`/`base` and TS/JS `this` call identifiers carry it; C# pending rows carry it (TS/JS emit no pending rows for receiver-qualified calls by existing policy); absent receivers serialize nothing.
+- [x] Affected contract tests updated (incl. Task 6 fallout repairs proved at HEAD); lib 3628 and full CLI suite pass.
+- [x] Change committed (serial-worker-commit, 35495310).
 
 ### Task 9: Evidence scan
 
