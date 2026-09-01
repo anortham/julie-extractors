@@ -21,6 +21,14 @@ func (w Worker) Run() int {
 	return helper(w.ID)
 }
 
+func (w Worker) Start() {
+	next := NewWorker(w.ID)
+	_ = next
+	w.Run()
+	other := Worker{}
+	other.Run()
+}
+
 // recordRun emits a worker-run marker for observability hooks.
 func recordRun(id int) {
 	observeRun("worker-run", id)
