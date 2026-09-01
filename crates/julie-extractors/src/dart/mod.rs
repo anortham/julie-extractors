@@ -9,11 +9,14 @@ mod functions;
 mod helpers;
 mod identifiers;
 mod imports;
+mod locals;
 mod members;
+mod parameters;
 mod pending_calls;
 mod relationships;
 mod signatures;
 pub(crate) mod test_calls;
+mod type_facts;
 mod types;
 
 use crate::base::{
@@ -34,14 +37,33 @@ static TYPE_SIGNATURE_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(\w+)
 pub struct DartExtractor {
     pub(crate) base: BaseExtractor,
     same_file_calls: Vec<(String, String, u32, crate::base::NormalizedSpan)>,
-    /// Byte offsets of `block` nodes already consumed as Dart 3 modifier class bodies.
-    /// Prevents double-visiting when the source_file-level iteration hits the same block.
+    same_file_type_names: HashSet<String>,
     consumed_blocks: HashSet<usize>,
 }
 
 /// tree-sitter-dart roots parsed files at `source_file`, not `program`.
 fn is_dart_top_level_parent(parent: Node) -> bool {
     parent.kind() == "source_file"
+}
+
+fn is_dart_callable(kind: &str) -> bool {
+    matches!(
+        kind,
+        "function_declaration"
+            | "lambda_expression"
+            | "function_signature"
+            | "method_signature"
+            | "method_declaration"
+            | "constructor_signature"
+            | "factory_constructor_signature"
+            | "constant_constructor_signature"
+    )
+}
+
+fn wrapped_constructor_signature(node: Node) -> bool {
+    node.parent().is_some_and(|parent| {
+        matches!(parent.kind(), "method_signature" | "method_declaration")
+    })
 }
 
 impl DartExtractor {
@@ -54,6 +76,7 @@ impl DartExtractor {
         Self {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
             same_file_calls: Vec::new(),
+            same_file_type_names: HashSet::new(),
             consumed_blocks: HashSet::new(),
         }
     }
@@ -104,7 +127,10 @@ impl DartExtractor {
             }
             "function_signature" => {
                 if let Some(parent) = node.parent()
-                    && parent.kind() != "method_signature"
+                    && !matches!(
+                        parent.kind(),
+                        "method_signature" | "function_declaration" | "local_function_declaration"
+                    )
                 {
                     symbol = if current_parent_id.is_some() {
                         functions::extract_method(
@@ -121,9 +147,47 @@ impl DartExtractor {
                     };
                 }
             }
-            "method_signature" | "method_declaration" => {
-                symbol =
-                    functions::extract_method(&mut self.base, &node, current_parent_id.as_deref());
+            "method_declaration" => {
+                symbol = if let Some(constructor) = functions::nested_constructor_signature(&node) {
+                    functions::extract_constructor(
+                        &mut self.base,
+                        &constructor,
+                        current_parent_id.as_deref(),
+                    )
+                } else {
+                    functions::extract_method(
+                        &mut self.base,
+                        &node,
+                        current_parent_id.as_deref(),
+                    )
+                };
+            }
+            "method_signature" => {
+                if !node
+                    .parent()
+                    .is_some_and(|parent| parent.kind() == "method_declaration")
+                {
+                    symbol = if functions::nested_constructor_signature(&node).is_some() {
+                        None
+                    } else {
+                        functions::extract_method(
+                            &mut self.base,
+                            &node,
+                            current_parent_id.as_deref(),
+                        )
+                    };
+                }
+            }
+            "constructor_signature"
+            | "factory_constructor_signature"
+            | "constant_constructor_signature"
+                if !wrapped_constructor_signature(node) =>
+            {
+                symbol = functions::extract_constructor(
+                    &mut self.base,
+                    &node,
+                    current_parent_id.as_deref(),
+                );
             }
             "call_expression" => {
                 // package:test call-style (Miller bridge test-roles): test()/group()/
@@ -231,15 +295,6 @@ impl DartExtractor {
                 symbol =
                     types::extract_extension(&mut self.base, &node, current_parent_id.as_deref());
             }
-            "constructor_signature"
-            | "factory_constructor_signature"
-            | "constant_constructor_signature" => {
-                symbol = functions::extract_constructor(
-                    &mut self.base,
-                    &node,
-                    current_parent_id.as_deref(),
-                );
-            }
             "getter_signature" => {
                 symbol =
                     members::extract_getter(&mut self.base, &node, current_parent_id.as_deref());
@@ -252,7 +307,25 @@ impl DartExtractor {
                 symbol =
                     members::extract_field(&mut self.base, &node, current_parent_id.as_deref());
             }
-            "top_level_variable_declaration" | "initialized_variable_definition" => {
+            "local_variable_declaration" => {
+                symbols.extend(locals::extract_locals(
+                    self,
+                    node,
+                    current_parent_id.as_deref(),
+                ));
+            }
+            "top_level_variable_declaration" => {
+                symbol = functions::extract_variable(
+                    &mut self.base,
+                    &node,
+                    current_parent_id.as_deref(),
+                );
+            }
+            "initialized_variable_definition"
+                if !node
+                    .parent()
+                    .is_some_and(|parent| parent.kind() == "local_variable_declaration") =>
+            {
                 symbol = functions::extract_variable(
                     &mut self.base,
                     &node,
@@ -327,8 +400,18 @@ impl DartExtractor {
         }
 
         // Add symbol if extracted successfully
-        let next_parent_id = if let Some(ref sym) = symbol {
+        let next_parent_id = if let Some(sym) = &symbol {
+            if matches!(sym.kind, SymbolKind::Class) {
+                self.same_file_type_names.insert(sym.name.clone());
+            }
             symbols.push(sym.clone());
+            if is_dart_callable(node.kind()) {
+                symbols.extend(parameters::extract_parameter_symbols(
+                    &mut self.base,
+                    node,
+                    &sym.id,
+                ));
+            }
             Some(sym.id.as_str())
         } else {
             current_parent_id.as_deref()

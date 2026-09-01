@@ -3,6 +3,7 @@
 // Methods for extracting fields, properties, getters, and setters
 
 use super::helpers::*;
+use super::type_facts;
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
 use std::collections::HashMap;
 use tree_sitter::Node;
@@ -100,6 +101,7 @@ pub(super) fn extract_field(
         .get_or_insert_with(HashMap::new)
         .insert("isStatic".to_string(), serde_json::Value::Bool(is_static));
 
+    type_facts::record_declared_type(base, &symbol.id, type_node);
     Some(symbol)
 }
 

@@ -58,10 +58,43 @@
       "signature": "group(\"calculator\")",
       "doc_comment": null,
       "visibility": null,
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0",
       "metadata": {
         "test_container": true,
         "test_role": "test_container"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/dart/test_roles/source.dart:callback:17:29",
+      "name": "callback",
+      "kind": "variable",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "start_line": 17,
+      "start_column": 29,
+      "end_line": 17,
+      "end_column": 53,
+      "start_byte": 284,
+      "end_byte": 308,
+      "body_span": {
+        "start_line": 17,
+        "start_column": 42,
+        "end_line": 17,
+        "end_column": 44,
+        "start_byte": 297,
+        "end_byte": 299
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "void Function() callback",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/dart/test_roles/source.dart:runExample:17:0",
+      "metadata": {
+        "role": "parameter"
       },
       "annotations": [],
       "semantic_group": null,
@@ -76,24 +109,50 @@
       "file_path": "fixtures/extraction/dart/test_roles/source.dart",
       "start_line": 3,
       "start_column": 0,
-      "end_line": 3,
-      "end_column": 11,
+      "end_line": 13,
+      "end_column": 1,
       "start_byte": 34,
-      "end_byte": 45,
+      "end_byte": 220,
       "body_span": {
         "start_line": 3,
-        "start_column": 9,
-        "end_line": 3,
-        "end_column": 11,
-        "start_byte": 43,
-        "end_byte": 45
+        "start_column": 12,
+        "end_line": 13,
+        "end_column": 1,
+        "start_byte": 46,
+        "end_byte": 220
       },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_hash": "413ba3af65e405f4eb97c1027dbeeb5c",
       "signature": "void main()",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
       "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/dart/test_roles/source.dart:name:17:16",
+      "name": "name",
+      "kind": "variable",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "start_line": 17,
+      "start_column": 16,
+      "end_line": 17,
+      "end_column": 27,
+      "start_byte": 271,
+      "end_byte": 282,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "String name",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/dart/test_roles/source.dart:runExample:17:0",
+      "metadata": {
+        "role": "parameter"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -133,19 +192,19 @@
       "file_path": "fixtures/extraction/dart/test_roles/source.dart",
       "start_line": 17,
       "start_column": 0,
-      "end_line": 17,
-      "end_column": 54,
+      "end_line": 19,
+      "end_column": 1,
       "start_byte": 255,
-      "end_byte": 309,
+      "end_byte": 327,
       "body_span": {
         "start_line": 17,
-        "start_column": 15,
-        "end_line": 17,
-        "end_column": 54,
-        "start_byte": 270,
-        "end_byte": 309
+        "start_column": 55,
+        "end_line": 19,
+        "end_column": 1,
+        "start_byte": 310,
+        "end_byte": 327
       },
-      "body_hash": "cede3bedc2d8843782acf7ea7fe2fbc7",
+      "body_hash": "3d766624cc354820d6256e55c3c472e3",
       "signature": "void runExample(String name, void Function() callback)",
       "doc_comment": null,
       "visibility": "Public",
@@ -200,18 +259,18 @@
       "start_line": 15,
       "start_column": 0,
       "end_line": 15,
-      "end_column": 28,
+      "end_column": 31,
       "start_byte": 222,
-      "end_byte": 250,
+      "end_byte": 253,
       "body_span": {
         "start_line": 15,
-        "start_column": 26,
+        "start_column": 29,
         "end_line": 15,
-        "end_column": 28,
-        "start_byte": 248,
-        "end_byte": 250
+        "end_column": 31,
+        "start_byte": 251,
+        "end_byte": 253
       },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "void testNamedButNotCalled()",
       "doc_comment": null,
       "visibility": "Public",
@@ -259,12 +318,46 @@
       "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": null
+    },
+    {
+      "from_key": "fixtures/extraction/dart/test_roles/source.dart:runExample:17:0",
+      "to_key": "fixtures/extraction/dart/test_roles/source.dart:callback:17:29",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "line_number": 18,
+      "span": {
+        "start_line": 18,
+        "start_column": 2,
+        "end_line": 18,
+        "end_column": 10,
+        "start_byte": 314,
+        "end_byte": 322
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
+      "metadata": null
     }
   ],
   "pending_relationships": [
     {
       "from_key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0",
       "callee_name": "equals",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "line_number": 8,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0",
+      "callee_name": "equals",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "line_number": 8,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0",
+      "callee_name": "expect",
       "kind": "calls",
       "file_path": "fixtures/extraction/dart/test_roles/source.dart",
       "line_number": 8,
@@ -288,6 +381,14 @@
     },
     {
       "from_key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0",
+      "callee_name": "group",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "line_number": 4,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0",
       "callee_name": "test",
       "kind": "calls",
       "file_path": "fixtures/extraction/dart/test_roles/source.dart",
@@ -295,11 +396,11 @@
       "confidence": "0.700"
     },
     {
-      "from_key": "fixtures/extraction/dart/test_roles/source.dart:runExample:17:0",
-      "callee_name": "callback",
+      "from_key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0",
+      "callee_name": "test",
       "kind": "calls",
       "file_path": "fixtures/extraction/dart/test_roles/source.dart",
-      "line_number": 18,
+      "line_number": 7,
       "confidence": "0.700"
     }
   ],
@@ -333,6 +434,32 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0",
+        "callee_name": "equals",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+        "line_number": 8,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "equals",
+        "terminal_name": "equals",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0",
+      "span": {
+        "start_line": 8,
+        "start_column": 20,
+        "end_line": 8,
+        "end_column": 29,
+        "start_byte": 148,
+        "end_byte": 157
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0",
         "callee_name": "expect",
         "kind": "calls",
         "file_path": "fixtures/extraction/dart/test_roles/source.dart",
@@ -354,6 +481,58 @@
         "end_column": 12,
         "start_byte": 134,
         "end_byte": 140
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0",
+        "callee_name": "expect",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+        "line_number": 8,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "expect",
+        "terminal_name": "expect",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0",
+      "span": {
+        "start_line": 8,
+        "start_column": 6,
+        "end_line": 8,
+        "end_column": 30,
+        "start_byte": 134,
+        "end_byte": 158
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0",
+        "callee_name": "group",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+        "line_number": 4,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "group",
+        "terminal_name": "group",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0",
+      "span": {
+        "start_line": 4,
+        "start_column": 2,
+        "end_line": 12,
+        "end_column": 4,
+        "start_byte": 50,
+        "end_byte": 217
       }
     },
     {
@@ -410,28 +589,28 @@
     },
     {
       "pending": {
-        "from_key": "fixtures/extraction/dart/test_roles/source.dart:runExample:17:0",
-        "callee_name": "callback",
+        "from_key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0",
+        "callee_name": "test",
         "kind": "calls",
         "file_path": "fixtures/extraction/dart/test_roles/source.dart",
-        "line_number": 18,
+        "line_number": 7,
         "confidence": "0.700"
       },
       "target": {
-        "display_name": "callback",
-        "terminal_name": "callback",
+        "display_name": "test",
+        "terminal_name": "test",
         "receiver": null,
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/dart/test_roles/source.dart:runExample:17:0",
+      "caller_scope_key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0",
       "span": {
-        "start_line": 18,
-        "start_column": 2,
-        "end_line": 18,
-        "end_column": 10,
-        "start_byte": 314,
-        "end_byte": 322
+        "start_line": 7,
+        "start_column": 4,
+        "end_line": 9,
+        "end_column": 6,
+        "start_byte": 98,
+        "end_byte": 166
       }
     }
   ],
@@ -464,7 +643,7 @@
       "end_column": 10,
       "start_byte": 314,
       "end_byte": 322,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/dart/test_roles/source.dart:runExample:17:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -567,11 +746,29 @@
   ],
   "types": [
     {
+      "symbol_key": "fixtures/extraction/dart/test_roles/source.dart:callback:17:29",
+      "resolved_type": "void Function()",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "dart",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0",
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
+      "language": "dart",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/dart/test_roles/source.dart:name:17:16",
+      "resolved_type": "String",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "dart",
       "metadata": null
     },

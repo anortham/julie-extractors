@@ -18,6 +18,29 @@ class Worker extends Job {
   }
 }
 
+class Foo {
+  Foo();
+  Foo.named();
+}
+
+class ServiceBase {}
+
+class OrderService extends ServiceBase {
+  void process(Foo x, List<Foo> xs, Worker other) {
+    this.persist();
+    super.restore();
+    other.run();
+    final Foo typed = Foo();
+    final inferred = Foo();
+    var constructed = new Foo();
+    final named = Foo.named();
+    Foo? nullable;
+    final a = Unknown();
+    final b = http.Client();
+    final c = build();
+  }
+}
+
 /// Increments a worker id.
 int helper(int value) {
   return value + 1;

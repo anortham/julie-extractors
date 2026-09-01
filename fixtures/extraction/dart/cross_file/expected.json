@@ -8,19 +8,19 @@
       "file_path": "fixtures/extraction/dart/cross_file/source.dart",
       "start_line": 12,
       "start_column": 0,
-      "end_line": 12,
-      "end_column": 11,
+      "end_line": 15,
+      "end_column": 1,
       "start_byte": 334,
-      "end_byte": 345,
+      "end_byte": 393,
       "body_span": {
         "start_line": 12,
-        "start_column": 9,
-        "end_line": 12,
-        "end_column": 11,
-        "start_byte": 343,
-        "end_byte": 345
+        "start_column": 12,
+        "end_line": 15,
+        "end_column": 1,
+        "start_byte": 346,
+        "end_byte": 393
       },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_hash": "ffd5884925b1b371f62cb34cf8420054",
       "signature": "int entry()",
       "doc_comment": null,
       "visibility": "Public",
@@ -39,19 +39,19 @@
       "file_path": "fixtures/extraction/dart/cross_file/source.dart",
       "start_line": 8,
       "start_column": 0,
-      "end_line": 8,
-      "end_column": 18,
+      "end_line": 10,
+      "end_column": 1,
       "start_byte": 297,
-      "end_byte": 315,
+      "end_byte": 332,
       "body_span": {
         "start_line": 8,
-        "start_column": 16,
-        "end_line": 8,
-        "end_column": 18,
-        "start_byte": 313,
-        "end_byte": 315
+        "start_column": 19,
+        "end_line": 10,
+        "end_column": 1,
+        "start_byte": 316,
+        "end_byte": 332
       },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_hash": "d2eca0a1521da9f57d8eeb7ec054d1bf",
       "signature": "int local_helper()",
       "doc_comment": null,
       "visibility": "Public",
@@ -87,6 +87,37 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/dart/cross_file/source.dart:x:13:2",
+      "name": "x",
+      "kind": "variable",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/cross_file/source.dart",
+      "start_line": 13,
+      "start_column": 2,
+      "end_line": 13,
+      "end_column": 17,
+      "start_byte": 350,
+      "end_byte": 365,
+      "body_span": {
+        "start_line": 13,
+        "start_column": 15,
+        "end_line": 13,
+        "end_column": 17,
+        "start_byte": 363,
+        "end_byte": 365
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "var x = Other()",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/dart/cross_file/source.dart:entry:12:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [
@@ -110,6 +141,14 @@
     }
   ],
   "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/dart/cross_file/source.dart:entry:12:0",
+      "callee_name": "Other",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/dart/cross_file/source.dart",
+      "line_number": 13,
+      "confidence": "0.700"
+    },
     {
       "from_key": "fixtures/extraction/dart/cross_file/source.dart:entry:12:0",
       "callee_name": "Other",
@@ -145,6 +184,32 @@
         "start_byte": 358,
         "end_byte": 363
       }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/dart/cross_file/source.dart:entry:12:0",
+        "callee_name": "Other",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/dart/cross_file/source.dart",
+        "line_number": 13,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Other",
+        "terminal_name": "Other",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/dart/cross_file/source.dart:entry:12:0",
+      "span": {
+        "start_line": 13,
+        "start_column": 10,
+        "end_line": 13,
+        "end_column": 17,
+        "start_byte": 358,
+        "end_byte": 365
+      }
     }
   ],
   "identifiers": [
@@ -160,7 +225,7 @@
       "end_column": 15,
       "start_byte": 358,
       "end_byte": 363,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/dart/cross_file/source.dart:entry:12:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -208,7 +273,7 @@
       "end_column": 21,
       "start_byte": 376,
       "end_byte": 388,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/dart/cross_file/source.dart:entry:12:0",
       "target_key": null,
       "confidence": "1.000"
     }
@@ -226,6 +291,15 @@
     {
       "symbol_key": "fixtures/extraction/dart/cross_file/source.dart:local_helper:8:0",
       "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "dart",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/dart/cross_file/source.dart:x:13:2",
+      "resolved_type": "var",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,

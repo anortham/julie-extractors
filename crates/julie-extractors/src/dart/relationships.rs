@@ -109,6 +109,20 @@ fn extract_class_relationships(
     }
 }
 
+pub(super) fn first_extends_name(node: Node) -> Option<String> {
+    let mut current = node.parent();
+    while let Some(candidate) = current {
+        if matches!(candidate.kind(), "class_definition" | "class_declaration") {
+            return extract_class_header_targets(&candidate)
+                .into_iter()
+                .find(|(_, kind)| *kind == RelationshipKind::Extends)
+                .map(|(name, _)| name);
+        }
+        current = candidate.parent();
+    }
+    None
+}
+
 fn extract_class_header_targets(node: &Node) -> Vec<(String, RelationshipKind)> {
     let mut targets = Vec::new();
 
