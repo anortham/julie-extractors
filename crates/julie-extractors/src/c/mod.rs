@@ -23,10 +23,12 @@ use tree_sitter::Tree;
 mod declarations;
 mod helpers;
 mod identifiers;
+mod parameters;
 mod relationships;
 mod signatures;
 mod structs;
 pub(crate) mod test_calls;
+mod type_facts;
 mod typedefs;
 mod types;
 
@@ -274,7 +276,15 @@ impl CExtractor {
 
         let current_parent_id = if let Some(sym) = symbol {
             let symbol_id = sym.id.clone();
+            let attach_parameters = node.kind() == "function_definition";
             symbols.push(sym);
+            if attach_parameters {
+                symbols.extend(parameters::extract_parameter_symbols(
+                    self,
+                    node,
+                    &symbol_id,
+                ));
+            }
             Some(symbol_id)
         } else {
             parent_id

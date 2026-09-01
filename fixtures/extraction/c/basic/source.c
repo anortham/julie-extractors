@@ -30,3 +30,17 @@ int evaluate(int count, int enabled) {
     }
     return total;
 }
+
+struct bar;
+
+struct node {
+    struct bar *next;
+};
+
+void receive_facts(struct Worker *x, const char *s, int n) {
+    struct Worker *p = x;
+    int buf[8];
+}
+
+void handler(void (*cb)(int)) {
+}
