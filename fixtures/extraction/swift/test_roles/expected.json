@@ -515,6 +515,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/swift/test_roles/production_roles.swift:value:20:25",
+      "name": "value",
+      "kind": "variable",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/production_roles.swift",
+      "start_line": 20,
+      "start_column": 25,
+      "end_line": 20,
+      "end_column": 35,
+      "start_byte": 299,
+      "end_byte": 309,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "value: Int",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/swift/test_roles/production_roles.swift:addsManyNumbers:19:4",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/swift/test_roles/test_source.swift:CalculatorSupport:37:0",
       "name": "CalculatorSupport",
       "kind": "struct",
@@ -1657,6 +1683,14 @@
       "confidence": "0.700"
     },
     {
+      "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:adds two numbers:63:8",
+      "callee_name": "to",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "line_number": 64,
+      "confidence": "0.700"
+    },
+    {
       "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:aroundEach:59:8",
       "callee_name": "runExample",
       "kind": "calls",
@@ -1665,11 +1699,51 @@
       "confidence": "0.700"
     },
     {
+      "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:setUp:6:4",
+      "callee_name": "super.setUp",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "line_number": 7,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:setUpWithError:10:4",
+      "callee_name": "super.setUpWithError",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "line_number": 11,
+      "confidence": "0.700"
+    },
+    {
       "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:starts at zero:48:4",
       "callee_name": "equal",
       "kind": "calls",
       "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
       "line_number": 49,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:starts at zero:48:4",
+      "callee_name": "to",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "line_number": 49,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:tearDown:14:4",
+      "callee_name": "super.tearDown",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "line_number": 15,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:tearDownWithError:18:4",
+      "callee_name": "super.tearDownWithError",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "line_number": 19,
       "confidence": "0.700"
     }
   ],
@@ -1780,6 +1854,32 @@
     },
     {
       "pending": {
+        "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:adds two numbers:63:8",
+        "callee_name": "to",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+        "line_number": 64,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "to",
+        "terminal_name": "to",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/swift/test_roles/test_source.swift:adds two numbers:63:8",
+      "span": {
+        "start_line": 64,
+        "start_column": 12,
+        "end_line": 64,
+        "end_column": 38,
+        "start_byte": 1077,
+        "end_byte": 1103
+      }
+    },
+    {
+      "pending": {
         "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:aroundEach:59:8",
         "callee_name": "runExample",
         "kind": "calls",
@@ -1806,6 +1906,60 @@
     },
     {
       "pending": {
+        "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:setUp:6:4",
+        "callee_name": "super.setUp",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+        "line_number": 7,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "super.setUp",
+        "terminal_name": "setUp",
+        "receiver": "super",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/swift/test_roles/test_source.swift:setUp:6:4",
+      "span": {
+        "start_line": 7,
+        "start_column": 8,
+        "end_line": 7,
+        "end_column": 21,
+        "start_byte": 120,
+        "end_byte": 133
+      },
+      "receiver_type": "XCTestCase"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:setUpWithError:10:4",
+        "callee_name": "super.setUpWithError",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+        "line_number": 11,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "super.setUpWithError",
+        "terminal_name": "setUpWithError",
+        "receiver": "super",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/swift/test_roles/test_source.swift:setUpWithError:10:4",
+      "span": {
+        "start_line": 11,
+        "start_column": 12,
+        "end_line": 11,
+        "end_column": 34,
+        "start_byte": 197,
+        "end_byte": 219
+      },
+      "receiver_type": "XCTestCase"
+    },
+    {
+      "pending": {
         "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:starts at zero:48:4",
         "callee_name": "equal",
         "kind": "calls",
@@ -1829,6 +1983,86 @@
         "start_byte": 846,
         "end_byte": 854
       }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:starts at zero:48:4",
+        "callee_name": "to",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+        "line_number": 49,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "to",
+        "terminal_name": "to",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/swift/test_roles/test_source.swift:starts at zero:48:4",
+      "span": {
+        "start_line": 49,
+        "start_column": 8,
+        "end_line": 49,
+        "end_column": 30,
+        "start_byte": 833,
+        "end_byte": 855
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:tearDown:14:4",
+        "callee_name": "super.tearDown",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+        "line_number": 15,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "super.tearDown",
+        "terminal_name": "tearDown",
+        "receiver": "super",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/swift/test_roles/test_source.swift:tearDown:14:4",
+      "span": {
+        "start_line": 15,
+        "start_column": 8,
+        "end_line": 15,
+        "end_column": 24,
+        "start_byte": 266,
+        "end_byte": 282
+      },
+      "receiver_type": "XCTestCase"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:tearDownWithError:18:4",
+        "callee_name": "super.tearDownWithError",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+        "line_number": 19,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "super.tearDownWithError",
+        "terminal_name": "tearDownWithError",
+        "receiver": "super",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/swift/test_roles/test_source.swift:tearDownWithError:18:4",
+      "span": {
+        "start_line": 19,
+        "start_column": 12,
+        "end_line": 19,
+        "end_column": 37,
+        "start_byte": 349,
+        "end_byte": 374
+      },
+      "receiver_type": "XCTestCase"
     }
   ],
   "identifiers": [
@@ -2326,7 +2560,8 @@
       "end_byte": 131,
       "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:setUp:6:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "XCTestCase"
     },
     {
       "key": "fixtures/extraction/swift/test_roles/test_source.swift:setUpWithError:call:11:18",
@@ -2342,7 +2577,8 @@
       "end_byte": 217,
       "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:setUpWithError:10:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "XCTestCase"
     },
     {
       "key": "fixtures/extraction/swift/test_roles/test_source.swift:sharedExamples:call:47:0",
@@ -2374,7 +2610,8 @@
       "end_byte": 280,
       "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:tearDown:14:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "XCTestCase"
     },
     {
       "key": "fixtures/extraction/swift/test_roles/test_source.swift:tearDownWithError:call:19:18",
@@ -2390,7 +2627,8 @@
       "end_byte": 372,
       "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:tearDownWithError:18:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "XCTestCase"
     },
     {
       "key": "fixtures/extraction/swift/test_roles/test_source.swift:to:call:49:18",
@@ -2539,7 +2777,7 @@
       "resolved_type": "Int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "swift",
       "metadata": null
     },
@@ -2549,6 +2787,15 @@
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
+      "language": "swift",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/swift/test_roles/production_roles.swift:value:20:25",
+      "resolved_type": "Int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "swift",
       "metadata": null
     },

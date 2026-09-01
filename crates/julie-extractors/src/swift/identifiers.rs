@@ -75,12 +75,14 @@ impl SwiftExtractor {
                         if let Some((name_node, name)) = self.extract_rightmost_identifier(&child) {
                             let containing_symbol_id =
                                 self.find_containing_symbol_id(node, symbol_map);
+                            let receiver_type = self_receiver_type(&self.base, node);
 
-                            self.base.create_identifier(
+                            self.base.create_identifier_with_receiver_type(
                                 &name_node,
                                 name,
                                 IdentifierKind::Call,
                                 containing_symbol_id,
+                                receiver_type,
                             );
                         }
                         break;
@@ -549,4 +551,102 @@ fn is_swift_builtin_type(name: &str) -> bool {
             | "UInt64"
             | "Void"
     )
+}
+
+pub(super) fn self_receiver_type(base: &BaseExtractor, node: Node) -> Option<String> {
+    let navigation = match node.kind() {
+        "navigation_expression" => node,
+        "call_expression" => node
+            .children(&mut node.walk())
+            .find(|child| child.kind() == "navigation_expression")?,
+        _ => return None,
+    };
+    let receiver = navigation
+        .child_by_field_name("target")
+        .or_else(|| {
+            navigation
+                .children(&mut navigation.walk())
+                .find(|child| {
+                    matches!(child.kind(), "self_expression" | "super_expression")
+                })
+        })?;
+    match receiver.kind() {
+        "self_expression" => enclosing_type_name(base, navigation),
+        "super_expression" => first_inheritance_name(base, navigation),
+        _ => None,
+    }
+}
+
+fn enclosing_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
+    let mut current = Some(node);
+    while let Some(parent) = current {
+        match parent.kind() {
+            "class_declaration" | "actor_declaration" => {
+                return parent
+                    .child_by_field_name("name")
+                    .map(|name| base.get_node_text(&name));
+            }
+            "struct_declaration" | "enum_declaration" | "extension_declaration" => {
+                return parent
+                    .child_by_field_name("name")
+                    .or_else(|| {
+                        parent
+                            .children(&mut parent.walk())
+                            .find(|child| child.kind() == "type_identifier")
+                    })
+                    .map(|name| base.get_node_text(&name));
+            }
+            _ => current = parent.parent(),
+        }
+    }
+    None
+}
+
+fn first_inheritance_name(base: &BaseExtractor, node: Node) -> Option<String> {
+    let mut current = Some(node);
+    while let Some(parent) = current {
+        if matches!(
+            parent.kind(),
+            "class_declaration"
+                | "struct_declaration"
+                | "enum_declaration"
+                | "actor_declaration"
+        ) {
+            return first_inheritance_entry(base, parent);
+        }
+        current = parent.parent();
+    }
+    None
+}
+
+fn first_inheritance_entry(base: &BaseExtractor, node: Node) -> Option<String> {
+    if let Some(inheritance) = node
+        .children(&mut node.walk())
+        .find(|child| child.kind() == "type_inheritance_clause")
+    {
+        let name = inheritance
+            .children(&mut inheritance.walk())
+            .find(|child| matches!(child.kind(), "type_identifier" | "type" | "user_type"))
+            .map(|child| base.get_node_text(&child));
+        if name.is_some() {
+            return name;
+        }
+    }
+    let children: Vec<_> = node.children(&mut node.walk()).collect();
+    let start = children.iter().position(|child| child.kind() == ":")?;
+    for child in &children[start + 1..] {
+        match child.kind() {
+            "inheritance_specifier" => {
+                return child
+                    .children(&mut child.walk())
+                    .find(|c| matches!(c.kind(), "user_type" | "type_identifier" | "type"))
+                    .map(|n| base.get_node_text(&n))
+                    .or_else(|| Some(base.get_node_text(child)));
+            }
+            "class_body" | "struct_body" | "enum_body" | "protocol_body"
+            | "where_clause" | "type_parameters" => break,
+            _ => {}
+        }
+    }
+    None
 }

@@ -70,3 +70,40 @@ func evaluate(_ count: Int, enabled: Bool) -> Int {
     }
     return total
 }
+
+class ReceiverBox: ServiceBase {
+    let stored: Foo
+    init(seed: Bar) {
+        self.stored = seed
+    }
+    func use(x: Foo, y: inout Bar) {
+        let optional: Foo? = nil
+        let constructed = Foo()
+        let unknown = Unknown()
+        let imported = UIKit.UIView()
+        let helpered = makeFoo()
+        var items: [Foo] = []
+        self.persist()
+        super.restore()
+        _ = optional
+        _ = constructed
+        _ = unknown
+        _ = imported
+        _ = helpered
+        _ = items
+        _ = x
+        _ = y
+    }
+}
+
+class ServiceBase {}
+class Foo {}
+func makeFoo() -> Foo {
+    return Foo()
+}
+
+extension ReceiverBox {
+    func extra() {
+        self.persist()
+    }
+}

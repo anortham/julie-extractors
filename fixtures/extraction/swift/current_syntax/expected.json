@@ -401,6 +401,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/swift/current_syntax/source.swift:range:41:17",
+      "name": "range",
+      "kind": "variable",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/current_syntax/source.swift",
+      "start_line": 41,
+      "start_column": 17,
+      "end_line": 41,
+      "end_column": 47,
+      "start_byte": 632,
+      "end_byte": 662,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "_ range: Range<[String].Index>",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/swift/current_syntax/source.swift:nestedIndex:41:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/swift/current_syntax/source.swift:schedule:38:4",
       "name": "schedule",
       "kind": "method",
@@ -900,6 +926,17 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/swift/current_syntax/source.swift:range:41:17",
+      "resolved_type": "Range",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "swift",
+      "metadata": {
+        "declared": "Range<[String].Index>"
+      }
+    },
+    {
       "symbol_key": "fixtures/extraction/swift/current_syntax/source.swift:schedule:38:4",
       "resolved_type": "Void",
       "generic_params": null,
@@ -910,7 +947,7 @@
     },
     {
       "symbol_key": "fixtures/extraction/swift/current_syntax/source.swift:shared:28:4",
-      "resolved_type": "Any",
+      "resolved_type": "Registry",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
@@ -931,7 +968,7 @@
       "resolved_type": "String",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "swift",
       "metadata": null
     }

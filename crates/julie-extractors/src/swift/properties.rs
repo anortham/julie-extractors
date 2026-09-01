@@ -4,96 +4,10 @@ use std::collections::HashMap;
 use tree_sitter::Node;
 
 use super::SwiftExtractor;
+use super::type_facts;
 
 /// Extracts Swift properties, variables, and subscripts
 impl SwiftExtractor {
-    /// Implementation of extractVariable method
-    pub(super) fn extract_variable(
-        &mut self,
-        node: Node,
-        parent_id: Option<&str>,
-    ) -> Option<Symbol> {
-        let binding_node = node
-            .children(&mut node.walk())
-            .find(|c| c.kind() == "property_binding_pattern" || c.kind() == "pattern_binding");
-
-        if let Some(binding_node) = binding_node {
-            let name_node = binding_node
-                .children(&mut binding_node.walk())
-                .find(|c| c.kind() == "simple_identifier" || c.kind() == "pattern");
-            let name = name_node.map(|n| self.base.get_node_text(&n))?;
-
-            let modifiers = self.extract_modifiers(node);
-            let var_type = self.extract_variable_type(node);
-            let annotations = self.extract_annotations(node);
-            let is_let = node.children(&mut node.walk()).any(|c| c.kind() == "let");
-            let is_var = node.children(&mut node.walk()).any(|c| c.kind() == "var");
-
-            // Use "let" if is_let, otherwise default to "var"
-            let mut signature = if is_let {
-                format!("let {}", name)
-            } else {
-                format!("var {}", name)
-            };
-
-            if !modifiers.is_empty() {
-                signature = format!("{} {}", modifiers.join(" "), signature);
-            }
-
-            if let Some(ref var_type) = var_type {
-                signature.push_str(&format!(": {}", var_type));
-            }
-
-            let mut metadata = HashMap::from([
-                (
-                    "type".to_string(),
-                    serde_json::Value::String("variable".to_string()),
-                ),
-                (
-                    "modifiers".to_string(),
-                    serde_json::Value::String(modifiers.join(", ")),
-                ),
-                (
-                    "variableType".to_string(),
-                    serde_json::Value::String(var_type.unwrap_or_else(|| "Any".to_string())),
-                ),
-                (
-                    "isLet".to_string(),
-                    serde_json::Value::String(is_let.to_string()),
-                ),
-                (
-                    "isVar".to_string(),
-                    serde_json::Value::String(is_var.to_string()),
-                ),
-            ]);
-            if let Some(keys) = self.annotation_keys_csv(&annotations) {
-                metadata.insert(
-                    "annotationKeys".to_string(),
-                    serde_json::Value::String(keys),
-                );
-            }
-
-            // Extract Swift documentation comment
-            let doc_comment = self.base.find_doc_comment(&node);
-
-            Some(self.base.create_symbol(
-                &node,
-                name,
-                SymbolKind::Variable,
-                SymbolOptions {
-                    signature: Some(signature),
-                    visibility: Some(self.determine_visibility(&modifiers)),
-                    parent_id: parent_id.map(|s| s.to_string()),
-                    metadata: Some(metadata),
-                    doc_comment,
-                    annotations,
-                },
-            ))
-        } else {
-            None
-        }
-    }
-
     /// Implementation of extractProperty method
     pub(super) fn extract_property(
         &mut self,
@@ -101,15 +15,17 @@ impl SwiftExtractor {
         parent_id: Option<&str>,
     ) -> Option<Symbol> {
         let name_node = node
-            .children(&mut node.walk())
-            .find(|c| c.kind() == "pattern");
-        let name = name_node.map(|n| self.base.get_node_text(&n))?;
+            .child_by_field_name("name")
+            .or_else(|| node.children(&mut node.walk()).find(|c| c.kind() == "pattern"))?;
+        let name = name_node
+            .child_by_field_name("bound_identifier")
+            .map(|n| self.base.get_node_text(&n))
+            .unwrap_or_else(|| self.base.get_node_text(&name_node));
 
         let modifiers = self.extract_modifiers(node);
         let property_type = self.extract_property_type(node);
         let annotations = self.extract_annotations(node);
 
-        // Extract the property keyword (var or let)
         let binding_pattern = node
             .children(&mut node.walk())
             .find(|c| c.kind() == "value_binding_pattern");
@@ -123,7 +39,6 @@ impl SwiftExtractor {
             "var".to_string()
         };
 
-        // Build signature with non-visibility modifiers
         let non_visibility_modifiers: Vec<_> = modifiers
             .iter()
             .filter(|m| {
@@ -169,13 +84,17 @@ impl SwiftExtractor {
             );
         }
 
-        // Extract Swift documentation comment
         let doc_comment = self.base.find_doc_comment(&node);
+        let kind = if type_facts::nearest_callable_ancestor(node) {
+            SymbolKind::Variable
+        } else {
+            SymbolKind::Property
+        };
 
-        Some(self.base.create_symbol(
+        let symbol = self.base.create_symbol(
             &node,
             name,
-            SymbolKind::Property,
+            kind,
             SymbolOptions {
                 signature: Some(signature),
                 visibility: Some(self.determine_visibility(&modifiers)),
@@ -184,7 +103,20 @@ impl SwiftExtractor {
                 doc_comment,
                 annotations,
             },
-        ))
+        );
+
+        if let Some(type_node) = type_facts::property_type_node(node) {
+            type_facts::record_declared_type(&mut self.base, &symbol.id, type_node);
+        } else if let Some(value) = type_facts::property_value_node(node) {
+            type_facts::record_same_file_constructor(
+                &mut self.base,
+                &symbol.id,
+                value,
+                &self.same_file_type_names,
+            );
+        }
+
+        Some(symbol)
     }
 
     /// Implementation of extractSubscript method
@@ -208,7 +140,6 @@ impl SwiftExtractor {
             signature.push_str(&format!(" -> {}", return_type));
         }
 
-        // Check for accessor requirements
         if let Some(accessor_reqs) = node.children(&mut node.walk()).find(|c| {
             c.kind() == "getter_setter_block" || c.kind() == "protocol_property_requirements"
         }) {
@@ -234,7 +165,6 @@ impl SwiftExtractor {
             ),
         ]);
 
-        // Extract Swift documentation comment
         let doc_comment = self.base.find_doc_comment(&node);
 
         self.base.create_symbol(
