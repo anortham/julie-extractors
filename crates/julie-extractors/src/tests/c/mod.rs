@@ -47,4 +47,5 @@ pub mod relationships;
 pub mod structs;
 pub mod test_calls;
 pub mod test_detection;
+pub mod type_facts;
 pub mod types;

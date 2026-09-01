@@ -13,6 +13,7 @@ use std::collections::HashMap;
 use super::helpers;
 use super::signatures;
 use super::typedefs;
+use super::type_facts;
 use super::types;
 
 /// Extract an include directive as a symbol
@@ -283,7 +284,7 @@ pub(super) fn extract_variable_declaration(
         "public"
     };
 
-    Some(extractor.base.create_symbol(
+    let symbol = extractor.base.create_symbol(
         &node,
         variable_name.clone(),
         SymbolKind::Variable,
@@ -332,7 +333,14 @@ pub(super) fn extract_variable_declaration(
             doc_comment: extractor.base.find_doc_comment(&node),
             annotations: Vec::new(),
         },
-    ))
+    );
+    type_facts::record_declared_from_declaration(
+        &mut extractor.base,
+        &symbol.id,
+        node,
+        declarator,
+    );
+    Some(symbol)
 }
 
 /// Extract a linkage specification (extern "C" block)

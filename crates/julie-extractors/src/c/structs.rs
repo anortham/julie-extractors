@@ -10,6 +10,7 @@ use std::collections::HashMap;
 
 use super::helpers;
 use super::signatures;
+use super::type_facts;
 
 /// Extract a struct definition
 pub(super) fn extract_struct(
@@ -152,6 +153,12 @@ pub(super) fn extract_struct_field_symbols(
                 },
             );
 
+            type_facts::record_declared_from_declaration(
+                &mut extractor.base,
+                &field_symbol.id,
+                child,
+                decl_child,
+            );
             field_symbols.push(field_symbol);
         }
     }
