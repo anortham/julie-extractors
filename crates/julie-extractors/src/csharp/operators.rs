@@ -104,7 +104,11 @@ pub fn extract_operator(
         ..Default::default()
     };
 
-    Some(base.create_symbol(&node, name, SymbolKind::Method, options))
+    let symbol = base.create_symbol(&node, name, SymbolKind::Method, options);
+    if let Some(return_node) = node.child_by_field_name("type") {
+        super::type_inference::record_return_type(base, &symbol.id, return_node);
+    }
+    Some(symbol)
 }
 
 /// Extract conversion operator
@@ -169,7 +173,11 @@ pub fn extract_conversion_operator(
         ..Default::default()
     };
 
-    Some(base.create_symbol(&node, name, SymbolKind::Method, options))
+    let symbol = base.create_symbol(&node, name, SymbolKind::Method, options);
+    if let Some(return_node) = node.child_by_field_name("type") {
+        super::type_inference::record_return_type(base, &symbol.id, return_node);
+    }
+    Some(symbol)
 }
 
 /// Extract indexer

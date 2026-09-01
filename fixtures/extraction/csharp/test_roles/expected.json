@@ -1912,7 +1912,7 @@
       "resolved_type": "ValueTask",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
       "metadata": null
     },
@@ -1921,7 +1921,7 @@
       "resolved_type": "ValueTask",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
       "metadata": null
     },
@@ -1939,7 +1939,7 @@
       "resolved_type": "Task",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
       "metadata": null
     },
@@ -1948,7 +1948,7 @@
       "resolved_type": "Task",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
       "metadata": null
     },

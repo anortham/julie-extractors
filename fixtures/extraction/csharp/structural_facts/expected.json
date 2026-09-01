@@ -1195,7 +1195,7 @@
       "resolved_type": "IResult",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
       "metadata": null
     },
@@ -1204,7 +1204,7 @@
       "resolved_type": "IResult",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
       "metadata": null
     },

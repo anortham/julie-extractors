@@ -1937,7 +1937,7 @@
       "resolved_type": "Order",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
       "metadata": null
     },
@@ -1971,6 +1971,15 @@
       }
     },
     {
+      "symbol_key": "fixtures/extraction/csharp/csharp14/source.cs:TryParse:23:0",
+      "resolved_type": "bool",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "csharp",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/csharp/csharp14/source.cs:Value:69:4",
       "resolved_type": "int",
       "generic_params": null,
@@ -1981,12 +1990,14 @@
     },
     {
       "symbol_key": "fixtures/extraction/csharp/csharp14/source.cs:Where:31:8",
-      "resolved_type": "IEnumerable<TSource>",
+      "resolved_type": "IEnumerable",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "csharp",
-      "metadata": null
+      "metadata": {
+        "declared": "IEnumerable<TSource>"
+      }
     },
     {
       "symbol_key": "fixtures/extraction/csharp/csharp14/source.cs:amount:71:28",

@@ -83,7 +83,7 @@ fn csharp14_and_file_app_fixture_parses_cleanly_with_canonical_rows() {
     assert_identifier(&results, "source", IdentifierKind::VariableRef);
     assert_identifier(&results, "Any", IdentifierKind::Call);
     assert_type(&results, "IsEmpty", "bool");
-    assert_type(&results, "Where", "IEnumerable<TSource>");
+    assert_type(&results, "Where", "IEnumerable");
 
     assert_identifier(&results, "Order", IdentifierKind::MemberAccess);
     assert_identifier(&results, "GetCurrentOrder", IdentifierKind::Call);

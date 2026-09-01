@@ -93,7 +93,11 @@ pub fn extract_method(
         annotations,
     };
 
-    Some(base.create_symbol(&node, name, SymbolKind::Method, options))
+    let symbol = base.create_symbol(&node, name, SymbolKind::Method, options);
+    if let Some(return_node) = node.child_by_field_name("returns") {
+        super::type_inference::record_return_type(base, &symbol.id, return_node);
+    }
+    Some(symbol)
 }
 
 /// Extract constructor
@@ -371,5 +375,9 @@ pub fn extract_delegate(
         ..Default::default()
     };
 
-    Some(base.create_symbol(&node, name, SymbolKind::Delegate, options))
+    let symbol = base.create_symbol(&node, name, SymbolKind::Delegate, options);
+    if let Some(return_node) = node.child_by_field_name("type") {
+        super::type_inference::record_return_type(base, &symbol.id, return_node);
+    }
+    Some(symbol)
 }

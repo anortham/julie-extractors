@@ -86,7 +86,11 @@ pub(super) fn extract_local_function(
         ..Default::default()
     };
 
-    Some(base.create_symbol(&node, name, SymbolKind::Function, options))
+    let symbol = base.create_symbol(&node, name, SymbolKind::Function, options);
+    if let Some(return_node) = node.child_by_field_name("type") {
+        super::type_inference::record_return_type(base, &symbol.id, return_node);
+    }
+    Some(symbol)
 }
 
 /// Extract lambda or anonymous method when a stable naming context exists.

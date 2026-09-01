@@ -149,6 +149,46 @@ public class Sample {
 }
 
 #[test]
+fn generic_method_return_records_base_name() {
+    let source = r#"
+public class Sample {
+  public Dictionary<string, int> GetUserScores() {
+    return new Dictionary<string, int>();
+  }
+}
+"#;
+    let (symbols, extractor) = extract(source);
+    let fact = fact(&extractor, &symbols, "GetUserScores", SymbolKind::Method);
+    assert_eq!(fact.resolved_type, "Dictionary");
+    assert!(!fact.is_inferred);
+    assert_eq!(declared(fact), Some("Dictionary<string, int>"));
+}
+
+#[test]
+fn void_method_and_constructor_record_no_fact() {
+    let source = r#"
+public class Sample {
+  public Sample() {
+  }
+
+  public void Reset() {
+  }
+}
+"#;
+    let (symbols, extractor) = extract(source);
+    let reset = symbols
+        .iter()
+        .find(|s| s.name == "Reset" && s.kind == SymbolKind::Method)
+        .unwrap();
+    assert!(extractor.base.type_info.get(&reset.id).is_none());
+    let ctor = symbols
+        .iter()
+        .find(|s| s.name == "Sample" && s.kind == SymbolKind::Constructor)
+        .unwrap();
+    assert!(extractor.base.type_info.get(&ctor.id).is_none());
+}
+
+#[test]
 fn var_without_new_records_no_fact() {
     let source = r#"
 public class Sample {

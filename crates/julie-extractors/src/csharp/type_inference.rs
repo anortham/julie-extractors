@@ -33,6 +33,15 @@ pub(crate) fn record_new_expression_type(
     record_type_node(base, symbol_id, type_node, true);
 }
 
+/// Record a callable's declared return type (`is_inferred=false`). `void`
+/// is not a type fact and records nothing.
+pub(crate) fn record_return_type(base: &mut BaseExtractor, symbol_id: &str, type_node: Node) {
+    if base.get_node_text(&type_node).trim() == "void" {
+        return;
+    }
+    record_type_node(base, symbol_id, type_node, false);
+}
+
 fn record_type_node(base: &mut BaseExtractor, symbol_id: &str, type_node: Node, is_inferred: bool) {
     if !names_single_base_type(type_node) {
         return;
