@@ -346,9 +346,9 @@ Commit modes: serial tasks use `serial-worker-commit`; Batch B uses `parallel-le
 **Approach:** `julie-extract scan` into a scratch SQLite, then SQL counts; write the findings doc with the exact queries.
 
 **Acceptance criteria:**
-- [ ] Hard gates pass: 0 untyped `new`-initializer locals in the C# sample, 0 whitespace/truncated `resolved_type` values, ≥1 parameter symbol with a type fact per measured language.
-- [ ] Findings doc records queries, counts, and the static-internal caveat.
-- [ ] Change committed (serial-worker-commit).
+- [x] Hard gates pass at 8cf506ea: 0 untyped `new`-initializer locals, 0 corrupt `resolved_type` rows across 8 dbs, parameters with facts in all 6 languages (round 1 found 15 corrupt rows; fixed by the corrupt-row fix task).
+- [x] Findings doc records queries, counts, receiver_type end-to-end proofs, the python parenting gap, and the static-internal caveat.
+- [x] Change committed (serial-worker-commit, 25455a35).
 
 ### Task 10: Closeout
 
