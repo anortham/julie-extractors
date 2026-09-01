@@ -1,7 +1,10 @@
 mod helpers;
 mod identifiers;
+mod locals;
 mod members;
+mod parameters;
 mod relationships;
+mod type_facts;
 mod type_inference;
 mod types;
 
@@ -95,6 +98,20 @@ impl VbNetExtractor {
             return;
         }
 
+        if node.kind() == "dim_statement" {
+            let dim_symbols =
+                locals::extract_dim_statement(&mut self.base, node, parent_id.clone(), symbols);
+            symbols.extend(dim_symbols);
+            let Some(child_depth) = child_tree_depth(depth) else {
+                return;
+            };
+            let mut cursor = node.walk();
+            for child in node.children(&mut cursor) {
+                self.walk_tree(child, symbols, parent_id.clone(), child_depth);
+            }
+            return;
+        }
+
         if node.kind() == "const_declaration" {
             let const_symbols = members::extract_consts(&mut self.base, node, parent_id.clone());
             let current_parent_id = const_symbols
@@ -114,7 +131,7 @@ impl VbNetExtractor {
         }
 
         let symbol = self.extract_symbol(node, parent_id.clone());
-        let current_parent_id = if let Some(ref sym) = symbol {
+        let current_parent_id = if let Some(sym) = &symbol {
             symbols.push(sym.clone());
             Some(sym.id.clone())
         } else {
@@ -158,6 +175,9 @@ impl VbNetExtractor {
             "operator_declaration" => members::extract_operator(&mut self.base, node, parent_id),
             "const_declaration" => members::extract_const(&mut self.base, node, parent_id),
             "declare_statement" => members::extract_declare(&mut self.base, node, parent_id),
+            "parameter" | "lambda_parameter" => {
+                parameters::extract_parameter(&mut self.base, node, parent_id)
+            }
             _ => None,
         }
     }

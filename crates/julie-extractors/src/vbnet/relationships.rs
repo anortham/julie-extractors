@@ -455,6 +455,7 @@ fn extract_call_relationships(
     let base = extractor.get_base();
     let symbol_index = ScopedSymbolIndex::new(symbols);
     let target = unresolved_call_target(extractor, node, &method_name);
+    let receiver_type = super::identifiers::self_receiver_type(base, node);
     let caller_symbol = base
         .find_containing_symbol(&node, symbols)
         .filter(|symbol| {
@@ -497,14 +498,17 @@ fn extract_call_relationships(
             });
         }
         LocalTargetResolution::Import(_) => {
-            let pending = extractor.get_base().create_pending_relationship(
-                caller.id.clone(),
-                target,
-                RelationshipKind::Calls,
-                &node,
-                Some(caller.id.clone()),
-                Some(0.8),
-            );
+            let pending = extractor
+                .get_base()
+                .create_pending_relationship(
+                    caller.id.clone(),
+                    target,
+                    RelationshipKind::Calls,
+                    &node,
+                    Some(caller.id.clone()),
+                    Some(0.8),
+                )
+                .with_receiver_type(receiver_type.clone());
             extractor.add_structured_pending_relationship(pending);
         }
         LocalTargetResolution::Ambiguous
@@ -534,14 +538,17 @@ fn extract_call_relationships(
                 return;
             }
 
-            let pending = extractor.get_base().create_pending_relationship(
-                caller.id.clone(),
-                target,
-                RelationshipKind::Calls,
-                &node,
-                Some(caller.id.clone()),
-                Some(0.7),
-            );
+            let pending = extractor
+                .get_base()
+                .create_pending_relationship(
+                    caller.id.clone(),
+                    target,
+                    RelationshipKind::Calls,
+                    &node,
+                    Some(caller.id.clone()),
+                    Some(0.7),
+                )
+                .with_receiver_type(receiver_type);
             extractor.add_structured_pending_relationship(pending);
         }
     }
