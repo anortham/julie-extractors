@@ -577,6 +577,58 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/python/backend_http_boundaries/source.py:user_id:11:17",
+      "name": "user_id",
+      "kind": "variable",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/backend_http_boundaries/source.py",
+      "start_line": 11,
+      "start_column": 17,
+      "end_line": 11,
+      "end_column": 29,
+      "start_byte": 251,
+      "end_byte": 263,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "user_id: str",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/python/backend_http_boundaries/source.py:fastapi_user:11:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/python/backend_http_boundaries/source.py:user_id:24:15",
+      "name": "user_id",
+      "kind": "variable",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/backend_http_boundaries/source.py",
+      "start_line": 24,
+      "start_column": 15,
+      "end_line": 24,
+      "end_column": 22,
+      "start_byte": 500,
+      "end_byte": 507,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "user_id",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/python/backend_http_boundaries/source.py:flask_user:24:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [],
@@ -1440,6 +1492,15 @@
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
+      "language": "python",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/python/backend_http_boundaries/source.py:user_id:11:17",
+      "resolved_type": "str",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "python",
       "metadata": null
     }

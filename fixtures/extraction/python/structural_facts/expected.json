@@ -1,6 +1,32 @@
 {
   "symbols": [
     {
+      "key": "fixtures/extraction/python/structural_facts/source.py:fn:1:10",
+      "name": "fn",
+      "kind": "variable",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/structural_facts/source.py",
+      "start_line": 1,
+      "start_column": 10,
+      "end_line": 1,
+      "end_column": 12,
+      "start_byte": 10,
+      "end_byte": 12,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "fn",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/python/structural_facts/source.py:timed:1:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/python/structural_facts/source.py:run:6:0",
       "name": "run",
       "kind": "function",

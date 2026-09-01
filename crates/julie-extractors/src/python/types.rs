@@ -3,8 +3,40 @@
 use super::super::base::{Symbol, SymbolKind, SymbolOptions, Visibility, normalize_annotations};
 use super::PythonExtractor;
 use super::{decorators, helpers};
-use std::collections::HashMap;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
+use std::collections::{HashMap, HashSet};
 use tree_sitter::Node;
+
+/// Collect the names of every class defined in this file, at any nesting
+/// depth, so `x = Foo()` assignments can record an inferred constructed type.
+pub(super) fn collect_class_names(extractor: &PythonExtractor, root: Node) -> HashSet<String> {
+    let mut names = HashSet::new();
+    collect_class_names_into(extractor, root, 0, &mut names);
+    names
+}
+
+fn collect_class_names_into(
+    extractor: &PythonExtractor,
+    node: Node,
+    depth: u32,
+    names: &mut HashSet<String>,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+    if node.kind() == "class_definition"
+        && let Some(name_node) = node.child_by_field_name("name")
+    {
+        names.insert(extractor.base().get_node_text(&name_node));
+    }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        collect_class_names_into(extractor, child, child_depth, names);
+    }
+}
 
 /// Extract a class definition from a class_definition node
 pub(super) fn extract_class(extractor: &mut PythonExtractor, node: Node) -> Option<Symbol> {

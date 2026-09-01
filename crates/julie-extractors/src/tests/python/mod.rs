@@ -15,6 +15,7 @@ pub mod relationships;
 pub mod signatures;
 pub mod test_detection;
 pub mod type_arguments;
+pub mod type_facts;
 pub mod types;
 
 use crate::base::{RelationshipKind, SymbolKind};
@@ -943,8 +944,17 @@ class Temperature:
         let (mut extractor, tree) = create_extractor_and_parse(python_code);
         let symbols = extractor.extract_symbols(&tree);
 
-        // @property getter should be SymbolKind::Property
-        let celsius_props: Vec<_> = symbols.iter().filter(|s| s.name == "celsius").collect();
+        let celsius_props: Vec<_> = symbols
+            .iter()
+            .filter(|s| {
+                s.name == "celsius"
+                    && s.metadata
+                        .as_ref()
+                        .and_then(|m| m.get("role"))
+                        .and_then(|v| v.as_str())
+                        != Some("parameter")
+            })
+            .collect();
         assert!(
             celsius_props.len() >= 2,
             "Should extract multiple celsius symbols (getter, setter, deleter). Found: {}",

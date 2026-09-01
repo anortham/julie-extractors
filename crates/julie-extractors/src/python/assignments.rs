@@ -2,7 +2,7 @@
 /// Handles variable assignments, type annotations, enum members, and constants
 use super::super::base::{Symbol, SymbolKind, SymbolOptions};
 use super::PythonExtractor;
-use super::{helpers, signatures, types};
+use super::{helpers, signatures, type_facts, types};
 use std::collections::HashMap;
 use tree_sitter::Node;
 
@@ -59,8 +59,8 @@ pub(super) fn extract_assignment(extractor: &mut PythonExtractor, node: Node) ->
         }
     }
 
-    // Extract type annotation from assignment node
-    let type_annotation = if let Some(type_node) = signatures::find_type_annotation(&node) {
+    let type_node = signatures::find_type_annotation(&node);
+    let type_annotation = if let Some(type_node) = type_node {
         format!(": {}", extractor.base_mut().get_node_text(&type_node))
     } else {
         String::new()
@@ -89,7 +89,7 @@ pub(super) fn extract_assignment(extractor: &mut PythonExtractor, node: Node) ->
     // Extract doc comment (preceding comments)
     let doc_comment = extractor.base().find_doc_comment(&node);
 
-    vec![extractor.base_mut().create_symbol(
+    let symbol = extractor.base_mut().create_symbol(
         &node,
         name,
         symbol_kind,
@@ -101,7 +101,31 @@ pub(super) fn extract_assignment(extractor: &mut PythonExtractor, node: Node) ->
             doc_comment,
             annotations: Vec::new(),
         },
-    )]
+    );
+
+    if let Some(type_node) = type_node {
+        type_facts::record_annotation_fact(extractor.base_mut(), &symbol.id, type_node);
+    } else if let Some(class_name) = same_file_constructor_class(extractor, right) {
+        type_facts::record_constructor_fact(extractor.base_mut(), &symbol.id, &class_name);
+    }
+
+    vec![symbol]
+}
+
+fn same_file_constructor_class(extractor: &PythonExtractor, right: Option<Node>) -> Option<String> {
+    let right = right?;
+    if right.kind() != "call" {
+        return None;
+    }
+    let function = right.child_by_field_name("function")?;
+    if function.kind() != "identifier" {
+        return None;
+    }
+    let name = extractor.base().get_node_text(&function);
+    extractor
+        .same_file_class_names
+        .contains(&name)
+        .then_some(name)
 }
 
 /// Extract multiple assignment targets from pattern_list or tuple_pattern
