@@ -15,8 +15,11 @@ public:
     [[nodiscard]]
     int run() const {
         log("worker-run");
+        this->helper(id_);
         return helper(id_);
     }
+
+    void ping() const;
 
 private:
     int helper(int value) const {
@@ -25,6 +28,11 @@ private:
 
     int id_;
 };
+
+void Worker::ping() const {
+    this->id();
+    (*this).id();
+}
 
 /// Convert a raw value into a helper result.
 [[nodiscard]]
@@ -55,3 +63,11 @@ struct Vec {};
 struct Item {};
 
 Map<int, Vec<Item>> worker_index;
+
+void use_facts(const Item& a, Item* b, Item c, Item&& d) {
+    auto made = std::make_unique<Item>();
+    auto unknown = Unknown();
+    Item declared;
+    auto constructed = Item();
+    auto allocated = new Item();
+}

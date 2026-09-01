@@ -81,15 +81,14 @@ impl CppExtractor {
                         (func_node, self.base.get_node_text(&func_node))
                     };
 
-                    // Find containing symbol (which function/method contains this call)
                     let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
-
-                    // Create identifier for this function call
-                    self.base.create_identifier(
+                    let receiver_type = this_receiver_type(&self.base, node);
+                    self.base.create_identifier_with_receiver_type(
                         &identifier_node,
                         name,
                         IdentifierKind::Call,
                         containing_symbol_id,
+                        receiver_type,
                     );
                 }
             }
@@ -240,6 +239,99 @@ impl CppExtractor {
                     containing_symbol_id.clone(),
                 );
             }
+        }
+    }
+}
+
+pub(super) fn this_receiver_type(base: &BaseExtractor, node: Node) -> Option<String> {
+    let field_expr = match node.kind() {
+        "field_expression" => node,
+        "call_expression" => {
+            let function = node.child_by_field_name("function")?;
+            if function.kind() == "field_expression" {
+                function
+            } else {
+                return None;
+            }
+        }
+        _ => return None,
+    };
+    if !is_this_receiver(field_expr) {
+        return None;
+    }
+    enclosing_type_name(base, field_expr).or_else(|| out_of_line_type_name(base, field_expr))
+}
+
+fn is_this_receiver(field_expr: Node) -> bool {
+    let Some(argument) = field_expr.child_by_field_name("argument") else {
+        return false;
+    };
+    let argument = peel_parentheses(argument);
+    match argument.kind() {
+        "this" => true,
+        "pointer_expression" => {
+            let starred = argument
+                .child_by_field_name("operator")
+                .is_some_and(|operator| operator.kind() == "*");
+            let inner = argument
+                .child_by_field_name("argument")
+                .map(peel_parentheses);
+            let this_arg = inner.is_some_and(|inner| inner.kind() == "this");
+            starred && this_arg
+        }
+        _ => false,
+    }
+}
+
+fn peel_parentheses(mut node: Node) -> Node {
+    while node.kind() == "parenthesized_expression" {
+        if let Some(inner) = node.named_child(0) {
+            node = inner;
+        } else {
+            break;
+        }
+    }
+    node
+}
+
+fn enclosing_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
+    let mut current = node.parent();
+    while let Some(candidate) = current {
+        if matches!(candidate.kind(), "class_specifier" | "struct_specifier") {
+            return candidate
+                .children(&mut candidate.walk())
+                .find(|child| child.kind() == "type_identifier")
+                .map(|name| base.get_node_text(&name));
+        }
+        current = candidate.parent();
+    }
+    None
+}
+
+fn out_of_line_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
+    let mut current = node.parent();
+    while let Some(candidate) = current {
+        if candidate.kind() == "function_definition" {
+            let declarator = candidate.child_by_field_name("declarator")?;
+            return qualified_declarator_scope(base, declarator);
+        }
+        current = candidate.parent();
+    }
+    None
+}
+
+fn qualified_declarator_scope(base: &BaseExtractor, node: Node) -> Option<String> {
+    let mut current = node;
+    loop {
+        match current.kind() {
+            "qualified_identifier" => {
+                let scope = current.child_by_field_name("scope")?;
+                return Some(base.get_node_text(&scope));
+            }
+            "function_declarator" | "pointer_declarator" | "reference_declarator" => {
+                current = current.child_by_field_name("declarator")?;
+            }
+            _ => return None,
         }
     }
 }

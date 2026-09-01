@@ -14,10 +14,12 @@ mod function_declarators;
 mod function_signature_parts;
 mod functions;
 mod helpers;
+mod parameters;
 mod identifiers;
 mod relationships;
 mod signatures;
 pub(crate) mod test_calls;
+mod type_facts;
 mod type_inference;
 mod typedefs;
 mod types;
@@ -164,11 +166,18 @@ impl CppExtractor {
 
         // Extract symbol from current node
         if let Some(symbol) = self.extract_symbol(node, parent_id.as_deref()) {
-            let current_parent_id = Some(symbol.id.clone());
+            let symbol_id = symbol.id.clone();
             symbols.push(symbol);
 
-            // Continue with children using this symbol as parent
-            self.walk_children(node, symbols, current_parent_id, depth);
+            if node.kind() == "function_definition" {
+                symbols.extend(parameters::extract_parameter_symbols(
+                    &mut self.base,
+                    node,
+                    &symbol_id,
+                ));
+            }
+
+            self.walk_children(node, symbols, Some(symbol_id), depth);
         } else {
             // No symbol extracted, continue with same parent
             self.walk_children(node, symbols, parent_id, depth);

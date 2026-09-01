@@ -7,6 +7,7 @@ use tree_sitter::Node;
 use super::functions;
 use super::helpers;
 use super::signatures;
+use super::type_facts;
 use super::visibility;
 
 // Re-export field/multi-declaration extractors so mod.rs callers don't need to change
@@ -250,7 +251,7 @@ pub(super) fn extract_declaration(
 
         let doc_comment = base.find_doc_comment(&node);
 
-        return Some(base.create_symbol(
+        let symbol = base.create_symbol(
             &node,
             name,
             kind,
@@ -262,7 +263,9 @@ pub(super) fn extract_declaration(
                 doc_comment,
                 annotations: Vec::new(),
             },
-        ));
+        );
+        type_facts::record_variable_fact(base, &symbol.id, node, identifier_node);
+        return Some(symbol);
     }
 
     // For now, handle the first declarator
@@ -287,7 +290,7 @@ pub(super) fn extract_declaration(
 
     let doc_comment = base.find_doc_comment(&node);
 
-    Some(base.create_symbol(
+    let symbol = base.create_symbol(
         &node,
         name,
         kind,
@@ -299,7 +302,9 @@ pub(super) fn extract_declaration(
             doc_comment,
             annotations: Vec::new(),
         },
-    ))
+    );
+    type_facts::record_variable_fact(base, &symbol.id, node, *declarator);
+    Some(symbol)
 }
 
 /// Extract friend declaration
