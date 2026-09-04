@@ -3,7 +3,7 @@
 Date: 2026-09-04
 Commit: `536b22d9` on `main`. The source baseline was clean; this audit and
 Goldfish memory files were untracked during validation.
-Status: validated. Findings remain open until their fixes land and pass their
+Status: in remediation. Wave 1 closed: E1, E2, E3 (identifier lookup), C1, C2, A2, C4. Other findings remain open until their fixes land and pass their
 own verification.
 Mode: read-only source audit plus focused test and timing checks. No product
 code changed. Four reviewers swept one area each; the lead reconciled every
@@ -88,6 +88,8 @@ work; the contract job already runs those tiers.
   the context helper.
 - Keep the identifiers column unless you bump the contract.
 
+**Status: CLOSED.** Fixed in commit `840ef079` (Audit Wave 1, Task 1). Deleted `code_context`, `ContextConfig`, `extract_code_context`, and `line_ranges` from `BaseExtractor` and language extractors.
+
 ### E2. Every symbol is cloned into `symbol_map`; six languages read it (high)
 
 - `base/creation_methods.rs:81` clones name, signature, doc comment, metadata
@@ -106,6 +108,8 @@ work; the contract job already runs those tiers.
   not this map.
 - Drop the map from `BaseExtractor`. Keep local maps in cpp/ruby/php/erlang.
   Do not delete ruby's assignment path without a replacement.
+
+**Status: CLOSED.** Fixed in commit `37e10b12` (Audit Wave 1, Task 2). Deleted `BaseExtractor::symbol_map` and eliminated symbol cloning on creation; languages that require symbol lookup now construct local maps.
 
 ### E3. Containing-symbol lookup is O(symbols) plus a sort, per identifier (high)
 
@@ -131,6 +135,8 @@ work; the contract job already runs those tiers.
   `attach_containing_symbols` for the E4 plan.
 - The algorithmic cost is source-confirmed. Its share of extraction time has
   not been measured.
+
+**Status: PARTIALLY CLOSED (identifier lookup closed).** Fixed in commit `faf20c51` (Audit Wave 1, Task 3). Promoted `ContainingSymbolIndex` to `base/containing_symbol_index.rs` and replaced O(symbols) filter-and-sort scans per identifier with binary search on the pre-sorted span index. Note: Single tree-walk and structural fact binder consolidation are deferred to Wave 5 / E4.
 
 ### E4. Ten or more full-tree walks per file, each with a linear binder (high)
 
@@ -336,6 +342,8 @@ is not a proven upper bound and no runtime share was measured.
 - `from_artifact` already converts in memory. The mutex is this extract path
   only (import and update share it).
 
+**Status: CLOSED.** Fixed in commit `54e30a0b` (Audit Wave 1, Task 4). Removed `IMPORT_SPOOL_IO` global mutex and the per-file spool write/re-read detour from store import and update paths, converting directly in memory via `StoreFileVersion::try_from_artifact_file`.
+
 ### C2. Capability snapshot rebuilt per file in the store write loop (high)
 
 - `executor.rs:1723` and `executor.rs:1126` call `artifact_capability_snapshot()`
@@ -353,6 +361,8 @@ is not a proven upper bound and no runtime share was measured.
 - From-artifact uses `(level == StoreLevel::L1).then_some(&artifact_capability_snapshot())`.
   `then_some` always builds the value, so L2 and L3 pay for it too.
 - Scan builds it once per run (`commands.rs:464`). That is fine.
+
+**Status: CLOSED.** Fixed in commit `154fad78` (Audit Wave 1, Task 5). Built capability snapshot once per quantum/chunk in store import, update, and from-artifact paths, passing `Some(&snapshot)` only for the first L1 file and `None` thereafter.
 
 ### C3. Discovery decisions re-run for every file (high)
 
@@ -376,6 +386,8 @@ is not a proven upper bound and no runtime share was measured.
 - The worker at `commands.rs:1882` then runs `detect_language_for_source`.
 - `extraction.rs:177` runs it again. The passed language is only the fallback.
 - Store extract also detects twice: `executor.rs:605` then `extraction.rs:177`.
+
+**Status: CLOSED.** Fixed in commit `4a2ba80a` (Audit Wave 1, Task 6). Reused the language detected in the scan worker or store executor directly in `extract_artifact_file_from_snapshot_at`, removing redundant internal `detect_language_for_source` calls.
 
 ### C5. Store import reads and hashes every file twice, and extracts twice at `--level full` (medium)
 
@@ -515,6 +527,8 @@ discovery walk, and `ReportBuilder`. `sha2` alongside `blake3` is justified.
 - Instance `write_level` does use `stage_capability_snapshot` and drops it
   after the first matching L1. Tests use that path. The CLI store path uses
   the static function and does not.
+
+**Status: CLOSED.** Fixed in commit `154fad78` (Audit Wave 1, Task 5). Optimized `write_level_in_transaction` to verify capability fingerprint against initialized epochs before re-running full snapshot synchronization, eliminating over 100 redundant SQL statements per file.
 
 ### A3. `copy_table` pages with LIMIT/OFFSET (high)
 
