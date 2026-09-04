@@ -1,7 +1,6 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use serde::{Deserialize, Serialize};
-use tracing::warn;
 use tree_sitter::Node;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -147,34 +146,25 @@ fn line_column_for_byte(line_starts: &[usize], byte: usize) -> (u32, u32) {
 }
 
 pub fn normalize_file_path(file_path: &str, workspace_root: &Path) -> String {
-    let path_to_canonicalize = if Path::new(file_path).is_absolute() {
-        PathBuf::from(file_path)
+    let path = Path::new(file_path);
+    if path.is_absolute() {
+        match crate::utils::paths::to_relative_unix_style(path, workspace_root) {
+            Ok(relative_path) => relative_path,
+            Err(_) => file_path.replace('\\', "/"),
+        }
+    } else if let Ok(relative) = path.strip_prefix(workspace_root) {
+        let normalized = relative.to_string_lossy().replace('\\', "/");
+        if let Some(stripped) = normalized.strip_prefix("./") {
+            stripped.to_string()
+        } else {
+            normalized
+        }
     } else {
-        workspace_root.join(file_path)
-    };
-
-    let canonical_path = path_to_canonicalize.canonicalize().unwrap_or_else(|e| {
-        warn!(
-            "⚠️  Failed to canonicalize path '{}': {} - using joined path",
-            path_to_canonicalize.display(),
-            e
-        );
-        path_to_canonicalize.clone()
-    });
-
-    match crate::utils::paths::to_relative_unix_style(&canonical_path, workspace_root) {
-        Ok(relative_path) => relative_path,
-        Err(e) => {
-            if canonical_path.is_absolute() {
-                warn!(
-                    "⚠️  Failed to convert to relative path '{}': {} - using absolute as fallback",
-                    canonical_path.display(),
-                    e
-                );
-                canonical_path.to_string_lossy().replace('\\', "/")
-            } else {
-                canonical_path.to_string_lossy().replace('\\', "/")
-            }
+        let normalized = file_path.replace('\\', "/");
+        if let Some(stripped) = normalized.strip_prefix("./") {
+            stripped.to_string()
+        } else {
+            normalized
         }
     }
 }
@@ -224,6 +214,32 @@ mod tests {
                 start_byte: 16,
                 end_byte: 20,
             })
+        );
+    }
+
+    #[test]
+    fn test_normalize_file_path_relative_and_slashes() {
+        let root = Path::new("/workspace");
+        assert_eq!(normalize_file_path("src/lib.rs", root), "src/lib.rs");
+        assert_eq!(normalize_file_path(r"src\lib.rs", root), "src/lib.rs");
+        assert_eq!(normalize_file_path("./src/lib.rs", root), "src/lib.rs");
+    }
+
+    #[test]
+    fn test_normalize_file_path_absolute_within_workspace() {
+        let root = Path::new("/workspace");
+        assert_eq!(
+            normalize_file_path("/workspace/src/lib.rs", root),
+            "src/lib.rs"
+        );
+    }
+
+    #[test]
+    fn test_normalize_file_path_no_filesystem_access() {
+        let root = Path::new("/nonexistent/root");
+        assert_eq!(
+            normalize_file_path("nonexistent/path/file.rs", root),
+            "nonexistent/path/file.rs"
         );
     }
 }

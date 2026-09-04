@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Component, Path, PathBuf};
 use tree_sitter::{Node, Parser, Tree};
 
 use crate::ExtractionResults;
@@ -6,6 +6,54 @@ use crate::base::ExtractionLevel;
 use crate::base::RecordOffset;
 use crate::base::{NormalizedSpan, ParseDiagnostic, ParseDiagnosticKind};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
+
+/// Canonicalize once at the outer boundary when given an absolute or external path,
+/// strip Windows verbatim prefix (`\\?\`), convert to `/` separator, and pass relative form down.
+/// If the path is already a root-relative internal path, avoid all filesystem access.
+pub(crate) fn normalize_pipeline_path(file_path: &str, workspace_root: &Path) -> String {
+    let path = Path::new(file_path);
+    let is_external = path.components().any(|c| matches!(c, Component::ParentDir));
+
+    if !path.is_absolute() && !is_external {
+        let normalized = file_path.replace('\\', "/");
+        if let Some(stripped) = normalized.strip_prefix("./") {
+            return stripped.to_string();
+        }
+        return normalized;
+    }
+
+    let path_to_canonicalize = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        workspace_root.join(file_path)
+    };
+
+    let canonical_path = path_to_canonicalize
+        .canonicalize()
+        .unwrap_or_else(|_| path_to_canonicalize.clone());
+    let canonical_path = strip_verbatim_prefix(&canonical_path);
+
+    let canonical_root = workspace_root
+        .canonicalize()
+        .unwrap_or_else(|_| workspace_root.to_path_buf());
+    let canonical_root = strip_verbatim_prefix(&canonical_root);
+
+    match crate::utils::paths::to_relative_unix_style(&canonical_path, &canonical_root) {
+        Ok(relative) => relative,
+        Err(_) => canonical_path.to_string_lossy().replace('\\', "/"),
+    }
+}
+
+pub(crate) fn strip_verbatim_prefix(path: &Path) -> PathBuf {
+    let path_str = path.to_string_lossy();
+    if let Some(stripped) = path_str.strip_prefix(r"\\?\UNC\") {
+        PathBuf::from(format!(r"\\{}", stripped))
+    } else if let Some(stripped) = path_str.strip_prefix(r"\\?\") {
+        PathBuf::from(stripped)
+    } else {
+        path.to_path_buf()
+    }
+}
 
 pub fn extract_canonical(
     file_path: &str,
@@ -21,14 +69,34 @@ pub fn extract_canonical_at(
     workspace_root: &Path,
     level: ExtractionLevel,
 ) -> Result<ExtractionResults, anyhow::Error> {
-    if file_path.ends_with(".jsonl") {
-        return extract_jsonl_canonical(file_path, content, workspace_root, level);
+    let normalized_path = normalize_pipeline_path(file_path, workspace_root);
+    if normalized_path.ends_with(".jsonl") {
+        return extract_jsonl_canonical(&normalized_path, content, workspace_root, level);
     }
 
-    let language = crate::language::detect_language_for_source(file_path, content)
-        .ok_or_else(|| anyhow::anyhow!("Unsupported file extension for path: {}", file_path))?;
+    let (language, pre_parsed_tree) =
+        crate::language::detect_language_with_tree(Path::new(&normalized_path), content)
+            .ok_or_else(|| anyhow::anyhow!("Unsupported file extension for path: {}", file_path))?;
 
-    extract_canonical_for_language_at(language, file_path, content, workspace_root, level)
+    if let Some(tree) = pre_parsed_tree {
+        extract_canonical_with_tree(
+            language,
+            tree,
+            &normalized_path,
+            content,
+            workspace_root,
+            level,
+        )
+    } else {
+        extract_canonical_with_parse_and_language(
+            language,
+            &normalized_path,
+            content,
+            workspace_root,
+            level,
+            parse_for_language,
+        )
+    }
 }
 
 pub fn extract_canonical_for_language_at(
@@ -38,13 +106,14 @@ pub fn extract_canonical_for_language_at(
     workspace_root: &Path,
     level: ExtractionLevel,
 ) -> Result<ExtractionResults, anyhow::Error> {
-    if file_path.ends_with(".jsonl") {
-        return extract_jsonl_canonical(file_path, content, workspace_root, level);
+    let normalized_path = normalize_pipeline_path(file_path, workspace_root);
+    if normalized_path.ends_with(".jsonl") {
+        return extract_jsonl_canonical(&normalized_path, content, workspace_root, level);
     }
 
     extract_canonical_with_parse_and_language(
         language,
-        file_path,
+        &normalized_path,
         content,
         workspace_root,
         level,
@@ -63,16 +132,37 @@ pub(crate) fn extract_canonical_with_parse<F>(
 where
     F: FnOnce(&str, &str, &str) -> Result<Option<Tree>, anyhow::Error>,
 {
-    let language = crate::language::detect_language_for_source(file_path, content)
+    let normalized_path = normalize_pipeline_path(file_path, workspace_root);
+    let language = crate::language::detect_language_for_source(&normalized_path, content)
         .ok_or_else(|| anyhow::anyhow!("Unsupported file extension for path: {}", file_path))?;
     extract_canonical_with_parse_and_language(
         language,
-        file_path,
+        &normalized_path,
         content,
         workspace_root,
         level,
         parse,
     )
+}
+
+pub(crate) fn extract_canonical_with_tree(
+    language: &str,
+    tree: Tree,
+    file_path: &str,
+    content: &str,
+    workspace_root: &Path,
+    level: ExtractionLevel,
+) -> Result<ExtractionResults, anyhow::Error> {
+    let mut results = crate::registry::extract_for_language_at(
+        language,
+        &tree,
+        file_path,
+        content,
+        workspace_root,
+        level,
+    )?;
+    results.parse_diagnostics = with_tree_diagnostics(&tree, results.parse_diagnostics);
+    Ok(results)
 }
 
 pub(crate) fn extract_canonical_with_parse_and_language<F>(
@@ -90,16 +180,7 @@ where
         return Ok(degraded_parse_failure_result(content));
     };
 
-    let mut results = crate::registry::extract_for_language_at(
-        language,
-        &tree,
-        file_path,
-        content,
-        workspace_root,
-        level,
-    )?;
-    results.parse_diagnostics = with_tree_diagnostics(&tree, results.parse_diagnostics);
-    Ok(results)
+    extract_canonical_with_tree(language, tree, file_path, content, workspace_root, level)
 }
 
 fn extract_jsonl_canonical(
@@ -108,9 +189,14 @@ fn extract_jsonl_canonical(
     workspace_root: &Path,
     level: ExtractionLevel,
 ) -> Result<ExtractionResults, anyhow::Error> {
-    extract_jsonl_canonical_with_parser_factory(file_path, content, workspace_root, level, || {
-        configured_parser_for_language("json")
-    })
+    let normalized_path = normalize_pipeline_path(file_path, workspace_root);
+    extract_jsonl_canonical_with_parser_factory(
+        &normalized_path,
+        content,
+        workspace_root,
+        level,
+        || configured_parser_for_language("json"),
+    )
 }
 
 pub(crate) fn extract_jsonl_canonical_with_parser_factory<F>(
@@ -179,11 +265,29 @@ fn jsonl_records(content: &str) -> Vec<(u32, u32, &str)> {
     records
 }
 
+#[cfg(test)]
+thread_local! {
+    static PARSE_FOR_LANGUAGE_CALL_COUNT: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+#[cfg(test)]
+pub(crate) fn parse_for_language_call_count() -> usize {
+    PARSE_FOR_LANGUAGE_CALL_COUNT.with(|c| c.get())
+}
+
+#[cfg(test)]
+pub(crate) fn reset_parse_for_language_call_count() {
+    PARSE_FOR_LANGUAGE_CALL_COUNT.with(|c| c.set(0));
+}
+
 pub(crate) fn parse_for_language(
     language: &str,
     file_path: &str,
     content: &str,
 ) -> Result<Option<Tree>, anyhow::Error> {
+    #[cfg(test)]
+    PARSE_FOR_LANGUAGE_CALL_COUNT.with(|c| c.set(c.get() + 1));
+
     let mut parser = configured_parser_for_language_at(language, file_path)?;
     parse_with_parser(&mut parser, file_path, content)
 }
@@ -330,4 +434,56 @@ pub(crate) fn detect_language_for_path(file_path: &str) -> Result<&'static str, 
 
     crate::language::detect_language_for_path(Path::new(file_path), "")
         .ok_or_else(|| anyhow::anyhow!("Unsupported file extension: {}", extension))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extract_canonical_normalizes_absolute_path() {
+        let temp_dir = std::env::temp_dir().join("julie_test_pipeline_norm");
+        std::fs::create_dir_all(&temp_dir).unwrap();
+        let subdir = temp_dir.join("src");
+        std::fs::create_dir_all(&subdir).unwrap();
+        let file_path = subdir.join("test.rs");
+        let content = "fn test() {}";
+        std::fs::write(&file_path, content).unwrap();
+
+        let result = extract_canonical(&file_path.to_string_lossy(), content, &temp_dir)
+            .expect("extraction should succeed");
+
+        assert_eq!(result.symbols[0].file_path, "src/test.rs");
+
+        std::fs::remove_dir_all(&temp_dir).unwrap();
+    }
+
+    #[test]
+    fn test_normalize_pipeline_path_relative_no_canonicalize() {
+        let root = Path::new("/definitely/nonexistent/root");
+        assert_eq!(normalize_pipeline_path("src/lib.rs", root), "src/lib.rs");
+        assert_eq!(normalize_pipeline_path(r"src\lib.rs", root), "src/lib.rs");
+        assert_eq!(normalize_pipeline_path("./src/lib.rs", root), "src/lib.rs");
+    }
+
+    #[test]
+    fn test_strip_verbatim_prefix() {
+        let path = Path::new(r"\\?\C:\repo\src\main.rs");
+        assert_eq!(
+            strip_verbatim_prefix(path),
+            PathBuf::from(r"C:\repo\src\main.rs")
+        );
+
+        let unc_path = Path::new(r"\\?\UNC\server\share\file.rs");
+        assert_eq!(
+            strip_verbatim_prefix(unc_path),
+            PathBuf::from(r"\\server\share\file.rs")
+        );
+
+        let normal_path = Path::new("/var/repo/file.rs");
+        assert_eq!(
+            strip_verbatim_prefix(normal_path),
+            PathBuf::from("/var/repo/file.rs")
+        );
+    }
 }

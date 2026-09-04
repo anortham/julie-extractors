@@ -465,3 +465,188 @@ static inline int less_than_limit(int value) {
         "parser comparison that prefers C must not fall through to C++ token heuristics"
     );
 }
+
+#[test]
+fn test_detect_language_with_tree_returns_winning_tree_for_cpp_header() {
+    let cpp_header = r#"
+#pragma once
+namespace app {
+class Widget {
+public:
+    void run();
+};
+}
+"#;
+
+    let (language, tree) =
+        crate::language::detect_language_with_tree(Path::new("include/widget.h"), cpp_header)
+            .expect("detection should succeed");
+
+    assert_eq!(language, "cpp");
+    let tree = tree.expect("header disambiguation should produce a pre-parsed tree");
+    assert!(!tree.root_node().has_error());
+}
+
+#[test]
+fn test_detect_language_with_tree_returns_winning_tree_for_c_header() {
+    let c_header = r#"
+#ifndef C_HEADER_H
+#define C_HEADER_H
+
+typedef struct namespace {
+    int template;
+    int requires;
+} namespace_t;
+
+void init(namespace_t *n);
+
+#endif
+"#;
+
+    let (language, tree) =
+        crate::language::detect_language_with_tree(Path::new("include/c_header.h"), c_header)
+            .expect("detection should succeed");
+
+    assert_eq!(language, "c");
+    let tree = tree.expect("header disambiguation should produce a pre-parsed tree");
+    assert!(!tree.root_node().has_error());
+}
+
+#[test]
+fn test_detect_language_with_tree_returns_none_tree_for_non_headers_and_empty() {
+    let cpp_code = "class Widget {};";
+    let (lang_cpp, tree_cpp) =
+        crate::language::detect_language_with_tree(Path::new("src/widget.cpp"), cpp_code)
+            .expect("cpp detection should succeed");
+    assert_eq!(lang_cpp, "cpp");
+    assert!(
+        tree_cpp.is_none(),
+        "non-header files should return None for tree"
+    );
+
+    let (lang_rust, tree_rust) =
+        crate::language::detect_language_with_tree(Path::new("src/lib.rs"), "fn main() {}")
+            .expect("rust detection should succeed");
+    assert_eq!(lang_rust, "rust");
+    assert!(
+        tree_rust.is_none(),
+        "non-header files should return None for tree"
+    );
+
+    let (lang_empty, tree_empty) =
+        crate::language::detect_language_with_tree(Path::new("include/empty.h"), "   \n\t  ")
+            .expect("empty header detection should succeed");
+    assert_eq!(lang_empty, "c");
+    assert!(
+        tree_empty.is_none(),
+        "empty headers should return None for tree"
+    );
+}
+
+#[test]
+fn test_header_extraction_reuses_pre_parsed_tree_and_parses_at_most_twice() {
+    let cpp_header = r#"
+#pragma once
+namespace app {
+class Widget {
+public:
+    void run();
+};
+}
+"#;
+
+    // 1. C++ header: disambiguation probes C and C++, and the pipeline reuses the C++ tree.
+    crate::language_spec::reset_header_probe_parse_count();
+    crate::pipeline::reset_parse_for_language_call_count();
+
+    let results =
+        crate::pipeline::extract_canonical("include/widget.h", cpp_header, Path::new("."))
+            .expect("C++ header extraction should succeed");
+
+    let probe_count = crate::language_spec::header_probe_parse_count();
+    let pipeline_parse_count = crate::pipeline::parse_for_language_call_count();
+
+    assert_eq!(
+        probe_count, 2,
+        "Header disambiguation must probe C and C++ exactly once each"
+    );
+    assert_eq!(
+        pipeline_parse_count, 0,
+        "Pipeline must reuse the pre-parsed tree without calling parse_for_language"
+    );
+    assert!(
+        probe_count + pipeline_parse_count <= 2,
+        "Invariant: non-empty .h file parsed at most twice end-to-end, never 3 times"
+    );
+    assert!(
+        results.symbols.iter().any(|s| s.name == "Widget"),
+        "Extracted symbols should include Widget class"
+    );
+    assert!(
+        results.symbols.iter().any(|s| s.name == "run"),
+        "Extracted symbols should include run method"
+    );
+
+    // 2. C header where C is preferred: pipeline reuses the C tree.
+    let c_header = r#"
+#ifndef C_HEADER_H
+#define C_HEADER_H
+
+typedef struct namespace {
+    int template;
+} namespace_t;
+
+#endif
+"#;
+
+    crate::language_spec::reset_header_probe_parse_count();
+    crate::pipeline::reset_parse_for_language_call_count();
+
+    let c_results =
+        crate::pipeline::extract_canonical("include/c_header.h", c_header, Path::new("."))
+            .expect("C header extraction should succeed");
+
+    let probe_count_c = crate::language_spec::header_probe_parse_count();
+    let pipeline_parse_count_c = crate::pipeline::parse_for_language_call_count();
+
+    assert_eq!(probe_count_c, 2, "Header disambiguation probes C and C++");
+    assert_eq!(
+        pipeline_parse_count_c, 0,
+        "Pipeline must reuse the pre-parsed C tree without calling parse_for_language"
+    );
+    assert!(
+        probe_count_c + pipeline_parse_count_c <= 2,
+        "Invariant: non-empty .h file parsed at most twice end-to-end, never 3 times"
+    );
+    assert!(
+        c_results.symbols.iter().any(|s| s.name == "namespace_t"),
+        "Extracted symbols should include namespace_t"
+    );
+
+    // 3. Non-header C++ file: normal one-parse path in pipeline, zero header probes.
+    crate::language_spec::reset_header_probe_parse_count();
+    crate::pipeline::reset_parse_for_language_call_count();
+
+    let non_header_results =
+        crate::pipeline::extract_canonical("src/widget.cpp", cpp_header, Path::new("."))
+            .expect("non-header extraction should succeed");
+
+    let probe_count_non_header = crate::language_spec::header_probe_parse_count();
+    let pipeline_parse_count_non_header = crate::pipeline::parse_for_language_call_count();
+
+    assert_eq!(
+        probe_count_non_header, 0,
+        "Non-header file must not trigger header disambiguation probes"
+    );
+    assert_eq!(
+        pipeline_parse_count_non_header, 1,
+        "Non-header file must parse exactly once in pipeline"
+    );
+    assert!(
+        non_header_results
+            .symbols
+            .iter()
+            .any(|s| s.name == "Widget"),
+        "Extracted symbols should include Widget class"
+    );
+}

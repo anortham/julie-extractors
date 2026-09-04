@@ -43,9 +43,8 @@ pub struct BaseExtractor {
 impl BaseExtractor {
     /// Create new abstract extractor - port of constructor
     ///
-    /// # Phase 2: Relative Unix-Style Path Storage
-    /// Now accepts workspace_root to convert absolute paths to relative Unix-style paths
-    /// for token-efficient storage (7-12% savings per search result).
+    /// Accepts a path that is already root-relative and normalized to `/`.
+    /// Performs no filesystem canonicalization.
     pub fn new(
         language: String,
         file_path: String,
@@ -406,4 +405,24 @@ fn content_line_starts(content: &str) -> Vec<usize> {
         }
     }
     starts
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::Path;
+
+    #[test]
+    fn test_base_extractor_new_operates_without_filesystem_access_on_nonexistent_path() {
+        let nonexistent_root = Path::new("/definitely/nonexistent/workspace/root");
+        let nonexistent_file = "nonexistent/deeply/nested/file.rs";
+        let extractor = BaseExtractor::new(
+            "rust".to_string(),
+            nonexistent_file.to_string(),
+            "fn dummy() {}".to_string(),
+            nonexistent_root,
+        );
+
+        assert_eq!(extractor.file_path, nonexistent_file);
+    }
 }
