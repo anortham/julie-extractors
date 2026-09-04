@@ -294,6 +294,8 @@ fn below_writer_floor_can_open_read_only_but_not_for_writes() {
 fn writer_open_repairs_missing_read_index_without_changing_rows_or_identity() {
     let temp = TempStore::new("writer-schema-repair");
     let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
+    let factory = StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0");
+    drop(factory.open_writer().unwrap());
     let store = Connection::open(layout.store_db()).unwrap();
     store
         .execute(
