@@ -10,6 +10,8 @@ pub use crate::language_spec::{
     supported_languages,
 };
 
+pub(crate) use crate::language_spec::detect_language_with_tree;
+
 /// Get AST node types that represent function definitions for a given language
 ///
 /// Used by refactoring tools to identify functions in AST for operations like

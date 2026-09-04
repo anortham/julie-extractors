@@ -317,13 +317,35 @@ pub fn detect_language_from_extension(extension: &str) -> Option<&'static str> {
         .map(|spec| spec.name)
 }
 
+#[cfg(test)]
+thread_local! {
+    static HEADER_PROBE_PARSE_COUNT: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+#[cfg(test)]
+pub(crate) fn header_probe_parse_count() -> usize {
+    HEADER_PROBE_PARSE_COUNT.with(|c| c.get())
+}
+
+#[cfg(test)]
+pub(crate) fn reset_header_probe_parse_count() {
+    HEADER_PROBE_PARSE_COUNT.with(|c| c.set(0));
+}
+
 pub fn detect_language_for_path(file_path: &Path, content: &str) -> Option<&'static str> {
+    detect_language_with_tree(file_path, content).map(|(language, _)| language)
+}
+
+pub(crate) fn detect_language_with_tree(
+    file_path: &Path,
+    content: &str,
+) -> Option<(&'static str, Option<tree_sitter::Tree>)> {
     if file_path
         .file_name()
         .and_then(|name| name.to_str())
         .is_some_and(|name| name.eq_ignore_ascii_case("qmldir"))
     {
-        return Some("qmldir");
+        return Some(("qmldir", None));
     }
 
     let extension = file_path
@@ -331,53 +353,57 @@ pub fn detect_language_for_path(file_path: &Path, content: &str) -> Option<&'sta
         .and_then(|ext| ext.to_str())
         .unwrap_or("");
 
-    if extension.eq_ignore_ascii_case("h") && header_contains_cpp_syntax(content) {
-        return Some("cpp");
+    if extension.eq_ignore_ascii_case("h") {
+        if !content.trim().is_empty()
+            && let Some((language, tree)) = header_parse_prefers_cpp(content)
+        {
+            return Some((language, Some(tree)));
+        }
+
+        return Some(("c", None));
     }
 
-    detect_language_from_extension(extension)
+    detect_language_from_extension(extension).map(|language| (language, None))
 }
 
 pub fn detect_language_for_source(file_path: &str, content: &str) -> Option<&'static str> {
     detect_language_for_path(Path::new(file_path), content)
 }
 
-fn header_contains_cpp_syntax(content: &str) -> bool {
-    // Empty/whitespace-only headers carry no signal either way; skip the parser
-    // comparison so we don't log a spurious diagnostic on every empty .h file.
-    if content.trim().is_empty() {
-        return false;
-    }
-
-    if let Some(prefers_cpp) = header_parse_prefers_cpp(content) {
-        return prefers_cpp;
-    }
-
-    let code = c_family_code_without_comments_and_strings(content);
-    code.contains("::")
-        || code.contains("template <")
-        || code.contains("public:")
-        || code.contains("private:")
-        || code.contains("protected:")
-}
-
-fn header_parse_prefers_cpp(content: &str) -> Option<bool> {
-    let c_errors = parse_error_count(parser_c(), content)?;
-    let cpp_errors = parse_error_count(parser_cpp(), content)?;
+fn header_parse_prefers_cpp(content: &str) -> Option<(&'static str, tree_sitter::Tree)> {
+    let (c_tree, c_errors) = parse_probe_tree_and_errors(parser_c(), content)?;
+    let (cpp_tree, cpp_errors) = parse_probe_tree_and_errors(parser_cpp(), content)?;
     if cpp_errors < c_errors {
-        Some(true)
+        Some(("cpp", cpp_tree))
     } else if c_errors < cpp_errors {
-        Some(false)
+        Some(("c", c_tree))
     } else {
-        None
+        let code = c_family_code_without_comments_and_strings(content);
+        if code.contains("::")
+            || code.contains("template <")
+            || code.contains("public:")
+            || code.contains("private:")
+            || code.contains("protected:")
+        {
+            Some(("cpp", cpp_tree))
+        } else {
+            Some(("c", c_tree))
+        }
     }
 }
 
-fn parse_error_count(language: tree_sitter::Language, content: &str) -> Option<usize> {
+fn parse_probe_tree_and_errors(
+    language: tree_sitter::Language,
+    content: &str,
+) -> Option<(tree_sitter::Tree, usize)> {
+    #[cfg(test)]
+    HEADER_PROBE_PARSE_COUNT.with(|c| c.set(c.get() + 1));
+
     let mut parser = tree_sitter::Parser::new();
     parser.set_language(&language).ok()?;
     let tree = parser.parse(content, None)?;
-    Some(count_parse_errors(tree.root_node(), 0))
+    let error_count = count_parse_errors(tree.root_node(), 0);
+    Some((tree, error_count))
 }
 
 fn count_parse_errors(node: tree_sitter::Node<'_>, depth: u32) -> usize {

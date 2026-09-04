@@ -345,6 +345,10 @@ pub(crate) fn extract_artifact_file_from_snapshot_at(
     snapshot: SourceSnapshot,
     level: ExtractionLevel,
 ) -> Result<ArtifactFile, ExtractFileError> {
+    debug_assert!(
+        !target.root_relative_path.contains('\\'),
+        "target root_relative_path must use forward slashes"
+    );
     let mut results = catch_extraction_panic(target, &snapshot, || {
         extract_canonical_for_language_at(
             &language,

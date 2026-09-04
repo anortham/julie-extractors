@@ -8,19 +8,13 @@ use std::path::{MAIN_SEPARATOR, Path};
 /// This is critical for cross-platform consistency - all file paths stored in the database
 /// should be relative to the workspace root and use Unix-style separators.
 pub fn to_relative_unix_style(absolute: &Path, workspace_root: &Path) -> Result<String> {
-    // Try to canonicalize both paths to handle symlinks (e.g., /var -> /private/var on macOS)
-    // If canonicalization fails (path doesn't exist), fall back to original paths
-    let (path_to_use, root_to_use) = match (absolute.canonicalize(), workspace_root.canonicalize())
-    {
-        (Ok(canonical_abs), Ok(canonical_root)) => (canonical_abs, canonical_root),
-        _ => (absolute.to_path_buf(), workspace_root.to_path_buf()),
-    };
-
     // Windows UNC prefix handling: Strip \\?\ prefix for comparison
     #[cfg(windows)]
     fn strip_unc_prefix(path: &Path) -> std::path::PathBuf {
         let path_str = path.to_string_lossy();
-        if let Some(stripped) = path_str.strip_prefix(r"\\?\") {
+        if let Some(stripped) = path_str.strip_prefix(r"\\?\UNC\") {
+            std::path::PathBuf::from(format!(r"\\{}", stripped))
+        } else if let Some(stripped) = path_str.strip_prefix(r"\\?\") {
             std::path::PathBuf::from(stripped)
         } else {
             path.to_path_buf()
@@ -32,8 +26,8 @@ pub fn to_relative_unix_style(absolute: &Path, workspace_root: &Path) -> Result<
         path.to_path_buf()
     }
 
-    let normalized_path = strip_unc_prefix(&path_to_use);
-    let normalized_root = strip_unc_prefix(&root_to_use);
+    let normalized_path = strip_unc_prefix(absolute);
+    let normalized_root = strip_unc_prefix(workspace_root);
 
     // Strip workspace prefix
     let relative = match normalized_path.strip_prefix(&normalized_root) {
@@ -106,8 +100,8 @@ fn strip_normalized_prefix<'a>(path: &'a str, root: &str) -> Option<&'a str> {
 
 #[cfg(test)]
 mod tests {
-    #[cfg(target_os = "windows")]
     use super::to_relative_unix_style;
+    use std::path::Path;
     #[cfg(target_os = "windows")]
     use std::path::PathBuf;
 
@@ -146,5 +140,21 @@ mod tests {
         let result = to_relative_unix_style(&absolute, &workspace).unwrap();
 
         assert_eq!(result, "");
+    }
+
+    #[test]
+    fn test_to_relative_unix_style_cross_platform() {
+        let workspace = Path::new("/workspace/project");
+        let file = Path::new("/workspace/project/src/main.rs");
+        let result = to_relative_unix_style(file, workspace).unwrap();
+        assert_eq!(result, "src/main.rs");
+    }
+
+    #[test]
+    fn test_to_relative_unix_style_no_filesystem_access() {
+        let workspace = Path::new("/definitely/nonexistent/root");
+        let file = Path::new("/definitely/nonexistent/root/a/b/c.rs");
+        let result = to_relative_unix_style(file, workspace).unwrap();
+        assert_eq!(result, "a/b/c.rs");
     }
 }

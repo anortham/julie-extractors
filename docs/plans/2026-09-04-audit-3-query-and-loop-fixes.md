@@ -187,9 +187,9 @@ Commit mode: `parallel-lead-commit` inside each batch.
 **Approach:** The CLI passes `target.root_relative_path` today (`extraction.rs:181`). Keep the Windows verbatim-prefix stripping in the one place that still canonicalizes. Test: the existing `normalize_file_path` tests move to the pipeline entry; add a test that `BaseExtractor::new` performs no filesystem access (pass a path that does not exist and assert the symbol `file_path` is the string given).
 
 **Acceptance criteria:**
-- [ ] No `canonicalize` call in `base/span.rs` or `base/extractor.rs`.
-- [ ] Golden tier passes with zero fixture changes.
-- [ ] Windows suite via the `win-test` skill passes for the path tests.
+- [x] No `canonicalize` call in `base/span.rs` or `base/extractor.rs`.
+- [x] Golden tier passes with zero fixture changes.
+- [x] Windows suite via the `win-test` skill passes for the path tests.
 
 ## Task 11: Reuse the header detection parse
 
@@ -200,5 +200,5 @@ Commit mode: `parallel-lead-commit` inside each batch.
 **Approach:** Add a crate-private `detect_language_with_tree(path, content) -> Option<(&'static str, Option<Tree>)>`. `detect_language_for_path` keeps its signature and discards the tree for public callers. Test: a `.h` file with C++ content parses exactly once in the pipeline (count parser calls through a test hook or by asserting the returned tree's root byte range matches the detection tree).
 
 **Acceptance criteria:**
-- [ ] A non-empty `.h` file is parsed at most twice end to end (one probe per grammar), never three times.
-- [ ] `cargo xtask test language c` and `cpp` pass; golden tier passes.
+- [x] A non-empty `.h` file is parsed at most twice end to end (one probe per grammar), never three times.
+- [x] `cargo xtask test language c` and `cpp` pass; golden tier passes.
