@@ -1,12 +1,13 @@
-use crate::extract_canonical;
 use crate::language::{
     detect_language_from_extension, language_spec, language_specs,
     supported_extensions as language_supported_extensions,
     supported_languages as language_supported_languages,
 };
-use crate::manager::ExtractorManager;
 use crate::registry::supported_languages as registry_supported_languages;
-use crate::{BaseExtractor, PendingRelationship, RelationshipKind};
+use crate::{
+    extract_canonical, extract_canonical_at, BaseExtractor, ExtractionLevel, PendingRelationship,
+    RelationshipKind,
+};
 use std::collections::BTreeSet;
 use std::path::PathBuf;
 
@@ -73,12 +74,15 @@ export function processData(): number {
 }
 "#;
 
-    let manager = ExtractorManager::new();
     let canonical = extract_canonical(file_path, content, &workspace_root)
         .expect("canonical extraction should succeed");
-    let all_results = manager
-        .extract_all(file_path, content, &workspace_root)
-        .expect("manager extract_all should use the canonical pipeline");
+    let canonical_at = extract_canonical_at(
+        file_path,
+        content,
+        &workspace_root,
+        ExtractionLevel::Full,
+    )
+    .expect("canonical extraction at full level should succeed");
 
     assert!(
         !canonical.structured_pending_relationships.is_empty(),
@@ -95,32 +99,18 @@ export function processData(): number {
         "canonical extraction should keep the degraded compatibility payload aligned with structured unresolved entries"
     );
 
-    assert_eq!(all_results.symbols, canonical.symbols);
-    assert_eq!(all_results.identifiers, canonical.identifiers);
-    assert_eq!(all_results.relationships, canonical.relationships);
+    assert_eq!(canonical_at.symbols, canonical.symbols);
+    assert_eq!(canonical_at.identifiers, canonical.identifiers);
+    assert_eq!(canonical_at.relationships, canonical.relationships);
     assert_eq!(
-        all_results.pending_relationships,
+        canonical_at.pending_relationships,
         canonical.pending_relationships
     );
     assert_eq!(
-        all_results.structured_pending_relationships,
+        canonical_at.structured_pending_relationships,
         canonical.structured_pending_relationships
     );
-    assert_eq!(all_results.types, canonical.types);
-
-    let symbols = manager
-        .extract_symbols(file_path, content, &workspace_root)
-        .expect("symbol projection should succeed");
-    let identifiers = manager
-        .extract_identifiers(file_path, content, &workspace_root)
-        .expect("identifier projection should succeed");
-    let relationships = manager
-        .extract_relationships(file_path, content, &workspace_root)
-        .expect("relationship projection should succeed");
-
-    assert_eq!(symbols, canonical.symbols);
-    assert_eq!(identifiers, canonical.identifiers);
-    assert_eq!(relationships, canonical.relationships);
+    assert_eq!(canonical_at.types, canonical.types);
 }
 
 #[test]
@@ -256,17 +246,10 @@ int mainFunction() {
         ),
     ];
 
-    let manager = ExtractorManager::new();
-
     for (file_path, content, expected_display_name, expected_receiver) in cases {
         let canonical =
             extract_canonical(file_path, content, &workspace_root).unwrap_or_else(|err| {
                 panic!("canonical extraction should succeed for {file_path}: {err}")
-            });
-        let all_results = manager
-            .extract_all(file_path, content, &workspace_root)
-            .unwrap_or_else(|err| {
-                panic!("manager extract_all should succeed for {file_path}: {err}")
             });
 
         let structured_pending = canonical
@@ -298,15 +281,6 @@ int mainFunction() {
                 .map(|pending| pending.into_pending_relationship())
                 .collect::<Vec<_>>(),
             "canonical extraction should keep degraded compatibility payload aligned for {file_path}"
-        );
-        assert_eq!(
-            all_results.structured_pending_relationships,
-            canonical.structured_pending_relationships,
-            "manager extract_all should match canonical structured pending output for {file_path}"
-        );
-        assert_eq!(
-            all_results.pending_relationships, canonical.pending_relationships,
-            "manager extract_all should match canonical compatibility pending output for {file_path}"
         );
     }
 }

@@ -44,22 +44,16 @@
 pub mod base;
 pub mod capability_snapshot;
 pub(crate) mod ecmascript_imports;
+#[cfg(test)]
 mod factory;
 pub mod language;
 pub mod language_policy;
 mod language_spec;
-pub mod manager;
 pub mod pipeline;
 pub mod registry;
-pub(crate) mod tree_traversal;
-// Compatibility surface for the main crate re-export layer.
-// These modules are thin projections over canonical extraction results,
-// not separate production dispatch paths.
-pub mod routing_identifiers;
-pub mod routing_relationships;
-pub mod routing_symbols;
 pub mod test_calls;
 pub mod test_detection;
+pub(crate) mod tree_traversal;
 pub mod utils;
 
 // Language extractors (33 concrete extractors, plus JSX/TSX aliases in the registry)
@@ -112,7 +106,6 @@ pub use base::{
 };
 
 // Re-export the public API - canonical extraction functions
-pub use manager::ExtractorManager;
 pub use pipeline::{extract_canonical, extract_canonical_at, extract_canonical_for_language_at};
 pub use registry::{LanguageCapabilities, LanguageRegistryEntry};
 

@@ -4,12 +4,10 @@ Tree-sitter-based extraction for `julie-extract` artifacts and Rust callers.
 
 ## Public Surface
 
-Use one of these two entrypoints:
+Use canonical extraction entrypoints:
 
 - `extract_canonical(file_path, content, workspace_root)`
-- `ExtractorManager::extract_all(file_path, content, workspace_root)`
-
-`ExtractorManager::extract_symbols`, `extract_identifiers`, and `extract_relationships` are thin projections over the canonical result. They do not own separate parsing or dispatch behavior.
+- `extract_canonical_at(file_path, content, workspace_root, level)`
 
 The old pre-parsed-tree factory helper is now internal-only. External callers should not bypass the canonical pipeline.
 
@@ -60,8 +58,8 @@ The registry also exposes JSX and TSX aliases on top of the JavaScript and TypeS
 
 ## Minimal Example
 
-```rust
-use julie_extractors::{extract_canonical, ExtractorManager};
+```rust,no_run
+use julie_extractors::{extract_canonical, extract_canonical_at, ExtractionLevel};
 use std::path::Path;
 
 let workspace_root = Path::new("/workspace/project");
@@ -69,10 +67,8 @@ let file_path = "src/main.ts";
 let content = "export function greet() { return 'hi' }";
 
 let canonical = extract_canonical(file_path, content, workspace_root)?;
+let canonical_at = extract_canonical_at(file_path, content, workspace_root, ExtractionLevel::Full)?;
 
-let manager = ExtractorManager::new();
-let projected_symbols = manager.extract_symbols(file_path, content, workspace_root)?;
-
-assert_eq!(projected_symbols, canonical.symbols);
+assert_eq!(canonical_at.symbols, canonical.symbols);
 # Ok::<(), anyhow::Error>(())
 ```
