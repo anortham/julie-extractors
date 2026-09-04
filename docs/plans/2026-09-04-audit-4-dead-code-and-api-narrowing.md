@@ -156,8 +156,8 @@ fn main() -> std::process::ExitCode {
 **Approach:** Diff the copies first; if two `base_report` bodies differ, keep the difference as a parameter, not a second function. Existing store CLI tests cover every call site.
 
 **Acceptance criteria:**
-- [ ] Each helper has exactly one definition in the CLI crate.
-- [ ] `cargo test -p julie-extract-cli` passes.
+- [x] Each helper has exactly one definition in the CLI crate.
+- [x] `cargo test -p julie-extract-cli` passes.
 
 ## Task 8: Consolidate test helpers
 

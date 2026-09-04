@@ -23,6 +23,8 @@ use crate::extraction::{
 use crate::paths::FileTarget;
 use crate::progress::{Counter, ScanProgress};
 
+use super::common::*;
+
 #[cfg(feature = "test-store-contract")]
 macro_rules! store_test_crash {
     ($boundary:literal) => {
@@ -1298,23 +1300,6 @@ fn validate_payload_bounds(serialized_bytes: usize, files: usize) -> Result<(), 
         return Err("invalid_import_request_payload:too_many_files".to_string());
     }
     Ok(())
-}
-
-fn valid_root_relative_path(root: &std::path::Path, path: &str) -> bool {
-    !path.is_empty()
-        && path.len() <= super::args::MAX_STORE_PATH_BYTES
-        && !path.starts_with('/')
-        && !path.contains(['\\', ':', '\0'])
-        && !path
-            .split('/')
-            .any(|part| part.is_empty() || part == "." || part == "..")
-        && root.join(path).starts_with(root)
-}
-
-fn valid_blake3_hash(hash: &str) -> bool {
-    hash.strip_prefix("blake3:").is_some_and(|value| {
-        value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
-    })
 }
 
 pub(crate) fn validate_target_within_root(

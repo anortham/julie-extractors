@@ -16,6 +16,7 @@ use rusqlite::{Connection, OpenFlags, OptionalExtension, Transaction, params_fro
 use crate::artifact_access::validate_current_artifact_output;
 
 use super::args::StoreExportArgs;
+use super::common::*;
 use super::import::{
     StoreExecutionOutcome, absolute_runtime_path, classify_failure, mint_request_id,
     open_existing_store,
@@ -644,10 +645,6 @@ fn table_columns(connection: &Connection, table: &str) -> Result<Vec<String>, St
         .map_err(|error| error.to_string())?
         .collect::<Result<Vec<_>, _>>()
         .map_err(|error| error.to_string())
-}
-
-fn quote_identifier(value: &str) -> String {
-    format!("\"{}\"", value.replace('"', "\"\""))
 }
 
 fn version_file_id(version_id: i64) -> String {

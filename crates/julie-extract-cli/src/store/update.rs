@@ -1,21 +1,19 @@
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 
-use julie_extract_artifact::store::{
-    CoordinatorRequest, LeaseHolder, RequestKind, StoreCoordinator,
-};
+use julie_extract_artifact::store::{CoordinatorRequest, RequestKind};
 
 use crate::discovery::{DiscoveryExclusions, DiscoveryPolicy, FileSelection, UnsupportedReason};
 use crate::paths::FileTarget;
 
 use super::args::{StoreLevelArg, StoreUpdateArgs};
+use super::common::*;
 use super::executor::{
     DeleteRequestPayload, ImportScanControls, PlannedImportFile, RequestedLevel,
     StoreRequestExecutor, UpdateRequestPayload, frozen_chunk_versions_from_environment,
     validate_target_within_root,
 };
 use super::import::{
-    ImportClock, ImportPidLiveness, RequestReportSpec, StoreExecutionOutcome,
+    RequestReportSpec, StoreExecutionOutcome,
     absolute_runtime_path, canonical_control_paths, classify_failure, drain_when_available,
     mint_request_id, normalize_root_relative, now_millis, open_existing_store,
     preflight_store_capacity, read_source_identity_or_missing, report_request,
@@ -47,8 +45,15 @@ pub(crate) fn run(args: StoreUpdateArgs) -> StoreExecutionOutcome {
         Ok(report) => StoreExecutionOutcome::success(report, format),
         Err(message) => {
             let mut report = base_report(
-                &args,
+                StoreOperation::Update,
                 &request_id,
+                &failure_family_id,
+                &args.view,
+                &args.root,
+                match args.level {
+                    StoreLevelArg::L1 => StoreRequestedLevel::L1,
+                    StoreLevelArg::Full => StoreRequestedLevel::Full,
+                },
                 &idempotency_key,
                 StoreRequestState::Failed,
             );
@@ -69,18 +74,7 @@ fn execute_update(
     failure_family_id.clone_from(&existing.family_id);
     let layout = existing.layout;
     let family_id = existing.family_id;
-    let holder = LeaseHolder::new(
-        format!("cli-{}", std::process::id()),
-        env!("CARGO_PKG_VERSION"),
-        std::process::id(),
-    );
-    let mut coordinator = StoreCoordinator::open_with_runtime(
-        &layout,
-        holder,
-        Arc::new(ImportClock),
-        Arc::new(ImportPidLiveness),
-    )
-    .map_err(|error| error.to_string())?;
+    let mut coordinator = open_cli_coordinator(&layout).map_err(|error| error.to_string())?;
     let existing_request = coordinator
         .request_by_idempotency_key(idempotency_key)
         .map_err(|error| error.to_string())?;
@@ -157,8 +151,15 @@ fn execute_update(
         validate_target_within_root(root, &root_relative_path)?;
         if let Some(refusal) = discovery_refusal(root, layout.store_db(), &target, &controls)? {
             let mut report = base_report(
-                args,
+                StoreOperation::Update,
                 request_id,
+                &family_id,
+                &args.view,
+                &root_text,
+                match args.level {
+                    StoreLevelArg::L1 => StoreRequestedLevel::L1,
+                    StoreLevelArg::Full => StoreRequestedLevel::Full,
+                },
                 idempotency_key,
                 StoreRequestState::Unsupported,
             );
@@ -308,25 +309,4 @@ fn discovery_refusal(
             _ => "file is ignored or unsupported; no store request was queued".to_string(),
         },
     }))
-}
-
-fn base_report(
-    args: &StoreUpdateArgs,
-    request_id: &str,
-    idempotency_key: &str,
-    state: StoreRequestState,
-) -> StoreReport {
-    StoreReport::new(
-        request_id,
-        args.family.as_deref().unwrap_or_default(),
-        &args.view,
-        state,
-    )
-    .with_operation(StoreOperation::Update)
-    .with_idempotency_key(idempotency_key)
-    .with_root(args.root.to_string_lossy())
-    .with_requested_level(match args.level {
-        StoreLevelArg::L1 => StoreRequestedLevel::L1,
-        StoreLevelArg::Full => StoreRequestedLevel::Full,
-    })
 }

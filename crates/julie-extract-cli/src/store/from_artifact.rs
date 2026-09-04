@@ -1,7 +1,6 @@
 use std::fs::File;
 use std::io::Read;
-use std::path::{Component, Path};
-use std::sync::Arc;
+use std::path::Path;
 
 use crate::artifact_access::validate_current_artifact_output;
 use julie_extract_artifact::model::{
@@ -11,7 +10,7 @@ use julie_extract_artifact::model::{
     ArtifactTypeArgument, ArtifactTypeArgumentUsage, ArtifactTypeFact, FileStatus,
 };
 use julie_extract_artifact::store::{
-    CoordinatorRequest, LeaseHolder, RequestKind, RequestState, StoreCoordinator, StoreLayout,
+    CoordinatorRequest, RequestKind, RequestState, StoreCoordinator, StoreLayout,
 };
 use julie_extractors::EXTRACTION_IDENTITY_EPOCH;
 use rusqlite::{Connection, OpenFlags, OptionalExtension};
@@ -19,12 +18,13 @@ use serde::de::DeserializeOwned;
 use sha2::{Digest, Sha256};
 
 use super::args::StoreImportArgs;
+use super::common::*;
 use super::executor::{
     ArtifactSourceIdentity, FromArtifactRequestPayload, IMPORT_PAYLOAD_MAX_BYTES,
     IMPORT_PLAN_MAX_FILES, PlannedArtifactFile, RequestedLevel, StoreRequestExecutor,
 };
 use super::import::{
-    ImportClock, ImportPidLiveness, RequestReportSpec, StoreExecutionOutcome,
+    RequestReportSpec, StoreExecutionOutcome,
     absolute_runtime_path, classify_failure, drain_when_available, mint_request_id, now_millis,
     open_existing_store, preflight_store_capacity, report_request, root_scope_matches,
 };
@@ -56,7 +56,16 @@ pub(crate) fn run(args: StoreImportArgs) -> StoreExecutionOutcome {
     match execute(&args, &request_id, &idempotency_key) {
         Ok(report) => StoreExecutionOutcome::success(report, format),
         Err(failure) => {
-            let report = base_report(&args, &request_id, &idempotency_key);
+            let report = base_report(
+                StoreOperation::FromArtifact,
+                &request_id,
+                &args.family,
+                &args.view,
+                &args.root,
+                StoreRequestedLevel::Full,
+                &idempotency_key,
+                StoreRequestState::Failed,
+            );
             match failure {
                 FromArtifactFailure::Incompatible => {
                     StoreExecutionOutcome::incompatible(report, format)
@@ -78,8 +87,8 @@ fn execute(
     let existing = if args.store.join("CURRENT").exists() {
         let existing = open_existing_store(&args.store, Some(&args.family))
             .map_err(FromArtifactFailure::Operational)?;
-        let holder = lease_holder();
-        let coordinator = open_coordinator(&existing.layout, holder)?;
+        let coordinator = open_cli_coordinator(&existing.layout)
+            .map_err(|error| FromArtifactFailure::Operational(error.to_string()))?;
         coordinator
             .request_by_idempotency_key(idempotency_key)
             .map_err(|error| FromArtifactFailure::Operational(error.to_string()))?
@@ -167,8 +176,8 @@ fn execute(
         EXTRACTION_IDENTITY_EPOCH,
     )
     .map_err(|error| FromArtifactFailure::Operational(error.to_string()))?;
-    let holder = lease_holder();
-    let mut coordinator = open_coordinator(&layout, holder.clone())?;
+    let mut coordinator = open_cli_coordinator(&layout)
+        .map_err(|error| FromArtifactFailure::Operational(error.to_string()))?;
     let now = now_millis();
     let deadline = now.saturating_add(
         i64::try_from(args.request.request_timeout_seconds)
@@ -190,7 +199,7 @@ fn execute(
             idempotency_key,
             RequestKind::FromArtifact,
             payload_json,
-            holder.holder_id,
+            cli_lease_holder_id(),
             deadline,
             now,
         ))
@@ -341,7 +350,7 @@ fn artifact_plan(connection: &Connection, root: &Path) -> Result<Vec<PlannedArti
     let mut files = Vec::new();
     for row in rows {
         let file = row.map_err(|error| error.to_string())?;
-        if !valid_relative_path(root, &file.path)
+        if !valid_root_relative_path(root, &file.path)
             || !valid_blake3_hash(&file.content_hash)
             || file.file_id.is_empty()
             || file.language.is_empty()
@@ -628,10 +637,6 @@ fn normalize_sqlite_booleans(value: &mut serde_json::Value) {
     }
 }
 
-fn quote_identifier(value: &str) -> String {
-    format!("\"{}\"", value.replace('"', "\"\""))
-}
-
 fn report(
     layout: &StoreLayout,
     request: &julie_extract_artifact::store::CoordinatorRequest,
@@ -649,40 +654,6 @@ fn report(
             l1_event_kind: "store_from_artifact_manifest_published",
         },
     )
-}
-
-fn lease_holder() -> LeaseHolder {
-    LeaseHolder::new(
-        format!("cli-{}", std::process::id()),
-        env!("CARGO_PKG_VERSION"),
-        std::process::id(),
-    )
-}
-
-fn open_coordinator(
-    layout: &StoreLayout,
-    holder: LeaseHolder,
-) -> Result<StoreCoordinator, FromArtifactFailure> {
-    StoreCoordinator::open_with_runtime(
-        layout,
-        holder,
-        Arc::new(ImportClock),
-        Arc::new(ImportPidLiveness),
-    )
-    .map_err(|error| FromArtifactFailure::Operational(error.to_string()))
-}
-
-fn base_report(args: &StoreImportArgs, request_id: &str, idempotency_key: &str) -> StoreReport {
-    StoreReport::new(
-        request_id,
-        &args.family,
-        &args.view,
-        StoreRequestState::Failed,
-    )
-    .with_operation(StoreOperation::FromArtifact)
-    .with_idempotency_key(idempotency_key)
-    .with_root(args.root.to_string_lossy())
-    .with_requested_level(StoreRequestedLevel::Full)
 }
 
 fn validate_capability_identity(connection: &Connection) -> Result<(), String> {
@@ -715,22 +686,6 @@ fn metadata_value(connection: &Connection, key: &str) -> Result<String, String> 
             |row| row.get(0),
         )
         .map_err(|error| error.to_string())
-}
-
-fn valid_relative_path(root: &Path, path: &str) -> bool {
-    !path.is_empty()
-        && path.len() <= super::args::MAX_STORE_PATH_BYTES
-        && !path.contains(['\\', ':', '\0'])
-        && Path::new(path)
-            .components()
-            .all(|component| matches!(component, Component::Normal(_)))
-        && root.join(path).starts_with(root)
-}
-
-fn valid_blake3_hash(hash: &str) -> bool {
-    hash.strip_prefix("blake3:").is_some_and(|value| {
-        value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
-    })
 }
 
 fn sha256_file(path: &Path) -> Result<String, String> {
