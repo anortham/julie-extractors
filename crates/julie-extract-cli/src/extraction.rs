@@ -157,6 +157,11 @@ impl SnapshotCache {
                 generation,
             },
         );
+        if self.order.len() > self.entries.len().saturating_mul(2).saturating_add(512) {
+            let entries = &self.entries;
+            self.order
+                .retain(|(p, q_gen)| entries.get(p).is_some_and(|e| e.generation == *q_gen));
+        }
     }
 
     #[allow(dead_code)]
@@ -1747,6 +1752,28 @@ mod tests {
         assert!(
             cache.entries.len() <= MAX_SNAPSHOT_CACHE_ENTRIES,
             "cache entries must be bounded by MAX_SNAPSHOT_CACHE_ENTRIES"
+        );
+    }
+
+    #[test]
+    fn snapshot_cache_repeated_replacements_remain_bounded() {
+        let mut cache = SnapshotCache::new();
+        let path = PathBuf::from("/test/file.rs");
+        for i in 0..2000 {
+            let snap = SourceSnapshot {
+                content_hash: format!("hash_{i}"),
+                content_bytes: 10,
+                line_count: Some(1),
+                content: "0123456789".to_string(),
+            };
+            cache.insert(path.clone(), snap, None, 10);
+        }
+        assert_eq!(cache.entries.len(), 1);
+        assert_eq!(cache.total_bytes, 10);
+        assert!(
+            cache.order.len() <= 600,
+            "order queue must be periodically compacted during repeated replacements, got {}",
+            cache.order.len()
         );
     }
 }
