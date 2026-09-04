@@ -133,6 +133,25 @@ Consumer action: replace the binary and re-extract. An existing artifact keeps
 reading unchanged, but an index that merges 2.38.x and 2.39.0 output disagrees
 on the kinds and spans above and misses the new fact rows until re-extracted.
 
+## Rust API
+
+Version 2.39.0 narrows the `julie-extractors` crate root to canonical extraction entrypoints, fact row types, enums, capability snapshot types, and language detection utilities:
+
+- **Internal modules made `pub(crate)`:**
+  - Infrastructure modules: `base`, `registry`, `pipeline`, `test_detection`, `test_calls`, `utils`, `language`.
+  - All 38 language extractor modules: `bash`, `c`, `cpp`, `csharp`, `css`, `dart`, `elixir`, `erlang`, `fsharp`, `gdscript`, `go`, `html`, `java`, `javascript`, `json`, `kotlin`, `lua`, `markdown`, `php`, `powershell`, `python`, `qml`, `qmldir`, `r`, `razor`, `regex`, `ruby`, `rust`, `scala`, `sql`, `swift`, `toml`, `typescript`, `vbnet`, `vue`, `xml`, `yaml`, `zig`.
+- **Removed exports from crate root:**
+  - `BaseExtractor` (language implementations and base extractor state are crate-internal)
+  - `is_test_symbol` (internal test detection logic)
+  - `detect_language_from_extension` (internal extension mapping; consumers use `detect_language_for_path` or `detect_language_for_source`)
+  - `get_tree_sitter_language` (internal tree-sitter language loader)
+  - `LanguageRegistryEntry` (internal registry record; consumers query `supported_languages` or `capability_snapshot`)
+- **New crate-root re-exports:**
+  - `NormalizedSpan`, `StructuredPendingRelationship`
+  - `supported_languages`
+  - `classify_literals_by_carrier`
+  - `structural_fact_patterns_json`
+
 ## 2.38.2
 
 classification: compatible

@@ -130,9 +130,9 @@ fn main() -> std::process::ExitCode {
 **Approach:** Grep each workspace consumer's imports first (`use julie_extractors::` in both other crates) and confirm each still resolves. Update `api_surface.rs` to assert the new surface. Record every removed export in the contract doc with the release version that removes it.
 
 **Acceptance criteria:**
-- [ ] `cargo build --workspace --all-targets` passes.
-- [ ] `api_surface.rs` lists exactly the exported items.
-- [ ] Contract doc has the Rust API section.
+- [x] `cargo build --workspace --all-targets` passes.
+- [x] `api_surface.rs` lists exactly the exported items.
+- [x] Contract doc has the Rust API section.
 
 ## Task 6: Narrow the store module and gate the preparation counter
 

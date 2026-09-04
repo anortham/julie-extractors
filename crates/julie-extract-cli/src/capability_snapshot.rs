@@ -322,5 +322,5 @@ pub(crate) fn flags(flags: CapabilityFlags) -> Value {
 /// `docs/contracts/structural-fact-patterns.json` contract. No re-serialization
 /// through CLI structs — the registry is the sole source of truth.
 pub(crate) fn structural_fact_patterns_json() -> Value {
-    julie_extractors::base::structural_fact_patterns_json()
+    julie_extractors::structural_fact_patterns_json()
 }

@@ -4,9 +4,9 @@ use crate::language::{
     supported_languages as language_supported_languages,
 };
 use crate::registry::supported_languages as registry_supported_languages;
+use crate::base::BaseExtractor;
 use crate::{
-    extract_canonical, extract_canonical_at, BaseExtractor, ExtractionLevel, PendingRelationship,
-    RelationshipKind,
+    extract_canonical, extract_canonical_at, ExtractionLevel, PendingRelationship, RelationshipKind,
 };
 use std::collections::BTreeSet;
 use std::path::PathBuf;
@@ -398,4 +398,176 @@ fn test_base_extractor_owns_pending_relationship_storage() {
 
     assert!(base.get_pending_relationships().is_empty());
     assert!(base.get_structured_pending_relationships().is_empty());
+}
+
+#[test]
+fn test_public_api_surface_exports_exact_symbols() {
+    let lib_rs = include_str!("../lib.rs");
+
+    // Modules that must be pub(crate)
+    for module in [
+        "base",
+        "registry",
+        "pipeline",
+        "test_detection",
+        "test_calls",
+        "utils",
+        "language",
+    ] {
+        assert!(
+            lib_rs.contains(&format!("pub(crate) mod {module};")),
+            "module `{module}` must be declared pub(crate)"
+        );
+    }
+
+    // All 38 language modules must be pub(crate)
+    let languages = [
+        "bash", "c", "cpp", "csharp", "css", "dart", "elixir", "erlang", "fsharp",
+        "gdscript", "go", "html", "java", "javascript", "json", "kotlin", "lua",
+        "markdown", "php", "powershell", "python", "qml", "qmldir", "r", "razor",
+        "regex", "ruby", "rust", "scala", "sql", "swift", "toml", "typescript",
+        "vbnet", "vue", "xml", "yaml", "zig",
+    ];
+    assert_eq!(languages.len(), 38);
+    for lang in languages {
+        assert!(
+            lib_rs.contains(&format!("pub(crate) mod {lang};")),
+            "language module `{lang}` must be declared pub(crate)"
+        );
+    }
+
+    // Removed from root exports
+    for removed in [
+        "BaseExtractor",
+        "is_test_symbol",
+        "detect_language_from_extension",
+        "get_tree_sitter_language",
+        "LanguageRegistryEntry",
+    ] {
+        for line in lib_rs.lines() {
+            if line.trim_start().starts_with("pub use") {
+                assert!(
+                    !line.contains(removed),
+                    "removed symbol `{removed}` must not be re-exported with pub use; found in `{line}`"
+                );
+            }
+        }
+    }
+
+    // Canonical extraction functions at root
+    let _ = crate::extract_canonical
+        as fn(&str, &str, &std::path::Path) -> Result<crate::ExtractionResults, anyhow::Error>;
+    let _ = crate::extract_canonical_at
+        as fn(
+            &str,
+            &str,
+            &std::path::Path,
+            crate::ExtractionLevel,
+        ) -> Result<crate::ExtractionResults, anyhow::Error>;
+    let _ = crate::extract_canonical_for_language_at
+        as fn(
+            &str,
+            &str,
+            &str,
+            &std::path::Path,
+            crate::ExtractionLevel,
+        ) -> Result<crate::ExtractionResults, anyhow::Error>;
+
+    // Language detection at root
+    let _ = crate::detect_language_for_path
+        as fn(&std::path::Path, &str) -> Option<&'static str>;
+    let _ = crate::detect_language_for_source
+        as fn(&str, &str) -> Option<&'static str>;
+
+    // Registry and capabilities at root
+    let _ = crate::supported_languages as fn() -> Vec<&'static str>;
+    let _ = crate::capability_snapshot as fn() -> &'static crate::CapabilitySnapshot;
+
+    // Policy and serializer helpers at root
+    let _ = crate::classify_literals_by_carrier;
+    let _ = crate::structural_fact_patterns_json as fn() -> serde_json::Value;
+    let _ = crate::extract_type_arguments;
+    let _ = crate::normalize_annotations::<&str>;
+
+    // All row types, enums, and markers reachable at root
+    fn assert_types<
+        Symbol: 'static,
+        Relationship: 'static,
+        PendingRelationship: 'static,
+        Identifier: 'static,
+        Literal: 'static,
+        TypeInfo: 'static,
+        TypeArgument: 'static,
+        TypeArgumentUsage: 'static,
+        SourceRegion: 'static,
+        ParseDiagnostic: 'static,
+        ComplexityMetric: 'static,
+        NormalizedSpan: 'static,
+        StructuralFact: 'static,
+        StructuredPendingRelationship: 'static,
+        ExtractionResults: 'static,
+        ExtractionLevel: 'static,
+        SymbolKind: 'static,
+        SymbolOptions: 'static,
+        RelationshipKind: 'static,
+        IdentifierKind: 'static,
+        LiteralKind: 'static,
+        SourceRegionKind: 'static,
+        ParseDiagnosticKind: 'static,
+        AnnotationMarker: 'static,
+        TestRole: 'static,
+        Visibility: 'static,
+        LanguageCapabilities: 'static,
+        CapabilitySnapshot: 'static,
+        CapabilityFlags: 'static,
+        CapabilityGap: 'static,
+        CapabilityKindCoverage: 'static,
+        CapabilityRow: 'static,
+        FixtureRef: 'static,
+        KindCoverage: 'static,
+        KindCoverageGap: 'static,
+    >() {
+    }
+
+    assert_types::<
+        crate::Symbol,
+        crate::Relationship,
+        crate::PendingRelationship,
+        crate::Identifier,
+        crate::Literal,
+        crate::TypeInfo,
+        crate::TypeArgument,
+        crate::TypeArgumentUsage,
+        crate::SourceRegion,
+        crate::ParseDiagnostic,
+        crate::ComplexityMetric,
+        crate::NormalizedSpan,
+        crate::StructuralFact,
+        crate::StructuredPendingRelationship,
+        crate::ExtractionResults,
+        crate::ExtractionLevel,
+        crate::SymbolKind,
+        crate::SymbolOptions,
+        crate::RelationshipKind,
+        crate::IdentifierKind,
+        crate::LiteralKind,
+        crate::SourceRegionKind,
+        crate::ParseDiagnosticKind,
+        crate::AnnotationMarker,
+        crate::TestRole,
+        crate::Visibility,
+        crate::LanguageCapabilities,
+        crate::CapabilitySnapshot,
+        crate::CapabilityFlags,
+        crate::CapabilityGap,
+        crate::CapabilityKindCoverage,
+        crate::CapabilityRow,
+        crate::FixtureRef,
+        crate::KindCoverage,
+        crate::KindCoverageGap,
+    >();
+
+    // Constants
+    assert!(!crate::EXTRACTION_CONTRACT_VERSION.is_empty());
+    assert_eq!(crate::EXTRACTION_IDENTITY_EPOCH, 9);
 }
