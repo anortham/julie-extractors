@@ -84,9 +84,9 @@ Commit mode: `parallel-lead-commit` for Batch A; `serial-worker-commit` for Task
 4. Run `scripts/check-agent-doc-sync.sh`.
 
 **Acceptance criteria:**
-- [ ] Both agent files carry the same new line; sync script passes.
-- [ ] `cargo xtask test default` prints the wall clock line.
-- [ ] `cargo test -p xtask` passes.
+- [x] Both agent files carry the same new line; sync script passes.
+- [x] `cargo xtask test default` prints the wall clock line.
+- [x] `cargo test -p xtask` passes.
 
 ## Task 3: Delete the legacy resolution fixture and its keeper test
 

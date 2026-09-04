@@ -269,6 +269,7 @@ cargo metadata --format-version 1
 cargo test -p xtask
 cargo xtask test default
 cargo xtask test contract
+node scripts/language-data-quality-report.mjs --strict
 ```
 
 Specialist gates are manual through `workflow_dispatch`:
@@ -292,6 +293,10 @@ cargo xtask performance writer-current-schema --out-dir target/performance/write
 ## Guardrails
 
 - Keep test-tier pass/fail independent of machine-dependent wall-clock time.
+  The default tier prints its wall clock as an informational line
+  (`default tier wall clock: <seconds>s`) at the end of execution; this timing
+  is report-only and never affects the exit code. Treat growth past 3 minutes
+  warm as a defect to fix, not a gate.
 - Measure default-tier timing locally on a stable machine, with the same
   toolchain and warmed build cache, using three runs such as:
 

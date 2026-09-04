@@ -66,7 +66,7 @@ The default test suite must stay fast enough for agents to run repeatedly.
 - Default tests must not run real-world corpora, full parser certification, or
   slow release gates.
 - Any slow test must be tagged or routed out of the default suite from the start.
-- Add a wall-clock budget tripwire before the suite grows.
+- The default tier prints its wall clock. Treat growth past 3 minutes warm as a defect to fix, not a gate.
 - Add convention tests that fail if slow gates leak into default.
 - Per-language work must have narrow commands so agents can test one language
   without paying for all languages.
