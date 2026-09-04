@@ -27,7 +27,7 @@ mod test_calls;
 // Public re-exports
 pub use crate::base::{IdentifierKind, RelationshipKind};
 
-use parsing::{VueSection, parse_vue_sfc};
+use parsing::{ParsedVueSfc, VueSection};
 use script::create_symbol_manual;
 
 /// Vue Single File Component (SFC) Extractor
@@ -36,6 +36,7 @@ use script::create_symbol_manual;
 /// and delegating to appropriate existing parsers.
 pub struct VueExtractor {
     pub(crate) base: BaseExtractor,
+    pub(crate) parsed_sfc: ParsedVueSfc,
 }
 
 impl VueExtractor {
@@ -45,8 +46,10 @@ impl VueExtractor {
         content: String,
         workspace_root: &std::path::Path,
     ) -> Self {
+        let parsed_sfc = ParsedVueSfc::parse(&content).unwrap_or_default();
         Self {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
+            parsed_sfc,
         }
     }
 
@@ -54,72 +57,66 @@ impl VueExtractor {
     /// Implementation of extractSymbols logic
     pub fn extract_symbols(&mut self, _tree: Option<&Tree>) -> Vec<Symbol> {
         let mut symbols = Vec::new();
+        let sections = &self.parsed_sfc.sections;
 
-        // Parse Vue SFC structure - following standard approach
-        match parse_vue_sfc(&self.base.content.clone()) {
-            Ok(sections) => {
-                // Extract symbols from each section
-                for section in &sections {
-                    let section_symbols = self.extract_section_symbols(section);
-                    symbols.extend(section_symbols);
-                }
-
-                // Add component-level symbol - following reference logic
-                if let Some(component_name) =
-                    component::extract_component_name(&self.base.file_path, &sections)
-                {
-                    // Try to extract HTML comment from the beginning of the file
-                    let doc_comment = extract_component_doc_comment(&self.base.content);
-
-                    // Span the component over the file's real lines: end on the
-                    // last line, one past its final byte, so byte-based
-                    // containment of section facts covers the whole file
-                    // without reporting a line that does not exist.
-                    let component_end_line = self.base.content.lines().count().max(1);
-                    let component_end_column = self
-                        .base
-                        .content
-                        .lines()
-                        .next_back()
-                        .map_or(1, |line| line.len() + 1);
-                    let component_symbol = create_symbol_manual(
-                        &self.base,
-                        &component_name,
-                        SymbolKind::Class,
-                        1,
-                        1,
-                        component_end_line,
-                        component_end_column,
-                        Some(format!("<{} />", component_name)),
-                        doc_comment.or_else(|| {
-                            Some(format!("Vue Single File Component: {}", component_name))
-                        }),
-                        Some({
-                            let mut metadata = HashMap::new();
-                            metadata
-                                .insert("type".to_string(), Value::String("vue-sfc".to_string()));
-                            metadata.insert(
-                                "sections".to_string(),
-                                Value::String(
-                                    sections
-                                        .iter()
-                                        .map(|s| s.section_type.clone())
-                                        .collect::<Vec<_>>()
-                                        .join(","),
-                                ),
-                            );
-                            metadata
-                        }),
-                    );
-                    symbols.push(component_symbol);
-                }
-
-                script_setup::apply_script_setup_annotations(&mut symbols, &sections);
-            }
-            Err(_e) => {
-                // Error extracting Vue symbols - continue silently
-            }
+        // Extract symbols from each section
+        for (idx, section) in sections.iter().enumerate() {
+            let tree = self.parsed_sfc.script_tree(idx);
+            let section_symbols = self.extract_section_symbols(section, tree);
+            symbols.extend(section_symbols);
         }
+
+        // Add component-level symbol - following reference logic
+        if let Some(component_name) =
+            component::extract_component_name(&self.base.file_path, sections)
+        {
+            // Try to extract HTML comment from the beginning of the file
+            let doc_comment = extract_component_doc_comment(&self.base.content);
+
+            // Span the component over the file's real lines: end on the
+            // last line, one past its final byte, so byte-based
+            // containment of section facts covers the whole file
+            // without reporting a line that does not exist.
+            let component_end_line = self.base.content.lines().count().max(1);
+            let component_end_column = self
+                .base
+                .content
+                .lines()
+                .next_back()
+                .map_or(1, |line| line.len() + 1);
+            let component_symbol = create_symbol_manual(
+                &self.base,
+                &component_name,
+                SymbolKind::Class,
+                1,
+                1,
+                component_end_line,
+                component_end_column,
+                Some(format!("<{} />", component_name)),
+                doc_comment.or_else(|| {
+                    Some(format!("Vue Single File Component: {}", component_name))
+                }),
+                Some({
+                    let mut metadata = HashMap::new();
+                    metadata
+                        .insert("type".to_string(), Value::String("vue-sfc".to_string()));
+                    metadata.insert(
+                        "sections".to_string(),
+                        Value::String(
+                            sections
+                                .iter()
+                                .map(|s| s.section_type.clone())
+                                .collect::<Vec<_>>()
+                                .join(","),
+                        ),
+                    );
+                    metadata
+                }),
+            );
+            symbols.push(component_symbol);
+        }
+
+        script_setup::apply_script_setup_annotations(&mut symbols, &self.parsed_sfc);
 
         symbols
     }
@@ -130,14 +127,14 @@ impl VueExtractor {
         _tree: Option<&Tree>,
         symbols: &[Symbol],
     ) -> Vec<Relationship> {
-        relationships::extract_relationships(&self.base, symbols)
+        relationships::extract_relationships(&self.base, symbols, &self.parsed_sfc)
     }
 
     pub fn extract_structured_pending_relationships(
         &mut self,
         symbols: &[Symbol],
     ) -> Vec<StructuredPendingRelationship> {
-        relationships::extract_structured_pending_relationships(&self.base, symbols)
+        relationships::extract_structured_pending_relationships(&self.base, symbols, &self.parsed_sfc)
     }
 
     /// Infer types from Vue SFC
@@ -174,17 +171,17 @@ impl VueExtractor {
 
     /// Extract symbols from a specific section using appropriate parser
     /// Implementation of extractSectionSymbols logic
-    fn extract_section_symbols(&self, section: &VueSection) -> Vec<Symbol> {
+    fn extract_section_symbols(&self, section: &VueSection, tree: Option<&Tree>) -> Vec<Symbol> {
         match section.section_type.as_str() {
             "script" => {
                 let mut symbols = if section.is_setup {
                     // <script setup> uses tree-sitter for Composition API extraction
-                    script_setup::extract_script_setup_symbols(&self.base, section)
+                    script_setup::extract_script_setup_symbols(&self.base, section, tree)
                 } else {
                     // Regular <script> uses regex for Options API extraction
-                    script::extract_script_symbols(&self.base, section)
+                    script::extract_script_symbols(&self.base, section, tree)
                 };
-                symbols.extend(test_calls::extract_script_test_symbols(&self.base, section));
+                symbols.extend(test_calls::extract_script_test_symbols(&self.base, section, tree));
                 symbols
             }
             "template" => {
@@ -215,7 +212,16 @@ impl VueExtractor {
     }
 
     pub fn extract_identifiers(&mut self, symbols: &[Symbol]) -> Vec<Identifier> {
-        identifiers::extract_identifiers(&mut self.base, symbols)
+        identifiers::extract_identifiers(&mut self.base, symbols, &self.parsed_sfc)
+    }
+
+    pub fn extract_complexity_metrics(&self, symbols: &[Symbol]) -> Vec<crate::base::ComplexityMetric> {
+        crate::base::complexity_metrics::collect_vue_complexity_metrics_from_sfc(
+            &self.parsed_sfc,
+            &self.base.content,
+            &self.base.file_path,
+            symbols,
+        )
     }
 }
 

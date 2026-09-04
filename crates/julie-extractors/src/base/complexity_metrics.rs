@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use tree_sitter::{Node, Parser, Tree};
+use tree_sitter::{Node, Tree};
 
 use super::embedded_span::EmbeddedSpanOffset;
 use super::kinds::SymbolKind;
@@ -1133,14 +1133,27 @@ fn collect_vue_complexity_metrics(
     file_path: &str,
     symbols: &[Symbol],
 ) -> Vec<ComplexityMetric> {
-    use crate::vue::parsing::{VueSection, parse_vue_sfc};
+    use crate::vue::parsing::ParsedVueSfc;
 
-    let Ok(sections) = parse_vue_sfc(source) else {
+    let Ok(sfc) = ParsedVueSfc::parse(source) else {
         return Vec::new();
     };
-    let script_sections: Vec<&VueSection> = sections
+    collect_vue_complexity_metrics_from_sfc(&sfc, source, file_path, symbols)
+}
+
+pub(crate) fn collect_vue_complexity_metrics_from_sfc(
+    sfc: &crate::vue::parsing::ParsedVueSfc,
+    source: &str,
+    file_path: &str,
+    symbols: &[Symbol],
+) -> Vec<ComplexityMetric> {
+    use crate::vue::parsing::VueSection;
+
+    let script_sections: Vec<(usize, &VueSection)> = sfc
+        .sections
         .iter()
-        .filter(|section| section.section_type == "script")
+        .enumerate()
+        .filter(|(_, section)| section.section_type == "script")
         .collect();
     if script_sections.is_empty() {
         return Vec::new();
@@ -1151,8 +1164,14 @@ fn collect_vue_complexity_metrics(
     let mut file_stats = ComplexityStats::default();
     let mut file_span: Option<NormalizedSpan> = None;
 
-    for section in &script_sections {
-        let Some(tree) = parse_vue_script_tree(section) else {
+    // Reuse section trees across file stats and all callable symbols
+    let section_trees: Vec<Option<&Tree>> = script_sections
+        .iter()
+        .map(|(idx, _)| sfc.script_tree(*idx))
+        .collect();
+
+    for (i, (_, section)) in script_sections.iter().enumerate() {
+        let Some(tree) = section_trees[i] else {
             continue;
         };
         let root = tree.root_node();
@@ -1191,15 +1210,18 @@ fn collect_vue_complexity_metrics(
         ));
     }
 
+    let sections_slice: Vec<&VueSection> = script_sections.iter().map(|(_, s)| *s).collect();
+
     for symbol in symbols.iter().filter(|symbol| is_callable(&symbol.kind)) {
-        let Some((section, byte_start)) =
-            vue_script_section_for_symbol(source, &script_sections, symbol)
+        let Some((sec_i, byte_start)) =
+            vue_script_section_index_for_symbol(source, &sections_slice, symbol)
         else {
             continue;
         };
-        let Some(tree) = parse_vue_script_tree(section) else {
+        let Some(tree) = section_trees[sec_i] else {
             continue;
         };
+        let section = script_sections[sec_i].1;
         let root = tree.root_node();
         let symbol_file_span = symbol
             .body_span
@@ -1332,28 +1354,21 @@ fn vue_section_byte_offset(content: &str, start_line: usize) -> u32 {
         .sum::<usize>() as u32
 }
 
+#[allow(dead_code)]
 fn parse_vue_script_tree(section: &crate::vue::parsing::VueSection) -> Option<Tree> {
-    let mut parser = Parser::new();
-    let lang = section.lang.as_deref().unwrap_or("js");
-    let ts_lang = if lang == "ts" || lang == "typescript" {
-        tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into()
-    } else {
-        tree_sitter_javascript::LANGUAGE.into()
-    };
-    parser.set_language(&ts_lang).ok()?;
-    parser.parse(&section.content, None)
+    crate::vue::parsing::parse_script_section(section)
 }
 
-fn vue_script_section_for_symbol<'a>(
+fn vue_script_section_index_for_symbol(
     content: &str,
-    sections: &[&'a crate::vue::parsing::VueSection],
+    sections: &[&crate::vue::parsing::VueSection],
     symbol: &Symbol,
-) -> Option<(&'a crate::vue::parsing::VueSection, u32)> {
-    for section in sections {
+) -> Option<(usize, u32)> {
+    for (i, section) in sections.iter().enumerate() {
         let byte_start = vue_section_byte_offset(content, section.start_line);
         let byte_end = byte_start.saturating_add(section.content.len() as u32);
         if symbol.start_byte >= byte_start && symbol.end_byte <= byte_end {
-            return Some((*section, byte_start));
+            return Some((i, byte_start));
         }
     }
     None

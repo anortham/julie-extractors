@@ -6,7 +6,7 @@
 mod literals;
 mod type_arguments;
 
-use super::parsing::{VueSection, parse_vue_sfc};
+use super::parsing::{ParsedVueSfc, VueSection};
 use crate::base::config_literals::{enclosing_element_tag_name, tag_attribute_carrier};
 use crate::base::{
     BaseExtractor, ContainingSymbolIndex, EmbeddedSpanOffset, Identifier, IdentifierKind,
@@ -20,59 +20,42 @@ use type_arguments::extract_vue_type_arguments;
 
 /// Extract all identifier usages (function calls, member access, etc.)
 /// Vue-specific: Parses <script> section with JavaScript tree-sitter
-pub(super) fn extract_identifiers(base: &mut BaseExtractor, symbols: &[Symbol]) -> Vec<Identifier> {
+pub(super) fn extract_identifiers(
+    base: &mut BaseExtractor,
+    symbols: &[Symbol],
+    parsed_sfc: &ParsedVueSfc,
+) -> Vec<Identifier> {
     let containing_symbols = base.containing_symbol_index(symbols);
 
-    // Parse Vue SFC to extract script and template sections
-    if let Ok(sections) = parse_vue_sfc(&base.content.clone()) {
-        for section in &sections {
-            if section.section_type == "template" {
-                extract_template_attribute_literals(base, section, &containing_symbols);
-            } else if section.section_type == "script" {
-                // Parse script section with JavaScript tree-sitter
-                if let Some(tree) = parse_script_section(section) {
-                    let byte_offset = section_byte_offset(&base.content, section.start_line);
-                    let Some(offset) =
-                        EmbeddedSpanOffset::from_host_byte(&base.content, byte_offset as usize)
-                    else {
-                        continue;
-                    };
+    for (idx, section) in parsed_sfc.sections.iter().enumerate() {
+        if section.section_type == "template" {
+            extract_template_attribute_literals(base, section, &containing_symbols);
+        } else if section.section_type == "script" {
+            // Parse script section with JavaScript tree-sitter
+            if let Some(tree) = parsed_sfc.script_tree(idx) {
+                let byte_offset = section_byte_offset(&base.content, section.start_line);
+                let Some(offset) =
+                    EmbeddedSpanOffset::from_host_byte(&base.content, byte_offset as usize)
+                else {
+                    continue;
+                };
 
-                    // CRITICAL: We need to use the script content, not the full Vue SFC content
-                    // for node text, then remap spans back to the host Vue file.
-                    walk_tree_for_identifiers_with_content(
-                        base,
-                        tree.root_node(),
-                        &containing_symbols,
-                        &section.content,
-                        offset,
-                        0,
-                    );
-                }
+                // CRITICAL: We need to use the script content, not the full Vue SFC content
+                // for node text, then remap spans back to the host Vue file.
+                walk_tree_for_identifiers_with_content(
+                    base,
+                    tree.root_node(),
+                    &containing_symbols,
+                    &section.content,
+                    offset,
+                    0,
+                );
             }
         }
     }
 
     // Return the collected identifiers
     base.identifiers.clone()
-}
-
-/// Parse script section with JavaScript tree-sitter parser
-fn parse_script_section(section: &VueSection) -> Option<tree_sitter::Tree> {
-    let mut parser = Parser::new();
-
-    // Determine language based on lang attribute
-    let lang = section.lang.as_deref().unwrap_or("js");
-
-    // Use JavaScript/TypeScript tree-sitter parser
-    let tree_sitter_lang = if lang == "ts" || lang == "typescript" {
-        tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into()
-    } else {
-        tree_sitter_javascript::LANGUAGE.into()
-    };
-
-    parser.set_language(&tree_sitter_lang).ok()?;
-    parser.parse(&section.content, None)
 }
 
 /// Recursively walk tree extracting identifiers from each node

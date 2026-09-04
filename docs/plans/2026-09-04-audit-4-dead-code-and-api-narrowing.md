@@ -117,9 +117,9 @@ fn main() -> std::process::ExitCode {
 **Approach:** Write a test that counts `Parser::parse` calls for one script-setup SFC through the existing test hooks (or by wrapping the parse in a counting function inside `vue/parsing.rs` under `#[cfg(test)]`). Expect one parse per script section after the change. Delete the five copies. Complexity's per-callable reparse must reuse the section tree and slice by byte range instead.
 
 **Acceptance criteria:**
-- [ ] One `fn parse_script_section` (or equivalent) exists, in `vue/parsing.rs`.
-- [ ] One script-setup SFC parses each script section once.
-- [ ] `cargo xtask test language vue` and golden pass with zero fixture changes.
+- [x] One `fn parse_script_section` (or equivalent) exists, in `vue/parsing.rs`.
+- [x] One script-setup SFC parses each script section once.
+- [x] `cargo xtask test language vue` and golden pass with zero fixture changes.
 
 ## Task 5: Narrow the extractors crate root
 
