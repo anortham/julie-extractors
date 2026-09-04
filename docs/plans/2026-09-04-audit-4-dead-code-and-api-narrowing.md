@@ -78,9 +78,9 @@ fn main() -> std::process::ExitCode {
 **Approach:** Move `commands.rs` and `args.rs` under the lib as private modules. Integration tests in `tests/` that reach internals through the lib keep working because they already use the lib. Run `cargo clippy -p julie-extract-cli --all-targets -- -D dead_code` and fix every hit. Check `watchdog.rs:114-128` (`process_status`): it is reached from `store/import.rs:1151`, so it stays; the attribute was hiding a bin-only false positive.
 
 **Acceptance criteria:**
-- [ ] `grep -rn 'allow(dead_code)' crates/julie-extract-cli/src` is empty.
-- [ ] `main.rs` is three lines.
-- [ ] `cargo test -p julie-extract-cli` passes; `CARGO_BIN_EXE_julie-extract` integration tests still spawn the binary.
+- [x] `grep -rn 'allow(dead_code)' crates/julie-extract-cli/src` is empty.
+- [x] `main.rs` is three lines.
+- [x] `cargo test -p julie-extract-cli` passes; `CARGO_BIN_EXE_julie-extract` integration tests still spawn the binary.
 
 ## Task 2: Delete extractors orchestration leftovers
 
