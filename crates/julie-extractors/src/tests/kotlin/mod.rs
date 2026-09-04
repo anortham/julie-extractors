@@ -12,7 +12,7 @@ use std::path::PathBuf;
 use tree_sitter::Parser;
 
 /// Initialize Kotlin parser
-fn init_parser() -> Parser {
+fn init_test_parser() -> Parser {
     let mut parser = Parser::new();
     parser
         .set_language(&tree_sitter_kotlin_ng::LANGUAGE.into())
@@ -86,7 +86,7 @@ class Vehicle(
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -179,7 +179,7 @@ enum class Color(val rgb: Int) {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -349,7 +349,7 @@ operator fun Point.plus(other: Point): Point {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -583,7 +583,7 @@ class ProcessorImpl : StringProcessor {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -763,7 +763,7 @@ import kotlin.jvm.JvmName
 import kotlin.jvm.JvmStatic
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -951,7 +951,7 @@ class ExampleTest {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -1065,7 +1065,7 @@ fun <K, V> Map<K, V>.getValueOrDefault(key: K, default: () -> V): V {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -1207,7 +1207,7 @@ class UserRepository : Repository<User> {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -1274,7 +1274,7 @@ sealed class State {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -1402,7 +1402,7 @@ class UserService {
     fun authenticate() {}
 }"#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(source, None).expect("Parse failed");
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = KotlinExtractor::new(
@@ -1438,7 +1438,7 @@ fun validateCredentials(username: String): Boolean {
     return true
 }"#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(source, None).expect("Parse failed");
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = KotlinExtractor::new(
@@ -1471,7 +1471,7 @@ fun validateCredentials(username: String): Boolean {
     private val userState: String = ""
 }"#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(source, None).expect("Parse failed");
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = KotlinExtractor::new(
@@ -1507,7 +1507,7 @@ interface AuthService {
     fun authenticate(username: String): Boolean
 }"#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(source, None).expect("Parse failed");
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = KotlinExtractor::new(
@@ -1545,7 +1545,7 @@ object Configuration {
     const val API_URL = "https://api.example.com"
 }"#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(source, None).expect("Parse failed");
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = KotlinExtractor::new(
@@ -1571,7 +1571,7 @@ object Configuration {
     fun noDocMethod() {}
 }"#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(source, None).expect("Parse failed");
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = KotlinExtractor::new(
@@ -1623,7 +1623,7 @@ class Calculator {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -1688,7 +1688,7 @@ class User {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -1738,7 +1738,7 @@ class Service {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -1783,7 +1783,7 @@ class DataService {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -1829,7 +1829,7 @@ class Test {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -1881,7 +1881,7 @@ class MyClass {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -1934,7 +1934,7 @@ class MyClass {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -1971,7 +1971,7 @@ class Person(val name: String) {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -2022,7 +2022,7 @@ class Color(val hex: String) {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -2059,7 +2059,7 @@ class Config(val name: String) {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -2110,7 +2110,7 @@ class Config(val name: String, val count: Int) {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -2192,7 +2192,7 @@ public sealed class JsonReader : Closeable {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         // Verify this triggers an ERROR node wrapping the class (the whole point)
@@ -2251,7 +2251,7 @@ class Options internal constructor(val value: String) {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");

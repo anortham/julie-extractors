@@ -4,6 +4,7 @@
 use std::path::Path;
 
 use crate::base::{StructuralFact, Symbol, SymbolKind};
+use crate::tests::helpers::{facts_with_pattern, metadata_str};
 
 const PHOENIX_ROUTE_PATTERN_ID: &str = "phoenix.route.v1";
 const PHOENIX_RESOURCE_ROUTE_PATTERN_ID: &str = "phoenix.resource_route.v1";
@@ -14,23 +15,7 @@ fn extract(file_path: &str, source: &str) -> crate::ExtractionResults {
         .expect("canonical extraction should succeed")
 }
 
-fn facts_with_pattern<'a>(
-    results: &'a crate::ExtractionResults,
-    pattern_id: &str,
-) -> Vec<&'a StructuralFact> {
-    results
-        .structural_facts
-        .iter()
-        .filter(|fact| fact.pattern_id == pattern_id)
-        .collect()
-}
 
-fn metadata_str<'a>(fact: &'a StructuralFact, key: &str) -> Option<&'a str> {
-    fact.metadata
-        .as_ref()
-        .and_then(|metadata| metadata.get(key))
-        .and_then(|value| value.as_str())
-}
 
 fn metadata_array<'a>(fact: &'a StructuralFact, key: &str) -> Vec<&'a str> {
     fact.metadata

@@ -8,7 +8,7 @@ use crate::base::{SymbolKind, Visibility};
 mod tests {
     use super::*;
 
-    fn metadata_str(symbol: &Symbol, key: &str) -> Option<String> {
+    fn symbol_metadata_str(symbol: &Symbol, key: &str) -> Option<String> {
         symbol
             .metadata
             .as_ref()
@@ -148,7 +148,7 @@ Rectangle {
             .expect("Should extract width binding symbol");
         assert_eq!(width_binding.visibility, Some(Visibility::Private));
         assert_eq!(
-            metadata_str(width_binding, "binding_kind"),
+            symbol_metadata_str(width_binding, "binding_kind"),
             Some("property_binding".to_string()),
             "width binding should be tagged as property_binding"
         );
@@ -166,12 +166,12 @@ Rectangle {
             .expect("Should extract onActivated signal handler symbol");
         assert_eq!(on_activated.visibility, Some(Visibility::Private));
         assert_eq!(
-            metadata_str(on_activated, "binding_kind"),
+            symbol_metadata_str(on_activated, "binding_kind"),
             Some("signal_handler".to_string()),
             "onActivated should be tagged as a signal handler"
         );
         assert_eq!(
-            metadata_str(on_activated, "handled_signal"),
+            symbol_metadata_str(on_activated, "handled_signal"),
             Some("activated".to_string()),
             "onActivated should record the handled signal name"
         );

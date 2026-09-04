@@ -22,7 +22,7 @@ use crate::base::{SymbolKind, Visibility};
 use crate::lua::LuaExtractor;
 use tree_sitter::Parser;
 
-pub fn init_parser() -> Parser {
+pub fn init_test_parser() -> Parser {
     let mut parser = Parser::new();
     parser
         .set_language(&tree_sitter_lua::LANGUAGE.into())

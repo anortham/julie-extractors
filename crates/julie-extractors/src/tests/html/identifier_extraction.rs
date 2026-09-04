@@ -11,7 +11,7 @@
 
 use crate::base::{IdentifierKind, SymbolKind};
 use crate::html::HTMLExtractor;
-use crate::tests::html::init_parser;
+use crate::tests::html::init_test_parser;
 
 #[cfg(test)]
 mod identifier_extraction_tests {
@@ -31,7 +31,7 @@ mod identifier_extraction_tests {
 </html>
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(html_code, None).unwrap();
 
         use std::path::PathBuf;
@@ -88,7 +88,7 @@ mod identifier_extraction_tests {
 </html>
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(html_code, None).unwrap();
 
         use std::path::PathBuf;
@@ -147,7 +147,7 @@ mod identifier_extraction_tests {
 </html>
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(html_code, None).unwrap();
 
         use std::path::PathBuf;
@@ -201,7 +201,7 @@ mod identifier_extraction_tests {
 </html>
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(html_code, None).unwrap();
 
         use std::path::PathBuf;
@@ -254,7 +254,7 @@ mod identifier_extraction_tests {
 </html>
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(html_code, None).unwrap();
 
         use std::path::PathBuf;

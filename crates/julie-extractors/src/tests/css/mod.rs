@@ -3,7 +3,7 @@ use crate::css::CSSExtractor;
 use std::path::PathBuf;
 use tree_sitter::Parser;
 
-pub fn init_parser() -> Parser {
+pub fn init_test_parser() -> Parser {
     let mut parser = Parser::new();
     parser
         .set_language(&tree_sitter_css::LANGUAGE.into())
@@ -12,7 +12,7 @@ pub fn init_parser() -> Parser {
 }
 
 pub fn extract_symbols(code: &str) -> Vec<Symbol> {
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
     let workspace_root = PathBuf::from("/tmp/test");
     let mut extractor = CSSExtractor::new(
@@ -25,7 +25,7 @@ pub fn extract_symbols(code: &str) -> Vec<Symbol> {
 }
 
 pub fn extract_symbols_and_relationships(code: &str) -> (Vec<Symbol>, Vec<Relationship>) {
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
     let workspace_root = PathBuf::from("/tmp/test");
     let mut extractor = CSSExtractor::new(
@@ -40,7 +40,7 @@ pub fn extract_symbols_and_relationships(code: &str) -> (Vec<Symbol>, Vec<Relati
 }
 
 fn extract_symbols_and_identifiers(code: &str) -> (Vec<Symbol>, Vec<crate::base::Identifier>) {
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
     let workspace_root = PathBuf::from("/tmp/test");
     let mut extractor = CSSExtractor::new(

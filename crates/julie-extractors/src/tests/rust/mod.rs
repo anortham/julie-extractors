@@ -28,7 +28,7 @@ use std::path::PathBuf;
 use tree_sitter::Parser;
 
 /// Initialize Rust parser
-fn init_parser() -> Parser {
+fn init_test_parser() -> Parser {
     let mut parser = Parser::new();
     parser
         .set_language(&tree_sitter_rust::LANGUAGE.into())
@@ -61,7 +61,7 @@ pub struct User {
 struct Point(f64, f64);
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -118,7 +118,7 @@ pub enum Status {
 enum Color { Red, Green, Blue }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -175,7 +175,7 @@ trait Clone {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -233,7 +233,7 @@ unsafe fn raw_memory_access() -> *mut u8 {
 fn private_helper() {}
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -312,7 +312,7 @@ impl Calculator {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -373,7 +373,7 @@ impl SymbolDatabase {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -434,7 +434,7 @@ impl SymbolDatabase {
             }
             rust_code.push_str("}\n");
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(&rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -473,7 +473,7 @@ mod private_module {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -518,7 +518,7 @@ use super::utils as util;
 use crate::model::User;
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -580,7 +580,7 @@ static mut COUNTER: i32 = 0;
 static GLOBAL_CONFIG: Config = Config::new();
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -659,7 +659,7 @@ macro_rules! create_function {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -700,7 +700,7 @@ macro_rules! build_user {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -807,7 +807,7 @@ where
     K: std::hash::Hash + Eq;
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -996,7 +996,7 @@ pub extern "C" fn create_point(x: f64, y: f64, z: f64) -> Point3D {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -1168,7 +1168,7 @@ const MAX_USERS: usize = 1000;
 static mut COUNTER: i32 = 0;
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -1263,7 +1263,7 @@ impl Calculator {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -1321,7 +1321,7 @@ fn get_coordinates(point: &Point) -> (f64, f64) {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -1364,7 +1364,7 @@ fn process() -> i32 {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -1415,7 +1415,7 @@ fn get_balance(user: &User) -> i32 {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -1461,7 +1461,7 @@ fn run() {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -1509,7 +1509,7 @@ fn record_tool_call(tool_name: &str) {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -1585,7 +1585,7 @@ pub fn create_connection(config: &str) -> Result<Connection, Error> {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -1630,7 +1630,7 @@ pub struct UserConfig {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -1674,7 +1674,7 @@ pub enum Status {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -1718,7 +1718,7 @@ pub trait Serializer {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -1758,7 +1758,7 @@ pub trait Serializer {
 pub const MAX_CONNECTIONS: usize = 1024;
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -1802,7 +1802,7 @@ pub mod config {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -1835,7 +1835,7 @@ pub fn no_doc_function() {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -1872,7 +1872,7 @@ pub trait Container {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -1932,7 +1932,7 @@ pub struct User {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -2023,7 +2023,7 @@ struct Point(f64, f64);
 struct Wrapper(String);
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -2069,7 +2069,7 @@ struct Empty;
 pub struct Marker;
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -2120,7 +2120,7 @@ pub struct Config {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -2179,7 +2179,7 @@ struct Database {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -2235,7 +2235,7 @@ pub enum Message {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -2330,7 +2330,7 @@ pub enum Status {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -2390,7 +2390,7 @@ enum InternalState {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
@@ -2426,7 +2426,7 @@ enum Color {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();

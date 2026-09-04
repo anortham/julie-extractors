@@ -19,7 +19,7 @@ fn extract_symbols(code: &str) -> Vec<Symbol> {
     extractor.extract_symbols(&tree)
 }
 
-fn metadata_str<'a>(symbol: &'a Symbol, key: &str) -> Option<&'a str> {
+fn symbol_metadata_str<'a>(symbol: &'a Symbol, key: &str) -> Option<&'a str> {
     symbol
         .metadata
         .as_ref()
@@ -89,12 +89,12 @@ fn main() {}
         .iter()
         .find(|symbol| {
             symbol.kind == SymbolKind::Import
-                && metadata_str(symbol, "markdown_kind") == Some("inline_link")
+                && symbol_metadata_str(symbol, "markdown_kind") == Some("inline_link")
                 && symbol.name == "Julie"
         })
         .expect("inline link should be extracted");
     assert_eq!(
-        metadata_str(inline_link, "destination"),
+        symbol_metadata_str(inline_link, "destination"),
         Some("https://example.com")
     );
 
@@ -102,12 +102,12 @@ fn main() {}
         .iter()
         .find(|symbol| {
             symbol.kind == SymbolKind::Import
-                && metadata_str(symbol, "markdown_kind") == Some("link_reference_definition")
+                && symbol_metadata_str(symbol, "markdown_kind") == Some("link_reference_definition")
                 && symbol.name == "guide"
         })
         .expect("reference definition should be extracted");
     assert_eq!(
-        metadata_str(reference_definition, "destination"),
+        symbol_metadata_str(reference_definition, "destination"),
         Some("https://guide.example")
     );
 
@@ -115,7 +115,7 @@ fn main() {}
         .iter()
         .find(|symbol| {
             symbol.kind == SymbolKind::Property
-                && metadata_str(symbol, "markdown_kind") == Some("footnote_definition")
+                && symbol_metadata_str(symbol, "markdown_kind") == Some("footnote_definition")
                 && symbol.name == "setup"
         })
         .expect("footnote definition should be extracted");
@@ -130,10 +130,10 @@ fn main() {}
         .iter()
         .find(|symbol| {
             symbol.kind == SymbolKind::Property
-                && metadata_str(symbol, "markdown_kind") == Some("code_block")
+                && symbol_metadata_str(symbol, "markdown_kind") == Some("code_block")
         })
         .expect("fenced code block should be extracted");
-    assert_eq!(metadata_str(code_block, "language"), Some("rust"));
+    assert_eq!(symbol_metadata_str(code_block, "language"), Some("rust"));
     assert!(
         code_block
             .doc_comment

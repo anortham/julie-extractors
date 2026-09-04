@@ -14,7 +14,7 @@ Public Class Calculator
     End Function
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -44,7 +44,7 @@ Public Class Formatter
     End Function
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -70,7 +70,7 @@ Public Class Service
     End Sub
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -99,7 +99,7 @@ Public Class Person
     Public Property Age As Integer
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -136,7 +136,7 @@ Public Class Config
     Public MaxRetries As Integer
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -177,7 +177,7 @@ Public Class MathHelper
     End Function
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -206,7 +206,7 @@ Public Class Settings
     Public Const AppName As String = "MyApp"
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(

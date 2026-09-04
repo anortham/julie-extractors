@@ -11,7 +11,7 @@
 
 use crate::base::{IdentifierKind, SymbolKind};
 use crate::cpp::CppExtractor;
-use crate::tests::cpp::init_parser;
+use crate::tests::cpp::init_test_parser;
 use std::path::PathBuf;
 
 #[cfg(test)]
@@ -35,7 +35,7 @@ public:
 };
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(cpp_code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -103,7 +103,7 @@ private:
 };
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(cpp_code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -156,7 +156,7 @@ public:
 };
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(cpp_code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -207,7 +207,7 @@ private:
 };
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(cpp_code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -252,7 +252,7 @@ public:
 };
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(cpp_code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -299,7 +299,7 @@ private:
 };
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(cpp_code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -367,7 +367,7 @@ public:
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(cpp_code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = CppExtractor::new(

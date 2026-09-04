@@ -21,7 +21,7 @@ use crate::php::PhpExtractor;
 use tree_sitter::Parser;
 
 // Helper function to initialize PHP parser
-fn init_parser() -> Parser {
+fn init_test_parser() -> Parser {
     let mut parser = Parser::new();
     parser
         .set_language(&tree_sitter_php::LANGUAGE_PHP.into())
@@ -32,7 +32,7 @@ fn init_parser() -> Parser {
 // Helper function to extract symbols from PHP code
 fn extract_symbols(code: &str) -> Vec<Symbol> {
     use std::path::PathBuf;
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
 
     let workspace_root = PathBuf::from("/tmp/test");
@@ -49,7 +49,7 @@ fn extract_symbols(code: &str) -> Vec<Symbol> {
 // Helper function to extract relationships
 fn extract_relationships(code: &str) -> (Vec<Symbol>, Vec<Relationship>) {
     use std::path::PathBuf;
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
 
     let workspace_root = PathBuf::from("/tmp/test");
@@ -1251,7 +1251,7 @@ class UserService
 "#;
 
         use std::path::PathBuf;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(php_code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -1813,7 +1813,7 @@ class Account
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(php_code, None).unwrap();
         assert!(
             tree_contains_kind(tree.root_node(), "attribute_list"),

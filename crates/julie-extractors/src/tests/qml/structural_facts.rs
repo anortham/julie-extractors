@@ -1,7 +1,8 @@
 use std::collections::BTreeSet;
 use std::path::Path;
 
-use crate::base::{StructuralFact, SymbolKind};
+use crate::base::SymbolKind;
+use crate::tests::helpers::metadata_str;
 
 const FIXTURE_SOURCE: &str =
     include_str!("../../../../../fixtures/extraction/qml/basic/source.qml");
@@ -15,12 +16,6 @@ fn extract(source: &str) -> crate::ExtractionResults {
     .expect("canonical QML extraction should succeed")
 }
 
-fn metadata_str<'a>(fact: &'a StructuralFact, key: &str) -> Option<&'a str> {
-    fact.metadata
-        .as_ref()
-        .and_then(|metadata| metadata.get(key))
-        .and_then(|value| value.as_str())
-}
 
 #[test]
 fn qml_emits_expected_structural_fact_patterns() {

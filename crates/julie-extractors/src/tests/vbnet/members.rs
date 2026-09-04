@@ -13,7 +13,7 @@ Class C
     End Sub
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -49,7 +49,7 @@ Class C
     Public Property LegacyName As String
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -86,7 +86,7 @@ Class Calculator
     End Function
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -131,7 +131,7 @@ Class Service
     Dim _state As Integer
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -167,7 +167,7 @@ Class MathHelper
     End Function
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -196,7 +196,7 @@ Class Person
     End Sub
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -239,7 +239,7 @@ Class Config
     End Sub
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -270,7 +270,7 @@ Class Person
     Public Property Age As Integer
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -310,7 +310,7 @@ Class C
     End Property
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -352,7 +352,7 @@ Class C
     End Property
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -383,7 +383,7 @@ Class Person
     Public Age As Integer
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -421,7 +421,7 @@ Class Counter
     Public Shared Count As Integer
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -451,7 +451,7 @@ Class C
     Dim _value As Integer
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -490,7 +490,7 @@ Class C
     Public Const A As Integer = 1, B As Integer = 2
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -558,7 +558,7 @@ Class C
     Public Event Click As EventHandler
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -591,7 +591,7 @@ Class C
     Public Event ValueChanged(sender As Object, newValue As Integer)
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -619,7 +619,7 @@ Class Vector
     End Operator
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -655,7 +655,7 @@ Class C
     Private Const DefaultName As String = "Unknown"
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -699,7 +699,7 @@ Class MyService
     End Function
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -733,7 +733,7 @@ Interface IShape
     Sub Draw()
 End Interface
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -775,7 +775,7 @@ Namespace Fixture
     End Class
 End Namespace
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(

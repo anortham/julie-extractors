@@ -2,22 +2,13 @@ use std::collections::BTreeSet;
 use std::path::Path;
 
 use crate::base::StructuralFact;
+use crate::tests::helpers::{facts_with_pattern, metadata_str};
 
 fn extract(file_path: &str, source: &str) -> crate::ExtractionResults {
     crate::pipeline::extract_canonical(file_path, source, Path::new("/repo"))
         .expect("canonical XML extraction should succeed")
 }
 
-fn facts_with_pattern<'a>(
-    results: &'a crate::ExtractionResults,
-    pattern_id: &str,
-) -> Vec<&'a StructuralFact> {
-    results
-        .structural_facts
-        .iter()
-        .filter(|fact| fact.pattern_id == pattern_id)
-        .collect()
-}
 
 fn only_fact<'a>(results: &'a crate::ExtractionResults, pattern_id: &str) -> &'a StructuralFact {
     let facts = facts_with_pattern(results, pattern_id);
@@ -30,12 +21,6 @@ fn only_fact<'a>(results: &'a crate::ExtractionResults, pattern_id: &str) -> &'a
     facts[0]
 }
 
-fn metadata_str<'a>(fact: &'a StructuralFact, key: &str) -> Option<&'a str> {
-    fact.metadata
-        .as_ref()
-        .and_then(|metadata| metadata.get(key))
-        .and_then(|value| value.as_str())
-}
 
 fn metadata_u64(fact: &StructuralFact, key: &str) -> Option<u64> {
     fact.metadata

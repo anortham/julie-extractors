@@ -1,4 +1,5 @@
-use crate::base::{RelationshipKind, StructuralFact};
+use crate::base::RelationshipKind;
+use crate::tests::helpers::{facts_with_pattern, metadata_str};
 use crate::extract_canonical;
 
 fn extract(file_path: &str, source: &str) -> crate::ExtractionResults {
@@ -6,23 +7,7 @@ fn extract(file_path: &str, source: &str) -> crate::ExtractionResults {
     extract_canonical(file_path, source, &workspace_root).expect("extraction should succeed")
 }
 
-fn facts_with_pattern<'a>(
-    results: &'a crate::ExtractionResults,
-    pattern_id: &str,
-) -> Vec<&'a StructuralFact> {
-    results
-        .structural_facts
-        .iter()
-        .filter(|fact| fact.pattern_id == pattern_id)
-        .collect()
-}
 
-fn metadata_str<'a>(fact: &'a StructuralFact, key: &str) -> Option<&'a str> {
-    fact.metadata
-        .as_ref()
-        .and_then(|metadata| metadata.get(key))
-        .and_then(|value| value.as_str())
-}
 
 #[test]
 fn test_review_regression_typescript_implements_keeps_namespace_context() {

@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 use std::path::Path;
 
-use crate::base::StructuralFact;
+use crate::tests::helpers::metadata_str;
 
 const FIXTURE_SOURCE: &str =
     include_str!("../../../../../fixtures/extraction/bash/basic/source.sh");
@@ -15,12 +15,6 @@ fn extract(source: &str) -> crate::ExtractionResults {
     .expect("canonical Bash extraction should succeed")
 }
 
-fn metadata_str<'a>(fact: &'a StructuralFact, key: &str) -> Option<&'a str> {
-    fact.metadata
-        .as_ref()
-        .and_then(|metadata| metadata.get(key))
-        .and_then(|value| value.as_str())
-}
 
 #[test]
 fn bash_emits_expected_structural_fact_patterns() {

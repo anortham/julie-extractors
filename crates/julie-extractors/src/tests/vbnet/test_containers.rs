@@ -2,7 +2,7 @@ use super::*;
 use std::path::PathBuf;
 
 fn extract(code: &str) -> Vec<Symbol> {
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
     let mut extractor = VbNetExtractor::new(
         "vbnet".to_string(),

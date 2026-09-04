@@ -19,7 +19,7 @@ fn create_extractor_and_parse(code: &str) -> (SwiftExtractor, Tree) {
     (extractor, tree)
 }
 
-fn metadata_str<'a>(symbol: &'a Symbol, key: &str) -> Option<&'a str> {
+fn symbol_metadata_str<'a>(symbol: &'a Symbol, key: &str) -> Option<&'a str> {
     symbol.metadata.as_ref()?.get(key)?.as_str()
 }
 
@@ -51,13 +51,13 @@ extension [Int] {
         })
         .expect("Circle extension should be extracted");
     assert_ne!(circle_extension.kind, SymbolKind::Class);
-    assert_eq!(metadata_str(circle_extension, "type"), Some("extension"));
+    assert_eq!(symbol_metadata_str(circle_extension, "type"), Some("extension"));
     assert_eq!(
-        metadata_str(circle_extension, "extendedType"),
+        symbol_metadata_str(circle_extension, "extendedType"),
         Some("Circle")
     );
     assert_eq!(
-        metadata_str(circle_extension, "symbol_role"),
+        symbol_metadata_str(circle_extension, "symbol_role"),
         Some("extension")
     );
 
@@ -82,9 +82,9 @@ extension [Int] {
         })
         .expect("array extension should be extracted");
     assert_ne!(array_extension.kind, SymbolKind::Class);
-    assert_eq!(metadata_str(array_extension, "extendedType"), Some("[Int]"));
+    assert_eq!(symbol_metadata_str(array_extension, "extendedType"), Some("[Int]"));
     assert_eq!(
-        metadata_str(array_extension, "symbol_role"),
+        symbol_metadata_str(array_extension, "symbol_role"),
         Some("extension")
     );
 }
@@ -123,7 +123,7 @@ enum Status {
         })
         .expect("annotated extension should be extracted");
     assert_eq!(
-        metadata_str(circle_extension, "annotationKeys"),
+        symbol_metadata_str(circle_extension, "annotationKeys"),
         Some("available")
     );
 
@@ -132,7 +132,7 @@ enum Status {
         .find(|symbol| symbol.name == "LegacyHandler")
         .expect("annotated typealias should be extracted");
     assert_eq!(
-        metadata_str(legacy_handler, "annotationKeys"),
+        symbol_metadata_str(legacy_handler, "annotationKeys"),
         Some("available")
     );
 
@@ -141,7 +141,7 @@ enum Status {
         .find(|symbol| symbol.name == "legacy")
         .expect("annotated enum case should be extracted");
     assert_eq!(
-        metadata_str(legacy_case, "annotationKeys"),
+        symbol_metadata_str(legacy_case, "annotationKeys"),
         Some("available")
     );
 
@@ -150,7 +150,7 @@ enum Status {
         .find(|symbol| symbol.name == "observableProperty")
         .expect("annotated property should be extracted");
     assert_eq!(
-        metadata_str(observable_property, "annotationKeys"),
+        symbol_metadata_str(observable_property, "annotationKeys"),
         Some("objc")
     );
 }

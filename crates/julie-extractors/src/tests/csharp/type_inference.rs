@@ -1,4 +1,4 @@
-use super::{CSharpExtractor, SymbolKind, init_parser};
+use super::{CSharpExtractor, SymbolKind, init_test_parser};
 use std::path::PathBuf;
 
 #[cfg(test)]
@@ -22,7 +22,7 @@ namespace Example
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = CSharpExtractor::new(
@@ -70,7 +70,7 @@ namespace MyProject
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = CSharpExtractor::new(

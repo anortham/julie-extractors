@@ -3,7 +3,7 @@ use crate::kotlin::KotlinExtractor;
 use std::path::PathBuf;
 use tree_sitter::Parser;
 
-fn init_parser() -> Parser {
+fn init_test_parser() -> Parser {
     let mut parser = Parser::new();
     parser
         .set_language(&tree_sitter_kotlin_ng::LANGUAGE.into())
@@ -29,7 +29,7 @@ object ServiceRegistry
 typealias Callback<T> = (T) -> Unit
 "#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
 
     let workspace_root = PathBuf::from("/tmp/test");

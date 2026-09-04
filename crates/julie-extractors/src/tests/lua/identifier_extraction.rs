@@ -9,7 +9,7 @@
 
 use crate::base::IdentifierKind;
 use crate::lua::LuaExtractor;
-use crate::tests::lua::init_parser;
+use crate::tests::lua::init_test_parser;
 
 #[cfg(test)]
 mod identifier_extraction_tests {
@@ -31,7 +31,7 @@ function calculate()
 end
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(lua_code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -82,7 +82,7 @@ function printUserInfo()
 end
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(lua_code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -136,7 +136,7 @@ end
 return M
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(lua_code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -189,7 +189,7 @@ function execute()
 end
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(lua_code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -234,7 +234,7 @@ function process()
 end
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(lua_code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -290,7 +290,7 @@ local function evaluate(seed, unused_param)
 end
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(lua_code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = LuaExtractor::new(

@@ -15,7 +15,7 @@ use crate::scala::ScalaExtractor;
 use std::path::PathBuf;
 use tree_sitter::Parser;
 
-fn init_parser() -> Parser {
+fn init_test_parser() -> Parser {
     let mut parser = Parser::new();
     parser
         .set_language(&tree_sitter_scala::LANGUAGE.into())
@@ -24,7 +24,7 @@ fn init_parser() -> Parser {
 }
 
 fn extract_symbols(code: &str) -> Vec<crate::base::Symbol> {
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
     let workspace_root = PathBuf::from("/tmp/test");
     let mut extractor = ScalaExtractor::new(
@@ -78,7 +78,7 @@ val pi: Double = 3.14159
 var count: Int = 0
 type StringList = List[String]
 "#;
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
     debug_print_tree(tree.root_node(), code, 0);
 }
@@ -206,7 +206,7 @@ class DatabaseSuite {
 }
 "#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
     assert!(
         tree_contains_kind(tree.root_node(), "annotation"),
@@ -532,7 +532,7 @@ fn test_scala_type_inference() {
 def add(a: Int, b: Int): Int = a + b
 val pi: Double = 3.14
 "#;
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
     let workspace_root = PathBuf::from("/tmp/test");
     let mut extractor = ScalaExtractor::new(
@@ -568,7 +568,7 @@ case class Dog(name: String) extends Animal {
   def speak(): String = "woof"
 }
 "#;
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
     let workspace_root = PathBuf::from("/tmp/test");
     let mut extractor = ScalaExtractor::new(
@@ -609,7 +609,7 @@ object Main {
   }
 }
 "#;
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
     let workspace_root = PathBuf::from("/tmp/test");
     let mut extractor = ScalaExtractor::new(
@@ -642,7 +642,7 @@ object Worker {
   }
 }
 "#;
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
     let workspace_root = PathBuf::from("/tmp/test");
     let mut extractor = ScalaExtractor::new(
@@ -693,7 +693,7 @@ object Worker {
   private def helper(value: Int): Int = value + 1
 }
 "#;
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
     let workspace_root = PathBuf::from("/tmp/test");
     let mut extractor = ScalaExtractor::new(
@@ -742,7 +742,7 @@ class Worker extends ExternalService {
   def run(): Unit = {}
 }
 "#;
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
     let workspace_root = PathBuf::from("/tmp/test");
     let mut extractor = ScalaExtractor::new(
@@ -771,7 +771,7 @@ class Worker extends ExternalBase with ExternalProtocol {
   def run(): Unit = {}
 }
 "#;
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
     let workspace_root = PathBuf::from("/tmp/test");
     let mut extractor = ScalaExtractor::new(
@@ -813,7 +813,7 @@ given defaultValue: Int = helper()
 extension (value: String)
   def score: Int = helper()
 "#;
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
     let workspace_root = PathBuf::from("/tmp/test");
     let mut extractor = ScalaExtractor::new(
@@ -867,7 +867,7 @@ object Main {
   }
 }
 "#;
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
     let workspace_root = PathBuf::from("/tmp/test");
     let mut extractor = ScalaExtractor::new(
@@ -947,7 +947,7 @@ fn test_scala_full_fixture() {
     )
     .unwrap();
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(&code, None).unwrap();
     let workspace_root = PathBuf::from("/tmp/test");
     let mut extractor = ScalaExtractor::new(
@@ -990,7 +990,7 @@ fn test_scala_full_fixture() {
 // ========================================================================
 
 fn extract_identifiers(code: &str) -> Vec<crate::base::Identifier> {
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
     let workspace_root = PathBuf::from("/tmp/test");
     let mut extractor = ScalaExtractor::new(
@@ -1177,7 +1177,7 @@ class Sample(val bar: Int) {
 }
 "#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
     let workspace_root = PathBuf::from("/tmp/test");
     let mut extractor = ScalaExtractor::new(

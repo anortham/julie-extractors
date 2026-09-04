@@ -9,7 +9,7 @@ use crate::base::IdentifierKind;
 use crate::dart::DartExtractor;
 use std::path::PathBuf;
 
-fn init_parser() -> tree_sitter::Parser {
+fn init_test_parser() -> tree_sitter::Parser {
     let mut parser = tree_sitter::Parser::new();
     parser
         .set_language(&tree_sitter_dart::LANGUAGE.into())
@@ -45,7 +45,7 @@ mixin LoggerMixin on BaseLogger {
 
 typedef Callback = void Function(Event event);
 "#;
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
 
     let workspace_root = PathBuf::from("/tmp/test");
@@ -170,7 +170,7 @@ class Container<T> {
   }
 }
 "#;
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
 
     let workspace_root = PathBuf::from("/tmp/test");
@@ -237,7 +237,7 @@ class Sample {
 }
 "#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
     let workspace_root = PathBuf::from("/tmp/test");
     let mut extractor = DartExtractor::new(

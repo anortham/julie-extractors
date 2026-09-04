@@ -11,14 +11,14 @@
 
 use crate::base::{IdentifierKind, SymbolKind};
 use crate::sql::SqlExtractor;
-use crate::tests::sql::init_parser;
+use crate::tests::sql::init_test_parser;
 use std::path::PathBuf;
 
 #[cfg(test)]
 mod identifier_extraction_tests {
     use super::*;
 
-    fn init_parser() -> tree_sitter::Parser {
+    fn init_test_parser() -> tree_sitter::Parser {
         let mut parser = tree_sitter::Parser::new();
         parser
             .set_language(&tree_sitter_sequel::LANGUAGE.into())
@@ -40,7 +40,7 @@ BEGIN
 END
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(sql_code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -98,7 +98,7 @@ BEGIN
 END
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(sql_code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -151,7 +151,7 @@ BEGIN
 END
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(sql_code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -205,7 +205,7 @@ FROM users u
 JOIN analytics a ON u.id = a.user_id
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(sql_code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -253,7 +253,7 @@ BEGIN
 END
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(sql_code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -290,7 +290,7 @@ END
     #[test]
     fn test_bracketed_sql_identifiers_are_normalized_with_original_spans() {
         let sql_code = "SELECT [u].[DisplayName] FROM [users] AS [u] WHERE [u].[Id] > 0;";
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(sql_code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = SqlExtractor::new(

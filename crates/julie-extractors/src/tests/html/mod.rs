@@ -4,7 +4,7 @@ use tree_sitter::Parser;
 
 pub use crate::base::SymbolKind;
 
-fn init_parser() -> Parser {
+fn init_test_parser() -> Parser {
     let mut parser = Parser::new();
     parser
         .set_language(&tree_sitter_html::LANGUAGE.into())
@@ -14,7 +14,7 @@ fn init_parser() -> Parser {
 
 pub fn extract_symbols(code: &str) -> Vec<Symbol> {
     use std::path::PathBuf;
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).expect("Failed to parse HTML code");
 
     let workspace_root = PathBuf::from("/tmp/test");
@@ -29,7 +29,7 @@ pub fn extract_symbols(code: &str) -> Vec<Symbol> {
 
 pub fn extract_symbols_and_relationships(code: &str) -> (Vec<Symbol>, Vec<Relationship>) {
     use std::path::PathBuf;
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).expect("Failed to parse HTML code");
 
     let workspace_root = PathBuf::from("/tmp/test");

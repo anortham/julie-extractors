@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use crate::base::StructuralFact;
+use crate::tests::helpers::metadata_str;
 
 const SPRING_REQUEST_MAPPING_PATTERN_ID: &str = "spring.request_mapping.v1";
 
@@ -17,12 +18,6 @@ fn routes(results: &crate::ExtractionResults) -> Vec<&StructuralFact> {
         .collect()
 }
 
-fn metadata_str<'a>(fact: &'a StructuralFact, key: &str) -> Option<&'a str> {
-    fact.metadata
-        .as_ref()
-        .and_then(|metadata| metadata.get(key))
-        .and_then(|value| value.as_str())
-}
 
 fn metadata_array<'a>(fact: &'a StructuralFact, key: &str) -> Vec<&'a str> {
     fact.metadata

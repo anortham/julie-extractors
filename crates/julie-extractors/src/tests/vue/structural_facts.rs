@@ -2,29 +2,14 @@ use std::collections::BTreeSet;
 use std::path::Path;
 
 use crate::base::{StructuralFact, SymbolKind};
+use crate::tests::helpers::{facts_with_pattern, metadata_str};
 
 fn extract(source: &str) -> crate::ExtractionResults {
     crate::pipeline::extract_canonical("source.vue", source, Path::new("/repo"))
         .expect("canonical Vue extraction should succeed")
 }
 
-fn facts_with_pattern<'a>(
-    results: &'a crate::ExtractionResults,
-    pattern_id: &str,
-) -> Vec<&'a StructuralFact> {
-    results
-        .structural_facts
-        .iter()
-        .filter(|fact| fact.pattern_id == pattern_id)
-        .collect()
-}
 
-fn metadata_str<'a>(fact: &'a StructuralFact, key: &str) -> Option<&'a str> {
-    fact.metadata
-        .as_ref()
-        .and_then(|metadata| metadata.get(key))
-        .and_then(|value| value.as_str())
-}
 
 fn metadata_bool(fact: &StructuralFact, key: &str) -> Option<bool> {
     fact.metadata

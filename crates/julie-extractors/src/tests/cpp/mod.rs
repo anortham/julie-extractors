@@ -3,7 +3,7 @@ use crate::cpp::CppExtractor;
 use std::path::PathBuf;
 use tree_sitter::{Parser, Tree};
 
-fn init_parser() -> Parser {
+fn init_test_parser() -> Parser {
     let mut parser = Parser::new();
     parser
         .set_language(&tree_sitter_cpp::LANGUAGE.into())
@@ -12,7 +12,7 @@ fn init_parser() -> Parser {
 }
 
 pub fn parse_cpp(code: &str) -> (CppExtractor, Tree) {
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).expect("Failed to parse C++ code");
     let workspace_root = PathBuf::from("/tmp/test");
     let extractor = CppExtractor::new("test.cpp".to_string(), code.to_string(), &workspace_root);

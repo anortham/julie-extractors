@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use tree_sitter::Parser;
 
 /// Initialize Rust parser
-fn init_parser() -> Parser {
+fn init_test_parser() -> Parser {
     let mut parser = Parser::new();
     parser
         .set_language(&tree_sitter_rust::LANGUAGE.into())
@@ -30,7 +30,7 @@ fn test_workspace_root() -> PathBuf {
 fn test_grouped_use_declaration() {
     let code = r#"use std::collections::{HashMap, BTreeMap, HashSet};"#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
 
     let workspace_root = test_workspace_root();
@@ -79,7 +79,7 @@ fn test_grouped_use_declaration() {
 fn test_glob_import() {
     let code = r#"use std::collections::*;"#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
 
     let workspace_root = test_workspace_root();
@@ -114,7 +114,7 @@ fn test_glob_import() {
 fn test_pub_grouped_import() {
     let code = r#"pub use crate::models::{User, Account};"#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
 
     let workspace_root = test_workspace_root();
@@ -157,7 +157,7 @@ fn test_nested_grouped_import() {
     // Nested groups like use std::{fmt, collections::{HashMap, HashSet}}
     let code = r#"use std::{fmt, collections::{HashMap, HashSet}};"#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
 
     let workspace_root = test_workspace_root();
@@ -198,7 +198,7 @@ fn test_nested_grouped_import() {
 fn test_static_is_constant() {
     let code = r#"static MAX_SIZE: usize = 1024;"#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
 
     let workspace_root = test_workspace_root();
@@ -226,7 +226,7 @@ fn test_static_is_constant() {
 fn test_static_mut_is_variable() {
     let code = r#"static mut COUNTER: u32 = 0;"#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
 
     let workspace_root = test_workspace_root();
@@ -254,7 +254,7 @@ fn test_static_mut_is_variable() {
 fn test_pub_static_is_constant() {
     let code = r#"pub static GLOBAL_CONFIG: &str = "default";"#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
 
     let workspace_root = test_workspace_root();
@@ -299,7 +299,7 @@ fn main() {
 }
 "#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
 
     let workspace_root = test_workspace_root();
@@ -358,7 +358,7 @@ bitflags! {
 }
 "#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
 
     let workspace_root = test_workspace_root();
@@ -400,7 +400,7 @@ fn main() {
 }
 "#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
 
     let workspace_root = test_workspace_root();

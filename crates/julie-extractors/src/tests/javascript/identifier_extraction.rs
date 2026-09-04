@@ -13,7 +13,7 @@ use crate::javascript::JavaScriptExtractor;
 use std::path::PathBuf;
 use tree_sitter::Parser;
 
-fn init_parser() -> Parser {
+fn init_test_parser() -> Parser {
     let mut parser = Parser::new();
     parser
         .set_language(&tree_sitter_javascript::LANGUAGE.into())
@@ -31,7 +31,7 @@ class OrderService {
     }
 }
 "#;
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(js_code, None).unwrap();
 
     let workspace_root = PathBuf::from("/tmp/test");
@@ -71,7 +71,7 @@ function calculate() {
 }
 "#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(js_code, None).unwrap();
 
     let workspace_root = PathBuf::from("/tmp/test");
@@ -134,7 +134,7 @@ function build() {
 }
 "#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(js_code, None).unwrap();
 
     let workspace_root = PathBuf::from("/tmp/test");
@@ -191,7 +191,7 @@ class User {
 }
 "#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(js_code, None).unwrap();
 
     let workspace_root = PathBuf::from("/tmp/test");
@@ -239,7 +239,7 @@ function helper() {
 }
 "#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(js_code, None).unwrap();
 
     let workspace_root = PathBuf::from("/tmp/test");
@@ -284,7 +284,7 @@ class DataService {
 }
 "#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(js_code, None).unwrap();
 
     let workspace_root = PathBuf::from("/tmp/test");
@@ -328,7 +328,7 @@ function process() {
 }
 "#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(js_code, None).unwrap();
 
     let workspace_root = PathBuf::from("/tmp/test");
@@ -392,7 +392,7 @@ const sourceObj = {};
 const label = 'x';
 "#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(js_code, None).unwrap();
     let workspace_root = PathBuf::from("/tmp/test");
     let mut extractor = JavaScriptExtractor::new(
