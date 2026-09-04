@@ -3,7 +3,7 @@
 **Status:** Complete
 **Plan:** docs/plans/2026-09-04-audit-1-hot-path-waste.md
 **Branch:** audit-1-hot-path-waste
-**PR:** pending — filled in after PR creation
+**PR:** https://github.com/anortham/julie-extractors/pull/14
 **Duration:** 1h 40m
 **Phases:** 1/1 complete
 **Tasks:** 8/8 complete (Task 0 through Task 7)
@@ -61,5 +61,5 @@ External review: none (not requested for this run).
   - Sibling existing worktrees (29 clean, 1 dirty `ct-language-audit-plan`) are inventoried in Roadmap and will be addressed in Audit Plan 2.
 
 ## Next steps
-- Review PR: pending — filled in after PR creation
+- Review PR: https://github.com/anortham/julie-extractors/pull/14
 - Proceed to Audit Plan 2: CI and Hygiene (`docs/plans/2026-09-04-audit-2-ci-and-hygiene.md`).
