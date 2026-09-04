@@ -709,6 +709,7 @@ fn extract_vue(
         .into_iter()
         .map(|pending| pending.into_pending_relationship())
         .collect();
+    let complexity_metrics = ext.extract_complexity_metrics(&symbols);
     Ok(ExtractionResults {
         symbols,
         relationships,
@@ -719,7 +720,7 @@ fn extract_vue(
         literals: ext.base.take_literals(),
         source_regions: Vec::new(),
         structural_facts: Vec::new(),
-        complexity_metrics: Vec::new(),
+        complexity_metrics,
         types: types_with_base_info(types, "vue", &ext.base),
         parse_diagnostics: Vec::new(),
     })
@@ -903,6 +904,7 @@ pub fn extract_for_language_at(
         sort_structural_facts(&mut results.structural_facts);
     }
     results.complexity_metrics = match language {
+        "vue" => results.complexity_metrics,
         "sql" => crate::sql::complexity_metrics::collect_complexity_metrics(
             tree,
             content,
