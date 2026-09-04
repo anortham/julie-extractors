@@ -304,24 +304,6 @@ impl LeaseDisposition {
     }
 }
 
-/// Renews a writer lease, retrying transient coordinator failures within one heartbeat tick.
-///
-/// A lease that lapsed while its fencing token stayed unchanged is re-extended safely. A row
-/// owned by a successor has a different token and returns `Ok(false)` instead.
-pub fn renew_writer_lease_with_retry(
-    coordinator_db: &Path,
-    holder: &LeaseHolder,
-    fencing_token: i64,
-) -> Result<bool, CoordinatorError> {
-    renew_writer_lease_with_retry_for_duration(
-        coordinator_db,
-        holder,
-        fencing_token,
-        DEFAULT_LEASE_DURATION_MS,
-        None,
-    )
-}
-
 fn renew_writer_lease_with_retry_for_duration(
     coordinator_db: &Path,
     holder: &LeaseHolder,

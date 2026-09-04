@@ -16,11 +16,13 @@ impl From<rusqlite::Error> for CapabilityWriteError {
     }
 }
 
+#[cfg(any(test, feature = "test-store-contract"))]
 #[derive(Debug, Default)]
 pub(super) struct StatementPreparationCounter {
     count: usize,
 }
 
+#[cfg(any(test, feature = "test-store-contract"))]
 impl StatementPreparationCounter {
     pub(super) fn prepare_cached<'tx>(
         &mut self,
@@ -34,6 +36,24 @@ impl StatementPreparationCounter {
 
     pub(super) fn count(&self) -> usize {
         self.count
+    }
+}
+
+#[cfg(not(any(test, feature = "test-store-contract")))]
+#[derive(Debug, Default)]
+pub(super) struct StatementPreparationCounter {
+    _unused: (),
+}
+
+#[cfg(not(any(test, feature = "test-store-contract")))]
+impl StatementPreparationCounter {
+    #[inline(always)]
+    pub(super) fn prepare_cached<'tx>(
+        &mut self,
+        tx: &'tx Transaction<'_>,
+        sql: &str,
+    ) -> rusqlite::Result<CachedStatement<'tx>> {
+        tx.prepare_cached(sql)
     }
 }
 

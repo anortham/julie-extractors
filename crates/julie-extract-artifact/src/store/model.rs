@@ -75,24 +75,6 @@ impl FamilyAllocatorKind {
     }
 }
 
-/// Coherent resolution binding state stored on a view.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ViewResolutionState {
-    Unbound,
-    Converging,
-    Exact,
-}
-
-impl ViewResolutionState {
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Self::Unbound => "unbound",
-            Self::Converging => "converging",
-            Self::Exact => "exact",
-        }
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StoreProjectionError {
     FileNotIndexed(FileStatus),

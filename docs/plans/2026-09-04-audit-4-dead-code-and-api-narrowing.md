@@ -143,9 +143,9 @@ fn main() -> std::process::ExitCode {
 **Approach:** Build the import list from `grep -rhn 'use julie_extract_artifact::store' crates/julie-extract-cli/src crates/julie-extract-artifact/tests`. Change visibility, build, fix.
 
 **Acceptance criteria:**
-- [ ] Every remaining `pub use` in `store/mod.rs` has at least one importer outside the module.
-- [ ] `statement_preparations` is not on the non-test `StoreWriteResult`.
-- [ ] `cargo test -p julie-extract-artifact` passes, including `--features test-store-crash`.
+- [x] Every remaining `pub use` in `store/mod.rs` has at least one importer outside the module.
+- [x] `statement_preparations` is not on the non-test `StoreWriteResult`.
+- [x] `cargo test -p julie-extract-artifact` passes, including `--features test-store-crash`.
 
 ## Task 7: Store CLI helper dedupe
 
