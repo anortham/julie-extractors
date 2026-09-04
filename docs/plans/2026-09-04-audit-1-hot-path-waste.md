@@ -158,9 +158,9 @@ Commit mode: `serial-worker-commit` for serial tasks; `parallel-lead-commit` ins
 **Approach:** Confirm with Miller `trace` that `create_scan_spool` still has callers in the scan path (it does; do not delete it). Run the store contract tests. Confirm the `Spooled` progress counter still advances once per file so the progress report contract is unchanged.
 
 **Acceptance criteria:**
-- [ ] No `Mutex` in `executor.rs`.
-- [ ] `store import` of `fixtures/extraction` produces a store whose `file_versions` rows are identical to before (compare row counts and content hashes with a SQL query in the test).
-- [ ] `cargo test -p julie-extract-cli --test operations_contract` and `--test store_cli_contract` pass.
+- [x] No `Mutex` in `executor.rs`.
+- [x] `store import` of `fixtures/extraction` produces a store whose `file_versions` rows are identical to before (compare row counts and content hashes with a SQL query in the test).
+- [x] `cargo test -p julie-extract-cli --test operations_contract` and `--test store_cli_contract` pass.
 
 ## Task 5: Build the capability snapshot once per quantum
 

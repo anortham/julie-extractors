@@ -19,7 +19,6 @@ use crate::extraction::{
 };
 use crate::paths::FileTarget;
 use crate::progress::{Counter, ScanProgress};
-use crate::spool::create_scan_spool;
 
 #[cfg(feature = "test-store-contract")]
 macro_rules! store_test_crash {
@@ -32,8 +31,6 @@ macro_rules! store_test_crash {
 macro_rules! store_test_crash {
     ($boundary:literal) => {};
 }
-
-static IMPORT_SPOOL_IO: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -587,7 +584,6 @@ impl StoreRequestExecutor {
     fn extract(
         root: &std::path::Path,
         planned: &PlannedImportFile,
-        spool_dir: Option<&std::path::Path>,
         progress: Option<&ScanProgress>,
         level: ExtractionLevel,
         indexed_at: &str,
@@ -617,32 +613,9 @@ impl StoreRequestExecutor {
             level,
         )
         .map_err(|error| error.message)?;
-        let _spool_guard = IMPORT_SPOOL_IO
-            .lock()
-            .map_err(|_| "import_spool_lock_poisoned".to_string())?;
-        let mut spool = create_scan_spool(spool_dir).map_err(|error| error.to_string())?;
-        spool
-            .file_spool_mut()
-            .push(&artifact)
-            .map_err(|error| error.to_string())?;
         if let Some(progress) = progress {
             progress.advance(Counter::Spooled, 1);
         }
-        spool
-            .file_spool_mut()
-            .finish()
-            .map_err(|error| error.to_string())?;
-        let mut reader = spool
-            .file_spool_mut()
-            .reader()
-            .map_err(|error| error.to_string())?;
-        let header = reader
-            .next_header()
-            .ok_or_else(|| "empty_extraction_spool".to_string())?
-            .map_err(|error| error.to_string())?;
-        let artifact = reader
-            .read_file(header)
-            .map_err(|error| error.to_string())?;
         StoreFileVersion::try_from_artifact_file(EXTRACTION_IDENTITY_EPOCH, &artifact)
             .map_err(|error| error.to_string())
     }
@@ -1521,7 +1494,6 @@ impl CoordinatorExecutor for StoreRequestExecutor {
             return Err("parent_process_exited".to_string());
         }
         let root = PathBuf::from(&payload.root);
-        let spool_dir = payload.controls.spool_dir.as_deref().map(PathBuf::from);
         let requested_full = payload.requested_level == RequestedLevel::Full;
         let l1_chunks = build_chunks(
             &payload.files,
@@ -1663,7 +1635,6 @@ impl CoordinatorExecutor for StoreRequestExecutor {
             Self::extract(
                 &root,
                 discovered,
-                spool_dir.as_deref(),
                 progress.as_deref(),
                 extraction_level,
                 &indexed_at,
