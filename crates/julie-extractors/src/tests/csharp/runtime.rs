@@ -107,7 +107,7 @@ namespace ExceptionHandling
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -198,7 +198,7 @@ namespace TestingPatterns
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -267,7 +267,7 @@ namespace PerformanceTests
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -414,7 +414,7 @@ namespace EdgeCases
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");

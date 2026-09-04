@@ -299,7 +299,7 @@ function Cache:size()
 end
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");

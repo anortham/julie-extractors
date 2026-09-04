@@ -8,7 +8,7 @@ use crate::base::{Symbol, SymbolKind};
 mod tests {
     use super::*;
 
-    fn metadata_str<'a>(symbol: &'a Symbol, key: &str) -> Option<&'a str> {
+    fn symbol_metadata_str<'a>(symbol: &'a Symbol, key: &str) -> Option<&'a str> {
         symbol
             .metadata
             .as_ref()
@@ -125,12 +125,12 @@ setClass("GradStudent",
             .iter()
             .find(|s| s.name == "Student" && s.kind == SymbolKind::Class)
             .expect("Student S4 class should be extracted");
-        assert_eq!(metadata_str(student, "r_class_system"), Some("S4"));
+        assert_eq!(symbol_metadata_str(student, "r_class_system"), Some("S4"));
         assert_eq!(
             student.doc_comment.as_deref(),
             Some("#' Student model for registrar records")
         );
-        let slots = metadata_str(student, "slots").expect("Student should record S4 slots");
+        let slots = symbol_metadata_str(student, "slots").expect("Student should record S4 slots");
         assert!(slots.contains("name"));
         assert!(slots.contains("age"));
         assert!(slots.contains("gpa"));
@@ -139,8 +139,8 @@ setClass("GradStudent",
             .iter()
             .find(|s| s.name == "GradStudent" && s.kind == SymbolKind::Class)
             .expect("GradStudent S4 class should be extracted");
-        assert_eq!(metadata_str(grad_student, "r_class_system"), Some("S4"));
-        assert_eq!(metadata_str(grad_student, "contains"), Some("Student"));
+        assert_eq!(symbol_metadata_str(grad_student, "r_class_system"), Some("S4"));
+        assert_eq!(symbol_metadata_str(grad_student, "contains"), Some("Student"));
     }
 
     #[test]
@@ -168,23 +168,23 @@ setMethod("show", "Student", function(object) {
             .iter()
             .find(|s| s.name == "display" && s.kind == SymbolKind::Function)
             .expect("display S4 generic should be extracted");
-        assert_eq!(metadata_str(display_generic, "r_class_system"), Some("S4"));
-        assert_eq!(metadata_str(display_generic, "s4_role"), Some("generic"));
+        assert_eq!(symbol_metadata_str(display_generic, "r_class_system"), Some("S4"));
+        assert_eq!(symbol_metadata_str(display_generic, "s4_role"), Some("generic"));
 
         let display_student = symbols
             .iter()
             .find(|s| s.name == "display,Student" && s.kind == SymbolKind::Method)
             .expect("display Student S4 method should be extracted");
-        assert_eq!(metadata_str(display_student, "r_class_system"), Some("S4"));
-        assert_eq!(metadata_str(display_student, "s4_generic"), Some("display"));
-        assert_eq!(metadata_str(display_student, "s4_class"), Some("Student"));
+        assert_eq!(symbol_metadata_str(display_student, "r_class_system"), Some("S4"));
+        assert_eq!(symbol_metadata_str(display_student, "s4_generic"), Some("display"));
+        assert_eq!(symbol_metadata_str(display_student, "s4_class"), Some("Student"));
 
         let show_student = symbols
             .iter()
             .find(|s| s.name == "show,Student" && s.kind == SymbolKind::Method)
             .expect("show Student S4 method should be extracted");
-        assert_eq!(metadata_str(show_student, "s4_generic"), Some("show"));
-        assert_eq!(metadata_str(show_student, "s4_class"), Some("Student"));
+        assert_eq!(symbol_metadata_str(show_student, "s4_generic"), Some("show"));
+        assert_eq!(symbol_metadata_str(show_student, "s4_class"), Some("Student"));
     }
 
     #[test]
@@ -219,14 +219,14 @@ john <- Person$new("John", 30)
             .iter()
             .find(|s| s.name == "Person" && s.kind == SymbolKind::Class)
             .expect("Person R6 class should be extracted as a class");
-        assert_eq!(metadata_str(person, "r_class_system"), Some("R6"));
+        assert_eq!(symbol_metadata_str(person, "r_class_system"), Some("R6"));
 
         let greet = symbols
             .iter()
             .find(|s| s.name == "greet" && s.kind == SymbolKind::Method)
             .expect("R6 public method should be extracted");
         assert_eq!(greet.parent_id.as_deref(), Some(person.id.as_str()));
-        assert_eq!(metadata_str(greet, "member_visibility"), Some("public"));
+        assert_eq!(symbol_metadata_str(greet, "member_visibility"), Some("public"));
 
         let john = symbols
             .iter()
@@ -302,21 +302,21 @@ BankAccount <- R6Class("BankAccount",
             .iter()
             .find(|s| s.name == "BankAccount" && s.kind == SymbolKind::Class)
             .expect("BankAccount R6 class should be extracted");
-        assert_eq!(metadata_str(account, "r_class_system"), Some("R6"));
+        assert_eq!(symbol_metadata_str(account, "r_class_system"), Some("R6"));
 
         let balance = symbols
             .iter()
             .find(|s| s.name == "balance" && s.kind == SymbolKind::Field)
             .expect("R6 private field should be extracted");
         assert_eq!(balance.parent_id.as_deref(), Some(account.id.as_str()));
-        assert_eq!(metadata_str(balance, "member_visibility"), Some("private"));
+        assert_eq!(symbol_metadata_str(balance, "member_visibility"), Some("private"));
 
         let deposit = symbols
             .iter()
             .find(|s| s.name == "deposit" && s.kind == SymbolKind::Method)
             .expect("R6 public method should be extracted");
         assert_eq!(deposit.parent_id.as_deref(), Some(account.id.as_str()));
-        assert_eq!(metadata_str(deposit, "member_visibility"), Some("public"));
+        assert_eq!(symbol_metadata_str(deposit, "member_visibility"), Some("public"));
     }
 
     #[test]
@@ -350,7 +350,7 @@ person1 <- Person$new(name = "Alice", age = 25)
             .find(|s| s.name == "Person" && s.kind == SymbolKind::Class)
             .expect("Reference class should be extracted as a class");
         assert_eq!(
-            metadata_str(person, "r_class_system"),
+            symbol_metadata_str(person, "r_class_system"),
             Some("ReferenceClass")
         );
 

@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use crate::base::StructuralFact;
+use crate::tests::helpers::metadata_str;
 
 const PATTERN_ID: &str = "http.client_request.v1";
 
@@ -17,12 +18,6 @@ fn client_requests(results: &crate::ExtractionResults) -> Vec<&StructuralFact> {
         .collect()
 }
 
-fn metadata_str<'a>(fact: &'a StructuralFact, key: &str) -> Option<&'a str> {
-    fact.metadata
-        .as_ref()
-        .and_then(|metadata| metadata.get(key))
-        .and_then(|value| value.as_str())
-}
 
 #[test]
 fn razor_code_httpclient_call_emits_with_absolute_source_span() {

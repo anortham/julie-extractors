@@ -5,6 +5,7 @@
 use std::path::Path;
 
 use crate::base::StructuralFact;
+use crate::tests::helpers::metadata_str;
 
 const HTTP_CLIENT_REQUEST_PATTERN_ID: &str = "http.client_request.v1";
 
@@ -21,12 +22,6 @@ fn client_requests(results: &crate::ExtractionResults) -> Vec<&StructuralFact> {
         .collect()
 }
 
-fn metadata_str<'a>(fact: &'a StructuralFact, key: &str) -> Option<&'a str> {
-    fact.metadata
-        .as_ref()
-        .and_then(|metadata| metadata.get(key))
-        .and_then(|value| value.as_str())
-}
 
 fn single_request(results: &crate::ExtractionResults) -> &StructuralFact {
     let facts = client_requests(results);

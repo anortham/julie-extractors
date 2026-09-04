@@ -15,7 +15,7 @@ use crate::javascript::JavaScriptExtractor;
 use std::path::PathBuf;
 use tree_sitter::Parser;
 
-fn init_parser() -> Parser {
+fn init_test_parser() -> Parser {
     let mut parser = Parser::new();
     parser
         .set_language(&tree_sitter_javascript::LANGUAGE.into())
@@ -53,7 +53,7 @@ class Service {
 }
 "#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
     assert!(
         tree_contains_kind(tree.root_node(), "decorator"),
@@ -106,7 +106,7 @@ class Plain {
 }
 "#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
     assert!(
         tree_contains_kind(tree.root_node(), "decorator"),
@@ -256,7 +256,7 @@ class AsyncEventEmitter extends EventEmitter {
 }
 "#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
 
     let workspace_root = PathBuf::from("/tmp/test");
@@ -574,7 +574,7 @@ async function* fetchPages(baseUrl) {
 }
 "#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
 
     let workspace_root = PathBuf::from("/tmp/test");
@@ -743,7 +743,7 @@ import { connect as reduxConnect } from 'react-redux';
 import { useState } from 'react';
 "#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
 
     let workspace_root = PathBuf::from("/tmp/test");

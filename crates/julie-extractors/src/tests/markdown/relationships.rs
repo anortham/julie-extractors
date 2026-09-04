@@ -3,7 +3,7 @@ use crate::markdown::MarkdownExtractor;
 use std::path::PathBuf;
 use tree_sitter::Parser;
 
-fn init_parser() -> Parser {
+fn init_test_parser() -> Parser {
     let mut parser = Parser::new();
     parser
         .set_language(&tree_sitter_md::LANGUAGE.into())
@@ -13,7 +13,7 @@ fn init_parser() -> Parser {
 
 fn extract_symbols_and_relationships(code: &str) -> (Vec<Symbol>, Vec<Relationship>) {
     let workspace_root = PathBuf::from("/tmp/test");
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).expect("Failed to parse code");
     let mut extractor = MarkdownExtractor::new(
         "markdown".to_string(),

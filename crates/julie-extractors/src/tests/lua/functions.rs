@@ -1,9 +1,9 @@
 use crate::lua::LuaExtractor;
-use crate::tests::lua::init_parser;
+use crate::tests::lua::init_test_parser;
 use std::path::PathBuf;
 
 fn extract_symbols(code: &str) -> Vec<crate::base::Symbol> {
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).expect("Failed to parse Lua code");
     let workspace_root = PathBuf::from("/tmp/test");
     let mut extractor = LuaExtractor::new(

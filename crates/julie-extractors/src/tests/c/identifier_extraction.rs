@@ -9,7 +9,7 @@
 
 use crate::base::IdentifierKind;
 use crate::c::CExtractor;
-use crate::tests::c::init_parser;
+use crate::tests::c::init_test_parser;
 use std::path::PathBuf;
 
 #[cfg(test)]
@@ -32,7 +32,7 @@ int calculate() {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(c_code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -97,7 +97,7 @@ void print_point(Point* p) {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(c_code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -139,7 +139,7 @@ void process() {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(c_code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -189,7 +189,7 @@ void execute(User* user) {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(c_code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -247,7 +247,7 @@ void process(struct NodeData* data) {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(c_code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -345,7 +345,7 @@ union Data {
 typedef int MyInt;
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(c_code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -402,7 +402,7 @@ void run() {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(c_code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -460,7 +460,7 @@ int reach(struct Point *p, int seed, int unused_param) {
 /* GhostToken appears only in this comment and must never be an identifier. */
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(c_code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = CExtractor::new(

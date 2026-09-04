@@ -21,7 +21,7 @@ use std::path::PathBuf;
 use tree_sitter::Parser;
 
 /// Initialize Dart parser for Dart files
-fn init_parser() -> Parser {
+fn init_test_parser() -> Parser {
     let mut parser = Parser::new();
     parser
         .set_language(&tree_sitter_dart::LANGUAGE.into())
@@ -97,7 +97,7 @@ class Dog extends Animal {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(code, None).unwrap();
 
             let workspace_root = PathBuf::from("/tmp/test");
@@ -256,7 +256,7 @@ extension on List<int> {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(code, None).unwrap();
 
             let workspace_root = PathBuf::from("/tmp/test");
@@ -397,7 +397,7 @@ T processData<T extends Comparable<T>>(T data, T Function(T) processor) {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(code, None).unwrap();
 
             let workspace_root = PathBuf::from("/tmp/test");
@@ -622,7 +622,7 @@ class CustomButton extends StatelessWidget {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(code, None).unwrap();
 
             let workspace_root = PathBuf::from("/tmp/test");
@@ -810,7 +810,7 @@ class Container<T> {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(code, None).unwrap();
 
             let workspace_root = PathBuf::from("/tmp/test");
@@ -911,7 +911,7 @@ class Calculator {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(dart_code, None).unwrap();
 
             let workspace_root = PathBuf::from("/tmp/test");
@@ -984,7 +984,7 @@ class User {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(dart_code, None).unwrap();
 
             let workspace_root = PathBuf::from("/tmp/test");
@@ -1034,7 +1034,7 @@ class Service {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(dart_code, None).unwrap();
 
             let workspace_root = PathBuf::from("/tmp/test");
@@ -1086,7 +1086,7 @@ class DataService {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(dart_code, None).unwrap();
 
             let workspace_root = PathBuf::from("/tmp/test");
@@ -1132,7 +1132,7 @@ class Test {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(dart_code, None).unwrap();
 
             let workspace_root = PathBuf::from("/tmp/test");
@@ -1220,7 +1220,7 @@ Future<String> chainOperations() {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(code, None).unwrap();
 
             let workspace_root = PathBuf::from("/tmp/test");
@@ -1326,7 +1326,7 @@ void runWithErrorHandling(void Function() operation) {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(code, None).unwrap();
 
             let workspace_root = PathBuf::from("/tmp/test");
@@ -1443,7 +1443,7 @@ List<String> processChunk(List<String> chunk) {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(code, None).unwrap();
 
             let workspace_root = PathBuf::from("/tmp/test");
@@ -1579,7 +1579,7 @@ Future<String> riskyOperation() async {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(code, None).unwrap();
 
             let workspace_root = PathBuf::from("/tmp/test");
@@ -1739,7 +1739,7 @@ class UserService {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(code, None).unwrap();
             assert!(
                 tree_contains_kind(tree.root_node(), "annotation"),
@@ -1824,7 +1824,7 @@ class UserService {
     void authenticate() {}
 }
 "#;
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(code, None).unwrap();
 
             let workspace_root = PathBuf::from("/tmp/test");
@@ -1869,7 +1869,7 @@ bool validateCredentials(String username, String password) {
     return true;
 }
 "#;
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(code, None).unwrap();
 
             let workspace_root = PathBuf::from("/tmp/test");
@@ -1926,7 +1926,7 @@ class Calculator {
     int multiply(int x, int y) => x * y;
 }
 "#;
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(code, None).unwrap();
 
             let workspace_root = PathBuf::from("/tmp/test");
@@ -1988,7 +1988,7 @@ class Server {
     bool isRunning = false;
 }
 "#;
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(code, None).unwrap();
 
             let workspace_root = PathBuf::from("/tmp/test");
@@ -2044,7 +2044,7 @@ class Person {
           age = json['age'];
 }
 "#;
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(code, None).unwrap();
 
             let workspace_root = PathBuf::from("/tmp/test");
@@ -2106,7 +2106,7 @@ class Account {
     String label() => id;
 }
 "#;
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(code, None).unwrap();
 
             let workspace_root = PathBuf::from("/tmp/test");
@@ -2155,7 +2155,7 @@ typedef StringCallback = void Function(String);
 typedef NumberProcessor<T extends num> = T Function(T);
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(code, None).unwrap();
 
             let workspace_root = PathBuf::from("/tmp/test");
@@ -2219,7 +2219,7 @@ enum Color {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(code, None).unwrap();
 
             let workspace_root = PathBuf::from("/tmp/test");
@@ -2277,7 +2277,7 @@ enum Vehicle {
 }
 "#;
 
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(code, None).unwrap();
 
             let workspace_root = PathBuf::from("/tmp/test");
@@ -2325,7 +2325,7 @@ enum Vehicle {
 
 class MyApp {}
 "#;
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(code, None).unwrap();
 
             let workspace_root = PathBuf::from("/tmp/test");
@@ -2366,7 +2366,7 @@ class MyApp {}
 
 class MyWidget {}
 "#;
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(code, None).unwrap();
 
             let workspace_root = PathBuf::from("/tmp/test");
@@ -2398,7 +2398,7 @@ class MyWidget {}
 
 class MyApp {}
 "#;
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(code, None).unwrap();
 
             let workspace_root = PathBuf::from("/tmp/test");
@@ -2444,7 +2444,7 @@ class MyApp {
   void run() {}
 }
 "#;
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(code, None).unwrap();
 
             let workspace_root = PathBuf::from("/tmp/test");
@@ -2494,7 +2494,7 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 "#;
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(code, None).unwrap();
 
             let workspace_root = PathBuf::from("/tmp/test");
@@ -2523,7 +2523,7 @@ class MyHomePage extends StatefulWidget {
         #[test]
         fn test_import_uri_strips_quotes() {
             let code = "import 'dart:convert';\n";
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(code, None).unwrap();
 
             let workspace_root = PathBuf::from("/tmp/test");
@@ -2564,7 +2564,7 @@ final class Final {}
 interface class InterfaceClass {}
 mixin class MixinClass {}
 "#;
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(code, None).unwrap();
             let workspace_root = PathBuf::from("/tmp/test");
             let mut extractor = DartExtractor::new(
@@ -2650,7 +2650,7 @@ mixin class MixinClass {}
         #[test]
         fn test_dart_parser_root_is_source_file() {
             let code = "class Example {}\n";
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(code, None).unwrap();
             let root_kind = tree.root_node().kind();
             assert_eq!(
@@ -2667,7 +2667,7 @@ mixin class MixinClass {}
             // extraction still succeeds but via the normal class path.
             let code =
                 "sealed class AsyncValue<T> {\n  const AsyncValue._();\n  bool get isLoading;\n}\n";
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(code, None).unwrap();
             assert_eq!(tree.root_node().kind(), "source_file");
 
@@ -2727,7 +2727,7 @@ mixin class MixinClass {}
             // signature with the dart3 modifier.
             let code =
                 "sealed class AsyncValue<T> {\n  const AsyncValue._();\n  bool get isLoading;\n}\n";
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(code, None).unwrap();
             let workspace_root = PathBuf::from("/tmp/test");
             let mut extractor = DartExtractor::new(
@@ -2795,7 +2795,7 @@ interface class Ref<State extends Object?> {
   State get state;
 }
 "#;
-            let mut parser = init_parser();
+            let mut parser = init_test_parser();
             let tree = parser.parse(code, None).unwrap();
             let workspace_root = PathBuf::from("/tmp/test");
             let mut extractor = DartExtractor::new(

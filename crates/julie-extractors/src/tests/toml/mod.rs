@@ -25,7 +25,7 @@ mod toml_extractor_tests {
     use std::path::PathBuf;
     use tree_sitter::Parser;
 
-    fn init_parser() -> Parser {
+    fn init_test_parser() -> Parser {
         let mut parser = Parser::new();
         parser
             .set_language(&tree_sitter_toml_ng::LANGUAGE.into())
@@ -35,7 +35,7 @@ mod toml_extractor_tests {
 
     fn extract_symbols(code: &str) -> Vec<Symbol> {
         let workspace_root = PathBuf::from("/tmp/test");
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).expect("Failed to parse code");
         let mut extractor = TomlExtractor::new(
             "toml".to_string(),

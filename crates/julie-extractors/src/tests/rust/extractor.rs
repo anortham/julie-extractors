@@ -12,7 +12,7 @@ mod tests {
     use std::path::PathBuf;
     use tree_sitter::Parser;
 
-    fn init_parser() -> Parser {
+    fn init_test_parser() -> Parser {
         let mut parser = Parser::new();
         parser
             .set_language(&tree_sitter_rust::LANGUAGE.into())
@@ -54,7 +54,7 @@ impl MyService {
     }
 }
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let mut extractor = RustExtractor::new(
@@ -108,7 +108,7 @@ impl super::BashExtractor {
     }
 }
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let mut extractor = RustExtractor::new(
@@ -153,7 +153,7 @@ impl crate::base::BaseExtractor {
     }
 }
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let mut extractor = RustExtractor::new(

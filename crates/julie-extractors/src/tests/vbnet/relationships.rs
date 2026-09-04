@@ -33,7 +33,7 @@ Public Class Dog
     Inherits Animal
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -72,7 +72,7 @@ Public Class Dog
     End Sub
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -119,7 +119,7 @@ Public Class Resource
     End Function
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -161,7 +161,7 @@ Public Interface IRepository
     Function GetById(id As Integer) As Object
 End Interface
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -200,7 +200,7 @@ Public Class Service
     End Sub
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -407,7 +407,7 @@ Public Class Dog
     Inherits ExternalBase
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -446,7 +446,7 @@ Public Class Service
     End Sub
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -494,7 +494,7 @@ Public Structure Point
     End Function
 End Structure
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(

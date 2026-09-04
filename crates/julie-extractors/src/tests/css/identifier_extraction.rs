@@ -11,7 +11,7 @@
 
 use crate::base::{IdentifierKind, SymbolKind};
 use crate::css::CSSExtractor;
-use crate::tests::css::init_parser;
+use crate::tests::css::init_test_parser;
 use std::path::PathBuf;
 
 #[cfg(test)]
@@ -28,7 +28,7 @@ mod identifier_extraction_tests {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(css_code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
 
@@ -93,7 +93,7 @@ mod identifier_extraction_tests {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(css_code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
 
@@ -148,7 +148,7 @@ mod identifier_extraction_tests {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(css_code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
 
@@ -195,7 +195,7 @@ mod identifier_extraction_tests {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(css_code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
 
@@ -248,7 +248,7 @@ mod identifier_extraction_tests {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(css_code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
 
@@ -299,7 +299,7 @@ mod identifier_extraction_tests {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(css_code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = CSSExtractor::new(

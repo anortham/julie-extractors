@@ -9,7 +9,7 @@ use crate::csharp::CSharpExtractor;
 use tree_sitter::Parser;
 
 /// Initialize C# parser for testing and share across modules
-pub fn init_parser() -> Parser {
+pub fn init_test_parser() -> Parser {
     let mut parser = Parser::new();
     parser
         .set_language(&tree_sitter_c_sharp::LANGUAGE.into())

@@ -2,7 +2,9 @@
 //!
 //! Common helpers used across language extractor test suites.
 
+use crate::base::StructuralFact;
 use crate::language::get_tree_sitter_language;
+use crate::ExtractionResults;
 
 /// Initialize a tree-sitter parser for the given language and parse the code.
 ///
@@ -25,4 +27,36 @@ pub fn init_parser(code: &str, language: &str) -> tree_sitter::Tree {
     parser
         .parse(code, None)
         .unwrap_or_else(|| panic!("Failed to parse {} code", language))
+}
+
+/// Retrieve a string value from a structural fact's metadata map by key.
+pub fn metadata_str<'a>(fact: &'a StructuralFact, key: &str) -> Option<&'a str> {
+    fact.metadata
+        .as_ref()
+        .and_then(|metadata| metadata.get(key))
+        .and_then(|value| value.as_str())
+}
+
+/// Filter extraction results for structural facts matching a given pattern ID.
+pub fn facts_with_pattern<'a>(
+    results: &'a ExtractionResults,
+    pattern_id: &str,
+) -> Vec<&'a StructuralFact> {
+    results
+        .structural_facts
+        .iter()
+        .filter(|fact| fact.pattern_id == pattern_id)
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::init_parser;
+
+    #[test]
+    fn php_parser_uses_language_php() {
+        let tree = init_parser("<?php function load(): void {}", "php");
+        assert_eq!(tree.root_node().kind(), "program");
+        assert!(!tree.root_node().has_error());
+    }
 }

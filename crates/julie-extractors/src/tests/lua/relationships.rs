@@ -1,6 +1,6 @@
 use crate::base::RelationshipKind;
 use crate::lua::LuaExtractor;
-use crate::tests::lua::init_parser;
+use crate::tests::lua::init_test_parser;
 use std::path::PathBuf;
 
 #[test]
@@ -15,7 +15,7 @@ function main()
 end
 "#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).expect("Failed to parse Lua code");
     let workspace_root = PathBuf::from("/tmp/test");
     let mut extractor = LuaExtractor::new(
@@ -54,7 +54,7 @@ fn test_lua_bare_require_emits_import_symbol() {
 require("json")
 "#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).expect("Failed to parse Lua code");
     let workspace_root = PathBuf::from("/tmp/test");
     let mut extractor = LuaExtractor::new(

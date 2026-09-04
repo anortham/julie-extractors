@@ -13,7 +13,7 @@ use crate::javascript::JavaScriptExtractor;
 use std::path::PathBuf;
 use tree_sitter::Parser;
 
-fn init_parser() -> Parser {
+fn init_test_parser() -> Parser {
     let mut parser = Parser::new();
     parser
         .set_language(&tree_sitter_javascript::LANGUAGE.into())
@@ -34,7 +34,7 @@ function authenticate(username, password) {
     return fetch('/api/auth', { method: 'POST', body: JSON.stringify({ username, password }) });
 }
 "#;
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
 
     let workspace_root = PathBuf::from("/tmp/test");
@@ -91,7 +91,7 @@ class AuthService {
     }
 }
 "#;
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
 
     let workspace_root = PathBuf::from("/tmp/test");
@@ -153,7 +153,7 @@ const processData = (data) => {
     return data.map(item => item * 2);
 };
 "#;
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
 
     let workspace_root = PathBuf::from("/tmp/test");
@@ -210,7 +210,7 @@ class Config {
     maxRetries = 3;
 }
 "#;
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
 
     let workspace_root = PathBuf::from("/tmp/test");
@@ -272,7 +272,7 @@ function noDocumentation() {
     return "This function has no JSDoc";
 }
 "#;
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
 
     let workspace_root = PathBuf::from("/tmp/test");
@@ -308,7 +308,7 @@ import React from 'react';
  */
 import { debounce, throttle } from 'lodash';
 "#;
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
 
     let workspace_root = PathBuf::from("/tmp/test");

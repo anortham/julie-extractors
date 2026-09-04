@@ -21,7 +21,7 @@ mod yaml_extractor_tests {
     use std::path::PathBuf;
     use tree_sitter::Parser;
 
-    fn init_parser() -> Parser {
+    fn init_test_parser() -> Parser {
         let mut parser = Parser::new();
         parser
             .set_language(&tree_sitter_yaml::LANGUAGE.into())
@@ -31,7 +31,7 @@ mod yaml_extractor_tests {
 
     fn extract_symbols(code: &str) -> Vec<Symbol> {
         let workspace_root = PathBuf::from("/tmp/test");
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).expect("Failed to parse code");
         let mut extractor = YamlExtractor::new(
             "yaml".to_string(),
@@ -44,7 +44,7 @@ mod yaml_extractor_tests {
 
     fn extract_symbols_and_relationships(code: &str) -> (Vec<Symbol>, Vec<Relationship>) {
         let workspace_root = PathBuf::from("/tmp/test");
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).expect("Failed to parse code");
         let mut extractor = YamlExtractor::new(
             "yaml".to_string(),
@@ -855,7 +855,7 @@ consumer:
 
     fn extract_identifiers(code: &str, symbols: &[Symbol]) -> Vec<crate::base::Identifier> {
         let workspace_root = PathBuf::from("/tmp/test");
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).expect("Failed to parse code");
         let mut extractor = YamlExtractor::new(
             "yaml".to_string(),

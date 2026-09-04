@@ -7,7 +7,7 @@ use crate::lua::helpers::{
 use std::path::PathBuf;
 use tree_sitter::Parser;
 
-fn init_parser() -> Parser {
+fn init_test_parser() -> Parser {
     let mut parser = Parser::new();
     parser
         .set_language(&tree_sitter_lua::LANGUAGE.into())
@@ -31,7 +31,7 @@ fn find_node_by_kind<'a>(node: tree_sitter::Node<'a>, kind: &str) -> Option<tree
 
 #[test]
 fn test_find_child_by_type_returns_none_for_missing_type() {
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
 
     let code = r#"local x = 10"#;
     let tree = parser.parse(code, None).unwrap();
@@ -44,7 +44,7 @@ fn test_find_child_by_type_returns_none_for_missing_type() {
 
 #[test]
 fn test_contains_function_definition_false() {
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
 
     let code = r#"local x = 10"#;
     let tree = parser.parse(code, None).unwrap();
@@ -57,7 +57,7 @@ fn test_contains_function_definition_false() {
 
 #[test]
 fn test_infer_type_from_expression_string() {
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
 
     let code = r#""hello""#;
     let tree = parser.parse(code, None).unwrap();
@@ -83,7 +83,7 @@ fn test_infer_type_from_expression_string() {
 
 #[test]
 fn test_infer_type_from_expression_number() {
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
 
     let code = r#"42"#;
     let tree = parser.parse(code, None).unwrap();
@@ -109,7 +109,7 @@ fn test_infer_type_from_expression_number() {
 
 #[test]
 fn test_infer_type_from_expression_table() {
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
 
     let code = r#"{}"#;
     let tree = parser.parse(code, None).unwrap();
@@ -135,7 +135,7 @@ fn test_infer_type_from_expression_table() {
 
 #[test]
 fn test_infer_type_from_expression_require_call() {
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
 
     let code = r#"require("module")"#;
     let tree = parser.parse(code, None).unwrap();
@@ -161,7 +161,7 @@ fn test_infer_type_from_expression_require_call() {
 
 #[test]
 fn test_infer_type_from_expression_unknown() {
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
 
     let code = r#"x"#; // identifier - not directly handled
     let tree = parser.parse(code, None).unwrap();
@@ -185,7 +185,7 @@ fn test_infer_type_from_expression_unknown() {
 // Integration test: verify helpers work in realistic context
 #[test]
 fn test_helpers_in_extraction_context() {
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
 
     let code = r#"
 local x = 10

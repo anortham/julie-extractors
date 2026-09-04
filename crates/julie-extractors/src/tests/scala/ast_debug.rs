@@ -2,7 +2,7 @@
 
 use tree_sitter::Parser;
 
-fn init_parser() -> Parser {
+fn init_test_parser() -> Parser {
     let mut parser = Parser::new();
     parser
         .set_language(&tree_sitter_scala::LANGUAGE.into())
@@ -36,7 +36,7 @@ enum Color {
   case Custom(hex: String)
 }
 "#;
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
     debug_print_tree(tree.root_node(), code, 0);
 }
@@ -57,7 +57,7 @@ class Cat extends Animal with Serializable {
   def speak(): String = "meow"
 }
 "#;
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
     debug_print_tree(tree.root_node(), code, 0);
 }
@@ -68,7 +68,7 @@ fn debug_scala_import_ast() {
     let code = r#"
 import scala.collection.mutable.{ListBuffer => LB, _}
 "#;
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
     debug_print_tree(tree.root_node(), code, 0);
 }
@@ -79,7 +79,7 @@ fn debug_scala_package_ast() {
     let code = r#"
 package com.example
 "#;
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
     debug_print_tree(tree.root_node(), code, 0);
 }

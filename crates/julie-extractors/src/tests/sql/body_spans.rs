@@ -13,7 +13,7 @@ mod tests {
             .unwrap_or(false)
     }
 
-    fn metadata_str<'a>(symbol: &'a crate::base::Symbol, key: &str) -> Option<&'a str> {
+    fn symbol_metadata_str<'a>(symbol: &'a crate::base::Symbol, key: &str) -> Option<&'a str> {
         symbol
             .metadata
             .as_ref()
@@ -52,7 +52,7 @@ END;
             .find(|symbol| symbol.name == "active_workers")
             .expect("active_workers view should be extracted");
         assert!(!metadata_bool(view, "extractedFromError"));
-        assert_eq!(metadata_str(view, "bodySpanSource"), Some("statement_text"));
+        assert_eq!(symbol_metadata_str(view, "bodySpanSource"), Some("statement_text"));
         let view_body = view.body_span.expect("view should have AS body span");
         assert!(
             view_body.end_byte > view_body.start_byte,
@@ -81,7 +81,7 @@ END;
             "trigger should remain tagged as recovery extraction"
         );
         assert_eq!(
-            metadata_str(trigger, "bodySpanSource"),
+            symbol_metadata_str(trigger, "bodySpanSource"),
             Some("recovery_heuristic")
         );
         let trigger_body = trigger
@@ -115,7 +115,7 @@ END;
             .find(|symbol| symbol.name == "clean_view" && symbol.kind == SymbolKind::Interface)
             .expect("clean_view should be extracted");
         let is_recovery = metadata_bool(view, "extractedFromError");
-        let body_source = metadata_str(view, "bodySpanSource").expect("bodySpanSource metadata");
+        let body_source = symbol_metadata_str(view, "bodySpanSource").expect("bodySpanSource metadata");
         assert!(
             view.body_span.is_some(),
             "view should expose a SELECT body span"

@@ -18,7 +18,7 @@ Public Class Service
     End Sub
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -44,7 +44,7 @@ Public Class Service
     End Sub
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -74,7 +74,7 @@ Public Class Service
     End Sub
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -108,7 +108,7 @@ Public Class Calculator
     End Function
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -153,7 +153,7 @@ Public Class Workflow
     End Sub
 End Class
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(
@@ -227,7 +227,7 @@ Namespace Demo
     End Class
 End Namespace
 "#;
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = VbNetExtractor::new(

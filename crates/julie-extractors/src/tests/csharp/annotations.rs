@@ -14,7 +14,7 @@ mod tests {
     use super::*;
 
     fn extract(code: &str) -> Vec<Symbol> {
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = CSharpExtractor::new(

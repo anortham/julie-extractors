@@ -14,7 +14,7 @@ mod elixir_tests {
     use std::path::PathBuf;
     use tree_sitter::{Parser, Tree};
 
-    fn init_parser() -> Parser {
+    fn init_test_parser() -> Parser {
         let mut parser = Parser::new();
         parser
             .set_language(&tree_sitter_elixir::LANGUAGE.into())
@@ -23,7 +23,7 @@ mod elixir_tests {
     }
 
     fn create_extractor_and_parse(code: &str) -> (ElixirExtractor, Tree) {
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let extractor = ElixirExtractor::new(
@@ -83,7 +83,7 @@ defmodule MyApp.Service do
   def start_link(opts), do: GenServer.start_link(__MODULE__, opts)
 end"#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         fn debug_print_tree(node: tree_sitter::Node, source: &str, depth: usize) {

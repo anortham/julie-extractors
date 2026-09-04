@@ -1,10 +1,10 @@
 use crate::base::{Identifier, IdentifierKind, Symbol, SymbolKind, TypeInfo};
 use crate::lua::LuaExtractor;
-use crate::tests::lua::init_parser;
+use crate::tests::lua::init_test_parser;
 use std::path::PathBuf;
 
 fn extract(source: &str) -> (Vec<Symbol>, LuaExtractor) {
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(source, None).expect("parse lua");
     let mut extractor = LuaExtractor::new(
         "lua".to_string(),
@@ -17,7 +17,7 @@ fn extract(source: &str) -> (Vec<Symbol>, LuaExtractor) {
 }
 
 fn extract_calls(source: &str) -> (Vec<Symbol>, Vec<Identifier>, LuaExtractor) {
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(source, None).expect("parse lua");
     let mut extractor = LuaExtractor::new(
         "lua".to_string(),

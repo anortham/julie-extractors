@@ -14,7 +14,7 @@ use crate::php::PhpExtractor;
 use std::path::PathBuf;
 use tree_sitter::Parser;
 
-fn init_parser() -> Parser {
+fn init_test_parser() -> Parser {
     let mut parser = Parser::new();
     parser
         .set_language(&tree_sitter_php::LANGUAGE_PHP.into())
@@ -39,7 +39,7 @@ class Calculator {
 }
 "#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(php_code, None).unwrap();
 
     let workspace_root = PathBuf::from("/tmp/test");
@@ -105,7 +105,7 @@ class User {
 }
 "#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(php_code, None).unwrap();
 
     let workspace_root = PathBuf::from("/tmp/test");
@@ -156,7 +156,7 @@ class Service {
 }
 "#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(php_code, None).unwrap();
 
     let workspace_root = PathBuf::from("/tmp/test");
@@ -202,7 +202,7 @@ class DataService {
 }
 "#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(php_code, None).unwrap();
 
     let workspace_root = PathBuf::from("/tmp/test");
@@ -249,7 +249,7 @@ class Test {
 }
 "#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(php_code, None).unwrap();
 
     let workspace_root = PathBuf::from("/tmp/test");
@@ -302,7 +302,7 @@ function standalone(App $app): void {
 }
 "#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(php_code, None).unwrap();
 
     let workspace_root = PathBuf::from("/tmp/test");
@@ -406,7 +406,7 @@ class Sample {
 }
 "#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(php_code, None).unwrap();
     let workspace_root = PathBuf::from("/tmp/test");
     let mut extractor = PhpExtractor::new(

@@ -18,7 +18,7 @@ namespace MyCompany.MyProject
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -78,7 +78,7 @@ namespace MyProject
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -157,7 +157,7 @@ namespace VisibilityFixture
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -245,7 +245,7 @@ namespace MyProject
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -326,7 +326,7 @@ namespace MyProject
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -432,7 +432,7 @@ namespace MyProject
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -513,7 +513,7 @@ public class Foo {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -582,7 +582,7 @@ namespace MyProject
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -656,7 +656,7 @@ namespace MyProject
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -742,7 +742,7 @@ namespace MyProject
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");

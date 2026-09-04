@@ -28,7 +28,7 @@ use crate::typescript::TypeScriptExtractor;
 use tree_sitter::Parser;
 
 /// Initialize JavaScript parser for TypeScript files (JavaScript parser used for TypeScript)
-fn init_parser() -> Parser {
+fn init_test_parser() -> Parser {
     let mut parser = Parser::new();
     parser
         .set_language(&tree_sitter_javascript::LANGUAGE.into())
@@ -55,7 +55,7 @@ mod typescript_extractor_tests {
         }
         "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -127,7 +127,7 @@ mod typescript_extractor_tests {
         }
         "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -176,7 +176,7 @@ mod typescript_extractor_tests {
         };
         "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -220,7 +220,7 @@ mod typescript_extractor_tests {
         }
         "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -282,7 +282,7 @@ mod typescript_extractor_tests {
         }
         "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -314,7 +314,7 @@ mod typescript_extractor_tests {
         const user = { name: 'John', age: 30 };
         "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -366,7 +366,7 @@ mod typescript_extractor_tests {
         }
         "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -398,7 +398,7 @@ mod typescript_extractor_tests {
     fn test_track_accurate_symbol_positions() {
         let code = "function test() {\n  return 42;\n}";
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -456,7 +456,7 @@ function calculate() {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -524,7 +524,7 @@ class User {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -575,7 +575,7 @@ class Service {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -621,7 +621,7 @@ class DataService {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -668,7 +668,7 @@ class Test {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -725,7 +725,7 @@ export class UserService {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -815,7 +815,7 @@ const UserCard: React.FC<Props> = ({ name, age = 25 }) => {
 export default UserCard;
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -863,7 +863,7 @@ declare module '*.png' {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -902,7 +902,7 @@ function processUser(user: PartialUser): void {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");

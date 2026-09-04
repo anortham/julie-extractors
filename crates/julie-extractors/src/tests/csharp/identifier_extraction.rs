@@ -11,7 +11,7 @@
 
 use crate::base::{Identifier, IdentifierKind, Symbol, SymbolKind};
 use crate::csharp::CSharpExtractor;
-use crate::tests::csharp::init_parser;
+use crate::tests::csharp::init_test_parser;
 use std::path::PathBuf;
 
 #[cfg(test)]
@@ -139,7 +139,7 @@ public class Ptr {
     }
 
     fn extract_all(csharp_code: &str) -> (Vec<Symbol>, Vec<Identifier>) {
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(csharp_code, None).unwrap();
         let workspace_root = PathBuf::from("/tmp/test");
         let mut extractor = CSharpExtractor::new(
@@ -194,7 +194,7 @@ public class Calculator {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(csharp_code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -259,7 +259,7 @@ public class User {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(csharp_code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -309,7 +309,7 @@ public class Service {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(csharp_code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -354,7 +354,7 @@ public class DataService {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(csharp_code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");
@@ -400,7 +400,7 @@ public class Test {
 }
 "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(csharp_code, None).unwrap();
 
         let workspace_root = PathBuf::from("/tmp/test");

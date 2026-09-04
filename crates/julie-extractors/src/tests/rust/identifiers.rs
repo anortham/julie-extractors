@@ -8,7 +8,7 @@ use crate::rust::RustExtractor;
 use std::path::PathBuf;
 use tree_sitter::Parser;
 
-fn init_parser() -> Parser {
+fn init_test_parser() -> Parser {
     let mut parser = Parser::new();
     parser
         .set_language(&tree_sitter_rust::LANGUAGE.into())
@@ -17,7 +17,7 @@ fn init_parser() -> Parser {
 }
 
 fn extract_all(code: &str) -> (Vec<Symbol>, Vec<Identifier>) {
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
     let workspace_root = PathBuf::from("/tmp/test");
     let mut extractor = RustExtractor::new(

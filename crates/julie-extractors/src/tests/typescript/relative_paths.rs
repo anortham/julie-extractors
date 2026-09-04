@@ -7,7 +7,7 @@ use crate::typescript::TypeScriptExtractor;
 use tree_sitter::Parser;
 
 /// Initialize JavaScript parser for TypeScript files
-fn init_parser() -> Parser {
+fn init_test_parser() -> Parser {
     let mut parser = Parser::new();
     parser
         .set_language(&tree_sitter_javascript::LANGUAGE.into())
@@ -41,7 +41,7 @@ mod relative_path_tests {
         }
         "#;
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         // NEW: Pass workspace_root as 4th parameter
@@ -113,7 +113,7 @@ mod relative_path_tests {
 
         let code = "export const VERSION = '1.0.0';";
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let mut extractor = TypeScriptExtractor::new(
@@ -151,7 +151,7 @@ mod relative_path_tests {
 
         let code = "export function extractSymbols() {}";
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let mut extractor = TypeScriptExtractor::new(
@@ -188,7 +188,7 @@ mod relative_path_tests {
 
         let code = "function main() {}";
 
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).unwrap();
 
         let mut extractor = TypeScriptExtractor::new(

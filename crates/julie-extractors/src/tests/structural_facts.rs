@@ -3,6 +3,7 @@ use std::fs;
 use std::path::Path;
 
 use crate::base::StructuralFact;
+use crate::tests::helpers::{facts_with_pattern, metadata_str};
 use serde_json::Value;
 
 fn extract(file_path: &str, source: &str) -> crate::ExtractionResults {
@@ -1238,16 +1239,6 @@ export const router = createBrowserRouter(routes);
     }
 }
 
-fn facts_with_pattern<'a>(
-    results: &'a crate::ExtractionResults,
-    pattern_id: &str,
-) -> Vec<&'a StructuralFact> {
-    results
-        .structural_facts
-        .iter()
-        .filter(|fact| fact.pattern_id == pattern_id)
-        .collect()
-}
 
 fn assert_common_framework_fact(fact: &StructuralFact, capture_name: &str, query_family: &str) {
     assert_eq!(fact.capture_name, capture_name);
@@ -1263,12 +1254,6 @@ fn assert_common_framework_fact(fact: &StructuralFact, capture_name: &str, query
     assert_eq!(metadata_str(fact, "query_family"), Some(query_family));
 }
 
-fn metadata_str<'a>(fact: &'a StructuralFact, key: &str) -> Option<&'a str> {
-    fact.metadata
-        .as_ref()
-        .and_then(|metadata| metadata.get(key))
-        .and_then(|value| value.as_str())
-}
 
 fn metadata_bool(fact: &StructuralFact, key: &str) -> Option<bool> {
     fact.metadata

@@ -3,7 +3,7 @@ use crate::c::CExtractor;
 use std::path::PathBuf;
 use tree_sitter::{Parser, Tree};
 
-fn init_parser() -> Parser {
+fn init_test_parser() -> Parser {
     let mut parser = Parser::new();
     parser
         .set_language(&tree_sitter_c::LANGUAGE.into())
@@ -12,7 +12,7 @@ fn init_parser() -> Parser {
 }
 
 pub fn parse_c(code: &str, file_name: &str) -> (CExtractor, Tree) {
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).expect("Failed to parse C code");
     let workspace_root = PathBuf::from("/tmp/test");
     let extractor = CExtractor::new(

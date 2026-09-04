@@ -19,7 +19,7 @@ mod bash_extractor_tests {
         Vec<crate::base::StructuredPendingRelationship>,
     );
 
-    fn init_parser() -> Parser {
+    fn init_test_parser() -> Parser {
         let mut parser = Parser::new();
         parser
             .set_language(&tree_sitter_bash::LANGUAGE.into())
@@ -29,7 +29,7 @@ mod bash_extractor_tests {
 
     fn extract_symbols(code: &str) -> Vec<Symbol> {
         let workspace_root = PathBuf::from("/tmp/test");
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).expect("Failed to parse code");
         let mut extractor = BashExtractor::new(
             "bash".to_string(),
@@ -42,7 +42,7 @@ mod bash_extractor_tests {
 
     fn extract_full(code: &str) -> FullExtraction {
         let workspace_root = PathBuf::from("/tmp/test");
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(code, None).expect("Failed to parse code");
         let mut extractor = BashExtractor::new(
             "bash".to_string(),
@@ -618,7 +618,7 @@ configure_app() {
 "#;
 
         let workspace_root = PathBuf::from("/tmp/test");
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(bash_code, None).expect("Failed to parse code");
         let mut extractor = BashExtractor::new(
             "bash".to_string(),
@@ -908,7 +908,7 @@ mod identifier_extraction_tests {
     use std::path::PathBuf;
     use tree_sitter::Parser;
 
-    fn init_parser() -> Parser {
+    fn init_test_parser() -> Parser {
         let mut parser = Parser::new();
         parser
             .set_language(&tree_sitter_bash::LANGUAGE.into())
@@ -935,7 +935,7 @@ build_app() {
 "#;
 
         let workspace_root = PathBuf::from("/tmp/test");
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(bash_code, None).unwrap();
 
         let mut extractor = BashExtractor::new(
@@ -1000,7 +1000,7 @@ process_data() {
 "#;
 
         let workspace_root = PathBuf::from("/tmp/test");
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(bash_code, None).unwrap();
 
         let mut extractor = BashExtractor::new(
@@ -1052,7 +1052,7 @@ echo "$@"
 "#;
 
         let workspace_root = PathBuf::from("/tmp/test");
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(bash_code, None).unwrap();
         let mut extractor = BashExtractor::new(
             "bash".to_string(),
@@ -1140,7 +1140,7 @@ helper_function() {
 "#;
 
         let workspace_root = PathBuf::from("/tmp/test");
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(bash_code, None).unwrap();
 
         let mut extractor = BashExtractor::new(
@@ -1187,7 +1187,7 @@ process_config() {
 "#;
 
         let workspace_root = PathBuf::from("/tmp/test");
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(bash_code, None).unwrap();
 
         let mut extractor = BashExtractor::new(
@@ -1229,7 +1229,7 @@ run_tests() {
 "#;
 
         let workspace_root = PathBuf::from("/tmp/test");
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(bash_code, None).unwrap();
 
         let mut extractor = BashExtractor::new(
@@ -1333,7 +1333,7 @@ backup_files() {
 "##;
 
         let workspace_root = PathBuf::from("/tmp/test");
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(bash_code, None).expect("Failed to parse code");
         let mut extractor = BashExtractor::new(
             "bash".to_string(),
@@ -1445,7 +1445,7 @@ process_multiple_files() {
 "##;
 
         let workspace_root = PathBuf::from("/tmp/test");
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(bash_code, None).expect("Failed to parse code");
         let mut extractor = BashExtractor::new(
             "bash".to_string(),
@@ -1594,7 +1594,7 @@ collect_files() {
 "###;
 
         let workspace_root = PathBuf::from("/tmp/test");
-        let mut parser = init_parser();
+        let mut parser = init_test_parser();
         let tree = parser.parse(bash_code, None).expect("Failed to parse code");
         let mut extractor = BashExtractor::new(
             "bash".to_string(),

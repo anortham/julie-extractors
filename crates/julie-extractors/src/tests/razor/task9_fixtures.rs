@@ -3,6 +3,7 @@ use std::path::Path;
 use serde_json::Value;
 
 use crate::base::{IdentifierKind, SymbolKind};
+use crate::tests::helpers::metadata_str;
 
 fn extract(file_path: &str, source: &str) -> crate::ExtractionResults {
     crate::pipeline::extract_canonical(file_path, source, Path::new("/repo"))
@@ -20,9 +21,6 @@ fn facts<'a>(
         .collect()
 }
 
-fn metadata_str<'a>(fact: &'a crate::base::StructuralFact, key: &str) -> Option<&'a str> {
-    fact.metadata.as_ref()?.get(key)?.as_str()
-}
 
 fn metadata<'a>(fact: &'a crate::base::StructuralFact, key: &str) -> Option<&'a Value> {
     fact.metadata.as_ref()?.get(key)

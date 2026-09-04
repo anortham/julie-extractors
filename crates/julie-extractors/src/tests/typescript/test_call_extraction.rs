@@ -7,7 +7,7 @@ use crate::base::{RelationshipKind, Symbol, SymbolKind};
 use crate::typescript::TypeScriptExtractor;
 use std::path::PathBuf;
 
-fn init_parser() -> tree_sitter::Parser {
+fn init_test_parser() -> tree_sitter::Parser {
     let mut parser = tree_sitter::Parser::new();
     parser
         .set_language(&tree_sitter_javascript::LANGUAGE.into())
@@ -25,7 +25,7 @@ fn extractor_at(file_path: &str, code: &str) -> TypeScriptExtractor {
 }
 
 fn symbols_at(file_path: &str, code: &str) -> Vec<Symbol> {
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
     extractor_at(file_path, code).extract_symbols(&tree)
 }
@@ -60,7 +60,7 @@ describe("UserService", () => {
 });
 "#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
 
     let workspace_root = PathBuf::from("/tmp/test");
@@ -182,7 +182,7 @@ it("should process", () => {
 });
 "#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
 
     let workspace_root = PathBuf::from("/tmp/test");
@@ -355,7 +355,7 @@ test.beforeEach(async () => {
 });
 "#;
 
-    let mut parser = init_parser();
+    let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
     let mut extractor = extractor_at("tests/checkout.spec.ts", code);
     let symbols = extractor.extract_symbols(&tree);
