@@ -157,7 +157,7 @@ fn every_supported_language_and_natural_store_row_survives_public_promotion() {
         .unwrap()
         .collect::<Result<BTreeSet<_>, _>>()
         .unwrap();
-    let expected = julie_extractors::language::supported_languages()
+    let expected = julie_extractors::supported_languages()
         .iter()
         .map(|language| (*language).to_string())
         .collect::<BTreeSet<_>>();

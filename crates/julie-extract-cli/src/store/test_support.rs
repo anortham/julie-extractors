@@ -16,7 +16,7 @@ const ORACLE_TIME: &str = "2026-08-08T00:00:00Z";
 pub fn write_all_language_fixture(root: &Path) -> Result<Vec<String>, String> {
     let source_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/extraction");
     let mut copied = BTreeSet::new();
-    for language in julie_extractors::language::supported_languages() {
+    for language in julie_extractors::supported_languages() {
         let basic = source_root.join(language).join("basic");
         let source = fs::read_dir(&basic)
             .map_err(|error| format!("read {language} fixture: {error}"))?

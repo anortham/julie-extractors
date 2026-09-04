@@ -236,7 +236,7 @@ fn languages_json_report_publishes_structural_fact_pattern_registry() {
     );
     assert_eq!(
         *patterns,
-        julie_extractors::base::structural_fact_patterns_json(),
+        julie_extractors::structural_fact_patterns_json(),
         "structural_fact_patterns must equal the extractor registry serializer output byte-for-byte"
     );
 }

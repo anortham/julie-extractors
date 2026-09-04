@@ -1509,7 +1509,7 @@ fn assert_required_languages(database: &Path) {
         .unwrap()
         .collect::<Result<Vec<_>, _>>()
         .unwrap();
-    let mut expected = julie_extractors::language::supported_languages()
+    let mut expected = julie_extractors::supported_languages()
         .iter()
         .map(|language| (*language).to_string())
         .collect::<Vec<_>>();

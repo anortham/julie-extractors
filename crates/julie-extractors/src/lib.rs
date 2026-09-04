@@ -41,73 +41,82 @@
 //! **Documentation**: Markdown, JSON, TOML, YAML
 
 // Core infrastructure
-pub mod base;
+pub(crate) mod base;
 pub mod capability_snapshot;
 pub(crate) mod ecmascript_imports;
 #[cfg(test)]
 mod factory;
-pub mod language;
+pub(crate) mod language;
 pub mod language_policy;
 mod language_spec;
-pub mod pipeline;
-pub mod registry;
-pub mod test_calls;
-pub mod test_detection;
+pub(crate) mod pipeline;
+pub(crate) mod registry;
+pub(crate) mod test_calls;
+pub(crate) mod test_detection;
 pub(crate) mod tree_traversal;
-pub mod utils;
+pub(crate) mod utils;
 
 // Language extractors (33 concrete extractors, plus JSX/TSX aliases in the registry)
-pub mod bash;
-pub mod c;
-pub mod cpp;
-pub mod csharp;
-pub mod css;
-pub mod dart;
-pub mod elixir;
-pub mod erlang;
-pub mod fsharp;
-pub mod gdscript;
-pub mod go;
-pub mod html;
-pub mod java;
-pub mod javascript;
-pub mod json;
-pub mod kotlin;
-pub mod lua;
-pub mod markdown;
-pub mod php;
-pub mod powershell;
-pub mod python;
-pub mod qml;
-pub mod qmldir;
-pub mod r;
-pub mod razor;
-pub mod regex;
-pub mod ruby;
-pub mod rust;
-pub mod scala;
-pub mod sql;
-pub mod swift;
-pub mod toml;
-pub mod typescript;
-pub mod vbnet;
-pub mod vue;
-pub mod xml;
-pub mod yaml;
-pub mod zig;
+pub(crate) mod bash;
+pub(crate) mod c;
+pub(crate) mod cpp;
+pub(crate) mod csharp;
+pub(crate) mod css;
+pub(crate) mod dart;
+pub(crate) mod elixir;
+pub(crate) mod erlang;
+pub(crate) mod fsharp;
+pub(crate) mod gdscript;
+pub(crate) mod go;
+pub(crate) mod html;
+pub(crate) mod java;
+pub(crate) mod javascript;
+pub(crate) mod json;
+pub(crate) mod kotlin;
+pub(crate) mod lua;
+pub(crate) mod markdown;
+pub(crate) mod php;
+pub(crate) mod powershell;
+pub(crate) mod python;
+pub(crate) mod qml;
+pub(crate) mod qmldir;
+pub(crate) mod r;
+pub(crate) mod razor;
+pub(crate) mod regex;
+pub(crate) mod ruby;
+pub(crate) mod rust;
+pub(crate) mod scala;
+pub(crate) mod sql;
+pub(crate) mod swift;
+pub(crate) mod toml;
+pub(crate) mod typescript;
+pub(crate) mod vbnet;
+pub(crate) mod vue;
+pub(crate) mod xml;
+pub(crate) mod yaml;
+pub(crate) mod zig;
 
 // Re-export the public API - Core types
 pub use base::{
     AnnotationMarker, ComplexityMetric, ExtractionLevel, ExtractionResults, Identifier,
-    IdentifierKind, Literal, LiteralKind, ParseDiagnostic, ParseDiagnosticKind,
+    IdentifierKind, Literal, LiteralKind, NormalizedSpan, ParseDiagnostic, ParseDiagnosticKind,
     PendingRelationship, Relationship, RelationshipKind, SourceRegion, SourceRegionKind,
-    StructuralFact, Symbol, SymbolKind, SymbolOptions, TestRole, TypeArgument, TypeArgumentUsage,
-    TypeInfo, Visibility, extract_type_arguments, normalize_annotations,
+    StructuralFact, StructuredPendingRelationship, Symbol, SymbolKind, SymbolOptions, TestRole,
+    TypeArgument, TypeArgumentUsage, TypeInfo, Visibility, extract_type_arguments,
+    normalize_annotations, structural_fact_patterns_json,
 };
 
 // Re-export the public API - canonical extraction functions
 pub use pipeline::{extract_canonical, extract_canonical_at, extract_canonical_for_language_at};
-pub use registry::{LanguageCapabilities, LanguageRegistryEntry};
+
+// Re-export language detection utilities
+pub use language::{detect_language_for_path, detect_language_for_source};
+
+// Re-export registry and capabilities
+pub use registry::{LanguageCapabilities, supported_languages};
+
+// Re-export policy helper
+pub use language_policy::classify_literals_by_carrier;
 
 // Re-export Pillar 3 stable capability snapshot API
 pub use capability_snapshot::{
@@ -125,18 +134,6 @@ pub const EXTRACTION_CONTRACT_VERSION: &str = "2026-06-30.ecmascript-swift-shape
 
 /// Epoch used in input-keyed file-version identity.
 pub const EXTRACTION_IDENTITY_EPOCH: u32 = 9;
-
-// Re-export BaseExtractor for language implementors
-pub use base::BaseExtractor;
-
-// Re-export test detection
-pub use test_detection::is_test_symbol;
-
-// Re-export language detection utilities
-pub use language::{
-    detect_language_for_path, detect_language_for_source, detect_language_from_extension,
-    get_tree_sitter_language,
-};
 
 // Tests module (only compiled during testing)
 #[cfg(test)]

@@ -12,13 +12,12 @@ use julie_extract_artifact::model::{
     ArtifactTypeArgument, ArtifactTypeArgumentUsage, ArtifactTypeFact, FileStatus,
     ReferenceSiteProvenance,
 };
-use julie_extractors::base::{
-    ComplexityMetric, NormalizedSpan, StructuralFact, StructuredPendingRelationship,
-};
 use julie_extractors::language_policy::classify_literals_by_carrier;
 use julie_extractors::{
-    ExtractionLevel, ExtractionResults, Literal, ParseDiagnosticKind, PendingRelationship,
-    SourceRegion, TypeArgument, TypeArgumentUsage, TypeInfo, extract_canonical_for_language_at,
+    ComplexityMetric, ExtractionLevel, ExtractionResults, Literal, NormalizedSpan,
+    ParseDiagnosticKind, PendingRelationship, SourceRegion, StructuralFact,
+    StructuredPendingRelationship, TypeArgument, TypeArgumentUsage, TypeInfo,
+    extract_canonical_for_language_at,
 };
 use serde::Serialize;
 use serde_json::Value;
