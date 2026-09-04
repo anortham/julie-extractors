@@ -860,7 +860,7 @@ impl StoreCoordinator {
 
     /// Acquires the store-writer lease under an explicit maintenance-owner fence.
     ///
-    /// Ordinary [`try_acquire_or_takeover`] never accepts a maintenance bypass. This API
+    /// Ordinary [`Self::try_acquire_or_takeover`] never accepts a maintenance bypass. This API
     /// requires the live `maintenance_intent` row to match `owner` on every field and
     /// reuses `owner.fencing_token` as the lease fencing token.
     pub fn try_acquire_for_maintenance(
