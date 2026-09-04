@@ -168,6 +168,6 @@ fn main() -> std::process::ExitCode {
 **Approach:** Script the grouping (`grep -A8 'fn metadata_str'` per file, hash the bodies) and record the groups in the task report before editing. Run `cargo xtask test default` once at the end; this task is mechanical and touches too many files for per-language runs to be cheaper.
 
 **Acceptance criteria:**
-- [ ] `src/tests/test_utils.rs` is gone.
-- [ ] `metadata_str`, `init_parser`, `facts_with_pattern` each have one definition under `src/tests/`.
-- [ ] `cargo xtask test default` passes.
+- [x] `src/tests/test_utils.rs` is gone.
+- [x] `metadata_str`, `init_parser`, `facts_with_pattern` each have one definition under `src/tests/`.
+- [x] `cargo xtask test default` passes.
