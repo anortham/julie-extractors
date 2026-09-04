@@ -164,7 +164,6 @@ impl SnapshotCache {
         }
     }
 
-    #[allow(dead_code)]
     fn remove(&mut self, path: &Path) -> Option<SourceSnapshot> {
         if let Some(entry) = self.entries.remove(path) {
             self.total_bytes = self
@@ -188,7 +187,6 @@ impl SnapshotCache {
         }
     }
 
-    #[allow(dead_code)]
     fn clear(&mut self) {
         self.entries.clear();
         self.order.clear();
@@ -246,7 +244,6 @@ pub(crate) fn get_cached_snapshot_if_fresh(path: &Path) -> Option<SourceSnapshot
     Some(snapshot)
 }
 
-#[allow(dead_code)]
 pub(crate) fn remove_cached_snapshot(path: &Path) -> Option<SourceSnapshot> {
     if let Ok(mut cache) = SNAPSHOT_CACHE.write() {
         cache.remove(path)
@@ -255,7 +252,6 @@ pub(crate) fn remove_cached_snapshot(path: &Path) -> Option<SourceSnapshot> {
     }
 }
 
-#[allow(dead_code)]
 pub(crate) fn clear_snapshot_cache() {
     if let Ok(mut cache) = SNAPSHOT_CACHE.write() {
         cache.clear();

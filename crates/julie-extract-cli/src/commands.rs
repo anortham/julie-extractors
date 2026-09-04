@@ -64,7 +64,7 @@ use crate::reports::{
 };
 use crate::spool::{ScanSpool, create_scan_spool, is_spool_artifact_name, reap_unowned_spools};
 use crate::watchdog::ParentWatchdog;
-use julie_extract_cli::store::import::StoreExecutionOutcome;
+use crate::store::import::StoreExecutionOutcome;
 
 pub fn run_from_env() -> ExitCode {
     let cli = match Cli::try_parse() {
@@ -111,7 +111,7 @@ impl From<CommandOutcome> for DispatchOutcome {
 fn run(cli: Cli) -> DispatchOutcome {
     match cli.command {
         Command::Store(args) => {
-            DispatchOutcome::Store(Box::new(julie_extract_cli::store::dispatch(args)))
+            DispatchOutcome::Store(Box::new(crate::store::dispatch(args)))
         }
         Command::Scan(args) => scan(args).into(),
         Command::Update(args) => update(args).into(),
