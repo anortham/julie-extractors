@@ -22,7 +22,7 @@ The current writer has the important large-write protections:
 - inline foreign-key resolution for symbols and identifiers
 - deferred foreign-key checks for spooled bulk writes
 
-The remaining gap is evidence. Existing writer performance tests are useful
+The remaining gap is evidence. Existing writer batching contract tests are useful
 fast tripwires, but they only cover small synthetic workloads and do not
 exercise every current v3 child-row domain. A regression in a newly indexed
 child table could make large repository artifact writes expensive before Miller
@@ -141,7 +141,7 @@ Depth/locality check:
 Test surface:
 
 - Parser and summary unit tests in `cargo test -p xtask`.
-- Existing tiny writer performance tests remain in the normal artifact test
+- Existing tiny writer batching contract tests remain in the normal artifact test
   suite.
 - The large generated workload is invoked manually as release evidence.
 
@@ -164,7 +164,7 @@ Focused verification:
 ```bash
 cargo test -p xtask performance_baseline_contract
 cargo test -p xtask commands_contract
-cargo test -p julie-extract-artifact writer_performance
+cargo test -p julie-extract-artifact writer_batching_contract
 ```
 
 Manual evidence run:

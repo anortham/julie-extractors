@@ -259,7 +259,7 @@ only where `type_facts` emission exists, with the gap recorded in `language_capa
   (the test is order-insensitive, but reports and tie-breaking diagnostics must be stable);
   `pending_resolutions` rows carry `resolved_at_revision`; two identical scans produce
   byte-identical resolution tables.
-- Budgets (validated by a `writer_performance.rs`-pattern test before the numbers are treated as
+- Budgets (validated by a `writer_batching_contract.rs`-pattern test before the numbers are treated as
   contract): full resolve < 2s on a 92k-identifier artifact; delta < 100ms for a typical
   single-file update. If measurement says otherwise, the budget moves, not the test.
 

@@ -183,7 +183,7 @@ Reason: source regions are an artifact row domain, not a language-support promis
 - Modify: `crates/julie-extract-artifact/src/schema.rs`
 - Modify: `crates/julie-extract-artifact/src/writer.rs`
 - Modify: `crates/julie-extract-artifact/tests/writer_contract.rs`
-- Modify: `crates/julie-extract-artifact/tests/writer_performance.rs`
+- Modify: `crates/julie-extract-artifact/tests/writer_batching_contract.rs`
 
 **What to build:** Persist source-region rows transactionally with the rest of a file.
 

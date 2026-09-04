@@ -52,24 +52,24 @@
 
 **Acceptance criteria:**
 - [x] Failing convention test proves `writer.rs` still owns row inserters before the move.
-- [x] Existing writer contract and writer performance tests pass.
+- [x] Existing writer contract and writer batching contract tests pass.
 - [x] `writer.rs` no longer defines row inserter structs or row-family insert helpers.
 
 ## Verification Strategy
 
-**Project source of truth:** `AGENTS.md`, `RAZORBACK.md`, `docs/testing-strategy.md`, and writer contract/performance tests.
+**Project source of truth:** `AGENTS.md`, `RAZORBACK.md`, `docs/testing-strategy.md`, and writer contract/batching contract tests.
 
 **Worker red/green scope:** For each slice, run the new convention test first to see the intended failure, then run the focused writer test that covers the moved behavior.
 
-**Worker ceiling:** `cargo test -p julie-extract-artifact --test writer_contract` and `cargo test -p julie-extract-artifact --test writer_performance`.
+**Worker ceiling:** `cargo test -p julie-extract-artifact --test writer_contract` and `cargo test -p julie-extract-artifact --test writer_batching_contract`.
 
 **Worker gate invariant:** Public `ArtifactWriter` methods, SQLite rows, revision counts, capability row counts, data-loss guard behavior, and prepared-statement batching remain unchanged.
 
-**Lead affected-change scope:** `cargo fmt --all --check`, `cargo clippy --workspace --all-targets --all-features --no-deps -- -D warnings`, `cargo test -p julie-extract-artifact --test writer_contract`, and `cargo test -p julie-extract-artifact --test writer_performance`.
+**Lead affected-change scope:** `cargo fmt --all --check`, `cargo clippy --workspace --all-targets --all-features --no-deps -- -D warnings`, `cargo test -p julie-extract-artifact --test writer_contract`, and `cargo test -p julie-extract-artifact --test writer_batching_contract`.
 
 **Branch gate:** `cargo xtask test default`. Run `cargo xtask test contract` only if schema/report/JSONL contracts change, which this plan should avoid.
 
-**Replay/metric evidence:** Writer performance tests are hard gates for prepared-statement batching behavior. No new report-only metric is required.
+**Replay/metric evidence:** Writer batching contract tests are hard gates for prepared-statement batching behavior. No new report-only metric is required.
 
 **Escalation triggers:** Any public API change, schema SQL change, row count change, data-loss guard behavior change, or unexpected default-suite runtime growth requires strategy-tier review.
 

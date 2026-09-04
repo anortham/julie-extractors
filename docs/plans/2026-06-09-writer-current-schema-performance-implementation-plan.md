@@ -49,7 +49,7 @@ scope until item 6 is implemented and verified.
 **Worker red/green scope:** Use `cargo test -p xtask performance_baseline_contract`
 for parser, summary, and tiny execution checks. Use
 `cargo test -p xtask commands_contract` for top-level xtask routing. Use
-`cargo test -p julie-extract-artifact writer_performance` after adding the
+`cargo test -p julie-extract-artifact writer_batching_contract` after adding the
 xtask dependency to prove existing fast writer tripwires still pass.
 
 **Worker ceiling:** Workers may run the three focused commands above and a tiny
@@ -64,7 +64,7 @@ the default artifact test surface.
 
 **Lead affected-change scope:** After implementation batches, run
 `cargo test -p xtask` and
-`cargo test -p julie-extract-artifact writer_performance`.
+`cargo test -p julie-extract-artifact writer_batching_contract`.
 
 **Branch gate:** Before closing TODO item 6, run:
 
@@ -336,7 +336,7 @@ TODO item 6 done only after the implementation is proven.
 ```bash
 cargo test -p xtask performance_baseline_contract
 cargo test -p xtask commands_contract
-cargo test -p julie-extract-artifact writer_performance
+cargo test -p julie-extract-artifact writer_batching_contract
 ```
 
 - Run a manual tiny or default command:

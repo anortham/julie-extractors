@@ -25,7 +25,7 @@ Source: findings A3, A4, A5, A6, A7, A11, C3, C5, C9, E6, E7.
 
 **Worker red/green scope:**
 - Artifact store: `cargo test -p julie-extract-artifact store::` and the relevant `tests/*.rs` target named in the task.
-- Artifact writer: `cargo test -p julie-extract-artifact --test writer_batching_contract` (name after wave 2; `writer_performance` before) and `cargo xtask performance writer-current-schema --out-dir target/performance/wave3-writer`.
+- Artifact writer: `cargo test -p julie-extract-artifact --test writer_batching_contract` and `cargo xtask performance writer-current-schema --out-dir target/performance/wave3-writer`.
 - CLI: `cargo test -p julie-extract-cli --test operations_contract`, `--test store_cli_contract`.
 - Extractors: `cargo xtask test language c`, `cpp`, plus `cargo test -p julie-extractors --lib base::span`.
 

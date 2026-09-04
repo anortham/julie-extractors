@@ -28,7 +28,7 @@
 - Incremental `scan` discovers supported files, parses/extracts every supported file, then calls `ArtifactWriter::write_scan`.
 - `ArtifactWriter::write_scan` already skips row rewrites when `files.content_hash` matches an existing row.
 - This preserves artifact stability but still pays parser and extraction cost for unchanged files.
-- The existing writer performance test proves one transaction for a tiny fixture batch; it does not prove the CLI avoids parser work before the writer.
+- The existing writer batching contract test proves one transaction for a tiny fixture batch; it does not prove the CLI avoids parser work before the writer.
 
 ## Architecture Quality
 
@@ -52,11 +52,11 @@
 
 **Worker red/green scope:** `cargo test -p julie-extract-cli incremental_scan_reuses_existing_hash_without_parser_work`
 
-**Worker ceiling:** `cargo test -p julie-extract-cli` and `cargo test -p julie-extract-artifact writer_performance`.
+**Worker ceiling:** `cargo test -p julie-extract-cli` and `cargo test -p julie-extract-artifact writer_batching_contract`.
 
 **Worker gate invariant:** Incremental scan reads and hashes discovered supported files, reuses existing hashes to bypass parser extraction for unchanged files, still sends every current supported path to `ArtifactWriter`, and keeps force scan parsing all files.
 
-**Lead affected-change scope:** `cargo test -p julie-extract-cli`, `cargo test -p julie-extract-artifact writer_contract`, and `cargo test -p julie-extract-artifact writer_performance`.
+**Lead affected-change scope:** `cargo test -p julie-extract-cli`, `cargo test -p julie-extract-artifact writer_contract`, and `cargo test -p julie-extract-artifact writer_batching_contract`.
 
 **Branch gate:** `cargo xtask test default` and `cargo xtask test contract` before merge, push, or handoff.
 
@@ -184,12 +184,12 @@
 - `cargo test -p julie-extract-cli incremental_scan_reuses_existing_hash_without_parser_work`
 - `cargo test -p julie-extract-cli`
 - `cargo test -p julie-extract-artifact writer_contract`
-- `cargo test -p julie-extract-artifact writer_performance`
+- `cargo test -p julie-extract-artifact writer_batching_contract`
 - `cargo xtask test default`
 - `cargo xtask test contract`
 
 **Acceptance criteria:**
 - [x] Focused parser-skip test passes.
 - [x] Existing CLI scan/update/delete contracts pass.
-- [x] Writer contract and writer performance gates pass.
+- [x] Writer contract and writer batching contract gates pass.
 - [x] Default and contract branch gates pass before merge, push, or handoff.
