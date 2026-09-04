@@ -142,10 +142,10 @@ Commit mode: `serial-worker-commit` for serial tasks; `parallel-lead-commit` ins
 **Approach:** Write the base test first: an inline source with nested symbols, assert the same containing symbol the old filter-and-sort returned for a function, a nested function, a class method, and a top-level identifier with no container. Then swap the implementation. The old comparator sorted by priority, then span size, then start position; the index must produce identical answers, so keep the old function as a test oracle inside the test module until the comparison test passes, then delete it.
 
 **Acceptance criteria:**
-- [ ] `find_containing_symbol_from_iter` no longer collects a `Vec` or sorts per call.
-- [ ] Oracle comparison test passes for at least four languages (rust, typescript, python, csharp) over their `basic` golden sources.
-- [ ] `cargo xtask test golden` passes with zero fixture changes.
-- [ ] `cargo xtask test default` passes.
+- [x] `find_containing_symbol_from_iter` no longer collects a `Vec` or sorts per call.
+- [x] Oracle comparison test passes for at least four languages (rust, typescript, python, csharp) over their `basic` golden sources.
+- [x] `cargo xtask test golden` passes with zero fixture changes.
+- [x] `cargo xtask test default` passes.
 
 ## Task 4: Remove the store import spool detour
 
