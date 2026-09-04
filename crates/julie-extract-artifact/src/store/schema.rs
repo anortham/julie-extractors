@@ -214,6 +214,65 @@ pub(crate) fn reap_retired_resolution_capability_gaps(
     Ok(())
 }
 
+pub(crate) const RESOLUTION_RETIRED_KEY: &str = "resolution_retired";
+pub(crate) const RESOLUTION_RETIRED_VALUE: &str = "1";
+
+pub(crate) fn is_resolution_retired(conn: &Connection) -> Result<bool, StoreSchemaError> {
+    let value: Option<String> = conn
+        .query_row(
+            "SELECT value FROM store_meta WHERE key = ?1",
+            [RESOLUTION_RETIRED_KEY],
+            |row| row.get(0),
+        )
+        .optional()?;
+    Ok(value.as_deref() == Some(RESOLUTION_RETIRED_VALUE))
+}
+
+pub(crate) fn retire_resolution_migration(conn: &Connection) -> Result<(), StoreSchemaError> {
+    conn.execute_batch("PRAGMA foreign_keys = OFF;")?;
+    conn.execute_batch("BEGIN IMMEDIATE;")?;
+    let outcome = (|| -> Result<(), StoreSchemaError> {
+        if views_reference_resolution_tables(conn)? {
+            conn.execute_batch(RETIRED_VIEWS_REBUILD_SQL)?;
+        }
+        if store_has_retired_resolution_objects(conn)? {
+            conn.execute_batch(DROP_RETIRED_STORE_RESOLUTION_OBJECTS_SQL)?;
+        }
+        reap_retired_resolution_capability_gaps(conn)?;
+        conn.execute(
+            "INSERT INTO store_meta (key, value) VALUES (?1, ?2)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            [RESOLUTION_RETIRED_KEY, RESOLUTION_RETIRED_VALUE],
+        )?;
+        let violations = conn
+            .prepare("PRAGMA foreign_key_check")?
+            .query_map([], |row| {
+                Ok(format!(
+                    "{}:{}",
+                    row.get::<_, String>(0)?,
+                    row.get::<_, i64>(1)?
+                ))
+            })?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+        if !violations.is_empty() {
+            return Err(StoreSchemaError::Retirement {
+                detail: format!(
+                    "foreign_key_check failed after resolution retirement: {violations:?}"
+                ),
+            });
+        }
+        Ok(())
+    })();
+    if let Err(error) = outcome {
+        let _ = conn.execute_batch("ROLLBACK;");
+        let _ = conn.execute_batch("PRAGMA foreign_keys = ON;");
+        return Err(error);
+    }
+    conn.execute_batch("COMMIT;")?;
+    conn.execute_batch("PRAGMA foreign_keys = ON;")?;
+    Ok(())
+}
+
 /// Drops the retired one-claimed-resolve coordinator index.
 pub(crate) fn retire_coordinator_resolution_objects(
     conn: &Connection,

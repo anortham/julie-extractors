@@ -12,8 +12,7 @@ use super::coordinator::{CoordinatorError, LeaseDisposition, LeaseHolder, StoreC
 use super::layout::reap_retired_resolution_files;
 use super::pragmas::{PragmaError, WriterPragmaProfile, configure_writer_pragmas};
 use super::schema::{
-    ensure_read_symbol_indexes, reap_retired_resolution_capability_gaps,
-    retire_resolution_store_objects,
+    ensure_read_symbol_indexes, is_resolution_retired, retire_resolution_migration,
 };
 use super::wal_retry::{is_locking_protocol, with_locking_protocol_retry};
 use super::{STORE_SQLITE_SCHEMA_VERSION, StoreLayout, StoreLayoutError, StoreSchemaError};
@@ -261,9 +260,10 @@ impl StoreConnectionFactory {
         self.validate_writer_lease(&writer.fence)?;
         configure_writer_pragmas(&writer, WriterPragmaProfile::Routine)?;
         ensure_read_symbol_indexes(&writer)?;
-        retire_resolution_store_objects(&writer)?;
-        reap_retired_resolution_capability_gaps(&writer)?;
-        reap_retired_resolution_files(&self.layout)?;
+        if !is_resolution_retired(&writer)? {
+            reap_retired_resolution_files(&self.layout)?;
+            retire_resolution_migration(&writer)?;
+        }
         Ok(writer)
     }
 

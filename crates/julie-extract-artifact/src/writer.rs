@@ -180,7 +180,7 @@ impl PhaseClock {
 }
 
 pub struct ArtifactWriter {
-    connection: Connection,
+    connection: Option<Connection>,
     metadata: ArtifactMetadata,
     staged_capability_snapshot: Option<ArtifactCapabilitySnapshot>,
     /// Extraction level recorded into `artifact_metadata.index_level` by scan
@@ -210,7 +210,7 @@ impl ArtifactWriter {
         create_schema(&connection)?;
         initialize_metadata(&connection, &metadata)?;
         Ok(Self {
-            connection,
+            connection: Some(connection),
             metadata,
             staged_capability_snapshot: None,
             staged_index_level: None,
@@ -238,7 +238,7 @@ impl ArtifactWriter {
         }
         let bulk_load_eligible = artifact_is_unwritten(&connection)?;
         Ok(Self {
-            connection,
+            connection: Some(connection),
             metadata,
             staged_capability_snapshot: None,
             staged_index_level: None,
@@ -282,7 +282,11 @@ impl ArtifactWriter {
                 Some(message),
             ));
         }
-        finish_journal(&self.connection, bulk_load)
+        finish_journal(self.conn(), bulk_load)
+    }
+
+    fn conn(&self) -> &Connection {
+        self.connection.as_ref().expect("artifact writer is closed")
     }
 
     /// The success path restores the durable journal itself; a failed write
@@ -327,11 +331,22 @@ impl ArtifactWriter {
     }
 
     pub fn connection(&self) -> &Connection {
-        &self.connection
+        self.conn()
     }
 
-    pub fn into_connection(self) -> Connection {
-        self.connection
+    pub fn into_connection(mut self) -> Connection {
+        let conn = self.connection.take().expect("artifact writer is closed");
+        let _ = checkpoint_wal(&conn);
+        conn
+    }
+
+    /// Checkpoints the WAL and closes the database connection.
+    pub fn close(mut self) -> rusqlite::Result<()> {
+        if let Some(conn) = self.connection.take() {
+            checkpoint_wal(&conn)?;
+            conn.close().map_err(|(_, err)| err)?;
+        }
+        Ok(())
     }
 
     pub fn stage_capability_snapshot(&mut self, snapshot: ArtifactCapabilitySnapshot) {
@@ -352,10 +367,13 @@ impl ArtifactWriter {
         snapshot: &ArtifactCapabilitySnapshot,
     ) -> ArtifactWriteResult<RowDomainCounts> {
         self.ensure_not_poisoned()?;
-        let tx = self.connection.transaction()?;
+        let tx = self
+            .connection
+            .as_mut()
+            .expect("artifact writer is closed")
+            .transaction()?;
         let counts = capabilities::sync_capability_snapshot_in_tx(&tx, snapshot)?;
         tx.commit()?;
-        checkpoint_wal(&self.connection)?;
         self.last_capability_rows_written = counts.clone();
         Ok(counts)
     }
@@ -450,14 +468,16 @@ impl ArtifactWriter {
         self.take_bulk_load_eligibility();
         let mut clock = PhaseClock::start();
         let capability_snapshot = self.staged_capability_snapshot();
-        let tx = self.connection.transaction()?;
+        let tx = self
+            .connection
+            .as_mut()
+            .expect("artifact writer is closed")
+            .transaction()?;
         let existing = load_existing_file(&tx, path)?;
         let Some(existing) = existing else {
             clock.lap(|phases| &mut phases.plan);
             tx.commit()?;
             clock.lap(|phases| &mut phases.commit);
-            checkpoint_wal(&self.connection)?;
-            clock.lap(|phases| &mut phases.wal_checkpoint);
             self.last_capability_rows_written = RowDomainCounts::default();
             return Ok(WriteResult {
                 transactions_committed: 1,
@@ -492,8 +512,6 @@ impl ArtifactWriter {
         finalize_revision_counts(&tx, revision_id, &row_counts, &capability_rows_written)?;
         tx.commit()?;
         clock.lap(|phases| &mut phases.commit);
-        checkpoint_wal(&self.connection)?;
-        clock.lap(|phases| &mut phases.wal_checkpoint);
         self.last_capability_rows_written = capability_rows_written;
 
         Ok(WriteResult {
@@ -520,7 +538,11 @@ impl ArtifactWriter {
         self.take_bulk_load_eligibility();
         let mut clock = PhaseClock::start();
         let capability_snapshot = self.staged_capability_snapshot();
-        let tx = self.connection.transaction()?;
+        let tx = self
+            .connection
+            .as_mut()
+            .expect("artifact writer is closed")
+            .transaction()?;
         let capability_rows_written = capabilities::sync_optional_capability_snapshot_in_tx(
             &tx,
             capability_snapshot.as_ref(),
@@ -558,8 +580,6 @@ impl ArtifactWriter {
             clock.lap(|phases| &mut phases.plan);
             tx.commit()?;
             clock.lap(|phases| &mut phases.commit);
-            checkpoint_wal(&self.connection)?;
-            clock.lap(|phases| &mut phases.wal_checkpoint);
             self.last_capability_rows_written = capability_rows_written;
             return Ok(WriteResult {
                 files_skipped,
@@ -616,8 +636,6 @@ impl ArtifactWriter {
         finalize_revision_counts(&tx, revision_id, &row_counts, &capability_rows_written)?;
         tx.commit()?;
         clock.lap(|phases| &mut phases.commit);
-        checkpoint_wal(&self.connection)?;
-        clock.lap(|phases| &mut phases.wal_checkpoint);
         self.last_capability_rows_written = capability_rows_written;
 
         Ok(WriteResult {
@@ -641,7 +659,7 @@ impl ArtifactWriter {
         let bulk_load = self.take_bulk_load_eligibility();
         let bulk_setup_started = Instant::now();
         if bulk_load {
-            begin_bulk_load(&self.connection)?;
+            begin_bulk_load(self.conn())?;
         }
         let bulk_setup = bulk_setup_started.elapsed();
         match self.write_scan_snapshot_in_mode(revision, files, bulk_load) {
@@ -665,7 +683,11 @@ impl ArtifactWriter {
     ) -> ArtifactWriteResult<WriteResult> {
         let mut clock = PhaseClock::start();
         let capability_snapshot = self.staged_capability_snapshot();
-        let tx = self.connection.transaction()?;
+        let tx = self
+            .connection
+            .as_mut()
+            .expect("artifact writer is closed")
+            .transaction()?;
         if bulk_load {
             drop_secondary_indexes(&tx)?;
         }
@@ -839,7 +861,7 @@ impl ArtifactWriter {
         let bulk_load = self.take_bulk_load_eligibility();
         let bulk_setup_started = Instant::now();
         if bulk_load {
-            begin_bulk_load(&self.connection)?;
+            begin_bulk_load(self.conn())?;
         }
         let bulk_setup = bulk_setup_started.elapsed();
         match self.write_scan_spooled_snapshot_in_mode(
@@ -871,7 +893,11 @@ impl ArtifactWriter {
     ) -> ArtifactWriteResult<WriteResult> {
         let mut clock = PhaseClock::start();
         let capability_snapshot = self.staged_capability_snapshot();
-        let tx = self.connection.unchecked_transaction()?;
+        let tx = self
+            .connection
+            .as_mut()
+            .expect("artifact writer is closed")
+            .unchecked_transaction()?;
         // Symbol parent FKs can point to symbols inserted later in the same spooled transaction.
         // Defer validation until commit while keeping connection-level foreign_keys ON so
         // ON DELETE CASCADE/SET NULL actions still run during rewrites and snapshot deletes.
@@ -1061,6 +1087,17 @@ impl ArtifactWriter {
             reference_site_conflicts,
             phases: clock.finish(),
         })
+    }
+}
+
+impl Drop for ArtifactWriter {
+    fn drop(&mut self) {
+        let Some(conn) = self.connection.take() else {
+            return;
+        };
+        if !std::thread::panicking() {
+            let _ = checkpoint_wal(&conn);
+        }
     }
 }
 

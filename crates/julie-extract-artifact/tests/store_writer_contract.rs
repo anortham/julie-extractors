@@ -1052,6 +1052,14 @@ fn writer_open_reaps_retired_reference_resolution_gap_rows() {
         );
     }
 
+    rusqlite::Connection::open(store.layout.store_db())
+        .unwrap()
+        .execute(
+            "DELETE FROM store_meta WHERE key = 'resolution_retired'",
+            [],
+        )
+        .unwrap();
+
     let mut writer = store.writer();
     assert_eq!(
         table_count(writer.connection(), "language_capability_gaps"),
