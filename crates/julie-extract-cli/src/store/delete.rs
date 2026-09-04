@@ -1,13 +1,10 @@
-use std::sync::Arc;
-
-use julie_extract_artifact::store::{
-    CoordinatorRequest, LeaseHolder, RequestKind, StoreCoordinator,
-};
+use julie_extract_artifact::store::{CoordinatorRequest, RequestKind};
 
 use super::args::StoreDeleteArgs;
+use super::common::*;
 use super::executor::{DeleteRequestPayload, RequestedLevel, StoreRequestExecutor};
 use super::import::{
-    ImportClock, ImportPidLiveness, RequestReportSpec, StoreExecutionOutcome, classify_failure,
+    RequestReportSpec, StoreExecutionOutcome, classify_failure,
     drain_when_available, mint_request_id, normalize_root_relative, now_millis,
     open_existing_store, report_request, require_existing_view, root_scope_matches,
 };
@@ -36,8 +33,12 @@ pub(crate) fn run(args: StoreDeleteArgs) -> StoreExecutionOutcome {
         Ok(report) => StoreExecutionOutcome::success(report, format),
         Err(message) => {
             let mut report = base_report(
-                &args,
+                StoreOperation::Delete,
                 &request_id,
+                &failure_family_id,
+                &args.view,
+                &args.root,
+                StoreRequestedLevel::L1,
                 &idempotency_key,
                 StoreRequestState::Failed,
             );
@@ -58,18 +59,7 @@ fn execute_delete(
     failure_family_id.clone_from(&existing.family_id);
     let layout = existing.layout;
     let family_id = existing.family_id;
-    let holder = LeaseHolder::new(
-        format!("cli-{}", std::process::id()),
-        env!("CARGO_PKG_VERSION"),
-        std::process::id(),
-    );
-    let mut coordinator = StoreCoordinator::open_with_runtime(
-        &layout,
-        holder,
-        Arc::new(ImportClock),
-        Arc::new(ImportPidLiveness),
-    )
-    .map_err(|error| error.to_string())?;
+    let mut coordinator = open_cli_coordinator(&layout).map_err(|error| error.to_string())?;
     let existing_request = coordinator
         .request_by_idempotency_key(idempotency_key)
         .map_err(|error| error.to_string())?;
@@ -158,22 +148,4 @@ fn execute_delete(
         },
     )?
     .with_warnings(warnings))
-}
-
-fn base_report(
-    args: &StoreDeleteArgs,
-    request_id: &str,
-    idempotency_key: &str,
-    state: StoreRequestState,
-) -> StoreReport {
-    StoreReport::new(
-        request_id,
-        args.family.as_deref().unwrap_or_default(),
-        &args.view,
-        state,
-    )
-    .with_operation(StoreOperation::Delete)
-    .with_idempotency_key(idempotency_key)
-    .with_root(args.root.to_string_lossy())
-    .with_requested_level(StoreRequestedLevel::L1)
 }

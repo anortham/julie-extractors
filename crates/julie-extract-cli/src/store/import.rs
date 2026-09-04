@@ -6,12 +6,13 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use julie_extractors::EXTRACTION_IDENTITY_EPOCH;
 
 use julie_extract_artifact::store::{
-    CoordinatorError, CoordinatorPolicy, CoordinatorRequest, LeaseHolder, QUANTUM_OVERRUN_CODE,
+    CoordinatorError, CoordinatorPolicy, CoordinatorRequest, QUANTUM_OVERRUN_CODE,
     RequestKind, RequestState, StoreCoordinator, StoreLayout, same_path_identity,
 };
 use rusqlite::OptionalExtension;
 
 use super::args::{StoreImportArgs, StoreLevelArg};
+use super::common::*;
 use super::executor::{
     ImportRequestPayload, ImportScanControls, PlannedImportFile, RequestedLevel,
     StoreRequestExecutor, frozen_chunk_versions_from_environment,
@@ -343,8 +344,15 @@ pub(crate) fn run(args: StoreImportArgs) -> StoreExecutionOutcome {
         Ok(report) => StoreExecutionOutcome::success(report, format),
         Err(message) => {
             let report = base_report(
-                &args,
+                StoreOperation::Import,
                 &request_id,
+                &args.family,
+                &args.view,
+                &args.root,
+                match args.level {
+                    StoreLevelArg::L1 => StoreRequestedLevel::L1,
+                    StoreLevelArg::Full => StoreRequestedLevel::Full,
+                },
                 &idempotency_key,
                 StoreRequestState::Failed,
             )
@@ -371,18 +379,7 @@ fn execute_import(
     let existing_store = args.store.join("CURRENT").exists();
     let existing = if existing_store {
         let layout = StoreLayout::open(&args.store).map_err(|error| error.to_string())?;
-        let holder = LeaseHolder::new(
-            format!("cli-{}", std::process::id()),
-            env!("CARGO_PKG_VERSION"),
-            std::process::id(),
-        );
-        let coordinator = StoreCoordinator::open_with_runtime(
-            &layout,
-            holder,
-            std::sync::Arc::new(ImportClock),
-            std::sync::Arc::new(ImportPidLiveness),
-        )
-        .map_err(|error| error.to_string())?;
+        let coordinator = open_cli_coordinator(&layout).map_err(|error| error.to_string())?;
         coordinator
             .request_by_idempotency_key(idempotency_key)
             .map_err(|error| error.to_string())?
@@ -511,22 +508,11 @@ fn execute_import(
                 idempotency_key,
                 RequestKind::Import,
                 payload,
-                format!("cli-{}", std::process::id()),
+                cli_lease_holder_id(),
                 now.saturating_add(deadline_delta),
                 now,
             );
-            let holder = LeaseHolder::new(
-                format!("cli-{}", std::process::id()),
-                env!("CARGO_PKG_VERSION"),
-                std::process::id(),
-            );
-            let mut coordinator = StoreCoordinator::open_with_runtime(
-                &layout,
-                holder,
-                std::sync::Arc::new(ImportClock),
-                std::sync::Arc::new(ImportPidLiveness),
-            )
-            .map_err(|error| error.to_string())?;
+            let mut coordinator = open_cli_coordinator(&layout).map_err(|error| error.to_string())?;
             let canonical_request = coordinator
                 .enqueue(request)
                 .map_err(|error| error.to_string())?
@@ -942,21 +928,6 @@ pub(crate) fn classify_failure(message: &str) -> StoreFailureClass {
     } else {
         StoreFailureClass::Internal
     }
-}
-
-fn base_report(
-    args: &StoreImportArgs,
-    request_id: &str,
-    idempotency_key: &str,
-    state: StoreRequestState,
-) -> StoreReport {
-    StoreReport::new(request_id, &args.family, &args.view, state)
-        .with_idempotency_key(idempotency_key)
-        .with_root(args.root.to_string_lossy())
-        .with_requested_level(match args.level {
-            StoreLevelArg::L1 => StoreRequestedLevel::L1,
-            StoreLevelArg::Full => StoreRequestedLevel::Full,
-        })
 }
 
 pub(crate) fn mint_request_id() -> String {
