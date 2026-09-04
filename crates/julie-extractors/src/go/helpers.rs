@@ -189,18 +189,19 @@ impl super::GoExtractor {
 
     pub(super) fn find_function_doc_comment(&self, node: &Node) -> Option<String> {
         let comments: Vec<String> = self
-            .preceding_comment_texts(node.prev_named_sibling())
+            .base
+            .previous_comment_texts(node.prev_named_sibling())
             .into_iter()
             .filter(|comment| parse_go_compiler_directive(comment).is_none())
             .collect();
-        select_go_doc_comment_block(&comments)
+        crate::base::extractor::select_doc_comment_block("go", &comments)
     }
 
     pub(super) fn annotations_from_compiler_directives(
         &self,
         node: &Node,
     ) -> Vec<AnnotationMarker> {
-        let comments = self.preceding_comment_texts(node.prev_named_sibling());
+        let comments = self.base.previous_comment_texts(node.prev_named_sibling());
         let mut seen = HashSet::new();
         let mut markers = Vec::new();
 
@@ -213,21 +214,6 @@ impl super::GoExtractor {
         }
 
         markers
-    }
-
-    fn preceding_comment_texts(&self, mut current: Option<Node>) -> Vec<String> {
-        let mut comments = Vec::new();
-
-        while let Some(sibling) = current {
-            if sibling.kind().contains("comment") {
-                comments.push(self.get_node_text(sibling));
-                current = sibling.prev_named_sibling();
-            } else {
-                break;
-            }
-        }
-
-        comments
     }
 }
 
@@ -341,36 +327,6 @@ fn receiver_base_type_node(type_node: Node) -> Option<Node> {
         "generic_type" => receiver_base_type_node(type_node.child_by_field_name("type")?),
         _ => None,
     }
-}
-
-fn select_go_doc_comment_block(comments_nearest_first: &[String]) -> Option<String> {
-    let spec = crate::language::language_spec("go")?;
-    if comments_nearest_first.is_empty() {
-        return None;
-    }
-
-    let comments_top_down: Vec<_> = comments_nearest_first.iter().rev().collect();
-    for start_index in 0..comments_top_down.len() {
-        let first = comments_top_down[start_index];
-        if !spec.is_doc_comment(first) {
-            continue;
-        }
-
-        if comments_top_down[start_index + 1..]
-            .iter()
-            .all(|comment| spec.continues_doc_comment(comment))
-        {
-            return Some(
-                comments_top_down[start_index..]
-                    .iter()
-                    .map(|comment| comment.as_str())
-                    .collect::<Vec<_>>()
-                    .join("\n"),
-            );
-        }
-    }
-
-    None
 }
 
 fn parse_go_compiler_directive(comment: &str) -> Option<AnnotationMarker> {

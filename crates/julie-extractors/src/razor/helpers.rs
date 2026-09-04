@@ -153,13 +153,7 @@ impl super::RazorExtractor {
 
     /// Determine visibility (public/private/protected) from modifiers
     pub(super) fn determine_visibility(&self, modifiers: &[String]) -> Visibility {
-        if modifiers.iter().any(|m| m == "private") {
-            Visibility::Private
-        } else if modifiers.iter().any(|m| m == "protected") {
-            Visibility::Protected
-        } else {
-            Visibility::Public
-        }
+        crate::base::visibility::visibility_from_modifiers(modifiers)
     }
 
     /// Extract namespace name from a using directive or namespace declaration

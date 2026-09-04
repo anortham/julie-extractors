@@ -420,15 +420,7 @@ pub(super) fn determine_class_kind(
     SymbolKind::Class
 }
 
-/// Determine visibility from modifiers (Public, Private, Protected)
+/// Determine visibility from modifiers
 pub(super) fn determine_visibility(modifiers: &[String]) -> Visibility {
-    if modifiers.contains(&"private".to_string()) {
-        Visibility::Private
-    } else if modifiers.contains(&"protected".to_string()) {
-        Visibility::Protected
-    } else if modifiers.contains(&"internal".to_string()) {
-        Visibility::Private // Kotlin internal maps to Private (module-scoped, not fully public)
-    } else {
-        Visibility::Public // Kotlin defaults to public
-    }
+    crate::base::visibility::visibility_from_modifiers(modifiers)
 }

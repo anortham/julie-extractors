@@ -104,9 +104,9 @@ fn main() -> std::process::ExitCode {
 **Approach:** Before merging, write a table test that runs each language's current `determine_visibility` against the same modifier lists and the shared function, and asserts equality. Do not force Go's uppercase rule into the shared helper (`go/helpers.rs::is_public` stays). Then swap implementations.
 
 **Acceptance criteria:**
-- [ ] Go's doc-comment helpers are gone and Go uses the base ones; `cargo xtask test language go` passes.
-- [ ] Eight `determine_visibility` bodies collapse to the shared function or a one-line default wrapper.
-- [ ] Language tiers for all eight pass; golden passes with zero changes.
+- [x] Go's doc-comment helpers are gone and Go uses the base ones; `cargo xtask test language go` passes.
+- [x] Eight `determine_visibility` bodies collapse to the shared function or a one-line default wrapper.
+- [x] Language tiers for all eight pass; golden passes with zero changes.
 
 ## Task 4: Vue parses each section once
 
