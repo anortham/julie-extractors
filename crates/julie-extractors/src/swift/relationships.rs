@@ -3,7 +3,6 @@ use crate::base::{
     UnresolvedTarget,
 };
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use serde_json;
 use std::collections::HashMap;
 use tree_sitter::Node;
 

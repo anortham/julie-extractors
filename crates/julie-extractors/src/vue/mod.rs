@@ -24,9 +24,6 @@ mod style;
 mod template;
 mod test_calls;
 
-// Public re-exports
-pub use crate::base::{IdentifierKind, RelationshipKind};
-
 use parsing::{ParsedVueSfc, VueSection};
 use script::create_symbol_manual;
 

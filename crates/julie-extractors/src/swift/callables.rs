@@ -1,6 +1,5 @@
 use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility};
 use crate::test_detection::apply_callable_test_metadata;
-use serde_json;
 use std::collections::HashMap;
 use tree_sitter::Node;
 

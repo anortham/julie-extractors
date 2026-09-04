@@ -1,5 +1,4 @@
 use crate::base::{AnnotationMarker, Symbol, SymbolKind, SymbolOptions, Visibility};
-use serde_json;
 use std::collections::HashMap;
 use tree_sitter::Node;
 

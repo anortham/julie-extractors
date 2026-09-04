@@ -91,19 +91,10 @@ pub(crate) fn parse_script_section(section: &VueSection) -> Option<Tree> {
 }
 
 /// Parsed Vue SFC structure holding extracted sections and lazily parsed `Tree`s per script section.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub(crate) struct ParsedVueSfc {
     pub(crate) sections: Vec<VueSection>,
     script_trees: Vec<OnceLock<Option<Tree>>>,
-}
-
-impl Default for ParsedVueSfc {
-    fn default() -> Self {
-        Self {
-            sections: Vec::new(),
-            script_trees: Vec::new(),
-        }
-    }
 }
 
 impl Clone for ParsedVueSfc {
