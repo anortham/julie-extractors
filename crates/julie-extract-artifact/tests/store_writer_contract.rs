@@ -26,7 +26,7 @@ fn store_projection_refuses_non_indexed_or_unhashed_files() {
     let mut failed = fixture_file("src/lib.rs", "rust", "blake3:aaa");
     failed.status = FileStatus::FailedPreserved;
     assert!(matches!(
-        StoreFileVersion::try_from_artifact_file(1, &failed),
+        StoreFileVersion::try_from_artifact_file(1, failed),
         Err(StoreProjectionError::FileNotIndexed(
             FileStatus::FailedPreserved
         ))
@@ -35,7 +35,7 @@ fn store_projection_refuses_non_indexed_or_unhashed_files() {
     let mut unhashed = fixture_file("src/lib.rs", "rust", "");
     unhashed.content_hash.clear();
     assert!(matches!(
-        StoreFileVersion::try_from_artifact_file(1, &unhashed),
+        StoreFileVersion::try_from_artifact_file(1, unhashed),
         Err(StoreProjectionError::MissingContentHash)
     ));
 }
@@ -50,7 +50,7 @@ fn relationship_claims_promote_shared_reference_sites_to_l1() {
     file.relationships = vec![relationship("relationship-shared", "site-shared")];
     file.pending_relationships = vec![pending_relationship("pending-only", "site-pending")];
 
-    let version = StoreFileVersion::try_from_artifact_file(1, &file).unwrap();
+    let version = StoreFileVersion::try_from_artifact_file(1, file).unwrap();
     let l1_ids = version
         .reference_sites(StoreLevel::L1)
         .iter()
@@ -77,7 +77,7 @@ fn metadata_json_is_preserved_byte_for_byte_in_every_projection() {
     file.metadata_json = Some(r#"{"z":1,"a":{"y":2,"x":3}}"#.to_string());
     file.symbols[0].metadata_json = Some(r#"{"last":true,"first":false}"#.to_string());
 
-    let version = StoreFileVersion::try_from_artifact_file(1, &file).unwrap();
+    let version = StoreFileVersion::try_from_artifact_file(1, file.clone()).unwrap();
 
     assert_eq!(version.file_metadata_json(), file.metadata_json.as_deref());
     assert_eq!(
@@ -93,7 +93,7 @@ fn stamped_identity_is_reused_and_other_identity_components_allocate_versions() 
     writer.stage_capability_snapshot(1, capability_snapshot());
     let first = StoreFileVersion::try_from_artifact_file(
         1,
-        &fixture_file("src/lib.rs", "rust", "blake3:aaa"),
+        fixture_file("src/lib.rs", "rust", "blake3:aaa"),
     )
     .unwrap();
 
@@ -118,17 +118,17 @@ fn stamped_identity_is_reused_and_other_identity_components_allocate_versions() 
 
     let changed_hash = StoreFileVersion::try_from_artifact_file(
         1,
-        &fixture_file("src/lib.rs", "rust", "blake3:bbb"),
+        fixture_file("src/lib.rs", "rust", "blake3:bbb"),
     )
     .unwrap();
     let changed_path = StoreFileVersion::try_from_artifact_file(
         1,
-        &fixture_file("src/other.rs", "rust", "blake3:aaa"),
+        fixture_file("src/other.rs", "rust", "blake3:aaa"),
     )
     .unwrap();
     let changed_epoch = StoreFileVersion::try_from_artifact_file(
         2,
-        &fixture_file("src/lib.rs", "rust", "blake3:aaa"),
+        fixture_file("src/lib.rs", "rust", "blake3:aaa"),
     )
     .unwrap();
     let ids = [changed_hash, changed_path, changed_epoch]
@@ -169,7 +169,7 @@ fn incomplete_version_resumes_without_allocating_a_second_identity() {
     writer.stage_capability_snapshot(1, capability_snapshot());
     let version = StoreFileVersion::try_from_artifact_file(
         1,
-        &fixture_file("src/lib.rs", "rust", "blake3:aaa"),
+        fixture_file("src/lib.rs", "rust", "blake3:aaa"),
     )
     .unwrap();
     writer
@@ -226,7 +226,7 @@ fn assert_immutable_resume_conflict(mutation: &str, name: &str) {
     writer.stage_capability_snapshot(1, capability_snapshot());
     let version = StoreFileVersion::try_from_artifact_file(
         1,
-        &fixture_file("src/lib.rs", "rust", "blake3:aaa"),
+        fixture_file("src/lib.rs", "rust", "blake3:aaa"),
     )
     .unwrap();
     let completed = writer
@@ -292,12 +292,12 @@ fn retained_versions_can_reuse_local_ids_and_composite_parents() {
     writer.stage_capability_snapshot(1, capability_snapshot());
     let first = StoreFileVersion::try_from_artifact_file(
         1,
-        &fixture_file("src/lib.rs", "rust", "blake3:aaa"),
+        fixture_file("src/lib.rs", "rust", "blake3:aaa"),
     )
     .unwrap();
     let second = StoreFileVersion::try_from_artifact_file(
         1,
-        &fixture_file("src/lib.rs", "rust", "blake3:bbb"),
+        fixture_file("src/lib.rs", "rust", "blake3:bbb"),
     )
     .unwrap();
 
@@ -320,7 +320,7 @@ fn stamp_failure_rolls_back_the_last_row_and_leaves_the_version_incomplete() {
     writer.stage_capability_snapshot(1, capability_snapshot());
     let version = StoreFileVersion::try_from_artifact_file(
         1,
-        &fixture_file("src/lib.rs", "rust", "blake3:aaa"),
+        fixture_file("src/lib.rs", "rust", "blake3:aaa"),
     )
     .unwrap();
     writer
@@ -352,7 +352,7 @@ fn multi_language_versions_persist_every_row_family_at_its_contract_level() {
         fully_populated_file("src/lib.rs", "rust", "blake3:rust"),
         fully_populated_file("src/Program.cs", "csharp", "blake3:csharp"),
     ]
-    .iter()
+    .into_iter()
     .map(|file| StoreFileVersion::try_from_artifact_file(1, file).unwrap())
     .collect::<Vec<_>>();
 
@@ -430,7 +430,7 @@ fn l2_resume_replaces_only_identifier_sites_and_preserves_l1_bytes() {
     writer.stage_capability_snapshot(1, capability_snapshot());
     let version = StoreFileVersion::try_from_artifact_file(
         1,
-        &fully_populated_file("src/lib.rs", "rust", "blake3:aaa"),
+        fully_populated_file("src/lib.rs", "rust", "blake3:aaa"),
     )
     .unwrap();
     let l1 = writer
@@ -481,7 +481,7 @@ fn l3_resume_replaces_only_l3_rows_and_preserves_earlier_levels_byte_for_byte() 
     writer.stage_capability_snapshot(1, capability_snapshot());
     let version = StoreFileVersion::try_from_artifact_file(
         1,
-        &fully_populated_file("src/lib.rs", "rust", "blake3:aaa"),
+        fully_populated_file("src/lib.rs", "rust", "blake3:aaa"),
     )
     .unwrap();
     let l1 = writer
@@ -562,7 +562,7 @@ fn complete_store_rows_match_v3_extraction_payloads_before_resolution() {
     let store = TestStore::new("v3-equivalence");
     let mut writer = store.writer();
     writer.stage_capability_snapshot(1, capability_snapshot());
-    let version = StoreFileVersion::try_from_artifact_file(1, &file).unwrap();
+    let version = StoreFileVersion::try_from_artifact_file(1, file).unwrap();
     let l1 = writer
         .write_level(&request("request-l1"), &version, StoreLevel::L1)
         .unwrap();
@@ -645,7 +645,7 @@ fn duplicate_structural_fact_ids_keep_first_payload_and_remain_version_local() {
     let store = TestStore::new("duplicate-structural-facts");
     let mut writer = store.writer();
     writer.stage_capability_snapshot(1, capability_snapshot());
-    let first = StoreFileVersion::try_from_artifact_file(1, &file).unwrap();
+    let first = StoreFileVersion::try_from_artifact_file(1, file.clone()).unwrap();
     let first_l1 = writer
         .write_level(&request("request-first-l1"), &first, StoreLevel::L1)
         .unwrap();
@@ -689,7 +689,7 @@ fn duplicate_structural_fact_ids_keep_first_payload_and_remain_version_local() {
 
     let mut next_file = file.clone();
     next_file.content_hash = "blake3:bbb".to_string();
-    let next = StoreFileVersion::try_from_artifact_file(1, &next_file).unwrap();
+    let next = StoreFileVersion::try_from_artifact_file(1, next_file).unwrap();
     writer
         .write_level(&request("request-next-l1"), &next, StoreLevel::L1)
         .unwrap();
@@ -709,7 +709,7 @@ fn later_levels_refuse_to_run_before_their_predecessor_stamp() {
     writer.stage_capability_snapshot(1, capability_snapshot());
     let version = StoreFileVersion::try_from_artifact_file(
         1,
-        &fully_populated_file("src/lib.rs", "rust", "blake3:aaa"),
+        fully_populated_file("src/lib.rs", "rust", "blake3:aaa"),
     )
     .unwrap();
 
@@ -734,7 +734,7 @@ fn l2_stamp_failure_rolls_back_only_l2_and_keeps_l1_complete() {
     writer.stage_capability_snapshot(1, capability_snapshot());
     let version = StoreFileVersion::try_from_artifact_file(
         1,
-        &fully_populated_file("src/lib.rs", "rust", "blake3:aaa"),
+        fully_populated_file("src/lib.rs", "rust", "blake3:aaa"),
     )
     .unwrap();
     let l1 = writer
@@ -779,17 +779,17 @@ fn capability_rows_are_epoch_global_and_not_duplicated_by_requests() {
     writer.stage_capability_snapshot(1, capability_snapshot());
     let first = StoreFileVersion::try_from_artifact_file(
         1,
-        &fixture_file("src/lib.rs", "rust", "blake3:aaa"),
+        fixture_file("src/lib.rs", "rust", "blake3:aaa"),
     )
     .unwrap();
     let second = StoreFileVersion::try_from_artifact_file(
         1,
-        &fixture_file("src/other.rs", "rust", "blake3:bbb"),
+        fixture_file("src/other.rs", "rust", "blake3:bbb"),
     )
     .unwrap();
     let next_epoch = StoreFileVersion::try_from_artifact_file(
         2,
-        &fixture_file("src/lib.rs", "rust", "blake3:aaa"),
+        fixture_file("src/lib.rs", "rust", "blake3:aaa"),
     )
     .unwrap();
 
@@ -823,7 +823,7 @@ fn uninitialized_epoch_rejects_missing_empty_and_stale_capability_snapshots() {
     let mut writer = store.writer();
     let epoch_two = StoreFileVersion::try_from_artifact_file(
         2,
-        &fixture_file("src/lib.rs", "rust", "blake3:aaa"),
+        fixture_file("src/lib.rs", "rust", "blake3:aaa"),
     )
     .unwrap();
 
@@ -875,7 +875,7 @@ fn initialized_epoch_needs_no_restaging_but_next_epoch_does() {
     let mut writer = store.writer();
     let first = StoreFileVersion::try_from_artifact_file(
         1,
-        &fixture_file("src/lib.rs", "rust", "blake3:aaa"),
+        fixture_file("src/lib.rs", "rust", "blake3:aaa"),
     )
     .unwrap();
     writer.stage_capability_snapshot(1, capability_snapshot());
@@ -885,7 +885,7 @@ fn initialized_epoch_needs_no_restaging_but_next_epoch_does() {
 
     let second = StoreFileVersion::try_from_artifact_file(
         1,
-        &fixture_file("src/other.rs", "rust", "blake3:bbb"),
+        fixture_file("src/other.rs", "rust", "blake3:bbb"),
     )
     .unwrap();
     writer
@@ -894,7 +894,7 @@ fn initialized_epoch_needs_no_restaging_but_next_epoch_does() {
 
     let next_epoch = StoreFileVersion::try_from_artifact_file(
         2,
-        &fixture_file("src/lib.rs", "rust", "blake3:aaa"),
+        fixture_file("src/lib.rs", "rust", "blake3:aaa"),
     )
     .unwrap();
     let error = writer
@@ -925,7 +925,7 @@ fn writer_selects_bulk_and_routine_wal_autocheckpoints_per_request() {
     writer.stage_capability_snapshot(1, capability_snapshot());
     let first = StoreFileVersion::try_from_artifact_file(
         1,
-        &fixture_file("src/lib.rs", "rust", "blake3:aaa"),
+        fixture_file("src/lib.rs", "rust", "blake3:aaa"),
     )
     .unwrap();
     writer
@@ -939,7 +939,7 @@ fn writer_selects_bulk_and_routine_wal_autocheckpoints_per_request() {
 
     let second = StoreFileVersion::try_from_artifact_file(
         1,
-        &fixture_file("src/other.rs", "rust", "blake3:bbb"),
+        fixture_file("src/other.rs", "rust", "blake3:bbb"),
     )
     .unwrap();
     writer
@@ -992,7 +992,7 @@ fn projection_applies_v3_validity_filters_and_spanless_normalization() {
     file.identifiers[1].site_is_exact = false;
     file.identifiers[1].site_provenance = ReferenceSiteProvenance::Spanless;
 
-    let version = StoreFileVersion::try_from_artifact_file(1, &file).unwrap();
+    let version = StoreFileVersion::try_from_artifact_file(1, file).unwrap();
     let projected = version.artifact_file();
 
     assert_eq!(projected.symbol_annotations.len(), 1);
@@ -1040,7 +1040,7 @@ fn writer_open_reaps_retired_reference_resolution_gap_rows() {
         writer.stage_capability_snapshot(1, legacy);
         let first = StoreFileVersion::try_from_artifact_file(
             1,
-            &fixture_file("src/lib.rs", "rust", "blake3:aaa"),
+            fixture_file("src/lib.rs", "rust", "blake3:aaa"),
         )
         .unwrap();
         writer
@@ -1060,7 +1060,7 @@ fn writer_open_reaps_retired_reference_resolution_gap_rows() {
     writer.stage_capability_snapshot(1, capability_snapshot());
     let second = StoreFileVersion::try_from_artifact_file(
         1,
-        &fixture_file("src/other.rs", "rust", "blake3:bbb"),
+        fixture_file("src/other.rs", "rust", "blake3:bbb"),
     )
     .unwrap();
     writer
@@ -1075,7 +1075,7 @@ fn conflicting_capability_snapshot_for_an_existing_epoch_is_rejected() {
     writer.stage_capability_snapshot(1, capability_snapshot());
     let first = StoreFileVersion::try_from_artifact_file(
         1,
-        &fixture_file("src/lib.rs", "rust", "blake3:aaa"),
+        fixture_file("src/lib.rs", "rust", "blake3:aaa"),
     )
     .unwrap();
     writer
@@ -1088,7 +1088,7 @@ fn conflicting_capability_snapshot_for_an_existing_epoch_is_rejected() {
     writer.stage_capability_snapshot(1, conflicting);
     let second = StoreFileVersion::try_from_artifact_file(
         1,
-        &fixture_file("src/other.rs", "rust", "blake3:bbb"),
+        fixture_file("src/other.rs", "rust", "blake3:bbb"),
     )
     .unwrap();
 
@@ -1397,7 +1397,7 @@ fn capability_snapshot_sync_moves_store_meta_to_the_written_epoch() {
     writer.stage_capability_snapshot(1, capability_snapshot());
     let version = StoreFileVersion::try_from_artifact_file(
         1,
-        &fixture_file("src/lib.rs", "rust", "blake3:aaa"),
+        fixture_file("src/lib.rs", "rust", "blake3:aaa"),
     )
     .unwrap();
     writer

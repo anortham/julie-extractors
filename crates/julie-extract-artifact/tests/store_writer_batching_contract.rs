@@ -20,7 +20,7 @@ fn statement_sets_are_prepared_once_per_level_transaction() {
     let small_store = TestStore::new("prepare-once-small");
     let mut small_writer = small_store.writer();
     small_writer.stage_capability_snapshot(1, dense_capability_snapshot(1));
-    let small_version = StoreFileVersion::try_from_artifact_file(1, &dense_file(1)).unwrap();
+    let small_version = StoreFileVersion::try_from_artifact_file(1, dense_file(1)).unwrap();
     let small_l1 = small_writer
         .write_level(&request("request-small-l1"), &small_version, StoreLevel::L1)
         .unwrap();
@@ -28,7 +28,7 @@ fn statement_sets_are_prepared_once_per_level_transaction() {
     let store = TestStore::new("prepare-once-large");
     let mut writer = store.writer();
     writer.stage_capability_snapshot(1, dense_capability_snapshot(500));
-    let version = StoreFileVersion::try_from_artifact_file(1, &dense_file(500)).unwrap();
+    let version = StoreFileVersion::try_from_artifact_file(1, dense_file(500)).unwrap();
 
     let l1 = writer
         .write_level(&request("request-l1"), &version, StoreLevel::L1)
@@ -55,7 +55,7 @@ fn initialized_epoch_with_matching_snapshot_skips_capability_sync_and_rejects_co
     let store = TestStore::new("skip-capability-sync");
     let mut writer = store.writer();
     writer.stage_capability_snapshot(1, capability_snapshot("rust"));
-    let first_file = StoreFileVersion::try_from_artifact_file(1, &dense_file(1)).unwrap();
+    let first_file = StoreFileVersion::try_from_artifact_file(1, dense_file(1)).unwrap();
     let first_result = writer
         .write_level(&request("request-first"), &first_file, StoreLevel::L1)
         .unwrap();
@@ -68,7 +68,7 @@ fn initialized_epoch_with_matching_snapshot_skips_capability_sync_and_rejects_co
     second_dense.file_id = "file-second".to_string();
     second_dense.path = "src/second.rs".to_string();
     second_dense.content_hash = "blake3:second".to_string();
-    let second_file = StoreFileVersion::try_from_artifact_file(1, &second_dense).unwrap();
+    let second_file = StoreFileVersion::try_from_artifact_file(1, second_dense).unwrap();
 
     writer.stage_capability_snapshot(1, capability_snapshot("rust"));
     let second_result = writer
@@ -89,7 +89,7 @@ fn initialized_epoch_with_matching_snapshot_skips_capability_sync_and_rejects_co
     third_dense.file_id = "file-third".to_string();
     third_dense.path = "src/third.rs".to_string();
     third_dense.content_hash = "blake3:third".to_string();
-    let third_file = StoreFileVersion::try_from_artifact_file(1, &third_dense).unwrap();
+    let third_file = StoreFileVersion::try_from_artifact_file(1, third_dense).unwrap();
 
     let conflict_error = writer
         .write_level(&request("request-third"), &third_file, StoreLevel::L1)
@@ -123,8 +123,8 @@ fn symbols_and_full_files_have_identical_l1_projections_across_languages() {
         let mut symbols = full.clone();
         symbols.identifiers.clear();
 
-        let symbols = StoreFileVersion::try_from_artifact_file(1, &symbols).unwrap();
-        let full = StoreFileVersion::try_from_artifact_file(1, &full).unwrap();
+        let symbols = StoreFileVersion::try_from_artifact_file(1, symbols).unwrap();
+        let full = StoreFileVersion::try_from_artifact_file(1, full).unwrap();
 
         assert!(symbols.l1_projection_equals(&full));
 

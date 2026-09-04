@@ -157,7 +157,6 @@ pub(super) struct ChildRowInserters<'tx> {
     structural_facts: CachedStatement<'tx>,
     structural_facts_multi: CachedStatement<'tx>,
     structural_fact_chunk: usize,
-    structural_fact_ids: HashSet<String>,
     complexity_metrics: CachedStatement<'tx>,
     complexity_metrics_multi: CachedStatement<'tx>,
     complexity_metric_chunk: usize,
@@ -254,7 +253,6 @@ impl<'tx> ChildRowInserters<'tx> {
             structural_facts_multi: tx
                 .prepare_cached(&structural_facts_multi_insert_sql(structural_fact_chunk))?,
             structural_fact_chunk,
-            structural_fact_ids: HashSet::new(),
             complexity_metrics: tx.prepare_cached(
                 "INSERT INTO complexity_metrics
                  (complexity_metric_id, file_id, path, language, scope, symbol_id, algorithm_id,
@@ -325,7 +323,6 @@ impl<'tx> ChildRowInserters<'tx> {
             &mut self.structural_facts,
             &mut self.structural_facts_multi,
             self.structural_fact_chunk,
-            &mut self.structural_fact_ids,
             file,
             symbol_lookup,
         )?;
@@ -1053,18 +1050,18 @@ fn insert_structural_facts(
     single: &mut CachedStatement<'_>,
     multi: &mut CachedStatement<'_>,
     chunk_size: usize,
-    seen_ids: &mut HashSet<String>,
     file: &ArtifactFile,
     symbol_lookup: &SymbolLookup<'_>,
 ) -> rusqlite::Result<i64> {
     let mut inserted = 0i64;
+    let mut seen_ids: HashSet<&str> = HashSet::new();
     // Buffer capacity is bounded independently of the flush threshold so a
     // large runtime chunk size does not trigger a huge per-file allocation.
     let mut chunk_facts: Vec<&ArtifactStructuralFact> = Vec::with_capacity(256);
     let mut chunk_valid_ids: Vec<Option<&str>> = Vec::with_capacity(256);
 
     for fact in &file.structural_facts {
-        if !seen_ids.insert(fact.structural_fact_id.clone()) {
+        if !seen_ids.insert(fact.structural_fact_id.as_str()) {
             continue;
         }
         let valid_id = valid_symbol_id(symbol_lookup, fact.containing_symbol_id.as_deref());

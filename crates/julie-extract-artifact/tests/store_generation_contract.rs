@@ -477,3 +477,184 @@ impl Drop for TempStore {
         let _ = fs::remove_dir_all(&self.path);
     }
 }
+
+#[test]
+fn copy_table_keyset_paging_synthetic_table_exact_parity_and_order() {
+    let temp = TempStore::new("copy-table-synthetic");
+    let source_path = temp.path().join("source.db");
+    let dest_path = temp.path().join("dest.db");
+
+    let source = Connection::open(&source_path).unwrap();
+    let mut dest = Connection::open(&dest_path).unwrap();
+
+    // 1. Table with primary key: synthetic_pk
+    source
+        .execute_batch(
+            "CREATE TABLE synthetic_pk (
+                k1 INTEGER NOT NULL,
+                k2 TEXT NOT NULL,
+                val TEXT NOT NULL,
+                PRIMARY KEY (k1, k2)
+            );",
+        )
+        .unwrap();
+    dest.execute_batch(
+        "CREATE TABLE synthetic_pk (
+            k1 INTEGER NOT NULL,
+            k2 TEXT NOT NULL,
+            val TEXT NOT NULL,
+            PRIMARY KEY (k1, k2)
+        );",
+    )
+    .unwrap();
+
+    // Insert 2,000 rows into synthetic_pk
+    {
+        let tx = source.unchecked_transaction().unwrap();
+        {
+            let mut stmt = tx
+                .prepare("INSERT INTO synthetic_pk (k1, k2, val) VALUES (?1, ?2, ?3)")
+                .unwrap();
+            for i in 0..2_000 {
+                let k1 = (i / 10) as i64;
+                let k2 = format!("k_{:04}", i % 10);
+                let val = format!("val_{:06}", i);
+                stmt.execute(rusqlite::params![k1, k2, val]).unwrap();
+            }
+        }
+        tx.commit().unwrap();
+    }
+
+    // Copy synthetic_pk with window 512, ignore_conflicts = false
+    let (rows, max_window) =
+        GenerationLifecycle::copy_table_for_test(&source, &mut dest, "synthetic_pk", 512, false)
+            .unwrap();
+
+    assert_eq!(rows, 2_000);
+    assert_eq!(max_window, 512);
+
+    // Verify exact row parity and order between source and dest
+    let source_rows: Vec<(i64, String, String)> = source
+        .prepare("SELECT k1, k2, val FROM synthetic_pk ORDER BY k1, k2")
+        .unwrap()
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+
+    let dest_rows: Vec<(i64, String, String)> = dest
+        .prepare("SELECT k1, k2, val FROM synthetic_pk ORDER BY k1, k2")
+        .unwrap()
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+
+    assert_eq!(source_rows.len(), 2_000);
+    assert_eq!(dest_rows.len(), 2_000);
+    assert_eq!(source_rows, dest_rows);
+
+    // Copy synthetic_pk with ignore_conflicts = true (idempotent duplicate copy)
+    let (rows_dup, _) =
+        GenerationLifecycle::copy_table_for_test(&source, &mut dest, "synthetic_pk", 512, true)
+            .unwrap();
+    assert_eq!(rows_dup, 2_000);
+
+    let dest_rows_after: Vec<(i64, String, String)> = dest
+        .prepare("SELECT k1, k2, val FROM synthetic_pk ORDER BY k1, k2")
+        .unwrap()
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    assert_eq!(dest_rows_after, source_rows);
+
+    // Verify conflict detection: change a row in destination, copy with ignore_conflicts = true should fail
+    dest.execute(
+        "UPDATE synthetic_pk SET val = 'conflict_val' WHERE k1 = 0 AND k2 = 'k_0000'",
+        [],
+    )
+    .unwrap();
+    let err =
+        GenerationLifecycle::copy_table_for_test(&source, &mut dest, "synthetic_pk", 512, true)
+            .unwrap_err();
+    assert!(matches!(
+        err,
+        julie_extract_artifact::store::GenerationError::IdentityConflict { .. }
+    ));
+
+    // 2. Table with NO declared key (paging on rowid)
+    source
+        .execute_batch(
+            "CREATE TABLE synthetic_no_pk (
+                a INTEGER NOT NULL,
+                b TEXT NOT NULL
+            );",
+        )
+        .unwrap();
+    dest.execute_batch(
+        "CREATE TABLE synthetic_no_pk (
+            a INTEGER NOT NULL,
+            b TEXT NOT NULL
+        );",
+    )
+    .unwrap();
+
+    {
+        let tx = source.unchecked_transaction().unwrap();
+        {
+            let mut stmt = tx
+                .prepare("INSERT INTO synthetic_no_pk (a, b) VALUES (?1, ?2)")
+                .unwrap();
+            for i in 0..2_000 {
+                let a = i as i64;
+                let b = format!("row_{:06}", i);
+                stmt.execute(rusqlite::params![a, b]).unwrap();
+            }
+        }
+        tx.commit().unwrap();
+    }
+
+    // Copy synthetic_no_pk with window 512, ignore_conflicts = false
+    let (no_pk_rows, no_pk_max_window) =
+        GenerationLifecycle::copy_table_for_test(&source, &mut dest, "synthetic_no_pk", 512, false)
+            .unwrap();
+
+    assert_eq!(no_pk_rows, 2_000);
+    assert_eq!(no_pk_max_window, 512);
+
+    let source_no_pk_rows: Vec<(i64, i64, String)> = source
+        .prepare("SELECT rowid, a, b FROM synthetic_no_pk ORDER BY rowid")
+        .unwrap()
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+
+    let dest_no_pk_rows: Vec<(i64, i64, String)> = dest
+        .prepare("SELECT rowid, a, b FROM synthetic_no_pk ORDER BY rowid")
+        .unwrap()
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+
+    assert_eq!(source_no_pk_rows.len(), 2_000);
+    assert_eq!(dest_no_pk_rows.len(), 2_000);
+    assert_eq!(source_no_pk_rows, dest_no_pk_rows);
+
+    // Copy synthetic_no_pk with ignore_conflicts = true
+    let (no_pk_dup, _) =
+        GenerationLifecycle::copy_table_for_test(&source, &mut dest, "synthetic_no_pk", 512, true)
+            .unwrap();
+    assert_eq!(no_pk_dup, 2_000);
+
+    let dest_no_pk_rows_after: Vec<(i64, i64, String)> = dest
+        .prepare("SELECT rowid, a, b FROM synthetic_no_pk ORDER BY rowid")
+        .unwrap()
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    assert_eq!(dest_no_pk_rows_after, source_no_pk_rows);
+}

@@ -251,7 +251,7 @@ fn manifest_crash_worker() {
     let point = std::env::var("JULIE_TEST_STORE_CRASH_POINT").unwrap();
     let layout = StoreLayout::create(&root, "family-crash", "2.30.0", 7).unwrap();
     let factory = StoreConnectionFactory::new(layout, "family-crash", "2.30.0");
-    let version = StoreFileVersion::try_from_artifact_file(1, &fixture_file()).unwrap();
+    let version = StoreFileVersion::try_from_artifact_file(1, fixture_file()).unwrap();
     let mut writer = StoreWriter::open(&factory).unwrap();
     writer.stage_capability_snapshot(1, capability_snapshot());
     let written = writer
@@ -367,7 +367,7 @@ fn deep_crash_worker() {
     let point = std::env::var("JULIE_TEST_STORE_CRASH_POINT").unwrap();
     let layout = StoreLayout::create(&root, "family-crash", "2.30.0", 7).unwrap();
     let factory = StoreConnectionFactory::new(layout, "family-crash", "2.30.0");
-    let version = StoreFileVersion::try_from_artifact_file(1, &fixture_file()).unwrap();
+    let version = StoreFileVersion::try_from_artifact_file(1, fixture_file()).unwrap();
     let request = StoreWriteRequest::routine("request-deep", "2026-08-08T00:00:00Z");
     let mut writer = StoreWriter::open(&factory).unwrap();
     writer.stage_capability_snapshot(1, capability_snapshot());
@@ -399,7 +399,7 @@ fn crash_after_l1_stamp_worker() {
     };
     let layout = StoreLayout::create(&root, "family-crash", "2.30.0", 7).unwrap();
     let factory = StoreConnectionFactory::new(layout, "family-crash", "2.30.0");
-    let version = StoreFileVersion::try_from_artifact_file(1, &fixture_file()).unwrap();
+    let version = StoreFileVersion::try_from_artifact_file(1, fixture_file()).unwrap();
     let request = StoreWriteRequest::routine("request-crash", "2026-08-08T00:00:00Z");
     if std::env::var("JULIE_TEST_STORE_CRASH_POINT").as_deref() == Ok("before_l1_commit") {
         let mut connection = factory.open_writer().unwrap();

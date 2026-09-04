@@ -76,9 +76,9 @@ Commit mode: `parallel-lead-commit` inside each batch.
 **Approach:** Each table's ordered key columns already flow in as `order` and `keys`. Build the SELECT as `WHERE (k1, k2) > (?1, ?2) ORDER BY k1, k2 LIMIT ?n` using SQLite row-value comparison. For a table with no declared key, page on `rowid`. Test: a synthetic table with 2,000 rows and a window of 512 copies every row exactly once, in order, with and without `ignore_conflicts`.
 
 **Acceptance criteria:**
-- [ ] No `OFFSET` in `generation.rs`.
-- [ ] Copy test proves exact row parity and order.
-- [ ] Promote timing recorded before and after; after is not slower.
+- [x] No `OFFSET` in `generation.rs`.
+- [x] Copy test proves exact row parity and order.
+- [x] Promote timing recorded before and after; after is not slower.
 
 ## Task 2: Per-file structural fact dedupe
 
@@ -89,9 +89,9 @@ Commit mode: `parallel-lead-commit` inside each batch.
 **Approach:** Confirm with Miller that the transaction-wide set exists only to skip duplicate ids inside one artifact write. The `structural_facts` primary key already rejects cross-file duplicates. Keep the insert statement as it is unless a test proves a cross-file duplicate was previously silently skipped; if so, switch to `INSERT OR IGNORE` and record why.
 
 **Acceptance criteria:**
-- [ ] `ChildRowInserters` has no `HashSet<String>` that lives past one file.
-- [ ] `cargo xtask performance writer-current-schema` shows no row-count change.
-- [ ] Writer contract tests pass.
+- [x] `ChildRowInserters` has no `HashSet<String>` that lives past one file.
+- [x] `cargo xtask performance writer-current-schema` shows no row-count change.
+- [x] Writer contract tests pass.
 
 ## Task 3: Store projection by value
 
@@ -102,8 +102,8 @@ Commit mode: `parallel-lead-commit` inside each batch.
 **Approach:** The callers drop `artifact` right after the call. Where `project_reference_sites` clones `path` and `language` per site, hold them once per file and clone only the id strings.
 
 **Acceptance criteria:**
-- [ ] No `file.clone()` in `model.rs`.
-- [ ] Store contract tests pass.
+- [x] No `file.clone()` in `model.rs`.
+- [x] Store contract tests pass.
 
 ## Task 4: Heartbeat connection reuse
 
@@ -114,8 +114,8 @@ Commit mode: `parallel-lead-commit` inside each batch.
 **Approach:** Keep the reclaim path (a failed tick may reopen) as a fallback only. The doc at `coordinator.rs:668-690` explains why the main connection is held; apply the same reasoning. Test with the existing lease tests plus one that counts connection opens over five ticks (inject through the existing `UnixMillisClock` trait, no new trait).
 
 **Acceptance criteria:**
-- [ ] Five heartbeat ticks open one connection.
-- [ ] Coordinator lease tests pass; `store_crash_contract` passes.
+- [x] Five heartbeat ticks open one connection.
+- [x] Coordinator lease tests pass; `store_crash_contract` passes.
 
 ## Task 5: One-time migration marker
 
