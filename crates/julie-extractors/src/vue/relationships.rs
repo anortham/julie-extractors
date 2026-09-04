@@ -1,4 +1,4 @@
-use super::parsing::{VueSection, parse_vue_sfc};
+use super::parsing::{ParsedVueSfc, VueSection};
 use crate::base::relationship_resolution::{StructuredPendingRelationship, UnresolvedTarget};
 use crate::base::{BaseExtractor, Relationship, RelationshipKind, Symbol, SymbolKind};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
@@ -6,7 +6,7 @@ use regex::Regex;
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use std::sync::LazyLock;
-use tree_sitter::{Node, Parser};
+use tree_sitter::Node;
 
 static TEMPLATE_INTERPOLATION_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\{\{\s*([^}]+?)\s*\}\}").unwrap());
@@ -17,11 +17,11 @@ static COMPONENT_TAG_RE: LazyLock<Regex> =
 static IDENTIFIER_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"[A-Za-z_$][A-Za-z0-9_$]*").unwrap());
 
-pub(super) fn extract_relationships(base: &BaseExtractor, symbols: &[Symbol]) -> Vec<Relationship> {
-    let Ok(sections) = parse_vue_sfc(&base.content) else {
-        return Vec::new();
-    };
-
+pub(super) fn extract_relationships(
+    base: &BaseExtractor,
+    symbols: &[Symbol],
+    parsed_sfc: &ParsedVueSfc,
+) -> Vec<Relationship> {
     let local_symbols = unique_symbols_by_name(symbols);
     let Some(component) = component_symbol(symbols) else {
         return Vec::new();
@@ -30,11 +30,12 @@ pub(super) fn extract_relationships(base: &BaseExtractor, symbols: &[Symbol]) ->
     let mut relationships = Vec::new();
     let mut seen = HashSet::new();
 
-    for section in &sections {
+    for (idx, section) in parsed_sfc.sections.iter().enumerate() {
         match section.section_type.as_str() {
             "script" => collect_script_relationships(
                 base,
                 section,
+                parsed_sfc.script_tree(idx),
                 component,
                 &local_symbols,
                 &mut relationships,
@@ -58,10 +59,8 @@ pub(super) fn extract_relationships(base: &BaseExtractor, symbols: &[Symbol]) ->
 pub(super) fn extract_structured_pending_relationships(
     base: &BaseExtractor,
     symbols: &[Symbol],
+    parsed_sfc: &ParsedVueSfc,
 ) -> Vec<StructuredPendingRelationship> {
-    let Ok(sections) = parse_vue_sfc(&base.content) else {
-        return Vec::new();
-    };
     let Some(component) = component_symbol(symbols) else {
         return Vec::new();
     };
@@ -71,7 +70,7 @@ pub(super) fn extract_structured_pending_relationships(
     let mut seen_template = HashSet::new();
     let mut seen_script = HashSet::new();
 
-    for section in &sections {
+    for (idx, section) in parsed_sfc.sections.iter().enumerate() {
         match section.section_type.as_str() {
             "template" => {
                 for (line_index, line) in section.content.lines().enumerate() {
@@ -99,7 +98,7 @@ pub(super) fn extract_structured_pending_relationships(
                 }
             }
             "script" => {
-                let Some(tree) = parse_script_section(section) else {
+                let Some(tree) = parsed_sfc.script_tree(idx) else {
                     continue;
                 };
                 visit_script_pending_node(
@@ -225,12 +224,13 @@ fn visit_script_pending_node(
 fn collect_script_relationships(
     base: &BaseExtractor,
     section: &VueSection,
+    tree: Option<&tree_sitter::Tree>,
     component: &Symbol,
     local_symbols: &HashMap<String, &Symbol>,
     relationships: &mut Vec<Relationship>,
     seen: &mut HashSet<(String, String, RelationshipKind, u32, String)>,
 ) {
-    let Some(tree) = parse_script_section(section) else {
+    let Some(tree) = tree else {
         return;
     };
     visit_script_node(
@@ -464,17 +464,6 @@ fn component_symbol(symbols: &[Symbol]) -> Option<&Symbol> {
     })
 }
 
-fn parse_script_section(section: &VueSection) -> Option<tree_sitter::Tree> {
-    let mut parser = Parser::new();
-    let lang = section.lang.as_deref().unwrap_or("js");
-    let tree_sitter_lang = if lang == "ts" || lang == "typescript" {
-        tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into()
-    } else {
-        tree_sitter_javascript::LANGUAGE.into()
-    };
-    parser.set_language(&tree_sitter_lang).ok()?;
-    parser.parse(&section.content, None)
-}
 
 fn call_name(function_node: Node, script_content: &str) -> Option<String> {
     match function_node.kind() {

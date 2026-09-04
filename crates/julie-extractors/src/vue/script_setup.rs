@@ -6,23 +6,23 @@
 // - Import statements
 // - defineProps(), defineEmits(), defineExpose() macros
 
-use super::parsing::VueSection;
+use super::parsing::{ParsedVueSfc, VueSection};
 use super::script::create_symbol_manual;
 use crate::base::{AnnotationMarker, BaseExtractor, Symbol, SymbolKind, normalize_annotations};
 use crate::test_detection::apply_callable_test_metadata;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use serde_json::Value;
 use std::collections::HashMap;
-use tree_sitter::{Node, Parser};
+use tree_sitter::Node;
 
 /// Extract symbols from a <script setup> section using tree-sitter
 pub(super) fn extract_script_setup_symbols(
     base: &BaseExtractor,
     section: &VueSection,
+    tree: Option<&tree_sitter::Tree>,
 ) -> Vec<Symbol> {
-    let tree = match parse_script_section(section) {
-        Some(t) => t,
-        None => return Vec::new(),
+    let Some(tree) = tree else {
+        return Vec::new();
     };
 
     let mut symbols = Vec::new();
@@ -36,12 +36,15 @@ pub(super) fn extract_script_setup_symbols(
 const COMPONENT_MACROS: [&str; 3] = ["defineOptions", "defineProps", "defineEmits"];
 
 /// Attach script-setup macro metadata to the component symbol and defineExpose targets.
-pub(super) fn apply_script_setup_annotations(symbols: &mut [Symbol], sections: &[VueSection]) {
-    for section in sections {
+pub(super) fn apply_script_setup_annotations(
+    symbols: &mut [Symbol],
+    parsed_sfc: &ParsedVueSfc,
+) {
+    for (idx, section) in parsed_sfc.sections.iter().enumerate() {
         if section.section_type != "script" || !section.is_setup {
             continue;
         }
-        let Some(tree) = parse_script_section(section) else {
+        let Some(tree) = parsed_sfc.script_tree(idx) else {
             continue;
         };
 
@@ -215,20 +218,6 @@ fn with_zero_based_columns(mut symbol: Symbol) -> Symbol {
     symbol
 }
 
-/// Parse the script section content with the appropriate tree-sitter parser
-fn parse_script_section(section: &VueSection) -> Option<tree_sitter::Tree> {
-    let mut parser = Parser::new();
-
-    let lang = section.lang.as_deref().unwrap_or("js");
-    let ts_lang = if lang == "ts" || lang == "typescript" {
-        tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into()
-    } else {
-        tree_sitter_javascript::LANGUAGE.into()
-    };
-
-    parser.set_language(&ts_lang).ok()?;
-    parser.parse(&section.content, None)
-}
 
 /// Recursively walk the AST and extract symbols
 fn walk_for_symbols(

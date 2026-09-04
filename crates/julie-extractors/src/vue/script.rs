@@ -13,14 +13,18 @@ use crate::test_detection::apply_callable_test_metadata;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use serde_json::Value;
 use std::collections::HashMap;
-use tree_sitter::{Node, Parser};
+use tree_sitter::Node;
 
 /// Extract symbols from script section
-pub(super) fn extract_script_symbols(base: &BaseExtractor, section: &VueSection) -> Vec<Symbol> {
+pub(super) fn extract_script_symbols(
+    base: &BaseExtractor,
+    section: &VueSection,
+    tree: Option<&tree_sitter::Tree>,
+) -> Vec<Symbol> {
     let mut symbols = Vec::new();
     let lines: Vec<&str> = section.content.lines().collect();
 
-    if let Some(tree) = parse_script_section(section) {
+    if let Some(tree) = tree {
         extract_options_api_symbols(base, section, tree.root_node(), &mut symbols, 0);
     }
 
@@ -133,18 +137,6 @@ pub(super) fn extract_script_symbols(base: &BaseExtractor, section: &VueSection)
     symbols
 }
 
-fn parse_script_section(section: &VueSection) -> Option<tree_sitter::Tree> {
-    let mut parser = Parser::new();
-    let lang = section.lang.as_deref().unwrap_or("js");
-    let tree_sitter_lang = if lang == "ts" || lang == "typescript" {
-        tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into()
-    } else {
-        tree_sitter_javascript::LANGUAGE.into()
-    };
-
-    parser.set_language(&tree_sitter_lang).ok()?;
-    parser.parse(&section.content, None)
-}
 
 fn extract_options_api_symbols(
     base: &BaseExtractor,

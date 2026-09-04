@@ -9,13 +9,14 @@ use super::parsing::VueSection;
 use crate::base::{BaseExtractor, EmbeddedSpanOffset, NormalizedSpan, Symbol};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
-use tree_sitter::{Node, Parser};
+use tree_sitter::Node;
 
 pub(super) fn extract_script_test_symbols(
     base: &BaseExtractor,
     section: &VueSection,
+    tree: Option<&tree_sitter::Tree>,
 ) -> Vec<Symbol> {
-    let Some(tree) = parse_script_section(section) else {
+    let Some(tree) = tree else {
         return Vec::new();
     };
 
@@ -36,16 +37,6 @@ pub(super) fn extract_script_test_symbols(
     };
     remap_to_host(&mut symbols, base, offset);
     symbols
-}
-
-fn parse_script_section(section: &VueSection) -> Option<tree_sitter::Tree> {
-    let mut parser = Parser::new();
-    let language = match section.lang.as_deref() {
-        Some("ts" | "typescript") => tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(),
-        _ => tree_sitter_javascript::LANGUAGE.into(),
-    };
-    parser.set_language(&language).ok()?;
-    parser.parse(&section.content, None)
 }
 
 fn walk_test_calls(
