@@ -220,29 +220,6 @@ pub struct AnnotationMarker {
     pub carrier: Option<String>,
 }
 
-/// Configuration for code context extraction
-#[derive(Debug, Clone)]
-pub struct ContextConfig {
-    /// Number of lines to show before the symbol
-    pub lines_before: usize,
-    /// Number of lines to show after the symbol
-    pub lines_after: usize,
-    /// Maximum line length to display (longer lines get truncated)
-    pub max_line_length: usize,
-    /// Whether to show line numbers in context
-    pub show_line_numbers: bool,
-}
-
-impl Default for ContextConfig {
-    fn default() -> Self {
-        Self {
-            lines_before: 3,
-            lines_after: 3,
-            max_line_length: 120,
-            show_line_numbers: true,
-        }
-    }
-}
 
 /// A code symbol (function, class, variable, etc.) extracted from source code
 ///
@@ -301,9 +278,6 @@ pub struct Symbol {
     /// Confidence score for symbol extraction (0.0 to 1.0)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub confidence: Option<f32>,
-    /// Code context lines around the symbol (3 lines before + match + 3 lines after)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub code_context: Option<String>,
     /// Content type to distinguish documentation from code
     /// None = code (default), Some("documentation") = markdown docs
     #[serde(skip_serializing_if = "Option::is_none")]

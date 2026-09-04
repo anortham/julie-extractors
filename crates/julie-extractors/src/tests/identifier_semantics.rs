@@ -84,7 +84,6 @@ fn symbol(
         metadata: None,
         semantic_group: None,
         confidence: None,
-        code_context: None,
         content_type: None,
         annotations: Vec::new(),
     }

@@ -65,7 +65,6 @@ pub(super) fn create_symbol_manual(
         annotations: options.annotations,
         semantic_group: None,
         confidence: None,
-        code_context: None,
         content_type: None,
     }
 }

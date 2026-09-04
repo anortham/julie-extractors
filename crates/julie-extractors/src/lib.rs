@@ -104,7 +104,7 @@ pub mod zig;
 
 // Re-export the public API - Core types
 pub use base::{
-    AnnotationMarker, ComplexityMetric, ContextConfig, ExtractionLevel, ExtractionResults,
+    AnnotationMarker, ComplexityMetric, ExtractionLevel, ExtractionResults,
     Identifier, IdentifierKind, Literal, LiteralKind, ParseDiagnostic, ParseDiagnosticKind,
     PendingRelationship, Relationship, RelationshipKind, SourceRegion, SourceRegionKind,
     StructuralFact, Symbol, SymbolKind, SymbolOptions, TestRole, TypeArgument, TypeArgumentUsage,

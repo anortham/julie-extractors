@@ -85,10 +85,6 @@ impl super::GoExtractor {
                 annotations: Vec::new(),
                 semantic_group: None,
                 confidence: Some(0.8),
-                code_context: self.base.extract_code_context(
-                    start_line.saturating_sub(1) as usize,
-                    end_line.saturating_sub(1) as usize,
-                ),
                 content_type: None,
             };
 

@@ -34,7 +34,6 @@ fn symbol(
         metadata: None,
         semantic_group: None,
         confidence: None,
-        code_context: None,
         content_type: None,
         annotations: Vec::new(),
     }
@@ -343,7 +342,6 @@ fn test_structured_pending_relationships_survive_extend_offset_and_rekey() {
                 metadata: None,
                 semantic_group: None,
                 confidence: None,
-                code_context: None,
                 content_type: None,
                 annotations: Vec::new(),
             },
@@ -368,7 +366,6 @@ fn test_structured_pending_relationships_survive_extend_offset_and_rekey() {
                 metadata: None,
                 semantic_group: None,
                 confidence: None,
-                code_context: None,
                 content_type: None,
                 annotations: Vec::new(),
             },

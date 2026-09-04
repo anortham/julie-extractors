@@ -79,8 +79,8 @@ Commit mode: `serial-worker-commit` for serial tasks; `parallel-lead-commit` ins
 5. Record every number, the commit SHA, the machine, and the commands in the evidence file.
 
 **Acceptance criteria:**
-- [ ] Evidence file exists with all three measurements, commit SHA, and commands.
-- [ ] No source file changed.
+- [x] Evidence file exists with all three measurements, commit SHA, and commands.
+- [x] No source file changed.
 
 ## Task 1: Delete symbol `code_context`
 
@@ -99,9 +99,9 @@ Commit mode: `serial-worker-commit` for serial tasks; `parallel-lead-commit` ins
 **Approach:** Remove the field first, then follow compiler errors. Check `grep -rn code_context crates/julie-extract-cli/src crates/julie-extract-artifact/src` afterwards: every remaining hit must be an identifier row, not a symbol row. Confirm the golden tier passes without regeneration; symbols never serialized this field, so nothing should change.
 
 **Acceptance criteria:**
-- [ ] `Symbol` has no `code_context` field; `ContextConfig`, `extract_code_context`, `line_ranges`, `content_line_ranges` are gone.
-- [ ] `cargo xtask test language markdown`, `go`, `vue` pass.
-- [ ] `cargo xtask test golden` passes with zero fixture changes.
+- [x] `Symbol` has no `code_context` field; `ContextConfig`, `extract_code_context`, `line_ranges`, `content_line_ranges` are gone.
+- [x] `cargo xtask test language markdown`, `go`, `vue` pass.
+- [x] `cargo xtask test golden` passes with zero fixture changes.
 
 ## Task 2: Delete `BaseExtractor::symbol_map`
 

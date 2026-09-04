@@ -39,12 +39,6 @@ impl BaseExtractor {
         let body_span = infer_body_span(node, &self.content, self.line_starts(), span);
         let body_hash = body_span.and_then(|span| body_hash(&self.content, span, &self.language));
 
-        // Extract code context around the symbol
-        let code_context = self.extract_code_context(
-            span.start_line.saturating_sub(1) as usize,
-            span.end_line.saturating_sub(1) as usize,
-        );
-
         // Mark markdown symbols as documentation
         let content_type = if self.language == "markdown" {
             Some("documentation".to_string())
@@ -74,7 +68,6 @@ impl BaseExtractor {
             annotations: options.annotations,
             semantic_group: None, // Will be populated during cross-language analysis
             confidence: None,     // Will be calculated based on parsing context
-            code_context,
             content_type,
         };
 

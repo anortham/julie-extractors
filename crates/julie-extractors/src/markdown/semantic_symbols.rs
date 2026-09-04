@@ -292,7 +292,6 @@ pub(super) fn extract_line_based_symbols(
                 base,
                 text.to_string(),
                 SymbolKind::Import,
-                line,
                 line_number,
                 byte_offset,
                 matched.start() as u32,
@@ -320,7 +319,6 @@ pub(super) fn extract_line_based_symbols(
                 base,
                 label.as_str().to_string(),
                 SymbolKind::Property,
-                line,
                 line_number,
                 byte_offset,
                 matched.start() as u32,
@@ -348,7 +346,6 @@ pub(super) fn extract_line_based_symbols(
                     base,
                     label.as_str().to_string(),
                     SymbolKind::Property,
-                    line,
                     line_number,
                     byte_offset,
                     matched.start() as u32,
@@ -372,7 +369,6 @@ fn line_symbol(
     base: &BaseExtractor,
     name: String,
     kind: SymbolKind,
-    line: &str,
     line_number: u32,
     line_byte_offset: u32,
     start_column: u32,
@@ -413,12 +409,6 @@ fn line_symbol(
         annotations: Vec::new(),
         semantic_group: None,
         confidence: None,
-        code_context: base
-            .extract_code_context(
-                line_number.saturating_sub(1) as usize,
-                line_number.saturating_sub(1) as usize,
-            )
-            .or_else(|| Some(line.to_string())),
         content_type: Some("documentation".to_string()),
     }
 }

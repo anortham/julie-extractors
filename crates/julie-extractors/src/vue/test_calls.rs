@@ -101,10 +101,6 @@ fn remap_to_host(symbols: &mut [Symbol], base: &BaseExtractor, offset: EmbeddedS
         };
         symbol.apply_normalized_span(offset.apply(span));
         symbol.body_span = symbol.body_span.map(|span| offset.apply(span));
-        symbol.code_context = base.extract_code_context(
-            symbol.start_line.saturating_sub(1) as usize,
-            symbol.end_line.saturating_sub(1) as usize,
-        );
         symbol.refresh_id();
         symbol_id_map.insert(old_id, symbol.id.clone());
     }

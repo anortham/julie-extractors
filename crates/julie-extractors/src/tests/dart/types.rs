@@ -135,7 +135,6 @@ class UserService {
             annotations: Vec::new(),
             semantic_group: None,
             confidence: None,
-            code_context: None,
             content_type: None,
         };
         let const_symbol = crate::base::Symbol {
@@ -160,7 +159,6 @@ class UserService {
             annotations: Vec::new(),
             semantic_group: None,
             confidence: None,
-            code_context: None,
             content_type: None,
         };
 

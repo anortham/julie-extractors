@@ -133,7 +133,6 @@ mod tests {
             annotations: Vec::new(),
             semantic_group: None,
             confidence: None,
-            code_context: None,
             content_type: None,
         }
     }
