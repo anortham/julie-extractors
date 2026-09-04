@@ -347,7 +347,7 @@ fn fresh_store_writer_open_records_marker_and_skips_subsequent_retirement() {
     let temp = TempStore::new("fresh-retirement-marker");
     let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
 
-    // Before writer open, freshly created store has resolution_retired = '1' from layout initialization
+    // Before writer open, freshly created store does not yet have resolution_retired
     {
         let conn = Connection::open(layout.store_db()).unwrap();
         let marker: Option<String> = conn
@@ -359,9 +359,8 @@ fn fresh_store_writer_open_records_marker_and_skips_subsequent_retirement() {
             .optional()
             .unwrap();
         assert_eq!(
-            marker,
-            Some("1".to_string()),
-            "fresh store initializes resolution_retired marker"
+            marker, None,
+            "fresh store has no resolution_retired marker before first writer open"
         );
     }
 
