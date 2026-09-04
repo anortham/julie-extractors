@@ -3074,3 +3074,72 @@ fn failed_preserved_cpp_header_keeps_the_prior_version_stored_language() {
         )
     );
 }
+
+#[test]
+fn store_import_reads_each_file_from_disk_at_most_once() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    let reads_log = fixture.path().join("reads.log");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("alpha.rs"), "pub fn alpha() -> u32 { 10 }\n").unwrap();
+    std::fs::write(root.join("beta.rs"), "pub fn beta() -> u32 { 20 }\n").unwrap();
+    std::fs::write(root.join("gamma.rs"), "pub fn gamma() -> u32 { 30 }\n").unwrap();
+
+    let output = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .env("JULIE_EXTRACT_STORE_TEST_RECORD_READS", &reads_log)
+        .args([
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-single-read",
+            "--level",
+            "full",
+            "--request-id",
+            "request-single-read",
+            "--idempotency-key",
+            "idem-single-read",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let recorded = std::fs::read_to_string(&reads_log).unwrap();
+    let reads: Vec<&str> = recorded.lines().filter(|line| !line.is_empty()).collect();
+
+    // Verify each file was read from disk at most once across the full import (planning + L1 + L3)
+    let alpha_reads = reads.iter().filter(|&&r| r == "alpha.rs").count();
+    let beta_reads = reads.iter().filter(|&&r| r == "beta.rs").count();
+    let gamma_reads = reads.iter().filter(|&&r| r == "gamma.rs").count();
+
+    assert_eq!(
+        alpha_reads, 1,
+        "alpha.rs should be read from disk exactly once"
+    );
+    assert_eq!(
+        beta_reads, 1,
+        "beta.rs should be read from disk exactly once"
+    );
+    assert_eq!(
+        gamma_reads, 1,
+        "gamma.rs should be read from disk exactly once"
+    );
+    assert_eq!(
+        reads.len(),
+        3,
+        "Total file disk reads must match total file count"
+    );
+}

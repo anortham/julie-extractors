@@ -1,7 +1,9 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::string::FromUtf8Error;
+use std::sync::{LazyLock, Mutex, RwLock};
+use std::time::SystemTime;
 
 use julie_extract_artifact::model::{
     ArtifactComplexityMetric, ArtifactFile, ArtifactIdentifier, ArtifactLiteral,
@@ -82,10 +84,154 @@ pub(crate) fn extract_artifact_file(
     extract_artifact_file_from_snapshot_at(root, target, language, indexed_at, snapshot, level)
 }
 
-pub(crate) fn read_source_snapshot(
+const MAX_SNAPSHOT_CACHE_BYTES: usize = 64 * 1024 * 1024;
+const MAX_SINGLE_CACHED_FILE_BYTES: usize = 16 * 1024 * 1024;
+
+struct CachedSnapshotEntry {
+    snapshot: SourceSnapshot,
+    mtime: Option<SystemTime>,
+    size: u64,
+}
+
+struct SnapshotCache {
+    entries: HashMap<PathBuf, CachedSnapshotEntry>,
+    order: VecDeque<(PathBuf, usize)>,
+    total_bytes: usize,
+}
+
+impl SnapshotCache {
+    fn new() -> Self {
+        Self {
+            entries: HashMap::new(),
+            order: VecDeque::new(),
+            total_bytes: 0,
+        }
+    }
+
+    fn insert(
+        &mut self,
+        path: PathBuf,
+        snapshot: SourceSnapshot,
+        mtime: Option<SystemTime>,
+        size: u64,
+    ) {
+        let entry_bytes = snapshot.content.len();
+        if entry_bytes > MAX_SINGLE_CACHED_FILE_BYTES {
+            return;
+        }
+        if let Some(old) = self.entries.remove(&path) {
+            self.total_bytes = self.total_bytes.saturating_sub(old.snapshot.content.len());
+        }
+        while self.total_bytes.saturating_add(entry_bytes) > MAX_SNAPSHOT_CACHE_BYTES {
+            if let Some((old_path, old_size)) = self.order.pop_front() {
+                if self.entries.remove(&old_path).is_some() {
+                    self.total_bytes = self.total_bytes.saturating_sub(old_size);
+                }
+            } else {
+                break;
+            }
+        }
+        self.total_bytes = self.total_bytes.saturating_add(entry_bytes);
+        self.order.push_back((path.clone(), entry_bytes));
+        self.entries.insert(
+            path,
+            CachedSnapshotEntry {
+                snapshot,
+                mtime,
+                size,
+            },
+        );
+    }
+
+    #[allow(dead_code)]
+    fn remove(&mut self, path: &Path) -> Option<SourceSnapshot> {
+        if let Some(entry) = self.entries.remove(path) {
+            self.total_bytes = self
+                .total_bytes
+                .saturating_sub(entry.snapshot.content.len());
+            Some(entry.snapshot)
+        } else {
+            None
+        }
+    }
+
+    #[allow(dead_code)]
+    fn clear(&mut self) {
+        self.entries.clear();
+        self.order.clear();
+        self.total_bytes = 0;
+    }
+}
+
+static SNAPSHOT_CACHE: LazyLock<RwLock<SnapshotCache>> =
+    LazyLock::new(|| RwLock::new(SnapshotCache::new()));
+
+static RECORD_READS_PATH: LazyLock<Option<PathBuf>> =
+    LazyLock::new(|| std::env::var_os("JULIE_EXTRACT_STORE_TEST_RECORD_READS").map(PathBuf::from));
+
+static RECORD_LOCK: Mutex<()> = Mutex::new(());
+
+pub(crate) fn record_disk_read(target: &FileTarget) {
+    if let Some(ref path) = *RECORD_READS_PATH {
+        use std::io::Write;
+        let _guard = RECORD_LOCK.lock();
+        if let Ok(mut file) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(path)
+        {
+            let _ = writeln!(file, "{}", target.root_relative_path);
+        }
+    }
+}
+
+pub(crate) fn cache_snapshot(
+    path: &Path,
+    snapshot: SourceSnapshot,
+    mtime: Option<SystemTime>,
+    size: u64,
+) {
+    if let Ok(mut cache) = SNAPSHOT_CACHE.write() {
+        cache.insert(path.to_path_buf(), snapshot, mtime, size);
+    }
+}
+
+pub(crate) fn get_cached_snapshot_if_fresh(path: &Path) -> Option<SourceSnapshot> {
+    let (snapshot, mtime, size) = {
+        let cache = SNAPSHOT_CACHE.read().ok()?;
+        let entry = cache.entries.get(path)?;
+        (entry.snapshot.clone(), entry.mtime, entry.size)
+    };
+    let meta = std::fs::metadata(path).ok()?;
+    if meta.len() != size {
+        return None;
+    }
+    if meta.modified().ok() != mtime {
+        return None;
+    }
+    Some(snapshot)
+}
+
+#[allow(dead_code)]
+pub(crate) fn remove_cached_snapshot(path: &Path) -> Option<SourceSnapshot> {
+    if let Ok(mut cache) = SNAPSHOT_CACHE.write() {
+        cache.remove(path)
+    } else {
+        None
+    }
+}
+
+#[allow(dead_code)]
+pub(crate) fn clear_snapshot_cache() {
+    if let Ok(mut cache) = SNAPSHOT_CACHE.write() {
+        cache.clear();
+    }
+}
+
+pub(crate) fn source_snapshot_from_bytes(
     target: &FileTarget,
+    bytes: Vec<u8>,
 ) -> Result<SourceSnapshot, ExtractFileError> {
-    let bytes = fs::read(&target.absolute_path).map_err(|error| read_error(target, &error))?;
     let content_hash = content_hash_bytes(&bytes);
     let content_bytes = bytes.len() as i64;
     let content = decode_source_content(bytes)
@@ -99,7 +245,30 @@ pub(crate) fn read_source_snapshot(
     })
 }
 
+pub(crate) fn read_source_snapshot(
+    target: &FileTarget,
+) -> Result<SourceSnapshot, ExtractFileError> {
+    if let Some(snapshot) = get_cached_snapshot_if_fresh(&target.absolute_path) {
+        return Ok(snapshot);
+    }
+    record_disk_read(target);
+    let bytes = fs::read(&target.absolute_path).map_err(|error| read_error(target, &error))?;
+    let mtime = target
+        .absolute_path
+        .metadata()
+        .and_then(|m| m.modified())
+        .ok();
+    let size = bytes.len() as u64;
+    let snapshot = source_snapshot_from_bytes(target, bytes)?;
+    cache_snapshot(&target.absolute_path, snapshot.clone(), mtime, size);
+    Ok(snapshot)
+}
+
 pub(crate) fn read_source_identity(target: &FileTarget) -> Result<(String, u64), ExtractFileError> {
+    if let Some(snapshot) = get_cached_snapshot_if_fresh(&target.absolute_path) {
+        return Ok((snapshot.content_hash, snapshot.content_bytes as u64));
+    }
+    record_disk_read(target);
     let bytes = fs::read(&target.absolute_path).map_err(|error| read_error(target, &error))?;
     Ok((content_hash_bytes(&bytes), bytes.len() as u64))
 }

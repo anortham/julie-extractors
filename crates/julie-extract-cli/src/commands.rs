@@ -33,14 +33,14 @@ use crate::artifact_access::{
     ArtifactAccess, ExistingArtifact, artifact_report_from_connection, existing_artifact_for_root,
     file_row_attribution, jsonl_counts, latest_revision_id, load_existing_content_hashes,
     open_artifact, open_artifact_for_info, open_artifact_for_rebind, open_artifact_for_root,
-    table_totals, write_rebind,
+    scan_file_row_attribution, table_totals, write_rebind,
 };
 use crate::capability_snapshot::{
     artifact_capability_snapshot, current_capability_fingerprints, flags, kind_coverage_json,
     structural_fact_patterns_json,
 };
 use crate::discovery::{
-    DiscoveryExclusions, DiscoveryPolicy, FileSelection, UnsupportedReason,
+    DiscoveryExclusions, DiscoveryPolicy, FileSelection, SupportedTarget, UnsupportedReason,
     canonicalize_ignore_files,
 };
 use crate::extraction::{
@@ -65,8 +65,6 @@ use crate::reports::{
 use crate::spool::{ScanSpool, create_scan_spool, is_spool_artifact_name, reap_unowned_spools};
 use crate::watchdog::ParentWatchdog;
 use julie_extract_cli::store::import::StoreExecutionOutcome;
-
-const SCAN_REPORT_FILE_ROW_LIMIT: usize = 20;
 
 pub fn run_from_env() -> ExitCode {
     let cli = match Cli::try_parse() {
@@ -383,8 +381,7 @@ fn scan_collecting_warnings(
             jobs: args.jobs,
             level,
         },
-        &discovery,
-        &discovered.supported_files,
+        &discovered.supported_targets,
         &discovered.unsupported_targets,
         controls,
     ) {
@@ -543,7 +540,7 @@ fn scan_collecting_warnings(
                         report = report.with_warning(conflict);
                     }
                     report.counts.files_scanned =
-                        (discovered.supported_files.len() + discovered.unsupported_files) as i64;
+                        (discovered.supported_targets.len() + discovered.unsupported_files) as i64;
                     report.counts.files_changed = write_result
                         .files_changed
                         .saturating_sub(write_result.files_deleted)
@@ -555,8 +552,7 @@ fn scan_collecting_warnings(
                         (extracted.errors.len() + discovered.errors.len()) as i64;
                     report.counts.rows_written =
                         rows_written_with_capabilities(&capability_rows_written, &write_result);
-                    let file_rows =
-                        file_row_attribution(connection, Some(SCAN_REPORT_FILE_ROW_LIMIT));
+                    let file_rows = scan_file_row_attribution(connection, args.json);
                     report.counts.file_rows_truncated = file_rows.truncated;
                     report.counts.file_rows = file_rows.rows;
                     report
@@ -1544,22 +1540,15 @@ impl From<ArtifactSpoolError> for ExtractionSpoolError {
 
 fn spool_discovered_files(
     request: ExtractionRequest<'_>,
-    discovery: &DiscoveryPolicy,
-    targets: &[FileTarget],
+    targets: &[SupportedTarget],
     unsupported_targets: &[FileTarget],
     controls: ScanControls<'_>,
 ) -> Result<SpooledExtractedFiles, ExtractionSpoolError> {
-    let mut supported_targets = Vec::with_capacity(targets.len());
-    for target in targets {
-        if let FileSelection::Supported { language } = discovery.select_file(target) {
-            supported_targets.push(SupportedFileTarget::new(target.clone(), language));
-        }
-    }
     let level = request.level;
     let indexed_at = request.indexed_at.clone();
     let mut spooled = extract_supported_files_to_spool(
         request,
-        &supported_targets,
+        targets,
         controls,
         move |root, target, language, indexed_at, snapshot| {
             extract_artifact_file_from_snapshot_at(
@@ -1643,20 +1632,7 @@ impl SpooledExtractedFiles {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct SupportedFileTarget {
-    target: FileTarget,
-    language: String,
-}
-
-impl SupportedFileTarget {
-    fn new(target: FileTarget, language: impl Into<String>) -> Self {
-        Self {
-            target,
-            language: language.into(),
-        }
-    }
-}
+type SupportedFileTarget = SupportedTarget;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 struct ScanExtractionProfile {
@@ -3227,6 +3203,94 @@ mod tests {
         assert_eq!(warning.code, ReportCode::SpoolLockUnavailable);
         assert_eq!(warning.path.as_deref(), Some("/mnt/scratch/spools"));
         assert!(warning.recoverable);
+    }
+
+    #[test]
+    fn scan_text_mode_runs_no_group_by_file_id_query() {
+        let _guard = crate::artifact_access::SCAN_ATTRIBUTION_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        let fixture = ScanFixture::new();
+        fixture.write("src/a.rs", "pub fn a() {}\n");
+        fixture.write("src/b.rs", "pub fn b() {}\n");
+        let db = fixture.root().join("artifact.sqlite");
+
+        crate::artifact_access::ATTRIBUTION_CALL_COUNT
+            .store(0, std::sync::atomic::Ordering::SeqCst);
+        crate::artifact_access::ATTRIBUTION_GROUP_BY_QUERY_COUNT
+            .store(0, std::sync::atomic::Ordering::SeqCst);
+
+        let outcome = scan(ScanArgs {
+            root: fixture.root().to_path_buf(),
+            db: db.clone(),
+            force: true,
+            ignore_files: Vec::new(),
+            strict_schema: false,
+            json: false,
+            jobs: 1,
+            spool_dir: None,
+            progress_file: None,
+            parent_pid: None,
+            level: None,
+        });
+
+        assert_eq!(outcome.exit_code, 0);
+        assert_eq!(
+            crate::artifact_access::ATTRIBUTION_CALL_COUNT
+                .load(std::sync::atomic::Ordering::SeqCst),
+            0,
+            "text scan must not call file_row_attribution"
+        );
+        assert_eq!(
+            crate::artifact_access::ATTRIBUTION_GROUP_BY_QUERY_COUNT
+                .load(std::sync::atomic::Ordering::SeqCst),
+            0,
+            "text scan must execute 0 GROUP BY file_id queries"
+        );
+    }
+
+    #[test]
+    fn scan_json_mode_executes_group_by_file_id_queries() {
+        let _guard = crate::artifact_access::SCAN_ATTRIBUTION_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        let fixture = ScanFixture::new();
+        fixture.write("src/a.rs", "pub fn a() {}\n");
+        fixture.write("src/b.rs", "pub fn b() {}\n");
+        let db = fixture.root().join("artifact.sqlite");
+
+        crate::artifact_access::ATTRIBUTION_CALL_COUNT
+            .store(0, std::sync::atomic::Ordering::SeqCst);
+        crate::artifact_access::ATTRIBUTION_GROUP_BY_QUERY_COUNT
+            .store(0, std::sync::atomic::Ordering::SeqCst);
+
+        let outcome = scan(ScanArgs {
+            root: fixture.root().to_path_buf(),
+            db: db.clone(),
+            force: true,
+            ignore_files: Vec::new(),
+            strict_schema: false,
+            json: true,
+            jobs: 1,
+            spool_dir: None,
+            progress_file: None,
+            parent_pid: None,
+            level: None,
+        });
+
+        assert_eq!(outcome.exit_code, 0);
+        assert_eq!(
+            crate::artifact_access::ATTRIBUTION_CALL_COUNT
+                .load(std::sync::atomic::Ordering::SeqCst),
+            1,
+            "json scan must call file_row_attribution"
+        );
+        assert_eq!(
+            crate::artifact_access::ATTRIBUTION_GROUP_BY_QUERY_COUNT
+                .load(std::sync::atomic::Ordering::SeqCst),
+            14,
+            "json scan must execute all 14 GROUP BY file_id queries"
+        );
     }
 
     #[test]

@@ -2746,3 +2746,83 @@ fn resumed_full_update_reports_its_l1_generation_after_an_intervening_flip() {
     assert_eq!(result["manifest_generation"], 2);
     assert_eq!(result["manifest_hash"], report["manifest"]["hash"]);
 }
+
+#[test]
+fn store_update_reads_file_from_disk_at_most_once() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    let reads_log = fixture.path().join("update_reads.log");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("lib.rs"), "pub fn initial() -> u32 { 1 }\n").unwrap();
+
+    assert_eq!(
+        run_store(&[
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--level",
+            "l1",
+            "--request-id",
+            "request-seed",
+            "--idempotency-key",
+            "idem-seed",
+            "--json",
+        ])
+        .status
+        .code(),
+        Some(0)
+    );
+
+    std::fs::write(root.join("lib.rs"), "pub fn updated() -> u32 { 42 }\n").unwrap();
+
+    let output = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .env("JULIE_EXTRACT_STORE_TEST_RECORD_READS", &reads_log)
+        .args([
+            "store",
+            "update",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "lib.rs",
+            "--view",
+            "view-main",
+            "--level",
+            "full",
+            "--request-id",
+            "request-update-single-read",
+            "--idempotency-key",
+            "idem-update-single-read",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let recorded = std::fs::read_to_string(&reads_log).unwrap();
+    let reads: Vec<&str> = recorded.lines().filter(|line| !line.is_empty()).collect();
+
+    let lib_reads = reads.iter().filter(|&&r| r == "lib.rs").count();
+    assert_eq!(
+        lib_reads, 1,
+        "lib.rs should be read from disk exactly once during update"
+    );
+    assert_eq!(reads.len(), 1, "Total file disk reads must match 1");
+}

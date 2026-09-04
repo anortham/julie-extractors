@@ -159,3 +159,45 @@ fn report_code_as_str_matches_its_serialized_json_spelling() {
         );
     }
 }
+
+#[test]
+fn text_mode_scan_emits_file_counts_and_json_mode_includes_row_attribution() {
+    let temp = TempDir::new().unwrap();
+    let root = temp.path().join("root");
+    fs::create_dir_all(root.join("src")).unwrap();
+    fs::write(root.join("src/a.rs"), "pub fn a() {}\n").unwrap();
+    fs::write(root.join("src/b.rs"), "pub fn b() {}\n").unwrap();
+
+    let db_text = temp.path().join("artifact_text.sqlite");
+    let text_output = julie_extract(&[
+        "scan",
+        "--root",
+        root.to_str().unwrap(),
+        "--db",
+        db_text.to_str().unwrap(),
+    ]);
+    assert_eq!(text_output.status.code(), Some(0));
+    let stdout = text(text_output.stdout);
+    assert_eq!(
+        stdout,
+        "ok\nfiles: scanned=2 changed=2 unchanged=0 failed=0\n"
+    );
+
+    let db_json = temp.path().join("artifact_json.sqlite");
+    let json_output = julie_extract(&[
+        "scan",
+        "--root",
+        root.to_str().unwrap(),
+        "--db",
+        db_json.to_str().unwrap(),
+        "--json",
+    ]);
+    assert_eq!(json_output.status.code(), Some(0));
+    let report: Value = serde_json::from_str(text(json_output.stdout).trim_end()).unwrap();
+    assert_eq!(report["status"], "ok");
+    assert_eq!(report["counts"]["file_rows_truncated"], false);
+    let file_rows = report["counts"]["file_rows"].as_array().unwrap();
+    assert_eq!(file_rows.len(), 2);
+    assert_eq!(file_rows[0]["path"], "src/a.rs");
+    assert_eq!(file_rows[1]["path"], "src/b.rs");
+}
