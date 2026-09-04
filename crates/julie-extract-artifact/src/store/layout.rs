@@ -710,7 +710,6 @@ pub(crate) fn initialize_store_database(
         ("min_writer_version", creator_version),
         ("created_by_version", creator_version),
         ("binary_version", creator_version),
-        ("resolution_retired", "1"),
     ] {
         transaction.execute(
             "INSERT INTO store_meta (key, value) VALUES (?1, ?2)
