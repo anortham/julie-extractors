@@ -70,9 +70,9 @@ pub use tree_methods::{find_child_by_type, find_child_by_types};
 pub use type_arguments::{TypeArgDecomposer, extract_type_arguments};
 pub use type_models::{Literal, LiteralKind, TypeArgument, TypeArgumentUsage};
 pub use types::{
-    AnnotationMarker, ComplexityMetric, ExtractionLevel, ExtractionResults,
-    Identifier, ParseDiagnostic, ParseDiagnosticKind, PendingRelationship, Relationship,
-    SourceRegion, SourceRegionKind, StructuralFact, Symbol, SymbolOptions, TypeInfo,
+    AnnotationMarker, ComplexityMetric, ExtractionLevel, ExtractionResults, Identifier,
+    ParseDiagnostic, ParseDiagnosticKind, PendingRelationship, Relationship, SourceRegion,
+    SourceRegionKind, StructuralFact, Symbol, SymbolOptions, TypeInfo,
 };
 pub use web_structural_facts::collect_web_structural_facts;
 

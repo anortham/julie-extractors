@@ -220,7 +220,6 @@ pub struct AnnotationMarker {
     pub carrier: Option<String>,
 }
 
-
 /// A code symbol (function, class, variable, etc.) extracted from source code
 ///
 /// Direct Implementation of Symbol interface - exact field mapping maintained

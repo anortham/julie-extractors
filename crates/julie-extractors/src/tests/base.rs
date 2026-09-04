@@ -7,7 +7,6 @@ use crate::base::*;
 use crate::tree_traversal::TREE_TRAVERSAL_DEPTH_LIMIT;
 use tree_sitter::Node;
 
-
 #[test]
 fn test_symbol_creation() {
     let workspace_root = std::path::PathBuf::from("/tmp/test");
@@ -721,34 +720,6 @@ fn test_create_symbol_markdown_content_type() {
     );
 
     assert_eq!(symbol.content_type, Some("documentation".to_string()));
-}
-
-#[test]
-fn test_create_symbol_inserted_into_symbol_map() {
-    let content = "fn mapped() { }";
-    let workspace_root = std::path::PathBuf::from("/tmp/test");
-    let mut extractor = BaseExtractor::new(
-        "rust".to_string(),
-        "test.rs".to_string(),
-        content.to_string(),
-        &workspace_root,
-    );
-
-    assert!(extractor.symbol_map.is_empty());
-
-    let tree = parse_rust(content);
-    let root = tree.root_node();
-    let func_item = root.child(0).unwrap();
-
-    let symbol = extractor.create_symbol(
-        &func_item,
-        "mapped".to_string(),
-        SymbolKind::Function,
-        SymbolOptions::default(),
-    );
-
-    assert_eq!(extractor.symbol_map.len(), 1);
-    assert_eq!(extractor.symbol_map.get(&symbol.id).unwrap().name, "mapped");
 }
 
 // ---------------------------------------------------------------------------

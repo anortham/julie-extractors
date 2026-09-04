@@ -60,7 +60,7 @@ impl super::GoExtractor {
                 &mut metadata,
             );
             let symbol = Symbol {
-                id: id.clone(),
+                id,
                 name: name.clone(),
                 kind: SymbolKind::Function,
                 language: self.base.language.clone(),
@@ -88,7 +88,6 @@ impl super::GoExtractor {
                 content_type: None,
             };
 
-            self.base.symbol_map.insert(id, symbol.clone());
             symbols.push(symbol);
         }
     }

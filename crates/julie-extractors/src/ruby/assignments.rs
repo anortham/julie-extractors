@@ -1,13 +1,14 @@
 use super::helpers::infer_symbol_kind_from_assignment;
 use super::type_facts;
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use tree_sitter::Node;
 
 /// Per-file state that assignment extraction reads and updates.
 pub(super) struct AssignmentContext<'a> {
     pub(super) same_file_class_names: &'a HashSet<String>,
     pub(super) recorded_fields: &'a mut HashSet<(Option<String>, String)>,
+    pub(super) symbol_map: &'a mut HashMap<String, Symbol>,
 }
 
 /// Extract a symbol from an assignment node
@@ -24,7 +25,7 @@ pub(super) fn extract_assignment(
 
     // Handle parallel assignments (a, b, c = 1, 2, 3)
     if left_side.kind() == "left_assignment_list" {
-        return handle_parallel_assignment(base, node, left_side, parent_id);
+        return handle_parallel_assignment(base, node, left_side, parent_id, context.symbol_map);
     }
 
     // Handle regular assignments
@@ -40,7 +41,7 @@ pub(super) fn extract_assignment(
 
     let kind = infer_symbol_kind_from_assignment(&left_side, |n| base.get_node_text(n));
     let parent_id = if kind == SymbolKind::Field {
-        let class_parent = class_parent_id(base, parent_id.clone());
+        let class_parent = class_parent_id(context.symbol_map, parent_id.clone());
         if !context
             .recorded_fields
             .insert((class_parent.clone(), name.clone()))
@@ -76,9 +77,12 @@ pub(super) fn extract_assignment(
     Some(symbol)
 }
 
-fn class_parent_id(base: &BaseExtractor, mut parent_id: Option<String>) -> Option<String> {
+fn class_parent_id(
+    symbol_map: &HashMap<String, Symbol>,
+    mut parent_id: Option<String>,
+) -> Option<String> {
     while let Some(id) = parent_id {
-        let symbol = base.symbol_map.get(&id)?;
+        let symbol = symbol_map.get(&id)?;
         if matches!(symbol.kind, SymbolKind::Class | SymbolKind::Module) {
             return Some(id);
         }
@@ -93,6 +97,7 @@ fn handle_parallel_assignment(
     node: Node,
     left_side: Node,
     parent_id: Option<String>,
+    symbol_map: &mut HashMap<String, Symbol>,
 ) -> Option<Symbol> {
     let full_assignment = base.get_node_text(&node);
 
@@ -155,10 +160,10 @@ fn handle_parallel_assignment(
         }
     }
 
-    // Store additional symbols in the base extractor's symbol_map
+    // Store additional symbols in symbol_map
     // Since this method only returns one symbol, we add the rest to the symbol_map
     for symbol in created_symbols.iter().skip(1) {
-        base.symbol_map.insert(symbol.id.clone(), symbol.clone());
+        symbol_map.insert(symbol.id.clone(), symbol.clone());
     }
 
     // Return the first symbol (if any were created)

@@ -127,13 +127,8 @@ fn promoted_parameter_name_node<'a>(extractor: &PhpExtractor, node: &Node<'a>) -
 
 fn resolve_property_parent_id(extractor: &PhpExtractor, parent_id: Option<&str>) -> Option<String> {
     let parent_id = parent_id?;
-    let Some(parent_symbol) = extractor.get_base().symbol_map.get(parent_id) else {
-        return Some(parent_id.to_string());
-    };
-
-    if parent_symbol.kind == SymbolKind::Constructor {
-        return parent_symbol
-            .parent_id
+    if let Some(constructor_parent) = extractor.constructor_parent_ids.get(parent_id) {
+        return constructor_parent
             .clone()
             .or_else(|| Some(parent_id.to_string()));
     }

@@ -166,7 +166,6 @@ impl ErlangExtractor {
 
     /// Extract all symbols from Erlang source code.
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
-        self.base.symbol_map.clear();
         self.exported_functions.clear();
         self.exported_types.clear();
         self.exports_everything = false;

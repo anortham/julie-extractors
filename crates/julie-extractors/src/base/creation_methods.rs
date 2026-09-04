@@ -46,8 +46,8 @@ impl BaseExtractor {
             None
         };
 
-        let symbol = Symbol {
-            id: id.clone(),
+        Symbol {
+            id,
             name,
             kind,
             language: self.language.clone(),
@@ -69,10 +69,7 @@ impl BaseExtractor {
             semantic_group: None, // Will be populated during cross-language analysis
             confidence: None,     // Will be calculated based on parsing context
             content_type,
-        };
-
-        self.symbol_map.insert(id, symbol.clone());
-        symbol
+        }
     }
 
     /// Create an identifier (reference/usage) - NEW for LSP-quality reference tracking
@@ -237,20 +234,20 @@ impl BaseExtractor {
     pub fn find_containing_symbol_from_map<'a>(
         &self,
         node: &Node,
-        symbol_map: &HashMap<String, &'a Symbol>,
+        symbols_by_id: &HashMap<String, &'a Symbol>,
     ) -> Option<&'a Symbol> {
-        self.find_containing_symbol_from_map_filtered(node, symbol_map, |_| true)
+        self.find_containing_symbol_from_map_filtered(node, symbols_by_id, |_| true)
     }
 
     pub fn find_containing_symbol_from_map_filtered<'a>(
         &self,
         node: &Node,
-        symbol_map: &HashMap<String, &'a Symbol>,
+        symbols_by_id: &HashMap<String, &'a Symbol>,
         include_symbol: impl Fn(&Symbol) -> bool,
     ) -> Option<&'a Symbol> {
         Self::find_containing_symbol_from_iter(
             node,
-            symbol_map
+            symbols_by_id
                 .values()
                 .copied()
                 .filter(|symbol| symbol.file_path == self.file_path && include_symbol(symbol)),

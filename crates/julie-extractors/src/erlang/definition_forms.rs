@@ -142,8 +142,4 @@ fn apply_clause_body_span(
 
     symbol.body_span = Some(span);
     symbol.body_hash = body_hash(&extractor.base.content, span, &extractor.base.language);
-    extractor
-        .base
-        .symbol_map
-        .insert(symbol.id.clone(), symbol.clone());
 }

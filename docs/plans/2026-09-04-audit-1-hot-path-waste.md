@@ -121,9 +121,9 @@ Commit mode: `serial-worker-commit` for serial tasks; `parallel-lead-commit` ins
 **Approach:** Inspect each reader with Miller before editing. Ruby's assignment path both reads and writes the map during extraction, so it needs a real replacement, not a one-shot index. Run `cargo xtask test language` for cpp, ruby, erlang, elixir, go, and php.
 
 **Acceptance criteria:**
-- [ ] `grep -rn symbol_map crates/julie-extractors/src/base` returns nothing.
-- [ ] `create_symbol` and `create_symbol_from_span` return the symbol without a clone.
-- [ ] Language tiers for cpp, ruby, erlang, elixir, go pass. Golden tier passes with zero fixture changes.
+- [x] `grep -rn symbol_map crates/julie-extractors/src/base` returns nothing.
+- [x] `create_symbol` and `create_symbol_from_span` return the symbol without a clone.
+- [x] Language tiers for cpp, ruby, erlang, elixir, go pass. Golden tier passes with zero fixture changes.
 
 ## Task 3: Shared containing-symbol index for identifier lookup
 

@@ -354,7 +354,7 @@ fn is_google_test_fixture_lifecycle(
     base: &BaseExtractor,
     node: Node,
     name: &str,
-    parent_id: Option<&str>,
+    _parent_id: Option<&str>,
 ) -> bool {
     let Some(method_name) = name.rsplit("::").next() else {
         return false;
@@ -371,25 +371,19 @@ fn is_google_test_fixture_lifecycle(
         let qualifier = qualifier.trim_start_matches("::");
         let expected_qualified_name = if absolute {
             qualifier.to_string()
-        } else if let Some(scope) = parent_id
-            .and_then(|id| base.symbol_map.get(id))
-            .map(|symbol| qualified_symbol_name(base, symbol))
-            .filter(|scope| !scope.is_empty())
-        {
-            if qualifier == scope || qualifier.starts_with(&format!("{scope}::")) {
+        } else {
+            let scope = ast_enclosing_scope(base, node);
+            if scope.is_empty()
+                || qualifier == scope
+                || qualifier.starts_with(&format!("{scope}::"))
+            {
                 qualifier.to_string()
             } else {
                 format!("{scope}::{qualifier}")
             }
-        } else {
-            qualifier.to_string()
         };
 
-        return base.symbol_map.values().any(|symbol| {
-            matches!(symbol.kind, SymbolKind::Class | SymbolKind::Struct)
-                && qualified_symbol_name(base, symbol) == expected_qualified_name
-                && has_google_test_fixture_base(symbol)
-        });
+        return has_matching_fixture_class(base, node, &expected_qualified_name);
     }
 
     let mut current = node.parent();
@@ -415,16 +409,77 @@ fn is_google_test_fixture_lifecycle(
     false
 }
 
-fn has_google_test_fixture_base(symbol: &Symbol) -> bool {
-    symbol
-        .metadata
-        .as_ref()
-        .and_then(|metadata| metadata.get("base_types"))
-        .and_then(|value| value.as_array())
-        .is_some_and(|base_types| {
-            base_types
+fn class_specifier_name(base: &BaseExtractor, node: Node) -> Option<String> {
+    let mut cursor = node.walk();
+    let name_node = node
+        .children(&mut cursor)
+        .find(|c| c.kind() == "type_identifier" || c.kind() == "template_type")?;
+    if name_node.kind() == "template_type" {
+        let mut inner_cursor = name_node.walk();
+        let type_id = name_node
+            .children(&mut inner_cursor)
+            .find(|c| c.kind() == "type_identifier")
+            .map(|n| base.get_node_text(&n))
+            .unwrap_or_else(|| base.get_node_text(&name_node));
+        Some(type_id)
+    } else {
+        Some(base.get_node_text(&name_node))
+    }
+}
+
+fn ast_enclosing_scope(base: &BaseExtractor, node: Node) -> String {
+    let mut segments = Vec::new();
+    let mut current = node.parent();
+    while let Some(parent) = current {
+        match parent.kind() {
+            "namespace_definition" => {
+                let mut cursor = parent.walk();
+                if let Some(name_node) = parent
+                    .children(&mut cursor)
+                    .find(|c| c.kind() == "namespace_identifier")
+                {
+                    segments.push(base.get_node_text(&name_node));
+                }
+            }
+            "class_specifier" | "struct_specifier" => {
+                if let Some(name) = class_specifier_name(base, parent) {
+                    segments.push(name);
+                }
+            }
+            _ => {}
+        }
+        current = parent.parent();
+    }
+    segments.reverse();
+    segments.join("::")
+}
+
+fn is_matching_fixture_class(
+    base: &BaseExtractor,
+    current: Node,
+    expected_qualified_name: &str,
+) -> bool {
+    if !matches!(current.kind(), "class_specifier" | "struct_specifier") {
+        return false;
+    }
+    let Some(name) = class_specifier_name(base, current) else {
+        return false;
+    };
+    let scope = ast_enclosing_scope(base, current);
+    let qualified_name = if scope.is_empty() {
+        name
+    } else {
+        format!("{scope}::{name}")
+    };
+    if qualified_name != expected_qualified_name {
+        return false;
+    }
+    current
+        .children(&mut current.walk())
+        .find(|child| child.kind() == "base_class_clause")
+        .map(|base_clause| {
+            helpers::extract_base_type_names(base, base_clause)
                 .iter()
-                .filter_map(|value| value.as_str())
                 .any(|base_type| {
                     matches!(
                         base_type.trim_start_matches(':'),
@@ -432,25 +487,32 @@ fn has_google_test_fixture_base(symbol: &Symbol) -> bool {
                     )
                 })
         })
+        .unwrap_or(false)
 }
 
-fn qualified_symbol_name(base: &BaseExtractor, symbol: &Symbol) -> String {
-    let mut segments = vec![symbol.name.as_str()];
-    let mut parent_id = symbol.parent_id.as_deref();
-    while let Some(id) = parent_id {
-        let Some(parent) = base.symbol_map.get(id) else {
-            break;
-        };
-        if matches!(
-            parent.kind,
-            SymbolKind::Namespace | SymbolKind::Class | SymbolKind::Struct
-        ) {
-            segments.push(parent.name.as_str());
-        }
-        parent_id = parent.parent_id.as_deref();
+fn has_matching_fixture_class(
+    base: &BaseExtractor,
+    node: Node,
+    expected_qualified_name: &str,
+) -> bool {
+    let mut root = node;
+    while let Some(parent) = root.parent() {
+        root = parent;
     }
-    segments.reverse();
-    segments.join("::")
+
+    let mut stack = vec![root];
+    while let Some(current) = stack.pop() {
+        if is_matching_fixture_class(base, current, expected_qualified_name) {
+            return true;
+        }
+        let mut cursor = current.walk();
+        for child in current.children(&mut cursor) {
+            if child.child_count() > 0 {
+                stack.push(child);
+            }
+        }
+    }
+    false
 }
 
 fn collect_standard_attributes_from_text(text: &str, attributes: &mut Vec<String>) {

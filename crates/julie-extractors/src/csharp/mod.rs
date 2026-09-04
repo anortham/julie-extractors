@@ -61,7 +61,7 @@ impl CSharpExtractor {
         let start_pos = root.start_position();
         let end_pos = root.end_position();
         let file_symbol = Symbol {
-            id: file_symbol_id.clone(),
+            id: file_symbol_id,
             name: self.base.file_path.clone(),
             kind: SymbolKind::Module,
             language: self.base.language.clone(),
@@ -85,9 +85,6 @@ impl CSharpExtractor {
             annotations: Vec::new(),
         };
 
-        self.base
-            .symbol_map
-            .insert(file_symbol_id, file_symbol.clone());
         symbols.push(file_symbol);
     }
 

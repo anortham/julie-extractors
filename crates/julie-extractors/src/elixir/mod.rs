@@ -52,7 +52,6 @@ impl ElixirExtractor {
     /// Extract all symbols from Elixir source code
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
-        self.base.symbol_map.clear();
         self.module_stack.clear();
         self.specs.clear();
 

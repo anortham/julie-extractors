@@ -33,6 +33,7 @@ pub struct RubyExtractor {
     current_visibility: Visibility,
     same_file_class_names: std::collections::HashSet<String>,
     recorded_fields: std::collections::HashSet<(Option<String>, String)>,
+    symbol_map: std::collections::HashMap<String, Symbol>,
 }
 
 impl RubyExtractor {
@@ -42,6 +43,7 @@ impl RubyExtractor {
             current_visibility: Visibility::Public,
             same_file_class_names: std::collections::HashSet::new(),
             recorded_fields: std::collections::HashSet::new(),
+            symbol_map: std::collections::HashMap::new(),
         }
     }
 
@@ -51,7 +53,7 @@ impl RubyExtractor {
         self.current_visibility = Visibility::Public; // Reset for each file
 
         // Clear any previous symbols from symbol_map
-        self.base.symbol_map.clear();
+        self.symbol_map.clear();
         self.same_file_class_names =
             type_facts::collect_same_file_class_names(&self.base, tree.root_node());
         self.recorded_fields.clear();
@@ -64,7 +66,7 @@ impl RubyExtractor {
         let existing_ids: std::collections::HashSet<_> =
             symbols.iter().map(|s| s.id.clone()).collect();
 
-        for (id, symbol) in self.base.symbol_map.iter() {
+        for (id, symbol) in self.symbol_map.iter() {
             if !existing_ids.contains(id) {
                 symbols.push(symbol.clone());
             }
@@ -211,6 +213,9 @@ impl RubyExtractor {
                 if call_symbols.len() == 1 {
                     symbol_opt = call_symbols.into_iter().next();
                 } else {
+                    for s in &call_symbols {
+                        self.symbol_map.insert(s.id.clone(), s.clone());
+                    }
                     symbols.extend(call_symbols);
                 }
             }
@@ -220,6 +225,9 @@ impl RubyExtractor {
                 if let Some((struct_class, field_props)) =
                     calls::try_extract_struct_new(&mut self.base, node, parent_id.clone())
                 {
+                    for s in &field_props {
+                        self.symbol_map.insert(s.id.clone(), s.clone());
+                    }
                     symbols.extend(field_props);
                     symbol_opt = Some(struct_class);
                 } else if let Some(symbol) = assignments::extract_assignment(
@@ -229,8 +237,10 @@ impl RubyExtractor {
                     assignments::AssignmentContext {
                         same_file_class_names: &self.same_file_class_names,
                         recorded_fields: &mut self.recorded_fields,
+                        symbol_map: &mut self.symbol_map,
                     },
                 ) {
+                    self.symbol_map.insert(symbol.id.clone(), symbol.clone());
                     symbols.push(symbol);
                 }
             }
@@ -295,7 +305,11 @@ impl RubyExtractor {
         // Add symbol to collection and update parent_id for children
         let current_parent_id = if let Some(symbol) = symbol_opt {
             let symbol_id = symbol.id.clone();
+            self.symbol_map.insert(symbol_id.clone(), symbol.clone());
             symbols.push(symbol);
+            for s in &extra_symbols {
+                self.symbol_map.insert(s.id.clone(), s.clone());
+            }
             symbols.extend(std::mem::take(&mut extra_symbols));
             Some(symbol_id)
         } else {

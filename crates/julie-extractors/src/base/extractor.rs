@@ -12,10 +12,7 @@ use super::relationship_resolution::StructuredPendingRelationship;
 use super::span::{NormalizedSpan, normalize_file_path};
 use super::string_literals;
 use super::type_models::{Literal, LiteralKind, TypeArgument, TypeArgumentUsage};
-use super::types::{
-    Identifier, PendingRelationship, Relationship, Symbol, TypeInfo,
-    stable_location_id,
-};
+use super::types::{Identifier, PendingRelationship, Relationship, TypeInfo, stable_location_id};
 
 /// Base implementation for language extractors
 ///
@@ -27,7 +24,6 @@ pub struct BaseExtractor {
     /// Build a fresh extractor per file instead (the production pattern).
     pub content: String,
     line_starts: Vec<usize>,
-    pub symbol_map: HashMap<String, Symbol>,
     pub relationships: Vec<Relationship>,
     pub pending_relationships: Vec<PendingRelationship>,
     pub structured_pending_relationships: Vec<StructuredPendingRelationship>,
@@ -69,7 +65,6 @@ impl BaseExtractor {
             file_path: relative_unix_path, // Phase 2: Store relative Unix-style path
             content,
             line_starts,
-            symbol_map: HashMap::new(),
             relationships: Vec::new(),
             pending_relationships: Vec::new(),
             structured_pending_relationships: Vec::new(),
@@ -357,7 +352,6 @@ impl BaseExtractor {
         self.generate_id_for_span(name, &NormalizedSpan::from_node(node))
     }
 
-
     /// Safely truncate a string to a maximum number of characters (not bytes)
     /// This handles UTF-8 multi-byte characters correctly by truncating at character boundaries
     pub fn truncate_string(text: &str, max_chars: usize) -> String {
@@ -404,7 +398,6 @@ fn select_doc_comment_block(language: &str, comments_nearest_first: &[String]) -
     None
 }
 
-
 fn content_line_starts(content: &str) -> Vec<usize> {
     let mut starts = vec![0];
     for (index, byte) in content.as_bytes().iter().enumerate() {
@@ -414,4 +407,3 @@ fn content_line_starts(content: &str) -> Vec<usize> {
     }
     starts
 }
-

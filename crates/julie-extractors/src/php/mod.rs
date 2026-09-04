@@ -41,6 +41,7 @@ use types::{
 
 pub struct PhpExtractor {
     pub(crate) base: BaseExtractor,
+    pub(crate) constructor_parent_ids: HashMap<String, Option<String>>,
 }
 
 impl PhpExtractor {
@@ -52,12 +53,14 @@ impl PhpExtractor {
     ) -> Self {
         Self {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
+            constructor_parent_ids: HashMap::new(),
         }
     }
 
     /// Extract symbols from PHP code - main extraction method
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
+        self.constructor_parent_ids.clear();
         self.visit_node(tree.root_node(), &mut symbols, None, 0);
         mark_php_test_containers(&mut symbols, &self.base.file_path);
         symbols
@@ -154,6 +157,10 @@ impl PhpExtractor {
         };
 
         if let Some(sym) = symbol {
+            if sym.kind == crate::base::SymbolKind::Constructor {
+                self.constructor_parent_ids
+                    .insert(sym.id.clone(), sym.parent_id.clone());
+            }
             current_parent_id = Some(sym.id.clone());
             symbols.push(sym);
             if matches!(node.kind(), "function_definition" | "method_declaration")
