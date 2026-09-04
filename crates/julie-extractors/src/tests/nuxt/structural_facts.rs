@@ -9,8 +9,6 @@ fn extract(file_path: &str, source: &str) -> crate::ExtractionResults {
         .expect("canonical Nuxt extraction should succeed")
 }
 
-
-
 fn metadata_array<'a>(fact: &'a StructuralFact, key: &str) -> Vec<&'a str> {
     fact.metadata
         .as_ref()

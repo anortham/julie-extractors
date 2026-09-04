@@ -51,7 +51,10 @@ extension [Int] {
         })
         .expect("Circle extension should be extracted");
     assert_ne!(circle_extension.kind, SymbolKind::Class);
-    assert_eq!(symbol_metadata_str(circle_extension, "type"), Some("extension"));
+    assert_eq!(
+        symbol_metadata_str(circle_extension, "type"),
+        Some("extension")
+    );
     assert_eq!(
         symbol_metadata_str(circle_extension, "extendedType"),
         Some("Circle")
@@ -82,7 +85,10 @@ extension [Int] {
         })
         .expect("array extension should be extracted");
     assert_ne!(array_extension.kind, SymbolKind::Class);
-    assert_eq!(symbol_metadata_str(array_extension, "extendedType"), Some("[Int]"));
+    assert_eq!(
+        symbol_metadata_str(array_extension, "extendedType"),
+        Some("[Int]")
+    );
     assert_eq!(
         symbol_metadata_str(array_extension, "symbol_role"),
         Some("extension")

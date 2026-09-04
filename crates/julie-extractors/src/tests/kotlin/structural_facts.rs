@@ -15,7 +15,6 @@ fn extract(source: &str) -> crate::ExtractionResults {
     .expect("canonical Kotlin extraction should succeed")
 }
 
-
 #[test]
 fn kotlin_emits_expected_structural_fact_patterns() {
     let results = extract(FIXTURE_SOURCE);

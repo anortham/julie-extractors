@@ -9,8 +9,6 @@ fn extract(file_path: &str, source: &str) -> crate::ExtractionResults {
         .expect("canonical React extraction should succeed")
 }
 
-
-
 fn metadata_bool(fact: &StructuralFact, key: &str) -> Option<bool> {
     fact.metadata
         .as_ref()

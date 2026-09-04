@@ -21,7 +21,6 @@ fn facts<'a>(
         .collect()
 }
 
-
 fn metadata<'a>(fact: &'a crate::base::StructuralFact, key: &str) -> Option<&'a Value> {
     fact.metadata.as_ref()?.get(key)
 }

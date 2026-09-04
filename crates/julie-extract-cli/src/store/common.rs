@@ -1,9 +1,7 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use julie_extract_artifact::store::{
-    CoordinatorError, LeaseHolder, StoreCoordinator, StoreLayout,
-};
+use julie_extract_artifact::store::{CoordinatorError, LeaseHolder, StoreCoordinator, StoreLayout};
 
 use super::import::{ImportClock, ImportPidLiveness};
 use super::report::{StoreOperation, StoreReport, StoreRequestState, StoreRequestedLevel};

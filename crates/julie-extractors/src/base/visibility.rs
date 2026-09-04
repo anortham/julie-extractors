@@ -10,9 +10,7 @@ pub fn visibility_from_modifiers_with_default(
     modifiers: &[String],
     default: Visibility,
 ) -> Visibility {
-    let has = |predicate: fn(&str) -> bool| {
-        modifiers.iter().any(|m| predicate(m.as_str()))
-    };
+    let has = |predicate: fn(&str) -> bool| modifiers.iter().any(|m| predicate(m.as_str()));
 
     if has(|m| m.eq_ignore_ascii_case("open")) {
         return Visibility::Open;

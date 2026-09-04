@@ -15,7 +15,6 @@ fn extract(source: &str) -> crate::ExtractionResults {
     .expect("canonical Bash extraction should succeed")
 }
 
-
 #[test]
 fn bash_emits_expected_structural_fact_patterns() {
     let results = extract(FIXTURE_SOURCE);

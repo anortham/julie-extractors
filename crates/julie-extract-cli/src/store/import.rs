@@ -6,8 +6,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use julie_extractors::EXTRACTION_IDENTITY_EPOCH;
 
 use julie_extract_artifact::store::{
-    CoordinatorError, CoordinatorPolicy, CoordinatorRequest, QUANTUM_OVERRUN_CODE,
-    RequestKind, RequestState, StoreCoordinator, StoreLayout, same_path_identity,
+    CoordinatorError, CoordinatorPolicy, CoordinatorRequest, QUANTUM_OVERRUN_CODE, RequestKind,
+    RequestState, StoreCoordinator, StoreLayout, same_path_identity,
 };
 use rusqlite::OptionalExtension;
 
@@ -512,7 +512,8 @@ fn execute_import(
                 now.saturating_add(deadline_delta),
                 now,
             );
-            let mut coordinator = open_cli_coordinator(&layout).map_err(|error| error.to_string())?;
+            let mut coordinator =
+                open_cli_coordinator(&layout).map_err(|error| error.to_string())?;
             let canonical_request = coordinator
                 .enqueue(request)
                 .map_err(|error| error.to_string())?

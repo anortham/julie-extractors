@@ -1239,7 +1239,6 @@ export const router = createBrowserRouter(routes);
     }
 }
 
-
 fn assert_common_framework_fact(fact: &StructuralFact, capture_name: &str, query_family: &str) {
     assert_eq!(fact.capture_name, capture_name);
     assert_eq!(fact.confidence, 1.0);
@@ -1253,7 +1252,6 @@ fn assert_common_framework_fact(fact: &StructuralFact, capture_name: &str, query
     );
     assert_eq!(metadata_str(fact, "query_family"), Some(query_family));
 }
-
 
 fn metadata_bool(fact: &StructuralFact, key: &str) -> Option<bool> {
     fact.metadata

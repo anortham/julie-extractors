@@ -36,10 +36,7 @@ pub(super) fn extract_script_setup_symbols(
 const COMPONENT_MACROS: [&str; 3] = ["defineOptions", "defineProps", "defineEmits"];
 
 /// Attach script-setup macro metadata to the component symbol and defineExpose targets.
-pub(super) fn apply_script_setup_annotations(
-    symbols: &mut [Symbol],
-    parsed_sfc: &ParsedVueSfc,
-) {
+pub(super) fn apply_script_setup_annotations(symbols: &mut [Symbol], parsed_sfc: &ParsedVueSfc) {
     for (idx, section) in parsed_sfc.sections.iter().enumerate() {
         if section.section_type != "script" || !section.is_setup {
             continue;
@@ -217,7 +214,6 @@ fn with_zero_based_columns(mut symbol: Symbol) -> Symbol {
     symbol.refresh_id();
     symbol
 }
-
 
 /// Recursively walk the AST and extract symbols
 fn walk_for_symbols(

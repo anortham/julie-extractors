@@ -294,23 +294,39 @@ div { color: red; }
 
         let sfc = ParsedVueSfc::parse(sfc_content).expect("SFC parse failed");
         assert_eq!(sfc.sections().len(), 3);
-        assert_eq!(get_script_parse_count(), 0, "No script parse upon initial SFC split");
+        assert_eq!(
+            get_script_parse_count(),
+            0,
+            "No script parse upon initial SFC split"
+        );
 
         // First access to script tree triggers parse
         let tree1 = sfc.script_tree(1);
         assert!(tree1.is_some());
-        assert_eq!(get_script_parse_count(), 1, "Script parsed once on first access");
+        assert_eq!(
+            get_script_parse_count(),
+            1,
+            "Script parsed once on first access"
+        );
 
         // Second access reuses the cached tree
         let tree2 = sfc.script_tree(1);
         assert!(tree2.is_some());
-        assert_eq!(get_script_parse_count(), 1, "Script not reparsed on second access");
+        assert_eq!(
+            get_script_parse_count(),
+            1,
+            "Script not reparsed on second access"
+        );
 
         // Access via script_tree_for_section reuses cached tree
         let script_sec = &sfc.sections()[1];
         let tree3 = sfc.script_tree_for_section(script_sec);
         assert!(tree3.is_some());
-        assert_eq!(get_script_parse_count(), 1, "Script not reparsed when accessed by section reference");
+        assert_eq!(
+            get_script_parse_count(),
+            1,
+            "Script not reparsed when accessed by section reference"
+        );
 
         // Non-script sections return None without incrementing parse count
         assert!(sfc.script_tree(0).is_none());
@@ -345,18 +361,38 @@ function increment() {
 
         let symbols = extractor.extract_symbols(None);
         assert!(!symbols.is_empty());
-        assert_eq!(get_script_parse_count(), 1, "symbols extraction should parse script section once");
+        assert_eq!(
+            get_script_parse_count(),
+            1,
+            "symbols extraction should parse script section once"
+        );
 
         let _rels = extractor.extract_relationships(None, &symbols);
-        assert_eq!(get_script_parse_count(), 1, "relationships extraction should reuse cached tree");
+        assert_eq!(
+            get_script_parse_count(),
+            1,
+            "relationships extraction should reuse cached tree"
+        );
 
         let _idents = extractor.extract_identifiers(&symbols);
-        assert_eq!(get_script_parse_count(), 1, "identifiers extraction should reuse cached tree");
+        assert_eq!(
+            get_script_parse_count(),
+            1,
+            "identifiers extraction should reuse cached tree"
+        );
 
         let _pending = extractor.extract_structured_pending_relationships(&symbols);
-        assert_eq!(get_script_parse_count(), 1, "structured pending extraction should reuse cached tree");
+        assert_eq!(
+            get_script_parse_count(),
+            1,
+            "structured pending extraction should reuse cached tree"
+        );
 
         let _complexity = extractor.extract_complexity_metrics(&symbols);
-        assert_eq!(get_script_parse_count(), 1, "complexity extraction should reuse cached tree");
+        assert_eq!(
+            get_script_parse_count(),
+            1,
+            "complexity extraction should reuse cached tree"
+        );
     }
 }

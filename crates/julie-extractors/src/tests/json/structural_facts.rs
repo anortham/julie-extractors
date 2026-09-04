@@ -8,8 +8,6 @@ fn extract(source: &str) -> crate::ExtractionResults {
         .expect("canonical JSON extraction should succeed")
 }
 
-
-
 #[test]
 fn json_emits_object_property_and_array_facts_without_scalar_noise() {
     let source = r#"{
