@@ -116,10 +116,10 @@ Commit mode: `parallel-lead-commit` for Batch A; `serial-worker-commit` for Task
 6. Add the ignore rule and commit it.
 
 **Acceptance criteria:**
-- [ ] User approved the exact removal list.
-- [ ] `git worktree list` shows main plus any tree the user chose to keep.
-- [ ] `.gitignore` ignores `/.claude/worktrees/`.
-- [ ] The dirty `ct-language-audit-plan` tree was not removed unless the user reconciled it first.
+- [x] User approved the exact removal list.
+- [x] `git worktree list` shows main plus any tree the user chose to keep.
+- [x] `.gitignore` ignores `/.claude/worktrees/`.
+- [x] The dirty `ct-language-audit-plan` tree was not removed unless the user reconciled it first.
 
 ## Task 5: Untrack `.razorback/` reports and rename performance test files
 
