@@ -318,6 +318,7 @@ pub fn renew_writer_lease_with_retry(
         holder,
         fencing_token,
         DEFAULT_LEASE_DURATION_MS,
+        None,
     )
 }
 
@@ -326,6 +327,7 @@ fn renew_writer_lease_with_retry_for_duration(
     holder: &LeaseHolder,
     fencing_token: i64,
     lease_duration_ms: i64,
+    connection: Option<&Connection>,
 ) -> Result<bool, CoordinatorError> {
     let interval_ms = u64::try_from((lease_duration_ms / 3).max(1)).unwrap_or(1);
     let retry_delay = HEARTBEAT_RENEWAL_RETRY_DELAY
@@ -338,6 +340,7 @@ fn renew_writer_lease_with_retry_for_duration(
                 fencing_token,
                 system_now_ms(),
                 lease_duration_ms,
+                connection,
             )
         },
         || reclaim_lapsed_lease_at(coordinator_db, holder, fencing_token, lease_duration_ms),
@@ -675,9 +678,13 @@ impl StoreCoordinator {
     /// resolution contract suite went from failing on most runs to 0 failures in 8, and from about
     /// 90 seconds to about 45.
     ///
-    /// Three paths deliberately still open their own connection, and must keep doing so: the
-    /// `LeaseReleaseGuard` drop path and the drain's lease-heartbeat thread need a connection while
-    /// `self` is already borrowed, and `Connection` is not `Sync`.
+    /// Paths that cannot borrow `self.connection` (because `self` is already borrowed and `Connection`
+    /// is not `Sync`) manage their own connection lifecycle:
+    /// - The drain's lease-heartbeat thread opens one connection at startup and reuses it for every
+    ///   heartbeat tick and for lease release on exit.
+    /// - The `LeaseReleaseGuard` drop path (unwind / panic recovery) and `reclaim_lapsed_lease_at`
+    ///   (fallback when a heartbeat tick lapses) open their own connection when no thread connection
+    ///   is available.
     ///
     /// A poisoned lock is recovered rather than propagated: the mutex guards a connection, not an
     /// invariant, and a panic elsewhere must not make the coordinator permanently unusable. The
@@ -1168,7 +1175,15 @@ impl StoreCoordinator {
         holder: &LeaseHolder,
         fencing_token: i64,
     ) -> Result<bool, CoordinatorError> {
-        let released = release_lease_at(&self.coordinator_db, holder, fencing_token)?;
+        let released = {
+            let connection = self.coordinator();
+            release_lease_at(
+                &self.coordinator_db,
+                holder,
+                fencing_token,
+                Some(&connection),
+            )?
+        };
         if released && self.held_fencing_token == Some(fencing_token) {
             self.held_fencing_token = None;
         }
@@ -1191,12 +1206,14 @@ impl StoreCoordinator {
         now: i64,
         lease_duration_ms: i64,
     ) -> Result<bool, CoordinatorError> {
+        let connection = self.coordinator();
         heartbeat_lease_at(
             &self.coordinator_db,
             holder,
             fencing_token,
             now,
             lease_duration_ms,
+            Some(&connection),
         )
     }
 
@@ -1281,9 +1298,14 @@ impl StoreCoordinator {
                 holder.clone(),
                 fencing_token,
                 policy.lease_duration_ms,
+                Arc::clone(&self.clock),
             );
             let result = self.drain_acquired(executor, policy, &holder, fencing_token, started_at);
-            if heartbeat.stop() {
+            let (is_current, released) = heartbeat.stop_and_release();
+            if released {
+                guard.disarm();
+            }
+            if is_current {
                 result
             } else {
                 Err(CoordinatorError::LeaseLost)
@@ -1291,11 +1313,15 @@ impl StoreCoordinator {
         }));
         match result {
             Ok(result) => {
-                let release_result = self.release_lease_for(&holder, fencing_token);
-                if release_result.is_ok() {
-                    guard.disarm();
+                if guard.armed {
+                    let release_result = self.release_lease_for(&holder, fencing_token);
+                    if release_result.is_ok() {
+                        guard.disarm();
+                    }
+                    release_result?;
+                } else if self.held_fencing_token == Some(fencing_token) {
+                    self.held_fencing_token = None;
                 }
-                release_result?;
                 result
             }
             Err(payload) => {
@@ -2835,10 +2861,32 @@ struct LeaseReleaseGuard {
     armed: bool,
 }
 
+#[cfg(test)]
+use std::sync::atomic::AtomicUsize;
+
+#[cfg(test)]
+static HEARTBEAT_OPEN_COUNT: AtomicUsize = AtomicUsize::new(0);
+
+#[cfg(test)]
+pub(super) fn heartbeat_open_count() -> usize {
+    HEARTBEAT_OPEN_COUNT.load(AtomicOrdering::SeqCst)
+}
+
+#[cfg(test)]
+pub(super) fn reset_heartbeat_open_count() {
+    HEARTBEAT_OPEN_COUNT.store(0, AtomicOrdering::SeqCst);
+}
+
+enum HeartbeatCommand {
+    #[allow(dead_code)]
+    Stop,
+    Release,
+}
+
 struct LeaseHeartbeatGuard {
-    stop: mpsc::Sender<()>,
+    stop: mpsc::Sender<HeartbeatCommand>,
     current: Arc<AtomicBool>,
-    worker: Option<std::thread::JoinHandle<()>>,
+    worker: Option<std::thread::JoinHandle<bool>>,
 }
 
 impl LeaseHeartbeatGuard {
@@ -2847,30 +2895,63 @@ impl LeaseHeartbeatGuard {
         holder: LeaseHolder,
         fencing_token: i64,
         lease_duration_ms: i64,
+        clock: Arc<dyn UnixMillisClock>,
     ) -> Self {
         let (stop, receiver) = mpsc::channel();
         let current = Arc::new(AtomicBool::new(true));
         let worker_current = Arc::clone(&current);
         let interval_ms = u64::try_from((lease_duration_ms / 3).max(1)).unwrap_or(1);
-        let worker = std::thread::spawn(move || {
+        let worker = std::thread::spawn(move || -> bool {
+            let mut connection = open_coordinator(&coordinator_db).ok();
+            #[cfg(test)]
+            if connection.is_some() {
+                HEARTBEAT_OPEN_COUNT.fetch_add(1, AtomicOrdering::SeqCst);
+            }
+            let mut released = false;
             loop {
                 match receiver.recv_timeout(Duration::from_millis(interval_ms)) {
-                    Ok(()) | Err(mpsc::RecvTimeoutError::Disconnected) => return,
+                    Ok(HeartbeatCommand::Release) => {
+                        released = release_lease_at(
+                            &coordinator_db,
+                            &holder,
+                            fencing_token,
+                            connection.as_ref(),
+                        )
+                        .unwrap_or(false);
+                        break;
+                    }
+                    Ok(HeartbeatCommand::Stop) | Err(mpsc::RecvTimeoutError::Disconnected) => {
+                        break;
+                    }
                     Err(mpsc::RecvTimeoutError::Timeout) => {}
+                }
+                let _ = clock.now_ms();
+                if connection.is_none() {
+                    connection = open_coordinator(&coordinator_db).ok();
+                    #[cfg(test)]
+                    if connection.is_some() {
+                        HEARTBEAT_OPEN_COUNT.fetch_add(1, AtomicOrdering::SeqCst);
+                    }
                 }
                 match renew_writer_lease_with_retry_for_duration(
                     &coordinator_db,
                     &holder,
                     fencing_token,
                     lease_duration_ms,
+                    connection.as_ref(),
                 ) {
                     Ok(true) => {}
-                    Ok(false) | Err(_) => {
+                    Ok(false) => {
                         worker_current.store(false, AtomicOrdering::Release);
-                        return;
+                        break;
+                    }
+                    Err(_) => {
+                        worker_current.store(false, AtomicOrdering::Release);
+                        break;
                     }
                 }
             }
+            released
         });
         Self {
             stop,
@@ -2879,19 +2960,25 @@ impl LeaseHeartbeatGuard {
         }
     }
 
-    fn stop(mut self) -> bool {
-        let _ = self.stop.send(());
-        let joined = self
+    #[allow(dead_code)]
+    fn stop(self) -> bool {
+        self.stop_and_release().0
+    }
+
+    fn stop_and_release(mut self) -> (bool, bool) {
+        let _ = self.stop.send(HeartbeatCommand::Release);
+        let released = self
             .worker
             .take()
-            .is_none_or(|worker| worker.join().is_ok());
-        joined && self.current.load(AtomicOrdering::Acquire)
+            .and_then(|worker| worker.join().ok())
+            .unwrap_or(false);
+        (self.current.load(AtomicOrdering::Acquire), released)
     }
 }
 
 impl Drop for LeaseHeartbeatGuard {
     fn drop(&mut self) {
-        let _ = self.stop.send(());
+        let _ = self.stop.send(HeartbeatCommand::Release);
         if let Some(worker) = self.worker.take() {
             let _ = worker.join();
         }
@@ -2934,7 +3021,7 @@ impl LeaseReleaseGuard {
 impl Drop for LeaseReleaseGuard {
     fn drop(&mut self) {
         if self.armed {
-            let _ = release_lease_at(&self.coordinator_db, &self.holder, self.fencing_token);
+            let _ = release_lease_at(&self.coordinator_db, &self.holder, self.fencing_token, None);
         }
     }
 }
@@ -3104,18 +3191,26 @@ fn release_lease_at(
     coordinator_db: &Path,
     holder: &LeaseHolder,
     fencing_token: i64,
+    connection: Option<&Connection>,
 ) -> Result<bool, CoordinatorError> {
-    let connection = open_coordinator(coordinator_db)?;
-    Ok(connection.execute(
-        "DELETE FROM writer_lease
-         WHERE resource = ?1 AND holder_id = ?2 AND holder_pid = ?3 AND fencing_token = ?4",
-        params![
-            STORE_WRITER_RESOURCE,
-            holder.holder_id,
-            holder.holder_pid,
-            fencing_token,
-        ],
-    )? == 1)
+    let execute_delete = |conn: &Connection| -> Result<bool, CoordinatorError> {
+        Ok(conn.execute(
+            "DELETE FROM writer_lease
+             WHERE resource = ?1 AND holder_id = ?2 AND holder_pid = ?3 AND fencing_token = ?4",
+            params![
+                STORE_WRITER_RESOURCE,
+                holder.holder_id,
+                holder.holder_pid,
+                fencing_token,
+            ],
+        )? == 1)
+    };
+    if let Some(conn) = connection {
+        execute_delete(conn)
+    } else {
+        let conn = open_coordinator(coordinator_db)?;
+        execute_delete(&conn)
+    }
 }
 
 /// Re-extends a lease this holder still owns even though its `expires_at` has lapsed.
@@ -3161,22 +3256,30 @@ fn heartbeat_lease_at(
     fencing_token: i64,
     now: i64,
     lease_duration_ms: i64,
+    connection: Option<&Connection>,
 ) -> Result<bool, CoordinatorError> {
     let expires_at = checked_lease_expiry(now, lease_duration_ms)?;
-    let connection = open_coordinator(coordinator_db)?;
-    Ok(connection.execute(
-        "UPDATE writer_lease SET heartbeat_at = ?1, expires_at = ?2
-         WHERE resource = ?3 AND holder_id = ?4 AND holder_pid = ?5 AND fencing_token = ?6
-           AND expires_at > ?1",
-        params![
-            now,
-            expires_at,
-            STORE_WRITER_RESOURCE,
-            holder.holder_id,
-            holder.holder_pid,
-            fencing_token,
-        ],
-    )? == 1)
+    let execute_update = |conn: &Connection| -> Result<bool, CoordinatorError> {
+        Ok(conn.execute(
+            "UPDATE writer_lease SET heartbeat_at = ?1, expires_at = ?2
+             WHERE resource = ?3 AND holder_id = ?4 AND holder_pid = ?5 AND fencing_token = ?6
+               AND expires_at > ?1",
+            params![
+                now,
+                expires_at,
+                STORE_WRITER_RESOURCE,
+                holder.holder_id,
+                holder.holder_pid,
+                fencing_token,
+            ],
+        )? == 1)
+    };
+    if let Some(conn) = connection {
+        execute_update(conn)
+    } else {
+        let conn = open_coordinator(coordinator_db)?;
+        execute_update(&conn)
+    }
 }
 
 #[cfg(test)]
@@ -3286,6 +3389,104 @@ mod tests {
         child.wait().unwrap();
         std::thread::sleep(PROCESS_STATUS_TTL + std::time::Duration::from_millis(50));
         assert_eq!(process_status(pid), PidStatus::Dead);
+    }
+
+    #[test]
+    fn five_heartbeat_ticks_open_only_one_coordinator_connection() {
+        let sequence = NEXT_TEMP_PATH.fetch_add(1, Ordering::Relaxed);
+        let path = std::env::temp_dir().join(format!(
+            "julie-coordinator-heartbeat-reuse-{}-{sequence}.db",
+            std::process::id()
+        ));
+        let _ = fs::remove_file(&path);
+        let _ = fs::remove_file(format!("{}-wal", path.display()));
+        let _ = fs::remove_file(format!("{}-shm", path.display()));
+
+        let init_conn = open_coordinator(&path).unwrap();
+        super::super::schema::create_coordinator_schema(&init_conn).unwrap();
+        let holder = LeaseHolder::new("test-holder", "2.39.0", std::process::id());
+        let fencing_token = 1;
+        let now = system_now_ms();
+        init_conn
+            .execute(
+                "INSERT INTO writer_lease (resource, holder_id, holder_version, holder_pid, heartbeat_at, expires_at, fencing_token)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                params![
+                    STORE_WRITER_RESOURCE,
+                    holder.holder_id,
+                    holder.holder_version,
+                    holder.holder_pid,
+                    now,
+                    now + 60_000,
+                    fencing_token,
+                ],
+            )
+            .unwrap();
+        drop(init_conn);
+
+        reset_heartbeat_open_count();
+
+        #[derive(Debug)]
+        struct CountingClock {
+            ticks: Arc<AtomicUsize>,
+        }
+
+        impl UnixMillisClock for CountingClock {
+            fn now_ms(&self) -> i64 {
+                self.ticks.fetch_add(1, AtomicOrdering::SeqCst);
+                system_now_ms()
+            }
+        }
+
+        let ticks = Arc::new(AtomicUsize::new(0));
+        let clock = Arc::new(CountingClock {
+            ticks: Arc::clone(&ticks),
+        });
+
+        // Start heartbeat with lease_duration_ms = 30 -> interval_ms = 10 ms
+        let heartbeat =
+            LeaseHeartbeatGuard::start(path.clone(), holder.clone(), fencing_token, 30, clock);
+
+        // Wait until at least 5 heartbeat ticks have executed
+        let deadline = std::time::Instant::now() + Duration::from_secs(5);
+        while ticks.load(AtomicOrdering::SeqCst) < 5 {
+            assert!(
+                std::time::Instant::now() < deadline,
+                "timed out waiting for 5 heartbeat ticks (observed {})",
+                ticks.load(AtomicOrdering::SeqCst)
+            );
+            std::thread::sleep(Duration::from_millis(5));
+        }
+
+        let (is_current, released) = heartbeat.stop_and_release();
+        assert!(is_current, "heartbeat reported lease lost");
+        assert!(released, "heartbeat failed to release lease");
+
+        let observed_ticks = ticks.load(AtomicOrdering::SeqCst);
+        assert!(
+            observed_ticks >= 5,
+            "expected at least 5 ticks, observed {observed_ticks}"
+        );
+        assert_eq!(
+            heartbeat_open_count(),
+            1,
+            "heartbeat thread must open exactly one coordinator connection across all ticks"
+        );
+
+        let conn = open_coordinator(&path).unwrap();
+        let remaining: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM writer_lease WHERE resource = ?1",
+                [STORE_WRITER_RESOURCE],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(remaining, 0, "lease row should have been released");
+        drop(conn);
+
+        let _ = fs::remove_file(&path);
+        let _ = fs::remove_file(format!("{}-wal", path.display()));
+        let _ = fs::remove_file(format!("{}-shm", path.display()));
     }
 
     fn pragma_integer(connection: &Connection, name: &str) -> i64 {

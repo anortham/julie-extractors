@@ -619,7 +619,7 @@ impl StoreRequestExecutor {
         if let Some(progress) = progress {
             progress.advance(Counter::Spooled, 1);
         }
-        StoreFileVersion::try_from_artifact_file(EXTRACTION_IDENTITY_EPOCH, &artifact)
+        StoreFileVersion::try_from_artifact_file(EXTRACTION_IDENTITY_EPOCH, artifact)
             .map_err(|error| error.to_string())
     }
 
@@ -1094,7 +1094,7 @@ impl StoreRequestExecutor {
                 artifact.status = FileStatus::Indexed;
                 let version = StoreFileVersion::try_from_artifact_file(
                     payload.source.extraction_epoch,
-                    &artifact,
+                    artifact,
                 )
                 .map_err(|error| error.to_string())?;
                 for level in [StoreLevel::L1, StoreLevel::L2, StoreLevel::L3] {

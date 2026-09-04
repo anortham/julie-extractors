@@ -211,7 +211,7 @@ pub struct StoreFileVersion {
 impl StoreFileVersion {
     pub fn try_from_artifact_file(
         extraction_epoch: u32,
-        file: &ArtifactFile,
+        mut file: ArtifactFile,
     ) -> Result<Self, StoreProjectionError> {
         if file.status != FileStatus::Indexed {
             return Err(StoreProjectionError::FileNotIndexed(file.status));
@@ -233,7 +233,6 @@ impl StoreFileVersion {
             return Err(StoreProjectionError::NegativeLineCount(line_count));
         }
 
-        let mut file = file.clone();
         retain_version_local_rows(&mut file);
         let (l1_reference_sites, l2_reference_sites) = project_reference_sites(&file);
         Ok(Self {
@@ -415,6 +414,8 @@ fn project_reference_sites(
         .collect::<HashSet<_>>();
     let mut sites = Vec::new();
     let mut indexes = HashMap::new();
+    let path = &file.path;
+    let language = &file.language;
 
     for identifier in &file.identifiers {
         let exact = identifier.site_is_exact;
@@ -423,8 +424,8 @@ fn project_reference_sites(
             &mut indexes,
             StoreReferenceSite {
                 reference_site_id: identifier.reference_site_id.clone(),
-                path: file.path.clone(),
-                language: file.language.clone(),
+                path: path.clone(),
+                language: language.clone(),
                 containing_symbol_id: identifier.containing_symbol_id.clone(),
                 start_line: exact.then_some(identifier.start_line),
                 start_column: exact.then_some(identifier.start_column),
@@ -444,14 +445,18 @@ fn project_reference_sites(
     }
 
     for relationship in &file.relationships {
+        if let Some(index) = indexes.get(&relationship.reference_site_id).copied() {
+            sites[index].level = 1;
+            continue;
+        }
         let exact = relationship.site_is_exact;
         insert_first_site(
             &mut sites,
             &mut indexes,
             StoreReferenceSite {
                 reference_site_id: relationship.reference_site_id.clone(),
-                path: file.path.clone(),
-                language: file.language.clone(),
+                path: path.clone(),
+                language: language.clone(),
                 containing_symbol_id: Some(relationship.from_symbol_id.clone()),
                 start_line: exact.then_some(relationship.start_line).flatten(),
                 start_column: exact.then_some(relationship.start_column).flatten(),
@@ -467,14 +472,18 @@ fn project_reference_sites(
     }
 
     for pending in &file.pending_relationships {
+        if let Some(index) = indexes.get(&pending.reference_site_id).copied() {
+            sites[index].level = 1;
+            continue;
+        }
         let exact = pending.site_is_exact;
         insert_first_site(
             &mut sites,
             &mut indexes,
             StoreReferenceSite {
                 reference_site_id: pending.reference_site_id.clone(),
-                path: file.path.clone(),
-                language: file.language.clone(),
+                path: path.clone(),
+                language: language.clone(),
                 containing_symbol_id: pending
                     .caller_scope_symbol_id
                     .clone()

@@ -178,6 +178,18 @@ impl GenerationLifecycle {
         Ok(report)
     }
 
+    #[doc(hidden)]
+    pub fn copy_table_for_test(
+        source: &Connection,
+        destination: &mut Connection,
+        table: &str,
+        window: usize,
+        ignore_conflicts: bool,
+    ) -> Result<(usize, usize), GenerationError> {
+        let counts = copy_table(source, destination, table, window, ignore_conflicts, None)?;
+        Ok((counts.rows, counts.max_observed_window))
+    }
+
     fn build_and_publish(
         &mut self,
         plan: &MaintenancePlan,
@@ -844,18 +856,73 @@ fn copy_table(
         .filter(|(_, column)| column.primary_key > 0)
         .collect::<Vec<_>>();
     keys.sort_by_key(|(_, column)| column.primary_key);
-    let order = if keys.is_empty() {
-        column_list.clone()
-    } else {
-        keys.iter()
-            .map(|(_, column)| quote_identifier(&column.name))
-            .collect::<Vec<_>>()
-            .join(",")
-    };
+
+    let (select_columns, insert_columns, order, key_names, key_indices, lookup_condition) =
+        if keys.is_empty() {
+            // For a table with no declared key, page on rowid.
+            let select_columns = format!("rowid,{column_list}");
+            let insert_columns = format!("rowid,{column_list}");
+            let order = "rowid".to_string();
+            let key_names = "rowid".to_string();
+            let key_indices = vec![0];
+            let lookup_condition = "rowid=?1".to_string();
+            (
+                select_columns,
+                insert_columns,
+                order,
+                key_names,
+                key_indices,
+                lookup_condition,
+            )
+        } else {
+            let order = keys
+                .iter()
+                .map(|(_, column)| quote_identifier(&column.name))
+                .collect::<Vec<_>>()
+                .join(",");
+            let key_indices = keys.iter().map(|(index, _)| *index).collect::<Vec<_>>();
+            let lookup_condition = keys
+                .iter()
+                .enumerate()
+                .map(|(parameter, (_, column))| {
+                    format!("{}=?{}", quote_identifier(&column.name), parameter + 1)
+                })
+                .collect::<Vec<_>>()
+                .join(" AND ");
+            let key_names = order.clone();
+            (
+                column_list.clone(),
+                column_list,
+                order,
+                key_names,
+                key_indices,
+                lookup_condition,
+            )
+        };
+
     let table_name = quote_identifier(table);
-    let select =
-        format!("SELECT {column_list} FROM {table_name} ORDER BY {order} LIMIT ?1 OFFSET ?2");
-    let placeholders = (1..=columns.len())
+    let key_count = key_indices.len();
+    let key_placeholders = (1..=key_count)
+        .map(|index| format!("?{index}"))
+        .collect::<Vec<_>>()
+        .join(",");
+    let limit_parameter = key_count + 1;
+
+    let select_first =
+        format!("SELECT {select_columns} FROM {table_name} ORDER BY {order} LIMIT ?1");
+    let select_next = format!(
+        "SELECT {select_columns} FROM {table_name} WHERE ({key_names}) > ({key_placeholders}) ORDER BY {order} LIMIT ?{limit_parameter}"
+    );
+
+    let mut initial_statement = source.prepare(&select_first)?;
+    let mut next_statement = source.prepare(&select_next)?;
+
+    let select_column_count = if keys.is_empty() {
+        columns.len() + 1
+    } else {
+        columns.len()
+    };
+    let placeholders = (1..=select_column_count)
         .map(|index| format!("?{index}"))
         .collect::<Vec<_>>()
         .join(",");
@@ -864,33 +931,34 @@ fn copy_table(
     } else {
         "INSERT"
     };
-    let insert = format!("{insert_mode} INTO {table_name}({column_list}) VALUES ({placeholders})");
-    let lookup = if ignore_conflicts && !keys.is_empty() {
+    let insert =
+        format!("{insert_mode} INTO {table_name}({insert_columns}) VALUES ({placeholders})");
+    let lookup = if ignore_conflicts {
         Some(format!(
-            "SELECT {column_list} FROM {table_name} WHERE {}",
-            keys.iter()
-                .enumerate()
-                .map(|(parameter, (_, column))| format!(
-                    "{}=?{}",
-                    quote_identifier(&column.name),
-                    parameter + 1
-                ))
-                .collect::<Vec<_>>()
-                .join(" AND ")
+            "SELECT {select_columns} FROM {table_name} WHERE {lookup_condition}"
         ))
     } else {
         None
     };
-    let mut offset = 0_i64;
+
+    let mut last_key: Option<Vec<Value>> = None;
     let mut total = 0_usize;
     let mut max_observed_window = 0_usize;
     loop {
-        let rows = {
-            let mut statement = source.prepare(&select)?;
-            let column_count = columns.len();
-            statement
-                .query_map(params![window as i64, offset], |row| {
-                    (0..column_count)
+        let rows = if let Some(ref prev_key) = last_key {
+            let window_val = Value::Integer(window as i64);
+            let params = prev_key.iter().chain(std::iter::once(&window_val));
+            next_statement
+                .query_map(rusqlite::params_from_iter(params), |row| {
+                    (0..select_column_count)
+                        .map(|index| value_from_ref(row.get_ref(index)?))
+                        .collect::<Result<Vec<_>, _>>()
+                })?
+                .collect::<Result<Vec<_>, _>>()?
+        } else {
+            initial_statement
+                .query_map(params![window as i64], |row| {
+                    (0..select_column_count)
                         .map(|index| value_from_ref(row.get_ref(index)?))
                         .collect::<Result<Vec<_>, _>>()
                 })?
@@ -901,6 +969,13 @@ fn copy_table(
         }
         let row_count = rows.len();
         max_observed_window = max_observed_window.max(row_count);
+        let next_last_key = rows.last().map(|last_row| {
+            key_indices
+                .iter()
+                .map(|&index| last_row[index].clone())
+                .collect::<Vec<_>>()
+        });
+
         let transaction = destination.transaction_with_behavior(TransactionBehavior::Immediate)?;
         {
             let mut statement = transaction.prepare(&insert)?;
@@ -911,9 +986,9 @@ fn copy_table(
             for row in rows {
                 let changed = statement.execute(rusqlite::params_from_iter(row.iter()))?;
                 if changed == 0 && ignore_conflicts {
-                    let key_values = keys
+                    let key_values = key_indices
                         .iter()
-                        .map(|(index, _)| &row[*index])
+                        .map(|&index| &row[index])
                         .collect::<Vec<_>>();
                     let existing = lookup_statement
                         .as_mut()
@@ -922,7 +997,7 @@ fn copy_table(
                             key: "missing_primary_key".to_string(),
                         })?
                         .query_row(rusqlite::params_from_iter(key_values), |existing| {
-                            (0..columns.len())
+                            (0..select_column_count)
                                 .map(|index| value_from_ref(existing.get_ref(index)?))
                                 .collect::<Result<Vec<_>, _>>()
                         })
@@ -930,9 +1005,9 @@ fn copy_table(
                     if existing.as_ref() != Some(&row) {
                         return Err(GenerationError::IdentityConflict {
                             table: table.to_string(),
-                            key: keys
+                            key: key_indices
                                 .iter()
-                                .map(|(index, _)| format!("{:?}", row[*index]))
+                                .map(|&index| format!("{:?}", row[index]))
                                 .collect::<Vec<_>>()
                                 .join(":"),
                         });
@@ -944,10 +1019,13 @@ fn copy_table(
         if let Some(executor) = heartbeat {
             executor.heartbeat_generation_build()?;
         }
-        total += row_count;
-        offset = offset
-            .checked_add(row_count as i64)
+        total = total
+            .checked_add(row_count)
             .ok_or(GenerationError::GenerationOverflow)?;
+        if row_count < window {
+            break;
+        }
+        last_key = next_last_key;
     }
     Ok(TableCopyCounts {
         rows: total,
