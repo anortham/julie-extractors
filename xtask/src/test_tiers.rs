@@ -1,10 +1,26 @@
 use std::process::{Command, ExitCode};
+use std::time::Instant;
 
 const CAPABILITIES_JSON: &str = include_str!("../../fixtures/extraction/capabilities.json");
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TestPlan {
     pub commands: Vec<CommandSpec>,
+    pub report_wall_clock: bool,
+}
+
+impl TestPlan {
+    pub fn new(commands: Vec<CommandSpec>) -> Self {
+        Self {
+            commands,
+            report_wall_clock: false,
+        }
+    }
+
+    pub fn with_wall_clock_report(mut self, report_wall_clock: bool) -> Self {
+        self.report_wall_clock = report_wall_clock;
+        self
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -142,9 +158,7 @@ where
         "real-world" | "real-world-release" => {
             expect_no_extra_args(&args, 1).map(|()| real_world_release_plan())
         }
-        "list" => expect_no_extra_args(&args, 1).map(|()| TestPlan {
-            commands: Vec::new(),
-        }),
+        "list" => expect_no_extra_args(&args, 1).map(|()| TestPlan::new(Vec::new())),
         other => Err(CliError::new(format!(
             "unsupported test tier `{other}`\n\n{}",
             help_text()
@@ -153,6 +167,13 @@ where
 }
 
 pub fn run_plan(plan: TestPlan) -> ExitCode {
+    let start = if plan.report_wall_clock {
+        Some(Instant::now())
+    } else {
+        None
+    };
+
+    let mut exit_code = ExitCode::SUCCESS;
     for command in plan.commands {
         println!("+ {}", command.display());
         let mut process = Command::new(&command.program);
@@ -163,15 +184,23 @@ pub fn run_plan(plan: TestPlan) -> ExitCode {
         let status = process.status();
         match status {
             Ok(status) if status.success() => {}
-            Ok(status) => return ExitCode::from(status.code().unwrap_or(1) as u8),
+            Ok(status) => {
+                exit_code = ExitCode::from(status.code().unwrap_or(1) as u8);
+                break;
+            }
             Err(err) => {
                 eprintln!("failed to run `{}`: {err}", command.display());
-                return ExitCode::from(1);
+                exit_code = ExitCode::from(1);
+                break;
             }
         }
     }
 
-    ExitCode::SUCCESS
+    if let Some(start) = start {
+        println!("default tier wall clock: {}s", start.elapsed().as_secs());
+    }
+
+    exit_code
 }
 
 fn default_plan() -> TestPlan {
@@ -181,6 +210,7 @@ fn default_plan() -> TestPlan {
             CommandSpec::new("cargo", ["test", "-p", "julie-extract-artifact"]),
             CommandSpec::new("cargo", ["test", "-p", "julie-extract-cli"]),
         ],
+        report_wall_clock: true,
     }
 }
 
@@ -206,27 +236,25 @@ fn language_plan(args: &[String]) -> Result<TestPlan, CliError> {
         )));
     };
 
-    Ok(TestPlan {
-        commands: vec![
-            CommandSpec::new(
-                "cargo",
-                ["test", "-p", "julie-extractors", "--lib", &test_filter],
-            ),
-            CommandSpec::new(
-                "cargo",
-                [
-                    "test",
-                    "-p",
-                    "julie-extractors",
-                    "--features",
-                    "test-golden",
-                    "--lib",
-                    "golden_fixtures_match_canonical_extraction",
-                ],
-            )
-            .with_env([("JULIE_GOLDEN_LANGUAGE", language)]),
-        ],
-    })
+    Ok(TestPlan::new(vec![
+        CommandSpec::new(
+            "cargo",
+            ["test", "-p", "julie-extractors", "--lib", &test_filter],
+        ),
+        CommandSpec::new(
+            "cargo",
+            [
+                "test",
+                "-p",
+                "julie-extractors",
+                "--features",
+                "test-golden",
+                "--lib",
+                "golden_fixtures_match_canonical_extraction",
+            ],
+        )
+        .with_env([("JULIE_GOLDEN_LANGUAGE", language)]),
+    ]))
 }
 
 fn language_test_filter(language: &str) -> Result<Option<String>, CliError> {
@@ -266,51 +294,47 @@ fn supported_languages() -> Result<Vec<String>, CliError> {
 }
 
 fn golden_plan() -> TestPlan {
-    TestPlan {
-        commands: vec![CommandSpec::new(
+    TestPlan::new(vec![CommandSpec::new(
+        "cargo",
+        [
+            "test",
+            "-p",
+            "julie-extractors",
+            "--features",
+            "test-golden",
+            "--lib",
+            "golden",
+        ],
+    )])
+}
+
+fn capability_plan() -> TestPlan {
+    TestPlan::new(vec![
+        CommandSpec::new(
             "cargo",
             [
                 "test",
                 "-p",
                 "julie-extractors",
                 "--features",
-                "test-golden",
+                "test-capability-matrix",
                 "--lib",
-                "golden",
+                "capability_matrix",
             ],
-        )],
-    }
-}
-
-fn capability_plan() -> TestPlan {
-    TestPlan {
-        commands: vec![
-            CommandSpec::new(
-                "cargo",
-                [
-                    "test",
-                    "-p",
-                    "julie-extractors",
-                    "--features",
-                    "test-capability-matrix",
-                    "--lib",
-                    "capability_matrix",
-                ],
-            ),
-            CommandSpec::new(
-                "cargo",
-                [
-                    "test",
-                    "-p",
-                    "julie-extractors",
-                    "--features",
-                    "test-capability-matrix",
-                    "--lib",
-                    "pending_shape_contract",
-                ],
-            ),
-        ],
-    }
+        ),
+        CommandSpec::new(
+            "cargo",
+            [
+                "test",
+                "-p",
+                "julie-extractors",
+                "--features",
+                "test-capability-matrix",
+                "--lib",
+                "pending_shape_contract",
+            ],
+        ),
+    ])
 }
 
 fn contract_plan() -> TestPlan {
@@ -503,7 +527,7 @@ fn contract_plan() -> TestPlan {
             ],
         ));
     }
-    TestPlan { commands }
+    TestPlan::new(commands)
 }
 
 fn certification_plan() -> TestPlan {
@@ -520,7 +544,7 @@ fn certification_plan() -> TestPlan {
             "parser_upgrade",
         ],
     ));
-    TestPlan { commands }
+    TestPlan::new(commands)
 }
 
 fn changed_plan(args: &[String]) -> Result<TestPlan, CliError> {
@@ -559,7 +583,7 @@ fn changed_plan(args: &[String]) -> Result<TestPlan, CliError> {
     {
         commands.extend(certification_plan().commands);
     }
-    Ok(TestPlan { commands })
+    Ok(TestPlan::new(commands))
 }
 
 fn is_golden_expected_output_path(path: &str) -> bool {
@@ -588,8 +612,59 @@ fn is_parser_dependency_path(path: &str) -> bool {
 }
 
 fn real_world_smoke_plan() -> TestPlan {
-    TestPlan {
-        commands: vec![CommandSpec::new(
+    TestPlan::new(vec![CommandSpec::new(
+        "cargo",
+        [
+            "test",
+            "-p",
+            "julie-extractors",
+            "--features",
+            "test-real-world",
+            "--lib",
+            "test_real_world_jsonl_memories_fixture",
+        ],
+    )])
+}
+
+fn real_world_release_plan() -> TestPlan {
+    TestPlan::new(vec![
+        CommandSpec::new(
+            "cargo",
+            [
+                "test",
+                "-p",
+                "julie-extractors",
+                "--features",
+                "test-real-world",
+                "--lib",
+                "tests::qml::real_world::",
+            ],
+        ),
+        CommandSpec::new(
+            "cargo",
+            [
+                "test",
+                "-p",
+                "julie-extractors",
+                "--features",
+                "test-real-world",
+                "--lib",
+                "tests::r::real_world::",
+            ],
+        ),
+        CommandSpec::new(
+            "cargo",
+            [
+                "test",
+                "-p",
+                "julie-extractors",
+                "--features",
+                "test-real-world",
+                "--lib",
+                "tests::r::file_integration_bug::",
+            ],
+        ),
+        CommandSpec::new(
             "cargo",
             [
                 "test",
@@ -600,75 +675,20 @@ fn real_world_smoke_plan() -> TestPlan {
                 "--lib",
                 "test_real_world_jsonl_memories_fixture",
             ],
-        )],
-    }
-}
-
-fn real_world_release_plan() -> TestPlan {
-    TestPlan {
-        commands: vec![
-            CommandSpec::new(
-                "cargo",
-                [
-                    "test",
-                    "-p",
-                    "julie-extractors",
-                    "--features",
-                    "test-real-world",
-                    "--lib",
-                    "tests::qml::real_world::",
-                ],
-            ),
-            CommandSpec::new(
-                "cargo",
-                [
-                    "test",
-                    "-p",
-                    "julie-extractors",
-                    "--features",
-                    "test-real-world",
-                    "--lib",
-                    "tests::r::real_world::",
-                ],
-            ),
-            CommandSpec::new(
-                "cargo",
-                [
-                    "test",
-                    "-p",
-                    "julie-extractors",
-                    "--features",
-                    "test-real-world",
-                    "--lib",
-                    "tests::r::file_integration_bug::",
-                ],
-            ),
-            CommandSpec::new(
-                "cargo",
-                [
-                    "test",
-                    "-p",
-                    "julie-extractors",
-                    "--features",
-                    "test-real-world",
-                    "--lib",
-                    "test_real_world_jsonl_memories_fixture",
-                ],
-            ),
-            CommandSpec::new(
-                "cargo",
-                [
-                    "test",
-                    "-p",
-                    "julie-extract-cli",
-                    "--features",
-                    "test-real-world",
-                    "--test",
-                    "erlang_corpus",
-                ],
-            ),
-        ],
-    }
+        ),
+        CommandSpec::new(
+            "cargo",
+            [
+                "test",
+                "-p",
+                "julie-extract-cli",
+                "--features",
+                "test-real-world",
+                "--test",
+                "erlang_corpus",
+            ],
+        ),
+    ])
 }
 
 fn expect_no_extra_args(args: &[String], last_index: usize) -> Result<(), CliError> {
@@ -702,5 +722,34 @@ fn shell_quote(value: &str) -> String {
         value.to_string()
     } else {
         format!("'{}'", value.replace('\'', "'\\''"))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_default_tier_reports_wall_clock() {
+        let plan = plan_from_args(["test", "default"]).expect("default plan");
+        assert!(plan.report_wall_clock);
+    }
+
+    #[test]
+    fn test_non_default_tiers_do_not_report_wall_clock() {
+        for tier in [
+            "golden",
+            "capability",
+            "contract",
+            "certification",
+            "real-world-smoke",
+            "real-world",
+        ] {
+            let plan = plan_from_args(["test", tier]).expect("plan");
+            assert!(
+                !plan.report_wall_clock,
+                "tier {tier} should not report wall clock"
+            );
+        }
     }
 }
