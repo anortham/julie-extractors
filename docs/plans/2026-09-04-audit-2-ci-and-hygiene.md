@@ -67,9 +67,9 @@ Commit mode: `parallel-lead-commit` for Batch A; `serial-worker-commit` for Task
 **Approach:** Run the script locally first and confirm exit code 0 on the current tree. Confirm the script has no npm dependencies (it uses only Node built-ins; check the import lines). Push the branch and confirm the step is green in Actions before merging.
 
 **Acceptance criteria:**
-- [ ] Local run exits 0.
-- [ ] CI fast-gates job has the step and passed on the branch.
-- [ ] `docs/testing-strategy.md` lists the command in the CI section.
+- [x] Local run exits 0.
+- [x] CI fast-gates job has the step and passed on the branch.
+- [x] `docs/testing-strategy.md` lists the command in the CI section.
 
 ## Task 2: Reconcile the wall-clock tripwire policy
 

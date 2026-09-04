@@ -40,6 +40,14 @@ jobs:
       - name: Check agent guidance sync
         run: scripts/check-agent-doc-sync.sh
 
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check language data quality report
+        run: node scripts/language-data-quality-report.mjs --strict
+
       - name: Test xtask
         run: cargo test -p xtask
 
