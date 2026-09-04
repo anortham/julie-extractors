@@ -7,7 +7,10 @@ use julie_extract_artifact::store::{
     ManifestEntryStatus, ManifestPublishDisposition, ManifestPublishResult, ManifestStore,
     RequestKind, StoreFileVersion, StoreLevel, StoreWriteRequest, StoreWriter, same_path_identity,
 };
-use julie_extractors::{EXTRACTION_IDENTITY_EPOCH, ExtractionLevel, detect_language_for_path};
+use julie_extractors::{
+    EXTRACTION_IDENTITY_EPOCH, ExtractionLevel, detect_language_for_path,
+    detect_language_for_source,
+};
 use rayon::prelude::*;
 use rusqlite::{OptionalExtension, Transaction};
 use serde::{Deserialize, Serialize};
@@ -598,7 +601,7 @@ impl StoreRequestExecutor {
                 "changed_during_l1_wave".to_string()
             });
         }
-        let language = detect_language_for_path(&target.absolute_path, &snapshot.content)
+        let language = detect_language_for_source(&target.root_relative_path, &snapshot.content)
             .unwrap_or("unknown")
             .to_string();
         if let Some(progress) = progress {

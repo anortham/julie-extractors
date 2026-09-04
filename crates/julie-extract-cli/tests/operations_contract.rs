@@ -2090,6 +2090,35 @@ fn scan_records_content_based_language_for_cpp_headers() {
 }
 
 #[test]
+fn scan_records_cpp_language_for_header_with_single_detection() {
+    let fixture = FixtureRoot::with_file(
+        "include/engine.h",
+        "template <typename T>\nclass Engine {\npublic:\n    T value;\n};\n",
+    );
+    let db = fixture.path("artifact.sqlite");
+
+    let output = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]);
+
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report = json_report(&output);
+    assert_eq!(report["status"], "ok");
+    assert_eq!(file_language_for_path(&db, "include/engine.h"), "cpp");
+}
+
+#[test]
 fn scan_persists_parser_inventory_versions() {
     let fixture = FixtureRoot::new();
     let db = fixture.path("artifact.sqlite");

@@ -195,9 +195,9 @@ Commit mode: `serial-worker-commit` for serial tasks; `parallel-lead-commit` ins
 **Approach:** Add a test in `crates/julie-extract-cli/tests/operations_contract.rs` that scans a `.h` fixture whose content is C++ and asserts the language recorded is the same as before. Header files are the case where extension-only and content-sniffing detection disagree, so this test proves the authoritative call survived.
 
 **Acceptance criteria:**
-- [ ] `detect_language_for_source` has exactly one call in the scan path and one in the store extract path.
-- [ ] Header-file language test passes.
-- [ ] Golden tier and operations contract pass.
+- [x] `detect_language_for_source` has exactly one call in the scan path and one in the store extract path.
+- [x] Header-file language test passes.
+- [x] Golden tier and operations contract pass.
 
 ## Task 7: After measurement and findings closure
 

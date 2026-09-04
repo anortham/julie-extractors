@@ -16,8 +16,7 @@ use julie_extractors::base::{
 use julie_extractors::language_policy::classify_literals_by_carrier;
 use julie_extractors::{
     ExtractionLevel, ExtractionResults, Literal, ParseDiagnosticKind, PendingRelationship,
-    SourceRegion, TypeArgument, TypeArgumentUsage, TypeInfo, detect_language_for_source,
-    extract_canonical_at,
+    SourceRegion, TypeArgument, TypeArgumentUsage, TypeInfo, extract_canonical_at,
 };
 use serde::Serialize;
 use serde_json::Value;
@@ -166,6 +165,9 @@ pub(crate) fn extract_artifact_file_from_snapshot(
     )
 }
 
+/// Extract artifact data from an in-memory snapshot.
+///
+/// Trusts the provided `language` argument without re-detecting from source content.
 pub(crate) fn extract_artifact_file_from_snapshot_at(
     root: &Path,
     target: &FileTarget,
@@ -174,9 +176,6 @@ pub(crate) fn extract_artifact_file_from_snapshot_at(
     snapshot: SourceSnapshot,
     level: ExtractionLevel,
 ) -> Result<ArtifactFile, ExtractFileError> {
-    let language = detect_language_for_source(&target.root_relative_path, &snapshot.content)
-        .unwrap_or(language.as_str())
-        .to_string();
     let mut results = catch_extraction_panic(target, &snapshot, || {
         extract_canonical_at(&target.root_relative_path, &snapshot.content, root, level)
     })?;
