@@ -152,13 +152,6 @@ pub fn normalize_file_path(file_path: &str, workspace_root: &Path) -> String {
             Ok(relative_path) => relative_path,
             Err(_) => file_path.replace('\\', "/"),
         }
-    } else if let Ok(relative) = path.strip_prefix(workspace_root) {
-        let normalized = relative.to_string_lossy().replace('\\', "/");
-        if let Some(stripped) = normalized.strip_prefix("./") {
-            stripped.to_string()
-        } else {
-            normalized
-        }
     } else {
         let normalized = file_path.replace('\\', "/");
         if let Some(stripped) = normalized.strip_prefix("./") {
@@ -223,6 +216,10 @@ mod tests {
         assert_eq!(normalize_file_path("src/lib.rs", root), "src/lib.rs");
         assert_eq!(normalize_file_path(r"src\lib.rs", root), "src/lib.rs");
         assert_eq!(normalize_file_path("./src/lib.rs", root), "src/lib.rs");
+        assert_eq!(
+            normalize_file_path("src/lib.rs", Path::new("src")),
+            "src/lib.rs"
+        );
     }
 
     #[test]
