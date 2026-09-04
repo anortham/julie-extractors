@@ -1,3 +1,0 @@
-pub fn caller() {
-    collide();
-}

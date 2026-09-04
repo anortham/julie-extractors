@@ -31,17 +31,6 @@ fn legacy_resolution_oracle_is_feature_gated_out_of_default_suite() {
 }
 
 #[test]
-fn legacy_resolution_fixture_and_oracle_are_checked_in_together() {
-    let fixture =
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/store-resolution/legacy-v3");
-    assert!(fixture.join("expected.semantic.json").is_file());
-    assert!(fixture.join("typescript/caller.ts").is_file());
-    assert!(fixture.join("javascript/caller.js").is_file());
-    assert!(fixture.join("rust/caller.rs").is_file());
-    assert!(fixture.join("css/style.css").is_file());
-}
-
-#[test]
 fn store_lifecycle_process_and_scale_contracts_are_feature_gated() {
     let crate_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let manifest = read(&crate_root.join("Cargo.toml"));

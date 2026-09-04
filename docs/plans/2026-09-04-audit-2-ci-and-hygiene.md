@@ -97,9 +97,9 @@ Commit mode: `parallel-lead-commit` for Batch A; `serial-worker-commit` for Task
 **Approach:** Confirm with `grep -rn store-resolution crates xtask scripts .github` that the only code reference is the keeper test. Confirm the feature-gated oracle test at line 5 does not read the fixture. If it does, stop and report.
 
 **Acceptance criteria:**
-- [ ] `fixtures/store-resolution/` is gone.
-- [ ] `cargo test -p julie-extract-cli --test test_tiers` passes.
-- [ ] `cargo xtask test contract` passes.
+- [x] `fixtures/store-resolution/` is gone.
+- [x] `cargo test -p julie-extract-cli --test test_tiers` passes.
+- [x] `cargo xtask test contract` passes.
 
 ## Task 4: Remove merged worktrees and branches (approval gate)
 
