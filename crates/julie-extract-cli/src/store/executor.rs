@@ -1080,6 +1080,8 @@ impl StoreRequestExecutor {
             .map_err(|error| error.to_string())?;
         if let Some((start, end)) = chunk_ranges.get(chunk_index).copied() {
             let write_request = StoreWriteRequest::bulk(&request.request_id, &indexed_at);
+            let snapshot = artifact_capability_snapshot();
+            let mut snapshot_supplied = false;
             for planned in &payload.files[start..end] {
                 if planned.status == "unsupported" {
                     continue;
@@ -1093,10 +1095,16 @@ impl StoreRequestExecutor {
                 )
                 .map_err(|error| error.to_string())?;
                 for level in [StoreLevel::L1, StoreLevel::L2, StoreLevel::L3] {
+                    let level_snapshot = if level == StoreLevel::L1 && !snapshot_supplied {
+                        snapshot_supplied = true;
+                        Some(&snapshot)
+                    } else {
+                        None
+                    };
                     StoreWriter::write_level_in_transaction(
                         transaction,
                         &write_request,
-                        (level == StoreLevel::L1).then_some(&artifact_capability_snapshot()),
+                        level_snapshot,
                         &version,
                         level,
                     )
@@ -1641,6 +1649,8 @@ impl CoordinatorExecutor for StoreRequestExecutor {
             )
         })
         .map_err(|error| format!("store_import_extract:{error}"))?;
+        let snapshot = (chunk.level == StoreLevel::L1).then(artifact_capability_snapshot);
+        let mut snapshot_supplied = false;
         for (discovered, extracted) in work.into_iter().zip(extracted) {
             let write_request = StoreWriteRequest::bulk(&request.request_id, &indexed_at);
             match chunk.level {
@@ -1691,11 +1701,16 @@ impl CoordinatorExecutor for StoreRequestExecutor {
                             continue;
                         }
                     };
-                    let snapshot = artifact_capability_snapshot();
+                    let snapshot_ref = if !snapshot_supplied {
+                        snapshot_supplied = true;
+                        snapshot.as_ref()
+                    } else {
+                        None
+                    };
                     StoreWriter::write_level_in_transaction(
                         transaction,
                         &write_request,
-                        Some(&snapshot),
+                        snapshot_ref,
                         &version,
                         StoreLevel::L1,
                     )

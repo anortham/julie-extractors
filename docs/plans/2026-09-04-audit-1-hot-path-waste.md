@@ -176,9 +176,9 @@ Commit mode: `serial-worker-commit` for serial tasks; `parallel-lead-commit` ins
 **Approach:** Write the writer test first (an initialized epoch plus a matching snapshot must yield zero capability upserts). Then change the executor. Keep the conflict path: a mismatching snapshot on an initialized epoch must still return `CapabilitySnapshotConflict`; add that test too.
 
 **Acceptance criteria:**
-- [ ] `artifact_capability_snapshot()` is called at most once per `execute_quantum` and once per from-artifact chunk.
-- [ ] Writer test proves no re-sync on an initialized epoch and a conflict on a mismatch.
-- [ ] Store contract tests and `store_writer_performance` pass with updated counts.
+- [x] `artifact_capability_snapshot()` is called at most once per `execute_quantum` and once per from-artifact chunk.
+- [x] Writer test proves no re-sync on an initialized epoch and a conflict on a mismatch.
+- [x] Store contract tests and `store_writer_performance` pass with updated counts.
 
 ## Task 6: Detect language once per file
 

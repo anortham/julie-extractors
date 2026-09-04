@@ -655,7 +655,7 @@ pub(super) fn capability_epoch_initialized(
     initialized.query_row([extraction_epoch], |row| row.get(0))
 }
 
-fn capability_snapshot_matches(
+pub(super) fn capability_snapshot_matches(
     tx: &Transaction<'_>,
     extraction_epoch: u32,
     snapshot: &ArtifactCapabilitySnapshot,

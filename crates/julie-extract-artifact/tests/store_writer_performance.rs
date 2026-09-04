@@ -10,7 +10,7 @@ use julie_extract_artifact::model::{
 };
 use julie_extract_artifact::store::{
     StoreConnectionFactory, StoreFileVersion, StoreLayout, StoreLevel, StoreWriteRequest,
-    StoreWriter,
+    StoreWriter, StoreWriterError,
 };
 
 const CREATED_AT: &str = "2026-08-07T12:00:00Z";
@@ -48,6 +48,59 @@ fn statement_sets_are_prepared_once_per_level_transaction() {
     assert_eq!(l1.counts.symbols, 500);
     assert_eq!(l2.counts.identifiers, 500);
     assert_eq!(table_count(writer.connection(), "store_log"), 3);
+}
+
+#[test]
+fn initialized_epoch_with_matching_snapshot_skips_capability_sync_and_rejects_conflict() {
+    let store = TestStore::new("skip-capability-sync");
+    let mut writer = store.writer();
+    writer.stage_capability_snapshot(1, capability_snapshot("rust"));
+    let first_file = StoreFileVersion::try_from_artifact_file(1, &dense_file(1)).unwrap();
+    let first_result = writer
+        .write_level(&request("request-first"), &first_file, StoreLevel::L1)
+        .unwrap();
+
+    assert!(first_result.counts.language_capabilities > 0);
+    assert!(first_result.counts.parser_inventory > 0);
+    assert_eq!(first_result.statement_preparations, 21);
+
+    let mut second_dense = dense_file(1);
+    second_dense.file_id = "file-second".to_string();
+    second_dense.path = "src/second.rs".to_string();
+    second_dense.content_hash = "blake3:second".to_string();
+    let second_file = StoreFileVersion::try_from_artifact_file(1, &second_dense).unwrap();
+
+    writer.stage_capability_snapshot(1, capability_snapshot("rust"));
+    let second_result = writer
+        .write_level(&request("request-second"), &second_file, StoreLevel::L1)
+        .unwrap();
+
+    assert_eq!(second_result.counts.language_capabilities, 0);
+    assert_eq!(second_result.counts.parser_inventory, 0);
+    assert_eq!(second_result.counts.language_capability_fixtures, 0);
+    assert_eq!(second_result.counts.language_capability_gaps, 0);
+    assert_eq!(second_result.statement_preparations, 17);
+
+    let mut conflicting_snapshot = capability_snapshot("rust");
+    conflicting_snapshot.parser_inventory[0].parser_package = "different-parser".to_string();
+    writer.stage_capability_snapshot(1, conflicting_snapshot);
+
+    let mut third_dense = dense_file(1);
+    third_dense.file_id = "file-third".to_string();
+    third_dense.path = "src/third.rs".to_string();
+    third_dense.content_hash = "blake3:third".to_string();
+    let third_file = StoreFileVersion::try_from_artifact_file(1, &third_dense).unwrap();
+
+    let conflict_error = writer
+        .write_level(&request("request-third"), &third_file, StoreLevel::L1)
+        .unwrap_err();
+
+    assert!(matches!(
+        conflict_error,
+        StoreWriterError::CapabilitySnapshotConflict {
+            extraction_epoch: 1
+        }
+    ));
 }
 
 #[test]

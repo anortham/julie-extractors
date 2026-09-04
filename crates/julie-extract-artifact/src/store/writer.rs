@@ -8,7 +8,7 @@ use crate::model::ArtifactCapabilitySnapshot;
 use super::pragmas::{PragmaError, WriterPragmaProfile, configure_wal_autocheckpoint};
 use super::rows::{
     CapabilityWriteError, StatementPreparationCounter, capability_epoch_initialized,
-    delete_level_rows, insert_level_rows, sync_capability_snapshot,
+    capability_snapshot_matches, delete_level_rows, insert_level_rows, sync_capability_snapshot,
 };
 use super::{
     StoreConnectionError, StoreConnectionFactory, StoreFileVersion, StoreLevel, StoreLog,
@@ -382,6 +382,13 @@ impl StoreWriter {
         Ok(true)
     }
 
+    /// Writes an extraction level payload for a file version within an open transaction.
+    ///
+    /// When `level` is [`StoreLevel::L1`] and an extraction epoch has not yet been initialized,
+    /// an [`ArtifactCapabilitySnapshot`] must be provided to populate the epoch's capability tables.
+    /// If the epoch is already initialized and a snapshot is supplied, the snapshot is verified
+    /// against existing capability records rather than re-synced, returning
+    /// [`StoreWriterError::CapabilitySnapshotConflict`] if discrepancies are detected.
     pub fn write_level_in_transaction(
         transaction: &Transaction<'_>,
         request: &StoreWriteRequest,
@@ -440,31 +447,47 @@ impl StoreWriter {
                         extraction_epoch: version.extraction_epoch(),
                     });
                 }
-                let counts = match sync_capability_snapshot(
-                    transaction,
-                    version.extraction_epoch(),
-                    snapshot,
-                    &mut preparations,
-                ) {
-                    Ok(result) => result,
-                    Err(CapabilityWriteError::Sqlite(error)) => {
-                        return Err(StoreWriterError::Sqlite(error));
-                    }
-                    Err(CapabilityWriteError::Conflict) => {
+                if initialized {
+                    let matches = capability_snapshot_matches(
+                        transaction,
+                        version.extraction_epoch(),
+                        snapshot,
+                        &mut preparations,
+                    )
+                    .map_err(StoreWriterError::Sqlite)?;
+                    if !matches {
                         return Err(StoreWriterError::CapabilitySnapshotConflict {
                             extraction_epoch: version.extraction_epoch(),
                         });
                     }
-                };
-                // Readers bind capability projections to store_meta's epoch,
-                // so it must follow the epoch the snapshot was written at.
-                transaction.execute(
-                    "INSERT INTO store_meta (key, value)
-                     VALUES ('extraction_identity_epoch', ?1)
-                     ON CONFLICT(key) DO UPDATE SET value = excluded.value",
-                    [version.extraction_epoch().to_string()],
-                )?;
-                counts
+                    StoreRowCounts::default()
+                } else {
+                    let counts = match sync_capability_snapshot(
+                        transaction,
+                        version.extraction_epoch(),
+                        snapshot,
+                        &mut preparations,
+                    ) {
+                        Ok(result) => result,
+                        Err(CapabilityWriteError::Sqlite(error)) => {
+                            return Err(StoreWriterError::Sqlite(error));
+                        }
+                        Err(CapabilityWriteError::Conflict) => {
+                            return Err(StoreWriterError::CapabilitySnapshotConflict {
+                                extraction_epoch: version.extraction_epoch(),
+                            });
+                        }
+                    };
+                    // Readers bind capability projections to store_meta's epoch,
+                    // so it must follow the epoch the snapshot was written at.
+                    transaction.execute(
+                        "INSERT INTO store_meta (key, value)
+                         VALUES ('extraction_identity_epoch', ?1)
+                         ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                        [version.extraction_epoch().to_string()],
+                    )?;
+                    counts
+                }
             }
             (StoreLevel::L1, None) if !initialized => {
                 return Err(StoreWriterError::CapabilitySnapshotRequired {
