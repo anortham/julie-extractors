@@ -2287,6 +2287,47 @@ class Options internal constructor(val value: String) {
             options_sig
         );
     }
+
+    #[test]
+    fn test_kotlin_open_modifier_preserves_visibility() {
+        let code = r#"
+open class BaseService {
+    protected open fun handleRequest() {}
+    open fun execute() {}
+    private open fun internalHelper() {}
+}
+"#;
+        let mut parser = init_test_parser();
+        let tree = parser.parse(code, None).unwrap();
+        let workspace_root = PathBuf::from("/tmp/test");
+        let mut extractor = KotlinExtractor::new(
+            "kotlin".to_string(),
+            "test.kt".to_string(),
+            code.to_string(),
+            &workspace_root,
+        );
+        let symbols = extractor.extract_symbols(&tree);
+        let base_service = symbols.iter().find(|s| s.name == "BaseService").unwrap();
+        assert_eq!(
+            base_service.visibility,
+            Some(crate::base::Visibility::Public)
+        );
+
+        let handle_request = symbols.iter().find(|s| s.name == "handleRequest").unwrap();
+        assert_eq!(
+            handle_request.visibility,
+            Some(crate::base::Visibility::Protected)
+        );
+
+        let execute = symbols.iter().find(|s| s.name == "execute").unwrap();
+        assert_eq!(execute.visibility, Some(crate::base::Visibility::Public));
+
+        let internal_helper = symbols.iter().find(|s| s.name == "internalHelper").unwrap();
+        assert_eq!(
+            internal_helper.visibility,
+            Some(crate::base::Visibility::Private)
+        );
+    }
 }
 mod cross_file_relationships;
 mod identifiers;

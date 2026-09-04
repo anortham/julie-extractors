@@ -12,9 +12,6 @@ pub fn visibility_from_modifiers_with_default(
 ) -> Visibility {
     let has = |predicate: fn(&str) -> bool| modifiers.iter().any(|m| predicate(m.as_str()));
 
-    if has(|m| m.eq_ignore_ascii_case("open")) {
-        return Visibility::Open;
-    }
     if has(|m| m.eq_ignore_ascii_case("public")) {
         return Visibility::Public;
     }
@@ -60,7 +57,8 @@ mod tests {
             (&["protected"], Visibility::Protected),
             (&["internal"], Visibility::Internal),
             (&["fileprivate"], Visibility::FilePrivate),
-            (&["open"], Visibility::Open),
+            (&["open"], Visibility::Public),
+            (&["protected", "open"], Visibility::Protected),
             (&["friend"], Visibility::Private),
             // Titlecase / Pascalcase modifiers (VB.NET, etc.)
             (&["Public"], Visibility::Public),

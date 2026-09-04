@@ -373,7 +373,11 @@ impl SwiftExtractor {
 
     /// Implementation of determineVisibility method
     pub(super) fn determine_visibility(&self, modifiers: &[String]) -> Visibility {
-        crate::base::visibility::visibility_from_modifiers(modifiers)
+        if modifiers.iter().any(|m| m == "open") {
+            Visibility::Open
+        } else {
+            crate::base::visibility::visibility_from_modifiers(modifiers)
+        }
     }
 }
 

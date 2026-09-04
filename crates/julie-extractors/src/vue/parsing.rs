@@ -386,4 +386,35 @@ function increment() {
             "complexity extraction should reuse cached tree"
         );
     }
+
+    #[test]
+    fn test_canonical_vue_pipeline_parses_script_section_only_once() {
+        use crate::{ExtractionLevel, extract_canonical_at};
+        use std::path::Path;
+
+        reset_script_parse_count();
+        let sfc_content = r#"<template>
+  <div>{{ count }}</div>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue';
+const count = ref(0);
+function increment() {
+  count.value++;
+}
+</script>"#;
+
+        let results = extract_canonical_at(
+            "Counter.vue",
+            sfc_content,
+            Path::new("."),
+            ExtractionLevel::Full,
+        )
+        .unwrap();
+
+        assert!(!results.symbols.is_empty());
+        assert!(!results.complexity_metrics.is_empty());
+        assert_eq!(get_script_parse_count(), 1);
+    }
 }

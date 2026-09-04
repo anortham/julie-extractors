@@ -45,6 +45,8 @@ pub mod web_structural_facts;
 
 // Re-export key types for external use
 pub use annotations::normalize_annotations;
+#[allow(unused_imports)]
+pub use body::BodySpan;
 pub use code_structural_facts::collect_code_structural_facts;
 pub use complexity_metrics::collect_complexity_metrics;
 pub(crate) use containing_symbol::attach_containing_symbols;
@@ -64,6 +66,7 @@ pub use span::{NormalizedSpan, RecordOffset};
 pub use sql_structural_facts::collect_sql_structural_facts;
 #[allow(unused_imports)]
 pub use structural_fact_registry::{
+    KeyPresence, MetadataKeySpec, MetadataValueType, StructuralFactPatternSpec,
     structural_fact_pattern_specs, structural_fact_patterns_contract_json,
     structural_fact_patterns_json,
 };
