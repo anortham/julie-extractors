@@ -12,7 +12,11 @@ pub(crate) struct IndexedSymbol<'a> {
 
 impl<'a> ContainingSymbolIndex<'a> {
     pub(crate) fn new(symbols: &'a [Symbol], file_path: &str) -> Self {
-        Self::from_iter(symbols.iter().filter(|symbol| symbol.file_path == file_path))
+        Self::from_iter(
+            symbols
+                .iter()
+                .filter(|symbol| symbol.file_path == file_path),
+        )
     }
 
     pub(crate) fn from_iter(symbols: impl IntoIterator<Item = &'a Symbol>) -> Self {
@@ -193,10 +197,40 @@ mod tests {
             "}\n",
         );
         let symbols = vec![
-            test_symbol("class_container", SymbolKind::Class, "test.ts", 3, 0, 8, 1, 20, 102),
+            test_symbol(
+                "class_container",
+                SymbolKind::Class,
+                "test.ts",
+                3,
+                0,
+                8,
+                1,
+                20,
+                102,
+            ),
             test_symbol("method", SymbolKind::Method, "test.ts", 5, 4, 7, 5, 57, 100),
-            test_symbol("fn_outer", SymbolKind::Function, "test.ts", 10, 0, 15, 1, 104, 201),
-            test_symbol("fn_inner", SymbolKind::Function, "test.ts", 12, 4, 14, 5, 149, 199),
+            test_symbol(
+                "fn_outer",
+                SymbolKind::Function,
+                "test.ts",
+                10,
+                0,
+                15,
+                1,
+                104,
+                201,
+            ),
+            test_symbol(
+                "fn_inner",
+                SymbolKind::Function,
+                "test.ts",
+                12,
+                4,
+                14,
+                5,
+                149,
+                199,
+            ),
         ];
         let index = ContainingSymbolIndex::new(&symbols, "test.ts");
 
@@ -206,25 +240,51 @@ mod tests {
             .unwrap();
         let tree = parser.parse(source, None).unwrap();
 
-        let top_level_node = find_first_node_by_text(tree.root_node(), source, "top_level").unwrap();
+        let top_level_node =
+            find_first_node_by_text(tree.root_node(), source, "top_level").unwrap();
         assert_eq!(index.find(top_level_node), None);
         assert_eq!(old_oracle(&top_level_node, &symbols, "test.ts"), None);
 
         let field_node = find_first_node_by_text(tree.root_node(), source, "field").unwrap();
-        assert_eq!(index.find(field_node).map(|s| s.id.as_str()), Some("class_container"));
-        assert_eq!(old_oracle(&field_node, &symbols, "test.ts").map(|s| s.id.as_str()), Some("class_container"));
+        assert_eq!(
+            index.find(field_node).map(|s| s.id.as_str()),
+            Some("class_container")
+        );
+        assert_eq!(
+            old_oracle(&field_node, &symbols, "test.ts").map(|s| s.id.as_str()),
+            Some("class_container")
+        );
 
-        let in_method_node = find_first_node_by_text(tree.root_node(), source, "in_method").unwrap();
-        assert_eq!(index.find(in_method_node).map(|s| s.id.as_str()), Some("method"));
-        assert_eq!(old_oracle(&in_method_node, &symbols, "test.ts").map(|s| s.id.as_str()), Some("method"));
+        let in_method_node =
+            find_first_node_by_text(tree.root_node(), source, "in_method").unwrap();
+        assert_eq!(
+            index.find(in_method_node).map(|s| s.id.as_str()),
+            Some("method")
+        );
+        assert_eq!(
+            old_oracle(&in_method_node, &symbols, "test.ts").map(|s| s.id.as_str()),
+            Some("method")
+        );
 
         let in_outer_node = find_first_node_by_text(tree.root_node(), source, "in_outer").unwrap();
-        assert_eq!(index.find(in_outer_node).map(|s| s.id.as_str()), Some("fn_outer"));
-        assert_eq!(old_oracle(&in_outer_node, &symbols, "test.ts").map(|s| s.id.as_str()), Some("fn_outer"));
+        assert_eq!(
+            index.find(in_outer_node).map(|s| s.id.as_str()),
+            Some("fn_outer")
+        );
+        assert_eq!(
+            old_oracle(&in_outer_node, &symbols, "test.ts").map(|s| s.id.as_str()),
+            Some("fn_outer")
+        );
 
         let in_inner_node = find_first_node_by_text(tree.root_node(), source, "in_inner").unwrap();
-        assert_eq!(index.find(in_inner_node).map(|s| s.id.as_str()), Some("fn_inner"));
-        assert_eq!(old_oracle(&in_inner_node, &symbols, "test.ts").map(|s| s.id.as_str()), Some("fn_inner"));
+        assert_eq!(
+            index.find(in_inner_node).map(|s| s.id.as_str()),
+            Some("fn_inner")
+        );
+        assert_eq!(
+            old_oracle(&in_inner_node, &symbols, "test.ts").map(|s| s.id.as_str()),
+            Some("fn_inner")
+        );
     }
 
     #[test]
@@ -233,7 +293,10 @@ mod tests {
         let root = manifest_dir.parent().and_then(Path::parent).unwrap();
         let cases = [
             ("rust", "fixtures/extraction/rust/basic/source.rs"),
-            ("typescript", "fixtures/extraction/typescript/basic/source.ts"),
+            (
+                "typescript",
+                "fixtures/extraction/typescript/basic/source.ts",
+            ),
             ("python", "fixtures/extraction/python/basic/source.py"),
             ("csharp", "fixtures/extraction/csharp/basic/source.cs"),
         ];
@@ -241,7 +304,8 @@ mod tests {
         for (language, source_rel_path) in cases {
             let file_path = root.join(source_rel_path);
             let source = std::fs::read_to_string(&file_path).unwrap();
-            let results = crate::pipeline::extract_canonical(source_rel_path, &source, root).unwrap();
+            let results =
+                crate::pipeline::extract_canonical(source_rel_path, &source, root).unwrap();
             let mut parser = Parser::new();
             parser
                 .set_language(&crate::language::get_tree_sitter_language(language).unwrap())
@@ -256,17 +320,14 @@ mod tests {
                 let index_result = index.find(node);
                 let iter_result = crate::base::BaseExtractor::find_containing_symbol_from_iter(
                     &node,
-                    results.symbols.iter().filter(|s| s.file_path == source_rel_path),
+                    results
+                        .symbols
+                        .iter()
+                        .filter(|s| s.file_path == source_rel_path),
                 );
 
-                assert_eq!(
-                    index_result.map(|s| &s.id),
-                    oracle_result.map(|s| &s.id),
-                );
-                assert_eq!(
-                    iter_result.map(|s| &s.id),
-                    oracle_result.map(|s| &s.id),
-                );
+                assert_eq!(index_result.map(|s| &s.id), oracle_result.map(|s| &s.id),);
+                assert_eq!(iter_result.map(|s| &s.id), oracle_result.map(|s| &s.id),);
             }
         }
     }
@@ -284,11 +345,7 @@ mod tests {
         nodes
     }
 
-    fn old_oracle<'a>(
-        node: &Node,
-        symbols: &'a [Symbol],
-        file_path: &str,
-    ) -> Option<&'a Symbol> {
+    fn old_oracle<'a>(node: &Node, symbols: &'a [Symbol], file_path: &str) -> Option<&'a Symbol> {
         let position = node.start_position();
         let pos_line = (position.row + 1) as u32;
         let pos_column = position.column as u32;
