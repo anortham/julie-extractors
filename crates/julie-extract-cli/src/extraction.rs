@@ -86,17 +86,20 @@ pub(crate) fn extract_artifact_file(
 
 const MAX_SNAPSHOT_CACHE_BYTES: usize = 64 * 1024 * 1024;
 const MAX_SINGLE_CACHED_FILE_BYTES: usize = 16 * 1024 * 1024;
+const MAX_SNAPSHOT_CACHE_ENTRIES: usize = 16_384;
 
 struct CachedSnapshotEntry {
     snapshot: SourceSnapshot,
     mtime: Option<SystemTime>,
     size: u64,
+    generation: u64,
 }
 
 struct SnapshotCache {
     entries: HashMap<PathBuf, CachedSnapshotEntry>,
-    order: VecDeque<(PathBuf, usize)>,
+    order: VecDeque<(PathBuf, u64)>,
     total_bytes: usize,
+    next_generation: u64,
 }
 
 impl SnapshotCache {
@@ -105,6 +108,7 @@ impl SnapshotCache {
             entries: HashMap::new(),
             order: VecDeque::new(),
             total_bytes: 0,
+            next_generation: 0,
         }
     }
 
@@ -122,23 +126,35 @@ impl SnapshotCache {
         if let Some(old) = self.entries.remove(&path) {
             self.total_bytes = self.total_bytes.saturating_sub(old.snapshot.content.len());
         }
-        while self.total_bytes.saturating_add(entry_bytes) > MAX_SNAPSHOT_CACHE_BYTES {
-            if let Some((old_path, old_size)) = self.order.pop_front() {
-                if self.entries.remove(&old_path).is_some() {
-                    self.total_bytes = self.total_bytes.saturating_sub(old_size);
+        self.next_generation = self.next_generation.wrapping_add(1);
+        let generation = self.next_generation;
+
+        while self.total_bytes.saturating_add(entry_bytes) > MAX_SNAPSHOT_CACHE_BYTES
+            || self.entries.len() >= MAX_SNAPSHOT_CACHE_ENTRIES
+        {
+            if let Some((old_path, old_gen)) = self.order.pop_front() {
+                let matches_gen = self
+                    .entries
+                    .get(&old_path)
+                    .is_some_and(|entry| entry.generation == old_gen);
+                if matches_gen && let Some(removed) = self.entries.remove(&old_path) {
+                    self.total_bytes = self
+                        .total_bytes
+                        .saturating_sub(removed.snapshot.content.len());
                 }
             } else {
                 break;
             }
         }
         self.total_bytes = self.total_bytes.saturating_add(entry_bytes);
-        self.order.push_back((path.clone(), entry_bytes));
+        self.order.push_back((path.clone(), generation));
         self.entries.insert(
             path,
             CachedSnapshotEntry {
                 snapshot,
                 mtime,
                 size,
+                generation,
             },
         );
     }
@@ -149,9 +165,21 @@ impl SnapshotCache {
             self.total_bytes = self
                 .total_bytes
                 .saturating_sub(entry.snapshot.content.len());
+            self.prune_dead_order_head();
             Some(entry.snapshot)
         } else {
             None
+        }
+    }
+
+    fn prune_dead_order_head(&mut self) {
+        while let Some((path, entry_gen)) = self.order.front() {
+            match self.entries.get(path) {
+                Some(entry) if entry.generation == *entry_gen => break,
+                _ => {
+                    self.order.pop_front();
+                }
+            }
         }
     }
 
@@ -160,6 +188,7 @@ impl SnapshotCache {
         self.entries.clear();
         self.order.clear();
         self.total_bytes = 0;
+        self.next_generation = 0;
     }
 }
 
@@ -252,15 +281,22 @@ pub(crate) fn read_source_snapshot(
         return Ok(snapshot);
     }
     record_disk_read(target);
+    let pre_mtime = target
+        .absolute_path
+        .metadata()
+        .and_then(|m| m.modified())
+        .ok();
     let bytes = fs::read(&target.absolute_path).map_err(|error| read_error(target, &error))?;
-    let mtime = target
+    let post_mtime = target
         .absolute_path
         .metadata()
         .and_then(|m| m.modified())
         .ok();
     let size = bytes.len() as u64;
     let snapshot = source_snapshot_from_bytes(target, bytes)?;
-    cache_snapshot(&target.absolute_path, snapshot.clone(), mtime, size);
+    if pre_mtime == post_mtime && post_mtime.is_some() {
+        cache_snapshot(&target.absolute_path, snapshot.clone(), post_mtime, size);
+    }
     Ok(snapshot)
 }
 
@@ -1661,6 +1697,56 @@ mod tests {
         assert_eq!(
             artifact.structural_facts[0].structural_fact_id,
             "structural-fact:duplicate"
+        );
+    }
+
+    #[test]
+    fn snapshot_cache_replacement_updates_bytes_and_invalidates_old_queue_generation() {
+        let mut cache = SnapshotCache::new();
+        let path = PathBuf::from("/test/file.rs");
+        let snap1 = SourceSnapshot {
+            content_hash: "hash1".to_string(),
+            content_bytes: 100,
+            line_count: Some(1),
+            content: "a".repeat(100),
+        };
+        cache.insert(path.clone(), snap1, None, 100);
+        assert_eq!(cache.total_bytes, 100);
+
+        // Replace with 200 byte snapshot
+        let snap2 = SourceSnapshot {
+            content_hash: "hash2".to_string(),
+            content_bytes: 200,
+            line_count: Some(1),
+            content: "b".repeat(200),
+        };
+        cache.insert(path.clone(), snap2, None, 200);
+        assert_eq!(cache.total_bytes, 200);
+        assert_eq!(cache.entries.len(), 1);
+
+        // Remove and verify total_bytes is 0 and prune cleans up order
+        let removed = cache.remove(&path);
+        assert!(removed.is_some());
+        assert_eq!(cache.total_bytes, 0);
+        assert!(cache.order.is_empty());
+    }
+
+    #[test]
+    fn snapshot_cache_bounds_empty_and_small_file_entries() {
+        let mut cache = SnapshotCache::new();
+        for i in 0..(MAX_SNAPSHOT_CACHE_ENTRIES + 100) {
+            let path = PathBuf::from(format!("/test/empty_{i}.rs"));
+            let snap = SourceSnapshot {
+                content_hash: format!("hash_{i}"),
+                content_bytes: 0,
+                line_count: Some(0),
+                content: String::new(),
+            };
+            cache.insert(path, snap, None, 0);
+        }
+        assert!(
+            cache.entries.len() <= MAX_SNAPSHOT_CACHE_ENTRIES,
+            "cache entries must be bounded by MAX_SNAPSHOT_CACHE_ENTRIES"
         );
     }
 }
