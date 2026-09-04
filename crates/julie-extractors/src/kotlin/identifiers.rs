@@ -3,9 +3,11 @@
 //! This module handles extraction of function calls, member access, and other
 //! identifier usages for LSP-quality find_references support.
 
-use crate::base::{BaseExtractor, Identifier, IdentifierKind, Symbol, extract_type_arguments};
+use crate::base::{
+    BaseExtractor, ContainingSymbolIndex, Identifier, IdentifierKind, Symbol,
+    extract_type_arguments,
+};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use std::collections::HashMap;
 use tree_sitter::Node;
 
 /// Extract all identifier usages from a Kotlin file
@@ -14,9 +16,9 @@ pub(super) fn extract_identifiers(
     tree: &tree_sitter::Tree,
     symbols: &[Symbol],
 ) -> Vec<Identifier> {
-    let symbol_map: HashMap<String, &Symbol> = symbols.iter().map(|s| (s.id.clone(), s)).collect();
+    let containing_symbols = base.containing_symbol_index(symbols);
 
-    walk_tree_for_identifiers(base, tree.root_node(), &symbol_map, 0);
+    walk_tree_for_identifiers(base, tree.root_node(), &containing_symbols, 0);
 
     base.identifiers.clone()
 }
@@ -25,21 +27,21 @@ pub(super) fn extract_identifiers(
 fn walk_tree_for_identifiers(
     base: &mut BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
         return;
     }
 
-    extract_identifier_from_node(base, node, symbol_map);
+    extract_identifier_from_node(base, node, containing_symbols);
 
     let Some(child_depth) = child_tree_depth(depth) else {
         return;
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(base, child, symbol_map, child_depth);
+        walk_tree_for_identifiers(base, child, containing_symbols, child_depth);
     }
 }
 
@@ -47,7 +49,7 @@ fn walk_tree_for_identifiers(
 fn extract_identifier_from_node(
     base: &mut BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     match node.kind() {
         // Function/method calls: foo(), bar.baz(), mutableListOf<User>()
@@ -72,7 +74,7 @@ fn extract_identifier_from_node(
                 let arguments = type_args_node
                     .map(|ta| extract_type_arguments(base, ta, decompose_kotlin_type_arg));
                 let name = identifier_name(base, child);
-                let containing = find_containing_symbol_id(base, node, symbol_map);
+                let containing = find_containing_symbol_id(node, containing_symbols);
                 let receiver_type = self_receiver_type(base, node);
                 let identifier = base.create_identifier_with_receiver_type(
                     child,
@@ -94,7 +96,7 @@ fn extract_identifier_from_node(
                 let nav_name = extract_rightmost_identifier(base, nav_expr);
                 let arguments = type_args_node
                     .map(|ta| extract_type_arguments(base, ta, decompose_kotlin_type_arg));
-                let containing = find_containing_symbol_id(base, node, symbol_map);
+                let containing = find_containing_symbol_id(node, containing_symbols);
                 let receiver_type = self_receiver_type(base, node);
                 if let Some((name_node, name)) = nav_name {
                     let identifier = base.create_identifier_with_receiver_type(
@@ -113,7 +115,7 @@ fn extract_identifier_from_node(
             }
             // Phase 3b: capture string-literal call-arguments (config-free;
             // carrier classification + gate run later in the artifact language-policy pass).
-            record_kotlin_call_arg_literals(base, node, symbol_map);
+            record_kotlin_call_arg_literals(base, node, containing_symbols);
         }
 
         // Type references in type positions: val x: Foo, fun f(a: Foo): Bar,
@@ -138,7 +140,7 @@ fn extract_identifier_from_node(
                     return;
                 }
 
-                let containing = find_containing_symbol_id(base, node, symbol_map);
+                let containing = find_containing_symbol_id(node, containing_symbols);
                 let identifier =
                     base.create_identifier(&name_node, name, IdentifierKind::TypeUsage, containing);
                 // If this user_type is the outermost generic use site (not nested
@@ -158,7 +160,7 @@ fn extract_identifier_from_node(
 
             // Extract the rightmost identifier (the member name)
             if let Some((name_node, name)) = extract_rightmost_identifier(base, &node) {
-                let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
                 base.create_identifier(
                     &name_node,
@@ -181,7 +183,7 @@ fn extract_identifier_from_node(
             // field), which parse as plain identifiers in kotlin-ng.
             // (`this`/`super`/`true`/`null` are distinct grammar nodes.)
             if !is_kotlin_noise_type(&name) && name != "it" && name != "field" {
-                let containing = find_containing_symbol_id(base, node, symbol_map);
+                let containing = find_containing_symbol_id(node, containing_symbols);
                 base.create_identifier(&node, name, IdentifierKind::VariableRef, containing);
             }
         }
@@ -407,12 +409,10 @@ fn extract_kotlin_type_node_info_at_depth<'a>(
 
 /// Find the ID of the symbol that contains this node
 fn find_containing_symbol_id(
-    base: &BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) -> Option<String> {
-    base.find_containing_symbol_from_map(&node, symbol_map)
-        .map(|s| s.id.clone())
+    containing_symbols.find(node).map(|s| s.id.clone())
 }
 
 // ============================================================================
@@ -432,7 +432,7 @@ fn find_containing_symbol_id(
 fn record_kotlin_call_arg_literals(
     base: &mut BaseExtractor,
     call_node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     let children: Vec<Node> = {
         let mut cursor = call_node.walk();
@@ -455,7 +455,7 @@ fn record_kotlin_call_arg_literals(
         })
         .copied();
     let carrier = callee.and_then(|c| kotlin_carrier(base, c));
-    let containing_symbol_id = find_containing_symbol_id(base, call_node, symbol_map);
+    let containing_symbol_id = find_containing_symbol_id(call_node, containing_symbols);
 
     let args: Vec<Node> = {
         let mut cursor = value_args.walk();

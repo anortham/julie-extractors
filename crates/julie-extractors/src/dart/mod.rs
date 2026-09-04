@@ -517,9 +517,13 @@ impl DartExtractor {
     }
 
     pub fn extract_identifiers(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Identifier> {
-        let symbol_map: HashMap<String, &Symbol> =
-            symbols.iter().map(|s| (s.id.clone(), s)).collect();
-        identifiers::walk_tree_for_identifiers(&mut self.base, tree.root_node(), &symbol_map, 0);
+        let containing_symbols = self.base.containing_symbol_index(symbols);
+        identifiers::walk_tree_for_identifiers(
+            &mut self.base,
+            tree.root_node(),
+            &containing_symbols,
+            0,
+        );
         self.base.identifiers.clone()
     }
 

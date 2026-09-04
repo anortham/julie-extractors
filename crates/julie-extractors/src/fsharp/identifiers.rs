@@ -1,6 +1,6 @@
 use super::FSharpExtractor;
 use super::literals;
-use crate::base::{BaseExtractor, Identifier, IdentifierKind, Symbol};
+use crate::base::{BaseExtractor, ContainingSymbolIndex, Identifier, IdentifierKind, Symbol};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashSet;
 use tree_sitter::{Node, Tree};
@@ -12,16 +12,23 @@ pub(super) fn extract_identifiers(
 ) -> Vec<Identifier> {
     extractor.base().identifiers.clear();
     extractor.base().literals.clear();
+    let containing_symbols = extractor.base().containing_symbol_index(symbols);
     let mut seen = HashSet::new();
-    walk(extractor, tree.root_node(), symbols, &mut seen, 0);
-    literals::collect_literals(extractor, tree.root_node(), symbols);
+    walk(
+        extractor,
+        tree.root_node(),
+        &containing_symbols,
+        &mut seen,
+        0,
+    );
+    literals::collect_literals(extractor, tree.root_node(), &containing_symbols);
     extractor.base().identifiers.clone()
 }
 
 fn walk(
     extractor: &mut FSharpExtractor,
     node: Node,
-    symbols: &[Symbol],
+    containing_symbols: &ContainingSymbolIndex<'_>,
     seen: &mut HashSet<(IdentifierKind, u32, u32)>,
     depth: u32,
 ) {
@@ -37,7 +44,7 @@ fn walk(
                     name_node,
                     name,
                     IdentifierKind::Call,
-                    symbols,
+                    containing_symbols,
                     seen,
                 );
             }
@@ -52,7 +59,7 @@ fn walk(
                     name_node,
                     name,
                     IdentifierKind::MemberAccess,
-                    symbols,
+                    containing_symbols,
                     seen,
                 );
             }
@@ -67,13 +74,13 @@ fn walk(
                     name_node,
                     name,
                     IdentifierKind::MemberAccess,
-                    symbols,
+                    containing_symbols,
                     seen,
                 );
             }
         }
         "generic_type" => {
-            emit_generic_type(extractor, node, symbols, seen);
+            emit_generic_type(extractor, node, containing_symbols, seen);
         }
         "long_identifier" if is_type_node(node) => {
             if let Some(name_node) = terminal_identifier(node) {
@@ -83,7 +90,7 @@ fn walk(
                     name_node,
                     name,
                     IdentifierKind::TypeUsage,
-                    symbols,
+                    containing_symbols,
                     seen,
                 );
             }
@@ -96,7 +103,7 @@ fn walk(
                     name_node,
                     name,
                     IdentifierKind::TypeUsage,
-                    symbols,
+                    containing_symbols,
                     seen,
                 );
             }
@@ -108,7 +115,7 @@ fn walk(
                 node,
                 name,
                 IdentifierKind::VariableRef,
-                symbols,
+                containing_symbols,
                 seen,
             );
         }
@@ -120,14 +127,14 @@ fn walk(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk(extractor, child, symbols, seen, child_depth);
+        walk(extractor, child, containing_symbols, seen, child_depth);
     }
 }
 
 fn emit_generic_type(
     extractor: &mut FSharpExtractor,
     node: Node,
-    symbols: &[Symbol],
+    containing_symbols: &ContainingSymbolIndex<'_>,
     seen: &mut HashSet<(IdentifierKind, u32, u32)>,
 ) {
     let Some(type_node) = first_named_child(node) else {
@@ -142,7 +149,7 @@ fn emit_generic_type(
         name_node,
         name,
         IdentifierKind::TypeUsage,
-        symbols,
+        containing_symbols,
         seen,
     );
     let Some(identifier) = identifier else {
@@ -201,7 +208,7 @@ fn emit(
     node: Node,
     name: String,
     kind: IdentifierKind,
-    symbols: &[Symbol],
+    containing_symbols: &ContainingSymbolIndex<'_>,
     seen: &mut HashSet<(IdentifierKind, u32, u32)>,
 ) -> Option<Identifier> {
     if name.trim().is_empty() {
@@ -224,9 +231,8 @@ fn emit(
             })
             .cloned();
     }
-    let containing_symbol_id = extractor
-        .base()
-        .find_containing_symbol(&node, symbols)
+    let containing_symbol_id = containing_symbols
+        .find(node)
         .map(|symbol| symbol.id.clone());
     let receiver_type = (kind == IdentifierKind::Call)
         .then(|| instance_receiver_type(&extractor.base, node))

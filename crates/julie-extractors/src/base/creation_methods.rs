@@ -226,6 +226,13 @@ impl BaseExtractor {
         .with_target_span(NormalizedSpan::from_node(target_token_node))
     }
 
+    pub(crate) fn containing_symbol_index<'a>(
+        &self,
+        symbols: &'a [Symbol],
+    ) -> ContainingSymbolIndex<'a> {
+        ContainingSymbolIndex::new(symbols, &self.file_path)
+    }
+
     pub fn find_containing_symbol<'a>(
         &self,
         node: &Node,

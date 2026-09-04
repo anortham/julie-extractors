@@ -25,6 +25,7 @@ pub(super) fn extract_function(
     base: &mut BaseExtractor,
     node: Node,
     parent_id: Option<&str>,
+    symbols: &[Symbol],
 ) -> Option<Symbol> {
     let mut func_node = node;
     if node.kind() == "function_definition" {
@@ -53,11 +54,12 @@ pub(super) fn extract_function(
     let name_node = extract_function_name(func_node)?;
     let name = base.get_node_text(&name_node);
 
-    let google_test_lifecycle = is_google_test_fixture_lifecycle(base, node, &name, parent_id);
+    let google_test_lifecycle =
+        is_google_test_fixture_lifecycle(base, node, &name, parent_id, symbols);
 
     // Skip if it's a field_identifier (should be handled as method)
     if name_node.kind() == "field_identifier" {
-        return extract_method(base, node, func_node, &name, parent_id);
+        return extract_method(base, node, func_node, &name, parent_id, symbols);
     }
 
     // GoogleTest macros (`TEST(Suite, Name) { ... }`, `TEST_F`, `TEST_P`,
@@ -238,6 +240,7 @@ fn extract_method(
     func_node: Node,
     name: &str,
     parent_id: Option<&str>,
+    symbols: &[Symbol],
 ) -> Option<Symbol> {
     let is_constructor = is_constructor(base, name, node);
     let is_destructor = name.starts_with('~');
@@ -290,7 +293,7 @@ fn extract_method(
 
     // Test detection
     let mut metadata = HashMap::new();
-    if is_google_test_fixture_lifecycle(base, node, name, parent_id) {
+    if is_google_test_fixture_lifecycle(base, node, name, parent_id, symbols) {
         apply_test_role(&mut metadata, cpp_fixture_lifecycle_role(name));
     } else {
         apply_callable_test_metadata(
@@ -325,7 +328,20 @@ fn extract_method(
 
 fn extract_standard_attributes(base: &mut BaseExtractor, node: Node) -> Vec<String> {
     let mut attributes = Vec::new();
-    collect_standard_attributes_from_text(&base.get_node_text(&node), &mut attributes);
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if !matches!(
+            child.kind(),
+            "attribute_specifier" | "attribute_declaration"
+        ) {
+            continue;
+        }
+
+        let text = base.get_node_text(&child);
+        if text.trim_start().starts_with("[[") {
+            collect_standard_attributes_from_text(&text, &mut attributes);
+        }
+    }
 
     let mut current = node.prev_sibling();
     while let Some(sibling) = current {
@@ -355,6 +371,7 @@ fn is_google_test_fixture_lifecycle(
     node: Node,
     name: &str,
     _parent_id: Option<&str>,
+    symbols: &[Symbol],
 ) -> bool {
     let Some(method_name) = name.rsplit("::").next() else {
         return false;
@@ -383,7 +400,7 @@ fn is_google_test_fixture_lifecycle(
             }
         };
 
-        return has_matching_fixture_class(base, node, &expected_qualified_name);
+        return has_matching_fixture_symbol(symbols, &expected_qualified_name);
     }
 
     let mut current = node.parent();
@@ -454,32 +471,16 @@ fn ast_enclosing_scope(base: &BaseExtractor, node: Node) -> String {
     segments.join("::")
 }
 
-fn is_matching_fixture_class(
-    base: &BaseExtractor,
-    current: Node,
-    expected_qualified_name: &str,
-) -> bool {
-    if !matches!(current.kind(), "class_specifier" | "struct_specifier") {
-        return false;
-    }
-    let Some(name) = class_specifier_name(base, current) else {
-        return false;
-    };
-    let scope = ast_enclosing_scope(base, current);
-    let qualified_name = if scope.is_empty() {
-        name
-    } else {
-        format!("{scope}::{name}")
-    };
-    if qualified_name != expected_qualified_name {
-        return false;
-    }
-    current
-        .children(&mut current.walk())
-        .find(|child| child.kind() == "base_class_clause")
-        .map(|base_clause| {
-            helpers::extract_base_type_names(base, base_clause)
+fn has_google_test_fixture_base(symbol: &Symbol) -> bool {
+    symbol
+        .metadata
+        .as_ref()
+        .and_then(|metadata| metadata.get("base_types"))
+        .and_then(|value| value.as_array())
+        .is_some_and(|base_types| {
+            base_types
                 .iter()
+                .filter_map(|value| value.as_str())
                 .any(|base_type| {
                     matches!(
                         base_type.trim_start_matches(':'),
@@ -487,32 +488,34 @@ fn is_matching_fixture_class(
                     )
                 })
         })
-        .unwrap_or(false)
 }
 
-fn has_matching_fixture_class(
-    base: &BaseExtractor,
-    node: Node,
-    expected_qualified_name: &str,
-) -> bool {
-    let mut root = node;
-    while let Some(parent) = root.parent() {
-        root = parent;
-    }
+fn has_matching_fixture_symbol(symbols: &[Symbol], expected_qualified_name: &str) -> bool {
+    let id_map: HashMap<&str, &Symbol> = symbols.iter().map(|s| (s.id.as_str(), s)).collect();
+    symbols.iter().any(|symbol| {
+        matches!(symbol.kind, SymbolKind::Class | SymbolKind::Struct)
+            && qualified_symbol_name(symbol, &id_map) == expected_qualified_name
+            && has_google_test_fixture_base(symbol)
+    })
+}
 
-    let mut stack = vec![root];
-    while let Some(current) = stack.pop() {
-        if is_matching_fixture_class(base, current, expected_qualified_name) {
-            return true;
+fn qualified_symbol_name(symbol: &Symbol, id_map: &HashMap<&str, &Symbol>) -> String {
+    let mut segments = vec![symbol.name.as_str()];
+    let mut parent_id = symbol.parent_id.as_deref();
+    while let Some(id) = parent_id {
+        let Some(parent) = id_map.get(id) else {
+            break;
+        };
+        if matches!(
+            parent.kind,
+            SymbolKind::Namespace | SymbolKind::Class | SymbolKind::Struct
+        ) {
+            segments.push(parent.name.as_str());
         }
-        let mut cursor = current.walk();
-        for child in current.children(&mut cursor) {
-            if child.child_count() > 0 {
-                stack.push(child);
-            }
-        }
+        parent_id = parent.parent_id.as_deref();
     }
-    false
+    segments.reverse();
+    segments.join("::")
 }
 
 fn collect_standard_attributes_from_text(text: &str, attributes: &mut Vec<String>) {

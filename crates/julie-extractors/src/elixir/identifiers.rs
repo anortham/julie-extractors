@@ -2,9 +2,11 @@
 ///
 /// Walks the tree to find: function calls, module references (aliases),
 /// and qualified calls (Module.function).
-use crate::base::{BaseExtractor, Identifier, IdentifierKind, Symbol, extract_type_arguments};
+use crate::base::{
+    BaseExtractor, ContainingSymbolIndex, Identifier, IdentifierKind, Symbol,
+    extract_type_arguments,
+};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
 use super::helpers::{find_child_by_type, is_elixir_parameterized_type_call};
@@ -15,37 +17,37 @@ pub(super) fn extract_identifiers(
     tree: &Tree,
     symbols: &[Symbol],
 ) -> Vec<Identifier> {
-    let symbol_map: HashMap<String, &Symbol> = symbols.iter().map(|s| (s.id.clone(), s)).collect();
-    walk_tree_for_identifiers(base, tree.root_node(), &symbol_map, 0);
-    walk_tree_for_typespec_type_arguments(base, tree.root_node(), &symbol_map, 0);
+    let containing_symbols = base.containing_symbol_index(symbols);
+    walk_tree_for_identifiers(base, tree.root_node(), &containing_symbols, 0);
+    walk_tree_for_typespec_type_arguments(base, tree.root_node(), &containing_symbols, 0);
     base.identifiers.clone()
 }
 
 fn walk_tree_for_identifiers(
     base: &mut BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
         return;
     }
 
-    extract_identifier_from_node(base, node, symbol_map);
+    extract_identifier_from_node(base, node, containing_symbols);
 
     let Some(child_depth) = child_tree_depth(depth) else {
         return;
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(base, child, symbol_map, child_depth);
+        walk_tree_for_identifiers(base, child, containing_symbols, child_depth);
     }
 }
 
 fn extract_identifier_from_node(
     base: &mut BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     match node.kind() {
         "call" => {
@@ -58,12 +60,12 @@ fn extract_identifier_from_node(
                     return;
                 }
                 // Regular function call
-                let containing = find_containing_symbol_id(base, node, symbol_map);
+                let containing = find_containing_symbol_id(node, containing_symbols);
                 base.create_identifier(&target, name, IdentifierKind::Call, containing);
             }
             // Phase 3b: capture string-literal call-arguments config-free; the
             // carrier classification + bloat gate run later in the artifact language-policy pass.
-            record_elixir_call_arg_literals(base, node, symbol_map);
+            record_elixir_call_arg_literals(base, node, containing_symbols);
         }
         "dot" => {
             // Qualified call: Module.function
@@ -75,7 +77,7 @@ fn extract_identifier_from_node(
                 // Module reference
                 if left.kind() == "alias" {
                     let module_name = base.get_node_text(&left);
-                    let containing = find_containing_symbol_id(base, node, symbol_map);
+                    let containing = find_containing_symbol_id(node, containing_symbols);
                     base.create_identifier(
                         &left,
                         module_name,
@@ -100,14 +102,14 @@ fn extract_identifier_from_node(
             if let Some(alias) = super::type_facts::struct_alias(node) {
                 let name = base.get_node_text(&alias);
                 if !name.is_empty() {
-                    let containing = find_containing_symbol_id(base, node, symbol_map);
+                    let containing = find_containing_symbol_id(node, containing_symbols);
                     base.create_identifier(&alias, name, IdentifierKind::TypeUsage, containing);
                 }
             }
         }
         "alias" if !is_in_definition_context(&node) && !is_map_struct_child(&node) => {
             let name = base.get_node_text(&node);
-            let containing = find_containing_symbol_id(base, node, symbol_map);
+            let containing = find_containing_symbol_id(node, containing_symbols);
             base.create_identifier(&node, name, IdentifierKind::TypeUsage, containing);
         }
         // `variable_ref` complement arm (locked contract — see the doc comment
@@ -123,7 +125,7 @@ fn extract_identifier_from_node(
             // a bare `_` placeholder only occurs in patterns but is filtered
             // defensively.
             if name != "_" && !(name.starts_with("__") && name.ends_with("__")) {
-                let containing = find_containing_symbol_id(base, node, symbol_map);
+                let containing = find_containing_symbol_id(node, containing_symbols);
                 base.create_identifier(&node, name, IdentifierKind::VariableRef, containing);
             }
         }
@@ -294,12 +296,10 @@ fn is_in_definition_context(node: &Node) -> bool {
 }
 
 fn find_containing_symbol_id(
-    base: &BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) -> Option<String> {
-    base.find_containing_symbol_from_map(&node, symbol_map)
-        .map(|s| s.id.clone())
+    containing_symbols.find(node).map(|s| s.id.clone())
 }
 
 // ============================================================================
@@ -318,7 +318,7 @@ fn find_containing_symbol_id(
 fn record_elixir_call_arg_literals(
     base: &mut BaseExtractor,
     call_node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     let Some(target) = call_node.child_by_field_name("target") else {
         return;
@@ -337,7 +337,7 @@ fn record_elixir_call_arg_literals(
         return;
     };
     let carrier = elixir_carrier(base, target);
-    let containing_symbol_id = find_containing_symbol_id(base, call_node, symbol_map);
+    let containing_symbol_id = find_containing_symbol_id(call_node, containing_symbols);
 
     let mut cursor = args_node.walk();
     for (pos, arg) in args_node.named_children(&mut cursor).enumerate() {
@@ -394,7 +394,7 @@ fn elixir_carrier(base: &BaseExtractor, target: Node) -> Option<String> {
 fn walk_tree_for_typespec_type_arguments(
     base: &mut BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
@@ -402,7 +402,7 @@ fn walk_tree_for_typespec_type_arguments(
     }
 
     if node.kind() == "unary_operator" {
-        extract_typespec_type_arguments_from_attribute(base, node, symbol_map);
+        extract_typespec_type_arguments_from_attribute(base, node, containing_symbols);
     }
 
     let Some(child_depth) = child_tree_depth(depth) else {
@@ -410,14 +410,14 @@ fn walk_tree_for_typespec_type_arguments(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_typespec_type_arguments(base, child, symbol_map, child_depth);
+        walk_tree_for_typespec_type_arguments(base, child, containing_symbols, child_depth);
     }
 }
 
 fn extract_typespec_type_arguments_from_attribute(
     base: &mut BaseExtractor,
     attr_node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     let Some(operator) = attr_node.child_by_field_name("operator") else {
         return;
@@ -443,8 +443,10 @@ fn extract_typespec_type_arguments_from_attribute(
     };
 
     match base.get_node_text(&target).as_str() {
-        "type" | "typep" | "opaque" => walk_elixir_type_alias_typespec(base, args, symbol_map),
-        "spec" | "callback" => walk_elixir_spec_typespec(base, args, symbol_map),
+        "type" | "typep" | "opaque" => {
+            walk_elixir_type_alias_typespec(base, args, containing_symbols)
+        }
+        "spec" | "callback" => walk_elixir_spec_typespec(base, args, containing_symbols),
         _ => {}
     }
 }
@@ -452,32 +454,32 @@ fn extract_typespec_type_arguments_from_attribute(
 fn walk_elixir_type_alias_typespec(
     base: &mut BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     if let Some(body) = find_typespec_body_node(node) {
         if let Some(right) = body.child_by_field_name("right") {
-            walk_elixir_typespec_type_expr(base, right, symbol_map);
+            walk_elixir_typespec_type_expr(base, right, containing_symbols);
         }
         return;
     }
-    walk_elixir_typespec_type_expr(base, node, symbol_map);
+    walk_elixir_typespec_type_expr(base, node, containing_symbols);
 }
 
 fn walk_elixir_spec_typespec(
     base: &mut BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     if let Some(body) = find_typespec_body_node(node) {
         if let Some(left) = body.child_by_field_name("left") {
-            walk_elixir_spec_function_head(base, left, symbol_map);
+            walk_elixir_spec_function_head(base, left, containing_symbols);
         }
         if let Some(right) = body.child_by_field_name("right") {
-            walk_elixir_typespec_type_expr(base, right, symbol_map);
+            walk_elixir_typespec_type_expr(base, right, containing_symbols);
         }
         return;
     }
-    walk_elixir_typespec_type_expr(base, node, symbol_map);
+    walk_elixir_typespec_type_expr(base, node, containing_symbols);
 }
 
 fn find_typespec_body_node<'a>(node: Node<'a>) -> Option<Node<'a>> {
@@ -494,29 +496,29 @@ fn find_typespec_body_node<'a>(node: Node<'a>) -> Option<Node<'a>> {
 fn walk_elixir_spec_function_head(
     base: &mut BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     if node.kind() == "call" {
         if let Some(args) = find_child_by_type(&node, "arguments") {
-            walk_elixir_typespec_type_expr_children(base, args, symbol_map);
+            walk_elixir_typespec_type_expr_children(base, args, containing_symbols);
         }
         return;
     }
-    walk_elixir_typespec_type_expr(base, node, symbol_map);
+    walk_elixir_typespec_type_expr(base, node, containing_symbols);
 }
 
 fn walk_elixir_typespec_type_expr(
     base: &mut BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
-    walk_elixir_typespec_type_expr_at_depth(base, node, symbol_map, 0);
+    walk_elixir_typespec_type_expr_at_depth(base, node, containing_symbols, 0);
 }
 
 fn walk_elixir_typespec_type_expr_at_depth(
     base: &mut BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
@@ -527,7 +529,7 @@ fn walk_elixir_typespec_type_expr_at_depth(
         && is_elixir_parameterized_type_call(&node)
         && !is_nested_in_type_application_args(&node)
     {
-        record_elixir_type_arguments(base, node, symbol_map);
+        record_elixir_type_arguments(base, node, containing_symbols);
         return;
     }
 
@@ -536,18 +538,18 @@ fn walk_elixir_typespec_type_expr_at_depth(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_elixir_typespec_type_expr_at_depth(base, child, symbol_map, child_depth);
+        walk_elixir_typespec_type_expr_at_depth(base, child, containing_symbols, child_depth);
     }
 }
 
 fn walk_elixir_typespec_type_expr_children(
     base: &mut BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     let mut cursor = node.walk();
     for child in node.named_children(&mut cursor) {
-        walk_elixir_typespec_type_expr(base, child, symbol_map);
+        walk_elixir_typespec_type_expr(base, child, containing_symbols);
     }
 }
 
@@ -569,7 +571,7 @@ fn is_nested_in_type_application_args(node: &Node) -> bool {
 fn record_elixir_type_arguments(
     base: &mut BaseExtractor,
     call_node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     let Some(target) = call_node.child_by_field_name("target") else {
         return;
@@ -582,7 +584,7 @@ fn record_elixir_type_arguments(
     };
 
     let name = base.get_node_text(&target);
-    let containing_symbol_id = find_containing_symbol_id(base, call_node, symbol_map);
+    let containing_symbol_id = find_containing_symbol_id(call_node, containing_symbols);
     let identifier = base.create_identifier(
         &target,
         name,

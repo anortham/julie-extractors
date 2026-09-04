@@ -1,10 +1,9 @@
 use crate::base::{
-    BaseExtractor, EmbeddedSpanOffset, Literal, LiteralKind, NormalizedSpan, Symbol,
+    BaseExtractor, ContainingSymbolIndex, EmbeddedSpanOffset, Literal, LiteralKind, NormalizedSpan,
 };
-use std::collections::HashMap;
 use tree_sitter::Node;
 
-use super::{find_containing_symbol_id_for_span, get_node_text_from_content};
+use super::get_node_text_from_content;
 
 /// Capture string-literal arguments of a Vue `<script>` `call_expression` as
 /// `Literal` records. Config-free: `carrier` is the verbatim callee text; the
@@ -13,7 +12,7 @@ use super::{find_containing_symbol_id_for_span, get_node_text_from_content};
 pub(super) fn record_vue_call_arg_literals(
     base: &mut BaseExtractor,
     call_node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
     script_content: &str,
     offset: EmbeddedSpanOffset,
 ) {
@@ -25,8 +24,9 @@ pub(super) fn record_vue_call_arg_literals(
     };
     let carrier = vue_callee_text(function_node, script_content);
     let containing_span = offset.apply(NormalizedSpan::from_node(&call_node));
-    let containing_symbol_id =
-        find_containing_symbol_id_for_span(base, containing_span, symbol_map);
+    let containing_symbol_id = containing_symbols
+        .find_for_span(containing_span)
+        .map(|s| s.id.clone());
 
     let mut cursor = args_node.walk();
     for (pos, arg) in args_node.named_children(&mut cursor).enumerate() {

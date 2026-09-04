@@ -9,27 +9,25 @@ mod type_arguments;
 use super::parsing::{VueSection, parse_vue_sfc};
 use crate::base::config_literals::{enclosing_element_tag_name, tag_attribute_carrier};
 use crate::base::{
-    BaseExtractor, EmbeddedSpanOffset, Identifier, IdentifierKind, NormalizedSpan, Symbol,
-    SymbolKind,
+    BaseExtractor, ContainingSymbolIndex, EmbeddedSpanOffset, Identifier, IdentifierKind,
+    NormalizedSpan, Symbol,
 };
 use crate::javascript::identifiers::is_ecmascript_value_read_identifier;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use literals::record_vue_call_arg_literals;
-use std::collections::HashMap;
 use tree_sitter::{Node, Parser};
 use type_arguments::extract_vue_type_arguments;
 
 /// Extract all identifier usages (function calls, member access, etc.)
 /// Vue-specific: Parses <script> section with JavaScript tree-sitter
 pub(super) fn extract_identifiers(base: &mut BaseExtractor, symbols: &[Symbol]) -> Vec<Identifier> {
-    // Create symbol map for fast lookup
-    let symbol_map: HashMap<String, &Symbol> = symbols.iter().map(|s| (s.id.clone(), s)).collect();
+    let containing_symbols = base.containing_symbol_index(symbols);
 
     // Parse Vue SFC to extract script and template sections
     if let Ok(sections) = parse_vue_sfc(&base.content.clone()) {
         for section in &sections {
             if section.section_type == "template" {
-                extract_template_attribute_literals(base, section, &symbol_map);
+                extract_template_attribute_literals(base, section, &containing_symbols);
             } else if section.section_type == "script" {
                 // Parse script section with JavaScript tree-sitter
                 if let Some(tree) = parse_script_section(section) {
@@ -45,7 +43,7 @@ pub(super) fn extract_identifiers(base: &mut BaseExtractor, symbols: &[Symbol]) 
                     walk_tree_for_identifiers_with_content(
                         base,
                         tree.root_node(),
-                        &symbol_map,
+                        &containing_symbols,
                         &section.content,
                         offset,
                         0,
@@ -82,7 +80,7 @@ fn parse_script_section(section: &VueSection) -> Option<tree_sitter::Tree> {
 fn walk_tree_for_identifiers_with_content(
     base: &mut BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
     script_content: &str,
     offset: EmbeddedSpanOffset,
     depth: u32,
@@ -92,7 +90,13 @@ fn walk_tree_for_identifiers_with_content(
     }
 
     // Extract identifier from this node if applicable
-    extract_identifier_from_node_with_content(base, node, symbol_map, script_content, offset);
+    extract_identifier_from_node_with_content(
+        base,
+        node,
+        containing_symbols,
+        script_content,
+        offset,
+    );
 
     // Recursively walk children
     let Some(child_depth) = child_tree_depth(depth) else {
@@ -103,7 +107,7 @@ fn walk_tree_for_identifiers_with_content(
         walk_tree_for_identifiers_with_content(
             base,
             child,
-            symbol_map,
+            containing_symbols,
             script_content,
             offset,
             child_depth,
@@ -117,7 +121,7 @@ fn walk_tree_for_identifiers_with_content(
 fn extract_identifier_from_node_with_content(
     base: &mut BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
     script_content: &str,
     offset: EmbeddedSpanOffset,
 ) {
@@ -137,7 +141,7 @@ fn extract_identifier_from_node_with_content(
                             &node,
                             name,
                             IdentifierKind::Call,
-                            symbol_map,
+                            containing_symbols,
                             offset,
                         );
                     }
@@ -153,7 +157,7 @@ fn extract_identifier_from_node_with_content(
                                 &node,
                                 name,
                                 IdentifierKind::Call,
-                                symbol_map,
+                                containing_symbols,
                                 offset,
                             );
                         }
@@ -165,7 +169,7 @@ fn extract_identifier_from_node_with_content(
             // carrier classification + gate happen in the artifact language-policy pass). Vue
             // parses the <script> with its own byte offsets, so this path decodes
             // from `script_content` and remaps spans to the host SFC via `offset`.
-            record_vue_call_arg_literals(base, node, symbol_map, script_content, offset);
+            record_vue_call_arg_literals(base, node, containing_symbols, script_content, offset);
         }
 
         // Member access: object.field
@@ -188,7 +192,7 @@ fn extract_identifier_from_node_with_content(
                     &node,
                     name,
                     IdentifierKind::MemberAccess,
-                    symbol_map,
+                    containing_symbols,
                     offset,
                 );
             }
@@ -213,7 +217,7 @@ fn extract_identifier_from_node_with_content(
                 &node,
                 name,
                 IdentifierKind::TypeUsage,
-                symbol_map,
+                containing_symbols,
                 offset,
             );
             if let Some(arg_list) = node.child_by_field_name("type_arguments") {
@@ -251,7 +255,7 @@ fn extract_identifier_from_node_with_content(
                 &node,
                 name,
                 IdentifierKind::Call,
-                symbol_map,
+                containing_symbols,
                 offset,
             );
             let maybe_type_args = {
@@ -302,7 +306,7 @@ fn extract_identifier_from_node_with_content(
                 &node,
                 name,
                 IdentifierKind::TypeUsage,
-                symbol_map,
+                containing_symbols,
                 offset,
             );
             if let Some(arg_list) = opt_arg_list {
@@ -327,7 +331,7 @@ fn extract_identifier_from_node_with_content(
                 &node,
                 name,
                 IdentifierKind::VariableRef,
-                symbol_map,
+                containing_symbols,
                 offset,
             );
         }
@@ -343,7 +347,7 @@ fn extract_identifier_from_node_with_content(
                 &node,
                 name,
                 IdentifierKind::VariableRef,
-                symbol_map,
+                containing_symbols,
                 offset,
             );
         }
@@ -390,13 +394,14 @@ fn create_identifier_with_offset(
     containing_node: &Node,
     name: String,
     kind: IdentifierKind,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
     offset: EmbeddedSpanOffset,
 ) -> Identifier {
     let span = offset.apply(NormalizedSpan::from_node(node));
     let containing_span = offset.apply(NormalizedSpan::from_node(containing_node));
-    let containing_symbol_id =
-        find_containing_symbol_id_for_span(base, containing_span, symbol_map);
+    let containing_symbol_id = containing_symbols
+        .find_for_span(containing_span)
+        .map(|s| s.id.clone());
     let identifier = Identifier {
         id: base.generate_id_for_span(&name, &span),
         name,
@@ -423,7 +428,7 @@ fn create_identifier_with_offset(
 fn extract_template_attribute_literals(
     base: &mut BaseExtractor,
     section: &VueSection,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     let mut parser = Parser::new();
     if parser
@@ -444,7 +449,7 @@ fn extract_template_attribute_literals(
         base,
         tree.root_node(),
         &section.content,
-        symbol_map,
+        containing_symbols,
         offset,
         0,
     );
@@ -454,7 +459,7 @@ fn walk_template_for_literals(
     base: &mut BaseExtractor,
     node: Node,
     template_content: &str,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
     offset: EmbeddedSpanOffset,
     depth: u32,
 ) {
@@ -463,7 +468,7 @@ fn walk_template_for_literals(
     }
 
     if node.kind() == "attribute" {
-        record_template_attribute_literal(base, node, template_content, symbol_map, offset);
+        record_template_attribute_literal(base, node, template_content, containing_symbols, offset);
     }
 
     let Some(child_depth) = child_tree_depth(depth) else {
@@ -475,7 +480,7 @@ fn walk_template_for_literals(
             base,
             child,
             template_content,
-            symbol_map,
+            containing_symbols,
             offset,
             child_depth,
         );
@@ -486,7 +491,7 @@ fn record_template_attribute_literal(
     base: &mut BaseExtractor,
     node: Node,
     template_content: &str,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
     offset: EmbeddedSpanOffset,
 ) {
     let mut attr_name = None;
@@ -521,7 +526,7 @@ fn record_template_attribute_literal(
         enclosing_element_tag_name(template_content, node).unwrap_or_else(|| "element".to_string());
     let carrier = tag_attribute_carrier(&tag_name, &name);
     let span = offset.apply(NormalizedSpan::from_node(&value_node));
-    let containing_symbol_id = find_containing_symbol_id_for_span(base, span, symbol_map);
+    let containing_symbol_id = containing_symbols.find_for_span(span).map(|s| s.id.clone());
     base.record_literal_at_span(span, value, Some(carrier), 0, containing_symbol_id);
 }
 
@@ -539,71 +544,6 @@ fn section_byte_offset(content: &str, start_line: usize) -> u32 {
         .take(start_line)
         .map(str::len)
         .sum::<usize>() as u32
-}
-
-pub(super) fn find_containing_symbol_id_for_span(
-    base: &BaseExtractor,
-    span: NormalizedSpan,
-    symbol_map: &HashMap<String, &Symbol>,
-) -> Option<String> {
-    let mut containing_symbols: Vec<&Symbol> = symbol_map
-        .values()
-        .copied()
-        .filter(|symbol| symbol.file_path == base.file_path && symbol_contains_span(symbol, span))
-        .collect();
-
-    if containing_symbols.is_empty() {
-        return None;
-    }
-
-    containing_symbols.sort_by(|a, b| {
-        let priority_a = symbol_containment_priority(&a.kind);
-        let priority_b = symbol_containment_priority(&b.kind);
-        if priority_a != priority_b {
-            return priority_a.cmp(&priority_b);
-        }
-
-        let size_a = a.end_byte - a.start_byte;
-        let size_b = b.end_byte - b.start_byte;
-        if size_a != size_b {
-            return size_a.cmp(&size_b);
-        }
-
-        // HashMap iteration order is non-deterministic. Without an id-level
-        // tiebreaker, two symbols with identical priority and size would be
-        // selected arbitrarily across runs and produce flaky
-        // containing_symbol_id assignments.
-        a.id.cmp(&b.id)
-    });
-
-    Some(containing_symbols[0].id.clone())
-}
-
-fn symbol_contains_span(symbol: &Symbol, span: NormalizedSpan) -> bool {
-    let pos_line = span.start_line;
-    let pos_column = span.start_column;
-    let line_contains = symbol.start_line <= pos_line && symbol.end_line >= pos_line;
-    let col_contains = if pos_line == symbol.start_line && pos_line == symbol.end_line {
-        symbol.start_column <= pos_column && symbol.end_column >= pos_column
-    } else if pos_line == symbol.start_line {
-        symbol.start_column <= pos_column
-    } else if pos_line == symbol.end_line {
-        symbol.end_column >= pos_column
-    } else {
-        true
-    };
-
-    line_contains && col_contains
-}
-
-fn symbol_containment_priority(kind: &SymbolKind) -> u32 {
-    match kind {
-        SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor => 1,
-        SymbolKind::Class | SymbolKind::Interface => 2,
-        SymbolKind::Namespace => 3,
-        SymbolKind::Variable | SymbolKind::Constant | SymbolKind::Property => 10,
-        _ => 5,
-    }
 }
 
 /// Check if a `type_identifier` node is a TypeScript declaration name (not a reference).

@@ -1,6 +1,6 @@
 use crate::base::{
-    BaseExtractor, LocalTargetResolution, Relationship, RelationshipKind, ScopedSymbolIndex,
-    Symbol, SymbolKind, UnresolvedTarget,
+    BaseExtractor, ContainingSymbolIndex, LocalTargetResolution, Relationship, RelationshipKind,
+    ScopedSymbolIndex, Symbol, SymbolKind, UnresolvedTarget,
 };
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use crate::zig::ZigExtractor;
@@ -13,7 +13,17 @@ pub(super) fn extract_relationships(
     symbols: &[Symbol],
 ) -> Vec<Relationship> {
     let mut relationships = Vec::new();
-    traverse_for_relationships(extractor, tree.root_node(), symbols, &mut relationships, 0);
+    let containing_symbols = extractor.base.containing_symbol_index(symbols);
+    let scoped_index = ScopedSymbolIndex::new(symbols);
+    traverse_for_relationships(
+        extractor,
+        tree.root_node(),
+        symbols,
+        &containing_symbols,
+        &scoped_index,
+        &mut relationships,
+        0,
+    );
     relationships
 }
 
@@ -21,6 +31,8 @@ fn traverse_for_relationships(
     extractor: &mut ZigExtractor,
     node: Node,
     symbols: &[Symbol],
+    containing_symbols: &ContainingSymbolIndex<'_>,
+    scoped_index: &ScopedSymbolIndex<'_>,
     relationships: &mut Vec<Relationship>,
     depth: u32,
 ) {
@@ -41,7 +53,13 @@ fn traverse_for_relationships(
             extract_struct_relationships(base, node, symbols, relationships);
         }
         "call_expression" => {
-            extract_function_call_relationships(extractor, node, symbols, relationships);
+            extract_function_call_relationships(
+                extractor,
+                node,
+                containing_symbols,
+                scoped_index,
+                relationships,
+            );
         }
         _ => {}
     }
@@ -52,7 +70,15 @@ fn traverse_for_relationships(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        traverse_for_relationships(extractor, child, symbols, relationships, child_depth);
+        traverse_for_relationships(
+            extractor,
+            child,
+            symbols,
+            containing_symbols,
+            scoped_index,
+            relationships,
+            child_depth,
+        );
     }
 }
 
@@ -162,7 +188,8 @@ fn traverse_struct_fields(
 fn extract_function_call_relationships(
     extractor: &mut ZigExtractor,
     node: Node,
-    symbols: &[Symbol],
+    containing_symbols: &ContainingSymbolIndex<'_>,
+    scoped_index: &ScopedSymbolIndex<'_>,
     relationships: &mut Vec<Relationship>,
 ) {
     let base = extractor.get_base_mut();
@@ -189,15 +216,12 @@ fn extract_function_call_relationships(
     }
 
     if let Some(unresolved_target) = unresolved_target {
-        let caller_symbol = base
-            .find_containing_symbol(&node, symbols)
-            .filter(|symbol| {
-                matches!(
-                    symbol.kind,
-                    SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor
-                )
-            });
-        let scoped_index = ScopedSymbolIndex::new(symbols);
+        let caller_symbol = containing_symbols.find(node).filter(|symbol| {
+            matches!(
+                symbol.kind,
+                SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor
+            )
+        });
 
         if let Some(caller_symbol) = caller_symbol {
             // Now check if the called function exists locally

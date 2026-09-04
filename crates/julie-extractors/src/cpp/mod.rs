@@ -107,14 +107,8 @@ impl CppExtractor {
         tree: &Tree,
         symbols: &[Symbol],
     ) -> Vec<crate::base::Identifier> {
-        // Create symbol map for fast lookup
-        let symbol_map: HashMap<String, &Symbol> =
-            symbols.iter().map(|s| (s.id.clone(), s)).collect();
-
-        // Walk the tree and extract identifiers
-        self.walk_tree_for_identifiers(tree.root_node(), &symbol_map, 0);
-
-        // Return the collected identifiers from the base extractor
+        let containing_symbols = self.base.containing_symbol_index(symbols);
+        self.walk_tree_for_identifiers(tree.root_node(), &containing_symbols, 0);
         self.base.identifiers.clone()
     }
 
@@ -165,7 +159,7 @@ impl CppExtractor {
         }
 
         // Extract symbol from current node
-        if let Some(symbol) = self.extract_symbol(node, parent_id.as_deref()) {
+        if let Some(symbol) = self.extract_symbol(node, parent_id.as_deref(), symbols) {
             let symbol_id = symbol.id.clone();
             symbols.push(symbol);
 
@@ -214,7 +208,12 @@ impl CppExtractor {
     }
 
     /// Extract symbol from a single node
-    fn extract_symbol(&mut self, node: Node, parent_id: Option<&str>) -> Option<Symbol> {
+    fn extract_symbol(
+        &mut self,
+        node: Node,
+        parent_id: Option<&str>,
+        symbols: &[Symbol],
+    ) -> Option<Symbol> {
         let node_key = self.get_node_key(node);
 
         // Track specific node types to prevent duplicates
@@ -244,7 +243,9 @@ impl CppExtractor {
             "enum_specifier" => types::extract_enum(&mut self.base, node, parent_id),
             "enumerator" => types::extract_enum_member(&mut self.base, node, parent_id),
             "concept_definition" => concepts::extract_concept(&mut self.base, node, parent_id),
-            "function_definition" => functions::extract_function(&mut self.base, node, parent_id),
+            "function_definition" => {
+                functions::extract_function(&mut self.base, node, parent_id, symbols)
+            }
             "function_declarator" => {
                 // Only extract standalone function declarators. A function_declarator
                 // that belongs to a function_definition — directly, OR nested inside
@@ -255,20 +256,23 @@ impl CppExtractor {
                 if declarator_belongs_to_function_definition(node) {
                     None
                 } else {
-                    functions::extract_function(&mut self.base, node, parent_id)
+                    functions::extract_function(&mut self.base, node, parent_id, symbols)
                 }
             }
-            "declaration" => declarations::extract_declaration(&mut self.base, node, parent_id),
+            "declaration" => {
+                declarations::extract_declaration(&mut self.base, node, parent_id, symbols)
+            }
             "field_declaration" => {
                 // Field declarations with function_declarators (method declarations) fall through here
-                declarations::extract_declaration(&mut self.base, node, parent_id)
+                declarations::extract_declaration(&mut self.base, node, parent_id, symbols)
             }
             "friend_declaration" => {
                 declarations::extract_friend_declaration(&mut self.base, node, parent_id)
             }
             "type_definition" => typedefs::extract_typedef(&mut self.base, node, parent_id),
             "template_declaration" => {
-                let result = declarations::extract_template(&mut self.base, node, parent_id);
+                let result =
+                    declarations::extract_template(&mut self.base, node, parent_id, symbols);
                 // When extract_template returns a symbol (template variable case),
                 // mark the inner declaration as processed to prevent walk_children
                 // from extracting it again via extract_declaration.

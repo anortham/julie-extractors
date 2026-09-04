@@ -1,6 +1,5 @@
-use crate::base::{BaseExtractor, Identifier, IdentifierKind, Symbol};
+use crate::base::{BaseExtractor, ContainingSymbolIndex, Identifier, IdentifierKind, Symbol};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use std::collections::HashMap;
 use tree_sitter::Node;
 
 use super::flags;
@@ -13,11 +12,10 @@ pub(super) fn extract_identifiers(
     tree: &tree_sitter::Tree,
     symbols: &[Symbol],
 ) -> Vec<Identifier> {
-    // Create symbol map for fast lookup
-    let symbol_map: HashMap<String, &Symbol> = symbols.iter().map(|s| (s.id.clone(), s)).collect();
+    let containing_symbols = base.containing_symbol_index(symbols);
 
     // Walk the tree and extract identifiers
-    walk_tree_for_identifiers(base, tree.root_node(), &symbol_map, 0);
+    walk_tree_for_identifiers(base, tree.root_node(), &containing_symbols, 0);
 
     // Return the collected identifiers
     base.identifiers.clone()
@@ -27,7 +25,7 @@ pub(super) fn extract_identifiers(
 fn walk_tree_for_identifiers(
     base: &mut BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
@@ -35,7 +33,7 @@ fn walk_tree_for_identifiers(
     }
 
     // Extract identifier from this node if applicable
-    extract_identifier_from_node(base, node, symbol_map);
+    extract_identifier_from_node(base, node, containing_symbols);
 
     // Recursively walk children
     let Some(child_depth) = child_tree_depth(depth) else {
@@ -43,7 +41,7 @@ fn walk_tree_for_identifiers(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(base, child, symbol_map, child_depth);
+        walk_tree_for_identifiers(base, child, containing_symbols, child_depth);
     }
 }
 
@@ -51,7 +49,7 @@ fn walk_tree_for_identifiers(
 fn extract_identifier_from_node(
     base: &mut BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     match node.kind() {
         // Backreferences: tree-sitter-regex uses "backreference_escape" for \k
@@ -70,7 +68,7 @@ fn extract_identifier_from_node(
                     let group_name = content_after[3..end_pos].to_string();
                     if !group_name.is_empty() {
                         let containing_symbol_id =
-                            find_containing_symbol_id(base, node, symbol_map);
+                            find_containing_symbol_id(node, containing_symbols);
 
                         base.create_identifier(
                             &node,
@@ -89,7 +87,7 @@ fn extract_identifier_from_node(
 
             // Try to extract named backreference (e.g., \k<email>)
             if let Some(group_name) = flags::extract_backref_group_name(&backref_text) {
-                let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
                 base.create_identifier(
                     &node,
@@ -107,7 +105,7 @@ fn extract_identifier_from_node(
 
             // Extract the group name using the flags module
             if let Some(group_name) = groups::extract_group_name(&group_text) {
-                let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
                 base.create_identifier(
                     &node,
@@ -125,12 +123,9 @@ fn extract_identifier_from_node(
 }
 
 /// Find the ID of the symbol that contains this node
-/// CRITICAL: Only search symbols from THIS FILE (file-scoped filtering)
 fn find_containing_symbol_id(
-    base: &BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) -> Option<String> {
-    base.find_containing_symbol_from_map(&node, symbol_map)
-        .map(|s| s.id.clone())
+    containing_symbols.find(node).map(|s| s.id.clone())
 }

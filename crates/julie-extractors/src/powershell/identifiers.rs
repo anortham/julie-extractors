@@ -2,10 +2,10 @@
 //! Extracts identifier usages (function calls, member access, etc.)
 
 use crate::base::{
-    BaseExtractor, Identifier, IdentifierKind, Symbol, SymbolKind, extract_type_arguments,
+    BaseExtractor, ContainingSymbolIndex, Identifier, IdentifierKind, Symbol, SymbolKind,
+    extract_type_arguments,
 };
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use std::collections::HashMap;
 use tree_sitter::Node;
 
 use super::helpers::find_command_name_node;
@@ -16,11 +16,19 @@ pub(super) fn extract_identifiers(
     tree: &tree_sitter::Tree,
     symbols: &[Symbol],
 ) -> Vec<Identifier> {
-    // Create symbol map for fast lookup
-    let symbol_map: HashMap<String, &Symbol> = symbols.iter().map(|s| (s.id.clone(), s)).collect();
+    let containing_symbols = ContainingSymbolIndex::from_iter(symbols.iter().filter(|symbol| {
+        symbol.file_path == base.file_path
+            && matches!(
+                symbol.kind,
+                SymbolKind::Function
+                    | SymbolKind::Method
+                    | SymbolKind::Constructor
+                    | SymbolKind::Class
+            )
+    }));
 
     // Walk the tree and extract identifiers
-    walk_tree_for_identifiers(base, tree.root_node(), &symbol_map, 0);
+    walk_tree_for_identifiers(base, tree.root_node(), &containing_symbols, 0);
 
     // Return the collected identifiers
     base.identifiers.clone()
@@ -30,7 +38,7 @@ pub(super) fn extract_identifiers(
 fn walk_tree_for_identifiers(
     base: &mut BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
@@ -38,7 +46,7 @@ fn walk_tree_for_identifiers(
     }
 
     // Extract identifier from this node if applicable
-    extract_identifier_from_node(base, node, symbol_map);
+    extract_identifier_from_node(base, node, containing_symbols);
 
     // Recursively walk children
     let Some(child_depth) = child_tree_depth(depth) else {
@@ -46,7 +54,7 @@ fn walk_tree_for_identifiers(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(base, child, symbol_map, child_depth);
+        walk_tree_for_identifiers(base, child, containing_symbols, child_depth);
     }
 }
 
@@ -54,7 +62,7 @@ fn walk_tree_for_identifiers(
 fn extract_identifier_from_node(
     base: &mut BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     match node.kind() {
         // PowerShell commands and cmdlet calls: Get-Process, Write-Host, etc.
@@ -62,7 +70,7 @@ fn extract_identifier_from_node(
             // Extract command name
             if let Some(name_node) = find_command_name_node(node) {
                 let name = base.get_node_text(&name_node);
-                let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
                 base.create_identifier(
                     &name_node,
@@ -71,14 +79,14 @@ fn extract_identifier_from_node(
                     containing_symbol_id,
                 );
                 // Miller bridge Phase 3b: capture string-literal command args.
-                record_command_arg_literals(base, node, &name, symbol_map);
+                record_command_arg_literals(base, node, &name, containing_symbols);
             }
         }
 
         // Grammar spelling is `invokation_expression` (typo in tree-sitter-powershell).
         "invocation_expression" | "invokation_expression" => {
             if let Some((name_node, name)) = super::type_facts::invocation_member_name(base, node) {
-                let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 let receiver_type = super::type_facts::this_receiver_type(base, node);
                 base.create_identifier_with_receiver_type(
                     &name_node,
@@ -93,7 +101,7 @@ fn extract_identifier_from_node(
                     if child.kind() == "command_name" || child.kind() == "identifier" {
                         let name = base.get_node_text(&child);
                         let containing_symbol_id =
-                            find_containing_symbol_id(base, node, symbol_map);
+                            find_containing_symbol_id(node, containing_symbols);
                         base.create_identifier(
                             &child,
                             name,
@@ -128,7 +136,7 @@ fn extract_identifier_from_node(
                         if name_child.kind() == "simple_name" {
                             let member_name = base.get_node_text(&name_child);
                             let containing_symbol_id =
-                                find_containing_symbol_id(base, node, symbol_map);
+                                find_containing_symbol_id(node, containing_symbols);
 
                             base.create_identifier(
                                 &name_child,
@@ -165,7 +173,7 @@ fn extract_identifier_from_node(
                 return;
             };
             let name = base.get_node_text(&type_name_node);
-            let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
             let identifier = base.create_identifier(
                 &type_name_node,
                 name,
@@ -225,7 +233,7 @@ fn extract_identifier_from_node(
             if is_powershell_automatic_or_constant(&name) {
                 return;
             }
-            let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
             base.create_identifier(
                 &node,
                 name,
@@ -424,13 +432,13 @@ fn record_command_arg_literals(
     base: &mut BaseExtractor,
     command_node: Node,
     carrier: &str,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     let Some(elements) = command_node.child_by_field_name("command_elements") else {
         // command_expression / parameter-less forms have no element list.
         return;
     };
-    let containing_symbol_id = find_containing_symbol_id(base, command_node, symbol_map);
+    let containing_symbol_id = find_containing_symbol_id(command_node, containing_symbols);
     let mut position = 0u32;
     let mut cursor = elements.walk();
     for child in elements.children(&mut cursor) {
@@ -571,15 +579,8 @@ fn strip_ps_string_delimiters(s: &str) -> String {
 /// CRITICAL: Only search symbols from THIS FILE (file-scoped filtering)
 /// POWERSHELL-SPECIFIC: Skip command symbols to avoid matching command calls with themselves
 fn find_containing_symbol_id(
-    base: &BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) -> Option<String> {
-    base.find_containing_symbol_from_map_filtered(&node, symbol_map, |symbol| {
-        matches!(
-            symbol.kind,
-            SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor | SymbolKind::Class
-        )
-    })
-    .map(|s| s.id.clone())
+    containing_symbols.find(node).map(|s| s.id.clone())
 }

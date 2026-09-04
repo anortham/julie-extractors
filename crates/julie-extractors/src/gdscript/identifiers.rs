@@ -1,8 +1,10 @@
 //! Identifier extraction for GDScript (function calls, member access, type annotations, etc.)
 
-use crate::base::{BaseExtractor, Identifier, IdentifierKind, Symbol, extract_type_arguments};
+use crate::base::{
+    BaseExtractor, ContainingSymbolIndex, Identifier, IdentifierKind, Symbol,
+    extract_type_arguments,
+};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use std::collections::HashMap;
 use tree_sitter::Node;
 
 /// Extract all identifier usages (function calls, member access, etc.)
@@ -11,8 +13,8 @@ pub(super) fn extract_identifiers(
     tree: &tree_sitter::Tree,
     symbols: &[Symbol],
 ) -> Vec<Identifier> {
-    let symbol_map: HashMap<String, &Symbol> = symbols.iter().map(|s| (s.id.clone(), s)).collect();
-    walk_tree_for_identifiers(base, tree.root_node(), &symbol_map, 0);
+    let containing_symbols = base.containing_symbol_index(symbols);
+    walk_tree_for_identifiers(base, tree.root_node(), &containing_symbols, 0);
     base.identifiers.clone()
 }
 
@@ -20,21 +22,21 @@ pub(super) fn extract_identifiers(
 fn walk_tree_for_identifiers(
     base: &mut BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
         return;
     }
 
-    extract_identifier_from_node(base, node, symbol_map);
+    extract_identifier_from_node(base, node, containing_symbols);
 
     let Some(child_depth) = child_tree_depth(depth) else {
         return;
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(base, child, symbol_map, child_depth);
+        walk_tree_for_identifiers(base, child, containing_symbols, child_depth);
     }
 }
 
@@ -42,7 +44,7 @@ fn walk_tree_for_identifiers(
 fn extract_identifier_from_node(
     base: &mut BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     match node.kind() {
         "call" => {
@@ -56,7 +58,7 @@ fn extract_identifier_from_node(
                     }
 
                     let name = base.get_node_text(&child);
-                    let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                    let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                     base.create_identifier(
                         &child,
                         name,
@@ -77,7 +79,7 @@ fn extract_identifier_from_node(
                     }
 
                     let name = base.get_node_text(&name_node);
-                    let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                    let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                     let receiver_type = call_receiver_type(base, child);
                     base.create_identifier_with_receiver_type(
                         &name_node,
@@ -91,25 +93,25 @@ fn extract_identifier_from_node(
             }
             // Phase 3b: capture string-literal call-arguments config-free; the
             // carrier classification + bloat gate run later in the artifact language-policy pass.
-            record_gdscript_call_arg_literals(base, node, symbol_map);
+            record_gdscript_call_arg_literals(base, node, containing_symbols);
         }
 
         // `recv.method(args)` parses as `attribute { recv, attribute_call }`, so
         // the call args live on the `attribute_call` node, not a `call` node.
         "attribute_call" => {
-            record_gdscript_attribute_call_arg_literals(base, node, symbol_map);
+            record_gdscript_attribute_call_arg_literals(base, node, containing_symbols);
         }
 
         "get_node" => {
             let name = "get_node".to_string();
-            let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
             base.create_identifier(&node, name, IdentifierKind::Call, containing_symbol_id);
         }
 
         "attribute" => {
             if let Some(name_node) = attribute_call_name_node(node) {
                 let name = base.get_node_text(&name_node);
-                let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 let receiver_type = call_receiver_type(base, node);
                 base.create_identifier_with_receiver_type(
                     &name_node,
@@ -123,7 +125,7 @@ fn extract_identifier_from_node(
 
             if let Some(last_child) = rightmost_identifier_descendant(node) {
                 let name = base.get_node_text(&last_child);
-                let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 base.create_identifier(
                     &last_child,
                     name,
@@ -144,7 +146,7 @@ fn extract_identifier_from_node(
                 && index_node.kind() == "identifier"
             {
                 let name = base.get_node_text(&index_node);
-                let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 base.create_identifier(
                     &index_node,
                     name,
@@ -163,7 +165,7 @@ fn extract_identifier_from_node(
             if let Some(id_child) = children.iter().find(|c| c.kind() == "identifier") {
                 // Plain type reference: `var x: Foo`
                 let name = base.get_node_text(id_child);
-                let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 base.create_identifier(
                     id_child,
                     name,
@@ -173,7 +175,7 @@ fn extract_identifier_from_node(
             } else if let Some(subscript_child) = children.iter().find(|c| c.kind() == "subscript")
             {
                 // Generic type: `var x: Array[String]`, `Dictionary[String, int]`, etc.
-                record_gdscript_subscript_as_type(base, node, *subscript_child, symbol_map);
+                record_gdscript_subscript_as_type(base, node, *subscript_child, containing_symbols);
             }
         }
 
@@ -191,7 +193,7 @@ fn extract_identifier_from_node(
             // Rule 5: `self`/`super` parse as plain `identifier` nodes in receiver
             // and value positions; they are keywords, not user variables.
             if !is_gdscript_keyword_identifier(&name) {
-                let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 base.create_identifier(
                     &node,
                     name,
@@ -293,14 +295,11 @@ fn is_gdscript_value_read_identifier(node: Node) -> bool {
 }
 
 /// Find the ID of the symbol that contains this node
-/// CRITICAL: Only search symbols from THIS FILE (file-scoped filtering)
 fn find_containing_symbol_id(
-    base: &BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) -> Option<String> {
-    base.find_containing_symbol_from_map(&node, symbol_map)
-        .map(|s| s.id.clone())
+    containing_symbols.find(node).map(|s| s.id.clone())
 }
 
 /// Record a GDScript generic type annotation (`Array[String]`, `Dictionary[String,int]`).
@@ -313,7 +312,7 @@ fn record_gdscript_subscript_as_type(
     base: &mut BaseExtractor,
     type_node: Node,
     subscript: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     // The base type name is the subscript's primary_expression child
     // (an identifier or attribute — not the subscript_arguments field).
@@ -325,7 +324,7 @@ fn record_gdscript_subscript_as_type(
         return;
     };
     let name = base.get_node_text(&base_name_node);
-    let containing_symbol_id = find_containing_symbol_id(base, type_node, symbol_map);
+    let containing_symbol_id = find_containing_symbol_id(type_node, containing_symbols);
     let identifier = base.create_identifier(
         &base_name_node,
         name,
@@ -521,13 +520,13 @@ fn extends_type_name(base: &BaseExtractor, extends_node: Node) -> Option<String>
 fn record_gdscript_call_arg_literals(
     base: &mut BaseExtractor,
     call_node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     let Some(args_node) = call_node.child_by_field_name("arguments") else {
         return;
     };
     let carrier = gdscript_call_carrier(base, call_node);
-    let containing_symbol_id = find_containing_symbol_id(base, call_node, symbol_map);
+    let containing_symbol_id = find_containing_symbol_id(call_node, containing_symbols);
     record_gdscript_string_args(base, args_node, carrier, containing_symbol_id);
 }
 
@@ -539,13 +538,13 @@ fn record_gdscript_call_arg_literals(
 fn record_gdscript_attribute_call_arg_literals(
     base: &mut BaseExtractor,
     attr_call_node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     let Some(args_node) = attr_call_node.child_by_field_name("arguments") else {
         return;
     };
     let carrier = gdscript_attribute_call_carrier(base, attr_call_node);
-    let containing_symbol_id = find_containing_symbol_id(base, attr_call_node, symbol_map);
+    let containing_symbol_id = find_containing_symbol_id(attr_call_node, containing_symbols);
     record_gdscript_string_args(base, args_node, carrier, containing_symbol_id);
 }
 

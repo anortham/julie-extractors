@@ -1,6 +1,5 @@
-use crate::base::{BaseExtractor, Identifier, IdentifierKind, Symbol};
+use crate::base::{BaseExtractor, ContainingSymbolIndex, Identifier, IdentifierKind};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use std::collections::HashMap;
 use tree_sitter::Node;
 
 /// Identifier extraction for LSP-quality find_references
@@ -10,7 +9,7 @@ impl super::GoExtractor {
     pub(super) fn walk_tree_for_identifiers(
         &mut self,
         node: Node,
-        symbol_map: &HashMap<String, &Symbol>,
+        containing_symbols: &ContainingSymbolIndex<'_>,
         depth: u32,
     ) {
         if !should_visit_tree_depth(depth) {
@@ -18,7 +17,7 @@ impl super::GoExtractor {
         }
 
         // Extract identifier from this node if applicable
-        self.extract_identifier_from_node(node, symbol_map);
+        self.extract_identifier_from_node(node, containing_symbols);
 
         // Recursively walk children
         let Some(child_depth) = child_tree_depth(depth) else {
@@ -26,7 +25,7 @@ impl super::GoExtractor {
         };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_tree_for_identifiers(child, symbol_map, child_depth);
+            self.walk_tree_for_identifiers(child, containing_symbols, child_depth);
         }
     }
 
@@ -34,7 +33,7 @@ impl super::GoExtractor {
     pub(super) fn extract_identifier_from_node(
         &mut self,
         node: Node,
-        symbol_map: &HashMap<String, &Symbol>,
+        containing_symbols: &ContainingSymbolIndex<'_>,
     ) {
         match node.kind() {
             // Function/method calls: foo(), bar.Baz(), fn[T](args)
@@ -48,7 +47,7 @@ impl super::GoExtractor {
                             // Simple function call: foo()
                             let name = self.base.get_node_text(&child);
                             let containing_symbol_id =
-                                self.find_containing_symbol_id(node, symbol_map);
+                                self.find_containing_symbol_id(node, containing_symbols);
                             let identifier = self.base.create_identifier(
                                 &child,
                                 name,
@@ -64,7 +63,7 @@ impl super::GoExtractor {
                             if let Some(field_node) = child.child_by_field_name("field") {
                                 let name = self.base.get_node_text(&field_node);
                                 let containing_symbol_id =
-                                    self.find_containing_symbol_id(node, symbol_map);
+                                    self.find_containing_symbol_id(node, containing_symbols);
                                 let receiver_type = self.method_self_receiver_type(child);
                                 let identifier = self.base.create_identifier_with_receiver_type(
                                     &field_node,
@@ -93,7 +92,7 @@ impl super::GoExtractor {
                 }
                 // Phase 3b: capture string-literal call-arguments (config-free;
                 // carrier classification + gate run later in the artifact language-policy pass).
-                self.record_call_arg_literals(node, symbol_map);
+                self.record_call_arg_literals(node, containing_symbols);
             }
 
             // Member access: object.Field
@@ -109,7 +108,8 @@ impl super::GoExtractor {
                 // Extract the rightmost identifier (the field name)
                 if let Some(field_node) = node.child_by_field_name("field") {
                     let name = self.base.get_node_text(&field_node);
-                    let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                    let containing_symbol_id =
+                        self.find_containing_symbol_id(node, containing_symbols);
 
                     self.base.create_identifier(
                         &field_node,
@@ -123,7 +123,8 @@ impl super::GoExtractor {
             "type_identifier" => {
                 let name = self.base.get_node_text(&node);
                 if is_go_type_usage_identifier(&self.base, node) && !is_go_builtin_type(&name) {
-                    let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                    let containing_symbol_id =
+                        self.find_containing_symbol_id(node, containing_symbols);
                     let identifier = self.base.create_identifier(
                         &node,
                         name,
@@ -146,7 +147,8 @@ impl super::GoExtractor {
                 // Rule 5: reuse the TypeUsage arm's builtin filter; the
                 // blank identifier is never a read.
                 if !is_go_builtin_type(&name) && name != "_" {
-                    let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                    let containing_symbol_id =
+                        self.find_containing_symbol_id(node, containing_symbols);
                     self.base.create_identifier(
                         &node,
                         name,
@@ -206,11 +208,9 @@ impl super::GoExtractor {
     pub(super) fn find_containing_symbol_id(
         &self,
         node: Node,
-        symbol_map: &HashMap<String, &Symbol>,
+        containing_symbols: &ContainingSymbolIndex<'_>,
     ) -> Option<String> {
-        self.base
-            .find_containing_symbol_from_map(&node, symbol_map)
-            .map(|s| s.id.clone())
+        containing_symbols.find(node).map(|s| s.id.clone())
     }
 
     /// Capture string-literal arguments of a Go `call_expression` as `Literal`
@@ -225,7 +225,7 @@ impl super::GoExtractor {
     pub(super) fn record_call_arg_literals(
         &mut self,
         call_node: Node,
-        symbol_map: &HashMap<String, &Symbol>,
+        containing_symbols: &ContainingSymbolIndex<'_>,
     ) {
         let Some(function_node) = call_node.child_by_field_name("function") else {
             return;
@@ -234,7 +234,7 @@ impl super::GoExtractor {
             return;
         };
         let carrier = go_carrier(&self.base, function_node);
-        let containing_symbol_id = self.find_containing_symbol_id(call_node, symbol_map);
+        let containing_symbol_id = self.find_containing_symbol_id(call_node, containing_symbols);
 
         let mut cursor = args_node.walk();
         for (pos, arg) in args_node.named_children(&mut cursor).enumerate() {

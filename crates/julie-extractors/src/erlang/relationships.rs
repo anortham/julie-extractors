@@ -51,10 +51,7 @@ pub(super) fn extract_relationships(
 ) -> Vec<Relationship> {
     let imports = imported_functions(extractor, declarations);
     let functions = function_index(symbols);
-    let symbol_map: HashMap<String, &Symbol> = symbols
-        .iter()
-        .map(|symbol| (symbol.id.clone(), symbol))
-        .collect();
+    let containing_symbols = extractor.base.containing_symbol_index(symbols);
     let module_id = symbols
         .iter()
         .find(|symbol| symbol.kind == SymbolKind::Module)
@@ -84,9 +81,8 @@ pub(super) fn extract_relationships(
                 );
             }
             "pp_define" => {
-                let scope = extractor
-                    .base
-                    .find_containing_symbol_from_map(declaration, &symbol_map)
+                let scope = containing_symbols
+                    .find(*declaration)
                     .map(|symbol| symbol.id.clone());
                 for child in named_children(declaration) {
                     if child.kind() == "macro_lhs" {

@@ -4,8 +4,8 @@ use super::helpers::{
 /// Relationship extraction for Ruby symbols
 /// Handles inheritance, module inclusion, and other symbol relationships
 use crate::base::{
-    LocalTargetResolution, Relationship, RelationshipKind, ScopedSymbolIndex, Symbol, SymbolKind,
-    UnresolvedTarget,
+    ContainingSymbolIndex, LocalTargetResolution, Relationship, RelationshipKind,
+    ScopedSymbolIndex, Symbol, SymbolKind, UnresolvedTarget,
 };
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
@@ -18,12 +18,14 @@ pub(super) fn extract_relationships(
 ) -> Vec<Relationship> {
     let mut relationships = Vec::new();
     let symbol_index = ScopedSymbolIndex::new(symbols);
+    let containing_symbols = extractor.base().containing_symbol_index(symbols);
 
     extract_relationships_from_node(
         extractor,
         tree.root_node(),
         symbols,
         &symbol_index,
+        &containing_symbols,
         &mut relationships,
         0,
     );
@@ -36,6 +38,7 @@ fn extract_relationships_from_node(
     node: Node,
     symbols: &[Symbol],
     symbol_index: &ScopedSymbolIndex<'_>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
     relationships: &mut Vec<Relationship>,
     depth: u32,
 ) {
@@ -52,7 +55,13 @@ fn extract_relationships_from_node(
             extract_module_inclusion_relationships(extractor, node, symbols, relationships);
         }
         "call" => {
-            extract_call_relationships(extractor, node, symbols, symbol_index, relationships);
+            extract_call_relationships(
+                extractor,
+                node,
+                containing_symbols,
+                symbol_index,
+                relationships,
+            );
         }
         _ => {}
     }
@@ -68,6 +77,7 @@ fn extract_relationships_from_node(
             child,
             symbols,
             symbol_index,
+            containing_symbols,
             relationships,
             child_depth,
         );
@@ -256,7 +266,7 @@ fn process_include_extend_call(
 fn extract_call_relationships(
     extractor: &mut super::RubyExtractor,
     node: Node,
-    symbols: &[Symbol],
+    containing_symbols: &ContainingSymbolIndex<'_>,
     symbol_index: &ScopedSymbolIndex<'_>,
     relationships: &mut Vec<Relationship>,
 ) {
@@ -268,7 +278,7 @@ fn extract_call_relationships(
     {
         let target = extract_pending_target(base, node, &method_name_opt);
         // Find the enclosing function/method that contains this call
-        if let Some(caller_symbol) = base.find_containing_symbol(&node, symbols) {
+        if let Some(caller_symbol) = containing_symbols.find(node) {
             let line_number = (node.start_position().row + 1) as u32;
             let file_path = base.file_path.clone();
 

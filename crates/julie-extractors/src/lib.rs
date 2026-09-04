@@ -113,7 +113,7 @@ pub use base::{
 
 // Re-export the public API - canonical extraction functions
 pub use manager::ExtractorManager;
-pub use pipeline::{extract_canonical, extract_canonical_at};
+pub use pipeline::{extract_canonical, extract_canonical_at, extract_canonical_for_language_at};
 pub use registry::{LanguageCapabilities, LanguageRegistryEntry};
 
 // Re-export Pillar 3 stable capability snapshot API

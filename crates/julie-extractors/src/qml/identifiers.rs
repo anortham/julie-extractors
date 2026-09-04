@@ -15,11 +15,10 @@ pub(super) fn extract_identifiers(
     tree: &Tree,
     symbols: &[Symbol],
 ) -> Vec<Identifier> {
-    // Create symbol map for fast lookup
-    let symbol_map: HashMap<String, &Symbol> = symbols.iter().map(|s| (s.id.clone(), s)).collect();
+    let containing_symbols = QmlContainingSymbolIndex::new(symbols);
 
     // Walk the tree and extract identifiers
-    walk_tree_for_identifiers(extractor, tree.root_node(), &symbol_map, 0);
+    walk_tree_for_identifiers(extractor, tree.root_node(), &containing_symbols, 0);
 
     // Return the collected identifiers
     extractor.base.identifiers.clone()
@@ -29,7 +28,7 @@ pub(super) fn extract_identifiers(
 fn walk_tree_for_identifiers(
     extractor: &mut QmlExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &QmlContainingSymbolIndex<'_>,
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
@@ -37,7 +36,7 @@ fn walk_tree_for_identifiers(
     }
 
     // Extract identifier from current node
-    extract_identifier_from_node(extractor, node, symbol_map);
+    extract_identifier_from_node(extractor, node, containing_symbols);
 
     // Recursively process children
     let Some(child_depth) = child_tree_depth(depth) else {
@@ -45,7 +44,7 @@ fn walk_tree_for_identifiers(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(extractor, child, symbol_map, child_depth);
+        walk_tree_for_identifiers(extractor, child, containing_symbols, child_depth);
     }
 }
 
@@ -53,7 +52,7 @@ fn walk_tree_for_identifiers(
 fn extract_identifier_from_node(
     extractor: &mut QmlExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &QmlContainingSymbolIndex<'_>,
 ) {
     match node.kind() {
         // Nested QML component instantiations: Rectangle {}, Button {}, etc.
@@ -76,7 +75,7 @@ fn extract_identifier_from_node(
 
             if is_nested && let Some(type_name_node) = node.child_by_field_name("type_name") {
                 let name = extractor.base.get_node_text(&type_name_node);
-                let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+                let containing_symbol_id = containing_symbols.find(node);
 
                 extractor.base.create_identifier(
                     &type_name_node,
@@ -94,8 +93,7 @@ fn extract_identifier_from_node(
                     "identifier" => {
                         // Simple function call: foo()
                         let name = extractor.base.get_node_text(&function_node);
-                        let containing_symbol_id =
-                            find_containing_symbol_id(extractor, node, symbol_map);
+                        let containing_symbol_id = containing_symbols.find(node);
 
                         extractor.base.create_identifier(
                             &function_node,
@@ -108,8 +106,7 @@ fn extract_identifier_from_node(
                         // Member call: object.method()
                         if let Some(property_node) = function_node.child_by_field_name("property") {
                             let name = extractor.base.get_node_text(&property_node);
-                            let containing_symbol_id =
-                                find_containing_symbol_id(extractor, node, symbol_map);
+                            let containing_symbol_id = containing_symbols.find(node);
 
                             extractor.base.create_identifier_with_receiver_type(
                                 &property_node,
@@ -130,7 +127,7 @@ fn extract_identifier_from_node(
             }
             // Phase 3: capture string-literal call-arguments (config-free; the
             // carrier classification + gate happen in the artifact language-policy pass).
-            record_qml_call_arg_literals(extractor, node, symbol_map);
+            record_qml_call_arg_literals(extractor, node, containing_symbols);
         }
 
         // Member access: object.property (not part of a call)
@@ -147,7 +144,7 @@ fn extract_identifier_from_node(
             // Extract the property being accessed
             if let Some(property_node) = node.child_by_field_name("property") {
                 let name = extractor.base.get_node_text(&property_node);
-                let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+                let containing_symbol_id = containing_symbols.find(node);
 
                 extractor.base.create_identifier(
                     &property_node,
@@ -173,8 +170,7 @@ fn extract_identifier_from_node(
                     _ => {
                         // This is a variable reference
                         let name = extractor.base.get_node_text(&node);
-                        let containing_symbol_id =
-                            find_containing_symbol_id(extractor, node, symbol_map);
+                        let containing_symbol_id = containing_symbols.find(node);
 
                         extractor.base.create_identifier(
                             &node,
@@ -199,7 +195,7 @@ fn extract_identifier_from_node(
                 return;
             };
             let name = extractor.base.get_node_text(&constructor);
-            let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+            let containing_symbol_id = containing_symbols.find(node);
             let identifier = extractor.base.create_identifier(
                 &constructor,
                 name,
@@ -227,7 +223,7 @@ fn extract_identifier_from_node(
             if is_qml_builtin_type(&name) {
                 return;
             }
-            let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+            let containing_symbol_id = containing_symbols.find(node);
             let identifier = extractor.base.create_identifier(
                 &node,
                 name,
@@ -255,48 +251,61 @@ fn is_js_parameter_or_local(symbol: &Symbol) -> bool {
             .is_some_and(|metadata| metadata.contains_key("typeinfo_kind"))
 }
 
-/// Find the containing symbol ID for a node
-fn find_containing_symbol_id(
-    _extractor: &QmlExtractor,
-    node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
-) -> Option<String> {
-    let node_start = node.start_byte() as u32;
-    let node_end = node.end_byte() as u32;
-    let mut current = node;
+pub(super) struct QmlContainingSymbolIndex<'a> {
+    by_start_line: HashMap<u32, Vec<&'a Symbol>>,
+}
 
-    while let Some(parent) = current.parent() {
-        let parent_line = (parent.start_position().row + 1) as u32;
-        let mut best: Option<&Symbol> = None;
-        for symbol in symbol_map.values() {
-            if is_js_parameter_or_local(symbol)
-                || symbol.start_line != parent_line
-                || symbol.start_byte > node_start
-                || symbol.end_byte < node_end
-            {
-                continue;
-            }
-            let span = symbol.end_byte.saturating_sub(symbol.start_byte);
-            let take = match best {
-                None => true,
-                Some(current_best) => {
-                    let current_span = current_best
-                        .end_byte
-                        .saturating_sub(current_best.start_byte);
-                    span < current_span || (span == current_span && symbol.id < current_best.id)
-                }
-            };
-            if take {
-                best = Some(*symbol);
+impl<'a> QmlContainingSymbolIndex<'a> {
+    pub(super) fn new(symbols: &'a [Symbol]) -> Self {
+        let mut by_start_line: HashMap<u32, Vec<&'a Symbol>> = HashMap::new();
+        for symbol in symbols {
+            if !is_js_parameter_or_local(symbol) {
+                by_start_line
+                    .entry(symbol.start_line)
+                    .or_default()
+                    .push(symbol);
             }
         }
-        if let Some(symbol) = best {
-            return Some(symbol.id.clone());
-        }
-        current = parent;
+        Self { by_start_line }
     }
 
-    None
+    pub(super) fn find(&self, node: Node) -> Option<String> {
+        let node_start = node.start_byte() as u32;
+        let node_end = node.end_byte() as u32;
+        let mut current = node;
+
+        while let Some(parent) = current.parent() {
+            let parent_line = (parent.start_position().row + 1) as u32;
+            if let Some(candidates) = self.by_start_line.get(&parent_line) {
+                let mut best: Option<&Symbol> = None;
+                for symbol in candidates {
+                    if symbol.start_byte > node_start || symbol.end_byte < node_end {
+                        continue;
+                    }
+                    let span = symbol.end_byte.saturating_sub(symbol.start_byte);
+                    let take = match best {
+                        None => true,
+                        Some(current_best) => {
+                            let current_span = current_best
+                                .end_byte
+                                .saturating_sub(current_best.start_byte);
+                            span < current_span
+                                || (span == current_span && symbol.id < current_best.id)
+                        }
+                    };
+                    if take {
+                        best = Some(*symbol);
+                    }
+                }
+                if let Some(symbol) = best {
+                    return Some(symbol.id.clone());
+                }
+            }
+            current = parent;
+        }
+
+        None
+    }
 }
 
 // ============================================================================
@@ -314,7 +323,7 @@ fn find_containing_symbol_id(
 fn record_qml_call_arg_literals(
     extractor: &mut QmlExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &QmlContainingSymbolIndex<'_>,
 ) {
     let Some(func_node) = node.child_by_field_name("function") else {
         return;
@@ -326,7 +335,7 @@ fn record_qml_call_arg_literals(
         return; // tagged template_string — not a normal argument list
     }
     let carrier = qml_carrier(&extractor.base, func_node);
-    let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+    let containing_symbol_id = containing_symbols.find(node);
 
     let mut cursor = args.walk();
     for (pos, arg) in args.named_children(&mut cursor).enumerate() {

@@ -44,20 +44,22 @@ pub(super) fn extract_identifiers(
     symbols: &[Symbol],
 ) -> Vec<Identifier> {
     let imports = imported_functions(extractor, declarations);
-    let symbol_map: HashMap<String, &Symbol> = symbols
-        .iter()
-        .map(|symbol| (symbol.id.clone(), symbol))
-        .collect();
+    let containing_symbols = extractor.base.containing_symbol_index(symbols);
     let mut clause_scopes: HashMap<NameArity, Option<String>> = HashMap::new();
 
     for declaration in declarations {
         match declaration.kind() {
             "fun_decl" => {
-                let scope = function_scope(extractor, declaration, &symbol_map, &mut clause_scopes);
+                let scope = function_scope(
+                    extractor,
+                    declaration,
+                    &containing_symbols,
+                    &mut clause_scopes,
+                );
                 walk(extractor, *declaration, scope.as_deref(), &imports, 0);
             }
             "pp_define" => {
-                let scope = containing_symbol_id(extractor, declaration, &symbol_map);
+                let scope = containing_symbol_id(declaration, &containing_symbols);
                 for child in named_children(declaration) {
                     if child.kind() == "macro_lhs" {
                         continue;
@@ -78,26 +80,24 @@ pub(super) fn extract_identifiers(
 fn function_scope(
     extractor: &ErlangExtractor,
     declaration: &Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &crate::base::ContainingSymbolIndex<'_>,
     clause_scopes: &mut HashMap<NameArity, Option<String>>,
 ) -> Option<String> {
     let Some(clause) = definition_forms::function_clause(extractor, declaration) else {
-        return containing_symbol_id(extractor, declaration, symbol_map);
+        return containing_symbol_id(declaration, containing_symbols);
     };
     clause_scopes
         .entry(clause.identity)
-        .or_insert_with(|| containing_symbol_id(extractor, declaration, symbol_map))
+        .or_insert_with(|| containing_symbol_id(declaration, containing_symbols))
         .clone()
 }
 
 fn containing_symbol_id(
-    extractor: &ErlangExtractor,
     node: &Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &crate::base::ContainingSymbolIndex<'_>,
 ) -> Option<String> {
-    extractor
-        .base
-        .find_containing_symbol_from_map(node, symbol_map)
+    containing_symbols
+        .find(*node)
         .map(|symbol| symbol.id.clone())
 }
 

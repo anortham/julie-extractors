@@ -2,6 +2,130 @@ use crate::base::{Symbol, SymbolKind};
 
 pub(crate) struct ContainingSymbolIndex<'a> {
     symbols: Vec<IndexedSymbol<'a>>,
+    root: Option<IntervalNode>,
+}
+
+struct IntervalNode {
+    center: u32,
+    by_start: Vec<usize>,
+    by_end: Vec<usize>,
+    left: Option<Box<IntervalNode>>,
+    right: Option<Box<IntervalNode>>,
+}
+
+impl IntervalNode {
+    fn build(indices: &[usize], symbols: &[IndexedSymbol<'_>]) -> Option<Self> {
+        if indices.is_empty() {
+            return None;
+        }
+
+        let mut starts: Vec<u32> = indices
+            .iter()
+            .map(|&idx| symbols[idx].symbol.start_line)
+            .collect();
+        starts.sort_unstable();
+        let center = starts[starts.len() / 2];
+
+        let mut overlapping = Vec::new();
+        let mut left_indices = Vec::new();
+        let mut right_indices = Vec::new();
+
+        for &idx in indices {
+            let sym = symbols[idx].symbol;
+            if sym.start_line <= center && sym.end_line >= center {
+                overlapping.push(idx);
+            } else if sym.end_line < center {
+                left_indices.push(idx);
+            } else {
+                right_indices.push(idx);
+            }
+        }
+
+        if overlapping.is_empty() {
+            overlapping.extend_from_slice(indices);
+            left_indices.clear();
+            right_indices.clear();
+        }
+
+        let mut by_start = overlapping.clone();
+        by_start.sort_by_key(|&idx| symbols[idx].symbol.start_line);
+
+        let mut by_end = overlapping;
+        by_end.sort_by(|&a, &b| symbols[b].symbol.end_line.cmp(&symbols[a].symbol.end_line));
+
+        let left = if left_indices.len() == indices.len() {
+            None
+        } else {
+            Self::build(&left_indices, symbols).map(Box::new)
+        };
+
+        let right = if right_indices.len() == indices.len() {
+            None
+        } else {
+            Self::build(&right_indices, symbols).map(Box::new)
+        };
+
+        Some(Self {
+            center,
+            by_start,
+            by_end,
+            left,
+            right,
+        })
+    }
+
+    fn query(
+        &self,
+        symbols: &[IndexedSymbol<'_>],
+        pos_line: u32,
+        pos_column: u32,
+        best: &mut Option<usize>,
+    ) {
+        let is_better = |candidate_idx: usize, current_idx: usize| {
+            is_better_containing_symbol(&symbols[candidate_idx], &symbols[current_idx])
+        };
+
+        if pos_line == self.center {
+            for &idx in &self.by_start {
+                let candidate = &symbols[idx];
+                if symbol_contains_position(candidate.symbol, pos_line, pos_column)
+                    && best.is_none_or(|current| is_better(idx, current))
+                {
+                    *best = Some(idx);
+                }
+            }
+        } else if pos_line < self.center {
+            for &idx in &self.by_start {
+                let candidate = &symbols[idx];
+                if candidate.symbol.start_line > pos_line {
+                    break;
+                }
+                if symbol_contains_position(candidate.symbol, pos_line, pos_column)
+                    && best.is_none_or(|current| is_better(idx, current))
+                {
+                    *best = Some(idx);
+                }
+            }
+            if let Some(left) = &self.left {
+                left.query(symbols, pos_line, pos_column, best);
+            }
+        } else {
+            for &idx in &self.by_end {
+                let candidate = &symbols[idx];
+                if candidate.symbol.end_line < pos_line {
+                    break;
+                }
+                if symbol_contains_position(candidate.symbol, pos_line, pos_column)
+                    && best.is_none_or(|current| is_better(idx, current))
+                {
+                    *best = Some(idx);
+                }
+            }
+            if let Some(right) = &self.right {
+                right.query(symbols, pos_line, pos_column, best);
+            }
+        }
+    }
 }
 
 pub(crate) struct IndexedSymbol<'a> {
@@ -34,30 +158,28 @@ impl<'a> ContainingSymbolIndex<'a> {
                 .cmp(&right.symbol.start_line)
                 .then_with(|| left.symbol.start_column.cmp(&right.symbol.start_column))
         });
-        Self { symbols }
+        let all_indices: Vec<usize> = (0..symbols.len()).collect();
+        let root = IntervalNode::build(&all_indices, &symbols);
+        Self { symbols, root }
     }
 
     pub(crate) fn find(&self, node: tree_sitter::Node) -> Option<&'a Symbol> {
         let position = node.start_position();
         let pos_line = (position.row + 1) as u32;
         let pos_column = position.column as u32;
-        let mut best: Option<&IndexedSymbol<'a>> = None;
+        self.find_at(pos_line, pos_column)
+    }
 
-        for candidate in &self.symbols {
-            if candidate.symbol.start_line > pos_line {
-                break;
-            }
-
-            if !symbol_contains_position(candidate.symbol, pos_line, pos_column) {
-                continue;
-            }
-
-            if best.is_none_or(|current| is_better_containing_symbol(candidate, current)) {
-                best = Some(candidate);
-            }
+    pub(crate) fn find_at(&self, pos_line: u32, pos_column: u32) -> Option<&'a Symbol> {
+        let mut best: Option<usize> = None;
+        if let Some(root) = &self.root {
+            root.query(&self.symbols, pos_line, pos_column, &mut best);
         }
+        best.map(|idx| self.symbols[idx].symbol)
+    }
 
-        best.map(|candidate| candidate.symbol)
+    pub(crate) fn find_for_span(&self, span: crate::base::NormalizedSpan) -> Option<&'a Symbol> {
+        self.find_at(span.start_line, span.start_column)
     }
 }
 

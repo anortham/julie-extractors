@@ -2,8 +2,8 @@
 //! Handles function call relationships (including cross-file pending relationships)
 
 use super::super::base::{
-    LocalTargetResolution, Relationship, RelationshipKind, ScopedSymbolIndex,
-    StructuredPendingRelationship, Symbol, SymbolKind, UnresolvedTarget,
+    ContainingSymbolIndex, LocalTargetResolution, Relationship, RelationshipKind,
+    ScopedSymbolIndex, StructuredPendingRelationship, Symbol, SymbolKind, UnresolvedTarget,
 };
 use super::GDScriptExtractor;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
@@ -17,6 +17,7 @@ pub(super) fn extract_relationships(
 ) -> Vec<Relationship> {
     let mut relationships = Vec::new();
     let scoped_index = ScopedSymbolIndex::new(symbols);
+    let containing_symbols = extractor.base.containing_symbol_index(symbols);
 
     extract_metadata_inheritance_relationships(extractor, symbols, &mut relationships);
 
@@ -24,7 +25,7 @@ pub(super) fn extract_relationships(
     visit_node_for_relationships(
         extractor,
         tree.root_node(),
-        symbols,
+        &containing_symbols,
         &scoped_index,
         &mut relationships,
         0,
@@ -140,7 +141,7 @@ fn is_builtin_gdscript_base_class(name: &str) -> bool {
 fn visit_node_for_relationships(
     extractor: &mut GDScriptExtractor,
     node: Node,
-    symbols: &[Symbol],
+    containing_symbols: &ContainingSymbolIndex<'_>,
     scoped_index: &ScopedSymbolIndex<'_>,
     relationships: &mut Vec<Relationship>,
     depth: u32,
@@ -151,10 +152,22 @@ fn visit_node_for_relationships(
 
     match node.kind() {
         "call" | "call_expression" => {
-            extract_call_relationships(extractor, node, symbols, scoped_index, relationships);
+            extract_call_relationships(
+                extractor,
+                node,
+                containing_symbols,
+                scoped_index,
+                relationships,
+            );
         }
         "attribute" if attribute_has_call_suffix(&node) => {
-            extract_call_relationships(extractor, node, symbols, scoped_index, relationships);
+            extract_call_relationships(
+                extractor,
+                node,
+                containing_symbols,
+                scoped_index,
+                relationships,
+            );
         }
         _ => {}
     }
@@ -168,7 +181,7 @@ fn visit_node_for_relationships(
         visit_node_for_relationships(
             extractor,
             child,
-            symbols,
+            containing_symbols,
             scoped_index,
             relationships,
             child_depth,
@@ -180,7 +193,7 @@ fn visit_node_for_relationships(
 fn extract_call_relationships(
     extractor: &mut GDScriptExtractor,
     node: Node,
-    symbols: &[Symbol],
+    containing_symbols: &ContainingSymbolIndex<'_>,
     scoped_index: &ScopedSymbolIndex<'_>,
     relationships: &mut Vec<Relationship>,
 ) {
@@ -192,8 +205,8 @@ fn extract_call_relationships(
     let called_function_name = target.terminal_name.clone();
 
     if !called_function_name.is_empty()
-        && let Some(caller_symbol) = base
-            .find_containing_symbol(&node, symbols)
+        && let Some(caller_symbol) = containing_symbols
+            .find(node)
             .filter(|symbol| matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method))
     {
         let line_number = (node.start_position().row + 1) as u32;

@@ -2087,10 +2087,13 @@ fn scan_records_content_based_language_for_cpp_headers() {
         String::from_utf8_lossy(&output.stderr)
     );
     assert_eq!(file_language_for_path(&db, "src/widget.h"), "cpp");
+    let symbols = symbols_for_path(&db, "src/widget.h");
+    assert!(symbols.contains(&"Widget".to_string()));
+    assert!(symbols.contains(&"demo".to_string()));
 }
 
 #[test]
-fn scan_records_cpp_language_for_header_with_single_detection() {
+fn scan_extracts_cpp_symbols_from_sniffed_template_header() {
     let fixture = FixtureRoot::with_file(
         "include/engine.h",
         "template <typename T>\nclass Engine {\npublic:\n    T value;\n};\n",
@@ -2116,6 +2119,10 @@ fn scan_records_cpp_language_for_header_with_single_detection() {
     let report = json_report(&output);
     assert_eq!(report["status"], "ok");
     assert_eq!(file_language_for_path(&db, "include/engine.h"), "cpp");
+    assert!(
+        symbols_for_path(&db, "include/engine.h").contains(&"Engine".to_string()),
+        "expected Engine symbol from C++ template header"
+    );
 }
 
 #[test]

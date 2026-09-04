@@ -1274,3 +1274,68 @@ fn table_count_if_exists(connection: &Connection, table: &str) -> i64 {
         })
         .unwrap()
 }
+
+#[test]
+fn store_import_fixtures_extraction_persists_expected_file_versions() {
+    let fixture = tempfile::tempdir().unwrap();
+    let store_dir = fixture.path().join("store");
+    let fixtures_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/extraction");
+    let output = julie_extract(&[
+        "store",
+        "import",
+        "--store",
+        store_dir.to_str().unwrap(),
+        "--family",
+        FAMILY_ID,
+        "--root",
+        fixtures_root.to_str().unwrap(),
+        "--view",
+        "view-fixtures",
+        "--json",
+    ]);
+
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let store_db = store_dir.join("gen-001/store.db");
+    let connection = Connection::open(&store_db).unwrap();
+    let row_count: i64 = connection
+        .query_row("SELECT COUNT(*) FROM file_versions", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(row_count, 538);
+
+    let mut stmt = connection
+        .prepare("SELECT path, content_hash FROM file_versions ORDER BY path")
+        .unwrap();
+    let rows: Vec<(String, String)> = stmt
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    assert_eq!(rows.len(), 538);
+
+    let (first_path, first_hash) = &rows[0];
+    assert_eq!(first_path, "README.md");
+    assert_eq!(
+        first_hash,
+        "blake3:3fa4f24c4a8770072a69281b6c13ce02d5085bdabc3d8b89d52410097577b466"
+    );
+
+    for (path, content_hash) in &rows {
+        assert!(!path.is_empty());
+        assert!(content_hash.starts_with("blake3:"));
+        let file_path = fixtures_root.join(path);
+        let file_bytes = std::fs::read(&file_path)
+            .unwrap_or_else(|err| panic!("failed to read fixture file {file_path:?}: {err}"));
+        let expected_hash = format!("blake3:{}", blake3::hash(&file_bytes).to_hex());
+        assert_eq!(
+            content_hash, &expected_hash,
+            "hash mismatch for fixture file {path}"
+        );
+    }
+}

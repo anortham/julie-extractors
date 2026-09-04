@@ -101,12 +101,10 @@ impl PhpExtractor {
     /// Extract all identifier usages (function calls, member access, etc.)
     /// Following the Rust extractor reference implementation pattern
     pub fn extract_identifiers(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Identifier> {
-        // Create symbol map for fast lookup
-        let symbol_map: HashMap<String, &Symbol> =
-            symbols.iter().map(|s| (s.id.clone(), s)).collect();
+        let containing_symbols = self.base.containing_symbol_index(symbols);
 
         // Walk the tree and extract identifiers
-        self.walk_tree_for_identifiers(tree.root_node(), &symbol_map, 0);
+        self.walk_tree_for_identifiers(tree.root_node(), &containing_symbols, 0);
 
         // Return the collected identifiers
         self.base.identifiers.clone()
@@ -221,7 +219,7 @@ impl PhpExtractor {
     fn walk_tree_for_identifiers(
         &mut self,
         node: Node,
-        symbol_map: &HashMap<String, &Symbol>,
+        containing_symbols: &crate::base::ContainingSymbolIndex<'_>,
         depth: u32,
     ) {
         if !should_visit_tree_depth(depth) {
@@ -229,7 +227,7 @@ impl PhpExtractor {
         }
 
         // Extract identifier from this node if applicable
-        extract_identifier_from_node(self, node, symbol_map);
+        extract_identifier_from_node(self, node, containing_symbols);
 
         // Recursively walk children
         let Some(child_depth) = child_tree_depth(depth) else {
@@ -237,7 +235,7 @@ impl PhpExtractor {
         };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_tree_for_identifiers(child, symbol_map, child_depth);
+            self.walk_tree_for_identifiers(child, containing_symbols, child_depth);
         }
     }
 

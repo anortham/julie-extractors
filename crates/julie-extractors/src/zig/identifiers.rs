@@ -1,6 +1,8 @@
-use crate::base::{BaseExtractor, Identifier, IdentifierKind, Symbol, extract_type_arguments};
+use crate::base::{
+    BaseExtractor, ContainingSymbolIndex, Identifier, IdentifierKind, Symbol,
+    extract_type_arguments,
+};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
 /// Extract all identifier usages (function calls, member access, etc.)
@@ -10,11 +12,10 @@ pub(super) fn extract_identifiers(
     tree: &Tree,
     symbols: &[Symbol],
 ) -> Vec<Identifier> {
-    // Create symbol map for fast lookup
-    let symbol_map: HashMap<String, &Symbol> = symbols.iter().map(|s| (s.id.clone(), s)).collect();
+    let containing_symbols = base.containing_symbol_index(symbols);
 
     // Walk the tree and extract identifiers
-    walk_tree_for_identifiers(base, tree.root_node(), &symbol_map, 0);
+    walk_tree_for_identifiers(base, tree.root_node(), &containing_symbols, 0);
 
     // Return the collected identifiers
     base.identifiers.clone()
@@ -24,7 +25,7 @@ pub(super) fn extract_identifiers(
 fn walk_tree_for_identifiers(
     base: &mut BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
@@ -32,7 +33,7 @@ fn walk_tree_for_identifiers(
     }
 
     // Extract identifier from this node if applicable
-    extract_identifier_from_node(base, node, symbol_map);
+    extract_identifier_from_node(base, node, containing_symbols);
 
     // Recursively walk children
     let Some(child_depth) = child_tree_depth(depth) else {
@@ -40,7 +41,7 @@ fn walk_tree_for_identifiers(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(base, child, symbol_map, child_depth);
+        walk_tree_for_identifiers(base, child, containing_symbols, child_depth);
     }
 }
 
@@ -48,7 +49,7 @@ fn walk_tree_for_identifiers(
 fn extract_identifier_from_node(
     base: &mut BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     match node.kind() {
         // Function calls: calculate(), obj.method()
@@ -59,7 +60,7 @@ fn extract_identifier_from_node(
             // Try to get the function name from direct identifier child
             if let Some(name_node) = base.find_child_by_type(&node, "identifier") {
                 let name = base.get_node_text(&name_node);
-                let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
                 let identifier = base.create_identifier(
                     &name_node,
@@ -88,7 +89,7 @@ fn extract_identifier_from_node(
 
                 if let Some(last_identifier) = identifiers.last() {
                     let name = base.get_node_text(last_identifier);
-                    let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                    let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                     let receiver_type = super::type_facts::self_receiver_type(base, node);
 
                     base.create_identifier_with_receiver_type(
@@ -102,7 +103,7 @@ fn extract_identifier_from_node(
             }
             // Phase 3: capture string-literal call-arguments (config-free; the
             // carrier classification + gate happen in the artifact language-policy pass).
-            record_zig_call_arg_literals(base, node, symbol_map);
+            record_zig_call_arg_literals(base, node, containing_symbols);
         }
 
         // Member access: point.x, user.account.balance
@@ -124,7 +125,7 @@ fn extract_identifier_from_node(
 
             if let Some(member_node) = identifiers.last() {
                 let name = base.get_node_text(member_node);
-                let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
                 base.create_identifier(
                     member_node,
@@ -167,7 +168,7 @@ fn extract_identifier_from_node(
                     // Skip builtin types and keywords
                     if !is_zig_builtin_type(&name) {
                         let containing_symbol_id =
-                            find_containing_symbol_id(base, node, symbol_map);
+                            find_containing_symbol_id(node, containing_symbols);
                         base.create_identifier(
                             &node,
                             name,
@@ -188,7 +189,7 @@ fn extract_identifier_from_node(
                     // covers `undefined`/`null`); `_` is never a read.
                     if !is_zig_builtin_type(&name) && name != "_" {
                         let containing_symbol_id =
-                            find_containing_symbol_id(base, node, symbol_map);
+                            find_containing_symbol_id(node, containing_symbols);
                         base.create_identifier(
                             &node,
                             name,
@@ -307,12 +308,10 @@ fn has_zig_compound_assign_token(decl: Node) -> bool {
 /// Find the ID of the symbol that contains this node
 /// CRITICAL: Only search symbols from THIS FILE (file-scoped filtering)
 fn find_containing_symbol_id(
-    base: &BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) -> Option<String> {
-    base.find_containing_symbol_from_map(&node, symbol_map)
-        .map(|s| s.id.clone())
+    containing_symbols.find(node).map(|s| s.id.clone())
 }
 
 /// Check if `child` appears after a `:` token in `parent`.
@@ -349,13 +348,13 @@ fn is_after_colon(parent: Node, child: Node) -> bool {
 fn record_zig_call_arg_literals(
     base: &mut BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     let Some(func_node) = node.child_by_field_name("function") else {
         return;
     };
     let carrier = zig_carrier(base, func_node);
-    let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+    let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
     let func_id = func_node.id();
 
     let mut cursor = node.walk();

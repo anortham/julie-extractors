@@ -3,10 +3,9 @@
 //! This module handles extraction of identifier usages within C code, such as function calls,
 //! member/field access operations, and type_identifier references (TypeUsage).
 
-use crate::base::{Identifier, IdentifierKind, Symbol};
+use crate::base::{ContainingSymbolIndex, Identifier, IdentifierKind, Symbol};
 use crate::c::CExtractor;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use std::collections::HashMap;
 
 /// Extract all identifiers from the syntax tree
 pub(super) fn extract_identifiers(
@@ -14,13 +13,8 @@ pub(super) fn extract_identifiers(
     tree: &tree_sitter::Tree,
     symbols: &[Symbol],
 ) -> Vec<Identifier> {
-    // Create symbol map for fast lookup
-    let symbol_map: HashMap<String, &Symbol> = symbols.iter().map(|s| (s.id.clone(), s)).collect();
-
-    // Walk the tree and extract identifiers
-    walk_tree_for_identifiers(extractor, tree.root_node(), &symbol_map, 0);
-
-    // Return the collected identifiers
+    let containing_symbols = extractor.base.containing_symbol_index(symbols);
+    walk_tree_for_identifiers(extractor, tree.root_node(), &containing_symbols, 0);
     extractor.base.identifiers.clone()
 }
 
@@ -28,7 +22,7 @@ pub(super) fn extract_identifiers(
 fn walk_tree_for_identifiers(
     extractor: &mut CExtractor,
     node: tree_sitter::Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
@@ -36,7 +30,7 @@ fn walk_tree_for_identifiers(
     }
 
     // Extract identifier from this node if applicable
-    extract_identifier_from_node(extractor, node, symbol_map);
+    extract_identifier_from_node(extractor, node, containing_symbols);
 
     // Recursively walk children
     let Some(child_depth) = child_tree_depth(depth) else {
@@ -44,7 +38,7 @@ fn walk_tree_for_identifiers(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(extractor, child, symbol_map, child_depth);
+        walk_tree_for_identifiers(extractor, child, containing_symbols, child_depth);
     }
 }
 
@@ -52,7 +46,7 @@ fn walk_tree_for_identifiers(
 fn extract_identifier_from_node(
     extractor: &mut CExtractor,
     node: tree_sitter::Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     match node.kind() {
         // Function calls: add(), printf()
@@ -61,7 +55,7 @@ fn extract_identifier_from_node(
                 let name = extractor.base.get_node_text(&func_node);
 
                 // Find containing symbol (which function contains this call)
-                let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
                 // Create identifier for this function call
                 extractor.base.create_identifier(
@@ -73,7 +67,7 @@ fn extract_identifier_from_node(
             }
             // Phase 3: capture string-literal call-arguments (config-free; the
             // carrier classification + gate happen in the artifact language-policy pass).
-            record_c_call_arg_literals(extractor, node, symbol_map);
+            record_c_call_arg_literals(extractor, node, containing_symbols);
         }
 
         // Type references: typedef names, struct tags, enum tags in type positions.
@@ -105,8 +99,7 @@ fn extract_identifier_from_node(
 
                 if !is_definition_site {
                     let name = extractor.base.get_node_text(&node);
-                    let containing_symbol_id =
-                        find_containing_symbol_id(extractor, node, symbol_map);
+                    let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                     extractor.base.create_identifier(
                         &node,
                         name,
@@ -129,7 +122,7 @@ fn extract_identifier_from_node(
             // Extract field name from field_expression
             if let Some(field_node) = node.child_by_field_name("field") {
                 let name = extractor.base.get_node_text(&field_node);
-                let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
                 extractor.base.create_identifier(
                     &field_node,
@@ -153,7 +146,7 @@ fn extract_identifier_from_node(
             // builtin-flavored names that parse as plain identifiers are the
             // classic stdlib macros filtered here.
             if !is_c_builtin_value_name(&name) {
-                let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 extractor.base.create_identifier(
                     &node,
                     name,
@@ -172,7 +165,7 @@ fn extract_identifier_from_node(
                 && parent.kind() == "field_designator"
             {
                 let name = extractor.base.get_node_text(&node);
-                let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 extractor.base.create_identifier(
                     &node,
                     name,
@@ -261,14 +254,10 @@ fn is_c_builtin_value_name(name: &str) -> bool {
 /// Find the ID of the symbol that contains this node
 /// CRITICAL: Only search symbols from THIS FILE (file-scoped filtering)
 fn find_containing_symbol_id(
-    extractor: &CExtractor,
     node: tree_sitter::Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) -> Option<String> {
-    extractor
-        .base
-        .find_containing_symbol_from_map(&node, symbol_map)
-        .map(|s| s.id.clone())
+    containing_symbols.find(node).map(|s| s.id.clone())
 }
 
 // ============================================================================
@@ -285,7 +274,7 @@ fn find_containing_symbol_id(
 fn record_c_call_arg_literals(
     extractor: &mut CExtractor,
     node: tree_sitter::Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     let Some(func_node) = node.child_by_field_name("function") else {
         return;
@@ -294,7 +283,7 @@ fn record_c_call_arg_literals(
         return;
     };
     let carrier = c_carrier(extractor, func_node);
-    let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+    let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
     let mut cursor = args.walk();
     for (pos, arg) in args.named_children(&mut cursor).enumerate() {

@@ -1,10 +1,9 @@
 // R Identifier Extraction
 // Extracts identifier usages: function calls, variable references, member access
 
-use crate::base::{BaseExtractor, Identifier, IdentifierKind, Symbol};
+use crate::base::{BaseExtractor, ContainingSymbolIndex, Identifier, IdentifierKind, Symbol};
 use crate::r::RExtractor;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
 /// Extract all identifier usages from R code
@@ -13,11 +12,10 @@ pub(super) fn extract_identifiers(
     tree: &Tree,
     symbols: &[Symbol],
 ) -> Vec<Identifier> {
-    // Create symbol map for fast lookup
-    let symbol_map: HashMap<String, &Symbol> = symbols.iter().map(|s| (s.id.clone(), s)).collect();
+    let containing_symbols = extractor.base.containing_symbol_index(symbols);
 
     // Walk the tree and extract identifiers
-    walk_tree_for_identifiers(extractor, tree.root_node(), &symbol_map, 0);
+    walk_tree_for_identifiers(extractor, tree.root_node(), &containing_symbols, 0);
 
     // Return the collected identifiers
     extractor.base.identifiers.clone()
@@ -27,7 +25,7 @@ pub(super) fn extract_identifiers(
 fn walk_tree_for_identifiers(
     extractor: &mut RExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
@@ -35,7 +33,7 @@ fn walk_tree_for_identifiers(
     }
 
     // Extract identifier from current node
-    extract_identifier_from_node(extractor, node, symbol_map);
+    extract_identifier_from_node(extractor, node, containing_symbols);
 
     // Recursively process children
     let Some(child_depth) = child_tree_depth(depth) else {
@@ -43,7 +41,7 @@ fn walk_tree_for_identifiers(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(extractor, child, symbol_map, child_depth);
+        walk_tree_for_identifiers(extractor, child, containing_symbols, child_depth);
     }
 }
 
@@ -51,7 +49,7 @@ fn walk_tree_for_identifiers(
 fn extract_identifier_from_node(
     extractor: &mut RExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     match node.kind() {
         // Function calls: foo(), library(dplyr), lapply(x, f)
@@ -78,7 +76,7 @@ fn extract_identifier_from_node(
                     _ => extractor.base.get_node_text(&function_node),
                 };
 
-                let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 let receiver_type = super::type_facts::self_receiver_type(extractor, function_node);
                 extractor.base.create_identifier_with_receiver_type(
                     &function_node,
@@ -90,7 +88,7 @@ fn extract_identifier_from_node(
             }
             // Phase 3b: capture string-literal call-arguments config-free; the
             // carrier classification + bloat gate run later in the artifact language-policy pass.
-            record_r_call_arg_literals(extractor, node, symbol_map);
+            record_r_call_arg_literals(extractor, node, containing_symbols);
         }
 
         // Member access: object$property, object@slot
@@ -105,7 +103,7 @@ fn extract_identifier_from_node(
             // Extract the member being accessed
             if let Some(member_node) = node.child(2) {
                 let name = extractor.base.get_node_text(&member_node);
-                let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
                 extractor.base.create_identifier(
                     &member_node,
@@ -148,7 +146,7 @@ fn extract_identifier_from_node(
                         // This is a variable being used in a binary expression
                         let name = extractor.base.get_node_text(&node);
                         let containing_symbol_id =
-                            find_containing_symbol_id(extractor, node, symbol_map);
+                            find_containing_symbol_id(node, containing_symbols);
 
                         extractor.base.create_identifier(
                             &node,
@@ -161,7 +159,7 @@ fn extract_identifier_from_node(
                         // This is likely a variable reference
                         let name = extractor.base.get_node_text(&node);
                         let containing_symbol_id =
-                            find_containing_symbol_id(extractor, node, symbol_map);
+                            find_containing_symbol_id(node, containing_symbols);
 
                         extractor.base.create_identifier(
                             &node,
@@ -181,16 +179,11 @@ fn extract_identifier_from_node(
 }
 
 /// Find the containing symbol ID for a node using byte-range containment
-/// Uses BaseExtractor::find_containing_symbol for accurate position-based matching
 fn find_containing_symbol_id(
-    extractor: &RExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) -> Option<String> {
-    extractor
-        .base
-        .find_containing_symbol_from_map(&node, symbol_map)
-        .map(|s| s.id.clone())
+    containing_symbols.find(node).map(|s| s.id.clone())
 }
 
 // ============================================================================
@@ -211,7 +204,7 @@ fn find_containing_symbol_id(
 fn record_r_call_arg_literals(
     extractor: &mut RExtractor,
     call_node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     let Some(function_node) = call_node.child_by_field_name("function") else {
         return;
@@ -220,7 +213,7 @@ fn record_r_call_arg_literals(
         return;
     };
     let carrier = r_carrier(&extractor.base, function_node);
-    let containing_symbol_id = find_containing_symbol_id(extractor, call_node, symbol_map);
+    let containing_symbol_id = find_containing_symbol_id(call_node, containing_symbols);
 
     let mut cursor = args_node.walk();
     for (pos, arg) in args_node

@@ -28,8 +28,8 @@ mod test_detection;
 mod views;
 
 use crate::base::{
-    BaseExtractor, Identifier, PendingRelationship, Relationship, StructuredPendingRelationship,
-    Symbol,
+    BaseExtractor, ContainingSymbolIndex, Identifier, PendingRelationship, Relationship,
+    StructuredPendingRelationship, Symbol,
 };
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
@@ -84,16 +84,15 @@ impl SqlExtractor {
         let pgtap_context = test_detection::PgTapContext::from_tree(&self.base, tree);
         self.visit_node(tree.root_node(), &mut symbols, None, 0, &pgtap_context);
         test_detection::mark_pgtap_schema_containers(&pgtap_context, &mut symbols);
-        let symbol_map: HashMap<String, &Symbol> =
-            symbols.iter().map(|s| (s.id.clone(), s)).collect();
-        self.walk_for_string_literals(tree.root_node(), &symbol_map, 0);
+        let containing_symbols = self.base.containing_symbol_index(&symbols);
+        self.walk_for_string_literals(tree.root_node(), &containing_symbols, 0);
         symbols
     }
 
     fn walk_for_string_literals(
         &mut self,
         node: tree_sitter::Node,
-        symbol_map: &HashMap<String, &Symbol>,
+        containing_symbols: &ContainingSymbolIndex<'_>,
         depth: u32,
     ) {
         if !should_visit_tree_depth(depth) {
@@ -101,9 +100,8 @@ impl SqlExtractor {
         }
 
         if matches!(node.kind(), "string" | "string_literal" | "literal") {
-            let containing_symbol_id = self
-                .base
-                .find_containing_symbol_from_map(&node, symbol_map)
+            let containing_symbol_id = containing_symbols
+                .find(node)
                 .map(|symbol| symbol.id.clone());
             if let Some(text) = self.decode_sql_string_literal(&node) {
                 let carrier = self.sql_literal_carrier(&node);
@@ -117,7 +115,7 @@ impl SqlExtractor {
         };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_for_string_literals(child, symbol_map, child_depth);
+            self.walk_for_string_literals(child, containing_symbols, child_depth);
         }
     }
 
@@ -258,10 +256,9 @@ impl SqlExtractor {
 
     /// Extract all identifier usages (function calls, member access, etc.)
     pub fn extract_identifiers(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Identifier> {
-        let symbol_map: HashMap<String, &Symbol> =
-            symbols.iter().map(|s| (s.id.clone(), s)).collect();
+        let containing_symbols = self.base.containing_symbol_index(symbols);
 
-        self.walk_tree_for_identifiers(tree.root_node(), &symbol_map, 0);
+        self.walk_tree_for_identifiers(tree.root_node(), &containing_symbols, 0);
         self.base.identifiers.clone()
     }
 

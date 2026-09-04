@@ -22,8 +22,8 @@ mod types;
 mod variables;
 
 use crate::base::{
-    BaseExtractor, Identifier, PendingRelationship, Relationship, StructuredPendingRelationship,
-    Symbol, SymbolKind,
+    BaseExtractor, ContainingSymbolIndex, Identifier, PendingRelationship, Relationship,
+    ScopedSymbolIndex, StructuredPendingRelationship, Symbol, SymbolKind,
 };
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Tree;
@@ -163,15 +163,26 @@ impl BashExtractor {
 
     pub fn extract_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {
         let mut relationships = Vec::new();
-        self.walk_tree_for_relationships(tree.root_node(), symbols, &mut relationships, 0);
+        let function_symbols = ContainingSymbolIndex::from_iter(
+            symbols.iter().filter(|s| s.kind == SymbolKind::Function),
+        );
+        let scoped_index = ScopedSymbolIndex::new(symbols);
+        self.walk_tree_for_relationships(
+            tree.root_node(),
+            &function_symbols,
+            &scoped_index,
+            &mut relationships,
+            0,
+        );
         relationships
     }
 
     /// Walk tree extracting relationships
-    fn walk_tree_for_relationships(
+    fn walk_tree_for_relationships<'a>(
         &mut self,
         node: tree_sitter::Node,
-        symbols: &[Symbol],
+        function_symbols: &ContainingSymbolIndex<'a>,
+        scoped_index: &ScopedSymbolIndex<'a>,
         relationships: &mut Vec<Relationship>,
         depth: u32,
     ) {
@@ -181,7 +192,12 @@ impl BashExtractor {
 
         match node.kind() {
             "command" | "simple_command" => {
-                self.extract_command_relationships(node, symbols, relationships);
+                self.extract_command_relationships(
+                    node,
+                    function_symbols,
+                    scoped_index,
+                    relationships,
+                );
             }
             _ => {}
         }
@@ -192,15 +208,19 @@ impl BashExtractor {
         };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_tree_for_relationships(child, symbols, relationships, child_depth);
+            self.walk_tree_for_relationships(
+                child,
+                function_symbols,
+                scoped_index,
+                relationships,
+                child_depth,
+            );
         }
     }
 
     pub fn extract_identifiers(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Identifier> {
-        // Call the identifiers module implementation
-        let symbol_map: std::collections::HashMap<String, &Symbol> =
-            symbols.iter().map(|s| (s.id.clone(), s)).collect();
-        self.walk_tree_for_identifiers(tree.root_node(), &symbol_map, 0);
+        let containing_symbols = self.base.containing_symbol_index(symbols);
+        self.walk_tree_for_identifiers(tree.root_node(), &containing_symbols, 0);
         self.base.identifiers.clone()
     }
 
@@ -213,33 +233,34 @@ impl BashExtractor {
     fn walk_tree_for_identifiers(
         &mut self,
         node: tree_sitter::Node,
-        symbol_map: &std::collections::HashMap<String, &Symbol>,
+        containing_symbols: &ContainingSymbolIndex<'_>,
         depth: u32,
     ) {
         if !should_visit_tree_depth(depth) {
             return;
         }
 
-        self.extract_identifier_from_node(node, symbol_map);
+        self.extract_identifier_from_node(node, containing_symbols);
         let Some(child_depth) = child_tree_depth(depth) else {
             return;
         };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_tree_for_identifiers(child, symbol_map, child_depth);
+            self.walk_tree_for_identifiers(child, containing_symbols, child_depth);
         }
     }
 
     fn extract_identifier_from_node(
         &mut self,
         node: tree_sitter::Node,
-        symbol_map: &std::collections::HashMap<String, &Symbol>,
+        containing_symbols: &ContainingSymbolIndex<'_>,
     ) {
         match node.kind() {
             "command" => {
                 if let Some(command_name_node) = self.find_command_name_node(node) {
                     let name = self.base.get_node_text(&command_name_node);
-                    let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                    let containing_symbol_id =
+                        self.find_containing_symbol_id(node, containing_symbols);
                     self.base.create_identifier(
                         &command_name_node,
                         name.clone(),
@@ -247,7 +268,7 @@ impl BashExtractor {
                         containing_symbol_id,
                     );
                     // Miller bridge Phase 3b: capture string-literal command args.
-                    self.record_command_arg_literals(node, &name, symbol_map);
+                    self.record_command_arg_literals(node, &name, containing_symbols);
                 }
             }
             "subscript" => {
@@ -256,7 +277,8 @@ impl BashExtractor {
                     if child.kind() == "variable_name" || child.kind() == "simple_expansion" {
                         let name = self.base.get_node_text(&child);
                         let clean_name = name.trim_start_matches('$').to_string();
-                        let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                        let containing_symbol_id =
+                            self.find_containing_symbol_id(node, containing_symbols);
                         self.base.create_identifier(
                             &child,
                             clean_name,
@@ -286,7 +308,7 @@ impl BashExtractor {
                         let name = self.base.get_node_text(&child);
                         if !name.is_empty() && !name.bytes().all(|b| b.is_ascii_digit()) {
                             let containing_symbol_id =
-                                self.find_containing_symbol_id(node, symbol_map);
+                                self.find_containing_symbol_id(node, containing_symbols);
                             self.base.create_identifier(
                                 &child,
                                 name,
@@ -324,9 +346,9 @@ impl BashExtractor {
         &mut self,
         command_node: tree_sitter::Node,
         carrier: &str,
-        symbol_map: &std::collections::HashMap<String, &Symbol>,
+        containing_symbols: &ContainingSymbolIndex<'_>,
     ) {
-        let containing_symbol_id = self.find_containing_symbol_id(command_node, symbol_map);
+        let containing_symbol_id = self.find_containing_symbol_id(command_node, containing_symbols);
         let args: Vec<tree_sitter::Node> = {
             let mut cursor = command_node.walk();
             command_node
@@ -349,11 +371,9 @@ impl BashExtractor {
     fn find_containing_symbol_id(
         &self,
         node: tree_sitter::Node,
-        symbol_map: &std::collections::HashMap<String, &Symbol>,
+        containing_symbols: &ContainingSymbolIndex<'_>,
     ) -> Option<String> {
-        self.base
-            .find_containing_symbol_from_map(&node, symbol_map)
-            .map(|s| s.id.clone())
+        containing_symbols.find(node).map(|s| s.id.clone())
     }
 
     // ========================================================================

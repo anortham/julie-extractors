@@ -4,17 +4,18 @@
 
 use super::commands::{extract_source_target, is_import_command, is_shell_builtin};
 use crate::base::{
-    LocalTargetResolution, Relationship, RelationshipKind, ScopedSymbolIndex, Symbol, SymbolKind,
-    UnresolvedTarget,
+    ContainingSymbolIndex, LocalTargetResolution, Relationship, RelationshipKind,
+    ScopedSymbolIndex, SymbolKind, UnresolvedTarget,
 };
 use tree_sitter::Node;
 
 impl super::BashExtractor {
     /// Extract relationships between functions and commands they call
-    pub(super) fn extract_command_relationships(
+    pub(super) fn extract_command_relationships<'a>(
         &mut self,
         node: Node,
-        symbols: &[Symbol],
+        function_symbols: &ContainingSymbolIndex<'a>,
+        scoped_index: &ScopedSymbolIndex<'a>,
         relationships: &mut Vec<Relationship>,
     ) {
         let Some(command_name_node) = self.find_command_name_node(node) else {
@@ -22,9 +23,8 @@ impl super::BashExtractor {
         };
         let command_name = self.base.get_node_text(&command_name_node);
         let command_text = self.base.get_node_text(&node);
-        let Some(caller_symbol) = self
-            .base
-            .find_containing_symbol(&node, symbols)
+        let Some(caller_symbol) = function_symbols
+            .find(node)
             .filter(|symbol| symbol.kind == SymbolKind::Function)
         else {
             return;
@@ -46,7 +46,6 @@ impl super::BashExtractor {
         }
 
         let unresolved_target = UnresolvedTarget::simple(command_name.clone());
-        let scoped_index = ScopedSymbolIndex::new(symbols);
 
         match scoped_index.resolve_call_target(
             &unresolved_target.terminal_name,

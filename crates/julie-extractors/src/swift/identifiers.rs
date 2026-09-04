@@ -1,6 +1,5 @@
-use crate::base::{BaseExtractor, Identifier, IdentifierKind, Symbol};
+use crate::base::{BaseExtractor, ContainingSymbolIndex, Identifier, IdentifierKind, Symbol};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use std::collections::HashMap;
 use tree_sitter::Node;
 
 use super::SwiftExtractor;
@@ -14,12 +13,10 @@ impl SwiftExtractor {
         tree: &tree_sitter::Tree,
         symbols: &[Symbol],
     ) -> Vec<Identifier> {
-        // Create symbol map for fast lookup
-        let symbol_map: HashMap<String, &Symbol> =
-            symbols.iter().map(|s| (s.id.clone(), s)).collect();
+        let containing_symbols = self.base.containing_symbol_index(symbols);
 
         // Walk the tree and extract identifiers
-        self.walk_tree_for_identifiers(tree.root_node(), &symbol_map, 0);
+        self.walk_tree_for_identifiers(tree.root_node(), &containing_symbols, 0);
 
         // Return the collected identifiers
         self.base.identifiers.clone()
@@ -29,7 +26,7 @@ impl SwiftExtractor {
     fn walk_tree_for_identifiers(
         &mut self,
         node: Node,
-        symbol_map: &HashMap<String, &Symbol>,
+        containing_symbols: &ContainingSymbolIndex<'_>,
         depth: u32,
     ) {
         if !should_visit_tree_depth(depth) {
@@ -37,7 +34,7 @@ impl SwiftExtractor {
         }
 
         // Extract identifier from this node if applicable
-        self.extract_identifier_from_node(node, symbol_map);
+        self.extract_identifier_from_node(node, containing_symbols);
 
         // Recursively walk children
         let Some(child_depth) = child_tree_depth(depth) else {
@@ -45,12 +42,16 @@ impl SwiftExtractor {
         };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_tree_for_identifiers(child, symbol_map, child_depth);
+            self.walk_tree_for_identifiers(child, containing_symbols, child_depth);
         }
     }
 
     /// Extract identifier from a single node based on its kind
-    fn extract_identifier_from_node(&mut self, node: Node, symbol_map: &HashMap<String, &Symbol>) {
+    fn extract_identifier_from_node(
+        &mut self,
+        node: Node,
+        containing_symbols: &ContainingSymbolIndex<'_>,
+    ) {
         match node.kind() {
             // Function/method calls: foo(), bar.baz()
             "call_expression" => {
@@ -61,7 +62,8 @@ impl SwiftExtractor {
                 for child in node.children(&mut cursor) {
                     if child.kind() == "simple_identifier" {
                         let name = self.base.get_node_text(&child);
-                        let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                        let containing_symbol_id =
+                            self.find_containing_symbol_id(node, containing_symbols);
 
                         self.base.create_identifier(
                             &child,
@@ -74,7 +76,7 @@ impl SwiftExtractor {
                         // For member access calls, extract the rightmost identifier (the method name)
                         if let Some((name_node, name)) = self.extract_rightmost_identifier(&child) {
                             let containing_symbol_id =
-                                self.find_containing_symbol_id(node, symbol_map);
+                                self.find_containing_symbol_id(node, containing_symbols);
                             let receiver_type = self_receiver_type(&self.base, node);
 
                             self.base.create_identifier_with_receiver_type(
@@ -90,7 +92,7 @@ impl SwiftExtractor {
                 }
                 // Phase 3b: capture string-literal call-arguments (config-free;
                 // carrier classification + gate run later in the artifact language-policy pass).
-                self.record_call_arg_literals(node, symbol_map);
+                self.record_call_arg_literals(node, containing_symbols);
             }
 
             // Member access: object.property
@@ -105,7 +107,8 @@ impl SwiftExtractor {
 
                 // Extract the rightmost identifier (the member name)
                 if let Some((name_node, name)) = self.extract_rightmost_identifier(&node) {
-                    let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                    let containing_symbol_id =
+                        self.find_containing_symbol_id(node, containing_symbols);
 
                     self.base.create_identifier(
                         &name_node,
@@ -120,7 +123,8 @@ impl SwiftExtractor {
                 let name = self.base.get_node_text(&node);
                 if is_swift_type_usage_identifier(node) {
                     if !is_swift_builtin_type(&name) {
-                        let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                        let containing_symbol_id =
+                            self.find_containing_symbol_id(node, containing_symbols);
                         let identifier = self.base.create_identifier(
                             &node,
                             name,
@@ -142,7 +146,8 @@ impl SwiftExtractor {
                     // `nil` are distinct grammar nodes, never simple_identifier.)
                     && !is_swift_builtin_type(&name)
                 {
-                    let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                    let containing_symbol_id =
+                        self.find_containing_symbol_id(node, containing_symbols);
                     self.base.create_identifier(
                         &node,
                         name,
@@ -161,11 +166,9 @@ impl SwiftExtractor {
     fn find_containing_symbol_id(
         &self,
         node: Node,
-        symbol_map: &HashMap<String, &Symbol>,
+        containing_symbols: &ContainingSymbolIndex<'_>,
     ) -> Option<String> {
-        self.base
-            .find_containing_symbol_from_map(&node, symbol_map)
-            .map(|s| s.id.clone())
+        containing_symbols.find(node).map(|s| s.id.clone())
     }
 
     /// Helper to extract the rightmost identifier in a navigation_expression
@@ -215,7 +218,11 @@ impl SwiftExtractor {
     /// which the shared `decode_string_literal` does NOT recognize as a hole, so
     /// interpolated literals decode without a `{}` placeholder. Plain string
     /// literals (the common URL/SQL case) decode correctly. Flagged to the lead.
-    fn record_call_arg_literals(&mut self, call_node: Node, symbol_map: &HashMap<String, &Symbol>) {
+    fn record_call_arg_literals(
+        &mut self,
+        call_node: Node,
+        containing_symbols: &ContainingSymbolIndex<'_>,
+    ) {
         // The callee is the first child; the args live in the `call_suffix`.
         let mut callee: Option<Node> = None;
         let mut call_suffix: Option<Node> = None;
@@ -234,7 +241,7 @@ impl SwiftExtractor {
             return;
         };
         let carrier = callee.and_then(|c| swift_carrier(&self.base, c));
-        let containing_symbol_id = self.find_containing_symbol_id(call_node, symbol_map);
+        let containing_symbol_id = self.find_containing_symbol_id(call_node, containing_symbols);
 
         let mut ac = value_args.walk();
         for (pos, arg) in value_args.named_children(&mut ac).enumerate() {

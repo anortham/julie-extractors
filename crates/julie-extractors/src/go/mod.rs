@@ -196,14 +196,8 @@ impl GoExtractor {
     /// Extract all identifier usages (function calls, member access, etc.)
     /// Following the Rust extractor reference implementation pattern
     pub fn extract_identifiers(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Identifier> {
-        // Create symbol map for fast lookup
-        let symbol_map: HashMap<String, &Symbol> =
-            symbols.iter().map(|s| (s.id.clone(), s)).collect();
-
-        // Walk the tree and extract identifiers
-        self.walk_tree_for_identifiers(tree.root_node(), &symbol_map, 0);
-
-        // Return the collected identifiers
+        let containing_symbols = self.base.containing_symbol_index(symbols);
+        self.walk_tree_for_identifiers(tree.root_node(), &containing_symbols, 0);
         self.base.identifiers.clone()
     }
 

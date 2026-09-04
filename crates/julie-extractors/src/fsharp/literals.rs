@@ -1,13 +1,22 @@
 use super::FSharpExtractor;
-use crate::base::{BaseExtractor, NormalizedSpan, Symbol};
+use crate::base::{BaseExtractor, ContainingSymbolIndex, NormalizedSpan};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
 
-pub(super) fn collect_literals(extractor: &mut FSharpExtractor, root: Node, symbols: &[Symbol]) {
-    walk(extractor, root, symbols, 0);
+pub(super) fn collect_literals(
+    extractor: &mut FSharpExtractor,
+    root: Node,
+    containing_symbols: &ContainingSymbolIndex<'_>,
+) {
+    walk(extractor, root, containing_symbols, 0);
 }
 
-fn walk(extractor: &mut FSharpExtractor, node: Node, symbols: &[Symbol], depth: u32) {
+fn walk(
+    extractor: &mut FSharpExtractor,
+    node: Node,
+    containing_symbols: &ContainingSymbolIndex<'_>,
+    depth: u32,
+) {
     if !should_visit_tree_depth(depth) {
         return;
     }
@@ -15,9 +24,8 @@ fn walk(extractor: &mut FSharpExtractor, node: Node, symbols: &[Symbol], depth: 
         && let Some(literal_node) = first_named_child(node)
         && is_supported_literal(literal_node.kind())
     {
-        let containing_symbol_id = extractor
-            .base()
-            .find_containing_symbol(&literal_node, symbols)
+        let containing_symbol_id = containing_symbols
+            .find(literal_node)
             .map(|symbol| symbol.id.clone());
         let raw = extractor.base().get_node_text(&literal_node);
         let text = decode_literal_text(extractor.base(), &literal_node, &raw);
@@ -34,7 +42,7 @@ fn walk(extractor: &mut FSharpExtractor, node: Node, symbols: &[Symbol], depth: 
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk(extractor, child, symbols, child_depth);
+        walk(extractor, child, containing_symbols, child_depth);
     }
 }
 

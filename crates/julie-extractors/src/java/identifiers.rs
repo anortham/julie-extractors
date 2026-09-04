@@ -1,8 +1,10 @@
 /// Identifier extraction for LSP-quality find_references
-use crate::base::{BaseExtractor, Identifier, IdentifierKind, Symbol, extract_type_arguments};
+use crate::base::{
+    BaseExtractor, ContainingSymbolIndex, Identifier, IdentifierKind, Symbol,
+    extract_type_arguments,
+};
 use crate::java::JavaExtractor;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
 use super::helpers;
@@ -14,13 +16,8 @@ pub(super) fn extract_identifiers(
     tree: &Tree,
     symbols: &[Symbol],
 ) -> Vec<Identifier> {
-    // Create symbol map for fast lookup
-    let symbol_map: HashMap<String, &Symbol> = symbols.iter().map(|s| (s.id.clone(), s)).collect();
-
-    // Walk the tree and extract identifiers
-    walk_tree_for_identifiers(extractor, tree.root_node(), &symbol_map, 0);
-
-    // Return the collected identifiers
+    let containing_symbols = extractor.base().containing_symbol_index(symbols);
+    walk_tree_for_identifiers(extractor, tree.root_node(), &containing_symbols, 0);
     extractor.base().identifiers.clone()
 }
 
@@ -28,7 +25,7 @@ pub(super) fn extract_identifiers(
 fn walk_tree_for_identifiers(
     extractor: &mut JavaExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
@@ -36,7 +33,7 @@ fn walk_tree_for_identifiers(
     }
 
     // Extract identifier from this node if applicable
-    extract_identifier_from_node(extractor, node, symbol_map);
+    extract_identifier_from_node(extractor, node, containing_symbols);
 
     // Recursively walk children
     let Some(child_depth) = child_tree_depth(depth) else {
@@ -44,7 +41,7 @@ fn walk_tree_for_identifiers(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(extractor, child, symbol_map, child_depth);
+        walk_tree_for_identifiers(extractor, child, containing_symbols, child_depth);
     }
 }
 
@@ -52,7 +49,7 @@ fn walk_tree_for_identifiers(
 fn extract_identifier_from_node(
     extractor: &mut JavaExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     match node.kind() {
         // Method calls: foo(), bar.baz(), System.out.println()
@@ -60,7 +57,7 @@ fn extract_identifier_from_node(
             // Try to get the method name from the "name" field (standard tree-sitter pattern)
             if let Some(name_node) = node.child_by_field_name("name") {
                 let name = extractor.base().get_node_text(&name_node);
-                let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 let receiver_type = self_receiver_type(extractor.base(), node);
 
                 let identifier = extractor.base_mut().create_identifier_with_receiver_type(
@@ -89,7 +86,7 @@ fn extract_identifier_from_node(
                     if child.kind() == "identifier" {
                         let name = extractor.base().get_node_text(&child);
                         let containing_symbol_id =
-                            find_containing_symbol_id(extractor, node, symbol_map);
+                            find_containing_symbol_id(node, containing_symbols);
                         let receiver_type = self_receiver_type(extractor.base(), node);
 
                         extractor.base_mut().create_identifier_with_receiver_type(
@@ -105,7 +102,7 @@ fn extract_identifier_from_node(
             }
             // Phase 3b: capture string-literal call-arguments config-free; the
             // carrier classification + bloat gate run later in the artifact language-policy pass.
-            record_java_call_arg_literals(extractor, node, symbol_map);
+            record_java_call_arg_literals(extractor, node, containing_symbols);
         }
 
         // Field access: object.field
@@ -125,7 +122,7 @@ fn extract_identifier_from_node(
             // Extract the rightmost identifier (the field name)
             if let Some(name_node) = node.child_by_field_name("field") {
                 let name = extractor.base().get_node_text(&name_node);
-                let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
                 extractor.base_mut().create_identifier(
                     &name_node,
@@ -153,7 +150,7 @@ fn extract_identifier_from_node(
                 return;
             }
 
-            let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
             let identifier = extractor.base_mut().create_identifier(
                 &node,
@@ -178,7 +175,7 @@ fn extract_identifier_from_node(
             // `null` and primitive types are distinct grammar nodes, never
             // `identifier`, so they are structurally excluded.)
             if !is_java_noise_type(&name) {
-                let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 extractor.base_mut().create_identifier(
                     &node,
                     name,
@@ -391,14 +388,10 @@ fn type_arguments_child(node: Node<'_>) -> Option<Node<'_>> {
 /// Find the ID of the symbol that contains this node
 /// CRITICAL: Only search symbols from THIS FILE (file-scoped filtering)
 fn find_containing_symbol_id(
-    extractor: &JavaExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) -> Option<String> {
-    extractor
-        .base()
-        .find_containing_symbol_from_map(&node, symbol_map)
-        .map(|s| s.id.clone())
+    containing_symbols.find(node).map(|s| s.id.clone())
 }
 
 // ============================================================================
@@ -416,13 +409,13 @@ fn find_containing_symbol_id(
 fn record_java_call_arg_literals(
     extractor: &mut JavaExtractor,
     call_node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     let Some(args_node) = call_node.child_by_field_name("arguments") else {
         return;
     };
     let carrier = java_carrier(extractor.base(), call_node);
-    let containing_symbol_id = find_containing_symbol_id(extractor, call_node, symbol_map);
+    let containing_symbol_id = find_containing_symbol_id(call_node, containing_symbols);
 
     let mut cursor = args_node.walk();
     for (pos, arg) in args_node.named_children(&mut cursor).enumerate() {

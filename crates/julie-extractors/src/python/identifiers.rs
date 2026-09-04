@@ -3,9 +3,8 @@
 use super::PythonExtractor;
 use super::helpers;
 use super::type_arguments::record_outermost_python_type_arguments;
-use crate::base::{BaseExtractor, Identifier, IdentifierKind, Symbol};
+use crate::base::{BaseExtractor, ContainingSymbolIndex, Identifier, IdentifierKind, Symbol};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
 /// Extract all identifier usages (function calls, member access, etc.)
@@ -15,11 +14,10 @@ pub fn extract_identifiers(
     tree: &Tree,
     symbols: &[Symbol],
 ) -> Vec<Identifier> {
-    // Create symbol map for fast lookup
-    let symbol_map: HashMap<String, &Symbol> = symbols.iter().map(|s| (s.id.clone(), s)).collect();
+    let containing_symbols = extractor.base().containing_symbol_index(symbols);
 
     // Walk the tree and extract identifiers
-    walk_tree_for_identifiers(extractor, tree.root_node(), &symbol_map, 0);
+    walk_tree_for_identifiers(extractor, tree.root_node(), &containing_symbols, 0);
 
     // Return the collected identifiers
     extractor.base_mut().identifiers.clone()
@@ -29,7 +27,7 @@ pub fn extract_identifiers(
 fn walk_tree_for_identifiers(
     extractor: &mut PythonExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
@@ -37,7 +35,7 @@ fn walk_tree_for_identifiers(
     }
 
     // Extract identifier from this node if applicable
-    extract_identifier_from_node(extractor, node, symbol_map);
+    extract_identifier_from_node(extractor, node, containing_symbols);
 
     // Recursively walk children
     let Some(child_depth) = child_tree_depth(depth) else {
@@ -45,7 +43,7 @@ fn walk_tree_for_identifiers(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(extractor, child, symbol_map, child_depth);
+        walk_tree_for_identifiers(extractor, child, containing_symbols, child_depth);
     }
 }
 
@@ -53,7 +51,7 @@ fn walk_tree_for_identifiers(
 fn extract_identifier_from_node(
     extractor: &mut PythonExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     match node.kind() {
         // Function/method calls: foo(), bar.baz()
@@ -66,7 +64,7 @@ fn extract_identifier_from_node(
                         // Simple function call: foo()
                         let name = extractor.base_mut().get_node_text(&function_node);
                         let containing_symbol_id =
-                            find_containing_symbol_id(extractor, node, symbol_map);
+                            find_containing_symbol_id(node, containing_symbols);
 
                         extractor.base_mut().create_identifier(
                             &function_node,
@@ -81,7 +79,7 @@ fn extract_identifier_from_node(
                         if let Some(attr_node) = function_node.child_by_field_name("attribute") {
                             let name = extractor.base_mut().get_node_text(&attr_node);
                             let containing_symbol_id =
-                                find_containing_symbol_id(extractor, node, symbol_map);
+                                find_containing_symbol_id(node, containing_symbols);
                             let receiver_type = helpers::self_or_cls_receiver_type(
                                 extractor.base(),
                                 &function_node,
@@ -104,7 +102,7 @@ fn extract_identifier_from_node(
             }
             // Phase 3: capture string-literal call-arguments config-free; the
             // carrier classification + bloat gate run later in the artifact language-policy pass.
-            record_python_call_arg_literals(extractor, node, symbol_map);
+            record_python_call_arg_literals(extractor, node, containing_symbols);
         }
 
         // Member access: object.property
@@ -115,7 +113,7 @@ fn extract_identifier_from_node(
                     let name = extractor.base_mut().get_node_text(&attr_node);
                     if !is_python_builtin_type(&name) {
                         let containing_symbol_id =
-                            find_containing_symbol_id(extractor, node, symbol_map);
+                            find_containing_symbol_id(node, containing_symbols);
 
                         let identifier = extractor.base_mut().create_identifier(
                             &attr_node,
@@ -148,7 +146,7 @@ fn extract_identifier_from_node(
             // Extract the attribute name
             if let Some(attr_node) = node.child_by_field_name("attribute") {
                 let name = extractor.base_mut().get_node_text(&attr_node);
-                let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
                 extractor.base_mut().create_identifier(
                     &attr_node,
@@ -162,7 +160,7 @@ fn extract_identifier_from_node(
         "identifier" if is_python_type_usage_identifier(node) => {
             let name = extractor.base_mut().get_node_text(&node);
             if !is_python_builtin_type(&name) {
-                let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
                 let identifier = extractor.base_mut().create_identifier(
                     &node,
@@ -194,7 +192,7 @@ fn extract_identifier_from_node(
                 && name != "cls"
                 && !(name.starts_with("__") && name.ends_with("__"))
             {
-                let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 extractor.base_mut().create_identifier(
                     &node,
                     name,
@@ -362,13 +360,10 @@ fn is_python_builtin_type(name: &str) -> bool {
 /// Find the ID of the symbol that contains this node
 /// CRITICAL: Only search symbols from THIS FILE (file-scoped filtering)
 fn find_containing_symbol_id(
-    extractor: &PythonExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) -> Option<String> {
-    let base = extractor.base();
-    base.find_containing_symbol_from_map(&node, symbol_map)
-        .map(|s| s.id.clone())
+    containing_symbols.find(node).map(|s| s.id.clone())
 }
 
 // ============================================================================
@@ -385,7 +380,7 @@ fn find_containing_symbol_id(
 fn record_python_call_arg_literals(
     extractor: &mut PythonExtractor,
     call_node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     let Some(function_node) = call_node.child_by_field_name("function") else {
         return;
@@ -394,7 +389,7 @@ fn record_python_call_arg_literals(
         return;
     };
     let carrier = python_carrier(extractor.base(), function_node);
-    let containing_symbol_id = find_containing_symbol_id(extractor, call_node, symbol_map);
+    let containing_symbol_id = find_containing_symbol_id(call_node, containing_symbols);
 
     let mut cursor = args_node.walk();
     for (pos, arg) in args_node.named_children(&mut cursor).enumerate() {

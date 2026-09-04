@@ -3,9 +3,8 @@
 //! Extracts function calls, member access, and other identifier usages
 //! for LSP-quality find_references support.
 
-use crate::base::{BaseExtractor, Identifier, IdentifierKind, Symbol};
+use crate::base::{BaseExtractor, ContainingSymbolIndex, Identifier, IdentifierKind, Symbol};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use std::collections::HashMap;
 use tree_sitter::Node;
 
 /// Extract all identifier usages from a Scala file
@@ -14,9 +13,9 @@ pub(super) fn extract_identifiers(
     tree: &tree_sitter::Tree,
     symbols: &[Symbol],
 ) -> Vec<Identifier> {
-    let symbol_map: HashMap<String, &Symbol> = symbols.iter().map(|s| (s.id.clone(), s)).collect();
+    let containing_symbols = base.containing_symbol_index(symbols);
 
-    walk_tree_for_identifiers(base, tree.root_node(), &symbol_map, 0);
+    walk_tree_for_identifiers(base, tree.root_node(), &containing_symbols, 0);
 
     base.identifiers.clone()
 }
@@ -25,21 +24,21 @@ pub(super) fn extract_identifiers(
 fn walk_tree_for_identifiers(
     base: &mut BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
         return;
     }
 
-    extract_identifier_from_node(base, node, symbol_map);
+    extract_identifier_from_node(base, node, containing_symbols);
 
     let Some(child_depth) = child_tree_depth(depth) else {
         return;
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(base, child, symbol_map, child_depth);
+        walk_tree_for_identifiers(base, child, containing_symbols, child_depth);
     }
 }
 
@@ -47,7 +46,7 @@ fn walk_tree_for_identifiers(
 fn extract_identifier_from_node(
     base: &mut BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     match node.kind() {
         // Function/method calls
@@ -55,16 +54,16 @@ fn extract_identifier_from_node(
             // Phase 3b: capture string-literal call-arguments (config-free;
             // carrier classification + gate run later in the artifact language-policy pass).
             // Runs before the early-returning callee branches below.
-            record_scala_call_arg_literals(base, node, symbol_map);
+            record_scala_call_arg_literals(base, node, containing_symbols);
             for child in node.children(&mut node.walk()) {
                 if child.kind() == "identifier" {
                     let name = base.get_node_text(&child);
-                    let containing = find_containing_symbol_id(base, node, symbol_map);
+                    let containing = find_containing_symbol_id(node, containing_symbols);
                     base.create_identifier(&child, name, IdentifierKind::Call, containing);
                     return;
                 } else if child.kind() == "field_expression" {
                     if let Some((name_node, name)) = extract_rightmost_identifier(base, &child) {
-                        let containing = find_containing_symbol_id(base, node, symbol_map);
+                        let containing = find_containing_symbol_id(node, containing_symbols);
                         let receiver_type = self_receiver_type(base, child);
                         base.create_identifier_with_receiver_type(
                             &name_node,
@@ -78,7 +77,7 @@ fn extract_identifier_from_node(
                 } else if child.kind() == "generic_function" {
                     // Generic method call: foo[T](x) or obj.method[T](x)
                     if let Some(func) = child.child_by_field_name("function") {
-                        let containing = find_containing_symbol_id(base, node, symbol_map);
+                        let containing = find_containing_symbol_id(node, containing_symbols);
                         let opt_identifier = if func.kind() == "identifier" {
                             let name = base.get_node_text(&func);
                             Some(base.create_identifier(
@@ -132,7 +131,7 @@ fn extract_identifier_from_node(
                 return;
             }
 
-            let containing = find_containing_symbol_id(base, node, symbol_map);
+            let containing = find_containing_symbol_id(node, containing_symbols);
             let identifier =
                 base.create_identifier(&node, name, IdentifierKind::TypeUsage, containing);
             record_outermost_scala_type_arguments(base, node, &identifier);
@@ -148,7 +147,7 @@ fn extract_identifier_from_node(
             }
 
             if let Some((name_node, name)) = extract_rightmost_identifier(base, &node) {
-                let containing = find_containing_symbol_id(base, node, symbol_map);
+                let containing = find_containing_symbol_id(node, containing_symbols);
                 base.create_identifier(&name_node, name, IdentifierKind::MemberAccess, containing);
             }
         }
@@ -163,7 +162,7 @@ fn extract_identifier_from_node(
             // Rule 5: reuse the existing noise filter. (`this`/`super`/`true`/
             // `null` are distinct grammar nodes, never `identifier`.)
             if !is_scala_noise_type(&name) {
-                let containing = find_containing_symbol_id(base, node, symbol_map);
+                let containing = find_containing_symbol_id(node, containing_symbols);
                 base.create_identifier(&node, name, IdentifierKind::VariableRef, containing);
             }
         }
@@ -268,12 +267,10 @@ fn is_scala_value_read_identifier(base: &BaseExtractor, node: Node) -> bool {
 
 /// Find the ID of the symbol that contains this node
 fn find_containing_symbol_id(
-    base: &BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) -> Option<String> {
-    base.find_containing_symbol_from_map(&node, symbol_map)
-        .map(|s| s.id.clone())
+    containing_symbols.find(node).map(|s| s.id.clone())
 }
 
 // ============================================================================
@@ -293,7 +290,7 @@ fn find_containing_symbol_id(
 fn record_scala_call_arg_literals(
     base: &mut BaseExtractor,
     call_node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     let Some(func) = call_node.child_by_field_name("function") else {
         return;
@@ -302,7 +299,7 @@ fn record_scala_call_arg_literals(
         return;
     };
     let carrier = scala_carrier(base, func);
-    let containing_symbol_id = find_containing_symbol_id(base, call_node, symbol_map);
+    let containing_symbol_id = find_containing_symbol_id(call_node, containing_symbols);
 
     let arg_nodes: Vec<Node> = {
         let mut cursor = args.walk();

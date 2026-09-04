@@ -1,7 +1,9 @@
 /// LSP-quality identifier extraction for find_references support
-use crate::base::{BaseExtractor, Identifier, IdentifierKind, Symbol, extract_type_arguments};
+use crate::base::{
+    BaseExtractor, ContainingSymbolIndex, Identifier, IdentifierKind, Symbol,
+    extract_type_arguments,
+};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use std::collections::HashMap;
 use tree_sitter::Node;
 
 impl super::RazorExtractor {
@@ -12,12 +14,10 @@ impl super::RazorExtractor {
         tree: &tree_sitter::Tree,
         symbols: &[Symbol],
     ) -> Vec<Identifier> {
-        // Create symbol map for fast lookup
-        let symbol_map: HashMap<String, &Symbol> =
-            symbols.iter().map(|s| (s.id.clone(), s)).collect();
+        let containing_symbols = self.base.containing_symbol_index(symbols);
 
         // Walk the tree and extract identifiers
-        self.walk_tree_for_identifiers(tree.root_node(), &symbol_map, 0);
+        self.walk_tree_for_identifiers(tree.root_node(), &containing_symbols, 0);
 
         // Return the collected identifiers
         self.base.identifiers.clone()
@@ -27,7 +27,7 @@ impl super::RazorExtractor {
     fn walk_tree_for_identifiers(
         &mut self,
         node: Node,
-        symbol_map: &HashMap<String, &Symbol>,
+        containing_symbols: &ContainingSymbolIndex<'_>,
         depth: u32,
     ) {
         if !should_visit_tree_depth(depth) {
@@ -35,7 +35,7 @@ impl super::RazorExtractor {
         }
 
         // Extract identifier from this node if applicable
-        self.extract_identifier_from_node(node, symbol_map);
+        self.extract_identifier_from_node(node, containing_symbols);
 
         // Recursively walk children
         let Some(child_depth) = child_tree_depth(depth) else {
@@ -43,13 +43,17 @@ impl super::RazorExtractor {
         };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_tree_for_identifiers(child, symbol_map, child_depth);
+            self.walk_tree_for_identifiers(child, containing_symbols, child_depth);
         }
     }
 
     /// Extract identifier from a single node based on its kind
     /// Razor-specific: handles C# code within Razor directives and code blocks
-    fn extract_identifier_from_node(&mut self, node: Node, symbol_map: &HashMap<String, &Symbol>) {
+    fn extract_identifier_from_node(
+        &mut self,
+        node: Node,
+        containing_symbols: &ContainingSymbolIndex<'_>,
+    ) {
         match node.kind() {
             // Function/method calls: foo(), bar.Baz()
             // These appear in C# code blocks within Razor (@code {}, @{}, etc.)
@@ -60,7 +64,8 @@ impl super::RazorExtractor {
                 for child in node.children(&mut cursor) {
                     if child.kind() == "identifier" {
                         let name = self.base.get_node_text(&child);
-                        let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                        let containing_symbol_id =
+                            self.find_containing_symbol_id(node, containing_symbols);
 
                         self.base.create_identifier(
                             &child,
@@ -74,7 +79,7 @@ impl super::RazorExtractor {
                         if let Some(name_node) = child.child_by_field_name("name") {
                             let name = self.base.get_node_text(&name_node);
                             let containing_symbol_id =
-                                self.find_containing_symbol_id(node, symbol_map);
+                                self.find_containing_symbol_id(node, containing_symbols);
                             let receiver_type = self_receiver_type(&self.base, child);
                             self.base.create_identifier_with_receiver_type(
                                 &name_node,
@@ -89,7 +94,7 @@ impl super::RazorExtractor {
                 }
                 // Phase 3: capture string-literal call-arguments (config-free; the
                 // carrier classification + gate happen in the artifact language-policy pass).
-                self.record_razor_call_arg_literals(node, symbol_map);
+                self.record_razor_call_arg_literals(node, containing_symbols);
             }
 
             // Member access: object.field
@@ -106,7 +111,8 @@ impl super::RazorExtractor {
                 // Extract the rightmost identifier (the member name)
                 if let Some(name_node) = node.child_by_field_name("name") {
                     let name = self.base.get_node_text(&name_node);
-                    let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                    let containing_symbol_id =
+                        self.find_containing_symbol_id(node, containing_symbols);
 
                     self.base.create_identifier(
                         &name_node,
@@ -129,7 +135,8 @@ impl super::RazorExtractor {
                     } else {
                         IdentifierKind::MemberAccess
                     };
-                    let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                    let containing_symbol_id =
+                        self.find_containing_symbol_id(node, containing_symbols);
                     self.base
                         .create_identifier(&name_node, name, kind, containing_symbol_id);
                 }
@@ -152,7 +159,8 @@ impl super::RazorExtractor {
                     return;
                 }
                 if is_csharp_type_usage_identifier(node) {
-                    let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                    let containing_symbol_id =
+                        self.find_containing_symbol_id(node, containing_symbols);
                     let identifier = self.base.create_identifier(
                         &node,
                         name,
@@ -161,7 +169,8 @@ impl super::RazorExtractor {
                     );
                     record_outermost_generic_type_arguments(&mut self.base, node, &identifier);
                 } else if is_razor_value_read_identifier(node) {
-                    let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                    let containing_symbol_id =
+                        self.find_containing_symbol_id(node, containing_symbols);
                     self.base.create_identifier(
                         &node,
                         name,
@@ -178,15 +187,12 @@ impl super::RazorExtractor {
     }
 
     /// Find the ID of the symbol that contains this node
-    /// CRITICAL: Only search symbols from THIS FILE (file-scoped filtering)
     fn find_containing_symbol_id(
         &self,
         node: Node,
-        symbol_map: &HashMap<String, &Symbol>,
+        containing_symbols: &ContainingSymbolIndex<'_>,
     ) -> Option<String> {
-        self.base
-            .find_containing_symbol_from_map(&node, symbol_map)
-            .map(|s| s.id.clone())
+        containing_symbols.find(node).map(|s| s.id.clone())
     }
 
     // ========================================================================
@@ -202,7 +208,7 @@ impl super::RazorExtractor {
     fn record_razor_call_arg_literals(
         &mut self,
         node: Node,
-        symbol_map: &HashMap<String, &Symbol>,
+        containing_symbols: &ContainingSymbolIndex<'_>,
     ) {
         let Some(function) = node.child_by_field_name("function") else {
             return;
@@ -211,7 +217,7 @@ impl super::RazorExtractor {
             return;
         };
         let carrier = razor_carrier(&self.base, function);
-        let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+        let containing_symbol_id = self.find_containing_symbol_id(node, containing_symbols);
 
         let mut cursor = args.walk();
         for (pos, arg) in args.named_children(&mut cursor).enumerate() {

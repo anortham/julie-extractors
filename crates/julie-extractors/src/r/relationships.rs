@@ -2,7 +2,8 @@
 // Extracts relationships between R symbols: function calls, library usage, pipes
 
 use crate::base::{
-    Relationship, RelationshipKind, ScopedSymbolIndex, Symbol, SymbolKind, UnresolvedTarget,
+    ContainingSymbolIndex, Relationship, RelationshipKind, ScopedSymbolIndex, Symbol, SymbolKind,
+    UnresolvedTarget,
 };
 use crate::r::RExtractor;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
@@ -15,33 +16,38 @@ pub(super) fn extract_relationships(
     symbols: &[Symbol],
 ) -> Vec<Relationship> {
     let symbol_index = ScopedSymbolIndex::new(symbols);
+    let function_symbols = ContainingSymbolIndex::from_iter(
+        symbols
+            .iter()
+            .filter(|s| s.kind == SymbolKind::Function || s.kind == SymbolKind::Method),
+    );
     let mut relationships = Vec::new();
     extract_call_relationships(
         extractor,
         tree.root_node(),
-        symbols,
         &symbol_index,
+        &function_symbols,
         &mut relationships,
         0,
     );
     extract_pipe_relationships(
         extractor,
         tree.root_node(),
-        symbols,
         &symbol_index,
+        &function_symbols,
         &mut relationships,
         0,
     );
-    extract_member_access_relationships(extractor, tree.root_node(), symbols, 0);
+    extract_member_access_relationships(extractor, tree.root_node(), &function_symbols, 0);
     relationships
 }
 
 /// Extract function call relationships
-fn extract_call_relationships(
+fn extract_call_relationships<'a>(
     extractor: &mut RExtractor,
     node: Node,
-    symbols: &[Symbol],
-    symbol_index: &ScopedSymbolIndex,
+    symbol_index: &ScopedSymbolIndex<'a>,
+    function_symbols: &ContainingSymbolIndex<'a>,
     relationships: &mut Vec<Relationship>,
     depth: u32,
 ) {
@@ -75,7 +81,7 @@ fn extract_call_relationships(
             };
 
             // Find the containing function (caller)
-            if let Some(caller_symbol) = find_containing_function(extractor, node, symbols) {
+            if let Some(caller_symbol) = find_containing_function(node, function_symbols) {
                 let target = unresolved_call_target(extractor, function_node, &function_name);
                 let local_target = if target.namespace_path.is_empty() {
                     symbol_index
@@ -144,8 +150,8 @@ fn extract_call_relationships(
         extract_call_relationships(
             extractor,
             child,
-            symbols,
             symbol_index,
+            function_symbols,
             relationships,
             child_depth,
         );
@@ -153,11 +159,11 @@ fn extract_call_relationships(
 }
 
 /// Extract pipe operator relationships (%>%, |>, etc.)
-fn extract_pipe_relationships(
+fn extract_pipe_relationships<'a>(
     extractor: &mut RExtractor,
     node: Node,
-    symbols: &[Symbol],
-    symbol_index: &ScopedSymbolIndex,
+    symbol_index: &ScopedSymbolIndex<'a>,
+    function_symbols: &ContainingSymbolIndex<'a>,
     relationships: &mut Vec<Relationship>,
     depth: u32,
 ) {
@@ -184,7 +190,7 @@ fn extract_pipe_relationships(
 
                     // Find containing function
                     if let Some(containing_symbol) =
-                        find_containing_function(extractor, node, symbols)
+                        find_containing_function(node, function_symbols)
                     {
                         let local_target = if target.namespace_path.is_empty() {
                             symbol_index
@@ -247,8 +253,8 @@ fn extract_pipe_relationships(
         extract_pipe_relationships(
             extractor,
             child,
-            symbols,
             symbol_index,
+            function_symbols,
             relationships,
             child_depth,
         );
@@ -256,10 +262,10 @@ fn extract_pipe_relationships(
 }
 
 /// Extract member access relationships ($ operator)
-fn extract_member_access_relationships(
+fn extract_member_access_relationships<'a>(
     extractor: &mut RExtractor,
     node: Node,
-    symbols: &[Symbol],
+    function_symbols: &ContainingSymbolIndex<'a>,
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
@@ -273,7 +279,7 @@ fn extract_member_access_relationships(
             let member_name = extractor.base.get_node_text(&member_node);
 
             // Find containing function
-            if let Some(containing_symbol) = find_containing_function(extractor, node, symbols) {
+            if let Some(containing_symbol) = find_containing_function(node, function_symbols) {
                 // Member access targets can't be resolved locally (they're dynamic)
                 // Use PendingRelationship for cross-file resolution
                 let receiver = node
@@ -308,33 +314,16 @@ fn extract_member_access_relationships(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        extract_member_access_relationships(extractor, child, symbols, child_depth);
+        extract_member_access_relationships(extractor, child, function_symbols, child_depth);
     }
 }
 
 /// Find the containing function for a node using byte-range containment
-/// Delegates to BaseExtractor::find_containing_symbol for accurate position-based matching,
-/// then filters to only Function/Method kinds.
 fn find_containing_function<'a>(
-    extractor: &RExtractor,
     node: Node,
-    symbols: &'a [Symbol],
+    function_symbols: &ContainingSymbolIndex<'a>,
 ) -> Option<&'a Symbol> {
-    // Filter to only functions/methods, then use standard containment logic
-    let func_symbols: Vec<Symbol> = symbols
-        .iter()
-        .filter(|s| s.kind == SymbolKind::Function || s.kind == SymbolKind::Method)
-        .cloned()
-        .collect();
-
-    extractor
-        .base
-        .find_containing_symbol(&node, &func_symbols)
-        .and_then(|found| {
-            // Map back to the original slice reference (find_containing_symbol returns
-            // a reference into func_symbols which is local, so re-lookup in the original)
-            symbols.iter().find(|s| s.id == found.id)
-        })
+    function_symbols.find(node)
 }
 
 /// Check if a function name is a built-in R function

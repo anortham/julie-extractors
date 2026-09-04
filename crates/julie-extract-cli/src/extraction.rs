@@ -16,7 +16,7 @@ use julie_extractors::base::{
 use julie_extractors::language_policy::classify_literals_by_carrier;
 use julie_extractors::{
     ExtractionLevel, ExtractionResults, Literal, ParseDiagnosticKind, PendingRelationship,
-    SourceRegion, TypeArgument, TypeArgumentUsage, TypeInfo, extract_canonical_at,
+    SourceRegion, TypeArgument, TypeArgumentUsage, TypeInfo, extract_canonical_for_language_at,
 };
 use serde::Serialize;
 use serde_json::Value;
@@ -177,7 +177,13 @@ pub(crate) fn extract_artifact_file_from_snapshot_at(
     level: ExtractionLevel,
 ) -> Result<ArtifactFile, ExtractFileError> {
     let mut results = catch_extraction_panic(target, &snapshot, || {
-        extract_canonical_at(&target.root_relative_path, &snapshot.content, root, level)
+        extract_canonical_for_language_at(
+            &language,
+            &target.root_relative_path,
+            &snapshot.content,
+            root,
+            level,
+        )
     })?;
     classify_literals_by_carrier(&mut results.literals);
 
@@ -1216,6 +1222,7 @@ fn failure_parse_diagnostic(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use julie_extractors::extract_canonical_at;
 
     #[test]
     fn receiver_context_is_stable_across_common_member_separators() {

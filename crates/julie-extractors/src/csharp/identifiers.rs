@@ -1,8 +1,7 @@
 // C# Identifier Extraction
 
-use crate::base::{BaseExtractor, Identifier, IdentifierKind, Symbol};
+use crate::base::{BaseExtractor, ContainingSymbolIndex, Identifier, IdentifierKind, Symbol};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
 /// Extract all identifier usages
@@ -11,35 +10,35 @@ pub fn extract_identifiers(
     tree: &Tree,
     symbols: &[Symbol],
 ) -> Vec<Identifier> {
-    let symbol_map: HashMap<String, &Symbol> = symbols.iter().map(|s| (s.id.clone(), s)).collect();
-    walk_tree_for_identifiers(base, tree.root_node(), &symbol_map, 0);
+    let containing_symbols = base.containing_symbol_index(symbols);
+    walk_tree_for_identifiers(base, tree.root_node(), &containing_symbols, 0);
     base.identifiers.clone()
 }
 
 fn walk_tree_for_identifiers(
     base: &mut BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
         return;
     }
 
-    extract_identifier_from_node(base, node, symbol_map);
+    extract_identifier_from_node(base, node, containing_symbols);
     let Some(child_depth) = child_tree_depth(depth) else {
         return;
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(base, child, symbol_map, child_depth);
+        walk_tree_for_identifiers(base, child, containing_symbols, child_depth);
     }
 }
 
 fn extract_identifier_from_node(
     base: &mut BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     match node.kind() {
         "invocation_expression" => {
@@ -47,7 +46,7 @@ fn extract_identifier_from_node(
             for child in node.children(&mut cursor) {
                 if child.kind() == "identifier" {
                     let name = base.get_node_text(&child);
-                    let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                    let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                     base.create_identifier(
                         &child,
                         name,
@@ -59,7 +58,7 @@ fn extract_identifier_from_node(
                     if let Some(name_node) = child.child_by_field_name("name") {
                         let name = base.get_node_text(&name_node);
                         let containing_symbol_id =
-                            find_containing_symbol_id(base, node, symbol_map);
+                            find_containing_symbol_id(node, containing_symbols);
                         let receiver_type = self_receiver_type(base, child);
                         base.create_identifier_with_receiver_type(
                             &name_node,
@@ -74,13 +73,13 @@ fn extract_identifier_from_node(
             }
             // Phase 3: capture string-literal call-arguments (config-free; the
             // carrier classification + gate happen in the artifact language-policy pass).
-            record_csharp_call_arg_literals(base, node, symbol_map);
+            record_csharp_call_arg_literals(base, node, containing_symbols);
         }
         "object_creation_expression" => {
             if let Some(type_node) = node.child_by_field_name("type")
                 && let Some((name_node, name)) = terminal_type_identifier(base, type_node, 0)
             {
-                let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 base.create_identifier(
                     &name_node,
                     name,
@@ -98,7 +97,7 @@ fn extract_identifier_from_node(
 
             if let Some(name_node) = node.child_by_field_name("name") {
                 let name = base.get_node_text(&name_node);
-                let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 base.create_identifier(
                     &name_node,
                     name,
@@ -119,7 +118,7 @@ fn extract_identifier_from_node(
                 } else {
                     IdentifierKind::MemberAccess
                 };
-                let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 base.create_identifier(&name_node, name, kind, containing_symbol_id);
             }
         }
@@ -135,7 +134,7 @@ fn extract_identifier_from_node(
         "identifier" if is_csharp_misparsed_mul_operand(base, node) => {
             let name = base.get_node_text(&node);
             if !is_csharp_builtin_type(&name) {
-                let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 base.create_identifier(
                     &node,
                     name,
@@ -147,7 +146,7 @@ fn extract_identifier_from_node(
         "identifier" if is_csharp_type_usage_identifier(node) => {
             let name = base.get_node_text(&node);
             if !is_csharp_builtin_type(&name) {
-                let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 let identifier = base.create_identifier(
                     &node,
                     name,
@@ -167,7 +166,7 @@ fn extract_identifier_from_node(
             // `null` are distinct grammar nodes, not `identifier`, so they never
             // reach this arm.)
             if !is_csharp_builtin_type(&name) {
-                let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 base.create_identifier(
                     &node,
                     name,
@@ -694,12 +693,10 @@ fn is_csharp_builtin_type(name: &str) -> bool {
 }
 
 fn find_containing_symbol_id(
-    base: &BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) -> Option<String> {
-    base.find_containing_symbol_from_map(&node, symbol_map)
-        .map(|s| s.id.clone())
+    containing_symbols.find(node).map(|s| s.id.clone())
 }
 
 // ============================================================================
@@ -716,7 +713,7 @@ fn find_containing_symbol_id(
 fn record_csharp_call_arg_literals(
     base: &mut BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     let Some(function) = node.child_by_field_name("function") else {
         return;
@@ -725,7 +722,7 @@ fn record_csharp_call_arg_literals(
         return;
     };
     let carrier = csharp_carrier(base, function);
-    let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+    let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
     let mut cursor = args.walk();
     for (pos, arg) in args.named_children(&mut cursor).enumerate() {

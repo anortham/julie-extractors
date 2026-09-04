@@ -122,6 +122,7 @@ pub(super) fn extract_template(
     base: &mut BaseExtractor,
     node: Node,
     parent_id: Option<&str>,
+    symbols: &[Symbol],
 ) -> Option<Symbol> {
     let mut cursor = node.walk();
     let inner = node
@@ -155,7 +156,7 @@ pub(super) fn extract_template(
             .map(|pl| format!("template{}", base.get_node_text(&pl)))
     };
 
-    let mut symbol = extract_declaration(base, inner, parent_id)?;
+    let mut symbol = extract_declaration(base, inner, parent_id, symbols)?;
 
     // Prepend template parameters to the signature
     if let Some(template_prefix) = template_params {
@@ -171,6 +172,7 @@ pub(super) fn extract_declaration(
     base: &mut BaseExtractor,
     node: Node,
     parent_id: Option<&str>,
+    symbols: &[Symbol],
 ) -> Option<Symbol> {
     // Check if this is a friend declaration first
     let node_text = base.get_node_text(&node);
@@ -214,7 +216,7 @@ pub(super) fn extract_declaration(
         }
 
         // This is a function declaration, treat it as a function
-        return functions::extract_function(base, node, parent_id);
+        return functions::extract_function(base, node, parent_id, symbols);
     }
 
     // Handle variable declarations

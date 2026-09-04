@@ -5,13 +5,14 @@
 
 mod type_arguments;
 
-use crate::base::{Identifier, IdentifierKind, Symbol, extract_type_arguments};
+use crate::base::{
+    ContainingSymbolIndex, Identifier, IdentifierKind, Symbol, extract_type_arguments,
+};
 use crate::javascript::identifiers::{
     ecmascript_enclosing_class_name, is_ecmascript_value_read_identifier,
 };
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use crate::typescript::TypeScriptExtractor;
-use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 use type_arguments::{
     decompose_ts_type_arg, is_ts_noise_type, is_type_declaration_name,
@@ -24,11 +25,10 @@ pub(super) fn extract_identifiers(
     tree: &Tree,
     symbols: &[Symbol],
 ) -> Vec<Identifier> {
-    // Create symbol map for fast lookup
-    let symbol_map: HashMap<String, &Symbol> = symbols.iter().map(|s| (s.id.clone(), s)).collect();
+    let containing_symbols = extractor.base().containing_symbol_index(symbols);
 
     // Walk the tree and extract identifiers
-    walk_tree_for_identifiers(extractor, tree.root_node(), &symbol_map, 0);
+    walk_tree_for_identifiers(extractor, tree.root_node(), &containing_symbols, 0);
 
     // Return the collected identifiers
     extractor.base().identifiers.clone()
@@ -38,7 +38,7 @@ pub(super) fn extract_identifiers(
 fn walk_tree_for_identifiers(
     extractor: &mut TypeScriptExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
@@ -46,7 +46,7 @@ fn walk_tree_for_identifiers(
     }
 
     // Extract identifier from this node if applicable
-    extract_identifier_from_node(extractor, node, symbol_map);
+    extract_identifier_from_node(extractor, node, containing_symbols);
 
     // Recursively walk children
     let Some(child_depth) = child_tree_depth(depth) else {
@@ -54,7 +54,7 @@ fn walk_tree_for_identifiers(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(extractor, child, symbol_map, child_depth);
+        walk_tree_for_identifiers(extractor, child, containing_symbols, child_depth);
     }
 }
 
@@ -62,7 +62,7 @@ fn walk_tree_for_identifiers(
 fn extract_identifier_from_node(
     extractor: &mut TypeScriptExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     match node.kind() {
         // Function/method calls: foo(), object.method()
@@ -74,7 +74,7 @@ fn extract_identifier_from_node(
                         // Simple function call: foo()
                         let name = extractor.base().get_node_text(&function_node);
                         let containing_symbol_id =
-                            find_containing_symbol_id(extractor, node, symbol_map);
+                            find_containing_symbol_id(node, containing_symbols);
 
                         extractor.base_mut().create_identifier(
                             &function_node,
@@ -89,7 +89,7 @@ fn extract_identifier_from_node(
                         if let Some(property_node) = function_node.child_by_field_name("property") {
                             let name = extractor.base().get_node_text(&property_node);
                             let containing_symbol_id =
-                                find_containing_symbol_id(extractor, node, symbol_map);
+                                find_containing_symbol_id(node, containing_symbols);
                             let receiver_type = function_node
                                 .child_by_field_name("object")
                                 .filter(|object| object.kind() == "this")
@@ -114,7 +114,7 @@ fn extract_identifier_from_node(
             }
             // Phase 3: capture string-literal call-arguments (config-free; the
             // carrier classification + gate happen in the artifact language-policy pass).
-            record_call_arg_literals(extractor, &node, symbol_map);
+            record_call_arg_literals(extractor, &node, containing_symbols);
         }
 
         // Heritage clause: `class A extends Base<Foo, Bar>` or `class A extends Base`.
@@ -126,7 +126,7 @@ fn extract_identifier_from_node(
             if let Some(value_node) = node.child_by_field_name("value")
                 && let Some((name_node, name)) = terminal_identifier(extractor, value_node)
             {
-                let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 let identifier = extractor.base_mut().create_identifier(
                     &name_node,
                     name,
@@ -146,7 +146,7 @@ fn extract_identifier_from_node(
 
         "new_expression" => {
             if let Some((name_node, name)) = constructor_identifier(extractor, &node) {
-                let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 let identifier = extractor.base_mut().create_identifier(
                     &name_node,
                     name,
@@ -174,7 +174,7 @@ fn extract_identifier_from_node(
 
         "jsx_opening_element" | "jsx_self_closing_element" => {
             if let Some((name_node, name)) = jsx_component_identifier(extractor, &node) {
-                let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 extractor.base_mut().create_identifier(
                     &name_node,
                     name,
@@ -207,7 +207,7 @@ fn extract_identifier_from_node(
             // Extract the rightmost identifier (the property name)
             if let Some(property_node) = node.child_by_field_name("property") {
                 let name = extractor.base().get_node_text(&property_node);
-                let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
                 extractor.base_mut().create_identifier(
                     &property_node,
@@ -236,7 +236,7 @@ fn extract_identifier_from_node(
                 return;
             }
 
-            let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
             let identifier = extractor.base_mut().create_identifier(
                 &node,
@@ -259,7 +259,7 @@ fn extract_identifier_from_node(
         // node yields two rows. Predicate shared with JavaScript and Vue.
         "identifier" if is_ecmascript_value_read_identifier(node) => {
             let name = extractor.base().get_node_text(&node);
-            let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
             extractor.base_mut().create_identifier(
                 &node,
                 name,
@@ -273,7 +273,7 @@ fn extract_identifier_from_node(
         // node kind and stays excluded.
         "shorthand_property_identifier" => {
             let name = extractor.base().get_node_text(&node);
-            let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
             extractor.base_mut().create_identifier(
                 &node,
                 name,
@@ -361,14 +361,10 @@ fn is_component_name(name: &str) -> bool {
 /// Find the ID of the symbol that contains this node
 /// CRITICAL: Only search symbols from THIS FILE (file-scoped filtering)
 fn find_containing_symbol_id(
-    extractor: &TypeScriptExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) -> Option<String> {
-    extractor
-        .base()
-        .find_containing_symbol_from_map(&node, symbol_map)
-        .map(|s| s.id.clone())
+    containing_symbols.find(node).map(|s| s.id.clone())
 }
 
 // ============================================================================
@@ -384,7 +380,7 @@ fn find_containing_symbol_id(
 fn record_call_arg_literals(
     extractor: &mut TypeScriptExtractor,
     call_node: &Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     let Some(function_node) = call_node.child_by_field_name("function") else {
         return;
@@ -393,7 +389,7 @@ fn record_call_arg_literals(
         return;
     };
     let carrier = callee_text(extractor, function_node);
-    let containing_symbol_id = find_containing_symbol_id(extractor, *call_node, symbol_map);
+    let containing_symbol_id = find_containing_symbol_id(*call_node, containing_symbols);
 
     let mut cursor = args_node.walk();
     for (pos, arg) in args_node.named_children(&mut cursor).enumerate() {

@@ -1,7 +1,6 @@
 use crate::base::config_literals::{enclosing_element_tag_name, tag_attribute_carrier};
-use crate::base::{BaseExtractor, IdentifierKind, Symbol};
+use crate::base::{BaseExtractor, ContainingSymbolIndex, IdentifierKind};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use std::collections::HashMap;
 use tree_sitter::Node;
 
 /// Identifier extraction for LSP find_references functionality
@@ -12,15 +11,15 @@ impl IdentifierExtractor {
     pub(super) fn extract_identifiers(
         base: &mut BaseExtractor,
         node: Node,
-        symbol_map: &HashMap<String, &Symbol>,
+        containing_symbols: &ContainingSymbolIndex<'_>,
     ) {
-        Self::extract_identifiers_at_depth(base, node, symbol_map, 0);
+        Self::extract_identifiers_at_depth(base, node, containing_symbols, 0);
     }
 
     fn extract_identifiers_at_depth(
         base: &mut BaseExtractor,
         node: Node,
-        symbol_map: &HashMap<String, &Symbol>,
+        containing_symbols: &ContainingSymbolIndex<'_>,
         depth: u32,
     ) {
         if !should_visit_tree_depth(depth) {
@@ -28,7 +27,7 @@ impl IdentifierExtractor {
         }
 
         // Extract identifier from this node if applicable
-        Self::extract_identifier_from_node(base, node, symbol_map);
+        Self::extract_identifier_from_node(base, node, containing_symbols);
 
         // Recursively walk children
         let Some(child_depth) = child_tree_depth(depth) else {
@@ -36,7 +35,7 @@ impl IdentifierExtractor {
         };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            Self::extract_identifiers_at_depth(base, child, symbol_map, child_depth);
+            Self::extract_identifiers_at_depth(base, child, containing_symbols, child_depth);
         }
     }
 
@@ -44,7 +43,7 @@ impl IdentifierExtractor {
     fn extract_identifier_from_node(
         base: &mut BaseExtractor,
         node: Node,
-        symbol_map: &HashMap<String, &Symbol>,
+        containing_symbols: &ContainingSymbolIndex<'_>,
     ) {
         match node.kind() {
             // HTML attributes: onclick, data-action (as "calls"), id, class (as "member access")
@@ -74,7 +73,7 @@ impl IdentifierExtractor {
                     && !value.is_empty()
                 {
                     let containing_symbol_id =
-                        Self::find_containing_symbol_id(base, node, symbol_map);
+                        Self::find_containing_symbol_id(node, containing_symbols);
                     let tag_name = enclosing_element_tag_name(&base.content, node)
                         .map(|tag_name| tag_name.to_ascii_lowercase())
                         .unwrap_or_else(|| "element".to_string());
@@ -92,7 +91,7 @@ impl IdentifierExtractor {
                     // Event handlers and data-action attributes are "calls"
                     if name.starts_with("on") || name.starts_with("data-action") {
                         let containing_symbol_id =
-                            Self::find_containing_symbol_id(base, node, symbol_map);
+                            Self::find_containing_symbol_id(node, containing_symbols);
 
                         base.create_identifier(
                             &node,
@@ -107,7 +106,7 @@ impl IdentifierExtractor {
                         if name == "class" {
                             for class_name in value.split_whitespace() {
                                 let containing_symbol_id =
-                                    Self::find_containing_symbol_id(base, node, symbol_map);
+                                    Self::find_containing_symbol_id(node, containing_symbols);
 
                                 base.create_identifier(
                                     &node,
@@ -119,7 +118,7 @@ impl IdentifierExtractor {
                         } else {
                             // id attribute
                             let containing_symbol_id =
-                                Self::find_containing_symbol_id(base, node, symbol_map);
+                                Self::find_containing_symbol_id(node, containing_symbols);
 
                             base.create_identifier(
                                 &node,
@@ -140,13 +139,10 @@ impl IdentifierExtractor {
     }
 
     /// Find the ID of the symbol that contains this node
-    /// CRITICAL: Only search symbols from THIS FILE (file-scoped filtering)
     fn find_containing_symbol_id(
-        base: &BaseExtractor,
         node: Node,
-        symbol_map: &HashMap<String, &Symbol>,
+        containing_symbols: &ContainingSymbolIndex<'_>,
     ) -> Option<String> {
-        base.find_containing_symbol_from_map(&node, symbol_map)
-            .map(|s| s.id.clone())
+        containing_symbols.find(node).map(|s| s.id.clone())
     }
 }

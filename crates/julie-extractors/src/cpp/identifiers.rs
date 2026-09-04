@@ -3,9 +3,8 @@
 //! Extracts function calls, member access, and other identifier usages
 //! from C++ source code for precise code navigation.
 
-use crate::base::{BaseExtractor, Identifier, IdentifierKind, Symbol};
+use crate::base::{BaseExtractor, ContainingSymbolIndex, Identifier, IdentifierKind};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use std::collections::HashMap;
 use tree_sitter::Node;
 
 use super::CppExtractor;
@@ -16,7 +15,7 @@ impl CppExtractor {
     pub(super) fn walk_tree_for_identifiers(
         &mut self,
         node: Node,
-        symbol_map: &HashMap<String, &Symbol>,
+        containing_symbols: &ContainingSymbolIndex<'_>,
         depth: u32,
     ) {
         if !should_visit_tree_depth(depth) {
@@ -24,7 +23,7 @@ impl CppExtractor {
         }
 
         // Extract identifier from this node if applicable
-        self.extract_identifier_from_node(node, symbol_map);
+        self.extract_identifier_from_node(node, containing_symbols);
 
         // Recursively walk children
         let Some(child_depth) = child_tree_depth(depth) else {
@@ -32,12 +31,16 @@ impl CppExtractor {
         };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_tree_for_identifiers(child, symbol_map, child_depth);
+            self.walk_tree_for_identifiers(child, containing_symbols, child_depth);
         }
     }
 
     /// Extract identifier from a single node based on its kind
-    fn extract_identifier_from_node(&mut self, node: Node, symbol_map: &HashMap<String, &Symbol>) {
+    fn extract_identifier_from_node(
+        &mut self,
+        node: Node,
+        containing_symbols: &ContainingSymbolIndex<'_>,
+    ) {
         match node.kind() {
             // Function calls: foo(), bar.baz(), make_shared<Foo>()
             "call_expression" => {
@@ -45,14 +48,14 @@ impl CppExtractor {
                 // carrier classification + gate happen in the artifact language-policy pass). Done
                 // first so it also covers template calls (`query<T>("SELECT ...")`),
                 // which the identifier logic below returns early for.
-                self.record_call_arg_literals(node, symbol_map);
+                self.record_call_arg_literals(node, containing_symbols);
                 if let Some(func_node) = node.child_by_field_name("function") {
                     // Template function call: make_shared<Foo>(), invoke<T>(), etc.
                     if func_node.kind() == "template_function" {
                         if let Some(name_node) = func_node.child_by_field_name("name") {
                             let name = self.base.get_node_text(&name_node);
                             let containing_symbol_id =
-                                self.find_containing_symbol_id(node, symbol_map);
+                                self.find_containing_symbol_id(node, containing_symbols);
                             let identifier = self.base.create_identifier(
                                 &name_node,
                                 name,
@@ -81,7 +84,8 @@ impl CppExtractor {
                         (func_node, self.base.get_node_text(&func_node))
                     };
 
-                    let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                    let containing_symbol_id =
+                        self.find_containing_symbol_id(node, containing_symbols);
                     let receiver_type = this_receiver_type(&self.base, node);
                     self.base.create_identifier_with_receiver_type(
                         &identifier_node,
@@ -98,7 +102,8 @@ impl CppExtractor {
                 // Extract the field name
                 if let Some(field_node) = node.child_by_field_name("field") {
                     let name = self.base.get_node_text(&field_node);
-                    let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                    let containing_symbol_id =
+                        self.find_containing_symbol_id(node, containing_symbols);
 
                     self.base.create_identifier(
                         &field_node,
@@ -124,7 +129,7 @@ impl CppExtractor {
                     return;
                 }
 
-                let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                let containing_symbol_id = self.find_containing_symbol_id(node, containing_symbols);
 
                 let identifier = self.base.create_identifier(
                     &node,
@@ -147,7 +152,8 @@ impl CppExtractor {
                 // Rule 5: reuse the TypeUsage arm's noise filter, plus the
                 // pre-C++11 NULL macro (parses as a plain identifier).
                 if !helpers::is_noise_type(&name) && name != "NULL" {
-                    let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                    let containing_symbol_id =
+                        self.find_containing_symbol_id(node, containing_symbols);
                     self.base.create_identifier(
                         &node,
                         name,
@@ -166,7 +172,8 @@ impl CppExtractor {
             "namespace_identifier" if is_cpp_scope_receiver_read(node) => {
                 let name = self.base.get_node_text(&node);
                 if !helpers::is_noise_type(&name) {
-                    let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                    let containing_symbol_id =
+                        self.find_containing_symbol_id(node, containing_symbols);
                     self.base.create_identifier(
                         &node,
                         name,
@@ -184,7 +191,8 @@ impl CppExtractor {
                     && parent.kind() == "field_designator"
                 {
                     let name = self.base.get_node_text(&node);
-                    let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                    let containing_symbol_id =
+                        self.find_containing_symbol_id(node, containing_symbols);
                     self.base.create_identifier(
                         &node,
                         name,
@@ -203,11 +211,9 @@ impl CppExtractor {
     fn find_containing_symbol_id(
         &self,
         node: Node,
-        symbol_map: &HashMap<String, &Symbol>,
+        containing_symbols: &ContainingSymbolIndex<'_>,
     ) -> Option<String> {
-        self.base
-            .find_containing_symbol_from_map(&node, symbol_map)
-            .map(|s| s.id.clone())
+        containing_symbols.find(node).map(|s| s.id.clone())
     }
 
     /// Capture string-literal arguments of a C++ `call_expression` as `Literal`
@@ -218,7 +224,11 @@ impl CppExtractor {
     /// is decoded directly. `arg_position` is counted over the full argument list,
     /// so e.g. the URL in `curl_easy_setopt(h, CURLOPT_URL, "https://...")`
     /// reports position 2.
-    fn record_call_arg_literals(&mut self, node: Node, symbol_map: &HashMap<String, &Symbol>) {
+    fn record_call_arg_literals(
+        &mut self,
+        node: Node,
+        containing_symbols: &ContainingSymbolIndex<'_>,
+    ) {
         let Some(func_node) = node.child_by_field_name("function") else {
             return;
         };
@@ -226,7 +236,7 @@ impl CppExtractor {
             return;
         };
         let carrier = cpp_carrier(&self.base, func_node);
-        let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+        let containing_symbol_id = self.find_containing_symbol_id(node, containing_symbols);
 
         let mut cursor = args.walk();
         for (pos, arg) in args.named_children(&mut cursor).enumerate() {

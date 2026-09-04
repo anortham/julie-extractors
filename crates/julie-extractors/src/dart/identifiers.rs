@@ -3,16 +3,15 @@
 // Methods for extracting identifier usages (function calls, member access, etc.)
 
 use super::helpers::{find_child_by_type, get_node_text};
-use crate::base::{BaseExtractor, Identifier, IdentifierKind, Symbol};
+use crate::base::{BaseExtractor, ContainingSymbolIndex, Identifier, IdentifierKind};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use std::collections::HashMap;
 use tree_sitter::Node;
 
 /// Walk the entire tree extracting identifier usages
 pub(super) fn walk_tree_for_identifiers(
     base: &mut BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
@@ -20,7 +19,7 @@ pub(super) fn walk_tree_for_identifiers(
     }
 
     // Extract identifier from this node if applicable
-    extract_identifier_from_node(base, node, symbol_map);
+    extract_identifier_from_node(base, node, containing_symbols);
 
     // Recursively walk children
     let Some(child_depth) = child_tree_depth(depth) else {
@@ -28,20 +27,20 @@ pub(super) fn walk_tree_for_identifiers(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(base, child, symbol_map, child_depth);
+        walk_tree_for_identifiers(base, child, containing_symbols, child_depth);
     }
 }
 
 fn extract_identifier_from_node(
     base: &mut BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     match node.kind() {
         "call_expression" => {
             if let Some(target_node) = call_target_name_node(node.child_by_field_name("function")) {
                 let name = get_node_text(&target_node);
-                let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 let receiver_type = self_receiver_type(base, node);
                 base.create_identifier_with_receiver_type(
                     &target_node,
@@ -53,7 +52,7 @@ fn extract_identifier_from_node(
             }
             // Phase 3b: capture string-literal call-arguments (config-free;
             // carrier classification + gate run later in the artifact language-policy pass).
-            record_dart_call_arg_literals(base, node, symbol_map);
+            record_dart_call_arg_literals(base, node, containing_symbols);
         }
 
         "member_expression" | "null_aware_member_expression" => {
@@ -63,7 +62,7 @@ fn extract_identifier_from_node(
 
             if let Some(property_node) = node.child_by_field_name("property") {
                 let name = get_node_text(&property_node);
-                let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 base.create_identifier(
                     &property_node,
                     name,
@@ -83,7 +82,7 @@ fn extract_identifier_from_node(
                     false
                 };
 
-                let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 let kind = if is_call {
                     crate::base::IdentifierKind::Call
                 } else {
@@ -111,7 +110,7 @@ fn extract_identifier_from_node(
                 return;
             }
 
-            let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
             let identifier = base.create_identifier(
                 &node,
                 name,
@@ -124,7 +123,7 @@ fn extract_identifier_from_node(
         "unconditional_assignable_selector" => {
             if let Some(id_node) = find_child_by_type(&node, "identifier") {
                 let name = get_node_text(&id_node);
-                let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
                 base.create_identifier(
                     &id_node,
@@ -144,7 +143,7 @@ fn extract_identifier_from_node(
         // `identifier`, so rule 5 is structurally satisfied.)
         "identifier" if is_dart_value_read_identifier(node) => {
             let name = get_node_text(&node);
-            let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
             base.create_identifier(
                 &node,
                 name,
@@ -163,7 +162,7 @@ fn extract_identifier_from_node(
                 .is_some_and(|p| p.kind() == "template_substitution") =>
         {
             let name = get_node_text(&node);
-            let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
             base.create_identifier(
                 &node,
                 name,
@@ -452,12 +451,10 @@ fn is_call_function_node(node: Node) -> bool {
 }
 
 fn find_containing_symbol_id(
-    base: &BaseExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) -> Option<String> {
-    base.find_containing_symbol_from_map(&node, symbol_map)
-        .map(|s| s.id.clone())
+    containing_symbols.find(node).map(|s| s.id.clone())
 }
 
 // ============================================================================
@@ -481,7 +478,7 @@ fn find_containing_symbol_id(
 fn record_dart_call_arg_literals(
     base: &mut BaseExtractor,
     call_node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     let Some(function_node) = call_node.child_by_field_name("function") else {
         return;
@@ -490,7 +487,7 @@ fn record_dart_call_arg_literals(
         return;
     };
     let carrier = dart_carrier(function_node);
-    let containing_symbol_id = find_containing_symbol_id(base, call_node, symbol_map);
+    let containing_symbol_id = find_containing_symbol_id(call_node, containing_symbols);
 
     let arg_nodes: Vec<Node> = {
         let mut cursor = args_node.walk();

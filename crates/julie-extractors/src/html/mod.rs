@@ -247,15 +247,13 @@ impl HTMLExtractor {
     }
 
     pub fn extract_identifiers(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Identifier> {
-        // Create symbol map for fast lookup
-        let symbol_map: HashMap<String, &Symbol> =
-            symbols.iter().map(|s| (s.id.clone(), s)).collect();
+        let containing_symbols = self.base.containing_symbol_index(symbols);
 
         // Walk the tree and extract identifiers
         identifiers::IdentifierExtractor::extract_identifiers(
             &mut self.base,
             tree.root_node(),
-            &symbol_map,
+            &containing_symbols,
         );
 
         // Return the collected identifiers

@@ -3,21 +3,18 @@
 //! Handles extraction of all identifier usages including function calls,
 //! member access, and other references used for LSP-quality find_references.
 
-use crate::base::{Identifier, IdentifierKind, Symbol};
+use crate::base::{ContainingSymbolIndex, Identifier, IdentifierKind, Symbol};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
 impl super::JavaScriptExtractor {
     /// Extract all identifier usages (function calls, member access, etc.)
     /// Following the Rust extractor reference implementation pattern
     pub fn extract_identifiers(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Identifier> {
-        // Create symbol map for fast lookup
-        let symbol_map: HashMap<String, &Symbol> =
-            symbols.iter().map(|s| (s.id.clone(), s)).collect();
+        let containing_symbols = self.base.containing_symbol_index(symbols);
 
         // Walk the tree and extract identifiers
-        self.walk_tree_for_identifiers(tree.root_node(), &symbol_map, 0);
+        self.walk_tree_for_identifiers(tree.root_node(), &containing_symbols, 0);
 
         // Return the collected identifiers
         self.base.identifiers.clone()
@@ -27,7 +24,7 @@ impl super::JavaScriptExtractor {
     fn walk_tree_for_identifiers(
         &mut self,
         node: Node,
-        symbol_map: &HashMap<String, &Symbol>,
+        containing_symbols: &ContainingSymbolIndex<'_>,
         depth: u32,
     ) {
         if !should_visit_tree_depth(depth) {
@@ -35,7 +32,7 @@ impl super::JavaScriptExtractor {
         }
 
         // Extract identifier from this node if applicable
-        self.extract_identifier_from_node(node, symbol_map);
+        self.extract_identifier_from_node(node, containing_symbols);
 
         // Recursively walk children
         let Some(child_depth) = child_tree_depth(depth) else {
@@ -43,12 +40,16 @@ impl super::JavaScriptExtractor {
         };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_tree_for_identifiers(child, symbol_map, child_depth);
+            self.walk_tree_for_identifiers(child, containing_symbols, child_depth);
         }
     }
 
     /// Extract identifier from a single node based on its kind
-    fn extract_identifier_from_node(&mut self, node: Node, symbol_map: &HashMap<String, &Symbol>) {
+    fn extract_identifier_from_node(
+        &mut self,
+        node: Node,
+        containing_symbols: &ContainingSymbolIndex<'_>,
+    ) {
         match node.kind() {
             // Function/method calls: foo(), bar.baz()
             "call_expression" => {
@@ -59,7 +60,7 @@ impl super::JavaScriptExtractor {
                             // Simple function call: foo()
                             let name = self.base.get_node_text(&function_node);
                             let containing_symbol_id =
-                                self.find_containing_symbol_id(node, symbol_map);
+                                self.find_containing_symbol_id(node, containing_symbols);
 
                             self.base.create_identifier(
                                 &function_node,
@@ -76,7 +77,7 @@ impl super::JavaScriptExtractor {
                             {
                                 let name = self.base.get_node_text(&property_node);
                                 let containing_symbol_id =
-                                    self.find_containing_symbol_id(node, symbol_map);
+                                    self.find_containing_symbol_id(node, containing_symbols);
                                 let receiver_type = function_node
                                     .child_by_field_name("object")
                                     .filter(|object| object.kind() == "this")
@@ -101,12 +102,13 @@ impl super::JavaScriptExtractor {
                 }
                 // Phase 3: capture string-literal call-arguments (config-free; the
                 // carrier classification + gate happen in the artifact language-policy pass).
-                self.record_call_arg_literals(&node, symbol_map);
+                self.record_call_arg_literals(&node, containing_symbols);
             }
 
             "new_expression" => {
                 if let Some((name_node, name)) = self.constructor_identifier(&node) {
-                    let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                    let containing_symbol_id =
+                        self.find_containing_symbol_id(node, containing_symbols);
                     self.base.create_identifier(
                         &name_node,
                         name,
@@ -140,7 +142,8 @@ impl super::JavaScriptExtractor {
                 // Extract the rightmost identifier (the property name)
                 if let Some(property_node) = node.child_by_field_name("property") {
                     let name = self.base.get_node_text(&property_node);
-                    let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                    let containing_symbol_id =
+                        self.find_containing_symbol_id(node, containing_symbols);
 
                     self.base.create_identifier(
                         &property_node,
@@ -157,7 +160,7 @@ impl super::JavaScriptExtractor {
             // `property_identifier` node kind, so they can never reach this arm.
             "identifier" if is_ecmascript_value_read_identifier(node) => {
                 let name = self.base.get_node_text(&node);
-                let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                let containing_symbol_id = self.find_containing_symbol_id(node, containing_symbols);
                 self.base.create_identifier(
                     &node,
                     name,
@@ -172,7 +175,7 @@ impl super::JavaScriptExtractor {
             // object-literal KEY (`{foo: 1}`) is a `property_identifier`, not this.
             "shorthand_property_identifier" => {
                 let name = self.base.get_node_text(&node);
-                let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                let containing_symbol_id = self.find_containing_symbol_id(node, containing_symbols);
                 self.base.create_identifier(
                     &node,
                     name,
@@ -193,11 +196,9 @@ impl super::JavaScriptExtractor {
     fn find_containing_symbol_id(
         &self,
         node: Node,
-        symbol_map: &HashMap<String, &Symbol>,
+        containing_symbols: &ContainingSymbolIndex<'_>,
     ) -> Option<String> {
-        self.base
-            .find_containing_symbol_from_map(&node, symbol_map)
-            .map(|s| s.id.clone())
+        containing_symbols.find(node).map(|s| s.id.clone())
     }
 
     // ========================================================================
@@ -214,7 +215,7 @@ impl super::JavaScriptExtractor {
     fn record_call_arg_literals(
         &mut self,
         call_node: &Node,
-        symbol_map: &HashMap<String, &Symbol>,
+        containing_symbols: &ContainingSymbolIndex<'_>,
     ) {
         let Some(function_node) = call_node.child_by_field_name("function") else {
             return;
@@ -223,7 +224,7 @@ impl super::JavaScriptExtractor {
             return;
         };
         let carrier = self.callee_text(function_node);
-        let containing_symbol_id = self.find_containing_symbol_id(*call_node, symbol_map);
+        let containing_symbol_id = self.find_containing_symbol_id(*call_node, containing_symbols);
 
         let mut cursor = args_node.walk();
         for (pos, arg) in args_node.named_children(&mut cursor).enumerate() {

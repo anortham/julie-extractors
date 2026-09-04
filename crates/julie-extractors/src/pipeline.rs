@@ -25,7 +25,25 @@ pub fn extract_canonical_at(
         return extract_jsonl_canonical(file_path, content, workspace_root, level);
     }
 
-    extract_canonical_with_parse(
+    let language = crate::language::detect_language_for_source(file_path, content)
+        .ok_or_else(|| anyhow::anyhow!("Unsupported file extension for path: {}", file_path))?;
+
+    extract_canonical_for_language_at(language, file_path, content, workspace_root, level)
+}
+
+pub fn extract_canonical_for_language_at(
+    language: &str,
+    file_path: &str,
+    content: &str,
+    workspace_root: &Path,
+    level: ExtractionLevel,
+) -> Result<ExtractionResults, anyhow::Error> {
+    if file_path.ends_with(".jsonl") {
+        return extract_jsonl_canonical(file_path, content, workspace_root, level);
+    }
+
+    extract_canonical_with_parse_and_language(
+        language,
         file_path,
         content,
         workspace_root,
@@ -34,6 +52,7 @@ pub fn extract_canonical_at(
     )
 }
 
+#[cfg(test)]
 pub(crate) fn extract_canonical_with_parse<F>(
     file_path: &str,
     content: &str,
@@ -46,6 +65,27 @@ where
 {
     let language = crate::language::detect_language_for_source(file_path, content)
         .ok_or_else(|| anyhow::anyhow!("Unsupported file extension for path: {}", file_path))?;
+    extract_canonical_with_parse_and_language(
+        language,
+        file_path,
+        content,
+        workspace_root,
+        level,
+        parse,
+    )
+}
+
+pub(crate) fn extract_canonical_with_parse_and_language<F>(
+    language: &str,
+    file_path: &str,
+    content: &str,
+    workspace_root: &Path,
+    level: ExtractionLevel,
+    parse: F,
+) -> Result<ExtractionResults, anyhow::Error>
+where
+    F: FnOnce(&str, &str, &str) -> Result<Option<Tree>, anyhow::Error>,
+{
     let Some(tree) = parse(language, file_path, content)? else {
         return Ok(degraded_parse_failure_result(content));
     };

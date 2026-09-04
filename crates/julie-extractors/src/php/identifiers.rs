@@ -1,15 +1,14 @@
 // PHP Extractor - Identifier extraction (function calls, member access, type usage)
 
 use super::PhpExtractor;
-use crate::base::{BaseExtractor, IdentifierKind, Symbol};
-use std::collections::HashMap;
+use crate::base::{BaseExtractor, ContainingSymbolIndex, IdentifierKind};
 use tree_sitter::Node;
 
 /// Extract identifier from a single node based on its kind
 pub(super) fn extract_identifier_from_node(
     extractor: &mut PhpExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     match node.kind() {
         // Direct function calls: print_r(), array_map()
@@ -17,7 +16,7 @@ pub(super) fn extract_identifier_from_node(
             // The function field contains the function being called
             if let Some(function_node) = node.child_by_field_name("function") {
                 let name = extractor.get_base().get_node_text(&function_node);
-                let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
                 extractor.get_base_mut().create_identifier(
                     &function_node,
@@ -27,7 +26,7 @@ pub(super) fn extract_identifier_from_node(
                 );
             }
             // Phase 3b: capture string-literal call-arguments config-free.
-            record_php_call_arg_literals(extractor, node, symbol_map);
+            record_php_call_arg_literals(extractor, node, containing_symbols);
         }
 
         // Method calls: $this->add(), $obj->method()
@@ -35,7 +34,7 @@ pub(super) fn extract_identifier_from_node(
             // Extract the method name from the name field
             if let Some(name_node) = node.child_by_field_name("name") {
                 let name = extractor.get_base().get_node_text(&name_node);
-                let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 let receiver_type = php_call_receiver_type(extractor.get_base(), node);
 
                 extractor
@@ -49,7 +48,7 @@ pub(super) fn extract_identifier_from_node(
                     );
             }
             // Phase 3b: capture string-literal call-arguments config-free.
-            record_php_call_arg_literals(extractor, node, symbol_map);
+            record_php_call_arg_literals(extractor, node, containing_symbols);
         }
 
         // Static method calls: Http::get(), DB::select(), Model::where()
@@ -57,7 +56,7 @@ pub(super) fn extract_identifier_from_node(
             // Extract the method name from the name field
             if let Some(name_node) = node.child_by_field_name("name") {
                 let name = extractor.get_base().get_node_text(&name_node);
-                let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 let receiver_type = php_call_receiver_type(extractor.get_base(), node);
 
                 extractor
@@ -71,7 +70,7 @@ pub(super) fn extract_identifier_from_node(
                     );
             }
             // Phase 3b: capture string-literal call-arguments config-free.
-            record_php_call_arg_literals(extractor, node, symbol_map);
+            record_php_call_arg_literals(extractor, node, containing_symbols);
         }
 
         // Member access: $obj->property
@@ -87,7 +86,7 @@ pub(super) fn extract_identifier_from_node(
             // Extract the member name (rightmost identifier)
             if let Some(name_node) = node.child_by_field_name("name") {
                 let name = extractor.get_base().get_node_text(&name_node);
-                let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
                 extractor.get_base_mut().create_identifier(
                     &name_node,
@@ -117,7 +116,7 @@ pub(super) fn extract_identifier_from_node(
                 return;
             }
 
-            let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
             extractor.get_base_mut().create_identifier(
                 &node,
@@ -143,8 +142,7 @@ pub(super) fn extract_identifier_from_node(
                         return;
                     }
 
-                    let containing_symbol_id =
-                        find_containing_symbol_id(extractor, node, symbol_map);
+                    let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
                     extractor.get_base_mut().create_identifier(
                         &child,
@@ -172,7 +170,7 @@ pub(super) fn extract_identifier_from_node(
             if let Some(name) = name
                 && name != "this"
             {
-                let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 extractor.get_base_mut().create_identifier(
                     &node,
                     name,
@@ -188,7 +186,7 @@ pub(super) fn extract_identifier_from_node(
         // Call/MemberAccess/TypeUsage arms above do not own.
         "name" if is_php_value_read_name(node) => {
             let name = extractor.get_base().get_node_text(&node);
-            let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
             extractor.get_base_mut().create_identifier(
                 &node,
                 name,
@@ -371,14 +369,10 @@ fn php_precedes_as_keyword(foreach_node: Node, node: Node) -> bool {
 /// Find the ID of the symbol that contains this node
 /// CRITICAL: Only search symbols from THIS FILE (file-scoped filtering)
 fn find_containing_symbol_id(
-    extractor: &PhpExtractor,
     node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) -> Option<String> {
-    extractor
-        .get_base()
-        .find_containing_symbol_from_map(&node, symbol_map)
-        .map(|s| s.id.clone())
+    containing_symbols.find(node).map(|s| s.id.clone())
 }
 
 pub(super) fn php_call_receiver_type(base: &BaseExtractor, node: Node) -> Option<String> {
@@ -464,13 +458,13 @@ fn declared_parent_class_name(base: &BaseExtractor, node: Node) -> Option<String
 fn record_php_call_arg_literals(
     extractor: &mut PhpExtractor,
     call_node: Node,
-    symbol_map: &HashMap<String, &Symbol>,
+    containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     let Some(args_node) = call_node.child_by_field_name("arguments") else {
         return;
     };
     let carrier = php_carrier(extractor.get_base(), call_node);
-    let containing_symbol_id = find_containing_symbol_id(extractor, call_node, symbol_map);
+    let containing_symbol_id = find_containing_symbol_id(call_node, containing_symbols);
 
     let mut cursor = args_node.walk();
     for (pos, arg) in args_node.named_children(&mut cursor).enumerate() {
