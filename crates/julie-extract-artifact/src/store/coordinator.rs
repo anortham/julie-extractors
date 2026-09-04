@@ -2967,12 +2967,16 @@ impl LeaseHeartbeatGuard {
 
     fn stop_and_release(mut self) -> (bool, bool) {
         let _ = self.stop.send(HeartbeatCommand::Release);
-        let released = self
-            .worker
-            .take()
-            .and_then(|worker| worker.join().ok())
-            .unwrap_or(false);
-        (self.current.load(AtomicOrdering::Acquire), released)
+        let worker_res = self.worker.take().map(|worker| worker.join());
+        let (joined_ok, released) = match worker_res {
+            Some(Ok(rel)) => (true, rel),
+            Some(Err(_)) => (false, false),
+            None => (true, false),
+        };
+        (
+            joined_ok && self.current.load(AtomicOrdering::Acquire),
+            released,
+        )
     }
 }
 

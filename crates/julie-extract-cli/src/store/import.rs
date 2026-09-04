@@ -184,17 +184,30 @@ pub(crate) fn read_source_identity_or_missing(
         return Ok(Some((snapshot.content_hash, snapshot.content_bytes as u64)));
     }
     crate::extraction::record_disk_read(target);
+    let pre_mtime = target
+        .absolute_path
+        .metadata()
+        .and_then(|m| m.modified())
+        .ok();
     match std::fs::read(&target.absolute_path) {
         Ok(bytes) => {
-            let mtime = target
+            let post_mtime = target
                 .absolute_path
                 .metadata()
                 .and_then(|m| m.modified())
                 .ok();
             let size = bytes.len() as u64;
             let hash = crate::extraction::content_hash_bytes(&bytes);
-            if let Ok(snapshot) = crate::extraction::source_snapshot_from_bytes(target, bytes) {
-                crate::extraction::cache_snapshot(&target.absolute_path, snapshot, mtime, size);
+            if pre_mtime == post_mtime
+                && post_mtime.is_some()
+                && let Ok(snapshot) = crate::extraction::source_snapshot_from_bytes(target, bytes)
+            {
+                crate::extraction::cache_snapshot(
+                    &target.absolute_path,
+                    snapshot,
+                    post_mtime,
+                    size,
+                );
             }
             Ok(Some((hash, size)))
         }
