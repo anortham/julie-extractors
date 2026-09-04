@@ -1,4 +1,4 @@
-use crate::manager::ExtractorManager;
+use crate::extract_canonical;
 use crate::pipeline::{
     configured_parser_for_language, extract_jsonl_canonical_with_parser_factory,
 };
@@ -33,8 +33,7 @@ fn test_extract_all_jsonl_emits_file_global_positions_and_unique_ids() {
         r#"{"type":"bug","message":"two"}"#,
     );
 
-    let results = ExtractorManager::new()
-        .extract_all(file_path, content, &workspace_root)
+    let results = extract_canonical(file_path, content, &workspace_root)
         .expect("jsonl extraction should succeed through the canonical path");
 
     let type_symbols: Vec<_> = results

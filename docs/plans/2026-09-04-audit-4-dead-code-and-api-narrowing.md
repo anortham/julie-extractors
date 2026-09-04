@@ -91,9 +91,9 @@ fn main() -> std::process::ExitCode {
 **Approach:** Miller `trace` on each deleted item before removing it. The README example at line 64 must compile as a doc test or be marked `no_run`; run `cargo test --doc -p julie-extractors`.
 
 **Acceptance criteria:**
-- [ ] `ExtractorManager` does not exist anywhere in the workspace.
-- [ ] `cargo test -p julie-extractors --lib tests::api_surface` and `tests::jsonl_pipeline` pass.
-- [ ] README compiles as a doc test.
+- [x] `ExtractorManager` does not exist anywhere in the workspace.
+- [x] `cargo test -p julie-extractors --lib tests::api_surface` and `tests::jsonl_pipeline` pass.
+- [x] README compiles as a doc test.
 
 ## Task 3: Shared doc-comment and visibility helpers
 

@@ -11,7 +11,6 @@ use crate::base::collect_sql_structural_facts;
 use crate::base::collect_structural_facts;
 use crate::base::collect_web_structural_facts;
 use crate::base::structural_facts::sort_structural_facts;
-use crate::factory::convert_types_map;
 use crate::language;
 pub use crate::language::LanguageCapabilities;
 use crate::tree_traversal::depth_truncation_diagnostic;
@@ -29,6 +28,43 @@ pub struct LanguageRegistryEntry {
     pub language: &'static str,
     pub capabilities: LanguageCapabilities,
     pub extract: ExtractFn,
+}
+
+/// Convert a raw type map from `infer_types()` into the richer `TypeInfo` structure.
+///
+/// Legacy inferred values sometimes carry raw source text instead of a type
+/// name. Values that can never verbatim-match a type symbol (whitespace, a
+/// comma, a trailing `<`, or a `>` without `<`) are dropped; everything else
+/// is kept exactly as-is because these rows predate the base-name contract.
+pub(crate) fn convert_types_map(
+    types: HashMap<String, String>,
+    language: &str,
+) -> HashMap<String, crate::base::TypeInfo> {
+    types
+        .into_iter()
+        .filter(|(_, type_string)| is_bindable_type_name(type_string))
+        .map(|(symbol_id, type_string)| {
+            (
+                symbol_id.clone(),
+                crate::base::TypeInfo {
+                    symbol_id,
+                    resolved_type: type_string,
+                    generic_params: None,
+                    constraints: None,
+                    is_inferred: true,
+                    language: language.to_string(),
+                    metadata: None,
+                },
+            )
+        })
+        .collect()
+}
+
+fn is_bindable_type_name(value: &str) -> bool {
+    if value.chars().any(char::is_whitespace) || value.contains(',') || value.ends_with('<') {
+        return false;
+    }
+    !value.contains('>') || value.contains('<')
 }
 
 /// Every extractor that infers types must also keep the `TypeInfo` rows its
