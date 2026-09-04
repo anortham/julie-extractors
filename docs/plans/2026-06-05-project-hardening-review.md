@@ -301,7 +301,7 @@ release evidence.
   while normal CI remains green.
 - **Evidence:** `cargo clippy --workspace --all-targets --all-features --no-deps
   -- -D warnings` failed locally. Failures included core extractor warnings,
-  test-target warnings in `writer_performance`, and xtask test warnings.
+  test-target warnings in `writer_batching_contract`, and xtask test warnings.
 - **Fix:** decide whether the full workspace is expected to be clippy-clean. If
   yes, run a one-time cleanup and add an all-target or staged clippy gate. If no,
   document exactly which targets are intentionally excluded and why.

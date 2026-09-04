@@ -28,7 +28,7 @@ Source: `docs/findings/2026-09-04-architecture-and-performance-audit.md`, items 
 **Worker red/green scope:** the narrowest command that covers the change:
 - Extractor base changes: `cargo test -p julie-extractors --lib base::` plus `cargo xtask test language <name>` for each language the task touches.
 - CLI store changes: `cargo test -p julie-extract-cli --test operations_contract` and `cargo test -p julie-extract-cli --test store_cli_contract`.
-- Artifact store writer: `cargo test -p julie-extract-artifact --test store_writer_performance` and `cargo test -p julie-extract-artifact store::`.
+- Artifact store writer: `cargo test -p julie-extract-artifact --test store_writer_batching_contract` and `cargo test -p julie-extract-artifact store::`.
 
 **Worker ceiling:** `cargo xtask test default`.
 
@@ -57,7 +57,7 @@ Source: `docs/findings/2026-09-04-architecture-and-performance-audit.md`, items 
 | Task 2: Delete `BaseExtractor::symbol_map` | Batch A | Modify `crates/julie-extractors/src/base/extractor.rs` (struct field only, coordinate with Task 1 by editing disjoint lines), `cpp/functions.rs`, `ruby/mod.rs`, `ruby/assignments.rs`, `erlang/mod.rs`, `erlang/definition_forms.rs`, `elixir/mod.rs`, `go/functions.rs` (the insert line only) | Yes | Shares `extractor.rs` and `go/functions.rs` with Task 1. Dispatch after Task 1 lands. |
 | Task 3: Shared containing-symbol index | None - serial | Create `crates/julie-extractors/src/base/containing_symbol_index.rs`; modify `base/creation_methods.rs`, `base/mod.rs`, `rust/identifiers/containing_symbols.rs`, `rust/identifiers/mod.rs`, `typescript/relationships.rs`, `javascript/relationships.rs`, `sql/mod.rs` | Yes | Depends on Task 2 (removes the map the old lookup path used). |
 | Task 4: Remove the import spool detour | Batch B | Modify `crates/julie-extract-cli/src/store/executor.rs` lines 36 and 587-648 only | No | None - safe parallel batch. |
-| Task 5: Capability snapshot once per quantum | Batch B | Modify `crates/julie-extract-cli/src/store/executor.rs` (call sites at 1126 and 1723, `execute_quantum`), `crates/julie-extract-artifact/src/store/writer.rs` (`write_level_in_transaction`), `crates/julie-extract-artifact/tests/store_writer_performance.rs` | Yes | Shares `executor.rs` with Task 4. Dispatch after Task 4 lands. |
+| Task 5: Capability snapshot once per quantum | Batch B | Modify `crates/julie-extract-cli/src/store/executor.rs` (call sites at 1126 and 1723, `execute_quantum`), `crates/julie-extract-artifact/src/store/writer.rs` (`write_level_in_transaction`), `crates/julie-extract-artifact/tests/store_writer_batching_contract.rs` | Yes | Shares `executor.rs` with Task 4. Dispatch after Task 4 lands. |
 | Task 6: Detect language once per file | Batch C | Modify `crates/julie-extract-cli/src/extraction.rs`, `crates/julie-extract-cli/src/commands.rs` (line 1882 region), `crates/julie-extract-cli/src/store/executor.rs` (line 605 region) | Yes | Shares `executor.rs` with Task 5. Dispatch after Task 5 lands. |
 | Task 7: After measurement and closure | None - serial | Modify `docs/evidence/2026-09-audit-wave-1-baseline.md`, `docs/findings/2026-09-04-architecture-and-performance-audit.md` | Yes | Needs every other task merged. |
 
@@ -167,7 +167,7 @@ Commit mode: `serial-worker-commit` for serial tasks; `parallel-lead-commit` ins
 **Files:**
 - Modify `crates/julie-extract-cli/src/store/executor.rs`: in `execute_quantum` (line 1492) and the from-artifact chunk loop (line 1108), build `let snapshot = artifact_capability_snapshot();` once before the file loop. Pass `Some(&snapshot)` only for the first L1 write in the quantum, and `None` for later files. Fix the `then_some` at line 1126 so L2 and L3 never build a snapshot.
 - Modify `crates/julie-extract-artifact/src/store/writer.rs::write_level_in_transaction` (line 385): when `initialized` is true and a snapshot is given, run only the conflict check (`capability_snapshot_matches`), not the full `sync_capability_snapshot`. When `initialized` is true and no snapshot is given, proceed as today.
-- Modify `crates/julie-extract-artifact/tests/store_writer_performance.rs:43-47`: update the expected preparation counts to the new values and add one test that a second L1 write with `Some(snapshot)` on an initialized epoch does not call `sync_capability_snapshot`.
+- Modify `crates/julie-extract-artifact/tests/store_writer_batching_contract.rs:43-47`: update the expected preparation counts to the new values and add one test that a second L1 write with `Some(snapshot)` on an initialized epoch does not call `sync_capability_snapshot`.
 
 **Interfaces:** `write_level_in_transaction` keeps its signature. Its contract changes: a snapshot on an initialized epoch is verified, not re-synced. Record this in the function's doc comment.
 
@@ -178,7 +178,7 @@ Commit mode: `serial-worker-commit` for serial tasks; `parallel-lead-commit` ins
 **Acceptance criteria:**
 - [x] `artifact_capability_snapshot()` is called at most once per `execute_quantum` and once per from-artifact chunk.
 - [x] Writer test proves no re-sync on an initialized epoch and a conflict on a mismatch.
-- [x] Store contract tests and `store_writer_performance` pass with updated counts.
+- [x] Store contract tests and `store_writer_batching_contract` pass with updated counts.
 
 ## Task 6: Detect language once per file
 

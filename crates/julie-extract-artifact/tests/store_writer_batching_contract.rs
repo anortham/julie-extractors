@@ -385,17 +385,17 @@ impl TestStore {
             .unwrap()
             .as_nanos();
         let path = std::env::temp_dir().join(format!(
-            "julie-store-writer-performance-{name}-{}-{nonce}",
+            "julie-store-writer-batching-contract-{name}-{}-{nonce}",
             std::process::id()
         ));
         fs::create_dir_all(&path).unwrap();
-        let layout = StoreLayout::create(&path, "family-performance", "2.30.0", 7).unwrap();
+        let layout = StoreLayout::create(&path, "family-batching-contract", "2.30.0", 7).unwrap();
         Self { path, layout }
     }
 
     fn writer(&self) -> StoreWriter {
         let factory =
-            StoreConnectionFactory::new(self.layout.clone(), "family-performance", "2.30.0");
+            StoreConnectionFactory::new(self.layout.clone(), "family-batching-contract", "2.30.0");
         StoreWriter::open(&factory).unwrap()
     }
 }

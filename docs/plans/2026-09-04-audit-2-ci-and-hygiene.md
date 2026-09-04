@@ -133,9 +133,9 @@ Commit mode: `parallel-lead-commit` for Batch A; `serial-worker-commit` for Task
 **Approach:** Grep the docs for the old file names (`docs/testing-strategy.md`, `docs/plans`) and update them. Run the artifact crate's `test_tiers` and the two renamed tests.
 
 **Acceptance criteria:**
-- [ ] `git ls-files .razorback` is empty.
-- [ ] Both renamed tests run and pass by their new names.
-- [ ] No doc references the old names.
+- [x] `git ls-files .razorback` is empty.
+- [x] Both renamed tests run and pass by their new names.
+- [x] No doc references the old names.
 
 ## Task 6: Measure a release profile
 

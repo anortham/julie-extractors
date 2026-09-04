@@ -179,7 +179,7 @@ Commit mode: `parallel-lead-commit` for Batch A; serial tasks commit through the
 **What to build:** scope the lookup used by extraction-table row writes to the file's own symbols, and add a writer-contract test that a cross-file symbol id in extraction-row input does NOT resolve through the lookup (the narrowed behavior), while same-file parents still do.
 
 **Acceptance criteria:**
-- [x] `writer_contract.rs` green including the new narrowing test (58 tests); `writer_performance.rs` unchanged and green. AMENDMENT (lead-accepted): four contract tests pinned the batch/repo-scoped lookup and were inverted/renamed — they encoded exactly the property V-5 removes; production cannot mint cross-file ids (per-file extractors, 0/703k evidence) and the compat harness measured zero extraction-output change on the multi-language fixture. Follow-up recorded: `SpoolFileHeader.requested_symbol_ids` is now write-only (spool format + contract test must change together).
+- [x] `writer_contract.rs` green including the new narrowing test (58 tests); `writer_batching_contract.rs` unchanged and green. AMENDMENT (lead-accepted): four contract tests pinned the batch/repo-scoped lookup and were inverted/renamed — they encoded exactly the property V-5 removes; production cannot mint cross-file ids (per-file extractors, 0/703k evidence) and the compat harness measured zero extraction-output change on the multi-language fixture. Follow-up recorded: `SpoolFileHeader.requested_symbol_ids` is now write-only (spool format + contract test must change together).
 - [x] Worker-scope verification passes (crate 138/0, clippy clean, writer_perf healthy) and the change is handed to the lead per commit mode.
 
 ### Task 5: Miller reader migration off the denormalized column (cross-repo)

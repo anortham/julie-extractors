@@ -492,7 +492,7 @@ Ph2d.
 - Create: `crates/julie-extract-artifact/src/store/rows.rs`
 - Create: `crates/julie-extract-artifact/src/store/writer.rs`
 - Create: `crates/julie-extract-artifact/tests/store_writer_contract.rs`
-- Create: `crates/julie-extract-artifact/tests/store_writer_performance.rs`
+- Create: `crates/julie-extract-artifact/tests/store_writer_batching_contract.rs`
 
 **Interfaces:**
 

@@ -60,10 +60,10 @@ target/release/julie-extract scan --root <repo> --db target/performance/2.0.1-rc
 - `cargo xtask test default`: passed.
 - `cargo xtask test contract`: passed after stale JSX/TSX golden fixtures were
   updated to match the pending-noise pruning behavior.
-- `cargo xtask test changed .github/workflows/release-binaries.yml .github/workflows/specialist-gates.yml Cargo.lock crates/julie-extract-artifact/Cargo.toml crates/julie-extract-artifact/src/writer.rs crates/julie-extract-artifact/tests/writer_performance.rs crates/julie-extract-cli/Cargo.toml crates/julie-extractors/Cargo.toml fixtures/extraction/jsx/basic/expected.json fixtures/extraction/tsx/basic/expected.json`:
+- `cargo xtask test changed .github/workflows/release-binaries.yml .github/workflows/specialist-gates.yml Cargo.lock crates/julie-extract-artifact/Cargo.toml crates/julie-extract-artifact/src/writer.rs crates/julie-extract-artifact/tests/writer_batching_contract.rs crates/julie-extract-cli/Cargo.toml crates/julie-extractors/Cargo.toml fixtures/extraction/jsx/basic/expected.json fixtures/extraction/tsx/basic/expected.json`:
   passed.
 - `cargo xtask test real-world-smoke`: passed.
-- `cargo test -p julie-extract-artifact --test writer_performance child_row_batch_avoids_per_file_statement_prepare_overhead -- --nocapture`
+- `cargo test -p julie-extract-artifact --test writer_batching_contract child_row_batch_avoids_per_file_statement_prepare_overhead -- --nocapture`
   - Before cached writer statements: failed at 1.389674833s with a 900ms
     tripwire.
   - After cached writer statements and a stable 1.25s tripwire: passed locally.
