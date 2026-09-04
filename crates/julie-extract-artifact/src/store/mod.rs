@@ -20,11 +20,10 @@ pub use connection::{
 };
 pub use coordinator::{
     ConsumerCursor, CoordinatorError, CoordinatorExecutor, CoordinatorPolicy, CoordinatorRequest,
-    DrainReport, EnqueueResult, ExecutionContext, ExecutionQuantum, IntentIdentity,
-    LeaseDisposition, LeaseHolder, LeaseRecord, MaintenanceOwnerFence, PidLiveness, PidStatus,
-    QUANTUM_OVERRUN_CODE, ReconcileOutcome, RequestKind, RequestReceipt, RequestState,
-    StoreCoordinator, UnixMillisClock, compare_versions, foreign_live_maintenance_intent,
-    process_status, renew_writer_lease_with_retry,
+    ExecutionContext, ExecutionQuantum, IntentIdentity, LeaseDisposition, LeaseHolder,
+    MaintenanceOwnerFence, PidLiveness, PidStatus, QUANTUM_OVERRUN_CODE, RequestKind,
+    RequestReceipt, RequestState, StoreCoordinator, UnixMillisClock, compare_versions,
+    foreign_live_maintenance_intent, process_status,
 };
 pub use generation::{
     GenerationApplyReport, GenerationError, GenerationLifecycle, GenerationPolicy,
@@ -33,31 +32,27 @@ pub use generation::{
 pub use layout::{
     PartialGenerationOwner, StoreLayout, StoreLayoutError, write_partial_generation_owner,
 };
-pub use log::{StoreLog, StoreLogEntry, StoreLogError, StoreLogRecord};
+pub use log::{StoreLog, StoreLogEntry, StoreLogError};
 pub use maintenance::{
-    AllocatorMark, BaseVersionFact, CapacityPlan, CapacityProvider, ConsumerCursorFact,
-    CoordinatorRequestFact, DeltaVersionFact, DemotionCandidate, FailedPathFact,
-    MaintenanceApplyPolicy, MaintenanceApplyReport, MaintenanceCapacity, MaintenanceClock,
-    MaintenanceError, MaintenanceExecutor, MaintenanceInspector, MaintenanceLevel, MaintenancePlan,
+    CapacityPlan, CapacityProvider, DeltaVersionFact, MaintenanceApplyPolicy,
+    MaintenanceApplyReport, MaintenanceCapacity, MaintenanceClock, MaintenanceError,
+    MaintenanceExecutor, MaintenanceInspector, MaintenanceLevel, MaintenancePlan,
     MaintenancePolicy, MaintenanceRootKind, MaintenanceRun, MaintenanceSnapshot, ManifestFact,
-    ManifestVersionFact, PlanBinding, ProtectionReason, RetentionPlan, RetireViewApplied,
-    RetireViewPlan, VersionDecision, VersionFact, VersionRootFact, plan_maintenance,
-    plan_view_retirement,
+    ManifestVersionFact, PlanBinding, RetentionPlan, RetireViewApplied, RetireViewPlan,
+    VersionFact, plan_maintenance, plan_view_retirement,
 };
 pub use manifest::{
-    BuiltManifest, MANIFEST_HASH_ALGORITHM, MANIFEST_PUBLISH_MAX_RETRIES, ManifestBuilder,
-    ManifestEntry, ManifestEntryStatus, ManifestPublishDisposition, ManifestPublishResult,
-    ManifestStore, ManifestStoreError, ViewEnsureDisposition, same_path_identity,
+    MANIFEST_HASH_ALGORITHM, MANIFEST_PUBLISH_MAX_RETRIES, ManifestBuilder, ManifestEntry,
+    ManifestEntryStatus, ManifestPublishDisposition, ManifestPublishResult, ManifestStore,
+    ManifestStoreError, ViewEnsureDisposition, same_path_identity,
 };
 pub use model::{
     FamilyAllocatorKind, GenerationState, MaintenanceAction, StoreFileVersion, StoreLevel,
-    StoreProjectionError, StoreReferenceSite, StoreRowCounts, ViewResolutionState,
+    StoreProjectionError,
 };
+pub(crate) use model::{StoreReferenceSite, StoreRowCounts};
 pub use schema::{
     STORE_FORMAT_EPOCH, STORE_SQLITE_SCHEMA_VERSION, StoreSchemaError, create_coordinator_schema,
     create_store_schema,
 };
-pub use writer::{
-    StoreVersionState, StoreWriteRequest, StoreWriteResult, StoreWriter, StoreWriterError,
-    StoredFileVersion,
-};
+pub use writer::{StoreVersionState, StoreWriteRequest, StoreWriter, StoreWriterError};

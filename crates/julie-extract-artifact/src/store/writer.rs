@@ -67,6 +67,7 @@ pub struct StoreWriteResult {
     pub level: StoreLevel,
     pub counts: StoreRowCounts,
     pub completion_sequence: i64,
+    #[cfg(any(test, feature = "test-store-contract"))]
     pub statement_preparations: usize,
 }
 
@@ -505,6 +506,7 @@ impl StoreWriter {
                 level,
                 counts: capability_counts,
                 completion_sequence,
+                #[cfg(any(test, feature = "test-store-contract"))]
                 statement_preparations: preparations.count(),
             });
         }
@@ -573,6 +575,7 @@ impl StoreWriter {
             level,
             counts,
             completion_sequence,
+            #[cfg(any(test, feature = "test-store-contract"))]
             statement_preparations: preparations.count(),
         })
     }

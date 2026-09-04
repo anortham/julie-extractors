@@ -15,6 +15,7 @@ test-perf = []
 test-takeover = []
 test-store-crash = []
 test-store-maintenance-contract = ["test-store-crash"]
+test-store-contract = []
 
 [lints]
 workspace = true
