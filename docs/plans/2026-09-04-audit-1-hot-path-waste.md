@@ -208,6 +208,6 @@ Commit mode: `serial-worker-commit` for serial tasks; `parallel-lead-commit` ins
 **Approach:** Run the commands, paste the numbers next to the before numbers, and compute percentages. If any median is worse by more than 5 percent, stop and report; do not close the finding.
 
 **Acceptance criteria:**
-- [ ] Evidence file has before and after tables.
-- [ ] Findings document marks each closed item with the fixing commit.
-- [ ] No median regressed beyond 5 percent.
+- [x] Evidence file has before and after tables.
+- [x] Findings document marks each closed item with the fixing commit.
+- [x] No median regressed beyond 5 percent.
