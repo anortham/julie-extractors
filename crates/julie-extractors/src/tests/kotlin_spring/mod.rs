@@ -20,7 +20,6 @@ fn routes(results: &crate::ExtractionResults) -> Vec<&StructuralFact> {
         .collect()
 }
 
-
 fn metadata_array<'a>(fact: &'a StructuralFact, key: &str) -> Vec<&'a str> {
     fact.metadata
         .as_ref()

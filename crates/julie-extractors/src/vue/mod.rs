@@ -93,13 +93,11 @@ impl VueExtractor {
                 component_end_line,
                 component_end_column,
                 Some(format!("<{} />", component_name)),
-                doc_comment.or_else(|| {
-                    Some(format!("Vue Single File Component: {}", component_name))
-                }),
+                doc_comment
+                    .or_else(|| Some(format!("Vue Single File Component: {}", component_name))),
                 Some({
                     let mut metadata = HashMap::new();
-                    metadata
-                        .insert("type".to_string(), Value::String("vue-sfc".to_string()));
+                    metadata.insert("type".to_string(), Value::String("vue-sfc".to_string()));
                     metadata.insert(
                         "sections".to_string(),
                         Value::String(
@@ -134,7 +132,11 @@ impl VueExtractor {
         &mut self,
         symbols: &[Symbol],
     ) -> Vec<StructuredPendingRelationship> {
-        relationships::extract_structured_pending_relationships(&self.base, symbols, &self.parsed_sfc)
+        relationships::extract_structured_pending_relationships(
+            &self.base,
+            symbols,
+            &self.parsed_sfc,
+        )
     }
 
     /// Infer types from Vue SFC
@@ -181,7 +183,9 @@ impl VueExtractor {
                     // Regular <script> uses regex for Options API extraction
                     script::extract_script_symbols(&self.base, section, tree)
                 };
-                symbols.extend(test_calls::extract_script_test_symbols(&self.base, section, tree));
+                symbols.extend(test_calls::extract_script_test_symbols(
+                    &self.base, section, tree,
+                ));
                 symbols
             }
             "template" => {
@@ -215,7 +219,10 @@ impl VueExtractor {
         identifiers::extract_identifiers(&mut self.base, symbols, &self.parsed_sfc)
     }
 
-    pub fn extract_complexity_metrics(&self, symbols: &[Symbol]) -> Vec<crate::base::ComplexityMetric> {
+    pub fn extract_complexity_metrics(
+        &self,
+        symbols: &[Symbol],
+    ) -> Vec<crate::base::ComplexityMetric> {
         crate::base::complexity_metrics::collect_vue_complexity_metrics_from_sfc(
             &self.parsed_sfc,
             &self.base.content,

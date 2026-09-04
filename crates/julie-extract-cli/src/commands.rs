@@ -63,8 +63,8 @@ use crate::reports::{
     write_error_outcome_with_profile, write_outcome,
 };
 use crate::spool::{ScanSpool, create_scan_spool, is_spool_artifact_name, reap_unowned_spools};
-use crate::watchdog::ParentWatchdog;
 use crate::store::import::StoreExecutionOutcome;
+use crate::watchdog::ParentWatchdog;
 
 pub fn run_from_env() -> ExitCode {
     let cli = match Cli::try_parse() {
@@ -110,9 +110,7 @@ impl From<CommandOutcome> for DispatchOutcome {
 
 fn run(cli: Cli) -> DispatchOutcome {
     match cli.command {
-        Command::Store(args) => {
-            DispatchOutcome::Store(Box::new(crate::store::dispatch(args)))
-        }
+        Command::Store(args) => DispatchOutcome::Store(Box::new(crate::store::dispatch(args))),
         Command::Scan(args) => scan(args).into(),
         Command::Update(args) => update(args).into(),
         Command::Delete(args) => delete(args).into(),

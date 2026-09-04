@@ -1,12 +1,12 @@
+use crate::base::BaseExtractor;
 use crate::language::{
     detect_language_from_extension, language_spec, language_specs,
     supported_extensions as language_supported_extensions,
     supported_languages as language_supported_languages,
 };
 use crate::registry::supported_languages as registry_supported_languages;
-use crate::base::BaseExtractor;
 use crate::{
-    extract_canonical, extract_canonical_at, ExtractionLevel, PendingRelationship, RelationshipKind,
+    ExtractionLevel, PendingRelationship, RelationshipKind, extract_canonical, extract_canonical_at,
 };
 use std::collections::BTreeSet;
 use std::path::PathBuf;
@@ -76,13 +76,9 @@ export function processData(): number {
 
     let canonical = extract_canonical(file_path, content, &workspace_root)
         .expect("canonical extraction should succeed");
-    let canonical_at = extract_canonical_at(
-        file_path,
-        content,
-        &workspace_root,
-        ExtractionLevel::Full,
-    )
-    .expect("canonical extraction at full level should succeed");
+    let canonical_at =
+        extract_canonical_at(file_path, content, &workspace_root, ExtractionLevel::Full)
+            .expect("canonical extraction at full level should succeed");
 
     assert!(
         !canonical.structured_pending_relationships.is_empty(),
@@ -422,11 +418,44 @@ fn test_public_api_surface_exports_exact_symbols() {
 
     // All 38 language modules must be pub(crate)
     let languages = [
-        "bash", "c", "cpp", "csharp", "css", "dart", "elixir", "erlang", "fsharp",
-        "gdscript", "go", "html", "java", "javascript", "json", "kotlin", "lua",
-        "markdown", "php", "powershell", "python", "qml", "qmldir", "r", "razor",
-        "regex", "ruby", "rust", "scala", "sql", "swift", "toml", "typescript",
-        "vbnet", "vue", "xml", "yaml", "zig",
+        "bash",
+        "c",
+        "cpp",
+        "csharp",
+        "css",
+        "dart",
+        "elixir",
+        "erlang",
+        "fsharp",
+        "gdscript",
+        "go",
+        "html",
+        "java",
+        "javascript",
+        "json",
+        "kotlin",
+        "lua",
+        "markdown",
+        "php",
+        "powershell",
+        "python",
+        "qml",
+        "qmldir",
+        "r",
+        "razor",
+        "regex",
+        "ruby",
+        "rust",
+        "scala",
+        "sql",
+        "swift",
+        "toml",
+        "typescript",
+        "vbnet",
+        "vue",
+        "xml",
+        "yaml",
+        "zig",
     ];
     assert_eq!(languages.len(), 38);
     for lang in languages {
@@ -474,10 +503,8 @@ fn test_public_api_surface_exports_exact_symbols() {
         ) -> Result<crate::ExtractionResults, anyhow::Error>;
 
     // Language detection at root
-    let _ = crate::detect_language_for_path
-        as fn(&std::path::Path, &str) -> Option<&'static str>;
-    let _ = crate::detect_language_for_source
-        as fn(&str, &str) -> Option<&'static str>;
+    let _ = crate::detect_language_for_path as fn(&std::path::Path, &str) -> Option<&'static str>;
+    let _ = crate::detect_language_for_source as fn(&str, &str) -> Option<&'static str>;
 
     // Registry and capabilities at root
     let _ = crate::supported_languages as fn() -> Vec<&'static str>;

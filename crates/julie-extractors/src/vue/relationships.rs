@@ -464,7 +464,6 @@ fn component_symbol(symbols: &[Symbol]) -> Option<&Symbol> {
     })
 }
 
-
 fn call_name(function_node: Node, script_content: &str) -> Option<String> {
     match function_node.kind() {
         "identifier" => Some(node_text(function_node, script_content)),

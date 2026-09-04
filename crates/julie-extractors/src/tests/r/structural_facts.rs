@@ -14,7 +14,6 @@ fn extract(source: &str) -> crate::ExtractionResults {
     .expect("canonical R extraction should succeed")
 }
 
-
 #[test]
 fn r_emits_expected_structural_fact_patterns() {
     let results = extract(FIXTURE_SOURCE);

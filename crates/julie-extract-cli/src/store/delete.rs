@@ -4,9 +4,9 @@ use super::args::StoreDeleteArgs;
 use super::common::*;
 use super::executor::{DeleteRequestPayload, RequestedLevel, StoreRequestExecutor};
 use super::import::{
-    RequestReportSpec, StoreExecutionOutcome, classify_failure,
-    drain_when_available, mint_request_id, normalize_root_relative, now_millis,
-    open_existing_store, report_request, require_existing_view, root_scope_matches,
+    RequestReportSpec, StoreExecutionOutcome, classify_failure, drain_when_available,
+    mint_request_id, normalize_root_relative, now_millis, open_existing_store, report_request,
+    require_existing_view, root_scope_matches,
 };
 use super::report::{
     StoreOperation, StoreOutputFormat, StoreReport, StoreRequestState, StoreRequestedLevel,

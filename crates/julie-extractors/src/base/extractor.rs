@@ -367,7 +367,10 @@ fn is_comment_node(node: &Node) -> bool {
     node.kind().contains("comment") || node.kind() == "marginalia"
 }
 
-pub(crate) fn select_doc_comment_block(language: &str, comments_nearest_first: &[String]) -> Option<String> {
+pub(crate) fn select_doc_comment_block(
+    language: &str,
+    comments_nearest_first: &[String],
+) -> Option<String> {
     let spec = crate::language::language_spec(language)?;
     if comments_nearest_first.is_empty() {
         return None;

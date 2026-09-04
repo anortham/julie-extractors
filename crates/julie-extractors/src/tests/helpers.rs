@@ -2,9 +2,9 @@
 //!
 //! Common helpers used across language extractor test suites.
 
+use crate::ExtractionResults;
 use crate::base::StructuralFact;
 use crate::language::get_tree_sitter_language;
-use crate::ExtractionResults;
 
 /// Initialize a tree-sitter parser for the given language and parse the code.
 ///

@@ -52,7 +52,10 @@ END;
             .find(|symbol| symbol.name == "active_workers")
             .expect("active_workers view should be extracted");
         assert!(!metadata_bool(view, "extractedFromError"));
-        assert_eq!(symbol_metadata_str(view, "bodySpanSource"), Some("statement_text"));
+        assert_eq!(
+            symbol_metadata_str(view, "bodySpanSource"),
+            Some("statement_text")
+        );
         let view_body = view.body_span.expect("view should have AS body span");
         assert!(
             view_body.end_byte > view_body.start_byte,
@@ -115,7 +118,8 @@ END;
             .find(|symbol| symbol.name == "clean_view" && symbol.kind == SymbolKind::Interface)
             .expect("clean_view should be extracted");
         let is_recovery = metadata_bool(view, "extractedFromError");
-        let body_source = symbol_metadata_str(view, "bodySpanSource").expect("bodySpanSource metadata");
+        let body_source =
+            symbol_metadata_str(view, "bodySpanSource").expect("bodySpanSource metadata");
         assert!(
             view.body_span.is_some(),
             "view should expose a SELECT body span"

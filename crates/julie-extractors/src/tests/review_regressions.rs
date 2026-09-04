@@ -1,13 +1,11 @@
 use crate::base::RelationshipKind;
-use crate::tests::helpers::{facts_with_pattern, metadata_str};
 use crate::extract_canonical;
+use crate::tests::helpers::{facts_with_pattern, metadata_str};
 
 fn extract(file_path: &str, source: &str) -> crate::ExtractionResults {
     let workspace_root = std::path::PathBuf::from("/test/workspace");
     extract_canonical(file_path, source, &workspace_root).expect("extraction should succeed")
 }
-
-
 
 #[test]
 fn test_review_regression_typescript_implements_keeps_namespace_context() {

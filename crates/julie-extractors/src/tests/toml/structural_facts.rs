@@ -9,8 +9,6 @@ fn extract(source: &str) -> crate::ExtractionResults {
         .expect("canonical TOML extraction should succeed")
 }
 
-
-
 fn metadata_bool(fact: &StructuralFact, key: &str) -> Option<bool> {
     fact.metadata
         .as_ref()

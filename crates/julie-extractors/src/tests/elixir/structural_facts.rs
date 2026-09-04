@@ -15,7 +15,6 @@ fn extract(source: &str) -> crate::ExtractionResults {
     .expect("canonical Elixir extraction should succeed")
 }
 
-
 #[test]
 fn elixir_emits_expected_structural_fact_patterns() {
     let results = extract(FIXTURE_SOURCE);

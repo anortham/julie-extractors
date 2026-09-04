@@ -137,7 +137,6 @@ pub(super) fn extract_script_symbols(
     symbols
 }
 
-
 fn extract_options_api_symbols(
     base: &BaseExtractor,
     section: &VueSection,

@@ -11,4 +11,3 @@ pub use crate::language_spec::{
 };
 
 pub(crate) use crate::language_spec::detect_language_with_tree;
-

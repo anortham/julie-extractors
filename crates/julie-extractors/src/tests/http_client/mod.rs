@@ -22,7 +22,6 @@ fn client_requests(results: &crate::ExtractionResults) -> Vec<&StructuralFact> {
         .collect()
 }
 
-
 fn single_request(results: &crate::ExtractionResults) -> &StructuralFact {
     let facts = client_requests(results);
     assert_eq!(

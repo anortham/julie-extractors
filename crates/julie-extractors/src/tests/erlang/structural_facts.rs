@@ -9,7 +9,6 @@ fn extract(file_path: &str, source: &str) -> crate::ExtractionResults {
         .expect("canonical Erlang extraction should succeed")
 }
 
-
 fn only_fact<'a>(results: &'a crate::ExtractionResults, pattern_id: &str) -> &'a StructuralFact {
     let facts = facts_with_pattern(results, pattern_id);
     assert_eq!(
@@ -20,7 +19,6 @@ fn only_fact<'a>(results: &'a crate::ExtractionResults, pattern_id: &str) -> &'a
     );
     facts[0]
 }
-
 
 fn metadata_u64(fact: &StructuralFact, key: &str) -> Option<u64> {
     fact.metadata

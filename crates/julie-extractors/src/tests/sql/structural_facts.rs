@@ -9,8 +9,6 @@ fn extract(source: &str) -> crate::ExtractionResults {
         .expect("canonical SQL extraction should succeed")
 }
 
-
-
 fn metadata_u64(fact: &StructuralFact, key: &str) -> Option<u64> {
     fact.metadata
         .as_ref()

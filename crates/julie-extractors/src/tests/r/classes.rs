@@ -139,8 +139,14 @@ setClass("GradStudent",
             .iter()
             .find(|s| s.name == "GradStudent" && s.kind == SymbolKind::Class)
             .expect("GradStudent S4 class should be extracted");
-        assert_eq!(symbol_metadata_str(grad_student, "r_class_system"), Some("S4"));
-        assert_eq!(symbol_metadata_str(grad_student, "contains"), Some("Student"));
+        assert_eq!(
+            symbol_metadata_str(grad_student, "r_class_system"),
+            Some("S4")
+        );
+        assert_eq!(
+            symbol_metadata_str(grad_student, "contains"),
+            Some("Student")
+        );
     }
 
     #[test]
@@ -168,23 +174,44 @@ setMethod("show", "Student", function(object) {
             .iter()
             .find(|s| s.name == "display" && s.kind == SymbolKind::Function)
             .expect("display S4 generic should be extracted");
-        assert_eq!(symbol_metadata_str(display_generic, "r_class_system"), Some("S4"));
-        assert_eq!(symbol_metadata_str(display_generic, "s4_role"), Some("generic"));
+        assert_eq!(
+            symbol_metadata_str(display_generic, "r_class_system"),
+            Some("S4")
+        );
+        assert_eq!(
+            symbol_metadata_str(display_generic, "s4_role"),
+            Some("generic")
+        );
 
         let display_student = symbols
             .iter()
             .find(|s| s.name == "display,Student" && s.kind == SymbolKind::Method)
             .expect("display Student S4 method should be extracted");
-        assert_eq!(symbol_metadata_str(display_student, "r_class_system"), Some("S4"));
-        assert_eq!(symbol_metadata_str(display_student, "s4_generic"), Some("display"));
-        assert_eq!(symbol_metadata_str(display_student, "s4_class"), Some("Student"));
+        assert_eq!(
+            symbol_metadata_str(display_student, "r_class_system"),
+            Some("S4")
+        );
+        assert_eq!(
+            symbol_metadata_str(display_student, "s4_generic"),
+            Some("display")
+        );
+        assert_eq!(
+            symbol_metadata_str(display_student, "s4_class"),
+            Some("Student")
+        );
 
         let show_student = symbols
             .iter()
             .find(|s| s.name == "show,Student" && s.kind == SymbolKind::Method)
             .expect("show Student S4 method should be extracted");
-        assert_eq!(symbol_metadata_str(show_student, "s4_generic"), Some("show"));
-        assert_eq!(symbol_metadata_str(show_student, "s4_class"), Some("Student"));
+        assert_eq!(
+            symbol_metadata_str(show_student, "s4_generic"),
+            Some("show")
+        );
+        assert_eq!(
+            symbol_metadata_str(show_student, "s4_class"),
+            Some("Student")
+        );
     }
 
     #[test]
@@ -226,7 +253,10 @@ john <- Person$new("John", 30)
             .find(|s| s.name == "greet" && s.kind == SymbolKind::Method)
             .expect("R6 public method should be extracted");
         assert_eq!(greet.parent_id.as_deref(), Some(person.id.as_str()));
-        assert_eq!(symbol_metadata_str(greet, "member_visibility"), Some("public"));
+        assert_eq!(
+            symbol_metadata_str(greet, "member_visibility"),
+            Some("public")
+        );
 
         let john = symbols
             .iter()
@@ -309,14 +339,20 @@ BankAccount <- R6Class("BankAccount",
             .find(|s| s.name == "balance" && s.kind == SymbolKind::Field)
             .expect("R6 private field should be extracted");
         assert_eq!(balance.parent_id.as_deref(), Some(account.id.as_str()));
-        assert_eq!(symbol_metadata_str(balance, "member_visibility"), Some("private"));
+        assert_eq!(
+            symbol_metadata_str(balance, "member_visibility"),
+            Some("private")
+        );
 
         let deposit = symbols
             .iter()
             .find(|s| s.name == "deposit" && s.kind == SymbolKind::Method)
             .expect("R6 public method should be extracted");
         assert_eq!(deposit.parent_id.as_deref(), Some(account.id.as_str()));
-        assert_eq!(symbol_metadata_str(deposit, "member_visibility"), Some("public"));
+        assert_eq!(
+            symbol_metadata_str(deposit, "member_visibility"),
+            Some("public")
+        );
     }
 
     #[test]

@@ -18,7 +18,6 @@ fn client_requests(results: &crate::ExtractionResults) -> Vec<&StructuralFact> {
         .collect()
 }
 
-
 #[test]
 fn razor_code_httpclient_call_emits_with_absolute_source_span() {
     let source = r#"@page "/users"

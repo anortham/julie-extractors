@@ -1,7 +1,7 @@
 //! Shared source-discovery and extraction limits.
 
 /// Directory names and file suffixes discovery refuses before any ignore file is
-/// consulted. Defined by [`crate::discovery`] and re-exported here so the
+/// consulted. Defined by discovery and re-exported here so the
 /// published discovery limits have one import path.
 pub use crate::discovery::{HARD_EXCLUDE_DIRS, HARD_EXCLUDE_SUFFIXES};
 
