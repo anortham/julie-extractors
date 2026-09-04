@@ -111,7 +111,6 @@ fn current_parent_pid() -> Option<u32> {
     None
 }
 
-#[allow(dead_code)]
 pub(crate) fn process_status(pid: u32) -> julie_extract_artifact::store::PidStatus {
     if pid == std::process::id() {
         return julie_extract_artifact::store::PidStatus::Alive;
@@ -122,7 +121,6 @@ pub(crate) fn process_status(pid: u32) -> julie_extract_artifact::store::PidStat
 /// Delegates to the one liveness probe in the artifact crate. A second copy here
 /// went out of step with the lease path: it reported `Unknown` for every pid on
 /// Windows long after a working Windows probe existed elsewhere in the repo.
-#[allow(dead_code)]
 fn process_status_other(pid: u32) -> julie_extract_artifact::store::PidStatus {
     julie_extract_artifact::store::process_status(pid)
 }

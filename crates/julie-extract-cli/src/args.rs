@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand};
 
-use julie_extract_cli::store::args::StoreArgs;
+use crate::store::args::StoreArgs;
 
 #[derive(Debug, Parser)]
 #[command(

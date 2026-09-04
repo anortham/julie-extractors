@@ -155,7 +155,6 @@ pub(crate) fn open_artifact(
     })
 }
 
-#[allow(dead_code)]
 pub(crate) fn validate_current_artifact_output(db_path: &Path) -> Result<(), String> {
     let artifact = open_artifact(db_path, true, None, ArtifactAccess::Read)
         .map_err(|error| error.diagnostic.message)?;
