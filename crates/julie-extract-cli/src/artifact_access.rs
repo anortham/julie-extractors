@@ -695,10 +695,37 @@ struct FileRowAccumulator {
 type CountSetter = fn(&mut RowDomainCounts, i64);
 type CountQuery = (&'static str, CountSetter);
 
+pub(crate) const SCAN_REPORT_FILE_ROW_LIMIT: usize = 20;
+
+/// Populates `file_row_attribution` for `scan` only when the output format is JSON.
+///
+/// Human / text mode reports ignore `file_rows` and `file_rows_truncated`, so running
+/// the 14 `GROUP BY file_id` queries on text scans is skipped.
+pub(crate) fn scan_file_row_attribution(connection: &Connection, json: bool) -> FileRowAttribution {
+    if !json {
+        return FileRowAttribution::default();
+    }
+    file_row_attribution(connection, Some(SCAN_REPORT_FILE_ROW_LIMIT))
+}
+
+#[cfg(test)]
+pub(crate) static ATTRIBUTION_GROUP_BY_QUERY_COUNT: std::sync::atomic::AtomicUsize =
+    std::sync::atomic::AtomicUsize::new(0);
+
+#[cfg(test)]
+pub(crate) static ATTRIBUTION_CALL_COUNT: std::sync::atomic::AtomicUsize =
+    std::sync::atomic::AtomicUsize::new(0);
+
+#[cfg(test)]
+pub(crate) static SCAN_ATTRIBUTION_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 pub(crate) fn file_row_attribution(
     connection: &Connection,
     limit: Option<usize>,
 ) -> FileRowAttribution {
+    #[cfg(test)]
+    ATTRIBUTION_CALL_COUNT.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+
     let mut files = match file_row_accumulators(connection) {
         Ok(files) => files,
         Err(_) => return FileRowAttribution::default(),
@@ -773,6 +800,9 @@ pub(crate) fn file_row_attribution(
     ];
 
     for (sql, setter) in count_queries {
+        #[cfg(test)]
+        ATTRIBUTION_GROUP_BY_QUERY_COUNT.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+
         if add_grouped_counts(connection, sql, &mut files, setter).is_err() {
             return FileRowAttribution::default();
         }
@@ -1115,6 +1145,47 @@ mod tests {
         assert!(
             !db_path.exists(),
             "the rebind write must never create the artifact it was asked to retarget"
+        );
+    }
+
+    #[test]
+    fn scan_file_row_attribution_executes_no_queries_when_not_json() {
+        let _guard = SCAN_ATTRIBUTION_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        let temp = TempDir::new().unwrap();
+        let db_path = temp.path().join("artifact.sqlite");
+        seed_artifact(&db_path);
+        let connection = Connection::open(&db_path).unwrap();
+
+        ATTRIBUTION_GROUP_BY_QUERY_COUNT.store(0, std::sync::atomic::Ordering::SeqCst);
+        ATTRIBUTION_CALL_COUNT.store(0, std::sync::atomic::Ordering::SeqCst);
+
+        let attribution = scan_file_row_attribution(&connection, false);
+        assert!(attribution.rows.is_empty());
+        assert!(!attribution.truncated);
+
+        assert_eq!(
+            ATTRIBUTION_CALL_COUNT.load(std::sync::atomic::Ordering::SeqCst),
+            0,
+            "scan_file_row_attribution must not call file_row_attribution when json is false"
+        );
+        assert_eq!(
+            ATTRIBUTION_GROUP_BY_QUERY_COUNT.load(std::sync::atomic::Ordering::SeqCst),
+            0,
+            "scan_file_row_attribution must execute 0 GROUP BY queries when json is false"
+        );
+
+        let _json_attribution = scan_file_row_attribution(&connection, true);
+        assert_eq!(
+            ATTRIBUTION_CALL_COUNT.load(std::sync::atomic::Ordering::SeqCst),
+            1,
+            "scan_file_row_attribution must call file_row_attribution when json is true"
+        );
+        assert_eq!(
+            ATTRIBUTION_GROUP_BY_QUERY_COUNT.load(std::sync::atomic::Ordering::SeqCst),
+            14,
+            "scan_file_row_attribution must execute all 14 GROUP BY queries when json is true"
         );
     }
 }

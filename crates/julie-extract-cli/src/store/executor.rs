@@ -619,6 +619,9 @@ impl StoreRequestExecutor {
         if let Some(progress) = progress {
             progress.advance(Counter::Spooled, 1);
         }
+        if level == ExtractionLevel::Full {
+            crate::extraction::remove_cached_snapshot(&target.absolute_path);
+        }
         StoreFileVersion::try_from_artifact_file(EXTRACTION_IDENTITY_EPOCH, artifact)
             .map_err(|error| error.to_string())
     }

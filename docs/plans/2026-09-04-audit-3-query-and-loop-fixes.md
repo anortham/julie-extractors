@@ -151,8 +151,8 @@ Commit mode: `parallel-lead-commit` inside each batch.
 **Approach:** The walk classifies each file once. Store the result. Test: a discovery over `fixtures/extraction` produces the same supported list and languages as before, and `select_file` is not called during spooling (count through a test hook or by removing the call and letting the type system enforce it).
 
 **Acceptance criteria:**
-- [ ] `spool_discovered_files` does not call `select_file`.
-- [ ] Operations contract passes; discovery unit tests pass.
+- [x] `spool_discovered_files` does not call `select_file`.
+- [x] Operations contract passes; discovery unit tests pass.
 
 ## Task 8: Scan report attribution only for JSON
 
@@ -163,8 +163,8 @@ Commit mode: `parallel-lead-commit` inside each batch.
 **Approach:** Check `docs/contracts/cli.md` for the scan report contract. If the JSON report field is required, keep it for JSON and skip for text. If the text report also prints it, stop and report before changing user-visible output. Add a test that a text-mode scan does not execute the attribution query (use the rusqlite trace hook in the test).
 
 **Acceptance criteria:**
-- [ ] Text scan runs no `GROUP BY file_id` query.
-- [ ] JSON scan output is byte-identical to before for the same input.
+- [x] Text scan runs no `GROUP BY file_id` query.
+- [x] JSON scan output is byte-identical to before for the same input.
 
 ## Task 9: Store import single read
 
@@ -175,8 +175,8 @@ Commit mode: `parallel-lead-commit` inside each batch.
 **Approach:** Read `docs/contracts/store-v1.md` for the change-detection contract first. If the contract requires hash-based planning, keep the hash but read the file once and pass the bytes into extraction through the planned payload (bounded by the existing chunk size). Record the choice in the task report.
 
 **Acceptance criteria:**
-- [ ] Each imported file is read from disk once per import.
-- [ ] Store CLI contract passes; the `changed_during_l1_wave` and `changed_between_waves` errors still fire in their tests.
+- [x] Each imported file is read from disk once per import.
+- [x] Store CLI contract passes; the `changed_during_l1_wave` and `changed_between_waves` errors still fire in their tests.
 
 ## Task 10: Normalize the path once
 

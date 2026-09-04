@@ -180,11 +180,24 @@ fn planned_import_files(
 pub(crate) fn read_source_identity_or_missing(
     target: &crate::paths::FileTarget,
 ) -> Result<Option<(String, u64)>, String> {
+    if let Some(snapshot) = crate::extraction::get_cached_snapshot_if_fresh(&target.absolute_path) {
+        return Ok(Some((snapshot.content_hash, snapshot.content_bytes as u64)));
+    }
+    crate::extraction::record_disk_read(target);
     match std::fs::read(&target.absolute_path) {
-        Ok(bytes) => Ok(Some((
-            crate::extraction::content_hash_bytes(&bytes),
-            bytes.len() as u64,
-        ))),
+        Ok(bytes) => {
+            let mtime = target
+                .absolute_path
+                .metadata()
+                .and_then(|m| m.modified())
+                .ok();
+            let size = bytes.len() as u64;
+            let hash = crate::extraction::content_hash_bytes(&bytes);
+            if let Ok(snapshot) = crate::extraction::source_snapshot_from_bytes(target, bytes) {
+                crate::extraction::cache_snapshot(&target.absolute_path, snapshot, mtime, size);
+            }
+            Ok(Some((hash, size)))
+        }
         Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
         Err(error) => Err(crate::extraction::read_error(target, &error).message),
     }
@@ -333,6 +346,14 @@ fn execute_import(
     request_id: &str,
     idempotency_key: &str,
 ) -> Result<StoreReport, String> {
+    crate::extraction::clear_snapshot_cache();
+    struct SnapshotCacheGuard;
+    impl Drop for SnapshotCacheGuard {
+        fn drop(&mut self) {
+            crate::extraction::clear_snapshot_cache();
+        }
+    }
+    let _cache_guard = SnapshotCacheGuard;
     let observe_started = now_millis();
     let existing_store = args.store.join("CURRENT").exists();
     let existing = if existing_store {

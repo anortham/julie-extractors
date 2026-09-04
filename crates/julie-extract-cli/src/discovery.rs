@@ -109,7 +109,37 @@ pub struct DiscoveryPolicy {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SupportedTarget {
+    pub target: FileTarget,
+    pub language: String,
+}
+
+impl SupportedTarget {
+    pub fn new(target: FileTarget, language: impl Into<String>) -> Self {
+        Self {
+            target,
+            language: language.into(),
+        }
+    }
+}
+
+impl std::ops::Deref for SupportedTarget {
+    type Target = FileTarget;
+
+    fn deref(&self) -> &Self::Target {
+        &self.target
+    }
+}
+
+impl From<SupportedTarget> for FileTarget {
+    fn from(supported: SupportedTarget) -> Self {
+        supported.target
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DiscoverySummary {
+    pub supported_targets: Vec<SupportedTarget>,
     pub supported_files: Vec<FileTarget>,
     /// Files the walk reached and dropped because no extractor claims the
     /// extension. They are recorded in the change journal as `unsupported` so a
@@ -242,6 +272,7 @@ impl DiscoveryPolicy {
 
     pub fn discover_with_progress(&self, progress: Option<&ScanProgress>) -> DiscoverySummary {
         let mut summary = DiscoverySummary {
+            supported_targets: Vec::new(),
             supported_files: Vec::new(),
             unsupported_targets: Vec::new(),
             unsupported_files: 0,
@@ -254,6 +285,9 @@ impl DiscoveryPolicy {
         };
         self.discover_dir(&self.root, &mut summary, &mut walk);
         summary
+            .supported_targets
+            .sort_by(|left, right| left.root_relative_path.cmp(&right.root_relative_path));
+        summary
             .supported_files
             .sort_by(|left, right| left.root_relative_path.cmp(&right.root_relative_path));
         summary
@@ -264,7 +298,7 @@ impl DiscoveryPolicy {
                 Counter::Discovered,
                 walk.entries_seen % DISCOVERY_PROGRESS_TICK,
             );
-            progress.advance(Counter::Supported, summary.supported_files.len() as u64);
+            progress.advance(Counter::Supported, summary.supported_targets.len() as u64);
         }
         summary
     }
@@ -341,7 +375,12 @@ impl DiscoveryPolicy {
                 root_relative_path: relative,
             };
             match self.select_file(&target) {
-                FileSelection::Supported { .. } => summary.supported_files.push(target),
+                FileSelection::Supported { language } => {
+                    summary
+                        .supported_targets
+                        .push(SupportedTarget::new(target.clone(), language));
+                    summary.supported_files.push(target);
+                }
                 FileSelection::Unsupported { reason } => {
                     summary.unsupported_files += 1;
                     match reason {
@@ -1395,6 +1434,66 @@ mod tests {
             1,
             "the name shape only suppresses files the scan itself could have written"
         );
+    }
+
+    #[test]
+    fn discover_carries_detected_language_for_supported_targets() {
+        let fixture = DiscoveryFixture::new();
+        fixture.write("src/lib.rs", "pub fn lib() {}\n");
+        fixture.write("src/app.py", "def app(): pass\n");
+        fixture.write("src/index.ts", "export const x = 1;\n");
+        let summary = fixture.policy().discover();
+
+        let pairs: Vec<(&str, &str)> = summary
+            .supported_targets
+            .iter()
+            .map(|target| (target.root_relative_path.as_str(), target.language.as_str()))
+            .collect();
+        assert_eq!(
+            pairs,
+            vec![
+                ("src/app.py", "python"),
+                ("src/index.ts", "typescript"),
+                ("src/lib.rs", "rust"),
+            ]
+        );
+    }
+
+    #[test]
+    fn supported_target_derefs_and_converts_to_file_target() {
+        let target = FileTarget {
+            absolute_path: PathBuf::from("/test/path.rs"),
+            root_relative_path: "path.rs".to_string(),
+        };
+        let supported = SupportedTarget::new(target.clone(), "rust");
+        assert_eq!(supported.root_relative_path, "path.rs");
+        assert_eq!(supported.absolute_path, PathBuf::from("/test/path.rs"));
+        assert_eq!(supported.target, target);
+        assert_eq!(supported.language, "rust");
+        let into_target: FileTarget = supported.into();
+        assert_eq!(into_target, target);
+    }
+
+    #[test]
+    fn discover_supported_targets_matches_supported_files_and_carries_language() {
+        let fixture = DiscoveryFixture::new();
+        fixture.write("src/main.rs", "fn main() {}\n");
+        fixture.write("src/util.py", "x = 1\n");
+        fixture.write("notes.txt", "text\n");
+
+        let summary = fixture.policy().discover();
+        assert_eq!(summary.supported_targets.len(), 2);
+        assert_eq!(summary.supported_files.len(), 2);
+        for (target, file) in summary
+            .supported_targets
+            .iter()
+            .zip(&summary.supported_files)
+        {
+            assert_eq!(&target.target, file);
+            assert_eq!(target.root_relative_path, file.root_relative_path);
+        }
+        assert_eq!(summary.supported_targets[0].language, "rust");
+        assert_eq!(summary.supported_targets[1].language, "python");
     }
 
     struct DiscoveryFixture {
