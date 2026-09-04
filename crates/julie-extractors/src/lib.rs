@@ -40,6 +40,8 @@
 //! **Specialized**: GDScript, Razor, SQL, Regex
 //! **Documentation**: Markdown, JSON, TOML, YAML
 
+#![allow(dead_code)]
+
 // Core infrastructure
 pub(crate) mod base;
 pub mod capability_snapshot;

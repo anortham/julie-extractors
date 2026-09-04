@@ -12,7 +12,7 @@ use super::relationship_resolution::StructuredPendingRelationship;
 use super::span::NormalizedSpan;
 use super::type_models::{Literal, TypeArgumentUsage};
 
-pub use super::kinds::{IdentifierKind, RelationshipKind, SymbolKind, TestRole, Visibility};
+pub use super::kinds::{IdentifierKind, RelationshipKind, SymbolKind, Visibility};
 
 /// Why a file's extraction is incomplete: tree-sitter parse recovery, or the
 /// crate-wide tree traversal budget cutting a pathologically deep tree short.

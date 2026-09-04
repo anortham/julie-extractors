@@ -18,9 +18,6 @@ mod relationships;
 mod scripts;
 mod types;
 
-// Public re-exports
-pub use crate::base::{IdentifierKind, RelationshipKind};
-
 pub struct HTMLExtractor {
     pub(crate) base: BaseExtractor,
     mocha_bdd_contract: bool,

@@ -27,6 +27,7 @@ pub(crate) fn valid_root_relative_path(root: &Path, path: &str) -> bool {
         && root.join(path).starts_with(root)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn base_report(
     operation: StoreOperation,
     request_id: &str,

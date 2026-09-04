@@ -45,7 +45,6 @@ pub mod web_structural_facts;
 
 // Re-export key types for external use
 pub use annotations::normalize_annotations;
-pub use body::BodySpan;
 pub use code_structural_facts::collect_code_structural_facts;
 pub use complexity_metrics::collect_complexity_metrics;
 pub(crate) use containing_symbol::attach_containing_symbols;
@@ -61,23 +60,22 @@ pub use relationship_resolution::{
 };
 pub(crate) use rust_doc_test_facts::collect_rust_doc_test_facts;
 pub use source_regions::collect_source_regions;
-pub use span::{NormalizedSpan, RecordOffset, normalize_file_path};
+pub use span::{NormalizedSpan, RecordOffset};
 pub use sql_structural_facts::collect_sql_structural_facts;
+#[allow(unused_imports)]
 pub use structural_fact_registry::{
-    KeyPresence, MetadataKeySpec, MetadataValueType, StructuralFactPatternSpec,
     structural_fact_pattern_specs, structural_fact_patterns_contract_json,
     structural_fact_patterns_json,
 };
 pub use structural_facts::collect_structural_facts;
 pub use tree_methods::{find_child_by_type, find_child_by_types};
-pub use type_arguments::{TypeArgDecomposer, extract_type_arguments};
+pub use type_arguments::extract_type_arguments;
 pub use type_models::{Literal, LiteralKind, TypeArgument, TypeArgumentUsage};
 pub use types::{
     AnnotationMarker, ComplexityMetric, ExtractionLevel, ExtractionResults, Identifier,
     ParseDiagnostic, ParseDiagnosticKind, PendingRelationship, Relationship, SourceRegion,
     SourceRegionKind, StructuralFact, Symbol, SymbolOptions, TypeInfo,
 };
-pub use visibility::{visibility_from_modifiers, visibility_from_modifiers_with_default};
 pub use web_structural_facts::collect_web_structural_facts;
 
 pub(crate) fn containing_symbol_at_line(symbols: &[Symbol], line_number: u32) -> Option<&Symbol> {
