@@ -84,14 +84,16 @@ impl SqlExtractor {
         let pgtap_context = test_detection::PgTapContext::from_tree(&self.base, tree);
         self.visit_node(tree.root_node(), &mut symbols, None, 0, &pgtap_context);
         test_detection::mark_pgtap_schema_containers(&pgtap_context, &mut symbols);
-        self.walk_for_string_literals(tree.root_node(), &symbols, 0);
+        let symbol_map: HashMap<String, &Symbol> =
+            symbols.iter().map(|s| (s.id.clone(), s)).collect();
+        self.walk_for_string_literals(tree.root_node(), &symbol_map, 0);
         symbols
     }
 
     fn walk_for_string_literals(
         &mut self,
         node: tree_sitter::Node,
-        symbols: &[Symbol],
+        symbol_map: &HashMap<String, &Symbol>,
         depth: u32,
     ) {
         if !should_visit_tree_depth(depth) {
@@ -99,11 +101,9 @@ impl SqlExtractor {
         }
 
         if matches!(node.kind(), "string" | "string_literal" | "literal") {
-            let symbol_map: HashMap<String, &Symbol> =
-                symbols.iter().map(|s| (s.id.clone(), s)).collect();
             let containing_symbol_id = self
                 .base
-                .find_containing_symbol_from_map(&node, &symbol_map)
+                .find_containing_symbol_from_map(&node, symbol_map)
                 .map(|symbol| symbol.id.clone());
             if let Some(text) = self.decode_sql_string_literal(&node) {
                 let carrier = self.sql_literal_carrier(&node);
@@ -117,7 +117,7 @@ impl SqlExtractor {
         };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_for_string_literals(child, symbols, child_depth);
+            self.walk_for_string_literals(child, symbol_map, child_depth);
         }
     }
 

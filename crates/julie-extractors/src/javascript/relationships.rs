@@ -60,11 +60,11 @@ fn extract_new_expression_relationships(
         && let Some(constructor_node) = node.child_by_field_name("constructor")
     {
         let target = extract_call_target(extractor, constructor_node);
-        let caller = find_containing_callable_symbol(node, symbols).cloned();
+        let caller = find_containing_callable_symbol(node, symbols);
         if let Some(caller) = caller {
             let resolution = symbol_index.resolve_call_target(
                 &target.terminal_name,
-                Some(&caller),
+                Some(caller),
                 target.receiver.as_deref(),
             );
             let constructable_symbol = match &resolution {

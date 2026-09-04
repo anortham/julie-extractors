@@ -6,6 +6,10 @@ use std::collections::HashMap;
 use tree_sitter::Node;
 
 use super::body::{body_hash, infer_body_span};
+use super::containing_symbol_index::{
+    ContainingSymbolIndex, IndexedSymbol, is_better_containing_symbol, symbol_contains_position,
+    symbol_priority,
+};
 use super::extractor::BaseExtractor;
 use super::relationship_resolution::{StructuredPendingRelationship, UnresolvedTarget};
 use super::span::NormalizedSpan;
@@ -222,13 +226,12 @@ impl BaseExtractor {
         .with_target_span(NormalizedSpan::from_node(target_token_node))
     }
 
-    /// Find containing symbol - exact port of findContainingSymbol
     pub fn find_containing_symbol<'a>(
         &self,
         node: &Node,
         symbols: &'a [Symbol],
     ) -> Option<&'a Symbol> {
-        Self::find_containing_symbol_from_iter(node, symbols.iter())
+        ContainingSymbolIndex::new(symbols, &self.file_path).find(*node)
     }
 
     pub fn find_containing_symbol_from_map<'a>(
@@ -254,80 +257,36 @@ impl BaseExtractor {
         )
     }
 
-    fn find_containing_symbol_from_iter<'a>(
+    pub fn find_containing_symbol_from_iter<'a>(
         node: &Node,
         symbols: impl IntoIterator<Item = &'a Symbol>,
     ) -> Option<&'a Symbol> {
         let position = node.start_position();
+        let pos_line = (position.row + 1) as u32;
+        let pos_column = position.column as u32;
 
-        // Find symbols that contain this position
-        let mut containing_symbols: Vec<&Symbol> = symbols
-            .into_iter()
-            .filter(|s| {
-                let pos_line = (position.row + 1) as u32;
-                let pos_column = position.column as u32;
+        let mut best: Option<IndexedSymbol<'a>> = None;
 
-                let line_contains = s.start_line <= pos_line && s.end_line >= pos_line;
+        for symbol in symbols {
+            if !symbol_contains_position(symbol, pos_line, pos_column) {
+                continue;
+            }
 
-                // For column containment, handle multi-line spans exactly standard format
-                let col_contains = if pos_line == s.start_line && pos_line == s.end_line {
-                    // Single line span
-                    s.start_column <= pos_column && s.end_column >= pos_column
-                } else if pos_line == s.start_line {
-                    // First line of multi-line span
-                    s.start_column <= pos_column
-                } else if pos_line == s.end_line {
-                    // Last line of multi-line span
-                    s.end_column >= pos_column
-                } else {
-                    // Middle line of multi-line span
-                    true
-                };
+            let candidate = IndexedSymbol {
+                symbol,
+                priority: symbol_priority(&symbol.kind),
+                size: symbol.end_byte.saturating_sub(symbol.start_byte),
+            };
 
-                line_contains && col_contains
-            })
-            .collect();
-
-        if containing_symbols.is_empty() {
-            return None;
+            if best
+                .as_ref()
+                .is_none_or(|current| is_better_containing_symbol(&candidate, current))
+            {
+                best = Some(candidate);
+            }
         }
 
-        // Priority order - reference implementation
-        let get_priority = |kind: &SymbolKind| -> u32 {
-            match kind {
-                SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor => 1,
-                SymbolKind::Class | SymbolKind::Interface => 2,
-                SymbolKind::Namespace => 3,
-                SymbolKind::Variable | SymbolKind::Constant | SymbolKind::Property => 10,
-                _ => 5,
-            }
-        };
-
-        containing_symbols.sort_by(|a, b| {
-            // First, sort by priority (functions first)
-            let priority_a = get_priority(&a.kind);
-            let priority_b = get_priority(&b.kind);
-            if priority_a != priority_b {
-                return priority_a.cmp(&priority_b);
-            }
-
-            // Then by size (smaller first) — use byte range for accurate, overflow-safe comparison.
-            // The old formula `(end_line - start_line) * 1000 + (end_column - start_column)` panicked
-            // on multi-line symbols where end_column < start_column (columns refer to different lines).
-            let size_a = a.end_byte - a.start_byte;
-            let size_b = b.end_byte - b.start_byte;
-            // start_byte and id complete the total order. Callers feed this from a
-            // HashMap (identifier passes) or a Vec (relationship passes), and a tie
-            // resolved by input order makes the two passes disagree about the same
-            // token's containing symbol — which is exactly what equal-span symbols
-            // such as C multi-declarator variables produce.
-            size_a
-                .cmp(&size_b)
-                .then_with(|| a.start_byte.cmp(&b.start_byte))
-                .then_with(|| a.id.cmp(&b.id))
-        });
-
-        Some(containing_symbols[0])
+        best.map(|candidate| candidate.symbol)
     }
 
     /// Extract visibility from explicit modifier nodes only.
