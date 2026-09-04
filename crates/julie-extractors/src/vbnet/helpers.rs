@@ -18,12 +18,12 @@ pub fn extract_modifiers(base: &BaseExtractor, node: &Node) -> Vec<String> {
 }
 
 pub fn determine_visibility(modifiers: &[String], default_visibility: &str) -> Visibility {
-    match get_vb_visibility_string(modifiers, default_visibility).as_str() {
+    let default = match default_visibility {
         "public" => Visibility::Public,
-        "protected" | "protected friend" => Visibility::Protected,
-        "friend" | "private" | "private protected" => Visibility::Private,
+        "protected" => Visibility::Protected,
         _ => Visibility::Private,
-    }
+    };
+    crate::base::visibility::visibility_from_modifiers_with_default(modifiers, default)
 }
 
 pub fn get_vb_visibility_string(modifiers: &[String], default_visibility: &str) -> String {

@@ -54,12 +54,5 @@ pub(super) fn extract_modifiers(extractor: &PhpExtractor, node: &Node) -> Vec<St
 
 /// Determine visibility from modifiers
 pub(super) fn determine_visibility(modifiers: &[String]) -> Visibility {
-    for modifier in modifiers {
-        match modifier.as_str() {
-            "private" => return Visibility::Private,
-            "protected" => return Visibility::Protected,
-            _ => {}
-        }
-    }
-    Visibility::Public // PHP defaults to public
+    crate::base::visibility::visibility_from_modifiers(modifiers)
 }

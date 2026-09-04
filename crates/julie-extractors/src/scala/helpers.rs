@@ -126,19 +126,7 @@ pub(super) fn extract_extends(base: &Base, node: &Node) -> Option<String> {
 
 /// Determine visibility from modifiers
 pub(super) fn determine_visibility(modifiers: &[String]) -> Visibility {
-    if modifiers
-        .iter()
-        .any(|m| m == "private" || m.starts_with("private["))
-    {
-        Visibility::Private
-    } else if modifiers
-        .iter()
-        .any(|m| m == "protected" || m.starts_with("protected["))
-    {
-        Visibility::Protected
-    } else {
-        Visibility::Public // Scala defaults to public
-    }
+    crate::base::visibility::visibility_from_modifiers(modifiers)
 }
 
 fn is_type_node(kind: &str) -> bool {

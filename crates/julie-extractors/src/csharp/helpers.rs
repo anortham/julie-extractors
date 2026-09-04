@@ -43,26 +43,12 @@ pub fn extract_annotations(base: &BaseExtractor, node: &Node) -> Vec<AnnotationM
 
 /// Determine visibility from modifiers
 pub fn determine_visibility(modifiers: &[String], node_type: Option<&str>) -> Visibility {
-    if modifiers.contains(&"public".to_string()) {
-        return Visibility::Public;
-    }
-    if modifiers.contains(&"private".to_string()) {
-        return Visibility::Private;
-    }
-    if modifiers.contains(&"protected".to_string()) {
-        return Visibility::Protected;
-    }
-    if modifiers.contains(&"internal".to_string()) {
-        return Visibility::Internal;
-    }
-
-    // Special cases for default visibility
-    if node_type == Some("constructor_declaration") {
-        return Visibility::Public; // Constructors default to public when in public classes
-    }
-
-    // Default visibility in C#
-    Visibility::Private
+    let default = if node_type == Some("constructor_declaration") {
+        Visibility::Public
+    } else {
+        Visibility::Private
+    };
+    crate::base::visibility::visibility_from_modifiers_with_default(modifiers, default)
 }
 
 /// Get C# visibility string including internal

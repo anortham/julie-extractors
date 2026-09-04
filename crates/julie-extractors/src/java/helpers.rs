@@ -35,15 +35,7 @@ pub(super) fn extract_annotations(base: &BaseExtractor, node: Node) -> Vec<Annot
 
 /// Determine visibility from modifier list
 pub(super) fn determine_visibility(modifiers: &[String]) -> Visibility {
-    if modifiers.contains(&"public".to_string()) {
-        Visibility::Public
-    } else if modifiers.contains(&"private".to_string()) {
-        Visibility::Private
-    } else if modifiers.contains(&"protected".to_string()) {
-        Visibility::Protected
-    } else {
-        Visibility::Private // Default visibility in Java (package-private maps to Private)
-    }
+    crate::base::visibility::visibility_from_modifiers_with_default(modifiers, Visibility::Private)
 }
 
 /// Extract superclass from a class declaration node
