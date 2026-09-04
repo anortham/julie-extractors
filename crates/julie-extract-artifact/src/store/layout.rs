@@ -234,6 +234,7 @@ impl StoreLayout {
 ///
 /// The `bases/` directory itself stays so [`StoreLayout::open`] can resolve it.
 /// Callers must close any handles to those files first.
+/// Runs once during the initial writer retirement migration.
 pub(crate) fn reap_retired_resolution_files(layout: &StoreLayout) -> Result<(), StoreLayoutError> {
     reap_directory_files(layout.bases_dir())?;
     let entries = match fs::read_dir(layout.scratch_dir()) {
@@ -709,6 +710,7 @@ pub(crate) fn initialize_store_database(
         ("min_writer_version", creator_version),
         ("created_by_version", creator_version),
         ("binary_version", creator_version),
+        ("resolution_retired", "1"),
     ] {
         transaction.execute(
             "INSERT INTO store_meta (key, value) VALUES (?1, ?2)

@@ -7,7 +7,7 @@ use julie_extract_artifact::store::{
     STORE_SQLITE_SCHEMA_VERSION, StoreConnectionFactory, StoreLayout, create_coordinator_schema,
     create_store_schema,
 };
-use rusqlite::Connection;
+use rusqlite::{Connection, OptionalExtension};
 use sha2::{Digest, Sha256};
 
 #[test]
@@ -52,6 +52,17 @@ fn legacy_store_reader_is_inert_and_writer_retires_resolution_objects() {
     assert_eq!(leftover_resolution_files(&layout), before_files);
     assert_eq!(store_db_mtime(&layout), before_mtime);
 
+    let before_marker: Option<String> = Connection::open(layout.store_db())
+        .unwrap()
+        .query_row(
+            "SELECT value FROM store_meta WHERE key = 'resolution_retired'",
+            [],
+            |row| row.get(0),
+        )
+        .optional()
+        .unwrap();
+    assert_eq!(before_marker, None);
+
     let writer = factory.open_writer().unwrap();
     assert_eq!(retired_schema_objects(&writer), Vec::<String>::new());
     assert_eq!(view_rows(&writer), before_views);
@@ -59,12 +70,30 @@ fn legacy_store_reader_is_inert_and_writer_retires_resolution_objects() {
     assert!(foreign_key_check(&writer).is_empty());
     drop(writer);
     assert_eq!(leftover_resolution_files(&layout), Vec::<PathBuf>::new());
+    let after_marker: String = Connection::open(layout.store_db())
+        .unwrap()
+        .query_row(
+            "SELECT value FROM store_meta WHERE key = 'resolution_retired'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(after_marker, "1");
 
     let second = factory.open_writer().unwrap();
     assert_eq!(retired_schema_objects(&second), Vec::<String>::new());
     assert_eq!(view_rows(&second), before_views);
     assert_eq!(fact_table_digest(&second), before_facts);
     drop(second);
+    let second_marker: String = Connection::open(layout.store_db())
+        .unwrap()
+        .query_row(
+            "SELECT value FROM store_meta WHERE key = 'resolution_retired'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(second_marker, "1");
 
     let fresh = Connection::open_in_memory().unwrap();
     create_store_schema(&fresh).unwrap();
@@ -127,10 +156,253 @@ fn first_gc_apply_on_unmigrated_legacy_store_does_not_stale_plan() {
     assert_eq!(leftover_resolution_files(&layout), Vec::<PathBuf>::new());
 }
 
+#[test]
+fn writer_open_runs_retirement_once_and_skips_on_subsequent_opens() {
+    let temp = TempStore::new("retirement-marker-skip");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
+    seed_legacy_resolution_world(&layout);
+
+    // Seed a capability gap matching reference_resolution.% that a pre-2.34 binary could have left
+    {
+        let conn = Connection::open(layout.store_db()).unwrap();
+        conn.execute_batch(
+            "INSERT INTO language_capabilities
+               (extraction_epoch, language, parser_package, extensions_json, dependency_status,
+                target_symbols, target_relationships, target_pending_relationships,
+                target_identifiers, target_types, actual_symbols, actual_relationships,
+                actual_pending_relationships, actual_identifiers, actual_types,
+                kind_coverage_json)
+             VALUES (1, 'rust', 'tree-sitter-rust', '[\"rs\"]', 'bundled',
+                     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, '{}');
+             INSERT INTO language_capability_gaps
+               (extraction_epoch, gap_id, language, capability, status, reason, required_closure, evidence_json)
+             VALUES (1, 'gap-1', 'rust', 'reference_resolution.test_gap', 'open', 'reason', 'closure', '{}');",
+        )
+        .unwrap();
+    }
+
+    // 1. Verify that before writer open, marker is absent
+    {
+        let conn = Connection::open(layout.store_db()).unwrap();
+        let marker: Option<String> = conn
+            .query_row(
+                "SELECT value FROM store_meta WHERE key = 'resolution_retired'",
+                [],
+                |row| row.get(0),
+            )
+            .optional()
+            .unwrap();
+        assert_eq!(
+            marker, None,
+            "unmigrated store must not have resolution_retired"
+        );
+    }
+
+    let factory = StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0");
+
+    // 2. First open_writer performs all retirement work and records resolution_retired = '1'
+    let writer = factory.open_writer().unwrap();
+    assert_eq!(retired_schema_objects(&writer), Vec::<String>::new());
+    let gap_count: i64 = writer
+        .query_row(
+            "SELECT COUNT(*) FROM language_capability_gaps WHERE capability LIKE 'reference_resolution.%'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(gap_count, 0, "first open must reap capability gaps");
+    assert_eq!(leftover_resolution_files(&layout), Vec::<PathBuf>::new());
+    let marker: String = writer
+        .query_row(
+            "SELECT value FROM store_meta WHERE key = 'resolution_retired'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        marker, "1",
+        "first open must write resolution_retired = '1'"
+    );
+    drop(writer);
+
+    // 3. Plant probe artifacts that retirement steps would remove if they executed:
+    // - A capability gap matching reference_resolution.% (would be reaped by reap_retired_resolution_capability_gaps)
+    // - A base file in bases_dir (would be reaped by reap_retired_resolution_files)
+    // - A scratch file in scratch_dir (would be reaped by reap_retired_resolution_files)
+    {
+        let conn = Connection::open(layout.store_db()).unwrap();
+        conn.execute_batch(
+            "INSERT OR IGNORE INTO language_capabilities
+               (extraction_epoch, language, parser_package, extensions_json, dependency_status,
+                target_symbols, target_relationships, target_pending_relationships,
+                target_identifiers, target_types, actual_symbols, actual_relationships,
+                actual_pending_relationships, actual_identifiers, actual_types,
+                kind_coverage_json)
+             VALUES (1, 'rust', 'tree-sitter-rust', '[\"rs\"]', 'bundled',
+                     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, '{}');
+             INSERT INTO language_capability_gaps
+               (extraction_epoch, gap_id, language, capability, status, reason, required_closure, evidence_json)
+             VALUES (1, 'probe-gap', 'rust', 'reference_resolution.probe_gap', 'open', 'reason', 'closure', '{}');",
+        )
+        .unwrap();
+    }
+    let probe_base = layout.bases_dir().join("probe-base.db");
+    let probe_scratch = layout.scratch_dir().join("resolve-probe.db");
+    fs::write(&probe_base, b"probe_base").unwrap();
+    fs::write(&probe_scratch, b"probe_scratch").unwrap();
+
+    // 4. Second open_writer: resolution_retired == '1', so all retirement steps MUST be skipped
+    let second_writer = factory.open_writer().unwrap();
+    let probe_gap_count: i64 = second_writer
+        .query_row(
+            "SELECT COUNT(*) FROM language_capability_gaps WHERE capability = 'reference_resolution.probe_gap'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        probe_gap_count, 1,
+        "second open must skip reap_retired_resolution_capability_gaps when marker is present"
+    );
+    assert!(
+        probe_base.exists(),
+        "second open must skip reap_retired_resolution_files (bases_dir) when marker is present"
+    );
+    assert!(
+        probe_scratch.exists(),
+        "second open must skip reap_retired_resolution_files (scratch_dir) when marker is present"
+    );
+    drop(second_writer);
+
+    // 5. If the marker is deleted, subsequent open_writer MUST re-run retirement steps
+    {
+        let conn = Connection::open(layout.store_db()).unwrap();
+        conn.execute(
+            "DELETE FROM store_meta WHERE key = 'resolution_retired'",
+            [],
+        )
+        .unwrap();
+    }
+    let third_writer = factory.open_writer().unwrap();
+    let reaped_gap_count: i64 = third_writer
+        .query_row(
+            "SELECT COUNT(*) FROM language_capability_gaps WHERE capability = 'reference_resolution.probe_gap'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        reaped_gap_count, 0,
+        "unmarked open must run retirement steps and reap capability gaps"
+    );
+    assert!(
+        !probe_base.exists(),
+        "unmarked open must run retirement steps and reap base files"
+    );
+    assert!(
+        !probe_scratch.exists(),
+        "unmarked open must run retirement steps and reap scratch files"
+    );
+    let marker_restored: String = third_writer
+        .query_row(
+            "SELECT value FROM store_meta WHERE key = 'resolution_retired'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        marker_restored, "1",
+        "retirement must restore marker to '1'"
+    );
+    drop(third_writer);
+
+    // 6. If marker is present with non-'1' value (e.g. '0'), retirement must also run
+    {
+        let conn = Connection::open(layout.store_db()).unwrap();
+        conn.execute(
+            "UPDATE store_meta SET value = '0' WHERE key = 'resolution_retired'",
+            [],
+        )
+        .unwrap();
+    }
+    fs::write(&probe_base, b"probe_base_2").unwrap();
+    let fourth_writer = factory.open_writer().unwrap();
+    assert!(
+        !probe_base.exists(),
+        "open with non-'1' marker must run retirement steps"
+    );
+    let marker_updated: String = fourth_writer
+        .query_row(
+            "SELECT value FROM store_meta WHERE key = 'resolution_retired'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(marker_updated, "1", "retirement must update marker to '1'");
+    drop(fourth_writer);
+}
+
+#[test]
+fn fresh_store_writer_open_records_marker_and_skips_subsequent_retirement() {
+    let temp = TempStore::new("fresh-retirement-marker");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
+
+    // Before writer open, freshly created store has resolution_retired = '1' from layout initialization
+    {
+        let conn = Connection::open(layout.store_db()).unwrap();
+        let marker: Option<String> = conn
+            .query_row(
+                "SELECT value FROM store_meta WHERE key = 'resolution_retired'",
+                [],
+                |row| row.get(0),
+            )
+            .optional()
+            .unwrap();
+        assert_eq!(
+            marker,
+            Some("1".to_string()),
+            "fresh store initializes resolution_retired marker"
+        );
+    }
+
+    let factory = StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0");
+    let writer = factory.open_writer().unwrap();
+    let marker: String = writer
+        .query_row(
+            "SELECT value FROM store_meta WHERE key = 'resolution_retired'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        marker, "1",
+        "writer open preserves resolution_retired = '1'"
+    );
+    drop(writer);
+
+    // Plant probe scratch file
+    let probe_scratch = layout.scratch_dir().join("resolve-fresh-probe.db");
+    fs::write(&probe_scratch, b"fresh_probe").unwrap();
+
+    // Second open skips retirement
+    let second_writer = factory.open_writer().unwrap();
+    assert!(
+        probe_scratch.exists(),
+        "subsequent writer open on fresh store must skip retirement steps"
+    );
+    drop(second_writer);
+}
+
 fn seed_legacy_resolution_world(layout: &StoreLayout) {
     let connection = Connection::open(layout.store_db()).unwrap();
     connection
         .execute_batch("PRAGMA foreign_keys=OFF; BEGIN IMMEDIATE;")
+        .unwrap();
+    connection
+        .execute(
+            "DELETE FROM store_meta WHERE key = 'resolution_retired'",
+            [],
+        )
         .unwrap();
     connection
         .execute_batch(LEGACY_RESOLUTION_OBJECTS_SQL)

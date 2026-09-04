@@ -1060,6 +1060,140 @@ fn path_writer_truncates_wal_after_successful_write() {
 }
 
 #[test]
+fn single_file_updates_defer_checkpoint_until_writer_close() {
+    let temp_dir = unique_temp_dir("single-file-updates-checkpoint-policy");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let db_path = temp_dir.join("artifact.sqlite");
+    let wal_path = wal_path(&db_path);
+
+    let mut writer = ArtifactWriter::open_path(&db_path, artifact_metadata()).unwrap();
+    writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_with_symbols(
+                "file-0",
+                "src/file0.rs",
+                "hash-0",
+                ["init"],
+            )],
+        )
+        .unwrap();
+
+    let wal_bytes_after_scan = std::fs::metadata(&wal_path).map(|m| m.len()).unwrap_or(0);
+    assert_eq!(
+        wal_bytes_after_scan, 0,
+        "scan completion must truncate the WAL sidecar"
+    );
+
+    // 10 single-file updates do not checkpoint per update
+    for i in 1..=10 {
+        let path = format!("src/file{i}.rs");
+        let file_id = format!("file-{i}");
+        let hash = format!("hash-{i}");
+        let sym = format!("sym_{i}");
+        writer
+            .write_update(
+                revision(WriteOperation::Update, Some(WriteMode::Incremental)),
+                &file_with_symbols(&file_id, &path, &hash, [&sym]),
+            )
+            .unwrap();
+
+        let wal_bytes = std::fs::metadata(&wal_path).map(|m| m.len()).unwrap_or(0);
+        assert!(
+            wal_bytes > 0,
+            "update {i} must leave uncheckpointed WAL frames instead of forcing TRUNCATE"
+        );
+    }
+
+    // Reader contract: reader safely reads uncheckpointed WAL frames while writer is open
+    {
+        let reader = Connection::open(&db_path).unwrap();
+        assert_eq!(
+            count(&reader, "files"),
+            11,
+            "readers must safely read uncheckpointed WAL frames across all 11 files"
+        );
+    }
+
+    // Explicit close runs a single TRUNCATE checkpoint and folds the WAL
+    writer.close().unwrap();
+
+    let wal_bytes_after_close = std::fs::metadata(&wal_path).map(|m| m.len()).unwrap_or(0);
+    assert_eq!(
+        wal_bytes_after_close, 0,
+        "writer close must fold the WAL sidecar with a TRUNCATE checkpoint"
+    );
+
+    {
+        let reader = Connection::open(&db_path).unwrap();
+        assert_eq!(count(&reader, "files"), 11);
+    }
+
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[test]
+fn single_file_updates_and_deletes_defer_checkpoint_until_writer_drop() {
+    let temp_dir = unique_temp_dir("single-file-deletes-checkpoint-drop");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let db_path = temp_dir.join("artifact.sqlite");
+    let wal_path = wal_path(&db_path);
+
+    let mut writer = ArtifactWriter::open_path(&db_path, artifact_metadata()).unwrap();
+    writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[
+                file_with_symbols("file-a", "src/a.rs", "hash-a", ["sym_a"]),
+                file_with_symbols("file-b", "src/b.rs", "hash-b", ["sym_b"]),
+            ],
+        )
+        .unwrap();
+
+    assert_eq!(
+        std::fs::metadata(&wal_path).map(|m| m.len()).unwrap_or(0),
+        0,
+        "scan end truncates WAL"
+    );
+
+    // delete_file does not force checkpoint
+    writer
+        .delete_file(revision(WriteOperation::Delete, None), "src/a.rs")
+        .unwrap();
+
+    let wal_bytes = std::fs::metadata(&wal_path).map(|m| m.len()).unwrap_or(0);
+    assert!(
+        wal_bytes > 0,
+        "delete_file must not force a TRUNCATE checkpoint"
+    );
+
+    // Reader safely reads deletion through WAL
+    {
+        let reader = Connection::open(&db_path).unwrap();
+        assert_eq!(
+            count(&reader, "files"),
+            1,
+            "reader sees deletion through WAL before checkpoint"
+        );
+    }
+
+    // Writer drop executes TRUNCATE checkpoint
+    drop(writer);
+
+    let wal_bytes_after_drop = std::fs::metadata(&wal_path).map(|m| m.len()).unwrap_or(0);
+    assert_eq!(
+        wal_bytes_after_drop, 0,
+        "writer drop must fold the WAL sidecar with a TRUNCATE checkpoint"
+    );
+
+    let reader = Connection::open(&db_path).unwrap();
+    assert_eq!(count(&reader, "files"), 1);
+    drop(reader);
+
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[test]
 fn scan_batch_writes_multiple_files_in_one_transaction() {
     let mut writer = open_writer();
 

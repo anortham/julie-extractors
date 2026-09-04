@@ -126,9 +126,9 @@ Commit mode: `parallel-lead-commit` inside each batch.
 **Approach:** Do not bump `STORE_SQLITE_SCHEMA_VERSION`; the decision record forbids it. Test: open a fixture store twice, assert the gap `DELETE` and the `read_dir` walks run once (count through the existing test hooks in `store/test_hooks.rs`).
 
 **Acceptance criteria:**
-- [ ] Second open runs no retirement work.
-- [ ] A store that still has resolution objects is migrated on first open (existing migration test).
-- [ ] Store contract and crash contract pass.
+- [x] Second open runs no retirement work.
+- [x] A store that still has resolution objects is migrated on first open (existing migration test).
+- [x] Store contract and crash contract pass.
 
 ## Task 6: Artifact writer checkpoint policy
 
@@ -139,8 +139,8 @@ Commit mode: `parallel-lead-commit` inside each batch.
 **Approach:** Confirm the reader contract first: does any reader test require the WAL to be empty after a single update? Check `docs/contracts` for a WAL statement. If a consumer requires a truncated WAL after every update, stop and report. Otherwise: add the close-time checkpoint, delete the per-call ones, and add a test that ten single-file updates leave a WAL file that is folded on close.
 
 **Acceptance criteria:**
-- [ ] One `checkpoint_wal` on close, one at scan end, none per update or delete.
-- [ ] Artifact writer tests pass; the update test proves the file is consistent after close.
+- [x] One `checkpoint_wal` on close, one at scan end, none per update or delete.
+- [x] Artifact writer tests pass; the update test proves the file is consistent after close.
 
 ## Task 7: Discovery carries the language
 
