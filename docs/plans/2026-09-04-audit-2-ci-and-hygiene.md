@@ -149,5 +149,5 @@ Commit mode: `parallel-lead-commit` for Batch A; `serial-worker-commit` for Task
 3. Adopt the profile only if extraction median improves by more than 5 percent or binary size drops by more than 15 percent, and release build time grows by less than 2x. Otherwise revert and record the numbers.
 
 **Acceptance criteria:**
-- [ ] Evidence file has both rows with all three numbers.
-- [ ] `Cargo.toml` either has the profile with a one-line pointer to the evidence, or is unchanged and the evidence says why.
+- [x] Evidence file has both rows with all three numbers.
+- [x] `Cargo.toml` either has the profile with a one-line pointer to the evidence, or is unchanged and the evidence says why.
