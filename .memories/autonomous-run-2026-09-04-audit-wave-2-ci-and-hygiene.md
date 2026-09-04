@@ -3,7 +3,7 @@
 **Status:** Complete
 **Plan:** docs/plans/2026-09-04-audit-2-ci-and-hygiene.md
 **Branch:** audit-2-ci-and-hygiene
-**PR:** pending — filled in after PR creation
+**PR:** https://github.com/anortham/julie-extractors/pull/15
 **Duration:** 37m
 **Phases:** 1/1 complete
 **Tasks:** 6/6 complete (Task 1 through Task 6)
@@ -54,5 +54,5 @@ External review: none (not requested for this run).
   - `.claude/worktrees/ct-language-audit-plan` — kept per plan (holds untracked continuous-testing audit docs).
 
 ## Next steps
-- Review PR: pending — filled in after PR creation
+- Review PR: https://github.com/anortham/julie-extractors/pull/15
 - Proceed to Audit Plan 3: Query and Loop Fixes (`docs/plans/2026-09-04-audit-3-query-and-loop-fixes.md`).
