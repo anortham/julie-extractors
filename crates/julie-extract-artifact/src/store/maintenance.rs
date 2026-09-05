@@ -1667,7 +1667,9 @@ impl MaintenanceExecutor {
             MaintenanceAction::Gc,
             plan_fingerprint,
             Box::new(FloorActivationCapacity),
-            false,
+            // Activation must recover expired dead requesters just like normal maintenance.
+            // Otherwise an abandoned claim prevents every first reader from enabling retention.
+            true,
             None,
         )?;
         executor.commit_reader_writer_floor()?;

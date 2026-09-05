@@ -1955,6 +1955,179 @@ fn reader_floor_activation_refuses_live_maintenance_and_writer_owners() {
     }
 }
 
+fn exited_floor_requester() -> String {
+    let mut child = std::process::Command::new(std::env::current_exe().unwrap())
+        .arg("--list")
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .unwrap();
+    let pid = child.id();
+    assert!(child.wait().unwrap().success());
+    format!("cli-{pid}")
+}
+
+fn seed_legacy_floor_request(
+    layout: &StoreLayout,
+    requester: &str,
+    owner: &str,
+    deadline: Option<i64>,
+) {
+    let coordinator = Connection::open(layout.coordinator_db()).unwrap();
+    coordinator
+        .execute_batch("DROP TABLE reader_registrations;")
+        .unwrap();
+    coordinator
+        .execute(
+            "INSERT INTO requests
+             (request_id,idempotency_key,kind,payload_json,state,requester_id,
+              requester_deadline,claim_owner,claim_heartbeat_at,created_at,updated_at)
+             VALUES ('orphan','idem-orphan','update','{}','claimed',?1,?2,?3,1,1,1)",
+            params![requester, deadline, owner],
+        )
+        .unwrap();
+}
+
+#[test]
+fn reader_floor_activation_recovers_expired_dead_request() {
+    let dead = exited_floor_requester();
+    let temp = TempStore::new("floor-dead-request");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.39.0", 9).unwrap();
+    seed_legacy_floor_request(&layout, &dead, &dead, Some(1));
+
+    MaintenanceExecutor::activate_reader_writer_floor(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.40.0"),
+        MaintenanceRun::new("floor-recovery", "owner", std::process::id(), 100, 30_000),
+    )
+    .unwrap();
+
+    let coordinator = Connection::open(layout.coordinator_db()).unwrap();
+    let (state, owner, error): (String, Option<String>, String) = coordinator
+        .query_row(
+            "SELECT state,claim_owner,error_json FROM requests WHERE request_id='orphan'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .unwrap();
+    assert_eq!(state, "failed");
+    assert!(owner.is_none());
+    assert!(error.contains("coordinator_requester_dead"));
+    assert_eq!(
+        metadata(
+            &Connection::open(layout.store_db()).unwrap(),
+            "min_writer_version"
+        ),
+        "2.40.0"
+    );
+    assert_eq!(
+        coordinator
+            .query_row("SELECT COUNT(*) FROM reader_registrations", [], |row| row
+                .get::<_, i64>(
+                0
+            ))
+            .unwrap(),
+        0
+    );
+    assert_eq!(coordinator.query_row("SELECT (SELECT COUNT(*) FROM maintenance_intent) + (SELECT COUNT(*) FROM writer_lease)", [], |row| row.get::<_, i64>(0)).unwrap(), 0);
+}
+
+#[test]
+fn reader_floor_activation_preserves_live_or_recoverable_requests() {
+    let dead = exited_floor_requester();
+    let live = format!("cli-{}", std::process::id());
+    for (label, requester, owner, deadline, writer) in [
+        ("live-owner", dead.as_str(), live.as_str(), Some(1), false),
+        (
+            "live-requester",
+            live.as_str(),
+            dead.as_str(),
+            Some(1),
+            false,
+        ),
+        (
+            "unexpired",
+            dead.as_str(),
+            dead.as_str(),
+            Some(i64::MAX),
+            false,
+        ),
+        ("no-deadline", dead.as_str(), dead.as_str(), None, false),
+        (
+            "unknown-requester",
+            "external-owner",
+            dead.as_str(),
+            Some(1),
+            false,
+        ),
+        (
+            "live-writer-rollback",
+            dead.as_str(),
+            dead.as_str(),
+            Some(1),
+            true,
+        ),
+    ] {
+        let temp = TempStore::new(label);
+        let layout = StoreLayout::create(temp.path(), "family-a", "2.39.0", 9).unwrap();
+        seed_legacy_floor_request(&layout, requester, owner, deadline);
+        let coordinator = Connection::open(layout.coordinator_db()).unwrap();
+        if writer {
+            coordinator.execute(
+                "INSERT INTO writer_lease
+                 (resource,holder_id,holder_version,holder_pid,heartbeat_at,expires_at,fencing_token)
+                 VALUES ('store-writer','foreign','2.39.0',?1,1,9223372036854775807,1)",
+                [std::process::id()],
+            ).unwrap();
+        }
+        let error = MaintenanceExecutor::activate_reader_writer_floor(
+            StoreConnectionFactory::new(layout.clone(), "family-a", "2.40.0"),
+            MaintenanceRun::new("floor-refusal", "owner", std::process::id(), 100, 30_000),
+        )
+        .unwrap_err();
+        assert_eq!(error.code(), "maintenance_busy", "{label}");
+        let row: (String, String, Option<String>, Option<i64>, i64) = coordinator
+            .query_row(
+                "SELECT state,claim_owner,error_json,claim_heartbeat_at,updated_at
+             FROM requests WHERE request_id='orphan'",
+                [],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                    ))
+                },
+            )
+            .unwrap();
+        assert_eq!(
+            row,
+            ("claimed".to_string(), owner.to_string(), None, Some(1), 1),
+            "{label}"
+        );
+        assert_eq!(
+            metadata(
+                &Connection::open(layout.store_db()).unwrap(),
+                "min_writer_version"
+            ),
+            "2.39.0",
+            "{label}"
+        );
+        assert_eq!(
+            coordinator
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_master WHERE name='reader_registrations'",
+                    [],
+                    |row| row.get::<_, i64>(0)
+                )
+                .unwrap(),
+            0,
+            "{label}"
+        );
+    }
+}
+
 #[test]
 fn expired_maintenance_source_floor_cannot_restore_below_reader_floor() {
     let temp = TempStore::new("expired-floor");
