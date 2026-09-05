@@ -29,7 +29,7 @@ pub fn dispatch(args: args::StoreArgs) -> StoreExecutionOutcome {
     // Command-owned connections and transactions have dropped, including the
     // coordinator's final lease writes. Cleanup never changes the report.
     if let Some(root) = checkpoint_root {
-        completion::checkpoint(&root);
+        completion::checkpoint(&root, outcome.exit_code() == 0);
     }
     outcome
 }

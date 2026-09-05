@@ -40,14 +40,18 @@ pub(super) fn write_command_root(command: &StoreCommand) -> Option<&Path> {
 
 /// One opportunistic attempt per write command, including replay and no-change.
 /// Busy readers leave the WAL for a later command; they never invalidate a commit.
-pub(super) fn checkpoint(root: &Path) {
+pub(super) fn checkpoint(root: &Path, command_succeeded: bool) {
     let layout = match StoreLayout::open(root) {
         Ok(layout) => layout,
         Err(error) => {
-            let _ = writeln!(
-                std::io::stderr(),
-                "wal_checkpoint status=unavailable remaining_wal_bytes=unknown: {error}"
-            );
+            // A failed command already reports an unusable store. Preserve its
+            // output contract when there is no selectable generation to clean.
+            if command_succeeded {
+                let _ = writeln!(
+                    std::io::stderr(),
+                    "wal_checkpoint status=unavailable remaining_wal_bytes=unknown: {error}"
+                );
+            }
             return;
         }
     };
