@@ -1,5 +1,6 @@
 pub mod args;
 pub(crate) mod common;
+mod completion;
 mod delete;
 mod executor;
 mod export;
@@ -16,14 +17,21 @@ mod update;
 use import::StoreExecutionOutcome;
 
 pub fn dispatch(args: args::StoreArgs) -> StoreExecutionOutcome {
-    match args.command {
+    let checkpoint_root = completion::write_command_root(&args.command).map(ToOwned::to_owned);
+    let outcome = match args.command {
         args::StoreCommand::Import(args) => import::run(args),
         args::StoreCommand::Update(args) => update::run(args),
         args::StoreCommand::Delete(args) => delete::run(args),
         args::StoreCommand::Export(args) => export::run(args),
         args::StoreCommand::Maintain(args) => maintenance::run(args),
         args::StoreCommand::Reader(args) => reader::run(args),
+    };
+    // Command-owned connections and transactions have dropped, including the
+    // coordinator's final lease writes. Cleanup never changes the report.
+    if let Some(root) = checkpoint_root {
+        completion::checkpoint(&root);
     }
+    outcome
 }
 
 pub use args::{

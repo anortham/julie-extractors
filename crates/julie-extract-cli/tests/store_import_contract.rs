@@ -8,6 +8,209 @@ use julie_extract_artifact::store::{
 
 const FAMILY_ID: &str = "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11";
 
+fn wal_completion_import(
+    store: &std::path::Path,
+    root: &std::path::Path,
+    request: &str,
+) -> std::process::Output {
+    let output = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--level",
+            "full",
+            "--request-id",
+            request,
+            "--idempotency-key",
+            request,
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["state"], "committed", "{report}");
+    output
+}
+
+fn wal_completion_bytes(path: &std::path::Path) -> u64 {
+    let mut wal = path.as_os_str().to_os_string();
+    wal.push("-wal");
+    match std::fs::metadata(std::path::PathBuf::from(wal)) {
+        Ok(metadata) => metadata.len(),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => 0,
+        Err(error) => panic!("WAL metadata: {error}"),
+    }
+}
+
+#[test]
+fn wal_completion_truncates_both_databases_with_idle_connections() {
+    let (_fixture, root, store, _) = seeded_full_import();
+    let layout = StoreLayout::open(&store).unwrap();
+    let readers: Vec<_> = [layout.store_db(), layout.coordinator_db()]
+        .into_iter()
+        .map(|path| {
+            let connection = rusqlite::Connection::open(path).unwrap();
+            connection
+                .query_row("SELECT count(*) FROM sqlite_schema", [], |row| {
+                    row.get::<_, i64>(0)
+                })
+                .unwrap();
+            connection
+        })
+        .collect();
+    std::fs::write(root.join("lib.rs"), "pub fn changed() -> u32 { 43 }\n").unwrap();
+    wal_completion_import(&store, &root, "wal-idle");
+    for path in [layout.store_db(), layout.coordinator_db()] {
+        assert_eq!(
+            wal_completion_bytes(path),
+            0,
+            "{} WAL was retained",
+            path.display()
+        );
+    }
+    drop(readers);
+}
+
+#[test]
+fn wal_completion_defers_pinned_snapshots_and_retries_on_replay() {
+    let (_fixture, root, store, _) = seeded_full_import();
+    let layout = StoreLayout::open(&store).unwrap();
+    let readers: Vec<_> = [layout.store_db(), layout.coordinator_db()]
+        .into_iter()
+        .map(|path| {
+            let connection = rusqlite::Connection::open(path).unwrap();
+            connection.execute_batch("BEGIN;").unwrap();
+            connection
+                .query_row("SELECT count(*) FROM sqlite_schema", [], |row| {
+                    row.get::<_, i64>(0)
+                })
+                .unwrap();
+            connection
+        })
+        .collect();
+    for (request, source) in [
+        ("wal-pinned-one", "pub fn first() {}\n"),
+        ("wal-pinned-two", "pub fn second() {}\n"),
+    ] {
+        std::fs::write(root.join("lib.rs"), source).unwrap();
+        let started = Instant::now();
+        let output = wal_completion_import(&store, &root, request);
+        assert!(
+            started.elapsed() < Duration::from_secs(10),
+            "checkpoint must not wait indefinitely"
+        );
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        for name in ["store.db", "coord.db"] {
+            assert!(
+                stderr.lines().any(|line| line.contains("wal_checkpoint")
+                    && line.contains(name)
+                    && line.contains("status=busy")
+                    && line.contains("remaining_wal_bytes=")),
+                "missing deferred diagnostic for {name}: {stderr}"
+            );
+        }
+    }
+    for (reader, path) in readers
+        .iter()
+        .zip([layout.store_db(), layout.coordinator_db()])
+    {
+        assert!(wal_completion_bytes(path) > 0);
+        reader.execute_batch("ROLLBACK;").unwrap();
+    }
+    // Keep both connections open so SQLite's last-close cleanup cannot satisfy the test.
+    wal_completion_import(&store, &root, "wal-pinned-two");
+    for path in [layout.store_db(), layout.coordinator_db()] {
+        assert_eq!(
+            wal_completion_bytes(path),
+            0,
+            "{} replay did not retry cleanup",
+            path.display()
+        );
+    }
+    let committed: i64 = readers[1].query_row(
+        "SELECT COUNT(*) FROM requests WHERE request_id IN ('wal-pinned-one', 'wal-pinned-two') AND state IN ('committed', 'acknowledged')", [], |row| row.get(0)).unwrap();
+    assert_eq!(committed, 2);
+    let versions: i64 = readers[0].query_row(
+        "SELECT COUNT(*) FROM file_versions WHERE complete_l1 IS NOT NULL AND complete_l2 IS NOT NULL AND complete_l3 IS NOT NULL", [], |row| row.get(0)).unwrap();
+    assert_eq!(
+        versions, 3,
+        "seed and both committed source versions survive cleanup"
+    );
+}
+
+#[test]
+fn wal_completion_skips_read_only_maintenance_commands() {
+    let (_fixture, root, store, _) = seeded_full_import();
+    let layout = StoreLayout::open(&store).unwrap();
+    let readers: Vec<_> = [layout.store_db(), layout.coordinator_db()]
+        .into_iter()
+        .map(|path| {
+            let connection = rusqlite::Connection::open(path).unwrap();
+            connection.execute_batch("BEGIN;").unwrap();
+            connection
+                .query_row("SELECT count(*) FROM sqlite_schema", [], |row| {
+                    row.get::<_, i64>(0)
+                })
+                .unwrap();
+            connection
+        })
+        .collect();
+    std::fs::write(root.join("lib.rs"), "pub fn retained() {}\n").unwrap();
+    wal_completion_import(&store, &root, "wal-read-only");
+    for reader in &readers {
+        reader.execute_batch("ROLLBACK;").unwrap();
+    }
+    let before = [
+        wal_completion_bytes(layout.store_db()),
+        wal_completion_bytes(layout.coordinator_db()),
+    ];
+    assert!(before.iter().all(|size| *size > 0));
+    for operation in ["inspect", "gc", "repair", "promote"] {
+        let output = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+            .args([
+                "store",
+                "maintain",
+                operation,
+                "--store",
+                store.to_str().unwrap(),
+                "--json",
+            ])
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(!String::from_utf8_lossy(&output.stderr).contains("wal_checkpoint"));
+        assert_eq!(
+            [
+                wal_completion_bytes(layout.store_db()),
+                wal_completion_bytes(layout.coordinator_db())
+            ],
+            before,
+            "read-only {operation} changed WAL sizes"
+        );
+    }
+    // A distinct request with unchanged source must also retry the owed cleanup.
+    wal_completion_import(&store, &root, "wal-no-change");
+    assert_eq!(wal_completion_bytes(layout.store_db()), 0);
+    assert_eq!(wal_completion_bytes(layout.coordinator_db()), 0);
+}
+
 #[test]
 fn one_drain_uses_each_queued_imports_own_root_plan_and_level() {
     let fixture = tempfile::tempdir().unwrap();
