@@ -8,6 +8,8 @@
 
 **Tech Stack:** Rust 2024, rusqlite, SQLite WAL, clap, serde, filesystem generation layout, platform process identity APIs.
 
+**Status (2026-09-05):** All six tasks are implemented and qualified locally on `feature/reader-retention-contract`. Verified implementation/test candidate: `4ca16853ecb054f6989aafa1410381f41273adde`. The changed-path gate (default, xtask, and certification), contract gate, standalone crash gate, formatting, warning-free Clippy, documentation build, and required Windows checks passed. See [qualification evidence](../evidence/2026-09-producer-retention-contract.md) for exact commands, platform coverage, corrected failures, and limits. No merge, push, release, or Miller pin change was performed. M1 is the next consumer implementation plan.
+
 **Architecture Quality:** This is a new producer/consumer safety contract. The producer must make admission and maintenance-root capture atomic under the existing coordinator maintenance-intent fence. Heartbeat timeout is diagnostic only: GC may release a reader registration automatically only after definitive same-process-instance death (PID plus captured platform birth identity), or after explicit release. If process identity cannot be proved, the registration remains protected and the report names the retained registration. Risk is high because an incorrect race decision can delete data still read by Miller.
 
 ## Global Constraints
@@ -258,9 +260,9 @@ The acquire idempotency lookup by `owner_nonce` occurs inside the same coordinat
 - [x] Acquire cannot commit under a foreign live maintenance intent.
 - [x] Renew cannot change snapshot identity and rejects nonce/PID/birth-identity mismatches.
 - [x] Release is idempotent for the exact nonce and returns no registered identity details for a wrong nonce.
-- [ ] Admission/maintenance race tests prove no partial registration or unsafe deletion.
+- [x] Admission/maintenance race tests prove no partial registration or unsafe deletion.
 
-Task2 implementation review is accepted: reader contract 30 passed, coordinator contract 68 passed, and coordinator unit scope 6 passed. Atomic admission/publication barriers prove no partial rows. The final combined no-deletion criterion remains open until Task4 maintenance integration and Task6 gates, rather than claiming producer admission alone protects physical roots.
+Task2 implementation review is accepted: final reader contract 33 passed and coordinator contract 68 passed. Atomic admission/publication barriers prove no partial rows. Task4 retention integration and Task6 qualification close the combined no-deletion criterion; producer admission alone was not treated as physical-root protection.
 
 ## Task 3: Implement definitive process-instance death qualification
 
@@ -304,12 +306,12 @@ Task3 verification: production commit `5f7d8684`, Windows cleanup-test correctio
 
 **Acceptance criteria:**
 
-- [ ] GC plans show protected reader registrations, manifest roots, reachable versions, generations, and log floors.
-- [ ] GC, promotion, rollback, and retire-view cannot delete a protected root.
-- [ ] Apply revalidation catches registration changes after planning.
-- [ ] A live paused reader remains protected past heartbeat timeout.
-- [ ] Unknown process identity produces a warning and retains the root.
-- [ ] Crash/restart tests preserve safety and keep maintenance reports internally consistent.
+- [x] GC plans show protected reader registrations, manifest roots, reachable versions, generations, and log floors.
+- [x] GC, promotion, rollback, and retire-view cannot delete a protected root.
+- [x] Apply revalidation catches registration changes after planning.
+- [x] A live paused reader remains protected past heartbeat timeout.
+- [x] Unknown process identity produces a warning and retains the root.
+- [x] Crash/restart tests preserve safety and keep maintenance reports internally consistent.
 
 ## Task 5: Add public reader CLI and report v1
 
@@ -327,15 +329,17 @@ Task3 verification: production commit `5f7d8684`, Windows cleanup-test correctio
 
 **Acceptance criteria:**
 
-- [ ] Help exposes exactly `store reader acquire|renew|release` and the proposed arguments.
-- [ ] JSON report v1 is one line, deterministic for the same snapshot, and stable on idempotent release.
-- [ ] CLI tests cover wrong nonce, stale generation, unknown process identity, and incompatible writer floor.
-- [ ] Existing `store maintain` and cursor command reports remain byte-compatible.
-- [ ] CLI invokes producer registration methods and creates no Miller-owned files.
+- [x] Help exposes exactly `store reader acquire|renew|release` and the proposed arguments.
+- [x] JSON report v1 is one line, deterministic for the same snapshot, and stable on idempotent release.
+- [x] CLI tests cover wrong nonce, stale generation, unknown process identity, and incompatible writer floor.
+- [x] Existing `store maintain` and cursor command reports remain byte-compatible.
+- [x] CLI invokes producer registration methods and creates no Miller-owned files.
 
 ## Task 6: Verify cursor qualification and mixed-version behavior
 
 **Bounded parallel preparation:** After Tasks1–3 freeze, a separate worker may add only `tests/store_reader_cursor_contract.rs` for typed producer cursor/reader independence and combined retention assertions while Task4 implements maintenance. It owns no production, existing maintenance tests, CLI, or final evidence files. This does not complete Task6 or relax its dependency on Tasks4–5 for final mixed-version/CLI/race evidence. Any failing production behavior is returned to the lead/Task4 owner, never patched concurrently.
+
+After Task4 is reviewed and committed, independent mixed-version tests and the evidence document may be prepared alongside Task5 in non-overlapping files. Final Task6 acceptance still requires the completed reader CLI and integrated platform/branch gates; pending evidence must remain explicitly pending.
 
 **Files:** `crates/julie-extract-artifact/tests/store_coordinator_contract.rs`, `tests/store_maintenance_contract.rs`, `tests/store_maintenance_schema_contract.rs`, `crates/julie-extract-cli/tests/store_maintenance_cli_contract.rs`, new `docs/evidence/2026-09-producer-retention-contract.md`.
 
@@ -349,11 +353,13 @@ Task3 verification: production commit `5f7d8684`, Windows cleanup-test correctio
 
 **Acceptance criteria:**
 
-- [ ] Existing cursor monotonicity, generation binding, release, and foreign-intent tests remain green.
-- [ ] GC retains log rows required by both cursor windows and reader registrations.
-- [ ] Cursor advance creates no reader registration and grants no reader-admission result; releasing a cursor never releases a reader. Producer retention does not prevent arbitrary direct filesystem reads. M1 separately enforces that Miller opens no family-store session without successful reader admission.
-- [ ] The v2.39.0 old-writer fixture returns `incompatible_store` (exit 3) before mutation for every mutating maintenance command when registrations exist.
-- [ ] Evidence records the race matrix, platform results, report warnings, and verification ledger entries.
+- [x] Existing cursor monotonicity, generation binding, release, and foreign-intent tests remain green.
+- [x] GC retains log rows required by both cursor windows and reader registrations.
+- [x] Cursor advance creates no reader registration and grants no reader-admission result; releasing a cursor never releases a reader. Producer retention does not prevent arbitrary direct filesystem reads. M1 separately enforces that Miller opens no family-store session without successful reader admission.
+- [x] The v2.39.0 old-writer fixture returns `incompatible_store` (exit 3) before mutation for every mutating maintenance command when registrations exist.
+- [x] Evidence records the race matrix, platform results, report warnings, and verification ledger entries.
+
+The ordinary catalog target retains seven tests. Crash recovery now lives in `store_reader_catalog_crash_contract`, wholly gated by `test-store-crash`; it reuses those seven cases and adds the crash parent plus its explicitly ignored child. `cargo xtask test contract` invokes this target with the feature enabled. Both catalog and generation crash tests require exact checkpoint markers, not merely a nonzero child exit. The default-suite timing guard rejects per-item or buried feature exemptions.
 
 ## Windows and Branch Gate
 
