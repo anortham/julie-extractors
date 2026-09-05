@@ -7,6 +7,7 @@ mod maintenance;
 mod manifest;
 mod model;
 mod pragmas;
+mod reader;
 mod rows;
 mod schema;
 #[cfg(feature = "test-store-crash")]
@@ -52,6 +53,11 @@ pub use manifest::{
 pub use model::{
     FamilyAllocatorKind, GenerationState, MaintenanceAction, StoreFileVersion, StoreLevel,
     StoreProjectionError, StoreReferenceSite, StoreRowCounts,
+};
+pub use reader::{
+    READER_MIN_WRITER_VERSION, ReaderAcquireRequest, ReaderAcquireResult, ReaderManifestSnapshot,
+    ReaderOwnerIdentity, ReaderRegistration, ReaderReleaseRequest, ReaderRenewRequest,
+    ReaderReportFacts,
 };
 pub use schema::{
     STORE_FORMAT_EPOCH, STORE_SQLITE_SCHEMA_VERSION, StoreSchemaError, create_coordinator_schema,

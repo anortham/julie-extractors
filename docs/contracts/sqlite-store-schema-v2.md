@@ -18,6 +18,12 @@ Status: frozen Ph2d lifecycle catalog authority.
 > column is declared last so the created and the altered catalog carry
 > byte-identical DDL. The coordinator fingerprint below covers it.
 
+> **2026-09-04 reader registration:** store/coord stay schema v2.
+> `coord.db` adds immutable manifest-root reader registrations and two bounded
+> lookup indexes. `store.db` adds no reader objects. Before registrations may
+> be acquired, maintenance permanently raises the serving generation's
+> `min_writer_version` to `2.40.0` under its existing fence.
+
 All ordinary tables are `STRICT`. `store.db` timestamps are canonical RFC 3339 UTC text
 (`YYYY-MM-DDTHH:MM:SS[.fraction]Z`, with one to nine fractional digits when present); `coord.db`
 times are injected Unix-millisecond integers. Both databases use `PRAGMA user_version = 2`.
@@ -30,7 +36,7 @@ hashes the UTF-8 bytes with SHA-256.
 
 ```text catalog-authority
 store-catalog-sha256: c3786c3d483dc554c6170efe7b5bb6d97360ca05f2713d1c04ed0f0c8111109c
-coordinator-catalog-sha256: 9f0efeb7720cd560298773589a6678ca2492492d56495afa9b05ed3ad2171bdb
+coordinator-catalog-sha256: 6fc7a0a09cc81a623ba1514c0ceece35275896edc707c68efd2ad29e29641176
 ```
 
 ## Store catalog additions
@@ -112,12 +118,14 @@ The root-owned coordinator catalog adds:
 ```text
 request_receipts(request_id, idempotency_key, kind, payload_json, terminal_result_json, terminal_generation_name, terminal_log_sequence, completed_at)
 consumer_cursors(consumer_id, generation_name, store_log_sequence, updated_at)
+reader_registrations(pin_id, owner_nonce, owner_label, family_id, view_id, manifest_generation, generation_name, owner_pid, owner_birth_identity, store_instance_id, manifest_hash, extraction_identity_epoch, served_store_log_sequence, acquired_at, heartbeat_at, expires_at, min_retained_store_log_sequence, snapshot_fingerprint)
 maintenance_intent(resource, run_id, action, source_generation_name, owner_id, owner_pid, fencing_token, heartbeat_at, expires_at, started_at, plan_fingerprint, source_min_writer_version)
 family_allocator_marks(allocator_kind, scope_id, high_water, updated_at)
 ```
 
-Receipts are immutable and independently reserve both request ID and idempotency key. Consumer cursor
-sequence/time and family allocator high-water/time values cannot regress. The singleton maintenance
+Receipts are immutable and independently reserve both request ID and idempotency key. Reader
+registrations bind one owner identity to one immutable manifest snapshot; only heartbeat and expiry
+may change, and heartbeat cannot regress. Consumer cursor sequence/time and family allocator high-water/time values cannot regress. The singleton maintenance
 intent uses resource `store-maintenance`, a coherent heartbeat/expiry window, and actions `gc`,
 `repair`, `promote`, or `rollback`. Global `file_version` and `store_log` allocator marks use the
 empty scope; `manifest_generation` and `resolution_delta_generation` marks use a non-empty view ID.
@@ -153,10 +161,12 @@ The coordinator retains `requests` and `writer_lease`. Request kinds are now:
 import | update | delete | resolve | export | from_artifact
 ```
 
-Schema v2 adds exactly one coordinator index:
+Schema v2 coordinator indexes include:
 
 ```text
 coord: uidx_coord_one_claimed_resolve(kind) WHERE kind = 'resolve' AND state = 'claimed'
+read: idx_read_reader_registrations_generation(family_id, generation_name)
+read: idx_read_reader_registrations_expiry(family_id, expires_at)
 ```
 
 It permits at most one claimed resolve request per family coordinator. Existing request-state,

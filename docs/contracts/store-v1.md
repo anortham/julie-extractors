@@ -20,6 +20,7 @@ This contract defines the target-owned family store used after the legacy v3 art
 - File-version identity is `(path, content_hash, extraction_epoch)`; extracted output bytes are not identity inputs.
 - Byte-identical extractor output may remain in the same extraction epoch. Any output difference requires a strictly newer epoch and a classified extraction-output ledger entry.
 - Both databases record `PRAGMA user_version = 2`. An uninitialized database may be created at version 2. Schema-v1 files are not migrated in place and return a typed older-schema refusal before mutation; a newer version also returns a typed refusal.
+- Reader registration requires writer version `2.40.0` or newer. Maintenance permanently raises the serving generation's `min_writer_version` under its existing coordinator fence before reader admission can succeed. Version 2.39.0 and older refuse mutating maintenance with `incompatible_store` before changing coordinator or store state.
 
 ## Store metadata
 
@@ -42,6 +43,11 @@ on a frozen source generation while maintenance is live. They must never remain 
 destination generation. Promotion copies restore `min_writer_version` to the pre-maintenance value
 recorded on `maintenance_intent.source_min_writer_version` rather than the temporary raised source
 floor.
+
+`coord.db.reader_registrations` records one immutable owner and manifest snapshot per live reader.
+The row references the existing `store.db` manifest root; no file-version roots are copied into the
+coordinator. Only `heartbeat_at` and `expires_at` may change, and heartbeat cannot regress. `owner_birth_identity` stays internal
+to the producer and is not part of the CLI report.
 
 ## Immutable versions
 

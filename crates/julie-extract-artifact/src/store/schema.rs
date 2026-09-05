@@ -1342,6 +1342,28 @@ CREATE TABLE IF NOT EXISTS consumer_cursors (
   updated_at INTEGER NOT NULL CHECK (updated_at >= 0)
 ) STRICT;
 
+CREATE TABLE IF NOT EXISTS reader_registrations (
+  pin_id TEXT PRIMARY KEY CHECK (length(pin_id) BETWEEN 1 AND 128),
+  owner_nonce TEXT NOT NULL UNIQUE CHECK (length(owner_nonce) BETWEEN 32 AND 512),
+  owner_label TEXT NOT NULL CHECK (length(owner_label) BETWEEN 1 AND 128),
+  family_id TEXT NOT NULL CHECK (length(family_id) BETWEEN 1 AND 128),
+  view_id TEXT NOT NULL CHECK (length(view_id) BETWEEN 1 AND 128),
+  manifest_generation INTEGER NOT NULL CHECK (manifest_generation > 0),
+  generation_name TEXT NOT NULL CHECK (length(generation_name) BETWEEN 1 AND 128),
+  owner_pid INTEGER NOT NULL CHECK (owner_pid > 0),
+  owner_birth_identity TEXT NOT NULL CHECK (length(owner_birth_identity) BETWEEN 1 AND 512),
+  store_instance_id TEXT NOT NULL CHECK (length(store_instance_id) BETWEEN 1 AND 512),
+  manifest_hash TEXT NOT NULL CHECK (length(manifest_hash) BETWEEN 1 AND 512),
+  extraction_identity_epoch INTEGER NOT NULL CHECK (extraction_identity_epoch > 0),
+  served_store_log_sequence INTEGER NOT NULL CHECK (served_store_log_sequence >= 0),
+  acquired_at INTEGER NOT NULL CHECK (acquired_at >= 0),
+  heartbeat_at INTEGER NOT NULL CHECK (heartbeat_at >= acquired_at),
+  expires_at INTEGER NOT NULL CHECK (expires_at > heartbeat_at),
+  min_retained_store_log_sequence INTEGER NOT NULL CHECK (min_retained_store_log_sequence >= 0 AND min_retained_store_log_sequence <= served_store_log_sequence),
+  snapshot_fingerprint TEXT NOT NULL CHECK (length(snapshot_fingerprint) > 0),
+  UNIQUE (family_id, pin_id)
+) STRICT;
+
 CREATE TABLE IF NOT EXISTS maintenance_intent (
   resource TEXT PRIMARY KEY CHECK (resource = 'store-maintenance'),
   run_id TEXT NOT NULL UNIQUE CHECK (length(run_id) BETWEEN 1 AND 128),
@@ -1396,6 +1418,36 @@ BEGIN
   SELECT RAISE(ABORT, 'consumer cursor cannot regress');
 END;
 
+CREATE TRIGGER IF NOT EXISTS trg_reader_registrations_immutable_identity
+BEFORE UPDATE ON reader_registrations
+WHEN NEW.pin_id <> OLD.pin_id
+  OR NEW.owner_nonce <> OLD.owner_nonce
+  OR NEW.owner_label <> OLD.owner_label
+  OR NEW.family_id <> OLD.family_id
+  OR NEW.view_id <> OLD.view_id
+  OR NEW.manifest_generation <> OLD.manifest_generation
+  OR NEW.generation_name <> OLD.generation_name
+  OR NEW.owner_pid <> OLD.owner_pid
+  OR NEW.owner_birth_identity <> OLD.owner_birth_identity
+  OR NEW.store_instance_id <> OLD.store_instance_id
+  OR NEW.manifest_hash <> OLD.manifest_hash
+  OR NEW.extraction_identity_epoch <> OLD.extraction_identity_epoch
+  OR NEW.served_store_log_sequence <> OLD.served_store_log_sequence
+  OR NEW.acquired_at <> OLD.acquired_at
+  OR NEW.min_retained_store_log_sequence <> OLD.min_retained_store_log_sequence
+  OR NEW.snapshot_fingerprint <> OLD.snapshot_fingerprint
+BEGIN
+  SELECT RAISE(ABORT, 'reader registration identity is immutable');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_reader_registrations_liveness_coherent
+BEFORE UPDATE ON reader_registrations
+WHEN NEW.heartbeat_at < OLD.heartbeat_at
+  OR NEW.expires_at <= NEW.heartbeat_at
+BEGIN
+  SELECT RAISE(ABORT, 'reader registration liveness cannot regress');
+END;
+
 CREATE TRIGGER IF NOT EXISTS trg_maintenance_intent_coherent_update
 BEFORE UPDATE ON maintenance_intent
 WHEN NEW.run_id <> OLD.run_id
@@ -1430,6 +1482,10 @@ CREATE INDEX IF NOT EXISTS idx_read_requests_queue
   ON requests(state, created_at, request_id);
 CREATE INDEX IF NOT EXISTS idx_read_requests_stale
   ON requests(state, claim_heartbeat_at, request_id);
+CREATE INDEX IF NOT EXISTS idx_read_reader_registrations_generation
+  ON reader_registrations(family_id, generation_name);
+CREATE INDEX IF NOT EXISTS idx_read_reader_registrations_expiry
+  ON reader_registrations(family_id, expires_at);
 
 PRAGMA user_version = 2;
 COMMIT;

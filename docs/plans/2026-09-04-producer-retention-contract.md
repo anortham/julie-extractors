@@ -132,6 +132,7 @@ Add these tables to `coord.db` in the coordinator schema. The names are intentio
 CREATE TABLE IF NOT EXISTS reader_registrations (
   pin_id TEXT PRIMARY KEY CHECK (length(pin_id) BETWEEN 1 AND 128),
   owner_nonce TEXT NOT NULL UNIQUE CHECK (length(owner_nonce) BETWEEN 32 AND 512),
+  owner_label TEXT NOT NULL CHECK (length(owner_label) BETWEEN 1 AND 128),
   family_id TEXT NOT NULL CHECK (length(family_id) BETWEEN 1 AND 128),
   view_id TEXT NOT NULL CHECK (length(view_id) BETWEEN 1 AND 128),
   manifest_generation INTEGER NOT NULL CHECK (manifest_generation > 0),
@@ -145,7 +146,7 @@ CREATE TABLE IF NOT EXISTS reader_registrations (
   acquired_at INTEGER NOT NULL CHECK (acquired_at >= 0),
   heartbeat_at INTEGER NOT NULL CHECK (heartbeat_at >= acquired_at),
   expires_at INTEGER NOT NULL CHECK (expires_at > heartbeat_at),
-  min_retained_store_log_sequence INTEGER NOT NULL CHECK (min_retained_store_log_sequence >= 0),
+  min_retained_store_log_sequence INTEGER NOT NULL CHECK (min_retained_store_log_sequence >= 0 AND min_retained_store_log_sequence <= served_store_log_sequence),
   snapshot_fingerprint TEXT NOT NULL CHECK (length(snapshot_fingerprint) > 0),
   UNIQUE (family_id, pin_id)
 ) STRICT;
@@ -198,12 +199,18 @@ The acquire idempotency lookup by `owner_nonce` occurs inside the same coordinat
 |---|---|---|---|---|
 | Task 1: Lock schema, compatibility floor, and typed models | None - serial | `crates/julie-extract-artifact/src/store/schema.rs`, new `src/store/reader.rs`, new coordinator contract test, schema/catalog docs | Yes | The schema and typed identity must be frozen before admission, GC, or CLI work. |
 | Task 2: Implement atomic acquire/renew/release | Batch A | `crates/julie-extract-artifact/src/store/coordinator.rs`, `src/store/reader.rs`, `tests/store_reader_registration_contract.rs` | Yes | Depends on Task 1's schema and typed model; owns the coordinator write protocol. |
-| Task 3: Add process-instance death qualification | Batch A | new `src/store/reader_liveness.rs`, platform modules/tests, `tests/store_reader_liveness_contract.rs` | Yes | Depends on the immutable owner identity fields from Task 1; can run beside Task 2 after model freeze. |
+| Task 3: Add process-instance death qualification | Model-freeze batch | new `src/store/reader_liveness.rs`, platform modules/tests, `tests/store_reader_liveness_contract.rs`; transferred `src/store/mod.rs` and artifact platform dependency declaration | No | Owner PID/birth-string models and root exports are frozen by Task 1. May run beside Task 1's remaining floor tests and then Task 2; do not edit reader.rs/coordinator.rs/maintenance.rs. |
 | Task 4: Integrate reader roots into GC, promotion, rollback, and retire-view | Batch B | `src/store/maintenance.rs`, `src/store/generation.rs`, `src/store/manifest.rs`, related maintenance tests | Yes | Depends on acquire rows and liveness qualification; must land before CLI exposes the contract. |
 | Task 5: Add public reader CLI and JSON report | Batch C | `crates/julie-extract-cli/src/store/args.rs`, new `crates/julie-extract-cli/src/store/reader.rs`, `crates/julie-extract-cli/src/store/mod.rs`, `tests/store_reader_cli_contract.rs`, `docs/contracts/cli.md` | Yes | Depends on stable producer API and report schema; Plan 4 Task 6 must merge first because it narrows store exports. |
 | Task 6: Verify consumer cursor qualification and mixed-version behavior | Batch D | `tests/store_coordinator_contract.rs`, `tests/store_maintenance_contract.rs`, compatibility evidence, `docs/evidence/` | Yes | Depends on Tasks 1–5; proves cursors remain watermarks and old writers cannot ignore active registrations. |
 
 ## Task 1: Lock schema, compatibility floor, and typed models
+
+**Execution decision (2026-09-05):** Audit Plan 4 is merged at `bb93a721`. Use the existing `store_meta.min_writer_version` compatibility gate with reader-capable development version `2.40.0`; this does not authorize release, tags, pushes, or Miller pins. Keep store schema v2 so existing families remain usable. Before reader admission is enabled, permanently raise the CURRENT store's writer floor under the existing maintenance fence, outside the admission transaction. A coordinator-only schema addition cannot exclude old maintenance binaries. Reader admission validates the floor using query-only metadata reads and refuses any unsafe floor; it never migrates or writes store.db while holding the coordinator admission transaction. Existing maintenance copies the source floor to newly published generations. Task 4 must verify every publication/recovery path preserves the reader floor, including already-built successors. Retained non-CURRENT generations remain write-fenced. The actual v2.39.0 binary must refuse all mutating maintenance before coordinator/store mutation. Do not silently limit rollout to fresh stores.
+
+**Additional owned files:** `src/store/mod.rs`, `src/store/connection.rs`, `src/store/layout.rs`, bounded floor-activation support in `src/store/maintenance.rs`, their narrow compatibility tests, workspace Cargo version metadata/lockfile, and the existing schema catalog generator/output as required. Preserve private store modules and explicitly re-export only caller-facing reader types. Select development version `2.40.0` without release metadata, notes, tags, or pins. Task 1 defines and proves the permanent floor gate; Tasks 2/4 consume it before admission and preserve it across publication.
+
+**Model clarifications:** Persist the diagnostic owner label as `owner_label` (bounded 1..128 characters) so idempotency can reject changed owner labels; it is not authentication. The caller supplies the unpredictable nonce; the producer generates the unpredictable pin ID because acquire has no `--pin` input. Release removes the single registration row, not nonexistent child/version-root rows. Add the cross-field constraint `min_retained_store_log_sequence <= served_store_log_sequence`. Freeze these models before Tasks 2 and 3.
 
 **Files:** `crates/julie-extract-artifact/src/store/schema.rs`, new `crates/julie-extract-artifact/src/store/reader.rs`, schema catalog/compatibility documentation, new `crates/julie-extract-artifact/tests/store_reader_registration_contract.rs`.
 
@@ -219,11 +226,11 @@ The acquire idempotency lookup by `owner_nonce` occurs inside the same coordinat
 
 **Acceptance criteria:**
 
-- [ ] `coord.db` contains one `reader_registrations` table with the exact proposed identity/snapshot fields and no copied version-root table.
-- [ ] No reader registration table is created in `store.db`.
-- [ ] Identity fields are immutable in the database and models expose no retarget operation.
-- [ ] Schema/version compatibility either proves old writers are safe or refuses them before reader enablement.
-- [ ] The focused schema contract passes.
+- [x] `coord.db` contains one `reader_registrations` table with the exact proposed identity/snapshot fields and no copied version-root table.
+- [x] No reader registration table is created in `store.db`.
+- [x] Identity fields are immutable in the database and models expose no retarget operation.
+- [x] Schema/version compatibility either proves old writers are safe or refuses them before reader enablement.
+- [x] The focused schema contract passes.
 
 ## Task 2: Implement atomic acquire, renew, and release
 
@@ -345,7 +352,7 @@ The focused contract tests must exercise the following state transitions with a 
 3. Advance the cursor for a different consumer while the reader is held. Assert the cursor row changes monotonically while the reader registration row remains unchanged.
 4. Run a GC plan and assert the plan includes the reader's `pin_id` under protected roots, its manifest under protected manifests, its generation under protected generations, each reachable version under protected versions, and the reader log floor under protected log roots.
 5. Attempt `retire-view --view default --apply` while the reader is live. Assert `busy`, no manifest deletion, no view deletion, and no reader deletion.
-6. Release with the wrong nonce. Assert `reader_owner_mismatch`, no row changes, and no response field that reveals whether the pin exists.
+6. Release with the wrong nonce. Assert `reader_owner_mismatch`, no row changes, and no registered snapshot, owner, or nonce details in the response. The specified absent-row success versus existing-row mismatch necessarily distinguishes those cases; do not claim membership secrecy the wire contract cannot provide.
 7. Release with the correct nonce twice. Assert the first operation deletes exactly one registration row and the second is a successful idempotent no-op.
 8. Reacquire on `gen-000002`, then attempt an apply using a plan fingerprint made before acquire. Assert `stale_plan` and no destructive SQL statement has run.
 
@@ -368,7 +375,7 @@ The caller that acquires a registration owns the renewal schedule. Julie does no
 
 Recovery must preserve the registration table across generation replacement because `coord.db` is outside the generation directories. A torn acquire transaction leaves no registration row. A torn release transaction leaves the complete live registration. A torn GC transaction cannot delete a referenced manifest, entry, version, or generation before the corresponding registration root is re-read and qualified. A coordinator database recovery that cannot read registration rows must fail maintenance closed rather than treating the root set as empty.
 
-Reader registration identifiers and nonces must be generated by the caller with sufficient unpredictability and must never be derived from a workspace path, PID alone, timestamp alone, or generation name. Julie stores them as opaque text and includes only the `pin_id` in diagnostic references. The nonce is accepted on stdin or an argument according to the existing CLI secret-handling convention; it must not be written to ordinary human reports or logs.
+The caller generates the nonce and Julie generates the registration identifier, both with sufficient unpredictability; neither may be derived from a workspace path, PID alone, timestamp alone, or generation name. Julie stores them as opaque text and includes only the `pin_id` in diagnostic references. The nonce is accepted on an argument in the specified CLI contract; it must not be written to ordinary human reports or logs.
 
 The owner label is diagnostic metadata and is not an authentication factor. PID and birth identity are the liveness proof. A renewal from a process with a matching PID but a different birth identity is an owner mismatch and cannot extend the registration. An explicit release remains the only cleanup path for an owner whose platform has no definitive birth identity support.
 

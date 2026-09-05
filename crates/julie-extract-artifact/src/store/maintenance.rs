@@ -19,6 +19,7 @@ use super::connection::compare_versions;
 use super::layout::reap_retired_resolution_files;
 use super::layout::valid_generation_name;
 use super::pragmas::{WriterPragmaProfile, configure_writer_pragmas};
+use super::reader::READER_MIN_WRITER_VERSION;
 use super::{
     CoordinatorError, GenerationFence, MaintenanceAction, PidStatus, StoreConnectionError,
     StoreConnectionFactory, StoreCoordinator, StoreLayoutError, StoreLog, StoreLogError,
@@ -1219,6 +1220,24 @@ impl MaintenanceExecutor {
         if observed.binding != plan.binding {
             return Err(MaintenanceError::StalePlan);
         }
+        Self::acquire_fence(
+            factory,
+            run,
+            action,
+            plan.fingerprint.clone(),
+            capacity,
+            true,
+        )
+    }
+
+    fn acquire_fence(
+        factory: StoreConnectionFactory,
+        run: MaintenanceRun,
+        action: MaintenanceAction,
+        plan_fingerprint: String,
+        capacity: Box<dyn CapacityProvider + Send + Sync>,
+        reap_stale_requests: bool,
+    ) -> Result<Self, MaintenanceError> {
         let wall_now = wall_now_ms()?;
         let expires_at = wall_now.checked_add(run.lease_duration_ms).ok_or(
             MaintenanceError::InvalidMetadata {
@@ -1243,15 +1262,17 @@ impl MaintenanceExecutor {
         drop(store);
         let mut coord = open_maintenance_coordinator(factory.layout().coordinator_db())?;
         let transaction = coord.transaction_with_behavior(TransactionBehavior::Immediate)?;
-        super::coordinator::reap_retired_resolve_rows(&transaction, wall_now)?;
-        // Before the claimed-row check below, which reports `busy`: a claimed row whose owner and
-        // requester are both gone would otherwise refuse every maintenance run for the life of the
-        // family.
-        super::coordinator::reap_dead_requester_rows(
-            &transaction,
-            &super::coordinator::SystemPidLiveness,
-            wall_now,
-        )?;
+        if reap_stale_requests {
+            super::coordinator::reap_retired_resolve_rows(&transaction, wall_now)?;
+            // Before the claimed-row check below, which reports `busy`: a claimed row whose owner and
+            // requester are both gone would otherwise refuse every maintenance run for the life of the
+            // family.
+            super::coordinator::reap_dead_requester_rows(
+                &transaction,
+                &super::coordinator::SystemPidLiveness,
+                wall_now,
+            )?;
+        }
         let active_intent = transaction
             .query_row(
                 "SELECT run_id,owner_id,owner_pid,expires_at,source_min_writer_version
@@ -1331,7 +1352,7 @@ impl MaintenanceExecutor {
                 fencing_token,
                 wall_now,
                 expires_at,
-                plan.fingerprint,
+                plan_fingerprint,
                 source_min_writer_version,
             ],
         )?;
@@ -1367,6 +1388,46 @@ impl MaintenanceExecutor {
             return Err(error);
         }
         Ok(executor)
+    }
+
+    pub fn activate_reader_writer_floor(
+        factory: StoreConnectionFactory,
+        run: MaintenanceRun,
+    ) -> Result<(), MaintenanceError> {
+        validate_run(&run)?;
+        factory.validate_writer_compatibility()?;
+        if compare_versions(factory.binary_version(), READER_MIN_WRITER_VERSION)? == Ordering::Less
+        {
+            return Err(MaintenanceError::InvalidMetadata {
+                field: "reader_min_writer_version",
+                value: factory.binary_version().to_string(),
+            });
+        }
+        let store = factory.open_reader()?;
+        let generation_state = store.query_row(
+            "SELECT value FROM store_meta WHERE key=?1",
+            [META_GENERATION_STATE],
+            |row| row.get::<_, String>(0),
+        )?;
+        drop(store);
+        if generation_state != "serving" {
+            return Err(MaintenanceError::StalePlan);
+        }
+        let plan_fingerprint = format!(
+            "reader-floor-v1:{}:{}",
+            factory.layout().generation_name(),
+            READER_MIN_WRITER_VERSION
+        );
+        let mut executor = Self::acquire_fence(
+            factory,
+            run,
+            MaintenanceAction::Gc,
+            plan_fingerprint,
+            Box::new(FloorActivationCapacity),
+            false,
+        )?;
+        executor.commit_reader_writer_floor()?;
+        executor.finish()
     }
 
     pub(crate) fn ensure_gc_capacity(
@@ -1405,6 +1466,105 @@ impl MaintenanceExecutor {
 
     pub(crate) fn source_min_writer_version(&self) -> &str {
         &self.source_min_writer_version
+    }
+
+    fn commit_reader_writer_floor(&mut self) -> Result<(), MaintenanceError> {
+        if compare_versions(self.factory.binary_version(), READER_MIN_WRITER_VERSION)?
+            == Ordering::Less
+        {
+            return Err(MaintenanceError::InvalidMetadata {
+                field: "reader_min_writer_version",
+                value: self.factory.binary_version().to_string(),
+            });
+        }
+        let generation_state = Connection::open_with_flags(
+            self.factory.layout().store_db(),
+            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )?
+        .query_row(
+            "SELECT value FROM store_meta WHERE key=?1",
+            [META_GENERATION_STATE],
+            |row| row.get::<_, String>(0),
+        )?;
+        if generation_state != "serving" {
+            return Err(MaintenanceError::StalePlan);
+        }
+
+        let mut coord = open_maintenance_coordinator(self.factory.layout().coordinator_db())?;
+        let transaction = coord.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let source_floor = transaction
+            .query_row(
+                "SELECT source_min_writer_version FROM maintenance_intent
+                 WHERE resource='store-maintenance' AND run_id=?1 AND action=?2
+                   AND source_generation_name=?3 AND owner_id=?4 AND owner_pid=?5
+                   AND fencing_token=?6",
+                params![
+                    self.run.run_id,
+                    self.action.as_str(),
+                    self.factory.layout().generation_name(),
+                    self.run.owner_id,
+                    self.run.owner_pid,
+                    self.fencing_token,
+                ],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()?
+            .ok_or(MaintenanceError::MaintenanceFenceLost)?;
+        if compare_versions(&source_floor, READER_MIN_WRITER_VERSION)? != Ordering::Less {
+            self.source_min_writer_version = source_floor;
+            return Ok(());
+        }
+
+        let preserved = transaction
+            .query_row(
+                "DELETE FROM maintenance_intent
+                 WHERE resource='store-maintenance' AND run_id=?1 AND action=?2
+                   AND source_generation_name=?3 AND owner_id=?4 AND owner_pid=?5
+                   AND fencing_token=?6 AND source_min_writer_version=?7
+                 RETURNING heartbeat_at,expires_at,started_at,plan_fingerprint",
+                params![
+                    self.run.run_id,
+                    self.action.as_str(),
+                    self.factory.layout().generation_name(),
+                    self.run.owner_id,
+                    self.run.owner_pid,
+                    self.fencing_token,
+                    source_floor,
+                ],
+                |row| {
+                    Ok((
+                        row.get::<_, i64>(0)?,
+                        row.get::<_, i64>(1)?,
+                        row.get::<_, i64>(2)?,
+                        row.get::<_, String>(3)?,
+                    ))
+                },
+            )
+            .optional()?
+            .ok_or(MaintenanceError::MaintenanceFenceLost)?;
+        transaction.execute(
+            "INSERT INTO maintenance_intent
+             (resource,run_id,action,source_generation_name,owner_id,owner_pid,fencing_token,
+              heartbeat_at,expires_at,started_at,plan_fingerprint,source_min_writer_version)
+             VALUES ('store-maintenance',?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)",
+            params![
+                self.run.run_id,
+                self.action.as_str(),
+                self.factory.layout().generation_name(),
+                self.run.owner_id,
+                self.run.owner_pid,
+                self.fencing_token,
+                preserved.0,
+                preserved.1,
+                preserved.2,
+                preserved.3,
+                READER_MIN_WRITER_VERSION,
+            ],
+        )?;
+        transaction.commit()?;
+
+        self.source_min_writer_version = READER_MIN_WRITER_VERSION.to_string();
+        self.raise_source_floor_and_mirror(self.action, wall_now_ms()?)
     }
 
     pub(crate) fn release_writer_for_generation_build(
@@ -2303,6 +2463,22 @@ impl MaintenanceExecutor {
 
 #[derive(Clone, Copy)]
 struct RevalidationClock(i64);
+
+struct FloorActivationCapacity;
+
+impl CapacityProvider for FloorActivationCapacity {
+    fn free_bytes(&self, _path: &Path) -> Result<u64, io::Error> {
+        Err(io::Error::other(
+            "reader floor activation has no capacity plan",
+        ))
+    }
+
+    fn staged_generation_bytes(&self, _path: &Path) -> Result<u64, io::Error> {
+        Err(io::Error::other(
+            "reader floor activation has no capacity plan",
+        ))
+    }
+}
 
 impl MaintenanceClock for RevalidationClock {
     fn now_ms(&self) -> i64 {

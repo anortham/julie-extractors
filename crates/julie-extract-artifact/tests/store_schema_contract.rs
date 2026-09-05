@@ -1072,6 +1072,7 @@ fn expected_coordinator_tables() -> BTreeSet<String> {
         "consumer_cursors",
         "family_allocator_marks",
         "maintenance_intent",
+        "reader_registrations",
         "request_receipts",
         "requests",
         "writer_lease",
@@ -1644,6 +1645,14 @@ fn expected_store_indexes() -> BTreeMap<String, Vec<String>> {
 
 fn expected_coordinator_indexes() -> BTreeMap<String, Vec<String>> {
     [
+        (
+            "idx_read_reader_registrations_expiry",
+            "family_id,expires_at",
+        ),
+        (
+            "idx_read_reader_registrations_generation",
+            "family_id,generation_name",
+        ),
         ("idx_read_requests_queue", "state,created_at,request_id"),
         (
             "idx_read_requests_stale",
