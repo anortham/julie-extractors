@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering as AtomicOrdering};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior};
+use rusqlite::{Connection, OpenFlags, OptionalExtension, Transaction, TransactionBehavior};
 
 use super::coordinator::{CoordinatorError, LeaseDisposition, LeaseHolder, StoreCoordinator};
 use super::layout::reap_retired_resolution_files;
@@ -18,6 +18,7 @@ use super::wal_retry::{is_locking_protocol, with_locking_protocol_retry};
 use super::{STORE_SQLITE_SCHEMA_VERSION, StoreLayout, StoreLayoutError, StoreSchemaError};
 
 static NEXT_DIRECT_WRITER: AtomicU64 = AtomicU64::new(1);
+const STORE_WRITER_BUSY_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// Ownership proof for writes performed by the active maintenance run.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -75,6 +76,15 @@ pub struct StoreWriterConnection {
     connection: Connection,
     lease: Option<(StoreCoordinator, LeaseHolder, i64)>,
     fence: GenerationFence,
+}
+
+impl StoreWriterConnection {
+    /// Reserves the writer before any reads so another writer cannot invalidate
+    /// the transaction's snapshot before its first write.
+    pub fn transaction(&mut self) -> Result<Transaction<'_>, rusqlite::Error> {
+        self.connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+    }
 }
 
 impl fmt::Debug for StoreWriterConnection {
@@ -198,6 +208,7 @@ impl StoreConnectionFactory {
             self.layout.store_db(),
             OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_NO_MUTEX,
         )?;
+        connection.busy_timeout(STORE_WRITER_BUSY_TIMEOUT)?;
         validate_store_schema(&connection)?;
         self.validate_identity_and_floor(&connection, AccessMode::Writer)?;
         self.validate_generation_write_fence(&connection)?;

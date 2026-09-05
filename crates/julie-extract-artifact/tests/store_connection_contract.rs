@@ -409,6 +409,7 @@ fn writer_reasserts_and_reads_back_required_pragmas() {
     assert_eq!(pragma_i64(&writer, "page_size"), 4096);
     assert_eq!(pragma_i64(&writer, "wal_autocheckpoint"), 1000);
     assert_eq!(pragma_i64(&writer, "journal_size_limit"), 256 * 1024 * 1024);
+    assert_eq!(pragma_i64(&writer, "busy_timeout"), 5000);
 }
 
 #[test]

@@ -1553,6 +1553,106 @@ fn import_quantum_receives_the_bulk_writer_pragma_profile_before_begin() {
         .unwrap();
 }
 
+struct ConcurrentWriterExecutor {
+    store_db: PathBuf,
+}
+
+impl CoordinatorExecutor for ConcurrentWriterExecutor {
+    fn execute_quantum(
+        &mut self,
+        transaction: &Transaction<'_>,
+        _request: &CoordinatorRequest,
+        _context: ExecutionContext,
+    ) -> Result<ExecutionQuantum, String> {
+        let _: i64 = transaction
+            .query_row("SELECT count(*) FROM views", [], |row| row.get(0))
+            .map_err(|e| format!("store_import_load_request_state:{e}"))?;
+
+        let connection = Connection::open(&self.store_db).map_err(|e| e.to_string())?;
+        connection
+            .busy_timeout(std::time::Duration::ZERO)
+            .map_err(|e| e.to_string())?;
+
+        // Concurrent write must fail immediately with DatabaseBusy because the quantum holds an Immediate write lock:
+        let error = connection
+            .execute(
+                "INSERT OR IGNORE INTO views (view_id, root, resolution_state, created_at, updated_at)
+                 VALUES ('concurrent-view', '/concurrent/root', 'unbound', '2026-09-05T00:00:00Z', '2026-09-05T00:00:00Z')",
+                [],
+            )
+            .unwrap_err();
+
+        assert!(
+            matches!(
+                error,
+                rusqlite::Error::SqliteFailure(
+                    rusqlite::ffi::Error {
+                        code: rusqlite::ErrorCode::DatabaseBusy,
+                        ..
+                    },
+                    _
+                )
+            ),
+            "expected DatabaseBusy, found {error:?}"
+        );
+
+        transaction
+            .execute(
+                "INSERT OR IGNORE INTO views (view_id, root, resolution_state, created_at, updated_at)
+                 VALUES ('test-view', '/test/root', 'unbound', '2026-09-05T00:00:00Z', '2026-09-05T00:00:00Z')",
+                [],
+            )
+            .map_err(|e| format!("store_import_ensure_view:{e}"))?;
+
+        Ok(ExecutionQuantum::Complete {
+            event_kind: "writer_contention_test_completed".to_string(),
+            result_json: "{}".to_string(),
+        })
+    }
+}
+
+#[test]
+fn store_quantum_transaction_must_be_immediate_to_prevent_stale_snapshot_busy() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let clock = Arc::new(TestClock::default());
+    clock.set(10);
+    let mut coordinator = StoreCoordinator::open_with_runtime(
+        &layout,
+        LeaseHolder::new("holder", "2.30.0", 41),
+        clock,
+        Arc::new(FixedLiveness(true)),
+    )
+    .unwrap();
+    coordinator
+        .enqueue(CoordinatorRequest::new(
+            "request-concurrent-writer",
+            "idem-concurrent-writer",
+            RequestKind::Import,
+            "{}",
+            "requester",
+            1_000,
+            1,
+        ))
+        .unwrap();
+
+    let mut executor = ConcurrentWriterExecutor {
+        store_db: layout.store_db().to_path_buf(),
+    };
+
+    let report = coordinator
+        .drain(
+            &mut executor,
+            &CoordinatorPolicy {
+                own_request_id: Some("request-concurrent-writer".to_string()),
+                ..CoordinatorPolicy::default()
+            },
+        )
+        .unwrap();
+    assert_eq!(report.completed_requests, 1);
+    assert_eq!(report.failed_requests, 0);
+}
+
 #[test]
 fn normal_drain_paths_explicitly_release_and_only_panic_relies_on_drop() {
     let source = include_str!("../src/store/coordinator.rs");
