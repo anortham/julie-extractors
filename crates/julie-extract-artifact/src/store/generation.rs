@@ -8,6 +8,7 @@ use std::path::{Path, PathBuf};
 use rusqlite::types::{Value, ValueRef};
 use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior, params};
 
+use super::connection::compare_versions;
 use super::coordinator::process_status;
 use super::layout::{
     initialize_store_database, named_generations, reap_retired_resolution_files, sync_directory,
@@ -54,6 +55,7 @@ pub struct GenerationApplyReport {
     pub max_observed_copy_window: usize,
     pub copied_base_files: usize,
     pub removed_generations: Vec<String>,
+    pub removed_readers: usize,
     pub recovered_partial: bool,
     pub repair_disposition: Option<RepairDisposition>,
 }
@@ -68,6 +70,7 @@ pub enum RepairDisposition {
 pub struct GenerationLifecycle {
     executor: MaintenanceExecutor,
     action: MaintenanceAction,
+    writer_released_for_build: bool,
 }
 
 impl GenerationLifecycle {
@@ -83,8 +86,16 @@ impl GenerationLifecycle {
         }
         let executor =
             MaintenanceExecutor::acquire_for_action(factory, run, plan, action, capacity)?;
-        executor.release_writer_for_generation_build(plan)?;
-        Ok(Self { executor, action })
+        Ok(Self {
+            executor,
+            action,
+            writer_released_for_build: false,
+        })
+    }
+
+    #[doc(hidden)]
+    pub fn removed_reader_count(&self) -> usize {
+        self.executor.removed_reader_count()
     }
 
     pub fn promote(
@@ -98,6 +109,8 @@ impl GenerationLifecycle {
         ) {
             return Err(GenerationError::InvalidAction(self.action));
         }
+        validate_policy(policy)?;
+        self.prepare_generation_action(plan)?;
         self.build_and_publish(plan, policy, None)
     }
 
@@ -110,6 +123,7 @@ impl GenerationLifecycle {
         if self.action != MaintenanceAction::Rollback {
             return Err(GenerationError::InvalidAction(self.action));
         }
+        validate_policy(policy)?;
         let selected = StoreLayout::open_named_generation(
             self.executor.factory().layout().root(),
             selected_generation,
@@ -126,6 +140,7 @@ impl GenerationLifecycle {
         let family_id = metadata_value(current.store_db(), "family_id")?;
         let binary_version = metadata_value(current.store_db(), "binary_version")?;
         StoreConnectionFactory::new(selected.clone(), family_id, binary_version).open_reader()?;
+        self.prepare_generation_action(plan)?;
         self.build_and_publish(plan, policy, Some(selected))
     }
 
@@ -137,6 +152,8 @@ impl GenerationLifecycle {
         if self.action != MaintenanceAction::Repair {
             return Err(GenerationError::InvalidAction(self.action));
         }
+        validate_policy(policy)?;
+        self.prepare_generation_action(plan)?;
         let source = self.executor.factory().layout().clone();
         if source.generation_dir().join("OWNER.json").exists() || has_named_successor(&source)? {
             let mut report = self.build_and_publish(plan, policy, None)?;
@@ -152,6 +169,7 @@ impl GenerationLifecycle {
         let valid = database_is_valid(&connection)?;
         drop(connection);
         if valid {
+            self.executor.prepare_generation_action_finish()?;
             self.executor.finish_generation_action()?;
             return Ok(GenerationApplyReport {
                 source_generation: source.generation_name().to_string(),
@@ -162,11 +180,13 @@ impl GenerationLifecycle {
                 max_observed_copy_window: 0,
                 copied_base_files: 0,
                 removed_generations: Vec::new(),
+                removed_readers: self.executor.removed_reader_count(),
                 recovered_partial: false,
                 repair_disposition: Some(RepairDisposition::CheckpointRecovered),
             });
         }
         if !plan.capacity.promotion_fits {
+            self.executor.prepare_generation_action_finish()?;
             self.executor.finish_generation_action()?;
             return Err(GenerationError::Maintenance(
                 MaintenanceError::CapacityInsufficient,
@@ -190,13 +210,21 @@ impl GenerationLifecycle {
         Ok((counts.rows, counts.max_observed_window))
     }
 
+    fn prepare_generation_action(&mut self, plan: &MaintenancePlan) -> Result<(), GenerationError> {
+        self.executor.prepare_reader_roots(plan)?;
+        if !self.writer_released_for_build {
+            self.executor.release_writer_for_generation_build(plan)?;
+            self.writer_released_for_build = true;
+        }
+        Ok(())
+    }
+
     fn build_and_publish(
         &mut self,
         plan: &MaintenancePlan,
         policy: &GenerationPolicy,
         selected: Option<StoreLayout>,
     ) -> Result<GenerationApplyReport, GenerationError> {
-        validate_policy(policy)?;
         let source = self.executor.factory().layout().clone();
         retire_source_resolution_objects(&source)?;
         let root = source.root();
@@ -269,7 +297,12 @@ impl GenerationLifecycle {
         raise_destination_allocators(&source, &partial_store)?;
         let copied_base_files = 0;
         self.executor.heartbeat_generation_build()?;
-        validate_destination(&partial_store, &family_id, &partial)?;
+        validate_destination(
+            &partial_store,
+            &family_id,
+            &partial,
+            self.executor.source_min_writer_version(),
+        )?;
         #[cfg(feature = "test-store-crash")]
         super::test_hooks::crash_if("generation_after_validation");
         checkpoint_and_sync(&partial_store, &partial)?;
@@ -283,7 +316,14 @@ impl GenerationLifecycle {
 
         self.executor
             .reacquire_writer_for_generation_publish(plan)?;
+        ensure_destination_writer_floor(
+            &destination_dir.join("store.db"),
+            self.executor.source_min_writer_version(),
+        )?;
         publish_current(root, &source, &destination_name, &destination_dir)?;
+        self.executor.prepare_generation_action_finish()?;
+        let removed_generations =
+            cleanup_retired_generations(&self.executor, plan, root, &destination_name, policy)?;
         self.executor.finish_generation_action()?;
         #[cfg(feature = "test-store-crash")]
         super::test_hooks::crash_if("generation_after_maintenance_finish");
@@ -292,7 +332,6 @@ impl GenerationLifecycle {
             fs::remove_file(owner_path)?;
             sync_directory(&destination_dir)?;
         }
-        let removed_generations = cleanup_retired_generations(root, &destination_name, policy)?;
         Ok(GenerationApplyReport {
             source_generation: source.generation_name().to_string(),
             destination_generation: destination_name,
@@ -302,6 +341,7 @@ impl GenerationLifecycle {
             max_observed_copy_window: copy.max_observed_window,
             copied_base_files,
             removed_generations,
+            removed_readers: self.executor.removed_reader_count(),
             recovered_partial,
             repair_disposition: None,
         })
@@ -322,7 +362,13 @@ impl GenerationLifecycle {
             return Ok(None);
         }
         let family_id = metadata_value(current.store_db(), "family_id")?;
-        validate_destination(current.store_db(), &family_id, current.generation_dir())?;
+        self.executor.heartbeat_generation_build()?;
+        validate_destination(
+            current.store_db(),
+            &family_id,
+            current.generation_dir(),
+            self.executor.source_min_writer_version(),
+        )?;
         self.executor
             .reacquire_writer_for_generation_publish(plan)?;
         for generation in named_generations(current.root())? {
@@ -334,15 +380,25 @@ impl GenerationLifecycle {
                 }
             }
         }
+        ensure_destination_writer_floor(
+            current.store_db(),
+            self.executor.source_min_writer_version(),
+        )?;
         serve_generation(current.store_db())?;
         sync_file(current.store_db())?;
+        self.executor.prepare_generation_action_finish()?;
+        let removed_generations = cleanup_retired_generations(
+            &self.executor,
+            plan,
+            current.root(),
+            current.generation_name(),
+            policy,
+        )?;
         self.executor.finish_generation_action()?;
         fs::remove_file(owner_path)?;
         sync_directory(current.generation_dir())?;
         let previous = previous_generation_name(current.root(), current.generation_name())
             .unwrap_or_else(|| current.generation_name().to_string());
-        let removed_generations =
-            cleanup_retired_generations(current.root(), current.generation_name(), policy)?;
         Ok(Some(GenerationApplyReport {
             source_generation: previous,
             destination_generation: current.generation_name().to_string(),
@@ -352,6 +408,7 @@ impl GenerationLifecycle {
             max_observed_copy_window: 0,
             copied_base_files: 0,
             removed_generations,
+            removed_readers: self.executor.removed_reader_count(),
             recovered_partial: true,
             repair_disposition: None,
         }))
@@ -386,20 +443,36 @@ impl GenerationLifecycle {
             });
         }
         let family_id = metadata_value(source.store_db(), "family_id")?;
-        validate_destination(successor.store_db(), &family_id, successor.generation_dir())?;
+        self.executor.heartbeat_generation_build()?;
+        validate_destination(
+            successor.store_db(),
+            &family_id,
+            successor.generation_dir(),
+            self.executor.source_min_writer_version(),
+        )?;
         self.executor
             .reacquire_writer_for_generation_publish(plan)?;
+        ensure_destination_writer_floor(
+            successor.store_db(),
+            self.executor.source_min_writer_version(),
+        )?;
         publish_current(
             source.root(),
             source,
             successor.generation_name(),
             successor.generation_dir(),
         )?;
+        self.executor.prepare_generation_action_finish()?;
+        let removed_generations = cleanup_retired_generations(
+            &self.executor,
+            plan,
+            source.root(),
+            successor.generation_name(),
+            policy,
+        )?;
         self.executor.finish_generation_action()?;
         fs::remove_file(owner_path)?;
         sync_directory(successor.generation_dir())?;
-        let removed_generations =
-            cleanup_retired_generations(source.root(), successor.generation_name(), policy)?;
         Ok(Some(GenerationApplyReport {
             source_generation: source.generation_name().to_string(),
             destination_generation: successor.generation_name().to_string(),
@@ -409,6 +482,7 @@ impl GenerationLifecycle {
             max_observed_copy_window: 0,
             copied_base_files: 0,
             removed_generations,
+            removed_readers: self.executor.removed_reader_count(),
             recovered_partial: true,
             repair_disposition: None,
         }))
@@ -1471,6 +1545,7 @@ fn validate_destination(
     destination_path: &Path,
     family_id: &str,
     partial: &Path,
+    required_writer_floor: &str,
 ) -> Result<(), GenerationError> {
     let connection = Connection::open(destination_path)?;
     if metadata_value_from_connection(&connection, "family_id")? != family_id {
@@ -1499,6 +1574,32 @@ fn validate_destination(
         });
     }
     let _ = partial;
+    drop(connection);
+    ensure_destination_writer_floor(destination_path, required_writer_floor)?;
+    Ok(())
+}
+
+fn ensure_destination_writer_floor(
+    destination_path: &Path,
+    required_writer_floor: &str,
+) -> Result<(), GenerationError> {
+    let mut connection = Connection::open(destination_path)?;
+    let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+    let current = metadata_value_from_connection(&transaction, "min_writer_version")?;
+    if compare_versions(&current, required_writer_floor)? == std::cmp::Ordering::Less {
+        transaction.execute(
+            "UPDATE store_meta SET value=?1 WHERE key='min_writer_version'",
+            [required_writer_floor],
+        )?;
+    }
+    let observed = metadata_value_from_connection(&transaction, "min_writer_version")?;
+    if compare_versions(&observed, required_writer_floor)? == std::cmp::Ordering::Less {
+        return Err(GenerationError::Validation {
+            check: "min_writer_version",
+            detail: "destination writer floor regressed".to_string(),
+        });
+    }
+    transaction.commit()?;
     Ok(())
 }
 
@@ -1589,6 +1690,8 @@ fn serve_generation(path: &Path) -> Result<(), GenerationError> {
 }
 
 fn cleanup_retired_generations(
+    executor: &MaintenanceExecutor,
+    plan: &MaintenancePlan,
     root: &Path,
     current: &str,
     policy: &GenerationPolicy,
@@ -1605,6 +1708,13 @@ fn cleanup_retired_generations(
     let remove_count = retired.len() - policy.retained_generation_limit;
     let mut removed = Vec::new();
     for (_, name) in retired.drain(..remove_count) {
+        if plan
+            .protected_readers
+            .iter()
+            .any(|reader| reader.generation_name == name)
+        {
+            continue;
+        }
         let layout = StoreLayout::open_named_generation(root, &name)?;
         let connection = Connection::open(layout.store_db())?;
         let live_pins = if table_exists(&connection, "resolution_pins")? {
@@ -1630,7 +1740,9 @@ fn cleanup_retired_generations(
         });
         if live_pins == 0 && safety_elapsed {
             drop(connection);
+            let guard = executor.acquire_generation_deletion_guard(plan, current)?;
             fs::remove_dir_all(layout.generation_dir())?;
+            guard.commit()?;
             removed.push(name);
         }
     }

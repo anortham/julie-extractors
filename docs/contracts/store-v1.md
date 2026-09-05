@@ -165,9 +165,15 @@ drops leftover `bases/` files and both scratch families.
 ## Retention boundary
 
 Ph2d may reclaim only objects outside every current/historical manifest,
-active request/claim, scratch owner, consumer cursor window, and retained-generation safety window.
+active request/claim, scratch owner, consumer cursor window, registered reader root, and
+retained-generation safety window. A reader registration in `coord.db` binds one immutable
+generation/view/manifest snapshot. While retained, it protects the exact manifest hash, every
+completed extraction level reachable from that manifest, failed entries, its physical generation,
+and log rows at or above `min_retained_store_log_sequence`. The reader log floor is inclusive;
+consumer cursors retain their existing acknowledged-watermark semantics.
 `store maintain retire-view` is the one path that removes manifest roots themselves; it removes
-them for one named view and leaves the versions they held to ordinary reclaim.
+them for one named view and leaves the versions they held to ordinary reclaim. Retirement refuses
+while any retained reader names that view, including readers bound to non-current generations.
 Terminal request rows become durable receipts before coordinator deletion; orphan store logs are
 pruned only afterward and below every safe cursor. Committed and acknowledged rows older than the
 request safety window are archived up to the durable log high-water mark, not up to the safe
@@ -189,6 +195,12 @@ scratch purge, and generation staging create rather than freezing plan-time free
 run. A concurrent root change is `stale_plan`, not an implicit replan. Insufficient promotion
 headroom is `capacity_insufficient` before intent or lease acquisition. A live writer or
 maintenance owner is `busy`.
+
+Reader expiry only triggers process-instance qualification. Unexpired, alive, paused, or
+identity-unknown owners remain protected; only definitive same-domain process death permits
+maintenance to remove a registration. Reader rows are revalidated under the existing maintenance
+intent before destructive work. Whole-generation cleanup completes before that intent is released,
+and every SQLite handle into a candidate generation is closed before filesystem deletion.
 
 GC preserves every root named by this contract and uses receipts before request/log pruning.
 Promotion builds a sibling generation, validates catalogs and identities, fsyncs the staged files,

@@ -20,6 +20,9 @@ use super::layout::reap_retired_resolution_files;
 use super::layout::valid_generation_name;
 use super::pragmas::{WriterPragmaProfile, configure_writer_pragmas};
 use super::reader::READER_MIN_WRITER_VERSION;
+use super::reader_liveness::{
+    DeathQualification, SystemProcessIdentityProbe, qualify_reader_owner,
+};
 use super::schema::{
     ReaderCatalogState, StoreSchemaError, install_empty_reader_catalog, reader_catalog_state,
 };
@@ -84,6 +87,7 @@ pub enum MaintenanceRootKind {
     ConsumerCursor,
     CurrentGeneration,
     RollbackGeneration,
+    ReaderRegistration,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -174,6 +178,53 @@ pub struct ConsumerCursorFact {
     pub updated_at: i64,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ReaderMaintenanceDisposition {
+    Protected,
+    DefinitivelyDead,
+    RetainedUnknown,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReaderMaintenanceRoot {
+    pub pin_id: String,
+    pub view_id: String,
+    pub manifest_generation: i64,
+    pub manifest_hash: String,
+    pub generation_name: String,
+    pub served_store_log_sequence: i64,
+    pub min_retained_store_log_sequence: i64,
+    pub disposition: ReaderMaintenanceDisposition,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub warning_code: Option<String>,
+}
+
+#[derive(Clone, PartialEq, Eq)]
+#[doc(hidden)]
+pub struct ReaderRegistrationFact {
+    pin_id: String,
+    owner_nonce: String,
+    owner_label: String,
+    family_id: String,
+    view_id: String,
+    manifest_generation: i64,
+    generation_name: String,
+    owner_pid: i64,
+    owner_birth_identity: String,
+    store_instance_id: String,
+    manifest_hash: String,
+    extraction_identity_epoch: i64,
+    served_store_log_sequence: i64,
+    acquired_at: i64,
+    heartbeat_at: i64,
+    expires_at: i64,
+    min_retained_store_log_sequence: i64,
+    snapshot_fingerprint: String,
+    qualification: DeathQualification,
+    manifest_resolved: bool,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct PlanBinding {
     pub family_id: String,
@@ -198,7 +249,7 @@ pub struct MaintenanceCapacity {
     pub retention_breach_streak: u32,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct MaintenanceSnapshot {
     pub binding: PlanBinding,
     pub now_ms: i64,
@@ -223,6 +274,59 @@ pub struct MaintenanceSnapshot {
     pub protected_cursors: Vec<String>,
     pub cursor_facts: Vec<ConsumerCursorFact>,
     pub protected_generations: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reader_catalog_fingerprint: Option<String>,
+    #[serde(skip)]
+    #[doc(hidden)]
+    pub reader_facts: Vec<ReaderRegistrationFact>,
+}
+
+impl std::fmt::Debug for MaintenanceSnapshot {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("MaintenanceSnapshot")
+            .field("binding", &self.binding)
+            .field("now_ms", &self.now_ms)
+            .field("capacity", &self.capacity)
+            .field("versions", &self.versions)
+            .field("manifests", &self.manifests)
+            .field("manifest_versions", &self.manifest_versions)
+            .field("failed_paths", &self.failed_paths)
+            .field("base_versions", &self.base_versions)
+            .field("identifier_delta_versions", &self.identifier_delta_versions)
+            .field("pending_delta_versions", &self.pending_delta_versions)
+            .field("additional_version_roots", &self.additional_version_roots)
+            .field("protected_bases", &self.protected_bases)
+            .field("eligible_bases", &self.eligible_bases)
+            .field("protected_deltas", &self.protected_deltas)
+            .field("eligible_deltas", &self.eligible_deltas)
+            .field("protected_pins", &self.protected_pins)
+            .field("expired_pins", &self.expired_pins)
+            .field("protected_requests", &self.protected_requests)
+            .field("request_facts", &self.request_facts)
+            .field("protected_scratch", &self.protected_scratch)
+            .field("protected_cursors", &self.protected_cursors)
+            .field("cursor_facts", &self.cursor_facts)
+            .field("protected_generations", &self.protected_generations)
+            .field(
+                "reader_catalog_fingerprint",
+                &self.reader_catalog_fingerprint,
+            )
+            .field(
+                "reader_facts",
+                &RedactedReaderFacts(self.reader_facts.len()),
+            )
+            .finish()
+    }
+}
+
+struct RedactedReaderFacts(usize);
+
+impl std::fmt::Debug for RedactedReaderFacts {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let suffix = if self.0 == 1 { "" } else { "s" };
+        write!(formatter, "<{} registration{} redacted>", self.0, suffix)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -313,6 +417,8 @@ pub struct CapacityPlan {
 pub struct MaintenancePlan {
     pub binding: PlanBinding,
     pub fingerprint: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reader_catalog_fingerprint: Option<String>,
     pub versions: Vec<VersionDecision>,
     pub eligible_manifests: Vec<(String, i64)>,
     pub pressure_only_manifests: Vec<(String, i64)>,
@@ -327,6 +433,10 @@ pub struct MaintenancePlan {
     pub protected_scratch: Vec<String>,
     pub protected_cursors: Vec<String>,
     pub protected_generations: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub protected_readers: Vec<ReaderMaintenanceRoot>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub definitively_dead_readers: Vec<ReaderMaintenanceRoot>,
     pub protected_failed_paths: Vec<String>,
     pub retention: RetentionPlan,
     pub capacity: CapacityPlan,
@@ -374,6 +484,7 @@ pub struct MaintenanceApplyReport {
     pub archived_requests: usize,
     pub pruned_request_rows: usize,
     pub pruned_log_rows: usize,
+    pub removed_readers: usize,
     pub last_version_cursor: Option<i64>,
     pub checkpoint_order: Vec<String>,
     pub store_bytes_before_vacuum: u64,
@@ -425,6 +536,7 @@ pub struct RetireViewApplied {
     pub retired_views: usize,
     pub retired_manifests: usize,
     pub retired_manifest_entries: usize,
+    pub removed_readers: usize,
 }
 
 pub struct MaintenanceExecutor {
@@ -434,8 +546,33 @@ pub struct MaintenanceExecutor {
     fencing_token: i64,
     source_min_writer_version: String,
     capacity: Box<dyn CapacityProvider + Send + Sync>,
+    expected_coordinator_root_fingerprint: String,
+    expected_reader_catalog_fingerprint: Option<String>,
+    readers_prepared: bool,
+    removed_readers: usize,
     /// Disarmed only after a successful finish/restore so Drop cannot leave a raised floor.
     finished: AtomicBool,
+}
+
+pub(crate) struct GenerationDeletionGuard {
+    coordinator: Connection,
+    committed: bool,
+}
+
+impl GenerationDeletionGuard {
+    pub(crate) fn commit(mut self) -> Result<(), MaintenanceError> {
+        self.coordinator.execute_batch("COMMIT")?;
+        self.committed = true;
+        Ok(())
+    }
+}
+
+impl Drop for GenerationDeletionGuard {
+    fn drop(&mut self) {
+        if !self.committed {
+            let _ = self.coordinator.execute_batch("ROLLBACK");
+        }
+    }
 }
 
 struct MaintenanceActionHeartbeat {
@@ -537,7 +674,9 @@ impl Drop for MaintenanceExecutor {
         if self.finished.load(AtomicOrdering::Acquire) {
             return;
         }
-        let _ = self.restore_serving_source_floor_and_clear_coord();
+        let _ = self
+            .restore_source_floor_and_mirrors()
+            .and_then(|()| self.clear_coordinator_ownership());
     }
 }
 
@@ -757,6 +896,26 @@ pub fn plan_maintenance(
     policy: &MaintenancePolicy,
 ) -> Result<MaintenancePlan, MaintenanceError> {
     validate_policy(policy)?;
+    match (
+        snapshot.reader_catalog_fingerprint.as_deref(),
+        snapshot.reader_facts.is_empty(),
+    ) {
+        (Some(_), true) => {
+            return Err(MaintenanceError::InvalidMetadata {
+                field: "reader_registration_snapshot",
+                value: "registration facts unavailable".to_string(),
+            });
+        }
+        (Some(expected), false)
+            if expected != reader_fact_set_fingerprint(&snapshot.reader_facts) =>
+        {
+            return Err(MaintenanceError::InvalidMetadata {
+                field: "reader_registration_snapshot",
+                value: "registration facts incomplete".to_string(),
+            });
+        }
+        _ => {}
+    }
     let versions: BTreeMap<i64, &VersionFact> = snapshot
         .versions
         .iter()
@@ -795,9 +954,54 @@ pub fn plan_maintenance(
             .or_default()
             .push(entry);
     }
+    let mut protected_readers = Vec::new();
+    let mut definitively_dead_readers = Vec::new();
+    let mut reader_manifest_roots = BTreeMap::new();
+    for reader in &snapshot.reader_facts {
+        if reader.family_id != snapshot.binding.family_id {
+            return Err(MaintenanceError::InvalidMetadata {
+                field: "reader_family_id",
+                value: reader.pin_id.clone(),
+            });
+        }
+        let projection = reader_root_projection(reader);
+        if reader.qualification == DeathQualification::DefinitivelyDead {
+            definitively_dead_readers.push(projection);
+            continue;
+        }
+        if reader.generation_name == snapshot.binding.current_generation {
+            let key = (reader.view_id.as_str(), reader.manifest_generation);
+            let _manifest = manifests
+                .get(&key)
+                .ok_or_else(|| MaintenanceError::UnknownRoot {
+                    kind: "reader_manifest",
+                    id: reader.pin_id.clone(),
+                })?;
+            if !reader.manifest_resolved {
+                return Err(MaintenanceError::InvalidMetadata {
+                    field: "reader_manifest",
+                    value: reader.pin_id.clone(),
+                });
+            }
+            reader_manifest_roots.insert(key, reader.pin_id.as_str());
+        }
+        protected_readers.push(projection);
+    }
     let mut eligible_manifests = Vec::new();
     for (key, manifest) in &manifests {
         let entries = manifest_entries.get(key).cloned().unwrap_or_default();
+        if let Some(pin_id) = reader_manifest_roots.get(key) {
+            for entry in entries {
+                let version = versions[&entry.version_id];
+                add_completed_reasons(
+                    &mut reasons,
+                    version,
+                    MaintenanceRootKind::ReaderRegistration,
+                    (*pin_id).to_string(),
+                );
+            }
+            continue;
+        }
         if manifest.current {
             for entry in entries {
                 let version = versions[&entry.version_id];
@@ -1012,6 +1216,7 @@ pub fn plan_maintenance(
     let mut plan = MaintenancePlan {
         binding: canonical_binding(&snapshot.binding),
         fingerprint: String::new(),
+        reader_catalog_fingerprint: snapshot.reader_catalog_fingerprint.clone(),
         versions: decisions,
         eligible_manifests,
         pressure_only_manifests,
@@ -1025,12 +1230,29 @@ pub fn plan_maintenance(
         protected_requests: sorted_unique(&snapshot.protected_requests),
         protected_scratch: sorted_unique(&snapshot.protected_scratch),
         protected_cursors: sorted_unique(&snapshot.protected_cursors),
-        protected_generations: sorted_unique(&snapshot.protected_generations),
+        protected_generations: sorted_unique(
+            &snapshot
+                .protected_generations
+                .iter()
+                .cloned()
+                .chain(
+                    protected_readers
+                        .iter()
+                        .map(|reader| reader.generation_name.clone()),
+                )
+                .collect::<Vec<_>>(),
+        ),
+        protected_readers,
+        definitively_dead_readers,
         protected_failed_paths: sorted_unique(
             &snapshot
                 .failed_paths
                 .iter()
-                .filter(|fact| fact.current)
+                .filter(|fact| {
+                    fact.current
+                        || reader_manifest_roots
+                            .contains_key(&(fact.view_id.as_str(), fact.generation))
+                })
                 .map(|fact| {
                     format!(
                         "{}:{}:{}:{}",
@@ -1097,6 +1319,7 @@ impl<C: MaintenanceClock, P: CapacityProvider> MaintenanceInspector<C, P> {
             OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
         )?;
         coord.pragma_update(None, "query_only", true)?;
+        let reader_catalog_present = reader_catalog_available(&store, &coord)?;
         let store_data_version = data_version(&store)?;
         let coordinator_data_version = data_version(&coord)?;
         let mut max_observed_window = 0;
@@ -1137,7 +1360,9 @@ impl<C: MaintenanceClock, P: CapacityProvider> MaintenanceInspector<C, P> {
             self.window_size,
             &mut max_observed_window,
             &mut snapshot,
+            reader_catalog_present,
         )?;
+        resolve_reader_roots(&store, self.factory.layout(), &mut snapshot)?;
         snapshot.protected_generations = named_generations(self.factory.layout().root())?;
         snapshot.protected_scratch = named_files(self.factory.layout().scratch_dir())?
             .into_iter()
@@ -1161,6 +1386,7 @@ impl<C: MaintenanceClock, P: CapacityProvider> MaintenanceInspector<C, P> {
                 self.window_size,
                 &mut verification_window,
                 &mut current,
+                reader_catalog_available(&store, &coord)?,
             )?;
             current.binding.coordinator_root_fingerprint = coordinator_physical_fingerprint;
             if coordinator_root_fingerprint(&current)?
@@ -1223,14 +1449,17 @@ impl MaintenanceExecutor {
         if observed.binding != plan.binding {
             return Err(MaintenanceError::StalePlan);
         }
-        Self::acquire_fence(
+        let mut executor = Self::acquire_fence(
             factory,
             run,
             action,
             plan.fingerprint.clone(),
             capacity,
             true,
-        )
+            Some(plan.binding.coordinator_root_fingerprint.clone()),
+        )?;
+        executor.expected_reader_catalog_fingerprint = plan.reader_catalog_fingerprint.clone();
+        Ok(executor)
     }
 
     fn acquire_fence(
@@ -1240,6 +1469,7 @@ impl MaintenanceExecutor {
         plan_fingerprint: String,
         capacity: Box<dyn CapacityProvider + Send + Sync>,
         reap_stale_requests: bool,
+        expected_coordinator_root_fingerprint: Option<String>,
     ) -> Result<Self, MaintenanceError> {
         let wall_now = wall_now_ms()?;
         let expires_at = wall_now.checked_add(run.lease_duration_ms).ok_or(
@@ -1380,13 +1610,20 @@ impl MaintenanceExecutor {
             fencing_token,
             source_min_writer_version,
             capacity,
+            expected_coordinator_root_fingerprint: expected_coordinator_root_fingerprint
+                .unwrap_or_default(),
+            expected_reader_catalog_fingerprint: None,
+            readers_prepared: false,
+            removed_readers: 0,
             finished: AtomicBool::new(false),
         };
         #[cfg(feature = "test-store-crash")]
         super::test_hooks::crash_if("maintenance_after_intent_before_floor");
         // M2: raise frozen source floor and mirror intent into store_meta.
         if let Err(error) = executor.raise_source_floor_and_mirror(action, wall_now) {
-            let _ = executor.restore_serving_source_floor_and_clear_coord();
+            let _ = executor
+                .restore_source_floor_and_mirrors()
+                .and_then(|()| executor.clear_coordinator_ownership());
             executor.finished.store(true, AtomicOrdering::Release);
             return Err(error);
         }
@@ -1431,6 +1668,7 @@ impl MaintenanceExecutor {
             plan_fingerprint,
             Box::new(FloorActivationCapacity),
             false,
+            None,
         )?;
         executor.commit_reader_writer_floor()?;
         executor.finish()
@@ -1472,6 +1710,11 @@ impl MaintenanceExecutor {
 
     pub(crate) fn source_min_writer_version(&self) -> &str {
         &self.source_min_writer_version
+    }
+
+    #[doc(hidden)]
+    pub fn removed_reader_count(&self) -> usize {
+        self.removed_readers
     }
 
     fn commit_reader_writer_floor(&mut self) -> Result<(), MaintenanceError> {
@@ -1716,7 +1959,212 @@ impl MaintenanceExecutor {
     }
 
     pub(crate) fn finish_generation_action(&self) -> Result<(), MaintenanceError> {
-        self.finish()
+        self.clear_coordinator_ownership()?;
+        self.finished.store(true, AtomicOrdering::Release);
+        Ok(())
+    }
+
+    pub(crate) fn prepare_generation_action_finish(&self) -> Result<(), MaintenanceError> {
+        self.restore_source_floor_and_mirrors()
+    }
+
+    pub(crate) fn prepare_reader_roots(
+        &mut self,
+        plan: &MaintenancePlan,
+    ) -> Result<usize, MaintenanceError> {
+        if self.readers_prepared {
+            return Ok(self.removed_readers);
+        }
+        self.validate_ownership(plan)?;
+        #[cfg(feature = "test-store-crash")]
+        super::test_hooks::crash_if("maintenance_before_reader_root_scan");
+        if plan.definitively_dead_readers.is_empty() {
+            #[cfg(feature = "test-store-crash")]
+            super::test_hooks::crash_if("maintenance_after_reader_root_scan");
+            self.readers_prepared = true;
+            return Ok(0);
+        }
+        let store = self.factory.open_reader()?;
+        let mut coordinator = open_maintenance_coordinator(self.factory.layout().coordinator_db())?;
+        if reader_catalog_state(&coordinator).map_err(reader_catalog_error)?
+            != ReaderCatalogState::Valid
+        {
+            return Err(reader_catalog_error(
+                StoreSchemaError::ReaderCatalogMalformed,
+            ));
+        }
+        let transaction = coordinator.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let owns_intent = transaction.query_row(
+            "SELECT EXISTS(SELECT 1 FROM maintenance_intent
+             WHERE resource='store-maintenance' AND run_id=?1 AND owner_id=?2
+               AND owner_pid=?3 AND fencing_token=?4 AND plan_fingerprint=?5)",
+            params![
+                self.run.run_id,
+                self.run.owner_id,
+                self.run.owner_pid,
+                self.fencing_token,
+                plan.fingerprint,
+            ],
+            |row| row.get::<_, bool>(0),
+        )?;
+        if !owns_intent {
+            return Err(MaintenanceError::MaintenanceFenceLost);
+        }
+        let mut before = MaintenanceSnapshot {
+            binding: read_binding(&store, &transaction, &self.factory)?,
+            now_ms: self.run.now_ms,
+            ..MaintenanceSnapshot::default()
+        };
+        let mut peak = 0;
+        read_coordinator_objects(
+            &transaction,
+            DEFAULT_WINDOW_SIZE,
+            &mut peak,
+            &mut before,
+            true,
+        )?;
+        let before_fingerprint = coordinator_root_fingerprint(&before)?;
+        if before_fingerprint != self.expected_coordinator_root_fingerprint {
+            return Err(MaintenanceError::StalePlan);
+        }
+        let removed_pin_ids: BTreeSet<_> = plan
+            .definitively_dead_readers
+            .iter()
+            .map(|reader| reader.pin_id.as_str())
+            .collect();
+        let mut expected_after = before.clone();
+        expected_after
+            .reader_facts
+            .retain(|reader| !removed_pin_ids.contains(reader.pin_id.as_str()));
+        expected_after.reader_catalog_fingerprint = if expected_after.reader_facts.is_empty() {
+            None
+        } else {
+            Some(reader_fact_set_fingerprint(&expected_after.reader_facts))
+        };
+        let expected_after_fingerprint = coordinator_root_fingerprint(&expected_after)?;
+        #[cfg(feature = "test-store-crash")]
+        super::test_hooks::crash_if("maintenance_after_reader_root_scan");
+        for reader in &plan.definitively_dead_readers {
+            let fact = before
+                .reader_facts
+                .iter()
+                .find(|fact| fact.pin_id == reader.pin_id)
+                .ok_or(MaintenanceError::StalePlan)?;
+            let owner_pid =
+                u32::try_from(fact.owner_pid).map_err(|_| MaintenanceError::InvalidMetadata {
+                    field: "reader_owner_pid",
+                    value: reader.pin_id.clone(),
+                })?;
+            if qualify_reader_owner(
+                owner_pid,
+                &fact.owner_birth_identity,
+                fact.expires_at,
+                self.run.now_ms,
+                &SystemProcessIdentityProbe,
+            ) != DeathQualification::DefinitivelyDead
+            {
+                return Err(MaintenanceError::StalePlan);
+            }
+            #[cfg(feature = "test-store-crash")]
+            super::test_hooks::crash_if("maintenance_before_reader_registration_delete");
+            if transaction.execute(
+                "DELETE FROM reader_registrations WHERE pin_id=?1",
+                [&reader.pin_id],
+            )? != 1
+            {
+                return Err(MaintenanceError::StalePlan);
+            }
+        }
+        transaction.commit()?;
+        self.removed_readers = plan.definitively_dead_readers.len();
+        drop(coordinator);
+        drop(store);
+        let observed = MaintenanceInspector::new(
+            self.factory.clone(),
+            RevalidationClock(self.run.now_ms),
+            LiveCapacityProbe {
+                provider: self.capacity.as_ref(),
+            },
+        )
+        .inspect()?;
+        let expected = &plan.binding;
+        let actual = &observed.binding;
+        if actual.family_id != expected.family_id
+            || actual.current_generation != expected.current_generation
+            || actual.store_root_fingerprint != expected.store_root_fingerprint
+            || actual.store_log_max != expected.store_log_max
+            || actual.request_watermark != expected.request_watermark
+            || actual.allocator_marks != expected.allocator_marks
+            || actual.coordinator_root_fingerprint != expected_after_fingerprint
+        {
+            return Err(MaintenanceError::StalePlan);
+        }
+        self.expected_coordinator_root_fingerprint = expected_after_fingerprint;
+        self.expected_reader_catalog_fingerprint = expected_after.reader_catalog_fingerprint;
+        self.readers_prepared = true;
+        Ok(self.removed_readers)
+    }
+
+    pub(crate) fn acquire_generation_deletion_guard(
+        &self,
+        plan: &MaintenancePlan,
+        expected_current: &str,
+    ) -> Result<GenerationDeletionGuard, MaintenanceError> {
+        self.heartbeat_generation_build()?;
+        self.validate_ownership(plan)?;
+        let current_layout = super::StoreLayout::open(self.factory.layout().root())?;
+        if current_layout.generation_name() != expected_current {
+            return Err(MaintenanceError::StalePlan);
+        }
+        let current_factory = StoreConnectionFactory::new(
+            current_layout,
+            plan.binding.family_id.clone(),
+            self.factory.binary_version(),
+        );
+        let store = current_factory.open_reader()?;
+        let coordinator = open_maintenance_coordinator(current_factory.layout().coordinator_db())?;
+        coordinator.execute_batch("BEGIN IMMEDIATE")?;
+        let owns_intent = coordinator.query_row(
+            "SELECT EXISTS(SELECT 1 FROM maintenance_intent
+             WHERE resource='store-maintenance' AND run_id=?1 AND owner_id=?2
+               AND owner_pid=?3 AND fencing_token=?4 AND plan_fingerprint=?5)",
+            params![
+                self.run.run_id,
+                self.run.owner_id,
+                self.run.owner_pid,
+                self.fencing_token,
+                plan.fingerprint,
+            ],
+            |row| row.get::<_, bool>(0),
+        )?;
+        if !owns_intent {
+            return Err(MaintenanceError::MaintenanceFenceLost);
+        }
+        let current_after_guard = super::StoreLayout::open(self.factory.layout().root())?;
+        if current_after_guard.generation_name() != expected_current {
+            return Err(MaintenanceError::StalePlan);
+        }
+        let mut snapshot = MaintenanceSnapshot {
+            now_ms: self.run.now_ms,
+            ..MaintenanceSnapshot::default()
+        };
+        let reader_catalog_present = reader_catalog_available(&store, &coordinator)?;
+        let mut peak = 0;
+        read_coordinator_objects(
+            &coordinator,
+            DEFAULT_WINDOW_SIZE,
+            &mut peak,
+            &mut snapshot,
+            reader_catalog_present,
+        )?;
+        if snapshot.reader_catalog_fingerprint != self.expected_reader_catalog_fingerprint {
+            return Err(MaintenanceError::StalePlan);
+        }
+        drop(store);
+        Ok(GenerationDeletionGuard {
+            coordinator,
+            committed: false,
+        })
     }
 
     pub fn apply(
@@ -1755,7 +2203,21 @@ impl MaintenanceExecutor {
                 Err(heartbeat_error) => Err(heartbeat_error),
             };
         }
-        let result = self.apply_with_action_heartbeat(plan, policy, &heartbeat);
+        let removed_readers = match self.prepare_reader_roots(plan) {
+            Ok(value) => value,
+            Err(error) => {
+                return match heartbeat.stop() {
+                    Ok(()) => Err(error),
+                    Err(heartbeat_error) => Err(heartbeat_error),
+                };
+            }
+        };
+        let result = self
+            .apply_with_action_heartbeat(plan, policy, &heartbeat)
+            .map(|mut report| {
+                report.removed_readers = removed_readers;
+                report
+            });
         let heartbeat_result = heartbeat.stop();
         match result {
             Err(error) => Err(error),
@@ -1793,6 +2255,28 @@ impl MaintenanceExecutor {
                 Err(heartbeat_error) => Err(heartbeat_error),
             };
         }
+        if plan
+            .protected_readers
+            .iter()
+            .any(|reader| reader.view_id == view_id)
+        {
+            return match heartbeat.stop() {
+                Ok(()) => Err(MaintenanceError::MaintenanceBusy),
+                Err(heartbeat_error) => Err(heartbeat_error),
+            };
+        }
+        if let Err(error) = self.refuse_live_view_requests(view_id) {
+            return match heartbeat.stop() {
+                Ok(()) => Err(error),
+                Err(heartbeat_error) => Err(heartbeat_error),
+            };
+        }
+        if let Err(error) = self.prepare_reader_roots(plan) {
+            return match heartbeat.stop() {
+                Ok(()) => Err(error),
+                Err(heartbeat_error) => Err(heartbeat_error),
+            };
+        }
         let result = self.retire_view_with_action_heartbeat(plan, view_id, &heartbeat);
         let heartbeat_result = heartbeat.stop();
         match result {
@@ -1812,6 +2296,13 @@ impl MaintenanceExecutor {
         heartbeat: &MaintenanceActionHeartbeat,
     ) -> Result<RetireViewApplied, MaintenanceError> {
         self.refuse_live_view_requests(view_id)?;
+        if plan
+            .protected_readers
+            .iter()
+            .any(|reader| reader.view_id == view_id)
+        {
+            return Err(MaintenanceError::MaintenanceBusy);
+        }
         heartbeat.check()?;
         let fence = GenerationFence::maintenance(
             self.factory.layout(),
@@ -1848,6 +2339,7 @@ impl MaintenanceExecutor {
             retired_views,
             retired_manifests,
             retired_manifest_entries,
+            removed_readers: self.removed_readers,
         })
     }
 
@@ -1881,6 +2373,8 @@ impl MaintenanceExecutor {
         // Live free-bytes re-probe before first mutative step (scratch purge).
         self.ensure_gc_capacity(plan)?;
         heartbeat.check()?;
+        #[cfg(feature = "test-store-crash")]
+        super::test_hooks::crash_if("maintenance_before_first_delete");
         let scratch_files = terminal_request_scratch_files(self.factory.layout())?;
         let mut report = MaintenanceApplyReport::default();
         for path in scratch_files {
@@ -2178,7 +2672,7 @@ impl MaintenanceExecutor {
             // Measured on the 4,608-page fixture in `gc_steps_incremental_vacuum_until_the_freelist_is_empty`:
             // 4,608 iterations at 1-3 ms each = 11.3 s of the 11.5 s total apply, against the 5 s writer lease
             // minted in `acquire_for_action`. The lease lapsed mid-vacuum and the next `open_writer` — inside
-            // `finish()` -> `restore_serving_source_floor_and_clear_coord` — failed the
+            // `finish()` -> `restore_source_floor_and_mirrors` — failed the
             // `validate_writer_lease` expiry check with `WriterLeaseLost`. Draining the rows makes the whole
             // reclaim ONE transaction and one fsync.
             let mut statement =
@@ -2212,8 +2706,9 @@ impl MaintenanceExecutor {
             )
             .optional()?
             .unwrap_or(0);
-        let high_water = allocator_high_water.max(plan.binding.store_log_max);
-        let mut safe = high_water;
+        let cursor_bound = allocator_high_water.max(plan.binding.store_log_max);
+        let committed_high_water = plan.binding.store_log_max;
+        let mut safe = committed_high_water;
         let mut statement = coord.prepare(
             "SELECT consumer_id,generation_name,store_log_sequence
              FROM consumer_cursors ORDER BY consumer_id",
@@ -2224,15 +2719,31 @@ impl MaintenanceExecutor {
             let generation_name: String = row.get(1)?;
             let sequence: i64 = row.get(2)?;
             checked_generation_path(self.factory.layout(), &generation_name)?;
-            if sequence < 0 || sequence > high_water {
+            if sequence < 0 || sequence > cursor_bound {
                 return Err(MaintenanceError::InvalidMetadata {
                     field: "consumer_cursor",
-                    value: format!("{consumer_id}:{sequence}:{high_water}"),
+                    value: format!("{consumer_id}:{sequence}:{cursor_bound}"),
                 });
             }
             safe = safe.min(sequence);
         }
-        Ok((safe, high_water))
+        for reader in &plan.protected_readers {
+            let sequence = reader.min_retained_store_log_sequence;
+            if sequence < 0
+                || sequence > reader.served_store_log_sequence
+                || reader.served_store_log_sequence > committed_high_water
+            {
+                return Err(MaintenanceError::InvalidMetadata {
+                    field: "reader_log_floor",
+                    value: format!(
+                        "{}:{sequence}:{}:{committed_high_water}",
+                        reader.pin_id, reader.served_store_log_sequence
+                    ),
+                });
+            }
+            safe = safe.min(sequence.saturating_sub(1));
+        }
+        Ok((safe, committed_high_water))
     }
 
     fn validate_ownership(&self, plan: &MaintenancePlan) -> Result<(), MaintenanceError> {
@@ -2296,7 +2807,7 @@ impl MaintenanceExecutor {
         let actual = &observed.binding;
         if actual.family_id == expected.family_id
             && actual.current_generation == expected.current_generation
-            && actual.coordinator_root_fingerprint == expected.coordinator_root_fingerprint
+            && actual.coordinator_root_fingerprint == self.expected_coordinator_root_fingerprint
             && actual.store_log_max == expected.store_log_max
             && actual.request_watermark == expected.request_watermark
             && actual.allocator_marks == expected.allocator_marks
@@ -2323,6 +2834,7 @@ impl MaintenanceExecutor {
         let actual = &observed.binding;
         if actual.family_id == expected.family_id
             && actual.current_generation == expected.current_generation
+            && observed.reader_catalog_fingerprint == self.expected_reader_catalog_fingerprint
             && actual.store_log_max == expected.store_log_max
             && actual.request_watermark == expected.request_watermark
         {
@@ -2333,7 +2845,8 @@ impl MaintenanceExecutor {
     }
 
     fn finish(&self) -> Result<(), MaintenanceError> {
-        self.restore_serving_source_floor_and_clear_coord()?;
+        self.restore_source_floor_and_mirrors()?;
+        self.clear_coordinator_ownership()?;
         self.finished.store(true, AtomicOrdering::Release);
         Ok(())
     }
@@ -2426,7 +2939,7 @@ impl MaintenanceExecutor {
         Ok(())
     }
 
-    fn restore_serving_source_floor_and_clear_coord(&self) -> Result<(), MaintenanceError> {
+    fn restore_source_floor_and_mirrors(&self) -> Result<(), MaintenanceError> {
         let generation_state = Connection::open_with_flags(
             self.factory.layout().store_db(),
             OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
@@ -2465,6 +2978,10 @@ impl MaintenanceExecutor {
             transaction.commit()?;
             drop(writer);
         }
+        Ok(())
+    }
+
+    fn clear_coordinator_ownership(&self) -> Result<(), MaintenanceError> {
         let mut coord = open_maintenance_coordinator(self.factory.layout().coordinator_db())?;
         let transaction = coord.transaction_with_behavior(TransactionBehavior::Immediate)?;
         let lease_deleted = transaction.execute(
@@ -3334,15 +3851,23 @@ fn coordinator_root_fingerprint(
         cursors: &'a [String],
         request_facts: &'a [CoordinatorRequestFact],
         cursor_facts: &'a [ConsumerCursorFact],
+        #[serde(skip_serializing_if = "<[String]>::is_empty")]
+        reader_fingerprints: &'a [String],
         allocator_marks: &'a [AllocatorMark],
         request_watermark: i64,
     }
+    let reader_fingerprints: Vec<_> = snapshot
+        .reader_facts
+        .iter()
+        .map(reader_registration_fingerprint)
+        .collect();
     let roots = CoordinatorRoots {
         physical: &snapshot.binding.coordinator_root_fingerprint,
         requests: &snapshot.protected_requests,
         cursors: &snapshot.protected_cursors,
         request_facts: &snapshot.request_facts,
         cursor_facts: &snapshot.cursor_facts,
+        reader_fingerprints: &reader_fingerprints,
         allocator_marks: &snapshot.binding.allocator_marks,
         request_watermark: snapshot.binding.request_watermark,
     };
@@ -3350,6 +3875,52 @@ fn coordinator_root_fingerprint(
         "sha256:{:x}",
         Sha256::digest(serde_json::to_vec(&roots)?)
     ))
+}
+
+fn reader_registration_fingerprint(reader: &ReaderRegistrationFact) -> String {
+    fn add_text(digest: &mut Sha256, value: &str) {
+        digest.update((value.len() as u64).to_be_bytes());
+        digest.update(value.as_bytes());
+    }
+
+    let mut digest = Sha256::new();
+    for value in [
+        &reader.pin_id,
+        &reader.owner_nonce,
+        &reader.owner_label,
+        &reader.family_id,
+        &reader.view_id,
+        &reader.generation_name,
+        &reader.owner_birth_identity,
+        &reader.store_instance_id,
+        &reader.manifest_hash,
+        &reader.snapshot_fingerprint,
+    ] {
+        add_text(&mut digest, value);
+    }
+    for value in [
+        reader.manifest_generation,
+        reader.owner_pid,
+        reader.extraction_identity_epoch,
+        reader.served_store_log_sequence,
+        reader.acquired_at,
+        reader.heartbeat_at,
+        reader.expires_at,
+        reader.min_retained_store_log_sequence,
+    ] {
+        digest.update(value.to_be_bytes());
+    }
+    format!("sha256:{:x}", digest.finalize())
+}
+
+fn reader_fact_set_fingerprint(readers: &[ReaderRegistrationFact]) -> String {
+    let mut digest = Sha256::new();
+    for reader in readers {
+        let fingerprint = reader_registration_fingerprint(reader);
+        digest.update((fingerprint.len() as u64).to_be_bytes());
+        digest.update(fingerprint.as_bytes());
+    }
+    format!("sha256:{:x}", digest.finalize())
 }
 
 fn read_policy(store: &Connection) -> Result<MaintenancePolicy, MaintenanceError> {
@@ -3714,11 +4285,106 @@ fn read_failed_paths(
     Ok(())
 }
 
+fn reader_catalog_available(
+    store: &Connection,
+    coordinator: &Connection,
+) -> Result<bool, MaintenanceError> {
+    let state = reader_catalog_state(coordinator).map_err(reader_catalog_error)?;
+    let store_floor = store.query_row(
+        "SELECT value FROM store_meta WHERE key=?1",
+        [META_MIN_WRITER_VERSION],
+        |row| row.get::<_, String>(0),
+    )?;
+    let intent_floor = coordinator
+        .query_row(
+            "SELECT source_min_writer_version FROM maintenance_intent
+             WHERE resource='store-maintenance'",
+            [],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()?;
+    let permanent_floor = intent_floor.as_deref().unwrap_or(&store_floor);
+    if compare_versions(permanent_floor, READER_MIN_WRITER_VERSION)? != Ordering::Less {
+        if state != ReaderCatalogState::Valid {
+            return Err(reader_catalog_error(
+                StoreSchemaError::ReaderCatalogMalformed,
+            ));
+        }
+        return Ok(true);
+    }
+    if state == ReaderCatalogState::WhollyAbsent {
+        return Ok(false);
+    }
+    let registrations = coordinator.query_row(
+        "SELECT EXISTS(SELECT 1 FROM reader_registrations)",
+        [],
+        |row| row.get::<_, bool>(0),
+    )?;
+    if registrations {
+        return Err(reader_catalog_error(
+            StoreSchemaError::ReaderCatalogNotEmpty,
+        ));
+    }
+    Ok(true)
+}
+
+fn resolve_reader_roots(
+    store: &Connection,
+    layout: &super::StoreLayout,
+    snapshot: &mut MaintenanceSnapshot,
+) -> Result<(), MaintenanceError> {
+    for reader in &mut snapshot.reader_facts {
+        if reader.qualification == DeathQualification::DefinitivelyDead {
+            continue;
+        }
+        checked_generation_path(layout, &reader.generation_name)?;
+        if reader.generation_name != snapshot.binding.current_generation {
+            continue;
+        }
+        let manifest_hash = store
+            .query_row(
+                "SELECT manifest_hash FROM manifests WHERE view_id=?1 AND generation=?2",
+                params![reader.view_id, reader.manifest_generation],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()?;
+        reader.manifest_resolved = manifest_hash.as_deref() == Some(reader.manifest_hash.as_str());
+    }
+    Ok(())
+}
+
+fn reader_root_projection(reader: &ReaderRegistrationFact) -> ReaderMaintenanceRoot {
+    let (disposition, warning_code) = match reader.qualification {
+        DeathQualification::DefinitivelyDead => {
+            (ReaderMaintenanceDisposition::DefinitivelyDead, None)
+        }
+        DeathQualification::RetainedUnknown(_) => (
+            ReaderMaintenanceDisposition::RetainedUnknown,
+            reader.qualification.warning_code().map(str::to_string),
+        ),
+        DeathQualification::RetainedUnexpired | DeathQualification::RetainedAlive => {
+            (ReaderMaintenanceDisposition::Protected, None)
+        }
+    };
+    ReaderMaintenanceRoot {
+        pin_id: reader.pin_id.clone(),
+        view_id: reader.view_id.clone(),
+        manifest_generation: reader.manifest_generation,
+        manifest_hash: reader.manifest_hash.clone(),
+        generation_name: reader.generation_name.clone(),
+        served_store_log_sequence: reader.served_store_log_sequence,
+        min_retained_store_log_sequence: reader.min_retained_store_log_sequence,
+        disposition,
+        warning_code,
+    }
+}
+
 fn read_coordinator_objects(
     connection: &Connection,
     limit: usize,
     peak: &mut usize,
     snapshot: &mut MaintenanceSnapshot,
+    reader_catalog_present: bool,
 ) -> Result<(), MaintenanceError> {
     let mut after = String::new();
     loop {
@@ -3777,6 +4443,69 @@ fn read_coordinator_objects(
         .iter()
         .map(|fact| fact.consumer_id.clone())
         .collect();
+    if reader_catalog_present {
+        after.clear();
+        loop {
+            let mut statement = connection.prepare(
+                "SELECT pin_id,owner_nonce,owner_label,family_id,view_id,manifest_generation,
+                        generation_name,owner_pid,owner_birth_identity,store_instance_id,
+                        manifest_hash,extraction_identity_epoch,served_store_log_sequence,
+                        acquired_at,heartbeat_at,expires_at,min_retained_store_log_sequence,
+                        snapshot_fingerprint
+                 FROM reader_registrations WHERE pin_id>?1 ORDER BY pin_id LIMIT ?2",
+            )?;
+            let page: Vec<_> = statement
+                .query_map(params![after, limit as i64], |row| {
+                    Ok(ReaderRegistrationFact {
+                        pin_id: row.get(0)?,
+                        owner_nonce: row.get(1)?,
+                        owner_label: row.get(2)?,
+                        family_id: row.get(3)?,
+                        view_id: row.get(4)?,
+                        manifest_generation: row.get(5)?,
+                        generation_name: row.get(6)?,
+                        owner_pid: row.get(7)?,
+                        owner_birth_identity: row.get(8)?,
+                        store_instance_id: row.get(9)?,
+                        manifest_hash: row.get(10)?,
+                        extraction_identity_epoch: row.get(11)?,
+                        served_store_log_sequence: row.get(12)?,
+                        acquired_at: row.get(13)?,
+                        heartbeat_at: row.get(14)?,
+                        expires_at: row.get(15)?,
+                        min_retained_store_log_sequence: row.get(16)?,
+                        snapshot_fingerprint: row.get(17)?,
+                        qualification: DeathQualification::RetainedUnexpired,
+                        manifest_resolved: false,
+                    })
+                })?
+                .collect::<Result<_, _>>()?;
+            observe_page(peak, page.len(), limit)?;
+            let Some(last) = page.last() else {
+                break;
+            };
+            after = last.pin_id.clone();
+            snapshot.reader_facts.extend(page);
+        }
+        for reader in &mut snapshot.reader_facts {
+            let owner_pid =
+                u32::try_from(reader.owner_pid).map_err(|_| MaintenanceError::InvalidMetadata {
+                    field: "reader_owner_pid",
+                    value: reader.pin_id.clone(),
+                })?;
+            reader.qualification = qualify_reader_owner(
+                owner_pid,
+                &reader.owner_birth_identity,
+                reader.expires_at,
+                snapshot.now_ms,
+                &SystemProcessIdentityProbe,
+            );
+        }
+        if !snapshot.reader_facts.is_empty() {
+            snapshot.reader_catalog_fingerprint =
+                Some(reader_fact_set_fingerprint(&snapshot.reader_facts));
+        }
+    }
     Ok(())
 }
 
@@ -3835,4 +4564,173 @@ fn named_files(root: &Path) -> Result<Vec<String>, MaintenanceError> {
     }
     names.sort();
     Ok(names)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[derive(Clone, Copy)]
+    struct FixedClock;
+
+    impl MaintenanceClock for FixedClock {
+        fn now_ms(&self) -> i64 {
+            1
+        }
+    }
+
+    #[derive(Clone, Copy)]
+    struct FixedCapacity;
+
+    impl CapacityProvider for FixedCapacity {
+        fn free_bytes(&self, _path: &Path) -> Result<u64, io::Error> {
+            Ok(u64::MAX)
+        }
+
+        fn staged_generation_bytes(&self, _path: &Path) -> Result<u64, io::Error> {
+            Ok(0)
+        }
+    }
+
+    struct TestDirectory(PathBuf);
+
+    impl TestDirectory {
+        fn new() -> Self {
+            let unique = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let path = std::env::temp_dir().join(format!(
+                "julie-generation-deletion-guard-{}-{unique}",
+                std::process::id()
+            ));
+            fs::create_dir(&path).unwrap();
+            Self(path)
+        }
+
+        fn path(&self) -> &Path {
+            &self.0
+        }
+    }
+
+    impl Drop for TestDirectory {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
+
+    #[test]
+    fn generation_deletion_guard_blocks_takeover_through_physical_delete() {
+        let temp = TestDirectory::new();
+        let layout = super::super::StoreLayout::create(
+            temp.path(),
+            "family-deletion-guard",
+            env!("CARGO_PKG_VERSION"),
+            7,
+        )
+        .unwrap();
+        let factory = StoreConnectionFactory::new(
+            layout.clone(),
+            "family-deletion-guard",
+            env!("CARGO_PKG_VERSION"),
+        );
+        let plan = MaintenanceInspector::new(factory.clone(), FixedClock, FixedCapacity)
+            .inspect()
+            .unwrap();
+        let mut executor = MaintenanceExecutor::acquire_for_action(
+            factory,
+            MaintenanceRun::new("deletion-guard", "owner", std::process::id(), 1, 30_000),
+            &plan,
+            MaintenanceAction::Promote,
+            FixedCapacity,
+        )
+        .unwrap();
+        executor.prepare_reader_roots(&plan).unwrap();
+        let deletion_target = temp.path().join("generation-delete-target");
+        fs::create_dir(&deletion_target).unwrap();
+        let guard = executor
+            .acquire_generation_deletion_guard(&plan, "gen-001")
+            .unwrap();
+
+        assert_coordinator_write_is_busy(layout.coordinator_db());
+        fs::remove_dir_all(&deletion_target).unwrap();
+        assert_coordinator_write_is_busy(layout.coordinator_db());
+        guard.commit().unwrap();
+
+        let released = Connection::open(layout.coordinator_db()).unwrap();
+        released.busy_timeout(Duration::ZERO).unwrap();
+        released.execute_batch("BEGIN IMMEDIATE").unwrap();
+        released.execute_batch("ROLLBACK").unwrap();
+        executor.prepare_generation_action_finish().unwrap();
+        fs::remove_dir_all(layout.generation_dir()).unwrap();
+        executor.finish_generation_action().unwrap();
+        assert!(!layout.generation_dir().exists());
+        assert_eq!(
+            Connection::open(layout.coordinator_db())
+                .unwrap()
+                .query_row("SELECT COUNT(*) FROM maintenance_intent", [], |row| row
+                    .get::<_, i64>(0),)
+                .unwrap(),
+            0
+        );
+        let error = match executor.acquire_generation_deletion_guard(&plan, "gen-001") {
+            Ok(_) => panic!("released maintenance ownership acquired a deletion guard"),
+            Err(error) => error,
+        };
+        assert_eq!(error.code(), "maintenance_fence_lost");
+    }
+
+    #[test]
+    fn maintenance_snapshot_debug_redacts_private_reader_identity() {
+        let owner_nonce = "nonce-must-not-appear";
+        let owner_birth_identity = "birth-identity-must-not-appear";
+        let snapshot = MaintenanceSnapshot {
+            reader_facts: vec![ReaderRegistrationFact {
+                pin_id: "reader-a".to_string(),
+                owner_nonce: owner_nonce.to_string(),
+                owner_label: "miller".to_string(),
+                family_id: "family-a".to_string(),
+                view_id: "view-a".to_string(),
+                manifest_generation: 4,
+                generation_name: "gen-001".to_string(),
+                owner_pid: 42,
+                owner_birth_identity: owner_birth_identity.to_string(),
+                store_instance_id: "family-a:gen-001".to_string(),
+                manifest_hash: "sha256:m4".to_string(),
+                extraction_identity_epoch: 7,
+                served_store_log_sequence: 17,
+                acquired_at: 1,
+                heartbeat_at: 2,
+                expires_at: 3,
+                min_retained_store_log_sequence: 13,
+                snapshot_fingerprint: "snapshot-a".to_string(),
+                qualification: DeathQualification::RetainedAlive,
+                manifest_resolved: true,
+            }],
+            ..MaintenanceSnapshot::default()
+        };
+
+        let debug = format!("{snapshot:?}");
+
+        assert!(debug.contains("MaintenanceSnapshot"));
+        assert!(debug.contains("reader_facts: <1 registration redacted>"));
+        assert!(!debug.contains(owner_nonce));
+        assert!(!debug.contains(owner_birth_identity));
+    }
+
+    fn assert_coordinator_write_is_busy(path: &Path) {
+        let contender = Connection::open(path).unwrap();
+        contender.busy_timeout(Duration::ZERO).unwrap();
+        let error = contender.execute_batch("BEGIN IMMEDIATE").unwrap_err();
+        assert!(matches!(
+            error,
+            rusqlite::Error::SqliteFailure(
+                rusqlite::ffi::Error {
+                    code: rusqlite::ErrorCode::DatabaseBusy | rusqlite::ErrorCode::DatabaseLocked,
+                    ..
+                },
+                _
+            )
+        ));
+    }
 }

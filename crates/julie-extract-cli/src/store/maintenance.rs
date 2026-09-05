@@ -78,7 +78,8 @@ fn retire_view(args: StoreMaintenanceRetireViewArgs) -> StoreExecutionOutcome {
     match executor.retire_view(&context.plan, &args.view) {
         Ok(applied) => success(report.with_view_retirement(run_id, &applied), format),
         Err(error) => failure(
-            maintenance_error_report(action, &context.plan, mode, &error),
+            maintenance_error_report(action, &context.plan, mode, &error)
+                .with_removed_reader_count(executor.removed_reader_count()),
             format,
         ),
     }
@@ -172,7 +173,8 @@ fn apply_repair(context: MaintenanceContext, format: StoreOutputFormat) -> Store
                 StoreMaintenanceAction::Repair,
                 &context.plan,
                 &error,
-            ),
+            )
+            .with_removed_reader_count(lifecycle.removed_reader_count()),
             format,
         ),
     }
@@ -215,7 +217,8 @@ fn apply_promotion(
                 StoreMaintenanceAction::Promote,
                 &context.plan,
                 &error,
-            ),
+            )
+            .with_removed_reader_count(lifecycle.removed_reader_count()),
             format,
         ),
     }
@@ -245,7 +248,8 @@ fn apply_gc(context: MaintenanceContext, format: StoreOutputFormat) -> StoreExec
             format,
         ),
         Err(error) => failure(
-            maintenance_error_report_from_plan(StoreMaintenanceAction::Gc, &context.plan, &error),
+            maintenance_error_report_from_plan(StoreMaintenanceAction::Gc, &context.plan, &error)
+                .with_removed_reader_count(executor.removed_reader_count()),
             format,
         ),
     }

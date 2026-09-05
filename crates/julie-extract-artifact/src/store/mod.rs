@@ -42,9 +42,9 @@ pub use maintenance::{
     MaintenanceApplyPolicy, MaintenanceApplyReport, MaintenanceCapacity, MaintenanceClock,
     MaintenanceError, MaintenanceExecutor, MaintenanceInspector, MaintenanceLevel, MaintenancePlan,
     MaintenancePolicy, MaintenanceRootKind, MaintenanceRun, MaintenanceSnapshot, ManifestFact,
-    ManifestVersionFact, PlanBinding, ProtectionReason, RetentionPlan, RetireViewApplied,
-    RetireViewPlan, VersionDecision, VersionFact, VersionRootFact, plan_maintenance,
-    plan_view_retirement,
+    ManifestVersionFact, PlanBinding, ProtectionReason, ReaderMaintenanceDisposition,
+    ReaderMaintenanceRoot, RetentionPlan, RetireViewApplied, RetireViewPlan, VersionDecision,
+    VersionFact, VersionRootFact, plan_maintenance, plan_view_retirement,
 };
 pub use manifest::{
     MANIFEST_HASH_ALGORITHM, MANIFEST_PUBLISH_MAX_RETRIES, ManifestBuilder, ManifestEntry,

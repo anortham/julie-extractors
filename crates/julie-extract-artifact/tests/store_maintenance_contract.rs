@@ -12,8 +12,9 @@ use julie_extract_artifact::store::{
     MaintenanceApplyReport, MaintenanceCapacity, MaintenanceClock, MaintenanceError,
     MaintenanceExecutor, MaintenanceInspector, MaintenanceLevel, MaintenancePolicy,
     MaintenanceRootKind, MaintenanceRun, MaintenanceSnapshot, ManifestFact, ManifestVersionFact,
-    PlanBinding, RequestKind, StoreConnectionError, StoreConnectionFactory, StoreCoordinator,
-    StoreLayout, VersionFact, plan_maintenance, plan_view_retirement,
+    PlanBinding, ProcessIdentityObservation, ProcessIdentityProbe, RequestKind,
+    StoreConnectionError, StoreConnectionFactory, StoreCoordinator, StoreLayout,
+    SystemProcessIdentityProbe, VersionFact, plan_maintenance, plan_view_retirement,
 };
 use rusqlite::{Connection, params};
 
@@ -21,6 +22,60 @@ const DAY_MS: i64 = 86_400_000;
 const SHORT_LEASE_MS: i64 = 5_000;
 const SHORT_LEASE_HEARTBEAT_OBSERVATION_ATTEMPTS: usize = 40;
 static NEXT_TEMP_ID: AtomicU64 = AtomicU64::new(1);
+
+#[cfg(any(target_os = "linux", windows))]
+struct ReaderLivenessChild {
+    child: std::process::Child,
+    waited: bool,
+}
+
+#[cfg(any(target_os = "linux", windows))]
+impl ReaderLivenessChild {
+    fn spawn() -> Self {
+        let child = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "maintenance_reader_liveness_child",
+                "--ignored",
+                "--nocapture",
+            ])
+            .env("JULIE_MAINTENANCE_READER_LIVENESS_CHILD", "1")
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+            .unwrap();
+        Self {
+            child,
+            waited: false,
+        }
+    }
+
+    fn id(&self) -> u32 {
+        self.child.id()
+    }
+
+    fn terminate_and_wait(&mut self) {
+        if self.waited {
+            return;
+        }
+        if let Err(error) = self.child.kill() {
+            assert_eq!(error.kind(), std::io::ErrorKind::InvalidInput);
+        }
+        self.child.wait().unwrap();
+        self.waited = true;
+    }
+}
+
+#[cfg(any(target_os = "linux", windows))]
+impl Drop for ReaderLivenessChild {
+    fn drop(&mut self) {
+        if !self.waited {
+            let _ = self.child.kill();
+            let _ = self.child.wait();
+            self.waited = true;
+        }
+    }
+}
 
 struct MaintenanceLeaseState {
     run_id: String,
@@ -345,6 +400,378 @@ fn sqlite_inspection_covers_store_and_coordinator_roots_in_bounded_windows() {
         plan.binding.coordinator_root_fingerprint,
         changed.binding.coordinator_root_fingerprint
     );
+}
+
+#[test]
+fn gc_keeps_registered_manifest_roots() {
+    let temp = TempStore::new("reader-manifest-roots");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.40.0", 7).unwrap();
+    seed_store_matrix(&layout);
+    Connection::open(layout.store_db())
+        .unwrap()
+        .execute_batch(
+            "BEGIN IMMEDIATE;
+             INSERT INTO file_versions
+               (version_id,path,content_hash,extraction_epoch,language,content_bytes,line_count,
+                complete_l1,complete_l2,complete_l3)
+             VALUES (2,'src/lib.rs','blake3:new',1,'rust',100,2,1,2,3);
+             INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+             VALUES ('view-a',2,'sha256:new','request-new','2026-01-02T00:00:00Z');
+             INSERT INTO manifest_entries
+               (view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at)
+             VALUES ('view-a',2,'src/lib.rs','rust',2,'indexed','blake3:new',
+                     '2026-01-02T00:00:00Z');
+             UPDATE views SET current_generation=2 WHERE view_id='view-a';
+             UPDATE store_meta SET value='1' WHERE key='retention_path_cap';
+             COMMIT;",
+        )
+        .unwrap();
+    Connection::open(layout.coordinator_db())
+        .unwrap()
+        .execute(
+            "INSERT INTO reader_registrations
+             (pin_id,owner_nonce,owner_label,family_id,view_id,manifest_generation,generation_name,
+              owner_pid,owner_birth_identity,store_instance_id,manifest_hash,
+              extraction_identity_epoch,served_store_log_sequence,acquired_at,heartbeat_at,
+              expires_at,min_retained_store_log_sequence,snapshot_fingerprint)
+             VALUES ('reader-a','0123456789abcdef0123456789abcdef','miller','family-a','view-a',1,
+                     'gen-001',?1,'birth-a','family-a:gen-001','sha256:m',7,11,1,1,?2,0,
+                     'snapshot-a')",
+            params![std::process::id(), 21 * DAY_MS],
+        )
+        .unwrap();
+    Connection::open(layout.coordinator_db())
+        .unwrap()
+        .execute("DELETE FROM requests", [])
+        .unwrap();
+
+    let plan = MaintenanceInspector::new(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.40.0"),
+        FixedClock(20 * DAY_MS),
+        FixedCapacity,
+    )
+    .with_window_size(1)
+    .inspect()
+    .unwrap();
+
+    assert_eq!(plan.protected_readers.len(), 1);
+    let reader = &plan.protected_readers[0];
+    assert_eq!(reader.pin_id, "reader-a");
+    assert_eq!(reader.view_id, "view-a");
+    assert_eq!(reader.manifest_generation, 1);
+    assert_eq!(reader.manifest_hash, "sha256:m");
+    assert_eq!(reader.generation_name, "gen-001");
+    assert_eq!(reader.min_retained_store_log_sequence, 0);
+    assert!(plan.eligible_manifests.is_empty());
+    let version = plan.version(1).unwrap();
+    for level in [
+        MaintenanceLevel::L1,
+        MaintenanceLevel::L2,
+        MaintenanceLevel::L3,
+    ] {
+        assert!(version.reasons(level).iter().any(|reason| {
+            reason.kind == MaintenanceRootKind::ReaderRegistration && reason.reference == "reader-a"
+        }));
+    }
+    let mut executor = MaintenanceExecutor::acquire(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.40.0"),
+        MaintenanceRun::new(
+            "gc-reader-root",
+            "owner",
+            std::process::id(),
+            20 * DAY_MS,
+            5_000,
+        ),
+        &plan,
+        FixedCapacity,
+    )
+    .unwrap();
+    executor.apply(&plan).unwrap();
+    let store = Connection::open(layout.store_db()).unwrap();
+    assert_eq!(
+        count(
+            &store,
+            "SELECT COUNT(*) FROM manifests WHERE view_id='view-a' AND generation=1",
+        ),
+        1
+    );
+    assert_eq!(
+        count(
+            &store,
+            "SELECT COUNT(*) FROM file_versions WHERE version_id=1 AND complete_l3=3",
+        ),
+        1
+    );
+}
+
+#[test]
+fn reader_failed_only_manifest_is_a_valid_retained_root() {
+    let temp = TempStore::new("reader-failed-only-root");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.40.0", 7).unwrap();
+    Connection::open(layout.store_db())
+        .unwrap()
+        .execute_batch(
+            "BEGIN IMMEDIATE;
+             INSERT INTO views
+               (view_id,root,current_generation,resolution_state,created_at,updated_at)
+             VALUES ('view-a','/repo',1,'unbound','2026-01-01T00:00:00Z','2026-01-01T00:00:00Z');
+             INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+             VALUES ('view-a',1,'sha256:failed','request-a','2026-01-01T00:00:00Z');
+             INSERT INTO manifest_entries
+               (view_id,generation,path,language,version_id,status,observed_content_hash,indexed_at,
+                error_class,error_json)
+             VALUES ('view-a',1,'src/failed.rs','rust',NULL,'failed','blake3:failed',
+                     '2026-01-01T00:00:00Z','parse','{}');
+             COMMIT;",
+        )
+        .unwrap();
+    insert_reader_registration(
+        &layout,
+        "reader-failed",
+        "view-a",
+        1,
+        "sha256:failed",
+        21 * DAY_MS,
+        "birth-a",
+    );
+
+    let plan = MaintenanceInspector::new(
+        StoreConnectionFactory::new(layout, "family-a", "2.40.0"),
+        FixedClock(20 * DAY_MS),
+        FixedCapacity,
+    )
+    .inspect()
+    .unwrap();
+
+    assert_eq!(plan.protected_readers.len(), 1);
+    assert_eq!(plan.protected_failed_paths, ["view-a:1:rust:src/failed.rs"]);
+}
+
+#[test]
+fn missing_or_mismatched_current_reader_manifest_refuses_maintenance() {
+    for (pin_id, generation, manifest_hash) in [
+        ("reader-missing", 99, "sha256:missing"),
+        ("reader-mismatch", 1, "sha256:wrong"),
+    ] {
+        let temp = TempStore::new(pin_id);
+        let layout = StoreLayout::create(temp.path(), "family-a", "2.40.0", 7).unwrap();
+        seed_two_view_matrix(&layout);
+        insert_reader_registration(
+            &layout,
+            pin_id,
+            "view-a",
+            generation,
+            manifest_hash,
+            31 * DAY_MS,
+            "birth-a",
+        );
+
+        let error = MaintenanceInspector::new(
+            StoreConnectionFactory::new(layout, "family-a", "2.40.0"),
+            FixedClock(30 * DAY_MS),
+            FixedCapacity,
+        )
+        .inspect()
+        .unwrap_err();
+
+        assert!(matches!(
+            error.code(),
+            "unknown_maintenance_root" | "invalid_maintenance_metadata"
+        ));
+    }
+}
+
+#[test]
+fn serialized_reader_snapshot_fails_closed_without_private_registration_facts() {
+    let reader_free = serde_json::to_value(MaintenanceSnapshot::default()).unwrap();
+    assert!(reader_free.get("reader_catalog_fingerprint").is_none());
+    let mut reader_bearing = reader_free;
+    reader_bearing["reader_catalog_fingerprint"] = serde_json::json!("sha256:reader-roots");
+    let roundtrip: MaintenanceSnapshot = serde_json::from_value(reader_bearing).unwrap();
+
+    let error = plan_maintenance(&roundtrip, &MaintenancePolicy::default()).unwrap_err();
+
+    assert_eq!(error.code(), "invalid_maintenance_metadata");
+}
+
+#[test]
+fn reader_catalog_absence_is_legacy_only_and_partial_catalog_refuses_maintenance() {
+    let legacy = TempStore::new("legacy-reader-catalog-absence");
+    let legacy_layout = StoreLayout::create(legacy.path(), "family-a", "2.30.0", 7).unwrap();
+    Connection::open(legacy_layout.coordinator_db())
+        .unwrap()
+        .execute_batch("DROP TABLE reader_registrations;")
+        .unwrap();
+    MaintenanceInspector::new(
+        StoreConnectionFactory::new(legacy_layout, "family-a", "2.30.0"),
+        FixedClock(1),
+        FixedCapacity,
+    )
+    .inspect()
+    .unwrap();
+
+    let enabled = TempStore::new("enabled-reader-catalog-absence");
+    let enabled_layout = StoreLayout::create(enabled.path(), "family-a", "2.40.0", 7).unwrap();
+    Connection::open(enabled_layout.coordinator_db())
+        .unwrap()
+        .execute_batch("DROP TABLE reader_registrations;")
+        .unwrap();
+    let absent_error = MaintenanceInspector::new(
+        StoreConnectionFactory::new(enabled_layout, "family-a", "2.40.0"),
+        FixedClock(1),
+        FixedCapacity,
+    )
+    .inspect()
+    .unwrap_err();
+    assert_eq!(absent_error.code(), "invalid_maintenance_metadata");
+
+    let partial = TempStore::new("partial-reader-catalog");
+    let partial_layout = StoreLayout::create(partial.path(), "family-a", "2.40.0", 7).unwrap();
+    Connection::open(partial_layout.coordinator_db())
+        .unwrap()
+        .execute_batch("DROP TRIGGER trg_reader_registrations_immutable_identity;")
+        .unwrap();
+    let partial_error = MaintenanceInspector::new(
+        StoreConnectionFactory::new(partial_layout, "family-a", "2.40.0"),
+        FixedClock(1),
+        FixedCapacity,
+    )
+    .inspect()
+    .unwrap_err();
+    assert_eq!(partial_error.code(), "invalid_maintenance_metadata");
+}
+
+#[test]
+fn expired_reader_with_unknown_identity_remains_protected_with_a_warning() {
+    let temp = TempStore::new("reader-unknown-identity");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.40.0", 7).unwrap();
+    seed_two_view_matrix(&layout);
+    insert_reader_registration(
+        &layout,
+        "reader-unknown",
+        "view-a",
+        1,
+        "sha256:view-a",
+        20 * DAY_MS,
+        " invalid-birth ",
+    );
+
+    let plan = MaintenanceInspector::new(
+        StoreConnectionFactory::new(layout, "family-a", "2.40.0"),
+        FixedClock(30 * DAY_MS),
+        FixedCapacity,
+    )
+    .inspect()
+    .unwrap();
+
+    assert_eq!(plan.protected_readers.len(), 1);
+    assert_eq!(
+        plan.protected_readers[0].warning_code.as_deref(),
+        Some("reader_identity_unknown")
+    );
+    assert!(plan.definitively_dead_readers.is_empty());
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[test]
+fn paused_live_reader_remains_protected_past_heartbeat_expiry() {
+    let temp = TempStore::new("reader-paused-live");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.40.0", 7).unwrap();
+    seed_two_view_matrix(&layout);
+    let identity = match SystemProcessIdentityProbe.inspect(std::process::id()) {
+        ProcessIdentityObservation::Alive(identity) => identity,
+        observation => panic!("current process identity unavailable: {observation:?}"),
+    };
+    insert_reader_registration(
+        &layout,
+        "reader-paused",
+        "view-a",
+        1,
+        "sha256:view-a",
+        20 * DAY_MS,
+        identity.birth_identity(),
+    );
+
+    let plan = MaintenanceInspector::new(
+        StoreConnectionFactory::new(layout, "family-a", "2.40.0"),
+        FixedClock(30 * DAY_MS),
+        FixedCapacity,
+    )
+    .inspect()
+    .unwrap();
+
+    assert_eq!(plan.protected_readers.len(), 1);
+    assert_eq!(plan.protected_readers[0].warning_code, None);
+    assert!(plan.definitively_dead_readers.is_empty());
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[test]
+fn definitively_dead_reader_is_removed_before_gc_destructive_work() {
+    let temp = TempStore::new("reader-definitively-dead");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.40.0", 7).unwrap();
+    seed_two_view_matrix(&layout);
+    let mut child = ReaderLivenessChild::spawn();
+    let identity = match SystemProcessIdentityProbe.inspect(child.id()) {
+        ProcessIdentityObservation::Alive(identity) => identity,
+        observation => panic!("child process identity unavailable: {observation:?}"),
+    };
+    let child_pid = child.id();
+    child.terminate_and_wait();
+    insert_reader_registration_for_pid(
+        &layout,
+        "reader-dead",
+        "view-a",
+        1,
+        "sha256:view-a",
+        20 * DAY_MS,
+        identity.birth_identity(),
+        child_pid,
+    );
+    let plan = MaintenanceInspector::new(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.40.0"),
+        FixedClock(30 * DAY_MS),
+        FixedCapacity,
+    )
+    .inspect()
+    .unwrap();
+    assert_eq!(plan.definitively_dead_readers.len(), 1);
+    let mut executor = MaintenanceExecutor::acquire(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.40.0"),
+        MaintenanceRun::new(
+            "gc-dead-reader",
+            "owner",
+            std::process::id(),
+            30 * DAY_MS,
+            5_000,
+        ),
+        &plan,
+        FixedCapacity,
+    )
+    .unwrap();
+
+    let report = executor.apply(&plan).unwrap();
+
+    assert_eq!(report.removed_readers, 1);
+    assert_eq!(child.id(), child_pid);
+    assert_eq!(
+        count(
+            &Connection::open(layout.coordinator_db()).unwrap(),
+            "SELECT COUNT(*) FROM reader_registrations",
+        ),
+        0
+    );
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[test]
+#[ignore]
+fn maintenance_reader_liveness_child() {
+    if std::env::var_os("JULIE_MAINTENANCE_READER_LIVENESS_CHILD").is_some() {
+        loop {
+            std::thread::park();
+        }
+    }
 }
 
 #[test]
@@ -1832,6 +2259,113 @@ fn retire_view_refuses_an_absent_view_and_a_live_request_for_that_view() {
 }
 
 #[test]
+fn retire_view_refuses_a_registered_reader_for_that_view() {
+    let temp = TempStore::new("retire-reader-refusal");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.40.0", 7).unwrap();
+    seed_two_view_matrix(&layout);
+    insert_reader_registration(
+        &layout,
+        "reader-a",
+        "view-a",
+        1,
+        "sha256:view-a",
+        30 * DAY_MS + 10_000,
+        "birth-a",
+    );
+    let plan = MaintenanceInspector::new(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.40.0"),
+        FixedClock(30 * DAY_MS),
+        FixedCapacity,
+    )
+    .inspect()
+    .unwrap();
+    let mut executor = MaintenanceExecutor::acquire(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.40.0"),
+        MaintenanceRun::new(
+            "retire-reader",
+            "owner",
+            std::process::id(),
+            30 * DAY_MS,
+            5_000,
+        ),
+        &plan,
+        FixedCapacity,
+    )
+    .unwrap();
+
+    let error = executor.retire_view(&plan, "view-a").unwrap_err();
+
+    assert_eq!(error.code(), "maintenance_busy");
+    let store = Connection::open(layout.store_db()).unwrap();
+    assert_eq!(
+        count(&store, "SELECT COUNT(*) FROM views WHERE view_id='view-a'"),
+        1
+    );
+    assert_eq!(
+        count(
+            &store,
+            "SELECT COUNT(*) FROM manifests WHERE view_id='view-a'"
+        ),
+        1
+    );
+    assert_eq!(
+        count(
+            &Connection::open(layout.coordinator_db()).unwrap(),
+            "SELECT COUNT(*) FROM reader_registrations WHERE pin_id='reader-a'",
+        ),
+        1
+    );
+}
+
+#[test]
+fn maintenance_acquire_rejects_a_reader_added_after_planning() {
+    let temp = TempStore::new("reader-after-plan");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.40.0", 7).unwrap();
+    seed_two_view_matrix(&layout);
+    let plan = MaintenanceInspector::new(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.40.0"),
+        FixedClock(30 * DAY_MS),
+        FixedCapacity,
+    )
+    .inspect()
+    .unwrap();
+    insert_reader_registration(
+        &layout,
+        "reader-late",
+        "view-a",
+        1,
+        "sha256:view-a",
+        31 * DAY_MS,
+        "birth-a",
+    );
+
+    let error = match MaintenanceExecutor::acquire(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.40.0"),
+        MaintenanceRun::new(
+            "gc-stale-reader",
+            "owner",
+            std::process::id(),
+            30 * DAY_MS,
+            5_000,
+        ),
+        &plan,
+        FixedCapacity,
+    ) {
+        Ok(_) => panic!("maintenance unexpectedly acquired a stale reader plan"),
+        Err(error) => error,
+    };
+
+    assert_eq!(error.code(), "maintenance_plan_stale");
+    assert_eq!(
+        count(
+            &Connection::open(layout.coordinator_db()).unwrap(),
+            "SELECT COUNT(*) FROM reader_registrations WHERE pin_id='reader-late'",
+        ),
+        1
+    );
+}
+
+#[test]
 fn retire_view_refuses_while_a_live_writer_holds_the_store() {
     let temp = TempStore::new("retire-live-writer");
     let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
@@ -1965,6 +2499,62 @@ fn seed_two_view_matrix(layout: &StoreLayout) {
         .execute(
             "INSERT INTO family_allocator_marks VALUES ('manifest_generation','view-a',1,1)",
             [],
+        )
+        .unwrap();
+}
+
+fn insert_reader_registration(
+    layout: &StoreLayout,
+    pin_id: &str,
+    view_id: &str,
+    manifest_generation: i64,
+    manifest_hash: &str,
+    expires_at: i64,
+    birth_identity: &str,
+) {
+    insert_reader_registration_for_pid(
+        layout,
+        pin_id,
+        view_id,
+        manifest_generation,
+        manifest_hash,
+        expires_at,
+        birth_identity,
+        std::process::id(),
+    );
+}
+
+fn insert_reader_registration_for_pid(
+    layout: &StoreLayout,
+    pin_id: &str,
+    view_id: &str,
+    manifest_generation: i64,
+    manifest_hash: &str,
+    expires_at: i64,
+    birth_identity: &str,
+    owner_pid: u32,
+) {
+    Connection::open(layout.coordinator_db())
+        .unwrap()
+        .execute(
+            "INSERT INTO reader_registrations
+             (pin_id,owner_nonce,owner_label,family_id,view_id,manifest_generation,generation_name,
+              owner_pid,owner_birth_identity,store_instance_id,manifest_hash,
+              extraction_identity_epoch,served_store_log_sequence,acquired_at,heartbeat_at,
+              expires_at,min_retained_store_log_sequence,snapshot_fingerprint)
+             VALUES (?1,?2,'miller','family-a',?3,?4,'gen-001',?5,?6,'family-a:gen-001',
+                     ?7,7,11,1,1,?8,0,?9)",
+            params![
+                pin_id,
+                format!("{pin_id:0<32}"),
+                view_id,
+                manifest_generation,
+                owner_pid,
+                birth_identity,
+                manifest_hash,
+                expires_at,
+                format!("snapshot-{pin_id}"),
+            ],
         )
         .unwrap();
 }

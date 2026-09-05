@@ -7,6 +7,7 @@ use std::process::{Command, Output};
 use std::time::Duration;
 
 use julie_extract_artifact::store::StoreLayout;
+use rusqlite::{Connection, params};
 use serde_json::{Value, json};
 
 const FAMILY_ID: &str = "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11";
@@ -985,6 +986,111 @@ fn maintenance_report_json_and_human_snapshots_are_stable() {
             "ok action=inspect mode=plan family={FAMILY_ID} source=gen-001 destination=none disposition=planned failure=none\n"
         )
     );
+}
+
+#[test]
+fn maintenance_reports_a_bounded_sanitized_reader_summary() {
+    let fixture = tempfile::tempdir().unwrap();
+    let store = fixture.path().join("reader-summary-store");
+    let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
+    Connection::open(layout.store_db())
+        .unwrap()
+        .execute_batch(
+            "BEGIN IMMEDIATE;
+             INSERT INTO views
+               (view_id,root,current_generation,resolution_state,created_at,updated_at)
+             VALUES ('default','/repo',1,'unbound','2026-01-01T00:00:00Z','2026-01-01T00:00:00Z');
+             INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+             VALUES ('default',1,'sha256:reader','request-a','2026-01-01T00:00:00Z');
+             COMMIT;",
+        )
+        .unwrap();
+    Connection::open(layout.coordinator_db())
+        .unwrap()
+        .execute(
+            "INSERT INTO reader_registrations
+             (pin_id,owner_nonce,owner_label,family_id,view_id,manifest_generation,generation_name,
+              owner_pid,owner_birth_identity,store_instance_id,manifest_hash,
+              extraction_identity_epoch,served_store_log_sequence,acquired_at,heartbeat_at,
+              expires_at,min_retained_store_log_sequence,snapshot_fingerprint)
+             VALUES ('reader-warning','0123456789abcdef0123456789abcdef','miller',?1,'default',1,
+                     'gen-001',?2,' invalid-birth ',?3,'sha256:reader',7,0,0,0,1,0,
+                     'snapshot-reader')",
+            params![
+                FAMILY_ID,
+                std::process::id(),
+                format!("{FAMILY_ID}:gen-001"),
+            ],
+        )
+        .unwrap();
+    let coordinator = Connection::open(layout.coordinator_db()).unwrap();
+    for index in 1..25 {
+        coordinator
+            .execute(
+                "INSERT INTO reader_registrations
+                 (pin_id,owner_nonce,owner_label,family_id,view_id,manifest_generation,
+                  generation_name,owner_pid,owner_birth_identity,store_instance_id,manifest_hash,
+                  extraction_identity_epoch,served_store_log_sequence,acquired_at,heartbeat_at,
+                  expires_at,min_retained_store_log_sequence,snapshot_fingerprint)
+                 VALUES (?1,?2,'miller',?3,'default',1,'gen-001',?4,' invalid-birth ',?5,
+                         'sha256:reader',7,0,0,0,1,0,?6)",
+                params![
+                    format!("reader-warning-{index:02}"),
+                    format!("{index:032x}"),
+                    FAMILY_ID,
+                    std::process::id(),
+                    format!("{FAMILY_ID}:gen-001"),
+                    format!("snapshot-reader-{index:02}"),
+                ],
+            )
+            .unwrap();
+    }
+
+    let json_output = julie_extract(&[
+        "store",
+        "maintain",
+        "inspect",
+        "--store",
+        store.to_str().unwrap(),
+        "--json",
+    ]);
+    assert!(json_output.status.success());
+    let report: Value = serde_json::from_slice(&json_output.stdout).unwrap();
+    assert_eq!(report["readers"]["protected_reader_count"], 25);
+    assert_eq!(report["readers"]["definitively_dead_reader_count"], 0);
+    assert_eq!(report["readers"]["retained_unknown_reader_count"], 25);
+    assert_eq!(report["readers"]["removed_reader_count"], 0);
+    assert_eq!(
+        report["readers"]["reader_warnings"]
+            .as_array()
+            .unwrap()
+            .len(),
+        20
+    );
+    assert_eq!(report["readers"]["omitted_warning_count"], 5);
+    assert_eq!(
+        report["readers"]["reader_warnings"][0],
+        json!({
+            "pin_id": "reader-warning",
+            "warning_code": "reader_identity_unknown"
+        })
+    );
+    let json_text = String::from_utf8(json_output.stdout).unwrap();
+    assert!(!json_text.contains("0123456789abcdef"));
+    assert!(!json_text.contains("invalid-birth"));
+
+    let human_output = julie_extract(&[
+        "store",
+        "maintain",
+        "inspect",
+        "--store",
+        store.to_str().unwrap(),
+    ]);
+    assert!(human_output.status.success());
+    let human = String::from_utf8(human_output.stdout).unwrap();
+    assert!(human.contains("readers_protected=25"));
+    assert!(human.contains("reader-warning:reader_identity_unknown"));
+    assert!(!human.contains("invalid-birth"));
 }
 
 #[cfg(unix)]

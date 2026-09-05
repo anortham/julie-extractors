@@ -32,8 +32,23 @@ fn every_promotion_boundary_recovers_the_same_generation_without_duplicates() {
     ] {
         let temp = TempStore::new(boundary);
         let layout =
-            StoreLayout::create(temp.path(), "family-generation-crash", "2.30.0", 7).unwrap();
+            StoreLayout::create(temp.path(), "family-generation-crash", "2.40.0", 7).unwrap();
         seed_source(&layout);
+        Connection::open(layout.coordinator_db())
+            .unwrap()
+            .execute(
+                "INSERT INTO reader_registrations
+                 (pin_id,owner_nonce,owner_label,family_id,view_id,manifest_generation,
+                  generation_name,owner_pid,owner_birth_identity,store_instance_id,manifest_hash,
+                  extraction_identity_epoch,served_store_log_sequence,acquired_at,heartbeat_at,
+                  expires_at,min_retained_store_log_sequence,snapshot_fingerprint)
+                 VALUES ('reader-crash','0123456789abcdef0123456789abcdef','miller',
+                         'family-generation-crash','view-a',2,'gen-001',?1,'birth-a',
+                         'family-generation-crash:gen-001','sha256:m2',7,7,1,1,100000,7,
+                         'snapshot-crash')",
+                [std::process::id()],
+            )
+            .unwrap();
         let output = run_worker(temp.path(), boundary);
         assert!(
             !output.status.success(),
@@ -41,6 +56,20 @@ fn every_promotion_boundary_recovers_the_same_generation_without_duplicates() {
             String::from_utf8_lossy(&output.stderr)
         );
         thread::sleep(Duration::from_millis(300));
+        if matches!(
+            boundary,
+            "generation_after_directory_rename"
+                | "generation_after_current_publish"
+                | "generation_after_destination_serving"
+        ) {
+            Connection::open(temp.path().join("gen-002/store.db"))
+                .unwrap()
+                .execute(
+                    "UPDATE store_meta SET value='2.39.0' WHERE key='min_writer_version'",
+                    [],
+                )
+                .unwrap();
+        }
         let current = StoreLayout::open(temp.path()).unwrap();
         let plan = inspect_plan(&current);
         let mut retry = GenerationLifecycle::acquire(
@@ -76,6 +105,19 @@ fn every_promotion_boundary_recovers_the_same_generation_without_duplicates() {
         assert_eq!(count(&store, "store_log"), 1, "{boundary}");
         assert_eq!(count(&coord, "maintenance_intent"), 0, "{boundary}");
         assert_eq!(count(&coord, "writer_lease"), 0, "{boundary}");
+        assert_eq!(count(&coord, "reader_registrations"), 1, "{boundary}");
+        assert!(temp.path().join("gen-001").exists(), "{boundary}");
+        assert_eq!(
+            store
+                .query_row(
+                    "SELECT value FROM store_meta WHERE key='min_writer_version'",
+                    [],
+                    |row| row.get::<_, String>(0),
+                )
+                .unwrap(),
+            "2.40.0",
+            "{boundary}",
+        );
     }
 }
 
@@ -342,7 +384,11 @@ fn inspect_plan(layout: &StoreLayout) -> julie_extract_artifact::store::Maintena
 }
 
 fn factory(layout: &StoreLayout) -> StoreConnectionFactory {
-    StoreConnectionFactory::new(layout.clone(), "family-generation-crash", "2.30.0")
+    StoreConnectionFactory::new(
+        layout.clone(),
+        "family-generation-crash",
+        env!("CARGO_PKG_VERSION"),
+    )
 }
 
 fn run_worker(root: &Path, boundary: &str) -> Output {

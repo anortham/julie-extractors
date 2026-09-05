@@ -11,7 +11,7 @@ use julie_extract_artifact::store::{
     CapacityProvider, MaintenanceApplyPolicy, MaintenanceClock, MaintenanceExecutor,
     MaintenanceInspector, MaintenanceRun, StoreConnectionFactory, StoreLayout,
 };
-use rusqlite::Connection;
+use rusqlite::{Connection, params};
 
 const DAY_MS: i64 = 86_400_000;
 static NEXT_TEMP_ID: AtomicU64 = AtomicU64::new(1);
@@ -19,6 +19,9 @@ static NEXT_TEMP_ID: AtomicU64 = AtomicU64::new(1);
 #[test]
 fn store_demotions_are_atomic_on_both_sides_of_the_commit() {
     for (boundary, complete_l3) in [
+        ("maintenance_before_reader_root_scan", true),
+        ("maintenance_after_reader_root_scan", true),
+        ("maintenance_before_first_delete", true),
         ("maintenance_store_before_commit", true),
         ("maintenance_store_after_commit", false),
     ] {
@@ -47,6 +50,35 @@ fn store_demotions_are_atomic_on_both_sides_of_the_commit() {
             (complete_l3, i64::from(complete_l3)),
             "boundary={boundary}: {}",
             String::from_utf8_lossy(&output.stderr)
+        );
+    }
+}
+
+#[test]
+fn reader_root_survives_every_pre_delete_crash_boundary() {
+    for boundary in [
+        "maintenance_before_reader_root_scan",
+        "maintenance_after_reader_root_scan",
+        "maintenance_before_first_delete",
+    ] {
+        let temp = TempStore::new("reader-root");
+        let output = run_worker(temp.path(), "maintenance_reader_crash_worker", boundary);
+        assert!(!output.status.success(), "boundary={boundary}");
+        let layout = StoreLayout::open(temp.path()).unwrap();
+        assert_valid(&Connection::open(layout.store_db()).unwrap());
+        assert_valid(&Connection::open(layout.coordinator_db()).unwrap());
+        assert_eq!(
+            count(
+                &Connection::open(layout.coordinator_db()).unwrap(),
+                "reader_registrations"
+            ),
+            1,
+            "boundary={boundary}",
+        );
+        assert_eq!(
+            count(&Connection::open(layout.store_db()).unwrap(), "manifests"),
+            2,
+            "boundary={boundary}",
         );
     }
 }
@@ -143,6 +175,32 @@ fn maintenance_store_crash_worker() {
 }
 
 #[test]
+fn maintenance_reader_crash_worker() {
+    let Some((root, boundary)) = worker_context() else {
+        return;
+    };
+    let layout = StoreLayout::create(root, "family-maintenance-crash", "2.40.0", 7).unwrap();
+    seed_l3_candidate(&layout);
+    Connection::open(layout.coordinator_db())
+        .unwrap()
+        .execute(
+            "INSERT INTO reader_registrations
+             (pin_id,owner_nonce,owner_label,family_id,view_id,manifest_generation,generation_name,
+              owner_pid,owner_birth_identity,store_instance_id,manifest_hash,
+              extraction_identity_epoch,served_store_log_sequence,acquired_at,heartbeat_at,
+              expires_at,min_retained_store_log_sequence,snapshot_fingerprint)
+             VALUES ('reader-crash','0123456789abcdef0123456789abcdef','miller',
+                     'family-maintenance-crash','view-scope',2,'gen-001',?1,'birth-a',
+                     'family-maintenance-crash:gen-001','sha256:m2',7,0,1,1,?2,0,
+                     'snapshot-crash')",
+            params![std::process::id(), 31 * DAY_MS],
+        )
+        .unwrap();
+    run_gc(&layout, "gc-reader-crash", 5_000);
+    panic!("worker passed crash boundary {boundary}");
+}
+
+#[test]
 fn maintenance_coordinator_crash_worker() {
     let Some((root, boundary)) = worker_context() else {
         return;
@@ -235,7 +293,11 @@ fn inspect_plan(layout: &StoreLayout) -> julie_extract_artifact::store::Maintena
 }
 
 fn factory(layout: &StoreLayout) -> StoreConnectionFactory {
-    StoreConnectionFactory::new(layout.clone(), "family-maintenance-crash", "2.30.0")
+    StoreConnectionFactory::new(
+        layout.clone(),
+        "family-maintenance-crash",
+        env!("CARGO_PKG_VERSION"),
+    )
 }
 
 fn worker_context() -> Option<(PathBuf, String)> {

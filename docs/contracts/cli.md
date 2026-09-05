@@ -522,6 +522,12 @@ and capacity facts, mutation counts, integrity checks, escalation/recovery facts
 failure class, and nullable error. JSON success and failure each emit exactly one line on stdout.
 Human success uses stdout and human failure uses stderr.
 
+When reader registrations exist, the same schema adds a bounded optional `readers` summary with
+protected, definitively-dead, retained-unknown, and removed counts. Warning entries contain only
+`pin_id` and `warning_code`; `omitted_warning_count` reports truncation. The field is omitted when
+all reader facts are empty, preserving reader-free JSON and human output byte-for-byte. Owner
+nonce and process birth identity never appear in maintenance output.
+
 Maintenance exit codes are `0` for a completed plan/apply or semantic no-op, `1` for an operational
 refusal, `2` for CLI usage, and `3` for an incompatible store. Stable operational failure classes
 are `busy`, `stale_plan`, `capacity_insufficient`, `recovery_required`, `integrity_failed`,

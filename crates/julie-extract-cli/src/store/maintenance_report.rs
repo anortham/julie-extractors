@@ -132,6 +132,22 @@ pub struct StoreMaintenanceRetentionReport {
     pub compaction_required: bool,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StoreMaintenanceReaderWarning {
+    pub pin_id: String,
+    pub warning_code: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StoreMaintenanceReaderSummary {
+    pub protected_reader_count: usize,
+    pub definitively_dead_reader_count: usize,
+    pub retained_unknown_reader_count: usize,
+    pub removed_reader_count: usize,
+    pub reader_warnings: Vec<StoreMaintenanceReaderWarning>,
+    pub omitted_warning_count: usize,
+}
+
 impl From<&RetentionPlan> for StoreMaintenanceRetentionReport {
     fn from(value: &RetentionPlan) -> Self {
         Self {
@@ -208,6 +224,8 @@ pub struct StoreMaintenanceReport {
     pub fingerprints: StoreMaintenanceFingerprints,
     pub counts: StoreMaintenanceCounts,
     pub retention: StoreMaintenanceRetentionReport,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub readers: Option<StoreMaintenanceReaderSummary>,
     pub capacity: StoreMaintenanceCapacityReport,
     pub integrity_checks: Vec<String>,
     pub escalation: Option<String>,
@@ -230,6 +248,34 @@ impl StoreMaintenanceReport {
                     && version.l3_reasons.is_empty()
             })
             .count();
+        let reader_warnings: Vec<_> = plan
+            .protected_readers
+            .iter()
+            .filter_map(|reader| {
+                reader
+                    .warning_code
+                    .as_ref()
+                    .map(|warning_code| StoreMaintenanceReaderWarning {
+                        pin_id: reader.pin_id.clone(),
+                        warning_code: warning_code.clone(),
+                    })
+            })
+            .collect();
+        let warning_limit = 20;
+        let omitted_warning_count = reader_warnings.len().saturating_sub(warning_limit);
+        let readers =
+            if plan.protected_readers.is_empty() && plan.definitively_dead_readers.is_empty() {
+                None
+            } else {
+                Some(StoreMaintenanceReaderSummary {
+                    protected_reader_count: plan.protected_readers.len(),
+                    definitively_dead_reader_count: plan.definitively_dead_readers.len(),
+                    retained_unknown_reader_count: reader_warnings.len(),
+                    removed_reader_count: 0,
+                    reader_warnings: reader_warnings.into_iter().take(warning_limit).collect(),
+                    omitted_warning_count,
+                })
+            };
         Self {
             report_schema_version: STORE_MAINTENANCE_REPORT_SCHEMA_VERSION,
             action,
@@ -265,6 +311,7 @@ impl StoreMaintenanceReport {
                 ..StoreMaintenanceCounts::default()
             },
             retention: (&plan.retention).into(),
+            readers,
             capacity: (&plan.capacity).into(),
             integrity_checks: vec![
                 "store_roots_validated".to_string(),
@@ -300,6 +347,9 @@ impl StoreMaintenanceReport {
         self.counts.archived_requests = applied.archived_requests;
         self.counts.pruned_request_rows = applied.pruned_request_rows;
         self.counts.pruned_log_rows = applied.pruned_log_rows;
+        if let Some(readers) = &mut self.readers {
+            readers.removed_reader_count = applied.removed_readers;
+        }
         self.retention.physical_current_bytes = applied.physical_bytes_before;
         self.retention.physical_bytes_before_gc = applied.physical_bytes_before;
         self.retention.physical_bytes_after_gc = applied.physical_bytes_after;
@@ -335,6 +385,9 @@ impl StoreMaintenanceReport {
         self.counts.retired_views = applied.retired_views;
         self.counts.retired_manifests = applied.retired_manifests;
         self.counts.retired_manifest_entries = applied.retired_manifest_entries;
+        if let Some(readers) = &mut self.readers {
+            readers.removed_reader_count = applied.removed_readers;
+        }
         self
     }
 
@@ -363,6 +416,9 @@ impl StoreMaintenanceReport {
         self.counts.copied_rows = applied.copied_rows;
         self.counts.copied_base_files = applied.copied_base_files;
         self.counts.removed_generations = applied.removed_generations.len();
+        if let Some(readers) = &mut self.readers {
+            readers.removed_reader_count = applied.removed_readers;
+        }
         if applied.recovered_partial {
             self.recovery_actions.push("recovered_partial".to_string());
         }
@@ -414,6 +470,13 @@ impl StoreMaintenanceReport {
         self
     }
 
+    pub fn with_removed_reader_count(mut self, removed_reader_count: usize) -> Self {
+        if let Some(readers) = &mut self.readers {
+            readers.removed_reader_count = removed_reader_count;
+        }
+        self
+    }
+
     pub fn failed(
         action: StoreMaintenanceAction,
         mode: StoreMaintenanceMode,
@@ -460,6 +523,7 @@ impl StoreMaintenanceReport {
                 physical_breach_streak: 0,
                 compaction_required: false,
             },
+            readers: None,
             capacity: StoreMaintenanceCapacityReport {
                 measured_bytes: 0,
                 free_bytes: 0,
@@ -548,8 +612,30 @@ impl StoreMaintenanceCommandOutcome {
             .as_ref()
             .map(|error| format!(" code={}", error.code))
             .unwrap_or_default();
+        let readers = self
+            .report
+            .readers
+            .as_ref()
+            .map(|readers| {
+                let warnings = readers
+                    .reader_warnings
+                    .iter()
+                    .map(|warning| format!("{}:{}", warning.pin_id, warning.warning_code))
+                    .collect::<Vec<_>>()
+                    .join(",");
+                format!(
+                    " readers_protected={} readers_dead={} readers_unknown={} readers_removed={} reader_warnings={} reader_warnings_omitted={}",
+                    readers.protected_reader_count,
+                    readers.definitively_dead_reader_count,
+                    readers.retained_unknown_reader_count,
+                    readers.removed_reader_count,
+                    warnings,
+                    readers.omitted_warning_count,
+                )
+            })
+            .unwrap_or_default();
         format!(
-            "{status} action={:?} mode={:?} family={} source={} destination={} disposition={:?} failure={:?}{code}\n",
+            "{status} action={:?} mode={:?} family={} source={} destination={} disposition={:?} failure={:?}{code}{readers}\n",
             self.report.action,
             self.report.mode,
             self.report.family_id,

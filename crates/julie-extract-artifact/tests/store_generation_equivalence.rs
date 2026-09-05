@@ -1,12 +1,15 @@
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use julie_extract_artifact::store::{
     CapacityProvider, GenerationLifecycle, GenerationPolicy, MaintenanceAction, MaintenanceClock,
-    MaintenanceInspector, MaintenanceRun, RepairDisposition, StoreConnectionFactory, StoreLayout,
+    MaintenanceError, MaintenanceInspector, MaintenanceRun, ProcessIdentityObservation,
+    ProcessIdentityProbe, RepairDisposition, StoreConnectionFactory, StoreLayout,
+    SystemProcessIdentityProbe,
 };
-use rusqlite::Connection;
+use rusqlite::{Connection, params};
 use sha2::{Digest, Sha256};
 
 static NEXT_TEMP_ID: AtomicU64 = AtomicU64::new(1);
@@ -134,6 +137,198 @@ fn retained_cleanup_keeps_only_the_configured_retired_generations() {
     assert!(!temp.path().join("gen-001").exists());
     assert!(!temp.path().join("gen-002").exists());
     assert!(temp.path().join("gen-003").exists());
+}
+
+#[test]
+fn retired_cleanup_keeps_a_registered_non_current_generation() {
+    let temp = TempStore::new("generation-reader-root");
+    let initial = StoreLayout::create(temp.path(), "family-a", "2.40.0", 7).unwrap();
+    seed_source(&initial);
+    Connection::open(initial.coordinator_db())
+        .unwrap()
+        .execute(
+            "INSERT INTO reader_registrations
+             (pin_id,owner_nonce,owner_label,family_id,view_id,manifest_generation,generation_name,
+              owner_pid,owner_birth_identity,store_instance_id,manifest_hash,
+              extraction_identity_epoch,served_store_log_sequence,acquired_at,heartbeat_at,
+              expires_at,min_retained_store_log_sequence,snapshot_fingerprint)
+             VALUES ('reader-old','0123456789abcdef0123456789abcdef','miller','family-a','view-a',4,
+                     'gen-001',?1,'birth-a','family-a:gen-001','sha256:m4',7,17,1,1,100000,13,
+                     'snapshot-old')",
+            [std::process::id()],
+        )
+        .unwrap();
+    let policy = GenerationPolicy {
+        retained_generation_limit: 1,
+        rollback_safety_ms: 0,
+        ..GenerationPolicy::default()
+    };
+
+    let second = promote_once_version(&initial, "reader-promote-1", 1_000, &policy, "2.40.0");
+    let third = promote_once_version(&second, "reader-promote-2", 2_000, &policy, "2.40.0");
+    let fourth = promote_once_version(&third, "reader-promote-3", 3_000, &policy, "2.40.0");
+
+    assert_eq!(fourth.generation_name(), "gen-004");
+    assert!(temp.path().join("gen-001").exists());
+    assert!(!temp.path().join("gen-002").exists());
+    assert!(temp.path().join("gen-003").exists());
+}
+
+#[test]
+fn zero_retention_remains_invalid_without_generation_mutation() {
+    let temp = TempStore::new("generation-zero-retention");
+    let initial = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
+    seed_source(&initial);
+    let now_ms = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as i64;
+    let plan = inspect_plan(&initial, now_ms);
+    let mut lifecycle = GenerationLifecycle::acquire(
+        StoreConnectionFactory::new(initial.clone(), "family-a", "2.30.0"),
+        MaintenanceRun::new(
+            "promote-zero-retention",
+            "owner",
+            std::process::id(),
+            now_ms,
+            30_000,
+        ),
+        &plan,
+        MaintenanceAction::Promote,
+        FixedCapacity,
+    )
+    .unwrap();
+
+    let error = lifecycle
+        .promote(
+            &plan,
+            &GenerationPolicy {
+                retained_generation_limit: 0,
+                rollback_safety_ms: 0,
+                ..GenerationPolicy::default()
+            },
+        )
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        julie_extract_artifact::store::GenerationError::InvalidPolicy {
+            field: "retained_generation_limit",
+            value: 0
+        }
+    ));
+    drop(lifecycle);
+    assert!(temp.path().join("gen-001").exists());
+    let current = StoreLayout::open(temp.path()).unwrap();
+    assert_eq!(current.generation_name(), "gen-001");
+    assert_eq!(
+        Connection::open(current.coordinator_db())
+            .unwrap()
+            .query_row("SELECT COUNT(*) FROM maintenance_intent", [], |row| row
+                .get::<_, i64>(0),)
+            .unwrap(),
+        0
+    );
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[test]
+fn generation_failure_after_dead_reader_cleanup_reports_the_committed_count() {
+    let temp = TempStore::new("generation-reader-cleanup-failure");
+    let initial = StoreLayout::create(temp.path(), "family-a", "2.40.0", 7).unwrap();
+    seed_source(&initial);
+    let mut child = GenerationLivenessChild::spawn();
+    let identity = match SystemProcessIdentityProbe.inspect(child.id()) {
+        ProcessIdentityObservation::Alive(identity) => identity,
+        observation => panic!("child process identity unavailable: {observation:?}"),
+    };
+    let child_pid = child.id();
+    child.terminate_and_wait();
+    let now_ms = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as i64;
+    Connection::open(initial.coordinator_db())
+        .unwrap()
+        .execute(
+            "INSERT INTO reader_registrations
+             (pin_id,owner_nonce,owner_label,family_id,view_id,manifest_generation,generation_name,
+              owner_pid,owner_birth_identity,store_instance_id,manifest_hash,
+              extraction_identity_epoch,served_store_log_sequence,acquired_at,heartbeat_at,
+              expires_at,min_retained_store_log_sequence,snapshot_fingerprint)
+             VALUES ('reader-dead','0123456789abcdef0123456789abcdef','miller','family-a','view-a',4,
+                     'gen-001',?1,?2,'family-a:gen-001','sha256:m4',7,17,1,1,?3,13,
+                     'snapshot-dead')",
+            params![child_pid, identity.birth_identity(), now_ms - 1],
+        )
+        .unwrap();
+    let plan = MaintenanceInspector::new(
+        StoreConnectionFactory::new(initial.clone(), "family-a", "2.40.0"),
+        FixedClock(now_ms),
+        FixedCapacity,
+    )
+    .inspect()
+    .unwrap();
+    assert_eq!(plan.definitively_dead_readers.len(), 1);
+    let protected_versions = version_rows(&Connection::open(initial.store_db()).unwrap());
+    let protected_manifests = manifest_rows(&Connection::open(initial.store_db()).unwrap());
+    let capacity_calls = Arc::new(AtomicU64::new(0));
+    let mut lifecycle = GenerationLifecycle::acquire(
+        StoreConnectionFactory::new(initial.clone(), "family-a", "2.40.0"),
+        MaintenanceRun::new(
+            "promote-reader-cleanup-failure",
+            "owner",
+            std::process::id(),
+            now_ms,
+            30_000,
+        ),
+        &plan,
+        MaintenanceAction::Promote,
+        FailingPostCleanupCapacity {
+            calls: Arc::clone(&capacity_calls),
+        },
+    )
+    .unwrap();
+
+    let error = lifecycle
+        .promote(&plan, &GenerationPolicy::default())
+        .unwrap_err();
+
+    assert!(matches!(
+        error,
+        julie_extract_artifact::store::GenerationError::Maintenance(MaintenanceError::Io(_))
+    ));
+    assert_eq!(capacity_calls.load(Ordering::Relaxed), 3);
+    assert_eq!(lifecycle.removed_reader_count(), 1);
+    assert_eq!(child.id(), child_pid);
+    assert_eq!(
+        version_rows(&Connection::open(initial.store_db()).unwrap()),
+        protected_versions
+    );
+    assert_eq!(
+        manifest_rows(&Connection::open(initial.store_db()).unwrap()),
+        protected_manifests
+    );
+    assert_eq!(
+        Connection::open(initial.coordinator_db())
+            .unwrap()
+            .query_row("SELECT COUNT(*) FROM reader_registrations", [], |row| row
+                .get::<_, i64>(
+                0
+            ),)
+            .unwrap(),
+        0
+    );
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[test]
+#[ignore]
+fn generation_reader_liveness_child() {
+    if std::env::var_os("JULIE_GENERATION_READER_LIVENESS_CHILD").is_some() {
+        loop {
+            std::thread::park();
+        }
+    }
 }
 
 #[test]
@@ -794,6 +989,32 @@ fn promote_once(
     StoreLayout::open(layout.root()).unwrap()
 }
 
+fn promote_once_version(
+    layout: &StoreLayout,
+    run_id: &str,
+    now_ms: i64,
+    policy: &GenerationPolicy,
+    writer_version: &str,
+) -> StoreLayout {
+    let plan = MaintenanceInspector::new(
+        StoreConnectionFactory::new(layout.clone(), "family-a", writer_version),
+        FixedClock(now_ms),
+        FixedCapacity,
+    )
+    .inspect()
+    .unwrap();
+    let mut lifecycle = GenerationLifecycle::acquire(
+        StoreConnectionFactory::new(layout.clone(), "family-a", writer_version),
+        MaintenanceRun::new(run_id, "owner", std::process::id(), now_ms, 30_000),
+        &plan,
+        MaintenanceAction::Promote,
+        FixedCapacity,
+    )
+    .unwrap();
+    lifecycle.promote(&plan, policy).unwrap();
+    StoreLayout::open(layout.root()).unwrap()
+}
+
 fn allocator(connection: &Connection, kind: &str, scope: &str) -> i64 {
     connection
         .query_row(
@@ -859,6 +1080,78 @@ impl CapacityProvider for FixedCapacity {
 
     fn staged_generation_bytes(&self, _path: &Path) -> Result<u64, std::io::Error> {
         Ok(64 * 1024 * 1024)
+    }
+}
+
+#[derive(Clone)]
+struct FailingPostCleanupCapacity {
+    calls: Arc<AtomicU64>,
+}
+
+impl CapacityProvider for FailingPostCleanupCapacity {
+    fn free_bytes(&self, _path: &Path) -> Result<u64, std::io::Error> {
+        if self.calls.fetch_add(1, Ordering::Relaxed) == 2 {
+            return Err(std::io::Error::other("post-cleanup capacity failure"));
+        }
+        Ok(512 * 1024 * 1024)
+    }
+
+    fn staged_generation_bytes(&self, _path: &Path) -> Result<u64, std::io::Error> {
+        Ok(64 * 1024 * 1024)
+    }
+}
+
+#[cfg(any(target_os = "linux", windows))]
+struct GenerationLivenessChild {
+    child: std::process::Child,
+    waited: bool,
+}
+
+#[cfg(any(target_os = "linux", windows))]
+impl GenerationLivenessChild {
+    fn spawn() -> Self {
+        let child = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "generation_reader_liveness_child",
+                "--ignored",
+                "--nocapture",
+            ])
+            .env("JULIE_GENERATION_READER_LIVENESS_CHILD", "1")
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+            .unwrap();
+        Self {
+            child,
+            waited: false,
+        }
+    }
+
+    fn id(&self) -> u32 {
+        self.child.id()
+    }
+
+    fn terminate_and_wait(&mut self) {
+        if self.waited {
+            return;
+        }
+        if let Err(error) = self.child.kill() {
+            assert_eq!(error.kind(), std::io::ErrorKind::InvalidInput);
+        }
+        self.child.wait().unwrap();
+        self.waited = true;
+    }
+}
+
+#[cfg(any(target_os = "linux", windows))]
+impl Drop for GenerationLivenessChild {
+    fn drop(&mut self) {
+        if !self.waited {
+            let _ = self.child.kill();
+            let _ = self.child.wait();
+            self.waited = true;
+        }
     }
 }
 
