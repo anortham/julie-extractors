@@ -167,7 +167,7 @@ The registration lives in `coord.db`, while the manifest, generation metadata, l
 
 The implementation must document the lock order and prove it does not deadlock with existing writer and maintenance paths. Existing writers open a store connection before taking the coordinator writer lease; reader admission takes the coordinator admission transaction before a query-only store connection and never waits while holding the coordinator lock. Therefore no inverse wait cycle is introduced. A coordinator transaction that cannot validate the store snapshot fails closed; it never inserts a registration with guessed identity fields.
 
-The acquire idempotency lookup by `owner_nonce` occurs inside the same coordinator transaction. An existing identical request returns its stored snapshot; a mismatched request refuses before any new registration write. This makes a lost CLI reply safe to retry and prevents duplicate registration rows. A benchmark fixture with 1,000, 10,000, and 100,000 manifest entries must prove one registration row and constant manifest point-query count per acquire; elapsed time is report-only. Count rows visited as well as statements and inspect `EXPLAIN QUERY PLAN`: a single aggregate or hidden join scanning every manifest entry does not pass this gate. Admission must not query `manifest_entries` or enumerate `file_versions`; their traversal belongs to maintenance root marking.
+The acquire idempotency lookup by `owner_nonce` occurs inside the same coordinator transaction. An existing identical request returns its stored snapshot; a mismatched request refuses before any new registration write. This makes a lost CLI reply safe to retry and prevents duplicate registration rows. A benchmark fixture with 1,000, 10,000, and 100,000 manifest entries must prove one registration row and constant manifest point-query count per acquire; elapsed time is report-only. Measure actual executed statements, VM steps, and full-scan steps, and inspect `EXPLAIN QUERY PLAN`; the pinned API does not expose scanstatus row-visit counters. A single aggregate or hidden indexed range scan over every manifest entry does not pass this gate. Admission must not query `manifest_entries` or enumerate `file_versions`; their traversal belongs to maintenance root marking.
 
 ## Verification Strategy
 
@@ -189,7 +189,7 @@ The acquire idempotency lookup by `owner_nonce` occurs inside the same coordinat
 
 **Escalation triggers:** any schema/floor change, any maintenance race failure, any platform identity ambiguity, any generation swap failure, any changed CLI report field, or any failure in crash recovery requires the branch gate and Windows lifecycle coverage.
 
-**Assigned verification failure:** Workers stop and report when assigned verification fails, unless this plan explicitly says to update that gate.
+**Assigned verification failure:** Workers investigate and fix failures inside their ownership and report evidence to the lead. Escalate an ownership conflict or required architecture/acceptance change rather than weakening the gate. A failed check alone is not permission to leave an in-scope defect unresolved.
 
 **Verification ledger:** Record invariant, command, scope label, commit SHA, result, and timestamp. Record race matrix outcomes and whether cleanup was explicit release, definitive death, or fail-closed retention.
 
@@ -252,11 +252,13 @@ The acquire idempotency lookup by `owner_nonce` occurs inside the same coordinat
 
 **Acceptance criteria:**
 
-- [ ] Acquire returns one exact generation/view/manifest snapshot and a bounded protected-manifest count; file versions remain producer-side roots.
-- [ ] Acquire cannot commit under a foreign live maintenance intent.
-- [ ] Renew cannot change snapshot identity and rejects nonce/PID/birth-identity mismatches.
-- [ ] Release is idempotent for the exact nonce and opaque for a wrong nonce.
+- [x] Acquire returns one exact generation/view/manifest snapshot and a bounded protected-manifest count; file versions remain producer-side roots.
+- [x] Acquire cannot commit under a foreign live maintenance intent.
+- [x] Renew cannot change snapshot identity and rejects nonce/PID/birth-identity mismatches.
+- [x] Release is idempotent for the exact nonce and returns no registered identity details for a wrong nonce.
 - [ ] Admission/maintenance race tests prove no partial registration or unsafe deletion.
+
+Task2 implementation review is accepted: reader contract 30 passed, coordinator contract 68 passed, and coordinator unit scope 6 passed. Atomic admission/publication barriers prove no partial rows. The final combined no-deletion criterion remains open until Task4 maintenance integration and Task6 gates, rather than claiming producer admission alone protects physical roots.
 
 ## Task 3: Implement definitive process-instance death qualification
 
@@ -276,11 +278,13 @@ The acquire idempotency lookup by `owner_nonce` occurs inside the same coordinat
 
 **Acceptance criteria:**
 
-- [ ] A paused process past `expires_at` is retained when its process instance is still alive.
-- [ ] A terminated process is eligible for cleanup only with definitive PID plus birth-identity evidence.
-- [ ] PID reuse, unknown birth identity, probe failure, and unsupported platform all fail closed.
-- [ ] Tests cover clock expiry, pause, crash, PID reuse, and Windows real process identity paths.
-- [ ] Liveness results carry a reportable reason and never masquerade as explicit release.
+- [x] A paused process past `expires_at` is retained when its process instance is still alive.
+- [x] A terminated process is eligible for cleanup only with definitive PID plus birth-identity evidence.
+- [x] PID reuse, unknown birth identity, probe failure, and unsupported platform all fail closed.
+- [x] Tests cover clock expiry, pause, crash, PID reuse, and Windows real process identity paths.
+- [x] Liveness results carry a reportable reason and never masquerade as explicit release.
+
+Task3 verification: production commit `5f7d8684`, Windows cleanup-test correction `3e417ab5`. Linux platform 9 passed and integration 14 passed; Windows platform 4 passed and corrected integration 14 passed (the explicit child helper is excluded from ordinary discovery and exercised by the parent tests). Deterministic cases cover expiry, reuse, hidden identity, and domain mismatch; real child processes cover observation, exit with a retained Windows handle, and panic-safe cleanup. Final branch gates still apply to the integrated tree.
 
 ## Task 4: Qualify reader roots in GC, promotion, rollback, and view retirement
 
@@ -343,7 +347,7 @@ The acquire idempotency lookup by `owner_nonce` occurs inside the same coordinat
 
 - [ ] Existing cursor monotonicity, generation binding, release, and foreign-intent tests remain green.
 - [ ] GC retains log rows required by both cursor windows and reader registrations.
-- [ ] A cursor-only client cannot open a generation after its cursor advances.
+- [ ] Cursor advance creates no reader registration and grants no reader-admission result; releasing a cursor never releases a reader. Producer retention does not prevent arbitrary direct filesystem reads. M1 separately enforces that Miller opens no family-store session without successful reader admission.
 - [ ] The v2.39.0 old-writer fixture returns `incompatible_store` (exit 3) before mutation for every mutating maintenance command when registrations exist.
 - [ ] Evidence records the race matrix, platform results, report warnings, and verification ledger entries.
 

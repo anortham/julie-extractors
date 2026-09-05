@@ -1,12 +1,30 @@
 use std::path::Path;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+#[cfg(feature = "test-store-contract")]
+use std::sync::{Arc, Barrier};
 
 use julie_extract_artifact::store::{
-    MaintenanceExecutor, MaintenanceRun, READER_MIN_WRITER_VERSION, ReaderAcquireRequest,
-    ReaderManifestSnapshot, ReaderReleaseRequest, ReaderRenewRequest, StoreConnectionError,
-    StoreConnectionFactory, StoreLayout, create_coordinator_schema, create_store_schema,
+    CoordinatorError, CoordinatorRequest, LeaseHolder, MaintenanceExecutor, MaintenanceRun,
+    ManifestStore, READER_MIN_WRITER_VERSION, ReaderAcquireRequest, ReaderManifestSnapshot,
+    ReaderReleaseRequest, ReaderRenewRequest, RequestKind, StoreConnectionError,
+    StoreConnectionFactory, StoreCoordinator, StoreLayout, StoreLog, StoreLogEntry,
+    create_coordinator_schema, create_store_schema,
 };
-use rusqlite::{Connection, params};
+
+#[cfg(feature = "test-store-contract")]
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct AdmissionStatementEvidence {
+    label: String,
+    vm_steps: i32,
+    fullscan_steps: i32,
+    query_plan: Vec<String>,
+}
+#[cfg(feature = "test-store-contract")]
+use julie_extract_artifact::store::{
+    ProcessIdentityObservation, ProcessIdentityProbe, ProcessIdentityUnknownReason,
+    ProcessInstanceIdentity,
+};
+use rusqlite::{Connection, TransactionBehavior, params};
 use sha2::{Digest, Sha256};
 
 #[test]
@@ -306,6 +324,1200 @@ fn one_registration_roots_each_manifest_size() {
             1
         );
     }
+}
+
+#[test]
+fn authenticated_inspection_refuses_a_malformed_store_instance() {
+    let temp = TempStore::new("malformed-store-instance");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.40.0", 9).unwrap();
+    let coordinator = Connection::open(layout.coordinator_db()).unwrap();
+    let mut fields = RegistrationFields::valid();
+    fields.store_instance_id = "family-a:gen-wrong";
+    fields.snapshot_fingerprint = Box::leak(
+        ReaderManifestSnapshot::new(
+            "family-a",
+            "view-a",
+            42,
+            "gen-000042",
+            "manifest-hash",
+            9,
+            800,
+            700,
+        )
+        .snapshot_fingerprint()
+        .to_string()
+        .into_boxed_str(),
+    );
+    insert_registration(&coordinator, fields).unwrap();
+    drop(coordinator);
+
+    let request =
+        ReaderReleaseRequest::new("family-a", "reader-1", "0123456789abcdef0123456789abcdef");
+    assert!(matches!(
+        StoreCoordinator::open(&layout)
+            .unwrap()
+            .reader_registration(&request),
+        Err(CoordinatorError::ReaderStaleSnapshot)
+    ));
+}
+
+#[test]
+fn below_floor_is_classified_before_legacy_reader_catalog_lookup() {
+    let temp = TempStore::new("legacy-floor-classification");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.39.0", 9).unwrap();
+    Connection::open(layout.coordinator_db())
+        .unwrap()
+        .execute_batch(
+            "DROP TRIGGER trg_reader_registrations_immutable_identity;
+             DROP TABLE reader_registrations;",
+        )
+        .unwrap();
+    let request = ReaderAcquireRequest::new(
+        "family-a",
+        "view-a",
+        "gen-001",
+        "miller",
+        std::process::id(),
+        "0123456789abcdef0123456789abcdef",
+        30_000,
+    );
+    let result = StoreCoordinator::open(&layout)
+        .unwrap()
+        .acquire_reader(&request);
+    assert!(matches!(
+        result,
+        Err(CoordinatorError::ReaderWriterFloorRequired)
+    ));
+}
+
+#[test]
+fn reader_enabled_missing_catalog_fails_closed_without_recreation() {
+    let temp = TempStore::new("missing-reader-catalog");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.40.0", 9).unwrap();
+    Connection::open(layout.coordinator_db())
+        .unwrap()
+        .execute_batch(
+            "DROP TRIGGER trg_reader_registrations_immutable_identity;
+             DROP TABLE reader_registrations;",
+        )
+        .unwrap();
+    let request = ReaderAcquireRequest::new(
+        "family-a",
+        "view-a",
+        "gen-001",
+        "miller",
+        std::process::id(),
+        "0123456789abcdef0123456789abcdef",
+        30_000,
+    );
+    assert!(matches!(
+        StoreCoordinator::open(&layout)
+            .unwrap()
+            .acquire_reader(&request),
+        Err(CoordinatorError::ReaderOperational)
+    ));
+    assert_eq!(
+        Connection::open(layout.coordinator_db())
+            .unwrap()
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_schema WHERE type='table' AND name='reader_registrations'",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        0
+    );
+}
+
+#[cfg(feature = "test-store-contract")]
+#[test]
+fn reader_enabled_corrupt_catalog_fails_closed() {
+    let temp = TempStore::new("corrupt-reader-catalog");
+    let layout = seeded_admission_store(&temp, 0);
+    Connection::open(layout.coordinator_db())
+        .unwrap()
+        .execute_batch("DROP TRIGGER trg_reader_registrations_immutable_identity;")
+        .unwrap();
+    let request = ReaderAcquireRequest::new(
+        "family-a",
+        "view-a",
+        "gen-001",
+        "miller",
+        std::process::id(),
+        "0123456789abcdef0123456789abcdef",
+        30_000,
+    );
+    assert!(matches!(
+        StoreCoordinator::open(&layout)
+            .unwrap()
+            .acquire_reader(&request),
+        Err(CoordinatorError::ReaderOperational)
+    ));
+}
+
+#[cfg(feature = "test-store-contract")]
+#[test]
+fn acquire_uses_retained_committed_high_water_after_manifest_log_is_pruned() {
+    for retain_later_log in [false, true] {
+        let temp = TempStore::new(if retain_later_log {
+            "pruned-manifest-later-log"
+        } else {
+            "pruned-manifest-empty-log"
+        });
+        let (layout, _, expected_served_sequence) =
+            seeded_manifest_log_store(&temp, retain_later_log, true);
+        let owner_pid = std::process::id();
+        let request = ReaderAcquireRequest::new(
+            "family-a",
+            "view-a",
+            "gen-001",
+            "miller",
+            owner_pid,
+            "0123456789abcdef0123456789abcdef",
+            30_000,
+        );
+        let owner = FixedProcessIdentity(ProcessIdentityObservation::Alive(
+            ProcessInstanceIdentity::new(owner_pid, "opaque-birth-pruned-log"),
+        ));
+        let acquired = StoreCoordinator::open(&layout)
+            .unwrap()
+            .acquire_reader_with_probe(&request, &owner)
+            .unwrap();
+        assert_eq!(
+            acquired
+                .registration()
+                .snapshot()
+                .served_store_log_sequence(),
+            expected_served_sequence
+        );
+        assert_eq!(
+            acquired
+                .registration()
+                .snapshot()
+                .min_retained_store_log_sequence(),
+            expected_served_sequence
+        );
+    }
+}
+
+#[cfg(feature = "test-store-contract")]
+#[test]
+fn acquire_preserves_retained_original_manifest_floor_below_served_high_water() {
+    let temp = TempStore::new("retained-manifest-later-log");
+    let (layout, original_manifest_sequence, served_sequence) =
+        seeded_manifest_log_store(&temp, true, false);
+    let owner_pid = std::process::id();
+    let request = ReaderAcquireRequest::new(
+        "family-a",
+        "view-a",
+        "gen-001",
+        "miller",
+        owner_pid,
+        "0123456789abcdef0123456789abcdef",
+        30_000,
+    );
+    let owner = FixedProcessIdentity(ProcessIdentityObservation::Alive(
+        ProcessInstanceIdentity::new(owner_pid, "opaque-birth-retained-manifest"),
+    ));
+    let acquired = StoreCoordinator::open(&layout)
+        .unwrap()
+        .acquire_reader_with_probe(&request, &owner)
+        .unwrap();
+    assert!(original_manifest_sequence < served_sequence);
+    assert_eq!(
+        acquired
+            .registration()
+            .snapshot()
+            .served_store_log_sequence(),
+        served_sequence
+    );
+    assert_eq!(
+        acquired
+            .registration()
+            .snapshot()
+            .min_retained_store_log_sequence(),
+        original_manifest_sequence
+    );
+}
+
+#[test]
+fn acquire_is_idempotent_by_nonce() {
+    let temp = TempStore::new("acquire-idempotent");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.40.0", 9).unwrap();
+    let store = Connection::open(layout.store_db()).unwrap();
+    store
+        .execute_batch(
+            "INSERT INTO views(view_id,root,current_generation,created_at,updated_at)
+             VALUES ('view-a','/repo',NULL,'2026-09-04T00:00:00Z','2026-09-04T00:00:00Z');
+             INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+             VALUES ('view-a',42,'manifest-hash','request-a','2026-09-04T00:00:00Z');
+             UPDATE views SET current_generation=42 WHERE view_id='view-a';
+             INSERT INTO store_log
+               (sequence,request_id,event_kind,view_id,generation,payload_json,created_at)
+             VALUES (700,'request-a','manifest_flipped','view-a',42,'{}','2026-09-04T00:00:00Z');",
+        )
+        .unwrap();
+    drop(store);
+    let coordinator = Connection::open(layout.coordinator_db()).unwrap();
+    coordinator
+        .execute(
+            "INSERT INTO family_allocator_marks(allocator_kind,scope_id,high_water,updated_at)
+             VALUES ('store_log','',700,1)",
+            [],
+        )
+        .unwrap();
+    drop(coordinator);
+
+    let request = ReaderAcquireRequest::new(
+        "family-a",
+        "view-a",
+        "gen-001",
+        "miller",
+        std::process::id(),
+        "0123456789abcdef0123456789abcdef",
+        30_000,
+    );
+    let mut coordinator = StoreCoordinator::open(&layout).unwrap();
+    let first = coordinator.acquire_reader(&request).unwrap();
+    assert!(
+        first
+            .registration()
+            .identity()
+            .pin_id()
+            .starts_with("reader-")
+    );
+    assert_eq!(first.registration().identity().pin_id().len(), 39);
+    assert!(
+        first.registration().identity().pin_id()[7..]
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+    );
+    assert!(first.registration().identity().pin_id() != request.owner_nonce());
+
+    let store = Connection::open(layout.store_db()).unwrap();
+    store
+        .execute_batch(
+            "INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+             VALUES ('view-a',43,'new-manifest-hash','request-c','2026-09-04T00:00:02Z');
+             UPDATE views SET current_generation=43 WHERE view_id='view-a';",
+        )
+        .unwrap();
+    drop(store);
+
+    let replayed = coordinator.acquire_reader(&request).unwrap();
+    assert!(replayed.registration() == first.registration());
+    assert_eq!(replayed.registration().snapshot().manifest_generation(), 42);
+    assert_eq!(
+        replayed.registration().snapshot().manifest_hash(),
+        "manifest-hash"
+    );
+    let renewed = coordinator
+        .renew_reader(&ReaderRenewRequest::new(
+            "family-a",
+            replayed.registration().identity().pin_id(),
+            request.owner_nonce(),
+            request.owner_pid(),
+            60_000,
+        ))
+        .unwrap();
+    assert_eq!(renewed.snapshot(), first.registration().snapshot());
+    assert_eq!(
+        Connection::open(layout.coordinator_db())
+            .unwrap()
+            .query_row("SELECT COUNT(*) FROM reader_registrations", [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .unwrap(),
+        1
+    );
+}
+
+#[cfg(feature = "test-store-contract")]
+#[test]
+fn renew_release_and_inspection_require_the_registered_owner() {
+    let temp = TempStore::new("renew-release");
+    let layout = seeded_admission_store(&temp, 0);
+    let owner_pid = std::process::id();
+    let nonce = "0123456789abcdef0123456789abcdef";
+    let request = ReaderAcquireRequest::new(
+        "family-a", "view-a", "gen-001", "miller", owner_pid, nonce, 30_000,
+    );
+    let owner = FixedProcessIdentity(ProcessIdentityObservation::Alive(
+        ProcessInstanceIdentity::new(owner_pid, "opaque-birth-a"),
+    ));
+    let mut coordinator = StoreCoordinator::open(&layout).unwrap();
+    let acquired = coordinator
+        .acquire_reader_with_probe(&request, &owner)
+        .unwrap()
+        .into_registration();
+    let pin_id = acquired.identity().pin_id().to_string();
+
+    let wrong_nonce =
+        ReaderReleaseRequest::new("family-a", &pin_id, "ffffffffffffffffffffffffffffffff");
+    assert!(matches!(
+        coordinator.reader_registration(&wrong_nonce),
+        Err(CoordinatorError::ReaderOwnerMismatch)
+    ));
+    assert!(matches!(
+        coordinator.release_reader(&wrong_nonce),
+        Err(CoordinatorError::ReaderOwnerMismatch)
+    ));
+    assert!(matches!(
+        coordinator.renew_reader_with_probe(
+            &ReaderRenewRequest::new(
+                "family-a",
+                &pin_id,
+                "ffffffffffffffffffffffffffffffff",
+                owner_pid,
+                60_000,
+            ),
+            &owner,
+        ),
+        Err(CoordinatorError::ReaderOwnerMismatch)
+    ));
+
+    let renewed = coordinator
+        .renew_reader_with_probe(
+            &ReaderRenewRequest::new("family-a", &pin_id, nonce, owner_pid, 60_000),
+            &owner,
+        )
+        .unwrap();
+    assert!(renewed.identity() == acquired.identity());
+    assert_eq!(renewed.snapshot(), acquired.snapshot());
+    assert_eq!(renewed.acquired_at(), acquired.acquired_at());
+    assert!(renewed.heartbeat_at() >= acquired.heartbeat_at());
+    assert!(renewed.expires_at() > acquired.expires_at());
+
+    let changed_owner = FixedProcessIdentity(ProcessIdentityObservation::Alive(
+        ProcessInstanceIdentity::new(owner_pid, "opaque-birth-b"),
+    ));
+    assert!(matches!(
+        coordinator.renew_reader_with_probe(
+            &ReaderRenewRequest::new("family-a", &pin_id, nonce, owner_pid, 60_000),
+            &changed_owner,
+        ),
+        Err(CoordinatorError::ReaderOwnerMismatch)
+    ));
+    let wrong_pid = owner_pid.checked_add(1).unwrap();
+    let wrong_process = FixedProcessIdentity(ProcessIdentityObservation::Alive(
+        ProcessInstanceIdentity::new(wrong_pid, "opaque-birth-a"),
+    ));
+    assert!(matches!(
+        coordinator.renew_reader_with_probe(
+            &ReaderRenewRequest::new("family-a", &pin_id, nonce, wrong_pid, 60_000),
+            &wrong_process,
+        ),
+        Err(CoordinatorError::ReaderOwnerMismatch)
+    ));
+
+    let release = ReaderReleaseRequest::new("family-a", &pin_id, nonce);
+    assert!(coordinator.reader_registration(&release).unwrap().is_some());
+    assert!(coordinator.release_reader(&release).unwrap());
+    assert!(!coordinator.release_reader(&release).unwrap());
+    assert!(!coordinator.release_reader(&wrong_nonce).unwrap());
+    assert!(coordinator.reader_registration(&release).unwrap().is_none());
+}
+
+#[cfg(feature = "test-store-contract")]
+#[test]
+fn acquire_replay_refuses_identity_and_snapshot_mismatches() {
+    let temp = TempStore::new("acquire-mismatch");
+    let layout = seeded_admission_store(&temp, 0);
+    let owner_pid = std::process::id();
+    let nonce = "0123456789abcdef0123456789abcdef";
+    let owner = FixedProcessIdentity(ProcessIdentityObservation::Alive(
+        ProcessInstanceIdentity::new(owner_pid, "opaque-birth-a"),
+    ));
+    let mut coordinator = StoreCoordinator::open(&layout).unwrap();
+    coordinator
+        .acquire_reader_with_probe(
+            &ReaderAcquireRequest::new(
+                "family-a", "view-a", "gen-001", "miller", owner_pid, nonce, 30_000,
+            ),
+            &owner,
+        )
+        .unwrap();
+
+    assert!(matches!(
+        coordinator.acquire_reader_with_probe(
+            &ReaderAcquireRequest::new(
+                "family-a",
+                "view-a",
+                "gen-001",
+                "different-owner",
+                owner_pid,
+                nonce,
+                30_000,
+            ),
+            &owner,
+        ),
+        Err(CoordinatorError::ReaderOwnerMismatch)
+    ));
+    let changed_birth = FixedProcessIdentity(ProcessIdentityObservation::Alive(
+        ProcessInstanceIdentity::new(owner_pid, "opaque-birth-b"),
+    ));
+    assert!(matches!(
+        coordinator.acquire_reader_with_probe(
+            &ReaderAcquireRequest::new(
+                "family-a", "view-a", "gen-001", "miller", owner_pid, nonce, 30_000,
+            ),
+            &changed_birth,
+        ),
+        Err(CoordinatorError::ReaderOwnerMismatch)
+    ));
+    for request in [
+        ReaderAcquireRequest::new(
+            "family-b", "view-a", "gen-001", "miller", owner_pid, nonce, 30_000,
+        ),
+        ReaderAcquireRequest::new(
+            "family-a", "view-b", "gen-001", "miller", owner_pid, nonce, 30_000,
+        ),
+        ReaderAcquireRequest::new(
+            "family-a", "view-a", "gen-002", "miller", owner_pid, nonce, 30_000,
+        ),
+    ] {
+        assert!(matches!(
+            coordinator.acquire_reader_with_probe(&request, &owner),
+            Err(CoordinatorError::ReaderStaleSnapshot)
+        ));
+    }
+    assert_eq!(
+        Connection::open(layout.coordinator_db())
+            .unwrap()
+            .query_row("SELECT COUNT(*) FROM reader_registrations", [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .unwrap(),
+        1
+    );
+}
+
+#[cfg(feature = "test-store-contract")]
+#[test]
+fn acquire_captures_process_identity_inside_admission_transaction() {
+    let temp = TempStore::new("acquire-probe-order");
+    let layout = seeded_admission_store(&temp, 0);
+    let observed_transaction = Arc::new(AtomicBool::new(false));
+    let probe = TransactionObservingProbe::new(
+        layout.coordinator_db(),
+        Arc::clone(&observed_transaction),
+        "opaque-birth-acquire-order",
+    );
+    let owner_pid = std::process::id();
+    StoreCoordinator::open(&layout)
+        .unwrap()
+        .acquire_reader_with_probe(
+            &ReaderAcquireRequest::new(
+                "family-a",
+                "view-a",
+                "gen-001",
+                "miller",
+                owner_pid,
+                "0123456789abcdef0123456789abcdef",
+                30_000,
+            ),
+            &probe,
+        )
+        .unwrap();
+    assert!(observed_transaction.load(Ordering::SeqCst));
+}
+
+#[cfg(feature = "test-store-contract")]
+#[test]
+fn renew_reprobes_process_identity_inside_admission_transaction() {
+    let temp = TempStore::new("renew-probe-order");
+    let layout = seeded_admission_store(&temp, 0);
+    let owner_pid = std::process::id();
+    let nonce = "0123456789abcdef0123456789abcdef";
+    let owner = FixedProcessIdentity(ProcessIdentityObservation::Alive(
+        ProcessInstanceIdentity::new(owner_pid, "opaque-birth-renew-order"),
+    ));
+    let mut coordinator = StoreCoordinator::open(&layout).unwrap();
+    let acquired = coordinator
+        .acquire_reader_with_probe(
+            &ReaderAcquireRequest::new(
+                "family-a", "view-a", "gen-001", "miller", owner_pid, nonce, 30_000,
+            ),
+            &owner,
+        )
+        .unwrap();
+    let observed_transaction = Arc::new(AtomicBool::new(false));
+    let probe = TransactionObservingProbe::new(
+        layout.coordinator_db(),
+        Arc::clone(&observed_transaction),
+        "opaque-birth-renew-order",
+    );
+    coordinator
+        .renew_reader_with_probe(
+            &ReaderRenewRequest::new(
+                "family-a",
+                acquired.registration().identity().pin_id(),
+                nonce,
+                owner_pid,
+                60_000,
+            ),
+            &probe,
+        )
+        .unwrap();
+    assert!(observed_transaction.load(Ordering::SeqCst));
+}
+
+#[cfg(feature = "test-store-contract")]
+#[test]
+fn unknown_identity_and_invalid_lease_refuse_before_registration() {
+    let temp = TempStore::new("identity-unknown");
+    let layout = seeded_admission_store(&temp, 0);
+    let owner_pid = std::process::id();
+    let mut coordinator = StoreCoordinator::open(&layout).unwrap();
+    let request = ReaderAcquireRequest::new(
+        "family-a",
+        "view-a",
+        "gen-001",
+        "miller",
+        owner_pid,
+        "0123456789abcdef0123456789abcdef",
+        30_000,
+    );
+    for observation in [
+        ProcessIdentityObservation::Absent,
+        ProcessIdentityObservation::Terminated(ProcessInstanceIdentity::new(
+            owner_pid,
+            "opaque-terminated-birth",
+        )),
+        ProcessIdentityObservation::Unknown(ProcessIdentityUnknownReason::IdentityDomainUnverified),
+    ] {
+        assert!(matches!(
+            coordinator.acquire_reader_with_probe(&request, &FixedProcessIdentity(observation),),
+            Err(CoordinatorError::ReaderIdentityUnknown)
+        ));
+    }
+    let overflowing = ReaderAcquireRequest::new(
+        "family-a",
+        "view-a",
+        "gen-001",
+        "miller",
+        owner_pid,
+        "fedcba9876543210fedcba9876543210",
+        u64::MAX,
+    );
+    assert!(matches!(
+        coordinator.acquire_reader_with_probe(
+            &overflowing,
+            &FixedProcessIdentity(ProcessIdentityObservation::Absent),
+        ),
+        Err(CoordinatorError::InvalidTime { .. })
+    ));
+    assert_eq!(
+        Connection::open(layout.coordinator_db())
+            .unwrap()
+            .query_row("SELECT COUNT(*) FROM reader_registrations", [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .unwrap(),
+        0
+    );
+}
+
+#[cfg(feature = "test-store-contract")]
+#[test]
+fn acquire_metadata_work_is_constant_across_manifest_sizes() {
+    let mut baseline = None;
+    for entry_count in [1_000_i64, 10_000, 100_000] {
+        let temp = TempStore::new(&format!("admission-{entry_count}"));
+        let layout = seeded_admission_store(&temp, entry_count);
+        let owner_pid = std::process::id();
+        let request = ReaderAcquireRequest::new(
+            "family-a",
+            "view-a",
+            "gen-001",
+            "miller",
+            owner_pid,
+            format!("{entry_count:032x}"),
+            30_000,
+        );
+        let owner = FixedProcessIdentity(ProcessIdentityObservation::Alive(
+            ProcessInstanceIdentity::new(owner_pid, format!("opaque-birth-{entry_count}")),
+        ));
+        let mut coordinator = StoreCoordinator::open(&layout).unwrap();
+        let mut evidence = Vec::new();
+        coordinator
+            .acquire_reader_with_probe_and_metrics(
+                &request,
+                &owner,
+                |label, vm_steps, fullscan_steps, query_plan| {
+                    evidence.push(AdmissionStatementEvidence {
+                        label: label.to_owned(),
+                        vm_steps,
+                        fullscan_steps,
+                        query_plan: query_plan.to_vec(),
+                    });
+                },
+            )
+            .unwrap();
+        assert!(!evidence.is_empty());
+        assert!(
+            evidence
+                .iter()
+                .all(|statement| statement.fullscan_steps == 0)
+        );
+        assert!(
+            evidence
+                .iter()
+                .flat_map(|statement| &statement.query_plan)
+                .all(|detail| {
+                    !detail.contains("manifest_entries") && !detail.contains("file_versions")
+                })
+        );
+        assert!(
+            evidence
+                .iter()
+                .flat_map(|statement| &statement.query_plan)
+                .any(|detail| detail.contains("sqlite_autoindex_manifests_1"))
+        );
+        assert!(
+            evidence
+                .iter()
+                .flat_map(|statement| &statement.query_plan)
+                .any(|detail| detail.contains("idx_read_store_log_request"))
+        );
+        if let Some(expected) = &baseline {
+            assert_eq!(&evidence, expected);
+        } else {
+            baseline = Some(evidence.clone());
+        }
+        eprintln!(
+            "reader admission entries={entry_count} data_statements={} vm_steps={} fullscan_steps={}",
+            evidence.len(),
+            evidence
+                .iter()
+                .map(|statement| statement.vm_steps)
+                .sum::<i32>(),
+            evidence
+                .iter()
+                .map(|statement| statement.fullscan_steps)
+                .sum::<i32>()
+        );
+        for statement in &evidence {
+            eprintln!(
+                "reader admission statement={} vm_steps={} fullscan_steps={} plan={:?}",
+                statement.label, statement.vm_steps, statement.fullscan_steps, statement.query_plan
+            );
+        }
+        let store = Connection::open(layout.store_db()).unwrap();
+        assert_eq!(
+            store
+                .query_row("SELECT COUNT(*) FROM manifest_entries", [], |row| {
+                    row.get::<_, i64>(0)
+                })
+                .unwrap(),
+            entry_count
+        );
+        assert_eq!(
+            Connection::open(layout.coordinator_db())
+                .unwrap()
+                .query_row("SELECT COUNT(*) FROM reader_registrations", [], |row| {
+                    row.get::<_, i64>(0)
+                })
+                .unwrap(),
+            1
+        );
+    }
+}
+
+#[cfg(feature = "test-store-contract")]
+#[test]
+fn coordinator_admission_fence_serializes_maintenance_intent_creation() {
+    let temp = TempStore::new("maintenance-race");
+    let layout = seeded_admission_store(&temp, 0);
+    let entered = Arc::new(Barrier::new(2));
+    let resume = Arc::new(Barrier::new(2));
+    let worker_layout = layout.clone();
+    let worker_entered = Arc::clone(&entered);
+    let worker_resume = Arc::clone(&resume);
+    let worker = std::thread::spawn(move || {
+        let owner_pid = std::process::id();
+        let request = ReaderAcquireRequest::new(
+            "family-a",
+            "view-a",
+            "gen-001",
+            "miller",
+            owner_pid,
+            "0123456789abcdef0123456789abcdef",
+            30_000,
+        );
+        let owner = FixedProcessIdentity(ProcessIdentityObservation::Alive(
+            ProcessInstanceIdentity::new(owner_pid, "opaque-birth-maintenance"),
+        ));
+        StoreCoordinator::open(&worker_layout)
+            .unwrap()
+            .acquire_reader_with_probe_and_barrier(&request, &owner, || {
+                worker_entered.wait();
+                worker_resume.wait();
+            })
+    });
+    entered.wait();
+
+    let coordinator = Connection::open(layout.coordinator_db()).unwrap();
+    coordinator.busy_timeout(std::time::Duration::ZERO).unwrap();
+    let blocked = coordinator.execute(
+        "INSERT INTO maintenance_intent
+         (resource,run_id,action,source_generation_name,owner_id,owner_pid,
+          fencing_token,heartbeat_at,expires_at,started_at,plan_fingerprint,
+          source_min_writer_version)
+         VALUES ('store-maintenance','foreign','gc','gen-001','foreign',?1,
+                 1,1,9223372036854775807,1,'foreign-plan','2.40.0')",
+        [std::process::id()],
+    );
+    assert!(matches!(
+        blocked,
+        Err(rusqlite::Error::SqliteFailure(error, _))
+            if matches!(error.code, rusqlite::ErrorCode::DatabaseBusy | rusqlite::ErrorCode::DatabaseLocked)
+    ));
+    resume.wait();
+    worker.join().unwrap().unwrap();
+
+    coordinator
+        .execute(
+            "INSERT INTO maintenance_intent
+             (resource,run_id,action,source_generation_name,owner_id,owner_pid,
+              fencing_token,heartbeat_at,expires_at,started_at,plan_fingerprint,
+              source_min_writer_version)
+             VALUES ('store-maintenance','foreign','gc','gen-001','foreign',?1,
+                     1,1,9223372036854775807,1,'foreign-plan','2.40.0')",
+            [std::process::id()],
+        )
+        .unwrap();
+    assert_eq!(
+        coordinator
+            .query_row("SELECT COUNT(*) FROM reader_registrations", [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .unwrap(),
+        1
+    );
+}
+
+#[cfg(feature = "test-store-contract")]
+#[test]
+fn admission_refuses_generation_and_view_mutations_without_partial_rows() {
+    for mutation in [
+        "family-generation",
+        "manifest-publication",
+        "view-retirement",
+    ] {
+        let temp = TempStore::new(mutation);
+        let layout = seeded_admission_store(&temp, 0);
+        let entered = Arc::new(Barrier::new(2));
+        let resume = Arc::new(Barrier::new(2));
+        let worker_layout = layout.clone();
+        let worker_entered = Arc::clone(&entered);
+        let worker_resume = Arc::clone(&resume);
+        let worker = std::thread::spawn(move || {
+            let owner_pid = std::process::id();
+            let request = ReaderAcquireRequest::new(
+                "family-a",
+                "view-a",
+                "gen-001",
+                "miller",
+                owner_pid,
+                "0123456789abcdef0123456789abcdef",
+                30_000,
+            );
+            let owner = FixedProcessIdentity(ProcessIdentityObservation::Alive(
+                ProcessInstanceIdentity::new(owner_pid, "opaque-birth-mutation"),
+            ));
+            StoreCoordinator::open(&worker_layout)
+                .unwrap()
+                .acquire_reader_with_probe_and_barrier(&request, &owner, || {
+                    worker_entered.wait();
+                    worker_resume.wait();
+                })
+        });
+        entered.wait();
+
+        match mutation {
+            "family-generation" => {
+                std::fs::write(layout.root().join("CURRENT"), "gen-002\n").unwrap();
+            }
+            "manifest-publication" => {
+                Connection::open(layout.store_db())
+                    .unwrap()
+                    .execute_batch(
+                        "INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+                         VALUES ('view-a',43,'manifest-new','request-new','2026-09-04T00:00:01Z');
+                         UPDATE views SET current_generation=43 WHERE view_id='view-a';",
+                    )
+                    .unwrap();
+            }
+            "view-retirement" => {
+                Connection::open(layout.store_db())
+                    .unwrap()
+                    .execute(
+                        "UPDATE views SET current_generation=NULL WHERE view_id='view-a'",
+                        [],
+                    )
+                    .unwrap();
+            }
+            _ => unreachable!(),
+        }
+        resume.wait();
+        match worker.join().unwrap() {
+            Err(CoordinatorError::ReaderStaleSnapshot) => {}
+            Err(error) => panic!("{mutation} returned {error}"),
+            Ok(_) => panic!("{mutation} admission unexpectedly succeeded"),
+        }
+        assert_eq!(
+            Connection::open(layout.coordinator_db())
+                .unwrap()
+                .query_row("SELECT COUNT(*) FROM reader_registrations", [], |row| {
+                    row.get::<_, i64>(0)
+                })
+                .unwrap(),
+            0
+        );
+    }
+}
+
+#[cfg(feature = "test-store-contract")]
+#[test]
+fn admission_refuses_live_writer_and_maintenance_owners_without_partial_rows() {
+    for blocker in ["writer", "maintenance"] {
+        let temp = TempStore::new(blocker);
+        let layout = seeded_admission_store(&temp, 0);
+        let coordinator = Connection::open(layout.coordinator_db()).unwrap();
+        if blocker == "writer" {
+            coordinator
+                .execute(
+                    "INSERT INTO writer_lease
+                     (resource,holder_id,holder_version,holder_pid,heartbeat_at,expires_at,
+                      fencing_token)
+                     VALUES ('store-writer','foreign','2.40.0',?1,1,9223372036854775807,1)",
+                    [std::process::id()],
+                )
+                .unwrap();
+        } else {
+            coordinator
+                .execute(
+                    "INSERT INTO maintenance_intent
+                     (resource,run_id,action,source_generation_name,owner_id,owner_pid,
+                      fencing_token,heartbeat_at,expires_at,started_at,plan_fingerprint,
+                      source_min_writer_version)
+                     VALUES ('store-maintenance','foreign','gc','gen-001','foreign',?1,
+                             1,1,9223372036854775807,1,'foreign-plan','2.40.0')",
+                    [std::process::id()],
+                )
+                .unwrap();
+        }
+        drop(coordinator);
+        let owner_pid = std::process::id();
+        let request = ReaderAcquireRequest::new(
+            "family-a",
+            "view-a",
+            "gen-001",
+            "miller",
+            owner_pid,
+            "0123456789abcdef0123456789abcdef",
+            30_000,
+        );
+        let owner = FixedProcessIdentity(ProcessIdentityObservation::Alive(
+            ProcessInstanceIdentity::new(owner_pid, "opaque-birth-blocked"),
+        ));
+        let result = StoreCoordinator::open(&layout)
+            .unwrap()
+            .acquire_reader_with_probe(&request, &owner);
+        let error = match result {
+            Ok(_) => panic!("blocked admission unexpectedly succeeded"),
+            Err(error) => error,
+        };
+        if blocker == "writer" {
+            assert!(matches!(error, CoordinatorError::ReaderAdmissionBusy));
+        } else {
+            assert!(matches!(error, CoordinatorError::StoreConnection(_)));
+        }
+        assert_eq!(
+            Connection::open(layout.coordinator_db())
+                .unwrap()
+                .query_row("SELECT COUNT(*) FROM reader_registrations", [], |row| {
+                    row.get::<_, i64>(0)
+                })
+                .unwrap(),
+            0
+        );
+    }
+}
+
+#[cfg(feature = "test-store-contract")]
+#[test]
+fn first_time_floor_activation_allows_bounded_admission() {
+    let temp = TempStore::new("first-floor-admission");
+    let layout = seeded_admission_store_with_version(&temp, 100_000, "2.39.0");
+    let owner_pid = std::process::id();
+    let request = ReaderAcquireRequest::new(
+        "family-a",
+        "view-a",
+        "gen-001",
+        "miller",
+        owner_pid,
+        "0123456789abcdef0123456789abcdef",
+        30_000,
+    );
+    let owner = FixedProcessIdentity(ProcessIdentityObservation::Alive(
+        ProcessInstanceIdentity::new(owner_pid, "opaque-birth-floor"),
+    ));
+    let before = StoreCoordinator::open(&layout)
+        .unwrap()
+        .acquire_reader_with_probe(&request, &owner);
+    assert!(matches!(
+        before,
+        Err(CoordinatorError::ReaderWriterFloorRequired)
+    ));
+
+    MaintenanceExecutor::activate_reader_writer_floor(
+        StoreConnectionFactory::new(layout.clone(), "family-a", "2.40.0"),
+        MaintenanceRun::new("first-floor-run", "owner", std::process::id(), 100, 30_000),
+    )
+    .unwrap();
+    let mut evidence = Vec::new();
+    StoreCoordinator::open(&layout)
+        .unwrap()
+        .acquire_reader_with_probe_and_metrics(
+            &request,
+            &owner,
+            |label, vm_steps, fullscan_steps, query_plan| {
+                evidence.push(AdmissionStatementEvidence {
+                    label: label.to_owned(),
+                    vm_steps,
+                    fullscan_steps,
+                    query_plan: query_plan.to_vec(),
+                });
+            },
+        )
+        .unwrap();
+    assert!(!evidence.is_empty());
+    assert!(
+        evidence
+            .iter()
+            .all(|statement| statement.fullscan_steps == 0)
+    );
+    assert!(
+        evidence
+            .iter()
+            .flat_map(|statement| &statement.query_plan)
+            .all(|detail| {
+                !detail.contains("manifest_entries") && !detail.contains("file_versions")
+            })
+    );
+    eprintln!(
+        "first reader activation admission data_statements={} vm_steps={} fullscan_steps={}",
+        evidence.len(),
+        evidence
+            .iter()
+            .map(|statement| statement.vm_steps)
+            .sum::<i32>(),
+        evidence
+            .iter()
+            .map(|statement| statement.fullscan_steps)
+            .sum::<i32>()
+    );
+}
+
+#[cfg(feature = "test-store-contract")]
+#[test]
+fn renew_and_release_refuse_foreign_maintenance_intent() {
+    let temp = TempStore::new("mutation-maintenance");
+    let layout = seeded_admission_store(&temp, 0);
+    let owner_pid = std::process::id();
+    let nonce = "0123456789abcdef0123456789abcdef";
+    let request = ReaderAcquireRequest::new(
+        "family-a", "view-a", "gen-001", "miller", owner_pid, nonce, 30_000,
+    );
+    let owner = FixedProcessIdentity(ProcessIdentityObservation::Alive(
+        ProcessInstanceIdentity::new(owner_pid, "opaque-birth-maintenance-mutation"),
+    ));
+    let mut coordinator = StoreCoordinator::open(&layout).unwrap();
+    let acquired = coordinator
+        .acquire_reader_with_probe(&request, &owner)
+        .unwrap();
+    let pin_id = acquired.registration().identity().pin_id();
+    let intent = Connection::open(layout.coordinator_db()).unwrap();
+    intent
+        .execute(
+            "INSERT INTO maintenance_intent
+             (resource,run_id,action,source_generation_name,owner_id,owner_pid,
+              fencing_token,heartbeat_at,expires_at,started_at,plan_fingerprint,
+              source_min_writer_version)
+             VALUES ('store-maintenance','foreign','gc','gen-001','foreign',?1,
+                     1,1,9223372036854775807,1,'foreign-plan','2.40.0')",
+            [owner_pid],
+        )
+        .unwrap();
+
+    assert!(matches!(
+        coordinator.renew_reader_with_probe(
+            &ReaderRenewRequest::new("family-a", pin_id, nonce, owner_pid, 60_000),
+            &owner,
+        ),
+        Err(CoordinatorError::StoreConnection(_))
+    ));
+    assert!(matches!(
+        coordinator.release_reader(&ReaderReleaseRequest::new("family-a", pin_id, nonce)),
+        Err(CoordinatorError::StoreConnection(_))
+    ));
+    assert_eq!(
+        intent
+            .query_row("SELECT COUNT(*) FROM reader_registrations", [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .unwrap(),
+        1
+    );
+}
+
+#[cfg(feature = "test-store-contract")]
+#[test]
+fn renew_succeeds_while_ordinary_writer_lease_is_live() {
+    let temp = TempStore::new("renew-with-writer");
+    let layout = seeded_admission_store(&temp, 0);
+    let owner_pid = std::process::id();
+    let nonce = "0123456789abcdef0123456789abcdef";
+    let owner = FixedProcessIdentity(ProcessIdentityObservation::Alive(
+        ProcessInstanceIdentity::new(owner_pid, "opaque-birth-renew-writer"),
+    ));
+    let mut reader = StoreCoordinator::open(&layout).unwrap();
+    let acquired = reader
+        .acquire_reader_with_probe(
+            &ReaderAcquireRequest::new(
+                "family-a", "view-a", "gen-001", "miller", owner_pid, nonce, 30_000,
+            ),
+            &owner,
+        )
+        .unwrap();
+    let mut writer = StoreCoordinator::open(&layout).unwrap();
+    assert!(
+        writer
+            .try_acquire_or_takeover_now(LeaseHolder::new("writer", "2.40.0", owner_pid))
+            .unwrap()
+            .acquired()
+    );
+
+    let renewed = reader
+        .renew_reader_with_probe(
+            &ReaderRenewRequest::new(
+                "family-a",
+                acquired.registration().identity().pin_id(),
+                nonce,
+                owner_pid,
+                60_000,
+            ),
+            &owner,
+        )
+        .unwrap();
+    assert!(renewed.expires_at() > acquired.registration().expires_at());
+}
+
+#[cfg(feature = "test-store-contract")]
+#[test]
+fn release_succeeds_while_ordinary_writer_lease_is_live() {
+    let temp = TempStore::new("release-with-writer");
+    let layout = seeded_admission_store(&temp, 0);
+    let owner_pid = std::process::id();
+    let nonce = "0123456789abcdef0123456789abcdef";
+    let owner = FixedProcessIdentity(ProcessIdentityObservation::Alive(
+        ProcessInstanceIdentity::new(owner_pid, "opaque-birth-release-writer"),
+    ));
+    let mut reader = StoreCoordinator::open(&layout).unwrap();
+    let acquired = reader
+        .acquire_reader_with_probe(
+            &ReaderAcquireRequest::new(
+                "family-a", "view-a", "gen-001", "miller", owner_pid, nonce, 30_000,
+            ),
+            &owner,
+        )
+        .unwrap();
+    let mut writer = StoreCoordinator::open(&layout).unwrap();
+    assert!(
+        writer
+            .try_acquire_or_takeover_now(LeaseHolder::new("writer", "2.40.0", owner_pid))
+            .unwrap()
+            .acquired()
+    );
+
+    assert!(
+        reader
+            .release_reader(&ReaderReleaseRequest::new(
+                "family-a",
+                acquired.registration().identity().pin_id(),
+                nonce,
+            ))
+            .unwrap()
+    );
+}
+
+#[cfg(feature = "test-store-contract")]
+#[test]
+fn reader_validation_matches_sqlite_character_lengths_and_refuses_overflow() {
+    let temp = TempStore::new("reader-validation");
+    let layout = seeded_admission_store(&temp, 0);
+    let owner_pid = std::process::id();
+    let owner = FixedProcessIdentity(ProcessIdentityObservation::Alive(
+        ProcessInstanceIdentity::new(owner_pid, "opaque-birth-validation"),
+    ));
+    let nonce = "0123456789abcdef0123456789abcdef";
+    let mut coordinator = StoreCoordinator::open(&layout).unwrap();
+    let acquired = coordinator
+        .acquire_reader_with_probe(
+            &ReaderAcquireRequest::new(
+                "family-a",
+                "view-a",
+                "gen-001",
+                "é".repeat(128),
+                owner_pid,
+                nonce,
+                30_000,
+            ),
+            &owner,
+        )
+        .unwrap();
+    let pin_id = acquired.registration().identity().pin_id();
+    assert!(matches!(
+        coordinator.acquire_reader_with_probe(
+            &ReaderAcquireRequest::new(
+                "family-a",
+                "view-a",
+                "gen-001",
+                "é".repeat(129),
+                owner_pid,
+                "fedcba9876543210fedcba9876543210",
+                30_000,
+            ),
+            &owner,
+        ),
+        Err(CoordinatorError::InvalidRequest)
+    ));
+    assert!(matches!(
+        coordinator.renew_reader_with_probe(
+            &ReaderRenewRequest::new("family-a", pin_id, nonce, owner_pid, u64::MAX),
+            &owner,
+        ),
+        Err(CoordinatorError::InvalidTime { .. })
+    ));
+    assert!(matches!(
+        coordinator.release_reader(&ReaderReleaseRequest::new(
+            "family-a",
+            pin_id,
+            "short-nonce"
+        )),
+        Err(CoordinatorError::InvalidRequest)
+    ));
+    assert_eq!(
+        Connection::open(layout.coordinator_db())
+            .unwrap()
+            .query_row("SELECT COUNT(*) FROM reader_registrations", [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .unwrap(),
+        1
+    );
 }
 
 #[test]
@@ -810,6 +2022,218 @@ fn insert_registration(
             fields.snapshot_fingerprint,
         ],
     )
+}
+
+#[cfg(feature = "test-store-contract")]
+struct FixedProcessIdentity(ProcessIdentityObservation);
+
+#[cfg(feature = "test-store-contract")]
+impl ProcessIdentityProbe for FixedProcessIdentity {
+    fn inspect(&self, _pid: u32) -> ProcessIdentityObservation {
+        self.0.clone()
+    }
+}
+
+#[cfg(feature = "test-store-contract")]
+struct TransactionObservingProbe {
+    coordinator_db: std::path::PathBuf,
+    observed_transaction: Arc<AtomicBool>,
+    birth_identity: String,
+}
+
+#[cfg(feature = "test-store-contract")]
+impl TransactionObservingProbe {
+    fn new(
+        coordinator_db: &Path,
+        observed_transaction: Arc<AtomicBool>,
+        birth_identity: &str,
+    ) -> Self {
+        Self {
+            coordinator_db: coordinator_db.to_path_buf(),
+            observed_transaction,
+            birth_identity: birth_identity.to_string(),
+        }
+    }
+}
+
+#[cfg(feature = "test-store-contract")]
+impl ProcessIdentityProbe for TransactionObservingProbe {
+    fn inspect(&self, pid: u32) -> ProcessIdentityObservation {
+        let mut connection = Connection::open(&self.coordinator_db).unwrap();
+        connection.busy_timeout(std::time::Duration::ZERO).unwrap();
+        let held = match connection.transaction_with_behavior(TransactionBehavior::Immediate) {
+            Ok(transaction) => {
+                drop(transaction);
+                false
+            }
+            Err(rusqlite::Error::SqliteFailure(error, _))
+                if matches!(
+                    error.code,
+                    rusqlite::ErrorCode::DatabaseBusy | rusqlite::ErrorCode::DatabaseLocked
+                ) =>
+            {
+                true
+            }
+            Err(error) => panic!("identity probe transaction check failed: {error}"),
+        };
+        self.observed_transaction.store(held, Ordering::SeqCst);
+        ProcessIdentityObservation::Alive(ProcessInstanceIdentity::new(pid, &self.birth_identity))
+    }
+}
+
+#[cfg(feature = "test-store-contract")]
+fn seeded_admission_store(temp: &TempStore, manifest_entries: i64) -> StoreLayout {
+    seeded_admission_store_with_version(temp, manifest_entries, "2.40.0")
+}
+
+#[cfg(feature = "test-store-contract")]
+fn seeded_admission_store_with_version(
+    temp: &TempStore,
+    manifest_entries: i64,
+    creator_version: &str,
+) -> StoreLayout {
+    let layout = StoreLayout::create(temp.path(), "family-a", creator_version, 9).unwrap();
+    let store = Connection::open(layout.store_db()).unwrap();
+    store
+        .execute_batch(
+            "INSERT INTO views(view_id,root,current_generation,created_at,updated_at)
+             VALUES ('view-a','/repo',NULL,'2026-09-04T00:00:00Z','2026-09-04T00:00:00Z');
+             INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at)
+             VALUES ('view-a',42,'manifest-hash','request-a','2026-09-04T00:00:00Z');
+             UPDATE views SET current_generation=42 WHERE view_id='view-a';
+             INSERT INTO store_log
+               (sequence,request_id,event_kind,view_id,generation,payload_json,created_at)
+             VALUES (700,'request-a','manifest_flipped','view-a',42,'{}','2026-09-04T00:00:00Z');",
+        )
+        .unwrap();
+    if manifest_entries > 0 {
+        store
+            .execute(
+                "WITH RECURSIVE entries(number) AS (
+                   SELECT 1 UNION ALL SELECT number+1 FROM entries WHERE number<?1
+                 )
+                 INSERT INTO manifest_entries
+                   (view_id,generation,path,language,version_id,status,observed_content_hash,
+                    indexed_at,error_class,error_json)
+                 SELECT 'view-a',42,printf('src/%06d.rs',number),'rust',NULL,'failed','hash',
+                        '2026-09-04T00:00:00Z','parse','{}'
+                 FROM entries",
+                [manifest_entries],
+            )
+            .unwrap();
+    }
+    drop(store);
+    let coordinator = Connection::open(layout.coordinator_db()).unwrap();
+    coordinator
+        .execute(
+            "INSERT INTO family_allocator_marks(allocator_kind,scope_id,high_water,updated_at)
+             VALUES ('store_log','',700,1)",
+            [],
+        )
+        .unwrap();
+    layout
+}
+
+#[cfg(feature = "test-store-contract")]
+fn seeded_manifest_log_store(
+    temp: &TempStore,
+    retain_later_log: bool,
+    prune_manifest_log: bool,
+) -> (StoreLayout, i64, i64) {
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.40.0", 9).unwrap();
+    let mut coordinator = StoreCoordinator::open(&layout).unwrap();
+    coordinator
+        .enqueue(CoordinatorRequest::new(
+            "request-a",
+            "request-a-key",
+            RequestKind::Import,
+            "{}",
+            "reader-test",
+            i64::MAX,
+            1,
+        ))
+        .unwrap();
+    let mut store = Connection::open(layout.store_db()).unwrap();
+    ManifestStore::new(&mut store)
+        .ensure_view("view-a", "/repo")
+        .unwrap();
+    let published = ManifestStore::new(&mut store)
+        .publish("view-a", None, std::iter::empty(), "request-a")
+        .unwrap();
+    let original_manifest_sequence = published.effect_sequence.unwrap();
+    let transaction = store.transaction().unwrap();
+    let terminal_a = StoreLog::append_terminal(
+        &transaction,
+        &StoreLogEntry::new(
+            "request-a",
+            "store_import_completed",
+            "{}",
+            "2026-09-04T00:00:01Z",
+        )
+        .with_view("view-a")
+        .with_generation(published.generation),
+    )
+    .unwrap();
+    transaction.commit().unwrap();
+    drop(store);
+    coordinator.reconcile("request-a").unwrap();
+    assert_eq!(
+        coordinator
+            .archive_terminal_requests("gen-001", i64::MAX, terminal_a, 10)
+            .unwrap()
+            .len(),
+        1
+    );
+
+    let expected_served_sequence = if retain_later_log {
+        coordinator
+            .enqueue(CoordinatorRequest::new(
+                "request-b",
+                "request-b-key",
+                RequestKind::Update,
+                "{}",
+                "reader-test",
+                i64::MAX,
+                2,
+            ))
+            .unwrap();
+        let mut store = Connection::open(layout.store_db()).unwrap();
+        let transaction = store.transaction().unwrap();
+        let terminal_b = StoreLog::append_terminal(
+            &transaction,
+            &StoreLogEntry::new(
+                "request-b",
+                "store_update_completed",
+                "{}",
+                "2026-09-04T00:00:02Z",
+            ),
+        )
+        .unwrap();
+        transaction.commit().unwrap();
+        drop(store);
+        coordinator.reconcile("request-b").unwrap();
+        terminal_b
+    } else {
+        0
+    };
+    let store = Connection::open(layout.store_db()).unwrap();
+    if prune_manifest_log {
+        let transaction = store.unchecked_transaction().unwrap();
+        assert_eq!(
+            StoreLog::prune_receipted_request(&transaction, "request-a", terminal_a).unwrap(),
+            2
+        );
+        transaction.commit().unwrap();
+    }
+    assert_eq!(
+        store
+            .query_row("SELECT COUNT(*) FROM store_log", [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .unwrap(),
+        i64::from(retain_later_log) + if prune_manifest_log { 0 } else { 2 }
+    );
+    (layout, original_manifest_sequence, expected_served_sequence)
 }
 
 fn metadata(connection: &Connection, key: &str) -> String {

@@ -8,7 +8,12 @@ use std::sync::atomic::{AtomicBool, AtomicI64, Ordering as AtomicOrdering};
 use std::sync::{Arc, Mutex, MutexGuard, mpsc};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use rusqlite::{Connection, OptionalExtension, Transaction, TransactionBehavior, params};
+#[cfg(feature = "test-store-contract")]
+use rusqlite::StatementStatus;
+use rusqlite::{
+    Connection, ErrorCode, OpenFlags, OptionalExtension, Row, ToSql, Transaction,
+    TransactionBehavior, params,
+};
 
 use super::connection::{
     compare_versions as compare_store_versions, extractor_downgrade_allowed,
@@ -16,10 +21,13 @@ use super::connection::{
 };
 use super::layout::valid_generation_name;
 use super::pragmas::{PragmaError, WriterPragmaProfile, configure_writer_pragmas};
+use super::schema::{ReaderCatalogState, reader_catalog_state};
 use super::wal_retry::{is_locking_protocol, with_locking_protocol_retry};
 use super::{
-    GenerationFence, StoreConnectionError, StoreConnectionFactory, StoreLayout, StoreLog,
-    StoreLogEntry,
+    GenerationFence, ProcessIdentityObservation, ProcessIdentityProbe, READER_MIN_WRITER_VERSION,
+    ReaderAcquireRequest, ReaderAcquireResult, ReaderManifestSnapshot, ReaderOwnerIdentity,
+    ReaderRegistration, ReaderReleaseRequest, ReaderRenewRequest, StoreConnectionError,
+    StoreConnectionFactory, StoreLayout, StoreLog, StoreLogEntry, SystemProcessIdentityProbe,
 };
 
 const STORE_WRITER_RESOURCE: &str = "store-writer";
@@ -29,6 +37,7 @@ const DEFAULT_INTERACTIVE_BURST_COUNT: usize = 32;
 const DEFAULT_INTERACTIVE_BURST_MS: i64 = 250;
 const DEFAULT_SERVICE_WINDOW_MS: i64 = 1_000;
 const COORDINATOR_BUSY_TIMEOUT: Duration = Duration::from_secs(5);
+type ReaderAdmissionObserver<'a> = dyn FnMut(&str, i32, i32, &[String]) + 'a;
 /// Attempts a single heartbeat tick makes before declaring the writer lease lost. One transient failure must
 /// not collect a whole scan's work (see the retry loop in [`LeaseHeartbeatGuard::start`]).
 const HEARTBEAT_RENEWAL_ATTEMPTS: u32 = 3;
@@ -481,6 +490,13 @@ pub enum CoordinatorError {
         elapsed_ms: i64,
         maximum_ms: i64,
     },
+    ReaderNotFound,
+    ReaderOwnerMismatch,
+    ReaderIdentityUnknown,
+    ReaderStaleSnapshot,
+    ReaderWriterFloorRequired,
+    ReaderAdmissionBusy,
+    ReaderOperational,
     Sqlite(rusqlite::Error),
     StoreLog(super::StoreLogError),
     StoreConnection(StoreConnectionError),
@@ -569,6 +585,17 @@ impl fmt::Display for CoordinatorError {
                 formatter,
                 "{QUANTUM_OVERRUN_CODE}: request {request_id:?} took {elapsed_ms} ms; maximum is {maximum_ms} ms"
             ),
+            Self::ReaderNotFound => write!(formatter, "reader registration was not found"),
+            Self::ReaderOwnerMismatch => write!(formatter, "reader owner authentication failed"),
+            Self::ReaderIdentityUnknown => {
+                write!(formatter, "reader process identity could not be verified")
+            }
+            Self::ReaderStaleSnapshot => write!(formatter, "reader snapshot is stale"),
+            Self::ReaderWriterFloorRequired => {
+                write!(formatter, "reader writer floor must be activated")
+            }
+            Self::ReaderAdmissionBusy => write!(formatter, "reader admission is busy"),
+            Self::ReaderOperational => write!(formatter, "reader admission failed"),
             Self::Sqlite(error) => error.fmt(formatter),
             Self::StoreLog(error) => error.fmt(formatter),
             Self::StoreConnection(error) => error.fmt(formatter),
@@ -2068,6 +2095,287 @@ impl StoreCoordinator {
         Ok(archived)
     }
 
+    pub fn acquire_reader(
+        &mut self,
+        request: &ReaderAcquireRequest,
+    ) -> Result<ReaderAcquireResult, CoordinatorError> {
+        self.acquire_reader_with_probe_impl(request, &SystemProcessIdentityProbe, None, None)
+    }
+
+    #[cfg(feature = "test-store-contract")]
+    #[doc(hidden)]
+    pub fn acquire_reader_with_probe(
+        &mut self,
+        request: &ReaderAcquireRequest,
+        probe: &dyn ProcessIdentityProbe,
+    ) -> Result<ReaderAcquireResult, CoordinatorError> {
+        self.acquire_reader_with_probe_impl(request, probe, None, None)
+    }
+
+    #[cfg(feature = "test-store-contract")]
+    #[doc(hidden)]
+    pub fn acquire_reader_with_probe_and_barrier(
+        &mut self,
+        request: &ReaderAcquireRequest,
+        probe: &dyn ProcessIdentityProbe,
+        mut barrier: impl FnMut(),
+    ) -> Result<ReaderAcquireResult, CoordinatorError> {
+        self.acquire_reader_with_probe_impl(request, probe, Some(&mut barrier), None)
+    }
+
+    #[cfg(feature = "test-store-contract")]
+    #[doc(hidden)]
+    pub fn acquire_reader_with_probe_and_metrics(
+        &mut self,
+        request: &ReaderAcquireRequest,
+        probe: &dyn ProcessIdentityProbe,
+        mut observe: impl FnMut(&str, i32, i32, &[String]),
+    ) -> Result<ReaderAcquireResult, CoordinatorError> {
+        self.acquire_reader_with_probe_impl(request, probe, None, Some(&mut observe))
+    }
+
+    fn acquire_reader_with_probe_impl(
+        &mut self,
+        request: &ReaderAcquireRequest,
+        probe: &dyn ProcessIdentityProbe,
+        mut before_revalidation: Option<&mut dyn FnMut()>,
+        mut admission_observer: Option<&mut ReaderAdmissionObserver<'_>>,
+    ) -> Result<ReaderAcquireResult, CoordinatorError> {
+        validate_acquire_request(request)?;
+        let now = self.clock.now_ms();
+        if now < 0 {
+            return Err(CoordinatorError::InvalidTime {
+                field: "reader_acquired_at",
+                value: now,
+            });
+        }
+        let lease_ms =
+            i64::try_from(request.lease_ms()).map_err(|_| CoordinatorError::InvalidTime {
+                field: "reader_lease_ms",
+                value: i64::MAX,
+            })?;
+        let expires_at = now
+            .checked_add(lease_ms)
+            .ok_or(CoordinatorError::InvalidTime {
+                field: "reader_expires_at",
+                value: i64::MAX,
+            })?;
+        ensure_reader_writer_floor(&self.store_db, &mut admission_observer)?;
+        let pin_id = new_reader_pin_id()?;
+
+        let mut connection = self.coordinator();
+        let transaction = begin_coordinator(&mut connection)?;
+        validate_reader_catalog(&transaction)?;
+        refuse_foreign_live_maintenance_intent(&transaction, now)?;
+        refuse_live_writer_lease(&transaction, now)?;
+        let owner = verified_reader_owner(probe, request.owner_pid())?;
+
+        if let Some(existing) =
+            read_reader_registration_by_nonce(&transaction, request.owner_nonce())?
+        {
+            authenticate_acquire_replay(&existing, request, owner.birth_identity())?;
+            transaction.commit().map_err(map_reader_sqlite_error)?;
+            return Ok(ReaderAcquireResult::new(existing));
+        }
+
+        if request.family_id() != self.family_id
+            || request.generation_name() != self.layout.generation_name()
+        {
+            return Err(CoordinatorError::ReaderStaleSnapshot);
+        }
+        let allocator_high_water = transaction
+            .query_row(
+                "SELECT high_water FROM family_allocator_marks
+                 WHERE allocator_kind='store_log' AND scope_id=''",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .optional()
+            .map_err(map_reader_sqlite_error)?
+            .ok_or(CoordinatorError::ReaderStaleSnapshot)?;
+
+        let mut store = open_reader_admission_store(&self.store_db)?;
+        let store_transaction = store
+            .transaction_with_behavior(TransactionBehavior::Deferred)
+            .map_err(map_reader_sqlite_error)?;
+        let start_data_version = reader_query_row(
+            &store_transaction,
+            "snapshot_data_version_start",
+            "PRAGMA data_version",
+            &[],
+            &mut admission_observer,
+            |row| row.get::<_, i64>(0),
+        )?;
+        let snapshot = read_reader_manifest_snapshot(
+            &store_transaction,
+            request,
+            allocator_high_water,
+            &mut admission_observer,
+        )?;
+        if let Some(barrier) = before_revalidation.as_mut() {
+            barrier();
+        }
+        let end_data_version = reader_query_row(
+            &store_transaction,
+            "snapshot_data_version_end",
+            "PRAGMA data_version",
+            &[],
+            &mut admission_observer,
+            |row| row.get::<_, i64>(0),
+        )?;
+        if start_data_version != end_data_version
+            || !current_generation_matches(&self.layout)
+            || !reader_manifest_snapshot_is_current(
+                &self.store_db,
+                request,
+                &snapshot,
+                &mut admission_observer,
+            )?
+        {
+            return Err(CoordinatorError::ReaderStaleSnapshot);
+        }
+        refuse_foreign_live_maintenance_intent(&transaction, now)?;
+        refuse_live_writer_lease(&transaction, now)?;
+
+        let identity = ReaderOwnerIdentity::new(
+            pin_id,
+            request.owner_nonce(),
+            request.owner_label(),
+            request.owner_pid(),
+            owner.birth_identity(),
+        );
+        let registration = ReaderRegistration::new(identity, snapshot, now, now, expires_at);
+        insert_reader_registration(&transaction, &registration)?;
+        transaction.commit().map_err(map_reader_sqlite_error)?;
+        drop(store_transaction);
+        Ok(ReaderAcquireResult::new(registration))
+    }
+
+    pub fn renew_reader(
+        &mut self,
+        request: &ReaderRenewRequest,
+    ) -> Result<ReaderRegistration, CoordinatorError> {
+        self.renew_reader_with_probe_impl(request, &SystemProcessIdentityProbe)
+    }
+
+    #[cfg(feature = "test-store-contract")]
+    #[doc(hidden)]
+    pub fn renew_reader_with_probe(
+        &mut self,
+        request: &ReaderRenewRequest,
+        probe: &dyn ProcessIdentityProbe,
+    ) -> Result<ReaderRegistration, CoordinatorError> {
+        self.renew_reader_with_probe_impl(request, probe)
+    }
+
+    fn renew_reader_with_probe_impl(
+        &mut self,
+        request: &ReaderRenewRequest,
+        probe: &dyn ProcessIdentityProbe,
+    ) -> Result<ReaderRegistration, CoordinatorError> {
+        validate_renew_request(request)?;
+        let now = self.clock.now_ms();
+        let expires_at = reader_expiry(now, request.lease_ms())?;
+
+        let mut connection = self.coordinator();
+        let transaction = begin_coordinator(&mut connection)?;
+        refuse_foreign_live_maintenance_intent(&transaction, now)?;
+        let owner = verified_reader_owner(probe, request.owner_pid())?;
+        let existing = read_reader_registration_by_pin(&transaction, request.pin_id())?
+            .ok_or(CoordinatorError::ReaderNotFound)?;
+        if existing.snapshot().family_id() != request.family_id()
+            || existing.identity().owner_nonce() != request.owner_nonce()
+            || existing.identity().owner_pid() != request.owner_pid()
+        {
+            return Err(CoordinatorError::ReaderOwnerMismatch);
+        }
+        if existing.identity().owner_birth_identity() != owner.birth_identity() {
+            return Err(CoordinatorError::ReaderOwnerMismatch);
+        }
+        let changed = transaction
+            .execute(
+                "UPDATE reader_registrations
+                 SET heartbeat_at=?1,expires_at=?2
+                 WHERE pin_id=?3 AND family_id=?4 AND owner_nonce=?5 AND owner_pid=?6
+                   AND owner_birth_identity=?7",
+                params![
+                    now,
+                    expires_at,
+                    request.pin_id(),
+                    request.family_id(),
+                    request.owner_nonce(),
+                    request.owner_pid(),
+                    owner.birth_identity(),
+                ],
+            )
+            .map_err(map_reader_sqlite_error)?;
+        if changed != 1 {
+            return Err(CoordinatorError::ReaderOwnerMismatch);
+        }
+        let renewed = ReaderRegistration::new(
+            existing.identity().clone(),
+            existing.snapshot().clone(),
+            existing.acquired_at(),
+            now,
+            expires_at,
+        );
+        transaction.commit().map_err(map_reader_sqlite_error)?;
+        Ok(renewed)
+    }
+
+    pub fn release_reader(
+        &mut self,
+        request: &ReaderReleaseRequest,
+    ) -> Result<bool, CoordinatorError> {
+        validate_release_request(request)?;
+        let now = self.clock.now_ms();
+        if now < 0 {
+            return Err(CoordinatorError::InvalidTime {
+                field: "reader_release_at",
+                value: now,
+            });
+        }
+        let mut connection = self.coordinator();
+        let transaction = begin_coordinator(&mut connection)?;
+        refuse_foreign_live_maintenance_intent(&transaction, now)?;
+        let Some(existing) = read_reader_registration_by_pin(&transaction, request.pin_id())?
+        else {
+            transaction.commit().map_err(map_reader_sqlite_error)?;
+            return Ok(false);
+        };
+        if existing.snapshot().family_id() != request.family_id()
+            || existing.identity().owner_nonce() != request.owner_nonce()
+        {
+            return Err(CoordinatorError::ReaderOwnerMismatch);
+        }
+        let changed = transaction
+            .execute(
+                "DELETE FROM reader_registrations
+                 WHERE pin_id=?1 AND family_id=?2 AND owner_nonce=?3",
+                params![request.pin_id(), request.family_id(), request.owner_nonce()],
+            )
+            .map_err(map_reader_sqlite_error)?;
+        transaction.commit().map_err(map_reader_sqlite_error)?;
+        Ok(changed == 1)
+    }
+
+    pub fn reader_registration(
+        &self,
+        request: &ReaderReleaseRequest,
+    ) -> Result<Option<ReaderRegistration>, CoordinatorError> {
+        validate_release_request(request)?;
+        let connection = self.coordinator();
+        let Some(existing) = read_reader_registration_by_pin(&connection, request.pin_id())? else {
+            return Ok(None);
+        };
+        if existing.snapshot().family_id() != request.family_id()
+            || existing.identity().owner_nonce() != request.owner_nonce()
+        {
+            return Err(CoordinatorError::ReaderOwnerMismatch);
+        }
+        Ok(Some(existing))
+    }
+
     pub fn advance_consumer_cursor(
         &mut self,
         consumer_id: &str,
@@ -2570,6 +2878,559 @@ fn refuse_foreign_live_maintenance_intent(
         ));
     }
     Ok(())
+}
+
+const READER_STORE_FAMILY_SQL: &str = "SELECT value FROM store_meta WHERE key='family_id'";
+const READER_EXTRACTION_EPOCH_SQL: &str =
+    "SELECT value FROM store_meta WHERE key='extraction_identity_epoch'";
+const READER_MIN_WRITER_SQL: &str = "SELECT value FROM store_meta WHERE key='min_writer_version'";
+const READER_MANIFEST_SQL: &str = "SELECT v.current_generation,m.manifest_hash,m.request_id
+     FROM views AS v
+     JOIN manifests AS m
+       ON m.view_id=v.view_id AND m.generation=v.current_generation
+     WHERE v.view_id=?1";
+const READER_SERVED_SEQUENCE_SQL: &str = "SELECT MAX(sequence) FROM store_log";
+const READER_RETAINED_SEQUENCE_SQL: &str = "SELECT sequence FROM store_log
+     WHERE request_id=?1 AND event_kind='manifest_flipped'
+       AND view_id=?2 AND generation=?3
+     ORDER BY sequence DESC LIMIT 1";
+
+fn refuse_live_writer_lease(conn: &Connection, now: i64) -> Result<(), CoordinatorError> {
+    let live = conn
+        .query_row(
+            "SELECT 1 FROM writer_lease
+             WHERE resource=?1 AND expires_at>?2 LIMIT 1",
+            params![STORE_WRITER_RESOURCE, now],
+            |_| Ok(()),
+        )
+        .optional()
+        .map_err(map_reader_sqlite_error)?;
+    if live.is_some() {
+        return Err(CoordinatorError::ReaderAdmissionBusy);
+    }
+    Ok(())
+}
+
+fn validate_reader_catalog(conn: &Connection) -> Result<(), CoordinatorError> {
+    match reader_catalog_state(conn) {
+        Ok(ReaderCatalogState::Valid) => Ok(()),
+        Ok(ReaderCatalogState::WhollyAbsent) | Err(_) => Err(CoordinatorError::ReaderOperational),
+    }
+}
+
+fn validate_acquire_request(request: &ReaderAcquireRequest) -> Result<(), CoordinatorError> {
+    validate_reader_text(request.family_id(), 1, 128)?;
+    validate_reader_text(request.view_id(), 1, 128)?;
+    validate_reader_text(request.generation_name(), 1, 128)?;
+    if !valid_generation_name(request.generation_name()) {
+        return Err(CoordinatorError::InvalidRequest);
+    }
+    validate_reader_text(request.owner_label(), 1, 128)?;
+    validate_reader_text(request.owner_nonce(), 32, 512)?;
+    if request.owner_pid() == 0 || request.lease_ms() == 0 {
+        return Err(CoordinatorError::InvalidRequest);
+    }
+    Ok(())
+}
+
+fn verified_reader_owner(
+    probe: &dyn ProcessIdentityProbe,
+    owner_pid: u32,
+) -> Result<super::ProcessInstanceIdentity, CoordinatorError> {
+    let owner = match probe.inspect(owner_pid) {
+        ProcessIdentityObservation::Alive(owner) if owner.pid() == owner_pid => owner,
+        ProcessIdentityObservation::Alive(_)
+        | ProcessIdentityObservation::Terminated(_)
+        | ProcessIdentityObservation::Absent
+        | ProcessIdentityObservation::Unknown(_) => {
+            return Err(CoordinatorError::ReaderIdentityUnknown);
+        }
+    };
+    validate_reader_text(owner.birth_identity(), 1, 512)?;
+    Ok(owner)
+}
+
+fn validate_renew_request(request: &ReaderRenewRequest) -> Result<(), CoordinatorError> {
+    validate_reader_text(request.family_id(), 1, 128)?;
+    validate_reader_text(request.pin_id(), 1, 128)?;
+    validate_reader_text(request.owner_nonce(), 32, 512)?;
+    if request.owner_pid() == 0 || request.lease_ms() == 0 {
+        return Err(CoordinatorError::InvalidRequest);
+    }
+    Ok(())
+}
+
+fn validate_release_request(request: &ReaderReleaseRequest) -> Result<(), CoordinatorError> {
+    validate_reader_text(request.family_id(), 1, 128)?;
+    validate_reader_text(request.pin_id(), 1, 128)?;
+    validate_reader_text(request.owner_nonce(), 32, 512)
+}
+
+fn reader_expiry(now: i64, lease_ms: u64) -> Result<i64, CoordinatorError> {
+    if now < 0 {
+        return Err(CoordinatorError::InvalidTime {
+            field: "reader_heartbeat_at",
+            value: now,
+        });
+    }
+    let lease_ms = i64::try_from(lease_ms).map_err(|_| CoordinatorError::InvalidTime {
+        field: "reader_lease_ms",
+        value: i64::MAX,
+    })?;
+    now.checked_add(lease_ms)
+        .ok_or(CoordinatorError::InvalidTime {
+            field: "reader_expires_at",
+            value: i64::MAX,
+        })
+}
+
+fn validate_reader_text(
+    value: &str,
+    minimum: usize,
+    maximum: usize,
+) -> Result<(), CoordinatorError> {
+    let length = value.chars().count();
+    if length < minimum || length > maximum || value.contains('\0') {
+        return Err(CoordinatorError::InvalidRequest);
+    }
+    Ok(())
+}
+
+fn new_reader_pin_id() -> Result<String, CoordinatorError> {
+    let mut bytes = [0_u8; 16];
+    getrandom::fill(&mut bytes).map_err(|_| CoordinatorError::ReaderOperational)?;
+    let mut pin_id = String::with_capacity(39);
+    pin_id.push_str("reader-");
+    for byte in bytes {
+        std::fmt::Write::write_fmt(&mut pin_id, format_args!("{byte:02x}"))
+            .map_err(|_| CoordinatorError::ReaderOperational)?;
+    }
+    Ok(pin_id)
+}
+
+fn open_reader_admission_store(path: &Path) -> Result<Connection, CoordinatorError> {
+    let connection = Connection::open_with_flags(
+        path,
+        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+    )
+    .map_err(map_reader_sqlite_error)?;
+    connection
+        .busy_timeout(Duration::ZERO)
+        .map_err(map_reader_sqlite_error)?;
+    connection
+        .execute_batch("PRAGMA foreign_keys=ON; PRAGMA query_only=ON;")
+        .map_err(map_reader_sqlite_error)?;
+    Ok(connection)
+}
+
+fn ensure_reader_writer_floor(
+    store_path: &Path,
+    observer: &mut Option<&mut ReaderAdmissionObserver<'_>>,
+) -> Result<(), CoordinatorError> {
+    let store = open_reader_admission_store(store_path)?;
+    let min_writer_version = reader_query_row(
+        &store,
+        "writer_floor_preflight",
+        READER_MIN_WRITER_SQL,
+        &[],
+        observer,
+        |row| row.get::<_, String>(0),
+    )?;
+    if compare_versions(&min_writer_version, READER_MIN_WRITER_VERSION)? == Ordering::Less {
+        return Err(CoordinatorError::ReaderWriterFloorRequired);
+    }
+    Ok(())
+}
+
+fn read_reader_manifest_snapshot(
+    store: &Connection,
+    request: &ReaderAcquireRequest,
+    allocator_high_water: i64,
+    observer: &mut Option<&mut ReaderAdmissionObserver<'_>>,
+) -> Result<ReaderManifestSnapshot, CoordinatorError> {
+    let family_id = reader_query_row(
+        store,
+        "store_family",
+        READER_STORE_FAMILY_SQL,
+        &[],
+        observer,
+        |row| row.get::<_, String>(0),
+    )?;
+    let extraction_identity_epoch = reader_query_row(
+        store,
+        "extraction_identity_epoch",
+        READER_EXTRACTION_EPOCH_SQL,
+        &[],
+        observer,
+        |row| row.get::<_, String>(0),
+    )?
+    .parse::<i64>()
+    .map_err(|_| CoordinatorError::ReaderStaleSnapshot)?;
+    let min_writer_version = reader_query_row(
+        store,
+        "writer_floor_snapshot",
+        READER_MIN_WRITER_SQL,
+        &[],
+        observer,
+        |row| row.get::<_, String>(0),
+    )?;
+    if family_id != request.family_id() {
+        return Err(CoordinatorError::ReaderStaleSnapshot);
+    }
+    if compare_versions(&min_writer_version, READER_MIN_WRITER_VERSION)? == Ordering::Less {
+        return Err(CoordinatorError::ReaderWriterFloorRequired);
+    }
+    let manifest_params: &[&dyn ToSql] = &[&request.view_id()];
+    let (manifest_generation, manifest_hash, manifest_request_id) = reader_query_optional(
+        store,
+        "current_manifest",
+        READER_MANIFEST_SQL,
+        manifest_params,
+        observer,
+        |row| {
+            Ok((
+                row.get::<_, i64>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+            ))
+        },
+    )?
+    .ok_or(CoordinatorError::ReaderStaleSnapshot)?;
+    let served_store_log_sequence = reader_query_row(
+        store,
+        "retained_store_log_high_water",
+        READER_SERVED_SEQUENCE_SQL,
+        &[],
+        observer,
+        |row| row.get::<_, Option<i64>>(0),
+    )?
+    .unwrap_or(0);
+    let retained_params: &[&dyn ToSql] = &[
+        &manifest_request_id,
+        &request.view_id(),
+        &manifest_generation,
+    ];
+    let min_retained_store_log_sequence = reader_query_optional(
+        store,
+        "original_manifest_flip",
+        READER_RETAINED_SEQUENCE_SQL,
+        retained_params,
+        observer,
+        |row| row.get::<_, i64>(0),
+    )?
+    .unwrap_or(served_store_log_sequence);
+    if served_store_log_sequence > allocator_high_water
+        || min_retained_store_log_sequence > served_store_log_sequence
+    {
+        return Err(CoordinatorError::ReaderStaleSnapshot);
+    }
+    Ok(ReaderManifestSnapshot::new(
+        family_id,
+        request.view_id(),
+        manifest_generation,
+        request.generation_name(),
+        manifest_hash,
+        extraction_identity_epoch,
+        served_store_log_sequence,
+        min_retained_store_log_sequence,
+    ))
+}
+
+fn reader_manifest_snapshot_is_current(
+    store_path: &Path,
+    request: &ReaderAcquireRequest,
+    snapshot: &ReaderManifestSnapshot,
+    observer: &mut Option<&mut ReaderAdmissionObserver<'_>>,
+) -> Result<bool, CoordinatorError> {
+    let store = open_reader_admission_store(store_path)?;
+    let manifest_params: &[&dyn ToSql] = &[&request.view_id()];
+    let current = reader_query_optional(
+        &store,
+        "current_manifest_revalidation",
+        READER_MANIFEST_SQL,
+        manifest_params,
+        observer,
+        |row| Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?)),
+    )?;
+    Ok(matches!(
+        current,
+        Some((generation, manifest_hash))
+            if generation == snapshot.manifest_generation()
+                && manifest_hash == snapshot.manifest_hash()
+    ))
+}
+
+fn reader_query_row<T>(
+    connection: &Connection,
+    label: &str,
+    sql: &str,
+    params: &[&dyn ToSql],
+    observer: &mut Option<&mut ReaderAdmissionObserver<'_>>,
+    map: impl FnOnce(&Row<'_>) -> rusqlite::Result<T>,
+) -> Result<T, CoordinatorError> {
+    let mut statement = connection.prepare(sql).map_err(map_reader_sqlite_error)?;
+    let result = statement.query_row(params, map);
+    record_reader_statement(connection, label, sql, params, &statement, observer)?;
+    result.map_err(map_reader_sqlite_error)
+}
+
+fn reader_query_optional<T>(
+    connection: &Connection,
+    label: &str,
+    sql: &str,
+    params: &[&dyn ToSql],
+    observer: &mut Option<&mut ReaderAdmissionObserver<'_>>,
+    map: impl FnOnce(&Row<'_>) -> rusqlite::Result<T>,
+) -> Result<Option<T>, CoordinatorError> {
+    let mut statement = connection.prepare(sql).map_err(map_reader_sqlite_error)?;
+    let result = statement.query_row(params, map).optional();
+    record_reader_statement(connection, label, sql, params, &statement, observer)?;
+    result.map_err(map_reader_sqlite_error)
+}
+
+#[cfg(feature = "test-store-contract")]
+fn record_reader_statement(
+    connection: &Connection,
+    label: &str,
+    sql: &str,
+    params: &[&dyn ToSql],
+    statement: &rusqlite::Statement<'_>,
+    observer: &mut Option<&mut ReaderAdmissionObserver<'_>>,
+) -> Result<(), CoordinatorError> {
+    let Some(observe) = observer.as_deref_mut() else {
+        return Ok(());
+    };
+    let query_plan = if sql.trim_start().starts_with("SELECT") {
+        let explain = format!("EXPLAIN QUERY PLAN {sql}");
+        let mut explain_statement = connection
+            .prepare(&explain)
+            .map_err(map_reader_sqlite_error)?;
+        let mut rows = explain_statement
+            .query(params)
+            .map_err(map_reader_sqlite_error)?;
+        let mut plan = Vec::new();
+        while let Some(row) = rows.next().map_err(map_reader_sqlite_error)? {
+            plan.push(row.get::<_, String>(3).map_err(map_reader_sqlite_error)?);
+        }
+        plan
+    } else {
+        Vec::new()
+    };
+    observe(
+        label,
+        statement.get_status(StatementStatus::VmStep),
+        statement.get_status(StatementStatus::FullscanStep),
+        &query_plan,
+    );
+    Ok(())
+}
+
+#[cfg(not(feature = "test-store-contract"))]
+fn record_reader_statement(
+    _connection: &Connection,
+    _label: &str,
+    _sql: &str,
+    _params: &[&dyn ToSql],
+    _statement: &rusqlite::Statement<'_>,
+    _observer: &mut Option<&mut ReaderAdmissionObserver<'_>>,
+) -> Result<(), CoordinatorError> {
+    Ok(())
+}
+
+fn current_generation_matches(layout: &StoreLayout) -> bool {
+    fs::read_to_string(layout.root().join("CURRENT"))
+        .map(|value| value.trim() == layout.generation_name())
+        .unwrap_or(false)
+}
+
+fn authenticate_acquire_replay(
+    registration: &ReaderRegistration,
+    request: &ReaderAcquireRequest,
+    owner_birth_identity: &str,
+) -> Result<(), CoordinatorError> {
+    if registration.identity().owner_label() != request.owner_label()
+        || registration.identity().owner_pid() != request.owner_pid()
+        || registration.identity().owner_birth_identity() != owner_birth_identity
+    {
+        return Err(CoordinatorError::ReaderOwnerMismatch);
+    }
+    if registration.snapshot().family_id() != request.family_id()
+        || registration.snapshot().view_id() != request.view_id()
+        || registration.snapshot().generation_name() != request.generation_name()
+    {
+        return Err(CoordinatorError::ReaderStaleSnapshot);
+    }
+    Ok(())
+}
+
+fn insert_reader_registration(
+    transaction: &Transaction<'_>,
+    registration: &ReaderRegistration,
+) -> Result<(), CoordinatorError> {
+    let identity = registration.identity();
+    let snapshot = registration.snapshot();
+    transaction
+        .execute(
+            "INSERT INTO reader_registrations
+             (pin_id,owner_nonce,owner_label,family_id,view_id,manifest_generation,generation_name,
+              owner_pid,owner_birth_identity,store_instance_id,manifest_hash,
+              extraction_identity_epoch,served_store_log_sequence,acquired_at,heartbeat_at,expires_at,
+              min_retained_store_log_sequence,snapshot_fingerprint)
+             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18)",
+            params![
+                identity.pin_id(),
+                identity.owner_nonce(),
+                identity.owner_label(),
+                snapshot.family_id(),
+                snapshot.view_id(),
+                snapshot.manifest_generation(),
+                snapshot.generation_name(),
+                identity.owner_pid(),
+                identity.owner_birth_identity(),
+                snapshot.store_instance_id(),
+                snapshot.manifest_hash(),
+                snapshot.extraction_identity_epoch(),
+                snapshot.served_store_log_sequence(),
+                registration.acquired_at(),
+                registration.heartbeat_at(),
+                registration.expires_at(),
+                snapshot.min_retained_store_log_sequence(),
+                snapshot.snapshot_fingerprint(),
+            ],
+        )
+        .map_err(map_reader_sqlite_error)?;
+    Ok(())
+}
+
+fn read_reader_registration_by_nonce(
+    connection: &Connection,
+    owner_nonce: &str,
+) -> Result<Option<ReaderRegistration>, CoordinatorError> {
+    let row = connection
+        .query_row(
+            "SELECT pin_id,owner_nonce,owner_label,family_id,view_id,manifest_generation,
+                    generation_name,owner_pid,owner_birth_identity,store_instance_id,manifest_hash,
+                    extraction_identity_epoch,served_store_log_sequence,acquired_at,heartbeat_at,
+                    expires_at,min_retained_store_log_sequence,snapshot_fingerprint
+             FROM reader_registrations WHERE owner_nonce=?1",
+            [owner_nonce],
+            ReaderRegistrationRow::read,
+        )
+        .optional()
+        .map_err(map_reader_sqlite_error)?;
+    row.map(ReaderRegistrationRow::into_registration)
+        .transpose()
+}
+
+fn read_reader_registration_by_pin(
+    connection: &Connection,
+    pin_id: &str,
+) -> Result<Option<ReaderRegistration>, CoordinatorError> {
+    let row = connection
+        .query_row(
+            "SELECT pin_id,owner_nonce,owner_label,family_id,view_id,manifest_generation,
+                    generation_name,owner_pid,owner_birth_identity,store_instance_id,manifest_hash,
+                    extraction_identity_epoch,served_store_log_sequence,acquired_at,heartbeat_at,
+                    expires_at,min_retained_store_log_sequence,snapshot_fingerprint
+             FROM reader_registrations WHERE pin_id=?1",
+            [pin_id],
+            ReaderRegistrationRow::read,
+        )
+        .optional()
+        .map_err(map_reader_sqlite_error)?;
+    row.map(ReaderRegistrationRow::into_registration)
+        .transpose()
+}
+
+struct ReaderRegistrationRow {
+    pin_id: String,
+    owner_nonce: String,
+    owner_label: String,
+    family_id: String,
+    view_id: String,
+    manifest_generation: i64,
+    generation_name: String,
+    owner_pid: u32,
+    owner_birth_identity: String,
+    store_instance_id: String,
+    manifest_hash: String,
+    extraction_identity_epoch: i64,
+    served_store_log_sequence: i64,
+    acquired_at: i64,
+    heartbeat_at: i64,
+    expires_at: i64,
+    min_retained_store_log_sequence: i64,
+    snapshot_fingerprint: String,
+}
+
+impl ReaderRegistrationRow {
+    fn read(row: &Row<'_>) -> rusqlite::Result<Self> {
+        Ok(Self {
+            pin_id: row.get(0)?,
+            owner_nonce: row.get(1)?,
+            owner_label: row.get(2)?,
+            family_id: row.get(3)?,
+            view_id: row.get(4)?,
+            manifest_generation: row.get(5)?,
+            generation_name: row.get(6)?,
+            owner_pid: row.get(7)?,
+            owner_birth_identity: row.get(8)?,
+            store_instance_id: row.get(9)?,
+            manifest_hash: row.get(10)?,
+            extraction_identity_epoch: row.get(11)?,
+            served_store_log_sequence: row.get(12)?,
+            acquired_at: row.get(13)?,
+            heartbeat_at: row.get(14)?,
+            expires_at: row.get(15)?,
+            min_retained_store_log_sequence: row.get(16)?,
+            snapshot_fingerprint: row.get(17)?,
+        })
+    }
+
+    fn into_registration(self) -> Result<ReaderRegistration, CoordinatorError> {
+        let snapshot = ReaderManifestSnapshot::new(
+            self.family_id,
+            self.view_id,
+            self.manifest_generation,
+            self.generation_name,
+            self.manifest_hash,
+            self.extraction_identity_epoch,
+            self.served_store_log_sequence,
+            self.min_retained_store_log_sequence,
+        );
+        if snapshot.store_instance_id() != self.store_instance_id
+            || snapshot.snapshot_fingerprint() != self.snapshot_fingerprint
+        {
+            return Err(CoordinatorError::ReaderStaleSnapshot);
+        }
+        Ok(ReaderRegistration::new(
+            ReaderOwnerIdentity::new(
+                self.pin_id,
+                self.owner_nonce,
+                self.owner_label,
+                self.owner_pid,
+                self.owner_birth_identity,
+            ),
+            snapshot,
+            self.acquired_at,
+            self.heartbeat_at,
+            self.expires_at,
+        ))
+    }
+}
+
+fn map_reader_sqlite_error(error: rusqlite::Error) -> CoordinatorError {
+    match &error {
+        rusqlite::Error::SqliteFailure(inner, _)
+            if matches!(
+                inner.code,
+                ErrorCode::DatabaseBusy | ErrorCode::DatabaseLocked
+            ) =>
+        {
+            CoordinatorError::ReaderAdmissionBusy
+        }
+        _ => CoordinatorError::Sqlite(error),
+    }
 }
 
 fn checked_lease_expiry(now: i64, lease_duration_ms: i64) -> Result<i64, CoordinatorError> {

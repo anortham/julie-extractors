@@ -150,7 +150,6 @@ pub struct ReaderOwnerIdentity {
 }
 
 impl ReaderOwnerIdentity {
-    #[allow(dead_code)]
     pub(crate) fn new(
         pin_id: impl Into<String>,
         owner_nonce: impl Into<String>,
@@ -295,7 +294,6 @@ pub struct ReaderRegistration {
 }
 
 impl ReaderRegistration {
-    #[allow(dead_code)]
     pub(crate) fn new(
         identity: ReaderOwnerIdentity,
         snapshot: ReaderManifestSnapshot,
