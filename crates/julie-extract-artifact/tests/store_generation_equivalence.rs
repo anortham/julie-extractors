@@ -6,8 +6,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use julie_extract_artifact::store::{
     CapacityProvider, GenerationLifecycle, GenerationPolicy, MaintenanceAction, MaintenanceClock,
     MaintenanceError, MaintenanceInspector, MaintenanceRun, ProcessIdentityObservation,
-    ProcessIdentityProbe, RepairDisposition, StoreConnectionFactory, StoreLayout,
-    SystemProcessIdentityProbe,
+    ProcessIdentityProbe, ReaderAcquireRequest, ReaderReleaseRequest, RepairDisposition,
+    StoreConnectionFactory, StoreCoordinator, StoreLayout, SystemProcessIdentityProbe,
 };
 use rusqlite::{Connection, params};
 use sha2::{Digest, Sha256};
@@ -172,6 +172,119 @@ fn retired_cleanup_keeps_a_registered_non_current_generation() {
     assert!(temp.path().join("gen-001").exists());
     assert!(!temp.path().join("gen-002").exists());
     assert!(temp.path().join("gen-003").exists());
+}
+
+#[test]
+fn reader_held_historical_generation_survives_rollback_until_release() {
+    let temp = TempStore::new("generation-reader-rollback");
+    let initial = StoreLayout::create(temp.path(), "family-a", "2.40.0", 7).unwrap();
+    seed_source(&initial);
+    let nonce = "abababababababababababababababab";
+    let registration = StoreCoordinator::open(&initial)
+        .unwrap()
+        .acquire_reader(&ReaderAcquireRequest::new(
+            "family-a",
+            "view-a",
+            "gen-001",
+            "miller",
+            std::process::id(),
+            nonce,
+            30_000,
+        ))
+        .unwrap()
+        .into_registration();
+    let pin_id = registration.identity().pin_id().to_string();
+    let original_registration = reader_registration_fingerprint(&initial, &pin_id);
+    let original_versions = version_rows(&Connection::open(initial.store_db()).unwrap());
+    let original_manifests = manifest_rows(&Connection::open(initial.store_db()).unwrap());
+    let policy = GenerationPolicy {
+        retained_generation_limit: 1,
+        rollback_safety_ms: 0,
+        ..GenerationPolicy::default()
+    };
+
+    let second = promote_once_version(
+        &initial,
+        "reader-rollback-promote",
+        1_000,
+        &policy,
+        "2.40.0",
+    );
+    let rollback_plan = MaintenanceInspector::new(
+        StoreConnectionFactory::new(second.clone(), "family-a", "2.40.0"),
+        FixedClock(2_000),
+        FixedCapacity,
+    )
+    .inspect()
+    .unwrap();
+    let reader_root = rollback_plan
+        .protected_readers
+        .iter()
+        .find(|reader| reader.pin_id == pin_id)
+        .unwrap();
+    assert_eq!(reader_root.generation_name, "gen-001");
+    assert_eq!(reader_root.view_id, "view-a");
+    assert_eq!(reader_root.manifest_generation, 4);
+    assert_eq!(reader_root.manifest_hash, "sha256:m4");
+    assert!(
+        rollback_plan
+            .protected_generations
+            .contains(&"gen-001".to_string())
+    );
+    let mut rollback = GenerationLifecycle::acquire(
+        StoreConnectionFactory::new(second, "family-a", "2.40.0"),
+        MaintenanceRun::new(
+            "reader-rollback",
+            "owner",
+            std::process::id(),
+            2_000,
+            30_000,
+        ),
+        &rollback_plan,
+        MaintenanceAction::Rollback,
+        FixedCapacity,
+    )
+    .unwrap();
+
+    let report = rollback
+        .rollback(&rollback_plan, &policy, "gen-001")
+        .unwrap();
+
+    assert_eq!(report.destination_generation, "gen-003");
+    let third = StoreLayout::open(temp.path()).unwrap();
+    assert!(initial.generation_dir().exists());
+    assert_eq!(
+        version_rows(&Connection::open(initial.store_db()).unwrap()),
+        original_versions
+    );
+    assert_eq!(
+        manifest_rows(&Connection::open(initial.store_db()).unwrap()),
+        original_manifests
+    );
+    assert_eq!(
+        reader_registration_fingerprint(&third, &pin_id),
+        original_registration
+    );
+
+    assert!(
+        StoreCoordinator::open(&third)
+            .unwrap()
+            .release_reader(&ReaderReleaseRequest::new("family-a", &pin_id, nonce))
+            .unwrap()
+    );
+    let fourth = promote_once_version(&third, "reader-rollback-release", 3_000, &policy, "2.40.0");
+    assert_eq!(fourth.generation_name(), "gen-004");
+    assert!(!temp.path().join("gen-001").exists());
+    assert_eq!(
+        Connection::open(fourth.coordinator_db())
+            .unwrap()
+            .query_row("SELECT COUNT(*) FROM reader_registrations", [], |row| row
+                .get::<_, i64>(
+                0
+            ),)
+            .unwrap(),
+        0
+    );
 }
 
 #[test]
@@ -1032,6 +1145,25 @@ fn metadata(connection: &Connection, key: &str) -> String {
             row.get(0)
         })
         .unwrap()
+}
+
+fn reader_registration_fingerprint(layout: &StoreLayout, pin_id: &str) -> String {
+    let encoded = Connection::open(layout.coordinator_db())
+        .unwrap()
+        .query_row(
+            "SELECT json_array(
+               pin_id,owner_nonce,owner_label,family_id,view_id,manifest_generation,
+               generation_name,owner_pid,owner_birth_identity,store_instance_id,manifest_hash,
+               extraction_identity_epoch,served_store_log_sequence,acquired_at,heartbeat_at,
+               expires_at,min_retained_store_log_sequence,snapshot_fingerprint)
+             FROM reader_registrations WHERE pin_id=?1",
+            [pin_id],
+            |row| row.get::<_, String>(0),
+        )
+        .unwrap();
+    let mut hasher = Sha256::new();
+    hasher.update(encoded.as_bytes());
+    format!("sha256:{:x}", hasher.finalize())
 }
 
 fn version_rows(connection: &Connection) -> Vec<(i64, String, String)> {

@@ -15,6 +15,7 @@ use julie_extract_artifact::store::{
 use rusqlite::Connection;
 
 static NEXT_TEMP_ID: AtomicU64 = AtomicU64::new(1);
+const RECOVERY_LEASE_MS: i64 = 60_000;
 
 #[test]
 fn every_promotion_boundary_recovers_the_same_generation_without_duplicates() {
@@ -87,7 +88,7 @@ fn every_promotion_boundary_recovers_the_same_generation_without_duplicates() {
                 "retry-owner",
                 std::process::id(),
                 2_000,
-                5_000,
+                RECOVERY_LEASE_MS,
             ),
             &plan,
             MaintenanceAction::Promote,
@@ -150,7 +151,7 @@ fn dead_partial_owner_is_replaced_before_its_expiry() {
             "retry-owner",
             std::process::id(),
             2_000,
-            5_000,
+            RECOVERY_LEASE_MS,
         ),
         &plan,
         MaintenanceAction::Promote,
@@ -233,7 +234,7 @@ fn crash_between_intent_and_floor_blocks_foreign_writers_via_intent_alone() {
             "retry-owner",
             std::process::id(),
             2_000,
-            5_000,
+            RECOVERY_LEASE_MS,
         ),
         &plan,
         MaintenanceAction::Promote,
@@ -263,7 +264,7 @@ fn forward_rollback_crashes_recover_with_scope_explicitly_invalidated() {
                 "prepare-owner",
                 std::process::id(),
                 500,
-                5_000,
+                RECOVERY_LEASE_MS,
             ),
             &initial_plan,
             MaintenanceAction::Promote,
@@ -290,7 +291,7 @@ fn forward_rollback_crashes_recover_with_scope_explicitly_invalidated() {
                 "retry-owner",
                 std::process::id(),
                 2_000,
-                5_000,
+                RECOVERY_LEASE_MS,
             ),
             &plan,
             MaintenanceAction::Rollback,
