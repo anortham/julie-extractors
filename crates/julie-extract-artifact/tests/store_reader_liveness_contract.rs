@@ -284,18 +284,25 @@ fn terminated_reused_pid_is_unknown() {
 #[test]
 fn liveness_child_is_reaped_during_unwind() {
     let mut pid = 0;
+    let mut identity = None;
 
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let child = LivenessChild::spawn();
         pid = child.id();
+        identity = Some(match SystemProcessIdentityProbe.inspect(pid) {
+            ProcessIdentityObservation::Alive(identity) => identity,
+            observation => panic!("new child process identity was not observable: {observation:?}"),
+        });
         panic!("exercise panic cleanup");
     }));
 
     assert!(result.is_err());
-    assert!(matches!(
-        SystemProcessIdentityProbe.inspect(pid),
-        ProcessIdentityObservation::Absent
-    ));
+    let identity = identity.unwrap();
+    match SystemProcessIdentityProbe.inspect(pid) {
+        ProcessIdentityObservation::Absent => {}
+        ProcessIdentityObservation::Terminated(terminated) => assert_eq!(terminated, identity),
+        observation => panic!("reaped child remained live or unqualified: {observation:?}"),
+    }
 }
 
 #[cfg(any(target_os = "linux", windows))]
