@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use julie_extract_artifact::store::{
     CapacityProvider, GenerationLifecycle, GenerationPolicy, MaintenanceAction, MaintenanceClock,
@@ -55,7 +55,7 @@ fn every_promotion_boundary_recovers_the_same_generation_without_duplicates() {
             "boundary={boundary}: {}",
             String::from_utf8_lossy(&output.stderr)
         );
-        thread::sleep(Duration::from_millis(300));
+        wait_for_crashed_writer_lease_expiry(temp.path());
         if matches!(
             boundary,
             "generation_after_directory_rename"
@@ -280,7 +280,7 @@ fn forward_rollback_crashes_recover_with_scope_explicitly_invalidated() {
             "boundary={boundary}: {}",
             String::from_utf8_lossy(&crashed.stderr)
         );
-        thread::sleep(Duration::from_millis(300));
+        wait_for_crashed_writer_lease_expiry(temp.path());
         let current = StoreLayout::open(temp.path()).unwrap();
         let plan = inspect_plan(&current);
         let mut retry = GenerationLifecycle::acquire(
@@ -400,29 +400,27 @@ fn factory(layout: &StoreLayout) -> StoreConnectionFactory {
 }
 
 fn run_worker(root: &Path, boundary: &str) -> Output {
-    run_worker_with_lease(root, boundary, Duration::from_millis(100))
+    run_worker_with_lease(root, boundary, Duration::from_secs(5))
 }
 
 fn run_worker_with_lease(root: &Path, boundary: &str, lease_duration: Duration) -> Output {
-    Command::new(std::env::current_exe().unwrap())
-        .args([
-            "--exact",
-            "generation_promotion_crash_worker",
-            "--nocapture",
-            "--test-threads=1",
-        ])
-        .env("JULIE_TEST_GENERATION_ROOT", root)
-        .env("JULIE_EXTRACT_STORE_TEST_CRASH_AT", boundary)
-        .env(
-            "JULIE_TEST_GENERATION_LEASE_MS",
-            lease_duration.as_millis().to_string(),
-        )
-        .output()
-        .unwrap()
+    run_crash_worker(root, boundary, lease_duration, false)
 }
 
 fn run_rollback_worker(root: &Path, boundary: &str) -> Output {
-    Command::new(std::env::current_exe().unwrap())
+    run_crash_worker(root, boundary, Duration::from_secs(5), true)
+}
+
+fn run_crash_worker(
+    root: &Path,
+    boundary: &str,
+    lease_duration: Duration,
+    rollback: bool,
+) -> Output {
+    let marker = root.join(format!(".{boundary}.reached"));
+    assert!(!marker.exists(), "stale crash marker: {}", marker.display());
+    let mut command = Command::new(std::env::current_exe().unwrap());
+    command
         .args([
             "--exact",
             "generation_promotion_crash_worker",
@@ -431,10 +429,60 @@ fn run_rollback_worker(root: &Path, boundary: &str) -> Output {
         ])
         .env("JULIE_TEST_GENERATION_ROOT", root)
         .env("JULIE_EXTRACT_STORE_TEST_CRASH_AT", boundary)
-        .env("JULIE_TEST_GENERATION_ROLLBACK", "1")
-        .env("JULIE_TEST_GENERATION_LEASE_MS", "100")
-        .output()
+        .env("JULIE_EXTRACT_STORE_TEST_CRASH_MARKER", &marker)
+        .env(
+            "JULIE_TEST_GENERATION_LEASE_MS",
+            lease_duration.as_millis().to_string(),
+        );
+    if rollback {
+        command.env("JULIE_TEST_GENERATION_ROLLBACK", "1");
+    }
+    let output = command.output().unwrap();
+    let reached = fs::read_to_string(&marker).unwrap_or_else(|error| {
+        panic!(
+            "boundary={boundary} was not reached: {error}; child status={} stdout={} stderr={}",
+            output.status,
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr),
+        )
+    });
+    assert_eq!(
+        reached,
+        boundary,
+        "child reached a different crash boundary; status={} stdout={} stderr={}",
+        output.status,
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr),
+    );
+    fs::remove_file(marker).unwrap();
+    output
+}
+
+fn wait_for_crashed_writer_lease_expiry(root: &Path) {
+    let expires_at = Connection::open(root.join("coord.db"))
         .unwrap()
+        .query_row(
+            "SELECT COALESCE(MAX(expires_at),0) FROM writer_lease
+             WHERE holder_id='crash-owner'",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .unwrap();
+    if expires_at == 0 {
+        return;
+    }
+    let now_ms = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as i64;
+    let wait_ms = expires_at.saturating_sub(now_ms).saturating_add(50);
+    assert!(
+        wait_ms <= 6_000,
+        "crashed writer lease exceeds fixture bound: expires_at={expires_at} now_ms={now_ms}"
+    );
+    if wait_ms > 0 {
+        thread::sleep(Duration::from_millis(wait_ms as u64));
+    }
 }
 
 fn assert_valid(connection: &Connection) {
