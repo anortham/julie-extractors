@@ -20,6 +20,9 @@ use super::layout::reap_retired_resolution_files;
 use super::layout::valid_generation_name;
 use super::pragmas::{WriterPragmaProfile, configure_writer_pragmas};
 use super::reader::READER_MIN_WRITER_VERSION;
+use super::schema::{
+    ReaderCatalogState, StoreSchemaError, install_empty_reader_catalog, reader_catalog_state,
+};
 use super::{
     CoordinatorError, GenerationFence, MaintenanceAction, PidStatus, StoreConnectionError,
     StoreConnectionFactory, StoreCoordinator, StoreLayoutError, StoreLog, StoreLogError,
@@ -1404,15 +1407,18 @@ impl MaintenanceExecutor {
             });
         }
         let store = factory.open_reader()?;
-        let generation_state = store.query_row(
-            "SELECT value FROM store_meta WHERE key=?1",
-            [META_GENERATION_STATE],
-            |row| row.get::<_, String>(0),
+        let (generation_state, store_floor) = store.query_row(
+            "SELECT
+               (SELECT value FROM store_meta WHERE key=?1),
+               (SELECT value FROM store_meta WHERE key=?2)",
+            params![META_GENERATION_STATE, META_MIN_WRITER_VERSION],
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
         )?;
         drop(store);
         if generation_state != "serving" {
             return Err(MaintenanceError::StalePlan);
         }
+        validate_reader_catalog_before_activation(&factory, &store_floor)?;
         let plan_fingerprint = format!(
             "reader-floor-v1:{}:{}",
             factory.layout().generation_name(),
@@ -1511,8 +1517,34 @@ impl MaintenanceExecutor {
             .optional()?
             .ok_or(MaintenanceError::MaintenanceFenceLost)?;
         if compare_versions(&source_floor, READER_MIN_WRITER_VERSION)? != Ordering::Less {
+            if reader_catalog_state(&transaction).map_err(reader_catalog_error)?
+                != ReaderCatalogState::Valid
+            {
+                return Err(reader_catalog_error(
+                    StoreSchemaError::ReaderCatalogMalformed,
+                ));
+            }
             self.source_min_writer_version = source_floor;
             return Ok(());
+        }
+        match reader_catalog_state(&transaction).map_err(reader_catalog_error)? {
+            ReaderCatalogState::WhollyAbsent => {
+                install_empty_reader_catalog(&transaction).map_err(reader_catalog_error)?;
+                #[cfg(feature = "test-store-crash")]
+                super::test_hooks::crash_if("reader_catalog_installed_before_floor");
+            }
+            ReaderCatalogState::Valid => {
+                let registrations = transaction.query_row(
+                    "SELECT EXISTS(SELECT 1 FROM reader_registrations)",
+                    [],
+                    |row| row.get::<_, bool>(0),
+                )?;
+                if registrations {
+                    return Err(reader_catalog_error(
+                        StoreSchemaError::ReaderCatalogNotEmpty,
+                    ));
+                }
+            }
         }
 
         let preserved = transaction
@@ -2698,6 +2730,54 @@ fn open_maintenance_coordinator(path: &Path) -> Result<Connection, MaintenanceEr
         }
     })?;
     Ok(connection)
+}
+
+fn validate_reader_catalog_before_activation(
+    factory: &StoreConnectionFactory,
+    store_floor: &str,
+) -> Result<(), MaintenanceError> {
+    let coordinator = Connection::open_with_flags(
+        factory.layout().coordinator_db(),
+        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+    )?;
+    let state = reader_catalog_state(&coordinator).map_err(reader_catalog_error)?;
+    let intent_floor = coordinator
+        .query_row(
+            "SELECT source_min_writer_version FROM maintenance_intent
+             WHERE resource='store-maintenance'",
+            [],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()?;
+    let permanent_floor = intent_floor.as_deref().unwrap_or(store_floor);
+    if compare_versions(permanent_floor, READER_MIN_WRITER_VERSION)? != Ordering::Less {
+        if state != ReaderCatalogState::Valid {
+            return Err(reader_catalog_error(
+                StoreSchemaError::ReaderCatalogMalformed,
+            ));
+        }
+        return Ok(());
+    }
+    if state == ReaderCatalogState::Valid {
+        let registrations = coordinator.query_row(
+            "SELECT EXISTS(SELECT 1 FROM reader_registrations)",
+            [],
+            |row| row.get::<_, bool>(0),
+        )?;
+        if registrations {
+            return Err(reader_catalog_error(
+                StoreSchemaError::ReaderCatalogNotEmpty,
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn reader_catalog_error(error: StoreSchemaError) -> MaintenanceError {
+    MaintenanceError::InvalidMetadata {
+        field: "reader_catalog",
+        value: error.to_string(),
+    }
 }
 
 fn checked_generation_path(

@@ -23,6 +23,11 @@ Status: frozen Ph2d lifecycle catalog authority.
 > lookup indexes. `store.db` adds no reader objects. Before registrations may
 > be acquired, maintenance permanently raises the serving generation's
 > `min_writer_version` to `2.40.0` under its existing fence.
+> A v2 coordinator below that permanent floor may install a wholly absent
+> reader catalog in the same transaction that advances the fenced source
+> floor. A partial catalog, a non-empty catalog below the floor, or any missing
+> or malformed reader object at a reader-capable floor is corruption and is
+> refused without repair.
 
 All ordinary tables are `STRICT`. `store.db` timestamps are canonical RFC 3339 UTC text
 (`YYYY-MM-DDTHH:MM:SS[.fraction]Z`, with one to nine fractional digits when present); `coord.db`

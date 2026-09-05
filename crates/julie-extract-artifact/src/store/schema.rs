@@ -8,6 +8,12 @@ pub const STORE_SQLITE_SCHEMA_VERSION: i64 = 2;
 /// Initial generation-format epoch for the versioned store.
 pub const STORE_FORMAT_EPOCH: i64 = 1;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ReaderCatalogState {
+    WhollyAbsent,
+    Valid,
+}
+
 /// A typed refusal or SQLite failure while creating a store catalog.
 #[derive(Debug)]
 pub enum StoreSchemaError {
@@ -24,6 +30,8 @@ pub enum StoreSchemaError {
     Retirement {
         detail: String,
     },
+    ReaderCatalogMalformed,
+    ReaderCatalogNotEmpty,
     Sqlite(rusqlite::Error),
 }
 
@@ -48,6 +56,15 @@ impl fmt::Display for StoreSchemaError {
             ),
             Self::Sqlite(error) => error.fmt(formatter),
             Self::Retirement { detail } => write!(formatter, "{detail}"),
+            Self::ReaderCatalogMalformed => {
+                write!(formatter, "coord.db reader catalog is malformed")
+            }
+            Self::ReaderCatalogNotEmpty => {
+                write!(
+                    formatter,
+                    "coord.db reader catalog contains registrations below its floor"
+                )
+            }
         }
     }
 }
@@ -56,7 +73,11 @@ impl Error for StoreSchemaError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Sqlite(error) => Some(error),
-            Self::NewerSchema { .. } | Self::OlderSchema { .. } | Self::Retirement { .. } => None,
+            Self::NewerSchema { .. }
+            | Self::OlderSchema { .. }
+            | Self::Retirement { .. }
+            | Self::ReaderCatalogMalformed
+            | Self::ReaderCatalogNotEmpty => None,
         }
     }
 }
@@ -82,9 +103,93 @@ pub(crate) fn ensure_read_symbol_indexes(conn: &Connection) -> Result<(), StoreS
 
 /// Creates or validates the independently versioned `coord.db` catalog.
 pub fn create_coordinator_schema(conn: &Connection) -> Result<(), StoreSchemaError> {
-    create_schema(conn, "coord.db", COORDINATOR_SCHEMA_SQL)?;
+    validate_schema_version(conn, "coord.db")?;
+    let found = conn.query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))?;
+    let reader_state = reader_catalog_state(conn)?;
+    conn.execute_batch("PRAGMA foreign_keys = ON; BEGIN IMMEDIATE;")?;
+    let result = (|| {
+        conn.execute_batch(COORDINATOR_SCHEMA_SQL)?;
+        if found == 0 && reader_state == ReaderCatalogState::WhollyAbsent {
+            install_empty_reader_catalog(conn)?;
+        }
+        conn.pragma_update(None, "user_version", STORE_SQLITE_SCHEMA_VERSION)?;
+        Ok(())
+    })();
+    if let Err(error) = result {
+        let _ = conn.execute_batch("ROLLBACK;");
+        return Err(error);
+    }
+    if let Err(error) = conn.execute_batch("COMMIT;") {
+        let _ = conn.execute_batch("ROLLBACK;");
+        return Err(error.into());
+    }
     add_request_quantum_overruns(conn)?;
     retire_coordinator_resolution_objects(conn)
+}
+
+pub(crate) fn reader_catalog_state(
+    conn: &Connection,
+) -> Result<ReaderCatalogState, StoreSchemaError> {
+    let mut present = 0;
+    for expected in READER_CATALOG_OBJECTS {
+        let actual = conn
+            .query_row(
+                "SELECT type,sql FROM sqlite_schema WHERE name=?1",
+                [expected.name],
+                |row| Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?)),
+            )
+            .optional()?;
+        let Some((object_type, ddl)) = actual else {
+            continue;
+        };
+        present += 1;
+        if object_type != expected.object_type
+            || canonical_ddl(ddl.as_deref()) != canonical_ddl(expected.ddl)
+        {
+            return Err(StoreSchemaError::ReaderCatalogMalformed);
+        }
+    }
+    if present == 0 {
+        return Ok(ReaderCatalogState::WhollyAbsent);
+    }
+    let catalog_count = conn.query_row(
+        "SELECT COUNT(*) FROM sqlite_schema
+         WHERE name='reader_registrations' OR tbl_name='reader_registrations'",
+        [],
+        |row| row.get::<_, i64>(0),
+    )?;
+    if present != READER_CATALOG_OBJECTS.len()
+        || catalog_count != READER_CATALOG_OBJECTS.len() as i64
+    {
+        return Err(StoreSchemaError::ReaderCatalogMalformed);
+    }
+    Ok(ReaderCatalogState::Valid)
+}
+
+pub(crate) fn install_empty_reader_catalog(conn: &Connection) -> Result<(), StoreSchemaError> {
+    if reader_catalog_state(conn)? != ReaderCatalogState::WhollyAbsent {
+        return Err(StoreSchemaError::ReaderCatalogMalformed);
+    }
+    for object in READER_CATALOG_OBJECTS {
+        if let Some(ddl) = object.ddl {
+            conn.execute_batch(ddl)?;
+        }
+    }
+    match reader_catalog_state(conn)? {
+        ReaderCatalogState::Valid => Ok(()),
+        ReaderCatalogState::WhollyAbsent => Err(StoreSchemaError::ReaderCatalogMalformed),
+    }
+}
+
+fn canonical_ddl(ddl: Option<&str>) -> Option<String> {
+    ddl.map(|value| {
+        let normalized = value
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ")
+            .replacen(" IF NOT EXISTS", "", 1);
+        normalized.trim_end_matches(';').to_string()
+    })
 }
 
 /// Adds `requests.quantum_overruns` to a `coord.db` created before the column existed.
@@ -1268,8 +1373,124 @@ CREATE INDEX IF NOT EXISTS idx_read_symbols_parent_name
   ON symbols(version_id, parent_symbol_id, name, symbol_id);
 "#;
 
+struct ReaderCatalogObject {
+    object_type: &'static str,
+    name: &'static str,
+    ddl: Option<&'static str>,
+}
+
+const READER_REGISTRATIONS_TABLE_SQL: &str = r#"
+CREATE TABLE IF NOT EXISTS reader_registrations (
+  pin_id TEXT PRIMARY KEY CHECK (length(pin_id) BETWEEN 1 AND 128),
+  owner_nonce TEXT NOT NULL UNIQUE CHECK (length(owner_nonce) BETWEEN 32 AND 512),
+  owner_label TEXT NOT NULL CHECK (length(owner_label) BETWEEN 1 AND 128),
+  family_id TEXT NOT NULL CHECK (length(family_id) BETWEEN 1 AND 128),
+  view_id TEXT NOT NULL CHECK (length(view_id) BETWEEN 1 AND 128),
+  manifest_generation INTEGER NOT NULL CHECK (manifest_generation > 0),
+  generation_name TEXT NOT NULL CHECK (length(generation_name) BETWEEN 1 AND 128),
+  owner_pid INTEGER NOT NULL CHECK (owner_pid > 0),
+  owner_birth_identity TEXT NOT NULL CHECK (length(owner_birth_identity) BETWEEN 1 AND 512),
+  store_instance_id TEXT NOT NULL CHECK (length(store_instance_id) BETWEEN 1 AND 512),
+  manifest_hash TEXT NOT NULL CHECK (length(manifest_hash) BETWEEN 1 AND 512),
+  extraction_identity_epoch INTEGER NOT NULL CHECK (extraction_identity_epoch > 0),
+  served_store_log_sequence INTEGER NOT NULL CHECK (served_store_log_sequence >= 0),
+  acquired_at INTEGER NOT NULL CHECK (acquired_at >= 0),
+  heartbeat_at INTEGER NOT NULL CHECK (heartbeat_at >= acquired_at),
+  expires_at INTEGER NOT NULL CHECK (expires_at > heartbeat_at),
+  min_retained_store_log_sequence INTEGER NOT NULL CHECK (min_retained_store_log_sequence >= 0 AND min_retained_store_log_sequence <= served_store_log_sequence),
+  snapshot_fingerprint TEXT NOT NULL CHECK (length(snapshot_fingerprint) > 0),
+  UNIQUE (family_id, pin_id)
+) STRICT;
+"#;
+
+const READER_IMMUTABLE_IDENTITY_TRIGGER_SQL: &str = r#"
+CREATE TRIGGER IF NOT EXISTS trg_reader_registrations_immutable_identity
+BEFORE UPDATE ON reader_registrations
+WHEN NEW.pin_id <> OLD.pin_id
+  OR NEW.owner_nonce <> OLD.owner_nonce
+  OR NEW.owner_label <> OLD.owner_label
+  OR NEW.family_id <> OLD.family_id
+  OR NEW.view_id <> OLD.view_id
+  OR NEW.manifest_generation <> OLD.manifest_generation
+  OR NEW.generation_name <> OLD.generation_name
+  OR NEW.owner_pid <> OLD.owner_pid
+  OR NEW.owner_birth_identity <> OLD.owner_birth_identity
+  OR NEW.store_instance_id <> OLD.store_instance_id
+  OR NEW.manifest_hash <> OLD.manifest_hash
+  OR NEW.extraction_identity_epoch <> OLD.extraction_identity_epoch
+  OR NEW.served_store_log_sequence <> OLD.served_store_log_sequence
+  OR NEW.acquired_at <> OLD.acquired_at
+  OR NEW.min_retained_store_log_sequence <> OLD.min_retained_store_log_sequence
+  OR NEW.snapshot_fingerprint <> OLD.snapshot_fingerprint
+BEGIN
+  SELECT RAISE(ABORT, 'reader registration identity is immutable');
+END;
+"#;
+
+const READER_LIVENESS_TRIGGER_SQL: &str = r#"
+CREATE TRIGGER IF NOT EXISTS trg_reader_registrations_liveness_coherent
+BEFORE UPDATE ON reader_registrations
+WHEN NEW.heartbeat_at < OLD.heartbeat_at
+  OR NEW.expires_at <= NEW.heartbeat_at
+BEGIN
+  SELECT RAISE(ABORT, 'reader registration liveness cannot regress');
+END;
+"#;
+
+const READER_GENERATION_INDEX_SQL: &str = r#"
+CREATE INDEX IF NOT EXISTS idx_read_reader_registrations_generation
+  ON reader_registrations(family_id, generation_name);
+"#;
+
+const READER_EXPIRY_INDEX_SQL: &str = r#"
+CREATE INDEX IF NOT EXISTS idx_read_reader_registrations_expiry
+  ON reader_registrations(family_id, expires_at);
+"#;
+
+const READER_CATALOG_OBJECTS: &[ReaderCatalogObject] = &[
+    ReaderCatalogObject {
+        object_type: "table",
+        name: "reader_registrations",
+        ddl: Some(READER_REGISTRATIONS_TABLE_SQL),
+    },
+    ReaderCatalogObject {
+        object_type: "index",
+        name: "sqlite_autoindex_reader_registrations_1",
+        ddl: None,
+    },
+    ReaderCatalogObject {
+        object_type: "index",
+        name: "sqlite_autoindex_reader_registrations_2",
+        ddl: None,
+    },
+    ReaderCatalogObject {
+        object_type: "index",
+        name: "sqlite_autoindex_reader_registrations_3",
+        ddl: None,
+    },
+    ReaderCatalogObject {
+        object_type: "trigger",
+        name: "trg_reader_registrations_immutable_identity",
+        ddl: Some(READER_IMMUTABLE_IDENTITY_TRIGGER_SQL),
+    },
+    ReaderCatalogObject {
+        object_type: "trigger",
+        name: "trg_reader_registrations_liveness_coherent",
+        ddl: Some(READER_LIVENESS_TRIGGER_SQL),
+    },
+    ReaderCatalogObject {
+        object_type: "index",
+        name: "idx_read_reader_registrations_generation",
+        ddl: Some(READER_GENERATION_INDEX_SQL),
+    },
+    ReaderCatalogObject {
+        object_type: "index",
+        name: "idx_read_reader_registrations_expiry",
+        ddl: Some(READER_EXPIRY_INDEX_SQL),
+    },
+];
+
 const COORDINATOR_SCHEMA_SQL: &str = r#"
-BEGIN IMMEDIATE;
 
 CREATE TABLE IF NOT EXISTS requests (
   request_id TEXT PRIMARY KEY CHECK (length(request_id) > 0),
@@ -1342,28 +1563,6 @@ CREATE TABLE IF NOT EXISTS consumer_cursors (
   updated_at INTEGER NOT NULL CHECK (updated_at >= 0)
 ) STRICT;
 
-CREATE TABLE IF NOT EXISTS reader_registrations (
-  pin_id TEXT PRIMARY KEY CHECK (length(pin_id) BETWEEN 1 AND 128),
-  owner_nonce TEXT NOT NULL UNIQUE CHECK (length(owner_nonce) BETWEEN 32 AND 512),
-  owner_label TEXT NOT NULL CHECK (length(owner_label) BETWEEN 1 AND 128),
-  family_id TEXT NOT NULL CHECK (length(family_id) BETWEEN 1 AND 128),
-  view_id TEXT NOT NULL CHECK (length(view_id) BETWEEN 1 AND 128),
-  manifest_generation INTEGER NOT NULL CHECK (manifest_generation > 0),
-  generation_name TEXT NOT NULL CHECK (length(generation_name) BETWEEN 1 AND 128),
-  owner_pid INTEGER NOT NULL CHECK (owner_pid > 0),
-  owner_birth_identity TEXT NOT NULL CHECK (length(owner_birth_identity) BETWEEN 1 AND 512),
-  store_instance_id TEXT NOT NULL CHECK (length(store_instance_id) BETWEEN 1 AND 512),
-  manifest_hash TEXT NOT NULL CHECK (length(manifest_hash) BETWEEN 1 AND 512),
-  extraction_identity_epoch INTEGER NOT NULL CHECK (extraction_identity_epoch > 0),
-  served_store_log_sequence INTEGER NOT NULL CHECK (served_store_log_sequence >= 0),
-  acquired_at INTEGER NOT NULL CHECK (acquired_at >= 0),
-  heartbeat_at INTEGER NOT NULL CHECK (heartbeat_at >= acquired_at),
-  expires_at INTEGER NOT NULL CHECK (expires_at > heartbeat_at),
-  min_retained_store_log_sequence INTEGER NOT NULL CHECK (min_retained_store_log_sequence >= 0 AND min_retained_store_log_sequence <= served_store_log_sequence),
-  snapshot_fingerprint TEXT NOT NULL CHECK (length(snapshot_fingerprint) > 0),
-  UNIQUE (family_id, pin_id)
-) STRICT;
-
 CREATE TABLE IF NOT EXISTS maintenance_intent (
   resource TEXT PRIMARY KEY CHECK (resource = 'store-maintenance'),
   run_id TEXT NOT NULL UNIQUE CHECK (length(run_id) BETWEEN 1 AND 128),
@@ -1418,36 +1617,6 @@ BEGIN
   SELECT RAISE(ABORT, 'consumer cursor cannot regress');
 END;
 
-CREATE TRIGGER IF NOT EXISTS trg_reader_registrations_immutable_identity
-BEFORE UPDATE ON reader_registrations
-WHEN NEW.pin_id <> OLD.pin_id
-  OR NEW.owner_nonce <> OLD.owner_nonce
-  OR NEW.owner_label <> OLD.owner_label
-  OR NEW.family_id <> OLD.family_id
-  OR NEW.view_id <> OLD.view_id
-  OR NEW.manifest_generation <> OLD.manifest_generation
-  OR NEW.generation_name <> OLD.generation_name
-  OR NEW.owner_pid <> OLD.owner_pid
-  OR NEW.owner_birth_identity <> OLD.owner_birth_identity
-  OR NEW.store_instance_id <> OLD.store_instance_id
-  OR NEW.manifest_hash <> OLD.manifest_hash
-  OR NEW.extraction_identity_epoch <> OLD.extraction_identity_epoch
-  OR NEW.served_store_log_sequence <> OLD.served_store_log_sequence
-  OR NEW.acquired_at <> OLD.acquired_at
-  OR NEW.min_retained_store_log_sequence <> OLD.min_retained_store_log_sequence
-  OR NEW.snapshot_fingerprint <> OLD.snapshot_fingerprint
-BEGIN
-  SELECT RAISE(ABORT, 'reader registration identity is immutable');
-END;
-
-CREATE TRIGGER IF NOT EXISTS trg_reader_registrations_liveness_coherent
-BEFORE UPDATE ON reader_registrations
-WHEN NEW.heartbeat_at < OLD.heartbeat_at
-  OR NEW.expires_at <= NEW.heartbeat_at
-BEGIN
-  SELECT RAISE(ABORT, 'reader registration liveness cannot regress');
-END;
-
 CREATE TRIGGER IF NOT EXISTS trg_maintenance_intent_coherent_update
 BEFORE UPDATE ON maintenance_intent
 WHEN NEW.run_id <> OLD.run_id
@@ -1482,11 +1651,4 @@ CREATE INDEX IF NOT EXISTS idx_read_requests_queue
   ON requests(state, created_at, request_id);
 CREATE INDEX IF NOT EXISTS idx_read_requests_stale
   ON requests(state, claim_heartbeat_at, request_id);
-CREATE INDEX IF NOT EXISTS idx_read_reader_registrations_generation
-  ON reader_registrations(family_id, generation_name);
-CREATE INDEX IF NOT EXISTS idx_read_reader_registrations_expiry
-  ON reader_registrations(family_id, expires_at);
-
-PRAGMA user_version = 2;
-COMMIT;
 "#;

@@ -49,6 +49,12 @@ The row references the existing `store.db` manifest root; no file-version roots 
 coordinator. Only `heartbeat_at` and `expires_at` may change, and heartbeat cannot regress. `owner_birth_identity` stays internal
 to the producer and is not part of the CLI report.
 
+Reader-floor activation uses the maintenance intent's `source_min_writer_version` as the permanent
+floor while the fence is held. It installs reader objects only when that floor is below `2.40.0`,
+the entire reader catalog is absent, and no registration row exists. The catalog installation and
+permanent-floor update commit together. Once the permanent floor is reader-capable, missing,
+partial, or malformed reader objects fail closed and are never recreated as an empty catalog.
+
 ## Immutable versions
 
 `file_versions` allocates a never-reused integer `version_id` and stores `path`, `content_hash`, `extraction_epoch`, `language`, `content_bytes`, nullable `line_count`, nullable `metadata_json`, and nullable `complete_l1`, `complete_l2`, and `complete_l3` log stamps.
