@@ -291,7 +291,6 @@ div { color: red; }
             "No script parse upon initial SFC split"
         );
 
-        // First access to script tree triggers parse
         let tree1 = sfc.script_tree(1);
         assert!(tree1.is_some());
         assert_eq!(
@@ -300,7 +299,6 @@ div { color: red; }
             "Script parsed once on first access"
         );
 
-        // Second access reuses the cached tree
         let tree2 = sfc.script_tree(1);
         assert!(tree2.is_some());
         assert_eq!(
@@ -309,7 +307,6 @@ div { color: red; }
             "Script not reparsed on second access"
         );
 
-        // Access via script_tree_for_section reuses cached tree
         let script_sec = &sfc.sections()[1];
         let tree3 = sfc.script_tree_for_section(script_sec);
         assert!(tree3.is_some());
@@ -319,7 +316,6 @@ div { color: red; }
             "Script not reparsed when accessed by section reference"
         );
 
-        // Non-script sections return None without incrementing parse count
         assert!(sfc.script_tree(0).is_none());
         assert!(sfc.script_tree(2).is_none());
         assert_eq!(get_script_parse_count(), 1);

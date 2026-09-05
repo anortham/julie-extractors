@@ -188,6 +188,21 @@ is not a proven upper bound and no runtime share was measured.
 - One script-setup SFC can hit about 8 parses. Complexity can push that
   higher. Cache both the SFC split and each section `Tree`.
 
+**Status: CLOSED.** Commit `e2e17632` introduced
+`vue::parsing::ParsedVueSfc` and routed symbols, identifiers, relationships,
+test calls, and complexity through its cached script trees. Commit `7a38e4f1`
+added the canonical-pipeline parse-count gate. The Plan 4 closure removed the
+last unreferenced `base/complexity_metrics.rs::parse_vue_script_tree` wrapper;
+the focused Vue parse-count and complexity tests are recorded below. The merged
+branch gate is recorded in `.memories/2026-09-04/225313_b71b.md`.
+
+#### Plan 4 closure verification
+
+- `cargo test -p julie-extractors script_section_only_once -- --nocapture`:
+  2 passed, 0 failed.
+- `cargo test -p julie-extractors vue::parsing::tests::test_script_section_parsed_only_once -- --exact --nocapture`:
+  1 passed, 0 failed.
+
 ### E6. Three `canonicalize` syscalls per file to build a relative path (medium)
 
 - `base/span.rs:149-179` canonicalizes, then `utils/paths.rs:13` canonicalizes
@@ -256,6 +271,12 @@ is not a proven upper bound and no runtime share was measured.
 - Move `convert_types_map` next to the registry. Delete manager, routing, and
   the dead language helpers. Leave the macros for a later plan.
 
+**Status: CLOSED.** Commit `30460b9e` deleted `ExtractorManager`, the three
+routing modules, and the four dead language helpers, moved
+`convert_types_map` into `registry.rs`, and changed tests and the README to use
+the canonical extraction entry points. The merged branch gate is recorded in
+`.memories/2026-09-04/225313_b71b.md`.
+
 ### E10. Helpers duplicated per language that base already has (high)
 
 - Doc comments: `go/helpers.rs:346` and `:218` are verbatim copies of
@@ -276,6 +297,12 @@ is not a proven upper bound and no runtime share was measured.
   into the shared helper.
 - SQL still builds `HashMap<String, &Symbol>` inside the string-literal node
   arm. That is per node, not per file. Pass one map or the E3 index.
+
+**Status: CLOSED for the Plan 4 scope.** Commit `c55e80e6` moved the matching
+Go doc-comment logic to `base/extractor.rs` and the eight confirmed modifier
+mappings to `base/visibility.rs`. The separate SQL lookup issue belongs to E3
+and was not part of this closure. The merged branch gate is recorded in
+`.memories/2026-09-04/225313_b71b.md`.
 
 ### E11. Base dispatches on language name strings in 12+ places (medium)
 
@@ -320,6 +347,13 @@ is not a proven upper bound and no runtime share was measured.
 - Keep `pending_relationships` until you bump the extraction contract.
 - "Unused outside the crate" is proven only for consumers in this workspace.
   Unknown downstream Rust callers may use the published public API.
+
+**Status: CLOSED.** Commit `5adc509a` made `base`, the language modules,
+registry, pipeline, test detection, test calls, and utilities crate-private,
+kept the workspace-consumer root exports, updated `api_surface.rs`, and
+recorded removed Rust exports in `docs/contracts/extraction-output-changes.md`.
+The merged branch gate is recorded in
+`.memories/2026-09-04/225313_b71b.md`.
 
 ## CLI crate (`crates/julie-extract-cli`)
 
@@ -421,6 +455,11 @@ module is compiled twice.
   file, so the types are distinct. They do not meet at a call boundary today.
 - `store/` lives only in the lib. `commands.rs` lives only in the bin.
 
+**Status: CLOSED.** Commit `f0f79656` made `main.rs` a three-line call to
+`julie_extract_cli::run_from_env`, moved command dispatch into the library
+module tree, and removed the CLI source `allow(dead_code)` attributes. The
+merged branch gate is recorded in `.memories/2026-09-04/225313_b71b.md`.
+
 ### C7. `commands.rs` is a god module (medium)
 
 - 2,486 non-test lines. `scan` is 480 lines with the same error-return block
@@ -479,6 +518,11 @@ module is compiled twice.
   `valid_blake3_hash` in from_artifact and executor. Store `base_report`
   copies: import, update, from_artifact, delete (plus `reports.rs`).
   Coordinator opening has five call sites across four modules.
+
+  **C11 status: CLOSED.** Commit `4a9f0f22` consolidated
+  `quote_identifier`, `valid_blake3_hash`, `valid_root_relative_path`,
+  `base_report`, and `open_cli_coordinator` in `store/common.rs`. The merged
+  branch gate is recorded in `.memories/2026-09-04/225313_b71b.md`.
 - C12 PARTIALLY CONFIRMED. The env var freezes chunk sizes on the request, so
   it changes quanta, `indexed_at` per chunk, and log events. It should not
   change per-file fact rows. It is already documented in
@@ -617,6 +661,11 @@ the store writer.
 - The CLI is the only production crate that imports `store`. Artifact tests
   also use the public API, so it is not literally one consumer.
 
+**Status: CLOSED.** Commit `8a0c641a` reduced the store root to symbols used by
+the CLI and artifact contract tests. Commit `c23d0de9` restored only the
+constituent types required to name the remaining public signatures. The merged
+branch gate is recorded in `.memories/2026-09-04/225313_b71b.md`.
+
 ### A10 to A12
 
 - `StatementPreparationCounter` (`store/rows.rs:20-38`) is a test metric in
@@ -630,6 +679,12 @@ the store writer.
 - A10 CONFIRMED. The counter type is `pub(super)`. The public leak is
   `StoreWriteResult.statement_preparations`. Tests still assert L1 `== 21`.
   The number counts `prepare_cached` calls, not SQLite compiles.
+
+  **A10 status: CLOSED.** Commit `8a0c641a` gated
+  `StoreWriteResult.statement_preparations` and its counter behind
+  `test-store-contract` or test compilation while preserving the batching
+  assertions. The merged branch gate is recorded in
+  `.memories/2026-09-04/225313_b71b.md`.
 - A11 CONFIRMED. Interval is `lease_duration_ms / 3` with a 5,000 ms lease,
   so 1,666 ms. Each tick opens a new coordinator connection in
   `heartbeat_lease_at`. A failed tick can open a second one to reclaim.
@@ -732,6 +787,11 @@ code reference) still exists. Delete both.
 - `src/tests/helpers.rs` and `src/tests/test_utils.rs` already exist.
   Consolidate by behavior and retire one of those modules. Do not create a
   third helpers file. This is medium-priority hygiene, not a high defect.
+
+**Status: CLOSED.** Commit `b2ac2cb6` merged the shared helpers into
+`src/tests/helpers.rs`, deleted `test_utils.rs`, and removed the identical
+language-local definitions while retaining differently shaped helpers. The
+merged branch gate is recorded in `.memories/2026-09-04/225313_b71b.md`.
 
 ### T6. 30 non-main worktree branches are merged; one tree is dirty (high)
 

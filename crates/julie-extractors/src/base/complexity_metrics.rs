@@ -1354,11 +1354,6 @@ fn vue_section_byte_offset(content: &str, start_line: usize) -> u32 {
         .sum::<usize>() as u32
 }
 
-#[allow(dead_code)]
-fn parse_vue_script_tree(section: &crate::vue::parsing::VueSection) -> Option<Tree> {
-    crate::vue::parsing::parse_script_section(section)
-}
-
 fn vue_script_section_index_for_symbol(
     content: &str,
     sections: &[&crate::vue::parsing::VueSection],
