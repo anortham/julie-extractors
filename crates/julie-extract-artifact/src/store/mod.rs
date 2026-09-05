@@ -8,6 +8,7 @@ mod manifest;
 mod model;
 mod pragmas;
 mod reader;
+mod reader_liveness;
 mod rows;
 mod schema;
 #[cfg(feature = "test-store-crash")]
@@ -58,6 +59,11 @@ pub use reader::{
     READER_MIN_WRITER_VERSION, ReaderAcquireRequest, ReaderAcquireResult, ReaderManifestSnapshot,
     ReaderOwnerIdentity, ReaderRegistration, ReaderReleaseRequest, ReaderRenewRequest,
     ReaderReportFacts,
+};
+pub use reader_liveness::{
+    DeathQualification, ProcessIdentityObservation, ProcessIdentityProbe,
+    ProcessIdentityUnknownReason, ProcessInstanceIdentity, SystemProcessIdentityProbe,
+    qualify_reader_owner,
 };
 pub use schema::{
     STORE_FORMAT_EPOCH, STORE_SQLITE_SCHEMA_VERSION, StoreSchemaError, create_coordinator_schema,
