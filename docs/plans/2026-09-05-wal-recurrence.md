@@ -37,13 +37,34 @@ Use TDD through the real CLI fixture, with synchronized held read transactions.
 Run only `cargo test --locked -p julie-extract-cli --test store_import_contract <filter>`
 for worker red/green and ceiling. Limit cargo jobs to four. No full suite.
 
-- [ ] Normal completion truncates WAL despite another idle connection staying open.
-- [ ] Held snapshot defers cleanup, returns committed success and a diagnostic.
-- [ ] Multiple committed writes remain intact; after reader release a replay/no-change
+- [x] Normal completion truncates WAL despite another idle connection staying open.
+- [x] Held snapshot defers cleanup, returns committed success and a diagnostic.
+- [x] Multiple committed writes remain intact; after reader release a replay/no-change
   command truncates WAL while an idle connection stays open.
-- [ ] Include both databases; no cleanup side effects on read-only commands.
-- [ ] Record exact tests, red/green evidence and platform limitations.
+- [x] Include both databases; no cleanup side effects on read-only commands.
+- [x] Record exact tests, red/green evidence and platform limitations.
 
 Miller implementation runs independently in another repo. Commit mode is
 parallel-lead-commit: do not stage, commit, merge, or push. Lead owns final review,
 Windows and broader gates. Security scope: none declared. No external reviewer.
+
+## Completed verification
+
+Production changes are committed as 60ae102b and 0b7ef7cc on fix/wal-recurrence.
+Linux default tier passed in 89 seconds after the existing missing-generation JSON
+failure test caught a redundant stderr diagnostic. The fix preserves that existing
+test unchanged. Import contracts: 39 passed. Maintenance contracts: 19 passed.
+
+Exact-full-SHA Windows NTFS sync of 0b7ef7cc91a9775d4d4b03a60b243a7cf466d1b9:
+`cargo test --locked -j 4 -p julie-extract-cli --test store_import_contract --test store_maintenance_cli_contract`
+passed 38 import and 18 maintenance tests. All three new WAL tests ran on Windows.
+Log: `/home/murphy/.local/share/win-test/logs/20260905T123719Z-julie-extractors-2571805.log`.
+
+A failed command whose layout cannot be opened retains its original failure output;
+this is not a new cleanup failure to report twice. Valid layouts still checkpoint
+after failed commands, and successful commands still report cleanup failure.
+
+No merge, push, release or version change. This branch includes J1 and must not be
+adopted as an unrelated 2.39 patch. Coordinate release/pin adoption with Miller M1.
+No hard WAL size guarantee: pinned readers and large transactions can retain WAL;
+cleanup is explicit, observable, nonfatal and retryable on the next write command.
