@@ -62,7 +62,15 @@ fn every_promotion_boundary_recovers_the_same_generation_without_duplicates() {
                 | "generation_after_current_publish"
                 | "generation_after_destination_serving"
         ) {
-            Connection::open(temp.path().join("gen-002/store.db"))
+            let destination_store = temp.path().join("gen-002/store.db");
+            assert!(
+                destination_store.exists(),
+                "boundary={boundary} was not reached; child status={} stdout={} stderr={}",
+                output.status,
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr),
+            );
+            Connection::open(destination_store)
                 .unwrap()
                 .execute(
                     "UPDATE store_meta SET value='2.39.0' WHERE key='min_writer_version'",
