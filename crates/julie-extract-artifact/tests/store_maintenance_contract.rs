@@ -725,8 +725,7 @@ fn definitively_dead_reader_is_removed_before_gc_destructive_work() {
         1,
         "sha256:view-a",
         20 * DAY_MS,
-        identity.birth_identity(),
-        child_pid,
+        (child_pid, identity.birth_identity()),
     );
     let plan = MaintenanceInspector::new(
         StoreConnectionFactory::new(layout.clone(), "family-a", "2.40.0"),
@@ -2519,8 +2518,7 @@ fn insert_reader_registration(
         manifest_generation,
         manifest_hash,
         expires_at,
-        birth_identity,
-        std::process::id(),
+        (std::process::id(), birth_identity),
     );
 }
 
@@ -2531,9 +2529,9 @@ fn insert_reader_registration_for_pid(
     manifest_generation: i64,
     manifest_hash: &str,
     expires_at: i64,
-    birth_identity: &str,
-    owner_pid: u32,
+    owner: (u32, &str),
 ) {
+    let (owner_pid, birth_identity) = owner;
     Connection::open(layout.coordinator_db())
         .unwrap()
         .execute(

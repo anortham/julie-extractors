@@ -182,7 +182,6 @@ impl ReaderOwnerIdentity {
         self.owner_pid
     }
 
-    #[allow(dead_code)]
     pub(crate) fn owner_birth_identity(&self) -> &str {
         &self.owner_birth_identity
     }
@@ -203,6 +202,10 @@ pub struct ReaderManifestSnapshot {
 }
 
 impl ReaderManifestSnapshot {
+    #[allow(
+        clippy::too_many_arguments,
+        reason = "the public immutable snapshot constructor mirrors the frozen reader contract"
+    )]
     pub fn new(
         family_id: impl Into<String>,
         view_id: impl Into<String>,
@@ -218,18 +221,7 @@ impl ReaderManifestSnapshot {
         let generation_name = generation_name.into();
         let store_instance_id = format!("{family_id}:{generation_name}");
         let manifest_hash = manifest_hash.into();
-        let snapshot_fingerprint = snapshot_fingerprint(
-            &family_id,
-            &store_instance_id,
-            &view_id,
-            manifest_generation,
-            &manifest_hash,
-            &generation_name,
-            extraction_identity_epoch,
-            served_store_log_sequence,
-            min_retained_store_log_sequence,
-        );
-        Self {
+        let mut snapshot = Self {
             family_id,
             view_id,
             manifest_generation,
@@ -239,8 +231,10 @@ impl ReaderManifestSnapshot {
             extraction_identity_epoch,
             served_store_log_sequence,
             min_retained_store_log_sequence,
-            snapshot_fingerprint,
-        }
+            snapshot_fingerprint: String::new(),
+        };
+        snapshot.snapshot_fingerprint = snapshot_fingerprint(&snapshot);
+        snapshot
     }
 
     pub fn family_id(&self) -> &str {
@@ -400,32 +394,29 @@ impl ReaderReportFacts {
     }
 }
 
-fn snapshot_fingerprint(
-    family_id: &str,
-    store_instance_id: &str,
-    view_id: &str,
-    manifest_generation: i64,
-    manifest_hash: &str,
-    generation_name: &str,
-    extraction_identity_epoch: i64,
-    served_store_log_sequence: i64,
-    min_retained_store_log_sequence: i64,
-) -> String {
+fn snapshot_fingerprint(snapshot: &ReaderManifestSnapshot) -> String {
     let mut digest = Sha256::new();
     digest.update(b"julie-reader-snapshot-v1\0");
-    for value in [family_id, store_instance_id, view_id] {
+    for value in [
+        snapshot.family_id.as_str(),
+        snapshot.store_instance_id.as_str(),
+        snapshot.view_id.as_str(),
+    ] {
         digest.update((value.len() as u64).to_be_bytes());
         digest.update(value.as_bytes());
     }
-    digest.update(manifest_generation.to_be_bytes());
-    for value in [manifest_hash, generation_name] {
+    digest.update(snapshot.manifest_generation.to_be_bytes());
+    for value in [
+        snapshot.manifest_hash.as_str(),
+        snapshot.generation_name.as_str(),
+    ] {
         digest.update((value.len() as u64).to_be_bytes());
         digest.update(value.as_bytes());
     }
     for value in [
-        extraction_identity_epoch,
-        served_store_log_sequence,
-        min_retained_store_log_sequence,
+        snapshot.extraction_identity_epoch,
+        snapshot.served_store_log_sequence,
+        snapshot.min_retained_store_log_sequence,
     ] {
         digest.update(value.to_be_bytes());
     }
