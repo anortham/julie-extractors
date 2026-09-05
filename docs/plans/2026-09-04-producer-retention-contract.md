@@ -124,6 +124,8 @@ Release authenticates the nonce and deletes the registration/root rows in one tr
 
 Every command emits exactly one JSON line with `report_schema_version: 1` when `--json` is selected. Stable fields are `operation`, `state`, `family_id`, `view_id`, `pin_id` when safe to expose, `generation_name`, `manifest_generation`, `owner_pid`, `expires_at`, `warning`, `failure_class`, and nullable `error`. Failure classes are `busy`, `stale_snapshot`, `invalid_arguments`, `incompatible_store`, `reader_not_found`, `reader_owner_mismatch`, `reader_identity_unknown`, `capacity_insufficient`, and `operational`. Human output follows existing stdout success/stderr failure rules. Exit codes follow the existing maintenance contract: 0 success/no-op, 1 operational refusal, 2 CLI usage, and 3 incompatible store.
 
+Failure state is `refused`; snapshot/owner fields are null and error text is fixed and sanitized. Release and failure reports omit `owner_nonce` entirely. Successful release reports the validated input family/pin and `released: true|false`, not a former stored snapshot. Parse failures use a recognized operation name or generic `reader`, never an echoed arbitrary verb/value; successful help/version display follows normal CLI behavior. Acquire/renew success includes the caller-presented nonce only after authentication.
+
 ## Proposed Coordinator Schema
 
 Add these tables to `coord.db` in the coordinator schema. The names are intentionally distinct from `consumer_cursors` and retired `resolution_pins`.
@@ -332,6 +334,8 @@ Task3 verification: production commit `5f7d8684`, Windows cleanup-test correctio
 - [ ] CLI invokes producer registration methods and creates no Miller-owned files.
 
 ## Task 6: Verify cursor qualification and mixed-version behavior
+
+**Bounded parallel preparation:** After Tasks1–3 freeze, a separate worker may add only `tests/store_reader_cursor_contract.rs` for typed producer cursor/reader independence and combined retention assertions while Task4 implements maintenance. It owns no production, existing maintenance tests, CLI, or final evidence files. This does not complete Task6 or relax its dependency on Tasks4–5 for final mixed-version/CLI/race evidence. Any failing production behavior is returned to the lead/Task4 owner, never patched concurrently.
 
 **Files:** `crates/julie-extract-artifact/tests/store_coordinator_contract.rs`, `tests/store_maintenance_contract.rs`, `tests/store_maintenance_schema_contract.rs`, `crates/julie-extract-cli/tests/store_maintenance_cli_contract.rs`, new `docs/evidence/2026-09-producer-retention-contract.md`.
 

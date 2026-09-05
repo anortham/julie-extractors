@@ -21,7 +21,10 @@ use super::connection::{
 };
 use super::layout::valid_generation_name;
 use super::pragmas::{PragmaError, WriterPragmaProfile, configure_writer_pragmas};
-use super::schema::{ReaderCatalogState, reader_catalog_state};
+use super::schema::{
+    ReaderCatalogState, reader_catalog_state, validate_coordinator_schema_version,
+    validate_store_schema_version,
+};
 use super::wal_retry::{is_locking_protocol, with_locking_protocol_retry};
 use super::{
     GenerationFence, ProcessIdentityObservation, ProcessIdentityProbe, READER_MIN_WRITER_VERSION,
@@ -718,8 +721,8 @@ impl StoreCoordinator {
         layout: &StoreLayout,
         pid_liveness: impl PidLiveness + 'static,
     ) -> Result<Self, CoordinatorError> {
-        let connection = open_coordinator(layout.coordinator_db())?;
         let family_id = coordinator_store_family(layout)?;
+        let connection = open_coordinator(layout.coordinator_db())?;
         Ok(Self {
             connection: Mutex::new(connection),
             layout: layout.clone(),
@@ -743,8 +746,8 @@ impl StoreCoordinator {
         C: UnixMillisClock + 'static,
         L: PidLiveness + 'static,
     {
-        let connection = open_coordinator(layout.coordinator_db())?;
         let family_id = coordinator_store_family(layout)?;
+        let connection = open_coordinator(layout.coordinator_db())?;
         Ok(Self {
             connection: Mutex::new(connection),
             layout: layout.clone(),
@@ -2160,13 +2163,14 @@ impl StoreCoordinator {
                 field: "reader_expires_at",
                 value: i64::MAX,
             })?;
-        ensure_reader_writer_floor(&self.store_db, &mut admission_observer)?;
         let pin_id = new_reader_pin_id()?;
 
         let mut connection = self.coordinator();
         let transaction = begin_coordinator(&mut connection)?;
-        validate_reader_catalog(&transaction)?;
+        validate_coordinator_schema_version(&transaction).map_err(map_supported_schema_error)?;
         refuse_foreign_live_maintenance_intent(&transaction, now)?;
+        ensure_reader_writer_floor(&self.store_db, &mut admission_observer)?;
+        validate_reader_catalog(&transaction)?;
         refuse_live_writer_lease(&transaction, now)?;
         let owner = verified_reader_owner(probe, request.owner_pid())?;
 
@@ -3017,6 +3021,7 @@ fn open_reader_admission_store(path: &Path) -> Result<Connection, CoordinatorErr
     connection
         .busy_timeout(Duration::ZERO)
         .map_err(map_reader_sqlite_error)?;
+    validate_store_schema_version(&connection).map_err(map_reader_schema_error)?;
     connection
         .execute_batch("PRAGMA foreign_keys=ON; PRAGMA query_only=ON;")
         .map_err(map_reader_sqlite_error)?;
@@ -3030,14 +3035,25 @@ fn ensure_reader_writer_floor(
     let store = open_reader_admission_store(store_path)?;
     let min_writer_version = reader_query_row(
         &store,
-        "writer_floor_preflight",
+        "writer_floor_admission",
         READER_MIN_WRITER_SQL,
         &[],
         observer,
         |row| row.get::<_, String>(0),
     )?;
-    if compare_versions(&min_writer_version, READER_MIN_WRITER_VERSION)? == Ordering::Less {
+    validate_reader_writer_floor(&min_writer_version)
+}
+
+fn validate_reader_writer_floor(min_writer_version: &str) -> Result<(), CoordinatorError> {
+    if compare_versions(min_writer_version, READER_MIN_WRITER_VERSION)? == Ordering::Less {
         return Err(CoordinatorError::ReaderWriterFloorRequired);
+    }
+    let running = env!("CARGO_PKG_VERSION");
+    if compare_versions(running, min_writer_version)? == Ordering::Less {
+        return Err(CoordinatorError::WriterVersionTooOld {
+            running: running.to_string(),
+            required: min_writer_version.to_string(),
+        });
     }
     Ok(())
 }
@@ -3077,9 +3093,7 @@ fn read_reader_manifest_snapshot(
     if family_id != request.family_id() {
         return Err(CoordinatorError::ReaderStaleSnapshot);
     }
-    if compare_versions(&min_writer_version, READER_MIN_WRITER_VERSION)? == Ordering::Less {
-        return Err(CoordinatorError::ReaderWriterFloorRequired);
-    }
+    validate_reader_writer_floor(&min_writer_version)?;
     let manifest_params: &[&dyn ToSql] = &[&request.view_id()];
     let (manifest_generation, manifest_hash, manifest_request_id) = reader_query_optional(
         store,
@@ -3978,7 +3992,15 @@ fn open_coordinator(path: &Path) -> Result<Connection, CoordinatorError> {
 }
 
 fn open_coordinator_once(path: &Path) -> Result<Connection, CoordinatorError> {
+    if path.exists() {
+        let preflight = Connection::open_with_flags(
+            path,
+            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )?;
+        validate_coordinator_schema_version(&preflight).map_err(map_supported_schema_error)?;
+    }
     let connection = Connection::open(path)?;
+    validate_coordinator_schema_version(&connection).map_err(map_supported_schema_error)?;
     connection.busy_timeout(COORDINATOR_BUSY_TIMEOUT)?;
     configure_writer_pragmas(&connection, WriterPragmaProfile::Routine).map_err(|error| {
         match error {
@@ -4023,11 +4045,26 @@ fn coordinator_store_family_once(layout: &StoreLayout) -> Result<String, Coordin
         layout.store_db(),
         rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX,
     )?;
+    validate_store_schema_version(&store).map_err(map_supported_schema_error)?;
     Ok(store.query_row(
         "SELECT value FROM store_meta WHERE key = 'family_id'",
         [],
         |row| row.get(0),
     )?)
+}
+
+fn map_supported_schema_error(error: super::StoreSchemaError) -> CoordinatorError {
+    match error {
+        super::StoreSchemaError::Sqlite(inner) => CoordinatorError::Sqlite(inner),
+        other => CoordinatorError::StoreConnection(StoreConnectionError::Schema(other)),
+    }
+}
+
+fn map_reader_schema_error(error: super::StoreSchemaError) -> CoordinatorError {
+    match error {
+        super::StoreSchemaError::Sqlite(inner) => map_reader_sqlite_error(inner),
+        other => map_supported_schema_error(other),
+    }
 }
 
 fn begin_coordinator(connection: &mut Connection) -> Result<Transaction<'_>, CoordinatorError> {

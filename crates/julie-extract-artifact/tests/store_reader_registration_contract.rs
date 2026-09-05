@@ -8,7 +8,7 @@ use julie_extract_artifact::store::{
     ManifestStore, READER_MIN_WRITER_VERSION, ReaderAcquireRequest, ReaderManifestSnapshot,
     ReaderReleaseRequest, ReaderRenewRequest, RequestKind, StoreConnectionError,
     StoreConnectionFactory, StoreCoordinator, StoreLayout, StoreLog, StoreLogEntry,
-    create_coordinator_schema, create_store_schema,
+    StoreSchemaError, create_coordinator_schema, create_store_schema,
 };
 
 #[cfg(feature = "test-store-contract")]
@@ -388,6 +388,155 @@ fn below_floor_is_classified_before_legacy_reader_catalog_lookup() {
         result,
         Err(CoordinatorError::ReaderWriterFloorRequired)
     ));
+}
+
+#[cfg(feature = "test-store-contract")]
+#[test]
+fn acquire_refuses_permanent_writer_floor_above_compiled_version_without_mutation() {
+    let temp = TempStore::new("newer-permanent-writer-floor");
+    let layout = seeded_admission_store(&temp, 0);
+    Connection::open(layout.store_db())
+        .unwrap()
+        .execute(
+            "UPDATE store_meta SET value='999.0.0' WHERE key='min_writer_version'",
+            [],
+        )
+        .unwrap();
+    let owner_pid = std::process::id();
+    let request = ReaderAcquireRequest::new(
+        "family-a",
+        "view-a",
+        "gen-001",
+        "miller",
+        owner_pid,
+        "0123456789abcdef0123456789abcdef",
+        30_000,
+    );
+    let owner = FixedProcessIdentity(ProcessIdentityObservation::Alive(
+        ProcessInstanceIdentity::new(owner_pid, "opaque-birth-newer-floor"),
+    ));
+    let result = StoreCoordinator::open(&layout)
+        .unwrap()
+        .acquire_reader_with_probe(&request, &owner);
+    let error = match result {
+        Ok(_) => panic!("newer permanent writer floor admitted a reader"),
+        Err(error) => error,
+    };
+    assert!(matches!(
+        error,
+        CoordinatorError::WriterVersionTooOld { running, required }
+            if running == env!("CARGO_PKG_VERSION") && required == "999.0.0"
+    ));
+    assert_eq!(
+        Connection::open(layout.coordinator_db())
+            .unwrap()
+            .query_row("SELECT COUNT(*) FROM reader_registrations", [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .unwrap(),
+        0
+    );
+}
+
+#[cfg(feature = "test-store-contract")]
+#[test]
+fn future_coordinator_schema_refuses_open_before_retired_object_cleanup() {
+    let temp = TempStore::new("future-coordinator-schema");
+    let layout = seeded_admission_store(&temp, 0);
+    let coordinator = Connection::open(layout.coordinator_db()).unwrap();
+    coordinator
+        .execute_batch(
+            "CREATE INDEX uidx_coord_one_claimed_resolve ON requests(request_id);
+             PRAGMA user_version=99;",
+        )
+        .unwrap();
+    drop(coordinator);
+
+    let result = StoreCoordinator::open(&layout);
+    assert!(matches!(
+        result,
+        Err(CoordinatorError::StoreConnection(
+            StoreConnectionError::Schema(StoreSchemaError::NewerSchema {
+                database: "coord.db",
+                found: 99,
+                supported: 2,
+            })
+        ))
+    ));
+    let coordinator = Connection::open(layout.coordinator_db()).unwrap();
+    assert_eq!(
+        coordinator
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_schema
+                 WHERE type='index' AND name='uidx_coord_one_claimed_resolve'",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        1
+    );
+    assert_eq!(
+        coordinator
+            .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+            .unwrap(),
+        99
+    );
+    assert_eq!(
+        coordinator
+            .query_row("SELECT COUNT(*) FROM reader_registrations", [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .unwrap(),
+        0
+    );
+}
+
+#[cfg(feature = "test-store-contract")]
+#[test]
+fn future_store_schema_refuses_reader_constructor_before_coordinator_cleanup() {
+    let temp = TempStore::new("future-store-schema");
+    let layout = seeded_admission_store(&temp, 0);
+    Connection::open(layout.store_db())
+        .unwrap()
+        .execute_batch("PRAGMA user_version=99;")
+        .unwrap();
+    let coordinator = Connection::open(layout.coordinator_db()).unwrap();
+    coordinator
+        .execute_batch("CREATE INDEX uidx_coord_one_claimed_resolve ON requests(request_id);")
+        .unwrap();
+    drop(coordinator);
+
+    let result = StoreCoordinator::open(&layout);
+    assert!(matches!(
+        result,
+        Err(CoordinatorError::StoreConnection(
+            StoreConnectionError::Schema(StoreSchemaError::NewerSchema {
+                database: "store.db",
+                found: 99,
+                supported: 2,
+            })
+        ))
+    ));
+    let coordinator = Connection::open(layout.coordinator_db()).unwrap();
+    assert_eq!(
+        coordinator
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_schema
+                 WHERE type='index' AND name='uidx_coord_one_claimed_resolve'",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        1
+    );
+    assert_eq!(
+        coordinator
+            .query_row("SELECT COUNT(*) FROM reader_registrations", [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .unwrap(),
+        0
+    );
 }
 
 #[test]
@@ -1196,6 +1345,13 @@ fn admission_refuses_live_writer_and_maintenance_owners_without_partial_rows() {
                 )
                 .unwrap();
         } else {
+            Connection::open(layout.store_db())
+                .unwrap()
+                .execute(
+                    "UPDATE store_meta SET value='999.0.0' WHERE key='min_writer_version'",
+                    [],
+                )
+                .unwrap();
             coordinator
                 .execute(
                     "INSERT INTO maintenance_intent

@@ -130,6 +130,7 @@ pub fn create_coordinator_schema(conn: &Connection) -> Result<(), StoreSchemaErr
 pub(crate) fn reader_catalog_state(
     conn: &Connection,
 ) -> Result<ReaderCatalogState, StoreSchemaError> {
+    validate_schema_version(conn, "coord.db")?;
     let mut present = 0;
     for expected in READER_CATALOG_OBJECTS {
         let actual = conn
@@ -223,6 +224,12 @@ fn add_request_quantum_overruns(conn: &Connection) -> Result<(), StoreSchemaErro
 
 pub(crate) fn validate_store_schema_version(conn: &Connection) -> Result<(), StoreSchemaError> {
     validate_schema_version(conn, "store.db")
+}
+
+pub(crate) fn validate_coordinator_schema_version(
+    conn: &Connection,
+) -> Result<(), StoreSchemaError> {
+    validate_schema_version(conn, "coord.db")
 }
 
 fn create_schema(
