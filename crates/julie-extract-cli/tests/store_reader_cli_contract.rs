@@ -131,6 +131,7 @@ fn json_report(output: &Output, expected_exit: i32) -> Value {
 #[test]
 fn reader_help_is_stable() {
     let output = julie_extract(&["store", "reader", "--help"]);
+    let executable = format!("julie-extract{}", std::env::consts::EXE_SUFFIX);
 
     assert_eq!(
         output.status.code(),
@@ -142,35 +143,38 @@ fn reader_help_is_stable() {
     assert!(output.stderr.is_empty());
     assert_eq!(
         String::from_utf8(output.stdout).unwrap(),
-        "Usage: julie-extract store reader <COMMAND>\n\nCommands:\n  acquire  Register one immutable manifest snapshot\n  renew    Renew an authenticated reader registration\n  release  Release an authenticated reader registration\n  help     Print this message or the help of the given subcommand(s)\n\nOptions:\n  -h, --help  Print help\n"
+        format!(
+            "Usage: {executable} store reader <COMMAND>\n\nCommands:\n  acquire  Register one immutable manifest snapshot\n  renew    Renew an authenticated reader registration\n  release  Release an authenticated reader registration\n  help     Print this message or the help of the given subcommand(s)\n\nOptions:\n  -h, --help  Print help\n"
+        )
     );
 }
 
 #[test]
 fn reader_subcommand_help_freezes_the_required_arguments() {
+    let executable = format!("julie-extract{}", std::env::consts::EXE_SUFFIX);
     let acquire = julie_extract(&["store", "reader", "acquire", "--help"]);
     assert_eq!(acquire.status.code(), Some(0));
     assert!(acquire.stderr.is_empty());
     let acquire = String::from_utf8(acquire.stdout).unwrap();
-    assert!(acquire.contains(
-        "Usage: julie-extract store reader acquire [OPTIONS] --store <STORE> --family <FAMILY> --view <VIEW> --generation <GENERATION> --owner <OWNER> --owner-pid <OWNER_PID> --nonce <NONCE> --lease-ms <LEASE_MS>"
-    ));
+    assert!(acquire.contains(&format!(
+        "Usage: {executable} store reader acquire [OPTIONS] --store <STORE> --family <FAMILY> --view <VIEW> --generation <GENERATION> --owner <OWNER> --owner-pid <OWNER_PID> --nonce <NONCE> --lease-ms <LEASE_MS>"
+    )));
 
     let renew = julie_extract(&["store", "reader", "renew", "--help"]);
     assert_eq!(renew.status.code(), Some(0));
     assert!(renew.stderr.is_empty());
     let renew = String::from_utf8(renew.stdout).unwrap();
-    assert!(renew.contains(
-        "Usage: julie-extract store reader renew [OPTIONS] --store <STORE> --family <FAMILY> --pin <PIN> --nonce <NONCE> --owner-pid <OWNER_PID> --lease-ms <LEASE_MS>"
-    ));
+    assert!(renew.contains(&format!(
+        "Usage: {executable} store reader renew [OPTIONS] --store <STORE> --family <FAMILY> --pin <PIN> --nonce <NONCE> --owner-pid <OWNER_PID> --lease-ms <LEASE_MS>"
+    )));
 
     let release = julie_extract(&["store", "reader", "release", "--help"]);
     assert_eq!(release.status.code(), Some(0));
     assert!(release.stderr.is_empty());
     let release = String::from_utf8(release.stdout).unwrap();
-    assert!(release.contains(
-        "Usage: julie-extract store reader release [OPTIONS] --store <STORE> --family <FAMILY> --pin <PIN> --nonce <NONCE>"
-    ));
+    assert!(release.contains(&format!(
+        "Usage: {executable} store reader release [OPTIONS] --store <STORE> --family <FAMILY> --pin <PIN> --nonce <NONCE>"
+    )));
 }
 
 #[test]
