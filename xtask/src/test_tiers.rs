@@ -472,20 +472,25 @@ fn contract_plan() -> TestPlan {
             "reference_site_identity",
         ],
     ));
-    commands.push(CommandSpec::new(
-        "cargo",
-        [
-            "test",
-            "-p",
-            "julie-extract-artifact",
-            "--features",
-            "test-store-crash",
-            "--test",
-            "store_crash_contract",
-            "--",
-            "--test-threads=1",
-        ],
-    ));
+    for harness in [
+        "store_crash_contract",
+        "store_reader_catalog_crash_contract",
+    ] {
+        commands.push(CommandSpec::new(
+            "cargo",
+            [
+                "test",
+                "-p",
+                "julie-extract-artifact",
+                "--features",
+                "test-store-crash",
+                "--test",
+                harness,
+                "--",
+                "--test-threads=1",
+            ],
+        ));
+    }
     for harness in [
         "store_equivalence",
         "store_mixed_version",
@@ -751,5 +756,25 @@ mod tests {
                 "tier {tier} should not report wall clock"
             );
         }
+    }
+
+    #[test]
+    fn test_contract_tier_includes_reader_catalog_crash_target() {
+        let plan = plan_from_args(["test", "contract"]).expect("contract plan");
+
+        assert!(plan.commands.iter().any(|command| {
+            command.program == "cargo"
+                && command.args.iter().map(String::as_str).eq([
+                    "test",
+                    "-p",
+                    "julie-extract-artifact",
+                    "--features",
+                    "test-store-crash",
+                    "--test",
+                    "store_reader_catalog_crash_contract",
+                    "--",
+                    "--test-threads=1",
+                ])
+        }));
     }
 }
