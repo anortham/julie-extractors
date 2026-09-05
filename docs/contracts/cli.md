@@ -59,6 +59,9 @@ julie-extract store maintain repair --store <family-dir> [--family <uuid>] [--ap
 julie-extract store maintain promote --store <family-dir> [--family <uuid>] [--apply] [--json]
 julie-extract store maintain cursor advance --store <family-dir> [--family <uuid>] --consumer <id> --sequence <n> [--apply] [--json]
 julie-extract store maintain cursor release --store <family-dir> [--family <uuid>] --consumer <id> [--apply] [--json]
+julie-extract store reader acquire --store <family-dir> --family <uuid> --view <id> --generation <generation-name> --owner <label> --owner-pid <pid> --nonce <nonce> --lease-ms <milliseconds> [--json]
+julie-extract store reader renew --store <family-dir> --family <uuid> --pin <pin-id> --nonce <nonce> --owner-pid <pid> --lease-ms <milliseconds> [--json]
+julie-extract store reader release --store <family-dir> --family <uuid> --pin <pin-id> --nonce <nonce> [--json]
 ```
 
 The nested `store` surface is published (v2.31.0+; concurrent multi-worktree fencing through
@@ -533,6 +536,59 @@ refusal, `2` for CLI usage, and `3` for an incompatible store. Stable operationa
 are `busy`, `stale_plan`, `capacity_insufficient`, `recovery_required`, `integrity_failed`,
 `repair_unavailable`, and `invalid_arguments`; incompatible schema/epoch/reader/writer floors use
 `incompatible_store`.
+
+### `store reader`
+
+`reader acquire` registers the requested CURRENT family, view, generation, and manifest before a
+consumer opens that generation. It returns the immutable snapshot that the consumer may open.
+Repeating the same request with the same nonce returns the original registration, even when the
+view's current manifest has changed. A changed owner, family, view, or generation does not retarget
+the registration.
+
+The running binary must satisfy the store's writer floor. When a compatible older family has not
+enabled reader-aware writers, acquire closes admission, raises the floor through the bounded
+maintenance operation, and retries once. A live maintenance owner, an unsafe catalog, or an
+incompatible newer floor refuses the command. The CLI does not create or repair reader catalog
+objects itself.
+
+`reader renew` authenticates the pin, nonce, PID, and producer-captured process birth identity. It
+updates only heartbeat and expiry values. `reader release` authenticates the nonce and removes the
+registration. Releasing an absent pin succeeds with `released: false`; a wrong nonce refuses
+without returning stored registration facts. Renew and release continue to address the immutable
+registration after CURRENT changes.
+
+Reader IDs and owner labels contain 1 to 128 Unicode characters. Nonces contain 32 to 512 Unicode
+characters. Control characters are rejected. Owner PID and lease duration are positive integers;
+lease duration must fit a signed 64-bit millisecond value. The producer captures process birth
+identity on Linux and Windows. Platforms without a supported identity probe return
+`reader_identity_unknown` and create no registration.
+
+Reader JSON uses `report_schema_version: 1` and emits exactly one line on stdout for success,
+semantic refusal, and CLI validation failure. Acquire and renew success return `operation`, `state`,
+`family_id`, `view_id`, `pin_id`, `generation_name`, `manifest_generation`, the caller-presented
+`owner_nonce`, `owner_pid`, `store_instance_id`, `manifest_hash`, `extraction_identity_epoch`,
+`served_store_log_sequence`, `min_retained_store_log_sequence`, `snapshot_fingerprint`,
+`protected_manifest_count`, `expires_at`, `warning`, nullable `failure_class`, and nullable `error`.
+The report copies producer snapshot facts unchanged. It never adds index levels, level stamps,
+birth identity, or file/version lists.
+
+`served_store_log_sequence` is the committed log position observed by the captured snapshot, not a
+monotonic revision or proof that all earlier delta rows remain present. `min_retained_store_log_sequence`
+is the separate retention floor. The producer owns both facts and the off-process retention rules
+documented in [store-v1.md](store-v1.md); a reader must not reconstruct either value.
+
+Release success contains the validated family and pin, `state: "released"`, and
+`released: true|false`. Its other stable snapshot and owner fields are null. It omits
+`owner_nonce`. Failure uses `state: "refused"`, a fixed sanitized error, and null snapshot and owner
+fields. It also omits `owner_nonce`. Parse failures use `reader_acquire`, `reader_renew`, or
+`reader_release` only when the verb is recognized; otherwise they use `reader`. Supplied values
+never appear in validation output.
+
+Reader failure classes are `busy`, `stale_snapshot`, `invalid_arguments`, `incompatible_store`,
+`reader_not_found`, `reader_owner_mismatch`, `reader_identity_unknown`, `capacity_insufficient`,
+and `operational`. Exit `0` means success or idempotent release, `1` means operational refusal, `2`
+means CLI usage, and `3` means incompatible store. Human success goes to stdout. Human failure goes
+to stderr and never prints the nonce.
 
 ## Status Values
 

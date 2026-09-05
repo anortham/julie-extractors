@@ -67,9 +67,15 @@ use crate::store::import::StoreExecutionOutcome;
 use crate::watchdog::ParentWatchdog;
 
 pub fn run_from_env() -> ExitCode {
+    let raw_args: Vec<_> = std::env::args_os().collect();
     let cli = match Cli::try_parse() {
         Ok(cli) => cli,
         Err(error) => {
+            if let Some(outcome) = crate::store::reader::parse_failure(&raw_args, &error) {
+                let exit_code = outcome.exit_code();
+                outcome.write();
+                return ExitCode::from(exit_code);
+            }
             let exit_code = error.exit_code();
             let _ = error.print();
             return ExitCode::from(exit_code as u8);

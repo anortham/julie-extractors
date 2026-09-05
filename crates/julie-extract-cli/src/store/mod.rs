@@ -7,6 +7,7 @@ mod from_artifact;
 pub mod import;
 mod maintenance;
 pub mod maintenance_report;
+pub(crate) mod reader;
 pub mod report;
 #[cfg(feature = "test-store-contract")]
 pub mod test_support;
@@ -21,6 +22,7 @@ pub fn dispatch(args: args::StoreArgs) -> StoreExecutionOutcome {
         args::StoreCommand::Delete(args) => delete::run(args),
         args::StoreCommand::Export(args) => export::run(args),
         args::StoreCommand::Maintain(args) => maintenance::run(args),
+        args::StoreCommand::Reader(args) => reader::run(args),
     }
 }
 

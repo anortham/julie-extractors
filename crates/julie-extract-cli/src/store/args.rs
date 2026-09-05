@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::{fmt, num::NonZeroU32};
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
@@ -35,6 +36,104 @@ pub enum StoreCommand {
     Delete(StoreDeleteArgs),
     Export(StoreExportArgs),
     Maintain(StoreMaintainArgs),
+    Reader(StoreReaderArgs),
+}
+
+#[derive(Debug, Args)]
+pub struct StoreReaderArgs {
+    #[command(subcommand)]
+    pub command: StoreReaderCommand,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum StoreReaderCommand {
+    /// Register one immutable manifest snapshot.
+    Acquire(StoreReaderAcquireArgs),
+    /// Renew an authenticated reader registration.
+    Renew(StoreReaderRenewArgs),
+    /// Release an authenticated reader registration.
+    Release(StoreReaderReleaseArgs),
+}
+
+#[derive(Args)]
+pub struct StoreReaderAcquireArgs {
+    #[arg(long, value_parser = parse_store_path)]
+    pub store: PathBuf,
+    #[arg(long, value_parser = parse_family_id)]
+    pub family: String,
+    #[arg(long, value_parser = parse_reader_identifier)]
+    pub view: String,
+    #[arg(long, value_parser = parse_generation_name)]
+    pub generation: String,
+    #[arg(long, value_parser = parse_reader_identifier)]
+    pub owner: String,
+    #[arg(long, value_parser = parse_owner_pid)]
+    pub owner_pid: NonZeroU32,
+    #[arg(long, value_parser = parse_reader_nonce)]
+    pub nonce: String,
+    #[arg(long, value_parser = parse_lease_ms)]
+    pub lease_ms: u64,
+    #[arg(long)]
+    pub json: bool,
+}
+
+impl fmt::Debug for StoreReaderAcquireArgs {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("StoreReaderAcquireArgs")
+            .field("arguments", &"<redacted>")
+            .finish()
+    }
+}
+
+#[derive(Args)]
+pub struct StoreReaderRenewArgs {
+    #[arg(long, value_parser = parse_store_path)]
+    pub store: PathBuf,
+    #[arg(long, value_parser = parse_family_id)]
+    pub family: String,
+    #[arg(long, value_parser = parse_reader_identifier)]
+    pub pin: String,
+    #[arg(long, value_parser = parse_reader_nonce)]
+    pub nonce: String,
+    #[arg(long, value_parser = parse_owner_pid)]
+    pub owner_pid: NonZeroU32,
+    #[arg(long, value_parser = parse_lease_ms)]
+    pub lease_ms: u64,
+    #[arg(long)]
+    pub json: bool,
+}
+
+impl fmt::Debug for StoreReaderRenewArgs {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("StoreReaderRenewArgs")
+            .field("arguments", &"<redacted>")
+            .finish()
+    }
+}
+
+#[derive(Args)]
+pub struct StoreReaderReleaseArgs {
+    #[arg(long, value_parser = parse_store_path)]
+    pub store: PathBuf,
+    #[arg(long, value_parser = parse_family_id)]
+    pub family: String,
+    #[arg(long, value_parser = parse_reader_identifier)]
+    pub pin: String,
+    #[arg(long, value_parser = parse_reader_nonce)]
+    pub nonce: String,
+    #[arg(long)]
+    pub json: bool,
+}
+
+impl fmt::Debug for StoreReaderReleaseArgs {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("StoreReaderReleaseArgs")
+            .field("arguments", &"<redacted>")
+            .finish()
+    }
 }
 
 #[derive(Debug, Args)]
@@ -333,6 +432,62 @@ fn parse_store_identifier(value: &str) -> Result<String, String> {
         return Err("value must not contain NUL".to_string());
     }
     Ok(value.to_string())
+}
+
+fn parse_reader_identifier(value: &str) -> Result<String, String> {
+    parse_reader_text(value, 1, 128, "reader identifier")
+}
+
+fn parse_reader_nonce(value: &str) -> Result<String, String> {
+    parse_reader_text(value, 32, 512, "reader nonce")
+}
+
+fn parse_reader_text(
+    value: &str,
+    minimum: usize,
+    maximum: usize,
+    label: &str,
+) -> Result<String, String> {
+    let length = value.chars().count();
+    if length < minimum || length > maximum {
+        return Err(format!(
+            "{label} must contain between {minimum} and {maximum} characters"
+        ));
+    }
+    if value.chars().any(char::is_control) {
+        return Err(format!("{label} must not contain control characters"));
+    }
+    Ok(value.to_string())
+}
+
+fn parse_generation_name(value: &str) -> Result<String, String> {
+    let value = parse_reader_identifier(value)?;
+    if !value
+        .strip_prefix("gen-")
+        .is_some_and(|digits| digits.len() >= 3 && digits.bytes().all(|byte| byte.is_ascii_digit()))
+    {
+        return Err("generation must use the gen-<digits> form".to_string());
+    }
+    Ok(value)
+}
+
+fn parse_owner_pid(value: &str) -> Result<NonZeroU32, String> {
+    value
+        .parse::<NonZeroU32>()
+        .map_err(|_| "owner pid must be a positive 32-bit integer".to_string())
+}
+
+fn parse_lease_ms(value: &str) -> Result<u64, String> {
+    let lease_ms = value.parse::<u64>().map_err(|_| {
+        "lease duration must be a positive integer number of milliseconds".to_string()
+    })?;
+    if lease_ms == 0 || lease_ms > i64::MAX as u64 {
+        return Err(format!(
+            "lease duration must be between 1 and {} milliseconds",
+            i64::MAX
+        ));
+    }
+    Ok(lease_ms)
 }
 
 fn parse_family_id(value: &str) -> Result<String, String> {
