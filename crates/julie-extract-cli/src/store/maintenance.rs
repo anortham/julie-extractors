@@ -786,8 +786,11 @@ fn coordinator_error_code(error: &julie_extract_artifact::store::CoordinatorErro
         CoordinatorError::CursorAhead { .. } => "consumer_cursor_ahead",
         CoordinatorError::CursorGenerationConflict { .. }
         | CoordinatorError::InvalidGeneration { .. } => "invalid_maintenance_metadata",
-        CoordinatorError::WriterVersionTooOld { .. } => "store_writer_too_old",
-        CoordinatorError::LeaseUnavailable | CoordinatorError::LeaseLost => "maintenance_busy",
+        CoordinatorError::WriterVersionTooOld { .. }
+        | CoordinatorError::ReaderWriterFloorRequired => "store_writer_too_old",
+        CoordinatorError::LeaseUnavailable
+        | CoordinatorError::LeaseLost
+        | CoordinatorError::ReaderAdmissionBusy => "maintenance_busy",
         CoordinatorError::StoreLog(error) => error.code(),
         CoordinatorError::StoreConnection(error) => store_connection_error_code(error),
         CoordinatorError::IdempotencyConflict { .. }
@@ -800,6 +803,11 @@ fn coordinator_error_code(error: &julie_extract_artifact::store::CoordinatorErro
         | CoordinatorError::ExecutionFailed { .. }
         | CoordinatorError::InvalidPolicy
         | CoordinatorError::QuantumDeadlineExceeded { .. }
+        | CoordinatorError::ReaderNotFound
+        | CoordinatorError::ReaderOwnerMismatch
+        | CoordinatorError::ReaderIdentityUnknown
+        | CoordinatorError::ReaderStaleSnapshot
+        | CoordinatorError::ReaderOperational
         | CoordinatorError::Sqlite(_) => "maintenance_coordinator_error",
     }
 }
