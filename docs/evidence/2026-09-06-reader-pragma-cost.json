@@ -1,0 +1,347 @@
+{
+  "producer_base": "e4f6a5db601ec7f1b9812b373346a74a7ccd8117",
+  "miller_binary": "1.28.0+66e302949943",
+  "workspace_revision": 87528,
+  "manifest_hash": "15561f6e6504d5af1d520ad86cbab1f6d048fee0bdcb09a1e65adc8c4a36e99a",
+  "command": [
+    "miller",
+    "inspect",
+    "FullRebuildPromotion",
+    "--depth",
+    "summary",
+    "--json"
+  ],
+  "environment": {
+    "MILLER_SEMANTIC": "off",
+    "MILLER_CT": "off"
+  },
+  "concurrency": 1,
+  "warmup_pairs": 1,
+  "measured_pairs": 20,
+  "alternating_order": true,
+  "samples": [
+    {
+      "round": 0,
+      "version": "before",
+      "wall_ms": 1331.129508005688,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 0,
+      "version": "after",
+      "wall_ms": 1884.1836859937757,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 1,
+      "version": "after",
+      "wall_ms": 1187.8906909842044,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 1,
+      "version": "before",
+      "wall_ms": 1557.6943780179136,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 2,
+      "version": "before",
+      "wall_ms": 1906.0541210055817,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 2,
+      "version": "after",
+      "wall_ms": 1830.442114995094,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 3,
+      "version": "after",
+      "wall_ms": 1984.5301319728605,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 3,
+      "version": "before",
+      "wall_ms": 1951.937744015595,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 4,
+      "version": "before",
+      "wall_ms": 1758.9659079967532,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 4,
+      "version": "after",
+      "wall_ms": 293.66965498775244,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 5,
+      "version": "after",
+      "wall_ms": 304.27908201818354,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 5,
+      "version": "before",
+      "wall_ms": 354.5745190058369,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 6,
+      "version": "before",
+      "wall_ms": 314.27692898432724,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 6,
+      "version": "after",
+      "wall_ms": 282.1490790229291,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 7,
+      "version": "after",
+      "wall_ms": 274.49313399847597,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 7,
+      "version": "before",
+      "wall_ms": 427.65362199861556,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 8,
+      "version": "before",
+      "wall_ms": 310.3752409806475,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 8,
+      "version": "after",
+      "wall_ms": 305.2735899982508,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 9,
+      "version": "after",
+      "wall_ms": 350.5052709951997,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 9,
+      "version": "before",
+      "wall_ms": 337.1014029835351,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 10,
+      "version": "before",
+      "wall_ms": 306.22730002505705,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 10,
+      "version": "after",
+      "wall_ms": 352.1996400086209,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 11,
+      "version": "after",
+      "wall_ms": 309.4650880084373,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 11,
+      "version": "before",
+      "wall_ms": 353.33034698851407,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 12,
+      "version": "before",
+      "wall_ms": 323.5812879865989,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 12,
+      "version": "after",
+      "wall_ms": 323.58163499156944,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 13,
+      "version": "after",
+      "wall_ms": 316.26135398983024,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 13,
+      "version": "before",
+      "wall_ms": 345.537709974451,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 14,
+      "version": "before",
+      "wall_ms": 363.13861797680147,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 14,
+      "version": "after",
+      "wall_ms": 338.1015929917339,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 15,
+      "version": "after",
+      "wall_ms": 354.97775601106696,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 15,
+      "version": "before",
+      "wall_ms": 319.8639659967739,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 16,
+      "version": "before",
+      "wall_ms": 312.3789399978705,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 16,
+      "version": "after",
+      "wall_ms": 277.257584995823,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 17,
+      "version": "after",
+      "wall_ms": 307.42463198839687,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 17,
+      "version": "before",
+      "wall_ms": 332.3831990128383,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 18,
+      "version": "before",
+      "wall_ms": 349.018798006,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 18,
+      "version": "after",
+      "wall_ms": 307.82618100056425,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 19,
+      "version": "after",
+      "wall_ms": 318.02952897851355,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 19,
+      "version": "before",
+      "wall_ms": 349.16524900472723,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 20,
+      "version": "before",
+      "wall_ms": 324.22859998769127,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    },
+    {
+      "round": 20,
+      "version": "after",
+      "wall_ms": 305.0181930011604,
+      "exit_code": 0,
+      "sha256": "3b8c9407eaf6a39b725ca01aac11a28f450d6709a733a285450c89d233cb0bcb"
+    }
+  ],
+  "before_sync_lines": [
+    "1039223 16:33:55.942579 fsync(4</home/murphy/.miller/stores/a271f2bd-7368-4da6-b5aa-24ffad69fb1f/coord.db-wal> <unfinished ...>",
+    "1039223 16:33:55.948611 <... fsync resumed>) = 0 <0.006022>",
+    "1039223 16:33:55.948637 fsync(6</home/murphy/.miller/stores/a271f2bd-7368-4da6-b5aa-24ffad69fb1f>) = 0 <0.006085>",
+    "1039223 16:33:55.954794 fsync(4</home/murphy/.miller/stores/a271f2bd-7368-4da6-b5aa-24ffad69fb1f/coord.db-wal>) = 0 <0.006121>",
+    "1039223 16:33:55.964804 fsync(4</home/murphy/.miller/stores/a271f2bd-7368-4da6-b5aa-24ffad69fb1f/coord.db-wal>) = 0 <0.006144>",
+    "1039223 16:33:55.971227 fsync(4</home/murphy/.miller/stores/a271f2bd-7368-4da6-b5aa-24ffad69fb1f/coord.db-wal>) = 0 <0.000004>",
+    "1039223 16:33:55.971359 fsync(3</home/murphy/.miller/stores/a271f2bd-7368-4da6-b5aa-24ffad69fb1f/coord.db>) = 0 <0.006149>",
+    "1039235 16:33:56.274150 fsync(4</home/murphy/.miller/stores/a271f2bd-7368-4da6-b5aa-24ffad69fb1f/coord.db-wal>) = 0 <0.006399>",
+    "1039235 16:33:56.280624 fsync(6</home/murphy/.miller/stores/a271f2bd-7368-4da6-b5aa-24ffad69fb1f>) = 0 <0.006102>",
+    "1039235 16:33:56.286813 fsync(4</home/murphy/.miller/stores/a271f2bd-7368-4da6-b5aa-24ffad69fb1f/coord.db-wal>) = 0 <0.006111>",
+    "1039235 16:33:56.293293 fsync(4</home/murphy/.miller/stores/a271f2bd-7368-4da6-b5aa-24ffad69fb1f/coord.db-wal>) = 0 <0.006390>",
+    "1039235 16:33:56.299772 fsync(4</home/murphy/.miller/stores/a271f2bd-7368-4da6-b5aa-24ffad69fb1f/coord.db-wal>) = 0 <0.000003>",
+    "1039235 16:33:56.299899 fsync(3</home/murphy/.miller/stores/a271f2bd-7368-4da6-b5aa-24ffad69fb1f/coord.db>) = 0 <0.006148>"
+  ],
+  "after_sync_lines": [
+    "1058484 16:39:00.769207 fsync(4</home/murphy/.miller/stores/a271f2bd-7368-4da6-b5aa-24ffad69fb1f/coord.db-wal>) = 0 <0.007882>",
+    "1058484 16:39:00.777165 fsync(10</home/murphy/.miller/stores/a271f2bd-7368-4da6-b5aa-24ffad69fb1f>) = 0 <0.012471>",
+    "1058484 16:39:00.789836 fsync(4</home/murphy/.miller/stores/a271f2bd-7368-4da6-b5aa-24ffad69fb1f/coord.db-wal>) = 0 <0.012238>",
+    "1058484 16:39:00.802484 fsync(4</home/murphy/.miller/stores/a271f2bd-7368-4da6-b5aa-24ffad69fb1f/coord.db-wal>) = 0 <0.000009>",
+    "1058484 16:39:00.802630 fsync(3</home/murphy/.miller/stores/a271f2bd-7368-4da6-b5aa-24ffad69fb1f/coord.db>) = 0 <0.011643>",
+    "1058505 16:39:01.165747 fsync(4</home/murphy/.miller/stores/a271f2bd-7368-4da6-b5aa-24ffad69fb1f/coord.db-wal>) = 0 <0.007062>",
+    "1058505 16:39:01.172890 fsync(6</home/murphy/.miller/stores/a271f2bd-7368-4da6-b5aa-24ffad69fb1f>) = 0 <0.012187>",
+    "1058505 16:39:01.185233 fsync(4</home/murphy/.miller/stores/a271f2bd-7368-4da6-b5aa-24ffad69fb1f/coord.db-wal>) = 0 <0.012227>",
+    "1058505 16:39:01.198412 fsync(4</home/murphy/.miller/stores/a271f2bd-7368-4da6-b5aa-24ffad69fb1f/coord.db-wal>) = 0 <0.000005>",
+    "1058505 16:39:01.198573 fsync(3</home/murphy/.miller/stores/a271f2bd-7368-4da6-b5aa-24ffad69fb1f/coord.db>) = 0 <0.011417>"
+  ],
+  "before_producer_sha256": "1ac0f3a0925d6fdb83f7cde147fb52ea4dc8bf5f054a78345a9cba6042bcf937",
+  "after_producer_sha256": "3fc96be0d96af57632e065d34867df3eff9cf027b5d3ee5114252011a07ee440"
+}

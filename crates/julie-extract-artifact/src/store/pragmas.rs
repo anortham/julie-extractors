@@ -40,10 +40,11 @@ pub(super) fn configure_writer_pragmas(
     connection: &Connection,
     profile: WriterPragmaProfile,
 ) -> Result<(), PragmaError> {
-    connection.execute_batch(
-        "PRAGMA page_size = 4096;
-         PRAGMA auto_vacuum = INCREMENTAL;",
-    )?;
+    connection.execute_batch("PRAGMA page_size = 4096;")?;
+    let auto_vacuum: i64 = connection.query_row("PRAGMA auto_vacuum", [], |row| row.get(0))?;
+    if auto_vacuum != 2 {
+        connection.execute_batch("PRAGMA auto_vacuum = INCREMENTAL;")?;
+    }
     verify_integer_pragma(connection, "page_size", 4096)?;
     verify_integer_pragma(connection, "auto_vacuum", 2)?;
     connection.execute_batch(

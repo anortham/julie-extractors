@@ -3,10 +3,25 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use julie_extract_artifact::store::{
-    GenerationFence, StoreConnectionError, StoreConnectionFactory, StoreLayout, StoreLayoutError,
-    StoreSchemaError, create_coordinator_schema, create_store_schema,
+    GenerationFence, StoreConnectionError, StoreConnectionFactory, StoreCoordinator, StoreLayout,
+    StoreLayoutError, StoreSchemaError, create_coordinator_schema, create_store_schema,
 };
 use rusqlite::Connection;
+
+#[test]
+fn opening_an_initialized_coordinator_does_not_commit_a_database_write() {
+    let temp = TempStore::new("coordinator-open-no-write");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 9).unwrap();
+    let observer = Connection::open(layout.coordinator_db()).unwrap();
+    let before = pragma_i64(&observer, "data_version");
+
+    for _ in 0..3 {
+        let coordinator = StoreCoordinator::open(&layout).unwrap();
+        assert_eq!(pragma_i64(&observer, "data_version"), before);
+        drop(coordinator);
+        assert_eq!(pragma_i64(&observer, "data_version"), before);
+    }
+}
 
 #[test]
 fn store_layout_creation_publishes_a_reopenable_generation() {
@@ -397,6 +412,12 @@ fn writer_open_repairs_missing_read_index_without_changing_rows_or_identity() {
 fn writer_reasserts_and_reads_back_required_pragmas() {
     let temp = TempStore::new("writer-pragmas");
     let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0", 7).unwrap();
+    let connection = Connection::open(layout.store_db()).unwrap();
+    connection
+        .execute_batch("PRAGMA auto_vacuum = FULL;")
+        .unwrap();
+    assert_eq!(pragma_i64(&connection, "auto_vacuum"), 1);
+    drop(connection);
     let factory = StoreConnectionFactory::new(layout, "family-a", "2.30.0");
 
     let writer = factory.open_writer().unwrap();
