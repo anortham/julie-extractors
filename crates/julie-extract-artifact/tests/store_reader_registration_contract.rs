@@ -1069,6 +1069,182 @@ fn unknown_identity_and_invalid_lease_refuse_before_registration() {
 
 #[cfg(feature = "test-store-contract")]
 #[test]
+fn admission_recovers_committed_log_watermark_without_writer_reconciliation() {
+    for initial_mark in [700, 900] {
+        let temp = TempStore::new("admission-watermark-recovery");
+        let layout = seeded_admission_store(&temp, 0);
+        let durable_sequence = append_unreconciled_log(&layout);
+        let coord = Connection::open(layout.coordinator_db()).unwrap();
+        coord
+            .execute(
+                "UPDATE family_allocator_marks SET high_water=?1,updated_at=9223372036854775807
+             WHERE allocator_kind='store_log' AND scope_id=''",
+                [initial_mark],
+            )
+            .unwrap();
+        drop(coord);
+        let request = ReaderAcquireRequest::new(
+            "family-a",
+            "view-a",
+            "gen-001",
+            "miller",
+            std::process::id(),
+            "0123456789abcdef0123456789abcdef",
+            30_000,
+        );
+        StoreCoordinator::open(&layout)
+            .unwrap()
+            .acquire_reader(&request)
+            .unwrap();
+        let coord = Connection::open(layout.coordinator_db()).unwrap();
+        let (mark, updated): (i64, i64) = coord
+            .query_row(
+                "SELECT high_water,updated_at FROM family_allocator_marks
+             WHERE allocator_kind='store_log' AND scope_id=''",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(mark, initial_mark.max(durable_sequence));
+        assert_eq!(updated, i64::MAX);
+        let (served, retained): (i64, i64) = coord
+            .query_row(
+                "SELECT served_store_log_sequence,min_retained_store_log_sequence
+             FROM reader_registrations",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(served, durable_sequence);
+        assert_eq!(retained, 700);
+    }
+}
+
+#[cfg(feature = "test-store-contract")]
+#[test]
+fn admission_recovery_does_not_observe_an_expired_writers_uncommitted_log() {
+    let temp = TempStore::new("admission-pending-log");
+    let layout = seeded_admission_store(&temp, 0);
+    let durable_sequence = append_unreconciled_log(&layout);
+    Connection::open(layout.coordinator_db())
+        .unwrap()
+        .execute(
+            "INSERT INTO writer_lease
+         (resource,holder_id,holder_version,holder_pid,heartbeat_at,expires_at,fencing_token)
+         VALUES ('store-writer','expired','2.40.0',?1,1,2,1)",
+            [std::process::id()],
+        )
+        .unwrap();
+    let mut writer = Connection::open(layout.store_db()).unwrap();
+    let pending = writer.transaction().unwrap();
+    let pending_sequence = StoreLog::append_terminal(
+        &pending,
+        &StoreLogEntry::new(
+            "pending-request",
+            "store_import_completed",
+            "{}",
+            "2026-09-05T00:00:01Z",
+        ),
+    )
+    .unwrap();
+    assert!(pending_sequence > durable_sequence);
+    let request = ReaderAcquireRequest::new(
+        "family-a",
+        "view-a",
+        "gen-001",
+        "miller",
+        std::process::id(),
+        "0123456789abcdef0123456789abcdef",
+        30_000,
+    );
+    StoreCoordinator::open(&layout)
+        .unwrap()
+        .acquire_reader(&request)
+        .unwrap();
+    let coord = Connection::open(layout.coordinator_db()).unwrap();
+    assert_eq!(coord.query_row(
+        "SELECT high_water FROM family_allocator_marks WHERE allocator_kind='store_log' AND scope_id=''",
+        [], |row| row.get::<_, i64>(0),
+    ).unwrap(), durable_sequence);
+    assert_eq!(
+        coord
+            .query_row(
+                "SELECT served_store_log_sequence FROM reader_registrations",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        durable_sequence
+    );
+    pending.rollback().unwrap();
+}
+
+#[cfg(feature = "test-store-contract")]
+#[test]
+fn admission_recovery_refuses_a_missing_allocator_mark() {
+    let temp = TempStore::new("admission-missing-log-mark");
+    let layout = seeded_admission_store(&temp, 0);
+    append_unreconciled_log(&layout);
+    let coord = Connection::open(layout.coordinator_db()).unwrap();
+    coord
+        .execute(
+            "DELETE FROM family_allocator_marks WHERE allocator_kind='store_log' AND scope_id=''",
+            [],
+        )
+        .unwrap();
+    let request = ReaderAcquireRequest::new(
+        "family-a",
+        "view-a",
+        "gen-001",
+        "miller",
+        std::process::id(),
+        "0123456789abcdef0123456789abcdef",
+        30_000,
+    );
+    assert!(matches!(
+        StoreCoordinator::open(&layout)
+            .unwrap()
+            .acquire_reader(&request),
+        Err(CoordinatorError::ReaderStaleSnapshot)
+    ));
+    assert_eq!(
+        coord
+            .query_row("SELECT COUNT(*) FROM family_allocator_marks", [], |row| row
+                .get::<_, i64>(0))
+            .unwrap(),
+        0
+    );
+    assert_eq!(
+        coord
+            .query_row("SELECT COUNT(*) FROM reader_registrations", [], |row| row
+                .get::<_, i64>(
+                0
+            ))
+            .unwrap(),
+        0
+    );
+}
+
+#[cfg(feature = "test-store-contract")]
+fn append_unreconciled_log(layout: &StoreLayout) -> i64 {
+    let mut store = Connection::open(layout.store_db()).unwrap();
+    let tx = store.transaction().unwrap();
+    let sequence = StoreLog::append_terminal(
+        &tx,
+        &StoreLogEntry::new(
+            "interrupted-request",
+            "store_import_completed",
+            "{}",
+            "2026-09-05T00:00:00Z",
+        ),
+    )
+    .unwrap();
+    tx.commit().unwrap();
+    sequence
+}
+
+#[cfg(feature = "test-store-contract")]
+#[test]
 fn acquire_metadata_work_is_constant_across_manifest_sizes() {
     let mut baseline = None;
     for entry_count in [1_000_i64, 10_000, 100_000] {
@@ -1256,6 +1432,7 @@ fn admission_refuses_generation_and_view_mutations_without_partial_rows() {
     ] {
         let temp = TempStore::new(mutation);
         let layout = seeded_admission_store(&temp, 0);
+        append_unreconciled_log(&layout);
         let entered = Arc::new(Barrier::new(2));
         let resume = Arc::new(Barrier::new(2));
         let worker_layout = layout.clone();
@@ -1315,6 +1492,10 @@ fn admission_refuses_generation_and_view_mutations_without_partial_rows() {
             Err(error) => panic!("{mutation} returned {error}"),
             Ok(_) => panic!("{mutation} admission unexpectedly succeeded"),
         }
+        assert_eq!(Connection::open(layout.coordinator_db()).unwrap().query_row(
+            "SELECT high_water FROM family_allocator_marks WHERE allocator_kind='store_log' AND scope_id=''",
+            [], |row| row.get::<_, i64>(0),
+        ).unwrap(), 700);
         assert_eq!(
             Connection::open(layout.coordinator_db())
                 .unwrap()
@@ -1333,6 +1514,7 @@ fn admission_refuses_live_writer_and_maintenance_owners_without_partial_rows() {
     for blocker in ["writer", "maintenance"] {
         let temp = TempStore::new(blocker);
         let layout = seeded_admission_store(&temp, 0);
+        append_unreconciled_log(&layout);
         let coordinator = Connection::open(layout.coordinator_db()).unwrap();
         if blocker == "writer" {
             coordinator
@@ -1390,6 +1572,10 @@ fn admission_refuses_live_writer_and_maintenance_owners_without_partial_rows() {
         } else {
             assert!(matches!(error, CoordinatorError::StoreConnection(_)));
         }
+        assert_eq!(Connection::open(layout.coordinator_db()).unwrap().query_row(
+            "SELECT high_water FROM family_allocator_marks WHERE allocator_kind='store_log' AND scope_id=''",
+            [], |row| row.get::<_, i64>(0),
+        ).unwrap(), 700);
         assert_eq!(
             Connection::open(layout.coordinator_db())
                 .unwrap()

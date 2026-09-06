@@ -2187,7 +2187,7 @@ impl StoreCoordinator {
         {
             return Err(CoordinatorError::ReaderStaleSnapshot);
         }
-        let allocator_high_water = transaction
+        let mut allocator_high_water = transaction
             .query_row(
                 "SELECT high_water FROM family_allocator_marks
                  WHERE allocator_kind='store_log' AND scope_id=''",
@@ -2210,12 +2210,8 @@ impl StoreCoordinator {
             &mut admission_observer,
             |row| row.get::<_, i64>(0),
         )?;
-        let snapshot = read_reader_manifest_snapshot(
-            &store_transaction,
-            request,
-            allocator_high_water,
-            &mut admission_observer,
-        )?;
+        let snapshot =
+            read_reader_manifest_snapshot(&store_transaction, request, &mut admission_observer)?;
         if let Some(barrier) = before_revalidation.as_mut() {
             barrier();
         }
@@ -2240,6 +2236,27 @@ impl StoreCoordinator {
         }
         refuse_foreign_live_maintenance_intent(&transaction, now)?;
         refuse_live_writer_lease(&transaction, now)?;
+
+        if snapshot.served_store_log_sequence() > allocator_high_water {
+            // A writer can die after its store commit but before coord reconciliation.
+            // Recover only the durable log bound, after validating the snapshot and
+            // excluding new writers/maintenance under the coordinator transaction.
+            // The store remains query-only; other allocators and request state are
+            // reconciled by the next writer before it executes any work.
+            allocator_high_water = transaction
+                .query_row(
+                    "UPDATE family_allocator_marks
+                     SET high_water=MAX(high_water,?1),updated_at=MAX(updated_at,?2)
+                     WHERE allocator_kind='store_log' AND scope_id=''
+                     RETURNING high_water",
+                    params![snapshot.served_store_log_sequence(), now],
+                    |row| row.get::<_, i64>(0),
+                )
+                .map_err(map_reader_sqlite_error)?;
+        }
+        if snapshot.served_store_log_sequence() > allocator_high_water {
+            return Err(CoordinatorError::ReaderStaleSnapshot);
+        }
 
         let identity = ReaderOwnerIdentity::new(
             pin_id,
@@ -3061,7 +3078,6 @@ fn validate_reader_writer_floor(min_writer_version: &str) -> Result<(), Coordina
 fn read_reader_manifest_snapshot(
     store: &Connection,
     request: &ReaderAcquireRequest,
-    allocator_high_water: i64,
     observer: &mut Option<&mut ReaderAdmissionObserver<'_>>,
 ) -> Result<ReaderManifestSnapshot, CoordinatorError> {
     let family_id = reader_query_row(
@@ -3133,9 +3149,7 @@ fn read_reader_manifest_snapshot(
         |row| row.get::<_, i64>(0),
     )?
     .unwrap_or(served_store_log_sequence);
-    if served_store_log_sequence > allocator_high_water
-        || min_retained_store_log_sequence > served_store_log_sequence
-    {
+    if min_retained_store_log_sequence > served_store_log_sequence {
         return Err(CoordinatorError::ReaderStaleSnapshot);
     }
     Ok(ReaderManifestSnapshot::new(
