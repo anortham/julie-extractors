@@ -648,7 +648,6 @@ fn cursor_commands_refuse_incompatible_bindings_without_mutation() {
         "coord_schema",
         "family",
         "reader_floor",
-        "writer_floor",
         "retired",
     ] {
         for action in ["advance", "release"] {
@@ -678,13 +677,6 @@ fn cursor_commands_refuse_incompatible_bindings_without_mutation() {
                     "reader_floor" => {
                         data.execute(
                             "UPDATE store_meta SET value='9999.0.0' WHERE key='min_reader_version'",
-                            [],
-                        )
-                        .unwrap();
-                    }
-                    "writer_floor" => {
-                        data.execute(
-                            "UPDATE store_meta SET value='9999.0.0' WHERE key='min_writer_version'",
                             [],
                         )
                         .unwrap();
@@ -759,6 +751,30 @@ fn cursor_plan_leaves_database_bytes_unchanged() {
             std::fs::read(layout.coordinator_db()).unwrap(),
             before_coord
         );
+    }
+}
+
+#[test]
+fn reader_compatible_cursor_commands_allow_a_newer_fact_writer() {
+    let fixture = tempfile::tempdir().unwrap();
+    let store = fixture.path().join("store");
+    let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
+    let database = Connection::open(layout.store_db()).unwrap();
+    database.execute("UPDATE store_meta SET value='9999.0.0' WHERE key IN ('min_writer_version','binary_version')", []).unwrap();
+    drop(database);
+    for action in ["advance", "release"] {
+        for apply in [false, true] {
+            let output = cursor_command(&store, action, apply, 0);
+            assert_eq!(
+                output.status.code(),
+                Some(0),
+                "{action} {apply}: {}",
+                String::from_utf8_lossy(&output.stdout)
+            );
+            let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+            assert_eq!(report["measurement_scope"], "cursor_only");
+            assert_eq!(report["failure_class"], "none");
+        }
     }
 }
 

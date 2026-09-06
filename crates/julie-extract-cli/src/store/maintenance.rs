@@ -380,7 +380,7 @@ fn cursor_context(
     }
     report.integrity_checks = vec![
         "store_identity_validated".to_string(),
-        "reader_writer_versions_validated".to_string(),
+        "reader_version_validated".to_string(),
         "generation_fence_validated".to_string(),
         "coordinator_schema_validated".to_string(),
     ];

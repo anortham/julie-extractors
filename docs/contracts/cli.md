@@ -526,7 +526,7 @@ failure class, and nullable error. JSON success and failure each emit exactly on
 Human success uses stdout and human failure uses stderr.
 
 Cursor advance/release reports add `measurement_scope: "cursor_only"`. These commands validate
-the store binding, supported schemas and reader/writer versions, serving generation, and
+the store binding, supported schemas and reader version, serving generation, and
 maintenance fence without inspecting historical manifests or planning garbage collection.
 The existing GC-only `counts`, `retention`, and `capacity` groups are unmeasured defaults, not
 measurements of zero usage; plan/root fingerprints are empty and `readers` is omitted.
@@ -534,8 +534,9 @@ Only checks actually performed appear in `integrity_checks`. Use `store maintain
 for GC measurements. Other actions omit `measurement_scope` and retain their existing output.
 Plan mode writes nothing; apply retains the coordinator's transactional maintenance-intent,
 monotonic-sequence, high-water, and generation-conflict checks.
-Cursor plan mode checks the same writer-version and serving-generation eligibility as apply;
-it refuses an ineligible writer or a live maintenance fence rather than offering an unusable plan.
+Cursor plan and apply preserve reader-compatible eligibility: a newer fact-writer version or
+writer floor does not prevent a compatible reader from maintaining its retention cursor.
+An incompatible reader, nonserving generation, or live maintenance fence is refused.
 
 When reader registrations exist, the same schema adds a bounded optional `readers` summary with
 protected, definitively-dead, retained-unknown, and removed counts. Warning entries contain only
