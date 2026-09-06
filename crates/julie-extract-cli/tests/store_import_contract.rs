@@ -85,6 +85,87 @@ fn wal_completion_truncates_both_databases_with_idle_connections() {
 }
 
 #[test]
+fn reader_completion_preserves_unchanged_store_data_version() {
+    let (_fixture, _root, store, _) = seeded_full_import();
+    let layout = StoreLayout::open(&store).unwrap();
+    let observer = rusqlite::Connection::open_with_flags(
+        layout.store_db(),
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+    )
+    .unwrap();
+    let coord = rusqlite::Connection::open(layout.coordinator_db()).unwrap();
+    coord
+        .query_row("SELECT COUNT(*) FROM sqlite_schema", [], |r| {
+            r.get::<_, i64>(0)
+        })
+        .unwrap();
+    let version = || {
+        observer
+            .query_row("PRAGMA data_version", [], |r| r.get::<_, i64>(0))
+            .unwrap()
+    };
+    let before = version();
+    let nonce = "0123456789abcdef0123456789abcdef";
+    let pid = std::process::id().to_string();
+    let run = |operation: &str, extra: &[&str]| {
+        let output = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+            .args([
+                "store",
+                "reader",
+                operation,
+                "--store",
+                store.to_str().unwrap(),
+                "--family",
+                FAMILY_ID,
+                "--nonce",
+                nonce,
+                "--json",
+            ])
+            .args(extra)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stdout)
+        );
+        let reply: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(
+            version(),
+            before,
+            "reader {operation} invalidated unchanged store"
+        );
+        assert_eq!(
+            wal_completion_bytes(layout.coordinator_db()),
+            0,
+            "coordinator WAL was not drained"
+        );
+        reply
+    };
+    let acquired = run(
+        "acquire",
+        &[
+            "--view",
+            "view-main",
+            "--generation",
+            "gen-001",
+            "--owner",
+            "checkpoint-test",
+            "--owner-pid",
+            &pid,
+            "--lease-ms",
+            "30000",
+        ],
+    );
+    let pin = acquired["pin_id"].as_str().unwrap();
+    run(
+        "renew",
+        &["--pin", pin, "--owner-pid", &pid, "--lease-ms", "30000"],
+    );
+    run("release", &["--pin", pin]);
+}
+
+#[test]
 fn wal_completion_defers_pinned_snapshots_and_retries_on_replay() {
     let (_fixture, root, store, _) = seeded_full_import();
     let layout = StoreLayout::open(&store).unwrap();

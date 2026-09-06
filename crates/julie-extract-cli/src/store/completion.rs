@@ -56,14 +56,21 @@ pub(super) fn checkpoint(root: &Path, command_succeeded: bool) {
         }
     };
     for path in [layout.store_db(), layout.coordinator_db()] {
+        let mut wal = path.as_os_str().to_os_string();
+        wal.push("-wal");
+        // Even an empty TRUNCATE invalidates observers' data_version. A WAL
+        // header is 32 bytes; without frames there is no checkpoint work.
+        match std::fs::metadata(Path::new(&wal)) {
+            Ok(metadata) if metadata.is_file() && metadata.len() <= 32 => continue,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
+            _ => {} // Unknown WAL state retains the bounded checkpoint attempt.
+        }
         let result = (|| -> rusqlite::Result<i64> {
             // Never create a database after a failed command or generation race.
             let connection = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_WRITE)?;
             connection.busy_timeout(Duration::from_millis(250))?;
             connection.query_row("PRAGMA wal_checkpoint(TRUNCATE)", [], |row| row.get(0))
         })();
-        let mut wal = path.as_os_str().to_os_string();
-        wal.push("-wal");
         let remaining = match std::fs::metadata(Path::new(&wal)) {
             Ok(metadata) => Some(metadata.len()),
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => Some(0),
