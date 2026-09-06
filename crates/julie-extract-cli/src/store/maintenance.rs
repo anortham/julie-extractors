@@ -264,7 +264,7 @@ fn cursor(args: super::args::StoreMaintenanceCursorArgs) -> StoreExecutionOutcom
 
 fn advance_cursor(args: super::args::StoreMaintenanceCursorAdvanceArgs) -> StoreExecutionOutcome {
     let format = output_format(args.json);
-    let context = match inspect_context(
+    let (existing, planned) = match cursor_context(
         &args.store,
         args.family.as_deref(),
         StoreMaintenanceAction::CursorAdvance,
@@ -277,33 +277,24 @@ fn advance_cursor(args: super::args::StoreMaintenanceCursorAdvanceArgs) -> Store
         Ok(context) => context,
         Err(report) => return failure(*report, format),
     };
-    let planned =
-        StoreMaintenanceReport::planned(StoreMaintenanceAction::CursorAdvance, &context.plan)
-            .with_cursor(
-                &args.consumer,
-                Some(args.sequence),
-                StoreMaintenanceMode::Plan,
-                false,
-            );
+    let planned = planned.with_cursor(
+        &args.consumer,
+        Some(args.sequence),
+        StoreMaintenanceMode::Plan,
+        false,
+    );
     if !args.apply {
         return success(planned, format);
     }
-    let mut coordinator = match StoreCoordinator::open(&context.existing.layout) {
+    let mut coordinator = match StoreCoordinator::open(&existing.layout) {
         Ok(coordinator) => coordinator,
         Err(error) => {
-            return failure(
-                coordinator_error_report_from_plan(
-                    StoreMaintenanceAction::CursorAdvance,
-                    &context.plan,
-                    &error,
-                ),
-                format,
-            );
+            return failure(cursor_coordinator_failure(planned, &error), format);
         }
     };
     match coordinator.advance_consumer_cursor(
         &args.consumer,
-        context.existing.layout.generation_name(),
+        existing.layout.generation_name(),
         args.sequence,
         CliMaintenanceClock.now_ms(),
     ) {
@@ -316,20 +307,13 @@ fn advance_cursor(args: super::args::StoreMaintenanceCursorAdvanceArgs) -> Store
             ),
             format,
         ),
-        Err(error) => failure(
-            coordinator_error_report_from_plan(
-                StoreMaintenanceAction::CursorAdvance,
-                &context.plan,
-                &error,
-            ),
-            format,
-        ),
+        Err(error) => failure(cursor_coordinator_failure(planned, &error), format),
     }
 }
 
 fn release_cursor(args: super::args::StoreMaintenanceCursorReleaseArgs) -> StoreExecutionOutcome {
     let format = output_format(args.json);
-    let context = match inspect_context(
+    let (existing, planned) = match cursor_context(
         &args.store,
         args.family.as_deref(),
         StoreMaintenanceAction::CursorRelease,
@@ -342,23 +326,14 @@ fn release_cursor(args: super::args::StoreMaintenanceCursorReleaseArgs) -> Store
         Ok(context) => context,
         Err(report) => return failure(*report, format),
     };
-    let planned =
-        StoreMaintenanceReport::planned(StoreMaintenanceAction::CursorRelease, &context.plan)
-            .with_cursor(&args.consumer, None, StoreMaintenanceMode::Plan, false);
+    let planned = planned.with_cursor(&args.consumer, None, StoreMaintenanceMode::Plan, false);
     if !args.apply {
         return success(planned, format);
     }
-    let mut coordinator = match StoreCoordinator::open(&context.existing.layout) {
+    let mut coordinator = match StoreCoordinator::open(&existing.layout) {
         Ok(coordinator) => coordinator,
         Err(error) => {
-            return failure(
-                coordinator_error_report_from_plan(
-                    StoreMaintenanceAction::CursorRelease,
-                    &context.plan,
-                    &error,
-                ),
-                format,
-            );
+            return failure(cursor_coordinator_failure(planned, &error), format);
         }
     };
     match coordinator.release_consumer_cursor(&args.consumer) {
@@ -366,15 +341,63 @@ fn release_cursor(args: super::args::StoreMaintenanceCursorReleaseArgs) -> Store
             planned.with_cursor(&args.consumer, None, StoreMaintenanceMode::Apply, removed),
             format,
         ),
-        Err(error) => failure(
-            coordinator_error_report_from_plan(
-                StoreMaintenanceAction::CursorRelease,
-                &context.plan,
-                &error,
-            ),
-            format,
-        ),
+        Err(error) => failure(cursor_coordinator_failure(planned, &error), format),
     }
+}
+
+fn cursor_context(
+    store: &Path,
+    requested_family: Option<&str>,
+    action: StoreMaintenanceAction,
+    mode: StoreMaintenanceMode,
+) -> Result<(ExistingStoreContext, StoreMaintenanceReport), Box<StoreMaintenanceReport>> {
+    let existing =
+        open_maintenance_store(store, requested_family, action, mode).map_err(|mut report| {
+            report.measurement_scope = Some("cursor_only".to_string());
+            report
+        })?;
+    let mut report = StoreMaintenanceReport::cursor_planned(
+        action,
+        existing.family_id.clone(),
+        existing.layout.generation_name().to_string(),
+    );
+    let factory = StoreConnectionFactory::new(
+        existing.layout.clone(),
+        &existing.family_id,
+        env!("CARGO_PKG_VERSION"),
+    );
+    if let Err(error) = factory.validate_cursor_binding() {
+        let code = match error {
+            StoreConnectionError::MaintenanceInProgress { .. } => "maintenance_busy",
+            _ => store_connection_error_code(&error),
+        };
+        return Err(Box::new(report.with_failure(
+            mode,
+            store_connection_failure_class(&error),
+            code,
+            error.to_string(),
+        )));
+    }
+    report.integrity_checks = vec![
+        "store_identity_validated".to_string(),
+        "reader_writer_versions_validated".to_string(),
+        "generation_fence_validated".to_string(),
+        "coordinator_schema_validated".to_string(),
+    ];
+    Ok((existing, report))
+}
+
+fn cursor_coordinator_failure(
+    report: StoreMaintenanceReport,
+    error: &julie_extract_artifact::store::CoordinatorError,
+) -> StoreMaintenanceReport {
+    let code = coordinator_error_code(error);
+    report.with_failure(
+        StoreMaintenanceMode::Apply,
+        classify_failure(code),
+        code,
+        error.to_string(),
+    )
 }
 
 fn inspect_store(
@@ -398,6 +421,39 @@ fn inspect_context(
     action: StoreMaintenanceAction,
     mode: StoreMaintenanceMode,
 ) -> Result<MaintenanceContext, Box<StoreMaintenanceReport>> {
+    let existing = open_maintenance_store(store, requested_family, action, mode)?;
+    let factory = StoreConnectionFactory::new(
+        existing.layout.clone(),
+        &existing.family_id,
+        env!("CARGO_PKG_VERSION"),
+    );
+    let plan = MaintenanceInspector::new(factory.clone(), CliMaintenanceClock, CliCapacity)
+        .inspect()
+        .map_err(|error| {
+            let code = maintenance_error_code(&error);
+            Box::new(StoreMaintenanceReport::failed(
+                action,
+                mode,
+                existing.family_id.clone(),
+                existing.layout.generation_name().to_string(),
+                maintenance_failure_class(&error),
+                code,
+                error.to_string(),
+            ))
+        })?;
+    Ok(MaintenanceContext {
+        existing,
+        factory,
+        plan,
+    })
+}
+
+fn open_maintenance_store(
+    store: &Path,
+    requested_family: Option<&str>,
+    action: StoreMaintenanceAction,
+    mode: StoreMaintenanceMode,
+) -> Result<ExistingStoreContext, Box<StoreMaintenanceReport>> {
     if !store.join("CURRENT").exists() && store.exists() {
         match StoreLayout::open(store) {
             Err(StoreLayoutError::CurrentMissing { .. }) if has_named_generation(store) => {
@@ -422,7 +478,7 @@ fn inspect_context(
             _ => {}
         }
     }
-    let existing = open_existing_store(store, requested_family).map_err(|message| {
+    open_existing_store(store, requested_family).map_err(|message| {
         Box::new(StoreMaintenanceReport::failed(
             action,
             mode,
@@ -432,30 +488,6 @@ fn inspect_context(
             message.clone(),
             message,
         ))
-    })?;
-    let factory = StoreConnectionFactory::new(
-        existing.layout.clone(),
-        &existing.family_id,
-        env!("CARGO_PKG_VERSION"),
-    );
-    let plan = MaintenanceInspector::new(factory.clone(), CliMaintenanceClock, CliCapacity)
-        .inspect()
-        .map_err(|error| {
-            let code = maintenance_error_code(&error);
-            Box::new(StoreMaintenanceReport::failed(
-                action,
-                mode,
-                existing.family_id.clone(),
-                existing.layout.generation_name().to_string(),
-                maintenance_failure_class(&error),
-                code,
-                error.to_string(),
-            ))
-        })?;
-    Ok(MaintenanceContext {
-        existing,
-        factory,
-        plan,
     })
 }
 
@@ -568,20 +600,6 @@ fn generation_error_report_from_plan(
     StoreMaintenanceReport::planned(action, plan).with_failure(
         StoreMaintenanceMode::Apply,
         generation_failure_class(error),
-        code,
-        error.to_string(),
-    )
-}
-
-fn coordinator_error_report_from_plan(
-    action: StoreMaintenanceAction,
-    plan: &MaintenancePlan,
-    error: &julie_extract_artifact::store::CoordinatorError,
-) -> StoreMaintenanceReport {
-    let code = coordinator_error_code(error);
-    StoreMaintenanceReport::planned(action, plan).with_failure(
-        StoreMaintenanceMode::Apply,
-        classify_failure(code),
         code,
         error.to_string(),
     )

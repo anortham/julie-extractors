@@ -212,6 +212,8 @@ impl From<&CapacityPlan> for StoreMaintenanceCapacityReport {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StoreMaintenanceReport {
     pub report_schema_version: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub measurement_scope: Option<String>,
     pub action: StoreMaintenanceAction,
     pub mode: StoreMaintenanceMode,
     pub run_id: Option<String>,
@@ -278,6 +280,7 @@ impl StoreMaintenanceReport {
             };
         Self {
             report_schema_version: STORE_MAINTENANCE_REPORT_SCHEMA_VERSION,
+            measurement_scope: None,
             action,
             mode: StoreMaintenanceMode::Plan,
             run_id: None,
@@ -486,10 +489,34 @@ impl StoreMaintenanceReport {
         code: impl Into<String>,
         message: impl Into<String>,
     ) -> Self {
-        let code = code.into();
-        let message = message.into();
+        Self::unmeasured(action, mode, family_id, source_generation)
+            .with_failure(mode, class, code, message)
+    }
+
+    pub fn cursor_planned(
+        action: StoreMaintenanceAction,
+        family_id: String,
+        source_generation: String,
+    ) -> Self {
+        let mut report = Self::unmeasured(
+            action,
+            StoreMaintenanceMode::Plan,
+            family_id,
+            source_generation,
+        );
+        report.measurement_scope = Some("cursor_only".to_string());
+        report
+    }
+
+    fn unmeasured(
+        action: StoreMaintenanceAction,
+        mode: StoreMaintenanceMode,
+        family_id: String,
+        source_generation: String,
+    ) -> Self {
         Self {
             report_schema_version: STORE_MAINTENANCE_REPORT_SCHEMA_VERSION,
+            measurement_scope: None,
             action,
             mode,
             run_id: None,
@@ -497,7 +524,7 @@ impl StoreMaintenanceReport {
             source_generation,
             destination_generation: None,
             selected_generation: None,
-            disposition: StoreMaintenanceDisposition::Failed,
+            disposition: StoreMaintenanceDisposition::Planned,
             plan_fingerprint: String::new(),
             fingerprints: StoreMaintenanceFingerprints {
                 store_root: String::new(),
@@ -545,12 +572,8 @@ impl StoreMaintenanceReport {
             last_version_cursor: None,
             consumer_id: None,
             consumer_sequence: None,
-            failure_class: class,
-            error: Some(StoreMaintenanceErrorReport {
-                class,
-                code,
-                message,
-            }),
+            failure_class: StoreMaintenanceFailureClass::None,
+            error: None,
         }
     }
 }

@@ -562,6 +562,239 @@ fn cursor_advance_and_release_are_explicit_monotonic_mutations() {
 }
 
 #[test]
+fn cursor_commands_do_not_read_unrelated_manifest_rows() {
+    let fixture = tempfile::tempdir().unwrap();
+    let store = fixture.path().join("store");
+    let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
+    let database = Connection::open(layout.store_db()).unwrap();
+    database
+        .execute_batch(
+            "ALTER TABLE manifest_entries RENAME TO saved_manifest_entries;
+         CREATE VIEW manifest_entries AS
+         SELECT *, cursor_manifest_read_forbidden() AS read_trap FROM saved_manifest_entries;",
+        )
+        .unwrap();
+    drop(database);
+    for action in ["advance", "release"] {
+        for apply in [false, true] {
+            let mut args = vec![
+                "store",
+                "maintain",
+                "cursor",
+                action,
+                "--store",
+                store.to_str().unwrap(),
+                "--consumer",
+                "bounded-consumer",
+                "--json",
+            ];
+            if action == "advance" {
+                args.extend(["--sequence", "0"]);
+            }
+            if apply {
+                args.push("--apply");
+            }
+            let output = julie_extract(&args);
+            assert_eq!(
+                output.status.code(),
+                Some(0),
+                "{}",
+                String::from_utf8_lossy(&output.stdout)
+            );
+            let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+            assert_eq!(report["measurement_scope"], "cursor_only");
+            assert_eq!(report["plan_fingerprint"], "");
+            assert_eq!(report["counts"]["versions"], 0);
+            assert!(
+                !report["integrity_checks"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|check| check == "store_roots_validated"
+                        || check == "coordinator_roots_validated")
+            );
+        }
+    }
+}
+
+fn cursor_command(store: &std::path::Path, action: &str, apply: bool, sequence: i64) -> Output {
+    let sequence = format!("--sequence={sequence}");
+    let mut args = vec![
+        "store",
+        "maintain",
+        "cursor",
+        action,
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        FAMILY_ID,
+        "--consumer",
+        "bounded-consumer",
+        "--json",
+    ];
+    if action == "advance" {
+        args.push(&sequence);
+    }
+    if apply {
+        args.push("--apply");
+    }
+    julie_extract(&args)
+}
+
+#[test]
+fn cursor_commands_refuse_incompatible_bindings_without_mutation() {
+    for scenario in [
+        "store_schema",
+        "coord_schema",
+        "family",
+        "reader_floor",
+        "writer_floor",
+        "retired",
+    ] {
+        for action in ["advance", "release"] {
+            for apply in [false, true] {
+                let fixture = tempfile::tempdir().unwrap();
+                let store = fixture.path().join("store");
+                let layout =
+                    StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
+                let coord = Connection::open(layout.coordinator_db()).unwrap();
+                coord
+                    .execute(
+                        "INSERT INTO consumer_cursors VALUES('bounded-consumer','gen-001',0,0)",
+                        [],
+                    )
+                    .unwrap();
+                let data = Connection::open(layout.store_db()).unwrap();
+                match scenario {
+                    "store_schema" => data.execute_batch("PRAGMA user_version=9999").unwrap(),
+                    "coord_schema" => coord.execute_batch("PRAGMA user_version=9999").unwrap(),
+                    "family" => {
+                        data.execute(
+                            "UPDATE store_meta SET value='different-family' WHERE key='family_id'",
+                            [],
+                        )
+                        .unwrap();
+                    }
+                    "reader_floor" => {
+                        data.execute(
+                            "UPDATE store_meta SET value='9999.0.0' WHERE key='min_reader_version'",
+                            [],
+                        )
+                        .unwrap();
+                    }
+                    "writer_floor" => {
+                        data.execute(
+                            "UPDATE store_meta SET value='9999.0.0' WHERE key='min_writer_version'",
+                            [],
+                        )
+                        .unwrap();
+                    }
+                    "retired" => {
+                        data.execute(
+                            "UPDATE store_meta SET value='retired' WHERE key='generation_state'",
+                            [],
+                        )
+                        .unwrap();
+                    }
+                    _ => unreachable!(),
+                }
+                let output = cursor_command(&store, action, apply, 0);
+                assert_ne!(output.status.code(), Some(0), "{scenario} {action} {apply}");
+                let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+                assert_eq!(report["measurement_scope"], "cursor_only");
+                assert_eq!(report["disposition"], "failed");
+                let unchanged: (i64,i64) = coord.query_row(
+                    "SELECT store_log_sequence,updated_at FROM consumer_cursors WHERE consumer_id='bounded-consumer'",
+                    [], |row| Ok((row.get(0)?,row.get(1)?))).unwrap();
+                assert_eq!(unchanged, (0, 0));
+            }
+        }
+    }
+}
+
+#[test]
+fn cursor_commands_preserve_maintenance_exclusion() {
+    let fixture = tempfile::tempdir().unwrap();
+    let store = fixture.path().join("store");
+    let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
+    let coord = Connection::open(layout.coordinator_db()).unwrap();
+    coord
+        .execute_batch(
+            "INSERT INTO consumer_cursors VALUES('bounded-consumer','gen-001',0,0);
+         INSERT INTO maintenance_intent VALUES('store-maintenance','live-gc','gc','gen-001',
+         'foreign-owner',1,1,1,9223372036854775807,1,'fingerprint','2.40.0');",
+        )
+        .unwrap();
+    for action in ["advance", "release"] {
+        let output = cursor_command(&store, action, true, 0);
+        assert_eq!(output.status.code(), Some(1));
+        let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(report["failure_class"], "busy");
+        assert_eq!(report["error"]["code"], "maintenance_busy");
+    }
+    assert_eq!(
+        coord
+            .query_row(
+                "SELECT updated_at FROM consumer_cursors WHERE consumer_id='bounded-consumer'",
+                [],
+                |r| r.get::<_, i64>(0)
+            )
+            .unwrap(),
+        0
+    );
+}
+
+#[test]
+fn cursor_plan_leaves_database_bytes_unchanged() {
+    let fixture = tempfile::tempdir().unwrap();
+    let store = fixture.path().join("store");
+    let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
+    let before_store = std::fs::read(layout.store_db()).unwrap();
+    let before_coord = std::fs::read(layout.coordinator_db()).unwrap();
+    for action in ["advance", "release"] {
+        let output = cursor_command(&store, action, false, 0);
+        assert_eq!(output.status.code(), Some(0));
+        assert_eq!(std::fs::read(layout.store_db()).unwrap(), before_store);
+        assert_eq!(
+            std::fs::read(layout.coordinator_db()).unwrap(),
+            before_coord
+        );
+    }
+}
+
+#[test]
+fn cursor_advance_preserves_sequence_and_generation_refusals() {
+    let fixture = tempfile::tempdir().unwrap();
+    let store = fixture.path().join("store");
+    let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
+    let coord = Connection::open(layout.coordinator_db()).unwrap();
+    coord
+        .execute_batch(
+            "INSERT INTO family_allocator_marks VALUES('store_log','',10,0);
+         INSERT INTO consumer_cursors VALUES('bounded-consumer','gen-001',5,0);",
+        )
+        .unwrap();
+    for (sequence, code) in [
+        (4, "consumer_cursor_regression"),
+        (11, "consumer_cursor_ahead"),
+        (-1, "invalid_maintenance_metadata"),
+    ] {
+        let output = cursor_command(&store, "advance", true, sequence);
+        assert_eq!(output.status.code(), Some(1));
+        let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(report["error"]["code"], code);
+        assert_eq!(coord.query_row("SELECT store_log_sequence FROM consumer_cursors WHERE consumer_id='bounded-consumer'", [], |r| r.get::<_,i64>(0)).unwrap(), 5);
+    }
+    coord
+        .execute("UPDATE consumer_cursors SET generation_name='gen-999'", [])
+        .unwrap();
+    let output = cursor_command(&store, "advance", true, 5);
+    assert_eq!(output.status.code(), Some(1));
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["error"]["code"], "invalid_maintenance_metadata");
+}
+
+#[test]
 fn live_writer_reports_busy_as_json_stdout_without_mutation() {
     let fixture = tempfile::tempdir().unwrap();
     let store = fixture.path().join("store");

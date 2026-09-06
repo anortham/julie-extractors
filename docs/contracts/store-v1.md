@@ -216,6 +216,12 @@ Consumer cursor advance is monotonic, cannot pass the durable log high-water mar
 bound to the serving generation. Release removes only the exact consumer row. Consumer IDs are
 validated identifiers and are never interpolated into paths.
 
+Cursor commands perform bounded binding validation, not a full maintenance inspection.
+Their reports set `measurement_scope: "cursor_only"`; GC counts, retention, and capacity
+are unmeasured defaults, fingerprints are empty, and reader summaries are omitted.
+This scope does not weaken cursor mutation checks or reader retention. Other maintenance
+actions omit the scope field and continue to report their measured GC plans.
+
 Maintenance has its own JSON/human report schema, `StoreMaintenanceReport` version 1. It is not a
 request and does not add request IDs, view IDs, or request-state fields to the request-oriented
 StoreReport. JSON always uses one stdout line, including failures; human failure uses stderr. Exit

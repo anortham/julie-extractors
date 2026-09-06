@@ -180,6 +180,18 @@ impl StoreConnectionFactory {
         self.validate_identity_and_floor(&connection, AccessMode::Writer)
     }
 
+    /// Validates cursor store identity, version floors, generation, and coordinator schema without writes.
+    pub fn validate_cursor_binding(&self) -> Result<(), StoreConnectionError> {
+        let store = self.open_reader()?;
+        self.validate_identity_and_floor(&store, AccessMode::Writer)?;
+        let coordinator = Connection::open_with_flags(
+            self.layout.coordinator_db(),
+            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )?;
+        super::schema::validate_coordinator_schema_version(&coordinator)?;
+        self.validate_generation_write_fence(&store)
+    }
+
     /// Opens a query-only connection after enforcing the reader floor.
     pub fn open_reader(&self) -> Result<Connection, StoreConnectionError> {
         with_locking_protocol_retry(
