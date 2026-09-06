@@ -53,8 +53,17 @@ timing comparison. The regression guard measures committed changes, not elapsed 
 - The existing writer-configuration test now starts in FULL mode and verifies conversion to
   INCREMENTAL, along with all required durability and connection settings.
 - The focused connection suite passed 29 tests before the final coverage expansion.
-- The complete Linux default tier passed in 128 seconds on the final code and tests.
+- The complete Linux default tier passed 4,817 tests with 11 ignored in 128 seconds
+  on the final code and tests.
 - Release build, formatting, and diff whitespace checks passed.
+- Windows NTFS verification used committed source `03cb3325406fb089ee1f529a9b04843e0e312dbe`:
+  `win-test sync julie-extractors`, then
+  `win-test run julie-extractors -- 'C:\cache\cargo\bin\cargo.exe' test -p julie-extract-artifact
+  --test store_connection_contract --test store_coordinator_contract --test store_reader_registration_contract`.
+  The command returned exit 0. The launcher did not capture native test stdout, so no
+  Windows per-test count is claimed. A process observation confirmed Cargo and the coordinator
+  test binary were executing. The first attempt with bare `cargo` stalled in the launcher
+  without an active Cargo process; only that task-owned launcher was retired before the retry.
 
 The fix is independent of extracted language data. No schema, CLI, or report contract changed.
 It is a source repair; publication and Miller pin adoption remain separate release steps.
