@@ -100,3 +100,6 @@ pub mod test_calls;
 pub mod test_detection;
 pub mod test_linkage_contract;
 pub mod test_tiers;
+
+#[cfg(feature = "syntax-api")]
+pub mod syntax_api_faults;

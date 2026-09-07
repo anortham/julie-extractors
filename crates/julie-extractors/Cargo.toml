@@ -18,6 +18,7 @@ path = "src/lib.rs"
 workspace = true
 
 [features]
+syntax-api = []
 test-golden = []
 test-capability-matrix = []
 test-certification = []
@@ -85,3 +86,12 @@ tracing = "0.1"
 
 [dev-dependencies]
 tempfile = "3.13"
+
+[[test]]
+name = "public_relationship_contract"
+path = "src/tests/public_relationship_contract.rs"
+
+[[test]]
+name = "syntax_api_contract"
+path = "src/tests/syntax_api_contract.rs"
+required-features = ["syntax-api"]

@@ -2,8 +2,6 @@ use anyhow::Result;
 use std::path::Path;
 use std::sync::OnceLock;
 
-use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-
 type ParserFn = fn() -> tree_sitter::Language;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -217,7 +215,7 @@ const FSHARP_DOCS: &[DocCommentStyle] = &[DocCommentStyle::TripleSlash];
 
 macro_rules! parser {
     ($name:ident, $language:path) => {
-        fn $name() -> tree_sitter::Language {
+        pub(crate) fn $name() -> tree_sitter::Language {
             $language.into()
         }
     };
@@ -265,6 +263,7 @@ parser!(parser_toml, tree_sitter_toml_ng::LANGUAGE);
 parser!(parser_yaml, tree_sitter_yaml::LANGUAGE);
 parser!(parser_xml, tree_sitter_xml::LANGUAGE_XML);
 
+pub(crate) mod source_detection;
 mod specs;
 
 pub fn language_specs() -> &'static [LanguageSpec] {
@@ -318,19 +317,7 @@ pub fn detect_language_from_extension(extension: &str) -> Option<&'static str> {
 }
 
 #[cfg(test)]
-thread_local! {
-    static HEADER_PROBE_PARSE_COUNT: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
-}
-
-#[cfg(test)]
-pub(crate) fn header_probe_parse_count() -> usize {
-    HEADER_PROBE_PARSE_COUNT.with(|c| c.get())
-}
-
-#[cfg(test)]
-pub(crate) fn reset_header_probe_parse_count() {
-    HEADER_PROBE_PARSE_COUNT.with(|c| c.set(0));
-}
+pub(crate) use source_detection::{header_probe_parse_count, reset_header_probe_parse_count};
 
 pub fn detect_language_for_path(file_path: &Path, content: &str) -> Option<&'static str> {
     detect_language_with_tree(file_path, content).map(|(language, _)| language)
@@ -340,160 +327,11 @@ pub(crate) fn detect_language_with_tree(
     file_path: &Path,
     content: &str,
 ) -> Option<(&'static str, Option<tree_sitter::Tree>)> {
-    if file_path
-        .file_name()
-        .and_then(|name| name.to_str())
-        .is_some_and(|name| name.eq_ignore_ascii_case("qmldir"))
-    {
-        return Some(("qmldir", None));
-    }
-
-    let extension = file_path
-        .extension()
-        .and_then(|ext| ext.to_str())
-        .unwrap_or("");
-
-    if extension.eq_ignore_ascii_case("h") {
-        if !content.trim().is_empty()
-            && let Some((language, tree)) = header_parse_prefers_cpp(content)
-        {
-            return Some((language, Some(tree)));
-        }
-
-        return Some(("c", None));
-    }
-
-    detect_language_from_extension(extension).map(|language| (language, None))
+    source_detection::detect_legacy(file_path, content)
 }
 
 pub fn detect_language_for_source(file_path: &str, content: &str) -> Option<&'static str> {
     detect_language_for_path(Path::new(file_path), content)
-}
-
-fn header_parse_prefers_cpp(content: &str) -> Option<(&'static str, tree_sitter::Tree)> {
-    let (c_tree, c_errors) = parse_probe_tree_and_errors(parser_c(), content)?;
-    let (cpp_tree, cpp_errors) = parse_probe_tree_and_errors(parser_cpp(), content)?;
-    if cpp_errors < c_errors {
-        Some(("cpp", cpp_tree))
-    } else if c_errors < cpp_errors {
-        Some(("c", c_tree))
-    } else {
-        let code = c_family_code_without_comments_and_strings(content);
-        if code.contains("::")
-            || code.contains("template <")
-            || code.contains("public:")
-            || code.contains("private:")
-            || code.contains("protected:")
-        {
-            Some(("cpp", cpp_tree))
-        } else {
-            Some(("c", c_tree))
-        }
-    }
-}
-
-fn parse_probe_tree_and_errors(
-    language: tree_sitter::Language,
-    content: &str,
-) -> Option<(tree_sitter::Tree, usize)> {
-    #[cfg(test)]
-    HEADER_PROBE_PARSE_COUNT.with(|c| c.set(c.get() + 1));
-
-    let mut parser = tree_sitter::Parser::new();
-    parser.set_language(&language).ok()?;
-    let tree = parser.parse(content, None)?;
-    let error_count = count_parse_errors(tree.root_node(), 0);
-    Some((tree, error_count))
-}
-
-fn count_parse_errors(node: tree_sitter::Node<'_>, depth: u32) -> usize {
-    if !should_visit_tree_depth(depth) {
-        return 0;
-    }
-
-    let mut count = usize::from(node.is_error()) + usize::from(node.is_missing());
-    if !node.has_error() {
-        return count;
-    }
-
-    let Some(child_depth) = child_tree_depth(depth) else {
-        return count;
-    };
-
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        count += count_parse_errors(child, child_depth);
-    }
-    count
-}
-
-fn c_family_code_without_comments_and_strings(content: &str) -> String {
-    let mut code = String::with_capacity(content.len());
-    let mut chars = content.chars().peekable();
-
-    while let Some(ch) = chars.next() {
-        match ch {
-            '/' if chars.peek() == Some(&'/') => {
-                chars.next();
-                for comment_ch in chars.by_ref() {
-                    if comment_ch == '\n' {
-                        code.push('\n');
-                        break;
-                    }
-                }
-            }
-            '/' if chars.peek() == Some(&'*') => {
-                chars.next();
-                let mut previous = '\0';
-                for comment_ch in chars.by_ref() {
-                    if comment_ch == '\n' {
-                        code.push('\n');
-                    } else {
-                        code.push(' ');
-                    }
-                    if previous == '*' && comment_ch == '/' {
-                        break;
-                    }
-                    previous = comment_ch;
-                }
-            }
-            '"' | '\'' => {
-                scrub_quoted_literal(ch, &mut chars, &mut code);
-            }
-            _ => code.push(ch),
-        }
-    }
-
-    code
-}
-
-fn scrub_quoted_literal(
-    quote: char,
-    chars: &mut std::iter::Peekable<std::str::Chars<'_>>,
-    code: &mut String,
-) {
-    code.push(' ');
-    let mut escaped = false;
-
-    for literal_ch in chars.by_ref() {
-        if literal_ch == '\n' {
-            code.push('\n');
-        } else {
-            code.push(' ');
-        }
-
-        if escaped {
-            escaped = false;
-            continue;
-        }
-        if literal_ch == '\\' {
-            escaped = true;
-            continue;
-        }
-        if literal_ch == quote {
-            break;
-        }
-    }
 }
 
 pub fn supported_extensions() -> &'static [&'static str] {

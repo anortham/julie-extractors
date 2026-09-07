@@ -58,6 +58,9 @@ pub(crate) mod test_detection;
 pub(crate) mod tree_traversal;
 pub(crate) mod utils;
 
+#[cfg(feature = "syntax-api")]
+pub mod syntax;
+
 // Language extractors (33 concrete extractors, plus JSX/TSX aliases in the registry)
 pub(crate) mod bash;
 pub(crate) mod c;
@@ -99,6 +102,7 @@ pub(crate) mod yaml;
 pub(crate) mod zig;
 
 // Re-export the public API - Core types
+pub use base::relationship_resolution::{PendingSpan, UnresolvedTarget};
 pub use base::{
     AnnotationMarker, ComplexityMetric, ExtractionLevel, ExtractionResults, Identifier,
     IdentifierKind, Literal, LiteralKind, NormalizedSpan, ParseDiagnostic, ParseDiagnosticKind,

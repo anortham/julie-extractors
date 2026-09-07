@@ -89,6 +89,21 @@ In CI, the `Extractor Compatibility` job downloads the latest published release 
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
+## Unreleased
+
+classification: compatible
+
+Optional Rust host syntax API (`syntax-api` Cargo feature) and public crate-root
+export of existing relationship fact types (`PendingSpan`, `UnresolvedTarget`).
+
+Extraction output, database schemas, and CLI contracts remain completely unchanged:
+- Artifact schema remains 7.
+- JSONL export contract remains v5.
+- Extraction identity epoch remains 9.
+- SQLite/JSONL fact table outputs and CLI behavior remain 100% byte-identical.
+- Default features and dependencies in `Cargo.toml` are unchanged.
+- Primary CLI and artifact interfaces remain unchanged.
+
 ## 2.39.0
 
 classification: compatible

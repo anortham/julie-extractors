@@ -4,12 +4,33 @@ Tree-sitter-based extraction for `julie-extract` artifacts and Rust callers.
 
 ## Public Surface
 
+### Canonical Extraction
 Use canonical extraction entrypoints:
 
 - `extract_canonical(file_path, content, workspace_root)`
 - `extract_canonical_at(file_path, content, workspace_root, level)`
 
-The old pre-parsed-tree factory helper is now internal-only. External callers should not bypass the canonical pipeline.
+The old pre-parsed-tree factory helper is internal-only. External callers should not bypass the canonical pipeline.
+
+### Relationship Fact Exports
+Downstream crates building relationship resolution pipelines can name the structured relationship fact types directly from the crate root:
+
+- `julie_extractors::PendingSpan`
+- `julie_extractors::UnresolvedTarget`
+
+### Optional Host Syntax API (`syntax-api` feature)
+For consumers (such as Julie) requiring high-fidelity Tree-sitter AST access and iterative parse diagnostics without extracting canonical database rows:
+
+```toml
+[dependencies]
+julie-extractors = { version = "2.40.6", default-features = false, features = ["syntax-api"] }
+```
+
+Entrypoints in module `julie_extractors::syntax`:
+- `parse_source(file_path, source)`
+- `parse_source_with_options(file_path, source, options)`
+
+Returns `ParsedSource { language, tree, diagnostics }` or typed `SyntaxError`. See [Rust Syntax API Contract](../../docs/contracts/rust-syntax-api.md) for full specification, coordinate tables, error variants, and cancellation semantics.
 
 ## Result Semantics
 
@@ -71,4 +92,19 @@ let canonical_at = extract_canonical_at(file_path, content, workspace_root, Extr
 
 assert_eq!(canonical_at.symbols, canonical.symbols);
 # Ok::<(), anyhow::Error>(())
+```
+
+## Syntax API Example
+
+```rust,no_run
+use julie_extractors::syntax::{parse_source, SyntaxError};
+use std::path::Path;
+
+let source = "fn compute() { let x = 42; }";
+let parsed = parse_source(Path::new("src/lib.rs"), source)?;
+
+assert!(parsed.diagnostics.is_empty());
+let root = parsed.tree.root_node();
+println!("Parsed {} root node: {}", parsed.language, root.kind());
+# Ok::<(), SyntaxError>(())
 ```
