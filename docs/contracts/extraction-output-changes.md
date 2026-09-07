@@ -89,7 +89,7 @@ In CI, the `Extractor Compatibility` job downloads the latest published release 
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
-## Unreleased
+## 2.41.0
 
 classification: compatible
 
