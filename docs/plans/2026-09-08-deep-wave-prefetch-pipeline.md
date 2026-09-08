@@ -1,6 +1,7 @@
 # Deep-Wave Prefetch Pipeline — Design
 
-Status: proposed, not started. Follows the 2026-09-08 performance audit
+Status: implemented 2026-09-08 in `StoreRequestExecutor`; measurements are in
+the findings doc under "6. Deep-wave prefetch". Follows the 2026-09-08 performance audit
 (`docs/findings/2026-09-08-performance-audit.md`), which measured the store
 import on this repository at 35 s after connection reuse and core-scaled
 chunks, against 17 s for a plain scan of the same files.
@@ -73,11 +74,15 @@ and the coordinator thread never blocks on extraction.
 2. If a prefetch exists with the same `(request_id, chunk_index)` and the
    same plan fingerprint, join it and use its results. Otherwise discard the
    prefetch and extract inline as today.
-3. Before writing, start the prefetch for `chunk_index + 1` if that chunk is
-   a deep chunk of the same request. Skip files already complete in the
-   store (the same lookup the write loop does today) is not possible before
-   the write commits, so the prefetch extracts every planned file in the next
-   chunk and the consumer drops results for files that turn out complete.
+3. Before writing, start the prefetch for `chunk_index + 1` when the current
+   chunk is a deep chunk. The next chunk's files are disjoint from the
+   current chunk's, so the completeness lookup the write loop uses is exact
+   for them inside the same transaction; the prefetch skips files already
+   complete or failed. The consumer still recomputes its own work list and
+   extracts inline any file the prefetch did not cover.
+   The first deep chunk always extracts inline: the L1 publish boundary is a
+   contract test hook where a source change must still be seen by the deep
+   wave, so no prefetch starts during the L1 wave.
 4. Write and validate as today. `validate_full` compares the extracted L1
    projection against the stored one, so a stale prefetch cannot publish rows
    that disagree with the committed L1 wave.
@@ -145,11 +150,19 @@ mid-prefetch and proves recovery restarts at the committed chunk.
 
 ## Tasks
 
-1. Add `Prefetch` state and `map_with_pool` on a spawned thread; join on
-   drop.
-2. Consume a matching prefetch in the deep-wave path; extract inline
-   otherwise.
-3. Start the next prefetch before the write loop.
-4. Contract test: prefetch consumed, prefetch invalidated by a changed file,
-   crash mid-prefetch recovers at the committed chunk.
-5. Measure with the audit workload and record numbers in the findings doc.
+All done on 2026-09-08.
+
+1. `DeepChunkPrefetch` state; the extraction pool is shared through an `Arc`
+   and the prefetch thread drives it; the executor joins on drop and on any
+   quantum error.
+2. `extract_deep_chunk` consumes a matching prefetch and extracts the rest
+   inline. Progress counters advance at consume time, so a discarded prefetch
+   never counts.
+3. `spawn_prefetch` runs before the write loop; the crash boundary
+   `deep_after_prefetch_spawned` sits right after it.
+4. Contract tests in `store_import_contract.rs`: prefetch consumed
+   (`prefetched_files` on the `store_import_l3_chunk` event), a source change
+   seen by the prefetch fails with `changed_between_waves`, and a crash after
+   the spawn resumes at the committed chunk. A unit test proves the
+   `(request_id, chunk_index, plan_fingerprint)` key gate.
+5. Measured; see the findings doc.

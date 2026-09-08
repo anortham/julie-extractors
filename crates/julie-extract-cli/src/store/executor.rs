@@ -239,6 +239,17 @@ struct ImportChunk {
     end: usize,
 }
 
+type PrefetchedExtractions = Vec<(PlannedImportFile, Result<StoreFileVersion, String>)>;
+
+/// Deep extraction of the next chunk, running on the shared pool while the
+/// coordinator writes the current chunk. Consumed only when the key matches.
+struct DeepChunkPrefetch {
+    request_id: String,
+    chunk_index: usize,
+    plan_fingerprint: String,
+    handle: std::thread::JoinHandle<PrefetchedExtractions>,
+}
+
 struct DurableRequestState {
     failures: std::collections::BTreeMap<String, ManifestEntry>,
     manifest_generation: Option<u64>,
@@ -273,7 +284,8 @@ pub(crate) struct StoreRequestExecutor {
     watchdog: Option<crate::watchdog::ParentWatchdog>,
     progress: std::collections::BTreeMap<(String, String), Arc<ScanProgress>>,
     from_artifact_reuse: Option<FromArtifactReuse>,
-    extraction_pool: Option<(usize, rayon::ThreadPool)>,
+    extraction_pool: Option<(usize, Arc<rayon::ThreadPool>)>,
+    prefetch: Option<DeepChunkPrefetch>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -304,6 +316,7 @@ impl StoreRequestExecutor {
             progress: std::collections::BTreeMap::new(),
             from_artifact_reuse: None,
             extraction_pool: None,
+            prefetch: None,
         }
     }
 
@@ -1444,6 +1457,17 @@ where
 }
 
 impl StoreRequestExecutor {
+    fn extraction_pool(&mut self, jobs: usize) -> Result<Arc<rayon::ThreadPool>, String> {
+        match &self.extraction_pool {
+            Some((pool_jobs, pool)) if *pool_jobs == jobs => Ok(Arc::clone(pool)),
+            _ => {
+                let pool = Arc::new(build_extraction_pool(jobs)?);
+                self.extraction_pool = Some((jobs, Arc::clone(&pool)));
+                Ok(pool)
+            }
+        }
+    }
+
     fn map_with_pool<T, R, F>(&mut self, items: &[T], jobs: usize, map: F) -> Result<Vec<R>, String>
     where
         T: Sync,
@@ -1453,11 +1477,165 @@ impl StoreRequestExecutor {
         if items.is_empty() {
             return Ok(Vec::new());
         }
-        let pool = match &mut self.extraction_pool {
-            Some((pool_jobs, pool)) if *pool_jobs == jobs => pool,
-            slot => &mut slot.insert((jobs, build_extraction_pool(jobs)?)).1,
-        };
+        let pool = self.extraction_pool(jobs)?;
         Ok(pool.install(|| items.par_iter().map(map).collect()))
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn spawn_prefetch(
+        &mut self,
+        request_id: &str,
+        chunk_index: usize,
+        plan_fingerprint: &str,
+        root: &std::path::Path,
+        files: Vec<PlannedImportFile>,
+        jobs: usize,
+        indexed_at: &str,
+    ) -> Result<(), String> {
+        self.discard_prefetch();
+        if files.is_empty() {
+            return Ok(());
+        }
+        let pool = self.extraction_pool(jobs)?;
+        let root = root.to_path_buf();
+        let indexed_at = indexed_at.to_string();
+        let handle = std::thread::Builder::new()
+            .name("julie-deep-prefetch".to_string())
+            .spawn(move || {
+                pool.install(|| {
+                    files
+                        .par_iter()
+                        .map(|planned| {
+                            let extracted = Self::extract(
+                                &root,
+                                planned,
+                                None,
+                                ExtractionLevel::Full,
+                                &indexed_at,
+                            );
+                            (planned.clone(), extracted)
+                        })
+                        .collect()
+                })
+            })
+            .map_err(|error| format!("store_import_prefetch_spawn:{error}"))?;
+        self.prefetch = Some(DeepChunkPrefetch {
+            request_id: request_id.to_string(),
+            chunk_index,
+            plan_fingerprint: plan_fingerprint.to_string(),
+            handle,
+        });
+        Ok(())
+    }
+
+    fn take_prefetch(
+        &mut self,
+        request_id: &str,
+        chunk_index: usize,
+        plan_fingerprint: &str,
+    ) -> Option<PrefetchedExtractions> {
+        let prefetch = self.prefetch.take()?;
+        let matches = prefetch.request_id == request_id
+            && prefetch.chunk_index == chunk_index
+            && prefetch.plan_fingerprint == plan_fingerprint;
+        let extractions = prefetch.handle.join().ok();
+        if matches { extractions } else { None }
+    }
+
+    fn discard_prefetch(&mut self) {
+        if let Some(prefetch) = self.prefetch.take() {
+            let _ = prefetch.handle.join();
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn extract_deep_chunk(
+        &mut self,
+        request_id: &str,
+        chunk_index: usize,
+        plan_fingerprint: &str,
+        root: &std::path::Path,
+        work: &[PlannedImportFile],
+        jobs: usize,
+        progress: Option<&ScanProgress>,
+        indexed_at: &str,
+    ) -> Result<(Vec<Result<StoreFileVersion, String>>, usize), String> {
+        let mut prefetched = self
+            .take_prefetch(request_id, chunk_index, plan_fingerprint)
+            .into_iter()
+            .flatten()
+            .map(|(planned, extracted)| (planned.root_relative_path, extracted))
+            .collect::<std::collections::BTreeMap<_, _>>();
+        let misses = work
+            .iter()
+            .filter(|planned| !prefetched.contains_key(&planned.root_relative_path))
+            .cloned()
+            .collect::<Vec<_>>();
+        let mut inline = self
+            .map_with_pool(&misses, jobs, |planned| {
+                Self::extract(root, planned, progress, ExtractionLevel::Full, indexed_at)
+            })
+            .map_err(|error| format!("store_import_extract:{error}"))?
+            .into_iter();
+        let mut extracted = Vec::with_capacity(work.len());
+        let mut prefetched_files = 0;
+        for planned in work {
+            match prefetched.remove(&planned.root_relative_path) {
+                Some(result) => {
+                    prefetched_files += 1;
+                    if let Some(progress) = progress {
+                        if result.as_ref().err().map(String::as_str)
+                            != Some("changed_between_waves")
+                        {
+                            progress.advance(Counter::Extracted, 1);
+                        }
+                        if result.is_ok() {
+                            progress.advance(Counter::Spooled, 1);
+                        }
+                    }
+                    extracted.push(result);
+                }
+                None => extracted.push(
+                    inline
+                        .next()
+                        .ok_or_else(|| "store_import_extract:inline_result_missing".to_string())?,
+                ),
+            }
+        }
+        Ok((extracted, prefetched_files))
+    }
+
+    fn pending_work(
+        transaction: &Transaction<'_>,
+        files: &[PlannedImportFile],
+        level: StoreLevel,
+        failures: &std::collections::BTreeMap<String, ManifestEntry>,
+    ) -> Result<Vec<PlannedImportFile>, String> {
+        let mut work = Vec::new();
+        for discovered in files {
+            if level != StoreLevel::L1 && failures.contains_key(&discovered.root_relative_path) {
+                continue;
+            }
+            let complete = StoreWriter::lookup_version_in_transaction(
+                transaction,
+                &discovered.root_relative_path,
+                &discovered.content_hash,
+                EXTRACTION_IDENTITY_EPOCH,
+                level,
+            )
+            .map_err(|error| format!("store_import_lookup_version:{error}"))?;
+            if complete.is_some() {
+                continue;
+            }
+            work.push(discovered.clone());
+        }
+        Ok(work)
+    }
+}
+
+impl Drop for StoreRequestExecutor {
+    fn drop(&mut self) {
+        self.discard_prefetch();
     }
 }
 
@@ -1500,6 +1678,21 @@ fn chunk_ranges(sizes: &[u64], version_limit: usize) -> Vec<(usize, usize)> {
 
 impl CoordinatorExecutor for StoreRequestExecutor {
     fn execute_quantum(
+        &mut self,
+        transaction: &Transaction<'_>,
+        request: &CoordinatorRequest,
+        context: ExecutionContext,
+    ) -> Result<ExecutionQuantum, String> {
+        let result = self.execute_request_quantum(transaction, request, context);
+        if result.is_err() {
+            self.discard_prefetch();
+        }
+        result
+    }
+}
+
+impl StoreRequestExecutor {
+    fn execute_request_quantum(
         &mut self,
         transaction: &Transaction<'_>,
         request: &CoordinatorRequest,
@@ -1643,42 +1836,58 @@ impl CoordinatorExecutor for StoreRequestExecutor {
         if requested_full && chunk_index == l1_chunk_count {
             wait_for_full_resume_test_hook()?;
         }
-        let mut work = Vec::new();
-        for discovered in &payload.files[chunk.start..chunk.end] {
-            if chunk.level != StoreLevel::L1
-                && failures.contains_key(&discovered.root_relative_path)
-            {
-                continue;
-            }
-            let complete = StoreWriter::lookup_version_in_transaction(
-                transaction,
-                &discovered.root_relative_path,
-                &discovered.content_hash,
-                EXTRACTION_IDENTITY_EPOCH,
-                chunk.level,
-            )
-            .map_err(|error| format!("store_import_lookup_version:{error}"))?;
-            if complete.is_some() {
-                continue;
-            }
-            work.push(discovered.clone());
-        }
-        let extraction_level = if chunk.level == StoreLevel::L1 {
-            ExtractionLevel::Symbols
+        let work = Self::pending_work(
+            transaction,
+            &payload.files[chunk.start..chunk.end],
+            chunk.level,
+            &failures,
+        )?;
+        let (extracted, prefetched_files) = if chunk.level == StoreLevel::L1 {
+            let extracted = self
+                .map_with_pool(&work, payload.controls.jobs, |discovered| {
+                    Self::extract(
+                        &root,
+                        discovered,
+                        progress.as_deref(),
+                        ExtractionLevel::Symbols,
+                        &indexed_at,
+                    )
+                })
+                .map_err(|error| format!("store_import_extract:{error}"))?;
+            (extracted, 0)
         } else {
-            ExtractionLevel::Full
-        };
-        let extracted = self
-            .map_with_pool(&work, payload.controls.jobs, |discovered| {
-                Self::extract(
+            let plan_fingerprint =
+                crate::extraction::content_hash_bytes(request.payload_json.as_bytes());
+            let extracted = self.extract_deep_chunk(
+                &request.request_id,
+                chunk_index,
+                &plan_fingerprint,
+                &root,
+                &work,
+                payload.controls.jobs,
+                progress.as_deref(),
+                &indexed_at,
+            )?;
+            if let Some(next) = chunks.get(chunk_index + 1) {
+                let next_work = Self::pending_work(
+                    transaction,
+                    &payload.files[next.start..next.end],
+                    next.level,
+                    &failures,
+                )?;
+                self.spawn_prefetch(
+                    &request.request_id,
+                    chunk_index + 1,
+                    &plan_fingerprint,
                     &root,
-                    discovered,
-                    progress.as_deref(),
-                    extraction_level,
+                    next_work,
+                    payload.controls.jobs,
                     &indexed_at,
-                )
-            })
-            .map_err(|error| format!("store_import_extract:{error}"))?;
+                )?;
+                store_test_crash!("deep_after_prefetch_spawned");
+            }
+            extracted
+        };
         let snapshot = (chunk.level == StoreLevel::L1).then(artifact_capability_snapshot);
         let mut snapshot_supplied = false;
         let mut staging = None;
@@ -1822,6 +2031,7 @@ impl CoordinatorExecutor for StoreRequestExecutor {
                 event_kind: operation.event(&format!("l{}_chunk", chunk.level.as_i64())),
                 payload_json: serde_json::json!({
                     "completed_files": chunk.end,
+                    "prefetched_files": prefetched_files,
                     "failures": failure_facts(&failures),
                     "manifest_disposition": persisted_manifest_disposition,
                 })
@@ -1915,6 +2125,47 @@ mod tests {
         StoreRequestExecutor, WAL_BUDGET_BYTES, chunk_ranges, deep_chunk_versions_for_workers,
         estimate_projected_wal_bytes, map_with_jobs, validate_payload_bounds,
     };
+
+    #[test]
+    fn prefetch_is_consumed_only_for_its_own_request_chunk_and_plan() {
+        let fixture = tempfile::tempdir().unwrap();
+        let source = b"pub fn answer() -> usize { 1 }\n";
+        std::fs::write(fixture.path().join("lib.rs"), source).unwrap();
+        let planned = PlannedImportFile {
+            root_relative_path: "lib.rs".to_string(),
+            content_hash: crate::extraction::content_hash_bytes(source),
+            content_bytes: source.len() as u64,
+        };
+        let mut executor =
+            StoreRequestExecutor::new(fixture.path().join("store.db"), "family".to_string(), None);
+        let spawn = |executor: &mut StoreRequestExecutor| {
+            executor
+                .spawn_prefetch(
+                    "request-a",
+                    3,
+                    "plan-a",
+                    fixture.path(),
+                    vec![planned.clone()],
+                    1,
+                    "2026-09-08T00:00:00Z",
+                )
+                .unwrap();
+        };
+        spawn(&mut executor);
+        assert!(executor.take_prefetch("request-b", 3, "plan-a").is_none());
+        spawn(&mut executor);
+        assert!(executor.take_prefetch("request-a", 4, "plan-a").is_none());
+        spawn(&mut executor);
+        assert!(executor.take_prefetch("request-a", 3, "plan-b").is_none());
+        spawn(&mut executor);
+        let consumed = executor
+            .take_prefetch("request-a", 3, "plan-a")
+            .expect("matching key consumes the prefetch");
+        assert_eq!(consumed.len(), 1);
+        assert_eq!(consumed[0].0.root_relative_path, "lib.rs");
+        assert!(consumed[0].1.is_ok());
+        assert!(executor.take_prefetch("request-a", 3, "plan-a").is_none());
+    }
 
     #[test]
     fn deep_chunk_grows_from_its_floor_to_the_worker_count() {

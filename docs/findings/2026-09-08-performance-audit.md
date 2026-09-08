@@ -100,6 +100,35 @@ in `docs/contracts/cli.md` updated.
 | fresh `store import` (paired) | 41.5 / 40.0 s | 35.3 / 35.2 s |
 | fresh `scan` with 24 vs 19 workers (paired) | 17.4 / 21.2 s | 17.5 / 18.0 s |
 
+### 6. Deep-wave prefetch
+
+Each deep quantum extracted its chunk on the pool, then wrote it on the
+coordinator thread while the pool idled. The executor now spawns one prefetch
+thread that extracts the next deep chunk on the shared pool while the current
+chunk is written. The prefetch is keyed by request id, chunk index, and the
+payload hash, and it is consumed only on a full key match; anything else is
+joined and discarded, and the chunk extracts inline. The first deep chunk still
+extracts inline, so the L1 publish boundary keeps its source-change contract.
+The quantum, commit, and crash-recovery contracts are unchanged; a new crash
+boundary `deep_after_prefetch_spawned` is covered by a contract test. Design:
+`docs/plans/2026-09-08-deep-wave-prefetch-pipeline.md`.
+
+Three alternating paired runs of a fresh `store import --level full`, one
+warm-up, root at the prefetch branch (same 2,316 extractable files):
+
+| Metric | Before | After |
+| --- | ---: | ---: |
+| fresh `store import` (paired, load 4-12) | 34.7 / 32.6 / 32.5 s | 29.7 / 28.3 / 28.0 s |
+| fresh `store import` (paired, load 25-40) | 37.4 / 33.9 / 34.7 s | 28.9 / 31.8 / 30.0 s |
+| peak RSS | 1.94 / 1.97 / 1.94 GB | 1.93 / 1.94 / 1.97 GB |
+| user CPU | 66 / 69 / 69 s | 69 / 72 / 66 s |
+
+Median 32.6 s to 28.3 s. The design predicted about 26 s from a full overlap;
+the remaining gap is the first deep chunk, which is never prefetched, and the
+serial L1 wave. Bytes read and written through `/proc/<pid>/io` were zero for
+both binaries because the store lives on tmpfs and the source tree was in page
+cache.
+
 ## Changes tried and reverted
 
 - **`mmap_size` on the bulk writer.** Halved bytes read (10.2 GB to 5.5 GB) but

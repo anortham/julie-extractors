@@ -3442,3 +3442,183 @@ fn store_import_reads_each_file_from_disk_at_most_once() {
         "Total file disk reads must match total file count"
     );
 }
+
+fn write_five_rust_files(root: &std::path::Path) {
+    std::fs::create_dir(root).unwrap();
+    for index in 0..5 {
+        std::fs::write(
+            root.join(format!("file_{index}.rs")),
+            format!("pub fn answer_{index}() -> usize {{ {index} }}\n"),
+        )
+        .unwrap();
+    }
+}
+
+fn deep_chunk_facts(database: &std::path::Path, request_id: &str) -> Vec<(i64, i64)> {
+    let connection = rusqlite::Connection::open(database).unwrap();
+    connection
+        .prepare(
+            "SELECT json_extract(payload_json, '$.completed_files'),
+                    json_extract(payload_json, '$.prefetched_files')
+             FROM store_log
+             WHERE request_id = ?1 AND event_kind = 'store_import_l3_chunk'
+             ORDER BY sequence",
+        )
+        .unwrap()
+        .query_map([request_id], |row| Ok((row.get(0)?, row.get(1)?)))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap()
+}
+
+fn full_import_args(store: &std::path::Path, root: &std::path::Path, suffix: &str) -> Vec<String> {
+    [
+        "store",
+        "import",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        FAMILY_ID,
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--level",
+        "full",
+        "--request-id",
+        &format!("request-{suffix}"),
+        "--idempotency-key",
+        &format!("idem-{suffix}"),
+        "--json",
+    ]
+    .into_iter()
+    .map(str::to_string)
+    .collect()
+}
+
+#[test]
+fn full_import_prefetches_each_deep_chunk_after_the_first() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    write_five_rust_files(&root);
+    let output = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .env("MILLER_STORE_CHUNK_VERSIONS", "2")
+        .args(full_import_args(&store, &root, "prefetch"))
+        .output()
+        .unwrap();
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["completion"]["l3"], true);
+    assert_eq!(
+        deep_chunk_facts(&store.join("gen-001/store.db"), "request-prefetch"),
+        [(2, 0), (4, 2)]
+    );
+}
+
+#[test]
+fn source_change_seen_by_the_prefetch_fails_the_next_deep_chunk() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    let ready = fixture.path().join("full.ready");
+    let resume = fixture.path().join("full.resume");
+    write_five_rust_files(&root);
+    let child = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .env("MILLER_STORE_CHUNK_VERSIONS", "2")
+        .env("JULIE_EXTRACT_STORE_TEST_FULL_RESUME_READY_FILE", &ready)
+        .env("JULIE_EXTRACT_STORE_TEST_FULL_RESUME_FILE", &resume)
+        .args(full_import_args(&store, &root, "prefetch-changed"))
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let deadline = Instant::now() + Duration::from_secs(30);
+    while !ready.exists() {
+        assert!(
+            Instant::now() < deadline,
+            "full resume hook was not reached"
+        );
+        std::thread::sleep(Duration::from_millis(2));
+    }
+    std::fs::write(
+        root.join("file_3.rs"),
+        "pub fn answer_3() -> usize { 33 }\n",
+    )
+    .unwrap();
+    std::fs::write(&resume, b"resume").unwrap();
+    let output = child.wait_with_output().unwrap();
+    assert_eq!(output.status.code(), Some(1));
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["failure_class"], "changed_between_waves");
+    assert_eq!(report["completion"]["l1"], true);
+    assert_eq!(report["completion"]["l3"], false);
+    assert_eq!(
+        deep_chunk_facts(&store.join("gen-001/store.db"), "request-prefetch-changed"),
+        [(2, 0)]
+    );
+}
+
+#[test]
+fn crash_after_prefetch_spawn_resumes_at_the_committed_chunk() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    let marker = fixture.path().join("crash.marker");
+    write_five_rust_files(&root);
+    let crashed = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .env("MILLER_STORE_CHUNK_VERSIONS", "2")
+        .env(
+            "JULIE_EXTRACT_STORE_TEST_CRASH_AT",
+            "deep_after_prefetch_spawned",
+        )
+        .env("JULIE_EXTRACT_STORE_TEST_CRASH_MARKER", &marker)
+        .args(full_import_args(&store, &root, "prefetch-crash"))
+        .output()
+        .unwrap();
+    assert_ne!(crashed.status.code(), Some(0));
+    assert_eq!(
+        std::fs::read_to_string(&marker).unwrap(),
+        "deep_after_prefetch_spawned"
+    );
+    let database = store.join("gen-001/store.db");
+    assert_eq!(deep_chunk_facts(&database, "request-prefetch-crash"), []);
+
+    let retry = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .env("MILLER_STORE_CHUNK_VERSIONS", "2")
+        .args(full_import_args(&store, &root, "prefetch-crash"))
+        .output()
+        .unwrap();
+    assert_eq!(
+        retry.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&retry.stdout),
+        String::from_utf8_lossy(&retry.stderr)
+    );
+    let report: serde_json::Value = serde_json::from_slice(&retry.stdout).unwrap();
+    assert_eq!(report["completion"]["l3"], true);
+    assert_eq!(
+        deep_chunk_facts(&database, "request-prefetch-crash"),
+        [(2, 0), (4, 2)]
+    );
+    let connection = rusqlite::Connection::open(&database).unwrap();
+    let (deep_chunks, terminal): (i64, i64) = connection
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM request_chunks
+                WHERE request_id = 'request-prefetch-crash' AND level = 3),
+               (SELECT COUNT(*) FROM store_log
+                WHERE request_id = 'request-prefetch-crash' AND terminal = 1)",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!((deep_chunks, terminal), (2, 1));
+}
