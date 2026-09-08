@@ -98,7 +98,11 @@ A prefetched result is used only when all of these hold at consume time:
   lease before commit; the executor does not need its own check);
 - each file's content hash still equals the frozen hash. The prefetch reads
   the file and hashes it, so `changed_between_waves` is produced by the
-  prefetch itself and surfaces as a per-file failure exactly as today.
+  prefetch itself and surfaces as a per-file failure exactly as today;
+- each file's modification time and byte length still equal what the
+  prefetch saw before its read. A file that changed after the prefetch read,
+  including across an interleaved interactive request, is dropped from the
+  prefetch and extracted inline, where the frozen-hash check fails it.
 
 Anything else drops the prefetch and extracts inline. A dropped prefetch is
 joined and discarded; it is never left running past the request.
@@ -145,8 +149,9 @@ mid-prefetch and proves recovery restarts at the committed chunk.
 - Windows: the prefetch reads source files while the writer runs. No handle
   on a store file is involved, so no unlink or rename conflict arises.
 - Interactive fairness does not improve: the write half still holds the
-  coordinator. It does not get worse either, because the chunk size is
-  unchanged.
+  coordinator. Interactive updates extract on their own pool, so a queued
+  import's prefetch cannot hold an update's extraction past the interactive
+  burst window.
 
 ## Tasks
 

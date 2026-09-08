@@ -107,8 +107,11 @@ coordinator thread while the pool idled. The executor now spawns one prefetch
 thread that extracts the next deep chunk on the shared pool while the current
 chunk is written. The prefetch is keyed by request id, chunk index, and the
 payload hash, and it is consumed only on a full key match; anything else is
-joined and discarded, and the chunk extracts inline. The first deep chunk still
+joined and discarded, and the chunk extracts inline. Each prefetched file also
+carries the modification time and size seen before its read; a mismatch at
+consume time drops that file to inline extraction. The first deep chunk still
 extracts inline, so the L1 publish boundary keeps its source-change contract.
+Interactive updates extract on a separate pool so a prefetch cannot delay them.
 The quantum, commit, and crash-recovery contracts are unchanged; a new crash
 boundary `deep_after_prefetch_spawned` is covered by a contract test. Design:
 `docs/plans/2026-09-08-deep-wave-prefetch-pipeline.md`.

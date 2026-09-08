@@ -239,7 +239,30 @@ struct ImportChunk {
     end: usize,
 }
 
-type PrefetchedExtractions = Vec<(PlannedImportFile, Result<StoreFileVersion, String>)>;
+/// Modification time and byte length of a source file, compared again when a
+/// prefetched result is consumed so a file changed after the prefetch read is
+/// extracted inline and fails as `changed_between_waves`.
+type SourceIdentity = (std::time::SystemTime, u64);
+
+#[derive(Debug, Clone, Copy, Default)]
+struct ExtractionStages {
+    extracted: bool,
+    spooled: bool,
+}
+
+struct PrefetchedFile {
+    planned: PlannedImportFile,
+    identity: Option<SourceIdentity>,
+    extracted: Result<StoreFileVersion, String>,
+    counted: ExtractionStages,
+}
+
+type PrefetchedExtractions = Vec<PrefetchedFile>;
+
+fn source_identity(path: &std::path::Path) -> Option<SourceIdentity> {
+    let metadata = std::fs::metadata(path).ok()?;
+    Some((metadata.modified().ok()?, metadata.len()))
+}
 
 /// Deep extraction of the next chunk, running on the shared pool while the
 /// coordinator writes the current chunk. Consumed only when the key matches.
@@ -285,6 +308,7 @@ pub(crate) struct StoreRequestExecutor {
     progress: std::collections::BTreeMap<(String, String), Arc<ScanProgress>>,
     from_artifact_reuse: Option<FromArtifactReuse>,
     extraction_pool: Option<(usize, Arc<rayon::ThreadPool>)>,
+    interactive_pool: Option<(usize, Arc<rayon::ThreadPool>)>,
     prefetch: Option<DeepChunkPrefetch>,
 }
 
@@ -316,6 +340,7 @@ impl StoreRequestExecutor {
             progress: std::collections::BTreeMap::new(),
             from_artifact_reuse: None,
             extraction_pool: None,
+            interactive_pool: None,
             prefetch: None,
         }
     }
@@ -610,6 +635,20 @@ impl StoreRequestExecutor {
         level: ExtractionLevel,
         indexed_at: &str,
     ) -> Result<StoreFileVersion, String> {
+        Self::extract_with(root, planned, level, indexed_at, |counter| {
+            if let Some(progress) = progress {
+                progress.advance(counter, 1);
+            }
+        })
+    }
+
+    fn extract_with(
+        root: &std::path::Path,
+        planned: &PlannedImportFile,
+        level: ExtractionLevel,
+        indexed_at: &str,
+        mut on_stage: impl FnMut(Counter),
+    ) -> Result<StoreFileVersion, String> {
         validate_target_within_root(root, &planned.root_relative_path)?;
         let target = planned.target(root);
         let snapshot = read_source_snapshot(&target).map_err(|error| error.message.clone())?;
@@ -623,9 +662,7 @@ impl StoreRequestExecutor {
         let language = detect_language_for_source(&target.root_relative_path, &snapshot.content)
             .unwrap_or("unknown")
             .to_string();
-        if let Some(progress) = progress {
-            progress.advance(Counter::Extracted, 1);
-        }
+        on_stage(Counter::Extracted);
         let artifact = extract_artifact_file_from_snapshot_at(
             root,
             &target,
@@ -635,9 +672,7 @@ impl StoreRequestExecutor {
             level,
         )
         .map_err(|error| error.message)?;
-        if let Some(progress) = progress {
-            progress.advance(Counter::Spooled, 1);
-        }
+        on_stage(Counter::Spooled);
         if level == ExtractionLevel::Full {
             crate::extraction::remove_cached_snapshot(&target.absolute_path);
         }
@@ -1457,18 +1492,34 @@ where
 }
 
 impl StoreRequestExecutor {
-    fn extraction_pool(&mut self, jobs: usize) -> Result<Arc<rayon::ThreadPool>, String> {
-        match &self.extraction_pool {
+    /// Interactive updates get their own pool so a queued import's prefetch
+    /// cannot hold their extraction past the interactive burst window.
+    fn pool_for(
+        &mut self,
+        operation: FilePlanOperation,
+        jobs: usize,
+    ) -> Result<Arc<rayon::ThreadPool>, String> {
+        let slot = match operation {
+            FilePlanOperation::Import => &mut self.extraction_pool,
+            FilePlanOperation::Update => &mut self.interactive_pool,
+        };
+        match slot {
             Some((pool_jobs, pool)) if *pool_jobs == jobs => Ok(Arc::clone(pool)),
             _ => {
                 let pool = Arc::new(build_extraction_pool(jobs)?);
-                self.extraction_pool = Some((jobs, Arc::clone(&pool)));
+                *slot = Some((jobs, Arc::clone(&pool)));
                 Ok(pool)
             }
         }
     }
 
-    fn map_with_pool<T, R, F>(&mut self, items: &[T], jobs: usize, map: F) -> Result<Vec<R>, String>
+    fn map_with_pool<T, R, F>(
+        &mut self,
+        items: &[T],
+        operation: FilePlanOperation,
+        jobs: usize,
+        map: F,
+    ) -> Result<Vec<R>, String>
     where
         T: Sync,
         R: Send,
@@ -1477,7 +1528,7 @@ impl StoreRequestExecutor {
         if items.is_empty() {
             return Ok(Vec::new());
         }
-        let pool = self.extraction_pool(jobs)?;
+        let pool = self.pool_for(operation, jobs)?;
         Ok(pool.install(|| items.par_iter().map(map).collect()))
     }
 
@@ -1487,6 +1538,7 @@ impl StoreRequestExecutor {
         request_id: &str,
         chunk_index: usize,
         plan_fingerprint: &str,
+        operation: FilePlanOperation,
         root: &std::path::Path,
         files: Vec<PlannedImportFile>,
         jobs: usize,
@@ -1496,7 +1548,7 @@ impl StoreRequestExecutor {
         if files.is_empty() {
             return Ok(());
         }
-        let pool = self.extraction_pool(jobs)?;
+        let pool = self.pool_for(operation, jobs)?;
         let root = root.to_path_buf();
         let indexed_at = indexed_at.to_string();
         let handle = std::thread::Builder::new()
@@ -1506,14 +1558,25 @@ impl StoreRequestExecutor {
                     files
                         .par_iter()
                         .map(|planned| {
-                            let extracted = Self::extract(
+                            let identity = source_identity(&planned.target(&root).absolute_path);
+                            let mut counted = ExtractionStages::default();
+                            let extracted = Self::extract_with(
                                 &root,
                                 planned,
-                                None,
                                 ExtractionLevel::Full,
                                 &indexed_at,
+                                |counter| match counter {
+                                    Counter::Extracted => counted.extracted = true,
+                                    Counter::Spooled => counted.spooled = true,
+                                    _ => {}
+                                },
                             );
-                            (planned.clone(), extracted)
+                            PrefetchedFile {
+                                planned: planned.clone(),
+                                identity,
+                                extracted,
+                                counted,
+                            }
                         })
                         .collect()
                 })
@@ -1554,6 +1617,7 @@ impl StoreRequestExecutor {
         request_id: &str,
         chunk_index: usize,
         plan_fingerprint: &str,
+        operation: FilePlanOperation,
         root: &std::path::Path,
         work: &[PlannedImportFile],
         jobs: usize,
@@ -1564,7 +1628,11 @@ impl StoreRequestExecutor {
             .take_prefetch(request_id, chunk_index, plan_fingerprint)
             .into_iter()
             .flatten()
-            .map(|(planned, extracted)| (planned.root_relative_path, extracted))
+            .filter(|file| {
+                file.identity.is_some()
+                    && file.identity == source_identity(&file.planned.target(root).absolute_path)
+            })
+            .map(|file| (file.planned.root_relative_path.clone(), file))
             .collect::<std::collections::BTreeMap<_, _>>();
         let misses = work
             .iter()
@@ -1572,7 +1640,7 @@ impl StoreRequestExecutor {
             .cloned()
             .collect::<Vec<_>>();
         let mut inline = self
-            .map_with_pool(&misses, jobs, |planned| {
+            .map_with_pool(&misses, operation, jobs, |planned| {
                 Self::extract(root, planned, progress, ExtractionLevel::Full, indexed_at)
             })
             .map_err(|error| format!("store_import_extract:{error}"))?
@@ -1581,19 +1649,17 @@ impl StoreRequestExecutor {
         let mut prefetched_files = 0;
         for planned in work {
             match prefetched.remove(&planned.root_relative_path) {
-                Some(result) => {
+                Some(file) => {
                     prefetched_files += 1;
                     if let Some(progress) = progress {
-                        if result.as_ref().err().map(String::as_str)
-                            != Some("changed_between_waves")
-                        {
+                        if file.counted.extracted {
                             progress.advance(Counter::Extracted, 1);
                         }
-                        if result.is_ok() {
+                        if file.counted.spooled {
                             progress.advance(Counter::Spooled, 1);
                         }
                     }
-                    extracted.push(result);
+                    extracted.push(file.extracted);
                 }
                 None => extracted.push(
                     inline
@@ -1844,7 +1910,7 @@ impl StoreRequestExecutor {
         )?;
         let (extracted, prefetched_files) = if chunk.level == StoreLevel::L1 {
             let extracted = self
-                .map_with_pool(&work, payload.controls.jobs, |discovered| {
+                .map_with_pool(&work, operation, payload.controls.jobs, |discovered| {
                     Self::extract(
                         &root,
                         discovered,
@@ -1862,6 +1928,7 @@ impl StoreRequestExecutor {
                 &request.request_id,
                 chunk_index,
                 &plan_fingerprint,
+                operation,
                 &root,
                 &work,
                 payload.controls.jobs,
@@ -1879,12 +1946,14 @@ impl StoreRequestExecutor {
                     &request.request_id,
                     chunk_index + 1,
                     &plan_fingerprint,
+                    operation,
                     &root,
                     next_work,
                     payload.controls.jobs,
                     &indexed_at,
                 )?;
                 store_test_crash!("deep_after_prefetch_spawned");
+                wait_for_deep_prefetch_test_hook(self.prefetch.as_ref())?;
             }
             extracted
         };
@@ -2118,33 +2187,61 @@ fn wait_for_full_resume_test_hook() -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(feature = "test-store-contract")]
+fn wait_for_deep_prefetch_test_hook(prefetch: Option<&DeepChunkPrefetch>) -> Result<(), String> {
+    if std::env::var_os("JULIE_EXTRACT_STORE_TEST_PREFETCH_READY_FILE").is_none() {
+        return Ok(());
+    }
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(30);
+    while prefetch.is_some_and(|prefetch| !prefetch.handle.is_finished()) {
+        if std::time::Instant::now() >= deadline {
+            return Err("prefetch_test_hook_timeout".to_string());
+        }
+        std::thread::sleep(std::time::Duration::from_millis(2));
+    }
+    wait_for_test_hook(
+        "JULIE_EXTRACT_STORE_TEST_PREFETCH_READY_FILE",
+        "JULIE_EXTRACT_STORE_TEST_PREFETCH_RESUME_FILE",
+        "missing_prefetch_test_resume_file",
+        "prefetch_test_hook_timeout",
+    )
+}
+
+#[cfg(not(feature = "test-store-contract"))]
+fn wait_for_deep_prefetch_test_hook(_prefetch: Option<&DeepChunkPrefetch>) -> Result<(), String> {
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        IMPORT_PAYLOAD_MAX_BYTES, IMPORT_PLAN_MAX_FILES, MAX_CHUNK_VERSIONS, PlannedImportFile,
-        StoreRequestExecutor, WAL_BUDGET_BYTES, chunk_ranges, deep_chunk_versions_for_workers,
-        estimate_projected_wal_bytes, map_with_jobs, validate_payload_bounds,
+        FilePlanOperation, IMPORT_PAYLOAD_MAX_BYTES, IMPORT_PLAN_MAX_FILES, MAX_CHUNK_VERSIONS,
+        PlannedImportFile, StoreRequestExecutor, WAL_BUDGET_BYTES, chunk_ranges,
+        deep_chunk_versions_for_workers, estimate_projected_wal_bytes, map_with_jobs,
+        validate_payload_bounds,
     };
 
     #[test]
     fn prefetch_is_consumed_only_for_its_own_request_chunk_and_plan() {
         let fixture = tempfile::tempdir().unwrap();
+        let root = fixture.path().canonicalize().unwrap();
         let source = b"pub fn answer() -> usize { 1 }\n";
-        std::fs::write(fixture.path().join("lib.rs"), source).unwrap();
+        std::fs::write(root.join("lib.rs"), source).unwrap();
         let planned = PlannedImportFile {
             root_relative_path: "lib.rs".to_string(),
             content_hash: crate::extraction::content_hash_bytes(source),
             content_bytes: source.len() as u64,
         };
         let mut executor =
-            StoreRequestExecutor::new(fixture.path().join("store.db"), "family".to_string(), None);
+            StoreRequestExecutor::new(root.join("store.db"), "family".to_string(), None);
         let spawn = |executor: &mut StoreRequestExecutor| {
             executor
                 .spawn_prefetch(
                     "request-a",
                     3,
                     "plan-a",
-                    fixture.path(),
+                    FilePlanOperation::Import,
+                    &root,
                     vec![planned.clone()],
                     1,
                     "2026-09-08T00:00:00Z",
@@ -2162,9 +2259,29 @@ mod tests {
             .take_prefetch("request-a", 3, "plan-a")
             .expect("matching key consumes the prefetch");
         assert_eq!(consumed.len(), 1);
-        assert_eq!(consumed[0].0.root_relative_path, "lib.rs");
-        assert!(consumed[0].1.is_ok());
+        assert_eq!(consumed[0].planned.root_relative_path, "lib.rs");
+        assert!(consumed[0].extracted.is_ok());
+        assert!(consumed[0].identity.is_some());
+        assert!(consumed[0].counted.extracted && consumed[0].counted.spooled);
         assert!(executor.take_prefetch("request-a", 3, "plan-a").is_none());
+    }
+
+    #[test]
+    fn interactive_updates_extract_on_a_pool_the_import_prefetch_cannot_occupy() {
+        let fixture = tempfile::tempdir().unwrap();
+        let mut executor =
+            StoreRequestExecutor::new(fixture.path().join("store.db"), "family".to_string(), None);
+        let import = executor.pool_for(FilePlanOperation::Import, 2).unwrap();
+        let update = executor.pool_for(FilePlanOperation::Update, 2).unwrap();
+        assert!(!std::sync::Arc::ptr_eq(&import, &update));
+        assert!(std::sync::Arc::ptr_eq(
+            &import,
+            &executor.pool_for(FilePlanOperation::Import, 2).unwrap()
+        ));
+        assert!(std::sync::Arc::ptr_eq(
+            &update,
+            &executor.pool_for(FilePlanOperation::Update, 2).unwrap()
+        ));
     }
 
     #[test]

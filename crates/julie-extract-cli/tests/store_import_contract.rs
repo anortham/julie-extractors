@@ -3523,6 +3523,7 @@ fn full_import_prefetches_each_deep_chunk_after_the_first() {
 }
 
 #[test]
+#[cfg(feature = "test-store-contract")]
 fn source_change_seen_by_the_prefetch_fails_the_next_deep_chunk() {
     let fixture = tempfile::tempdir().unwrap();
     let root = fixture.path().join("root");
@@ -3566,6 +3567,57 @@ fn source_change_seen_by_the_prefetch_fails_the_next_deep_chunk() {
 }
 
 #[test]
+#[cfg(feature = "test-store-contract")]
+fn source_change_after_the_prefetch_finishes_is_still_detected() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    let ready = fixture.path().join("prefetch.ready");
+    let resume = fixture.path().join("prefetch.resume");
+    write_five_rust_files(&root);
+    let child = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .env("MILLER_STORE_CHUNK_VERSIONS", "2")
+        .env("JULIE_EXTRACT_STORE_TEST_PREFETCH_READY_FILE", &ready)
+        .env("JULIE_EXTRACT_STORE_TEST_PREFETCH_RESUME_FILE", &resume)
+        .args(full_import_args(&store, &root, "prefetch-late-change"))
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let deadline = Instant::now() + Duration::from_secs(30);
+    while !ready.exists() {
+        assert!(Instant::now() < deadline, "prefetch hook was not reached");
+        std::thread::sleep(Duration::from_millis(2));
+    }
+    std::fs::write(
+        root.join("file_3.rs"),
+        "pub fn answer_3() -> usize { 33 }\n",
+    )
+    .unwrap();
+    std::fs::write(&resume, b"resume").unwrap();
+    let output = child.wait_with_output().unwrap();
+    assert_eq!(
+        output.status.code(),
+        Some(1),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["failure_class"], "changed_between_waves");
+    assert_eq!(report["completion"]["l1"], true);
+    assert_eq!(report["completion"]["l3"], false);
+    assert_eq!(
+        deep_chunk_facts(
+            &store.join("gen-001/store.db"),
+            "request-prefetch-late-change"
+        ),
+        [(2, 0)]
+    );
+}
+
+#[test]
+#[cfg(feature = "test-store-contract")]
 fn crash_after_prefetch_spawn_resumes_at_the_committed_chunk() {
     let fixture = tempfile::tempdir().unwrap();
     let root = fixture.path().join("root");
