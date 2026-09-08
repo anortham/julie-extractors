@@ -70,6 +70,6 @@ pub use schema::{
     create_store_schema,
 };
 pub use writer::{
-    StoreVersionState, StoreWriteRequest, StoreWriteResult, StoreWriter, StoreWriterError,
-    StoredFileVersion,
+    L1ProjectionStaging, StoreVersionState, StoreWriteRequest, StoreWriteResult, StoreWriter,
+    StoreWriterError, StoredFileVersion,
 };

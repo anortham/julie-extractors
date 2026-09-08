@@ -53,7 +53,7 @@ ignore = "0.4"
 julie-extract-artifact = { path = "../julie-extract-artifact" }
 julie-extractors = { path = "../julie-extractors" }
 rayon = "1.10"
-rusqlite = { version = "0.40.0", default-features = false, features = ["bundled"] }
+rusqlite = { version = "0.40.2", default-features = false, features = ["bundled"] }
 # File identity for the --progress-file/--db collision guard. Already in the lock
 # graph via ignore -> walkdir, and it reaches GetFileInformationByHandle on
 # Windows, which `unsafe_code = "forbid"` puts out of this workspace's reach.

@@ -31,9 +31,9 @@ pub(crate) fn bulk_cache_kib_for(total_memory: Option<u64>) -> i64 {
     -(total_kib / 8).clamp(MIN_KIB, MAX_KIB)
 }
 
-/// Resolve the pragma value, honoring an operator's `JULIE_BULK_CACHE_KIB`
-/// override verbatim (SQLite semantics: negative = KiB, positive = pages).
-pub(crate) fn bulk_cache_size_kib() -> i64 {
+/// Resolve the `cache_size` pragma value for a bulk-write connection, honoring an operator's
+/// `JULIE_BULK_CACHE_KIB` override verbatim (SQLite semantics: negative = KiB, positive = pages).
+pub fn bulk_cache_size_kib() -> i64 {
     match std::env::var("JULIE_BULK_CACHE_KIB")
         .ok()
         .and_then(|value| value.parse::<i64>().ok())

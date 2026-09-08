@@ -442,6 +442,7 @@ fn repair_plan_reports_structural_store_corruption_without_mutation() {
     assert_eq!(report["mode"], "plan");
     assert_eq!(report["failure_class"], "integrity_failed");
     assert_eq!(report["error"]["code"], "integrity_check_failed");
+    assert_eq!(report["integrity_checks"], json!(["store_quick_check"]));
     assert_eq!(
         report["recovery_actions"],
         json!(["store maintain promote --apply"])
@@ -477,24 +478,21 @@ fn inspect_reports_structural_coordinator_corruption() {
             .starts_with("coordinator quick check failed:")
     );
     assert_eq!(
+        report["integrity_checks"],
+        json!(["store_quick_check", "coordinator_quick_check"])
+    );
+    assert_eq!(
         report["recovery_actions"],
         json!(["store maintain promote --apply"])
     );
 }
 
 #[test]
-fn inspect_does_not_classify_a_locked_integrity_read_as_corruption() {
+fn inspect_reports_a_held_store_lock_as_busy() {
     let fixture = tempfile::tempdir().unwrap();
     let store = fixture.path().join("store");
     let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
-    let lock = Connection::open(layout.store_db()).unwrap();
-    lock.execute_batch(
-        "PRAGMA journal_mode=DELETE;\n\
-         PRAGMA locking_mode=EXCLUSIVE;\n\
-         BEGIN EXCLUSIVE;\n\
-         SELECT count(*) FROM sqlite_schema;",
-    )
-    .unwrap();
+    let lock = hold_exclusive_lock(layout.store_db());
 
     let output = julie_extract(&[
         "store",
@@ -508,10 +506,94 @@ fn inspect_does_not_classify_a_locked_integrity_read_as_corruption() {
     assert_eq!(output.status.code(), Some(1));
     assert!(output.stderr.is_empty());
     let report: Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert_ne!(report["failure_class"], "integrity_failed");
-    assert_ne!(report["error"]["code"], "integrity_check_failed");
+    assert_eq!(report["failure_class"], "busy");
+    assert_eq!(report["error"]["code"], "store_busy");
+    assert_eq!(report["integrity_checks"], json!([]));
     assert_eq!(report["recovery_actions"], json!([]));
     drop(lock);
+}
+
+#[test]
+fn inspect_reports_a_held_integrity_read_lock_as_busy() {
+    let fixture = tempfile::tempdir().unwrap();
+    let store = fixture.path().join("store");
+    let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
+    let lock = hold_exclusive_lock(layout.coordinator_db());
+
+    let output = julie_extract(&[
+        "store",
+        "maintain",
+        "inspect",
+        "--store",
+        store.to_str().unwrap(),
+        "--json",
+    ]);
+
+    assert_eq!(output.status.code(), Some(1));
+    assert!(output.stderr.is_empty());
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["failure_class"], "busy");
+    assert_eq!(report["error"]["code"], "maintenance_busy");
+    assert!(
+        report["error"]["message"]
+            .as_str()
+            .unwrap()
+            .starts_with("coordinator quick check could not acquire the database lock")
+    );
+    assert_eq!(
+        report["integrity_checks"],
+        json!(["store_quick_check", "coordinator_quick_check"])
+    );
+    assert_eq!(report["recovery_actions"], json!([]));
+    drop(lock);
+}
+
+#[test]
+fn inspect_waits_for_a_briefly_held_integrity_read_lock() {
+    let fixture = tempfile::tempdir().unwrap();
+    let store = fixture.path().join("store");
+    let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
+    let lock = hold_exclusive_lock(layout.store_db());
+    let release = std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(400));
+        drop(lock);
+    });
+
+    let output = julie_extract(&[
+        "store",
+        "maintain",
+        "inspect",
+        "--store",
+        store.to_str().unwrap(),
+        "--json",
+    ]);
+    release.join().unwrap();
+
+    assert_eq!(output.status.code(), Some(0));
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["disposition"], "planned");
+    assert_eq!(report["failure_class"], "none");
+    assert_eq!(
+        report["integrity_checks"],
+        json!([
+            "store_roots_validated",
+            "coordinator_roots_validated",
+            "store_quick_check",
+            "coordinator_quick_check"
+        ])
+    );
+}
+
+fn hold_exclusive_lock(path: &std::path::Path) -> Connection {
+    let lock = Connection::open(path).unwrap();
+    lock.execute_batch(
+        "PRAGMA journal_mode=DELETE;\n\
+         PRAGMA locking_mode=EXCLUSIVE;\n\
+         BEGIN EXCLUSIVE;\n\
+         SELECT count(*) FROM sqlite_schema;",
+    )
+    .unwrap();
+    lock
 }
 
 #[test]

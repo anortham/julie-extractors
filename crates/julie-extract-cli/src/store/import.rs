@@ -832,14 +832,33 @@ pub(crate) fn canonical_control_paths(paths: &[std::path::PathBuf]) -> Result<Ve
 }
 
 pub(crate) fn trusted_store_family(layout: &StoreLayout) -> Result<String, String> {
-    rusqlite::Connection::open(layout.store_db())
-        .map_err(|error| error.to_string())?
+    let connection = rusqlite::Connection::open(layout.store_db()).map_err(store_open_error)?;
+    connection
+        .busy_timeout(STORE_OPEN_BUSY_TIMEOUT)
+        .map_err(store_open_error)?;
+    connection
         .query_row(
             "SELECT value FROM store_meta WHERE key = 'family_id'",
             [],
             |row| row.get(0),
         )
-        .map_err(|error| error.to_string())
+        .map_err(store_open_error)
+}
+
+const STORE_OPEN_BUSY_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
+
+fn store_open_error(error: rusqlite::Error) -> String {
+    match &error {
+        rusqlite::Error::SqliteFailure(failure, _)
+            if matches!(
+                failure.code,
+                rusqlite::ErrorCode::DatabaseBusy | rusqlite::ErrorCode::DatabaseLocked
+            ) =>
+        {
+            "store_busy".to_string()
+        }
+        _ => error.to_string(),
+    }
 }
 
 pub(crate) fn classify_failure(message: &str) -> StoreFailureClass {
@@ -872,7 +891,10 @@ pub(crate) fn classify_failure(message: &str) -> StoreFailureClass {
         StoreFailureClass::RequestTimeout
     } else if message.contains("output_identity_mismatch") {
         StoreFailureClass::OutputIdentityMismatch
-    } else if message.contains("lease") || message.contains("busy:") {
+    } else if message.contains("lease")
+        || message.contains("busy:")
+        || message.contains("store_busy")
+    {
         StoreFailureClass::Busy
     } else {
         StoreFailureClass::Internal

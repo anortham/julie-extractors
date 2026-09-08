@@ -3,9 +3,10 @@ use std::sync::Arc;
 
 use julie_extract_artifact::model::FileStatus;
 use julie_extract_artifact::store::{
-    CoordinatorExecutor, CoordinatorRequest, ExecutionContext, ExecutionQuantum, ManifestEntry,
-    ManifestEntryStatus, ManifestPublishDisposition, ManifestPublishResult, ManifestStore,
-    RequestKind, StoreFileVersion, StoreLevel, StoreWriteRequest, StoreWriter, same_path_identity,
+    CoordinatorExecutor, CoordinatorRequest, ExecutionContext, ExecutionQuantum,
+    L1ProjectionStaging, ManifestEntry, ManifestEntryStatus, ManifestPublishDisposition,
+    ManifestPublishResult, ManifestStore, RequestKind, StoreFileVersion, StoreLevel,
+    StoreWriteRequest, StoreWriter, same_path_identity,
 };
 use julie_extractors::{
     EXTRACTION_IDENTITY_EPOCH, ExtractionLevel, detect_language_for_path,
@@ -630,6 +631,7 @@ impl StoreRequestExecutor {
 
     fn validate_full(
         transaction: &Transaction<'_>,
+        staging: &mut L1ProjectionStaging,
         planned: &PlannedImportFile,
         full: &StoreFileVersion,
     ) -> Result<StoreFileVersion, String> {
@@ -642,7 +644,7 @@ impl StoreRequestExecutor {
         )
         .map_err(|error| error.to_string())?
         .ok_or_else(|| "l1_version_missing_before_deepening".to_string())?;
-        if !StoreWriter::l1_projection_matches_in_transaction(transaction, &stored, full)
+        if !StoreWriter::l1_projection_matches_in_transaction(transaction, staging, &stored, full)
             .map_err(|error| error.to_string())?
         {
             return Err("l1_projection_mismatch".to_string());
@@ -1642,6 +1644,7 @@ impl CoordinatorExecutor for StoreRequestExecutor {
         .map_err(|error| format!("store_import_extract:{error}"))?;
         let snapshot = (chunk.level == StoreLevel::L1).then(artifact_capability_snapshot);
         let mut snapshot_supplied = false;
+        let mut staging = None;
         for (discovered, extracted) in work.into_iter().zip(extracted) {
             let write_request = StoreWriteRequest::bulk(&request.request_id, &indexed_at);
             match chunk.level {
@@ -1708,7 +1711,12 @@ impl CoordinatorExecutor for StoreRequestExecutor {
                     .map_err(|error| format!("store_import_write_l1:{error}"))?;
                 }
                 StoreLevel::L2 | StoreLevel::L3 => {
-                    let full = Self::validate_full(transaction, &discovered, &extracted?)?;
+                    let staging = match &mut staging {
+                        Some(staging) => staging,
+                        None => staging
+                            .insert(L1ProjectionStaging::new().map_err(|error| error.to_string())?),
+                    };
+                    let full = Self::validate_full(transaction, staging, &discovered, &extracted?)?;
                     StoreWriter::write_level_in_transaction(
                         transaction,
                         &write_request,

@@ -1,7 +1,7 @@
 use std::fs;
 use std::io;
 use std::path::Path;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use julie_extract_artifact::store::{
     CapacityProvider, GenerationError, GenerationLifecycle, GenerationPolicy, MaintenanceAction,
@@ -420,43 +420,55 @@ fn inspect_context(
     mode: StoreMaintenanceMode,
 ) -> Result<MaintenanceContext, Box<StoreMaintenanceReport>> {
     let existing = open_maintenance_store(store, requested_family, action, mode)?;
+    let mut performed_checks = Vec::new();
     if matches!(
         action,
         StoreMaintenanceAction::Inspect | StoreMaintenanceAction::Repair
     ) {
-        validate_maintenance_integrity(&existing.layout).map_err(|error| {
-            let (class, code, message, recovery_action) = match error {
-                MaintenanceIntegrityError::Corrupt { database, detail } => (
-                    StoreMaintenanceFailureClass::IntegrityFailed,
-                    "integrity_check_failed",
-                    format!("{database} quick check failed: {detail}"),
-                    Some("store maintain promote --apply"),
-                ),
-                MaintenanceIntegrityError::Sqlite { database, error } => {
-                    let message = format!("{database} quick check failed: {error}");
-                    let error = MaintenanceError::Sqlite(error);
-                    (
-                        maintenance_failure_class(&error),
-                        maintenance_error_code(&error),
-                        message,
+        validate_maintenance_integrity(&existing.layout, &mut performed_checks).map_err(
+            |error| {
+                let (class, code, message, recovery_action) = match error {
+                    MaintenanceIntegrityError::Corrupt { database, detail } => (
+                        StoreMaintenanceFailureClass::IntegrityFailed,
+                        "integrity_check_failed",
+                        format!("{database} quick check failed: {detail}"),
+                        Some("store maintain promote --apply"),
+                    ),
+                    MaintenanceIntegrityError::Busy { database, error } => (
+                        StoreMaintenanceFailureClass::Busy,
+                        MaintenanceError::MaintenanceBusy.code(),
+                        format!(
+                            "{database} quick check could not acquire the database lock: {error}"
+                        ),
                         None,
-                    )
+                    ),
+                    MaintenanceIntegrityError::Sqlite { database, error } => {
+                        let message = format!("{database} quick check failed: {error}");
+                        let error = MaintenanceError::Sqlite(error);
+                        (
+                            maintenance_failure_class(&error),
+                            maintenance_error_code(&error),
+                            message,
+                            None,
+                        )
+                    }
+                };
+                let mut report = StoreMaintenanceReport::failed(
+                    action,
+                    mode,
+                    existing.family_id.clone(),
+                    existing.layout.generation_name().to_string(),
+                    class,
+                    code,
+                    message,
+                );
+                report.integrity_checks = performed_checks.clone();
+                if let Some(recovery_action) = recovery_action {
+                    report.recovery_actions.push(recovery_action.to_string());
                 }
-            };
-            let mut report = StoreMaintenanceReport::failed(
-                action,
-                mode,
-                existing.family_id.clone(),
-                existing.layout.generation_name().to_string(),
-                class,
-                code,
-                message,
-            );
-            if let Some(recovery_action) = recovery_action {
-                report.recovery_actions.push(recovery_action.to_string());
-            }
-            Box::new(report)
-        })?;
+                Box::new(report)
+            },
+        )?;
     }
     let factory = StoreConnectionFactory::new(
         existing.layout.clone(),
@@ -467,7 +479,7 @@ fn inspect_context(
         .inspect()
         .map_err(|error| {
             let code = maintenance_error_code(&error);
-            Box::new(StoreMaintenanceReport::failed(
+            let mut report = StoreMaintenanceReport::failed(
                 action,
                 mode,
                 existing.family_id.clone(),
@@ -475,7 +487,9 @@ fn inspect_context(
                 maintenance_failure_class(&error),
                 code,
                 error.to_string(),
-            ))
+            );
+            report.integrity_checks = performed_checks;
+            Box::new(report)
         })?;
     Ok(MaintenanceContext {
         existing,
@@ -506,14 +520,25 @@ enum MaintenanceIntegrityError {
         database: &'static str,
         detail: String,
     },
+    Busy {
+        database: &'static str,
+        error: SqliteError,
+    },
     Sqlite {
         database: &'static str,
         error: SqliteError,
     },
 }
 
-fn validate_maintenance_integrity(layout: &StoreLayout) -> Result<(), MaintenanceIntegrityError> {
+const INTEGRITY_QUICK_CHECK_BUSY_TIMEOUT: Duration = Duration::from_secs(5);
+
+fn validate_maintenance_integrity(
+    layout: &StoreLayout,
+    performed_checks: &mut Vec<String>,
+) -> Result<(), MaintenanceIntegrityError> {
+    performed_checks.push("store_quick_check".to_string());
     validate_database_integrity("store", layout.store_db())?;
+    performed_checks.push("coordinator_quick_check".to_string());
     validate_database_integrity("coordinator", layout.coordinator_db())
 }
 
@@ -526,6 +551,9 @@ fn validate_database_integrity(
         OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
     )
     .map_err(|error| classify_integrity_error(database, error))?;
+    connection
+        .busy_timeout(INTEGRITY_QUICK_CHECK_BUSY_TIMEOUT)
+        .map_err(|error| classify_integrity_error(database, error))?;
     let detail = connection
         .query_row("PRAGMA quick_check(1)", [], |row| row.get::<_, String>(0))
         .map_err(|error| classify_integrity_error(database, error))?;
@@ -551,6 +579,14 @@ fn classify_integrity_error(
                 database,
                 detail: error.to_string(),
             }
+        }
+        SqliteError::SqliteFailure(failure, _)
+            if matches!(
+                failure.code,
+                ErrorCode::DatabaseBusy | ErrorCode::DatabaseLocked
+            ) =>
+        {
+            MaintenanceIntegrityError::Busy { database, error }
         }
         _ => MaintenanceIntegrityError::Sqlite { database, error },
     }
@@ -768,7 +804,9 @@ fn output_format(json: bool) -> StoreOutputFormat {
 
 fn classify_failure(code: &str) -> StoreMaintenanceFailureClass {
     match code {
-        "maintenance_busy" | "maintenance_fence_lost" => StoreMaintenanceFailureClass::Busy,
+        "maintenance_busy" | "maintenance_fence_lost" | "store_busy" => {
+            StoreMaintenanceFailureClass::Busy
+        }
         "maintenance_plan_stale" | "maintenance_inspection_raced" => {
             StoreMaintenanceFailureClass::StalePlan
         }

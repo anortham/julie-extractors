@@ -530,8 +530,14 @@ the store binding, supported schemas and reader version, serving generation, and
 maintenance fence without inspecting historical manifests or planning garbage collection.
 The existing GC-only `counts`, `retention`, and `capacity` groups are unmeasured defaults, not
 measurements of zero usage; plan/root fingerprints are empty and `readers` is omitted.
-Only checks actually performed appear in `integrity_checks`. Use `store maintain inspect`
-for GC measurements. Other actions omit `measurement_scope` and retain their existing output.
+Only checks actually performed appear in `integrity_checks`. `inspect` and `repair` run
+`PRAGMA quick_check` on the store and coordinator databases before planning, so their check
+list adds `store_quick_check` and `coordinator_quick_check`; this reads every page of both
+databases. A failed report keeps the checks that ran before the failure. A quick check that finds
+corruption is `integrity_failed` with code `integrity_check_failed`. Store commands wait up to five
+seconds for a locked store database on open; a lock still held after that is `busy` with code
+`store_busy` when it blocks the store open, or `maintenance_busy` when it blocks a quick check.
+Use `store maintain inspect` for GC measurements. Other actions omit `measurement_scope` and retain their existing output.
 Plan mode writes nothing; apply retains the coordinator's transactional maintenance-intent,
 monotonic-sequence, high-water, and generation-conflict checks.
 Cursor plan and apply preserve reader-compatible eligibility: a newer fact-writer version or

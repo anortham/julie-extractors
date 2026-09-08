@@ -7,6 +7,7 @@
 
 pub mod jsonl;
 mod memory;
+pub use memory::bulk_cache_size_kib;
 pub mod metadata;
 pub mod model;
 pub mod reports;

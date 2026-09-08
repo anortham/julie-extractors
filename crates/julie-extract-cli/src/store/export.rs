@@ -4,6 +4,7 @@ use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
+use julie_extract_artifact::bulk_cache_size_kib;
 use julie_extract_artifact::metadata::{ArtifactMetadata, initialize_metadata, write_index_level};
 use julie_extract_artifact::schema::{
     EXTRACT_CONTRACT_VERSION, SQLITE_SCHEMA_VERSION, create_schema,
@@ -229,6 +230,12 @@ fn materialize_export(
     output
         .execute_batch("PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA foreign_keys=OFF;")
         .map_err(|error| error.to_string())?;
+    output
+        .pragma_update(None, "cache_size", bulk_cache_size_kib())
+        .map_err(|error| error.to_string())?;
+    output
+        .pragma_update(None, "temp_store", "MEMORY")
+        .map_err(|error| error.to_string())?;
     create_schema(&output).map_err(|error| error.to_string())?;
     output
         .execute_batch("PRAGMA foreign_keys=OFF;")
@@ -365,27 +372,31 @@ fn copy_files(
             },
         )
         .map_err(|error| error.to_string())?;
+    let mut insert_file = target
+        .prepare_cached(
+            "INSERT INTO files
+             (file_id,path,language,content_hash,content_bytes,line_count,indexed_at,
+              last_revision_id,status,metadata_json)
+             VALUES (?1,?2,?3,?4,?5,?6,?7,1,?8,?9)",
+        )
+        .map_err(|error| error.to_string())?;
+    let mut insert_change = target
+        .prepare_cached(
+            "INSERT INTO revision_file_changes(revision_id,file_id,path,change_kind)
+             VALUES (1,?1,?2,'added')",
+        )
+        .map_err(|error| error.to_string())?;
     for row in rows {
         let (version_id, path, language, hash, bytes, lines, indexed_at, status, metadata) =
             row.map_err(|error| error.to_string())?;
         let file_id = version_file_id(version_id);
-        target
-            .execute(
-                "INSERT INTO files
-                 (file_id,path,language,content_hash,content_bytes,line_count,indexed_at,
-                  last_revision_id,status,metadata_json)
-                 VALUES (?1,?2,?3,?4,?5,?6,?7,1,?8,?9)",
-                rusqlite::params![
-                    file_id, path, language, hash, bytes, lines, indexed_at, status, metadata
-                ],
-            )
+        insert_file
+            .execute(rusqlite::params![
+                file_id, path, language, hash, bytes, lines, indexed_at, status, metadata
+            ])
             .map_err(|error| error.to_string())?;
-        target
-            .execute(
-                "INSERT INTO revision_file_changes(revision_id,file_id,path,change_kind)
-                 VALUES (1,?1,?2,'added')",
-                rusqlite::params![version_file_id(version_id), path],
-            )
+        insert_change
+            .execute(rusqlite::params![version_file_id(version_id), path])
             .map_err(|error| error.to_string())?;
     }
     Ok(())
@@ -442,6 +453,9 @@ fn copy_version_table(
             identity.manifest_generation
         ])
         .map_err(|error| error.to_string())?;
+    let mut insert_row = target
+        .prepare_cached(&insert)
+        .map_err(|error| error.to_string())?;
     while let Some(row) = rows.next().map_err(|error| error.to_string())? {
         let version_id = row.get::<_, i64>(0).map_err(|error| error.to_string())?;
         let mut source_index = 1;
@@ -462,8 +476,8 @@ fn copy_version_table(
             }
             values.push(value);
         }
-        target
-            .execute(&insert, params_from_iter(values))
+        insert_row
+            .execute(params_from_iter(values))
             .map_err(|error| error.to_string())?;
     }
     Ok(())

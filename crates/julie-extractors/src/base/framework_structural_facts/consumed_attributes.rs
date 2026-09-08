@@ -47,19 +47,17 @@ pub(super) fn collect_consumed_attributes(
                         "jsx_opening_element" | "jsx_self_closing_element"
                     )
                 })
+                && let Some(raw) = content.get(node.byte_range())
+                && let Some(expression) = raw
+                    .strip_prefix("{...")
+                    .and_then(|text| text.strip_suffix('}'))
             {
-                if let Some(raw) = content.get(node.byte_range())
-                    && let Some(expression) = raw
-                        .strip_prefix("{...")
-                        .and_then(|text| text.strip_suffix('}'))
-                {
-                    bindings.push(Binding {
-                        expression,
-                        start: node.start_byte() + 4,
-                        site_start: node.start_byte(),
-                        site_end: node.end_byte(),
-                    });
-                }
+                bindings.push(Binding {
+                    expression,
+                    start: node.start_byte() + 4,
+                    site_start: node.start_byte(),
+                    site_end: node.end_byte(),
+                });
             }
             let mut cursor = node.walk();
             pending.extend(node.named_children(&mut cursor));

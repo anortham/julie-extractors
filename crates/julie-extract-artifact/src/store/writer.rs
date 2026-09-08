@@ -318,6 +318,7 @@ impl StoreWriter {
 
     pub fn l1_projection_matches_in_transaction(
         transaction: &Transaction<'_>,
+        staging: &mut L1ProjectionStaging,
         stored: &StoredFileVersion,
         candidate: &StoreFileVersion,
     ) -> Result<bool, StoreWriterError> {
@@ -327,9 +328,7 @@ impl StoreWriter {
         {
             return Ok(false);
         }
-        let mut staging = Connection::open_in_memory()?;
-        create_store_schema(&staging)?;
-        let staged = staging.transaction()?;
+        let staged = staging.connection.transaction()?;
         let file = candidate.artifact_file();
         staged.execute(
             "INSERT INTO file_versions
@@ -622,12 +621,28 @@ impl StoreWriter {
     }
 }
 
+/// Empty in-memory store schema reused across L1 projection checks.
+///
+/// Each check stages one file's L1 rows inside a transaction that is rolled back on drop, so
+/// the schema is created once per staging instance instead of once per file.
+pub struct L1ProjectionStaging {
+    connection: Connection,
+}
+
+impl L1ProjectionStaging {
+    pub fn new() -> Result<Self, StoreWriterError> {
+        let connection = Connection::open_in_memory()?;
+        create_store_schema(&connection)?;
+        Ok(Self { connection })
+    }
+}
+
 fn query_projection_rows(
     transaction: &Transaction<'_>,
     sql: &str,
     version_id: i64,
 ) -> rusqlite::Result<Vec<Vec<rusqlite::types::Value>>> {
-    let mut statement = transaction.prepare(sql)?;
+    let mut statement = transaction.prepare_cached(sql)?;
     let column_count = statement.column_count();
     statement
         .query_map([version_id], |row| {

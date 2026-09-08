@@ -34,7 +34,16 @@ impl WriterPragmaProfile {
             Self::Bulk => 8_000,
         }
     }
+
+    fn cache_size(self) -> i64 {
+        match self {
+            Self::Routine => ROUTINE_CACHE_SIZE_KIB,
+            Self::Bulk => crate::memory::bulk_cache_size_kib(),
+        }
+    }
 }
+
+const ROUTINE_CACHE_SIZE_KIB: i64 = -2_000;
 
 pub(super) fn configure_writer_pragmas(
     connection: &Connection,
@@ -55,6 +64,7 @@ pub(super) fn configure_writer_pragmas(
          PRAGMA journal_size_limit = 268435456;",
     )?;
     configure_wal_autocheckpoint(connection, profile)?;
+    configure_page_cache(connection, profile)?;
     verify_text_pragma(connection, "journal_mode", "wal")?;
     verify_integer_pragma(connection, "synchronous", 2)?;
     verify_integer_pragma(connection, "foreign_keys", 1)?;
@@ -76,6 +86,20 @@ pub(super) fn configure_wal_autocheckpoint(
     let expected = profile.wal_autocheckpoint();
     connection.pragma_update(None, "wal_autocheckpoint", expected)?;
     verify_integer_pragma(connection, "wal_autocheckpoint", expected)
+}
+
+fn configure_page_cache(
+    connection: &Connection,
+    profile: WriterPragmaProfile,
+) -> Result<(), PragmaError> {
+    let expected = profile.cache_size();
+    connection.pragma_update(None, "cache_size", expected)?;
+    verify_integer_pragma(connection, "cache_size", expected)?;
+    if profile == WriterPragmaProfile::Bulk {
+        connection.pragma_update(None, "temp_store", "MEMORY")?;
+        verify_integer_pragma(connection, "temp_store", 2)?;
+    }
+    Ok(())
 }
 
 fn verify_integer_pragma(
