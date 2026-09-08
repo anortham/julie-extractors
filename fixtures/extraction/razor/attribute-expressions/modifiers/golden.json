@@ -334,6 +334,38 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor:Task:type_usage:8:12",
+      "name": "Task",
+      "kind": "type_usage",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor",
+      "start_line": 8,
+      "start_column": 12,
+      "end_line": 8,
+      "end_column": 16,
+      "start_byte": 289,
+      "end_byte": 293,
+      "containing_key": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor:LookupAsync:8:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor:Task:type_usage:9:12",
+      "name": "Task",
+      "kind": "type_usage",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor",
+      "start_line": 9,
+      "start_column": 12,
+      "end_line": 9,
+      "end_column": 16,
+      "start_byte": 343,
+      "end_byte": 347,
+      "containing_key": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor:ValueUpdated:9:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor:Task:variable_ref:8:34",
       "name": "Task",
       "kind": "variable_ref",

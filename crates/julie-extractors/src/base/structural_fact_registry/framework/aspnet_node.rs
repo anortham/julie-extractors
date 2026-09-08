@@ -12,7 +12,7 @@ use super::super::{
 pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
     StructuralFactPatternSpec {
         pattern_id: "aspnet.minimal_api.route.v1",
-        languages: &["csharp"],
+        languages: &["csharp", "razor"],
         query_family: "framework",
         description: "An ASP.NET Core minimal-API endpoint route (MapGet/MapPost/…).",
         metadata_keys: &[
@@ -28,8 +28,14 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
             key(
                 "verb",
                 STR,
-                ALWAYS,
-                "HTTP method derived from the Map* call (GET/POST/PUT/PATCH/DELETE).",
+                OPT,
+                "Static HTTP method from a Map* call or MapMethods collection; omitted when unknown.",
+            ),
+            key(
+                "verb_source",
+                STR,
+                OPT,
+                "Unknown when the methods expression cannot be resolved statically.",
             ),
             key(
                 "route_template",
@@ -83,7 +89,7 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
     },
     StructuralFactPatternSpec {
         pattern_id: "aspnet.minimal_api.route_group.v1",
-        languages: &["csharp"],
+        languages: &["csharp", "razor"],
         query_family: "framework",
         description: "An ASP.NET Core minimal-API `MapGroup` route group.",
         metadata_keys: &[

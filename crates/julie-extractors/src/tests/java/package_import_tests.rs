@@ -49,6 +49,28 @@ package com.acme.utils;
     }
 
     #[test]
+    fn test_extract_single_segment_package_declaration() {
+        let workspace_root = PathBuf::from("/tmp/test");
+        let code = "package sample;\npublic class SelectedTest {}\n";
+        let tree = init_parser(code, "java");
+        let mut extractor = JavaExtractor::new(
+            "java".to_string(),
+            "SelectedTest.java".to_string(),
+            code.to_string(),
+            &workspace_root,
+        );
+
+        let symbols = extractor.extract_symbols(&tree);
+
+        let package = symbols
+            .iter()
+            .find(|symbol| symbol.name == "sample")
+            .unwrap();
+        assert_eq!(package.kind, SymbolKind::Namespace);
+        assert_eq!(package.signature.as_deref(), Some("package sample"));
+    }
+
+    #[test]
     fn test_extract_import_statements() {
         let workspace_root = PathBuf::from("/tmp/test");
         let code = r#"

@@ -1350,7 +1350,11 @@ fn promotion_capacity_refusal_happens_before_maintenance_mutation() {
     StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
     let sparse = store.join("gen-001/capacity-probe");
     let file = std::fs::File::create(&sparse).unwrap();
-    file.set_len(1_000_000_000_000).unwrap();
+    let capacity_probe_bytes = fs4::available_space(&store)
+        .unwrap()
+        .checked_add(1 << 30)
+        .unwrap();
+    file.set_len(capacity_probe_bytes).unwrap();
 
     let output = julie_extract(&[
         "store",

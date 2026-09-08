@@ -1,0 +1,852 @@
+{
+  "rows": [
+    {
+      "language": "rust",
+      "file": "rust/source.rs",
+      "applicable": true,
+      "name": "Result",
+      "start_byte": 28,
+      "end_byte": 34,
+      "line": 2,
+      "actual_rows": [
+        [
+          "type_usage",
+          28,
+          34
+        ]
+      ],
+      "verified": true
+    },
+    {
+      "language": "c",
+      "file": "c/source.c",
+      "applicable": true,
+      "name": "Result",
+      "start_byte": 41,
+      "end_byte": 47,
+      "line": 2,
+      "actual_rows": [
+        [
+          "type_usage",
+          41,
+          47
+        ]
+      ],
+      "verified": true
+    },
+    {
+      "language": "cpp",
+      "file": "cpp/source.cpp",
+      "applicable": true,
+      "name": "Result",
+      "start_byte": 17,
+      "end_byte": 23,
+      "line": 2,
+      "actual_rows": [
+        [
+          "type_usage",
+          17,
+          23
+        ]
+      ],
+      "verified": true
+    },
+    {
+      "language": "go",
+      "file": "go/source.go",
+      "applicable": true,
+      "name": "Result",
+      "start_byte": 54,
+      "end_byte": 60,
+      "line": 3,
+      "actual_rows": [
+        [
+          "type_usage",
+          54,
+          60
+        ]
+      ],
+      "verified": true
+    },
+    {
+      "language": "zig",
+      "file": "zig/source.zig",
+      "applicable": true,
+      "name": "Result",
+      "start_byte": 54,
+      "end_byte": 60,
+      "line": 2,
+      "actual_rows": [
+        [
+          "type_usage",
+          54,
+          60
+        ]
+      ],
+      "verified": true
+    },
+    {
+      "language": "typescript",
+      "file": "typescript/source.ts",
+      "applicable": true,
+      "name": "Result",
+      "start_byte": 35,
+      "end_byte": 41,
+      "line": 2,
+      "actual_rows": [
+        [
+          "type_usage",
+          35,
+          41
+        ]
+      ],
+      "verified": true
+    },
+    {
+      "language": "tsx",
+      "file": "tsx/source.tsx",
+      "applicable": true,
+      "name": "Result",
+      "start_byte": 35,
+      "end_byte": 41,
+      "line": 2,
+      "actual_rows": [
+        [
+          "type_usage",
+          35,
+          41
+        ]
+      ],
+      "verified": true
+    },
+    {
+      "language": "javascript",
+      "file": "javascript/source.js",
+      "applicable": false,
+      "reason": "No native function return type position; embedded typed languages covered separately."
+    },
+    {
+      "language": "jsx",
+      "file": "jsx/source.jsx",
+      "applicable": false,
+      "reason": "No native function return type position; embedded typed languages covered separately."
+    },
+    {
+      "language": "html",
+      "file": "html/source.html",
+      "applicable": false,
+      "reason": "No native function return type position; embedded typed languages covered separately."
+    },
+    {
+      "language": "css",
+      "file": "css/source.css",
+      "applicable": false,
+      "reason": "No native function return type position; embedded typed languages covered separately."
+    },
+    {
+      "language": "vue",
+      "file": "vue/source.vue",
+      "applicable": true,
+      "name": "Result",
+      "start_byte": 54,
+      "end_byte": 60,
+      "line": 3,
+      "actual_rows": [
+        [
+          "type_usage",
+          54,
+          60
+        ]
+      ],
+      "verified": true
+    },
+    {
+      "language": "python",
+      "file": "python/source.py",
+      "applicable": true,
+      "name": "Result",
+      "start_byte": 33,
+      "end_byte": 39,
+      "line": 2,
+      "actual_rows": [
+        [
+          "type_usage",
+          33,
+          39
+        ]
+      ],
+      "verified": true
+    },
+    {
+      "language": "java",
+      "file": "java/source.java",
+      "applicable": true,
+      "name": "Result",
+      "start_byte": 32,
+      "end_byte": 38,
+      "line": 2,
+      "actual_rows": [
+        [
+          "type_usage",
+          32,
+          38
+        ]
+      ],
+      "verified": true
+    },
+    {
+      "language": "csharp",
+      "file": "csharp/source.cs",
+      "applicable": true,
+      "name": "Result",
+      "start_byte": 24,
+      "end_byte": 30,
+      "line": 2,
+      "actual_rows": [
+        [
+          "type_usage",
+          24,
+          30
+        ]
+      ],
+      "verified": true
+    },
+    {
+      "language": "vbnet",
+      "file": "vbnet/source.vb",
+      "applicable": true,
+      "name": "Result",
+      "start_byte": 78,
+      "end_byte": 84,
+      "line": 4,
+      "actual_rows": [
+        [
+          "type_usage",
+          78,
+          84
+        ]
+      ],
+      "verified": true
+    },
+    {
+      "language": "php",
+      "file": "php/source.php",
+      "applicable": true,
+      "name": "Result",
+      "start_byte": 39,
+      "end_byte": 45,
+      "line": 3,
+      "actual_rows": [
+        [
+          "type_usage",
+          39,
+          45
+        ]
+      ],
+      "verified": true
+    },
+    {
+      "language": "ruby",
+      "file": "ruby/source.rb",
+      "applicable": false,
+      "reason": "No native function return type position; embedded typed languages covered separately."
+    },
+    {
+      "language": "swift",
+      "file": "swift/source.swift",
+      "applicable": true,
+      "name": "Result",
+      "start_byte": 31,
+      "end_byte": 37,
+      "line": 2,
+      "actual_rows": [
+        [
+          "type_usage",
+          31,
+          37
+        ]
+      ],
+      "verified": true
+    },
+    {
+      "language": "kotlin",
+      "file": "kotlin/source.kt",
+      "applicable": true,
+      "name": "Result",
+      "start_byte": 25,
+      "end_byte": 31,
+      "line": 2,
+      "actual_rows": [
+        [
+          "type_usage",
+          25,
+          31
+        ]
+      ],
+      "verified": true
+    },
+    {
+      "language": "scala",
+      "file": "scala/source.scala",
+      "applicable": true,
+      "name": "Result",
+      "start_byte": 42,
+      "end_byte": 48,
+      "line": 2,
+      "actual_rows": [
+        [
+          "type_usage",
+          42,
+          48
+        ]
+      ],
+      "verified": true
+    },
+    {
+      "language": "dart",
+      "file": "dart/source.dart",
+      "applicable": true,
+      "name": "Result",
+      "start_byte": 16,
+      "end_byte": 22,
+      "line": 2,
+      "actual_rows": [
+        [
+          "type_usage",
+          16,
+          22
+        ]
+      ],
+      "verified": true
+    },
+    {
+      "language": "elixir",
+      "file": "elixir/source.ex",
+      "applicable": true,
+      "name": "result",
+      "start_byte": 67,
+      "end_byte": 73,
+      "line": 3,
+      "actual_rows": [
+        [
+          "type_usage",
+          67,
+          73
+        ]
+      ],
+      "verified": true
+    },
+    {
+      "language": "fsharp",
+      "file": "fsharp/source.fs",
+      "applicable": true,
+      "name": "Result",
+      "start_byte": 39,
+      "end_byte": 45,
+      "line": 2,
+      "actual_rows": [
+        [
+          "type_usage",
+          39,
+          45
+        ]
+      ],
+      "verified": true
+    },
+    {
+      "language": "erlang",
+      "file": "erlang/source.erl",
+      "applicable": true,
+      "name": "result",
+      "start_byte": 63,
+      "end_byte": 69,
+      "line": 3,
+      "actual_rows": [
+        [
+          "type_usage",
+          63,
+          69
+        ]
+      ],
+      "verified": true
+    },
+    {
+      "language": "lua",
+      "file": "lua/source.lua",
+      "applicable": false,
+      "reason": "No native function return type position; embedded typed languages covered separately."
+    },
+    {
+      "language": "qml",
+      "file": "qml/source.qml",
+      "applicable": true,
+      "name": "Result",
+      "start_byte": 43,
+      "end_byte": 49,
+      "line": 2,
+      "actual_rows": [
+        [
+          "type_usage",
+          43,
+          49
+        ]
+      ],
+      "verified": true
+    },
+    {
+      "language": "qmldir",
+      "file": "qmldir/qmldir",
+      "applicable": false,
+      "reason": "No native function return type position; embedded typed languages covered separately."
+    },
+    {
+      "language": "r",
+      "file": "r/source.r",
+      "applicable": false,
+      "reason": "No native function return type position; embedded typed languages covered separately."
+    },
+    {
+      "language": "bash",
+      "file": "bash/source.sh",
+      "applicable": false,
+      "reason": "No native function return type position; embedded typed languages covered separately."
+    },
+    {
+      "language": "powershell",
+      "file": "powershell/source.ps1",
+      "applicable": true,
+      "name": "Result",
+      "start_byte": 34,
+      "end_byte": 40,
+      "line": 3,
+      "actual_rows": [
+        [
+          "type_usage",
+          34,
+          40
+        ]
+      ],
+      "verified": true
+    },
+    {
+      "language": "gdscript",
+      "file": "gdscript/source.gd",
+      "applicable": true,
+      "name": "Result",
+      "start_byte": 35,
+      "end_byte": 41,
+      "line": 3,
+      "actual_rows": [
+        [
+          "type_usage",
+          35,
+          41
+        ]
+      ],
+      "verified": true
+    },
+    {
+      "language": "razor",
+      "file": "razor/source.razor",
+      "applicable": true,
+      "name": "Result",
+      "start_byte": 16,
+      "end_byte": 22,
+      "line": 2,
+      "actual_rows": [
+        [
+          "type_usage",
+          16,
+          22
+        ]
+      ],
+      "verified": true
+    },
+    {
+      "language": "sql",
+      "file": "sql/source.sql",
+      "applicable": true,
+      "name": "result",
+      "start_byte": 62,
+      "end_byte": 68,
+      "line": 2,
+      "actual_rows": [
+        [
+          "type_usage",
+          62,
+          68
+        ]
+      ],
+      "verified": true
+    },
+    {
+      "language": "regex",
+      "file": "regex/source.regex",
+      "applicable": false,
+      "reason": "No native function return type position; embedded typed languages covered separately."
+    },
+    {
+      "language": "markdown",
+      "file": "markdown/source.md",
+      "applicable": false,
+      "reason": "No native function return type position; embedded typed languages covered separately."
+    },
+    {
+      "language": "json",
+      "file": "json/source.json",
+      "applicable": false,
+      "reason": "No native function return type position; embedded typed languages covered separately."
+    },
+    {
+      "language": "toml",
+      "file": "toml/source.toml",
+      "applicable": false,
+      "reason": "No native function return type position; embedded typed languages covered separately."
+    },
+    {
+      "language": "yaml",
+      "file": "yaml/source.yaml",
+      "applicable": false,
+      "reason": "No native function return type position; embedded typed languages covered separately."
+    },
+    {
+      "language": "xml",
+      "file": "xml/source.xml",
+      "applicable": false,
+      "reason": "No native function return type position; embedded typed languages covered separately."
+    }
+  ],
+  "identifier_counts": [
+    [
+      "bash",
+      "call",
+      4
+    ],
+    [
+      "bash",
+      "variable_ref",
+      4
+    ],
+    [
+      "c",
+      "type_usage",
+      2
+    ],
+    [
+      "c",
+      "variable_ref",
+      1
+    ],
+    [
+      "cpp",
+      "type_usage",
+      1
+    ],
+    [
+      "csharp",
+      "call",
+      1
+    ],
+    [
+      "csharp",
+      "type_usage",
+      7
+    ],
+    [
+      "css",
+      "call",
+      4
+    ],
+    [
+      "css",
+      "member_access",
+      7
+    ],
+    [
+      "css",
+      "variable_ref",
+      1
+    ],
+    [
+      "dart",
+      "call",
+      1
+    ],
+    [
+      "dart",
+      "type_usage",
+      1
+    ],
+    [
+      "elixir",
+      "call",
+      1
+    ],
+    [
+      "elixir",
+      "type_usage",
+      2
+    ],
+    [
+      "erlang",
+      "type_usage",
+      2
+    ],
+    [
+      "fsharp",
+      "type_usage",
+      1
+    ],
+    [
+      "fsharp",
+      "variable_ref",
+      1
+    ],
+    [
+      "gdscript",
+      "call",
+      1
+    ],
+    [
+      "gdscript",
+      "type_usage",
+      1
+    ],
+    [
+      "gdscript",
+      "variable_ref",
+      1
+    ],
+    [
+      "go",
+      "type_usage",
+      2
+    ],
+    [
+      "html",
+      "call",
+      1
+    ],
+    [
+      "html",
+      "member_access",
+      1
+    ],
+    [
+      "java",
+      "type_usage",
+      1
+    ],
+    [
+      "javascript",
+      "call",
+      1
+    ],
+    [
+      "javascript",
+      "member_access",
+      2
+    ],
+    [
+      "javascript",
+      "variable_ref",
+      10
+    ],
+    [
+      "jsx",
+      "call",
+      4
+    ],
+    [
+      "jsx",
+      "member_access",
+      1
+    ],
+    [
+      "jsx",
+      "variable_ref",
+      14
+    ],
+    [
+      "kotlin",
+      "call",
+      1
+    ],
+    [
+      "kotlin",
+      "type_usage",
+      1
+    ],
+    [
+      "lua",
+      "call",
+      12
+    ],
+    [
+      "lua",
+      "member_access",
+      3
+    ],
+    [
+      "lua",
+      "variable_ref",
+      20
+    ],
+    [
+      "php",
+      "type_usage",
+      1
+    ],
+    [
+      "powershell",
+      "call",
+      1
+    ],
+    [
+      "powershell",
+      "type_usage",
+      1
+    ],
+    [
+      "python",
+      "call",
+      1
+    ],
+    [
+      "python",
+      "type_usage",
+      1
+    ],
+    [
+      "qml",
+      "type_usage",
+      1
+    ],
+    [
+      "qml",
+      "variable_ref",
+      1
+    ],
+    [
+      "r",
+      "call",
+      8
+    ],
+    [
+      "r",
+      "member_access",
+      2
+    ],
+    [
+      "r",
+      "variable_ref",
+      21
+    ],
+    [
+      "razor",
+      "type_usage",
+      8
+    ],
+    [
+      "regex",
+      "call",
+      1
+    ],
+    [
+      "regex",
+      "member_access",
+      2
+    ],
+    [
+      "ruby",
+      "call",
+      4
+    ],
+    [
+      "ruby",
+      "member_access",
+      6
+    ],
+    [
+      "ruby",
+      "type_usage",
+      6
+    ],
+    [
+      "ruby",
+      "variable_ref",
+      12
+    ],
+    [
+      "rust",
+      "type_usage",
+      1
+    ],
+    [
+      "rust",
+      "variable_ref",
+      1
+    ],
+    [
+      "scala",
+      "type_usage",
+      2
+    ],
+    [
+      "sql",
+      "call",
+      1
+    ],
+    [
+      "sql",
+      "type_usage",
+      2
+    ],
+    [
+      "swift",
+      "call",
+      1
+    ],
+    [
+      "swift",
+      "type_usage",
+      1
+    ],
+    [
+      "tsx",
+      "type_usage",
+      1
+    ],
+    [
+      "typescript",
+      "type_usage",
+      1
+    ],
+    [
+      "vbnet",
+      "type_usage",
+      1
+    ],
+    [
+      "vue",
+      "type_usage",
+      1
+    ],
+    [
+      "yaml",
+      "variable_ref",
+      1
+    ],
+    [
+      "zig",
+      "member_access",
+      1
+    ],
+    [
+      "zig",
+      "type_usage",
+      1
+    ]
+  ],
+  "source_cli_version": "2.41.0"
+}

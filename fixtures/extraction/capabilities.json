@@ -64,6 +64,11 @@
           "name": "test_roles",
           "source": "fixtures/extraction/rust/test_roles/source.rs",
           "expected": "fixtures/extraction/rust/test_roles/expected.json"
+        },
+        {
+          "name": "return_types",
+          "source": "fixtures/extraction/rust/return_types/source.rs",
+          "expected": "fixtures/extraction/rust/return_types/expected.json"
         }
       ],
       "target_capabilities": {
@@ -270,6 +275,11 @@
           "name": "test_roles",
           "source": "fixtures/extraction/c/test_roles/source.c",
           "expected": "fixtures/extraction/c/test_roles/expected.json"
+        },
+        {
+          "name": "return_types",
+          "source": "fixtures/extraction/c/return_types/source.c",
+          "expected": "fixtures/extraction/c/return_types/expected.json"
         }
       ],
       "target_capabilities": {
@@ -420,6 +430,11 @@
           "name": "test_roles",
           "source": "fixtures/extraction/cpp/test_roles/source.cpp",
           "expected": "fixtures/extraction/cpp/test_roles/expected.json"
+        },
+        {
+          "name": "return_types",
+          "source": "fixtures/extraction/cpp/return_types/source.cpp",
+          "expected": "fixtures/extraction/cpp/return_types/expected.json"
         }
       ],
       "target_capabilities": {
@@ -576,6 +591,11 @@
           "name": "test_roles",
           "source": "fixtures/extraction/go/test_roles/source_test.go",
           "expected": "fixtures/extraction/go/test_roles/expected.json"
+        },
+        {
+          "name": "return_types",
+          "source": "fixtures/extraction/go/return_types/source.go",
+          "expected": "fixtures/extraction/go/return_types/expected.json"
         }
       ],
       "target_capabilities": {
@@ -736,6 +756,11 @@
           "name": "test_roles",
           "source": "fixtures/extraction/zig/test_roles/source.zig",
           "expected": "fixtures/extraction/zig/test_roles/expected.json"
+        },
+        {
+          "name": "return_types",
+          "source": "fixtures/extraction/zig/return_types/source.zig",
+          "expected": "fixtures/extraction/zig/return_types/expected.json"
         }
       ],
       "target_capabilities": {
@@ -942,6 +967,11 @@
           "name": "playwright_roles",
           "source": "fixtures/extraction/typescript/playwright_roles/source.ts",
           "expected": "fixtures/extraction/typescript/playwright_roles/expected.json"
+        },
+        {
+          "name": "return_types",
+          "source": "fixtures/extraction/typescript/return_types/source.ts",
+          "expected": "fixtures/extraction/typescript/return_types/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1159,6 +1189,16 @@
           "name": "qunit_roles",
           "source": "fixtures/extraction/tsx/qunit_roles/source.tsx",
           "expected": "fixtures/extraction/tsx/qunit_roles/expected.json"
+        },
+        {
+          "name": "agent_usefulness",
+          "source": "fixtures/extraction/tsx/agent_usefulness/source.tsx",
+          "expected": "fixtures/extraction/tsx/agent_usefulness/expected.json"
+        },
+        {
+          "name": "return_types",
+          "source": "fixtures/extraction/tsx/return_types/source.tsx",
+          "expected": "fixtures/extraction/tsx/return_types/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1387,6 +1427,11 @@
           "name": "mocha_tdd_roles",
           "source": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js",
           "expected": "fixtures/extraction/javascript/mocha_tdd_roles/expected.json"
+        },
+        {
+          "name": "agent_usefulness",
+          "source": "fixtures/extraction/javascript/agent_usefulness/source.js",
+          "expected": "fixtures/extraction/javascript/agent_usefulness/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1586,6 +1631,11 @@
           "name": "node_test_roles",
           "source": "fixtures/extraction/jsx/node_test_roles/source.jsx",
           "expected": "fixtures/extraction/jsx/node_test_roles/expected.json"
+        },
+        {
+          "name": "agent_usefulness",
+          "source": "fixtures/extraction/jsx/agent_usefulness/source.jsx",
+          "expected": "fixtures/extraction/jsx/agent_usefulness/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1741,6 +1791,11 @@
           "name": "test_roles",
           "source": "fixtures/extraction/html/test_roles/source.html",
           "expected": "fixtures/extraction/html/test_roles/expected.json"
+        },
+        {
+          "name": "agent_usefulness",
+          "source": "fixtures/extraction/html/agent_usefulness/source.html",
+          "expected": "fixtures/extraction/html/agent_usefulness/expected.json"
         }
       ],
       "target_capabilities": {
@@ -2097,6 +2152,16 @@
           "name": "test_roles",
           "source": "fixtures/extraction/vue/test_roles/source.vue",
           "expected": "fixtures/extraction/vue/test_roles/expected.json"
+        },
+        {
+          "name": "agent_usefulness",
+          "source": "fixtures/extraction/vue/agent_usefulness/source.vue",
+          "expected": "fixtures/extraction/vue/agent_usefulness/expected.json"
+        },
+        {
+          "name": "return_types",
+          "source": "fixtures/extraction/vue/return_types/source.vue",
+          "expected": "fixtures/extraction/vue/return_types/expected.json"
         }
       ],
       "target_capabilities": {
@@ -2261,6 +2326,11 @@
           "name": "test_roles",
           "source": "fixtures/extraction/python/test_roles/test_source.py",
           "expected": "fixtures/extraction/python/test_roles/expected.json"
+        },
+        {
+          "name": "return_types",
+          "source": "fixtures/extraction/python/return_types/source.py",
+          "expected": "fixtures/extraction/python/return_types/expected.json"
         }
       ],
       "target_capabilities": {
@@ -2426,6 +2496,11 @@
           "name": "test_roles",
           "source": "fixtures/extraction/java/test_roles/test_source.java",
           "expected": "fixtures/extraction/java/test_roles/expected.json"
+        },
+        {
+          "name": "return_types",
+          "source": "fixtures/extraction/java/return_types/source.java",
+          "expected": "fixtures/extraction/java/return_types/expected.json"
         }
       ],
       "target_capabilities": {
@@ -2613,6 +2688,16 @@
           "name": "razor_code_behind",
           "source": "fixtures/extraction/razor/code-behind/Widget.razor.cs",
           "expected": "fixtures/extraction/razor/code-behind/expected.cs.json"
+        },
+        {
+          "name": "return_types",
+          "source": "fixtures/extraction/csharp/return_types/source.cs",
+          "expected": "fixtures/extraction/csharp/return_types/expected.json"
+        },
+        {
+          "name": "agent_usefulness",
+          "source": "fixtures/extraction/csharp/agent_usefulness/source.cs",
+          "expected": "fixtures/extraction/csharp/agent_usefulness/expected.json"
         }
       ],
       "target_capabilities": {
@@ -2776,6 +2861,11 @@
           "name": "test_roles",
           "source": "fixtures/extraction/vbnet/test_roles/source.vb",
           "expected": "fixtures/extraction/vbnet/test_roles/expected.json"
+        },
+        {
+          "name": "return_types",
+          "source": "fixtures/extraction/vbnet/return_types/source.vb",
+          "expected": "fixtures/extraction/vbnet/return_types/expected.json"
         }
       ],
       "target_capabilities": {
@@ -2948,6 +3038,11 @@
             "fixtures/extraction/php/test_roles/legacy_suite.php",
             "fixtures/extraction/php/test_roles/production_roles.php"
           ]
+        },
+        {
+          "name": "return_types",
+          "source": "fixtures/extraction/php/return_types/source.php",
+          "expected": "fixtures/extraction/php/return_types/expected.json"
         }
       ],
       "target_capabilities": {
@@ -3326,6 +3421,11 @@
             "fixtures/extraction/swift/test_roles/test_source.swift",
             "fixtures/extraction/swift/test_roles/production_roles.swift"
           ]
+        },
+        {
+          "name": "return_types",
+          "source": "fixtures/extraction/swift/return_types/source.swift",
+          "expected": "fixtures/extraction/swift/return_types/expected.json"
         }
       ],
       "target_capabilities": {
@@ -3524,6 +3624,11 @@
           "name": "kotlin_test_lifecycle",
           "source": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
           "expected": "fixtures/extraction/kotlin/kotlin_test_lifecycle/expected.json"
+        },
+        {
+          "name": "return_types",
+          "source": "fixtures/extraction/kotlin/return_types/source.kt",
+          "expected": "fixtures/extraction/kotlin/return_types/expected.json"
         }
       ],
       "target_capabilities": {
@@ -3703,6 +3808,11 @@
           "name": "test_roles",
           "source": "fixtures/extraction/scala/test_roles/source.scala",
           "expected": "fixtures/extraction/scala/test_roles/expected.json"
+        },
+        {
+          "name": "return_types",
+          "source": "fixtures/extraction/scala/return_types/source.scala",
+          "expected": "fixtures/extraction/scala/return_types/expected.json"
         }
       ],
       "target_capabilities": {
@@ -3850,6 +3960,11 @@
           "name": "test_roles",
           "source": "fixtures/extraction/dart/test_roles/source.dart",
           "expected": "fixtures/extraction/dart/test_roles/expected.json"
+        },
+        {
+          "name": "return_types",
+          "source": "fixtures/extraction/dart/return_types/source.dart",
+          "expected": "fixtures/extraction/dart/return_types/expected.json"
         }
       ],
       "target_capabilities": {
@@ -4008,6 +4123,11 @@
           "name": "test_roles",
           "source": "fixtures/extraction/elixir/test_roles/source.ex",
           "expected": "fixtures/extraction/elixir/test_roles/expected.json"
+        },
+        {
+          "name": "return_types",
+          "source": "fixtures/extraction/elixir/return_types/source.ex",
+          "expected": "fixtures/extraction/elixir/return_types/expected.json"
         }
       ],
       "target_capabilities": {
@@ -4188,6 +4308,11 @@
           "name": "test_roles",
           "source": "fixtures/extraction/fsharp/test_roles/source.fs",
           "expected": "fixtures/extraction/fsharp/test_roles/expected.json"
+        },
+        {
+          "name": "return_types",
+          "source": "fixtures/extraction/fsharp/return_types/source.fs",
+          "expected": "fixtures/extraction/fsharp/return_types/expected.json"
         }
       ],
       "target_capabilities": {
@@ -4378,6 +4503,11 @@
           "name": "test_roles_common_test",
           "source": "fixtures/extraction/erlang/test_roles_common_test/source.erl",
           "expected": "fixtures/extraction/erlang/test_roles_common_test/expected.json"
+        },
+        {
+          "name": "return_types",
+          "source": "fixtures/extraction/erlang/return_types/source.erl",
+          "expected": "fixtures/extraction/erlang/return_types/expected.json"
         }
       ],
       "target_capabilities": {
@@ -4678,6 +4808,11 @@
           "name": "test_roles",
           "source": "fixtures/extraction/qml/test_roles/test_source.qml",
           "expected": "fixtures/extraction/qml/test_roles/expected.json"
+        },
+        {
+          "name": "return_types",
+          "source": "fixtures/extraction/qml/return_types/source.qml",
+          "expected": "fixtures/extraction/qml/return_types/expected.json"
         }
       ],
       "target_capabilities": {
@@ -5287,6 +5422,11 @@
           "name": "test_roles",
           "source": "fixtures/extraction/powershell/test_roles/source.ps1",
           "expected": "fixtures/extraction/powershell/test_roles/expected.json"
+        },
+        {
+          "name": "return_types",
+          "source": "fixtures/extraction/powershell/return_types/source.ps1",
+          "expected": "fixtures/extraction/powershell/return_types/expected.json"
         }
       ],
       "target_capabilities": {
@@ -5430,6 +5570,11 @@
           "name": "test_roles",
           "source": "fixtures/extraction/gdscript/test_roles/test_source.gd",
           "expected": "fixtures/extraction/gdscript/test_roles/expected.json"
+        },
+        {
+          "name": "return_types",
+          "source": "fixtures/extraction/gdscript/return_types/source.gd",
+          "expected": "fixtures/extraction/gdscript/return_types/expected.json"
         }
       ],
       "target_capabilities": {
@@ -5633,6 +5778,16 @@
           "name": "current_syntax",
           "source": "fixtures/extraction/razor/current-syntax/source.razor",
           "expected": "fixtures/extraction/razor/current-syntax/expected.json"
+        },
+        {
+          "name": "return_types",
+          "source": "fixtures/extraction/razor/return_types/source.razor",
+          "expected": "fixtures/extraction/razor/return_types/expected.json"
+        },
+        {
+          "name": "agent_usefulness",
+          "source": "fixtures/extraction/razor/agent_usefulness/source.razor",
+          "expected": "fixtures/extraction/razor/agent_usefulness/expected.json"
         }
       ],
       "target_capabilities": {
@@ -5697,6 +5852,8 @@
         "structural_facts": {
           "supported": [
             "alpine.directive.v1",
+            "aspnet.minimal_api.route.v1",
+            "aspnet.minimal_api.route_group.v1",
             "blazor.component_reference.v1",
             "htmx.attribute.v1",
             "http.client_request.v1",
@@ -5803,6 +5960,11 @@
           "name": "test_roles",
           "source": "fixtures/extraction/sql/test_roles/source.sql",
           "expected": "fixtures/extraction/sql/test_roles/expected.json"
+        },
+        {
+          "name": "return_types",
+          "source": "fixtures/extraction/sql/return_types/source.sql",
+          "expected": "fixtures/extraction/sql/return_types/expected.json"
         }
       ],
       "target_capabilities": {

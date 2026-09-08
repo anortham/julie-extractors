@@ -9,11 +9,11 @@ pub(super) fn extract_package(
     node: Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    let scoped_id = node
+    let package_id = node
         .children(&mut node.walk())
-        .find(|c| c.kind() == "scoped_identifier")?;
+        .find(|child| matches!(child.kind(), "identifier" | "scoped_identifier"))?;
 
-    let package_name = extractor.base().get_node_text(&scoped_id);
+    let package_name = extractor.base().get_node_text(&package_id);
     let signature = format!("package {}", package_name);
 
     let options = SymbolOptions {

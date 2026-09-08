@@ -1,0 +1,241 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/qml/return_types/source.qml:QtQuick:1:0",
+      "name": "QtQuick",
+      "kind": "import",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/return_types/source.qml",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 14,
+      "start_byte": 0,
+      "end_byte": 14,
+      "body_span": null,
+      "body_hash": null,
+      "signature": null,
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "import_kind": "module",
+        "source": "QtQuick",
+        "source_kind": "uri"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/qml/return_types/source.qml:make:2:11",
+      "name": "make",
+      "kind": "function",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/return_types/source.qml",
+      "start_line": 2,
+      "start_column": 11,
+      "end_line": 2,
+      "end_column": 51,
+      "start_byte": 26,
+      "end_byte": 66,
+      "body_span": {
+        "start_line": 2,
+        "start_column": 35,
+        "end_line": 2,
+        "end_column": 51,
+        "start_byte": 50,
+        "end_byte": 66
+      },
+      "body_hash": "e070e6c21a3a1a78ba58c0e669a825cd",
+      "signature": "function make(): Result",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/qml/return_types/source.qml:source:2:0",
+      "metadata": null,
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/qml/return_types/source.qml:source:2:0",
+      "name": "source",
+      "kind": "class",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/return_types/source.qml",
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 53,
+      "start_byte": 15,
+      "end_byte": 68,
+      "body_span": {
+        "start_line": 2,
+        "start_column": 9,
+        "end_line": 2,
+        "end_column": 53,
+        "start_byte": 24,
+        "end_byte": 68
+      },
+      "body_hash": "5542bfbf1d4a89ad5c62703fb25eca09",
+      "signature": "extends QtObject",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "base_types": [
+          "QtObject"
+        ]
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/qml/return_types/source.qml:QtQuick:variable_ref:1:7",
+      "name": "QtQuick",
+      "kind": "variable_ref",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/return_types/source.qml",
+      "start_line": 1,
+      "start_column": 7,
+      "end_line": 1,
+      "end_column": 14,
+      "start_byte": 7,
+      "end_byte": 14,
+      "containing_key": "fixtures/extraction/qml/return_types/source.qml:QtQuick:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/qml/return_types/source.qml:Result:type_usage:2:28",
+      "name": "Result",
+      "kind": "type_usage",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/return_types/source.qml",
+      "start_line": 2,
+      "start_column": 28,
+      "end_line": 2,
+      "end_column": 34,
+      "start_byte": 43,
+      "end_byte": 49,
+      "containing_key": "fixtures/extraction/qml/return_types/source.qml:make:2:11",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/qml/return_types/source.qml:make:2:11",
+      "resolved_type": "Result",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "qml",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "qml.import_statement.v1",
+      "capture_name": "import_statement",
+      "node_kind": "ui_import",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/return_types/source.qml",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 14,
+      "start_byte": 0,
+      "end_byte": 14,
+      "confidence": "1.000",
+      "metadata": {
+        "import_kind": "module",
+        "import_module": "QtQuick",
+        "pattern_version": 1,
+        "query_family": "imports",
+        "source": "QtQuick",
+        "source_kind": "uri"
+      }
+    },
+    {
+      "pattern_id": "qml.object_instantiation.v1",
+      "capture_name": "object_instantiation",
+      "node_kind": "ui_object_definition",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/return_types/source.qml",
+      "containing_key": "fixtures/extraction/qml/return_types/source.qml:source:2:0",
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 53,
+      "start_byte": 15,
+      "end_byte": 68,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "objects",
+        "type_name": "QtObject"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/return_types/source.qml",
+      "covered_lines": 3,
+      "covered_bytes": 69,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 69,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/qml/return_types/source.qml:make:2:11",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/return_types/source.qml",
+      "covered_lines": 1,
+      "covered_bytes": 16,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 2,
+      "start_column": 35,
+      "end_line": 2,
+      "end_column": 51,
+      "start_byte": 50,
+      "end_byte": 66,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [],
+  "type_argument_usages": []
+}

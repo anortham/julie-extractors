@@ -1,0 +1,210 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/gdscript/return_types/source.gd:Result:1:0",
+      "name": "Result",
+      "kind": "class",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/return_types/source.gd",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 5,
+      "start_byte": 0,
+      "end_byte": 5,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "class Result:",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gdscript/return_types/source.gd:make:3:0",
+      "name": "make",
+      "kind": "function",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/return_types/source.gd",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 20,
+      "start_byte": 20,
+      "end_byte": 63,
+      "body_span": {
+        "start_line": 3,
+        "start_column": 22,
+        "end_line": 4,
+        "end_column": 20,
+        "start_byte": 42,
+        "end_byte": 63
+      },
+      "body_hash": "6e031b736d81f45631ce280b4223177c",
+      "signature": "func make() -> Result:",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/gdscript/return_types/source.gd:make:3:0",
+      "callee_name": "Result.new()",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/gdscript/return_types/source.gd",
+      "line_number": 4,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/gdscript/return_types/source.gd:make:3:0",
+        "callee_name": "Result.new()",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/gdscript/return_types/source.gd",
+        "line_number": 4,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Result.new()",
+        "terminal_name": "new",
+        "receiver": "Result",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/gdscript/return_types/source.gd:make:3:0",
+      "span": {
+        "start_line": 4,
+        "start_column": 8,
+        "end_line": 4,
+        "end_column": 20,
+        "start_byte": 51,
+        "end_byte": 63
+      }
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/gdscript/return_types/source.gd:Result:type_usage:3:15",
+      "name": "Result",
+      "kind": "type_usage",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/return_types/source.gd",
+      "start_line": 3,
+      "start_column": 15,
+      "end_line": 3,
+      "end_column": 21,
+      "start_byte": 35,
+      "end_byte": 41,
+      "containing_key": "fixtures/extraction/gdscript/return_types/source.gd:make:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/gdscript/return_types/source.gd:Result:variable_ref:4:8",
+      "name": "Result",
+      "kind": "variable_ref",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/return_types/source.gd",
+      "start_line": 4,
+      "start_column": 8,
+      "end_line": 4,
+      "end_column": 14,
+      "start_byte": 51,
+      "end_byte": 57,
+      "containing_key": "fixtures/extraction/gdscript/return_types/source.gd:make:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/gdscript/return_types/source.gd:new:call:4:15",
+      "name": "new",
+      "kind": "call",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/return_types/source.gd",
+      "start_line": 4,
+      "start_column": 15,
+      "end_line": 4,
+      "end_column": 18,
+      "start_byte": 58,
+      "end_byte": 61,
+      "containing_key": "fixtures/extraction/gdscript/return_types/source.gd:make:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/gdscript/return_types/source.gd:make:3:0",
+      "resolved_type": "Result",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "gdscript",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/return_types/source.gd",
+      "covered_lines": 5,
+      "covered_bytes": 64,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 5,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 64,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/gdscript/return_types/source.gd:make:3:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/return_types/source.gd",
+      "covered_lines": 2,
+      "covered_bytes": 21,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 3,
+      "start_column": 22,
+      "end_line": 4,
+      "end_column": 20,
+      "start_byte": 42,
+      "end_byte": 63,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [],
+  "type_argument_usages": []
+}

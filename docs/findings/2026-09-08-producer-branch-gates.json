@@ -1,0 +1,468 @@
+{
+  "source_commit": "5912bafe185ce2653ce22f86ec962aef615a27f8",
+  "source_state": "v2.41.1 release candidate; unpublished",
+  "default": {
+    "passed": 4853,
+    "ignored": 11,
+    "unresolved_failures": 0,
+    "composition": [
+      {
+        "log": "producer-default-green.log",
+        "passed": 4726,
+        "failed": 1,
+        "ignored": 11
+      },
+      {
+        "log": "producer-fixture-count-green.log",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "log": "producer-default-remaining.log",
+        "passed": 64,
+        "failed": 1,
+        "ignored": 0
+      },
+      {
+        "log": "producer-capacity-fixture-green.log",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "log": "producer-default-final.log",
+        "passed": 61,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "log": "producer-default-doc.log",
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      }
+    ]
+  },
+  "contract": {
+    "passed": 376,
+    "ignored": 3,
+    "unresolved_failures": 0,
+    "golden": {
+      "passed": 7,
+      "log": "/home/murphy/.cache/miller-dogfood/producer-contract-green.log"
+    },
+    "capability": {
+      "passed_unchanged": 37,
+      "repaired_passed": 2,
+      "original_log": "/home/murphy/.cache/miller-dogfood/producer-contract-green.log",
+      "repair_log": "/home/murphy/.cache/miller-dogfood/producer-capability-claims-green.log"
+    },
+    "remaining_commands": [
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "julie-extractors",
+          "--features",
+          "test-capability-matrix",
+          "--lib",
+          "pending_shape_contract"
+        ],
+        "log": "/home/murphy/.cache/miller-dogfood/producer-contract-remaining-00.log",
+        "returncode": 0,
+        "passed": 1,
+        "ignored": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "julie-extractors",
+          "--features",
+          "test-downstream-smoke",
+          "--test",
+          "downstream_smoke",
+          "julie_extractors_works_as_path_dependency_in_downstream_crate"
+        ],
+        "log": "/home/murphy/.cache/miller-dogfood/producer-contract-remaining-01.log",
+        "returncode": 0,
+        "passed": 1,
+        "ignored": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "julie-extract-artifact",
+          "--test",
+          "store_maintenance_contract",
+          "--",
+          "--test-threads=1"
+        ],
+        "log": "/home/murphy/.cache/miller-dogfood/producer-contract-remaining-02.log",
+        "returncode": 0,
+        "passed": 39,
+        "ignored": 1
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "julie-extract-artifact",
+          "--test",
+          "store_maintenance_property",
+          "--",
+          "--test-threads=1"
+        ],
+        "log": "/home/murphy/.cache/miller-dogfood/producer-contract-remaining-03.log",
+        "returncode": 0,
+        "passed": 1,
+        "ignored": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "julie-extract-artifact",
+          "--test",
+          "store_generation_equivalence",
+          "--",
+          "--test-threads=1"
+        ],
+        "log": "/home/murphy/.cache/miller-dogfood/producer-contract-remaining-04.log",
+        "returncode": 0,
+        "passed": 16,
+        "ignored": 1
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "julie-extract-artifact",
+          "--features",
+          "test-store-maintenance-contract",
+          "--test",
+          "store_maintenance_crash_contract",
+          "--",
+          "--test-threads=1"
+        ],
+        "log": "/home/murphy/.cache/miller-dogfood/producer-contract-remaining-05.log",
+        "returncode": 0,
+        "passed": 7,
+        "ignored": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "julie-extract-artifact",
+          "--features",
+          "test-store-maintenance-contract",
+          "--test",
+          "store_generation_crash_contract",
+          "--",
+          "--test-threads=1"
+        ],
+        "log": "/home/murphy/.cache/miller-dogfood/producer-contract-remaining-06.log",
+        "returncode": 0,
+        "passed": 5,
+        "ignored": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "julie-extract-cli",
+          "--features",
+          "test-heavy-contracts",
+          "--test",
+          "deep_recursion_contract"
+        ],
+        "log": "/home/murphy/.cache/miller-dogfood/producer-contract-remaining-07.log",
+        "returncode": 0,
+        "passed": 1,
+        "ignored": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "julie-extract-cli",
+          "--features",
+          "test-heavy-contracts",
+          "--test",
+          "reference_site_identity"
+        ],
+        "log": "/home/murphy/.cache/miller-dogfood/producer-contract-remaining-08.log",
+        "returncode": 0,
+        "passed": 3,
+        "ignored": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "julie-extract-artifact",
+          "--features",
+          "test-store-crash",
+          "--test",
+          "store_crash_contract",
+          "--",
+          "--test-threads=1"
+        ],
+        "log": "/home/murphy/.cache/miller-dogfood/producer-contract-remaining-09.log",
+        "returncode": 0,
+        "passed": 11,
+        "ignored": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "julie-extract-artifact",
+          "--features",
+          "test-store-crash",
+          "--test",
+          "store_reader_catalog_crash_contract",
+          "--",
+          "--test-threads=1"
+        ],
+        "log": "/home/murphy/.cache/miller-dogfood/producer-contract-remaining-10.log",
+        "returncode": 0,
+        "passed": 8,
+        "ignored": 1
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "julie-extract-cli",
+          "--features",
+          "test-store-contract",
+          "--test",
+          "store_equivalence",
+          "--",
+          "--test-threads=1"
+        ],
+        "log": "/home/murphy/.cache/miller-dogfood/producer-contract-remaining-11.log",
+        "returncode": 0,
+        "passed": 7,
+        "ignored": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "julie-extract-cli",
+          "--features",
+          "test-store-contract",
+          "--test",
+          "store_mixed_version",
+          "--",
+          "--test-threads=1"
+        ],
+        "log": "/home/murphy/.cache/miller-dogfood/producer-contract-remaining-12.log",
+        "returncode": 0,
+        "passed": 6,
+        "ignored": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "julie-extract-cli",
+          "--features",
+          "test-store-contract",
+          "--test",
+          "store_import_contract",
+          "--",
+          "--test-threads=1"
+        ],
+        "log": "/home/murphy/.cache/miller-dogfood/producer-contract-remaining-13.log",
+        "returncode": 0,
+        "passed": 43,
+        "ignored": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "julie-extract-cli",
+          "--features",
+          "test-store-contract",
+          "--test",
+          "store_operations_contract",
+          "--",
+          "--test-threads=1"
+        ],
+        "log": "/home/murphy/.cache/miller-dogfood/producer-contract-remaining-14.log",
+        "returncode": 0,
+        "passed": 31,
+        "ignored": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "julie-extract-cli",
+          "--features",
+          "test-store-maintenance-contract",
+          "--test",
+          "store_maintenance_equivalence",
+          "--",
+          "--test-threads=1"
+        ],
+        "log": "/home/murphy/.cache/miller-dogfood/producer-contract-remaining-15.log",
+        "returncode": 0,
+        "passed": 2,
+        "ignored": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "julie-extract-cli",
+          "--features",
+          "test-store-maintenance-contract",
+          "--test",
+          "store_maintenance_mixed_version",
+          "--",
+          "--test-threads=1"
+        ],
+        "log": "/home/murphy/.cache/miller-dogfood/producer-contract-remaining-16.log",
+        "returncode": 0,
+        "passed": 1,
+        "ignored": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "julie-extract-cli",
+          "--features",
+          "test-store-maintenance-contract",
+          "--test",
+          "store_maintenance_performance",
+          "--",
+          "--test-threads=1"
+        ],
+        "log": "/home/murphy/.cache/miller-dogfood/producer-contract-remaining-17.log",
+        "returncode": 0,
+        "passed": 3,
+        "ignored": 0
+      }
+    ],
+    "reused_default_commands": [
+      {
+        "harness": "schema_contract",
+        "passed": 16,
+        "ignored": 0,
+        "log": "producer-default-green.log"
+      },
+      {
+        "harness": "report_contract",
+        "passed": 8,
+        "ignored": 0,
+        "log": "producer-default-green.log"
+      },
+      {
+        "harness": "jsonl_contract",
+        "passed": 12,
+        "ignored": 0,
+        "log": "producer-default-green.log"
+      },
+      {
+        "harness": "cli_contract",
+        "passed": 13,
+        "ignored": 0,
+        "log": "producer-default-green.log"
+      },
+      {
+        "harness": "path_policy",
+        "passed": 9,
+        "ignored": 0,
+        "log": "producer-default-green.log"
+      },
+      {
+        "harness": "operations_contract",
+        "passed": 84,
+        "ignored": 0,
+        "log": "producer-default-green.log"
+      },
+      {
+        "harness": "determinism_contract",
+        "passed": 2,
+        "ignored": 0,
+        "log": "producer-default-green.log"
+      }
+    ]
+  },
+  "post_gate_java_package_repair": {
+    "reason": "A real Miller Java selector probe found that a single-segment package declaration emitted no namespace fact because tree-sitter uses identifier rather than scoped_identifier for that shape.",
+    "red_log": "/tmp/julie-java-single-package-red.log",
+    "focused_java": {
+      "passed": 108,
+      "ignored": 0
+    },
+    "canonical_golden": {
+      "passed": 1,
+      "ignored": 0
+    },
+    "native_selection": {
+      "source_2_41": {
+        "passed": 1,
+        "log": "/tmp/miller-jvm-java-source241-native.log",
+        "result": "single-segment package emitted namespace sample; exact selected test ID excluded the unrelated failing class"
+      },
+      "pinned_2_40_6_control": {
+        "passed": 1,
+        "log": "/tmp/miller-jvm-java-pinned2406-native.log",
+        "result": "existing dotted-package shape remained exact"
+      }
+    },
+    "format_check": "passed",
+    "release_or_pin_changed": false
+  },
+  "release_candidate": {
+    "version": "2.41.1",
+    "extraction_identity_epoch": 10,
+    "schemas": {
+      "sqlite": 7,
+      "jsonl": 5,
+      "report": 3,
+      "store": 2
+    },
+    "unchanged_content_upgrade": {
+      "published_baseline": "2.41.0",
+      "content_hash": "blake3:8695b62cc3f6ba79e43071f2842661f0db0dd0eaf05e7acef7555b5ae822be96",
+      "epochs_retained": [9, 10],
+      "new_return_type_span": [52, 58],
+      "existing_family_min_reader_version": "2.41.0"
+    }
+  },
+  "notes": [
+    "Counts compose unchanged passing harnesses with focused repairs and every unrun target; original failing invocations remain recorded.",
+    "Original 538-file assertion updated to602 only after verifying64 added fixture files.",
+    "Unix-only sparse capacity probe now derives apparent length from available space plus1GiB; production storage logic unchanged.",
+    "Template depth limit emits unknown on truncated traversal; registry-generated contract and Razor capability claims now match actual emitted facts."
+  ]
+}

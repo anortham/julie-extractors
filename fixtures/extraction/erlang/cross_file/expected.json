@@ -609,6 +609,38 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/erlang/cross_file/source.erl:integer:type_usage:25:21",
+      "name": "integer",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/cross_file/source.erl",
+      "start_line": 25,
+      "start_column": 21,
+      "end_line": 25,
+      "end_column": 28,
+      "start_byte": 1238,
+      "end_byte": 1245,
+      "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/cross_file/source.erl:integer:type_usage:25:40",
+      "name": "integer",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/cross_file/source.erl",
+      "start_line": 25,
+      "start_column": 40,
+      "end_line": 25,
+      "end_column": 47,
+      "start_byte": 1257,
+      "end_byte": 1264,
+      "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/erlang/cross_file/source.erl:ledger:type_usage:27:4",
       "name": "ledger",
       "kind": "type_usage",
@@ -717,6 +749,22 @@
       "start_byte": 1437,
       "end_byte": 1444,
       "containing_key": "fixtures/extraction/erlang/cross_file/source.erl:replay:33:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/cross_file/source.erl:term:type_usage:25:13",
+      "name": "term",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/cross_file/source.erl",
+      "start_line": 25,
+      "start_column": 13,
+      "end_line": 25,
+      "end_column": 17,
+      "start_byte": 1230,
+      "end_byte": 1234,
+      "containing_key": null,
       "target_key": null,
       "confidence": "1.000"
     }

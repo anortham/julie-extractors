@@ -1,0 +1,263 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/powershell/return_types/source.ps1:Factory:2:0",
+      "name": "Factory",
+      "kind": "class",
+      "language": "powershell",
+      "file_path": "fixtures/extraction/powershell/return_types/source.ps1",
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 1,
+      "start_byte": 16,
+      "end_byte": 77,
+      "body_span": {
+        "start_line": 2,
+        "start_column": 14,
+        "end_line": 4,
+        "end_column": 1,
+        "start_byte": 30,
+        "end_byte": 77
+      },
+      "body_hash": "34e89e9e70dbc335aa7551df17e211f6",
+      "signature": "class Factory : new",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/powershell/return_types/source.ps1:Make:3:1",
+      "name": "Make",
+      "kind": "method",
+      "language": "powershell",
+      "file_path": "fixtures/extraction/powershell/return_types/source.ps1",
+      "start_line": 3,
+      "start_column": 1,
+      "end_line": 3,
+      "end_column": 43,
+      "start_byte": 33,
+      "end_byte": 75,
+      "body_span": {
+        "start_line": 3,
+        "start_column": 17,
+        "end_line": 3,
+        "end_column": 43,
+        "start_byte": 49,
+        "end_byte": 75
+      },
+      "body_hash": "0813401cbf81ad12e522375b27c71075",
+      "signature": "[Result] Make()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/powershell/return_types/source.ps1:Factory:2:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/powershell/return_types/source.ps1:Result:1:0",
+      "name": "Result",
+      "kind": "class",
+      "language": "powershell",
+      "file_path": "fixtures/extraction/powershell/return_types/source.ps1",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 15,
+      "start_byte": 0,
+      "end_byte": 15,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 13,
+        "end_line": 1,
+        "end_column": 15,
+        "start_byte": 13,
+        "end_byte": 15
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "class Result",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/powershell/return_types/source.ps1:Make:3:1",
+      "callee_name": "new",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/powershell/return_types/source.ps1",
+      "line_number": 3,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/powershell/return_types/source.ps1:Make:3:1",
+        "callee_name": "new",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/powershell/return_types/source.ps1",
+        "line_number": 3,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "new",
+        "terminal_name": "new",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/powershell/return_types/source.ps1:Make:3:1",
+      "span": {
+        "start_line": 3,
+        "start_column": 36,
+        "end_line": 3,
+        "end_column": 39,
+        "start_byte": 68,
+        "end_byte": 71
+      }
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/powershell/return_types/source.ps1:Result:type_usage:3:2",
+      "name": "Result",
+      "kind": "type_usage",
+      "language": "powershell",
+      "file_path": "fixtures/extraction/powershell/return_types/source.ps1",
+      "start_line": 3,
+      "start_column": 2,
+      "end_line": 3,
+      "end_column": 8,
+      "start_byte": 34,
+      "end_byte": 40,
+      "containing_key": "fixtures/extraction/powershell/return_types/source.ps1:Make:3:1",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/powershell/return_types/source.ps1:new:call:3:36",
+      "name": "new",
+      "kind": "call",
+      "language": "powershell",
+      "file_path": "fixtures/extraction/powershell/return_types/source.ps1",
+      "start_line": 3,
+      "start_column": 36,
+      "end_line": 3,
+      "end_column": 39,
+      "start_byte": 68,
+      "end_byte": 71,
+      "containing_key": "fixtures/extraction/powershell/return_types/source.ps1:Make:3:1",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "powershell.class_definition.v1",
+      "capture_name": "class_definition",
+      "node_kind": "class_statement",
+      "language": "powershell",
+      "file_path": "fixtures/extraction/powershell/return_types/source.ps1",
+      "containing_key": "fixtures/extraction/powershell/return_types/source.ps1:Factory:2:0",
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 1,
+      "start_byte": 16,
+      "end_byte": 77,
+      "confidence": "1.000",
+      "metadata": {
+        "class_name": "Factory",
+        "pattern_version": 1,
+        "query_family": "types"
+      }
+    },
+    {
+      "pattern_id": "powershell.class_definition.v1",
+      "capture_name": "class_definition",
+      "node_kind": "class_statement",
+      "language": "powershell",
+      "file_path": "fixtures/extraction/powershell/return_types/source.ps1",
+      "containing_key": "fixtures/extraction/powershell/return_types/source.ps1:Result:1:0",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 15,
+      "start_byte": 0,
+      "end_byte": 15,
+      "confidence": "1.000",
+      "metadata": {
+        "class_name": "Result",
+        "pattern_version": 1,
+        "query_family": "types"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "powershell",
+      "file_path": "fixtures/extraction/powershell/return_types/source.ps1",
+      "covered_lines": 5,
+      "covered_bytes": 78,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 5,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 78,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/powershell/return_types/source.ps1:Make:3:1",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "powershell",
+      "file_path": "fixtures/extraction/powershell/return_types/source.ps1",
+      "covered_lines": 1,
+      "covered_bytes": 26,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 3,
+      "start_column": 17,
+      "end_line": 3,
+      "end_column": 43,
+      "start_byte": 49,
+      "end_byte": 75,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [],
+  "type_argument_usages": []
+}

@@ -6,7 +6,8 @@
 //! top-level form is a declaration. Type signatures matter here: `-spec`,
 //! `-type`, `-opaque`, `-callback`, and record field types spell `integer()`
 //! with the very same `call` node a real call uses, so the walk starts from the
-//! two executable declaration kinds instead of the whole tree.
+//! two executable declaration kinds. A separate type-only walk handles declared
+//! specifications and aliases without manufacturing executable calls.
 //!
 //! Kind assignment:
 //! - a call — local, remote, imported, or a parameterized macro — is `Call`
@@ -57,6 +58,10 @@ pub(super) fn extract_identifiers(
                     &mut clause_scopes,
                 );
                 walk(extractor, *declaration, scope.as_deref(), &imports, 0);
+            }
+            "spec" | "callback" | "type_alias" | "opaque" => {
+                let scope = containing_symbol_id(declaration, &containing_symbols);
+                walk_type_identifiers(extractor, *declaration, scope.as_deref(), 0);
             }
             "pp_define" => {
                 let scope = containing_symbol_id(declaration, &containing_symbols);
@@ -119,6 +124,39 @@ fn walk(
     };
     for child in named_children(&node) {
         walk(extractor, child, scope, imports, child_depth);
+    }
+}
+
+fn walk_type_identifiers(
+    extractor: &mut ErlangExtractor,
+    node: Node,
+    scope: Option<&str>,
+    depth: u32,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+    if node.kind() == "call"
+        && let Some(atom) = node
+            .child_by_field_name("expr")
+            .filter(|expr| expr.kind() == "atom")
+    {
+        let name = unquote_atom(&extractor.base.get_node_text(&atom));
+        extractor.base.create_identifier(
+            &atom,
+            name,
+            IdentifierKind::TypeUsage,
+            scope.map(String::from),
+        );
+    }
+    if node.kind() == "record_expr" {
+        emit_record_reference(extractor, node, scope);
+    }
+    let Some(next_depth) = child_tree_depth(depth) else {
+        return;
+    };
+    for child in named_children(&node) {
+        walk_type_identifiers(extractor, child, scope, next_depth);
     }
 }
 

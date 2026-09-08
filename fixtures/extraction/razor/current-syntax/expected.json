@@ -448,6 +448,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/razor/current-syntax/source.razor:RenderFragment:type_usage:23:16",
+      "name": "RenderFragment",
+      "kind": "type_usage",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
+      "start_line": 23,
+      "start_column": 16,
+      "end_line": 23,
+      "end_column": 30,
+      "start_byte": 527,
+      "end_byte": 541,
+      "containing_key": "fixtures/extraction/razor/current-syntax/source.razor:Fragment:23:8",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/razor/current-syntax/source.razor:TagHelpers:type_usage:2:17",
       "name": "TagHelpers",
       "kind": "type_usage",

@@ -351,7 +351,9 @@ fn is_csharp_type_usage_identifier(node: Node) -> bool {
     }
     let mut current = node;
     while let Some(parent) = current.parent() {
-        if let Some(type_node) = parent.child_by_field_name("type")
+        if let Some(type_node) = parent
+            .child_by_field_name("type")
+            .or_else(|| parent.child_by_field_name("returns"))
             && contains_node(type_node, node)
         {
             return true;

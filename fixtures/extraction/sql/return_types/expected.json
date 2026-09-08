@@ -1,0 +1,258 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/sql/return_types/source.sql:make:2:0",
+      "name": "make",
+      "kind": "function",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/return_types/source.sql",
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 81,
+      "start_byte": 31,
+      "end_byte": 112,
+      "body_span": {
+        "start_line": 2,
+        "start_column": 20,
+        "end_line": 2,
+        "end_column": 70,
+        "start_byte": 51,
+        "end_byte": 101
+      },
+      "body_hash": "85351394fa05009ebe3d2ce362e461ae",
+      "signature": "CREATE FUNCTION make() LANGUAGE SQL",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "bodySpanSource": "statement_text",
+        "isFunction": true,
+        "isStoredProcedure": true
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/sql/return_types/source.sql:result:1:0",
+      "name": "result",
+      "kind": "class",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/return_types/source.sql",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 29,
+      "start_byte": 0,
+      "end_byte": 29,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 22,
+        "end_line": 1,
+        "end_column": 29,
+        "start_byte": 22,
+        "end_byte": 29
+      },
+      "body_hash": "a1b533efaf1ad94fae56ef1e9c717306",
+      "signature": "CREATE TYPE result",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "isType": true
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/sql/return_types/source.sql:ROW:call:2:64",
+      "name": "ROW",
+      "kind": "call",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/return_types/source.sql",
+      "start_line": 2,
+      "start_column": 64,
+      "end_line": 2,
+      "end_column": 67,
+      "start_byte": 95,
+      "end_byte": 98,
+      "containing_key": "fixtures/extraction/sql/return_types/source.sql:make:2:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/sql/return_types/source.sql:result:type_usage:2:31",
+      "name": "result",
+      "kind": "type_usage",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/return_types/source.sql",
+      "start_line": 2,
+      "start_column": 31,
+      "end_line": 2,
+      "end_column": 37,
+      "start_byte": 62,
+      "end_byte": 68,
+      "containing_key": "fixtures/extraction/sql/return_types/source.sql:make:2:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/sql/return_types/source.sql:result:type_usage:2:72",
+      "name": "result",
+      "kind": "type_usage",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/return_types/source.sql",
+      "start_line": 2,
+      "start_column": 72,
+      "end_line": 2,
+      "end_column": 78,
+      "start_byte": 103,
+      "end_byte": 109,
+      "containing_key": "fixtures/extraction/sql/return_types/source.sql:make:2:0",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/sql/return_types/source.sql:make:2:0",
+      "resolved_type": "PROCEDURE",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "sql",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "sql.column_definition.v1",
+      "capture_name": "column_definition",
+      "node_kind": "column_definition",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/return_types/source.sql",
+      "containing_key": "fixtures/extraction/sql/return_types/source.sql:result:1:0",
+      "start_line": 1,
+      "start_column": 23,
+      "end_line": 1,
+      "end_column": 28,
+      "start_byte": 23,
+      "end_byte": 28,
+      "confidence": "1.000",
+      "metadata": {
+        "column_name": "x",
+        "has_default": false,
+        "nullable": true,
+        "pattern_version": 1,
+        "query_family": "schema_structure",
+        "type_name": "int"
+      }
+    },
+    {
+      "pattern_id": "sql.function_definition.v1",
+      "capture_name": "create_function",
+      "node_kind": "create_function",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/return_types/source.sql",
+      "containing_key": "fixtures/extraction/sql/return_types/source.sql:make:2:0",
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 81,
+      "start_byte": 31,
+      "end_byte": 112,
+      "confidence": "1.000",
+      "metadata": {
+        "parameter_count": 0,
+        "pattern_version": 1,
+        "query_family": "schema_structure",
+        "routine_name": "make"
+      }
+    },
+    {
+      "pattern_id": "sql.select_query.v1",
+      "capture_name": "select",
+      "node_kind": "select",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/return_types/source.sql",
+      "containing_key": "fixtures/extraction/sql/return_types/source.sql:make:2:0",
+      "start_line": 2,
+      "start_column": 57,
+      "end_line": 2,
+      "end_column": 78,
+      "start_byte": 88,
+      "end_byte": 109,
+      "confidence": "1.000",
+      "metadata": {
+        "has_group_by": false,
+        "has_order_by": false,
+        "has_where": false,
+        "pattern_version": 1,
+        "projection_count": 1,
+        "query_family": "query_structure",
+        "source_count": 0
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-sql-complexity-v1",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/return_types/source.sql",
+      "covered_lines": 3,
+      "covered_bytes": 114,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 1,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 114,
+      "metadata": {
+        "decision_signal_kinds": "join,set_operation,case,where,having,error_where",
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/sql/return_types/source.sql:make:2:0",
+      "algorithm_id": "julie-sql-complexity-v1",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/return_types/source.sql",
+      "covered_lines": 1,
+      "covered_bytes": 50,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 2,
+      "start_column": 20,
+      "end_line": 2,
+      "end_column": 70,
+      "start_byte": 51,
+      "end_byte": 101,
+      "metadata": {
+        "decision_signal_kinds": "join,set_operation,case,where,having,error_where",
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [],
+  "type_argument_usages": []
+}

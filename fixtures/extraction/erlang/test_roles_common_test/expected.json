@@ -843,7 +843,24 @@
       }
     }
   ],
-  "identifiers": [],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/erlang/test_roles_common_test/source.erl:atom:type_usage:25:16",
+      "name": "atom",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles_common_test/source.erl",
+      "start_line": 25,
+      "start_column": 16,
+      "end_line": 25,
+      "end_column": 20,
+      "start_byte": 1036,
+      "end_byte": 1040,
+      "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
   "types": [],
   "parse_diagnostics": [],
   "structural_facts": [

@@ -1,0 +1,238 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/html/agent_usefulness/source.html:button:1:0",
+      "name": "button",
+      "kind": "field",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/agent_usefulness/source.html",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 119,
+      "start_byte": 0,
+      "end_byte": 119,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 16,
+        "end_line": 1,
+        "end_column": 104,
+        "start_byte": 16,
+        "end_byte": 104
+      },
+      "body_hash": "fe84652cdd1eaf75cc00ef05198949e7",
+      "signature": "<button>Save",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "attributes": {
+          "x-bind": "{ 'hx-post': '/save', 'hx-trigger': 'click', 'hx-get': `/workspaces/${id}/tests/start` }"
+        },
+        "isSemantic": false,
+        "isVoid": false,
+        "tagName": "button",
+        "textContent": "Save",
+        "type": "html-element"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
+  "identifiers": [],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/html/agent_usefulness/source.html:button:1:0",
+      "resolved_type": "html-element",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "html",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "alpine.directive.v1",
+      "capture_name": "directive",
+      "node_kind": "attribute",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/agent_usefulness/source.html",
+      "containing_key": "fixtures/extraction/html/agent_usefulness/source.html:button:1:0",
+      "start_line": 1,
+      "start_column": 8,
+      "end_line": 1,
+      "end_column": 105,
+      "start_byte": 8,
+      "end_byte": 105,
+      "confidence": "1.000",
+      "metadata": {
+        "directive": "x-bind",
+        "expression": "{ 'hx-post': '/save', 'hx-trigger': 'click', 'hx-get': `/workspaces/${id}/tests/start` }",
+        "framework": "alpine",
+        "pattern_version": 1,
+        "query_family": "frontend_interaction",
+        "shorthand": false
+      }
+    },
+    {
+      "pattern_id": "html.form_control.v1",
+      "capture_name": "form_control",
+      "node_kind": "element",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/agent_usefulness/source.html",
+      "containing_key": "fixtures/extraction/html/agent_usefulness/source.html:button:1:0",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 119,
+      "start_byte": 0,
+      "end_byte": 119,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "document_forms",
+        "required": false,
+        "tag_name": "button"
+      }
+    },
+    {
+      "pattern_id": "htmx.attribute.v1",
+      "capture_name": "attribute",
+      "node_kind": "attribute",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/agent_usefulness/source.html",
+      "containing_key": "fixtures/extraction/html/agent_usefulness/source.html:button:1:0",
+      "start_line": 1,
+      "start_column": 8,
+      "end_line": 1,
+      "end_column": 105,
+      "start_byte": 8,
+      "end_byte": 105,
+      "confidence": "1.000",
+      "metadata": {
+        "attribute_name": "hx-get",
+        "attribute_value": "`/workspaces/${id}/tests/start`",
+        "binding_source": "consumed_object",
+        "declaration_end_byte": 103,
+        "declaration_start_byte": 60,
+        "framework": "htmx",
+        "normalized_route_template": "/workspaces/:dynamic/tests/start",
+        "pattern_version": 1,
+        "query_family": "frontend_interaction",
+        "route_template_segments": [
+          {
+            "kind": "literal",
+            "text": "/workspaces/"
+          },
+          {
+            "kind": "dynamic",
+            "text": "${id}"
+          },
+          {
+            "kind": "literal",
+            "text": "/tests/start"
+          }
+        ],
+        "route_template_uncertainty": "partial",
+        "value_source": "dynamic_expression",
+        "verb": "GET"
+      }
+    },
+    {
+      "pattern_id": "htmx.attribute.v1",
+      "capture_name": "attribute",
+      "node_kind": "attribute",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/agent_usefulness/source.html",
+      "containing_key": "fixtures/extraction/html/agent_usefulness/source.html:button:1:0",
+      "start_line": 1,
+      "start_column": 8,
+      "end_line": 1,
+      "end_column": 105,
+      "start_byte": 8,
+      "end_byte": 105,
+      "confidence": "1.000",
+      "metadata": {
+        "attribute_name": "hx-post",
+        "attribute_value": "/save",
+        "binding_source": "consumed_object",
+        "declaration_end_byte": 36,
+        "declaration_start_byte": 17,
+        "framework": "htmx",
+        "pattern_version": 1,
+        "query_family": "frontend_interaction",
+        "target_path": "/save",
+        "value_source": "string_literal",
+        "verb": "POST"
+      }
+    },
+    {
+      "pattern_id": "htmx.attribute.v1",
+      "capture_name": "attribute",
+      "node_kind": "attribute",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/agent_usefulness/source.html",
+      "containing_key": "fixtures/extraction/html/agent_usefulness/source.html:button:1:0",
+      "start_line": 1,
+      "start_column": 8,
+      "end_line": 1,
+      "end_column": 105,
+      "start_byte": 8,
+      "end_byte": 105,
+      "confidence": "1.000",
+      "metadata": {
+        "attribute_name": "hx-trigger",
+        "attribute_value": "click",
+        "binding_source": "consumed_object",
+        "declaration_end_byte": 59,
+        "declaration_start_byte": 37,
+        "framework": "htmx",
+        "pattern_version": 1,
+        "query_family": "frontend_interaction",
+        "value_source": "string_literal"
+      }
+    }
+  ],
+  "complexity_metrics": [],
+  "literals": [
+    {
+      "literal_text": "{ 'hx-post': '/save', 'hx-trigger': 'click', 'hx-get': `/workspaces/${id}/tests/start` }",
+      "kind": "other",
+      "carrier": "button.x-bind",
+      "arg_position": 0,
+      "language": "html",
+      "file_path": "fixtures/extraction/html/agent_usefulness/source.html",
+      "start_line": 1,
+      "start_column": 15,
+      "end_line": 1,
+      "end_column": 105,
+      "start_byte": 15,
+      "end_byte": 105,
+      "containing_key": "fixtures/extraction/html/agent_usefulness/source.html:button:1:0",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "string_literal",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/agent_usefulness/source.html",
+      "containing_key": "fixtures/extraction/html/agent_usefulness/source.html:button:1:0",
+      "start_line": 1,
+      "start_column": 15,
+      "end_line": 1,
+      "end_column": 105,
+      "start_byte": 15,
+      "end_byte": 105,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
+}

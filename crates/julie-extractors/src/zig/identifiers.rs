@@ -150,14 +150,11 @@ fn extract_identifier_from_node(
         "identifier" => {
             if let Some(parent) = node.parent() {
                 let is_type_position = match parent.kind() {
-                    // *Server, []*Server
-                    "pointer_type" | "optional_type" => true,
-                    // !DocumentStore (error union return type)
-                    "error_union_type" => true,
-                    // document_store: DocumentStore (field or param type)
-                    // var store: DocumentStore (variable type)
+                    "pointer_type" | "optional_type" | "error_union_type" => true,
+                    "function_declaration" => parent
+                        .child_by_field_name("type")
+                        .is_some_and(|ty| ty.id() == node.id()),
                     "container_field" | "parameter" | "variable_declaration" => {
-                        // Only the identifier AFTER `:` is the type, not before it (the name)
                         is_after_colon(parent, node)
                     }
                     _ => false,

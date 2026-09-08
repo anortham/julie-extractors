@@ -515,7 +515,7 @@ fn parse_vue_static_import_line(line: &str) -> Option<(String, String)> {
 
 /// Content ranges of `<script>` / `<script setup>` sections, for collectors
 /// that scan script bodies only (e.g. the HTTP client-request scan).
-pub(super) fn vue_script_section_ranges(content: &str) -> Vec<(usize, usize)> {
+pub(crate) fn vue_script_section_ranges(content: &str) -> Vec<(usize, usize)> {
     scan_vue_sections(content)
         .into_iter()
         .filter(|section| section.section_type == "script")

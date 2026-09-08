@@ -151,6 +151,12 @@ fn extract_identifier_from_node(
             }
         }
 
+        "type_name" if is_method_return_type(node) => {
+            let name = base.get_node_text(&node);
+            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+            base.create_identifier(&node, name, IdentifierKind::TypeUsage, containing_symbol_id);
+        }
+
         // PowerShell .NET generic type: [List[User]], [Dictionary[string, int]]
         // The grammar uses `generic_type_name` for the base name and
         // `generic_type_arguments` (sibling in the parent `type_spec`) for the args.
@@ -583,4 +589,23 @@ fn find_containing_symbol_id(
     containing_symbols: &ContainingSymbolIndex<'_>,
 ) -> Option<String> {
     containing_symbols.find(node).map(|s| s.id.clone())
+}
+
+fn is_method_return_type(node: Node) -> bool {
+    if node
+        .parent()
+        .is_some_and(|parent| parent.kind() == "generic_type_name")
+    {
+        return false;
+    }
+    let mut current = node;
+    while let Some(parent) = current.parent() {
+        if parent.kind() == "type_literal" {
+            return parent
+                .parent()
+                .is_some_and(|owner| owner.kind() == "class_method_definition");
+        }
+        current = parent;
+    }
+    false
 }

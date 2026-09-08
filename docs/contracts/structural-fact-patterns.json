@@ -323,7 +323,8 @@
   {
     "description": "An ASP.NET Core minimal-API endpoint route (MapGet/MapPost/…).",
     "languages": [
-      "csharp"
+      "csharp",
+      "razor"
     ],
     "metadata_keys": [
       {
@@ -351,9 +352,15 @@
         "value_type": "string"
       },
       {
-        "description": "HTTP method derived from the Map* call (GET/POST/PUT/PATCH/DELETE).",
+        "description": "Static HTTP method from a Map* call or MapMethods collection; omitted when unknown.",
         "key": "verb",
-        "presence": "always",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Unknown when the methods expression cannot be resolved statically.",
+        "key": "verb_source",
+        "presence": "optional",
         "value_type": "string"
       },
       {
@@ -411,7 +418,8 @@
   {
     "description": "An ASP.NET Core minimal-API `MapGroup` route group.",
     "languages": [
-      "csharp"
+      "csharp",
+      "razor"
     ],
     "metadata_keys": [
       {
@@ -3088,6 +3096,48 @@
       {
         "description": "Raw attribute value, when the attribute has a value.",
         "key": "attribute_value",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Parser-proven literal path segments with dynamic placeholders.",
+        "key": "normalized_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Partial or unknown interpolation evidence; never exact route equivalence.",
+        "key": "route_template_uncertainty",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Ordered literal and dynamic source segments.",
+        "key": "route_template_segments",
+        "presence": "optional",
+        "value_type": "object_array"
+      },
+      {
+        "description": "Start byte of a consumed dictionary entry declaration.",
+        "key": "declaration_start_byte",
+        "presence": "optional",
+        "value_type": "number"
+      },
+      {
+        "description": "End byte of a consumed dictionary entry declaration.",
+        "key": "declaration_end_byte",
+        "presence": "optional",
+        "value_type": "number"
+      },
+      {
+        "description": "Consumed object when a dictionary/object is bound to markup.",
+        "key": "binding_source",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "String literal or dynamic expression for consumed object entries.",
+        "key": "value_source",
         "presence": "optional",
         "value_type": "string"
       },

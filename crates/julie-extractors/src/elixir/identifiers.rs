@@ -51,7 +51,6 @@ fn extract_identifier_from_node(
 ) {
     match node.kind() {
         "call" => {
-            // Check if this is a definition macro — skip those
             if let Some(target) = node.child_by_field_name("target")
                 && target.kind() == "identifier"
             {
@@ -59,8 +58,18 @@ fn extract_identifier_from_node(
                 if is_definition_keyword(&name) {
                     return;
                 }
-                // Regular function call
                 let containing = find_containing_symbol_id(node, containing_symbols);
+                if let Some(is_usage) = typespec_position(base, node) {
+                    if is_usage {
+                        base.create_identifier(
+                            &target,
+                            name,
+                            IdentifierKind::TypeUsage,
+                            containing,
+                        );
+                    }
+                    return;
+                }
                 base.create_identifier(&target, name, IdentifierKind::Call, containing);
             }
             // Phase 3b: capture string-literal call-arguments config-free; the
@@ -91,7 +100,11 @@ fn extract_identifier_from_node(
                         base.create_identifier(
                             &right,
                             fn_name,
-                            IdentifierKind::MemberAccess,
+                            if typespec_position(base, node) == Some(true) {
+                                IdentifierKind::TypeUsage
+                            } else {
+                                IdentifierKind::MemberAccess
+                            },
                             containing,
                         );
                     }
@@ -131,6 +144,44 @@ fn extract_identifier_from_node(
         }
         _ => {}
     }
+}
+
+fn typespec_position(base: &BaseExtractor, node: Node) -> Option<bool> {
+    let mut current = Some(node);
+    let mut declaration_head = false;
+    while let Some(ancestor) = current {
+        if ancestor.kind() == "binary_operator"
+            && let (Some(left), Some(right)) = (
+                ancestor.child_by_field_name("left"),
+                ancestor.child_by_field_name("right"),
+            )
+            && base
+                .get_node_text(&ancestor)
+                .get(
+                    left.end_byte() - ancestor.start_byte()
+                        ..right.start_byte() - ancestor.start_byte(),
+                )
+                .is_some_and(|separator| separator.trim() == "::")
+            && (left.id() == node.id()
+                || node.parent().is_some_and(|parent| parent.id() == left.id()))
+        {
+            declaration_head = true;
+        }
+        if ancestor.kind() == "call"
+            && ancestor.parent().is_some_and(|parent| {
+                parent.kind() == "unary_operator" && base.get_node_text(&parent).starts_with('@')
+            })
+            && let Some(target) = ancestor.child_by_field_name("target")
+            && matches!(
+                base.get_node_text(&target).as_str(),
+                "spec" | "callback" | "macrocallback" | "type" | "typep" | "opaque"
+            )
+        {
+            return Some(ancestor.id() != node.id() && !declaration_head);
+        }
+        current = ancestor.parent();
+    }
+    None
 }
 
 /// Rule 1/4 predicate for the `variable_ref` arm: is this bare `identifier` a

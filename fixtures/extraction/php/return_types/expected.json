@@ -1,0 +1,185 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/php/return_types/source.php:Result:2:0",
+      "name": "Result",
+      "kind": "class",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/return_types/source.php",
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 15,
+      "start_byte": 6,
+      "end_byte": 21,
+      "body_span": {
+        "start_line": 2,
+        "start_column": 13,
+        "end_line": 2,
+        "end_column": 15,
+        "start_byte": 19,
+        "end_byte": 21
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "class Result",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "modifiers": [],
+        "type": "class"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/return_types/source.php:make:3:0",
+      "name": "make",
+      "kind": "function",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/return_types/source.php",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 48,
+      "start_byte": 22,
+      "end_byte": 70,
+      "body_span": {
+        "start_line": 3,
+        "start_column": 24,
+        "end_line": 3,
+        "end_column": 48,
+        "start_byte": 46,
+        "end_byte": 70
+      },
+      "body_hash": "d6dd34b13a1bfb8f1360876f10d6a993",
+      "signature": "function make(): Result",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "modifiers": "",
+        "parameters": "()",
+        "returnType": "Result",
+        "type": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [
+    {
+      "from_key": "fixtures/extraction/php/return_types/source.php:make:3:0",
+      "to_key": "fixtures/extraction/php/return_types/source.php:Result:2:0",
+      "kind": "instantiates",
+      "file_path": "fixtures/extraction/php/return_types/source.php",
+      "line_number": 3,
+      "span": {
+        "start_line": 3,
+        "start_column": 33,
+        "end_line": 3,
+        "end_column": 45,
+        "start_byte": 55,
+        "end_byte": 67
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
+      "metadata": null
+    }
+  ],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/php/return_types/source.php:Result:type_usage:3:17",
+      "name": "Result",
+      "kind": "type_usage",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/return_types/source.php",
+      "start_line": 3,
+      "start_column": 17,
+      "end_line": 3,
+      "end_column": 23,
+      "start_byte": 39,
+      "end_byte": 45,
+      "containing_key": "fixtures/extraction/php/return_types/source.php:make:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/php/return_types/source.php:Result:2:0",
+      "resolved_type": "class",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "php",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/php/return_types/source.php:make:3:0",
+      "resolved_type": "Result",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "php",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/return_types/source.php",
+      "covered_lines": 4,
+      "covered_bytes": 71,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 71,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/php/return_types/source.php:make:3:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/return_types/source.php",
+      "covered_lines": 1,
+      "covered_bytes": 24,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 3,
+      "start_column": 24,
+      "end_line": 3,
+      "end_column": 48,
+      "start_byte": 46,
+      "end_byte": 70,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [],
+  "type_argument_usages": []
+}

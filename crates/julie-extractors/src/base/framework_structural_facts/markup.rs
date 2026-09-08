@@ -60,26 +60,39 @@ fn htmx_attribute_fact(
     if is_ignored_markup_node(node) {
         return None;
     }
-    let span =
-        NormalizedSpan::from_content_range(content, attribute.start_byte, attribute.end_byte)?;
-    let mut metadata = base_metadata("frontend_interaction", "htmx");
-
-    insert_string(&mut metadata, "attribute_name", attribute_name);
-    if data_prefix {
-        metadata.insert("data_prefix".to_string(), Value::Bool(true));
+    let expression = if matches!(language, "javascript" | "jsx" | "tsx") {
+        let mut cursor = node.walk();
+        node.named_children(&mut cursor)
+            .find(|child| child.kind() == "jsx_expression" && !child.has_error())
+    } else {
+        None
+    };
+    let value = expression
+        .and_then(|expression| content.get(expression.byte_range()))
+        .or(attribute.value.as_deref());
+    let (start, end) = if expression.is_some() {
+        (node.start_byte(), node.end_byte())
+    } else {
+        (attribute.start_byte, attribute.end_byte)
+    };
+    let span = NormalizedSpan::from_content_range(content, start, end)?;
+    let mut metadata = htmx_attribute_metadata(attribute_name, value, data_prefix);
+    if expression.is_some() {
+        metadata.insert(
+            "value_source".into(),
+            Value::String("dynamic_expression".into()),
+        );
     }
-    if let Some(value) = attribute.value.as_deref() {
-        insert_string(&mut metadata, "attribute_value", value);
+    if language == "vue"
+        && (attribute.name.starts_with(':') || attribute.name.starts_with("v-bind:"))
+    {
+        metadata.insert(
+            "value_source".into(),
+            Value::String("dynamic_expression".into()),
+        );
     }
-    if let Some(verb) = htmx_request_verb(attribute_name) {
-        insert_string(&mut metadata, "verb", verb);
-        if let Some(target_path) = attribute
-            .value
-            .as_deref()
-            .filter(|value| is_static_path(value))
-        {
-            insert_string(&mut metadata, "target_path", target_path);
-        }
+    if let Some(value) = value {
+        super::htmx_templates::enrich_htmx_template(language, value, &mut metadata);
     }
 
     Some(fact_for_span(
@@ -93,7 +106,7 @@ fn htmx_attribute_fact(
     ))
 }
 
-fn canonical_htmx_attribute_name(attribute_name: &str) -> Option<(String, bool)> {
+pub(super) fn canonical_htmx_attribute_name(attribute_name: &str) -> Option<(String, bool)> {
     let normalized = attribute_name.to_ascii_lowercase();
     if normalized.starts_with("hx-") {
         return Some((normalized, false));
@@ -106,6 +119,30 @@ fn canonical_htmx_attribute_name(attribute_name: &str) -> Option<(String, bool)>
 /// htmx emission for JSX/TSX component markup. The javascript/jsx/tsx grammars
 /// all accept JSX, so the shared byte-level scanner runs over the whole file;
 /// only static-string values emit (see `component_htmx_attribute_fact`).
+pub(super) fn htmx_attribute_metadata(
+    attribute_name: &str,
+    value: Option<&str>,
+    data_prefix: bool,
+) -> std::collections::HashMap<String, Value> {
+    let mut metadata = base_metadata("frontend_interaction", "htmx");
+
+    insert_string(&mut metadata, "attribute_name", attribute_name);
+    if data_prefix {
+        metadata.insert("data_prefix".to_string(), Value::Bool(true));
+    }
+    if let Some(value) = value {
+        insert_string(&mut metadata, "attribute_value", value);
+    }
+    if let Some(verb) = htmx_request_verb(attribute_name) {
+        insert_string(&mut metadata, "verb", verb);
+        if let Some(target_path) = value.filter(|value| is_static_path(value)) {
+            insert_string(&mut metadata, "target_path", target_path);
+        }
+    }
+
+    metadata
+}
+
 pub(super) fn collect_jsx_htmx_attributes(
     language: &str,
     tree: &Tree,
@@ -147,12 +184,7 @@ pub(super) fn collect_vue_template_htmx_attributes(
     facts
 }
 
-/// Emit an htmx fact for component markup (JSX/TSX and Vue templates), mirroring
-/// the html/razor fact shape. Unlike the html path, only STATIC STRING values
-/// emit: JSX brace expressions (`hx-post={url}`) parse to a `{...}` value and
-/// stay silent, and Vue dynamic bindings (`:hx-post`, `v-bind:hx-post`) never
-/// match the `hx-*`/`data-hx-*` name shape. Alpine directives are intentionally
-/// not scanned on this surface.
+/// Emit static or parser-proven templated htmx paths from component markup.
 fn component_htmx_attribute_fact(
     language: &str,
     tree: &Tree,
@@ -160,15 +192,19 @@ fn component_htmx_attribute_fact(
     content: &str,
     attribute: &MarkupAttribute,
 ) -> Option<StructuralFact> {
-    let (attribute_name, data_prefix) = canonical_htmx_attribute_name(&attribute.name)?;
-    // Only static string values emit; a brace-expression value (parsed as a
-    // leading `{`) or a valueless attribute stays silent so dynamic component
-    // bindings are never misread as static request paths.
+    let name = if language == "vue" {
+        attribute
+            .name
+            .strip_prefix("v-bind:")
+            .or_else(|| attribute.name.strip_prefix(':'))
+            .unwrap_or(&attribute.name)
+    } else {
+        &attribute.name
+    };
+    let (attribute_name, data_prefix) = canonical_htmx_attribute_name(name)?;
     let value = attribute.value.as_deref()?;
-    if value.starts_with('{') {
-        return None;
-    }
-    htmx_attribute_fact(
+    let dynamic = value.starts_with('{') || name != attribute.name;
+    let fact = htmx_attribute_fact(
         language,
         tree,
         file_path,
@@ -176,7 +212,16 @@ fn component_htmx_attribute_fact(
         attribute,
         &attribute_name,
         data_prefix,
-    )
+    )?;
+    if dynamic
+        && !fact
+            .metadata
+            .as_ref()
+            .is_some_and(|metadata| metadata.contains_key("normalized_route_template"))
+    {
+        return None;
+    }
+    Some(fact)
 }
 
 fn alpine_directive_fact(

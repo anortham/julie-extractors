@@ -1,0 +1,12 @@
+<button @attributes="Attrs">Save</button>
+<button hx-get="/workspaces/@Esc(Id)/tests/start">Start</button>
+@code {
+    private Dictionary<string, object> Attrs => new() { ["hx-post"] = "/save", ["hx-trigger"] = "click", ["hx-get"] = $"/workspaces/{Id}/tests/start" };
+    private Dictionary<string, object> Logging = new() { ["hx-get"] = "/not-consumed" };
+    private void Configure() {
+        var group = app.MapGroup("/api");
+        group.MapMethods("/items", new[] { "GET", "POST" }, HandleItems);
+        app.MapHead("/head", HandleHead);
+        app.MapOptions("/options", HandleOptions);
+    }
+}

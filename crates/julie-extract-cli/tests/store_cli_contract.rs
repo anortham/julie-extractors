@@ -1307,7 +1307,7 @@ fn store_import_fixtures_extraction_persists_expected_file_versions() {
     let row_count: i64 = connection
         .query_row("SELECT COUNT(*) FROM file_versions", [], |row| row.get(0))
         .unwrap();
-    assert_eq!(row_count, 538);
+    assert_eq!(row_count, 602);
 
     let mut stmt = connection
         .prepare("SELECT path, content_hash FROM file_versions ORDER BY path")
@@ -1317,7 +1317,7 @@ fn store_import_fixtures_extraction_persists_expected_file_versions() {
         .unwrap()
         .collect::<Result<Vec<_>, _>>()
         .unwrap();
-    assert_eq!(rows.len(), 538);
+    assert_eq!(rows.len(), 602);
 
     let (first_path, first_hash) = &rows[0];
     assert_eq!(first_path, "README.md");

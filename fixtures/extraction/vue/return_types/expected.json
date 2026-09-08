@@ -1,0 +1,155 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/vue/return_types/source.vue:Source:1:1",
+      "name": "Source",
+      "kind": "class",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/return_types/source.vue",
+      "start_line": 1,
+      "start_column": 1,
+      "end_line": 4,
+      "end_column": 10,
+      "start_byte": 0,
+      "end_byte": 85,
+      "body_span": {
+        "start_line": 2,
+        "start_column": 14,
+        "end_line": 3,
+        "end_column": 38,
+        "start_byte": 33,
+        "end_byte": 75
+      },
+      "body_hash": "a73e913d4009a2792df19959766512f6",
+      "signature": "<Source />",
+      "doc_comment": "Vue Single File Component: Source",
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "sections": "script",
+        "type": "vue-sfc"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/vue/return_types/source.vue:Result:type_usage:3:17",
+      "name": "Result",
+      "kind": "type_usage",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/return_types/source.vue",
+      "start_line": 3,
+      "start_column": 17,
+      "end_line": 3,
+      "end_column": 23,
+      "start_byte": 54,
+      "end_byte": 60,
+      "containing_key": "fixtures/extraction/vue/return_types/source.vue:Source:1:1",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/vue/return_types/source.vue:Source:1:1",
+      "resolved_type": "vue-sfc",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "vue",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "vue.sfc_section.v1",
+      "capture_name": "section",
+      "node_kind": "sfc_section",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/return_types/source.vue",
+      "containing_key": "fixtures/extraction/vue/return_types/source.vue:Source:1:1",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 9,
+      "start_byte": 0,
+      "end_byte": 85,
+      "confidence": "1.000",
+      "metadata": {
+        "lang": "ts",
+        "pattern_version": 1,
+        "query_family": "component_structure",
+        "scoped": false,
+        "section_type": "script",
+        "setup": false
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/return_types/source.vue",
+      "covered_lines": 2,
+      "covered_bytes": 56,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 38,
+      "start_byte": 19,
+      "end_byte": 75,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [
+    {
+      "kind": "embedded",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/return_types/source.vue",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 9,
+      "start_byte": 0,
+      "end_byte": 85,
+      "metadata": {
+        "embedded_language": "typescript",
+        "host_node_kind": "script_element",
+        "host_tag": "script",
+        "lang": "ts"
+      }
+    },
+    {
+      "kind": "string_literal",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/return_types/source.vue",
+      "containing_key": "fixtures/extraction/vue/return_types/source.vue:Source:1:1",
+      "start_line": 1,
+      "start_column": 13,
+      "end_line": 1,
+      "end_column": 17,
+      "start_byte": 13,
+      "end_byte": 17,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
+}

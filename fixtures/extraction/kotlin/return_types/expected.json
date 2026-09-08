@@ -1,0 +1,201 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/kotlin/return_types/source.kt:Result:1:0",
+      "name": "Result",
+      "kind": "class",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/return_types/source.kt",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 12,
+      "start_byte": 0,
+      "end_byte": 12,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "class Result",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "modifiers": "",
+        "type": "class"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/return_types/source.kt:make:2:0",
+      "name": "make",
+      "kind": "function",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/return_types/source.kt",
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 29,
+      "start_byte": 13,
+      "end_byte": 42,
+      "body_span": {
+        "start_line": 2,
+        "start_column": 8,
+        "end_line": 2,
+        "end_column": 29,
+        "start_byte": 21,
+        "end_byte": 42
+      },
+      "body_hash": "26863f8f49183e2e5f38e28069679dc9",
+      "signature": "fun make(): Result = Result()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "modifiers": "",
+        "returnType": "Result",
+        "type": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/kotlin/return_types/source.kt:make:2:0",
+      "callee_name": "Result",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/return_types/source.kt",
+      "line_number": 2,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/return_types/source.kt:make:2:0",
+        "callee_name": "Result",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/return_types/source.kt",
+        "line_number": 2,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Result",
+        "terminal_name": "Result",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/return_types/source.kt:make:2:0",
+      "span": {
+        "start_line": 2,
+        "start_column": 21,
+        "end_line": 2,
+        "end_column": 29,
+        "start_byte": 34,
+        "end_byte": 42
+      }
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/kotlin/return_types/source.kt:Result:call:2:21",
+      "name": "Result",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/return_types/source.kt",
+      "start_line": 2,
+      "start_column": 21,
+      "end_line": 2,
+      "end_column": 27,
+      "start_byte": 34,
+      "end_byte": 40,
+      "containing_key": "fixtures/extraction/kotlin/return_types/source.kt:make:2:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/return_types/source.kt:Result:type_usage:2:12",
+      "name": "Result",
+      "kind": "type_usage",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/return_types/source.kt",
+      "start_line": 2,
+      "start_column": 12,
+      "end_line": 2,
+      "end_column": 18,
+      "start_byte": 25,
+      "end_byte": 31,
+      "containing_key": "fixtures/extraction/kotlin/return_types/source.kt:make:2:0",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/kotlin/return_types/source.kt:make:2:0",
+      "resolved_type": "Result",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "kotlin",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/return_types/source.kt",
+      "covered_lines": 3,
+      "covered_bytes": 43,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 43,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/kotlin/return_types/source.kt:make:2:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/return_types/source.kt",
+      "covered_lines": 1,
+      "covered_bytes": 21,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 2,
+      "start_column": 8,
+      "end_line": 2,
+      "end_column": 29,
+      "start_byte": 21,
+      "end_byte": 42,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [],
+  "type_argument_usages": []
+}

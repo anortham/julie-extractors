@@ -528,6 +528,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/csharp/http_client/source.cs:Task:type_usage:6:17",
+      "name": "Task",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/http_client/source.cs",
+      "start_line": 6,
+      "start_column": 17,
+      "end_line": 6,
+      "end_column": 21,
+      "start_byte": 94,
+      "end_byte": 98,
+      "containing_key": "fixtures/extraction/csharp/http_client/source.cs:Load:6:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/csharp/http_client/source.cs:User:type_usage:8:38",
       "name": "User",
       "kind": "type_usage",

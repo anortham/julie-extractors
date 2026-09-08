@@ -1,14 +1,14 @@
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 
 use serde_json::Value;
 use tree_sitter::{Node, Tree};
 
 use super::helpers::{
     base_metadata, fact_for_node, fact_for_span, find_matching_paren,
-    find_matching_paren_backwards, insert_string, is_comment_or_string_node, is_csharp_identifier,
-    is_identifier_boundary, node_text, parse_csharp_string_literal, parse_first_route_argument,
-    parse_handler_argument, skip_ascii_whitespace, skip_ascii_whitespace_until,
-    smallest_node_covering_range,
+    find_matching_paren_backwards, find_top_level_comma_or_end, insert_string,
+    is_comment_or_string_node, is_csharp_identifier, is_identifier_boundary, node_text,
+    parse_csharp_string_literal, parse_first_route_argument, parse_handler_argument,
+    skip_ascii_whitespace, skip_ascii_whitespace_until, smallest_node_covering_range,
 };
 use super::{
     ASPNET_ATTRIBUTE_ROUTE_PATTERN_ID, ASPNET_MINIMAL_API_ROUTE_GROUP_PATTERN_ID,
@@ -25,6 +25,9 @@ const ASPNET_ROUTE_METHODS: &[(&str, &str)] = &[
     ("MapPut", "PUT"),
     ("MapPatch", "PATCH"),
     ("MapDelete", "DELETE"),
+    ("MapHead", "HEAD"),
+    ("MapOptions", "OPTIONS"),
+    ("MapMethods", ""),
 ];
 
 pub(super) fn collect_aspnet_minimal_api_routes(
@@ -85,7 +88,6 @@ pub(super) fn collect_aspnet_minimal_api_routes(
 
             let mut metadata = base_metadata("framework", "aspnet");
             insert_string(&mut metadata, "api_style", "minimal_api");
-            insert_string(&mut metadata, "verb", verb);
             insert_string(&mut metadata, "route_template", &route_template);
             insert_string(&mut metadata, "route_source", route_source);
             let mut normalized_source = route_template.clone();
@@ -101,26 +103,99 @@ pub(super) fn collect_aspnet_minimal_api_routes(
             }
             insert_normalized_route_template(&mut metadata, &normalized_source);
 
-            if let Some(handler) = parse_handler_argument(content, route_arg_end, close_paren) {
+            let (verbs, handler_arg_end) = if *method_name == "MapMethods" {
+                let comma = skip_ascii_whitespace_until(content, route_arg_end, close_paren);
+                let methods_start = skip_ascii_whitespace_until(content, comma + 1, close_paren);
+                let methods_end = find_top_level_comma_or_end(content, methods_start, close_paren);
+                (
+                    minimal_api_method_values(&content[methods_start..methods_end]),
+                    methods_end,
+                )
+            } else {
+                (vec![Some((*verb).to_string())], route_arg_end)
+            };
+            if let Some(handler) = parse_handler_argument(content, handler_arg_end, close_paren) {
                 insert_string(&mut metadata, "handler_kind", handler.kind);
                 if let Some(name) = handler.name {
                     insert_string(&mut metadata, "handler_name", &name);
                 }
             }
 
-            facts.push(fact_for_span(
-                file_path,
-                language,
-                ASPNET_MINIMAL_API_ROUTE_PATTERN_ID,
-                "route_call",
-                node.kind(),
-                span,
-                metadata,
-            ));
+            for verb in verbs {
+                let mut metadata = metadata.clone();
+                if let Some(verb) = verb {
+                    insert_string(&mut metadata, "verb", &verb);
+                } else {
+                    insert_string(&mut metadata, "verb_source", "unknown");
+                }
+                facts.push(fact_for_span(
+                    file_path,
+                    language,
+                    ASPNET_MINIMAL_API_ROUTE_PATTERN_ID,
+                    "route_call",
+                    node.kind(),
+                    span,
+                    metadata,
+                ));
+            }
         }
     }
 
     facts
+}
+
+fn minimal_api_method_values(expression: &str) -> Vec<Option<String>> {
+    let expression = expression.trim();
+    let values = if expression.starts_with('[') && expression.ends_with(']') {
+        &expression[1..expression.len() - 1]
+    } else if expression.starts_with("new") && expression.ends_with('}') {
+        let Some(open) = expression.find('{') else {
+            return vec![None];
+        };
+        &expression[open + 1..expression.len() - 1]
+    } else {
+        return vec![None];
+    };
+    let mut verbs = BTreeSet::new();
+    let mut start = 0;
+    while start < values.len() {
+        let end = find_top_level_comma_or_end(values, start, values.len());
+        let value = values[start..end].trim();
+        if !value.is_empty() {
+            let verb = parse_csharp_string_literal(value, 0)
+                .filter(|(_, end, _)| *end == value.len())
+                .map(|(value, _, _)| value)
+                .or_else(|| {
+                    value
+                        .strip_prefix("HttpMethods.")
+                        .filter(|value| {
+                            matches!(
+                                *value,
+                                "Get"
+                                    | "Post"
+                                    | "Put"
+                                    | "Patch"
+                                    | "Delete"
+                                    | "Head"
+                                    | "Options"
+                                    | "Connect"
+                                    | "Trace"
+                            )
+                        })
+                        .map(str::to_string)
+                })
+                .filter(|value| {
+                    !value.is_empty() && value.bytes().all(|b| b.is_ascii_alphabetic() || b == b'-')
+                })
+                .map(|value| value.to_ascii_uppercase());
+            verbs.insert(verb);
+        }
+        start = end + 1;
+    }
+    if verbs.is_empty() {
+        verbs.insert(None);
+    }
+    verbs.into_iter().collect()
 }
 
 fn collect_aspnet_minimal_api_route_groups(
@@ -439,8 +514,8 @@ fn collect_attribute_routes_for_method(
         let mut metadata = base_metadata("framework", "aspnet");
         insert_string(&mut metadata, "api_style", "attribute_routing");
         if let Some(verb) = verb {
-            insert_string(&mut metadata, "attribute_kind", "http_method");
             insert_string(&mut metadata, "verb", verb);
+            insert_string(&mut metadata, "attribute_kind", "http_method");
         } else {
             insert_string(&mut metadata, "attribute_kind", "route");
         }

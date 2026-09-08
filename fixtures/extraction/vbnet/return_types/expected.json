@@ -1,0 +1,186 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/vbnet/return_types/source.vb:Factory:3:0",
+      "name": "Factory",
+      "kind": "class",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/return_types/source.vb",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 8,
+      "end_column": 0,
+      "start_byte": 30,
+      "end_byte": 126,
+      "body_span": {
+        "start_line": 4,
+        "start_column": 21,
+        "end_line": 4,
+        "end_column": 23,
+        "start_byte": 72,
+        "end_byte": 74
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "public Class Factory",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "vb_visibility": "public"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/vbnet/return_types/source.vb:Make:4:1",
+      "name": "Make",
+      "kind": "method",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/return_types/source.vb",
+      "start_line": 4,
+      "start_column": 1,
+      "end_line": 7,
+      "end_column": 0,
+      "start_byte": 52,
+      "end_byte": 116,
+      "body_span": {
+        "start_line": 4,
+        "start_column": 21,
+        "end_line": 4,
+        "end_column": 23,
+        "start_byte": 72,
+        "end_byte": 74
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "public Function Make() As Result",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/vbnet/return_types/source.vb:Factory:3:0",
+      "metadata": {
+        "vb_visibility": "public"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/vbnet/return_types/source.vb:Result:1:0",
+      "name": "Result",
+      "kind": "class",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/return_types/source.vb",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 30,
+      "body_span": {
+        "start_line": 2,
+        "start_column": 0,
+        "end_line": 3,
+        "end_column": 0,
+        "start_byte": 20,
+        "end_byte": 30
+      },
+      "body_hash": "c16b99accf792f192fa3b10fef4f04c5",
+      "signature": "public Class Result",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "vb_visibility": "public"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/vbnet/return_types/source.vb:Result:type_usage:4:27",
+      "name": "Result",
+      "kind": "type_usage",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/return_types/source.vb",
+      "start_line": 4,
+      "start_column": 27,
+      "end_line": 4,
+      "end_column": 33,
+      "start_byte": 78,
+      "end_byte": 84,
+      "containing_key": "fixtures/extraction/vbnet/return_types/source.vb:Make:4:1",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/vbnet/return_types/source.vb:Make:4:1",
+      "resolved_type": "Result",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "vbnet",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/return_types/source.vb",
+      "covered_lines": 8,
+      "covered_bytes": 126,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 8,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 126,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/vbnet/return_types/source.vb:Make:4:1",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/return_types/source.vb",
+      "covered_lines": 4,
+      "covered_bytes": 64,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 4,
+      "start_column": 1,
+      "end_line": 7,
+      "end_column": 0,
+      "start_byte": 52,
+      "end_byte": 116,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [],
+  "type_argument_usages": []
+}

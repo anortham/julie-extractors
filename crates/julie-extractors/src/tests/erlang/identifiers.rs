@@ -280,8 +280,10 @@ f(Acct) -> Acct.
     );
 
     assert!(
-        identifiers.is_empty(),
-        "type signatures spell type names with call nodes and must stay out of the identifier tier: {}",
+        identifiers
+            .iter()
+            .all(|identifier| identifier.kind == IdentifierKind::TypeUsage),
+        "type signatures must emit only type usages, never executable identifiers: {}",
         identifier_inventory(&identifiers)
     );
 }
@@ -348,4 +350,20 @@ f() -> ok.
         "{}",
         identifier_inventory(&identifiers)
     );
+}
+
+#[test]
+fn record_return_spec_emits_a_type_reference_at_the_spec_site() {
+    let (_, identifiers) = extract_with_identifiers(
+        "-module(m).\n-record(account, {id}).\n-spec make() -> #account{}.\nmake() -> #account{}.\n",
+    );
+    let uses: Vec<_> = identifiers
+        .iter()
+        .filter(|id| {
+            id.name == "account" && id.start_line == 3 && id.kind == IdentifierKind::TypeUsage
+        })
+        .collect();
+    assert_eq!(uses.len(), 1);
+    assert_eq!(uses[0].start_column, 17);
+    assert_eq!(uses[0].end_column, 24);
 }

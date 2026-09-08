@@ -434,6 +434,77 @@ public class Test {
     }
 
     #[test]
+    fn agent_usefulness_return_types_have_exact_spans_without_duplicates() {
+        for (path, prefix) in [
+            ("Example.cs", "class Factory {"),
+            ("Example.razor", "@code {"),
+        ] {
+            let source = format!(
+                "{prefix}\n public Result Bare() => new Result();\n public Result? Nullable() => null;\n public Result[] Array() => null;\n public Box<Result> Generic() => null;\n public Models.Result Qualified() => null;\n}}\n"
+            );
+            let results =
+                crate::pipeline::extract_canonical(path, &source, std::path::Path::new("/repo"))
+                    .unwrap();
+            for marker in [
+                "Result Bare",
+                "Result? Nullable",
+                "Result[] Array",
+                "Result> Generic",
+                "Result Qualified",
+            ] {
+                let offset = source.find(marker).unwrap() as u32;
+                let rows: Vec<_> = results
+                    .identifiers
+                    .iter()
+                    .filter(|id| {
+                        id.kind == IdentifierKind::TypeUsage
+                            && id.name == "Result"
+                            && id.start_byte == offset
+                    })
+                    .collect();
+                assert_eq!(
+                    rows.len(),
+                    1,
+                    "{path}: missing or duplicated {marker}: {:?}",
+                    results.identifiers
+                );
+                assert_eq!(rows[0].end_byte, offset + 6);
+            }
+            let constructor_offset = source.find("new Result").unwrap() as u32 + 4;
+            let constructor_rows: Vec<_> = results
+                .identifiers
+                .iter()
+                .filter(|id| id.name == "Result" && id.start_byte == constructor_offset)
+                .collect();
+            let kinds: std::collections::HashSet<_> = constructor_rows
+                .iter()
+                .map(|id| format!("{:?}", id.kind))
+                .collect();
+            assert_eq!(
+                constructor_rows.len(),
+                kinds.len(),
+                "{path}: duplicate constructor identifiers"
+            );
+            assert_eq!(
+                constructor_rows
+                    .iter()
+                    .filter(|id| id.kind == IdentifierKind::TypeUsage)
+                    .count(),
+                1
+            );
+            if path.ends_with(".cs") {
+                assert_eq!(
+                    constructor_rows
+                        .iter()
+                        .filter(|id| id.kind == IdentifierKind::Call)
+                        .count(),
+                    1
+                );
+            }
+        }
+    }
+
+    #[test]
     fn test_csharp_type_usage_identifiers_cover_fields_params_returns_and_generics() {
         let csharp_code = r#"
 using System.Collections.Generic;

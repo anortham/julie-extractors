@@ -242,7 +242,8 @@ fn spec_types_do_not_leak_into_call_identifiers() {
     assert!(
         !identifiers
             .iter()
-            .any(|identifier| identifier.name == "term"),
+            .any(|identifier| identifier.name == "term"
+                && identifier.kind == crate::base::IdentifierKind::Call),
         "`term()` inside a -spec must not be read as a call; got {:?}",
         identifiers
             .iter()

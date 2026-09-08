@@ -67,6 +67,22 @@ impl SqlExtractor {
             }
 
             "identifier" => {
+                if let Some(reference) = node.parent()
+                    && reference.kind() == "object_reference"
+                    && reference
+                        .child_by_field_name("name")
+                        .is_some_and(|name| name.id() == node.id())
+                    && reference
+                        .parent()
+                        .and_then(|parent| parent.child_by_field_name("custom_type"))
+                        .is_some_and(|ty| ty.id() == reference.id())
+                {
+                    let name = normalize_sql_identifier(&self.base.get_node_text(&node));
+                    let scope = self.find_containing_symbol_id(node, containing_symbols);
+                    self.base
+                        .create_identifier(&node, name, IdentifierKind::TypeUsage, scope);
+                    return;
+                }
                 if let Some(next_sibling) = node.next_sibling()
                     && next_sibling.kind() == "function_arguments"
                 {

@@ -255,7 +255,24 @@
       }
     }
   ],
-  "identifiers": [],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/erlang/test_roles/source.erl:term:type_usage:22:26",
+      "name": "term",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles/source.erl",
+      "start_line": 22,
+      "start_column": 26,
+      "end_line": 22,
+      "end_column": 30,
+      "start_byte": 853,
+      "end_byte": 857,
+      "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
   "types": [
     {
       "symbol_key": "fixtures/extraction/erlang/test_roles/source.erl:balance_test:19:0",

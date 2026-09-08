@@ -1,0 +1,155 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/typescript/return_types/source.ts:Result:1:0",
+      "name": "Result",
+      "kind": "type",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/return_types/source.ts",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 17,
+      "start_byte": 0,
+      "end_byte": 17,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 14,
+        "end_line": 1,
+        "end_column": 16,
+        "start_byte": 14,
+        "end_byte": 16
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": null,
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/typescript/return_types/source.ts:make:2:0",
+      "name": "make",
+      "kind": "function",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/return_types/source.ts",
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 38,
+      "start_byte": 18,
+      "end_byte": 56,
+      "body_span": {
+        "start_line": 2,
+        "start_column": 24,
+        "end_line": 2,
+        "end_column": 38,
+        "start_byte": 42,
+        "end_byte": 56
+      },
+      "body_hash": "3a8bab0d15ee0393c97587780528bc54",
+      "signature": "make(): : Result",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "isAsync": false,
+        "isGenerator": false,
+        "parameters": [],
+        "returnType": ": Result",
+        "typeParameters": []
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/typescript/return_types/source.ts:Result:type_usage:2:17",
+      "name": "Result",
+      "kind": "type_usage",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/return_types/source.ts",
+      "start_line": 2,
+      "start_column": 17,
+      "end_line": 2,
+      "end_column": 23,
+      "start_byte": 35,
+      "end_byte": 41,
+      "containing_key": "fixtures/extraction/typescript/return_types/source.ts:make:2:0",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/typescript/return_types/source.ts:make:2:0",
+      "resolved_type": "function",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "typescript",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/return_types/source.ts",
+      "covered_lines": 3,
+      "covered_bytes": 57,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 57,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/typescript/return_types/source.ts:make:2:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/return_types/source.ts",
+      "covered_lines": 1,
+      "covered_bytes": 14,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 2,
+      "start_column": 24,
+      "end_line": 2,
+      "end_column": 38,
+      "start_byte": 42,
+      "end_byte": 56,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [],
+  "type_argument_usages": []
+}

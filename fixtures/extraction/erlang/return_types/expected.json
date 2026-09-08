@@ -1,0 +1,237 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/erlang/return_types/source.erl:factory:1:0",
+      "name": "factory",
+      "kind": "module",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/return_types/source.erl",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 17,
+      "start_byte": 0,
+      "end_byte": 17,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 7,
+        "end_line": 1,
+        "end_column": 16,
+        "start_byte": 7,
+        "end_byte": 16
+      },
+      "body_hash": "cfb59d73c17a881cb54d220d28a9cff3",
+      "signature": "-module(factory)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/return_types/source.erl:make:4:0",
+      "name": "make",
+      "kind": "function",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/return_types/source.erl",
+      "start_line": 4,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 12,
+      "start_byte": 73,
+      "end_byte": 85,
+      "body_span": {
+        "start_line": 4,
+        "start_column": 7,
+        "end_line": 4,
+        "end_column": 12,
+        "start_byte": 80,
+        "end_byte": 85
+      },
+      "body_hash": "816d33f094ed8d8595df5dc310eeaf73",
+      "signature": "make/0()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/erlang/return_types/source.erl:factory:1:0",
+      "metadata": {
+        "arity": 0,
+        "clause_count": 1
+      },
+      "annotations": [
+        {
+          "annotation": "spec",
+          "annotation_key": "spec",
+          "raw_text": "spec make() -> result()"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/return_types/source.erl:result:2:0",
+      "name": "result",
+      "kind": "type",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/return_types/source.erl",
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 28,
+      "start_byte": 18,
+      "end_byte": 46,
+      "body_span": {
+        "start_line": 2,
+        "start_column": 12,
+        "end_line": 2,
+        "end_column": 27,
+        "start_byte": 30,
+        "end_byte": 45
+      },
+      "body_hash": "fbf4559d63b18d8b3c46d336476324b3",
+      "signature": "-type result() :: integer()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/erlang/return_types/source.erl:factory:1:0",
+      "metadata": {
+        "arity": 0
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/erlang/return_types/source.erl:integer:type_usage:2:18",
+      "name": "integer",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/return_types/source.erl",
+      "start_line": 2,
+      "start_column": 18,
+      "end_line": 2,
+      "end_column": 25,
+      "start_byte": 36,
+      "end_byte": 43,
+      "containing_key": "fixtures/extraction/erlang/return_types/source.erl:result:2:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/return_types/source.erl:result:type_usage:3:16",
+      "name": "result",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/return_types/source.erl",
+      "start_line": 3,
+      "start_column": 16,
+      "end_line": 3,
+      "end_column": 22,
+      "start_byte": 63,
+      "end_byte": 69,
+      "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/erlang/return_types/source.erl:make:4:0",
+      "resolved_type": "result",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "erlang",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/erlang/return_types/source.erl:result:2:0",
+      "resolved_type": "integer",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "erlang",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "erlang.module_attribute.v1",
+      "capture_name": "module_attribute",
+      "node_kind": "module_attribute",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/return_types/source.erl",
+      "containing_key": "fixtures/extraction/erlang/return_types/source.erl:factory:1:0",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 17,
+      "start_byte": 0,
+      "end_byte": 17,
+      "confidence": "1.000",
+      "metadata": {
+        "module": "factory",
+        "pattern_version": 1,
+        "query_family": "module"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/return_types/source.erl",
+      "covered_lines": 5,
+      "covered_bytes": 86,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 5,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 86,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/erlang/return_types/source.erl:make:4:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/return_types/source.erl",
+      "covered_lines": 1,
+      "covered_bytes": 12,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 4,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 12,
+      "start_byte": 73,
+      "end_byte": 85,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [],
+  "type_argument_usages": []
+}

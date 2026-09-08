@@ -596,5 +596,5 @@ fn test_public_api_surface_exports_exact_symbols() {
 
     // Constants
     assert!(!crate::EXTRACTION_CONTRACT_VERSION.is_empty());
-    assert_eq!(crate::EXTRACTION_IDENTITY_EPOCH, 9);
+    assert_eq!(crate::EXTRACTION_IDENTITY_EPOCH, 10);
 }

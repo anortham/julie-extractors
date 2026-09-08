@@ -457,7 +457,9 @@ fn is_go_type_usage_identifier(base: &BaseExtractor, node: Node) -> bool {
             return false;
         }
 
-        if let Some(type_node) = parent.child_by_field_name("type")
+        if let Some(type_node) = parent
+            .child_by_field_name("type")
+            .or_else(|| parent.child_by_field_name("result"))
             && contains_node(type_node, node)
         {
             return true;

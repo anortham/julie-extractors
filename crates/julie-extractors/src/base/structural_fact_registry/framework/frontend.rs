@@ -38,6 +38,48 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "Raw attribute value, when the attribute has a value.",
             ),
             key(
+                "normalized_route_template",
+                STR,
+                OPT,
+                "Parser-proven literal path segments with dynamic placeholders.",
+            ),
+            key(
+                "route_template_uncertainty",
+                STR,
+                OPT,
+                "Partial or unknown interpolation evidence; never exact route equivalence.",
+            ),
+            key(
+                "route_template_segments",
+                OBJARR,
+                OPT,
+                "Ordered literal and dynamic source segments.",
+            ),
+            key(
+                "declaration_start_byte",
+                NUM,
+                OPT,
+                "Start byte of a consumed dictionary entry declaration.",
+            ),
+            key(
+                "declaration_end_byte",
+                NUM,
+                OPT,
+                "End byte of a consumed dictionary entry declaration.",
+            ),
+            key(
+                "binding_source",
+                STR,
+                OPT,
+                "Consumed object when a dictionary/object is bound to markup.",
+            ),
+            key(
+                "value_source",
+                STR,
+                OPT,
+                "String literal or dynamic expression for consumed object entries.",
+            ),
+            key(
                 "verb",
                 STR,
                 OPT,

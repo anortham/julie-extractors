@@ -89,6 +89,26 @@ In CI, the `Extractor Compatibility` job downloads the latest published release 
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
+## 2.41.1
+
+classification: compatible
+
+Agent-usefulness extraction repairs add facts without changing tables, columns,
+or JSONL fields. Named return types now emit exact `type_usage` identifiers in
+all 25 languages with native return-type syntax. ASP.NET minimal APIs cover
+`MapHead`, `MapOptions`, literal `MapMethods` verbs, route groups, and handler
+metadata. htmx and component attributes preserve normalized template evidence
+and explicit uncertainty. Java single-segment package declarations now emit
+their namespace symbol.
+
+Artifact schema remains 7, JSONL remains contract v5, and family stores remain
+store schema 2. Extraction identity advances from 9 to 10 so unchanged files
+are re-extracted instead of reusing epoch-9 rows that predate these facts.
+
+Consumer action: replace the binary and re-extract, or let epoch-10 file
+versions populate through the family-store writer. Existing artifacts remain
+readable. Do not delete prior file versions.
+
 ## 2.41.0
 
 classification: compatible

@@ -560,6 +560,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/razor/code-behind/Widget.razor:Task:type_usage:14:18",
+      "name": "Task",
+      "kind": "type_usage",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/code-behind/Widget.razor",
+      "start_line": 14,
+      "start_column": 18,
+      "end_line": 14,
+      "end_column": 22,
+      "start_byte": 320,
+      "end_byte": 324,
+      "containing_key": "fixtures/extraction/razor/code-behind/Widget.razor:LoadAsync:14:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/razor/code-behind/Widget.razor:ThemeContext:type_usage:12:11",
       "name": "ThemeContext",
       "kind": "type_usage",

@@ -1,0 +1,422 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/tsx/agent_usefulness/source.tsx:View:3:20",
+      "name": "View",
+      "kind": "function",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/agent_usefulness/source.tsx",
+      "start_line": 3,
+      "start_column": 20,
+      "end_line": 3,
+      "end_column": 58,
+      "start_byte": 171,
+      "end_byte": 209,
+      "body_span": {
+        "start_line": 3,
+        "start_column": 26,
+        "end_line": 3,
+        "end_column": 58,
+        "start_byte": 177,
+        "end_byte": 209
+      },
+      "body_hash": "9505440c2598b0a04e46fa62294e582b",
+      "signature": "View()",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "isAsync": false,
+        "isGenerator": false,
+        "parameters": [],
+        "typeParameters": []
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/tsx/agent_usefulness/source.tsx:attrs:1:6",
+      "name": "attrs",
+      "kind": "variable",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/agent_usefulness/source.tsx",
+      "start_line": 1,
+      "start_column": 6,
+      "end_line": 1,
+      "end_column": 102,
+      "start_byte": 6,
+      "end_byte": 102,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 14,
+        "end_line": 1,
+        "end_column": 102,
+        "start_byte": 14,
+        "end_byte": 102
+      },
+      "body_hash": "fe84652cdd1eaf75cc00ef05198949e7",
+      "signature": null,
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/tsx/agent_usefulness/source.tsx:logging:2:6",
+      "name": "logging",
+      "kind": "variable",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/agent_usefulness/source.tsx",
+      "start_line": 2,
+      "start_column": 6,
+      "end_line": 2,
+      "end_column": 45,
+      "start_byte": 110,
+      "end_byte": 149,
+      "body_span": {
+        "start_line": 2,
+        "start_column": 16,
+        "end_line": 2,
+        "end_column": 45,
+        "start_byte": 120,
+        "end_byte": 149
+      },
+      "body_hash": "4a2efc87b0d2a0034915e06d86391ce4",
+      "signature": null,
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/tsx/agent_usefulness/source.tsx:attrs:variable_ref:3:38",
+      "name": "attrs",
+      "kind": "variable_ref",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/agent_usefulness/source.tsx",
+      "start_line": 3,
+      "start_column": 38,
+      "end_line": 3,
+      "end_column": 43,
+      "start_byte": 189,
+      "end_byte": 194,
+      "containing_key": "fixtures/extraction/tsx/agent_usefulness/source.tsx:View:3:20",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/tsx/agent_usefulness/source.tsx:id:variable_ref:1:84",
+      "name": "id",
+      "kind": "variable_ref",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/agent_usefulness/source.tsx",
+      "start_line": 1,
+      "start_column": 84,
+      "end_line": 1,
+      "end_column": 86,
+      "start_byte": 84,
+      "end_byte": 86,
+      "containing_key": "fixtures/extraction/tsx/agent_usefulness/source.tsx:attrs:1:6",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/tsx/agent_usefulness/source.tsx:View:3:20",
+      "resolved_type": "function",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "tsx",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/tsx/agent_usefulness/source.tsx:attrs:1:6",
+      "resolved_type": "object",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "tsx",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/tsx/agent_usefulness/source.tsx:logging:2:6",
+      "resolved_type": "object",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "tsx",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "htmx.attribute.v1",
+      "capture_name": "attribute",
+      "node_kind": "jsx_expression",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/agent_usefulness/source.tsx",
+      "containing_key": "fixtures/extraction/tsx/agent_usefulness/source.tsx:View:3:20",
+      "start_line": 3,
+      "start_column": 34,
+      "end_line": 3,
+      "end_column": 44,
+      "start_byte": 185,
+      "end_byte": 195,
+      "confidence": "1.000",
+      "metadata": {
+        "attribute_name": "hx-get",
+        "attribute_value": "`/workspaces/${id}/tests/start`",
+        "binding_source": "consumed_object",
+        "declaration_end_byte": 101,
+        "declaration_start_byte": 58,
+        "framework": "htmx",
+        "normalized_route_template": "/workspaces/:dynamic/tests/start",
+        "pattern_version": 1,
+        "query_family": "frontend_interaction",
+        "route_template_segments": [
+          {
+            "kind": "literal",
+            "text": "/workspaces/"
+          },
+          {
+            "kind": "dynamic",
+            "text": "${id}"
+          },
+          {
+            "kind": "literal",
+            "text": "/tests/start"
+          }
+        ],
+        "route_template_uncertainty": "partial",
+        "value_source": "dynamic_expression",
+        "verb": "GET"
+      }
+    },
+    {
+      "pattern_id": "htmx.attribute.v1",
+      "capture_name": "attribute",
+      "node_kind": "jsx_expression",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/agent_usefulness/source.tsx",
+      "containing_key": "fixtures/extraction/tsx/agent_usefulness/source.tsx:View:3:20",
+      "start_line": 3,
+      "start_column": 34,
+      "end_line": 3,
+      "end_column": 44,
+      "start_byte": 185,
+      "end_byte": 195,
+      "confidence": "1.000",
+      "metadata": {
+        "attribute_name": "hx-post",
+        "attribute_value": "/save",
+        "binding_source": "consumed_object",
+        "declaration_end_byte": 34,
+        "declaration_start_byte": 15,
+        "framework": "htmx",
+        "pattern_version": 1,
+        "query_family": "frontend_interaction",
+        "target_path": "/save",
+        "value_source": "string_literal",
+        "verb": "POST"
+      }
+    },
+    {
+      "pattern_id": "htmx.attribute.v1",
+      "capture_name": "attribute",
+      "node_kind": "jsx_expression",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/agent_usefulness/source.tsx",
+      "containing_key": "fixtures/extraction/tsx/agent_usefulness/source.tsx:View:3:20",
+      "start_line": 3,
+      "start_column": 34,
+      "end_line": 3,
+      "end_column": 44,
+      "start_byte": 185,
+      "end_byte": 195,
+      "confidence": "1.000",
+      "metadata": {
+        "attribute_name": "hx-trigger",
+        "attribute_value": "click",
+        "binding_source": "consumed_object",
+        "declaration_end_byte": 57,
+        "declaration_start_byte": 35,
+        "framework": "htmx",
+        "pattern_version": 1,
+        "query_family": "frontend_interaction",
+        "value_source": "string_literal"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/agent_usefulness/source.tsx",
+      "covered_lines": 4,
+      "covered_bytes": 211,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 211,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/tsx/agent_usefulness/source.tsx:View:3:20",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/agent_usefulness/source.tsx",
+      "covered_lines": 1,
+      "covered_bytes": 32,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 3,
+      "start_column": 26,
+      "end_line": 3,
+      "end_column": 58,
+      "start_byte": 177,
+      "end_byte": 209,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [
+    {
+      "kind": "string_literal",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/agent_usefulness/source.tsx",
+      "containing_key": "fixtures/extraction/tsx/agent_usefulness/source.tsx:attrs:1:6",
+      "start_line": 1,
+      "start_column": 16,
+      "end_line": 1,
+      "end_column": 25,
+      "start_byte": 16,
+      "end_byte": 25,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/agent_usefulness/source.tsx",
+      "containing_key": "fixtures/extraction/tsx/agent_usefulness/source.tsx:attrs:1:6",
+      "start_line": 1,
+      "start_column": 27,
+      "end_line": 1,
+      "end_column": 34,
+      "start_byte": 27,
+      "end_byte": 34,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/agent_usefulness/source.tsx",
+      "containing_key": "fixtures/extraction/tsx/agent_usefulness/source.tsx:attrs:1:6",
+      "start_line": 1,
+      "start_column": 36,
+      "end_line": 1,
+      "end_column": 48,
+      "start_byte": 36,
+      "end_byte": 48,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/agent_usefulness/source.tsx",
+      "containing_key": "fixtures/extraction/tsx/agent_usefulness/source.tsx:attrs:1:6",
+      "start_line": 1,
+      "start_column": 50,
+      "end_line": 1,
+      "end_column": 57,
+      "start_byte": 50,
+      "end_byte": 57,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/agent_usefulness/source.tsx",
+      "containing_key": "fixtures/extraction/tsx/agent_usefulness/source.tsx:attrs:1:6",
+      "start_line": 1,
+      "start_column": 59,
+      "end_line": 1,
+      "end_column": 67,
+      "start_byte": 59,
+      "end_byte": 67,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/agent_usefulness/source.tsx",
+      "containing_key": "fixtures/extraction/tsx/agent_usefulness/source.tsx:attrs:1:6",
+      "start_line": 1,
+      "start_column": 69,
+      "end_line": 1,
+      "end_column": 100,
+      "start_byte": 69,
+      "end_byte": 100,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/agent_usefulness/source.tsx",
+      "containing_key": "fixtures/extraction/tsx/agent_usefulness/source.tsx:logging:2:6",
+      "start_line": 2,
+      "start_column": 18,
+      "end_line": 2,
+      "end_column": 26,
+      "start_byte": 122,
+      "end_byte": 130,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/agent_usefulness/source.tsx",
+      "containing_key": "fixtures/extraction/tsx/agent_usefulness/source.tsx:logging:2:6",
+      "start_line": 2,
+      "start_column": 28,
+      "end_line": 2,
+      "end_column": 43,
+      "start_byte": 132,
+      "end_byte": 147,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
+}

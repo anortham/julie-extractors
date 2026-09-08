@@ -2,8 +2,10 @@ mod actix;
 mod aspnet;
 mod axum;
 mod blazor_navigation;
+mod consumed_attributes;
 mod go_http;
 mod helpers;
+mod htmx_templates;
 mod http_clients;
 mod kotlin_spring;
 mod ktor;
@@ -182,6 +184,8 @@ const RUST_PATTERN_IDS: &[&str] = &[
 ];
 #[cfg(all(test, feature = "test-capability-matrix"))]
 const RAZOR_FRAMEWORK_PATTERN_IDS: &[&str] = &[
+    ASPNET_MINIMAL_API_ROUTE_PATTERN_ID,
+    ASPNET_MINIMAL_API_ROUTE_GROUP_PATTERN_ID,
     ALPINE_DIRECTIVE_PATTERN_ID,
     BLAZOR_COMPONENT_REFERENCE_PATTERN_ID,
     HTMX_ATTRIBUTE_PATTERN_ID,
@@ -224,6 +228,9 @@ pub fn collect_framework_structural_facts(
         "html" => collect_markup_framework_attributes(language, tree, file_path, content),
         "razor" => {
             let mut razor_facts = collect_razor_structural_facts(tree, file_path, content);
+            razor_facts.extend(collect_aspnet_minimal_api_routes(
+                language, tree, file_path, content,
+            ));
             razor_facts.extend(collect_markup_framework_attributes(
                 language, tree, file_path, content,
             ));
@@ -318,6 +325,9 @@ pub fn collect_framework_structural_facts(
         _ => Vec::new(),
     };
 
+    facts.extend(consumed_attributes::collect_consumed_attributes(
+        language, tree, file_path, content, symbols,
+    ));
     attach_containing_symbols(&mut facts, symbols);
     sort_structural_facts(&mut facts);
     facts

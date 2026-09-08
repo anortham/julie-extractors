@@ -1161,6 +1161,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/go/basic/source.go:Worker:type_usage:15:23",
+      "name": "Worker",
+      "kind": "type_usage",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/basic/source.go",
+      "start_line": 15,
+      "start_column": 23,
+      "end_line": 15,
+      "end_column": 29,
+      "start_byte": 214,
+      "end_byte": 220,
+      "containing_key": "fixtures/extraction/go/basic/source.go:NewWorker:15:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/go/basic/source.go:Worker:type_usage:16:8",
       "name": "Worker",
       "kind": "type_usage",

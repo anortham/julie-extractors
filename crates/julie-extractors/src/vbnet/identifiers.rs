@@ -106,6 +106,12 @@ fn extract_identifier_from_node(
             }
         }
 
+        "namespace_name" if is_return_type_namespace(node) => {
+            let name = base.get_node_text(&node);
+            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+            base.create_identifier(&node, name, IdentifierKind::TypeUsage, containing_symbol_id);
+        }
+
         // VB.NET generic type use site: `List(Of String)`, `Dictionary(Of String, Integer)`
         // Grammar: generic_type → namespace_name (base name) + type_argument_list (args)
         "generic_type" => {
@@ -507,4 +513,22 @@ fn declared_base_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
         current = candidate.parent();
     }
     None
+}
+
+fn is_return_type_namespace(node: Node) -> bool {
+    if node
+        .parent()
+        .is_some_and(|parent| parent.kind() == "generic_type")
+    {
+        return false;
+    }
+    let mut current = node;
+    while let Some(parent) = current.parent() {
+        if let Some(return_type) = parent.child_by_field_name("return_type") {
+            return node.start_byte() >= return_type.start_byte()
+                && node.end_byte() <= return_type.end_byte();
+        }
+        current = parent;
+    }
+    false
 }
