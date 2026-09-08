@@ -19,7 +19,8 @@ use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
 use crate::capability_snapshot::artifact_capability_snapshot;
 use crate::extraction::{
-    extract_artifact_file_from_snapshot_at, read_source_snapshot, select_extraction_pool,
+    effective_extraction_workers, extract_artifact_file_from_snapshot_at, read_source_snapshot,
+    select_extraction_pool,
 };
 use crate::paths::FileTarget;
 use crate::progress::{Counter, ScanProgress};
@@ -1390,9 +1391,15 @@ fn default_deep_chunk_versions() -> usize {
     DEFAULT_DEEP_CHUNK_VERSIONS
 }
 
-pub(crate) fn frozen_chunk_versions_from_environment() -> Result<(usize, usize), String> {
+/// Chunk limits frozen into a new request: the L1 default, and a deep chunk
+/// that grows from its floor to the extraction worker count so every worker has
+/// a file in each deep quantum. `MILLER_STORE_CHUNK_VERSIONS` overrides both.
+pub(crate) fn frozen_chunk_versions(jobs: usize) -> Result<(usize, usize), String> {
     let Some(value) = std::env::var_os("MILLER_STORE_CHUNK_VERSIONS") else {
-        return Ok((DEFAULT_L1_CHUNK_VERSIONS, DEFAULT_DEEP_CHUNK_VERSIONS));
+        return Ok((
+            DEFAULT_L1_CHUNK_VERSIONS,
+            deep_chunk_versions_for_workers(effective_extraction_workers(jobs)),
+        ));
     };
     let value = value
         .into_string()
@@ -1407,12 +1414,16 @@ pub(crate) fn frozen_chunk_versions_from_environment() -> Result<(usize, usize),
     Ok((limit, limit))
 }
 
+pub(crate) fn deep_chunk_versions_for_workers(workers: usize) -> usize {
+    workers.max(DEFAULT_DEEP_CHUNK_VERSIONS)
+}
+
 pub(crate) fn estimate_projected_wal_bytes(source_bytes: u64) -> u64 {
     source_bytes.saturating_mul(16).saturating_add(64 * 1024)
 }
 
 fn build_extraction_pool(jobs: usize) -> Result<rayon::ThreadPool, String> {
-    select_extraction_pool(jobs, |threads| {
+    select_extraction_pool(effective_extraction_workers(jobs), |threads| {
         rayon::ThreadPoolBuilder::new()
             .num_threads(threads)
             .stack_size(16 * 1024 * 1024)
@@ -1901,9 +1912,17 @@ fn wait_for_full_resume_test_hook() -> Result<(), String> {
 mod tests {
     use super::{
         IMPORT_PAYLOAD_MAX_BYTES, IMPORT_PLAN_MAX_FILES, MAX_CHUNK_VERSIONS, PlannedImportFile,
-        StoreRequestExecutor, WAL_BUDGET_BYTES, chunk_ranges, estimate_projected_wal_bytes,
-        map_with_jobs, validate_payload_bounds,
+        StoreRequestExecutor, WAL_BUDGET_BYTES, chunk_ranges, deep_chunk_versions_for_workers,
+        estimate_projected_wal_bytes, map_with_jobs, validate_payload_bounds,
     };
+
+    #[test]
+    fn deep_chunk_grows_from_its_floor_to_the_worker_count() {
+        assert_eq!(deep_chunk_versions_for_workers(1), 8);
+        assert_eq!(deep_chunk_versions_for_workers(8), 8);
+        assert_eq!(deep_chunk_versions_for_workers(19), 19);
+        assert_eq!(deep_chunk_versions_for_workers(102), 102);
+    }
 
     #[test]
     fn wal_budget_splits_before_the_next_version_would_exceed_128_mib() {

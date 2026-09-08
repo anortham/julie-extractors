@@ -199,8 +199,10 @@ for an existing artifact — with or without `--force` — is a `usage_error`
 Artifacts written before this flag existed read as `full`.
 
 `--jobs <n>` (alias `-j`) sets the number of parallel extraction workers. `0`
-(the default) auto-detects from available cores. Parallelism only affects the
-file read + parse + map phase; the SQLite write stays single-writer. Output is
+(the default) uses four fifths of the available cores, at least one, so the
+writer, the lease heartbeat, and the rest of the machine keep headroom. An
+explicit value is used as given. Parallelism only affects the file read + parse
++ map phase; the SQLite write stays single-writer. Output is
 independent of `--jobs`: the artifact, row ordering, report counts, and per-file
 failure handling are identical for any worker count.
 
@@ -480,10 +482,12 @@ idempotency key with the same canonical request replays its terminal report. Reu
 different request or operation returns `idempotency_conflict`. A requester timeout does not cancel
 a lease holder that is safely draining the request.
 
-Store imports default to 100 versions per L1 quantum and 8 versions per Full-deepening quantum;
-both remain bounded by the 128 MB projected WAL budget. `MILLER_STORE_CHUNK_VERSIONS=N` applies to
-both waves of a newly enqueued request, with `0` meaning one version. Those limits are stored in the
-request, so a retry uses the original schedule even when a successor process has different settings.
+Store imports default to 100 versions per L1 quantum and, per Full-deepening quantum, the
+extraction worker count with a floor of 8, so every worker has a file in each deep quantum; both
+remain bounded by the 128 MB projected WAL budget. `MILLER_STORE_CHUNK_VERSIONS=N` applies to both
+waves of a newly enqueued request, with `0` meaning one version. Those limits are stored in the
+request, so a retry uses the original schedule even when a successor process has different
+settings; a request written without them reads as 100 and 8.
 
 Store JSON uses its own `report_schema_version: 1`. Stable fields include `operation`, request
 identity, family/view/root identity, coordinator state, requested/completed levels, manifest

@@ -2172,7 +2172,20 @@ fn default_chunk_limit_processes_101_l1_versions_in_two_quanta() {
 }
 
 #[test]
-fn default_full_import_freezes_deep_chunks_at_eight_versions() {
+fn full_import_freezes_deep_chunks_at_eight_versions_for_one_worker() {
+    assert_full_import_deep_chunks("1", &[(1, 1), (3, 2)], &[8, 16]);
+}
+
+#[test]
+fn full_import_freezes_deep_chunks_at_the_worker_count_above_eight() {
+    assert_full_import_deep_chunks("12", &[(1, 1), (3, 1)], &[12]);
+}
+
+fn assert_full_import_deep_chunks(
+    jobs: &str,
+    expected_chunks: &[(i64, i64)],
+    expected_progress: &[i64],
+) {
     let fixture = tempfile::tempdir().unwrap();
     let root = fixture.path().join("root");
     let store = fixture.path().join("store");
@@ -2198,6 +2211,8 @@ fn default_full_import_freezes_deep_chunks_at_eight_versions() {
             "view-main",
             "--level",
             "full",
+            "--jobs",
+            jobs,
             "--request-id",
             "request-default-deep-chunks",
             "--idempotency-key",
@@ -2224,7 +2239,7 @@ fn default_full_import_freezes_deep_chunks_at_eight_versions() {
         .unwrap()
         .collect::<Result<Vec<_>, _>>()
         .unwrap();
-    assert_eq!(chunks, [(1, 1), (3, 2)]);
+    assert_eq!(chunks, expected_chunks);
     let deep_progress: Vec<i64> = connection
         .prepare(
             "SELECT json_extract(payload_json, '$.completed_files')
@@ -2238,7 +2253,7 @@ fn default_full_import_freezes_deep_chunks_at_eight_versions() {
         .unwrap()
         .collect::<Result<Vec<_>, _>>()
         .unwrap();
-    assert_eq!(deep_progress, [8, 16]);
+    assert_eq!(deep_progress, expected_progress);
 }
 
 #[test]

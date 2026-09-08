@@ -24,6 +24,23 @@ use serde_json::Value;
 
 use crate::paths::FileTarget;
 
+/// Number of extraction workers for a requested `--jobs` value.
+///
+/// `0` resolves to four fifths of the available cores, at least one, so a scan
+/// leaves headroom for the store writer, the lease heartbeat, and the rest of
+/// the machine. Any other value is used as given.
+pub(crate) fn effective_extraction_workers(requested_jobs: usize) -> usize {
+    if requested_jobs != 0 {
+        return requested_jobs;
+    }
+    let available = std::thread::available_parallelism().map_or(1, |count| count.get());
+    default_workers_for(available)
+}
+
+pub(crate) fn default_workers_for(available_cores: usize) -> usize {
+    (available_cores * 4 / 5).max(1)
+}
+
 /// Build the bounded extraction pool, retrying once with one worker if needed.
 pub(crate) fn select_extraction_pool<P, E>(
     requested_jobs: usize,
@@ -1432,6 +1449,23 @@ fn failure_parse_diagnostic(
 mod tests {
     use super::*;
     use julie_extractors::extract_canonical_at;
+
+    #[test]
+    fn default_workers_leave_one_fifth_of_the_cores_free_with_a_floor_of_one() {
+        assert_eq!(default_workers_for(1), 1);
+        assert_eq!(default_workers_for(2), 1);
+        assert_eq!(default_workers_for(4), 3);
+        assert_eq!(default_workers_for(5), 4);
+        assert_eq!(default_workers_for(24), 19);
+        assert_eq!(default_workers_for(128), 102);
+    }
+
+    #[test]
+    fn explicit_jobs_are_used_as_given() {
+        assert_eq!(effective_extraction_workers(1), 1);
+        assert_eq!(effective_extraction_workers(7), 7);
+        assert!(effective_extraction_workers(0) >= 1);
+    }
 
     #[test]
     fn receiver_context_is_stable_across_common_member_separators() {

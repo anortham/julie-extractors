@@ -15,7 +15,7 @@ use super::args::{StoreImportArgs, StoreLevelArg};
 use super::common::*;
 use super::executor::{
     ImportRequestPayload, ImportScanControls, PlannedImportFile, RequestedLevel,
-    StoreRequestExecutor, frozen_chunk_versions_from_environment,
+    StoreRequestExecutor, frozen_chunk_versions,
 };
 use super::report::{
     StoreCommandOutcome, StoreCoordinatorDisposition, StoreErrorReport, StoreFailureClass,
@@ -392,8 +392,7 @@ fn execute_import(
             }
             (layout, coordinator, existing)
         } else {
-            let (l1_chunk_versions, deep_chunk_versions) =
-                frozen_chunk_versions_from_environment()?;
+            let (l1_chunk_versions, deep_chunk_versions) = frozen_chunk_versions(controls.jobs)?;
             let controls = ImportScanControls {
                 l1_chunk_versions,
                 deep_chunk_versions,

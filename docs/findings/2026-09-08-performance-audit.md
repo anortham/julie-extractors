@@ -74,6 +74,32 @@ through the default page cache. `copy_files` and `copy_version_table` now use
 | `store export` | 42.7 s | 29.6 s | 23.0 s |
 | export sys time | 9.6 s | 9.6 s | 2.2 s |
 
+### 4. Reuse the store writer connection and extraction pool across quanta
+
+The coordinator opened a fresh store connection per quantum, discarding the
+page cache, and the executor built a new rayon pool per quantum. The drain now
+keeps one fenced connection and revalidates the generation fence and writer
+lease before each quantum; the executor keeps its pool keyed by the job count.
+
+| Metric | Before | After |
+| --- | ---: | ---: |
+| fresh `store import` (paired, load 5-9) | 40.0 / 42.4 / 43.3 s | 38.3 / 40.6 / 40.0 s |
+| fresh `store import` (paired, load 23) | 59.2 s | 48.0 s |
+| import bytes read | 10.2 GB | 4.35 GB |
+
+### 5. Core-scaled workers and deep chunk
+
+`--jobs 0` now resolves to four fifths of the available cores with a floor of
+one (19 on this 24-core box), and a new import freezes a deep chunk of
+`max(8, workers)` so every worker has a file in each deep quantum. The L1 chunk
+stays 100. `MILLER_STORE_CHUNK_VERSIONS` still overrides both. Contract text
+in `docs/contracts/cli.md` updated.
+
+| Metric | Before | After |
+| --- | ---: | ---: |
+| fresh `store import` (paired) | 41.5 / 40.0 s | 35.3 / 35.2 s |
+| fresh `scan` with 24 vs 19 workers (paired) | 17.4 / 21.2 s | 17.5 / 18.0 s |
+
 ## Changes tried and reverted
 
 - **`mmap_size` on the bulk writer.** Halved bytes read (10.2 GB to 5.5 GB) but
@@ -109,15 +135,12 @@ write and the 128 MB budget is a projection from source bytes, not a measure.
 
 Two caveats on the table above. `MILLER_STORE_CHUNK_VERSIONS` sets both waves,
 so the 32 and 64 rows also shrank the L1 chunk from 100; the deep-only effect
-is at least as large as shown. And two per-quantum costs confound the result:
-the coordinator opens a fresh store connection per quantum, which discards the
-page cache, and the executor builds a new rayon pool with 16 MiB worker stacks
-per quantum. Reusing both across quanta needs no contract change and should be
-measured before the chunk default moves. Raising the default is a contract
-change (`docs/contracts/cli.md`) and needs a decision. The design that keeps
-small commits while filling the cores is a bounded prefetch: extract chunk N+1
-on the pool while chunk N writes, and validate the frozen file identity when
-the prefetched result is consumed.
+is at least as large as shown. And the per-quantum connection and pool rebuild
+confounded the result; change 4 removed both, and change 5 then moved the deep
+chunk to the worker count. The design that keeps small commits while filling
+the cores further is a bounded prefetch: extract chunk N+1 on the pool while
+chunk N writes, and validate the frozen file identity when the prefetched
+result is consumed. See `docs/plans/2026-09-08-deep-wave-prefetch-pipeline.md`.
 
 ### Every file is extracted twice
 
@@ -151,18 +174,14 @@ rollback semantics, the export statement reuse, and the busy classification.
 It found that the first cut applied `temp_store = MEMORY` to the routine
 profile too (fixed: bulk only), that the chunk table conflates both waves
 (noted above), and that the lease rationale for 8 was outdated (corrected
-above). It added three verified defects, listed first below: the extraction
-pool is rebuilt per quantum, the store connection and its cache are reopened
-per quantum, and `validate_full` clones the whole extraction per file. It also
+above). It added three verified defects: the extraction pool was rebuilt per
+quantum and the store connection reopened per quantum (both fixed in change
+4), and `validate_full` clones the whole extraction per file (listed below). It also
 noted that `bulk_cache_size_kib` accepts any `i64` while SQLite reads a 32-bit
 value, so an out-of-range override fails the store's read-back check.
 
 ## Findings verified by reading, not measured
 
-- `store/executor.rs` builds a new rayon pool (16 MiB stacks per worker) for
-  every quantum, including quanta with no work.
-- `store/coordinator.rs` opens a fresh store writer connection per quantum, so
-  the bulk page cache and statement cache start cold every 8 files.
 - `store/executor.rs` `validate_full` returns `full.clone()`, copying every
   extracted row of the file once per deep file.
 

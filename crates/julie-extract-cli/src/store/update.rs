@@ -9,8 +9,7 @@ use super::args::{StoreLevelArg, StoreUpdateArgs};
 use super::common::*;
 use super::executor::{
     DeleteRequestPayload, ImportScanControls, PlannedImportFile, RequestedLevel,
-    StoreRequestExecutor, UpdateRequestPayload, frozen_chunk_versions_from_environment,
-    validate_target_within_root,
+    StoreRequestExecutor, UpdateRequestPayload, frozen_chunk_versions, validate_target_within_root,
 };
 use super::import::{
     RequestReportSpec, StoreExecutionOutcome, absolute_runtime_path, canonical_control_paths,
@@ -135,7 +134,7 @@ fn execute_update(
             _ => return Err("idempotency_conflict".to_string()),
         }
     } else {
-        let (l1_chunk_versions, deep_chunk_versions) = frozen_chunk_versions_from_environment()?;
+        let (l1_chunk_versions, deep_chunk_versions) = frozen_chunk_versions(controls.jobs)?;
         let controls = ImportScanControls {
             l1_chunk_versions,
             deep_chunk_versions,

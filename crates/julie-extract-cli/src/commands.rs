@@ -44,7 +44,7 @@ use crate::discovery::{
     canonicalize_ignore_files,
 };
 use crate::extraction::{
-    ExtractFileError, SourceSnapshot, extract_artifact_file,
+    ExtractFileError, SourceSnapshot, effective_extraction_workers, extract_artifact_file,
     extract_artifact_file_from_snapshot_at, failed_artifact_file, read_source_snapshot,
     select_extraction_pool, unchanged_artifact_file, unsupported_artifact_file,
 };
@@ -2002,7 +2002,7 @@ fn extract_supported_files_to_spool(
 
     // `num_threads(0)` lets rayon pick from available parallelism. The stack
     // reservation is virtual and committed lazily.
-    let pool = select_extraction_pool(request.jobs, |threads| {
+    let pool = select_extraction_pool(effective_extraction_workers(request.jobs), |threads| {
         rayon::ThreadPoolBuilder::new()
             .num_threads(threads)
             .stack_size(16 * 1024 * 1024)
