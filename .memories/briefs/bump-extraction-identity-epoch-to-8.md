@@ -1,9 +1,9 @@
 ---
 id: bump-extraction-identity-epoch-to-8
 title: Bump extraction identity epoch to 8
-status: active
+status: completed
 created: 2026-08-31T18:21:28.864Z
-updated: 2026-08-31T20:01:52.227Z
+updated: 2026-09-08T13:06:36.474Z
 tags:
   - epoch
   - store
