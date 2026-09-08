@@ -272,6 +272,7 @@ pub(crate) struct StoreRequestExecutor {
     watchdog: Option<crate::watchdog::ParentWatchdog>,
     progress: std::collections::BTreeMap<(String, String), Arc<ScanProgress>>,
     from_artifact_reuse: Option<FromArtifactReuse>,
+    extraction_pool: Option<(usize, rayon::ThreadPool)>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -301,6 +302,7 @@ impl StoreRequestExecutor {
             watchdog,
             progress: std::collections::BTreeMap::new(),
             from_artifact_reuse: None,
+            extraction_pool: None,
         }
     }
 
@@ -1409,20 +1411,43 @@ pub(crate) fn estimate_projected_wal_bytes(source_bytes: u64) -> u64 {
     source_bytes.saturating_mul(16).saturating_add(64 * 1024)
 }
 
+fn build_extraction_pool(jobs: usize) -> Result<rayon::ThreadPool, String> {
+    select_extraction_pool(jobs, |threads| {
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(threads)
+            .stack_size(16 * 1024 * 1024)
+            .build()
+    })
+    .map_err(|error| format!("extraction_pool_unavailable: {error}"))
+}
+
+#[cfg(test)]
 fn map_with_jobs<T, R, F>(items: &[T], jobs: usize, map: F) -> Result<Vec<R>, String>
 where
     T: Sync,
     R: Send,
     F: Fn(&T) -> R + Send + Sync,
 {
-    let pool = select_extraction_pool(jobs, |threads| {
-        rayon::ThreadPoolBuilder::new()
-            .num_threads(threads)
-            .stack_size(16 * 1024 * 1024)
-            .build()
-    })
-    .map_err(|error| format!("extraction_pool_unavailable: {error}"))?;
+    let pool = build_extraction_pool(jobs)?;
     Ok(pool.install(|| items.par_iter().map(map).collect()))
+}
+
+impl StoreRequestExecutor {
+    fn map_with_pool<T, R, F>(&mut self, items: &[T], jobs: usize, map: F) -> Result<Vec<R>, String>
+    where
+        T: Sync,
+        R: Send,
+        F: Fn(&T) -> R + Send + Sync,
+    {
+        if items.is_empty() {
+            return Ok(Vec::new());
+        }
+        let pool = match &mut self.extraction_pool {
+            Some((pool_jobs, pool)) if *pool_jobs == jobs => pool,
+            slot => &mut slot.insert((jobs, build_extraction_pool(jobs)?)).1,
+        };
+        Ok(pool.install(|| items.par_iter().map(map).collect()))
+    }
 }
 
 fn build_chunks(
@@ -1632,16 +1657,17 @@ impl CoordinatorExecutor for StoreRequestExecutor {
         } else {
             ExtractionLevel::Full
         };
-        let extracted = map_with_jobs(&work, payload.controls.jobs, |discovered| {
-            Self::extract(
-                &root,
-                discovered,
-                progress.as_deref(),
-                extraction_level,
-                &indexed_at,
-            )
-        })
-        .map_err(|error| format!("store_import_extract:{error}"))?;
+        let extracted = self
+            .map_with_pool(&work, payload.controls.jobs, |discovered| {
+                Self::extract(
+                    &root,
+                    discovered,
+                    progress.as_deref(),
+                    extraction_level,
+                    &indexed_at,
+                )
+            })
+            .map_err(|error| format!("store_import_extract:{error}"))?;
         let snapshot = (chunk.level == StoreLevel::L1).then(artifact_capability_snapshot);
         let mut snapshot_supplied = false;
         let mut staging = None;

@@ -85,6 +85,22 @@ impl StoreWriterConnection {
         self.connection
             .transaction_with_behavior(TransactionBehavior::Immediate)
     }
+
+    /// Reports whether this connection was fenced for the same generation and
+    /// fencing token, so a drain can reuse it for the next quantum after
+    /// revalidating the fence and lease.
+    pub fn fenced_for(&self, fence: &GenerationFence) -> bool {
+        self.fence.root == fence.root
+            && self.fence.generation_name == fence.generation_name
+            && self.fence.run_id == fence.run_id
+            && self.fence.owner_id == fence.owner_id
+            && self.fence.owner_pid == fence.owner_pid
+            && self.fence.fencing_token == fence.fencing_token
+    }
+
+    pub fn refresh_fence(&mut self, fence: GenerationFence) {
+        self.fence = fence;
+    }
 }
 
 impl fmt::Debug for StoreWriterConnection {

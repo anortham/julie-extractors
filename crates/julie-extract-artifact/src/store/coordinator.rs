@@ -16,7 +16,7 @@ use rusqlite::{
 };
 
 use super::connection::{
-    compare_versions as compare_store_versions, extractor_downgrade_allowed,
+    StoreWriterConnection, compare_versions as compare_store_versions, extractor_downgrade_allowed,
     required_writer_version, system_now_ms,
 };
 use super::layout::valid_generation_name;
@@ -1382,6 +1382,7 @@ impl StoreCoordinator {
         let mut report = DrainReport::default();
         let mut interactive_in_burst = 0usize;
         let mut burst_started_at = started_at;
+        let mut store_writer: Option<StoreWriterConnection> = None;
         loop {
             backlog_remaining.retain(|request_id| {
                 self.request(request_id).is_ok_and(|request| {
@@ -1434,6 +1435,7 @@ impl StoreCoordinator {
                 holder,
                 fencing_token,
                 request.clone(),
+                &mut store_writer,
             ) {
                 Ok(()) | Err(CoordinatorError::ExecutionFailed { .. }) => {}
                 Err(error @ CoordinatorError::QuantumDeadlineExceeded { .. }) => {
@@ -1489,6 +1491,7 @@ impl StoreCoordinator {
         holder: &LeaseHolder,
         fencing_token: i64,
         request: CoordinatorRequest,
+        cached_store_writer: &mut Option<StoreWriterConnection>,
     ) -> Result<(), CoordinatorError> {
         let reconciliation = self.reconcile(&request.request_id)?;
         if reconciliation.committed_in_fact {
@@ -1510,25 +1513,35 @@ impl StoreCoordinator {
         }
         #[cfg(feature = "test-store-crash")]
         super::test_hooks::crash_if("claim_before_effect");
-        let factory = StoreConnectionFactory::new(
-            self.layout.clone(),
-            self.family_id.clone(),
-            holder.holder_version.clone(),
-        )
-        .with_generation_fence(GenerationFence::writer(
+        let fence = GenerationFence::writer(
             &self.layout,
             &holder.holder_id,
             holder.holder_pid,
             fencing_token,
             wall_now,
-        ));
-        let mut store = factory.open_writer()?;
-        factory.advance_binary_version(&mut store)?;
-        configure_writer_pragmas(&store, WriterPragmaProfile::Bulk).map_err(|error| {
-            CoordinatorError::CorruptRequest {
-                detail: format!("store writer pragma configuration failed: {error:?}"),
+        );
+        let factory = StoreConnectionFactory::new(
+            self.layout.clone(),
+            self.family_id.clone(),
+            holder.holder_version.clone(),
+        )
+        .with_generation_fence(fence.clone());
+        let mut store = match cached_store_writer.take() {
+            Some(mut store) if store.fenced_for(&fence) => {
+                store.refresh_fence(fence);
+                store
             }
-        })?;
+            _ => {
+                let store = factory.open_writer()?;
+                configure_writer_pragmas(&store, WriterPragmaProfile::Bulk).map_err(|error| {
+                    CoordinatorError::CorruptRequest {
+                        detail: format!("store writer pragma configuration failed: {error:?}"),
+                    }
+                })?;
+                store
+            }
+        };
+        factory.advance_binary_version(&mut store)?;
         let transaction = store.transaction()?;
         let context = ExecutionContext {
             next_chunk_index: reconciliation.next_chunk_index,
@@ -1693,6 +1706,7 @@ impl StoreCoordinator {
             }
             transaction.commit()?;
         }
+        *cached_store_writer = Some(store);
         Ok(())
     }
 

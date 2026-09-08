@@ -13,8 +13,8 @@ use julie_extract_artifact::model::{
     FileStatus, ReferenceSiteProvenance, RevisionInput, WriteMode, WriteOperation,
 };
 use julie_extract_artifact::store::{
-    StoreConnectionFactory, StoreLayout, StoreVersionState, StoreWriteRequest, StoreWriter,
-    StoreWriterError,
+    L1ProjectionStaging, StoreConnectionFactory, StoreLayout, StoreVersionState, StoreWriteRequest,
+    StoreWriter, StoreWriterError,
 };
 use julie_extract_artifact::store::{StoreFileVersion, StoreLevel, StoreProjectionError};
 use julie_extract_artifact::writer::ArtifactWriter;
@@ -84,6 +84,54 @@ fn metadata_json_is_preserved_byte_for_byte_in_every_projection() {
         version.artifact_file().symbols[0].metadata_json,
         file.symbols[0].metadata_json
     );
+}
+
+#[test]
+fn projection_staging_is_reusable_across_matching_and_mismatching_files() {
+    let store = TestStore::new("projection-staging");
+    let mut writer = store.writer();
+    writer.stage_capability_snapshot(1, capability_snapshot());
+    let first = StoreFileVersion::try_from_artifact_file(
+        1,
+        fully_populated_file("src/lib.rs", "rust", "blake3:aaa"),
+    )
+    .unwrap();
+    let second = StoreFileVersion::try_from_artifact_file(
+        1,
+        fully_populated_file("src/other.rs", "rust", "blake3:bbb"),
+    )
+    .unwrap();
+    let mut renamed = fully_populated_file("src/lib.rs", "rust", "blake3:aaa");
+    renamed.symbols[0].name = "renamed".to_string();
+    let mismatch = StoreFileVersion::try_from_artifact_file(1, renamed).unwrap();
+    writer
+        .write_level(&request("request-first"), &first, StoreLevel::L1)
+        .unwrap();
+    writer
+        .write_level(&request("request-second"), &second, StoreLevel::L1)
+        .unwrap();
+    let stored_first = writer
+        .lookup_version(first.path(), first.content_hash(), 1, StoreLevel::L1)
+        .unwrap()
+        .unwrap();
+    let stored_second = writer
+        .lookup_version(second.path(), second.content_hash(), 1, StoreLevel::L1)
+        .unwrap()
+        .unwrap();
+
+    let transaction = writer.connection().unchecked_transaction().unwrap();
+    let mut staging = L1ProjectionStaging::new().unwrap();
+    let matches = |staging: &mut L1ProjectionStaging, stored, candidate| {
+        StoreWriter::l1_projection_matches_in_transaction(&transaction, staging, stored, candidate)
+            .unwrap()
+    };
+
+    assert!(matches(&mut staging, &stored_first, &first));
+    assert!(!matches(&mut staging, &stored_first, &mismatch));
+    assert!(matches(&mut staging, &stored_first, &first));
+    assert!(matches(&mut staging, &stored_second, &second));
+    assert!(!matches(&mut staging, &stored_second, &first));
+    assert!(matches(&mut staging, &stored_first, &first));
 }
 
 #[test]
