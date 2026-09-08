@@ -10,7 +10,7 @@ use serde_json::Value;
 
 const FAMILY_ID: &str = "family-reader-mixed-version";
 const CURRENT_WRITER_VERSION: &str = env!("CARGO_PKG_VERSION");
-const NEWER_FACTORY_VERSION: &str = "2.42.0";
+const NEWER_FACTORY_VERSION: &str = "2.43.0";
 const MAINTENANCE_NOW: i64 = 4_000_000_000_000;
 
 #[test]
