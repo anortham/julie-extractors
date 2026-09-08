@@ -194,7 +194,7 @@ fn header_has_content_bounded(
             return Ok(true);
         }
         chars_scanned += 1;
-        if chars_scanned % 256 == 0 {
+        if chars_scanned.is_multiple_of(256) {
             options.check()?;
         }
     }
@@ -293,7 +293,7 @@ fn tie_break_scan_prefers_cpp_bounded(
     let mut chars_scanned: usize = 0;
     for (byte_idx, _) in code.char_indices() {
         chars_scanned += 1;
-        if chars_scanned % 256 == 0 {
+        if chars_scanned.is_multiple_of(256) {
             options.check()?;
         }
         let remainder = &code[byte_idx..];
@@ -345,7 +345,7 @@ fn c_family_code_without_comments_and_strings_bounded(
 
     while let Some(ch) = chars.next() {
         chars_processed += 1;
-        if chars_processed % 256 == 0 {
+        if chars_processed.is_multiple_of(256) {
             options.check()?;
         }
         match ch {
@@ -354,7 +354,7 @@ fn c_family_code_without_comments_and_strings_bounded(
                 chars_processed += 1;
                 for comment_ch in chars.by_ref() {
                     chars_processed += 1;
-                    if chars_processed % 256 == 0 {
+                    if chars_processed.is_multiple_of(256) {
                         options.check()?;
                     }
                     if comment_ch == '\n' {
@@ -369,7 +369,7 @@ fn c_family_code_without_comments_and_strings_bounded(
                 let mut previous = '\0';
                 for comment_ch in chars.by_ref() {
                     chars_processed += 1;
-                    if chars_processed % 256 == 0 {
+                    if chars_processed.is_multiple_of(256) {
                         options.check()?;
                     }
                     if comment_ch == '\n' {
@@ -388,7 +388,7 @@ fn c_family_code_without_comments_and_strings_bounded(
                 let mut escaped = false;
                 for literal_ch in chars.by_ref() {
                     chars_processed += 1;
-                    if chars_processed % 256 == 0 {
+                    if chars_processed.is_multiple_of(256) {
                         options.check()?;
                     }
                     if literal_ch == '\n' {

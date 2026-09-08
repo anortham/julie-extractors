@@ -69,10 +69,10 @@ impl<'a> Default for SyntaxOptions<'a> {
 
 impl SyntaxOptions<'_> {
     pub(crate) fn check(&self) -> Result<(), SyntaxError> {
-        if let Some(cancelled) = self.cancelled {
-            if cancelled.load(Ordering::Acquire) {
-                return Err(SyntaxError::Cancelled);
-            }
+        if let Some(cancelled) = self.cancelled
+            && cancelled.load(Ordering::Acquire)
+        {
+            return Err(SyntaxError::Cancelled);
         }
         if let Some(deadline) = self.deadline {
             #[cfg(test)]
@@ -189,7 +189,7 @@ pub(crate) fn parse_tree_with_options(
         let bytes = source.as_bytes();
         let len = bytes.len();
         let mut input = |offset: usize, _: tree_sitter::Point| {
-            (offset < len).then(|| &bytes[offset..]).unwrap_or_default()
+            if offset < len { &bytes[offset..] } else { &[] }
         };
 
         parser.parse_with_options(
@@ -215,9 +215,12 @@ pub(crate) fn complete_parsed_tree(
 }
 
 #[cfg(test)]
+pub(crate) type TestProgressHook = Box<dyn FnMut(&tree_sitter::ParseState)>;
+
+#[cfg(test)]
 thread_local! {
     pub(crate) static TEST_CLOCK: std::cell::Cell<Option<Instant>> = const { std::cell::Cell::new(None) };
-    pub(crate) static TEST_PROGRESS_HOOK: std::cell::RefCell<Option<Box<dyn FnMut(&tree_sitter::ParseState)>>> = const { std::cell::RefCell::new(None) };
+    pub(crate) static TEST_PROGRESS_HOOK: std::cell::RefCell<Option<TestProgressHook>> = const { std::cell::RefCell::new(None) };
     pub(crate) static SYNTAX_DIRECT_PARSE_COUNT: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
     pub(crate) static TEST_PARSER_SETUP_FAIL: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
@@ -233,12 +236,12 @@ pub(crate) fn set_test_clock(instant: Option<Instant>) {
 }
 
 #[cfg(test)]
-pub(crate) fn set_test_progress_hook(hook: Option<Box<dyn FnMut(&tree_sitter::ParseState)>>) {
+pub(crate) fn set_test_progress_hook(hook: Option<TestProgressHook>) {
     TEST_PROGRESS_HOOK.with(|h| *h.borrow_mut() = hook);
 }
 
 #[cfg(test)]
-pub(crate) fn set_test_diagnostic_node_hook(hook: Option<Box<dyn FnMut(&tree_sitter::Node)>>) {
+pub(crate) fn set_test_diagnostic_node_hook(hook: Option<diagnostics::TestDiagnosticNodeHook>) {
     diagnostics::TEST_DIAGNOSTIC_NODE_HOOK.with(|h| *h.borrow_mut() = hook);
 }
 

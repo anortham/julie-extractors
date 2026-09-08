@@ -2,8 +2,11 @@ use super::{SyntaxError, SyntaxOptions};
 use crate::{NormalizedSpan, ParseDiagnostic, ParseDiagnosticKind};
 
 #[cfg(test)]
+pub(crate) type TestDiagnosticNodeHook = Box<dyn FnMut(&tree_sitter::Node)>;
+
+#[cfg(test)]
 thread_local! {
-    pub(crate) static TEST_DIAGNOSTIC_NODE_HOOK: std::cell::RefCell<Option<Box<dyn FnMut(&tree_sitter::Node)>>> = const { std::cell::RefCell::new(None) };
+    pub(crate) static TEST_DIAGNOSTIC_NODE_HOOK: std::cell::RefCell<Option<TestDiagnosticNodeHook>> = const { std::cell::RefCell::new(None) };
 }
 
 pub(super) fn collect(
