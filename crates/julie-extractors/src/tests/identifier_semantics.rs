@@ -26,10 +26,12 @@ fn test_identifier_kind_import_is_not_silently_coerced() {
 
 #[test]
 fn test_find_containing_symbol_from_map_filters_to_current_file_without_cloning_symbols() {
-    let workspace_root = std::path::PathBuf::from("/workspace");
+    let fixture = tempfile::tempdir().unwrap();
+    let workspace_root = fixture.path().to_path_buf();
+    let file_path = workspace_root.join("src/lib.rs");
     let base = BaseExtractor::new(
         "rust".to_string(),
-        "/workspace/src/lib.rs".to_string(),
+        file_path.to_str().unwrap().to_string(),
         "fn outer() {\n    helper();\n}\n".to_string(),
         &workspace_root,
     );

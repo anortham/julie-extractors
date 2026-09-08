@@ -224,9 +224,11 @@ mod tests {
 
     #[test]
     fn test_normalize_file_path_absolute_within_workspace() {
-        let root = Path::new("/workspace");
+        let fixture = tempfile::tempdir().unwrap();
+        let root = fixture.path();
+        let absolute = root.join("src/lib.rs");
         assert_eq!(
-            normalize_file_path("/workspace/src/lib.rs", root),
+            normalize_file_path(absolute.to_str().unwrap(), root),
             "src/lib.rs"
         );
     }

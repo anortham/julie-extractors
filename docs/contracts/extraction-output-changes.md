@@ -107,7 +107,10 @@ are re-extracted instead of reusing epoch-9 rows that predate these facts.
 
 Consumer action: replace the binary and re-extract, or let epoch-10 file
 versions populate through the family-store writer. Existing artifacts remain
-readable. Do not delete prior file versions.
+readable. Existing families preserve their stored reader floor; newly created
+2.41.1 families stamp `min_reader_version = 2.41.1`, so consumers adopting the
+binary must advertise 2.41.1 reader capability. Do not delete prior file
+versions.
 
 ## 2.41.0
 
