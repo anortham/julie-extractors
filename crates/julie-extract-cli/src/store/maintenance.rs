@@ -9,6 +9,7 @@ use julie_extract_artifact::store::{
     MaintenanceRun, StoreConnectionError, StoreConnectionFactory, StoreCoordinator, StoreLayout,
     StoreLayoutError, plan_view_retirement,
 };
+use rusqlite::{Connection, Error as SqliteError, ErrorCode, OpenFlags};
 
 use super::args::{
     StoreMaintainArgs, StoreMaintenanceCommand, StoreMaintenanceInspectArgs,
@@ -108,10 +109,7 @@ fn plan_mutation(
         StoreMaintenanceMode::Plan
     };
     match inspect_context(&args.store, args.family.as_deref(), action, mode) {
-        Ok(context) if !args.apply => success(
-            StoreMaintenanceReport::planned(action, &context.plan),
-            format,
-        ),
+        Ok(context) if !args.apply => success(planned_report(action, &context.plan), format),
         Ok(context) if action == StoreMaintenanceAction::Gc => {
             pause_after_plan_if_requested();
             apply_gc(context, format)
@@ -164,7 +162,7 @@ fn apply_repair(context: MaintenanceContext, format: StoreOutputFormat) -> Store
     };
     match lifecycle.repair(&context.plan, &GenerationPolicy::default()) {
         Ok(applied) => success(
-            StoreMaintenanceReport::planned(StoreMaintenanceAction::Repair, &context.plan)
+            planned_report(StoreMaintenanceAction::Repair, &context.plan)
                 .with_generation_apply(run_id, &applied),
             format,
         ),
@@ -406,7 +404,7 @@ fn inspect_store(
     action: StoreMaintenanceAction,
 ) -> Result<StoreMaintenanceReport, Box<StoreMaintenanceReport>> {
     inspect_context(store, requested_family, action, StoreMaintenanceMode::Plan)
-        .map(|context| StoreMaintenanceReport::planned(action, &context.plan))
+        .map(|context| planned_report(action, &context.plan))
 }
 
 struct MaintenanceContext {
@@ -422,6 +420,44 @@ fn inspect_context(
     mode: StoreMaintenanceMode,
 ) -> Result<MaintenanceContext, Box<StoreMaintenanceReport>> {
     let existing = open_maintenance_store(store, requested_family, action, mode)?;
+    if matches!(
+        action,
+        StoreMaintenanceAction::Inspect | StoreMaintenanceAction::Repair
+    ) {
+        validate_maintenance_integrity(&existing.layout).map_err(|error| {
+            let (class, code, message, recovery_action) = match error {
+                MaintenanceIntegrityError::Corrupt { database, detail } => (
+                    StoreMaintenanceFailureClass::IntegrityFailed,
+                    "integrity_check_failed",
+                    format!("{database} quick check failed: {detail}"),
+                    Some("store maintain promote --apply"),
+                ),
+                MaintenanceIntegrityError::Sqlite { database, error } => {
+                    let message = format!("{database} quick check failed: {error}");
+                    let error = MaintenanceError::Sqlite(error);
+                    (
+                        maintenance_failure_class(&error),
+                        maintenance_error_code(&error),
+                        message,
+                        None,
+                    )
+                }
+            };
+            let mut report = StoreMaintenanceReport::failed(
+                action,
+                mode,
+                existing.family_id.clone(),
+                existing.layout.generation_name().to_string(),
+                class,
+                code,
+                message,
+            );
+            if let Some(recovery_action) = recovery_action {
+                report.recovery_actions.push(recovery_action.to_string());
+            }
+            Box::new(report)
+        })?;
+    }
     let factory = StoreConnectionFactory::new(
         existing.layout.clone(),
         &existing.family_id,
@@ -446,6 +482,78 @@ fn inspect_context(
         factory,
         plan,
     })
+}
+
+fn planned_report(
+    action: StoreMaintenanceAction,
+    plan: &MaintenancePlan,
+) -> StoreMaintenanceReport {
+    let mut report = StoreMaintenanceReport::planned(action, plan);
+    if matches!(
+        action,
+        StoreMaintenanceAction::Inspect | StoreMaintenanceAction::Repair
+    ) {
+        report.integrity_checks.extend([
+            "store_quick_check".to_string(),
+            "coordinator_quick_check".to_string(),
+        ]);
+    }
+    report
+}
+
+enum MaintenanceIntegrityError {
+    Corrupt {
+        database: &'static str,
+        detail: String,
+    },
+    Sqlite {
+        database: &'static str,
+        error: SqliteError,
+    },
+}
+
+fn validate_maintenance_integrity(layout: &StoreLayout) -> Result<(), MaintenanceIntegrityError> {
+    validate_database_integrity("store", layout.store_db())?;
+    validate_database_integrity("coordinator", layout.coordinator_db())
+}
+
+fn validate_database_integrity(
+    database: &'static str,
+    path: &Path,
+) -> Result<(), MaintenanceIntegrityError> {
+    let connection = Connection::open_with_flags(
+        path,
+        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+    )
+    .map_err(|error| classify_integrity_error(database, error))?;
+    let detail = connection
+        .query_row("PRAGMA quick_check(1)", [], |row| row.get::<_, String>(0))
+        .map_err(|error| classify_integrity_error(database, error))?;
+    if detail == "ok" {
+        Ok(())
+    } else {
+        Err(MaintenanceIntegrityError::Corrupt { database, detail })
+    }
+}
+
+fn classify_integrity_error(
+    database: &'static str,
+    error: SqliteError,
+) -> MaintenanceIntegrityError {
+    match &error {
+        SqliteError::SqliteFailure(failure, _)
+            if matches!(
+                failure.code,
+                ErrorCode::DatabaseCorrupt | ErrorCode::NotADatabase
+            ) =>
+        {
+            MaintenanceIntegrityError::Corrupt {
+                database,
+                detail: error.to_string(),
+            }
+        }
+        _ => MaintenanceIntegrityError::Sqlite { database, error },
+    }
 }
 
 fn open_maintenance_store(
@@ -583,7 +691,7 @@ fn maintenance_error_report(
     mode: StoreMaintenanceMode,
     error: &MaintenanceError,
 ) -> StoreMaintenanceReport {
-    StoreMaintenanceReport::planned(action, plan).with_failure(
+    planned_report(action, plan).with_failure(
         mode,
         maintenance_failure_class(error),
         maintenance_error_code(error),

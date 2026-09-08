@@ -262,7 +262,6 @@ pub(crate) fn report_request(
             &request.request_id,
             spec.l1_event_kind,
             spec.requested_level,
-            false,
         )?;
         if request.state == RequestState::Failed {
             let message = request
@@ -278,46 +277,7 @@ pub(crate) fn report_request(
         });
         return Ok(report);
     }
-    let result: serde_json::Value = serde_json::from_str(
-        request
-            .result_json
-            .as_deref()
-            .ok_or("missing_store_result")?,
-    )
-    .map_err(|error| error.to_string())?;
-    report.coordinator = StoreCoordinatorDisposition::Committed;
-    report.manifest.generation = result["manifest_generation"].as_u64();
-    report.manifest.hash = result["manifest_hash"].as_str().map(ToOwned::to_owned);
-    report.manifest.disposition = match result["manifest_disposition"].as_str() {
-        Some("created") => StoreManifestDisposition::Created,
-        Some("reused") => StoreManifestDisposition::Reused,
-        _ => StoreManifestDisposition::NotPublished,
-    };
-    report.completion = StoreLevelCompletion {
-        l1: result["l1"].as_bool().unwrap_or(false),
-        l2: result["l2"].as_bool().unwrap_or(false),
-        l3: result["l3"].as_bool().unwrap_or(false),
-    };
-    report.row_counts = result
-        .get("row_counts")
-        .and_then(|counts| {
-            Some(StoreRowCounts {
-                file_versions: counts.get("file_versions")?.as_u64()?,
-                l1: counts.get("l1")?.as_u64()?,
-                l2: counts.get("l2")?.as_u64()?,
-                l3: counts.get("l3")?.as_u64()?,
-            })
-        })
-        .ok_or("invalid_terminal_row_counts")?;
-    populate_durable_projection(
-        &mut report,
-        layout,
-        &spec.view_id,
-        &request.request_id,
-        spec.l1_event_kind,
-        spec.requested_level,
-        true,
-    )?;
+    populate_committed_report(&mut report, request, "missing_store_result")?;
     Ok(report)
 }
 
@@ -617,7 +577,6 @@ fn execute_import(
                 &observed.request_id,
                 "store_import_l1_published",
                 canonical_payload.requested_level,
-                false,
             )?;
             return Ok(report.with_warnings(warnings));
         }
@@ -660,17 +619,21 @@ fn execute_import(
             &request.request_id,
             "store_import_l1_published",
             canonical_payload.requested_level,
-            false,
         )?;
         return Ok(report.with_failure(classify_failure(&message), message));
     }
-    let result: serde_json::Value = serde_json::from_str(
-        request
-            .result_json
-            .as_deref()
-            .ok_or("missing_import_result")?,
-    )
-    .map_err(|error| error.to_string())?;
+    populate_committed_report(&mut report, &request, "missing_import_result")?;
+    Ok(report)
+}
+
+fn populate_committed_report(
+    report: &mut StoreReport,
+    request: &CoordinatorRequest,
+    missing_result: &'static str,
+) -> Result<(), String> {
+    let result: serde_json::Value =
+        serde_json::from_str(request.result_json.as_deref().ok_or(missing_result)?)
+            .map_err(|error| error.to_string())?;
     report.coordinator = StoreCoordinatorDisposition::Committed;
     report.manifest.generation = result["manifest_generation"].as_u64();
     report.manifest.hash = result["manifest_hash"].as_str().map(ToOwned::to_owned);
@@ -695,16 +658,7 @@ fn execute_import(
             })
         })
         .ok_or("invalid_terminal_row_counts")?;
-    populate_durable_projection(
-        &mut report,
-        &layout,
-        &canonical_payload.view_id,
-        &request.request_id,
-        "store_import_l1_published",
-        canonical_payload.requested_level,
-        true,
-    )?;
-    Ok(report)
+    Ok(())
 }
 
 pub(crate) fn populate_durable_projection(
@@ -714,7 +668,6 @@ pub(crate) fn populate_durable_projection(
     request_id: &str,
     l1_event_kind: &str,
     requested_level: RequestedLevel,
-    preserve_terminal_snapshot: bool,
 ) -> Result<(), String> {
     let connection =
         rusqlite::Connection::open(layout.store_db()).map_err(|error| error.to_string())?;
@@ -772,10 +725,8 @@ pub(crate) fn populate_durable_projection(
                 StoreManifestDisposition::Reused
             };
         }
-        if !preserve_terminal_snapshot {
-            report.completion.l1 = true;
-        }
-        if !preserve_terminal_snapshot && requested_level == RequestedLevel::Full {
+        report.completion.l1 = true;
+        if requested_level == RequestedLevel::Full {
             let incomplete: (i64, i64) = connection
                 .query_row(
                     "SELECT
@@ -791,9 +742,6 @@ pub(crate) fn populate_durable_projection(
             report.completion.l2 = incomplete.0 == 0;
             report.completion.l3 = incomplete.1 == 0;
         }
-    }
-    if preserve_terminal_snapshot {
-        return Ok(());
     }
     let counts: (i64, i64, i64, i64) = connection
         .query_row(
@@ -1060,6 +1008,87 @@ mod capacity_tests {
         let available = super::super::maintenance::filesystem_free_bytes(temp.path()).unwrap();
 
         assert!(available > 0);
+    }
+}
+
+#[cfg(test)]
+mod terminal_report_tests {
+    use super::{RequestReportSpec, RequestedLevel, report_request};
+    use crate::store::report::{
+        StoreCoordinatorDisposition, StoreManifestDisposition, StoreOperation,
+    };
+    use julie_extract_artifact::store::{
+        CoordinatorRequest, RequestKind, RequestState, StoreLayout,
+    };
+    use rusqlite::Connection;
+
+    #[test]
+    fn committed_report_survives_a_successor_writer_starting_before_projection() {
+        let temp = tempfile::tempdir().unwrap();
+        let store = temp.path().join("store");
+        let layout = StoreLayout::create(&store, "family", env!("CARGO_PKG_VERSION"), 10).unwrap();
+        let mut request = CoordinatorRequest::new(
+            "request-original",
+            "idem-original",
+            RequestKind::Import,
+            "{}",
+            "cli-original",
+            20,
+            10,
+        );
+        request.state = RequestState::Committed;
+        request.terminal_log_sequence = Some(41);
+        request.result_json = Some(
+            serde_json::json!({
+                "manifest_generation": 7,
+                "manifest_hash": "hash-original",
+                "manifest_disposition": "created",
+                "l1": true,
+                "l2": true,
+                "l3": true,
+                "row_counts": {
+                    "file_versions": 3,
+                    "l1": 30,
+                    "l2": 20,
+                    "l3": 10
+                }
+            })
+            .to_string(),
+        );
+        let successor = Connection::open(layout.store_db()).unwrap();
+        successor
+            .execute_batch("PRAGMA journal_mode=DELETE; BEGIN EXCLUSIVE;")
+            .unwrap();
+
+        let report = report_request(
+            &layout,
+            &request,
+            RequestReportSpec {
+                operation: StoreOperation::Import,
+                family_id: "family".to_string(),
+                view_id: "view-main".to_string(),
+                root: "/workspace".to_string(),
+                requested_level: RequestedLevel::Full,
+                l1_event_kind: "store_import_l1_published",
+            },
+        )
+        .unwrap();
+
+        assert_eq!(report.request.id, "request-original");
+        assert_eq!(report.coordinator, StoreCoordinatorDisposition::Committed);
+        assert_eq!(report.manifest.generation, Some(7));
+        assert_eq!(report.manifest.hash.as_deref(), Some("hash-original"));
+        assert_eq!(
+            report.manifest.disposition,
+            StoreManifestDisposition::Created
+        );
+        assert!(report.completion.l1);
+        assert!(report.completion.l2);
+        assert!(report.completion.l3);
+        assert_eq!(report.row_counts.file_versions, 3);
+        assert_eq!(report.row_counts.l1, 30);
+        assert_eq!(report.row_counts.l2, 20);
+        assert_eq!(report.row_counts.l3, 10);
     }
 }
 

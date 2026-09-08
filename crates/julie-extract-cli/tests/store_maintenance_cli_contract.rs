@@ -1,5 +1,7 @@
 #![recursion_limit = "256"]
 
+use std::fs::OpenOptions;
+use std::io::{Seek, SeekFrom, Write};
 #[cfg(feature = "test-store-contract")]
 use std::process::Stdio;
 use std::process::{Command, Output};
@@ -17,6 +19,62 @@ fn julie_extract(args: &[&str]) -> Output {
         .args(args)
         .output()
         .expect("julie-extract should start")
+}
+
+fn corrupt_structural_facts_index_root(layout: &StoreLayout) {
+    let connection = Connection::open(layout.store_db()).unwrap();
+    let page_size: i64 = connection
+        .pragma_query_value(None, "page_size", |row| row.get(0))
+        .unwrap();
+    let root_page: i64 = connection
+        .query_row(
+            "SELECT rootpage FROM sqlite_schema
+             WHERE name = 'idx_read_structural_facts_pattern_language_path'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    drop(connection);
+
+    corrupt_database_page(layout.store_db(), root_page, page_size);
+}
+
+fn corrupt_coordinator_index_root(layout: &StoreLayout) {
+    let connection = Connection::open(layout.coordinator_db()).unwrap();
+    connection
+        .execute_batch(
+            "CREATE TABLE integrity_probe (id INTEGER PRIMARY KEY, value TEXT NOT NULL);\n\
+             CREATE INDEX idx_integrity_probe_value ON integrity_probe(value);\n\
+             INSERT INTO integrity_probe(value) VALUES ('one'), ('two'), ('three');\n\
+             PRAGMA wal_checkpoint(TRUNCATE);",
+        )
+        .unwrap();
+    let page_size: i64 = connection
+        .pragma_query_value(None, "page_size", |row| row.get(0))
+        .unwrap();
+    let root_page: i64 = connection
+        .query_row(
+            "SELECT rootpage FROM sqlite_schema WHERE name = 'idx_integrity_probe_value'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    drop(connection);
+
+    corrupt_database_page(layout.coordinator_db(), root_page, page_size);
+}
+
+fn corrupt_database_page(path: &std::path::Path, root_page: i64, page_size: i64) {
+    let mut database = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(path)
+        .unwrap();
+    database
+        .seek(SeekFrom::Start(((root_page - 1) * page_size) as u64))
+        .unwrap();
+    database.write_all(&[0xff]).unwrap();
+    database.sync_all().unwrap();
 }
 
 #[test]
@@ -316,8 +374,144 @@ fn inspect_is_read_only_and_emits_the_separate_versioned_report() {
     assert!(report["counts"].is_object());
     assert!(report["retention"].is_object());
     assert!(report["capacity"]["free_bytes"].is_number());
+    assert_eq!(
+        report["integrity_checks"],
+        json!([
+            "store_roots_validated",
+            "coordinator_roots_validated",
+            "store_quick_check",
+            "coordinator_quick_check"
+        ])
+    );
     assert!(report.get("request").is_none());
     assert!(report.get("view_id").is_none());
+}
+
+#[test]
+fn inspect_reports_structural_store_corruption_without_mutation() {
+    let fixture = tempfile::tempdir().unwrap();
+    let store = fixture.path().join("store");
+    let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
+    corrupt_structural_facts_index_root(&layout);
+    let before = std::fs::read(layout.store_db()).unwrap();
+
+    let output = julie_extract(&[
+        "store",
+        "maintain",
+        "inspect",
+        "--store",
+        store.to_str().unwrap(),
+        "--json",
+    ]);
+
+    assert_eq!(output.status.code(), Some(1));
+    assert!(output.stderr.is_empty());
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["action"], "inspect");
+    assert_eq!(report["mode"], "plan");
+    assert_eq!(report["failure_class"], "integrity_failed");
+    assert_eq!(report["error"]["code"], "integrity_check_failed");
+    assert_eq!(
+        report["recovery_actions"],
+        json!(["store maintain promote --apply"])
+    );
+    assert_eq!(std::fs::read(layout.store_db()).unwrap(), before);
+}
+
+#[test]
+fn repair_plan_reports_structural_store_corruption_without_mutation() {
+    let fixture = tempfile::tempdir().unwrap();
+    let store = fixture.path().join("store");
+    let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
+    corrupt_structural_facts_index_root(&layout);
+    let before = std::fs::read(layout.store_db()).unwrap();
+
+    let output = julie_extract(&[
+        "store",
+        "maintain",
+        "repair",
+        "--store",
+        store.to_str().unwrap(),
+        "--json",
+    ]);
+
+    assert_eq!(output.status.code(), Some(1));
+    assert!(output.stderr.is_empty());
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["action"], "repair");
+    assert_eq!(report["mode"], "plan");
+    assert_eq!(report["failure_class"], "integrity_failed");
+    assert_eq!(report["error"]["code"], "integrity_check_failed");
+    assert_eq!(
+        report["recovery_actions"],
+        json!(["store maintain promote --apply"])
+    );
+    assert_eq!(std::fs::read(layout.store_db()).unwrap(), before);
+}
+
+#[test]
+fn inspect_reports_structural_coordinator_corruption() {
+    let fixture = tempfile::tempdir().unwrap();
+    let store = fixture.path().join("store");
+    let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
+    corrupt_coordinator_index_root(&layout);
+
+    let output = julie_extract(&[
+        "store",
+        "maintain",
+        "inspect",
+        "--store",
+        store.to_str().unwrap(),
+        "--json",
+    ]);
+
+    assert_eq!(output.status.code(), Some(1));
+    assert!(output.stderr.is_empty());
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["failure_class"], "integrity_failed");
+    assert_eq!(report["error"]["code"], "integrity_check_failed");
+    assert!(
+        report["error"]["message"]
+            .as_str()
+            .unwrap()
+            .starts_with("coordinator quick check failed:")
+    );
+    assert_eq!(
+        report["recovery_actions"],
+        json!(["store maintain promote --apply"])
+    );
+}
+
+#[test]
+fn inspect_does_not_classify_a_locked_integrity_read_as_corruption() {
+    let fixture = tempfile::tempdir().unwrap();
+    let store = fixture.path().join("store");
+    let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
+    let lock = Connection::open(layout.store_db()).unwrap();
+    lock.execute_batch(
+        "PRAGMA journal_mode=DELETE;\n\
+         PRAGMA locking_mode=EXCLUSIVE;\n\
+         BEGIN EXCLUSIVE;\n\
+         SELECT count(*) FROM sqlite_schema;",
+    )
+    .unwrap();
+
+    let output = julie_extract(&[
+        "store",
+        "maintain",
+        "inspect",
+        "--store",
+        store.to_str().unwrap(),
+        "--json",
+    ]);
+
+    assert_eq!(output.status.code(), Some(1));
+    assert!(output.stderr.is_empty());
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_ne!(report["failure_class"], "integrity_failed");
+    assert_ne!(report["error"]["code"], "integrity_check_failed");
+    assert_eq!(report["recovery_actions"], json!([]));
+    drop(lock);
 }
 
 #[test]
@@ -425,6 +619,40 @@ fn promote_builds_and_publishes_a_new_generation_only_with_apply() {
         std::fs::read_to_string(store.join("CURRENT")).unwrap(),
         "gen-002\n"
     );
+}
+
+#[test]
+fn promote_apply_rebuilds_a_structurally_valid_generation_from_a_corrupt_source() {
+    let fixture = tempfile::tempdir().unwrap();
+    let store = fixture.path().join("store");
+    let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION"), 7).unwrap();
+    corrupt_structural_facts_index_root(&layout);
+
+    let output = julie_extract(&[
+        "store",
+        "maintain",
+        "promote",
+        "--store",
+        store.to_str().unwrap(),
+        "--apply",
+        "--json",
+    ]);
+
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let selected = StoreLayout::open(&store).unwrap();
+    assert_eq!(selected.generation_name(), "gen-002");
+    let quick_check: String = Connection::open(selected.store_db())
+        .unwrap()
+        .query_row("PRAGMA quick_check", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(quick_check, "ok");
+    assert!(store.join("gen-001/store.db").exists());
 }
 
 #[test]
@@ -1208,7 +1436,9 @@ fn maintenance_report_json_and_human_snapshots_are_stable() {
             },
             "integrity_checks": [
                 "store_roots_validated",
-                "coordinator_roots_validated"
+                "coordinator_roots_validated",
+                "store_quick_check",
+                "coordinator_quick_check"
             ],
             "escalation": null,
             "recovery_actions": [],
