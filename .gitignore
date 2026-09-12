@@ -4,6 +4,7 @@
 /.miller/
 /.julie/
 /.julieignore
+/.code-kb/
 **/*.rs.bk
 *.sqlite
 *.sqlite-shm

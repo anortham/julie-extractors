@@ -1,11 +1,10 @@
 {
   "mcpServers": {
-    "julie": {
-      "type": "stdio",
-      "command": "/Users/murphy/source/julie/target/release/julie-server",
-      "env": {
-        "JULIE_WORKSPACE": "/Users/murphy/source/julie-extractors"
-      }
+    "code-kb": {
+      "command": "code-kb",
+      "args": [
+        "serve"
+      ]
     }
   }
 }
