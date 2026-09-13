@@ -657,7 +657,10 @@ pub const HARD_EXCLUDE_DIRS: &[&str] = &[
     ".hg",
     ".svn",
     ".julie",
+    ".code-kb",
     ".memories",
+    ".worktrees",
+    "worktrees",
     "node_modules",
     "vendor",
     "target",
@@ -668,6 +671,8 @@ pub const HARD_EXCLUDE_DIRS: &[&str] = &[
     // source under bin/, and a hard exclude cannot be whitelisted back the way ignore files can.
     "obj",
     "TestResults",
+    ".idea",
+    ".vscode",
 ];
 
 /// Generated and bundled file suffixes discovery refuses before any ignore file
