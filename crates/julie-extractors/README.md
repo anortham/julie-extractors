@@ -23,7 +23,7 @@ For consumers (such as Julie) requiring high-fidelity Tree-sitter AST access and
 
 ```toml
 [dependencies]
-julie-extractors = { version = "2.42.0", default-features = false, features = ["syntax-api"] }
+julie-extractors = { version = "2.42.1", default-features = false, features = ["syntax-api"] }
 ```
 
 Entrypoints in module `julie_extractors::syntax`:
