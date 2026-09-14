@@ -1,9 +1,8 @@
 # Reference resolution coverage v1
 
 > **Retired 2026-08-18.** julie-extract no longer writes workspace-global
-> reference resolution. This coverage contract and
-> `scripts/reference-resolution-coverage-report.mjs` are historical. Miller
-> owns query-time resolution policy. See
+> reference resolution. This coverage contract and its JSON artifact are
+> historical. Miller owns query-time resolution policy. See
 > [2026-08-18-resolution-write-path-retirement.md](../decisions/2026-08-18-resolution-write-path-retirement.md).
 
 `fixtures/extraction/reference-resolution-coverage.json` is the historical,
@@ -27,13 +26,6 @@ registry-driven coverage artifact for reference evidence.
   missing, `no_context`, unresolved pending, unattempted, span-present, and
   span-missing counts.
 
-The artifact is generated from every golden registered in
-`fixtures/extraction/capabilities.json`. Its digest covers the registry and all
-registered expected outputs, so fixture drift makes the strict check fail.
-
-```bash
-node scripts/reference-resolution-coverage-report.mjs --write --strict
-node scripts/reference-resolution-coverage-report.mjs --strict
-```
-
-`node scripts/language-data-quality-report.mjs --strict` also runs this gate.
+The artifact is retained as the final registry-derived record from the retired
+workspace-resolution implementation. It is not regenerated or checked by the
+current quality gate.

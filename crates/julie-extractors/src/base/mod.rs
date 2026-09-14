@@ -34,6 +34,7 @@ pub mod source_regions;
 pub mod span;
 mod sql_structural_facts;
 mod string_literals;
+pub(crate) mod structural_fact_builders;
 pub mod structural_fact_registry;
 pub mod structural_facts;
 pub mod tree_methods;

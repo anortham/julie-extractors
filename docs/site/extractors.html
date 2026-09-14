@@ -136,11 +136,10 @@
           and thirty that quietly lag. The repository's answer is a capability matrix with no silent
           cells. Every language and domain claim is either backed by golden fixture evidence or carries a
           recorded reason the domain does not apply to that language ("applicable closure"). Missing work
-          cannot hide behind <code>not_applicable</code>, and strict gates fail CI when fixtures drift from
+          cannot hide behind <code>not_applicable</code>, and the strict gate fails CI when fixtures drift from
           claims:
         </p>
-        <pre><code>node scripts/language-data-quality-report.mjs --strict
-node scripts/reference-resolution-coverage-report.mjs --strict</code></pre>
+        <pre><code>node scripts/language-data-quality-report.mjs --strict</code></pre>
         <p>
           A product rule backs this up: a new extraction capability is not done until it works for every
           supported language, verified on a real extract. A feature that covers one language while looking

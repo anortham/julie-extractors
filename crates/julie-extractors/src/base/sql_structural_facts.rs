@@ -5,9 +5,11 @@ use serde_json::{Number, Value};
 use tree_sitter::{Node, Tree};
 
 use super::attach_containing_symbols;
-use super::span::NormalizedSpan;
+use super::structural_fact_builders::{
+    base_metadata, fact_for_node as shared_fact_for_node, insert_string,
+};
 use super::structural_facts::sort_structural_facts;
-use super::types::{StructuralFact, Symbol, stable_location_id};
+use super::types::{StructuralFact, Symbol};
 use crate::sql::helpers::normalize_sql_identifier;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
@@ -1353,10 +1355,6 @@ fn count_direct_children(node: Node<'_>, child_kind: &str) -> usize {
         .count()
 }
 
-fn node_text<'a>(content: &'a str, node: Node<'_>) -> Option<&'a str> {
-    content.get(node.start_byte()..node.end_byte())
-}
-
 fn fact_for_node(
     file_path: &str,
     pattern_id: &str,
@@ -1364,58 +1362,11 @@ fn fact_for_node(
     node: Node<'_>,
     metadata: HashMap<String, Value>,
 ) -> StructuralFact {
-    fact_for_span(
-        file_path,
-        pattern_id,
-        capture_name,
-        node.kind(),
-        NormalizedSpan::from_node(&node),
-        metadata,
-    )
+    shared_fact_for_node(file_path, "sql", pattern_id, capture_name, node, metadata)
 }
 
-fn fact_for_span(
-    file_path: &str,
-    pattern_id: &str,
-    capture_name: &str,
-    node_kind: &str,
-    span: NormalizedSpan,
-    metadata: HashMap<String, Value>,
-) -> StructuralFact {
-    StructuralFact {
-        id: stable_location_id(file_path, &format!("{pattern_id}:{capture_name}"), span),
-        file_path: file_path.to_string(),
-        language: "sql".to_string(),
-        pattern_id: pattern_id.to_string(),
-        capture_name: capture_name.to_string(),
-        node_kind: node_kind.to_string(),
-        containing_symbol_id: None,
-        start_line: span.start_line,
-        start_column: span.start_column,
-        end_line: span.end_line,
-        end_column: span.end_column,
-        start_byte: span.start_byte,
-        end_byte: span.end_byte,
-        confidence: 1.0,
-        metadata: Some(metadata),
-    }
-}
-
-fn base_metadata(query_family: &str) -> HashMap<String, Value> {
-    HashMap::from([
-        (
-            "pattern_version".to_string(),
-            Value::Number(Number::from(1)),
-        ),
-        (
-            "query_family".to_string(),
-            Value::String(query_family.to_string()),
-        ),
-    ])
-}
-
-fn insert_string(metadata: &mut HashMap<String, Value>, key: &str, value: &str) {
-    metadata.insert(key.to_string(), Value::String(value.to_string()));
+fn node_text<'a>(content: &'a str, node: Node<'_>) -> Option<&'a str> {
+    content.get(node.start_byte()..node.end_byte())
 }
 
 #[cfg(test)]

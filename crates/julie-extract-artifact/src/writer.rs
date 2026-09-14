@@ -655,24 +655,9 @@ impl ArtifactWriter {
         revision: RevisionInput,
         files: &[ArtifactFile],
     ) -> ArtifactWriteResult<WriteResult> {
-        self.ensure_not_poisoned()?;
-        let bulk_load = self.take_bulk_load_eligibility();
-        let bulk_setup_started = Instant::now();
-        if bulk_load {
-            begin_bulk_load(self.conn())?;
-        }
-        let bulk_setup = bulk_setup_started.elapsed();
-        match self.write_scan_snapshot_in_mode(revision, files, bulk_load) {
-            Ok(mut result) => {
-                result.phases.plan += bulk_setup;
-                Ok(result)
-            }
-            // A committed error already ran its own restoration attempt.
-            Err(write_error) if bulk_load && !write_error.committed() => {
-                Err(self.restore_after_failed_bulk_load(write_error))
-            }
-            Err(write_error) => Err(write_error),
-        }
+        self.write_scan_with_bulk_load(|writer, bulk_load| {
+            writer.write_scan_snapshot_in_mode(revision, files, bulk_load)
+        })
     }
 
     fn write_scan_snapshot_in_mode(
@@ -857,6 +842,21 @@ impl ArtifactWriter {
         preserved_missing_paths: &[String],
         spool: &ArtifactFileSpool,
     ) -> ArtifactWriteResult<WriteResult> {
+        self.write_scan_with_bulk_load(|writer, bulk_load| {
+            writer.write_scan_spooled_snapshot_in_mode(
+                revision,
+                snapshot_paths,
+                preserved_missing_paths,
+                spool,
+                bulk_load,
+            )
+        })
+    }
+
+    fn write_scan_with_bulk_load(
+        &mut self,
+        operation: impl FnOnce(&mut Self, bool) -> ArtifactWriteResult<WriteResult>,
+    ) -> ArtifactWriteResult<WriteResult> {
         self.ensure_not_poisoned()?;
         let bulk_load = self.take_bulk_load_eligibility();
         let bulk_setup_started = Instant::now();
@@ -864,18 +864,11 @@ impl ArtifactWriter {
             begin_bulk_load(self.conn())?;
         }
         let bulk_setup = bulk_setup_started.elapsed();
-        match self.write_scan_spooled_snapshot_in_mode(
-            revision,
-            snapshot_paths,
-            preserved_missing_paths,
-            spool,
-            bulk_load,
-        ) {
+        match operation(self, bulk_load) {
             Ok(mut result) => {
                 result.phases.plan += bulk_setup;
                 Ok(result)
             }
-            // A committed error already ran its own restoration attempt.
             Err(write_error) if bulk_load && !write_error.committed() => {
                 Err(self.restore_after_failed_bulk_load(write_error))
             }

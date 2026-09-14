@@ -1586,26 +1586,6 @@ fn spool_unsupported_files(
     Ok(())
 }
 
-#[cfg(test)]
-#[derive(Debug, Default, Clone, PartialEq)]
-struct ExtractedFiles {
-    files: Vec<ArtifactFile>,
-    errors: Vec<ExtractFileError>,
-}
-
-#[cfg(test)]
-impl ExtractedFiles {
-    #[cfg(test)]
-    fn unwrap(self) -> Vec<ArtifactFile> {
-        assert!(
-            self.errors.is_empty(),
-            "expected extraction to succeed without per-file errors: {:?}",
-            self.errors
-        );
-        self.files
-    }
-}
-
 struct SpooledExtractedFiles {
     /// Owns the spool file and its removal. The guard is created with the spool
     /// rather than with this struct so that a spool write failure — which returns
@@ -1717,73 +1697,6 @@ fn push_profiled_spool(
         started.elapsed(),
     );
     Ok(())
-}
-
-#[cfg(test)]
-fn extract_supported_files(
-    root: &Path,
-    targets: &[SupportedFileTarget],
-    indexed_at: String,
-    existing_content_hashes: Option<&BTreeMap<String, String>>,
-    force: bool,
-    mut extract: impl FnMut(
-        &Path,
-        &FileTarget,
-        String,
-        String,
-        SourceSnapshot,
-    ) -> Result<ArtifactFile, ExtractFileError>,
-) -> ExtractedFiles {
-    let mut files = Vec::with_capacity(targets.len());
-    let mut errors = Vec::new();
-    for supported in targets {
-        let snapshot = match read_source_snapshot(&supported.target) {
-            Ok(snapshot) => snapshot,
-            Err(error) => {
-                files.push(failed_artifact_file(
-                    &supported.target,
-                    supported.language.clone(),
-                    indexed_at.clone(),
-                    &error,
-                ));
-                errors.push(error);
-                continue;
-            }
-        };
-        if !force
-            && existing_content_hashes
-                .and_then(|hashes| hashes.get(&supported.target.root_relative_path))
-                .is_some_and(|existing_hash| existing_hash == &snapshot.content_hash)
-        {
-            files.push(unchanged_artifact_file(
-                &supported.target,
-                supported.language.clone(),
-                indexed_at.clone(),
-                &snapshot,
-            ));
-            continue;
-        }
-
-        match extract(
-            root,
-            &supported.target,
-            supported.language.clone(),
-            indexed_at.clone(),
-            snapshot.clone(),
-        ) {
-            Ok(file) => files.push(file),
-            Err(error) => {
-                files.push(failed_artifact_file(
-                    &supported.target,
-                    supported.language.clone(),
-                    indexed_at.clone(),
-                    &error,
-                ));
-                errors.push(error);
-            }
-        }
-    }
-    ExtractedFiles { files, errors }
 }
 
 /// Maximum number of files whose extracted rows are held in memory at once before
@@ -2465,8 +2378,6 @@ fn remove_artifact_files(db: &Path) {
 
 #[cfg(test)]
 mod tests {
-    use std::cell::RefCell;
-
     use crate::extraction::extract_artifact_file_from_snapshot;
 
     use julie_extract_artifact::model::{
@@ -2482,72 +2393,6 @@ mod tests {
     use crate::spool::{owned_spool_file_name, sentinel_file_name, unowned_spool_file_name};
 
     use super::*;
-
-    #[test]
-    fn incremental_scan_reuses_existing_hash_without_parser_work() {
-        let fixture = ScanFixture::new();
-        let unchanged = fixture.write("src/unchanged.rs", "pub fn unchanged() {}\n");
-        let changed = fixture.write("src/changed.rs", "pub fn changed() {}\n");
-        let unchanged_snapshot = read_source_snapshot(&unchanged).unwrap();
-        let mut existing_hashes = BTreeMap::new();
-        existing_hashes.insert(
-            unchanged.root_relative_path.clone(),
-            unchanged_snapshot.content_hash.clone(),
-        );
-        existing_hashes.insert(
-            changed.root_relative_path.clone(),
-            "blake3:stale".to_string(),
-        );
-        let extracted_paths = RefCell::new(Vec::new());
-
-        let files = extract_supported_files(
-            fixture.root(),
-            &[
-                SupportedFileTarget::new(unchanged.clone(), "rust"),
-                SupportedFileTarget::new(changed.clone(), "rust"),
-            ],
-            "2026-06-01T00:00:00Z".to_string(),
-            Some(&existing_hashes),
-            false,
-            |_, target, language, indexed_at, snapshot| {
-                extracted_paths
-                    .borrow_mut()
-                    .push(target.root_relative_path.clone());
-                Ok(extracted_artifact_file(
-                    target, language, indexed_at, snapshot,
-                ))
-            },
-        )
-        .unwrap();
-
-        assert_eq!(extracted_paths.into_inner(), vec!["src/changed.rs"]);
-        assert_eq!(
-            files
-                .iter()
-                .map(|file| file.path.as_str())
-                .collect::<Vec<_>>(),
-            vec!["src/unchanged.rs", "src/changed.rs"]
-        );
-        assert!(
-            files
-                .iter()
-                .find(|file| file.path == "src/unchanged.rs")
-                .unwrap()
-                .symbols
-                .is_empty(),
-            "unchanged files must be represented in the snapshot without parser rows"
-        );
-        assert_eq!(
-            files
-                .iter()
-                .find(|file| file.path == "src/changed.rs")
-                .unwrap()
-                .symbols
-                .len(),
-            1,
-            "changed files must still use the extraction callback"
-        );
-    }
 
     #[test]
     fn incremental_scan_can_spool_supported_files_without_parser_work_for_unchanged_files() {
@@ -2898,20 +2743,26 @@ mod tests {
             right.root_relative_path.clone(),
             read_source_snapshot(&right).unwrap().content_hash,
         );
-        let extracted_paths = RefCell::new(Vec::new());
+        let extracted_paths = std::sync::Mutex::new(Vec::new());
 
-        let files = extract_supported_files(
-            fixture.root(),
+        let extracted = extract_supported_files_to_spool(
+            ExtractionRequest {
+                root: fixture.root(),
+                indexed_at: "2026-06-01T00:00:00Z".to_string(),
+                existing_content_hashes: Some(&existing_hashes),
+                force: true,
+                jobs: 1,
+                level: ExtractionLevel::Full,
+            },
             &[
                 SupportedFileTarget::new(left.clone(), "rust"),
                 SupportedFileTarget::new(right.clone(), "rust"),
             ],
-            "2026-06-01T00:00:00Z".to_string(),
-            Some(&existing_hashes),
-            true,
+            ScanControls::default(),
             |_, target, language, indexed_at, snapshot| {
                 extracted_paths
-                    .borrow_mut()
+                    .lock()
+                    .unwrap()
                     .push(target.root_relative_path.clone());
                 Ok(extracted_artifact_file(
                     target, language, indexed_at, snapshot,
@@ -2921,9 +2772,15 @@ mod tests {
         .unwrap();
 
         assert_eq!(
-            extracted_paths.into_inner(),
+            extracted_paths.into_inner().unwrap(),
             vec!["src/left.rs", "src/right.rs"]
         );
+        assert_eq!(
+            extracted.snapshot_paths,
+            vec!["src/left.rs".to_string(), "src/right.rs".to_string()]
+        );
+        assert_eq!(extracted.files_spooled, 2);
+        let files = extracted.unwrap();
         assert_eq!(
             files
                 .iter()

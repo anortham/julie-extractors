@@ -7280,26 +7280,6 @@
         "evidence": "fixtures/extraction/resolution_contract (tier4_cross_file + TIER14 matrix)"
       }
     },
-    "canonical_coverage": {
-      "artifact": "fixtures/extraction/reference-resolution-coverage.json",
-      "strict_command": "node scripts/reference-resolution-coverage-report.mjs --strict",
-      "origins": [
-        "identifier",
-        "relationship",
-        "pending_relationship"
-      ],
-      "canonical_kinds": [
-        "calls",
-        "extends",
-        "implements",
-        "imports",
-        "instantiates",
-        "references",
-        "uses"
-      ],
-      "direct_method": "extraction_direct",
-      "direct_tier": 1
-    },
     "identifier_context": {
       "member_access": "receiver is captured in identifiers.metadata_json from the source site or a co-located structured pending target; tier 3 remains type-fact bounded and tier 4 stays disabled",
       "variable_ref": "same-file lexical values only; workspace-global value name matching is disabled",

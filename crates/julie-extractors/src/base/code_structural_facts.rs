@@ -512,132 +512,6 @@ const VBNET_PATTERNS: &[CodeStructuralPattern] = &[
     },
 ];
 
-#[cfg(all(test, feature = "test-capability-matrix"))]
-const JAVA_PATTERN_IDS: &[&str] = &[
-    "java.synchronized_statement.v1",
-    "java.try_with_resources_statement.v1",
-    "java.lambda_expression.v1",
-    "java.marker_annotation.v1",
-    "java.annotation.v1",
-];
-#[cfg(all(test, feature = "test-capability-matrix"))]
-const KOTLIN_PATTERN_IDS: &[&str] = &[
-    "kotlin.suspend_modifier.v1",
-    "kotlin.property_delegate.v1",
-    "kotlin.annotation.v1",
-];
-#[cfg(all(test, feature = "test-capability-matrix"))]
-const SCALA_PATTERN_IDS: &[&str] = &[
-    "scala.extension_definition.v1",
-    "scala.given_definition.v1",
-    "scala.for_expression.v1",
-    "scala.annotation.v1",
-];
-#[cfg(all(test, feature = "test-capability-matrix"))]
-const SWIFT_PATTERN_IDS: &[&str] = &[
-    "swift.await_expression.v1",
-    "swift.actor_declaration.v1",
-    "swift.attribute.v1",
-];
-#[cfg(all(test, feature = "test-capability-matrix"))]
-const DART_PATTERN_IDS: &[&str] = &[
-    "dart.await_expression.v1",
-    "dart.async_modifier.v1",
-    "dart.annotation.v1",
-];
-#[cfg(all(test, feature = "test-capability-matrix"))]
-const PHP_PATTERN_IDS: &[&str] = &[
-    "php.attribute.v1",
-    "php.namespace_definition.v1",
-    "php.namespace_use_declaration.v1",
-    "php.trait_use_declaration.v1",
-    "php.anonymous_function.v1",
-    "php.match_expression.v1",
-];
-#[cfg(all(test, feature = "test-capability-matrix"))]
-const RUBY_PATTERN_IDS: &[&str] = &[
-    "ruby.require_call.v1",
-    "ruby.mixin_call.v1",
-    "ruby.block.v1",
-    "ruby.rescue_clause.v1",
-];
-#[cfg(all(test, feature = "test-capability-matrix"))]
-const ELIXIR_PATTERN_IDS: &[&str] = &[
-    "elixir.defmodule_call.v1",
-    "elixir.module_attribute.v1",
-    "elixir.directive_call.v1",
-    "elixir.pipeline_operator.v1",
-    "elixir.with_expression.v1",
-];
-#[cfg(all(test, feature = "test-capability-matrix"))]
-const ERLANG_PATTERN_IDS: &[&str] = &[
-    "erlang.module_attribute.v1",
-    "erlang.behaviour_declaration.v1",
-    "erlang.callback_declaration.v1",
-    "erlang.export_attribute.v1",
-    "erlang.include_directive.v1",
-];
-#[cfg(all(test, feature = "test-capability-matrix"))]
-const LUA_PATTERN_IDS: &[&str] = &[
-    "lua.require_call.v1",
-    "lua.setmetatable_call.v1",
-    "lua.coroutine_call.v1",
-    "lua.module_return.v1",
-    "lua.table_constructor.v1",
-];
-#[cfg(all(test, feature = "test-capability-matrix"))]
-const R_PATTERN_IDS: &[&str] = &[
-    "r.library_call.v1",
-    "r.pipe_expression.v1",
-    "r.formula_expression.v1",
-];
-#[cfg(all(test, feature = "test-capability-matrix"))]
-const VBNET_PATTERN_IDS: &[&str] = &[
-    "vbnet.handles_clause.v1",
-    "vbnet.implements_clause.v1",
-    "vbnet.event_declaration.v1",
-    "vbnet.attribute.v1",
-];
-#[cfg(all(test, feature = "test-capability-matrix"))]
-const ZIG_PATTERN_IDS: &[&str] = &[
-    "zig.builtin_call.v1",
-    "zig.threadlocal_variable.v1",
-    "zig.inline_function.v1",
-    "zig.exported_function.v1",
-    "zig.comptime_parameter.v1",
-];
-#[cfg(all(test, feature = "test-capability-matrix"))]
-const QML_PATTERN_IDS: &[&str] = &[
-    "qml.import_statement.v1",
-    "qml.property_declaration.v1",
-    "qml.signal_declaration.v1",
-    "qml.binding.v1",
-    "qml.object_instantiation.v1",
-    "qml.typeinfo_declaration.v1",
-];
-#[cfg(all(test, feature = "test-capability-matrix"))]
-const BASH_PATTERN_IDS: &[&str] = &[
-    "bash.shebang.v1",
-    "bash.command_substitution.v1",
-    "bash.arithmetic_expansion.v1",
-    "bash.export_declaration.v1",
-];
-#[cfg(all(test, feature = "test-capability-matrix"))]
-const POWERSHELL_PATTERN_IDS: &[&str] = &[
-    "powershell.cmdlet_binding_attribute.v1",
-    "powershell.param_block.v1",
-    "powershell.pipeline_expression.v1",
-    "powershell.class_definition.v1",
-];
-#[cfg(all(test, feature = "test-capability-matrix"))]
-const GDSCRIPT_PATTERN_IDS: &[&str] = &[
-    "gdscript.class_name.v1",
-    "gdscript.extends_declaration.v1",
-    "gdscript.signal_declaration.v1",
-    "gdscript.export_annotation.v1",
-    "gdscript.match_statement.v1",
-];
-
 pub fn collect_code_structural_facts(
     language: &str,
     tree: &Tree,
@@ -668,27 +542,10 @@ pub fn collect_code_structural_facts(
 #[cfg(all(test, feature = "test-capability-matrix"))]
 pub(crate) fn code_structural_fact_pattern_ids_for_language(
     language: &str,
-) -> &'static [&'static str] {
-    match language {
-        "dart" => DART_PATTERN_IDS,
-        "elixir" => ELIXIR_PATTERN_IDS,
-        "erlang" => ERLANG_PATTERN_IDS,
-        "java" => JAVA_PATTERN_IDS,
-        "kotlin" => KOTLIN_PATTERN_IDS,
-        "lua" => LUA_PATTERN_IDS,
-        "php" => PHP_PATTERN_IDS,
-        "r" => R_PATTERN_IDS,
-        "ruby" => RUBY_PATTERN_IDS,
-        "scala" => SCALA_PATTERN_IDS,
-        "swift" => SWIFT_PATTERN_IDS,
-        "bash" => BASH_PATTERN_IDS,
-        "gdscript" => GDSCRIPT_PATTERN_IDS,
-        "powershell" => POWERSHELL_PATTERN_IDS,
-        "qml" => QML_PATTERN_IDS,
-        "vbnet" => VBNET_PATTERN_IDS,
-        "zig" => ZIG_PATTERN_IDS,
-        _ => &[],
-    }
+) -> impl Iterator<Item = &'static str> {
+    patterns_for_language(language)
+        .iter()
+        .map(|pattern| pattern.pattern_id)
 }
 
 fn patterns_for_language(language: &str) -> &'static [CodeStructuralPattern] {

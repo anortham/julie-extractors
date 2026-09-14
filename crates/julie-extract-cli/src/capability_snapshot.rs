@@ -5,9 +5,7 @@ use julie_extract_artifact::model::{
     ArtifactLanguageCapabilityGapRow, ArtifactLanguageCapabilityRow, ArtifactParserInventoryRow,
     CapabilityGapStatus,
 };
-use julie_extractors::{
-    CapabilityFlags, CapabilityKindCoverage, KindCoverage, capability_snapshot,
-};
+use julie_extractors::{CapabilityFlags, CapabilityKindCoverage, capability_snapshot};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 
@@ -275,34 +273,7 @@ fn artifact_flags(flags: CapabilityFlags) -> ArtifactCapabilityFlags {
 }
 
 pub(crate) fn kind_coverage_json(kind_coverage: &CapabilityKindCoverage) -> Value {
-    json!({
-        "symbols": kind_coverage_domain(&kind_coverage.symbols),
-        "relationships": kind_coverage_domain(&kind_coverage.relationships),
-        "identifiers": kind_coverage_domain(&kind_coverage.identifiers),
-        "body_spans": kind_coverage_domain(&kind_coverage.body_spans),
-        "structural_facts": kind_coverage_domain(&kind_coverage.structural_facts),
-        "complexity_metrics": kind_coverage_domain(&kind_coverage.complexity_metrics),
-        "annotations": kind_coverage_domain(&kind_coverage.annotations),
-        "doc_comments": kind_coverage_domain(&kind_coverage.doc_comments),
-        "literals": kind_coverage_domain(&kind_coverage.literals),
-        "source_regions": kind_coverage_domain(&kind_coverage.source_regions),
-        "test_detection": kind_coverage_domain(&kind_coverage.test_detection),
-    })
-}
-
-fn kind_coverage_domain(domain: &KindCoverage) -> Value {
-    json!({
-        "supported": domain.supported,
-        "not_applicable": domain.not_applicable,
-        "open_gaps": domain.open_gaps.iter().map(|gap| {
-            json!({
-                "kind": gap.kind,
-                "reason": gap.reason,
-                "required_closure": gap.required_closure,
-                "planned_closure_task": gap.planned_closure_task,
-            })
-        }).collect::<Vec<_>>(),
-    })
+    serde_json::to_value(kind_coverage).expect("capability coverage always serializes")
 }
 
 pub(crate) fn flags(flags: CapabilityFlags) -> Value {

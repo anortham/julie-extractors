@@ -6,7 +6,7 @@
 //! The `julie-extract` CLI also persists this snapshot into SQLite artifacts
 //! so non-Rust consumers can read the same capability evidence.
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
@@ -43,7 +43,7 @@ pub struct CapabilityFlags {
     pub types: bool,
 }
 
-#[derive(Debug, Deserialize, Default, Clone)]
+#[derive(Debug, Deserialize, Serialize, Default, Clone)]
 pub struct CapabilityKindCoverage {
     #[serde(default)]
     pub symbols: KindCoverage,
@@ -69,7 +69,7 @@ pub struct CapabilityKindCoverage {
     pub test_detection: KindCoverage,
 }
 
-#[derive(Debug, Deserialize, Default, Clone)]
+#[derive(Debug, Deserialize, Serialize, Default, Clone)]
 pub struct KindCoverage {
     #[serde(default)]
     pub supported: Vec<String>,
@@ -79,7 +79,7 @@ pub struct KindCoverage {
     pub open_gaps: Vec<KindCoverageGap>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct KindCoverageGap {
     pub kind: String,
     pub reason: String,
