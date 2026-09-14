@@ -110,6 +110,34 @@ fn writer_scan_and_export_throughput() {
 }
 
 #[test]
+fn writer_forced_refresh_throughput() {
+    let file_count = env_usize("JULIE_PERF_FILES", 1_500);
+    let temp_dir = unique_temp_dir("writer-perf-refresh");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let db_path = temp_dir.join("perf.sqlite");
+    let files = synthetic_corpus(file_count);
+    let mut writer = ArtifactWriter::open_path(&db_path, metadata()).unwrap();
+    writer.write_scan(revision(), &files).unwrap();
+
+    let mut forced_revision = revision();
+    forced_revision.mode = Some(WriteMode::Force);
+    let started = Instant::now();
+    let result = writer.write_scan(forced_revision, &files).unwrap();
+    let elapsed = started.elapsed();
+
+    println!(
+        "writer_perf: forced refresh files={file_count} symbols={} child_rows={} {} ms",
+        file_count * SYMBOLS_PER_FILE,
+        file_count
+            * (STRUCTURAL_FACTS_PER_FILE + SOURCE_REGIONS_PER_FILE + COMPLEXITY_METRICS_PER_FILE),
+        elapsed.as_millis(),
+    );
+    assert_eq!(result.files_changed, file_count);
+    drop(writer);
+    std::fs::remove_dir_all(&temp_dir).unwrap();
+}
+
+#[test]
 fn export_mmap_size_comparison() {
     // Isolates the reader `mmap_size` pragma (P3 finding) from writer changes:
     // the same quiescent artifact is exported once without mmap and once with

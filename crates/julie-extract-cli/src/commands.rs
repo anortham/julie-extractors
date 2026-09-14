@@ -43,10 +43,12 @@ use crate::discovery::{
     DiscoveryExclusions, DiscoveryPolicy, FileSelection, SupportedTarget, UnsupportedReason,
     canonicalize_ignore_files,
 };
+#[cfg(test)]
+use crate::extraction::read_source_snapshot;
 use crate::extraction::{
     ExtractFileError, SourceSnapshot, effective_extraction_workers, extract_artifact_file,
-    extract_artifact_file_from_snapshot_at, failed_artifact_file, read_source_snapshot,
-    select_extraction_pool, unchanged_artifact_file, unsupported_artifact_file,
+    extract_artifact_file_from_snapshot_at, failed_artifact_file, select_extraction_pool,
+    unchanged_artifact_file, unsupported_artifact_file,
 };
 use crate::limits::{HARD_EXCLUDE_DIRS, HARD_EXCLUDE_SUFFIXES, MAX_SOURCE_FILE_BYTES};
 use crate::paths::{
@@ -1747,7 +1749,7 @@ fn compute_file_outcome(
     let snapshot_path = supported.target.root_relative_path.clone();
 
     let read_started = Instant::now();
-    let snapshot = match read_source_snapshot(&supported.target) {
+    let snapshot = match crate::extraction::read_source_snapshot_uncached(&supported.target) {
         Ok(snapshot) => snapshot,
         Err(error) => {
             let read_duration = read_started.elapsed();
@@ -2473,6 +2475,33 @@ mod tests {
             1,
             "changed files must still use the extraction callback"
         );
+    }
+
+    #[test]
+    fn scan_spooling_does_not_retain_source_snapshots() {
+        let fixture = ScanFixture::new();
+        let target = fixture.write("src/lib.rs", "pub fn scanned() {}\n");
+
+        extract_supported_files_to_spool(
+            ExtractionRequest {
+                root: fixture.root(),
+                indexed_at: "2026-06-01T00:00:00Z".to_string(),
+                existing_content_hashes: None,
+                force: false,
+                jobs: 1,
+                level: ExtractionLevel::Full,
+            },
+            &[SupportedFileTarget::new(target.clone(), "rust")],
+            ScanControls::default(),
+            |_, target, language, indexed_at, snapshot| {
+                Ok(extracted_artifact_file(
+                    target, language, indexed_at, snapshot,
+                ))
+            },
+        )
+        .unwrap();
+
+        assert!(crate::extraction::get_cached_snapshot_if_fresh(&target.absolute_path).is_none());
     }
 
     #[test]

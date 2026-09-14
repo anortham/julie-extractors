@@ -953,12 +953,50 @@ fn test_tier_names_are_stable_for_docs_and_help() {
             "capability",
             "contract",
             "certification",
+            "perf",
             "changed <path>...",
             "real-world-smoke",
             "real-world",
             "real-world-release",
         ]
     );
+}
+
+#[test]
+fn test_perf_tier_runs_only_opt_in_writer_benchmark() {
+    let plan = plan_from_args(["test", "perf"]).expect("perf plan");
+
+    assert_eq!(
+        plan.commands,
+        vec![CommandSpec::new(
+            "cargo",
+            [
+                "test",
+                "-p",
+                "julie-extract-artifact",
+                "--features",
+                "test-perf",
+                "--test",
+                "writer_perf",
+                "--",
+                "--nocapture",
+            ],
+        )]
+    );
+}
+
+#[test]
+fn test_default_and_contract_tiers_exclude_writer_perf() {
+    for tier in ["default", "contract"] {
+        let plan = plan_from_args(["test", tier]).expect("tier plan");
+        assert!(
+            !plan
+                .commands
+                .iter()
+                .any(|command| command.args.iter().any(|arg| arg == "writer_perf")),
+            "{tier} tier must not register the wall-clock writer floor"
+        );
+    }
 }
 
 #[test]

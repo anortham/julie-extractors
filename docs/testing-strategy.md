@@ -14,6 +14,7 @@ Use `cargo xtask test list` to print the tier names.
 - Capability and pending-shape contracts: `cargo xtask test capability`
 - Extractor contract: `cargo xtask test contract`
 - Parser certification: `cargo xtask test certification`
+- Writer performance floors: `cargo xtask test perf`
 - Changed paths: `cargo xtask test changed <path>...`
 - Real-world smoke fixtures: `cargo xtask test real-world-smoke`
 - Real-world release fixtures: `cargo xtask test real-world-release`
@@ -39,7 +40,6 @@ Contains:
 - focused unit tests for touched extractor helpers
 - CLI argument/report contract tests with tiny fixtures
 - schema writer/readback tests with tiny fixtures
-- tiny-fixture writer performance tripwires for obvious regressions
 - convention tests that enforce test categorization
 
 Does not contain:
@@ -108,8 +108,19 @@ and operations contract tests for `julie-extract-cli`.
 The contract tier also registers the feature-gated Ph2b store equivalence and mixed-version
 matrices. The crash matrix remains an explicit artifact feature gate because it self-reexecutes and
 externally kills public CLI processes. Neither feature is enabled by the default tier.
-Retired resolution contract, performance, and coverage targets are not part of
-this tier.
+The store-maintenance performance contract is included. Retired resolution and
+coverage targets are not part of this tier.
+
+## Writer Performance Tier
+
+Runs the feature-gated synthetic writer and JSONL-export throughput floors:
+
+```bash
+cargo xtask test perf
+```
+
+This opt-in tier stays out of the default and contract tiers because wall-clock
+floors are intentionally generous and host-sensitive.
 
 The Python SQLite consumer example is a downstream smoke check for non-Rust
 artifact readers:
@@ -306,7 +317,8 @@ cargo xtask performance writer-current-schema --out-dir target/performance/write
 
   Record the local min/median/max when timing is an acceptance criterion; do
   not use GitHub Actions duration as a performance gate.
-- Add a tiny-fixture writer budget before the SQLite writer lands.
+- Keep the writer performance floor opt-in because it uses host-sensitive
+  wall-clock limits; it detects collapse, not moderate regressions.
 - Add convention tests that fail if slow tests enter default.
 - Add contract tests that fail when required schema indexes are missing.
 - Add a performance gate that detects per-row commits in the SQLite writer.

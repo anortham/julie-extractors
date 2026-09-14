@@ -107,7 +107,7 @@ impl std::fmt::Display for CliError {
 
 impl std::error::Error for CliError {}
 
-pub fn tier_names() -> [&'static str; 10] {
+pub fn tier_names() -> [&'static str; 11] {
     [
         "default",
         "language <name>",
@@ -115,6 +115,7 @@ pub fn tier_names() -> [&'static str; 10] {
         "capability",
         "contract",
         "certification",
+        "perf",
         "changed <path>...",
         "real-world-smoke",
         "real-world",
@@ -153,6 +154,7 @@ where
         "capability" => expect_no_extra_args(&args, 1).map(|()| capability_plan()),
         "contract" => expect_no_extra_args(&args, 1).map(|()| contract_plan()),
         "certification" => expect_no_extra_args(&args, 1).map(|()| certification_plan()),
+        "perf" => expect_no_extra_args(&args, 1).map(|()| perf_plan()),
         "changed" => changed_plan(&args),
         "real-world-smoke" => expect_no_extra_args(&args, 1).map(|()| real_world_smoke_plan()),
         "real-world" | "real-world-release" => {
@@ -550,6 +552,23 @@ fn certification_plan() -> TestPlan {
         ],
     ));
     TestPlan::new(commands)
+}
+
+fn perf_plan() -> TestPlan {
+    TestPlan::new(vec![CommandSpec::new(
+        "cargo",
+        [
+            "test",
+            "-p",
+            "julie-extract-artifact",
+            "--features",
+            "test-perf",
+            "--test",
+            "writer_perf",
+            "--",
+            "--nocapture",
+        ],
+    )])
 }
 
 fn changed_plan(args: &[String]) -> Result<TestPlan, CliError> {

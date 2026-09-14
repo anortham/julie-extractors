@@ -20,8 +20,8 @@ Ph2b and Ph2d implement the [store v1 contract](contracts/store-v1.md),
 Ph2c resolution write path is retired; see
 [2026-08-18-resolution-write-path-retirement.md](decisions/2026-08-18-resolution-write-path-retirement.md).
 The store implementation was published in v2.31.0 and patched through v2.37.2.
-Version 2.39.0 is the current published release. Historical notes remain in
-[release-notes](release-notes) and [release-evidence](release-evidence).
+See the [current published release notes](release-notes/README.md), historical
+[release notes](release-notes), and [release evidence](release-evidence).
 The implementation plans and dogfood records are:
 
 - [Ph2b store-kernel plan](plans/2026-08-07-index-store-ph2b-store-kernel-plan.md)

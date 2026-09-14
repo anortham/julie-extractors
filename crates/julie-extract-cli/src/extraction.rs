@@ -317,6 +317,14 @@ pub(crate) fn read_source_snapshot(
     Ok(snapshot)
 }
 
+pub(crate) fn read_source_snapshot_uncached(
+    target: &FileTarget,
+) -> Result<SourceSnapshot, ExtractFileError> {
+    record_disk_read(target);
+    let bytes = fs::read(&target.absolute_path).map_err(|error| read_error(target, &error))?;
+    source_snapshot_from_bytes(target, bytes)
+}
+
 pub(crate) fn read_source_identity(target: &FileTarget) -> Result<(String, u64), ExtractFileError> {
     if let Some(snapshot) = get_cached_snapshot_if_fresh(&target.absolute_path) {
         return Ok((snapshot.content_hash, snapshot.content_bytes as u64));

@@ -1331,6 +1331,10 @@ fn revision_counts_with_capabilities(
 }
 
 fn ensure_data_loss_guard(tx: &Transaction<'_>, file: &ArtifactFile) -> ArtifactWriteResult<()> {
+    if file.status != FileStatus::FailedPreserved {
+        return Ok(());
+    }
+
     let existing_symbols: i64 = tx.query_row(
         "SELECT COUNT(*) FROM symbols WHERE path = ?1",
         [file.path.as_str()],
@@ -1340,20 +1344,11 @@ fn ensure_data_loss_guard(tx: &Transaction<'_>, file: &ArtifactFile) -> Artifact
         return Ok(());
     }
 
-    let reason = match file.status {
-        FileStatus::FailedPreserved => Some("parser/read failure evidence"),
-        FileStatus::Indexed | FileStatus::Unsupported => None,
-    };
-
-    if let Some(reason) = reason {
-        return Err(ArtifactWriteError::DataLossGuard {
-            path: file.path.clone(),
-            existing_symbols,
-            reason: reason.to_string(),
-        });
-    }
-
-    Ok(())
+    Err(ArtifactWriteError::DataLossGuard {
+        path: file.path.clone(),
+        existing_symbols,
+        reason: "parser/read failure evidence".to_string(),
+    })
 }
 
 fn delete_file_rows(tx: &Transaction<'_>, file_id: &str, path: &str) -> rusqlite::Result<()> {
