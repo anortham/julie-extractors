@@ -88,6 +88,17 @@ In CI, the `Extractor Compatibility` job downloads the latest published release 
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
+## 3.0.0
+
+classification: compatible
+
+One table moves: `language_capabilities`. The `capability_gaps` JSON column carries prose that
+named Miller as the consumer responsible for cross-file route-prefix joins (Phoenix, Laravel,
+NestJS, and the `.NET` service lanes). That prose now names `code-kb`. No key, kind, or
+structural value changes; only the human-readable `reason` and `required_closure` text differs.
+Every other compared table is byte-identical to 2.43.0. A reader built for 2.43.0 reads the new
+output correctly; nothing to do.
+
 ## 2.41.1
 
 classification: compatible
