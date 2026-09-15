@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use super::kinds::IdentifierKind;
 use super::span::{NormalizedSpan, RecordOffset};
 use super::types::{ExtractionLevel, ExtractionResults, TypeInfo};
 use tracing::warn;
@@ -79,15 +80,25 @@ impl ExtractionResults {
     /// across every language instead of leaving a silent three-language subset
     /// in the artifact.
     pub fn strip_to_level(&mut self, level: ExtractionLevel) {
-        if level.includes_references() {
-            return;
-        }
-        self.identifiers.clear();
-        self.type_argument_usages.clear();
-        self.literals.clear();
-        self.source_regions.clear();
-        if !level.includes_structural_facts() {
-            self.structural_facts.clear();
+        match level {
+            ExtractionLevel::Full => {}
+            ExtractionLevel::Facts => {
+                self.identifiers.retain(|identifier| {
+                    matches!(
+                        identifier.kind,
+                        IdentifierKind::TypeUsage | IdentifierKind::MemberAccess
+                    )
+                });
+                self.type_argument_usages.clear();
+                self.source_regions.clear();
+            }
+            ExtractionLevel::Symbols => {
+                self.identifiers.clear();
+                self.type_argument_usages.clear();
+                self.literals.clear();
+                self.source_regions.clear();
+                self.structural_facts.clear();
+            }
         }
     }
 

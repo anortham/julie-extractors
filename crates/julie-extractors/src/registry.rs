@@ -97,7 +97,7 @@ macro_rules! define_structured_full_language_extractors {
                 );
                 let symbols = ext.extract_symbols(tree);
                 let relationships = ext.extract_relationships(tree, &symbols);
-                let identifiers = if level.includes_references() {
+                let identifiers = if level.includes_identifiers() {
                     ext.extract_identifiers(tree, &symbols)
                 } else {
                     Vec::new()
@@ -141,7 +141,7 @@ macro_rules! define_structured_full_file_extractors {
                 );
                 let symbols = ext.extract_symbols(tree);
                 let relationships = ext.extract_relationships(tree, &symbols);
-                let identifiers = if level.includes_references() {
+                let identifiers = if level.includes_identifiers() {
                     ext.extract_identifiers(tree, &symbols)
                 } else {
                     Vec::new()
@@ -186,7 +186,7 @@ macro_rules! define_no_pending_extractors {
                 );
                 let symbols = ext.extract_symbols(tree);
                 let relationships = ext.extract_relationships(tree, &symbols);
-                let identifiers = if level.includes_references() {
+                let identifiers = if level.includes_identifiers() {
                     ext.extract_identifiers(tree, &symbols)
                 } else {
                     Vec::new()
@@ -229,7 +229,7 @@ macro_rules! define_relationship_data_extractors {
                 );
                 let symbols = ext.extract_symbols(tree);
                 let relationships = ext.extract_relationships(tree, &symbols);
-                let identifiers = if level.includes_references() {
+                let identifiers = if level.includes_identifiers() {
                     ext.extract_identifiers(tree, &symbols)
                 } else {
                     Vec::new()
@@ -309,7 +309,7 @@ fn extract_lua(
     );
     let symbols = ext.extract_symbols(tree);
     let relationships = ext.extract_relationships(tree, &symbols);
-    let identifiers = if level.includes_references() {
+    let identifiers = if level.includes_identifiers() {
         ext.extract_identifiers(tree, &symbols)
     } else {
         Vec::new()
@@ -348,7 +348,7 @@ fn extract_r(
     );
     let symbols = ext.extract_symbols(tree);
     let relationships = ext.extract_relationships(tree, &symbols);
-    let identifiers = if level.includes_references() {
+    let identifiers = if level.includes_identifiers() {
         ext.extract_identifiers(tree, &symbols)
     } else {
         Vec::new()
@@ -404,7 +404,7 @@ fn extract_html(
     );
     let symbols = ext.extract_symbols(tree);
     let relationships = ext.extract_relationships(tree, &symbols);
-    let identifiers = if level.includes_references() {
+    let identifiers = if level.includes_identifiers() {
         ext.extract_identifiers(tree, &symbols)
     } else {
         Vec::new()
@@ -453,7 +453,7 @@ fn extract_sql(
     );
     let symbols = ext.extract_symbols(tree);
     let relationships = ext.extract_relationships(tree, &symbols);
-    let identifiers = if level.includes_references() {
+    let identifiers = if level.includes_identifiers() {
         ext.extract_identifiers(tree, &symbols)
     } else {
         Vec::new()
@@ -507,7 +507,7 @@ fn extract_toml(
     );
     let symbols = ext.extract_symbols(tree);
     let relationships = ext.extract_relationships(tree, &symbols);
-    let identifiers = if level.includes_references() {
+    let identifiers = if level.includes_identifiers() {
         ext.extract_identifiers(tree, &symbols)
     } else {
         Vec::new()
@@ -545,7 +545,7 @@ fn extract_erlang(
     );
     let symbols = ext.extract_symbols(tree);
     let relationships = ext.extract_relationships(tree, &symbols);
-    let identifiers = if level.includes_references() {
+    let identifiers = if level.includes_identifiers() {
         ext.extract_identifiers(tree, &symbols)
     } else {
         Vec::new()
@@ -585,7 +585,7 @@ fn extract_json(
     );
     let symbols = ext.extract_symbols(tree);
     let relationships = ext.extract_relationships(tree, &symbols);
-    let identifiers = if level.includes_references() {
+    let identifiers = if level.includes_identifiers() {
         ext.extract_identifiers(tree, &symbols)
     } else {
         Vec::new()
@@ -626,7 +626,7 @@ fn extract_xml(
         workspace_root,
     );
     let symbols = ext.extract_symbols(tree);
-    let identifiers = if level.includes_references() {
+    let identifiers = if level.includes_identifiers() {
         ext.extract_identifiers(tree, &symbols)
     } else {
         Vec::new()
@@ -661,7 +661,7 @@ fn extract_qmldir(
         workspace_root,
     );
     let symbols = ext.extract_symbols(tree);
-    let identifiers = if level.includes_references() {
+    let identifiers = if level.includes_identifiers() {
         ext.extract_identifiers(tree, &symbols)
     } else {
         Vec::new()
@@ -697,7 +697,7 @@ fn extract_vue(
     );
     let symbols = ext.extract_symbols(Some(tree));
     let relationships = ext.extract_relationships(Some(tree), &symbols);
-    let identifiers = if level.includes_references() {
+    let identifiers = if level.includes_identifiers() {
         ext.extract_identifiers(&symbols)
     } else {
         Vec::new()

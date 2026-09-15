@@ -4327,7 +4327,7 @@ fn scan_canonicalizes_one_attested_token_across_identifier_and_relationship_evid
 }
 
 #[test]
-fn scan_level_facts_keeps_structural_facts_and_drops_reference_domains() {
+fn scan_level_facts_keeps_facts_literals_and_type_and_member_identifiers() {
     let full_fixture = FixtureRoot::with_file("src/messagesService.ts", TS_LEVELS_FIXTURE);
     let full_db = full_fixture.path("artifact.sqlite");
     assert_success(julie_extract(&[
@@ -4373,12 +4373,33 @@ fn scan_level_facts_keeps_structural_facts_and_drops_reference_domains() {
         table_count(&facts_db, "symbols"),
         table_count(&full_db, "symbols")
     );
-    for domain in [
-        "identifiers",
-        "literals",
-        "type_argument_usages",
-        "source_regions",
-    ] {
+    assert_eq!(
+        table_count(&facts_db, "literals"),
+        table_count(&full_db, "literals")
+    );
+    let kept_identifiers: i64 = Connection::open(&full_db)
+        .unwrap()
+        .query_row(
+            "SELECT count(*) FROM identifiers WHERE kind IN ('type_usage', 'member_access')",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert!(
+        kept_identifiers > 0,
+        "fixture must yield type or member identifiers"
+    );
+    assert_eq!(table_count(&facts_db, "identifiers"), kept_identifiers);
+    let other_kinds: i64 = Connection::open(&facts_db)
+        .unwrap()
+        .query_row(
+            "SELECT count(*) FROM identifiers WHERE kind NOT IN ('type_usage', 'member_access')",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(other_kinds, 0);
+    for domain in ["type_argument_usages", "source_regions"] {
         assert_eq!(
             table_count(&facts_db, domain),
             0,

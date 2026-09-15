@@ -168,7 +168,9 @@ fn strip_to_level_is_the_single_authority_on_the_gated_set() {
 }
 
 #[test]
-fn facts_level_keeps_structural_facts_and_drops_reference_families_for_every_fixture_language() {
+fn facts_level_keeps_structural_facts_literals_and_type_and_member_identifiers_for_every_fixture_language()
+ {
+    use crate::base::IdentifierKind;
     for fixture in FIXTURES {
         let full = extract_at(ExtractionLevel::Full, fixture.file_path, fixture.source);
         let facts = extract_at(ExtractionLevel::Facts, fixture.file_path, fixture.source);
@@ -190,8 +192,36 @@ fn facts_level_keeps_structural_facts_and_drops_reference_families_for_every_fix
             "{}",
             fixture.language
         );
-        assert!(facts.identifiers.is_empty(), "{}", fixture.language);
-        assert!(facts.literals.is_empty(), "{}", fixture.language);
+        assert_eq!(
+            full.literals.len(),
+            facts.literals.len(),
+            "{}",
+            fixture.language
+        );
+        let kept_from_full = full
+            .identifiers
+            .iter()
+            .filter(|i| {
+                matches!(
+                    i.kind,
+                    IdentifierKind::TypeUsage | IdentifierKind::MemberAccess
+                )
+            })
+            .count();
+        assert_eq!(
+            facts.identifiers.len(),
+            kept_from_full,
+            "{}: facts must keep exactly the type_usage and member_access identifiers",
+            fixture.language
+        );
+        assert!(
+            facts.identifiers.iter().all(|i| matches!(
+                i.kind,
+                IdentifierKind::TypeUsage | IdentifierKind::MemberAccess
+            )),
+            "{}",
+            fixture.language
+        );
         assert!(
             facts.type_argument_usages.is_empty(),
             "{}",
@@ -199,6 +229,19 @@ fn facts_level_keeps_structural_facts_and_drops_reference_families_for_every_fix
         );
         assert!(facts.source_regions.is_empty(), "{}", fixture.language);
     }
+}
+
+#[test]
+fn facts_level_fixtures_actually_carry_type_or_member_identifiers() {
+    let any = FIXTURES.iter().any(|fixture| {
+        !extract_at(ExtractionLevel::Facts, fixture.file_path, fixture.source)
+            .identifiers
+            .is_empty()
+    });
+    assert!(
+        any,
+        "at least one fixture must exercise the kept identifier kinds"
+    );
 }
 
 #[test]

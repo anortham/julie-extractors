@@ -558,6 +558,12 @@ impl ExtractionLevel {
         matches!(self, ExtractionLevel::Facts | ExtractionLevel::Full)
     }
 
+    /// Whether the identifier walk runs. `facts` keeps only the type-usage and
+    /// member-access identifiers it produces; `full` keeps them all.
+    pub fn includes_identifiers(self) -> bool {
+        matches!(self, ExtractionLevel::Facts | ExtractionLevel::Full)
+    }
+
     /// Canonical `artifact_metadata.index_level` value for this level.
     pub fn metadata_value(self) -> &'static str {
         match self {
