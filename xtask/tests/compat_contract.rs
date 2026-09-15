@@ -256,14 +256,14 @@ fn a_table_dropped_by_the_current_build_is_a_difference() {
 #[test]
 fn a_table_added_by_the_current_build_is_a_difference() {
     let previous = dump(&[("symbols", "b\n")]);
-    let current = dump(&[("store_epochs", "a\n"), ("symbols", "b\n")]);
+    let current = dump(&[("added", "a\n"), ("symbols", "b\n")]);
 
     let diff = diff_dumps(&previous, &current, 5);
 
     assert_eq!(
         diff.differences,
         vec![TableDifference::OnlyInCurrent {
-            table: "store_epochs".to_string()
+            table: "added".to_string()
         }]
     );
 }

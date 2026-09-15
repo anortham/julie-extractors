@@ -169,11 +169,10 @@ Tag-triggered runs require the pushed tag.
 
 ## Evidence
 
-Release evidence is recorded under `docs/release-evidence/`. Generated SQLite,
-JSONL, and raw report files stay under `target/` and are not committed.
-Dogfood evidence includes the cold scan report, immediate no-change rescan
-report, info report, JSONL export report, SQLite/JSONL artifact validation, and
-report-only performance metrics.
+Release evidence is recorded under `docs/release-evidence/`. Generated SQLite
+and raw report files stay under `target/` and are not committed. Dogfood
+evidence includes the cold scan report, immediate no-change rescan report, info
+report, SQLite artifact validation, and report-only performance metrics.
 
 Historical v0.1.0 dogfood evidence: `docs/release-evidence/v0.1.0-dogfood.md`.
 Historical v0.1.0 release-candidate audit evidence:

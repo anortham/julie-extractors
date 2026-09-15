@@ -21,8 +21,6 @@ Use `cargo xtask test list` to print the tier names.
 - Release package manifest: `cargo xtask release package-list`
 - Dependency policy: `cargo deny check`
 - Dogfood this repo: `cargo xtask dogfood repo --root . --out-dir target/dogfood/julie-extractors`
-- Unreleased store crash contract: `cargo test -p julie-extract-artifact --features test-store-crash --test store_crash_contract -- --nocapture`
-- Unreleased store equivalence contract: `cargo test -p julie-extract-cli --features test-store-contract --test store_equivalence -- --nocapture`
 
 The default command expands to fast package tests for `julie-extractors`,
 `julie-extract-artifact`, and `julie-extract-cli`. Slow and contract-heavy
@@ -89,7 +87,6 @@ Runs artifact-facing behavior:
 - required SQLite indexes and query-plan checks
 - batched writer behavior for scan/update/delete with tiny fixtures
 - JSON report shape
-- JSONL export shape
 - downstream smoke consumers
 
 This tier protects Miller/Eros-style users.
@@ -101,19 +98,15 @@ cargo xtask test contract
 ```
 
 This runs golden fixtures, capability matrix checks, pending-shape checks, and
-the downstream smoke consumer, plus the SQLite schema, JSON report, and JSONL
+the downstream smoke consumer, plus the SQLite schema and JSON report
 contract tests for `julie-extract-artifact` and the CLI contract, path-policy,
 and operations contract tests for `julie-extract-cli`.
 
-The contract tier also registers the feature-gated Ph2b store equivalence and mixed-version
-matrices. The crash matrix remains an explicit artifact feature gate because it self-reexecutes and
-externally kills public CLI processes. Neither feature is enabled by the default tier.
-The store-maintenance performance contract is included. Retired resolution and
-coverage targets are not part of this tier.
+Retired resolution and coverage targets are not part of this tier.
 
 ## Writer Performance Tier
 
-Runs the feature-gated synthetic writer and JSONL-export throughput floors:
+Runs the feature-gated synthetic writer throughput floors:
 
 ```bash
 cargo xtask test perf
@@ -210,8 +203,8 @@ notes.
 
 Dogfood scans this repository through the public `julie-extract` CLI, immediately
 rescans the same SQLite artifact to prove the incremental `no_change` path,
-then validates the generated SQLite artifact, JSON reports, JSONL export, and
-report-only performance metrics.
+then validates the generated SQLite artifact, JSON reports, and report-only
+performance metrics.
 
 Current form:
 
@@ -220,8 +213,8 @@ cargo xtask dogfood repo --root . --out-dir target/dogfood/julie-extractors
 ```
 
 This gate is not part of the default tier. It is release-readiness evidence and
-should run intentionally when extraction, CLI, artifact, JSONL, report, or
-release evidence behavior changes. Its hard evidence includes the cold scan
+should run intentionally when extraction, CLI, artifact, report, or release
+evidence behavior changes. Its hard evidence includes the cold scan
 `ok` report and immediate rescan `no_change` report; timings are report-only.
 v0.1.0 dogfood evidence is recorded in `docs/release-evidence/v0.1.0-dogfood.md`.
 
@@ -251,24 +244,6 @@ current-schema child-row domains, including `source_regions`,
 `structural_facts`, and `complexity_metrics`, are hard evidence; timing, rows
 per second, and artifact size are report-only metrics. This guard is local
 release-evidence tooling, not part of regular CI or the default/contract tiers.
-
-### Unreleased Ph2b store closeout
-
-The Ph2b branch gate adds two exact feature commands to the regular formatting, xtask, default,
-and contract commands:
-
-```bash
-RUSTUP_TOOLCHAIN=1.97.1 cargo test -p julie-extract-artifact --features test-store-crash --test store_crash_contract -- --nocapture
-RUSTUP_TOOLCHAIN=1.97.1 cargo test -p julie-extract-cli --features test-store-contract --test store_equivalence -- --nocapture
-```
-
-The closeout dogfood uses a release `julie-extract` binary, disposable source archives, one family
-with two views, L1-first Full imports, 20 public updates/deletes, an externally killed batch with
-takeover/reconciliation, and fresh-store visible-row equivalence. Databases, raw reports, timing,
-and WAL observations stay under `target/`; the durable summary is
-[release evidence](release-evidence/2026-08-07-index-store-ph2b/README.md). The family store is
-published (v2.31.0+); this file remains process evidence for the Ph2b slice, not a Miller
-adoption claim.
 
 ## CI Policy
 
