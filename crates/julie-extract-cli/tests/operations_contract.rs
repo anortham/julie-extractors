@@ -4325,3 +4325,65 @@ fn scan_canonicalizes_one_attested_token_across_identifier_and_relationship_evid
 
     assert_eq!(shared_exact_sites, 1);
 }
+
+#[test]
+fn scan_level_facts_keeps_structural_facts_and_drops_reference_domains() {
+    let full_fixture = FixtureRoot::with_file("src/messagesService.ts", TS_LEVELS_FIXTURE);
+    let full_db = full_fixture.path("artifact.sqlite");
+    assert_success(julie_extract(&[
+        "scan",
+        "--root",
+        full_fixture.root_str(),
+        "--db",
+        path_str(&full_db),
+        "--json",
+    ]));
+    let full_structural_facts = table_count(&full_db, "structural_facts");
+    assert!(
+        full_structural_facts > 0,
+        "fixture must yield structural facts at full level"
+    );
+
+    let facts_fixture = FixtureRoot::with_file("src/messagesService.ts", TS_LEVELS_FIXTURE);
+    let facts_db = facts_fixture.path("artifact.sqlite");
+    let output = julie_extract(&[
+        "scan",
+        "--root",
+        facts_fixture.root_str(),
+        "--db",
+        path_str(&facts_db),
+        "--level",
+        "facts",
+        "--json",
+    ]);
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout={}\nstderr={}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report = json_report(&output);
+    assert_eq!(report["artifact"]["index_level"], "facts");
+    assert_eq!(
+        table_count(&facts_db, "structural_facts"),
+        full_structural_facts
+    );
+    assert_eq!(
+        table_count(&facts_db, "symbols"),
+        table_count(&full_db, "symbols")
+    );
+    for domain in [
+        "identifiers",
+        "literals",
+        "type_argument_usages",
+        "source_regions",
+    ] {
+        assert_eq!(
+            table_count(&facts_db, domain),
+            0,
+            "{domain} must be empty at facts level"
+        );
+    }
+    assert_eq!(index_level_metadata(&facts_db).as_deref(), Some("facts"));
+}

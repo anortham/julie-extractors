@@ -836,7 +836,7 @@ pub fn extract_for_language_at(
         )
     })?;
     let mut results = (entry.extract)(tree, file_path, content, workspace_root, level)?;
-    if level.includes_references() {
+    if level.includes_structural_facts() {
         let extractor_structural_facts = std::mem::take(&mut results.structural_facts);
         results.source_regions =
             collect_source_regions(language, tree, file_path, content, &results.symbols);
@@ -921,9 +921,7 @@ pub fn extract_for_language_at(
     if let Some(diagnostic) = depth_truncation_diagnostic(tree.root_node()) {
         results.parse_diagnostics.push(diagnostic);
     }
-    if !level.includes_references() {
-        results.strip_to_symbols_level();
-    }
+    results.strip_to_level(level);
     Ok(results)
 }
 

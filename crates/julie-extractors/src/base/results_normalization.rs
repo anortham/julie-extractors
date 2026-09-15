@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use super::span::{NormalizedSpan, RecordOffset};
-use super::types::{ExtractionResults, TypeInfo};
+use super::types::{ExtractionLevel, ExtractionResults, TypeInfo};
 use tracing::warn;
 
 fn relationship_id(
@@ -78,12 +78,17 @@ impl ExtractionResults {
     /// walk (sql, markdown, regex). Stripping here keeps the level uniform
     /// across every language instead of leaving a silent three-language subset
     /// in the artifact.
-    pub fn strip_to_symbols_level(&mut self) {
+    pub fn strip_to_level(&mut self, level: ExtractionLevel) {
+        if level.includes_references() {
+            return;
+        }
         self.identifiers.clear();
         self.type_argument_usages.clear();
         self.literals.clear();
         self.source_regions.clear();
-        self.structural_facts.clear();
+        if !level.includes_structural_facts() {
+            self.structural_facts.clear();
+        }
     }
 
     pub fn extend(&mut self, mut other: Self) {

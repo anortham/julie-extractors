@@ -545,6 +545,7 @@ pub struct SymbolOptions {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExtractionLevel {
     Symbols,
+    Facts,
     Full,
 }
 
@@ -553,10 +554,15 @@ impl ExtractionLevel {
         matches!(self, ExtractionLevel::Full)
     }
 
+    pub fn includes_structural_facts(self) -> bool {
+        matches!(self, ExtractionLevel::Facts | ExtractionLevel::Full)
+    }
+
     /// Canonical `artifact_metadata.index_level` value for this level.
     pub fn metadata_value(self) -> &'static str {
         match self {
             ExtractionLevel::Symbols => "symbols",
+            ExtractionLevel::Facts => "facts",
             ExtractionLevel::Full => "full",
         }
     }
@@ -564,6 +570,7 @@ impl ExtractionLevel {
     pub fn from_metadata_value(value: &str) -> Option<Self> {
         match value {
             "symbols" => Some(ExtractionLevel::Symbols),
+            "facts" => Some(ExtractionLevel::Facts),
             "full" => Some(ExtractionLevel::Full),
             _ => None,
         }

@@ -39,7 +39,7 @@ this table drifts.
 ## Commands
 
 ```bash
-julie-extract scan --root <dir> --db <path> [--force] [--level <symbols|full>] [--ignore-file <path>...] [--jobs <n>] [--spool-dir <path>] [--progress-file <path>] [--parent-pid <pid>] [--strict-schema] [--json]
+julie-extract scan --root <dir> --db <path> [--force] [--level <symbols|facts|full>] [--ignore-file <path>...] [--jobs <n>] [--spool-dir <path>] [--progress-file <path>] [--parent-pid <pid>] [--strict-schema] [--json]
 julie-extract update --root <dir> --db <path> --file <path> [--ignore-file <path>...] [--strict-schema] [--json]
 julie-extract delete --root <dir> --db <path> --file <path> [--strict-schema] [--json]
 julie-extract info --db <path> [--strict-schema] [--json]
@@ -179,7 +179,7 @@ artifact never serves stale symbols for a file that grew past the limit.
 `scan --force` rebuilds the artifact contents in one SQLite transaction. It is
 the explicit path for a moved root or full re-extraction.
 
-`--level <symbols|full>` chooses the extraction level for a NEW artifact.
+`--level <symbols|facts|full>` chooses the extraction level for a NEW artifact.
 `full` (the default) is the complete extraction — every invocation without the
 flag behaves exactly as it did before the flag existed. `symbols` builds the
 progressive-indexing symbol core: the identifier walks and text/facts collectors
@@ -188,7 +188,11 @@ never run, so `identifiers`, `literals`, `type_argument_usages`,
 uniformly across every supported language, while `files`, `symbols`,
 `symbol_annotations`, `relationships`, `pending_relationships`, `type_facts`,
 `complexity_metrics`, and `parse_diagnostics` are identical to a full
-extraction. The chosen level is recorded in the `index_level` artifact-metadata
+extraction. `facts` is the symbol core plus `structural_facts`, identical to a
+full extraction's structural facts, for consumers such as `code-kb` that query
+framework facts but never read the reference tables; `identifiers`,
+`literals`, `type_argument_usages`, `type_arguments`, and `source_regions` stay
+empty; its symbol-core tables match `symbols`. The chosen level is recorded in the `index_level` artifact-metadata
 key and in `artifact.index_level` on every report.
 
 An artifact's level is fixed when it is first built. A rescan or `update`

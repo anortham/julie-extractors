@@ -70,7 +70,9 @@ pub struct ScanArgs {
     pub parent_pid: Option<u32>,
     /// Extraction level for a NEW artifact: `symbols` (symbol core only — no
     /// identifiers, literals, type-argument usages, source regions, or
-    /// structural facts) or `full` (everything; the default). An existing
+    /// structural facts), `facts` (the symbol core plus structural facts; no
+    /// identifiers, literals, type-argument usages, or source regions), or
+    /// `full` (everything; the default). An existing
     /// artifact always keeps the level it was built with; passing a different
     /// level for it is a usage error — rebuild into a fresh artifact instead.
     #[arg(long, value_enum)]
@@ -81,6 +83,7 @@ pub struct ScanArgs {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
 pub enum LevelArg {
     Symbols,
+    Facts,
     Full,
 }
 
@@ -88,6 +91,7 @@ impl From<LevelArg> for julie_extractors::ExtractionLevel {
     fn from(level: LevelArg) -> Self {
         match level {
             LevelArg::Symbols => julie_extractors::ExtractionLevel::Symbols,
+            LevelArg::Facts => julie_extractors::ExtractionLevel::Facts,
             LevelArg::Full => julie_extractors::ExtractionLevel::Full,
         }
     }

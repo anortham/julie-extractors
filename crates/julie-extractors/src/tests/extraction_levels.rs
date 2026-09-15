@@ -150,13 +150,13 @@ fn extract_canonical_defaults_to_full_level() {
 }
 
 #[test]
-fn strip_to_symbols_level_is_the_single_authority_on_the_gated_set() {
+fn strip_to_level_is_the_single_authority_on_the_gated_set() {
     let fixture = &FIXTURES[0];
     let mut results = extract_at(ExtractionLevel::Full, fixture.file_path, fixture.source);
     let kept_symbols = results.symbols.len();
     let kept_relationships = results.relationships.len();
     let kept_complexity = results.complexity_metrics.len();
-    results.strip_to_symbols_level();
+    results.strip_to_level(ExtractionLevel::Symbols);
     assert!(results.identifiers.is_empty());
     assert!(results.literals.is_empty());
     assert!(results.type_argument_usages.is_empty());
@@ -165,4 +165,47 @@ fn strip_to_symbols_level_is_the_single_authority_on_the_gated_set() {
     assert_eq!(results.symbols.len(), kept_symbols);
     assert_eq!(results.relationships.len(), kept_relationships);
     assert_eq!(results.complexity_metrics.len(), kept_complexity);
+}
+
+#[test]
+fn facts_level_keeps_structural_facts_and_drops_reference_families_for_every_fixture_language() {
+    for fixture in FIXTURES {
+        let full = extract_at(ExtractionLevel::Full, fixture.file_path, fixture.source);
+        let facts = extract_at(ExtractionLevel::Facts, fixture.file_path, fixture.source);
+        assert_eq!(
+            full.structural_facts.len(),
+            facts.structural_facts.len(),
+            "{}: structural facts must be identical between facts and full",
+            fixture.language
+        );
+        assert_eq!(
+            full.symbols.len(),
+            facts.symbols.len(),
+            "{}",
+            fixture.language
+        );
+        assert_eq!(
+            full.pending_relationships.len(),
+            facts.pending_relationships.len(),
+            "{}",
+            fixture.language
+        );
+        assert!(facts.identifiers.is_empty(), "{}", fixture.language);
+        assert!(facts.literals.is_empty(), "{}", fixture.language);
+        assert!(
+            facts.type_argument_usages.is_empty(),
+            "{}",
+            fixture.language
+        );
+        assert!(facts.source_regions.is_empty(), "{}", fixture.language);
+    }
+}
+
+#[test]
+fn facts_level_round_trips_through_its_metadata_value() {
+    assert_eq!(ExtractionLevel::Facts.metadata_value(), "facts");
+    assert_eq!(
+        ExtractionLevel::from_metadata_value("facts"),
+        Some(ExtractionLevel::Facts)
+    );
 }
