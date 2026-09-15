@@ -38,6 +38,7 @@ julie-extract delete --root <dir> --db <path> --file <path> [--strict-schema] [-
 julie-extract info --db <path> [--strict-schema] [--json]
 julie-extract languages [--json]
 julie-extract rebind --root <dir> --db <path> [--strict-schema] [--json]
+julie-extract check --path <path> [--json] < source-text
 ```
 
 ## Shared Flags
@@ -413,6 +414,22 @@ Outcomes:
 `rebind` is additive: it introduces no new table or column, so the extraction
 and SQLite versions pinned above are unchanged, and the CLI contract version
 stays `1`.
+
+### `check`
+
+Parses source text read from stdin with the grammar chosen for `--path` and
+reports every syntax error with its position. It touches no artifact and reads
+no file: the path only selects the grammar, so it does not need to exist.
+`code-kb` uses it to validate a proposed file body before writing it to disk.
+
+- A clean parse returns `status: ok` and exit `0`.
+- A parse with recovery diagnostics returns `status: failed` and exit `1`. Each
+  diagnostic is a `parse_failed` error whose `details` carry `kind` (`error`,
+  `missing`, or `depth_truncated`) and the 1-based `start_line`,
+  `start_column`, `end_line`, and `end_column`.
+- A path with no registered grammar returns `status: unsupported`, one
+  `unsupported_file` warning, and exit `0`.
+- The report's `languages.language` field names the grammar that was used.
 
 ## Status Values
 

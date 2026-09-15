@@ -64,6 +64,7 @@ python3 examples/python/sqlite_consumer.py target/example/artifact.sqlite
 | `delete` | Remove one file and its child rows from an artifact. | `--root`, `--db`, `--file`, `--strict-schema`, `--json` |
 | `info` | Read artifact metadata and totals without mutating the database. | `--db`, `--strict-schema`, `--json` |
 | `languages` | Emit parser inventory and capability snapshot metadata. | `--json` |
+| `check` | Parse source text from stdin and report syntax errors with positions. | `--path`, `--json` |
 
 Every command accepts `--json` for a stable machine-readable report. Human
 output is intentionally not part of the contract.

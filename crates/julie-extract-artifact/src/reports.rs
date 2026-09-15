@@ -127,6 +127,7 @@ pub enum ReportOperation {
     Info,
     Languages,
     Rebind,
+    Check,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -139,6 +140,8 @@ pub enum ReportMode {
     CapabilitySnapshot,
     /// A write that touches artifact metadata only, never extracted rows.
     Metadata,
+    /// A parse of stdin text with no artifact and no file access.
+    Syntax,
 }
 
 /// The `rebind` report section: what the artifact recorded before the retarget,

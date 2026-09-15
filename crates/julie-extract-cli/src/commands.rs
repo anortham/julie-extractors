@@ -16,16 +16,17 @@ use julie_extract_artifact::reports::{
 use julie_extract_artifact::writer::{
     ArtifactFileSpool, ArtifactSpoolError, ArtifactWriteError, ArtifactWriter,
 };
+use julie_extractors::syntax::{SyntaxError, parse_source};
 use julie_extractors::{
-    ExtractionLevel, capability_snapshot as extractor_capability_snapshot,
-    detect_language_for_source,
+    ExtractionLevel, ParseDiagnostic, ParseDiagnosticKind,
+    capability_snapshot as extractor_capability_snapshot, detect_language_for_source,
 };
 use rayon::prelude::*;
 use serde_json::{Value, json};
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
 use crate::args::{
-    Cli, Command, DeleteArgs, InfoArgs, LanguagesArgs, RebindArgs, ScanArgs, UpdateArgs,
+    CheckArgs, Cli, Command, DeleteArgs, InfoArgs, LanguagesArgs, RebindArgs, ScanArgs, UpdateArgs,
 };
 use crate::artifact_access::{
     ArtifactAccess, ExistingArtifact, artifact_report_from_connection, existing_artifact_for_root,
@@ -87,6 +88,7 @@ fn run(cli: Cli) -> CommandOutcome {
         Command::Info(args) => info(args),
         Command::Languages(args) => languages(args),
         Command::Rebind(args) => rebind(args),
+        Command::Check(args) => check(args),
     }
 }
 
@@ -899,6 +901,107 @@ fn delete(args: DeleteArgs) -> CommandOutcome {
 /// a caller that cannot cheaply tell whether the copy it just made needs
 /// retargeting should be able to ask unconditionally — but it writes nothing at
 /// all, which is what `changed: false` reports.
+fn check(args: CheckArgs) -> CommandOutcome {
+    let path = display_path(&args.path);
+    let input = ReportInput {
+        db_path: None,
+        root_path: None,
+        file_path: Some(path.clone()),
+        root_relative_path: None,
+    };
+    let report = |status| {
+        base_report(
+            status,
+            ReportOperation::Check,
+            ReportMode::Syntax,
+            input.clone(),
+        )
+    };
+
+    let mut source = String::new();
+    if let Err(error) = std::io::Read::read_to_string(&mut std::io::stdin().lock(), &mut source) {
+        let mut failed = report(ReportStatus::Failed);
+        failed.errors.push(diagnostic(
+            ReportCode::ReadFailed,
+            format!("failed to read source text from stdin: {error}"),
+            Some(path),
+            None,
+            false,
+            json!({}),
+        ));
+        return outcome(failed, 1, args.json);
+    }
+
+    match parse_source(&args.path, &source) {
+        Ok(parsed) if parsed.diagnostics.is_empty() => {
+            let ok =
+                report(ReportStatus::Ok).with_languages(json!({ "language": parsed.language }));
+            outcome(ok, 0, args.json)
+        }
+        Ok(parsed) => {
+            let mut failed =
+                report(ReportStatus::Failed).with_languages(json!({ "language": parsed.language }));
+            failed.errors.extend(
+                parsed
+                    .diagnostics
+                    .iter()
+                    .map(|found| syntax_diagnostic(found, &path)),
+            );
+            outcome(failed, 1, args.json)
+        }
+        Err(SyntaxError::UnsupportedLanguage { .. } | SyntaxError::UnsupportedContainer { .. }) => {
+            let mut unsupported = report(ReportStatus::Unsupported);
+            unsupported.warnings.push(diagnostic(
+                ReportCode::UnsupportedFile,
+                "no grammar is registered for this path, so nothing was checked",
+                Some(path),
+                None,
+                false,
+                json!({}),
+            ));
+            outcome(unsupported, 0, args.json)
+        }
+        Err(error) => {
+            let mut failed = report(ReportStatus::Failed);
+            failed.errors.push(diagnostic(
+                ReportCode::ParseFailed,
+                error.to_string(),
+                Some(path),
+                None,
+                false,
+                json!({}),
+            ));
+            outcome(failed, 1, args.json)
+        }
+    }
+}
+
+fn syntax_diagnostic(found: &ParseDiagnostic, path: &str) -> ReportDiagnostic {
+    let (kind, what) = match found.kind {
+        ParseDiagnosticKind::Error => ("error", "syntax error"),
+        ParseDiagnosticKind::Missing => ("missing", "missing token"),
+        ParseDiagnosticKind::DepthTruncated => ("depth_truncated", "nesting too deep to parse"),
+    };
+    let what = found.message.as_deref().unwrap_or(what);
+    diagnostic(
+        ReportCode::ParseFailed,
+        format!(
+            "{what} at line {}, column {}",
+            found.start_line, found.start_column
+        ),
+        Some(path.to_string()),
+        None,
+        false,
+        json!({
+            "kind": kind,
+            "start_line": found.start_line,
+            "start_column": found.start_column,
+            "end_line": found.end_line,
+            "end_column": found.end_column,
+        }),
+    )
+}
+
 fn rebind(args: RebindArgs) -> CommandOutcome {
     let root = match canonicalize_root(&args.root) {
         Ok(root) => root,

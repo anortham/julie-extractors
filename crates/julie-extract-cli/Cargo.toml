@@ -43,7 +43,7 @@ clap = { version = "4.5.53", features = ["derive"] }
 getrandom = "0.4.2"
 ignore = "0.4"
 julie-extract-artifact = { path = "../julie-extract-artifact" }
-julie-extractors = { path = "../julie-extractors" }
+julie-extractors = { path = "../julie-extractors", features = ["syntax-api"] }
 rayon = "1.10"
 rusqlite = { version = "0.40.2", default-features = false, features = ["bundled"] }
 # File identity for the --progress-file/--db collision guard. Already in the lock

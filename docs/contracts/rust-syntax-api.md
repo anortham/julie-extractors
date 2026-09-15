@@ -2,7 +2,7 @@
 
 Status: Active Contract  
 Feature Gate: `syntax-api` (optional, off by default)  
-Release: Unreleased  
+Release: 3.0.0 (the `julie-extract check` command is the CLI surface of this API)  
 Upstream Crate: `julie-extractors`  
 
 ## 1. Scope & Product Boundary

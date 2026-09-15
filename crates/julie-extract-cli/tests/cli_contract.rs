@@ -28,7 +28,15 @@ fn binary_declares_only_contract_commands() {
 
     assert!(output.status.success(), "help should succeed");
     let help = String::from_utf8(output.stdout).unwrap();
-    for command in ["scan", "update", "delete", "info", "languages", "rebind"] {
+    for command in [
+        "scan",
+        "update",
+        "delete",
+        "info",
+        "languages",
+        "rebind",
+        "check",
+    ] {
         assert!(
             help.contains(command),
             "top-level help must declare {command}"
@@ -567,4 +575,90 @@ fn create_artifact_metadata(
         )
         .unwrap();
     }
+}
+
+fn julie_extract_with_stdin(args: &[&str], stdin: &str) -> Output {
+    use std::io::Write;
+    use std::process::Stdio;
+    let mut child = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args(args)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap_or_else(|err| panic!("failed to run julie-extract {args:?}: {err}"));
+    child
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(stdin.as_bytes())
+        .unwrap();
+    child.wait_with_output().unwrap()
+}
+
+#[test]
+fn check_reports_clean_source_as_ok() {
+    let output = julie_extract_with_stdin(
+        &["check", "--path", "src/lib.rs", "--json"],
+        "pub fn compute() -> u32 { 42 }\n",
+    );
+
+    assert_eq!(output.status.code(), Some(0));
+    let report = json_report(&output);
+    assert_common_report_shape(&report, "ok", "check", "syntax");
+    assert_eq!(report["input"]["file_path"], "src/lib.rs");
+    assert!(report["artifact"].is_null());
+    assert_eq!(report["errors"], json!([]));
+    assert_eq!(report["warnings"], json!([]));
+}
+
+#[test]
+fn check_reports_each_syntax_error_with_its_position() {
+    let output = julie_extract_with_stdin(
+        &["check", "--path", "broken.py", "--json"],
+        "def ok():\n    return 1\n\ndef broken(:\n    pass\n",
+    );
+
+    assert_eq!(output.status.code(), Some(1));
+    let report = json_report(&output);
+    assert_common_report_shape(&report, "failed", "check", "syntax");
+    let errors = report["errors"].as_array().unwrap();
+    assert!(!errors.is_empty());
+    for error in errors {
+        assert_eq!(error["code"], "parse_failed");
+        assert_eq!(error["path"], "broken.py");
+        assert!(error["details"]["kind"].is_string());
+        assert!(error["details"]["start_line"].as_u64().unwrap() >= 4);
+        assert!(error["details"]["start_column"].is_u64());
+        assert!(error["details"]["end_line"].is_u64());
+        assert!(error["details"]["end_column"].is_u64());
+    }
+    assert!(errors[0]["message"].as_str().unwrap().contains("line 4"));
+}
+
+#[test]
+fn check_reports_an_unknown_extension_as_unsupported() {
+    let output = julie_extract_with_stdin(
+        &["check", "--path", "notes.unknown", "--json"],
+        "anything (\n",
+    );
+
+    assert_eq!(output.status.code(), Some(0));
+    let report = json_report(&output);
+    assert_common_report_shape(&report, "unsupported", "check", "syntax");
+    assert_eq!(report["errors"], json!([]));
+    assert_eq!(report["warnings"][0]["code"], "unsupported_file");
+    assert_eq!(report["warnings"][0]["path"], "notes.unknown");
+}
+
+#[test]
+fn check_declares_the_language_it_used() {
+    let output = julie_extract_with_stdin(
+        &["check", "--path", "a.go", "--json"],
+        "package main\n\nfunc main() {}\n",
+    );
+
+    assert_eq!(output.status.code(), Some(0));
+    let report = json_report(&output);
+    assert_eq!(report["languages"]["language"], "go");
 }

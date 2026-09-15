@@ -172,9 +172,10 @@ Fields:
 - `status`: one of the CLI status values.
 - `operation`: command name.
 - `mode`: operation-specific mode such as `incremental`, `force`, `single_file`,
-  `read_only`, `capability_snapshot`, or `metadata`. `metadata` is a
+  `read_only`, `capability_snapshot`, `metadata`, or `syntax`. `metadata` is a
   write that touches artifact metadata only and never extracted rows; `rebind`
-  is the one command that uses it.
+  is the one command that uses it. `syntax` is a parse of stdin text with no
+  artifact and no file access; `check` is the one command that uses it.
 - `input`: normalized command inputs. Paths are absolute except
   `root_relative_path`.
 - `artifact`: artifact path and version metadata when a database is involved.
@@ -681,6 +682,19 @@ and the total `conflict_count`.
   (see [Rebind Section](#rebind-section)); `report_schema_version` remains `3`.
 - A refused rebind returns `status: failed` with the refusal in `errors` and no
   `rebind` section.
+
+### `check`
+
+- `operation`: `check`
+- `mode`: `syntax`
+- `artifact`: `null`, `revision`: `null`, `counts`: the zeroed shape.
+- `input.file_path` is the requested path; the other input fields are `null`.
+- `status: ok` with no errors when the text parsed cleanly; `status: failed`
+  with one `parse_failed` error per recovery diagnostic, each carrying `kind`,
+  `start_line`, `start_column`, `end_line`, and `end_column` in `details`;
+  `status: unsupported` with one `unsupported_file` warning when no grammar is
+  registered for the path.
+- Includes `languages.language`, the grammar used, on `ok` and `failed`.
 
 ## stdout And stderr
 

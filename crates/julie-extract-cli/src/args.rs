@@ -21,6 +21,7 @@ pub enum Command {
     Info(InfoArgs),
     Languages(LanguagesArgs),
     Rebind(RebindArgs),
+    Check(CheckArgs),
 }
 
 #[derive(Debug, Args)]
@@ -181,6 +182,19 @@ pub struct InfoArgs {
 
 #[derive(Debug, Args)]
 pub struct LanguagesArgs {
+    /// Emit the machine-readable JSON report on stdout.
+    #[arg(long)]
+    pub json: bool,
+}
+
+/// Parse source text from stdin with the grammar chosen for `--path` and report
+/// every syntax error with its position. Nothing is read from or written to
+/// disk, so the path does not need to exist.
+#[derive(Debug, Args)]
+pub struct CheckArgs {
+    /// Path that selects the grammar; the source text itself comes from stdin.
+    #[arg(long)]
+    pub path: PathBuf,
     /// Emit the machine-readable JSON report on stdout.
     #[arg(long)]
     pub json: bool,
