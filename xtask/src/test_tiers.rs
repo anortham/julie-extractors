@@ -493,47 +493,6 @@ fn contract_plan() -> TestPlan {
             ],
         ));
     }
-    for harness in [
-        "store_equivalence",
-        "store_mixed_version",
-        "store_import_contract",
-        "store_operations_contract",
-    ] {
-        commands.push(CommandSpec::new(
-            "cargo",
-            [
-                "test",
-                "-p",
-                "julie-extract-cli",
-                "--features",
-                "test-store-contract",
-                "--test",
-                harness,
-                "--",
-                "--test-threads=1",
-            ],
-        ));
-    }
-    for harness in [
-        "store_maintenance_equivalence",
-        "store_maintenance_mixed_version",
-        "store_maintenance_performance",
-    ] {
-        commands.push(CommandSpec::new(
-            "cargo",
-            [
-                "test",
-                "-p",
-                "julie-extract-cli",
-                "--features",
-                "test-store-maintenance-contract",
-                "--test",
-                harness,
-                "--",
-                "--test-threads=1",
-            ],
-        ));
-    }
     TestPlan::new(commands)
 }
 

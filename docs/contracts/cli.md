@@ -15,14 +15,10 @@ Contract version:
 - Extraction contract: `4`
 - SQLite schema: `7`
 - JSONL schema: `5`
-- Versioned store contract: `1` (published v2.31.0; concurrent fencing hardened through v2.31.3; resolution write path retired 2026-08-18)
-- Versioned store SQLite schema: `2` (published v2.31.0; resolution objects retired in place 2026-08-18)
 
-The legacy values mirror `EXTRACT_CONTRACT_VERSION` / `SQLITE_SCHEMA_VERSION` in
+These values mirror `EXTRACT_CONTRACT_VERSION` / `SQLITE_SCHEMA_VERSION` in
 `crates/julie-extract-artifact/src/schema.rs` and `JSONL_SCHEMA_VERSION` in
-`crates/julie-extract-artifact/src/jsonl.rs`. The store values mirror
-`STORE_SQLITE_SCHEMA_VERSION` and the frozen contract in
-`crates/julie-extract-artifact/src/store/schema.rs`; those constants are the source of truth when
+`crates/julie-extract-artifact/src/jsonl.rs`; those constants are the source of truth when
 this table drifts.
 
 ## Invariants
@@ -46,30 +42,7 @@ julie-extract info --db <path> [--strict-schema] [--json]
 julie-extract export --db <path> --format jsonl --out <path|-> [--strict-schema] [--json]
 julie-extract languages [--json]
 julie-extract rebind --root <dir> --db <path> [--strict-schema] [--json]
-
-# Versioned family-store commands
-julie-extract store import --store <family-dir> --family <uuid> --root <dir> --view <id> [--level <l1|full>] [--json]
-julie-extract store update --store <family-dir> [--family <uuid>] --root <dir> --view <id> --file <path> [--level <l1|full>] [--json]
-julie-extract store delete --store <family-dir> [--family <uuid>] --root <dir> --view <id> --file <path>... [--json]
-julie-extract store export --store <family-dir> [--family <uuid>] --view <id> --out <artifact.db> [--json]
-julie-extract store import --from-artifact <artifact.db> --store <family-dir> --family <uuid> --root <dir> --view <id> [--json]
-julie-extract store maintain inspect --store <family-dir> [--family <uuid>] [--json]
-julie-extract store maintain gc --store <family-dir> [--family <uuid>] [--apply] [--json]
-julie-extract store maintain repair --store <family-dir> [--family <uuid>] [--apply] [--json]
-julie-extract store maintain promote --store <family-dir> [--family <uuid>] [--apply] [--json]
-julie-extract store maintain cursor advance --store <family-dir> [--family <uuid>] --consumer <id> --sequence <n> [--apply] [--json]
-julie-extract store maintain cursor release --store <family-dir> [--family <uuid>] --consumer <id> [--apply] [--json]
-julie-extract store reader acquire --store <family-dir> --family <uuid> --view <id> --generation <generation-name> --owner <label> --owner-pid <pid> --nonce <nonce> --lease-ms <milliseconds> [--json]
-julie-extract store reader renew --store <family-dir> --family <uuid> --pin <pin-id> --nonce <nonce> --owner-pid <pid> --lease-ms <milliseconds> [--json]
-julie-extract store reader release --store <family-dir> --family <uuid> --pin <pin-id> --nonce <nonce> [--json]
 ```
-
-The nested `store` surface is published (v2.31.0+; concurrent multi-worktree fencing through
-v2.31.3). Miller is the sole consumer. The former `store resolve` verb and every
-resolution-base/delta/pin write path were retired on 2026-08-18; Miller computes
-resolution at query time. Ph2b owns request-oriented import/update/delete, Ph2d owns
-the lifecycle-maintenance namespace documented below, and post-Ph2d fencing hardening
-owns intent-aware leases, temporary writer floors, and concurrent-maintainer safety.
 
 ## Shared Flags
 
@@ -452,172 +425,6 @@ Outcomes:
 `rebind` is additive: it introduces no new table, column, or JSONL record, so
 the extraction, SQLite, and JSONL versions pinned above are unchanged, and the
 CLI contract version stays `1`.
-
-### `store import`, `store update`, and `store delete`
-
-These commands target a family store, not a legacy `--db` artifact. `store import` creates the
-store when absent, creates a missing view, and binds that view to the canonical root. The caller
-must supply the family UUID on creation. `store update` and `store delete` require an existing
-store and view; `--family` is optional for them, but a supplied value must match the stored family.
-
-`store import` discovers the whole declared root. `store update` plans exactly one canonical
-root-relative file and never rediscovers the tree. `store delete` plans exactly the repeatable
-`--file` arguments and does not delete immutable extraction rows. An update whose content hash is
-already current and a delete whose path is already absent are semantic no-ops: neither creates a
-manifest generation nor duplicates a version or terminal effect.
-
-`store update` applies the same discovery decision `scan` applies before it reads, hashes, or
-enqueues the file. When discovery refuses the file, whether ignored, hard-excluded, an unsupported
-extension, or over the extraction byte limit, the update refuses it too. The report state is
-`unsupported`, the coordinator disposition is `not_started`, no request row is written, and the
-exit code is `0`. The report then carries an `unsupported` object with `reason`
-(`ignored`, `hard_excluded`, `unsupported_extension`, or `oversized`), `root_relative_path`, and a
-`message`; the `oversized` message is the same `slow_file_skipped` text `scan` emits. The object is
-absent on every other report. Unlike the artifact-level `update`, the store path removes no rows:
-it refuses the request and leaves the store untouched.
-
-`--level l1` publishes the symbol/relationship core before deep evidence. `--level full` requires
-L1, L2, and L3 completion. A later Full request may deepen immutable versions published by an L1
-request without creating a new manifest generation. Store reports do not carry a resolution
-section; Miller computes resolution at query time from the published fact tables.
-
-All three verbs enqueue a durable coordinator request and wait up to
-`--request-timeout-seconds` (default `30`) for acknowledgment. `--request-id` and
-`--idempotency-key` are optional; omitted values are minted by the executor. Reusing an
-idempotency key with the same canonical request replays its terminal report. Reusing it for a
-different request or operation returns `idempotency_conflict`. A requester timeout does not cancel
-a lease holder that is safely draining the request.
-
-Store imports default to 100 versions per L1 quantum and, per Full-deepening quantum, the
-extraction worker count with a floor of 8, so every worker has a file in each deep quantum; both
-remain bounded by the 128 MB projected WAL budget. `MILLER_STORE_CHUNK_VERSIONS=N` applies to both
-waves of a newly enqueued request, with `0` meaning one version. Those limits are stored in the
-request, so a retry uses the original schedule even when a successor process has different
-settings; a request written without them reads as 100 and 8.
-
-Store JSON uses its own `report_schema_version: 1`. Stable fields include `operation`, request
-identity, family/view/root identity, coordinator state, requested/completed levels, manifest
-generation/hash/disposition, row counts, failure class, and a nullable error. Report states are
-`queued`, `claimed`, `committed`, `acknowledged`, `failed`, and `unsupported`. Only `unsupported`
-has no coordinator request row behind it: the CLI refuses the file before enqueue, so coordinator
-request states stay the five listed in [store-v1.md](store-v1.md).
-The physical format and recovery invariants are frozen in [store-v1.md](store-v1.md) and
-[sqlite-store-schema-v2.md](sqlite-store-schema-v2.md).
-
-`state`, `failure_class`, `error`, and the exit code describe the caller's own request and nothing
-else. One drain also executes other requesters' queued work, so a failure charged to a different
-request is reported in the optional `warnings` array instead. Each warning names its failure class,
-the request it belongs to, and a message. The array is omitted when it is empty, and a warning never
-changes `state`, `failure_class`, or the exit code. `coordinator_quantum` is the failure class of a
-request whose single quantum outran the coordinator's quantum limit three times.
-
-### `store maintain`
-
-`store maintain inspect` is always read-only. `gc`, `repair`, `promote`, `retire-view`,
-`cursor advance`, and `cursor release` are also read-only unless `--apply` is present. Their plan
-result is computed from the current immutable store and coordinator roots. Apply reacquires the
-maintenance fence and refuses a stale plan before mutation.
-
-`gc` applies the bounded retention plan. `promote` builds, validates, and atomically publishes a
-new generation. `repair` checkpoints a valid generation, recovers an unambiguous torn publication,
-or rebuilds only when the lifecycle policy permits it; it never guesses when no generation can be
-selected. `retire-view --view <id>` permanently removes one named view: its manifest entries, its
-manifests, and its `views` row, in one store transaction. It never reads the view's root path, and
-it never deletes allocator marks, log rows, receipts, or cursors. An absent view is
-`invalid_arguments` with code `view_not_found`; a queued or claimed request for that view is
-`busy`. Cursor advance is monotonic and generation-bound. Cursor release removes only the named
-consumer row; consumer IDs never become filesystem names.
-
-Maintenance emits a separate `StoreMaintenanceReport` with `report_schema_version: 1`; it does not
-change the request-oriented StoreReport. Stable fields include action, plan/apply mode, run and
-family identity, source/destination generation, disposition, plan and root fingerprints, retention
-and capacity facts, mutation counts, integrity checks, escalation/recovery facts, cursor facts,
-failure class, and nullable error. JSON success and failure each emit exactly one line on stdout.
-Human success uses stdout and human failure uses stderr.
-
-Cursor advance/release reports add `measurement_scope: "cursor_only"`. These commands validate
-the store binding, supported schemas and reader version, serving generation, and
-maintenance fence without inspecting historical manifests or planning garbage collection.
-The existing GC-only `counts`, `retention`, and `capacity` groups are unmeasured defaults, not
-measurements of zero usage; plan/root fingerprints are empty and `readers` is omitted.
-Only checks actually performed appear in `integrity_checks`. `inspect` and `repair` run
-`PRAGMA quick_check` on the store and coordinator databases before planning, so their check
-list adds `store_quick_check` and `coordinator_quick_check`; this reads every page of both
-databases. A failed report keeps the checks that ran before the failure. A quick check that finds
-corruption is `integrity_failed` with code `integrity_check_failed`. Store commands wait up to five
-seconds for a locked store database on open; a lock still held after that is `busy` with code
-`store_busy` when it blocks the store open, or `maintenance_busy` when it blocks a quick check.
-Use `store maintain inspect` for GC measurements. Other actions omit `measurement_scope` and retain their existing output.
-Plan mode writes nothing; apply retains the coordinator's transactional maintenance-intent,
-monotonic-sequence, high-water, and generation-conflict checks.
-Cursor plan and apply preserve reader-compatible eligibility: a newer fact-writer version or
-writer floor does not prevent a compatible reader from maintaining its retention cursor.
-An incompatible reader, nonserving generation, or live maintenance fence is refused.
-
-When reader registrations exist, the same schema adds a bounded optional `readers` summary with
-protected, definitively-dead, retained-unknown, and removed counts. Warning entries contain only
-`pin_id` and `warning_code`; `omitted_warning_count` reports truncation. The field is omitted when
-all reader facts are empty, preserving reader-free JSON and human output byte-for-byte. Owner
-nonce and process birth identity never appear in maintenance output.
-
-Maintenance exit codes are `0` for a completed plan/apply or semantic no-op, `1` for an operational
-refusal, `2` for CLI usage, and `3` for an incompatible store. Stable operational failure classes
-are `busy`, `stale_plan`, `capacity_insufficient`, `recovery_required`, `integrity_failed`,
-`repair_unavailable`, and `invalid_arguments`; incompatible schema/epoch/reader/writer floors use
-`incompatible_store`.
-
-### `store reader`
-
-`reader acquire` registers the requested CURRENT family, view, generation, and manifest before a
-consumer opens that generation. It returns the immutable snapshot that the consumer may open.
-Repeating the same request with the same nonce returns the original registration, even when the
-view's current manifest has changed. A changed owner, family, view, or generation does not retarget
-the registration.
-
-The running binary must satisfy the store's writer floor. When a compatible older family has not
-enabled reader-aware writers, acquire closes admission, raises the floor through the bounded
-maintenance operation, and retries once. A live maintenance owner, an unsafe catalog, or an
-incompatible newer floor refuses the command. The CLI does not create or repair reader catalog
-objects itself.
-
-`reader renew` authenticates the pin, nonce, PID, and producer-captured process birth identity. It
-updates only heartbeat and expiry values. `reader release` authenticates the nonce and removes the
-registration. Releasing an absent pin succeeds with `released: false`; a wrong nonce refuses
-without returning stored registration facts. Renew and release continue to address the immutable
-registration after CURRENT changes.
-
-Reader IDs and owner labels contain 1 to 128 Unicode characters. Nonces contain 32 to 512 Unicode
-characters. Control characters are rejected. Owner PID and lease duration are positive integers;
-lease duration must fit a signed 64-bit millisecond value. The producer captures process birth
-identity on Linux and Windows. Platforms without a supported identity probe return
-`reader_identity_unknown` and create no registration.
-
-Reader JSON uses `report_schema_version: 1` and emits exactly one line on stdout for success,
-semantic refusal, and CLI validation failure. Acquire and renew success return `operation`, `state`,
-`family_id`, `view_id`, `pin_id`, `generation_name`, `manifest_generation`, the caller-presented
-`owner_nonce`, `owner_pid`, `store_instance_id`, `manifest_hash`, `extraction_identity_epoch`,
-`served_store_log_sequence`, `min_retained_store_log_sequence`, `snapshot_fingerprint`,
-`protected_manifest_count`, `expires_at`, `warning`, nullable `failure_class`, and nullable `error`.
-The report copies producer snapshot facts unchanged. It never adds index levels, level stamps,
-birth identity, or file/version lists.
-
-`served_store_log_sequence` is the committed log position observed by the captured snapshot, not a
-monotonic revision or proof that all earlier delta rows remain present. `min_retained_store_log_sequence`
-is the separate retention floor. The producer owns both facts and the off-process retention rules
-documented in [store-v1.md](store-v1.md); a reader must not reconstruct either value.
-
-Release success contains the validated family and pin, `state: "released"`, and
-`released: true|false`. Its other stable snapshot and owner fields are null. It omits
-`owner_nonce`. Failure uses `state: "refused"`, a fixed sanitized error, and null snapshot and owner
-fields. It also omits `owner_nonce`. Parse failures use `reader_acquire`, `reader_renew`, or
-`reader_release` only when the verb is recognized; otherwise they use `reader`. Supplied values
-never appear in validation output.
-
-Reader failure classes are `busy`, `stale_snapshot`, `invalid_arguments`, `incompatible_store`,
-`reader_not_found`, `reader_owner_mismatch`, `reader_identity_unknown`, `capacity_insufficient`,
-and `operational`. Exit `0` means success or idempotent release, `1` means operational refusal, `2`
-means CLI usage, and `3` means incompatible store. Human success goes to stdout. Human failure goes
-to stderr and never prints the nonce.
 
 ## Status Values
 

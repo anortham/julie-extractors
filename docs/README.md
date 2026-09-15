@@ -12,17 +12,15 @@ with the [CLI contract](contracts/cli.md), [report contract](contracts/reports.m
 - [Progress file v1](contracts/progress-file-v1.md)
 - [Test evidence v1](contracts/test-evidence-v1.md)
 
-## Versioned store
+## Versioned store history
 
-Ph2b and Ph2d implement the [store v1 contract](contracts/store-v1.md),
-[SQLite store schema v2](contracts/sqlite-store-schema-v2.md), and
-[versioned-store architecture](architecture/versioned-index-store.md). The former
-Ph2c resolution write path is retired; see
+The versioned family store shipped in v2.31.0 and is retired in 3.0.0; see
+[2026-09-15-store-and-jsonl-retirement.md](decisions/2026-09-15-store-and-jsonl-retirement.md).
+The former Ph2c resolution write path was retired earlier; see
 [2026-08-18-resolution-write-path-retirement.md](decisions/2026-08-18-resolution-write-path-retirement.md).
-The store implementation was published in v2.31.0 and patched through v2.37.2.
 See the [current published release notes](release-notes/README.md), historical
 [release notes](release-notes), and [release evidence](release-evidence).
-The implementation plans and dogfood records are:
+The historical implementation plans and dogfood records are:
 
 - [Ph2b store-kernel plan](plans/2026-08-07-index-store-ph2b-store-kernel-plan.md)
 - [Ph2b implementation evidence](release-evidence/2026-08-07-index-store-ph2b/README.md)

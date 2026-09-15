@@ -75,7 +75,6 @@ python3 examples/python/sqlite_consumer.py target/example/artifact.sqlite
 | `info` | Read artifact metadata and totals without mutating the database. | `--db`, `--strict-schema`, `--json` |
 | `export` | Export a SQLite artifact to JSONL. | `--db`, `--format jsonl`, `--out`, `--strict-schema`, `--json` |
 | `languages` | Emit parser inventory and capability snapshot metadata. | `--json` |
-| `store` | Create and maintain a versioned family store. | `import`, `update`, `delete`, `export`, `maintain` |
 
 Every command accepts `--json` for a stable machine-readable report. Human
 output is intentionally not part of the contract.
@@ -86,33 +85,9 @@ caller-supplied `--ignore-file` rules, which take precedence over the in-tree
 ignore files. See [docs/contracts/cli.md](docs/contracts/cli.md) for the full
 layering and precedence contract.
 
-## Versioned family store
-
-The versioned family store is separate from legacy `scan`, `update`, `delete`, `info`, and `export`
-artifacts. It keeps immutable file versions, coherent per-view manifests, durable queued requests,
-and retained store generations behind an atomic `CURRENT` pointer. This product no longer writes
-workspace-global reference resolution; Miller computes that at query time. See the
-[retirement decision](docs/decisions/2026-08-18-resolution-write-path-retirement.md).
-See the [current published release notes](docs/release-notes/README.md).
-
-```bash
-julie-extract store import --store target/family --family <uuid> \
-  --root . --view main --level full --json
-julie-extract store export --store target/family --view main \
-  --out target/example/exported.sqlite --json
-julie-extract store maintain inspect --store target/family --json
-```
-
-Mutating maintenance commands require `--apply`. `gc` performs bounded retention/demotion and
-reclamation; `repair` validates and checkpoint-recovers; `promote` builds and atomically publishes a
-validated new generation. See the [store CLI contract](docs/contracts/cli.md),
-[store contract](docs/contracts/store-v1.md), and
-[architecture](docs/architecture/versioned-index-store.md). Miller Ph3 consumer wiring targets this
-contract; Miller keeps store mode explicit until its own release and scale-default decision.
-
 ## Artifact contract
 
-SQLite schema v7 is the source of truth for legacy durable output. It stores artifact
+SQLite schema v7 is the source of truth for durable output. It stores artifact
 metadata, parser inventory and capability snapshots, extraction revisions,
 per-file change records, and the extracted data itself: symbols, annotations,
 identifiers, relationships, type facts, literals, source regions, structural

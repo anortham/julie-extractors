@@ -10,7 +10,7 @@ use julie_extract_artifact::reports::{
     ArtifactReport, ReportCode, ReportDiagnostic, ReportFileRows, RowDomainCounts,
 };
 use julie_extract_artifact::schema::{EXTRACT_CONTRACT_VERSION, SQLITE_SCHEMA_VERSION};
-use rusqlite::{Connection, OpenFlags, OptionalExtension, params};
+use rusqlite::{Connection, OpenFlags, params};
 use serde_json::json;
 
 use crate::capability_snapshot::current_capability_fingerprints;
@@ -153,27 +153,6 @@ pub(crate) fn open_artifact(
         index_level,
         has_extraction_history,
     })
-}
-
-pub(crate) fn validate_current_artifact_output(db_path: &Path) -> Result<(), String> {
-    let artifact = open_artifact(db_path, true, None, ArtifactAccess::Read)
-        .map_err(|error| error.diagnostic.message)?;
-    let integrity: String = artifact
-        .connection
-        .query_row("PRAGMA integrity_check", [], |row| row.get(0))
-        .map_err(|error| error.to_string())?;
-    if integrity != "ok" {
-        return Err(format!("artifact_integrity_check_failed: {integrity}"));
-    }
-    let foreign_key_failure = artifact
-        .connection
-        .query_row("PRAGMA foreign_key_check", [], |_| Ok(()))
-        .optional()
-        .map_err(|error| error.to_string())?;
-    if foreign_key_failure.is_some() {
-        return Err("artifact_foreign_key_check_failed".to_string());
-    }
-    Ok(())
 }
 
 pub(crate) fn open_artifact_for_info(

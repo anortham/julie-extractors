@@ -65,19 +65,12 @@ use crate::reports::{
     write_error_outcome_with_profile, write_outcome,
 };
 use crate::spool::{ScanSpool, create_scan_spool, is_spool_artifact_name, reap_unowned_spools};
-use crate::store::import::StoreExecutionOutcome;
 use crate::watchdog::ParentWatchdog;
 
 pub fn run_from_env() -> ExitCode {
-    let raw_args: Vec<_> = std::env::args_os().collect();
     let cli = match Cli::try_parse() {
         Ok(cli) => cli,
         Err(error) => {
-            if let Some(outcome) = crate::store::reader::parse_failure(&raw_args, &error) {
-                let exit_code = outcome.exit_code();
-                outcome.write();
-                return ExitCode::from(exit_code);
-            }
             let exit_code = error.exit_code();
             let _ = error.print();
             return ExitCode::from(exit_code as u8);
@@ -85,47 +78,19 @@ pub fn run_from_env() -> ExitCode {
     };
 
     let outcome = run(cli);
-    outcome.write();
-    ExitCode::from(outcome.exit_code())
+    write_outcome(&outcome);
+    ExitCode::from(outcome.exit_code)
 }
 
-enum DispatchOutcome {
-    Legacy(Box<CommandOutcome>),
-    Store(Box<StoreExecutionOutcome>),
-}
-
-impl DispatchOutcome {
-    fn exit_code(&self) -> u8 {
-        match self {
-            Self::Legacy(outcome) => outcome.exit_code,
-            Self::Store(outcome) => outcome.exit_code(),
-        }
-    }
-
-    fn write(&self) {
-        match self {
-            Self::Legacy(outcome) => write_outcome(outcome),
-            Self::Store(outcome) => outcome.write(),
-        }
-    }
-}
-
-impl From<CommandOutcome> for DispatchOutcome {
-    fn from(outcome: CommandOutcome) -> Self {
-        Self::Legacy(Box::new(outcome))
-    }
-}
-
-fn run(cli: Cli) -> DispatchOutcome {
+fn run(cli: Cli) -> CommandOutcome {
     match cli.command {
-        Command::Store(args) => DispatchOutcome::Store(Box::new(crate::store::dispatch(args))),
-        Command::Scan(args) => scan(args).into(),
-        Command::Update(args) => update(args).into(),
-        Command::Delete(args) => delete(args).into(),
-        Command::Info(args) => info(args).into(),
-        Command::Export(args) => export(args).into(),
-        Command::Languages(args) => languages(args).into(),
-        Command::Rebind(args) => rebind(args).into(),
+        Command::Scan(args) => scan(args),
+        Command::Update(args) => update(args),
+        Command::Delete(args) => delete(args),
+        Command::Info(args) => info(args),
+        Command::Export(args) => export(args),
+        Command::Languages(args) => languages(args),
+        Command::Rebind(args) => rebind(args),
     }
 }
 

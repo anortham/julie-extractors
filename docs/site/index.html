@@ -72,10 +72,6 @@
           <span>each with its own hand-written extractor, held to one fixture-proven quality bar</span>
         </div>
         <div>
-          <strong>Versioned family store</strong>
-          <span>optional multi-worktree index generations with fenced concurrent writers (v2.31.0+)</span>
-        </div>
-        <div>
           <strong>0 query files</strong>
           <span>extraction logic is ordinary Rust with tests; there are no .scm packs and no query engine</span>
         </div>
@@ -179,15 +175,9 @@
           <span>capabilities</span>
           <code>julie-extract languages --json</code>
         </button>
-        <button class="command-line" type="button" data-copy="julie-extract store import --store .julie-store --family <uuid> --root . --view main --json">
-          <span>family store</span>
-          <code>julie-extract store import --store .julie-store --family &lt;uuid&gt; --root . --view main --json</code>
-        </button>
       </div>
       <p class="metrics-note">
-        Standalone artifacts use <code>scan</code>/<code>update</code>/<code>export</code>. The optional
-        versioned family store supports concurrent worktrees with fenced writers; see
-        <code>docs/contracts/store-v1.md</code> and the
+        Artifacts use <code>scan</code>/<code>update</code>/<code>export</code>; see the
         <a href="https://github.com/anortham/julie-extractors/releases/latest" target="_blank" rel="noopener">latest release</a>.
       </p>
       <p class="metrics-note">

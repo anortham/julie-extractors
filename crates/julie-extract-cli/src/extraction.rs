@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::string::FromUtf8Error;
-use std::sync::{LazyLock, Mutex, RwLock};
+use std::sync::{LazyLock, RwLock};
 use std::time::SystemTime;
 
 use julie_extract_artifact::model::{
@@ -27,8 +27,8 @@ use crate::paths::FileTarget;
 /// Number of extraction workers for a requested `--jobs` value.
 ///
 /// `0` resolves to four fifths of the available cores, at least one, so a scan
-/// leaves headroom for the store writer, the lease heartbeat, and the rest of
-/// the machine. Any other value is used as given.
+/// leaves headroom for the artifact writer and the rest of the machine. Any
+/// other value is used as given.
 pub(crate) fn effective_extraction_workers(requested_jobs: usize) -> usize {
     if requested_jobs != 0 {
         return requested_jobs;
@@ -179,59 +179,10 @@ impl SnapshotCache {
                 .retain(|(p, q_gen)| entries.get(p).is_some_and(|e| e.generation == *q_gen));
         }
     }
-
-    fn remove(&mut self, path: &Path) -> Option<SourceSnapshot> {
-        if let Some(entry) = self.entries.remove(path) {
-            self.total_bytes = self
-                .total_bytes
-                .saturating_sub(entry.snapshot.content.len());
-            self.prune_dead_order_head();
-            Some(entry.snapshot)
-        } else {
-            None
-        }
-    }
-
-    fn prune_dead_order_head(&mut self) {
-        while let Some((path, entry_gen)) = self.order.front() {
-            match self.entries.get(path) {
-                Some(entry) if entry.generation == *entry_gen => break,
-                _ => {
-                    self.order.pop_front();
-                }
-            }
-        }
-    }
-
-    fn clear(&mut self) {
-        self.entries.clear();
-        self.order.clear();
-        self.total_bytes = 0;
-        self.next_generation = 0;
-    }
 }
 
 static SNAPSHOT_CACHE: LazyLock<RwLock<SnapshotCache>> =
     LazyLock::new(|| RwLock::new(SnapshotCache::new()));
-
-static RECORD_READS_PATH: LazyLock<Option<PathBuf>> =
-    LazyLock::new(|| std::env::var_os("JULIE_EXTRACT_STORE_TEST_RECORD_READS").map(PathBuf::from));
-
-static RECORD_LOCK: Mutex<()> = Mutex::new(());
-
-pub(crate) fn record_disk_read(target: &FileTarget) {
-    if let Some(ref path) = *RECORD_READS_PATH {
-        use std::io::Write;
-        let _guard = RECORD_LOCK.lock();
-        if let Ok(mut file) = std::fs::OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(path)
-        {
-            let _ = writeln!(file, "{}", target.root_relative_path);
-        }
-    }
-}
 
 pub(crate) fn cache_snapshot(
     path: &Path,
@@ -260,20 +211,6 @@ pub(crate) fn get_cached_snapshot_if_fresh(path: &Path) -> Option<SourceSnapshot
     Some(snapshot)
 }
 
-pub(crate) fn remove_cached_snapshot(path: &Path) -> Option<SourceSnapshot> {
-    if let Ok(mut cache) = SNAPSHOT_CACHE.write() {
-        cache.remove(path)
-    } else {
-        None
-    }
-}
-
-pub(crate) fn clear_snapshot_cache() {
-    if let Ok(mut cache) = SNAPSHOT_CACHE.write() {
-        cache.clear();
-    }
-}
-
 pub(crate) fn source_snapshot_from_bytes(
     target: &FileTarget,
     bytes: Vec<u8>,
@@ -297,7 +234,6 @@ pub(crate) fn read_source_snapshot(
     if let Some(snapshot) = get_cached_snapshot_if_fresh(&target.absolute_path) {
         return Ok(snapshot);
     }
-    record_disk_read(target);
     let pre_mtime = target
         .absolute_path
         .metadata()
@@ -320,7 +256,6 @@ pub(crate) fn read_source_snapshot(
 pub(crate) fn read_source_snapshot_uncached(
     target: &FileTarget,
 ) -> Result<SourceSnapshot, ExtractFileError> {
-    record_disk_read(target);
     let bytes = fs::read(&target.absolute_path).map_err(|error| read_error(target, &error))?;
     source_snapshot_from_bytes(target, bytes)
 }
@@ -329,7 +264,6 @@ pub(crate) fn read_source_identity(target: &FileTarget) -> Result<(String, u64),
     if let Some(snapshot) = get_cached_snapshot_if_fresh(&target.absolute_path) {
         return Ok((snapshot.content_hash, snapshot.content_bytes as u64));
     }
-    record_disk_read(target);
     let bytes = fs::read(&target.absolute_path).map_err(|error| read_error(target, &error))?;
     Ok((content_hash_bytes(&bytes), bytes.len() as u64))
 }
@@ -512,8 +446,8 @@ pub(crate) fn failed_artifact_file(
 }
 
 /// The `files.language` value carried by a file no extractor claims. The column
-/// is `NOT NULL`, and the store manifest requires a non-empty language, so the
-/// status is spelled in the language column rather than left blank.
+/// is `NOT NULL`, so the status is spelled in the language column rather than
+/// left blank.
 pub(crate) const UNSUPPORTED_FILE_LANGUAGE: &str = "unsupported";
 
 /// The artifact row for a file the discovery walk reached and dropped because no
@@ -1743,7 +1677,7 @@ mod tests {
     }
 
     #[test]
-    fn snapshot_cache_replacement_updates_bytes_and_invalidates_old_queue_generation() {
+    fn snapshot_cache_replacement_updates_bytes() {
         let mut cache = SnapshotCache::new();
         let path = PathBuf::from("/test/file.rs");
         let snap1 = SourceSnapshot {
@@ -1765,12 +1699,6 @@ mod tests {
         cache.insert(path.clone(), snap2, None, 200);
         assert_eq!(cache.total_bytes, 200);
         assert_eq!(cache.entries.len(), 1);
-
-        // Remove and verify total_bytes is 0 and prune cleans up order
-        let removed = cache.remove(&path);
-        assert!(removed.is_some());
-        assert_eq!(cache.total_bytes, 0);
-        assert!(cache.order.is_empty());
     }
 
     #[test]
