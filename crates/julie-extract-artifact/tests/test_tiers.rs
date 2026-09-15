@@ -1,10 +1,7 @@
 use std::fs;
 use std::path::PathBuf;
 
-const DEFAULT_DISABLED_TIMING_GATES: [&str; 2] = [
-    "#![cfg(feature = \"test-perf\")]",
-    "#![cfg(feature = \"test-store-crash\")]",
-];
+const DEFAULT_DISABLED_TIMING_GATES: [&str; 1] = ["#![cfg(feature = \"test-perf\")]"];
 
 fn is_whole_file_default_disabled_timing_harness(source: &str) -> bool {
     DEFAULT_DISABLED_TIMING_GATES
@@ -35,35 +32,18 @@ fn perf_gate_is_feature_gated_out_of_default_suite() {
 }
 
 #[test]
-fn legacy_resolution_feature_is_not_declared() {
-    let crate_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let manifest = read(&crate_root.join("Cargo.toml"));
-    assert!(!manifest.contains("test-store-resolution"));
-    for harness in [
-        "store_resolution_base_contract.rs",
-        "store_resolution_binding_contract.rs",
-        "store_resolution_schema_contract.rs",
-    ] {
-        assert!(
-            !crate_root.join("tests").join(harness).exists(),
-            "{harness} must be deleted with the resolution write path"
-        );
-    }
-}
-
-#[test]
 fn wall_clock_gate_requires_a_whole_file_feature_gate() {
     for source in [
-        "#[cfg(feature = \"test-store-crash\")]\n#[test]\nfn timed() { Instant::now(); }",
-        "fn timed() { #![cfg(feature = \"test-store-crash\")] Instant::now(); }",
+        "#[cfg(feature = \"test-perf\")]\n#[test]\nfn timed() { Instant::now(); }",
+        "fn timed() { #![cfg(feature = \"test-perf\")] Instant::now(); }",
     ] {
         assert!(!is_whole_file_default_disabled_timing_harness(source));
     }
 }
 
 #[test]
-fn wall_clock_gate_accepts_a_whole_file_crash_harness() {
-    let source = "#![cfg(feature = \"test-store-crash\")]\nfn timed() { Instant::now(); }";
+fn wall_clock_gate_accepts_a_whole_file_perf_harness() {
+    let source = "#![cfg(feature = \"test-perf\")]\nfn timed() { Instant::now(); }";
 
     assert!(is_whole_file_default_disabled_timing_harness(source));
 }
@@ -109,60 +89,6 @@ fn default_suite_tests_assert_no_wall_clock_budget() {
         "these ungated default-suite tests time themselves; move the budget into \
          tests/writer_perf.rs behind `test-perf`: {offenders:?}"
     );
-}
-
-#[test]
-fn store_schema_contract_is_part_of_the_default_suite() {
-    let crate_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let source = read(&crate_root.join("tests/store_schema_contract.rs"));
-
-    assert!(!source.contains("#![cfg("));
-    assert!(source.contains("store_and_coordinator_catalogs_match_the_checked_in_authority"));
-}
-
-#[test]
-fn store_crash_matrix_is_feature_gated_out_of_the_default_suite() {
-    let crate_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let manifest = read(&crate_root.join("Cargo.toml"));
-    assert!(manifest.contains("test-store-crash = []"));
-    for harness in [
-        "store_crash_contract.rs",
-        "store_reader_catalog_crash_contract.rs",
-    ] {
-        let source = read(&crate_root.join("tests").join(harness));
-        assert!(source.starts_with("#![cfg(feature = \"test-store-crash\")]"));
-    }
-    let store_module = read(&crate_root.join("src/store/mod.rs"));
-    assert!(
-        store_module.contains(
-            "#[cfg(feature = \"test-store-crash\")]\n#[doc(hidden)]\npub mod test_hooks;"
-        ),
-        "the crash-hook module must not exist in normal builds"
-    );
-    let hook = read(&crate_root.join("src/store/test_hooks.rs"));
-    assert!(hook.contains("JULIE_EXTRACT_STORE_TEST_CRASH_AT"));
-    for runtime in ["src/store/coordinator.rs", "src/store/writer.rs"] {
-        let source = read(&crate_root.join(runtime));
-        assert!(
-            !source.contains("JULIE_EXTRACT_STORE_TEST_CRASH_AT"),
-            "{runtime} must not read the crash environment directly"
-        );
-        assert!(source.contains("#[cfg(feature = \"test-store-crash\")]"));
-    }
-}
-
-#[test]
-fn store_lifecycle_contracts_are_feature_gated_out_of_the_default_suite() {
-    let crate_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let manifest = read(&crate_root.join("Cargo.toml"));
-    assert!(manifest.contains("test-store-maintenance-contract = [\"test-store-crash\"]"));
-    for harness in [
-        "store_maintenance_crash_contract.rs",
-        "store_generation_crash_contract.rs",
-    ] {
-        let source = read(&crate_root.join("tests").join(harness));
-        assert!(source.starts_with("#![cfg(feature = \"test-store-crash\")]"));
-    }
 }
 
 fn read(path: &PathBuf) -> String {

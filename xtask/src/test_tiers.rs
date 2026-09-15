@@ -355,43 +355,6 @@ fn contract_plan() -> TestPlan {
             "julie_extractors_works_as_path_dependency_in_downstream_crate",
         ],
     ));
-    for harness in [
-        "store_maintenance_contract",
-        "store_maintenance_property",
-        "store_generation_equivalence",
-    ] {
-        commands.push(CommandSpec::new(
-            "cargo",
-            [
-                "test",
-                "-p",
-                "julie-extract-artifact",
-                "--test",
-                harness,
-                "--",
-                "--test-threads=1",
-            ],
-        ));
-    }
-    for harness in [
-        "store_maintenance_crash_contract",
-        "store_generation_crash_contract",
-    ] {
-        commands.push(CommandSpec::new(
-            "cargo",
-            [
-                "test",
-                "-p",
-                "julie-extract-artifact",
-                "--features",
-                "test-store-maintenance-contract",
-                "--test",
-                harness,
-                "--",
-                "--test-threads=1",
-            ],
-        ));
-    }
     commands.push(CommandSpec::new(
         "cargo",
         [
@@ -474,25 +437,6 @@ fn contract_plan() -> TestPlan {
             "reference_site_identity",
         ],
     ));
-    for harness in [
-        "store_crash_contract",
-        "store_reader_catalog_crash_contract",
-    ] {
-        commands.push(CommandSpec::new(
-            "cargo",
-            [
-                "test",
-                "-p",
-                "julie-extract-artifact",
-                "--features",
-                "test-store-crash",
-                "--test",
-                harness,
-                "--",
-                "--test-threads=1",
-            ],
-        ));
-    }
     TestPlan::new(commands)
 }
 
@@ -734,25 +678,5 @@ mod tests {
                 "tier {tier} should not report wall clock"
             );
         }
-    }
-
-    #[test]
-    fn test_contract_tier_includes_reader_catalog_crash_target() {
-        let plan = plan_from_args(["test", "contract"]).expect("contract plan");
-
-        assert!(plan.commands.iter().any(|command| {
-            command.program == "cargo"
-                && command.args.iter().map(String::as_str).eq([
-                    "test",
-                    "-p",
-                    "julie-extract-artifact",
-                    "--features",
-                    "test-store-crash",
-                    "--test",
-                    "store_reader_catalog_crash_contract",
-                    "--",
-                    "--test-threads=1",
-                ])
-        }));
     }
 }

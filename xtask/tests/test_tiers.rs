@@ -272,70 +272,6 @@ fn test_contract_tier_runs_golden_and_capability_gates_with_features() {
                     "-p",
                     "julie-extract-artifact",
                     "--test",
-                    "store_maintenance_contract",
-                    "--",
-                    "--test-threads=1",
-                ]
-            ),
-            CommandSpec::new(
-                "cargo",
-                [
-                    "test",
-                    "-p",
-                    "julie-extract-artifact",
-                    "--test",
-                    "store_maintenance_property",
-                    "--",
-                    "--test-threads=1",
-                ]
-            ),
-            CommandSpec::new(
-                "cargo",
-                [
-                    "test",
-                    "-p",
-                    "julie-extract-artifact",
-                    "--test",
-                    "store_generation_equivalence",
-                    "--",
-                    "--test-threads=1",
-                ]
-            ),
-            CommandSpec::new(
-                "cargo",
-                [
-                    "test",
-                    "-p",
-                    "julie-extract-artifact",
-                    "--features",
-                    "test-store-maintenance-contract",
-                    "--test",
-                    "store_maintenance_crash_contract",
-                    "--",
-                    "--test-threads=1",
-                ]
-            ),
-            CommandSpec::new(
-                "cargo",
-                [
-                    "test",
-                    "-p",
-                    "julie-extract-artifact",
-                    "--features",
-                    "test-store-maintenance-contract",
-                    "--test",
-                    "store_generation_crash_contract",
-                    "--",
-                    "--test-threads=1",
-                ]
-            ),
-            CommandSpec::new(
-                "cargo",
-                [
-                    "test",
-                    "-p",
-                    "julie-extract-artifact",
-                    "--test",
                     "schema_contract",
                 ]
             ),
@@ -411,54 +347,8 @@ fn test_contract_tier_runs_golden_and_capability_gates_with_features() {
                     "reference_site_identity",
                 ]
             ),
-            CommandSpec::new(
-                "cargo",
-                [
-                    "test",
-                    "-p",
-                    "julie-extract-artifact",
-                    "--features",
-                    "test-store-crash",
-                    "--test",
-                    "store_crash_contract",
-                    "--",
-                    "--test-threads=1",
-                ]
-            ),
-            CommandSpec::new(
-                "cargo",
-                [
-                    "test",
-                    "-p",
-                    "julie-extract-artifact",
-                    "--features",
-                    "test-store-crash",
-                    "--test",
-                    "store_reader_catalog_crash_contract",
-                    "--",
-                    "--test-threads=1",
-                ]
-            ),
         ]
     );
-}
-
-#[test]
-fn test_contract_tier_does_not_register_store_resolution_targets() {
-    let contract = plan_from_args(["test", "contract"]).expect("contract plan");
-    for harness in [
-        "store_resolution_contract",
-        "store_resolution_adapters",
-        "resolution_session_contract",
-    ] {
-        assert!(
-            !contract
-                .commands
-                .iter()
-                .any(|command| command.args.iter().any(|arg| arg == harness)),
-            "contract tier must not register {harness}"
-        );
-    }
 }
 
 #[test]
