@@ -425,8 +425,9 @@ no file: the path only selects the grammar, so it does not need to exist.
 - A clean parse returns `status: ok` and exit `0`.
 - A parse with recovery diagnostics returns `status: failed` and exit `1`. Each
   diagnostic is a `parse_failed` error whose `details` carry `kind` (`error`,
-  `missing`, or `depth_truncated`) and the 1-based `start_line`,
-  `start_column`, `end_line`, and `end_column`.
+  `missing`, or `depth_truncated`), the 1-based `start_line` and `end_line`,
+  and the 0-based `start_column` and `end_column`, the same conventions as the
+  artifact's span columns.
 - A path with no registered grammar returns `status: unsupported`, one
   `unsupported_file` warning, and exit `0`.
 - The report's `languages.language` field names the grammar that was used.
