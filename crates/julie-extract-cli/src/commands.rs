@@ -1241,7 +1241,7 @@ fn parent_exited_abort(
 /// rescan then drops the previously indexed rows for that subtree as missing.
 ///
 /// The hazard is a spool directory that SWALLOWS content, so a dedicated scratch
-/// directory such as `$ROOT/.spool` or `$ROOT/.miller/spool` — the layout the
+/// directory such as `$ROOT/.spool` or `$ROOT/.code-kb/spool` — the layout the
 /// flag is meant to be used with — must stay silent. Warning on placement alone
 /// would put a permanent unactionable warning on every scan the named consumer
 /// runs, which is how a warning channel stops being read.
@@ -2817,7 +2817,7 @@ mod tests {
     fn a_dedicated_scratch_spool_dir_inside_the_root_never_warns() {
         let temp = TempDir::new().unwrap();
         let root = temp.path().join("repo");
-        let scratch = root.join(".miller").join("spool");
+        let scratch = root.join(".code-kb").join("spool");
         std::fs::create_dir_all(&scratch).unwrap();
 
         assert!(

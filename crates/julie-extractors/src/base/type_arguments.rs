@@ -1,5 +1,5 @@
 // Shared core for capturing ordered, nested generic type arguments at use
-// sites (Miller bridge Phase 2). The recursion + ordinal assignment live here;
+// sites. The recursion + ordinal assignment live here;
 // the per-language node-kind specifics are supplied by a `decompose` function.
 
 use tree_sitter::Node;

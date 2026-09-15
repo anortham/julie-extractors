@@ -436,7 +436,7 @@ enum ReqwestRoot {
 /// constructor chain, a same-file variable single-assigned from one, or a
 /// parameter typed `reqwest::Client` / `&reqwest::Client`. Any other receiver
 /// (a map, a store, an unproven binding) stays silent (M2 — a false client
-/// request corrupts the `normalized_route_template` join Miller trusts).
+/// request corrupts the `normalized_route_template` join code-kb trusts).
 fn receiver_is_proven_reqwest(
     receiver: Node,
     content: &str,

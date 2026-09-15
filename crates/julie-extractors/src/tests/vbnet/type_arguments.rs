@@ -1,4 +1,4 @@
-//! VB.NET ordered/nested generic type-argument capture (Miller bridge Phase 2).
+//! VB.NET ordered/nested generic type-argument capture.
 //!
 //! VB.NET uses `List(Of String)` / `Dictionary(Of String, Integer)` syntax.
 //! Grammar: `generic_type` → `namespace_name` (base name) + `type_argument_list`.

@@ -2,7 +2,7 @@
 
 > **Retired 2026-08-18.** julie-extract no longer writes workspace-global
 > reference resolution. This coverage contract and its JSON artifact are
-> historical. Miller owns query-time resolution policy. See
+> historical. code-kb owns query-time resolution policy. See
 > [2026-08-18-resolution-write-path-retirement.md](../decisions/2026-08-18-resolution-write-path-retirement.md).
 
 `fixtures/extraction/reference-resolution-coverage.json` is the historical,

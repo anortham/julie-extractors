@@ -1319,9 +1319,8 @@ fn framework_markup_facts_do_not_own_shared_markup_scanner() {
 
 /// Emission-agreement pinning for the four HTTP boundary fact families
 /// (2026-07-01 plan, Task 7): the exact metadata key sets asserted here must
-/// match the rows documented in `docs/contracts/jsonl-v3.md` and
-/// `docs/contracts/sqlite-schema-v3.md`. A failure here means either emission
-/// or the contract docs changed without the other.
+/// match the rows documented in `docs/contracts/sqlite-schema-v3.md`. A failure
+/// here means either emission or the contract doc changed without the other.
 #[test]
 fn http_boundary_families_emit_documented_metadata_keys() {
     fn metadata_keys(fact: &StructuralFact) -> Vec<&str> {

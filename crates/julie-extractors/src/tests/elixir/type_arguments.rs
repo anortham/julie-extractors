@@ -1,4 +1,4 @@
-//! Elixir ordered/nested typespec type-argument capture (Miller bridge Phase 2).
+//! Elixir ordered/nested typespec type-argument capture.
 //!
 //! Elixir typespec parameter forms parse as `call` nodes inside `@type` /
 //! `@spec` / `@callback` attribute trees, e.g. `list(list(integer()))`. Nested

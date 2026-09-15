@@ -202,7 +202,7 @@ impl super::JavaScriptExtractor {
     }
 
     // ========================================================================
-    // String-literal call-argument capture (Miller bridge Phase 3)
+    // String-literal call-argument capture
     // ========================================================================
 
     /// Capture string-literal arguments of a JS `call_expression` as `Literal`

@@ -1,4 +1,4 @@
-//! VB.NET string-literal call-argument capture (Miller bridge Phase 3).
+//! VB.NET string-literal call-argument capture.
 //!
 //! Mirrors the C# reference leg (VB.NET is a sibling .NET language). Extractors
 //! capture string literals passed to calls **config-free**: `carrier` is the

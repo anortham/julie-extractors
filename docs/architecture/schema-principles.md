@@ -31,7 +31,7 @@ Initial schema design should cover:
 - artifact metadata
 - extraction revisions
 
-Workspace-global reference resolution is not an artifact domain. Miller
+Workspace-global reference resolution is not an artifact domain. code-kb
 computes it at query time from the fact tables. See
 [2026-08-18-resolution-write-path-retirement.md](../decisions/2026-08-18-resolution-write-path-retirement.md).
 
@@ -92,8 +92,8 @@ gates exist.
 
 ## Migration Position
 
-Because Julie, Miller, and Eros will continue using their existing paths while
+Because Julie, code-kb, and Eros will continue using their existing paths while
 this repo matures, the first schema should be clean. Do not maintain old Julie
 compatibility mode as a starting constraint.
 
-When the schema is stable, Julie, Miller, and Eros migrate intentionally.
+When the schema is stable, Julie, code-kb, and Eros migrate intentionally.

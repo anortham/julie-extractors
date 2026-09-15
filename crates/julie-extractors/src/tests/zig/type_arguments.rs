@@ -1,4 +1,4 @@
-//! Zig scoped generic type-argument capture (Miller bridge Phase 2).
+//! Zig scoped generic type-argument capture.
 //!
 //! In Zig, generics are comptime functions: `ArrayList(i32)` is a
 //! `call_expression`, grammatically indistinguishable from a regular call.

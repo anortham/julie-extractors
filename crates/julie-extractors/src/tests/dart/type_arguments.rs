@@ -1,4 +1,4 @@
-//! Dart ordered/nested generic type-argument capture (Miller bridge Phase 2).
+//! Dart ordered/nested generic type-argument capture.
 //!
 //! Dart generics use angle-bracket syntax: `List<User>`, `Map<String, int>`.
 //! The grammar node `type_arguments` contains `type` children directly (no

@@ -59,7 +59,7 @@ impl CppExtractor {
         self.base.get_type_argument_usages()
     }
 
-    /// Clone captured call-argument literals (Miller bridge Phase 3).
+    /// Clone captured call-argument literals.
     pub fn get_literals(&self) -> Vec<crate::base::Literal> {
         self.base.get_literals()
     }
@@ -287,7 +287,7 @@ impl CppExtractor {
                 result
             }
             "call_expression" => {
-                // Catch2 call-style tests (Miller bridge test-roles): `TEST_CASE("...")
+                // Catch2 call-style tests: `TEST_CASE("...")
                 // { ... }`, `SECTION(...)`, `SCENARIO(...)` parse as call_expressions.
                 // Non-test calls return None and fall through to child recursion.
                 test_calls::extract_cpp_test_call(&mut self.base, &node, parent_id)

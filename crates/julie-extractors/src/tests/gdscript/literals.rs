@@ -1,4 +1,4 @@
-//! GDScript string-literal call-argument capture (Miller bridge Phase 3b).
+//! GDScript string-literal call-argument capture.
 //!
 //! Like the Python reference leg, the extractor captures string literals passed
 //! to calls **config-free**: `kind` is always `Other` and the `carrier` is the

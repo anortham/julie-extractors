@@ -466,7 +466,7 @@ pub struct TypeInfo {
 }
 
 /// Per-language declared-type decorations that [`strip_type_decorations`]
-/// removes to produce the base type name Miller matches verbatim against
+/// removes to produce the base type name code-kb matches verbatim against
 /// type-like symbol names.
 #[derive(Debug, Clone, Copy)]
 pub struct TypeNameRules {
@@ -594,12 +594,11 @@ pub struct ExtractionResults {
     pub structured_pending_relationships: Vec<StructuredPendingRelationship>,
     pub types: HashMap<String, TypeInfo>,
     pub identifiers: Vec<Identifier>, // Include identifiers for LSP-quality tools
-    /// Ordered/nested generic type arguments captured at use sites (Miller
-    /// bridge Phase 2). Carried out of the extractor's `BaseExtractor` so the
+    /// Ordered/nested generic type arguments captured at use sites. Carried out of the extractor's `BaseExtractor` so the
     /// indexing layer can flatten and persist them. Keyed to a use-site
     /// identifier by `identifier_id`.
     pub type_argument_usages: Vec<TypeArgumentUsage>,
-    /// String literals captured at call-argument sites (Miller bridge Phase 3),
+    /// String literals captured at call-argument sites,
     /// config-free (carrier set, kind = Other). The indexing layer classifies +
     /// gates these by carrier before persistence.
     pub literals: Vec<Literal>,

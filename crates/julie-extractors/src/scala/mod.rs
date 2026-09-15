@@ -51,7 +51,7 @@ impl ScalaExtractor {
         self.base.get_type_argument_usages()
     }
 
-    /// Clone captured call-argument literals (Miller bridge Phase 3).
+    /// Clone captured call-argument literals.
     pub fn get_literals(&self) -> Vec<crate::base::Literal> {
         self.base.get_literals()
     }
@@ -138,7 +138,7 @@ impl ScalaExtractor {
                 symbol =
                     declarations::extract_extension(&mut self.base, &node, parent_id.as_deref());
             }
-            // ScalaTest / MUnit call-style tests (Miller bridge Wave-3). Curried
+            // ScalaTest / MUnit call-style tests. Curried
             // call form `test("n") { }` / `describe(...) { it(...) }`, and FlatSpec
             // infix form `"subject" should "behaviour" in { }`. Both return None
             // for non-test nodes, so ordinary calls/infix fall through untouched.

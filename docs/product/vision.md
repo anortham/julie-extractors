@@ -37,7 +37,7 @@ for code intelligence without owning language parser details.
 
 ## Non-Goals
 
-- Replacing Miller, Eros, or Julie's higher-level tools.
+- Replacing code-kb, Eros, or Julie's higher-level tools.
 - Owning search ranking or embeddings.
 - Owning long-running watcher services.
 - Supporting every possible tree-sitter grammar before the current language set

@@ -20,7 +20,7 @@ const GENERIC_INSTANTIATION_RULES: TypeNameRules = TypeNameRules {
 };
 
 /// Record a declared-type fact for `symbol_id` when `type_node` names a base
-/// type Miller can bind: a plain or qualified type name, a generic
+/// type the consumer can bind: a plain or qualified type name, a generic
 /// instantiation with an identifier base, or a pointer to one of those.
 pub(super) fn record_type_node_fact(
     base: &mut BaseExtractor,

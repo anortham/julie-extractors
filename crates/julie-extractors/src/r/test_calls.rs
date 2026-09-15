@@ -1,4 +1,4 @@
-//! R testthat call-style test extraction (Miller bridge test-roles).
+//! R testthat call-style test extraction.
 //!
 //! Like JS/TS, Dart, and Lua busted, testthat tests are call expressions, not
 //! named function declarations — both the classic and BDD forms:

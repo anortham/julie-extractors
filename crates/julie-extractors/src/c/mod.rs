@@ -59,7 +59,7 @@ impl CExtractor {
         self.base.get_type_argument_usages()
     }
 
-    /// Clone captured call-argument literals (Miller bridge Phase 3).
+    /// Clone captured call-argument literals.
     pub fn get_literals(&self) -> Vec<crate::base::Literal> {
         self.base.get_literals()
     }
@@ -265,7 +265,7 @@ impl CExtractor {
                     typedefs::extract_from_expression_statement(self, node, parent_id.as_deref());
             }
             "call_expression" => {
-                // Criterion call-style tests (Miller bridge test-roles): `Test(suite,
+                // Criterion call-style tests: `Test(suite,
                 // name) { ... }` parses as a call_expression. Non-test calls return
                 // None and fall through to normal child recursion.
                 symbol =

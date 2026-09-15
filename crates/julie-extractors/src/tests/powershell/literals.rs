@@ -1,4 +1,4 @@
-//! PowerShell string-literal command-argument capture (Miller bridge Phase 3b).
+//! PowerShell string-literal command-argument capture.
 //!
 //! PowerShell is a COMMAND grammar, not `call_expression`: a `command` node has a
 //! `command_name` field (the cmdlet) and a `command_elements` field holding the

@@ -1,4 +1,4 @@
-//! R testthat call-style test detection (Miller bridge test-roles).
+//! R testthat call-style test detection.
 //!
 //! testthat declares tests as call expressions — classic `test_that("desc", {})`
 //! and BDD-style `describe("desc", { it("desc", {}) })` — not named functions.

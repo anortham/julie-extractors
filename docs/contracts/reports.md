@@ -206,7 +206,7 @@ Commands that do not use an artifact, such as `languages`, set `artifact` and
 ## Retired reference-resolution report section
 
 > **Retired 2026-08-18.** Mutating commands no longer emit
-> `languages.reference_resolution`. Miller computes resolution at query time.
+> `languages.reference_resolution`. code-kb computes resolution at query time.
 > See [2026-08-18-resolution-write-path-retirement.md](../decisions/2026-08-18-resolution-write-path-retirement.md).
 > The historical shape below is not a live report field.
 

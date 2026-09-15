@@ -1,4 +1,4 @@
-//! Bash string-literal command-argument capture (Miller bridge Phase 3b).
+//! Bash string-literal command-argument capture.
 //!
 //! Bash is a COMMAND grammar, not `call_expression`: a `command` node has a
 //! `name` field (the `command_name`) and repeated `argument`-field children.

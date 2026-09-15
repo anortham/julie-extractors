@@ -205,7 +205,7 @@ impl PythonExtractor {
         self.base.get_type_argument_usages()
     }
 
-    /// Clone captured call-argument literals (Miller bridge Phase 3).
+    /// Clone captured call-argument literals.
     pub fn get_literals(&self) -> Vec<crate::base::Literal> {
         self.base.get_literals()
     }

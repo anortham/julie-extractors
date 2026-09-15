@@ -1,9 +1,8 @@
 // C# type-level + member attribute → annotation persistence.
 //
-// Phase 1 of the Miller-bridge extraction enrichments: every C# declaration
-// kind that can bear `[Attribute]` markers must surface them as structured
-// `symbol.annotations`, not just inside the signature string. Only methods and
-// constructors did so before this batch.
+// Every C# declaration kind that can bear `[Attribute]` markers must surface
+// them as structured `symbol.annotations`, not just inside the signature
+// string. Only methods and constructors did so before this batch.
 
 use super::*;
 use crate::base::AnnotationMarker;

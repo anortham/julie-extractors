@@ -1,4 +1,4 @@
-//! Java string-literal call-argument capture (Miller bridge Phase 3b).
+//! Java string-literal call-argument capture.
 //!
 //! Like the Python reference leg, the extractor captures string literals passed
 //! to `method_invocation` nodes **config-free**: the `carrier` is the verbatim

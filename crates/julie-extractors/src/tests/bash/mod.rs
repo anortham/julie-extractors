@@ -1678,8 +1678,8 @@ mod control_flow_verification;
 mod cross_file_pending;
 mod cross_file_relationships;
 mod doc_comments;
-mod literals; // Miller bridge Phase 3b: string-literal command-argument capture
+mod literals; // String-literal command-argument capture
 mod structural_facts;
-mod test_detection; // shellspec/bats call-style test detection (Miller bridge test-roles)
+mod test_detection; // shellspec/bats call-style test detection
 mod type_facts;
 mod types; // Phase 4: Type extraction verification tests

@@ -227,7 +227,7 @@ impl DartExtractor {
                 );
             }
             "call_expression" => {
-                // package:test call-style (Miller bridge test-roles): test()/group()/
+                // package:test call-style: test()/group()/
                 // setUp() etc. become test symbols. Non-test calls return None and
                 // fall through to normal child recursion. A returned container/test
                 // symbol is set as the parent for nested test calls below.
@@ -535,7 +535,7 @@ impl DartExtractor {
         self.base.get_type_argument_usages()
     }
 
-    /// Clone captured call-argument literals (Miller bridge Phase 3).
+    /// Clone captured call-argument literals.
     pub fn get_literals(&self) -> Vec<crate::base::Literal> {
         self.base.get_literals()
     }

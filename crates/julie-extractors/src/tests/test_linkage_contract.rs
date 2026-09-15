@@ -1,9 +1,9 @@
 //! Source-scan guard for the `test_linkage` / `test_coverage` metadata keys.
 //!
-//! Miller reads both keys from `symbols.metadata_json` and turns them into
+//! code-kb reads both keys from `symbols.metadata_json` and turns them into
 //! graph edges, but only after a `LIMIT 1` probe proves at least one test
 //! symbol carries one. Writing either key on any symbol flips that probe true
-//! and restores a whole-index metadata scan that Miller measured at 2,978 ms
+//! and restores a whole-index metadata scan that code-kb measured at 2,978 ms
 //! per graph load against 206 ms for the probe.
 //!
 //! `docs/decisions/2026-08-25-test-linkage-metadata-contract.md` records why
@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 const LINKAGE_KEYS: [&str; 2] = ["test_linkage", "test_coverage"];
 
 #[test]
-fn no_production_source_writes_a_miller_linkage_metadata_key() {
+fn no_production_source_writes_a_test_linkage_metadata_key() {
     let sources = production_sources(&PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src"));
     assert!(
         sources.len() > 100,
@@ -39,8 +39,8 @@ fn no_production_source_writes_a_miller_linkage_metadata_key() {
 
     assert!(
         violations.is_empty(),
-        "production source mentions a Miller test-linkage metadata key. Writing one \
-         costs every Miller graph load a whole-index metadata scan. Read \
+        "production source mentions a test-linkage metadata key. Writing one \
+         costs every code-kb graph load a whole-index metadata scan. Read \
          docs/decisions/2026-08-25-test-linkage-metadata-contract.md before \
          opening this:\n{}",
         violations.join("\n")

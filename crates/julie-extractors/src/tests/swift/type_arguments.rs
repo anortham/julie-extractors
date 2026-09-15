@@ -1,4 +1,4 @@
-//! Swift ordered/nested generic type-argument capture (Miller bridge Phase 2).
+//! Swift ordered/nested generic type-argument capture.
 //!
 //! Swift generics use angle-bracket syntax: `Array<Int>`, `Dictionary<String,User>`.
 //! Generic type uses appear in property annotations, parameter types, and

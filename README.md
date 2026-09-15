@@ -132,7 +132,7 @@ records why each fork exists and how its exact remote commit is controlled.
 
 ## Intended users
 
-- Miller and other non-Rust code intelligence tools that want a stable CLI and
+- code-kb and other non-Rust code intelligence tools that want a stable CLI and
   SQLite artifact.
 - Eros and Python tools that may choose CLI-first consumption.
 - Rust callers that want the in-process extractor crate.

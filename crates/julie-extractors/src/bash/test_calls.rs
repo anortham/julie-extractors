@@ -1,4 +1,4 @@
-//! Bash shellspec/bats call-style test extraction (Miller bridge test-roles).
+//! Bash shellspec/bats call-style test extraction.
 //!
 //! shellspec and bats declare tests as call expressions (`command` nodes in the
 //! Bash grammar), not named function declarations:

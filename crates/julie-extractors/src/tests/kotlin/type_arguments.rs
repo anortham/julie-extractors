@@ -1,4 +1,4 @@
-//! Kotlin ordered/nested generic type-argument capture (Miller bridge Phase 2).
+//! Kotlin ordered/nested generic type-argument capture.
 //!
 //! Every generic *use site* (`List<User>` field, `Map<String, Int>`,
 //! `mutableListOf<User>()`, `extends Base<T>`, nesting) must emit its applied

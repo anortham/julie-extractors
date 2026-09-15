@@ -642,7 +642,7 @@ mod fq_static_receiver_tests {
     /// METHOD call `com.acme.GraphTraversal.reach()`, the terminal class
     /// receiver `GraphTraversal` emitted NO identifier row (while `com` was a
     /// variable_ref and `acme` a member_access), so a helper class referenced
-    /// ONLY via FQ static calls looked dead to Miller's name-liveness. The
+    /// ONLY via FQ static calls looked dead to code-kb's name-liveness. The
     /// terminal receiver of a qualified invocation chain must be name-visible.
     #[test]
     fn test_java_fq_static_method_call_receiver_is_name_visible() {

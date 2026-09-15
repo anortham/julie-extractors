@@ -1,4 +1,4 @@
-//! PowerShell Pester call-style test detection (Miller bridge test-roles).
+//! PowerShell Pester call-style test detection.
 //!
 //! Pester declares tests as call expressions:
 //! ```powershell

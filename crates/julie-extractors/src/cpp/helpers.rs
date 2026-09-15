@@ -72,7 +72,7 @@ pub(super) fn extract_base_classes(base: &BaseExtractor, base_clause: Node) -> V
 }
 
 /// Extract clean base-type names from a `base_class_clause` for the canonical
-/// `base_types` metadata array (Miller bridge test-roles).
+/// `base_types` metadata array.
 ///
 /// Unlike [`extract_base_classes`] (which keeps the access specifier for the
 /// human-readable signature, e.g. `"public ::testing::Test"`), this returns just

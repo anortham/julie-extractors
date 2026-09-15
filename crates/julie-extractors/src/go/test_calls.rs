@@ -1,4 +1,4 @@
-//! Go Ginkgo/Gomega call-style test extraction (Miller bridge test-roles, Wave-3).
+//! Go Ginkgo/Gomega call-style test extraction.
 //!
 //! Ginkgo declares tests as call expressions (`call_expression` nodes in the
 //! Go grammar), not named function declarations:

@@ -11,7 +11,7 @@ pub fn create_schema(conn: &Connection) -> rusqlite::Result<()> {
 }
 
 /// Retired 2026-08-03: a two-repo consumer audit plus `EXPLAIN QUERY PLAN`
-/// showed no query in julie-extractors or Miller ever selects these three, and
+/// showed no query in julie-extractors or code-kb ever selects these three, and
 /// together they were ~11% of a dotnet/runtime-scale artifact plus their share
 /// of bulk-load index-build time. (Two further audit candidates were RETAINED:
 /// `idx_identifiers_reference_site` and `idx_reference_sites_containing_symbol`

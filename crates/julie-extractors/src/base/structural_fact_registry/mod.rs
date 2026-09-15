@@ -3,7 +3,7 @@
 //! This module is the machine-readable source of truth for the metadata payload
 //! carried by each structural fact: for every pattern it declares the languages
 //! it fires for, its query family, and every metadata key with a value type and
-//! a presence rule. Downstream consumers (Miller, the `languages --json` report,
+//! a presence rule. Downstream consumers (code-kb, the `languages --json` report,
 //! contract docs) read this registry instead of hard-coding out-of-band
 //! knowledge of the payloads.
 //!

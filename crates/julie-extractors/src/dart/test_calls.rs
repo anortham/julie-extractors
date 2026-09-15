@@ -1,4 +1,4 @@
-//! Dart `package:test` call-style test extraction (Miller bridge test-roles).
+//! Dart `package:test` call-style test extraction.
 //!
 //! Like JS/TS (Jest/Vitest), Dart tests are call expressions, not named function
 //! declarations:

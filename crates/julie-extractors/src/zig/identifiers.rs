@@ -328,7 +328,7 @@ fn is_after_colon(parent: Node, child: Node) -> bool {
 }
 
 // ============================================================================
-// String-literal call-argument capture (Miller bridge Phase 3)
+// String-literal call-argument capture
 // ============================================================================
 
 /// Capture string-literal arguments of a Zig `call_expression` as `Literal`
@@ -384,7 +384,7 @@ fn zig_carrier(base: &BaseExtractor, func_node: Node) -> Option<String> {
 }
 
 // ============================================================================
-// Type-argument capture helpers (Miller bridge Phase 2, scoped)
+// Type-argument capture helpers
 // ============================================================================
 
 /// Returns `true` if this `call_expression` is in a type-annotation position.

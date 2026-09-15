@@ -223,7 +223,7 @@ fn find_containing_symbol_id(
 }
 
 // ============================================================================
-// String-literal call-argument capture (Miller bridge Phase 3b)
+// String-literal call-argument capture
 // ============================================================================
 
 /// Capture string-literal arguments of a Ruby `call` as `Literal` records.

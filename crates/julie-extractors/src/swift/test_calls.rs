@@ -1,4 +1,4 @@
-//! Swift Quick/Nimble call-style test extraction (Miller bridge test-roles).
+//! Swift Quick/Nimble call-style test extraction.
 //!
 //! Quick and Nimble declare tests as call expressions (`call_expression` nodes
 //! in the Swift grammar), not named function declarations:

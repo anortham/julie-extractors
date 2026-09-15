@@ -1,4 +1,4 @@
-//! GDScript ordered/nested generic type-argument capture (Miller bridge Phase 2).
+//! GDScript ordered/nested generic type-argument capture.
 //!
 //! GDScript uses bracket syntax for generic types: `Array[String]`,
 //! `Dictionary[String, int]`. The grammar node is `subscript` (a child of

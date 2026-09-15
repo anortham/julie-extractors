@@ -1,4 +1,4 @@
-//! Scala ScalaTest / MUnit call-style test extraction (Miller bridge, Wave-3).
+//! Scala ScalaTest / MUnit call-style test extraction.
 //!
 //! ScalaTest and MUnit express tests as call/infix expressions, not named
 //! methods, so the declaration-walking extractor misses them. Two grammar

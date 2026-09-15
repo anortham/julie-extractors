@@ -1,4 +1,4 @@
-//! Kotlin Kotest / Spek call-style test detection (Miller bridge, Wave-3).
+//! Kotlin Kotest / Spek call-style test detection.
 //!
 //! Kotest and Spek express tests as call expressions, not named function
 //! declarations or class annotations:

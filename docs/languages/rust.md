@@ -85,7 +85,7 @@ The Rust row in `docs/decisions/2026-08-20-test-role-contract-closure.md`
 previously read `test_lifecycle: not applicable`. That conclusion held only
 while the row named `cfg(test)` as the whole contract. rstest's `#[fixture]`
 builds a value a test case asks for by name, it runs only inside a test
-session, and Miller's Rust continuous testing provider must know that editing a
+session, and code-kb's Rust continuous testing provider must know that editing a
 fixture invalidates every case that requests it. The row is now
 `test_lifecycle: supported`.
 

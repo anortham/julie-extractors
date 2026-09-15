@@ -1,4 +1,4 @@
-//! Rust ordered/nested generic type-argument capture (Miller bridge Phase 2).
+//! Rust ordered/nested generic type-argument capture.
 //!
 //! Every generic *use site* (`items: Vec<String>`, `HashMap<K, V>`,
 //! `foo::<T>()` turbofish) must emit its applied type arguments in order,

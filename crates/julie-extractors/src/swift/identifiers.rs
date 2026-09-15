@@ -206,7 +206,7 @@ impl SwiftExtractor {
     }
 
     /// Capture string-literal arguments of a Swift `call_expression` as `Literal`
-    /// records (Miller bridge Phase 3b).
+    /// records.
     ///
     /// Config-free: `carrier` is the verbatim callee text; the URL/SQL
     /// classification and the carrier gate run later in the artifact language-policy pass.

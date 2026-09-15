@@ -1,4 +1,4 @@
-//! C# ordered/nested generic type-argument capture (Miller bridge Phase 2).
+//! C# ordered/nested generic type-argument capture.
 //!
 //! Every generic *use site* (`IList<RootObject>` field, `new Dictionary<...>()`,
 //! `cfg.CreateMap<A,B>()`, `services.AddScoped<IFoo,Foo>()`) must emit its

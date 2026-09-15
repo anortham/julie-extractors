@@ -11,7 +11,7 @@ pub mod identifiers;
 mod literals;
 mod structural_facts;
 mod task14;
-mod test_detection; // Miller bridge test-roles: package:test call-style + @isTest
+mod test_detection; // package:test call-style + @isTest
 mod type_arguments;
 mod type_facts;
 

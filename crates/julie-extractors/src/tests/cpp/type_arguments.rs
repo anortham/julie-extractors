@@ -1,4 +1,4 @@
-//! C++ ordered/nested generic type-argument capture (Miller bridge Phase 2).
+//! C++ ordered/nested generic type-argument capture.
 //!
 //! C++ generics use angle-bracket syntax on template specializations:
 //! `Box<Item>`, `Map<Key, Value>`, `Map<int, Vec<Item>>`.

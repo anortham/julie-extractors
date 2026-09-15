@@ -228,7 +228,7 @@ fn try_route(
 /// Emit `axum.nest.v1` for `receiver.nest("/lit", sub_router)` at its own site,
 /// following the shipped mount-family metadata shape (`mount_path` /
 /// `normalized_mount_path` / `mount_target`). The nested target is a cross-file
-/// function/expression, so no route join is guessed — that is Miller's job
+/// function/expression, so no route join is guessed — that is code-kb's job
 /// (decision 0004). Stays silent when the receiver is poisoned or the mount path
 /// is non-static.
 #[allow(clippy::too_many_arguments)]

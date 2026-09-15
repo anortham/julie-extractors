@@ -1,4 +1,4 @@
-//! C Criterion call-style test extraction (Miller bridge test-roles).
+//! C Criterion call-style test extraction.
 //!
 //! Criterion declares tests with a macro that the C grammar parses as a *call*,
 //! not a function definition:

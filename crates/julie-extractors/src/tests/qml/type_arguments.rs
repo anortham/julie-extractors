@@ -1,4 +1,4 @@
-//! QML ordered/nested generic type-argument capture (Miller bridge Phase 2).
+//! QML ordered/nested generic type-argument capture.
 //!
 //! QML-JS shares the TypeScript grammar, so generic types use the same
 //! angle-bracket syntax: `Array<User>`, `Map<string, User>`.

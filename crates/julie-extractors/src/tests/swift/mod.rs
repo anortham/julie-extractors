@@ -9,7 +9,7 @@ mod identifiers;
 mod literals;
 mod structural_facts;
 mod task14;
-mod test_detection; // Miller bridge test-roles: base_types + Swift Testing annotations
+mod test_detection; // base_types + Swift Testing annotations
 mod type_arguments;
 mod type_facts;
 

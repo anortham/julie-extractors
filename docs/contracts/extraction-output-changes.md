@@ -68,9 +68,8 @@ declare whichever version it names — shadowing the real entry below, because t
 Fenced blocks are skipped. Keep any future example fenced.
 
 `classification: compatible` means a reader built for the previous release still reads the new
-output correctly. `classification: incompatible` means it does not, and the change needs an epoch
-bump once the store's epoch machinery exists. Until then, the classification recorded here is the
-contract.
+output correctly. `classification: incompatible` means it does not, and the change needs a
+schema or contract version bump. The classification recorded here is the contract.
 
 ## How to run it
 
@@ -404,7 +403,7 @@ so fact-table identity remains the gate against v2.33.7. Their absence is this
 classified break, not an undeclared table drop.
 
 Consumer action: rebuild standalone artifacts. Family stores migrate in place.
-Miller must use query-time resolution before pinning this binary.
+code-kb must use query-time resolution before pinning this binary.
 
 See [2026-08-18-resolution-write-path-retirement.md](../decisions/2026-08-18-resolution-write-path-retirement.md).
 

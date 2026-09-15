@@ -21,7 +21,7 @@ cargo xtask test golden
 
 ## Test-role contract
 
-Miller runs a pytest continuous-testing provider for Python, so a wrong test
+code-kb runs a pytest continuous-testing provider for Python, so a wrong test
 role turns straight into a wrong staleness verdict. The detector follows the
 two collectors that actually run the code.
 

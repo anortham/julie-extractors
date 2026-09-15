@@ -2699,7 +2699,7 @@ fn a_dedicated_scratch_spool_dir_inside_the_root_does_not_warn_on_any_scan() {
     // scan — and a warning channel nobody can act on stops being read.
     let fixture = FixtureRoot::new();
     let output = TempDir::new().unwrap();
-    let spool_dir = fixture.path(".miller/spool");
+    let spool_dir = fixture.path(".code-kb/spool");
     let db = output.path().join("artifact.sqlite");
 
     for pass in 0..2 {

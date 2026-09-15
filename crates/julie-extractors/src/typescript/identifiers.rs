@@ -368,7 +368,7 @@ fn find_containing_symbol_id(
 }
 
 // ============================================================================
-// String-literal call-argument capture helpers (Miller bridge Phase 3)
+// String-literal call-argument capture helpers
 // ============================================================================
 
 /// Capture string-literal arguments of a call as `Literal` records.

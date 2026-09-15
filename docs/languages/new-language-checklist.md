@@ -56,7 +56,7 @@ that fail for any new language until they are updated:
   charges the language quality-bar debt for the code-only domains.
 - Do not regenerate the historical `fixtures/extraction/reference-resolution-coverage.json`
   artifact for new languages. Workspace-global reference resolution is owned by
-  Miller at query time; see the [retired coverage contract](../contracts/reference-resolution-coverage-v1.md)
+  code-kb at query time; see the [retired coverage contract](../contracts/reference-resolution-coverage-v1.md)
   and [retirement decision](../decisions/2026-08-18-resolution-write-path-retirement.md).
 
 ## 3. Implement Extraction By Data Domain

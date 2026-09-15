@@ -1,7 +1,7 @@
 //! Kotlin Spring MVC annotation-controller route facts.
 //!
 //! Kotlin reuses the Java `spring.request_mapping.v1` pattern id (registry
-//! `languages = [java, kotlin]`) so Miller's two-sided join contract stays
+//! `languages = [java, kotlin]`) so the consumer's two-sided join contract stays
 //! uniform, but it needs a **separate collector**: Kotlin lexing, bracket-array
 //! annotation values (`["/a", "/b"]`, not Java's `{…}`), and `$`-interpolation
 //! differ from Java. Unlike the Java collector (a byte-level `SourceMask` scan),

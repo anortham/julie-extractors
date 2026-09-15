@@ -1,4 +1,4 @@
-//! C Criterion call-style test extraction (Miller bridge test-roles).
+//! C Criterion call-style test extraction.
 //!
 //! Criterion's `Test(suite, name) { ... }` macro parses as a `call_expression`
 //! (not a function_definition), so it is materialized via the shared

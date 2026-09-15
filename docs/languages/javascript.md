@@ -24,7 +24,7 @@ cargo xtask test golden
 
 ## Test-role contract
 
-Miller drives continuous testing from these roles, so a wrong role becomes a
+code-kb drives continuous testing from these roles, so a wrong role becomes a
 wrong staleness verdict. JavaScript test frameworks declare cases as *calls*,
 not as named functions, so the detector reads the callee chain of a
 `call_expression`. The rules live in

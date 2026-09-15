@@ -1,4 +1,4 @@
-//! Zig test detection (Miller bridge test-role work).
+//! Zig test detection.
 //!
 //! Zig tests are `test_declaration` nodes — structurally unambiguous (the `test`
 //! keyword), so the extractor (`zig/functions.rs::extract_test`) emits a Function

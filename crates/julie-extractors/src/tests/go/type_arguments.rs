@@ -1,4 +1,4 @@
-//! Go ordered/nested generic type-argument capture (Miller bridge Phase 2).
+//! Go ordered/nested generic type-argument capture.
 //!
 //! Go 1.18+ generics use bracket syntax: `Container[int]`, `Map[string, List[int]]`.
 //! Generic types appear in variable declarations, composite literals, and function

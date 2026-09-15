@@ -1,4 +1,4 @@
-//! Razor ordered/nested generic type-argument capture (Miller bridge Phase 2).
+//! Razor ordered/nested generic type-argument capture.
 //!
 //! Razor embeds C# code in `@code { }` blocks. Its tree-sitter grammar
 //! includes the full C# generic syntax (`generic_name` + `type_argument_list`).

@@ -33,7 +33,7 @@ pub struct TypeArgumentUsage {
     pub arguments: Vec<TypeArgument>,
 }
 
-/// A string literal captured at a call-argument site (Miller bridge Phase 3).
+/// A string literal captured at a call-argument site.
 ///
 /// Extractors emit one `Literal` per string-literal argument of a call,
 /// **config-free**: `carrier` is the verbatim callee text (`fetch`, `axios.get`,

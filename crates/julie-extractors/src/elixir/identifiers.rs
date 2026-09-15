@@ -354,7 +354,7 @@ fn find_containing_symbol_id(
 }
 
 // ============================================================================
-// String-literal call-argument capture (Miller bridge Phase 3b)
+// String-literal call-argument capture
 // ============================================================================
 
 /// Capture string-literal arguments of an Elixir `call` as `Literal` records.
@@ -437,7 +437,7 @@ fn elixir_carrier(base: &BaseExtractor, target: Node) -> Option<String> {
 }
 
 // ============================================================================
-// Typespec type-argument capture (Miller bridge Phase 2)
+// Typespec type-argument capture
 // ============================================================================
 
 /// Walk module attributes and record ordered/nested type-argument usages from

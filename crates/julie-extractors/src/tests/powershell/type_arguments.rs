@@ -1,4 +1,4 @@
-//! PowerShell ordered/nested generic type-argument capture (Miller bridge Phase 2).
+//! PowerShell ordered/nested generic type-argument capture.
 //!
 //! PowerShell uses bracket syntax for .NET generic types:
 //!   `[List[User]]`, `[Dictionary[string, int]]`

@@ -1,4 +1,4 @@
-//! Bash shellspec/bats call-style test detection (Miller bridge test-roles).
+//! Bash shellspec/bats call-style test detection.
 //!
 //! shellspec declares tests as call expressions with single-quoted arguments:
 //!

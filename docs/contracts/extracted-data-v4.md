@@ -1,12 +1,11 @@
 # Extracted Data Contract v4
 
-Extraction contract 4 now pairs with [SQLite schema 7](sqlite-schema-v7.md)
-and [JSONL contract 5](jsonl-v5.md). Schema 5/6 and JSONL 4 remain historical
-pairings.
+Extraction contract 4 pairs with [SQLite schema 7](sqlite-schema-v7.md).
+Schema 5/6 remain historical pairings.
 
 > **2026-08-18 retirement:** this product no longer writes workspace-global
 > reference resolution. Identifier `target_symbol_id` is not stored on the
-> artifact. Miller computes resolution at query time. See
+> artifact. code-kb computes resolution at query time. See
 > [2026-08-18-resolution-write-path-retirement.md](../decisions/2026-08-18-resolution-write-path-retirement.md).
 
 ## Reference evidence
@@ -50,4 +49,4 @@ companion files (`-wal`, `-shm`, `-journal`).
 
 Gap status is the closed vocabulary `open | exception`. Unknown statuses are
 invalid. Workspace-global reference-resolution coverage is no longer a
-julie-extract capability claim. Miller owns that policy.
+julie-extract capability claim. code-kb owns that policy.

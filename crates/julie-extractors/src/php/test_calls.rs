@@ -1,4 +1,4 @@
-//! PHP Pest call-style test extraction (Miller bridge test-roles).
+//! PHP Pest call-style test extraction.
 //!
 //! Like Lua (busted) and R (testthat), Pest tests are call expressions, not
 //! named function declarations:

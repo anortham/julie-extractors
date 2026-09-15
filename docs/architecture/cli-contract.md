@@ -59,9 +59,9 @@ Draft model:
 
 Exit codes are coarse. JSON error codes are the precise contract.
 
-## Generalization From Miller
+## Generalization From The Consumer
 
-Miller has proven these usage patterns matter:
+code-kb has proven these usage patterns matter:
 
 - full scan for a repo
 - single-file update after a watcher event

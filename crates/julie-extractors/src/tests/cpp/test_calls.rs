@@ -1,4 +1,4 @@
-//! C++ Catch2 call-style test extraction (Miller bridge test-roles).
+//! C++ Catch2 call-style test extraction.
 //!
 //! Catch2's `TEST_CASE("name", "[tag]") { ... }` (and `SECTION`, `SCENARIO`,
 //! `TEST_CASE_METHOD`) parse as `call_expression`s, not function_definitions, so

@@ -1,4 +1,4 @@
-//! Lua string-literal call-argument capture (Miller bridge Phase 3b).
+//! Lua string-literal call-argument capture.
 //!
 //! Like the Python reference leg, the extractor captures string literals passed
 //! to `function_call` nodes **config-free**: the `carrier` is the verbatim

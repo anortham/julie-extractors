@@ -19,7 +19,7 @@
 //!    [`ACTIX_MOUNT_PATTERN_ID`], the prefix-registration fact recorded at the
 //!    scope site (following the `express.router_mount.v1` shape). The delegated
 //!    routes live in a cross-file `configure`/service target, so no route join is
-//!    guessed (Miller's job, decision 0004).
+//!    guessed (code-kb's job, decision 0004).
 //!
 //! ## axum vs actix disambiguation (Task 6 coexistence)
 //!
@@ -545,7 +545,7 @@ fn actix_web_verb(scoped: Node, content: &str) -> Option<VerbClass> {
 /// `.service(sub)` call: the scope prefix registered at its own site, following
 /// the shipped mount-family shape (`mount_path`/`normalized_mount_path`/
 /// `mount_target`). The delegated routes live in the cross-file `configure`/
-/// service target, so no route join is guessed (Miller's job, decision 0004).
+/// service target, so no route join is guessed (code-kb's job, decision 0004).
 /// Stays silent unless the receiver chain bottoms at a static-prefix `web::scope`.
 fn try_mount(
     call: Node,

@@ -1254,7 +1254,7 @@ fn artifact_is_unwritten(connection: &Connection) -> rusqlite::Result<bool> {
 /// Trades durability for throughput while filling an EMPTY on-disk artifact.
 ///
 /// Safe only because there is nothing to lose: the artifact holds no rows, and
-/// Miller consumes fresh builds under promote-not-merge, so a torn `.rebuild` is
+/// code-kb consumes fresh builds under promote-not-merge, so a torn `.rebuild` is
 /// discarded rather than served. `MEMORY` (not `OFF`) keeps the rollback journal
 /// working, so an error inside the write still rolls back cleanly to the empty
 /// artifact — only a process death mid-write leaves a torn file. On a fresh

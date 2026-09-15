@@ -417,7 +417,7 @@ fn is_csharp_type_usage_identifier(node: Node) -> bool {
 // variable_ref emission — LOCKED SEMANTIC CONTRACT (reference implementation)
 // ============================================================================
 //
-// Miller's dead-code candidate reader decides name-liveness by whether any
+// code-kb's dead-code candidate reader decides name-liveness by whether any
 // `identifiers` row has `name = S.name` OUTSIDE S's own definition. A bare read
 // (`return VisibilityUnknown;`) or a static-access receiver (`GraphTraversal` in
 // `GraphTraversal.Reach()`) previously emitted NO identifier, so live symbols were
@@ -702,7 +702,7 @@ fn find_containing_symbol_id(
 }
 
 // ============================================================================
-// String-literal call-argument capture helpers (Miller bridge Phase 3)
+// String-literal call-argument capture helpers
 // ============================================================================
 
 /// Capture string-literal arguments of a C# `invocation_expression` as `Literal`

@@ -1,4 +1,4 @@
-//! Python ordered/nested generic type-argument capture (Miller bridge Phase 2).
+//! Python ordered/nested generic type-argument capture.
 //!
 //! Python uses subscript syntax for generics: `List[int]`, `Dict[str, List[int]]`.
 //! These appear as use sites in variable annotations, typed parameters, and

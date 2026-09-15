@@ -14,7 +14,7 @@ pub mod identifiers;
 pub mod literals;
 pub mod relationships;
 pub mod tables;
-pub mod test_detection; // busted call-style test detection (Miller bridge test-roles)
+pub mod test_detection; // busted call-style test detection
 pub mod type_facts;
 pub mod variables;
 

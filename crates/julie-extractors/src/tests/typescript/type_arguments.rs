@@ -1,4 +1,4 @@
-//! TypeScript ordered/nested generic type-argument capture (Miller bridge Phase 2).
+//! TypeScript ordered/nested generic type-argument capture.
 //!
 //! Every generic *use site* (`extends Base<Foo,Bar>`, `new Map<string,User>()`) must emit
 //! its applied type arguments in order, with nesting preserved, attached to the use-site

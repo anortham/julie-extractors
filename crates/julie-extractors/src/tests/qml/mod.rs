@@ -102,7 +102,7 @@ pub mod functions; // Functions and JavaScript code
 pub mod identifiers; // Identifier extraction (calls, member access, variable refs)
 pub mod imports;
 pub mod layouts; // Anchors, layouts, positioning
-pub mod literals; // String-literal call-argument capture (Miller bridge Phase 3b)
+pub mod literals; // String-literal call-argument capture
 pub mod modern; // Qt 5.x/6.x modern features
 #[cfg(feature = "test-real-world")]
 pub mod real_world; // Real-world validation (cool-retro-term, KDE)

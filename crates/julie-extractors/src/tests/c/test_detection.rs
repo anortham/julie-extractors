@@ -1,4 +1,4 @@
-//! C test detection (Miller bridge test-role work).
+//! C test detection.
 //!
 //! C's symbol-emitting test frameworks declare tests as ordinary functions named
 //! `test_*`: Unity (`void test_Foo(void)`) and CMocka (`static void

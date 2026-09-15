@@ -1,4 +1,4 @@
-//! Go Ginkgo call-style test detection (Miller bridge test-roles, Wave-3).
+//! Go Ginkgo call-style test detection.
 //!
 //! Ginkgo declares tests as call expressions, not named function declarations:
 //!

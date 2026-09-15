@@ -1,4 +1,4 @@
-//! Scala ordered/nested generic type-argument capture (Miller bridge Phase 2).
+//! Scala ordered/nested generic type-argument capture.
 //!
 //! Scala generics use square-bracket syntax: `List[Int]`, `Map[String,User]`.
 //! Generic type uses appear in val/var type annotations, method parameter types,

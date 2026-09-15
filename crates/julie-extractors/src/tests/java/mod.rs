@@ -14,7 +14,7 @@ mod method_tests;
 mod modern_java_tests;
 mod package_import_tests;
 mod structural_facts;
-mod test_detection; // Miller bridge test-roles: base_types + @Nested + JUnit annotations
+mod test_detection; // base_types + @Nested + JUnit annotations
 mod type_arguments;
 mod type_facts;
 mod types; // Phase 4: Type extraction verification tests

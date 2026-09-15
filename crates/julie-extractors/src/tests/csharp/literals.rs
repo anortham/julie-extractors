@@ -1,4 +1,4 @@
-//! C# string-literal call-argument capture (Miller bridge Phase 3).
+//! C# string-literal call-argument capture.
 //!
 //! Mirrors the TS reference leg: extractors capture string literals passed to
 //! calls **config-free** (carrier = method name, kind = Other). The carrier

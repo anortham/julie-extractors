@@ -1,4 +1,4 @@
-// Scala ScalaTest / MUnit call-style test detection (Miller bridge, Wave-3).
+// Scala ScalaTest / MUnit call-style test detection.
 //
 // ScalaTest and MUnit express tests as CALL expressions, not named methods:
 //   - FunSuite / MUnit: `test("name") { ... }`

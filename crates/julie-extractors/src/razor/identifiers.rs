@@ -196,7 +196,7 @@ impl super::RazorExtractor {
     }
 
     // ========================================================================
-    // String-literal call-argument capture (Miller bridge Phase 3)
+    // String-literal call-argument capture
     // ========================================================================
 
     /// Capture string-literal arguments of a Razor/C# `invocation_expression`

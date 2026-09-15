@@ -443,7 +443,7 @@ fn declared_parent_class_name(base: &BaseExtractor, node: Node) -> Option<String
 }
 
 // ============================================================================
-// String-literal call-argument capture (Miller bridge Phase 3b)
+// String-literal call-argument capture
 // ============================================================================
 
 /// Capture string-literal arguments of a PHP call (`function_call_expression`,

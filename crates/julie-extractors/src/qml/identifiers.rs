@@ -309,7 +309,7 @@ impl<'a> QmlContainingSymbolIndex<'a> {
 }
 
 // ============================================================================
-// String-literal call-argument capture (Miller bridge Phase 3)
+// String-literal call-argument capture
 // ============================================================================
 
 /// Capture string-literal arguments of a QML `call_expression` as `Literal`
@@ -378,7 +378,7 @@ fn qml_carrier(base: &BaseExtractor, func_node: Node) -> Option<String> {
 }
 
 // ============================================================================
-// Type-argument capture helpers (Miller bridge Phase 2)
+// Type-argument capture helpers
 // ============================================================================
 
 /// If `name_node` is the `name` field of an *outermost* `generic_type` use site

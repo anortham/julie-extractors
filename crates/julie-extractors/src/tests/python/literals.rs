@@ -1,4 +1,4 @@
-//! Python string-literal call-argument capture (Miller bridge Phase 3).
+//! Python string-literal call-argument capture.
 //!
 //! Like the TS/C# reference legs, the extractor captures string literals passed
 //! to calls **config-free**: the `carrier` is the verbatim callee text and

@@ -1,4 +1,4 @@
-//! Go string-literal call-argument capture (Miller bridge Phase 3b).
+//! Go string-literal call-argument capture.
 //!
 //! Extractors capture string literals passed to calls **config-free**: the
 //! `carrier` is the verbatim callee text and `kind` is always `Other` straight

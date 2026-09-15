@@ -78,7 +78,6 @@ fn extract_identifier_from_node(
                     IdentifierKind::Call,
                     containing_symbol_id,
                 );
-                // Miller bridge Phase 3b: capture string-literal command args.
                 record_command_arg_literals(base, node, &name, containing_symbols);
             }
         }
@@ -216,7 +215,7 @@ fn extract_identifier_from_node(
         //
         // NAMING: the emitted name strips the `$` sigil and scope qualifiers with
         // the exact replace chain `variables.rs::extract_variable` uses to name
-        // Variable SYMBOLS, because Miller's dead-code name-match compares
+        // Variable SYMBOLS, because code-kb's dead-code name-match compares
         // identifiers.name = symbols.name exactly (case-sensitive).
         "variable" => {
             if !is_powershell_variable_read(node) {
@@ -369,7 +368,7 @@ fn is_powershell_plain_assignment_lhs(node: Node) -> bool {
 }
 
 // ============================================================================
-// Type-argument capture helpers (Miller bridge Phase 2)
+// Type-argument capture helpers
 // ============================================================================
 
 /// `TypeArgDecomposer` for PowerShell: maps a child of a `generic_type_arguments`
@@ -415,7 +414,7 @@ fn decompose_powershell_type_arg<'a>(
 }
 
 // ============================================================================
-// String-literal command-argument capture (Miller bridge Phase 3b)
+// String-literal command-argument capture
 // ============================================================================
 
 /// Capture string-literal arguments of a PowerShell `command` node.

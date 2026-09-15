@@ -1,4 +1,4 @@
-//! Vue string-literal call-argument capture (Miller bridge Phase 3).
+//! Vue string-literal call-argument capture.
 //!
 //! Vue `<script>` blocks are JavaScript/TypeScript, parsed with their own
 //! tree-sitter pass whose byte offsets index the section text. The capture leg

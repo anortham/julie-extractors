@@ -65,7 +65,7 @@ impl KotlinExtractor {
         self.base.get_type_argument_usages()
     }
 
-    /// Clone captured call-argument literals (Miller bridge Phase 3).
+    /// Clone captured call-argument literals.
     pub fn get_literals(&self) -> Vec<crate::base::Literal> {
         self.base.get_literals()
     }
@@ -179,7 +179,7 @@ impl KotlinExtractor {
                 symbol =
                     declarations::extract_type_alias(&mut self.base, &node, parent_id.as_deref());
             }
-            // Kotest / Spek call-style tests (Miller bridge Wave-3).
+            // Kotest / Spek call-style tests.
             // `describe("name") { it("name") { } }`, `test("n") { }`,
             // `beforeEach { }`, etc. Returns None for non-DSL calls (no vocab
             // match or no trailing lambda body), so ordinary call_expressions

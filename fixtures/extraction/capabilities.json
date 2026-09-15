@@ -145,7 +145,7 @@
             {
               "kind": "actix.scope_route_cross_file_registration",
               "reason": "actix.scope_route.v1 joins a scope prefix to routes only when the routes chain directly off `web::scope(\"/lit\")` in the same expression. Routes registered under a scope via `.configure(fn)` or `.service(handler)` live in a cross-file target, so their scope prefix cannot flow into their effective_route_template in-file; actix.mount.v1 records the prefix at the scope site with mount_path/mount_target only.",
-              "required_closure": "resolve the scope prefix to routes registered in a cross-file configure/service target, which is Miller's cross-file join responsibility per decision 0004; the extractor emits actix.mount.v1 and guesses no join",
+              "required_closure": "resolve the scope prefix to routes registered in a cross-file configure/service target, which is code-kb's cross-file join responsibility per decision 0004; the extractor emits actix.mount.v1 and guesses no join",
               "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2c (cross-file prefix registration)"
             },
             {
@@ -169,7 +169,7 @@
             {
               "kind": "axum.cross_file_nest_join",
               "reason": "A `.nest(\"/api\", sub_router)` mounts a sub-router whose routes are defined in another function/file, so the nest prefix cannot flow into those routes' effective_route_template in-file; axum.nest.v1 records the mount at its own site with mount_path/mount_target only.",
-              "required_closure": "resolve nest prefix to sub-router routes, which is Miller's cross-file join responsibility per decision 0004; the extractor emits axum.nest.v1 and guesses no join",
+              "required_closure": "resolve nest prefix to sub-router routes, which is code-kb's cross-file join responsibility per decision 0004; the extractor emits axum.nest.v1 and guesses no join",
               "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2c (cross-file prefix registration)"
             },
             {
@@ -3120,7 +3120,7 @@
             {
               "kind": "laravel.route_service_provider_prefix",
               "reason": "A RouteServiceProvider `/api` group prefix is applied cross-file (in the provider, not the routes file), so it cannot flow into a route's effective_route_template in-file; route_template is therefore not guaranteed to be the absolute public path when such a prefix applies.",
-              "required_closure": "resolve RouteServiceProvider group prefixes cross-file, which is Miller's join responsibility per decision 0004; the extractor emits laravel.route_prefix.v1 only for same-file prefixes",
+              "required_closure": "resolve RouteServiceProvider group prefixes cross-file, which is code-kb's join responsibility per decision 0004; the extractor emits laravel.route_prefix.v1 only for same-file prefixes",
               "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2c (cross-file RouteServiceProvider prefix)"
             },
             {
@@ -4199,7 +4199,7 @@
             {
               "kind": "phoenix.cross_file_scope_prefix",
               "reason": "A `scope` prefix declared in another router module (or via a forwarded plug's own router) is applied cross-file, so it cannot flow into a route's effective_route_template in-file; route_template is therefore not guaranteed to be the absolute public path when such a prefix applies.",
-              "required_closure": "resolve cross-file scope/forward prefixes, which is Miller's join responsibility per decision 0004; the extractor emits phoenix.forward.v1 only for same-file forwards",
+              "required_closure": "resolve cross-file scope/forward prefixes, which is code-kb's join responsibility per decision 0004; the extractor emits phoenix.forward.v1 only for same-file forwards",
               "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2c (cross-file prefix registration)"
             },
             {

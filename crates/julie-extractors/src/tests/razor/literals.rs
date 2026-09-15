@@ -1,4 +1,4 @@
-// Razor string-literal call-argument capture (Miller bridge Phase 3).
+// Razor string-literal call-argument capture.
 //
 // Razor embeds C# in `@code { }`, so this mirrors the C# reference leg:
 // extractors capture string literals passed to calls **config-free** (carrier =

@@ -1,4 +1,4 @@
-//! Java ordered/nested generic type-argument capture (Miller bridge Phase 2).
+//! Java ordered/nested generic type-argument capture.
 //!
 //! Every generic *use site* (`List<String>` field, `new ArrayList<String>()`,
 //! `extends ArrayList<String>`, `Map<String, List<Integer>>` nesting) must emit

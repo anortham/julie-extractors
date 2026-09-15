@@ -1,4 +1,4 @@
-//! Lua busted call-style test detection (Miller bridge test-roles).
+//! Lua busted call-style test detection.
 //!
 //! busted declares tests as call expressions (`describe(...)`, `it(...)`,
 //! `before_each(...)`), not named function declarations. The lua extractor

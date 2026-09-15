@@ -367,7 +367,7 @@ fn find_containing_symbol_id(
 }
 
 // ============================================================================
-// String-literal call-argument capture (Miller bridge Phase 3)
+// String-literal call-argument capture
 // ============================================================================
 
 /// Capture string-literal arguments of a Python `call` as `Literal` records.

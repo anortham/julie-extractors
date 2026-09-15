@@ -569,7 +569,7 @@ fn cpp_carrier(base: &BaseExtractor, func_node: Node) -> Option<String> {
 }
 
 // ============================================================================
-// Type-argument capture helpers (Miller bridge Phase 2)
+// Type-argument capture helpers
 // ============================================================================
 
 /// Record type arguments for the outermost `template_type` generic use site.

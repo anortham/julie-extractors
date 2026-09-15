@@ -1,4 +1,4 @@
-//! Elixir string-literal call-argument capture (Miller bridge Phase 3b).
+//! Elixir string-literal call-argument capture.
 //!
 //! Like the Python reference leg, the extractor captures string literals passed
 //! to `call` nodes **config-free**: the `carrier` is the verbatim callee (bare

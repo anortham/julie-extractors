@@ -33,7 +33,7 @@ pub struct BaseExtractor {
     /// use-site identifier by id. Populated by language readers via
     /// `record_type_arguments`; flattened into the `type_arguments` table.
     pub type_argument_usages: Vec<TypeArgumentUsage>,
-    /// String literals captured at call-argument sites (Miller bridge Phase 3).
+    /// String literals captured at call-argument sites.
     /// Populated config-free by language readers via `record_literal`; the
     /// artifact language-policy pass classifies + gates them by carrier before
     /// persistence.

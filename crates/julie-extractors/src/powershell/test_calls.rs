@@ -1,4 +1,4 @@
-//! PowerShell Pester call-style test extraction (Miller bridge test-roles).
+//! PowerShell Pester call-style test extraction.
 //!
 //! Pester tests are call expressions (`command` nodes in the PowerShell grammar),
 //! not named function declarations:

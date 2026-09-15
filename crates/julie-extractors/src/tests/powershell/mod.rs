@@ -1813,9 +1813,9 @@ mod complexity;
 mod cross_file_pending;
 mod cross_file_relationships;
 mod identifier_extraction; // variable_ref emission (locked contract in csharp/identifiers.rs)
-mod literals; // Miller bridge Phase 3b: string-literal command-argument capture
+mod literals; // String-literal command-argument capture
 mod structural_facts;
-mod test_detection; // Pester call-style test detection (Miller bridge test-roles)
+mod test_detection; // Pester call-style test detection
 mod type_arguments;
 mod type_facts;
 mod types; // Phase 4: Type extraction verification tests // Cross-file relationship resolution tests

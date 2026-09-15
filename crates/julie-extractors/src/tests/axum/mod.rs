@@ -163,7 +163,7 @@ fn app() -> Router {
         Some("/api/:version")
     );
     // The target is a cross-file expression recorded verbatim; no route join is
-    // guessed (Miller's job, decision 0004).
+    // guessed (code-kb's job, decision 0004).
     assert_eq!(metadata_str(nest, "mount_target"), Some("api_routes()"));
 
     // The `/` route still emits and carries no `/api` prefix.

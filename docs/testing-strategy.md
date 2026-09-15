@@ -89,7 +89,7 @@ Runs artifact-facing behavior:
 - JSON report shape
 - downstream smoke consumers
 
-This tier protects Miller/Eros-style users.
+This tier protects consumers such as code-kb.
 
 Current form:
 

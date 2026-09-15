@@ -1,4 +1,4 @@
-//! Lua busted call-style test extraction (Miller bridge test-roles).
+//! Lua busted call-style test extraction.
 //!
 //! Like JS/TS (Jest/Vitest) and Dart (`package:test`), busted tests are call
 //! expressions, not named function declarations:

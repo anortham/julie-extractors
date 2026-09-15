@@ -267,7 +267,6 @@ impl BashExtractor {
                         crate::base::IdentifierKind::Call,
                         containing_symbol_id,
                     );
-                    // Miller bridge Phase 3b: capture string-literal command args.
                     self.record_command_arg_literals(node, &name, containing_symbols);
                 }
             }
@@ -324,7 +323,7 @@ impl BashExtractor {
         }
     }
 
-    /// Capture string-literal arguments of a `command` node (Miller bridge Phase 3b).
+    /// Capture string-literal arguments of a `command` node.
     ///
     /// Bash commands are a COMMAND grammar, not `call_expression`: the carrier is
     /// the command name itself (`curl`, `wget`, `psql`, `mysql`, `sqlite3`, …) and
@@ -396,7 +395,7 @@ impl BashExtractor {
         self.base.get_type_argument_usages()
     }
 
-    /// Clone captured call-argument literals (Miller bridge Phase 3).
+    /// Clone captured call-argument literals.
     pub fn get_literals(&self) -> Vec<crate::base::Literal> {
         self.base.get_literals()
     }

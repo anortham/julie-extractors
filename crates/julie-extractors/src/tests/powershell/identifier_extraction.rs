@@ -98,7 +98,7 @@ class Worker {
     );
 
     // Names follow the PowerShell symbol-naming convention: `$` sigil stripped
-    // (Miller's dead-code name-match compares identifiers.name = symbols.name).
+    // (code-kb's dead-code name-match compares identifiers.name = symbols.name).
     assert!(
         !var_refs.iter().any(|name| name.starts_with('$')),
         "variable_ref names must not carry the $ sigil; got {var_refs:?}"

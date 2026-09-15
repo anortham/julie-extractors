@@ -254,7 +254,7 @@ mod golden_corpus {
 //
 // The registry is published as a checked-in JSON contract at
 // `docs/contracts/structural-fact-patterns.json` so downstream consumers
-// (Miller and others) can vendor/pin the metadata-payload shape without linking
+// (code-kb and others) can vendor/pin the metadata-payload shape without linking
 // the Rust crate. This test proves the artifact never drifts from the
 // serializer. It only serializes the in-memory registry and reads one file, so
 // it is a sub-second default-suite test — unlike the golden-corpus conformance
@@ -539,9 +539,8 @@ fn doc_pattern_language_rows(
     rows
 }
 
-/// The live contract docs (JSONL v3 + SQLite schema v4) must carry a row for
-/// every web-markup structural-fact pattern the registry declares, with a
-/// matching language set. The css/html/vue expectation is DERIVED from the
+/// The SQLite schema v4 contract doc must carry a row for every web-markup
+/// structural-fact pattern the registry declares, with a matching language set. The css/html/vue expectation is DERIVED from the
 /// registry so new patterns in those families are guarded automatically; the
 /// three documented Razor markup rows are pinned explicitly.
 ///
@@ -550,10 +549,7 @@ fn doc_pattern_language_rows(
 #[test]
 fn markdown_contract_pattern_tables_list_web_markup_pattern_rows() {
     let root = contract_workspace_root();
-    let docs = [
-        root.join("docs/contracts/jsonl-v3.md"),
-        root.join("docs/contracts/sqlite-schema-v4.md"),
-    ];
+    let docs = [root.join("docs/contracts/sqlite-schema-v4.md")];
 
     const RAZOR_MARKUP: &[&str] = &[
         "razor.page_directive.v1",

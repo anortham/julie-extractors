@@ -1,4 +1,4 @@
-//! C++ Catch2 call-style test extraction (Miller bridge test-roles).
+//! C++ Catch2 call-style test extraction.
 //!
 //! Catch2 declares tests with macros that the C++ grammar parses as *calls*, not
 //! function definitions:

@@ -9,12 +9,11 @@ verdicts.
 The public capability object is available in these equivalent forms:
 
 - SQLite: `language_capabilities.kind_coverage_json.test_detection`
-- JSONL: `language_capability.kind_coverage.test_detection`
 - CLI: `julie-extract languages --json` under
   `languages.languages[].kind_coverage.test_detection`
 
 The object remains additive inside the existing `kind_coverage` value. Current
-artifacts use SQLite schema v5, JSONL v4, and extraction contract v4.
+artifacts use SQLite schema v7 and extraction contract v4.
 
 ## Vocabulary And Emitted Roles
 
@@ -117,5 +116,5 @@ candidate set into a definitive "no impacted tests" verdict.
 ## Ownership
 
 - `julie-extractors` owns emitted test roles and capability/diagnostic evidence.
-- Miller owns deterministic graph candidates over extracted facts.
+- code-kb owns deterministic graph candidates over extracted facts.
 - Eros owns runner inventory, scheduling, results, freshness, and verdicts.

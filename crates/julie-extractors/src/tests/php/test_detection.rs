@@ -1,4 +1,4 @@
-//! PHP Pest call-style test detection (Miller bridge test-roles).
+//! PHP Pest call-style test detection.
 //!
 //! Pest declares tests as call expressions (`test(...)`, `it(...)`,
 //! `describe(...)`), not named function declarations. The php extractor

@@ -123,7 +123,7 @@ test roles.
 Only 2 of the 2,545 role rows sit outside a test path, and both are correct:
 `beforeAll` and `afterAll` in `scripts/fail-on-console.ts`, a Vitest global
 setup file that imports from `vitest`. A path-only rule would publish no role
-for either, and Miller would not know that editing that file invalidates the
+for either, and code-kb would not know that editing that file invalidates the
 whole suite.
 
 ### Diagnostic breakdown

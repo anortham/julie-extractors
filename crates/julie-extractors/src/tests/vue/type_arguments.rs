@@ -1,4 +1,4 @@
-//! Vue ordered/nested generic type-argument capture (Miller bridge Phase 2).
+//! Vue ordered/nested generic type-argument capture.
 //!
 //! Vue `<script lang="ts">` sections are parsed with tree-sitter-typescript so they
 //! express TypeScript generic syntax: `Array<User>`, `Map<string, Array<User>>`.

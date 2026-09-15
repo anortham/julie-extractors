@@ -1,4 +1,4 @@
-//! JavaScript string-literal call-argument capture (Miller bridge Phase 3).
+//! JavaScript string-literal call-argument capture.
 //!
 //! Mirrors the TypeScript reference leg (JS shares the `call_expression` grammar
 //! shape). Extractors capture string literals passed to calls **config-free**:
