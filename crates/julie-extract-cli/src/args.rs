@@ -19,7 +19,6 @@ pub enum Command {
     Update(UpdateArgs),
     Delete(DeleteArgs),
     Info(InfoArgs),
-    Export(ExportArgs),
     Languages(LanguagesArgs),
     Rebind(RebindArgs),
 }
@@ -170,27 +169,6 @@ pub struct InfoArgs {
     /// Existing SQLite artifact path.
     #[arg(long)]
     pub db: PathBuf,
-    /// Fail on an artifact whose schema version does not match this binary. Write
-    /// commands refuse an older artifact regardless of this flag; the flag extends
-    /// the refusal to read commands.
-    #[arg(long)]
-    pub strict_schema: bool,
-    /// Emit the machine-readable JSON report on stdout.
-    #[arg(long)]
-    pub json: bool,
-}
-
-#[derive(Debug, Args)]
-pub struct ExportArgs {
-    /// Existing SQLite artifact path.
-    #[arg(long)]
-    pub db: PathBuf,
-    /// Export format. Only "jsonl" is supported.
-    #[arg(long)]
-    pub format: String,
-    /// Output path for the export.
-    #[arg(long)]
-    pub out: PathBuf,
     /// Fail on an artifact whose schema version does not match this binary. Write
     /// commands refuse an older artifact regardless of this flag; the flag extends
     /// the refusal to read commands.

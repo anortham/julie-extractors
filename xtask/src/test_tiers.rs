@@ -377,16 +377,6 @@ fn contract_plan() -> TestPlan {
     ));
     commands.push(CommandSpec::new(
         "cargo",
-        [
-            "test",
-            "-p",
-            "julie-extract-artifact",
-            "--test",
-            "jsonl_contract",
-        ],
-    ));
-    commands.push(CommandSpec::new(
-        "cargo",
         ["test", "-p", "julie-extract-cli", "--test", "cli_contract"],
     ));
     commands.push(CommandSpec::new(

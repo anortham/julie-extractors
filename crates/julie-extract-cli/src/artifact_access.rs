@@ -1,7 +1,6 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use julie_extract_artifact::jsonl::{JSONL_RECORD_KINDS, JSONL_SCHEMA_VERSION};
 use julie_extract_artifact::metadata::{
     ArtifactMetadata, KEY_INDEX_LEVEL, REQUIRED_METADATA_KEYS, RebindMetadata, apply_rebind,
     read_metadata,
@@ -56,7 +55,7 @@ pub(crate) struct ExistingArtifact {
 /// Upper bound for memory-mapped I/O on read-only artifact connections. SQLite
 /// only maps up to the file size, so a large cap is lazy virtual address space
 /// and never allocates the full amount resident. The GLM review flagged the
-/// absence of `mmap_size` on reader paths; this bounds scan/export I/O for
+/// absence of `mmap_size` on reader paths; this bounds scan I/O for
 /// large artifacts without changing the writer.
 const READER_MMAP_SIZE_BYTES: i64 = 1024 * 1024 * 1024;
 
@@ -92,13 +91,12 @@ pub(crate) fn artifact_report_from_connection(
             json!({}),
         )
     })?;
-    artifact_report(db, &metadata, Some(JSONL_SCHEMA_VERSION))
+    artifact_report(db, &metadata)
 }
 
 pub(crate) fn open_artifact(
     db_path: &Path,
     strict_schema: bool,
-    jsonl_schema_version: Option<i64>,
     access: ArtifactAccess,
 ) -> Result<OpenArtifact, CommandError> {
     let connection = Connection::open_with_flags(db_path, OpenFlags::SQLITE_OPEN_READ_ONLY)
@@ -127,7 +125,7 @@ pub(crate) fn open_artifact(
     })?;
     check_versions(&metadata, strict_schema, access)?;
     let write_metadata = artifact_metadata_from_rows(&metadata)?;
-    let report = artifact_report(db_path, &metadata, jsonl_schema_version)?;
+    let report = artifact_report(db_path, &metadata)?;
     let index_level = report.index_level.clone();
     let has_extraction_history = connection
         .query_row(
@@ -158,7 +156,6 @@ pub(crate) fn open_artifact(
 pub(crate) fn open_artifact_for_info(
     db_path: &Path,
     strict_schema: bool,
-    jsonl_schema_version: Option<i64>,
 ) -> Result<OpenInfoArtifact, CommandError> {
     let connection = Connection::open_with_flags(db_path, OpenFlags::SQLITE_OPEN_READ_ONLY)
         .map_err(|error| {
@@ -185,7 +182,7 @@ pub(crate) fn open_artifact_for_info(
         )
     })?;
     check_versions(&metadata, strict_schema, ArtifactAccess::Read)?;
-    let report = artifact_report(db_path, &metadata, jsonl_schema_version)?;
+    let report = artifact_report(db_path, &metadata)?;
     let warnings = missing_metadata_warnings(&metadata);
     Ok(OpenInfoArtifact {
         connection,
@@ -247,19 +244,13 @@ pub(crate) fn load_existing_content_hashes(
 pub(crate) fn existing_artifact_for_root(
     db_path: &Path,
     strict_schema: bool,
-    jsonl_schema_version: Option<i64>,
     root: &Path,
 ) -> Result<Option<ExistingArtifact>, CommandError> {
     if !db_path.exists() {
         return Ok(None);
     }
 
-    let artifact = open_artifact(
-        db_path,
-        strict_schema,
-        jsonl_schema_version,
-        ArtifactAccess::Write,
-    )?;
+    let artifact = open_artifact(db_path, strict_schema, ArtifactAccess::Write)?;
     if artifact.report.root_path != display_path(root) {
         return Err(command_error(
             3,
@@ -284,15 +275,9 @@ pub(crate) fn existing_artifact_for_root(
 pub(crate) fn open_artifact_for_root(
     db_path: &Path,
     strict_schema: bool,
-    jsonl_schema_version: Option<i64>,
     root: &Path,
 ) -> Result<OpenArtifact, CommandError> {
-    let artifact = open_artifact(
-        db_path,
-        strict_schema,
-        jsonl_schema_version,
-        ArtifactAccess::Write,
-    )?;
+    let artifact = open_artifact(db_path, strict_schema, ArtifactAccess::Write)?;
     if artifact.report.root_path != display_path(root) {
         return Err(command_error(
             3,
@@ -320,14 +305,8 @@ pub(crate) fn open_artifact_for_root(
 pub(crate) fn open_artifact_for_rebind(
     db_path: &Path,
     strict_schema: bool,
-    jsonl_schema_version: Option<i64>,
 ) -> Result<OpenArtifact, CommandError> {
-    let artifact = open_artifact(
-        db_path,
-        strict_schema,
-        jsonl_schema_version,
-        ArtifactAccess::Write,
-    )?;
+    let artifact = open_artifact(db_path, strict_schema, ArtifactAccess::Write)?;
     let (parser_inventory_fingerprint, capability_snapshot_fingerprint) =
         current_capability_fingerprints();
     if artifact.report.parser_inventory_fingerprint != parser_inventory_fingerprint
@@ -536,7 +515,6 @@ fn check_versions(
 fn artifact_report(
     db_path: &Path,
     metadata: &BTreeMap<String, String>,
-    jsonl_schema_version: Option<i64>,
 ) -> Result<ArtifactReport, CommandError> {
     Ok(ArtifactReport {
         db_path: display_path(db_path),
@@ -545,7 +523,6 @@ fn artifact_report(
         schema_version: metadata_i64(metadata, "schema_version")?,
         extract_contract_version: metadata_i64(metadata, "extract_contract_version")?,
         sqlite_schema_version: metadata_i64(metadata, "sqlite_schema_version")?,
-        jsonl_schema_version,
         hash_algorithm: metadata_string(metadata, "hash_algorithm")?,
         parser_inventory_fingerprint: metadata_string(metadata, "parser_inventory_fingerprint")?,
         capability_snapshot_fingerprint: metadata_string(
@@ -944,39 +921,6 @@ pub(crate) fn latest_revision_id(connection: &Connection) -> Option<i64> {
             |row| row.get(0),
         )
         .unwrap_or(None)
-}
-
-pub(crate) fn jsonl_counts(records_by_kind: &BTreeMap<&'static str, usize>) -> RowDomainCounts {
-    let mut counts = RowDomainCounts::default();
-    for kind in JSONL_RECORD_KINDS {
-        let count = records_by_kind.get(kind).copied().unwrap_or(0) as i64;
-        match *kind {
-            "artifact" => counts.artifact_metadata = count,
-            "parser_inventory" => counts.parser_inventory = count,
-            "language_capability" => counts.language_capabilities = count,
-            "language_capability_fixture" => counts.language_capability_fixtures = count,
-            "language_capability_gap" => counts.language_capability_gaps = count,
-            "revision" => counts.extraction_revisions = count,
-            "revision_file_change" => counts.revision_file_changes = count,
-            "file" => counts.files = count,
-            "symbol" => counts.symbols = count,
-            "symbol_annotation" => counts.symbol_annotations = count,
-            "reference_site" => counts.reference_sites = count,
-            "identifier" => counts.identifiers = count,
-            "relationship" => counts.relationships = count,
-            "pending_relationship" => counts.pending_relationships = count,
-            "type_fact" => counts.type_facts = count,
-            "type_argument_usage" => counts.type_argument_usages = count,
-            "type_argument" => counts.type_arguments = count,
-            "literal" => counts.literals = count,
-            "source_region" => counts.source_regions = count,
-            "structural_fact" => counts.structural_facts = count,
-            "complexity_metric" => counts.complexity_metrics = count,
-            "parse_diagnostic" => counts.parse_diagnostics = count,
-            _ => {}
-        }
-    }
-    counts
 }
 
 #[cfg(test)]

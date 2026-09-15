@@ -1,11 +1,9 @@
 use std::collections::BTreeMap;
-use std::io;
 use std::path::Path;
 use std::process::ExitCode;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use clap::Parser;
-use julie_extract_artifact::jsonl::{JSONL_SCHEMA_VERSION, export_jsonl, export_jsonl_to_path};
 use julie_extract_artifact::metadata::{ArtifactMetadata, RebindMetadata};
 use julie_extract_artifact::model::{
     ArtifactFile, RevisionChangeKind, RevisionInput, WriteMode, WriteOperation,
@@ -27,12 +25,12 @@ use serde_json::{Value, json};
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
 use crate::args::{
-    Cli, Command, DeleteArgs, ExportArgs, InfoArgs, LanguagesArgs, RebindArgs, ScanArgs, UpdateArgs,
+    Cli, Command, DeleteArgs, InfoArgs, LanguagesArgs, RebindArgs, ScanArgs, UpdateArgs,
 };
 use crate::artifact_access::{
     ArtifactAccess, ExistingArtifact, artifact_report_from_connection, existing_artifact_for_root,
-    file_row_attribution, jsonl_counts, latest_revision_id, load_existing_content_hashes,
-    open_artifact, open_artifact_for_info, open_artifact_for_rebind, open_artifact_for_root,
+    file_row_attribution, latest_revision_id, load_existing_content_hashes, open_artifact,
+    open_artifact_for_info, open_artifact_for_rebind, open_artifact_for_root,
     scan_file_row_attribution, table_totals, write_rebind,
 };
 use crate::capability_snapshot::{
@@ -58,11 +56,10 @@ use crate::paths::{
 };
 use crate::progress::{Counter, ScanProgress};
 use crate::reports::{
-    CommandOutcome, PathErrorInput, ReportBuilder, ReportStream, artifact_input, base_report,
-    diagnostic, discovery_error_diagnostic, display_path, extract_error_diagnostic,
-    extract_error_outcome, outcome, path_error_outcome, path_error_outcome_with_paths,
-    slow_file_skipped_diagnostic, spool_error_outcome, write_error_outcome,
-    write_error_outcome_with_profile, write_outcome,
+    CommandOutcome, PathErrorInput, ReportBuilder, artifact_input, base_report, diagnostic,
+    discovery_error_diagnostic, display_path, extract_error_diagnostic, extract_error_outcome,
+    outcome, path_error_outcome, path_error_outcome_with_paths, slow_file_skipped_diagnostic,
+    spool_error_outcome, write_error_outcome, write_error_outcome_with_profile, write_outcome,
 };
 use crate::spool::{ScanSpool, create_scan_spool, is_spool_artifact_name, reap_unowned_spools};
 use crate::watchdog::ParentWatchdog;
@@ -88,7 +85,6 @@ fn run(cli: Cli) -> CommandOutcome {
         Command::Update(args) => update(args),
         Command::Delete(args) => delete(args),
         Command::Info(args) => info(args),
-        Command::Export(args) => export(args),
         Command::Languages(args) => languages(args),
         Command::Rebind(args) => rebind(args),
     }
@@ -194,7 +190,7 @@ fn scan_collecting_warnings(
     let existing_artifact_started = Instant::now();
     controls.enter_phase("existing_artifact");
     let existing_scan_artifact = if db.exists() && !args.force {
-        match open_artifact_for_root(&db, args.strict_schema, Some(JSONL_SCHEMA_VERSION), &root) {
+        match open_artifact_for_root(&db, args.strict_schema, &root) {
             Ok(artifact) => Some(artifact),
             Err(error) => {
                 return outcome(
@@ -202,7 +198,6 @@ fn scan_collecting_warnings(
                         .with_error(error.diagnostic),
                     error.exit_code,
                     args.json,
-                    ReportStream::Stdout,
                 );
             }
         }
@@ -221,7 +216,6 @@ fn scan_collecting_warnings(
                     .with_error(error.diagnostic),
                 error.exit_code,
                 args.json,
-                ReportStream::Stdout,
             );
         }
     };
@@ -273,12 +267,7 @@ fn scan_collecting_warnings(
     controls.enter_phase("force_metadata");
     let mut force_existing_level = None;
     let force_existing_metadata = if args.force && db.exists() {
-        match open_artifact(
-            &db,
-            args.strict_schema,
-            Some(JSONL_SCHEMA_VERSION),
-            ArtifactAccess::Write,
-        ) {
+        match open_artifact(&db, args.strict_schema, ArtifactAccess::Write) {
             Ok(artifact) if artifact.report.root_path == display_path(&root) => {
                 if artifact.has_extraction_history {
                     force_existing_level = Some(artifact.index_level.clone());
@@ -295,7 +284,6 @@ fn scan_collecting_warnings(
                         .with_error(error.diagnostic),
                     error.exit_code,
                     args.json,
-                    ReportStream::Stdout,
                 );
             }
             Ok(_) | Err(_) => None,
@@ -321,7 +309,6 @@ fn scan_collecting_warnings(
                         .with_error(unknown_index_level_diagnostic(&db, recorded)),
                     3,
                     args.json,
-                    ReportStream::Stdout,
                 );
             }
         },
@@ -334,7 +321,6 @@ fn scan_collecting_warnings(
                 ),
                 2,
                 args.json,
-                ReportStream::Stdout,
             );
         }
         (Some(recorded), _) => recorded,
@@ -370,7 +356,6 @@ fn scan_collecting_warnings(
                 ),
                 1,
                 args.json,
-                ReportStream::Stdout,
             );
         }
     };
@@ -477,7 +462,6 @@ fn scan_collecting_warnings(
                                 )),
                                 error.exit_code,
                                 args.json,
-                                ReportStream::Stdout,
                             );
                         }
                     };
@@ -539,7 +523,7 @@ fn scan_collecting_warnings(
                             .map(slow_file_skipped_diagnostic),
                     );
                     let exit_code = if has_source_errors { 1 } else { 0 };
-                    outcome(report, exit_code, args.json, ReportStream::Stdout)
+                    outcome(report, exit_code, args.json)
                 }
                 Err(error) => {
                     record_profile_phase(
@@ -585,7 +569,6 @@ fn scan_collecting_warnings(
                     )),
                 1,
                 args.json,
-                ReportStream::Stdout,
             )
         }
     }
@@ -655,12 +638,7 @@ fn update(args: UpdateArgs) -> CommandOutcome {
         Some(&target.root_relative_path),
     );
 
-    let existing_artifact = match existing_artifact_for_root(
-        &db,
-        args.strict_schema,
-        Some(JSONL_SCHEMA_VERSION),
-        &root,
-    ) {
+    let existing_artifact = match existing_artifact_for_root(&db, args.strict_schema, &root) {
         Ok(artifact) => artifact,
         Err(error) => {
             return outcome(
@@ -673,7 +651,6 @@ fn update(args: UpdateArgs) -> CommandOutcome {
                 .with_error(error.diagnostic),
                 error.exit_code,
                 args.json,
-                ReportStream::Stdout,
             );
         }
     };
@@ -740,7 +717,6 @@ fn update(args: UpdateArgs) -> CommandOutcome {
                     .with_error(unknown_index_level_diagnostic(&db, recorded)),
                     3,
                     args.json,
-                    ReportStream::Stdout,
                 );
             }
         },
@@ -784,7 +760,6 @@ fn update(args: UpdateArgs) -> CommandOutcome {
                                 .with_error(error.diagnostic),
                                 error.exit_code,
                                 args.json,
-                                ReportStream::Stdout,
                             );
                         }
                     };
@@ -818,7 +793,7 @@ fn update(args: UpdateArgs) -> CommandOutcome {
                     report.counts.files_unchanged = write_result.files_skipped as i64;
                     report.counts.rows_written =
                         rows_written_with_capabilities(&capability_rows_written, &write_result);
-                    outcome(report, 0, args.json, ReportStream::Stdout)
+                    outcome(report, 0, args.json)
                 }
                 Err(error) => write_error_outcome(
                     error,
@@ -846,7 +821,6 @@ fn update(args: UpdateArgs) -> CommandOutcome {
             )),
             1,
             args.json,
-            ReportStream::Stdout,
         ),
     }
 }
@@ -898,12 +872,7 @@ fn delete(args: DeleteArgs) -> CommandOutcome {
         Some(&target.root_relative_path),
     );
 
-    let existing_artifact = match existing_artifact_for_root(
-        &db,
-        args.strict_schema,
-        Some(JSONL_SCHEMA_VERSION),
-        &root,
-    ) {
+    let existing_artifact = match existing_artifact_for_root(&db, args.strict_schema, &root) {
         Ok(artifact) => artifact,
         Err(error) => {
             return outcome(
@@ -916,7 +885,6 @@ fn delete(args: DeleteArgs) -> CommandOutcome {
                 .with_error(error.diagnostic),
                 error.exit_code,
                 args.json,
-                ReportStream::Stdout,
             );
         }
     };
@@ -956,24 +924,22 @@ fn rebind(args: RebindArgs) -> CommandOutcome {
     };
     let input = artifact_input(&db, Some(&root), None, None);
 
-    let artifact =
-        match open_artifact_for_rebind(&db, args.strict_schema, Some(JSONL_SCHEMA_VERSION)) {
-            Ok(artifact) => artifact,
-            Err(error) => {
-                return outcome(
-                    base_report(
-                        ReportStatus::Failed,
-                        ReportOperation::Rebind,
-                        ReportMode::Metadata,
-                        input,
-                    )
-                    .with_error(error.diagnostic),
-                    error.exit_code,
-                    args.json,
-                    ReportStream::Stdout,
-                );
-            }
-        };
+    let artifact = match open_artifact_for_rebind(&db, args.strict_schema) {
+        Ok(artifact) => artifact,
+        Err(error) => {
+            return outcome(
+                base_report(
+                    ReportStatus::Failed,
+                    ReportOperation::Rebind,
+                    ReportMode::Metadata,
+                    input,
+                )
+                .with_error(error.diagnostic),
+                error.exit_code,
+                args.json,
+            );
+        }
+    };
 
     let revision = ReportRevision {
         latest_revision_id: latest_revision_id(&artifact.connection),
@@ -1004,7 +970,6 @@ fn rebind(args: RebindArgs) -> CommandOutcome {
             }),
             0,
             args.json,
-            ReportStream::Stdout,
         );
     }
 
@@ -1028,7 +993,6 @@ fn rebind(args: RebindArgs) -> CommandOutcome {
                 )),
                 1,
                 args.json,
-                ReportStream::Stdout,
             );
         }
     };
@@ -1054,7 +1018,6 @@ fn rebind(args: RebindArgs) -> CommandOutcome {
             .with_error(error.diagnostic),
             error.exit_code,
             args.json,
-            ReportStream::Stdout,
         );
     }
 
@@ -1078,7 +1041,6 @@ fn rebind(args: RebindArgs) -> CommandOutcome {
         }),
         0,
         args.json,
-        ReportStream::Stdout,
     )
 }
 
@@ -1088,11 +1050,9 @@ fn info(args: InfoArgs) -> CommandOutcome {
         root_path: None,
         file_path: None,
         root_relative_path: None,
-        format: None,
-        output_path: None,
     };
 
-    match open_artifact_for_info(&args.db, args.strict_schema, Some(JSONL_SCHEMA_VERSION)) {
+    match open_artifact_for_info(&args.db, args.strict_schema) {
         Ok(artifact) => {
             let mut report = base_report(
                 ReportStatus::Ok,
@@ -1110,7 +1070,7 @@ fn info(args: InfoArgs) -> CommandOutcome {
             report.counts.file_rows_truncated = file_rows.truncated;
             report.counts.file_rows = file_rows.rows;
             report.warnings.extend(artifact.warnings);
-            outcome(report, 0, args.json, ReportStream::Stdout)
+            outcome(report, 0, args.json)
         }
         Err(error) => outcome(
             base_report(
@@ -1122,111 +1082,6 @@ fn info(args: InfoArgs) -> CommandOutcome {
             .with_error(error.diagnostic),
             error.exit_code,
             args.json,
-            ReportStream::Stdout,
-        ),
-    }
-}
-
-fn export(args: ExportArgs) -> CommandOutcome {
-    let input = ReportInput {
-        db_path: Some(display_path(&args.db)),
-        root_path: None,
-        file_path: None,
-        root_relative_path: None,
-        format: Some(args.format.clone()),
-        output_path: Some(display_path(&args.out)),
-    };
-
-    if args.format != "jsonl" {
-        let report = base_report(
-            ReportStatus::Failed,
-            ReportOperation::Export,
-            ReportMode::Jsonl,
-            input,
-        )
-        .with_error(diagnostic(
-            ReportCode::UnsupportedFormat,
-            "only JSONL export is supported",
-            None,
-            None,
-            true,
-            json!({"requested_format": args.format, "supported_formats": ["jsonl"]}),
-        ));
-        return outcome(report, 1, args.json, ReportStream::Stdout);
-    }
-
-    match open_artifact(
-        &args.db,
-        args.strict_schema,
-        Some(JSONL_SCHEMA_VERSION),
-        ArtifactAccess::Read,
-    ) {
-        Ok(artifact) => {
-            let export_result = if args.out == Path::new("-") {
-                let stdout = io::stdout();
-                let mut lock = stdout.lock();
-                export_jsonl(&artifact.connection, &mut lock)
-            } else {
-                export_jsonl_to_path(&artifact.connection, &args.out)
-            };
-
-            match export_result {
-                Ok(summary) => {
-                    let mut report = base_report(
-                        ReportStatus::Ok,
-                        ReportOperation::Export,
-                        ReportMode::Jsonl,
-                        input,
-                    )
-                    .with_artifact(artifact.report)
-                    .with_totals(table_totals(&artifact.connection));
-                    report.counts.rows_written = jsonl_counts(&summary.records_by_kind);
-                    outcome(
-                        report,
-                        0,
-                        args.json,
-                        if args.out == Path::new("-") {
-                            ReportStream::Stderr
-                        } else {
-                            ReportStream::Stdout
-                        },
-                    )
-                }
-                Err(error) => {
-                    let report_stream = if args.out == Path::new("-") {
-                        ReportStream::Stderr
-                    } else {
-                        ReportStream::Stdout
-                    };
-                    let report = base_report(
-                        ReportStatus::Failed,
-                        ReportOperation::Export,
-                        ReportMode::Jsonl,
-                        input,
-                    )
-                    .with_error(diagnostic(
-                        ReportCode::ExportFailed,
-                        format!("JSONL export failed: {error}"),
-                        None,
-                        None,
-                        true,
-                        json!({}),
-                    ));
-                    outcome(report, 1, args.json, report_stream)
-                }
-            }
-        }
-        Err(error) => outcome(
-            base_report(
-                ReportStatus::Failed,
-                ReportOperation::Export,
-                ReportMode::Jsonl,
-                input,
-            )
-            .with_error(error.diagnostic),
-            error.exit_code,
-            args.json,
-            ReportStream::Stdout,
         ),
     }
 }
@@ -1270,8 +1125,6 @@ fn languages(args: LanguagesArgs) -> CommandOutcome {
             root_path: None,
             file_path: None,
             root_relative_path: None,
-            format: None,
-            output_path: None,
         },
     )
     .with_languages(json!({
@@ -1280,7 +1133,7 @@ fn languages(args: LanguagesArgs) -> CommandOutcome {
         "discovery_limits": discovery_limits_json(),
     }))
     .with_structural_fact_patterns(structural_fact_patterns_json());
-    outcome(report, 0, args.json, ReportStream::Stdout)
+    outcome(report, 0, args.json)
 }
 
 /// Opt-in process-lifecycle controls for one scan. Every field is `None` unless
@@ -1374,7 +1227,6 @@ fn parent_exited_abort(
         .with_profile(scan_profile(scan_started, profile_phases, &BTreeMap::new())),
         1,
         json_report,
-        ReportStream::Stdout,
     )
 }
 
@@ -2054,7 +1906,7 @@ fn cleanup_skipped_update(
         ));
         report.counts.files_scanned = 1;
         report.counts.files_unsupported = 1;
-        return outcome(report, 0, json_report, ReportStream::Stdout);
+        return outcome(report, 0, json_report);
     }
 
     let root_relative_path = target.root_relative_path.clone();
@@ -2081,7 +1933,6 @@ fn cleanup_skipped_update(
                         .with_error(error.diagnostic),
                         error.exit_code,
                         json_report,
-                        ReportStream::Stdout,
                     );
                 }
             };
@@ -2108,7 +1959,7 @@ fn cleanup_skipped_update(
             report.counts.files_deleted = write_result.files_changed as i64;
             report.counts.rows_written =
                 rows_written_with_capabilities(&capability_rows_written, &write_result);
-            outcome(report, 0, json_report, ReportStream::Stdout)
+            outcome(report, 0, json_report)
         }
         Err(error) => write_error_outcome(
             error,
@@ -2140,7 +1991,7 @@ fn cleanup_delete(
             ReportMode::SingleFile,
             input,
         );
-        return outcome(report, 0, json_report, ReportStream::Stdout);
+        return outcome(report, 0, json_report);
     }
 
     match delete_artifact_rows(
@@ -2166,7 +2017,6 @@ fn cleanup_delete(
                         .with_error(error.diagnostic),
                         error.exit_code,
                         json_report,
-                        ReportStream::Stdout,
                     );
                 }
             };
@@ -2190,7 +2040,7 @@ fn cleanup_delete(
             report.counts.files_deleted = write_result.files_changed as i64;
             report.counts.rows_written =
                 rows_written_with_capabilities(&capability_rows_written, &write_result);
-            outcome(report, 0, json_report, ReportStream::Stdout)
+            outcome(report, 0, json_report)
         }
         Err(error) => write_error_outcome(
             error,

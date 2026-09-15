@@ -6,8 +6,8 @@
 source tree -> versioned extraction artifact
 ```
 
-The primary artifact is SQLite. JSONL is the secondary export and streaming
-format. The primary integration surface is the `julie-extract` CLI, so tools
+The artifact is SQLite. The primary integration surface is the `julie-extract`
+CLI, so tools
 written in C#, Python, Go, JavaScript, Rust, or any other language can consume
 extraction results by spawning a binary and reading a durable artifact.
 
@@ -43,16 +43,6 @@ Inspect the artifact:
 julie-extract info --db target/example/artifact.sqlite --json
 ```
 
-Export the artifact to JSONL:
-
-```bash
-julie-extract export \
-  --db target/example/artifact.sqlite \
-  --format jsonl \
-  --out target/example/artifact.jsonl \
-  --json
-```
-
 List language capability metadata:
 
 ```bash
@@ -73,7 +63,6 @@ python3 examples/python/sqlite_consumer.py target/example/artifact.sqlite
 | `update` | Re-extract one file in an existing artifact. | `--root`, `--db`, `--file`, repeated `--ignore-file`, `--strict-schema`, `--json` |
 | `delete` | Remove one file and its child rows from an artifact. | `--root`, `--db`, `--file`, `--strict-schema`, `--json` |
 | `info` | Read artifact metadata and totals without mutating the database. | `--db`, `--strict-schema`, `--json` |
-| `export` | Export a SQLite artifact to JSONL. | `--db`, `--format jsonl`, `--out`, `--strict-schema`, `--json` |
 | `languages` | Emit parser inventory and capability snapshot metadata. | `--json` |
 
 Every command accepts `--json` for a stable machine-readable report. Human
@@ -97,11 +86,6 @@ contract is in
 
 Artifacts do not store complete source file contents. Consumers that need full
 text should read the matching source tree directly.
-
-JSONL v5 is derived from SQLite and is not a separate source of truth. A full
-export writes deterministic `snapshot` records in a fixed order, with JSON text
-from SQLite decoded into JSON values. See
-[docs/contracts/jsonl-v5.md](docs/contracts/jsonl-v5.md).
 
 ## Reports and exit status
 
@@ -176,7 +160,6 @@ Useful focused gates:
 ```bash
 cargo test -p xtask
 cargo test -p julie-extract-artifact --test schema_contract
-cargo test -p julie-extract-artifact --test jsonl_contract
 cargo test -p julie-extract-cli --test cli_contract
 cargo xtask dogfood repo --root . --out-dir target/dogfood/julie-extractors
 cargo xtask release package-list
@@ -201,7 +184,6 @@ Public contracts:
 - [SQLite schema v7](docs/contracts/sqlite-schema-v7.md)
 - [SQLite schema v6](docs/contracts/sqlite-schema-v6.md) (superseded)
 - [SQLite schema v5](docs/contracts/sqlite-schema-v5.md) (superseded)
-- [JSONL v5](docs/contracts/jsonl-v5.md)
 - [JSON reports](docs/contracts/reports.md)
 - [Progress file v1](docs/contracts/progress-file-v1.md)
 

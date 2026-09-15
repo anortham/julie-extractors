@@ -26,7 +26,6 @@ fn repo_args_build_default_output_paths_and_binary() {
     assert_eq!(plan.out_dir, out_dir);
     assert!(plan.build_default_binary);
     assert_eq!(plan.paths.db_path, plan.out_dir.join("artifact.sqlite"));
-    assert_eq!(plan.paths.jsonl_path, plan.out_dir.join("artifact.jsonl"));
     assert_eq!(
         plan.paths.scan_report_path,
         plan.out_dir.join("scan-report.json")
@@ -38,10 +37,6 @@ fn repo_args_build_default_output_paths_and_binary() {
     assert_eq!(
         plan.paths.rescan_report_path,
         plan.out_dir.join("rescan-report.json")
-    );
-    assert_eq!(
-        plan.paths.export_report_path,
-        plan.out_dir.join("export-report.json")
     );
     assert_eq!(plan.paths.metrics_path, plan.out_dir.join("metrics.json"));
     assert!(
@@ -89,11 +84,10 @@ fn repo_args_accept_explicit_binary_and_reject_missing_values() {
 }
 
 #[test]
-fn validate_outputs_accepts_ok_reports_sqlite_metadata_and_valid_jsonl() {
+fn validate_outputs_accepts_ok_reports_and_sqlite_metadata() {
     let fixture = DogfoodFixture::new();
     fixture.write_ok_reports();
     fixture.write_sqlite_artifact(2, 3);
-    fixture.write_jsonl_records(4);
 
     let metrics = validate_outputs(
         &fixture.paths,
@@ -102,7 +96,6 @@ fn validate_outputs_accepts_ok_reports_sqlite_metadata_and_valid_jsonl() {
             scan: Duration::from_millis(200),
             rescan: Duration::from_millis(80),
             info: Duration::from_millis(10),
-            export: Duration::from_millis(20),
         },
     )
     .expect("valid dogfood outputs");
@@ -111,14 +104,9 @@ fn validate_outputs_accepts_ok_reports_sqlite_metadata_and_valid_jsonl() {
     assert_eq!(metrics.extract_contract_version, 4);
     assert_eq!(metrics.files, 2);
     assert_eq!(metrics.symbols, 3);
-    assert_eq!(metrics.jsonl_records, 4);
     assert_eq!(metrics.row_totals["files"], 2);
     assert_eq!(metrics.row_totals["symbols"], 3);
-    assert_eq!(metrics.jsonl_records_by_kind["artifact"], 1);
-    assert_eq!(metrics.jsonl_records_by_kind["file"], 2);
-    assert_eq!(metrics.jsonl_records_by_kind["symbol"], 1);
     assert!(metrics.sqlite_bytes > 0);
-    assert!(metrics.jsonl_bytes > 0);
     assert_eq!(metrics.rescan_duration_ms, 80);
     assert_eq!(metrics.rescan_files_unchanged, 2);
     assert_eq!(metrics.rescan_files_changed, 0);
@@ -130,9 +118,7 @@ fn validate_outputs_rejects_non_ok_reports() {
     let fixture = DogfoodFixture::new();
     fixture.write_report(&fixture.paths.scan_report_path, "failed", "scan");
     fixture.write_report(&fixture.paths.info_report_path, "ok", "info");
-    fixture.write_report(&fixture.paths.export_report_path, "ok", "export");
     fixture.write_sqlite_artifact(1, 1);
-    fixture.write_jsonl_records(1);
 
     let error = validate_outputs(
         &fixture.paths,
@@ -154,7 +140,6 @@ fn validate_outputs_rejects_zero_symbols() {
     let fixture = DogfoodFixture::new();
     fixture.write_ok_reports();
     fixture.write_sqlite_artifact(1, 0);
-    fixture.write_jsonl_records(1);
 
     let error = validate_outputs(
         &fixture.paths,
@@ -184,14 +169,6 @@ fn validate_outputs_rejects_other_required_hard_gate_failures() {
         "artifact contains zero files",
     );
     assert_invalid_evidence(
-        |fixture| std::fs::write(&fixture.paths.jsonl_path, "{\"bad\":true}\n").expect("jsonl"),
-        "missing integer jsonl_schema_version",
-    );
-    assert_invalid_evidence(
-        |fixture| std::fs::remove_file(&fixture.paths.jsonl_path).expect("remove jsonl"),
-        "failed to read",
-    );
-    assert_invalid_evidence(
         |fixture| fixture.write_rescan_report("ok", 0, 2, 0, 0),
         "rescan report status was `ok`; expected `no_change`",
     );
@@ -217,7 +194,6 @@ fn assert_invalid_evidence(setup: impl FnOnce(&DogfoodFixture), expected_error: 
     let fixture = DogfoodFixture::new();
     fixture.write_ok_reports();
     fixture.write_sqlite_artifact(1, 1);
-    fixture.write_jsonl_records(4);
     setup(&fixture);
 
     let error = validate_outputs(
@@ -257,7 +233,6 @@ impl DogfoodFixture {
         self.write_report(&self.paths.scan_report_path, "ok", "scan");
         self.write_rescan_report("no_change", 0, 2, 0, 0);
         self.write_report(&self.paths.info_report_path, "ok", "info");
-        self.write_report(&self.paths.export_report_path, "ok", "export");
     }
 
     fn write_rescan_report(
@@ -351,13 +326,12 @@ impl DogfoodFixture {
         let mode = match operation {
             "scan" => "incremental",
             "info" => "read_only",
-            "export" => "jsonl",
             other => panic!("unsupported report operation {other}"),
         };
         std::fs::write(
             path,
             format!(
-                r#"{{"report_schema_version":3,"status":"{status}","operation":"{operation}","mode":"{mode}","artifact":{{"jsonl_schema_version":5}},"counts":{{"files_scanned":2,"rows_written":{{"files":2,"symbols":3}},"totals":{{"files":2,"symbols":3}}}},"errors":[]}}"#
+                r#"{{"report_schema_version":3,"status":"{status}","operation":"{operation}","mode":"{mode}","counts":{{"files_scanned":2,"rows_written":{{"files":2,"symbols":3}},"totals":{{"files":2,"symbols":3}}}},"errors":[]}}"#
             ),
         )
         .expect("write report");
@@ -448,27 +422,6 @@ impl DogfoodFixture {
         let conn = Connection::open(&self.paths.db_path).expect("open sqlite");
         conn.execute(&format!("DELETE FROM {table}"), [])
             .expect("clear table");
-    }
-
-    fn write_jsonl_records(&self, records: usize) {
-        let mut jsonl = String::new();
-        let kinds = [
-            "artifact",
-            "file",
-            "file",
-            "symbol",
-            "source_region",
-            "complexity_metric",
-            "structural_fact",
-        ];
-        for index in 0..records {
-            let kind = kinds.get(index).copied().unwrap_or("identifier");
-            jsonl.push_str(&format!(
-                r#"{{"jsonl_schema_version":5,"extract_contract_version":4,"kind":"{kind}","op":"snapshot","artifact_id":"artifact","record_id":"{index}","record":{{}}}}"#
-            ));
-            jsonl.push('\n');
-        }
-        std::fs::write(&self.paths.jsonl_path, jsonl).expect("jsonl");
     }
 }
 

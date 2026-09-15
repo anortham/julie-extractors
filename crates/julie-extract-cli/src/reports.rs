@@ -18,7 +18,6 @@ pub(crate) struct CommandOutcome {
     pub(crate) exit_code: u8,
     report: Report,
     json: bool,
-    report_stream: ReportStream,
 }
 
 impl CommandOutcome {
@@ -42,12 +41,6 @@ impl CommandOutcome {
     }
 }
 
-#[derive(Clone, Copy)]
-pub(crate) enum ReportStream {
-    Stdout,
-    Stderr,
-}
-
 pub(crate) struct CommandError {
     pub(crate) diagnostic: ReportDiagnostic,
     pub(crate) exit_code: u8,
@@ -65,7 +58,6 @@ pub(crate) fn extract_error_outcome(
             .with_error(extract_error_diagnostic(&error)),
         1,
         json_report,
-        ReportStream::Stdout,
     )
 }
 
@@ -299,7 +291,7 @@ pub(crate) fn write_error_outcome_with_profile(
     let mut report = base_report(ReportStatus::Failed, operation, mode, input)
         .with_error(diagnostic(report_code, message, None, None, false, details));
     report.profile = profile;
-    outcome(report, code, json_report, ReportStream::Stdout)
+    outcome(report, code, json_report)
 }
 
 pub(crate) fn spool_error_outcome(
@@ -320,7 +312,6 @@ pub(crate) fn spool_error_outcome(
         )),
         1,
         json_report,
-        ReportStream::Stdout,
     )
 }
 
@@ -362,8 +353,6 @@ pub(crate) fn artifact_input(
         root_path: root_path.map(display_path),
         file_path: file_path.map(display_path),
         root_relative_path: root_relative_path.map(ToOwned::to_owned),
-        format: None,
-        output_path: None,
     }
 }
 
@@ -406,14 +395,11 @@ pub(crate) fn path_error_outcome_with_paths(
             .root_relative_path
             .map(ToOwned::to_owned)
             .or_else(|| diagnostic.root_relative_path.clone()),
-        format: None,
-        output_path: None,
     };
     outcome(
         base_report(ReportStatus::Failed, operation, mode, input).with_error(diagnostic),
         1,
         json_report,
-        ReportStream::Stdout,
     )
 }
 
@@ -508,17 +494,11 @@ impl ReportBuilder for Report {
     }
 }
 
-pub(crate) fn outcome(
-    report: Report,
-    exit_code: u8,
-    json: bool,
-    report_stream: ReportStream,
-) -> CommandOutcome {
+pub(crate) fn outcome(report: Report, exit_code: u8, json: bool) -> CommandOutcome {
     CommandOutcome {
         report,
         exit_code,
         json,
-        report_stream,
     }
 }
 
@@ -564,10 +544,7 @@ pub(crate) fn diagnostic(
 
 pub(crate) fn write_outcome(outcome: &CommandOutcome) {
     if outcome.json {
-        match outcome.report_stream {
-            ReportStream::Stdout => write_json(io::stdout().lock(), &outcome.report),
-            ReportStream::Stderr => write_json(io::stderr().lock(), &outcome.report),
-        }
+        write_json(io::stdout().lock(), &outcome.report);
         return;
     }
 
@@ -659,8 +636,6 @@ mod tests {
                 root_path: None,
                 file_path: None,
                 root_relative_path: None,
-                format: None,
-                output_path: None,
             },
         )
     }
@@ -690,8 +665,6 @@ mod tests {
                 root_path: None,
                 file_path: None,
                 root_relative_path: None,
-                format: None,
-                output_path: None,
             },
             false,
             None,
@@ -846,24 +819,6 @@ mod tests {
         assert_eq!(
             human_report(&report),
             "ok\nfiles: scanned=1 changed=1 unchanged=0 failed=0\n"
-        );
-    }
-
-    #[test]
-    fn reports_without_file_work_render_only_the_status_and_diagnostics() {
-        let report =
-            report_for(ReportStatus::Failed, ReportOperation::Export).with_error(diagnostic(
-                ReportCode::UnsupportedFormat,
-                "export format is not supported",
-                None,
-                None,
-                false,
-                json!({}),
-            ));
-
-        assert_eq!(
-            human_report(&report),
-            "failed\nunsupported_format: export format is not supported\n"
         );
     }
 }

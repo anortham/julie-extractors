@@ -55,8 +55,8 @@
         <p>
           <code>julie-extract</code> walks a source tree and produces a versioned SQLite artifact:
           files, symbols, identifiers, relationships, type facts, literals, source regions, doc comments,
-          complexity metrics, structural facts, and parse diagnostics. JSONL export mirrors the same data
-          for streaming consumers. The integration surface is a CLI plus documented schema contracts, so
+          complexity metrics, structural facts, and parse diagnostics. The integration surface is a CLI
+          plus documented schema contracts, so
           tools in C#, Python, Go, JavaScript, or Rust consume it by spawning a binary and reading a database.
         </p>
         <p>
@@ -167,17 +167,13 @@
           <span>refresh one file</span>
           <code>julie-extract update --root . --db artifact.sqlite --file src/lib.rs --json</code>
         </button>
-        <button class="command-line" type="button" data-copy="julie-extract export --db artifact.sqlite --format jsonl --out artifact.jsonl --json">
-          <span>stream</span>
-          <code>julie-extract export --db artifact.sqlite --format jsonl --out artifact.jsonl --json</code>
-        </button>
         <button class="command-line" type="button" data-copy="julie-extract languages --json">
           <span>capabilities</span>
           <code>julie-extract languages --json</code>
         </button>
       </div>
       <p class="metrics-note">
-        Artifacts use <code>scan</code>/<code>update</code>/<code>export</code>; see the
+        Artifacts use <code>scan</code>/<code>update</code>/<code>info</code>; see the
         <a href="https://github.com/anortham/julie-extractors/releases/latest" target="_blank" rel="noopener">latest release</a>.
       </p>
       <p class="metrics-note">
@@ -207,7 +203,7 @@ python3 examples/python/sqlite_consumer.py artifact.sqlite</code></pre>
           <ul>
             <li><a href="https://anortham.github.io/miller/" target="_blank" rel="noopener">Miller</a> is the flagship consumer: a local code-intelligence MCP server whose agents got <a href="https://anortham.github.io/miller/benchmark.html" target="_blank" rel="noopener">2.2× more tasks right</a> than with grep and file reads.</li>
             <li>Every command takes <code>--json</code> and returns a stable machine-readable report; human output is not part of the contract.</li>
-            <li>SQLite schema and JSONL contracts are versioned and documented in <code>docs/contracts/</code>.</li>
+            <li>The SQLite schema contract is versioned and documented in <code>docs/contracts/</code>.</li>
           </ul>
         </div>
       </div>

@@ -204,12 +204,9 @@ pub struct BaselineAggregates {
     pub scan_duration_ms: MetricSummary,
     pub rescan_duration_ms: MetricSummary,
     pub info_duration_ms: MetricSummary,
-    pub export_duration_ms: MetricSummary,
     pub files: MetricSummary,
     pub symbols: MetricSummary,
     pub sqlite_bytes: MetricSummary,
-    pub jsonl_bytes: MetricSummary,
-    pub jsonl_records: MetricSummary,
     pub rows_per_second: Option<MetricSummary>,
 }
 
@@ -569,16 +566,9 @@ pub fn summarize_baseline(
                 .iter()
                 .map(|run| run.metrics.info_duration_ms as f64),
         ),
-        export_duration_ms: metric_summary(
-            samples
-                .iter()
-                .map(|run| run.metrics.export_duration_ms as f64),
-        ),
         files: metric_summary(samples.iter().map(|run| run.metrics.files as f64)),
         symbols: metric_summary(samples.iter().map(|run| run.metrics.symbols as f64)),
         sqlite_bytes: metric_summary(samples.iter().map(|run| run.metrics.sqlite_bytes as f64)),
-        jsonl_bytes: metric_summary(samples.iter().map(|run| run.metrics.jsonl_bytes as f64)),
-        jsonl_records: metric_summary(samples.iter().map(|run| run.metrics.jsonl_records as f64)),
         rows_per_second: rows_per_second_summary(&samples),
     };
 
@@ -602,7 +592,6 @@ fn validate_stable_evidence(samples: &[BaselineRun]) -> Result<(), PerformanceEr
     for sample in samples.iter().skip(1) {
         if sample.metrics.sqlite_schema_version != first.metrics.sqlite_schema_version
             || sample.metrics.extract_contract_version != first.metrics.extract_contract_version
-            || sample.metrics.jsonl_schema_version != first.metrics.jsonl_schema_version
         {
             return Err(PerformanceError::Usage(format!(
                 "schema versions changed between baseline runs; run 1 and run {} are not comparable",
@@ -626,14 +615,6 @@ fn validate_stable_evidence(samples: &[BaselineRun]) -> Result<(), PerformanceEr
         if sample.metrics.row_totals != first.metrics.row_totals {
             return Err(PerformanceError::Usage(format!(
                 "row totals changed between baseline runs; run 1 and run {} are not comparable",
-                sample.run_index
-            )));
-        }
-        if sample.metrics.jsonl_records != first.metrics.jsonl_records
-            || sample.metrics.jsonl_records_by_kind != first.metrics.jsonl_records_by_kind
-        {
-            return Err(PerformanceError::Usage(format!(
-                "jsonl record counts changed between baseline runs; run 1 and run {} are not comparable",
                 sample.run_index
             )));
         }

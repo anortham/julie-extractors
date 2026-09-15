@@ -24,9 +24,7 @@ part of this contract.
     "db_path": "/tmp/code.sqlite",
     "root_path": "/repo",
     "file_path": null,
-    "root_relative_path": null,
-    "format": null,
-    "output_path": null
+    "root_relative_path": null
   },
   "artifact": {
     "db_path": "/tmp/code.sqlite",
@@ -35,7 +33,6 @@ part of this contract.
     "schema_version": 4,
     "extract_contract_version": 3,
     "sqlite_schema_version": 4,
-    "jsonl_schema_version": null,
     "hash_algorithm": "blake3",
     "parser_inventory_fingerprint": "sha256:...",
     "capability_snapshot_fingerprint": "sha256:...",
@@ -175,7 +172,7 @@ Fields:
 - `status`: one of the CLI status values.
 - `operation`: command name.
 - `mode`: operation-specific mode such as `incremental`, `force`, `single_file`,
-  `read_only`, `jsonl`, `capability_snapshot`, or `metadata`. `metadata` is a
+  `read_only`, `capability_snapshot`, or `metadata`. `metadata` is a
   write that touches artifact metadata only and never extracted rows; `rebind`
   is the one command that uses it.
 - `input`: normalized command inputs. Paths are absolute except
@@ -533,12 +530,10 @@ Stable report codes:
 - `db_open_failed`: SQLite artifact could not be opened.
 - `db_write_failed`: SQLite transaction failed. Concurrent-writer contention
   surfaces here rather than as a distinct lock-timeout code.
-- `unsupported_format`: requested export or output format is unsupported.
 - `unsupported_file`: file is ignored or unsupported.
 - `read_failed`: source file could not be read.
 - `parse_failed`: parser failed for a supported file.
 - `data_loss_guard`: preserving known-good rows blocked replacement.
-- `export_failed`: JSONL export failed.
 - `internal_error`: unexpected implementation failure.
 - `parent_exited`: `scan --parent-pid` observed that the named process is no
   longer this process's parent, so the scan aborted. The abort point sits before
@@ -650,13 +645,6 @@ and the total `conflict_count`.
 - Must include metadata, totals, and missing metadata warnings.
 - Must include a full `counts.file_rows` breakdown for every persisted file.
 
-### `export`
-
-- `operation`: `export`
-- `mode`: `jsonl`
-- Must include exported record counts by kind.
-- `artifact.jsonl_schema_version` is `5`.
-
 ### `languages`
 
 - `operation`: `languages`
@@ -699,7 +687,6 @@ and the total `conflict_count`.
 - Successful `--json` reports are written to stdout.
 - Failed `--json` reports are written to stdout when no other machine stream is
   using stdout.
-- `export --out - --json` writes JSONL to stdout and the final report to stderr.
 - Human diagnostics may be written to stderr, but machine consumers should rely
   on JSON reports and exit codes.
 

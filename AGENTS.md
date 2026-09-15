@@ -17,12 +17,11 @@ source tree -> versioned extraction artifact
 The CLI and artifact contracts are first-class product APIs. The Rust crate is
 important, but it is not the only interface. Assume downstream consumers may be
 written in C#, Python, Go, JavaScript, or anything else that can spawn a binary
-and read SQLite or JSONL.
+and read SQLite.
 
 ## Core Rules
 
-- SQLite is the primary durable output.
-- JSONL is the secondary export/streaming output.
+- SQLite is the only durable output.
 - `julie-extract` is the primary integration surface.
 - Rust in-process APIs are secondary and must not force non-Rust callers to know
   tree-sitter or Julie internals.
@@ -92,7 +91,7 @@ supervision, durability, or platform-gated tests.
 Pitfalls this repo has already hit:
 
 - `Path::join` inserts the platform separator. Contract outputs that specify
-  `/` (reports, JSONL, diagnostics paths) must join with an explicit `/`,
+  `/` (reports, diagnostics paths) must join with an explicit `/`,
   never with `Path::join`.
 - `std::fs::canonicalize` returns verbatim paths (`\\?\C:\...`,
   `\\?\UNC\...`) on Windows. Strip the prefix before building URIs or doing

@@ -34,6 +34,6 @@ proof that no tests are impacted.
   added to `julie-extractors`.
 - No second test classifier is added outside the emitted role columns.
 - The `test_detection` capability is additive inside existing JSON objects; it
-  requires no SQLite schema, JSONL, or extraction contract version bump.
+  requires no SQLite schema or extraction contract version bump.
 - Semantic test-impact completeness belongs to later analysis and runtime
   evidence, not to extraction.

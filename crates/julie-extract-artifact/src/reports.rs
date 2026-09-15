@@ -125,7 +125,6 @@ pub enum ReportOperation {
     Update,
     Delete,
     Info,
-    Export,
     Languages,
     Rebind,
 }
@@ -137,7 +136,6 @@ pub enum ReportMode {
     Force,
     SingleFile,
     ReadOnly,
-    Jsonl,
     CapabilitySnapshot,
     /// A write that touches artifact metadata only, never extracted rows.
     Metadata,
@@ -162,8 +160,6 @@ pub struct ReportInput {
     pub root_path: Option<String>,
     pub file_path: Option<String>,
     pub root_relative_path: Option<String>,
-    pub format: Option<String>,
-    pub output_path: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -174,7 +170,6 @@ pub struct ArtifactReport {
     pub schema_version: i64,
     pub extract_contract_version: i64,
     pub sqlite_schema_version: i64,
-    pub jsonl_schema_version: Option<i64>,
     pub hash_algorithm: String,
     pub parser_inventory_fingerprint: String,
     pub capability_snapshot_fingerprint: String,
@@ -362,12 +357,10 @@ pub enum ReportCode {
     ContractIncompatible,
     DbOpenFailed,
     DbWriteFailed,
-    UnsupportedFormat,
     UnsupportedFile,
     ReadFailed,
     ParseFailed,
     DataLossGuard,
-    ExportFailed,
     InternalError,
     MetadataMissing,
     CapabilityGap,
@@ -412,7 +405,7 @@ pub enum ReportCode {
 }
 
 impl ReportCode {
-    pub const ALL: [Self; 27] = [
+    pub const ALL: [Self; 25] = [
         Self::UsageError,
         Self::InvalidPath,
         Self::FileOutsideRoot,
@@ -423,12 +416,10 @@ impl ReportCode {
         Self::ContractIncompatible,
         Self::DbOpenFailed,
         Self::DbWriteFailed,
-        Self::UnsupportedFormat,
         Self::UnsupportedFile,
         Self::ReadFailed,
         Self::ParseFailed,
         Self::DataLossGuard,
-        Self::ExportFailed,
         Self::InternalError,
         Self::MetadataMissing,
         Self::CapabilityGap,
@@ -442,7 +433,7 @@ impl ReportCode {
         Self::ArtifactChanged,
     ];
 
-    pub const ERROR_CODES: [Self; 21] = [
+    pub const ERROR_CODES: [Self; 19] = [
         Self::UsageError,
         Self::InvalidPath,
         Self::FileOutsideRoot,
@@ -453,12 +444,10 @@ impl ReportCode {
         Self::ContractIncompatible,
         Self::DbOpenFailed,
         Self::DbWriteFailed,
-        Self::UnsupportedFormat,
         Self::UnsupportedFile,
         Self::ReadFailed,
         Self::ParseFailed,
         Self::DataLossGuard,
-        Self::ExportFailed,
         Self::InternalError,
         Self::ParentExited,
         Self::FingerprintMismatch,
@@ -479,12 +468,10 @@ impl ReportCode {
             Self::ContractIncompatible => "contract_incompatible",
             Self::DbOpenFailed => "db_open_failed",
             Self::DbWriteFailed => "db_write_failed",
-            Self::UnsupportedFormat => "unsupported_format",
             Self::UnsupportedFile => "unsupported_file",
             Self::ReadFailed => "read_failed",
             Self::ParseFailed => "parse_failed",
             Self::DataLossGuard => "data_loss_guard",
-            Self::ExportFailed => "export_failed",
             Self::InternalError => "internal_error",
             Self::MetadataMissing => "metadata_missing",
             Self::CapabilityGap => "capability_gap",

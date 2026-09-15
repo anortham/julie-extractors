@@ -15,7 +15,6 @@ ranking, graph traversal, editing, UI, daemon lifecycle, and application policy.
 
 - `julie-extract` CLI commands.
 - SQLite schema and metadata rows.
-- JSONL export records.
 - JSON report shape for command results.
 - Machine-readable error codes.
 - Capability snapshot by language.
@@ -28,7 +27,6 @@ ranking, graph traversal, editing, UI, daemon lifecycle, and application policy.
 - Normalization pipeline.
 - Fixture and capability gates.
 - Schema writer and migration code.
-- Exporters.
 
 Callers should not need to know parser crate names, grammar node names,
 per-language extractor quirks, or Julie's old database internals.
@@ -46,9 +44,6 @@ scan/update/delete request
   -> report status and counts
 ```
 
-JSONL export reads the same canonical data. It is not a separate extraction
-path.
-
 ## Versioning
 
 Artifacts must record:
@@ -56,7 +51,6 @@ Artifacts must record:
 - extractor binary version
 - extraction contract version
 - SQLite schema version
-- JSONL schema version when exported
 - parser crate versions
 - hash algorithm
 - canonical root
@@ -64,8 +58,8 @@ Artifacts must record:
 
 ## Architecture Quality
 
-- **Affected modules:** extractor crate, extraction CLI, schema writer, export
-  formats, fixtures, parser certification, release packaging.
+- **Affected modules:** extractor crate, extraction CLI, schema writer,
+  fixtures, parser certification, release packaging.
 - **Caller-facing interface:** CLI plus versioned artifacts.
 - **Depth/locality:** parser complexity stays inside this repo; downstream
   tools consume stable data.

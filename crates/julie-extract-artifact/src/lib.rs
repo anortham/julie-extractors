@@ -5,7 +5,6 @@
 //! does not contain parser, search, embedding, MCP, watcher, dashboard, or
 //! editing behavior.
 
-pub mod jsonl;
 mod memory;
 pub use memory::bulk_cache_size_kib;
 pub mod metadata;

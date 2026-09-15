@@ -17,10 +17,6 @@ fn report_serializes_schema_version_and_success_shape() {
     assert_eq!(value["mode"], "incremental");
     assert_eq!(value["input"]["db_path"], "/tmp/code.sqlite");
     assert_eq!(value["artifact"]["schema_version"], 3);
-    assert_eq!(
-        value["artifact"]["jsonl_schema_version"],
-        serde_json::Value::Null
-    );
     assert_eq!(value["tool"]["binary_name"], "julie-extract");
     assert_eq!(value["revision"]["latest_revision_id"], 7);
     assert!(value.get("profile").is_none());
@@ -114,12 +110,10 @@ fn every_v3_error_code_has_stable_serialized_spelling() {
             json!("contract_incompatible"),
             json!("db_open_failed"),
             json!("db_write_failed"),
-            json!("unsupported_format"),
             json!("unsupported_file"),
             json!("read_failed"),
             json!("parse_failed"),
             json!("data_loss_guard"),
-            json!("export_failed"),
             json!("internal_error"),
             json!("parent_exited"),
             json!("fingerprint_mismatch"),
@@ -237,8 +231,6 @@ fn sample_report(status: ReportStatus) -> Report {
             root_path: Some("/repo".to_string()),
             file_path: None,
             root_relative_path: None,
-            format: None,
-            output_path: None,
         },
         artifact: Some(ArtifactReport {
             db_path: "/tmp/code.sqlite".to_string(),
@@ -247,7 +239,6 @@ fn sample_report(status: ReportStatus) -> Report {
             schema_version: 3,
             extract_contract_version: 3,
             sqlite_schema_version: 3,
-            jsonl_schema_version: None,
             hash_algorithm: "blake3".to_string(),
             parser_inventory_fingerprint: "sha256:parser".to_string(),
             capability_snapshot_fingerprint: "sha256:cap".to_string(),

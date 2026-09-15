@@ -28,7 +28,7 @@ fn binary_declares_only_contract_commands() {
 
     assert!(output.status.success(), "help should succeed");
     let help = String::from_utf8(output.stdout).unwrap();
-    for command in ["scan", "update", "delete", "info", "export", "languages"] {
+    for command in ["scan", "update", "delete", "info", "languages", "rebind"] {
         assert!(
             help.contains(command),
             "top-level help must declare {command}"
@@ -80,7 +80,6 @@ fn commands_module_does_not_own_report_error_mapping() {
     let commands_source = include_str!("../src/commands.rs");
     for forbidden_definition in [
         "struct CommandOutcome",
-        "enum ReportStream",
         "fn base_report(",
         "fn command_error(",
         "fn diagnostic(",
@@ -118,7 +117,6 @@ fn commands_module_does_not_own_artifact_access_mapping() {
         "fn metadata_i64(",
         "fn table_totals(",
         "fn latest_revision_id(",
-        "fn jsonl_counts(",
     ] {
         assert!(
             !commands_source.contains(forbidden_definition),
@@ -169,19 +167,13 @@ fn contract_subcommands_parse_their_documented_flags() {
     let output = julie_extract(&["info", "--help"]);
     assert_help_contains(&output, &["--db", "--strict-schema", "--json"]);
 
-    let output = julie_extract(&["export", "--help"]);
-    assert_help_contains(
-        &output,
-        &["--db", "--format", "--out", "--strict-schema", "--json"],
-    );
-
     let output = julie_extract(&["languages", "--help"]);
     assert_help_contains(&output, &["--json"]);
 }
 
 #[test]
 fn fleet_safety_flags_are_scan_only() {
-    for command in ["update", "delete", "info", "export", "languages"] {
+    for command in ["update", "delete", "info", "languages", "rebind"] {
         let output = julie_extract(&[command, "--help"]);
         assert!(output.status.success(), "{command} help should succeed");
         let help = String::from_utf8(output.stdout).unwrap();
@@ -210,9 +202,7 @@ fn languages_json_report_matches_report_contract() {
             "db_path": null,
             "root_path": null,
             "file_path": null,
-            "root_relative_path": null,
-            "format": null,
-            "output_path": null
+            "root_relative_path": null
         })
     );
     assert!(report["languages"]["total"].as_i64().unwrap() > 0);
@@ -269,7 +259,6 @@ fn languages_json_report_publishes_discovery_limits() {
 #[test]
 fn exit_codes_and_json_errors_match_contract() {
     let temp = TempDir::new().unwrap();
-    let missing_db = temp.path().join("missing.sqlite");
     let incompatible_db = temp.path().join("incompatible.sqlite");
     let old_v2_db = temp.path().join("old-v2.sqlite");
     create_incompatible_artifact(&incompatible_db);
@@ -277,21 +266,6 @@ fn exit_codes_and_json_errors_match_contract() {
 
     let ok = julie_extract(&["languages", "--json"]);
     assert_eq!(ok.status.code(), Some(0));
-
-    let failed = julie_extract(&[
-        "export",
-        "--db",
-        missing_db.to_str().unwrap(),
-        "--format",
-        "xml",
-        "--out",
-        "-",
-        "--json",
-    ]);
-    assert_eq!(failed.status.code(), Some(1));
-    let report = json_report(&failed);
-    assert_common_report_shape(&report, "failed", "export", "jsonl");
-    assert_eq!(report["errors"][0]["code"], "unsupported_format");
 
     let usage = julie_extract(&["analyze", "--json"]);
     assert_eq!(usage.status.code(), Some(2));
@@ -462,22 +436,13 @@ fn write_verbs_refuse_older_v5_artifact_without_strict_schema() {
         );
     }
 
-    let export = julie_extract(&[
-        "export",
-        "--db",
-        str(&db),
-        "--format",
-        "jsonl",
-        "--out",
-        str(&temp.path().join("export.jsonl")),
-        "--json",
-    ]);
+    let info = julie_extract(&["info", "--db", str(&db), "--json"]);
     assert_eq!(
-        export.status.code(),
+        info.status.code(),
         Some(0),
         "a read verb must still serve a v5 artifact without --strict-schema\nstdout:\n{}\nstderr:\n{}",
-        String::from_utf8_lossy(&export.stdout),
-        String::from_utf8_lossy(&export.stderr)
+        String::from_utf8_lossy(&info.stdout),
+        String::from_utf8_lossy(&info.stderr)
     );
 }
 

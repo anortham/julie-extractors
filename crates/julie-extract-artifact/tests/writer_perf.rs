@@ -1,5 +1,5 @@
 #![cfg(feature = "test-perf")]
-//! Feature-gated writer/export performance harness for `julie-extract-artifact`.
+//! Feature-gated writer performance harness for `julie-extract-artifact`.
 //!
 //! Kept out of the default suite by the test-tier convention so the fast
 //! default gate stays cheap. Run on demand with:
@@ -9,19 +9,16 @@
 //!     --test writer_perf -- --nocapture
 //! ```
 //!
-//! The harness drives `ArtifactWriter` and `export_jsonl` directly with a
-//! synthetic corpus, so it isolates the writer/export path (where the
-//! deferred P2 perf items live) without paying for extraction. It reports
-//! wall-clock throughput for the scan and export phases plus
-//! `EXPLAIN QUERY PLAN` evidence that the export-order indexes are used.
+//! The harness drives `ArtifactWriter` directly with a synthetic corpus, so it
+//! isolates the writer path (where the deferred P2 perf items live) without
+//! paying for extraction. It reports wall-clock throughput for the scan phase
+//! plus `EXPLAIN QUERY PLAN` evidence that the ordered-read indexes are used.
 //!
 //! Corpus sizing is overridable through env vars so the same gate can be run
 //! at a larger volume for tighter evidence without editing source.
 
-use std::io::sink;
 use std::time::{Duration, Instant};
 
-use julie_extract_artifact::jsonl::export_jsonl;
 use julie_extract_artifact::metadata::ArtifactMetadata;
 use julie_extract_artifact::model::{
     ArtifactComplexityMetric, ArtifactFile, ArtifactSourceRegion, ArtifactStructuralFact,
@@ -30,12 +27,12 @@ use julie_extract_artifact::model::{
 use julie_extract_artifact::writer::ArtifactWriter;
 use rusqlite::{Connection, OpenFlags};
 
-/// `mmap_size` applied to the read-only export connection. Mirrors the value
-/// used by the CLI reader path so the export phase reflects real behavior.
+/// `mmap_size` applied to the read-only connection. Mirrors the value used by
+/// the CLI reader path so the query-plan evidence reflects real behavior.
 const READER_MMAP_SIZE_BYTES: i64 = 1024 * 1024 * 1024;
 
 #[test]
-fn writer_scan_and_export_throughput() {
+fn writer_scan_throughput() {
     let file_count = env_usize("JULIE_PERF_FILES", 1_500);
     let temp_dir = unique_temp_dir("writer-perf");
     std::fs::create_dir_all(&temp_dir).unwrap();
@@ -47,11 +44,6 @@ fn writer_scan_and_export_throughput() {
     connection
         .pragma_update(None, "mmap_size", READER_MMAP_SIZE_BYTES)
         .unwrap();
-    let export_started = Instant::now();
-    let summary = export_jsonl(&connection, sink()).unwrap();
-    let export_elapsed = export_started.elapsed();
-
-    let exported_records = summary.total_records;
 
     println!(
         "writer_perf: files={file_count} symbols={} child_rows={} \
@@ -67,12 +59,6 @@ fn writer_scan_and_export_throughput() {
         counts.write_elapsed.as_millis(),
         counts.wal_bytes,
         throughput(counts.child_rows, counts.write_elapsed),
-    );
-    println!(
-        "writer_perf: export_jsonl (mmap_size={READER_MMAP_SIZE_BYTES}) {} ms for {exported_records} \
-         records ({} records/sec)",
-        export_elapsed.as_millis(),
-        throughput(exported_records, export_elapsed),
     );
 
     explain_query_plan(
@@ -99,11 +85,6 @@ fn writer_scan_and_export_throughput() {
         "write_scan regressed past perf floor: {:?}",
         counts.write_elapsed
     );
-    assert!(
-        export_elapsed < Duration::from_secs(15),
-        "export_jsonl regressed past perf floor: {export_elapsed:?}"
-    );
-    assert!(exported_records > 0);
 
     drop(connection);
     std::fs::remove_dir_all(&temp_dir).unwrap();
@@ -137,55 +118,12 @@ fn writer_forced_refresh_throughput() {
     std::fs::remove_dir_all(&temp_dir).unwrap();
 }
 
-#[test]
-fn export_mmap_size_comparison() {
-    // Isolates the reader `mmap_size` pragma (P3 finding) from writer changes:
-    // the same quiescent artifact is exported once without mmap and once with
-    // it, on fresh read-only connections, so the delta reflects mmap only.
-    let file_count = env_usize("JULIE_PERF_FILES", 1_500);
-    let temp_dir = unique_temp_dir("writer-perf-mmap");
-    std::fs::create_dir_all(&temp_dir).unwrap();
-    let db_path = temp_dir.join("perf.sqlite");
-    let counts = write_corpus(&db_path, file_count);
-
-    let without_mmap = export_elapsed(&db_path, None);
-    let with_mmap = export_elapsed(&db_path, Some(READER_MMAP_SIZE_BYTES));
-
-    println!(
-        "writer_perf: export without mmap_size {} ms ({} records/sec)",
-        without_mmap.as_millis(),
-        throughput(counts.estimated_records, without_mmap),
-    );
-    println!(
-        "writer_perf: export with    mmap_size={} {} ms ({} records/sec)",
-        READER_MMAP_SIZE_BYTES,
-        with_mmap.as_millis(),
-        throughput(counts.estimated_records, with_mmap),
-    );
-    let delta = without_mmap.saturating_sub(with_mmap);
-    println!("writer_perf: mmap_size export delta {delta:?} (negative means mmap was slower)");
-
-    std::fs::remove_dir_all(&temp_dir).unwrap();
-}
-
-fn export_elapsed(db_path: &std::path::Path, mmap_size: Option<i64>) -> Duration {
-    let connection =
-        Connection::open_with_flags(db_path, OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
-    if let Some(size) = mmap_size {
-        connection.pragma_update(None, "mmap_size", size).unwrap();
-    }
-    let started = Instant::now();
-    let _ = export_jsonl(&connection, sink()).unwrap();
-    started.elapsed()
-}
-
 struct CorpusCounts {
     symbols: usize,
     child_rows: usize,
     structural_facts: usize,
     source_regions: usize,
     complexity_metrics: usize,
-    estimated_records: usize,
     write_elapsed: Duration,
     wal_bytes: u64,
 }
@@ -203,9 +141,6 @@ fn write_corpus(db_path: &std::path::Path, file_count: usize) -> CorpusCounts {
         .map(|f| f.complexity_metrics.len())
         .sum::<usize>();
     let child_rows = structural_facts + source_regions + complexity_metrics;
-    // One JSONL record per row plus the per-file/per-revision/per-artifact
-    // framing records emitted by the exporter; close enough for a rate estimate.
-    let estimated_records = child_rows + symbols + file_count + 4;
 
     let mut writer = ArtifactWriter::open_path(db_path, metadata()).unwrap();
     let write_started = Instant::now();
@@ -223,7 +158,6 @@ fn write_corpus(db_path: &std::path::Path, file_count: usize) -> CorpusCounts {
         structural_facts,
         source_regions,
         complexity_metrics,
-        estimated_records,
         write_elapsed,
         wal_bytes,
     }

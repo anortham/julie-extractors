@@ -14,18 +14,15 @@ Contract version:
 - CLI contract: `1`
 - Extraction contract: `4`
 - SQLite schema: `7`
-- JSONL schema: `5`
 
 These values mirror `EXTRACT_CONTRACT_VERSION` / `SQLITE_SCHEMA_VERSION` in
-`crates/julie-extract-artifact/src/schema.rs` and `JSONL_SCHEMA_VERSION` in
-`crates/julie-extract-artifact/src/jsonl.rs`; those constants are the source of truth when
+`crates/julie-extract-artifact/src/schema.rs`; those constants are the source of truth when
 this table drifts.
 
 ## Invariants
 
 - `julie-extract` owns extraction from source tree to artifact.
-- SQLite is the primary durable artifact.
-- JSONL is a secondary export and streaming format derived from SQLite.
+- SQLite is the only durable artifact.
 - Human text output is not a stable contract. JSON reports are stable.
 - Commands do not start a daemon, register a workspace, build a search index,
   compute embeddings, run MCP tools, or watch the filesystem.
@@ -39,7 +36,6 @@ julie-extract scan --root <dir> --db <path> [--force] [--level <symbols|facts|fu
 julie-extract update --root <dir> --db <path> --file <path> [--ignore-file <path>...] [--strict-schema] [--json]
 julie-extract delete --root <dir> --db <path> --file <path> [--strict-schema] [--json]
 julie-extract info --db <path> [--strict-schema] [--json]
-julie-extract export --db <path> --format jsonl --out <path|-> [--strict-schema] [--json]
 julie-extract languages [--json]
 julie-extract rebind --root <dir> --db <path> [--strict-schema] [--json]
 ```
@@ -314,14 +310,6 @@ preflight command for schema version, extraction contract version, root path,
 hash algorithm, parser inventory fingerprint, capability snapshot fingerprint,
 row totals, and full per-file row attribution.
 
-### `export`
-
-Exports canonical SQLite rows as JSONL.
-
-Only `--format jsonl` is part of this CLI contract. `--out -` writes JSONL
-records to stdout. When `--json` and `--out -` are both requested, JSONL uses
-stdout and the JSON report uses stderr.
-
 ### `languages`
 
 Prints the supported language and capability snapshot. It does not require a
@@ -422,15 +410,15 @@ Outcomes:
   that cannot be generated fails the same way with `internal_error` and exit
   code `1`, before any write.
 
-`rebind` is additive: it introduces no new table, column, or JSONL record, so
-the extraction, SQLite, and JSONL versions pinned above are unchanged, and the
-CLI contract version stays `1`.
+`rebind` is additive: it introduces no new table or column, so the extraction
+and SQLite versions pinned above are unchanged, and the CLI contract version
+stays `1`.
 
 ## Status Values
 
 `status` is the broad command result in JSON reports:
 
-- `ok`: command completed and any requested mutation/export/read succeeded.
+- `ok`: command completed and any requested mutation/read succeeded.
 - `no_change`: command completed and no artifact mutation was needed.
 - `unsupported`: requested file is ignored or unsupported; stale rows, if any,
   were removed.
@@ -444,7 +432,7 @@ in new status strings.
 ## Exit Codes
 
 - `0`: command completed, including `no_change`, `unsupported`, and `not_found`.
-- `1`: command ran but extraction, export, or artifact operation failed.
+- `1`: command ran but extraction or artifact operation failed.
 - `2`: CLI usage error.
 - `3`: incompatible artifact, schema, root, or contract version.
 

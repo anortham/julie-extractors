@@ -1,11 +1,9 @@
 use std::collections::BTreeMap;
-use std::fs::{self, File};
-use std::io::{BufRead, BufReader};
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode, Output};
 use std::time::{Duration, Instant};
 
-use julie_extract_artifact::jsonl::JSONL_RECORD_KINDS;
 use julie_extract_artifact::schema::SQLITE_SCHEMA_VERSION;
 use rusqlite::{Connection, OpenFlags, OptionalExtension};
 use serde::Serialize;
@@ -13,7 +11,6 @@ use serde_json::Value;
 
 const REPORT_SCHEMA_VERSION: i64 = 3;
 const EXTRACT_CONTRACT_VERSION: i64 = 4;
-const JSONL_SCHEMA_VERSION: i64 = 5;
 const REQUIRED_METADATA_KEYS: &[&str] = &[
     "artifact_id",
     "root_path",
@@ -62,11 +59,9 @@ pub struct DogfoodPlan {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DogfoodOutputPaths {
     pub db_path: PathBuf,
-    pub jsonl_path: PathBuf,
     pub scan_report_path: PathBuf,
     pub rescan_report_path: PathBuf,
     pub info_report_path: PathBuf,
-    pub export_report_path: PathBuf,
     pub metrics_path: PathBuf,
 }
 
@@ -74,11 +69,9 @@ impl DogfoodOutputPaths {
     pub fn new(out_dir: &Path) -> Self {
         Self {
             db_path: out_dir.join("artifact.sqlite"),
-            jsonl_path: out_dir.join("artifact.jsonl"),
             scan_report_path: out_dir.join("scan-report.json"),
             rescan_report_path: out_dir.join("rescan-report.json"),
             info_report_path: out_dir.join("info-report.json"),
-            export_report_path: out_dir.join("export-report.json"),
             metrics_path: out_dir.join("metrics.json"),
         }
     }
@@ -89,22 +82,17 @@ pub struct CommandDurations {
     pub scan: Duration,
     pub rescan: Duration,
     pub info: Duration,
-    pub export: Duration,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct DogfoodMetrics {
     pub sqlite_schema_version: i64,
     pub extract_contract_version: i64,
-    pub jsonl_schema_version: i64,
     pub root_path: String,
     pub files: i64,
     pub symbols: i64,
     pub row_totals: BTreeMap<String, i64>,
-    pub jsonl_records_by_kind: BTreeMap<String, usize>,
-    pub jsonl_records: usize,
     pub sqlite_bytes: u64,
-    pub jsonl_bytes: u64,
     pub scan_duration_ms: u128,
     pub rescan_duration_ms: u128,
     pub rescan_files_unchanged: i64,
@@ -112,7 +100,6 @@ pub struct DogfoodMetrics {
     pub rescan_files_deleted: i64,
     pub rescan_files_failed: i64,
     pub info_duration_ms: u128,
-    pub export_duration_ms: u128,
     pub rows_per_second: Option<f64>,
 }
 
@@ -330,22 +317,6 @@ pub fn run_repo(plan: DogfoodPlan) -> Result<DogfoodMetrics, DogfoodError> {
     write_command_stdout(&plan.paths.info_report_path, &info_output)?;
     ensure_success("julie-extract info", info_output)?;
 
-    let (export_duration, export_output) = run_julie_extract(
-        &plan.binary,
-        [
-            "export",
-            "--db",
-            path_str(&plan.paths.db_path)?,
-            "--format",
-            "jsonl",
-            "--out",
-            path_str(&plan.paths.jsonl_path)?,
-            "--json",
-        ],
-    )?;
-    write_command_stdout(&plan.paths.export_report_path, &export_output)?;
-    ensure_success("julie-extract export", export_output)?;
-
     let metrics = validate_outputs(
         &plan.paths,
         &root,
@@ -353,7 +324,6 @@ pub fn run_repo(plan: DogfoodPlan) -> Result<DogfoodMetrics, DogfoodError> {
             scan: scan_duration,
             rescan: rescan_duration,
             info: info_duration,
-            export: export_duration,
         },
     )?;
     write_metrics(&plan.paths.metrics_path, &metrics)?;
@@ -368,7 +338,6 @@ pub fn validate_outputs(
     validate_report(&paths.scan_report_path, "scan", "incremental")?;
     let rescan_counts = validate_rescan_report(&paths.rescan_report_path)?;
     validate_report(&paths.info_report_path, "info", "read_only")?;
-    validate_report(&paths.export_report_path, "export", "jsonl")?;
 
     let conn = Connection::open_with_flags(&paths.db_path, OpenFlags::SQLITE_OPEN_READ_ONLY)
         .map_err(|source| DogfoodError::Sqlite {
@@ -429,24 +398,17 @@ pub fn validate_outputs(
         ));
     }
 
-    let jsonl_records_by_kind = validate_jsonl(&paths.jsonl_path)?;
-    let jsonl_records = jsonl_records_by_kind.values().sum();
     let sqlite_bytes = file_len(&paths.db_path)?;
-    let jsonl_bytes = file_len(&paths.jsonl_path)?;
     let rows_per_second = rows_per_second(files + symbols, durations.scan);
 
     Ok(DogfoodMetrics {
         sqlite_schema_version,
         extract_contract_version,
-        jsonl_schema_version: JSONL_SCHEMA_VERSION,
         root_path,
         files,
         symbols,
         row_totals,
-        jsonl_records_by_kind,
-        jsonl_records,
         sqlite_bytes,
-        jsonl_bytes,
         scan_duration_ms: durations.scan.as_millis(),
         rescan_duration_ms: durations.rescan.as_millis(),
         rescan_files_unchanged: rescan_counts.files_unchanged,
@@ -454,7 +416,6 @@ pub fn validate_outputs(
         rescan_files_deleted: rescan_counts.files_deleted,
         rescan_files_failed: rescan_counts.files_failed,
         info_duration_ms: durations.info.as_millis(),
-        export_duration_ms: durations.export.as_millis(),
         rows_per_second,
     })
 }
@@ -492,11 +453,9 @@ fn clear_outputs(paths: &DogfoodOutputPaths) -> Result<(), DogfoodError> {
         &paths.db_path,
         &paths.db_path.with_extension("sqlite-wal"),
         &paths.db_path.with_extension("sqlite-shm"),
-        &paths.jsonl_path,
         &paths.scan_report_path,
         &paths.rescan_report_path,
         &paths.info_report_path,
-        &paths.export_report_path,
         &paths.metrics_path,
     ] {
         match fs::remove_file(path) {
@@ -639,8 +598,7 @@ fn validate_report(
         .pointer("/counts/totals/symbols")
         .and_then(Value::as_i64)
         .unwrap_or_default();
-    if matches!(expected_operation, "info" | "export") && (totals_files == 0 || totals_symbols == 0)
-    {
+    if expected_operation == "info" && (totals_files == 0 || totals_symbols == 0) {
         return Err(DogfoodError::InvalidEvidence(format!(
             "{expected_operation} report totals must include files and symbols"
         )));
@@ -662,21 +620,6 @@ fn validate_report(
             return Err(DogfoodError::InvalidEvidence(
                 "scan report must include scanned files and written file/symbol rows".to_string(),
             ));
-        }
-    }
-    if expected_operation == "export" {
-        let jsonl_schema_version = value
-            .pointer("/artifact/jsonl_schema_version")
-            .and_then(Value::as_i64)
-            .ok_or_else(|| {
-                DogfoodError::InvalidEvidence(
-                    "export report is missing artifact.jsonl_schema_version".to_string(),
-                )
-            })?;
-        if jsonl_schema_version != JSONL_SCHEMA_VERSION {
-            return Err(DogfoodError::InvalidEvidence(format!(
-                "export report JSONL schema version was {jsonl_schema_version}; expected {JSONL_SCHEMA_VERSION}"
-            )));
         }
     }
     Ok(())
@@ -898,117 +841,6 @@ fn row_totals(conn: &Connection) -> Result<BTreeMap<String, i64>, DogfoodError> 
         totals.insert((*table).to_string(), table_count(conn, table)?);
     }
     Ok(totals)
-}
-
-fn validate_jsonl(path: &Path) -> Result<BTreeMap<String, usize>, DogfoodError> {
-    let file = File::open(path).map_err(|source| DogfoodError::Io {
-        context: format!("failed to read {}", path.display()),
-        source,
-    })?;
-    let mut records_by_kind = BTreeMap::<String, usize>::new();
-    for (index, line) in BufReader::new(file).lines().enumerate() {
-        let line = line.map_err(|source| DogfoodError::Io {
-            context: format!(
-                "failed to read JSONL record {} in {}",
-                index + 1,
-                path.display()
-            ),
-            source,
-        })?;
-        if line.trim().is_empty() {
-            continue;
-        }
-        let value = serde_json::from_str::<Value>(&line).map_err(|source| DogfoodError::Json {
-            context: format!(
-                "failed to parse JSONL record {} in {}",
-                index + 1,
-                path.display()
-            ),
-            source,
-        })?;
-        let schema = value
-            .get("jsonl_schema_version")
-            .and_then(Value::as_i64)
-            .ok_or_else(|| {
-                DogfoodError::InvalidEvidence(format!(
-                    "JSONL record {} is missing integer jsonl_schema_version",
-                    index + 1
-                ))
-            })?;
-        if schema != JSONL_SCHEMA_VERSION {
-            return Err(DogfoodError::InvalidEvidence(format!(
-                "JSONL record {} schema version was {schema}; expected {JSONL_SCHEMA_VERSION}",
-                index + 1
-            )));
-        }
-        let extract_contract_version = value
-            .get("extract_contract_version")
-            .and_then(Value::as_i64)
-            .ok_or_else(|| {
-                DogfoodError::InvalidEvidence(format!(
-                    "JSONL record {} is missing integer extract_contract_version",
-                    index + 1
-                ))
-            })?;
-        if extract_contract_version != EXTRACT_CONTRACT_VERSION {
-            return Err(DogfoodError::InvalidEvidence(format!(
-                "JSONL record {} extract contract version was {extract_contract_version}; expected {EXTRACT_CONTRACT_VERSION}",
-                index + 1
-            )));
-        }
-        let op = value.get("op").and_then(Value::as_str).ok_or_else(|| {
-            DogfoodError::InvalidEvidence(format!(
-                "JSONL record {} is missing string op",
-                index + 1
-            ))
-        })?;
-        if op != "snapshot" {
-            return Err(DogfoodError::InvalidEvidence(format!(
-                "JSONL record {} op was `{op}`; expected `snapshot`",
-                index + 1
-            )));
-        }
-        let kind = value.get("kind").and_then(Value::as_str).ok_or_else(|| {
-            DogfoodError::InvalidEvidence(format!(
-                "JSONL record {} is missing string kind",
-                index + 1
-            ))
-        })?;
-        if !JSONL_RECORD_KINDS.contains(&kind) {
-            return Err(DogfoodError::InvalidEvidence(format!(
-                "JSONL record {} has unsupported kind `{kind}`",
-                index + 1
-            )));
-        }
-        for field in ["artifact_id", "record_id"] {
-            if value.get(field).and_then(Value::as_str).is_none() {
-                return Err(DogfoodError::InvalidEvidence(format!(
-                    "JSONL record {} is missing string {field}",
-                    index + 1
-                )));
-            }
-        }
-        if !value.get("record").is_some_and(Value::is_object) {
-            return Err(DogfoodError::InvalidEvidence(format!(
-                "JSONL record {} is missing object record",
-                index + 1
-            )));
-        }
-        *records_by_kind.entry(kind.to_string()).or_insert(0) += 1;
-    }
-    if records_by_kind.values().sum::<usize>() == 0 {
-        return Err(DogfoodError::InvalidEvidence(
-            "JSONL export contains zero records".to_string(),
-        ));
-    }
-    for required_kind in ["artifact", "file", "symbol"] {
-        if !records_by_kind.contains_key(required_kind) {
-            return Err(DogfoodError::InvalidEvidence(format!(
-                "JSONL export contains zero `{required_kind}` records"
-            )));
-        }
-    }
-    Ok(records_by_kind)
 }
 
 fn file_len(path: &Path) -> Result<u64, DogfoodError> {

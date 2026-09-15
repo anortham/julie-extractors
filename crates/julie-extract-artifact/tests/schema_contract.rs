@@ -338,7 +338,7 @@ fn mutable_foreign_keys_have_leading_indexes() {
 }
 
 #[test]
-fn query_plan_uses_jsonl_export_order_indexes() {
+fn query_plan_uses_export_order_indexes() {
     let conn = open_schema();
 
     assert_query_uses_index(
@@ -440,14 +440,10 @@ fn report_row_domains_cover_every_sqlite_v3_public_table() {
 fn contract_docs_define_body_hash_algorithm_and_limits() {
     const SQLITE_V2: &str = include_str!("../../../docs/contracts/sqlite-schema-v2.md");
     const SQLITE_V3: &str = include_str!("../../../docs/contracts/sqlite-schema-v3.md");
-    const JSONL_V2: &str = include_str!("../../../docs/contracts/jsonl-v2.md");
-    const JSONL_V3: &str = include_str!("../../../docs/contracts/jsonl-v3.md");
 
     for (name, doc) in [
         ("sqlite-schema-v2.md", SQLITE_V2),
         ("sqlite-schema-v3.md", SQLITE_V3),
-        ("jsonl-v2.md", JSONL_V2),
-        ("jsonl-v3.md", JSONL_V3),
     ] {
         let searchable = compact_whitespace(doc);
         assert!(
@@ -470,20 +466,10 @@ fn contract_docs_define_body_hash_algorithm_and_limits() {
 }
 
 #[test]
-fn jsonl_v3_docs_list_all_capability_kind_coverage_domains() {
+fn sqlite_v4_docs_document_test_detection_inside_kind_coverage() {
     const SQLITE_V4: &str = include_str!("../../../docs/contracts/sqlite-schema-v4.md");
-    const JSONL_V3: &str = include_str!("../../../docs/contracts/jsonl-v3.md");
     let sqlite_searchable = compact_whitespace(SQLITE_V4);
-    let searchable = compact_whitespace(JSONL_V3);
 
-    assert!(
-        searchable.contains(
-            "`kind_coverage`: object with `symbols`, `relationships`, `identifiers`, \
-             `body_spans`, `structural_facts`, `complexity_metrics`, `annotations`, \
-             `doc_comments`, `literals`, `source_regions`, and `test_detection` domains"
-        ),
-        "jsonl-v3.md language_capability docs must list every kind_coverage domain"
-    );
     assert!(
         sqlite_searchable.contains(
             "`kind_coverage_json` stores the same additive capability object, including the \

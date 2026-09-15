@@ -14,7 +14,6 @@ julie-extract scan --root <dir> --db <path> [--force] [--json]
 julie-extract update --root <dir> --db <path> --file <path> [--json]
 julie-extract delete --root <dir> --db <path> --file <path> [--json]
 julie-extract info --db <path> [--json]
-julie-extract export --db <path> --format jsonl --out <path|-> [--json]
 julie-extract languages [--json]
 ```
 

@@ -1,7 +1,6 @@
 # Schema Principles
 
-SQLite is the primary product artifact. JSONL is an export and streaming format
-derived from the same canonical data.
+SQLite is the only product artifact.
 
 ## Goals
 
@@ -80,7 +79,7 @@ The schema and writer must support:
 - bulk replacement of one file's rows by indexed file id
 - downstream lookup by file path, symbol name/kind, parent symbol,
   relationship endpoints, pending target name, and test-role flags
-- deterministic export without table scans that depend on incidental row order
+- deterministic ordered reads without table scans that depend on incidental row order
 
 The SQLite writer should use explicit transactions, prepared statements, batched
 inserts, and stable deletion order. Any staging tables or deferred secondary
@@ -90,18 +89,6 @@ artifact must contain the contracted indexes.
 Performance tests should start small and fast: tiny fixtures can catch missing
 indexes, per-row commits, and accidental table scans before real-world corpus
 gates exist.
-
-## JSONL
-
-JSONL records should be:
-
-- one record per logical row/event
-- schema-versioned
-- stable in field names
-- easy to consume without SQLite
-- exportable from SQLite
-
-JSONL should not become a second source of truth.
 
 ## Migration Position
 
