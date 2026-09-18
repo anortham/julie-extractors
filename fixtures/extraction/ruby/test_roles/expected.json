@@ -1958,7 +1958,7 @@
     },
     {
       "from_key": "fixtures/extraction/ruby/test_roles/test_source.rb:ruby roles:1:0",
-      "callee_name": "RSpec.describe \"ruby roles\" do\n  let",
+      "callee_name": "RSpec.describe",
       "kind": "calls",
       "file_path": "fixtures/extraction/ruby/test_roles/test_source.rb",
       "line_number": 1,
@@ -2962,15 +2962,15 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/ruby/test_roles/test_source.rb:ruby roles:1:0",
-        "callee_name": "RSpec.describe \"ruby roles\" do\n  let",
+        "callee_name": "RSpec.describe",
         "kind": "calls",
         "file_path": "fixtures/extraction/ruby/test_roles/test_source.rb",
         "line_number": 1,
         "confidence": "0.700"
       },
       "target": {
-        "display_name": "RSpec.describe \"ruby roles\" do\n  let",
-        "terminal_name": "describe \"ruby roles\" do\n  let",
+        "display_name": "RSpec.describe",
+        "terminal_name": "describe",
         "receiver": "RSpec",
         "namespace_path": [],
         "import_context": null

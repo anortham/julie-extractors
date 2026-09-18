@@ -92,7 +92,7 @@ Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
 classification: compatible
 
-One table changes: `pending_relationships`. A qualified call chain `Q1.Q2 ... Qn.t(...)` now
+Two tables change: `pending_relationships` and `relationships`. A qualified call chain `Q1.Q2 ... Qn.t(...)` now
 records `target_terminal_name = t`, `target_receiver = Qn`, and `target_namespace_json =
 [Q1 .. Qn-1]`, with `target_display_name` joined by `.`. Before this release each language chose
 its own split: Ruby kept `Net::HTTP` whole in the receiver, C++ kept `->` in the display name, Java,
@@ -103,6 +103,10 @@ matched. Rust, Elixir, F#, and Erlang are unchanged: they record a path-style ca
 qualifier in `target_namespace_json` and an empty `target_receiver`. The Java fixture also loses two resolved `relationships`
 rows for `fixture.Worker.evaluate` and `fixture.Worker.observeRun`, which now surface as pending
 rows with receiver `Worker` and namespace `["fixture"]`.
+Four Java fixture outputs also remove duplicate pending rows after the extractor stopped traversing
+the same call site repeatedly; no distinct Java relationship is removed.
+Ruby `RSpec.describe` pending rows now retain `RSpec.describe` as their terminal and display names
+instead of including the enclosing block text.
 
 Nothing in the schema changes and no reader breaks: the same columns carry the same kinds of
 values, and a reader built for 3.1.0 reads the new output correctly. A reader that matched

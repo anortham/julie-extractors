@@ -201,43 +201,9 @@
       "file_path": "fixtures/extraction/java/cross_file/Source.java",
       "line_number": 13,
       "confidence": "0.800"
-    },
-    {
-      "from_key": "fixtures/extraction/java/cross_file/Source.java:entry:12:4",
-      "callee_name": "Other",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/cross_file/Source.java",
-      "line_number": 13,
-      "confidence": "0.800"
     }
   ],
   "structured_pending_relationships": [
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/java/cross_file/Source.java:entry:12:4",
-        "callee_name": "Other",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/cross_file/Source.java",
-        "line_number": 13,
-        "confidence": "0.800"
-      },
-      "target": {
-        "display_name": "Other",
-        "terminal_name": "Other",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/cross_file/Source.java:entry:12:4",
-      "span": {
-        "start_line": 13,
-        "start_column": 18,
-        "end_line": 13,
-        "end_column": 29,
-        "start_byte": 436,
-        "end_byte": 447
-      }
-    },
     {
       "pending": {
         "from_key": "fixtures/extraction/java/cross_file/Source.java:entry:12:4",

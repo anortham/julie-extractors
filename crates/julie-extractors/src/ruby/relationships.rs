@@ -282,12 +282,17 @@ fn extract_call_relationships(
             let line_number = (node.start_position().row + 1) as u32;
             let file_path = base.file_path.clone();
 
-            match resolve_ruby_call_target(
-                symbol_index,
-                &method_name_opt,
-                caller_symbol,
-                target.receiver.as_deref(),
-            ) {
+            let resolution = if target.namespace_path.is_empty() {
+                resolve_ruby_call_target(
+                    symbol_index,
+                    &method_name_opt,
+                    caller_symbol,
+                    target.receiver.as_deref(),
+                )
+            } else {
+                LocalTargetResolution::Missing
+            };
+            match resolution {
                 LocalTargetResolution::Resolved(called_symbol) => {
                     let relationship = Relationship {
                         id: format!(
@@ -397,6 +402,25 @@ fn extract_pending_target(
         && target.receiver.is_some()
     {
         return target;
+    }
+
+    if let Some((receiver, _)) = call_head
+        .rsplit_once('.')
+        .or_else(|| call_head.rsplit_once("::"))
+        && !receiver.is_empty()
+        && let Some(prefix) = UnresolvedTarget::from_qualified_text(receiver, &["::", "."])
+    {
+        let mut namespace_path = prefix.namespace_path;
+        if let Some(prefix_receiver) = prefix.receiver {
+            namespace_path.push(prefix_receiver);
+        }
+        return UnresolvedTarget {
+            display_name: format!("{}.{}", prefix.display_name, method_name),
+            terminal_name: method_name.to_string(),
+            receiver: Some(prefix.terminal_name),
+            namespace_path,
+            import_context: None,
+        };
     }
 
     if let Some((receiver, terminal_name)) = call_head.rsplit_once('.')

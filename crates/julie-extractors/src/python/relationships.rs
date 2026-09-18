@@ -149,12 +149,16 @@ fn extract_call_relationships(
         if !called_method_name.is_empty() {
             // Find the enclosing function/method that contains this call
             if let Some(caller_symbol) = extractor.base().find_containing_symbol(&node, symbols) {
-                // Check if we can resolve the callee locally
-                match symbol_index.resolve_call_target(
-                    &called_method_name,
-                    Some(caller_symbol),
-                    target.receiver.as_deref(),
-                ) {
+                let resolution = if target.namespace_path.is_empty() {
+                    symbol_index.resolve_call_target(
+                        &called_method_name,
+                        Some(caller_symbol),
+                        target.receiver.as_deref(),
+                    )
+                } else {
+                    LocalTargetResolution::Missing
+                };
+                match resolution {
                     LocalTargetResolution::Import(_) => {
                         // Target is an Import symbol - need cross-file resolution
                         // Don't create relationship pointing to Import (useless for trace_call_path)

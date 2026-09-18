@@ -82,28 +82,56 @@ class Caller {
         Outer.Inner.chain();
         Helper.process();
     }
+
+    class Nested {
+        void nestedRun() {
+            Helper.inner();
+        }
+    }
 }
 "#;
     let result = extract_canonical("Caller.java", source, Path::new("/tmp/test"))
         .expect("canonical Java extraction must succeed");
 
-    let chain = result
+    let chains: Vec<_> = result
         .structured_pending_relationships
         .iter()
-        .find(|p| p.target.terminal_name == "chain")
-        .map(|p| &p.target)
-        .unwrap_or_else(|| panic!("got {:#?}", result.structured_pending_relationships));
+        .filter(|p| p.target.terminal_name == "chain")
+        .collect();
+    assert_eq!(
+        chains.len(),
+        1,
+        "expected exactly one pending chain target; got: {:#?}",
+        result.structured_pending_relationships
+    );
+    let chain = &chains[0].target;
     assert_eq!(chain.receiver.as_deref(), Some("Inner"));
     assert_eq!(chain.namespace_path, vec!["Outer"]);
     assert_eq!(chain.display_name, "Outer.Inner.chain");
 
-    let two_part = result
+    let two_part: Vec<_> = result
         .structured_pending_relationships
         .iter()
-        .find(|p| p.target.terminal_name == "process")
-        .map(|p| &p.target)
-        .expect("Helper.process must stay a pending target");
+        .filter(|p| p.target.terminal_name == "process")
+        .collect();
+    assert_eq!(
+        two_part.len(),
+        1,
+        "expected exactly one Helper.process target; got: {:#?}",
+        result.structured_pending_relationships
+    );
+    let two_part = &two_part[0].target;
     assert_eq!(two_part.receiver.as_deref(), Some("Helper"));
     assert!(two_part.namespace_path.is_empty());
     assert_eq!(two_part.display_name, "Helper.process");
+
+    assert_eq!(
+        result
+            .structured_pending_relationships
+            .iter()
+            .filter(|p| p.target.display_name == "Helper.inner")
+            .count(),
+        1,
+        "nested type calls must be traversed exactly once"
+    );
 }

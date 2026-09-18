@@ -70,6 +70,12 @@ class Caller
     Outer::Inner.chain
     outer.inner.chain2
     Helper.process
+    self.run
+    client.self.run
+    Outer::Inner.run!
+    Outer::Inner.ready?
+    build().dispatch
+    self.call
   end
 end
 "#;
@@ -105,4 +111,25 @@ end
     assert_eq!(two_part.receiver.as_deref(), Some("Helper"));
     assert!(two_part.namespace_path.is_empty());
     assert_eq!(two_part.display_name, "Helper.process");
+
+    let expression_chain = target("run");
+    assert_eq!(expression_chain.receiver.as_deref(), Some("self"));
+    assert_eq!(expression_chain.namespace_path, vec!["client"]);
+    assert_eq!(expression_chain.display_name, "client.self.run");
+
+    let bang = target("run!");
+    assert_eq!(bang.receiver.as_deref(), Some("Inner"));
+    assert_eq!(bang.namespace_path, vec!["Outer"]);
+    assert_eq!(bang.display_name, "Outer.Inner.run!");
+
+    let question = target("ready?");
+    assert_eq!(question.receiver.as_deref(), Some("Inner"));
+    assert_eq!(question.namespace_path, vec!["Outer"]);
+    assert_eq!(question.display_name, "Outer.Inner.ready?");
+
+    let expression_call = target("dispatch");
+    assert_eq!(expression_call.receiver, None);
+    assert!(expression_call.namespace_path.is_empty());
+    assert_eq!(expression_call.display_name, "dispatch");
+    assert_eq!(result.relationships.len(), 1);
 }

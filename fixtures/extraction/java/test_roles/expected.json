@@ -1541,35 +1541,11 @@
       "confidence": "0.700"
     },
     {
-      "from_key": "fixtures/extraction/java/test_roles/test_source.java:addsEachPair:55:4",
-      "callee_name": "LedgerSupport.total",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-      "line_number": 57,
-      "confidence": "0.700"
-    },
-    {
       "from_key": "fixtures/extraction/java/test_roles/test_source.java:addsRepeatedly:60:4",
       "callee_name": "LedgerSupport.total",
       "kind": "calls",
       "file_path": "fixtures/extraction/java/test_roles/test_source.java",
       "line_number": 62,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/java/test_roles/test_source.java:addsRepeatedly:60:4",
-      "callee_name": "LedgerSupport.total",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-      "line_number": 62,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/java/test_roles/test_source.java:addsTwoNumbers:40:4",
-      "callee_name": "LedgerSupport.total",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-      "line_number": 42,
       "confidence": "0.700"
     },
     {
@@ -1589,35 +1565,11 @@
       "confidence": "0.700"
     },
     {
-      "from_key": "fixtures/extraction/java/test_roles/test_source.java:addsWithJUnit4:85:4",
-      "callee_name": "LedgerSupport.total",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-      "line_number": 87,
-      "confidence": "0.700"
-    },
-    {
       "from_key": "fixtures/extraction/java/test_roles/test_source.java:addsWithTestNg:133:4",
       "callee_name": "LedgerSupport.total",
       "kind": "calls",
       "file_path": "fixtures/extraction/java/test_roles/test_source.java",
       "line_number": 134,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/java/test_roles/test_source.java:addsWithTestNg:133:4",
-      "callee_name": "LedgerSupport.total",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-      "line_number": 134,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/java/test_roles/test_source.java:after:80:4",
-      "callee_name": "LedgerSupport.total",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-      "line_number": 82,
       "confidence": "0.700"
     },
     {
@@ -1637,35 +1589,11 @@
       "confidence": "0.700"
     },
     {
-      "from_key": "fixtures/extraction/java/test_roles/test_source.java:afterAll:25:4",
-      "callee_name": "LedgerSupport.total",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-      "line_number": 27,
-      "confidence": "0.700"
-    },
-    {
       "from_key": "fixtures/extraction/java/test_roles/test_source.java:afterGroups:118:4",
       "callee_name": "LedgerSupport.total",
       "kind": "calls",
       "file_path": "fixtures/extraction/java/test_roles/test_source.java",
       "line_number": 120,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/java/test_roles/test_source.java:afterGroups:118:4",
-      "callee_name": "LedgerSupport.total",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-      "line_number": 120,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/java/test_roles/test_source.java:afterMethod:128:4",
-      "callee_name": "LedgerSupport.total",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-      "line_number": 130,
       "confidence": "0.700"
     },
     {
@@ -1685,35 +1613,11 @@
       "confidence": "0.700"
     },
     {
-      "from_key": "fixtures/extraction/java/test_roles/test_source.java:afterSuite:98:4",
-      "callee_name": "LedgerSupport.total",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-      "line_number": 100,
-      "confidence": "0.700"
-    },
-    {
       "from_key": "fixtures/extraction/java/test_roles/test_source.java:afterTest:108:4",
       "callee_name": "LedgerSupport.total",
       "kind": "calls",
       "file_path": "fixtures/extraction/java/test_roles/test_source.java",
       "line_number": 110,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/java/test_roles/test_source.java:afterTest:108:4",
-      "callee_name": "LedgerSupport.total",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-      "line_number": 110,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/java/test_roles/test_source.java:before:75:4",
-      "callee_name": "LedgerSupport.total",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-      "line_number": 77,
       "confidence": "0.700"
     },
     {
@@ -1733,35 +1637,11 @@
       "confidence": "0.700"
     },
     {
-      "from_key": "fixtures/extraction/java/test_roles/test_source.java:beforeAll:20:4",
-      "callee_name": "LedgerSupport.total",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-      "line_number": 22,
-      "confidence": "0.700"
-    },
-    {
       "from_key": "fixtures/extraction/java/test_roles/test_source.java:beforeGroups:113:4",
       "callee_name": "LedgerSupport.total",
       "kind": "calls",
       "file_path": "fixtures/extraction/java/test_roles/test_source.java",
       "line_number": 115,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/java/test_roles/test_source.java:beforeGroups:113:4",
-      "callee_name": "LedgerSupport.total",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-      "line_number": 115,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/java/test_roles/test_source.java:beforeMethod:123:4",
-      "callee_name": "LedgerSupport.total",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-      "line_number": 125,
       "confidence": "0.700"
     },
     {
@@ -1781,35 +1661,11 @@
       "confidence": "0.700"
     },
     {
-      "from_key": "fixtures/extraction/java/test_roles/test_source.java:beforeSuite:93:4",
-      "callee_name": "LedgerSupport.total",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-      "line_number": 95,
-      "confidence": "0.700"
-    },
-    {
       "from_key": "fixtures/extraction/java/test_roles/test_source.java:beforeTest:103:4",
       "callee_name": "LedgerSupport.total",
       "kind": "calls",
       "file_path": "fixtures/extraction/java/test_roles/test_source.java",
       "line_number": 105,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/java/test_roles/test_source.java:beforeTest:103:4",
-      "callee_name": "LedgerSupport.total",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-      "line_number": 105,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/java/test_roles/test_source.java:buildsDynamicCases:45:4",
-      "callee_name": "LedgerSupport.total",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-      "line_number": 47,
       "confidence": "0.700"
     },
     {
@@ -1829,43 +1685,11 @@
       "confidence": "0.700"
     },
     {
-      "from_key": "fixtures/extraction/java/test_roles/test_source.java:combineLegacy:147:4",
-      "callee_name": "LedgerSupport.total",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-      "line_number": 148,
-      "confidence": "0.700"
-    },
-    {
       "from_key": "fixtures/extraction/java/test_roles/test_source.java:helperTotal:137:4",
       "callee_name": "LedgerSupport.total",
       "kind": "calls",
       "file_path": "fixtures/extraction/java/test_roles/test_source.java",
       "line_number": 138,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/java/test_roles/test_source.java:helperTotal:137:4",
-      "callee_name": "LedgerSupport.total",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-      "line_number": 138,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/java/test_roles/test_source.java:reportsZero:67:8",
-      "callee_name": "LedgerSupport.total",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-      "line_number": 69,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/java/test_roles/test_source.java:reportsZero:67:8",
-      "callee_name": "LedgerSupport.total",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-      "line_number": 69,
       "confidence": "0.700"
     },
     {
@@ -1885,22 +1709,6 @@
       "confidence": "0.700"
     },
     {
-      "from_key": "fixtures/extraction/java/test_roles/test_source.java:runsTemplate:50:4",
-      "callee_name": "LedgerSupport.total",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-      "line_number": 52,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/java/test_roles/test_source.java:seed:14:4",
-      "callee_name": "LedgerSupport.total",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-      "line_number": 15,
-      "confidence": "0.700"
-    },
-    {
       "from_key": "fixtures/extraction/java/test_roles/test_source.java:seed:14:4",
       "callee_name": "LedgerSupport.total",
       "kind": "calls",
@@ -1918,34 +1726,10 @@
     },
     {
       "from_key": "fixtures/extraction/java/test_roles/test_source.java:testAddsLegacy:143:4",
-      "callee_name": "LedgerSupport.total",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-      "line_number": 144,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/java/test_roles/test_source.java:testAddsLegacy:143:4",
       "callee_name": "assertEquals",
       "kind": "calls",
       "file_path": "fixtures/extraction/java/test_roles/test_source.java",
       "line_number": 144,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/java/test_roles/test_source.java:testAddsLegacy:143:4",
-      "callee_name": "assertEquals",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-      "line_number": 144,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/java/test_roles/test_source.java:testDataForLedger:153:4",
-      "callee_name": "LedgerSupport.total",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-      "line_number": 154,
       "confidence": "0.700"
     },
     {
@@ -2012,32 +1796,6 @@
     },
     {
       "pending": {
-        "from_key": "fixtures/extraction/java/test_roles/test_source.java:addsEachPair:55:4",
-        "callee_name": "LedgerSupport.total",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-        "line_number": 57,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "LedgerSupport.total",
-        "terminal_name": "total",
-        "receiver": "LedgerSupport",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/test_roles/test_source.java:addsEachPair:55:4",
-      "span": {
-        "start_line": 57,
-        "start_column": 8,
-        "end_line": 57,
-        "end_column": 33,
-        "start_byte": 1180,
-        "end_byte": 1205
-      }
-    },
-    {
-      "pending": {
         "from_key": "fixtures/extraction/java/test_roles/test_source.java:addsRepeatedly:60:4",
         "callee_name": "LedgerSupport.total",
         "kind": "calls",
@@ -2060,58 +1818,6 @@
         "end_column": 33,
         "start_byte": 1290,
         "end_byte": 1315
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/java/test_roles/test_source.java:addsRepeatedly:60:4",
-        "callee_name": "LedgerSupport.total",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-        "line_number": 62,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "LedgerSupport.total",
-        "terminal_name": "total",
-        "receiver": "LedgerSupport",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/test_roles/test_source.java:addsRepeatedly:60:4",
-      "span": {
-        "start_line": 62,
-        "start_column": 8,
-        "end_line": 62,
-        "end_column": 33,
-        "start_byte": 1290,
-        "end_byte": 1315
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/java/test_roles/test_source.java:addsTwoNumbers:40:4",
-        "callee_name": "LedgerSupport.total",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-        "line_number": 42,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "LedgerSupport.total",
-        "terminal_name": "total",
-        "receiver": "LedgerSupport",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/test_roles/test_source.java:addsTwoNumbers:40:4",
-      "span": {
-        "start_line": 42,
-        "start_column": 8,
-        "end_line": 42,
-        "end_column": 39,
-        "start_byte": 837,
-        "end_byte": 868
       }
     },
     {
@@ -2168,32 +1874,6 @@
     },
     {
       "pending": {
-        "from_key": "fixtures/extraction/java/test_roles/test_source.java:addsWithJUnit4:85:4",
-        "callee_name": "LedgerSupport.total",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-        "line_number": 87,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "LedgerSupport.total",
-        "terminal_name": "total",
-        "receiver": "LedgerSupport",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/test_roles/test_source.java:addsWithJUnit4:85:4",
-      "span": {
-        "start_line": 87,
-        "start_column": 8,
-        "end_line": 87,
-        "end_column": 33,
-        "start_byte": 1779,
-        "end_byte": 1804
-      }
-    },
-    {
-      "pending": {
         "from_key": "fixtures/extraction/java/test_roles/test_source.java:addsWithTestNg:133:4",
         "callee_name": "LedgerSupport.total",
         "kind": "calls",
@@ -2216,58 +1896,6 @@
         "end_column": 35,
         "start_byte": 2832,
         "end_byte": 2859
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/java/test_roles/test_source.java:addsWithTestNg:133:4",
-        "callee_name": "LedgerSupport.total",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-        "line_number": 134,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "LedgerSupport.total",
-        "terminal_name": "total",
-        "receiver": "LedgerSupport",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/test_roles/test_source.java:addsWithTestNg:133:4",
-      "span": {
-        "start_line": 134,
-        "start_column": 8,
-        "end_line": 134,
-        "end_column": 35,
-        "start_byte": 2832,
-        "end_byte": 2859
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/java/test_roles/test_source.java:after:80:4",
-        "callee_name": "LedgerSupport.total",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-        "line_number": 82,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "LedgerSupport.total",
-        "terminal_name": "total",
-        "receiver": "LedgerSupport",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/test_roles/test_source.java:after:80:4",
-      "span": {
-        "start_line": 82,
-        "start_column": 8,
-        "end_line": 82,
-        "end_column": 33,
-        "start_byte": 1682,
-        "end_byte": 1707
       }
     },
     {
@@ -2324,32 +1952,6 @@
     },
     {
       "pending": {
-        "from_key": "fixtures/extraction/java/test_roles/test_source.java:afterAll:25:4",
-        "callee_name": "LedgerSupport.total",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-        "line_number": 27,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "LedgerSupport.total",
-        "terminal_name": "total",
-        "receiver": "LedgerSupport",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/test_roles/test_source.java:afterAll:25:4",
-      "span": {
-        "start_line": 27,
-        "start_column": 8,
-        "end_line": 27,
-        "end_column": 33,
-        "start_byte": 568,
-        "end_byte": 593
-      }
-    },
-    {
-      "pending": {
         "from_key": "fixtures/extraction/java/test_roles/test_source.java:afterGroups:118:4",
         "callee_name": "LedgerSupport.total",
         "kind": "calls",
@@ -2372,58 +1974,6 @@
         "end_column": 35,
         "start_byte": 2519,
         "end_byte": 2546
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/java/test_roles/test_source.java:afterGroups:118:4",
-        "callee_name": "LedgerSupport.total",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-        "line_number": 120,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "LedgerSupport.total",
-        "terminal_name": "total",
-        "receiver": "LedgerSupport",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/test_roles/test_source.java:afterGroups:118:4",
-      "span": {
-        "start_line": 120,
-        "start_column": 8,
-        "end_line": 120,
-        "end_column": 35,
-        "start_byte": 2519,
-        "end_byte": 2546
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/java/test_roles/test_source.java:afterMethod:128:4",
-        "callee_name": "LedgerSupport.total",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-        "line_number": 130,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "LedgerSupport.total",
-        "terminal_name": "total",
-        "receiver": "LedgerSupport",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/test_roles/test_source.java:afterMethod:128:4",
-      "span": {
-        "start_line": 130,
-        "start_column": 8,
-        "end_line": 130,
-        "end_column": 35,
-        "start_byte": 2753,
-        "end_byte": 2780
       }
     },
     {
@@ -2480,32 +2030,6 @@
     },
     {
       "pending": {
-        "from_key": "fixtures/extraction/java/test_roles/test_source.java:afterSuite:98:4",
-        "callee_name": "LedgerSupport.total",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-        "line_number": 100,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "LedgerSupport.total",
-        "terminal_name": "total",
-        "receiver": "LedgerSupport",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/test_roles/test_source.java:afterSuite:98:4",
-      "span": {
-        "start_line": 100,
-        "start_column": 8,
-        "end_line": 100,
-        "end_column": 33,
-        "start_byte": 2061,
-        "end_byte": 2086
-      }
-    },
-    {
-      "pending": {
         "from_key": "fixtures/extraction/java/test_roles/test_source.java:afterTest:108:4",
         "callee_name": "LedgerSupport.total",
         "kind": "calls",
@@ -2528,58 +2052,6 @@
         "end_column": 35,
         "start_byte": 2285,
         "end_byte": 2312
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/java/test_roles/test_source.java:afterTest:108:4",
-        "callee_name": "LedgerSupport.total",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-        "line_number": 110,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "LedgerSupport.total",
-        "terminal_name": "total",
-        "receiver": "LedgerSupport",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/test_roles/test_source.java:afterTest:108:4",
-      "span": {
-        "start_line": 110,
-        "start_column": 8,
-        "end_line": 110,
-        "end_column": 35,
-        "start_byte": 2285,
-        "end_byte": 2312
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/java/test_roles/test_source.java:before:75:4",
-        "callee_name": "LedgerSupport.total",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-        "line_number": 77,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "LedgerSupport.total",
-        "terminal_name": "total",
-        "receiver": "LedgerSupport",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/test_roles/test_source.java:before:75:4",
-      "span": {
-        "start_line": 77,
-        "start_column": 8,
-        "end_line": 77,
-        "end_column": 33,
-        "start_byte": 1593,
-        "end_byte": 1618
       }
     },
     {
@@ -2636,32 +2108,6 @@
     },
     {
       "pending": {
-        "from_key": "fixtures/extraction/java/test_roles/test_source.java:beforeAll:20:4",
-        "callee_name": "LedgerSupport.total",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-        "line_number": 22,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "LedgerSupport.total",
-        "terminal_name": "total",
-        "receiver": "LedgerSupport",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/test_roles/test_source.java:beforeAll:20:4",
-      "span": {
-        "start_line": 22,
-        "start_column": 8,
-        "end_line": 22,
-        "end_column": 33,
-        "start_byte": 461,
-        "end_byte": 486
-      }
-    },
-    {
-      "pending": {
         "from_key": "fixtures/extraction/java/test_roles/test_source.java:beforeGroups:113:4",
         "callee_name": "LedgerSupport.total",
         "kind": "calls",
@@ -2684,58 +2130,6 @@
         "end_column": 35,
         "start_byte": 2403,
         "end_byte": 2430
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/java/test_roles/test_source.java:beforeGroups:113:4",
-        "callee_name": "LedgerSupport.total",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-        "line_number": 115,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "LedgerSupport.total",
-        "terminal_name": "total",
-        "receiver": "LedgerSupport",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/test_roles/test_source.java:beforeGroups:113:4",
-      "span": {
-        "start_line": 115,
-        "start_column": 8,
-        "end_line": 115,
-        "end_column": 35,
-        "start_byte": 2403,
-        "end_byte": 2430
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/java/test_roles/test_source.java:beforeMethod:123:4",
-        "callee_name": "LedgerSupport.total",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-        "line_number": 125,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "LedgerSupport.total",
-        "terminal_name": "total",
-        "receiver": "LedgerSupport",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/test_roles/test_source.java:beforeMethod:123:4",
-      "span": {
-        "start_line": 125,
-        "start_column": 8,
-        "end_line": 125,
-        "end_column": 35,
-        "start_byte": 2637,
-        "end_byte": 2664
       }
     },
     {
@@ -2792,32 +2186,6 @@
     },
     {
       "pending": {
-        "from_key": "fixtures/extraction/java/test_roles/test_source.java:beforeSuite:93:4",
-        "callee_name": "LedgerSupport.total",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-        "line_number": 95,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "LedgerSupport.total",
-        "terminal_name": "total",
-        "receiver": "LedgerSupport",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/test_roles/test_source.java:beforeSuite:93:4",
-      "span": {
-        "start_line": 95,
-        "start_column": 8,
-        "end_line": 95,
-        "end_column": 33,
-        "start_byte": 1949,
-        "end_byte": 1974
-      }
-    },
-    {
-      "pending": {
         "from_key": "fixtures/extraction/java/test_roles/test_source.java:beforeTest:103:4",
         "callee_name": "LedgerSupport.total",
         "kind": "calls",
@@ -2840,58 +2208,6 @@
         "end_column": 35,
         "start_byte": 2173,
         "end_byte": 2200
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/java/test_roles/test_source.java:beforeTest:103:4",
-        "callee_name": "LedgerSupport.total",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-        "line_number": 105,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "LedgerSupport.total",
-        "terminal_name": "total",
-        "receiver": "LedgerSupport",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/test_roles/test_source.java:beforeTest:103:4",
-      "span": {
-        "start_line": 105,
-        "start_column": 8,
-        "end_line": 105,
-        "end_column": 35,
-        "start_byte": 2173,
-        "end_byte": 2200
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/java/test_roles/test_source.java:buildsDynamicCases:45:4",
-        "callee_name": "LedgerSupport.total",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-        "line_number": 47,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "LedgerSupport.total",
-        "terminal_name": "total",
-        "receiver": "LedgerSupport",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/test_roles/test_source.java:buildsDynamicCases:45:4",
-      "span": {
-        "start_line": 47,
-        "start_column": 8,
-        "end_line": 47,
-        "end_column": 33,
-        "start_byte": 956,
-        "end_byte": 981
       }
     },
     {
@@ -2948,58 +2264,6 @@
     },
     {
       "pending": {
-        "from_key": "fixtures/extraction/java/test_roles/test_source.java:combineLegacy:147:4",
-        "callee_name": "LedgerSupport.total",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-        "line_number": 148,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "LedgerSupport.total",
-        "terminal_name": "total",
-        "receiver": "LedgerSupport",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/test_roles/test_source.java:combineLegacy:147:4",
-      "span": {
-        "start_line": 148,
-        "start_column": 8,
-        "end_line": 148,
-        "end_column": 35,
-        "start_byte": 3131,
-        "end_byte": 3158
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/java/test_roles/test_source.java:helperTotal:137:4",
-        "callee_name": "LedgerSupport.total",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-        "line_number": 138,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "LedgerSupport.total",
-        "terminal_name": "total",
-        "receiver": "LedgerSupport",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/test_roles/test_source.java:helperTotal:137:4",
-      "span": {
-        "start_line": 138,
-        "start_column": 15,
-        "end_line": 138,
-        "end_column": 42,
-        "start_byte": 2915,
-        "end_byte": 2942
-      }
-    },
-    {
-      "pending": {
         "from_key": "fixtures/extraction/java/test_roles/test_source.java:helperTotal:137:4",
         "callee_name": "LedgerSupport.total",
         "kind": "calls",
@@ -3052,58 +2316,6 @@
     },
     {
       "pending": {
-        "from_key": "fixtures/extraction/java/test_roles/test_source.java:reportsZero:67:8",
-        "callee_name": "LedgerSupport.total",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-        "line_number": 69,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "LedgerSupport.total",
-        "terminal_name": "total",
-        "receiver": "LedgerSupport",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/test_roles/test_source.java:reportsZero:67:8",
-      "span": {
-        "start_line": 69,
-        "start_column": 12,
-        "end_line": 69,
-        "end_column": 37,
-        "start_byte": 1465,
-        "end_byte": 1490
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/java/test_roles/test_source.java:reportsZero:67:8",
-        "callee_name": "LedgerSupport.total",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-        "line_number": 69,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "LedgerSupport.total",
-        "terminal_name": "total",
-        "receiver": "LedgerSupport",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/test_roles/test_source.java:reportsZero:67:8",
-      "span": {
-        "start_line": 69,
-        "start_column": 12,
-        "end_line": 69,
-        "end_column": 37,
-        "start_byte": 1465,
-        "end_byte": 1490
-      }
-    },
-    {
-      "pending": {
         "from_key": "fixtures/extraction/java/test_roles/test_source.java:runsTemplate:50:4",
         "callee_name": "LedgerSupport.total",
         "kind": "calls",
@@ -3126,58 +2338,6 @@
         "end_column": 33,
         "start_byte": 1064,
         "end_byte": 1089
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/java/test_roles/test_source.java:runsTemplate:50:4",
-        "callee_name": "LedgerSupport.total",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-        "line_number": 52,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "LedgerSupport.total",
-        "terminal_name": "total",
-        "receiver": "LedgerSupport",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/test_roles/test_source.java:runsTemplate:50:4",
-      "span": {
-        "start_line": 52,
-        "start_column": 8,
-        "end_line": 52,
-        "end_column": 33,
-        "start_byte": 1064,
-        "end_byte": 1089
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/java/test_roles/test_source.java:seed:14:4",
-        "callee_name": "LedgerSupport.total",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-        "line_number": 15,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "LedgerSupport.total",
-        "terminal_name": "total",
-        "receiver": "LedgerSupport",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/test_roles/test_source.java:seed:14:4",
-      "span": {
-        "start_line": 15,
-        "start_column": 18,
-        "end_line": 15,
-        "end_column": 43,
-        "start_byte": 298,
-        "end_byte": 323
       }
     },
     {
@@ -3235,32 +2395,6 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/java/test_roles/test_source.java:testAddsLegacy:143:4",
-        "callee_name": "LedgerSupport.total",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-        "line_number": 144,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "LedgerSupport.total",
-        "terminal_name": "total",
-        "receiver": "LedgerSupport",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/test_roles/test_source.java:testAddsLegacy:143:4",
-      "span": {
-        "start_line": 144,
-        "start_column": 24,
-        "end_line": 144,
-        "end_column": 49,
-        "start_byte": 3054,
-        "end_byte": 3079
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/java/test_roles/test_source.java:testAddsLegacy:143:4",
         "callee_name": "assertEquals",
         "kind": "calls",
         "file_path": "fixtures/extraction/java/test_roles/test_source.java",
@@ -3282,58 +2416,6 @@
         "end_column": 50,
         "start_byte": 3038,
         "end_byte": 3080
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/java/test_roles/test_source.java:testAddsLegacy:143:4",
-        "callee_name": "assertEquals",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-        "line_number": 144,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "assertEquals",
-        "terminal_name": "assertEquals",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/test_roles/test_source.java:testAddsLegacy:143:4",
-      "span": {
-        "start_line": 144,
-        "start_column": 8,
-        "end_line": 144,
-        "end_column": 50,
-        "start_byte": 3038,
-        "end_byte": 3080
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/java/test_roles/test_source.java:testDataForLedger:153:4",
-        "callee_name": "LedgerSupport.total",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-        "line_number": 154,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "LedgerSupport.total",
-        "terminal_name": "total",
-        "receiver": "LedgerSupport",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/test_roles/test_source.java:testDataForLedger:153:4",
-      "span": {
-        "start_line": 154,
-        "start_column": 8,
-        "end_line": 154,
-        "end_column": 35,
-        "start_byte": 3241,
-        "end_byte": 3268
       }
     },
     {

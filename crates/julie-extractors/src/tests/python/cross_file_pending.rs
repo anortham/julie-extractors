@@ -83,6 +83,8 @@ class Caller:
         Helper.process()
         self.repo.save()
         self.method()
+        self.run()
+        client.self.run()
 "#;
     let workspace_root = Path::new("/tmp/test");
     let result = extract_canonical("caller.py", source, workspace_root)
@@ -114,4 +116,46 @@ class Caller:
     assert_eq!(self_call.target.receiver.as_deref(), Some("self"));
     assert!(self_call.target.namespace_path.is_empty());
     assert_eq!(self_call.receiver_type.as_deref(), Some("Caller"));
+
+    let expression_chain = pending("run");
+    assert_eq!(expression_chain.target.receiver.as_deref(), Some("self"));
+    assert_eq!(expression_chain.target.namespace_path, vec!["client"]);
+    assert_eq!(expression_chain.target.display_name, "client.self.run");
+    assert_eq!(result.relationships.len(), 1);
+}
+
+#[test]
+fn test_python_qualified_unicode_chain_keeps_receiver_and_namespace() {
+    let source = "\nclass Caller:\n    def run(self):\n        café.re\u{301}po.save()\n";
+    let result = extract_canonical("caller.py", source, Path::new("/tmp/test"))
+        .expect("canonical Python extraction must succeed");
+
+    let target = result
+        .structured_pending_relationships
+        .iter()
+        .find(|pending| pending.target.terminal_name == "save")
+        .map(|pending| &pending.target)
+        .unwrap_or_else(|| panic!("unicode-qualified call must be a pending target"));
+
+    assert_eq!(target.receiver.as_deref(), Some("re\u{301}po"));
+    assert_eq!(target.namespace_path, vec!["café"]);
+    assert_eq!(target.display_name, "café.re\u{301}po.save");
+}
+
+#[test]
+fn test_python_qualified_underscore_chain_keeps_receiver_and_namespace() {
+    let source = "\nclass Caller:\n    def run(self):\n        _outer.inner.save()\n";
+    let result = extract_canonical("caller.py", source, Path::new("/tmp/test"))
+        .expect("canonical Python extraction must succeed");
+
+    let target = result
+        .structured_pending_relationships
+        .iter()
+        .find(|pending| pending.target.terminal_name == "save")
+        .map(|pending| &pending.target)
+        .unwrap_or_else(|| panic!("underscore-qualified call must be a pending target"));
+
+    assert_eq!(target.receiver.as_deref(), Some("inner"));
+    assert_eq!(target.namespace_path, vec!["_outer"]);
+    assert_eq!(target.display_name, "_outer.inner.save");
 }

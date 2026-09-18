@@ -80,6 +80,7 @@ toml = "1.1.2"
 md5 = "0.7"
 regex = "1.11"
 anyhow = "1.0"
+unicode-ident = "1.0"
 
 # Logging (for debug/warn macros)
 tracing = "0.1"

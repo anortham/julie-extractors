@@ -194,6 +194,13 @@ impl JavaExtractor {
     /// Extract relationships from Java code
     pub fn extract_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {
         let mut relationships = Vec::new();
+        relationships::extract_call_relationships(
+            self,
+            tree.root_node(),
+            symbols,
+            &mut relationships,
+            0,
+        );
         self.visit_node_for_relationships(tree.root_node(), symbols, &mut relationships, 0);
         dedupe_relationships(&mut relationships);
         relationships
@@ -220,24 +227,6 @@ impl JavaExtractor {
                     node,
                     symbols,
                     relationships,
-                );
-                // Also extract method calls from within this type
-                relationships::extract_call_relationships(
-                    self,
-                    node,
-                    symbols,
-                    relationships,
-                    depth,
-                );
-            }
-            "method_declaration" | "constructor_declaration" => {
-                // Extract method calls from within this method/constructor
-                relationships::extract_call_relationships(
-                    self,
-                    node,
-                    symbols,
-                    relationships,
-                    depth,
                 );
             }
             _ => {}

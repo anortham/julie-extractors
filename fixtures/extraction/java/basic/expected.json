@@ -1568,22 +1568,6 @@
     },
     {
       "from_key": "fixtures/extraction/java/basic/source.java:auditViaQualifiedCall:84:4",
-      "callee_name": "fixture.Worker.evaluate",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/basic/source.java",
-      "line_number": 85,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/java/basic/source.java:auditViaQualifiedCall:84:4",
-      "callee_name": "fixture.Worker.observeRun",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/basic/source.java",
-      "line_number": 86,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/java/basic/source.java:auditViaQualifiedCall:84:4",
       "callee_name": "fixture.Worker.observeRun",
       "kind": "calls",
       "file_path": "fixtures/extraction/java/basic/source.java",
@@ -1596,22 +1580,6 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/java/basic/source.java",
       "line_number": 111,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/java/basic/source.java:combine:109:4",
-      "callee_name": "sum.apply",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/basic/source.java",
-      "line_number": 111,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/java/basic/source.java:consume:89:4",
-      "callee_name": "bound.run",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/basic/source.java",
-      "line_number": 92,
       "confidence": "0.700"
     },
     {
@@ -1632,22 +1600,6 @@
     },
     {
       "from_key": "fixtures/extraction/java/basic/source.java:observeAsync:40:4",
-      "callee_name": "task.run",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/basic/source.java",
-      "line_number": 42,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/java/basic/source.java:observeAsync:40:4",
-      "callee_name": "wrapped.run",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/basic/source.java",
-      "line_number": 43,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/java/basic/source.java:observeAsync:40:4",
       "callee_name": "wrapped.run",
       "kind": "calls",
       "file_path": "fixtures/extraction/java/basic/source.java",
@@ -1660,22 +1612,6 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/java/basic/source.java",
       "line_number": 31,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/java/basic/source.java:readConfig:29:4",
-      "callee_name": "stream.close",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/basic/source.java",
-      "line_number": 31,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/java/basic/source.java:run:104:4",
-      "callee_name": "run",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/basic/source.java",
-      "line_number": 106,
       "confidence": "0.700"
     },
     {
@@ -1719,62 +1655,6 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/java/basic/source.java:auditViaQualifiedCall:84:4",
-        "callee_name": "fixture.Worker.evaluate",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/basic/source.java",
-        "line_number": 85,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "fixture.Worker.evaluate",
-        "terminal_name": "evaluate",
-        "receiver": "Worker",
-        "namespace_path": [
-          "fixture"
-        ],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/basic/source.java:auditViaQualifiedCall:84:4",
-      "span": {
-        "start_line": 85,
-        "start_column": 21,
-        "end_line": 85,
-        "end_column": 53,
-        "start_byte": 1933,
-        "end_byte": 1965
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/java/basic/source.java:auditViaQualifiedCall:84:4",
-        "callee_name": "fixture.Worker.observeRun",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/basic/source.java",
-        "line_number": 86,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "fixture.Worker.observeRun",
-        "terminal_name": "observeRun",
-        "receiver": "Worker",
-        "namespace_path": [
-          "fixture"
-        ],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/basic/source.java:auditViaQualifiedCall:84:4",
-      "span": {
-        "start_line": 86,
-        "start_column": 8,
-        "end_line": 86,
-        "end_column": 60,
-        "start_byte": 1975,
-        "end_byte": 2027
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/java/basic/source.java:auditViaQualifiedCall:84:4",
         "callee_name": "fixture.Worker.observeRun",
         "kind": "calls",
         "file_path": "fixtures/extraction/java/basic/source.java",
@@ -1824,58 +1704,6 @@
         "end_column": 23,
         "start_byte": 2516,
         "end_byte": 2531
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/java/basic/source.java:combine:109:4",
-        "callee_name": "sum.apply",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/basic/source.java",
-        "line_number": 111,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "sum.apply",
-        "terminal_name": "apply",
-        "receiver": "sum",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/basic/source.java:combine:109:4",
-      "span": {
-        "start_line": 111,
-        "start_column": 8,
-        "end_line": 111,
-        "end_column": 23,
-        "start_byte": 2516,
-        "end_byte": 2531
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/java/basic/source.java:consume:89:4",
-        "callee_name": "bound.run",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/basic/source.java",
-        "line_number": 92,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "bound.run",
-        "terminal_name": "run",
-        "receiver": "bound",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/basic/source.java:consume:89:4",
-      "span": {
-        "start_line": 92,
-        "start_column": 16,
-        "end_line": 92,
-        "end_column": 27,
-        "start_byte": 2161,
-        "end_byte": 2172
       }
     },
     {
@@ -1933,58 +1761,6 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/java/basic/source.java:observeAsync:40:4",
-        "callee_name": "task.run",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/basic/source.java",
-        "line_number": 42,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "task.run",
-        "terminal_name": "run",
-        "receiver": "task",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/basic/source.java:observeAsync:40:4",
-      "span": {
-        "start_line": 42,
-        "start_column": 33,
-        "end_line": 42,
-        "end_column": 43,
-        "start_byte": 822,
-        "end_byte": 832
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/java/basic/source.java:observeAsync:40:4",
-        "callee_name": "wrapped.run",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/basic/source.java",
-        "line_number": 43,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "wrapped.run",
-        "terminal_name": "run",
-        "receiver": "wrapped",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/basic/source.java:observeAsync:40:4",
-      "span": {
-        "start_line": 43,
-        "start_column": 8,
-        "end_line": 43,
-        "end_column": 21,
-        "start_byte": 842,
-        "end_byte": 855
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/java/basic/source.java:observeAsync:40:4",
         "callee_name": "wrapped.run",
         "kind": "calls",
         "file_path": "fixtures/extraction/java/basic/source.java",
@@ -2033,59 +1809,6 @@
         "start_byte": 557,
         "end_byte": 571
       }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/java/basic/source.java:readConfig:29:4",
-        "callee_name": "stream.close",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/basic/source.java",
-        "line_number": 31,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "stream.close",
-        "terminal_name": "close",
-        "receiver": "stream",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/basic/source.java:readConfig:29:4",
-      "span": {
-        "start_line": 31,
-        "start_column": 12,
-        "end_line": 31,
-        "end_column": 26,
-        "start_byte": 557,
-        "end_byte": 571
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/java/basic/source.java:run:104:4",
-        "callee_name": "run",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/basic/source.java",
-        "line_number": 106,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "run",
-        "terminal_name": "run",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/basic/source.java:run:104:4",
-      "span": {
-        "start_line": 106,
-        "start_column": 15,
-        "end_line": 106,
-        "end_column": 26,
-        "start_byte": 2372,
-        "end_byte": 2383
-      },
-      "receiver_type": "Worker"
     },
     {
       "pending": {

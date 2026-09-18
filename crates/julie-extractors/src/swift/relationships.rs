@@ -375,11 +375,16 @@ impl SwiftExtractor {
         let line_number = node.start_position().row as u32 + 1;
         let file_path = self.base.file_path.clone();
 
-        match symbol_index.resolve_call_target(
-            function_name.as_str(),
-            Some(caller),
-            target.receiver.as_deref(),
-        ) {
+        let resolution = if target.namespace_path.is_empty() {
+            symbol_index.resolve_call_target(
+                function_name.as_str(),
+                Some(caller),
+                target.receiver.as_deref(),
+            )
+        } else {
+            LocalTargetResolution::Missing
+        };
+        match resolution {
             LocalTargetResolution::Resolved(called_symbol) => {
                 relationships.push(Relationship {
                     id: format!(
@@ -431,17 +436,33 @@ impl SwiftExtractor {
             let receiver = receiver.trim();
             let terminal_name = terminal_name.trim();
             if !receiver.is_empty() && !terminal_name.is_empty() {
-                return UnresolvedTarget::from_qualified_text(
+                if let Some(target) = UnresolvedTarget::from_qualified_text(
                     &format!("{receiver}.{terminal_name}"),
                     &["."],
-                )
-                .unwrap_or_else(|| UnresolvedTarget {
+                ) {
+                    return target;
+                }
+                let mut parts = receiver
+                    .split('.')
+                    .map(str::trim)
+                    .map(str::to_string)
+                    .collect::<Vec<_>>();
+                if parts.iter().all(|part| {
+                    part.strip_prefix('`')
+                        .and_then(|part| part.strip_suffix('`'))
+                        .is_some_and(|part| !part.is_empty())
+                        || UnresolvedTarget::from_qualified_text(part, &["."]).is_some()
+                }) {
+                    parts.push(terminal_name.to_string());
+                    return UnresolvedTarget::from_chain(parts);
+                }
+                return UnresolvedTarget {
                     display_name: format!("{receiver}.{terminal_name}"),
                     terminal_name: terminal_name.to_string(),
                     receiver: Some(receiver.to_string()),
                     namespace_path: Vec::new(),
                     import_context: None,
-                });
+                };
             }
         }
 

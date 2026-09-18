@@ -72,6 +72,10 @@ class Caller {
     func run() {
         Outer.Inner.chain()
         Helper.process()
+        Outer.Inner.`backtickMethod`()
+        Outer.`Inner`.escapedReceiver()
+        self.run()
+        client.self.run()
     }
 }
 "#;
@@ -95,4 +99,26 @@ class Caller {
     assert_eq!(two_part.receiver.as_deref(), Some("Helper"));
     assert!(two_part.namespace_path.is_empty());
     assert_eq!(two_part.display_name, "Helper.process");
+
+    let escaped_terminal = &pending("`backtickMethod`").target;
+    assert_eq!(escaped_terminal.receiver.as_deref(), Some("Inner"));
+    assert_eq!(escaped_terminal.namespace_path, vec!["Outer"]);
+    assert_eq!(
+        escaped_terminal.display_name,
+        "Outer.Inner.`backtickMethod`"
+    );
+
+    let escaped_receiver = &pending("escapedReceiver").target;
+    assert_eq!(escaped_receiver.receiver.as_deref(), Some("`Inner`"));
+    assert_eq!(escaped_receiver.namespace_path, vec!["Outer"]);
+    assert_eq!(
+        escaped_receiver.display_name,
+        "Outer.`Inner`.escapedReceiver"
+    );
+
+    let expression_chain = &pending("run").target;
+    assert_eq!(expression_chain.receiver.as_deref(), Some("self"));
+    assert_eq!(expression_chain.namespace_path, vec!["client"]);
+    assert_eq!(expression_chain.display_name, "client.self.run");
+    assert_eq!(result.relationships.len(), 1);
 }

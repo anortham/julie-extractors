@@ -87,8 +87,12 @@ fn is_plain_identifier(text: &str) -> bool {
     let Some(first) = chars.next() else {
         return false;
     };
-    let is_identifier_char = |c: char| c.is_ascii_alphanumeric() || matches!(c, '_' | '$' | '@');
-    is_identifier_char(first) && chars.all(is_identifier_char)
+    let is_identifier_start = |c: char| {
+        c.is_ascii_digit() || unicode_ident::is_xid_start(c) || matches!(c, '_' | '$' | '@')
+    };
+    let is_identifier_continue =
+        |c: char| unicode_ident::is_xid_continue(c) || matches!(c, '$' | '@');
+    is_identifier_start(first) && chars.all(is_identifier_continue)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
