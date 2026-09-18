@@ -98,8 +98,9 @@ records `target_terminal_name = t`, `target_receiver = Qn`, and `target_namespac
 its own split: Ruby kept `Net::HTTP` whole in the receiver, C++ kept `->` in the display name, Java,
 C++, PowerShell, and Zig dropped the qualifiers or emitted no row, and C# recorded the receiver as
 the terminal name. Eighteen languages change (C#, Java, Kotlin, Go, PowerShell, C++, Zig,
-JavaScript, TypeScript, Python, Swift, Dart, Lua, GDScript, C, PHP, Ruby, R); Scala, VB.NET, Rust,
-Elixir, F#, and Erlang already matched. The Java fixture also loses two resolved `relationships`
+JavaScript, TypeScript, Python, Swift, Dart, Lua, GDScript, C, PHP, Ruby, R); Scala and VB.NET already
+matched. Rust, Elixir, F#, and Erlang are unchanged: they record a path-style call with every
+qualifier in `target_namespace_json` and an empty `target_receiver`. The Java fixture also loses two resolved `relationships`
 rows for `fixture.Worker.evaluate` and `fixture.Worker.observeRun`, which now surface as pending
 rows with receiver `Worker` and namespace `["fixture"]`.
 
