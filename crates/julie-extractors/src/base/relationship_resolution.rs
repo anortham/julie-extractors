@@ -44,6 +44,51 @@ impl UnresolvedTarget {
             import_context: None,
         }
     }
+
+    /// Builds the target for a qualified chain `Q1.Q2 ... Qn.t`: the last part
+    /// is the terminal name, the part before it the receiver, and the rest the
+    /// namespace path. One part or none behaves like [`Self::simple`].
+    pub fn from_chain(mut parts: Vec<String>) -> Self {
+        if parts.len() < 2 {
+            return Self::simple(parts.pop().unwrap_or_default());
+        }
+        let display_name = parts.join(".");
+        let terminal_name = parts.pop().unwrap_or_default();
+        let receiver = parts.pop();
+        Self {
+            display_name,
+            terminal_name,
+            receiver,
+            namespace_path: parts,
+            import_context: None,
+        }
+    }
+
+    /// Splits `text` on every separator and builds the chain target. Returns
+    /// `None` when any trimmed part is empty or is not a plain identifier.
+    pub fn from_qualified_text(text: &str, separators: &[&str]) -> Option<Self> {
+        let mut parts = vec![text.trim().to_string()];
+        for separator in separators {
+            parts = parts
+                .iter()
+                .flat_map(|part| part.split(separator).map(|piece| piece.trim().to_string()))
+                .collect();
+        }
+        if parts.iter().all(|part| is_plain_identifier(part)) {
+            Some(Self::from_chain(parts))
+        } else {
+            None
+        }
+    }
+}
+
+fn is_plain_identifier(text: &str) -> bool {
+    let mut chars = text.chars();
+    let Some(first) = chars.next() else {
+        return false;
+    };
+    let is_identifier_char = |c: char| c.is_ascii_alphanumeric() || matches!(c, '_' | '$' | '@');
+    is_identifier_char(first) && chars.all(is_identifier_char)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -297,4 +342,108 @@ fn is_callable_or_import(kind: &SymbolKind) -> bool {
         kind,
         SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor | SymbolKind::Import
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::UnresolvedTarget;
+
+    fn parts(items: &[&str]) -> Vec<String> {
+        items.iter().map(|item| item.to_string()).collect()
+    }
+
+    #[test]
+    fn from_chain_with_three_parts_keeps_receiver_and_namespace() {
+        let target = UnresolvedTarget::from_chain(parts(&["Outer", "Inner", "Method"]));
+
+        assert_eq!(target.terminal_name, "Method");
+        assert_eq!(target.receiver.as_deref(), Some("Inner"));
+        assert_eq!(target.namespace_path, parts(&["Outer"]));
+        assert_eq!(target.display_name, "Outer.Inner.Method");
+        assert_eq!(target.import_context, None);
+    }
+
+    #[test]
+    fn from_chain_with_two_parts_has_empty_namespace() {
+        let target = UnresolvedTarget::from_chain(parts(&["Helper", "Process"]));
+
+        assert_eq!(target.terminal_name, "Process");
+        assert_eq!(target.receiver.as_deref(), Some("Helper"));
+        assert!(target.namespace_path.is_empty());
+        assert_eq!(target.display_name, "Helper.Process");
+    }
+
+    #[test]
+    fn from_chain_with_one_part_is_simple() {
+        assert_eq!(
+            UnresolvedTarget::from_chain(parts(&["Run"])),
+            UnresolvedTarget::simple("Run")
+        );
+    }
+
+    #[test]
+    fn from_chain_with_no_parts_is_empty_simple() {
+        assert_eq!(
+            UnresolvedTarget::from_chain(Vec::new()),
+            UnresolvedTarget::simple("")
+        );
+    }
+
+    #[test]
+    fn from_qualified_text_splits_on_dot() {
+        let target = UnresolvedTarget::from_qualified_text("Outer.Inner", &["."]).unwrap();
+
+        assert_eq!(target.terminal_name, "Inner");
+        assert_eq!(target.receiver.as_deref(), Some("Outer"));
+        assert!(target.namespace_path.is_empty());
+        assert_eq!(target.display_name, "Outer.Inner");
+    }
+
+    #[test]
+    fn from_qualified_text_splits_on_every_separator() {
+        let target = UnresolvedTarget::from_qualified_text("a::b->c", &["::", "->"]).unwrap();
+
+        assert_eq!(target.terminal_name, "c");
+        assert_eq!(target.receiver.as_deref(), Some("b"));
+        assert_eq!(target.namespace_path, parts(&["a"]));
+        assert_eq!(target.display_name, "a.b.c");
+    }
+
+    #[test]
+    fn from_qualified_text_trims_parts() {
+        let target = UnresolvedTarget::from_qualified_text("Outer . Inner", &["."]).unwrap();
+
+        assert_eq!(target.display_name, "Outer.Inner");
+    }
+
+    #[test]
+    fn from_qualified_text_rejects_call_syntax() {
+        assert_eq!(
+            UnresolvedTarget::from_qualified_text("foo().bar", &["."]),
+            None
+        );
+    }
+
+    #[test]
+    fn from_qualified_text_rejects_empty_part() {
+        assert_eq!(UnresolvedTarget::from_qualified_text("a..b", &["."]), None);
+        assert_eq!(UnresolvedTarget::from_qualified_text("", &["."]), None);
+    }
+
+    #[test]
+    fn from_qualified_text_keeps_leading_dollar() {
+        let target = UnresolvedTarget::from_qualified_text("$outer.inner", &["."]).unwrap();
+
+        assert_eq!(target.terminal_name, "inner");
+        assert_eq!(target.receiver.as_deref(), Some("$outer"));
+        assert_eq!(target.display_name, "$outer.inner");
+    }
+
+    #[test]
+    fn from_qualified_text_single_identifier_is_simple() {
+        assert_eq!(
+            UnresolvedTarget::from_qualified_text("Run", &["."]),
+            Some(UnresolvedTarget::simple("Run"))
+        );
+    }
 }

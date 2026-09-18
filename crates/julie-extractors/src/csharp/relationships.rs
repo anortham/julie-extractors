@@ -587,33 +587,43 @@ fn unresolved_call_target_at_depth(
         }
     }
 
-    let mut identifiers = Vec::new();
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        if child.kind() == "identifier" {
-            identifiers.push(extractor.get_base().get_node_text(&child));
-        }
-    }
-
-    if identifiers.len() >= 2 {
-        let terminal_name = identifiers
-            .pop()
-            .unwrap_or_else(|| fallback_name.to_string());
-        let receiver = identifiers.pop();
-        let namespace_path = identifiers;
-        let mut display_parts = namespace_path.clone();
-        if let Some(receiver_name) = receiver.as_ref() {
-            display_parts.push(receiver_name.clone());
-        }
-        display_parts.push(terminal_name.clone());
-        return UnresolvedTarget {
-            display_name: display_parts.join("."),
-            terminal_name,
-            receiver,
-            namespace_path,
-            import_context: None,
-        };
+    let mut parts = Vec::new();
+    collect_chain_parts(extractor, node, depth, &mut parts);
+    if parts.len() >= 2 {
+        return UnresolvedTarget::from_chain(parts);
     }
 
     UnresolvedTarget::simple(fallback_name.to_string())
+}
+
+fn collect_chain_parts(
+    extractor: &CSharpExtractor,
+    node: tree_sitter::Node,
+    depth: u32,
+    parts: &mut Vec<String>,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+    let base = extractor.get_base();
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        match child.kind() {
+            "member_access_expression" => collect_chain_parts(extractor, child, child_depth, parts),
+            "identifier" => parts.push(base.get_node_text(&child)),
+            "generic_name" => {
+                let mut generic_cursor = child.walk();
+                if let Some(name) = child
+                    .children(&mut generic_cursor)
+                    .find(|part| part.kind() == "identifier")
+                {
+                    parts.push(base.get_node_text(&name));
+                }
+            }
+            _ => {}
+        }
+    }
 }

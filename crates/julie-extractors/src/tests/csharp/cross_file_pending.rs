@@ -73,3 +73,51 @@ fn test_csharp_negative_local_helper_not_emitted_as_pending() {
     );
     assert!(!local_helper_id.is_empty());
 }
+
+#[test]
+fn test_csharp_qualified_call_chain_keeps_receiver_and_namespace() {
+    let source = r#"
+class Caller
+{
+    void Run()
+    {
+        EmailSettingQueryRepository.EmailSettingPlaceholderGenerators.AnnualAttestationNotification("u", "n");
+        Helper.Process();
+    }
+}
+"#;
+    let workspace_root = Path::new("/tmp/test");
+    let result = extract_canonical("Caller.cs", source, workspace_root)
+        .expect("canonical C# extraction must succeed");
+
+    let chain: Vec<_> = result
+        .structured_pending_relationships
+        .iter()
+        .filter(|p| p.target.terminal_name == "AnnualAttestationNotification")
+        .collect();
+    assert_eq!(
+        chain.len(),
+        1,
+        "expected exactly one pending target for the chained call; got: {:#?}",
+        result.structured_pending_relationships
+    );
+    let chain = &chain[0].target;
+    assert_eq!(
+        chain.receiver.as_deref(),
+        Some("EmailSettingPlaceholderGenerators")
+    );
+    assert_eq!(chain.namespace_path, vec!["EmailSettingQueryRepository"]);
+    assert_eq!(
+        chain.display_name,
+        "EmailSettingQueryRepository.EmailSettingPlaceholderGenerators.AnnualAttestationNotification"
+    );
+
+    let two_part = result
+        .structured_pending_relationships
+        .iter()
+        .find(|p| p.target.terminal_name == "Process")
+        .expect("Helper.Process must stay a pending target");
+    assert_eq!(two_part.target.receiver.as_deref(), Some("Helper"));
+    assert!(two_part.target.namespace_path.is_empty());
+    assert_eq!(two_part.target.display_name, "Helper.Process");
+}
