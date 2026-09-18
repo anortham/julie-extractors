@@ -27,7 +27,7 @@ const FIXTURES: &[LevelFixture] = &[
     LevelFixture {
         language: "rust",
         file_path: "src/lib.rs",
-        source: "// comment\n/// docs\npub fn alpha() { helper(\"hello\"); }\npub fn helper(v: &str) -> &str { v }\n",
+        source: "// comment\n/// docs\n#[derive(Debug)]\npub struct Alpha;\npub fn alpha() { helper(\"hello\"); }\npub fn helper(v: &str) -> &str { v }\n",
     },
     LevelFixture {
         language: "sql",
@@ -79,7 +79,7 @@ fn symbols_level_never_carries_gated_families_for_any_fixture_language() {
 }
 
 #[test]
-fn symbols_level_keeps_symbols_relationships_and_complexity_identical_to_full() {
+fn symbols_level_keeps_symbols_and_relationships_identical_to_full() {
     for fixture in FIXTURES {
         let full = extract_at(ExtractionLevel::Full, fixture.file_path, fixture.source);
         let symbols = extract_at(ExtractionLevel::Symbols, fixture.file_path, fixture.source);
@@ -99,12 +99,6 @@ fn symbols_level_keeps_symbols_relationships_and_complexity_identical_to_full() 
             full.pending_relationships.len(),
             symbols.pending_relationships.len(),
             "{}: pending relationships must be identical across levels",
-            fixture.language
-        );
-        assert_eq!(
-            full.complexity_metrics.len(),
-            symbols.complexity_metrics.len(),
-            "{}: complexity metrics must be identical across levels",
             fixture.language
         );
         assert_eq!(
@@ -155,7 +149,6 @@ fn strip_to_level_is_the_single_authority_on_the_gated_set() {
     let mut results = extract_at(ExtractionLevel::Full, fixture.file_path, fixture.source);
     let kept_symbols = results.symbols.len();
     let kept_relationships = results.relationships.len();
-    let kept_complexity = results.complexity_metrics.len();
     results.strip_to_level(ExtractionLevel::Symbols);
     assert!(results.identifiers.is_empty());
     assert!(results.literals.is_empty());
@@ -164,7 +157,7 @@ fn strip_to_level_is_the_single_authority_on_the_gated_set() {
     assert!(results.structural_facts.is_empty());
     assert_eq!(results.symbols.len(), kept_symbols);
     assert_eq!(results.relationships.len(), kept_relationships);
-    assert_eq!(results.complexity_metrics.len(), kept_complexity);
+    assert!(results.complexity_metrics.is_empty());
 }
 
 #[test]
@@ -250,5 +243,50 @@ fn facts_level_round_trips_through_its_metadata_value() {
     assert_eq!(
         ExtractionLevel::from_metadata_value("facts"),
         Some(ExtractionLevel::Facts)
+    );
+}
+
+fn annotation_count(results: &crate::ExtractionResults) -> usize {
+    results
+        .symbols
+        .iter()
+        .map(|symbol| symbol.annotations.len())
+        .sum()
+}
+
+#[test]
+fn only_full_level_carries_complexity_metrics_and_symbol_annotations() {
+    for fixture in FIXTURES {
+        for level in [ExtractionLevel::Symbols, ExtractionLevel::Facts] {
+            let results = extract_at(level, fixture.file_path, fixture.source);
+            assert!(
+                results.complexity_metrics.is_empty(),
+                "{}: complexity metrics must be empty below full level",
+                fixture.language
+            );
+            assert_eq!(
+                annotation_count(&results),
+                0,
+                "{}: symbol annotations must be empty below full level",
+                fixture.language
+            );
+        }
+    }
+}
+
+#[test]
+fn full_level_fixtures_actually_carry_complexity_metrics_and_symbol_annotations() {
+    let mut saw_complexity = false;
+    let mut saw_annotations = false;
+    for fixture in FIXTURES {
+        let full = extract_at(ExtractionLevel::Full, fixture.file_path, fixture.source);
+        saw_complexity |= !full.complexity_metrics.is_empty();
+        saw_annotations |= annotation_count(&full) > 0;
+    }
+    assert!(
+        saw_complexity && saw_annotations,
+        "the fixtures must produce complexity metrics and symbol annotations at full level, \
+         or the lower-level emptiness assertions are vacuous \
+         (complexity={saw_complexity}, annotations={saw_annotations})"
     );
 }

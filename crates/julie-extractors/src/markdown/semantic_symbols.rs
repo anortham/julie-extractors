@@ -1,8 +1,6 @@
 use crate::base::{
-    BaseExtractor, NormalizedSpan, Symbol, SymbolKind, SymbolOptions, TestRole,
-    containing_symbol_at_line,
+    BaseExtractor, NormalizedSpan, Symbol, SymbolKind, SymbolOptions, containing_symbol_at_line,
 };
-use crate::test_detection::apply_test_role;
 use regex::Regex;
 use serde_json::{Value, json};
 use std::collections::HashMap;
@@ -55,10 +53,6 @@ fn extract_fenced_code_block(
     if let Some(language) = &language {
         metadata.insert("language".to_string(), json!(language));
     }
-    if is_rustdoc_test_case(info_string.as_deref()) {
-        apply_test_role(&mut metadata, TestRole::TestCase);
-    }
-
     let name = language
         .as_ref()
         .map(|language| format!("{language} code block"))
@@ -77,28 +71,6 @@ fn extract_fenced_code_block(
             annotations: Vec::new(),
         },
     ))
-}
-
-fn is_rustdoc_test_case(info_string: Option<&str>) -> bool {
-    let Some(info) = info_string else {
-        return true;
-    };
-
-    let tokens: Vec<_> = info
-        .split(|character: char| character == ',' || character.is_whitespace())
-        .filter(|token| !token.is_empty())
-        .collect();
-    if tokens.is_empty() || tokens.contains(&"ignore") {
-        return false;
-    }
-
-    if tokens[0] == "rust" {
-        return true;
-    }
-
-    tokens
-        .iter()
-        .all(|token| matches!(*token, "no_run" | "compile_fail"))
 }
 
 fn extract_inline_link(

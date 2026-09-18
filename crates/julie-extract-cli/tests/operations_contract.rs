@@ -3132,16 +3132,16 @@ const SYMBOLS_LEVEL_GATED_DOMAINS: &[&str] = &[
     "type_arguments",
     "source_regions",
     "structural_facts",
+    "symbol_annotations",
+    "complexity_metrics",
 ];
 
 const SYMBOLS_LEVEL_KEPT_DOMAINS: &[&str] = &[
     "files",
     "symbols",
-    "symbol_annotations",
     "relationships",
     "pending_relationships",
     "type_facts",
-    "complexity_metrics",
     "parse_diagnostics",
 ];
 
@@ -4223,7 +4223,16 @@ fn scan_level_facts_keeps_facts_literals_and_type_and_member_identifiers() {
         )
         .unwrap();
     assert_eq!(other_kinds, 0);
-    for domain in ["type_argument_usages", "source_regions"] {
+    assert!(
+        table_count(&full_db, "complexity_metrics") > 0,
+        "fixture must yield complexity metrics at full level"
+    );
+    for domain in [
+        "type_argument_usages",
+        "source_regions",
+        "complexity_metrics",
+        "symbol_annotations",
+    ] {
         assert_eq!(
             table_count(&facts_db, domain),
             0,

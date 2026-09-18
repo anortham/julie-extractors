@@ -88,6 +88,25 @@ In CI, the `Extractor Compatibility` job downloads the latest published release 
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
+## 3.1.0
+
+classification: compatible
+
+Three tables change. First, `symbols`: a fenced code block in a standalone markdown file no longer
+carries the rustdoc test rule. Blocks with no info string, `rust`, `rust,no_run`, or
+`rust,compile_fail` previously set `is_test = 1` and `metadata_json.test_role = "test_case"`.
+They now carry neither, and markdown emits no test roles at all. Second, `language_capabilities`:
+the markdown row moves `test_case` out of `kind_coverage.test_detection.supported` and into
+`not_applicable`, which is the same change stated as a capability claim. Third,
+`symbol_annotations` and `complexity_metrics`: both tables are written only at `--level full`. A
+`symbols` or `facts` scan leaves them empty; a `full` scan of non-markdown source is otherwise
+byte-identical to 3.0.0.
+
+Nothing in the schema changes and no reader breaks: a reader that counted markdown code blocks as
+tests now sees fewer test symbols, and a reader that needs annotations or complexity metrics scans
+at `full`. Consumers that already hold an artifact must rebuild it rather than rescan, because an
+unchanged file keeps its stored rows.
+
 ## 3.0.0
 
 classification: compatible

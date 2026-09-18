@@ -903,21 +903,23 @@ pub fn extract_for_language_at(
         results.structural_facts.extend(extractor_structural_facts);
         sort_structural_facts(&mut results.structural_facts);
     }
-    results.complexity_metrics = match language {
-        "vue" => results.complexity_metrics,
-        "sql" => crate::sql::complexity_metrics::collect_complexity_metrics(
-            tree,
-            content,
-            file_path,
-            &results.symbols,
-        ),
-        "regex" => crate::regex::complexity_metrics::collect_complexity_metrics(
-            tree,
-            file_path,
-            &results.symbols,
-        ),
-        _ => collect_complexity_metrics(language, tree, content, file_path, &results.symbols),
-    };
+    if level.includes_complexity_and_annotations() {
+        results.complexity_metrics = match language {
+            "vue" => std::mem::take(&mut results.complexity_metrics),
+            "sql" => crate::sql::complexity_metrics::collect_complexity_metrics(
+                tree,
+                content,
+                file_path,
+                &results.symbols,
+            ),
+            "regex" => crate::regex::complexity_metrics::collect_complexity_metrics(
+                tree,
+                file_path,
+                &results.symbols,
+            ),
+            _ => collect_complexity_metrics(language, tree, content, file_path, &results.symbols),
+        };
+    }
     if let Some(diagnostic) = depth_truncation_diagnostic(tree.root_node()) {
         results.parse_diagnostics.push(diagnostic);
     }

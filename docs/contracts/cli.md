@@ -156,15 +156,16 @@ progressive-indexing symbol core: the identifier walks and text/facts collectors
 never run, so `identifiers`, `literals`, `type_argument_usages`,
 `type_arguments`, `source_regions`, and `structural_facts` stay empty,
 uniformly across every supported language, while `files`, `symbols`,
-`symbol_annotations`, `relationships`, `pending_relationships`, `type_facts`,
-`complexity_metrics`, and `parse_diagnostics` are identical to a full
+`relationships`, `pending_relationships`, `type_facts`, and
+`parse_diagnostics` are identical to a full
 extraction. `facts` is the symbol core plus `structural_facts` and `literals`,
 identical to a full extraction's, plus the `identifiers` rows of kinds
 `type_usage` and `member_access` only. It exists for consumers such as
 `code-kb` that query framework facts and type or member references but never
 read variable references, call identifiers, or text regions; `call` and
 `variable_ref` identifiers, `type_argument_usages`, `type_arguments`, and
-`source_regions` stay empty. The chosen level is recorded in the `index_level` artifact-metadata
+`source_regions` stay empty. `symbol_annotations` and `complexity_metrics`
+are written only at `full`, and stay empty at `symbols` and `facts`. The chosen level is recorded in the `index_level` artifact-metadata
 key and in `artifact.index_level` on every report.
 
 An artifact's level is fixed when it is first built. A rescan or `update`

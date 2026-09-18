@@ -564,6 +564,12 @@ impl ExtractionLevel {
         matches!(self, ExtractionLevel::Facts | ExtractionLevel::Full)
     }
 
+    /// Whether complexity metrics and symbol annotations are materialized.
+    /// Only `full` carries them.
+    pub fn includes_complexity_and_annotations(self) -> bool {
+        matches!(self, ExtractionLevel::Full)
+    }
+
     /// Canonical `artifact_metadata.index_level` value for this level.
     pub fn metadata_value(self) -> &'static str {
         match self {

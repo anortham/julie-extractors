@@ -6423,10 +6423,9 @@
           "open_gaps": []
         },
         "test_detection": {
-          "supported": [
-            "test_case"
-          ],
+          "supported": [],
           "not_applicable": [
+            "test_case",
             "test_container",
             "test_lifecycle"
           ],
