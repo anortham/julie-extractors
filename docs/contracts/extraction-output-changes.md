@@ -93,9 +93,9 @@ Every release before 2.30.0 byte-matches its predecessor on the fixture.
 classification: compatible
 
 Three tables change. First, `symbols`: a fenced code block in a standalone markdown file no longer
-carries the rustdoc test rule. Blocks with no info string, or an info string of `rust`, `no_run`,
-`compile_fail`, `rust,no_run`, or `rust,compile_fail`, previously set `is_test = 1` and
-`metadata_json.test_role = "test_case"`. They now carry neither, and markdown emits no test roles
+carries the rustdoc test rule. Blocks with no info string, an info string whose first token is
+`rust` (such as `rust,no_run` or `rust,should_panic`), or an info string made only of `no_run` and
+`compile_fail` previously set `is_test = 1` and `metadata_json.test_role = "test_case"`. They now carry neither, and markdown emits no test roles
 at all. Second, `language_capabilities`: the markdown row moves `test_case` out of
 `kind_coverage.test_detection.supported` and into `not_applicable`, which is the same change
 stated as a capability claim. Third,
