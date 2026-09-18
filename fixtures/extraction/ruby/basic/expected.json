@@ -859,7 +859,7 @@
     },
     {
       "from_key": "fixtures/extraction/ruby/basic/source.rb:assemble:20:2",
-      "callee_name": "Net::HTTP.new",
+      "callee_name": "Net.HTTP.new",
       "kind": "calls",
       "file_path": "fixtures/extraction/ruby/basic/source.rb",
       "line_number": 23,
@@ -970,17 +970,19 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/ruby/basic/source.rb:assemble:20:2",
-        "callee_name": "Net::HTTP.new",
+        "callee_name": "Net.HTTP.new",
         "kind": "calls",
         "file_path": "fixtures/extraction/ruby/basic/source.rb",
         "line_number": 23,
         "confidence": "0.700"
       },
       "target": {
-        "display_name": "Net::HTTP.new",
+        "display_name": "Net.HTTP.new",
         "terminal_name": "new",
-        "receiver": "Net::HTTP",
-        "namespace_path": [],
+        "receiver": "HTTP",
+        "namespace_path": [
+          "Net"
+        ],
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/ruby/basic/source.rb:assemble:20:2",

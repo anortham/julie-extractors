@@ -1431,42 +1431,6 @@
       }
     },
     {
-      "from_key": "fixtures/extraction/java/basic/source.java:auditViaQualifiedCall:84:4",
-      "to_key": "fixtures/extraction/java/basic/source.java:evaluate:73:4",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/basic/source.java",
-      "line_number": 85,
-      "span": {
-        "start_line": 85,
-        "start_column": 21,
-        "end_line": 85,
-        "end_column": 53,
-        "start_byte": 1933,
-        "end_byte": 1965
-      },
-      "reference_site_is_exact": false,
-      "confidence": "0.900",
-      "metadata": null
-    },
-    {
-      "from_key": "fixtures/extraction/java/basic/source.java:auditViaQualifiedCall:84:4",
-      "to_key": "fixtures/extraction/java/basic/source.java:observeRun:62:4",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/basic/source.java",
-      "line_number": 86,
-      "span": {
-        "start_line": 86,
-        "start_column": 8,
-        "end_line": 86,
-        "end_column": 60,
-        "start_byte": 1975,
-        "end_byte": 2027
-      },
-      "reference_site_is_exact": false,
-      "confidence": "0.900",
-      "metadata": null
-    },
-    {
       "from_key": "fixtures/extraction/java/basic/source.java:consume:89:4",
       "to_key": "fixtures/extraction/java/basic/source.java:recordRun:57:4",
       "kind": "calls",
@@ -1595,6 +1559,38 @@
   ],
   "pending_relationships": [
     {
+      "from_key": "fixtures/extraction/java/basic/source.java:auditViaQualifiedCall:84:4",
+      "callee_name": "fixture.Worker.evaluate",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "line_number": 85,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/java/basic/source.java:auditViaQualifiedCall:84:4",
+      "callee_name": "fixture.Worker.evaluate",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "line_number": 85,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/java/basic/source.java:auditViaQualifiedCall:84:4",
+      "callee_name": "fixture.Worker.observeRun",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "line_number": 86,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/java/basic/source.java:auditViaQualifiedCall:84:4",
+      "callee_name": "fixture.Worker.observeRun",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "line_number": 86,
+      "confidence": "0.700"
+    },
+    {
       "from_key": "fixtures/extraction/java/basic/source.java:combine:109:4",
       "callee_name": "sum.apply",
       "kind": "calls",
@@ -1692,6 +1688,118 @@
     }
   ],
   "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/java/basic/source.java:auditViaQualifiedCall:84:4",
+        "callee_name": "fixture.Worker.evaluate",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/java/basic/source.java",
+        "line_number": 85,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "fixture.Worker.evaluate",
+        "terminal_name": "evaluate",
+        "receiver": "Worker",
+        "namespace_path": [
+          "fixture"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/java/basic/source.java:auditViaQualifiedCall:84:4",
+      "span": {
+        "start_line": 85,
+        "start_column": 21,
+        "end_line": 85,
+        "end_column": 53,
+        "start_byte": 1933,
+        "end_byte": 1965
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/java/basic/source.java:auditViaQualifiedCall:84:4",
+        "callee_name": "fixture.Worker.evaluate",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/java/basic/source.java",
+        "line_number": 85,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "fixture.Worker.evaluate",
+        "terminal_name": "evaluate",
+        "receiver": "Worker",
+        "namespace_path": [
+          "fixture"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/java/basic/source.java:auditViaQualifiedCall:84:4",
+      "span": {
+        "start_line": 85,
+        "start_column": 21,
+        "end_line": 85,
+        "end_column": 53,
+        "start_byte": 1933,
+        "end_byte": 1965
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/java/basic/source.java:auditViaQualifiedCall:84:4",
+        "callee_name": "fixture.Worker.observeRun",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/java/basic/source.java",
+        "line_number": 86,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "fixture.Worker.observeRun",
+        "terminal_name": "observeRun",
+        "receiver": "Worker",
+        "namespace_path": [
+          "fixture"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/java/basic/source.java:auditViaQualifiedCall:84:4",
+      "span": {
+        "start_line": 86,
+        "start_column": 8,
+        "end_line": 86,
+        "end_column": 60,
+        "start_byte": 1975,
+        "end_byte": 2027
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/java/basic/source.java:auditViaQualifiedCall:84:4",
+        "callee_name": "fixture.Worker.observeRun",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/java/basic/source.java",
+        "line_number": 86,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "fixture.Worker.observeRun",
+        "terminal_name": "observeRun",
+        "receiver": "Worker",
+        "namespace_path": [
+          "fixture"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/java/basic/source.java:auditViaQualifiedCall:84:4",
+      "span": {
+        "start_line": 86,
+        "start_column": 8,
+        "end_line": 86,
+        "end_column": 60,
+        "start_byte": 1975,
+        "end_byte": 2027
+      }
+    },
     {
       "pending": {
         "from_key": "fixtures/extraction/java/basic/source.java:combine:109:4",

@@ -1020,10 +1020,10 @@
     },
     {
       "from_key": "fixtures/extraction/powershell/basic/source.ps1:Run:57:4",
-      "callee_name": "Run",
+      "callee_name": "$other.Run",
       "kind": "calls",
       "file_path": "fixtures/extraction/powershell/basic/source.ps1",
-      "line_number": 58,
+      "line_number": 59,
       "confidence": "0.700"
     },
     {
@@ -1031,7 +1031,7 @@
       "callee_name": "Run",
       "kind": "calls",
       "file_path": "fixtures/extraction/powershell/basic/source.ps1",
-      "line_number": 59,
+      "line_number": 58,
       "confidence": "0.700"
     },
     {
@@ -1052,7 +1052,7 @@
     },
     {
       "from_key": "fixtures/extraction/powershell/basic/source.ps1:Use-Facts:63:0",
-      "callee_name": "new",
+      "callee_name": "Widget.new",
       "kind": "calls",
       "file_path": "fixtures/extraction/powershell/basic/source.ps1",
       "line_number": 65,
@@ -1115,6 +1115,32 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/powershell/basic/source.ps1:Run:57:4",
+        "callee_name": "$other.Run",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/powershell/basic/source.ps1",
+        "line_number": 59,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "$other.Run",
+        "terminal_name": "Run",
+        "receiver": "$other",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/powershell/basic/source.ps1:Run:57:4",
+      "span": {
+        "start_line": 59,
+        "start_column": 15,
+        "end_line": 59,
+        "end_column": 18,
+        "start_byte": 927,
+        "end_byte": 930
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/powershell/basic/source.ps1:Run:57:4",
         "callee_name": "Run",
         "kind": "calls",
         "file_path": "fixtures/extraction/powershell/basic/source.ps1",
@@ -1138,32 +1164,6 @@
         "end_byte": 907
       },
       "receiver_type": "Widget"
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/powershell/basic/source.ps1:Run:57:4",
-        "callee_name": "Run",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/powershell/basic/source.ps1",
-        "line_number": 59,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "Run",
-        "terminal_name": "Run",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/powershell/basic/source.ps1:Run:57:4",
-      "span": {
-        "start_line": 59,
-        "start_column": 15,
-        "end_line": 59,
-        "end_column": 18,
-        "start_byte": 927,
-        "end_byte": 930
-      }
     },
     {
       "pending": {
@@ -1220,16 +1220,16 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/powershell/basic/source.ps1:Use-Facts:63:0",
-        "callee_name": "new",
+        "callee_name": "Widget.new",
         "kind": "calls",
         "file_path": "fixtures/extraction/powershell/basic/source.ps1",
         "line_number": 65,
         "confidence": "0.700"
       },
       "target": {
-        "display_name": "new",
+        "display_name": "Widget.new",
         "terminal_name": "new",
-        "receiver": null,
+        "receiver": "Widget",
         "namespace_path": [],
         "import_context": null
       },

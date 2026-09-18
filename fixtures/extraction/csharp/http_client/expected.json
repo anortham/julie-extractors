@@ -191,7 +191,7 @@
     },
     {
       "from_key": "fixtures/extraction/csharp/http_client/source.cs:Load:6:4",
-      "callee_name": "client",
+      "callee_name": "client.GetFromJsonAsync",
       "kind": "calls",
       "file_path": "fixtures/extraction/csharp/http_client/source.cs",
       "line_number": 8,
@@ -236,16 +236,16 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/csharp/http_client/source.cs:Load:6:4",
-        "callee_name": "client",
+        "callee_name": "client.GetFromJsonAsync",
         "kind": "calls",
         "file_path": "fixtures/extraction/csharp/http_client/source.cs",
         "line_number": 8,
         "confidence": "0.700"
       },
       "target": {
-        "display_name": "client",
-        "terminal_name": "client",
-        "receiver": null,
+        "display_name": "client.GetFromJsonAsync",
+        "terminal_name": "GetFromJsonAsync",
+        "receiver": "client",
         "namespace_path": [],
         "import_context": null
       },

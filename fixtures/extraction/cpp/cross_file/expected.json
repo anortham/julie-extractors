@@ -86,7 +86,7 @@
   "pending_relationships": [
     {
       "from_key": "fixtures/extraction/cpp/cross_file/source.cpp:entry:12:0",
-      "callee_name": "do_thing",
+      "callee_name": "other_ns.do_thing",
       "kind": "calls",
       "file_path": "fixtures/extraction/cpp/cross_file/source.cpp",
       "line_number": 13,
@@ -97,16 +97,16 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/cpp/cross_file/source.cpp:entry:12:0",
-        "callee_name": "do_thing",
+        "callee_name": "other_ns.do_thing",
         "kind": "calls",
         "file_path": "fixtures/extraction/cpp/cross_file/source.cpp",
         "line_number": 13,
         "confidence": "0.700"
       },
       "target": {
-        "display_name": "do_thing",
+        "display_name": "other_ns.do_thing",
         "terminal_name": "do_thing",
-        "receiver": null,
+        "receiver": "other_ns",
         "namespace_path": [],
         "import_context": null
       },

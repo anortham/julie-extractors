@@ -88,6 +88,27 @@ In CI, the `Extractor Compatibility` job downloads the latest published release 
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
+## 3.1.1
+
+classification: compatible
+
+One table changes: `pending_relationships`. A qualified call chain `Q1.Q2 ... Qn.t(...)` now
+records `target_terminal_name = t`, `target_receiver = Qn`, and `target_namespace_json =
+[Q1 .. Qn-1]`, with `target_display_name` joined by `.`. Before this release each language chose
+its own split: Ruby kept `Net::HTTP` whole in the receiver, C++ kept `->` in the display name, Java,
+C++, PowerShell, and Zig dropped the qualifiers or emitted no row, and C# recorded the receiver as
+the terminal name. Eighteen languages change (C#, Java, Kotlin, Go, PowerShell, C++, Zig,
+JavaScript, TypeScript, Python, Swift, Dart, Lua, GDScript, C, PHP, Ruby, R); Scala, VB.NET, Rust,
+Elixir, F#, and Erlang already matched. The Java fixture also loses two resolved `relationships`
+rows for `fixture.Worker.evaluate` and `fixture.Worker.observeRun`, which now surface as pending
+rows with receiver `Worker` and namespace `["fixture"]`.
+
+Nothing in the schema changes and no reader breaks: the same columns carry the same kinds of
+values, and a reader built for 3.1.0 reads the new output correctly. A reader that matched
+`target_receiver` against a whole chain must match the last qualifier and read the rest from
+`target_namespace_json`. Consumers that already hold an artifact must rebuild it rather than
+rescan, because an unchanged file keeps its stored rows.
+
 ## 3.1.0
 
 classification: compatible

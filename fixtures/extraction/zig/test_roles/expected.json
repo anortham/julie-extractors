@@ -100,8 +100,46 @@
     }
   ],
   "relationships": [],
-  "pending_relationships": [],
-  "structured_pending_relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/zig/test_roles/source.zig:addition works:3:0",
+      "callee_name": "std.testing.expect",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/zig/test_roles/source.zig",
+      "line_number": 4,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/zig/test_roles/source.zig:addition works:3:0",
+        "callee_name": "std.testing.expect",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/zig/test_roles/source.zig",
+        "line_number": 4,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "std.testing.expect",
+        "terminal_name": "expect",
+        "receiver": "testing",
+        "namespace_path": [
+          "std"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/zig/test_roles/source.zig:addition works:3:0",
+      "span": {
+        "start_line": 4,
+        "start_column": 8,
+        "end_line": 4,
+        "end_column": 38,
+        "start_byte": 61,
+        "end_byte": 91
+      }
+    }
+  ],
   "identifiers": [
     {
       "key": "fixtures/extraction/zig/test_roles/source.zig:expect:call:4:20",

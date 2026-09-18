@@ -1243,7 +1243,7 @@
     },
     {
       "from_key": "fixtures/extraction/cpp/basic/source.cpp:Worker::ping:32:0",
-      "callee_name": "this->id",
+      "callee_name": "this.id",
       "kind": "calls",
       "file_path": "fixtures/extraction/cpp/basic/source.cpp",
       "line_number": 33,
@@ -1271,6 +1271,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/cpp/basic/source.cpp",
       "line_number": 69,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/cpp/basic/source.cpp:use_facts:67:0",
+      "callee_name": "std.make_unique",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/cpp/basic/source.cpp",
+      "line_number": 68,
       "confidence": "0.700"
     }
   ],
@@ -1305,14 +1313,14 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/cpp/basic/source.cpp:Worker::ping:32:0",
-        "callee_name": "this->id",
+        "callee_name": "this.id",
         "kind": "calls",
         "file_path": "fixtures/extraction/cpp/basic/source.cpp",
         "line_number": 33,
         "confidence": "0.700"
       },
       "target": {
-        "display_name": "this->id",
+        "display_name": "this.id",
         "terminal_name": "id",
         "receiver": "this",
         "namespace_path": [],
@@ -1405,6 +1413,32 @@
         "end_column": 28,
         "start_byte": 1169,
         "end_byte": 1178
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/cpp/basic/source.cpp:use_facts:67:0",
+        "callee_name": "std.make_unique",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/cpp/basic/source.cpp",
+        "line_number": 68,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "std.make_unique",
+        "terminal_name": "make_unique",
+        "receiver": "std",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/cpp/basic/source.cpp:use_facts:67:0",
+      "span": {
+        "start_line": 68,
+        "start_column": 16,
+        "end_line": 68,
+        "end_column": 40,
+        "start_byte": 1124,
+        "end_byte": 1148
       }
     }
   ],

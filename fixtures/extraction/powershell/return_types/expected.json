@@ -98,7 +98,7 @@
   "pending_relationships": [
     {
       "from_key": "fixtures/extraction/powershell/return_types/source.ps1:Make:3:1",
-      "callee_name": "new",
+      "callee_name": "Result.new",
       "kind": "calls",
       "file_path": "fixtures/extraction/powershell/return_types/source.ps1",
       "line_number": 3,
@@ -109,16 +109,16 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/powershell/return_types/source.ps1:Make:3:1",
-        "callee_name": "new",
+        "callee_name": "Result.new",
         "kind": "calls",
         "file_path": "fixtures/extraction/powershell/return_types/source.ps1",
         "line_number": 3,
         "confidence": "0.700"
       },
       "target": {
-        "display_name": "new",
+        "display_name": "Result.new",
         "terminal_name": "new",
-        "receiver": null,
+        "receiver": "Result",
         "namespace_path": [],
         "import_context": null
       },

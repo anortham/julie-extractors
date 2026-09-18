@@ -39,7 +39,7 @@ These row domains are part of the extraction product contract:
 | `symbol_annotations` | Decorators, attributes, annotations, or equivalent markers attached to symbols. | Languages with syntax-level annotations or doc markers worth preserving. |
 | `identifiers` | Usage sites with containing and resolved target symbol links when known. | Languages with `identifiers: true`. |
 | `relationships` | Resolved symbol-to-symbol edges. | Languages with `relationships: true` when the target is known. |
-| `pending_relationships` | Deferred relationship targets with terminal name, receiver, namespace, import context, and caller scope. | Languages with `pending_relationships: true` when resolution needs another file or pass. |
+| `pending_relationships` | Deferred relationship targets with terminal name, receiver, namespace, import context, and caller scope. For a qualified call chain, the receiver is the last qualifier before the terminal name and the namespace path holds the qualifiers before it. | Languages with `pending_relationships: true` when resolution needs another file or pass. |
 | `type_facts` | Resolved or inferred types for symbols. | Languages with `types: true`. |
 | `type_argument_usages` | Generic or templated type argument usage sites attached to identifiers. | Languages with generic/type-argument syntax. |
 | `type_arguments` | Normalized nested type argument names for a usage. | Each `type_argument_usage` with one or more arguments. |
