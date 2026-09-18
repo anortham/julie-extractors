@@ -76,3 +76,33 @@ fn test_gdscript_negative_local_helper_not_emitted_as_pending() {
     );
     assert!(!local_helper_id.is_empty());
 }
+
+#[test]
+fn test_gdscript_qualified_chain_call_keeps_receiver_and_namespace() {
+    let source = r#"
+extends Node
+
+func run():
+    Outer.Inner.chain()
+    Helper.process()
+"#;
+    let workspace_root = Path::new("/tmp/test");
+    let result = extract_canonical("caller.gd", source, workspace_root)
+        .expect("canonical GDScript extraction must succeed");
+    let pending = |terminal: &str| {
+        result
+            .structured_pending_relationships
+            .iter()
+            .find(|p| p.target.terminal_name == terminal)
+            .unwrap_or_else(|| panic!("{terminal} must be a pending target"))
+    };
+
+    let chain = &pending("chain").target;
+    assert_eq!(chain.receiver.as_deref(), Some("Inner"));
+    assert_eq!(chain.namespace_path, vec!["Outer"]);
+    assert_eq!(chain.display_name, "Outer.Inner.chain");
+
+    let two_part = &pending("process").target;
+    assert_eq!(two_part.receiver.as_deref(), Some("Helper"));
+    assert!(two_part.namespace_path.is_empty());
+}

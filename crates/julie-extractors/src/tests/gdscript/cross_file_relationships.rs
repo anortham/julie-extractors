@@ -336,7 +336,8 @@ func update_inventory(item):
             .find(|pending| pending.target.terminal_name == "add_item")
             .expect("structured pending relationship should keep the method name");
 
-        assert_eq!(pending.target.receiver.as_deref(), Some("player.inventory"));
+        assert_eq!(pending.target.receiver.as_deref(), Some("inventory"));
+        assert_eq!(pending.target.namespace_path, vec!["player"]);
         assert_eq!(pending.pending.kind, RelationshipKind::Calls);
     }
 

@@ -227,16 +227,18 @@ fn extract_target_from_call(
                     .map(|node| base.get_node_text(&node));
                 if let Some(receiver) = receiver {
                     let receiver_type = helpers::self_or_cls_receiver_type(base, function_node);
-                    (
-                        UnresolvedTarget {
-                            display_name: format!("{receiver}.{terminal_name}"),
-                            terminal_name,
-                            receiver: Some(receiver),
-                            namespace_path: Vec::new(),
-                            import_context: None,
-                        },
-                        receiver_type,
+                    let target = UnresolvedTarget::from_qualified_text(
+                        &format!("{receiver}.{terminal_name}"),
+                        &["."],
                     )
+                    .unwrap_or_else(|| UnresolvedTarget {
+                        display_name: format!("{receiver}.{terminal_name}"),
+                        terminal_name,
+                        receiver: Some(receiver),
+                        namespace_path: Vec::new(),
+                        import_context: None,
+                    });
+                    (target, receiver_type)
                 } else {
                     (UnresolvedTarget::simple(terminal_name), None)
                 }

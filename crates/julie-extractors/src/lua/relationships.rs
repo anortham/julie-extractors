@@ -72,13 +72,13 @@ fn process_function_call(
             let receiver = normalized
                 .rsplit_once('.')
                 .map(|(receiver, _)| receiver.to_string());
-            UnresolvedTarget {
+            UnresolvedTarget::from_qualified_text(&normalized, &["."]).unwrap_or(UnresolvedTarget {
                 display_name: normalized,
                 terminal_name: callee_name.to_string(),
                 receiver,
                 namespace_path: Vec::new(),
                 import_context: None,
-            }
+            })
         } else {
             UnresolvedTarget::simple(callee_name.to_string())
         };

@@ -298,13 +298,7 @@ fn extract_target_from_call(base: &crate::base::BaseExtractor, node: &Node) -> U
                     });
 
                 if let Some(receiver) = receiver {
-                    return UnresolvedTarget {
-                        display_name,
-                        terminal_name,
-                        receiver: Some(receiver),
-                        namespace_path: Vec::new(),
-                        import_context: None,
-                    };
+                    return qualified_target(receiver, terminal_name, display_name);
                 }
 
                 return UnresolvedTarget::simple(terminal_name);
@@ -340,13 +334,7 @@ fn extract_target_from_call(base: &crate::base::BaseExtractor, node: &Node) -> U
                             .rsplit_once('.')
                             .map(|(receiver, _)| receiver.to_string())
                         {
-                            return UnresolvedTarget {
-                                display_name: attr_text,
-                                terminal_name,
-                                receiver: Some(receiver),
-                                namespace_path: Vec::new(),
-                                import_context: None,
-                            };
+                            return qualified_target(receiver, terminal_name, attr_text);
                         }
                         return UnresolvedTarget::simple(terminal_name);
                     }
@@ -360,13 +348,7 @@ fn extract_target_from_call(base: &crate::base::BaseExtractor, node: &Node) -> U
                     let attr_text = base.get_node_text(&child);
                     if let Some((receiver, _)) = attr_text.rsplit_once('.') {
                         let receiver = receiver.to_string();
-                        return UnresolvedTarget {
-                            display_name: attr_text,
-                            terminal_name,
-                            receiver: Some(receiver),
-                            namespace_path: Vec::new(),
-                            import_context: None,
-                        };
+                        return qualified_target(receiver, terminal_name, attr_text);
                     }
                     return UnresolvedTarget::simple(terminal_name);
                 }
@@ -375,13 +357,8 @@ fn extract_target_from_call(base: &crate::base::BaseExtractor, node: &Node) -> U
                 let attr_text = base.get_node_text(&child);
                 if let Some(last_dot) = attr_text.rfind('.') {
                     let terminal_name = attr_text[last_dot + 1..].to_string();
-                    return UnresolvedTarget {
-                        display_name: attr_text.clone(),
-                        terminal_name,
-                        receiver: Some(attr_text[..last_dot].to_string()),
-                        namespace_path: Vec::new(),
-                        import_context: None,
-                    };
+                    let receiver = attr_text[..last_dot].to_string();
+                    return qualified_target(receiver, terminal_name, attr_text);
                 }
                 return UnresolvedTarget::simple(attr_text);
             }
@@ -390,6 +367,25 @@ fn extract_target_from_call(base: &crate::base::BaseExtractor, node: &Node) -> U
     }
 
     UnresolvedTarget::simple(String::new())
+}
+
+/// Splits a plain-identifier chain of three or more parts into receiver and
+/// namespace. A two-part or non-identifier receiver keeps the node text as
+/// its display name, which the golden fixtures record with the call suffix.
+fn qualified_target(
+    receiver: String,
+    terminal_name: String,
+    display_name: String,
+) -> UnresolvedTarget {
+    UnresolvedTarget::from_qualified_text(&format!("{receiver}.{terminal_name}"), &["."])
+        .filter(|target| !target.namespace_path.is_empty())
+        .unwrap_or(UnresolvedTarget {
+            display_name,
+            terminal_name,
+            receiver: Some(receiver),
+            namespace_path: Vec::new(),
+            import_context: None,
+        })
 }
 
 fn attribute_has_call_suffix(node: &Node) -> bool {

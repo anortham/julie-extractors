@@ -73,3 +73,45 @@ fn test_python_negative_local_helper_not_emitted_as_pending() {
     );
     assert!(!local_helper_id.is_empty());
 }
+
+#[test]
+fn test_python_qualified_chain_call_keeps_receiver_and_namespace() {
+    let source = r#"
+class Caller:
+    def run(self):
+        Outer.Inner.chain()
+        Helper.process()
+        self.repo.save()
+        self.method()
+"#;
+    let workspace_root = Path::new("/tmp/test");
+    let result = extract_canonical("caller.py", source, workspace_root)
+        .expect("canonical Python extraction must succeed");
+    let pending = |terminal: &str| {
+        result
+            .structured_pending_relationships
+            .iter()
+            .find(|p| p.target.terminal_name == terminal)
+            .unwrap_or_else(|| panic!("{terminal} must be a pending target"))
+    };
+
+    let chain = &pending("chain").target;
+    assert_eq!(chain.receiver.as_deref(), Some("Inner"));
+    assert_eq!(chain.namespace_path, vec!["Outer"]);
+    assert_eq!(chain.display_name, "Outer.Inner.chain");
+
+    let two_part = &pending("process").target;
+    assert_eq!(two_part.receiver.as_deref(), Some("Helper"));
+    assert!(two_part.namespace_path.is_empty());
+    assert_eq!(two_part.display_name, "Helper.process");
+
+    let self_chain = &pending("save").target;
+    assert_eq!(self_chain.receiver.as_deref(), Some("repo"));
+    assert_eq!(self_chain.namespace_path, vec!["self"]);
+    assert_eq!(self_chain.display_name, "self.repo.save");
+
+    let self_call = pending("method");
+    assert_eq!(self_call.target.receiver.as_deref(), Some("self"));
+    assert!(self_call.target.namespace_path.is_empty());
+    assert_eq!(self_call.receiver_type.as_deref(), Some("Caller"));
+}

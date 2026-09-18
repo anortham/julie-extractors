@@ -431,13 +431,17 @@ impl SwiftExtractor {
             let receiver = receiver.trim();
             let terminal_name = terminal_name.trim();
             if !receiver.is_empty() && !terminal_name.is_empty() {
-                return UnresolvedTarget {
+                return UnresolvedTarget::from_qualified_text(
+                    &format!("{receiver}.{terminal_name}"),
+                    &["."],
+                )
+                .unwrap_or_else(|| UnresolvedTarget {
                     display_name: format!("{receiver}.{terminal_name}"),
                     terminal_name: terminal_name.to_string(),
                     receiver: Some(receiver.to_string()),
                     namespace_path: Vec::new(),
                     import_context: None,
-                };
+                });
             }
         }
 

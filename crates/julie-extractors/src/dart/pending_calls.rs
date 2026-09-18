@@ -57,13 +57,17 @@ impl super::DartExtractor {
         let target = if next.kind() == "selector" {
             if let Some(method_node) = find_child_by_type(&next, "identifier") {
                 let terminal_name = self.base.get_node_text(&method_node);
-                UnresolvedTarget {
+                UnresolvedTarget::from_qualified_text(
+                    &format!("{function_name}.{terminal_name}"),
+                    &["."],
+                )
+                .unwrap_or_else(|| UnresolvedTarget {
                     display_name: format!("{function_name}.{terminal_name}"),
                     terminal_name,
                     receiver: Some(function_name.clone()),
                     namespace_path: Vec::new(),
                     import_context: None,
-                }
+                })
             } else {
                 UnresolvedTarget::simple(function_name.clone())
             }
@@ -144,13 +148,15 @@ impl super::DartExtractor {
             Some(receiver) => format!("{receiver}.{terminal_name}"),
             None => terminal_name.clone(),
         };
-        let target = UnresolvedTarget {
-            display_name,
-            terminal_name,
-            receiver,
-            namespace_path: Vec::new(),
-            import_context: None,
-        };
+        let target = UnresolvedTarget::from_qualified_text(&display_name, &["."]).unwrap_or(
+            UnresolvedTarget {
+                display_name,
+                terminal_name,
+                receiver,
+                namespace_path: Vec::new(),
+                import_context: None,
+            },
+        );
         if symbol_map.contains_key(target.terminal_name.as_str()) {
             return;
         }
@@ -184,24 +190,34 @@ impl super::DartExtractor {
             {
                 let terminal_name = self.base.get_node_text(&id);
                 let receiver = self.base.get_node_text(&obj);
-                return Some(UnresolvedTarget {
-                    display_name: format!("{receiver}.{terminal_name}"),
-                    terminal_name,
-                    receiver: Some(receiver),
-                    namespace_path: Vec::new(),
-                    import_context: None,
-                });
+                return Some(
+                    UnresolvedTarget::from_qualified_text(
+                        &format!("{receiver}.{terminal_name}"),
+                        &["."],
+                    )
+                    .unwrap_or_else(|| UnresolvedTarget {
+                        display_name: format!("{receiver}.{terminal_name}"),
+                        terminal_name,
+                        receiver: Some(receiver),
+                        namespace_path: Vec::new(),
+                        import_context: None,
+                    }),
+                );
             }
             let node_text = self.base.get_node_text(node);
             let call_head = node_text.split('(').next().unwrap_or(node_text.as_str());
             if let Some((receiver, terminal_name)) = call_head.rsplit_once('.') {
-                return Some(UnresolvedTarget {
-                    display_name: call_head.to_string(),
-                    terminal_name: terminal_name.to_string(),
-                    receiver: Some(receiver.to_string()),
-                    namespace_path: Vec::new(),
-                    import_context: None,
-                });
+                return Some(
+                    UnresolvedTarget::from_qualified_text(call_head, &["."]).unwrap_or_else(|| {
+                        UnresolvedTarget {
+                            display_name: call_head.to_string(),
+                            terminal_name: terminal_name.to_string(),
+                            receiver: Some(receiver.to_string()),
+                            namespace_path: Vec::new(),
+                            import_context: None,
+                        }
+                    }),
+                );
             }
             if obj.kind() == "identifier" {
                 return Some(UnresolvedTarget::simple(self.base.get_node_text(&obj)));
