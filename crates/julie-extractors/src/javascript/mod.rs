@@ -280,6 +280,12 @@ impl JavaScriptExtractor {
         symbol_map: &HashMap<String, &Symbol>,
     ) -> Option<UnresolvedTarget> {
         if function_node.kind() == "member_expression" {
+            if let Some((parts, root_node)) = relationships::member_chain(self, function_node) {
+                let mut target = UnresolvedTarget::from_chain(parts);
+                target.import_context =
+                    self.member_receiver_import_context(call_node, root_node, symbol_map);
+                return Some(target);
+            }
             let receiver_node = function_node.child_by_field_name("object");
             let receiver = receiver_node.map(|node| self.base.get_node_text(&node));
             let property = function_node

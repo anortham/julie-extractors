@@ -2,8 +2,8 @@
 //! Handles inheritance and function call relationships
 
 use crate::base::{
-    LocalTargetResolution, Relationship, RelationshipKind, ScopedSymbolIndex, Symbol, SymbolKind,
-    UnresolvedTarget,
+    BaseExtractor, LocalTargetResolution, Relationship, RelationshipKind, ScopedSymbolIndex,
+    Symbol, SymbolKind, UnresolvedTarget,
 };
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::{Node, Tree};
@@ -158,11 +158,16 @@ fn extract_call_relationships(
         let target = match func_node.kind() {
             // Direct function call: helper() or std::vector::push_back()
             "identifier" => UnresolvedTarget::simple(base.get_node_text(&func_node)),
+            "qualified_identifier" => {
+                let mut parts = Vec::new();
+                collect_scope_chain(base, func_node, &mut parts);
+                if parts.is_empty() {
+                    return;
+                }
+                UnresolvedTarget::from_chain(parts)
+            }
             // Method call: obj.method() or ptr->method()
             "field_expression" | "pointer_expression" => {
-                // Get the rightmost identifier (the method name)
-                // For field_expression: obj.method
-                // For pointer_expression: ptr->method
                 if let Some(field_node) = func_node.child_by_field_name("field") {
                     let terminal_name = base.get_node_text(&field_node);
                     let expression_text = base.get_node_text(&func_node);
@@ -172,7 +177,11 @@ fn extract_call_relationships(
                         .map(|(left, _)| left.trim().to_string())
                         .filter(|left| !left.is_empty());
 
-                    if let Some(receiver) = receiver {
+                    if let Some(target) =
+                        UnresolvedTarget::from_qualified_text(&expression_text, &[".", "->", "::"])
+                    {
+                        target
+                    } else if let Some(receiver) = receiver {
                         UnresolvedTarget {
                             display_name: expression_text,
                             terminal_name,
@@ -440,6 +449,28 @@ fn is_type_use_symbol(kind: &SymbolKind) -> bool {
             | SymbolKind::Interface
             | SymbolKind::Trait
     )
+}
+
+fn collect_scope_chain(base: &BaseExtractor, node: Node, parts: &mut Vec<String>) {
+    match node.kind() {
+        "qualified_identifier" => {
+            if let Some(scope) = node.child_by_field_name("scope") {
+                collect_scope_chain(base, scope, parts);
+            }
+            if let Some(name) = node.child_by_field_name("name") {
+                collect_scope_chain(base, name, parts);
+            }
+        }
+        "template_type" | "template_function" => {
+            if let Some(name) = node.child_by_field_name("name") {
+                collect_scope_chain(base, name, parts);
+            }
+        }
+        "namespace_identifier" | "identifier" | "type_identifier" => {
+            parts.push(base.get_node_text(&node));
+        }
+        _ => {}
+    }
 }
 
 fn push_unique_relationship(relationships: &mut Vec<Relationship>, relationship: Relationship) {

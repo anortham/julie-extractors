@@ -242,8 +242,45 @@ fn find_containing_callable_symbol<'a>(node: Node, symbols: &'a [Symbol]) -> Opt
         .min_by_key(|symbol| symbol.end_byte - symbol.start_byte)
 }
 
+/// Collects the identifier chain of `Q1.Q2 ... Qn.t` and its root node; `None`
+/// when any link is not a plain identifier (a call result, `this`, an index).
+pub(super) fn member_chain<'tree>(
+    extractor: &JavaScriptExtractor,
+    node: Node<'tree>,
+) -> Option<(Vec<String>, Node<'tree>)> {
+    fn collect<'tree>(
+        extractor: &JavaScriptExtractor,
+        node: Node<'tree>,
+        parts: &mut Vec<String>,
+    ) -> Option<Node<'tree>> {
+        match node.kind() {
+            "identifier" => {
+                parts.push(extractor.base().get_node_text(&node));
+                Some(node)
+            }
+            "member_expression" => {
+                let object = node.child_by_field_name("object")?;
+                let property = node
+                    .child_by_field_name("property")
+                    .filter(|property| property.kind() == "property_identifier")?;
+                let root = collect(extractor, object, parts)?;
+                parts.push(extractor.base().get_node_text(&property));
+                Some(root)
+            }
+            _ => None,
+        }
+    }
+
+    let mut parts = Vec::new();
+    let root = collect(extractor, node, &mut parts)?;
+    Some((parts, root))
+}
+
 fn extract_call_target(extractor: &JavaScriptExtractor, function_node: Node) -> UnresolvedTarget {
     if function_node.kind() == "member_expression" {
+        if let Some((parts, _)) = member_chain(extractor, function_node) {
+            return UnresolvedTarget::from_chain(parts);
+        }
         let receiver = function_node
             .child_by_field_name("object")
             .map(|node| extractor.base().get_node_text(&node));

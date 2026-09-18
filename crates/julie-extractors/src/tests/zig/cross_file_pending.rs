@@ -73,3 +73,44 @@ fn test_zig_negative_local_helper_not_emitted_as_pending() {
     );
     assert!(!local_helper_id.is_empty());
 }
+
+#[test]
+fn test_zig_qualified_chain_call_keeps_receiver_and_namespace() {
+    let source = r#"
+const Outer = @import("outer.zig");
+const Two = @import("two.zig");
+
+pub fn run() void {
+    Outer.Inner.chain();
+    Two.part();
+}
+"#;
+    let workspace_root = Path::new("/tmp/test");
+    let result = extract_canonical("caller.zig", source, workspace_root)
+        .expect("canonical Zig extraction must succeed");
+
+    let chain: Vec<_> = result
+        .structured_pending_relationships
+        .iter()
+        .filter(|p| p.target.terminal_name == "chain")
+        .collect();
+    assert_eq!(
+        chain.len(),
+        1,
+        "expected exactly one pending target for the chained call; got: {:#?}",
+        result.structured_pending_relationships
+    );
+    let chain = &chain[0].target;
+    assert_eq!(chain.receiver.as_deref(), Some("Inner"));
+    assert_eq!(chain.namespace_path, vec!["Outer"]);
+    assert_eq!(chain.display_name, "Outer.Inner.chain");
+
+    let two_part = result
+        .structured_pending_relationships
+        .iter()
+        .find(|p| p.target.terminal_name == "part")
+        .expect("Two.part must stay a pending target");
+    assert_eq!(two_part.target.receiver.as_deref(), Some("Two"));
+    assert!(two_part.target.namespace_path.is_empty());
+    assert_eq!(two_part.target.display_name, "Two.part");
+}

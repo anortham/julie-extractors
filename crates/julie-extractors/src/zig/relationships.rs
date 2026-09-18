@@ -185,6 +185,25 @@ fn traverse_struct_fields(
     }
 }
 
+fn collect_field_chain(base: &BaseExtractor, node: Node, parts: &mut Vec<String>) -> bool {
+    match node.kind() {
+        "identifier" => {
+            parts.push(base.get_node_text(&node));
+            true
+        }
+        "field_expression" => {
+            let (Some(object), Some(member)) = (
+                node.child_by_field_name("object"),
+                node.child_by_field_name("member"),
+            ) else {
+                return false;
+            };
+            collect_field_chain(base, object, parts) && collect_field_chain(base, member, parts)
+        }
+        _ => false,
+    }
+}
+
 fn extract_function_call_relationships(
     extractor: &mut ZigExtractor,
     node: Node,
@@ -200,18 +219,9 @@ fn extract_function_call_relationships(
         let called_func_name = base.get_node_text(&func_name_node);
         unresolved_target = Some(UnresolvedTarget::simple(called_func_name));
     } else if let Some(field_expr_node) = base.find_child_by_type(&node, "field_expression") {
-        // Check for method call (field_expression + arguments)
-        let identifiers = base.find_children_by_type(&field_expr_node, "identifier");
-        if identifiers.len() >= 2 {
-            let receiver = base.get_node_text(&identifiers[0]);
-            let terminal_name = base.get_node_text(&identifiers[1]);
-            unresolved_target = Some(UnresolvedTarget {
-                display_name: format!("{receiver}.{terminal_name}"),
-                terminal_name,
-                receiver: Some(receiver),
-                namespace_path: Vec::new(),
-                import_context: None,
-            });
+        let mut parts = Vec::new();
+        if collect_field_chain(base, field_expr_node, &mut parts) {
+            unresolved_target = Some(UnresolvedTarget::from_chain(parts));
         }
     }
 
