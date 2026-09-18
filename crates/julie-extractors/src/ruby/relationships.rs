@@ -393,6 +393,12 @@ fn extract_pending_target(
     let call_text = base.get_node_text(&node);
     let call_head = call_text.split('(').next().unwrap_or(call_text.as_str());
 
+    if let Some(target) = UnresolvedTarget::from_qualified_text(call_head, &["::", "."])
+        && target.receiver.is_some()
+    {
+        return target;
+    }
+
     if let Some((receiver, terminal_name)) = call_head.rsplit_once('.')
         && !receiver.is_empty()
     {

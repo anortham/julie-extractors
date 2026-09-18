@@ -142,23 +142,24 @@ fn call_target_from_function_node(
             if let Some(field_node) = function_node.child_by_field_name("field") {
                 let terminal_name = extractor.get_base_mut().get_node_text(&field_node);
                 let expression_text = extractor.get_base_mut().get_node_text(&function_node);
-                let receiver = expression_text
-                    .rsplit_once("->")
-                    .or_else(|| expression_text.rsplit_once('.'))
-                    .map(|(left, _)| left.trim().to_string())
-                    .filter(|left| !left.is_empty());
-
-                let target = if let Some(receiver) = receiver {
-                    UnresolvedTarget {
-                        display_name: expression_text,
-                        terminal_name,
-                        receiver: Some(receiver),
-                        namespace_path: Vec::new(),
-                        import_context: None,
-                    }
-                } else {
-                    UnresolvedTarget::simple(terminal_name)
-                };
+                let target = UnresolvedTarget::from_qualified_text(&expression_text, &[".", "->"])
+                    .unwrap_or_else(|| {
+                        let receiver = expression_text
+                            .rsplit_once("->")
+                            .or_else(|| expression_text.rsplit_once('.'))
+                            .map(|(left, _)| left.trim().to_string())
+                            .filter(|left| !left.is_empty());
+                        match receiver {
+                            Some(receiver) => UnresolvedTarget {
+                                display_name: expression_text,
+                                terminal_name,
+                                receiver: Some(receiver),
+                                namespace_path: Vec::new(),
+                                import_context: None,
+                            },
+                            None => UnresolvedTarget::simple(terminal_name),
+                        }
+                    });
                 Some((target, true))
             } else {
                 let identifier = helpers::find_deepest_identifier(function_node)?;

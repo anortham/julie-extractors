@@ -282,22 +282,28 @@ fn extract_member_access_relationships<'a>(
             if let Some(containing_symbol) = find_containing_function(node, function_symbols) {
                 // Member access targets can't be resolved locally (they're dynamic)
                 // Use PendingRelationship for cross-file resolution
-                let receiver = node
-                    .child(0)
-                    .map(|object| extractor.base.get_node_text(&object));
-                let display_name = receiver
-                    .as_ref()
-                    .map(|receiver| format!("{receiver}.{member_name}"))
-                    .unwrap_or_else(|| member_name.clone());
+                let expression_text = extractor.base.get_node_text(&node);
+                let target =
+                    UnresolvedTarget::from_qualified_text(&expression_text, R_CHAIN_SEPARATORS)
+                        .unwrap_or_else(|| {
+                            let receiver = node
+                                .child(0)
+                                .map(|object| extractor.base.get_node_text(&object));
+                            let display_name = receiver
+                                .as_ref()
+                                .map(|receiver| format!("{receiver}.{member_name}"))
+                                .unwrap_or_else(|| member_name.clone());
+                            UnresolvedTarget {
+                                display_name,
+                                terminal_name: member_name.clone(),
+                                receiver,
+                                namespace_path: Vec::new(),
+                                import_context: None,
+                            }
+                        });
                 let pending = extractor.base.create_pending_relationship(
                     containing_symbol.id.clone(),
-                    UnresolvedTarget {
-                        display_name,
-                        terminal_name: member_name.clone(),
-                        receiver,
-                        namespace_path: Vec::new(),
-                        import_context: None,
-                    },
+                    target,
                     RelationshipKind::Uses,
                     &node,
                     Some(containing_symbol.id.clone()),
@@ -374,6 +380,8 @@ fn is_builtin_function(name: &str) -> bool {
     )
 }
 
+const R_CHAIN_SEPARATORS: &[&str] = &["$", "@"];
+
 fn unresolved_call_target(
     extractor: &RExtractor,
     function_node: Node,
@@ -401,6 +409,12 @@ fn unresolved_call_target(
             }
         }
         "extract_operator" => {
+            let expression_text = extractor.base.get_node_text(&function_node);
+            if let Some(chain) =
+                UnresolvedTarget::from_qualified_text(&expression_text, R_CHAIN_SEPARATORS)
+            {
+                return chain;
+            }
             let receiver = function_node
                 .child(0)
                 .map(|node| extractor.base.get_node_text(&node));

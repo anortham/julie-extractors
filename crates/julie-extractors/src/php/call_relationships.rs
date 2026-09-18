@@ -278,19 +278,30 @@ fn unresolved_call_target(
     }
 }
 
+const PHP_CHAIN_SEPARATORS: &[&str] = &["::", "->", "."];
+
 fn member_call_target(
     extractor: &PhpExtractor,
     node: Node,
     fallback_name: &str,
 ) -> UnresolvedTarget {
-    let receiver = node
+    let object_text = node
         .child_by_field_name("object")
-        .map(|object| extractor.get_base().get_node_text(&object))
-        .map(|name| name.trim_start_matches('$').to_string());
+        .map(|object| extractor.get_base().get_node_text(&object));
     let terminal_name = node
         .child_by_field_name("name")
         .map(|name| extractor.get_base().get_node_text(&name))
         .unwrap_or_else(|| fallback_name.to_string());
+    if let Some(object_text) = &object_text
+        && let Some(chain) = UnresolvedTarget::from_qualified_text(
+            &format!("{object_text}->{terminal_name}"),
+            PHP_CHAIN_SEPARATORS,
+        )
+        && !chain.namespace_path.is_empty()
+    {
+        return chain;
+    }
+    let receiver = object_text.map(|name| name.trim_start_matches('$').to_string());
     let display_name = receiver
         .as_ref()
         .map(|receiver| format!("{receiver}.{terminal_name}"))
@@ -309,20 +320,29 @@ fn scoped_call_target(
     node: Node,
     fallback_name: &str,
 ) -> UnresolvedTarget {
-    let receiver_target = node
+    let scope_text = node
         .child_by_field_name("scope")
         .or_else(|| node.child_by_field_name("class"))
-        .map(|scope| unresolved_php_type_target(&extractor.get_base().get_node_text(&scope)));
+        .map(|scope| extractor.get_base().get_node_text(&scope));
+    let terminal_name = node
+        .child_by_field_name("name")
+        .map(|name| extractor.get_base().get_node_text(&name))
+        .unwrap_or_else(|| fallback_name.to_string());
+    if let Some(scope_text) = &scope_text
+        && let Some(chain) = UnresolvedTarget::from_qualified_text(
+            &format!("{scope_text}::{terminal_name}"),
+            PHP_CHAIN_SEPARATORS,
+        )
+    {
+        return chain;
+    }
+    let receiver_target = scope_text.map(|scope| unresolved_php_type_target(&scope));
     let receiver = receiver_target
         .as_ref()
         .map(|target| target.terminal_name.clone());
     let namespace_path = receiver_target
         .map(|target| target.namespace_path)
         .unwrap_or_default();
-    let terminal_name = node
-        .child_by_field_name("name")
-        .map(|name| extractor.get_base().get_node_text(&name))
-        .unwrap_or_else(|| fallback_name.to_string());
     let display_name = receiver
         .as_ref()
         .map(|receiver| format!("{receiver}.{terminal_name}"))

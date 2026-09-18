@@ -61,3 +61,48 @@ fn test_ruby_negative_local_helper_not_emitted_as_pending() {
     );
     assert!(!id.is_empty());
 }
+
+#[test]
+fn test_ruby_qualified_chain_call_keeps_receiver_and_namespace() {
+    let source = r#"
+class Caller
+  def run(outer)
+    Outer::Inner.chain
+    outer.inner.chain2
+    Helper.process
+  end
+end
+"#;
+    let workspace_root = Path::new("/tmp/test");
+    let result = extract_canonical("caller.rb", source, workspace_root)
+        .expect("canonical Ruby extraction must succeed");
+    let target = |terminal: &str| {
+        result
+            .structured_pending_relationships
+            .iter()
+            .find(|p| p.target.terminal_name == terminal)
+            .unwrap_or_else(|| {
+                panic!(
+                    "missing pending target {terminal}; got: {:#?}",
+                    result.structured_pending_relationships
+                )
+            })
+            .target
+            .clone()
+    };
+
+    let constant_chain = target("chain");
+    assert_eq!(constant_chain.receiver.as_deref(), Some("Inner"));
+    assert_eq!(constant_chain.namespace_path, vec!["Outer"]);
+    assert_eq!(constant_chain.display_name, "Outer.Inner.chain");
+
+    let dotted_chain = target("chain2");
+    assert_eq!(dotted_chain.receiver.as_deref(), Some("inner"));
+    assert_eq!(dotted_chain.namespace_path, vec!["outer"]);
+    assert_eq!(dotted_chain.display_name, "outer.inner.chain2");
+
+    let two_part = target("process");
+    assert_eq!(two_part.receiver.as_deref(), Some("Helper"));
+    assert!(two_part.namespace_path.is_empty());
+    assert_eq!(two_part.display_name, "Helper.process");
+}

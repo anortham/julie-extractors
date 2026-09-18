@@ -61,3 +61,48 @@ fn test_c_negative_local_helper_not_emitted_as_pending() {
     );
     assert!(!id.is_empty());
 }
+
+#[test]
+fn test_c_qualified_chain_call_keeps_receiver_and_namespace() {
+    let source = r#"
+struct In { void (*chain)(void); void (*solo)(void); };
+struct Out { struct In inner; struct In *pin; };
+void run(struct Out outer, struct Out *p) {
+    outer.inner.chain();
+    p->pin->chain2();
+    outer.solo();
+}
+"#;
+    let workspace_root = Path::new("/tmp/test");
+    let result = extract_canonical("run.c", source, workspace_root)
+        .expect("canonical C extraction must succeed");
+    let target = |terminal: &str| {
+        result
+            .structured_pending_relationships
+            .iter()
+            .find(|p| p.target.terminal_name == terminal)
+            .unwrap_or_else(|| {
+                panic!(
+                    "missing pending target {terminal}; got: {:#?}",
+                    result.structured_pending_relationships
+                )
+            })
+            .target
+            .clone()
+    };
+
+    let chain = target("chain");
+    assert_eq!(chain.receiver.as_deref(), Some("inner"));
+    assert_eq!(chain.namespace_path, vec!["outer"]);
+    assert_eq!(chain.display_name, "outer.inner.chain");
+
+    let pointer_chain = target("chain2");
+    assert_eq!(pointer_chain.receiver.as_deref(), Some("pin"));
+    assert_eq!(pointer_chain.namespace_path, vec!["p"]);
+    assert_eq!(pointer_chain.display_name, "p.pin.chain2");
+
+    let two_part = target("solo");
+    assert_eq!(two_part.receiver.as_deref(), Some("outer"));
+    assert!(two_part.namespace_path.is_empty());
+    assert_eq!(two_part.display_name, "outer.solo");
+}
