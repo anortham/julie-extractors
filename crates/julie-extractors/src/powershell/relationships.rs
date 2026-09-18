@@ -170,7 +170,7 @@ fn extract_invocation_relationships(
         .base
         .create_pending_relationship_at_target(
             caller.id.clone(),
-            UnresolvedTarget::simple(method_name),
+            qualified_call_target(&extractor.base, node, method_name),
             RelationshipKind::Calls,
             &name_node,
             Some(caller.id.clone()),
@@ -178,4 +178,41 @@ fn extract_invocation_relationships(
         )
         .with_receiver_type(receiver_type);
     extractor.add_structured_pending_relationship(pending);
+}
+
+fn qualified_call_target(
+    base: &BaseExtractor,
+    node: Node,
+    method_name: String,
+) -> UnresolvedTarget {
+    let mut parts = vec![method_name.clone()];
+    let mut current = node.named_child(0);
+    while let Some(receiver) = current {
+        match receiver.kind() {
+            "member_access" => {
+                let Some(member) = super::type_facts::invocation_member_name(base, receiver) else {
+                    break;
+                };
+                parts.push(member.1);
+                current = receiver.named_child(0);
+            }
+            "type_literal" => {
+                let type_name = base.get_node_text(&receiver);
+                let type_name = type_name.trim_matches(|c| c == '[' || c == ']');
+                parts.extend(type_name.rsplit('.').map(str::to_string));
+                break;
+            }
+            "variable" => {
+                let variable = base.get_node_text(&receiver);
+                if !variable.eq_ignore_ascii_case("$this") {
+                    parts.push(variable);
+                }
+                break;
+            }
+            _ => break,
+        }
+    }
+    parts.reverse();
+    UnresolvedTarget::from_qualified_text(&parts.join("."), &["."])
+        .unwrap_or_else(|| UnresolvedTarget::simple(method_name))
 }

@@ -73,3 +73,37 @@ fn test_go_negative_local_helper_not_emitted_as_pending() {
     );
     assert!(!local_helper_id.is_empty());
 }
+
+#[test]
+fn test_go_qualified_chain_call_keeps_receiver_and_namespace() {
+    let source = r#"
+package main
+
+func run() {
+	outer.Inner.Chain()
+	helper.Process()
+}
+"#;
+    let result = extract_canonical("caller.go", source, Path::new("/tmp/test"))
+        .expect("canonical Go extraction must succeed");
+
+    let chain = result
+        .structured_pending_relationships
+        .iter()
+        .find(|p| p.target.terminal_name == "Chain")
+        .map(|p| &p.target)
+        .unwrap_or_else(|| panic!("got {:#?}", result.structured_pending_relationships));
+    assert_eq!(chain.receiver.as_deref(), Some("Inner"));
+    assert_eq!(chain.namespace_path, vec!["outer"]);
+    assert_eq!(chain.display_name, "outer.Inner.Chain");
+
+    let two_part = result
+        .structured_pending_relationships
+        .iter()
+        .find(|p| p.target.terminal_name == "Process")
+        .map(|p| &p.target)
+        .expect("helper.Process must stay a pending target");
+    assert_eq!(two_part.receiver.as_deref(), Some("helper"));
+    assert!(two_part.namespace_path.is_empty());
+    assert_eq!(two_part.display_name, "helper.Process");
+}

@@ -443,41 +443,35 @@ fn unresolved_call_target(
     node: Node,
     fallback_name: &str,
 ) -> UnresolvedTarget {
-    let mut identifiers = Vec::new();
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        if child.kind() == "identifier" || child.kind() == "simple_identifier" {
-            identifiers.push(call_name(extractor.base(), &child));
-        }
-        // Descend into navigation_expression to collect receiver and method identifiers
-        if child.kind() == "navigation_expression" {
-            let mut nav_cursor = child.walk();
-            for nav_child in child.children(&mut nav_cursor) {
-                if nav_child.kind() == "identifier" || nav_child.kind() == "simple_identifier" {
-                    identifiers.push(call_name(extractor.base(), &nav_child));
-                }
+    let base = extractor.base();
+    let mut parts = Vec::new();
+    let mut current = node.named_child(0);
+    while let Some(expression) = current {
+        match expression.kind() {
+            "identifier" | "simple_identifier" => {
+                parts.push(call_name(base, &expression));
+                break;
             }
+            "navigation_expression" => {
+                let mut cursor = expression.walk();
+                let named: Vec<Node> = expression.named_children(&mut cursor).collect();
+                let (Some(receiver), Some(member)) = (named.first(), named.last()) else {
+                    break;
+                };
+                if named.len() != 2 || !matches!(member.kind(), "identifier" | "simple_identifier")
+                {
+                    break;
+                }
+                parts.push(call_name(base, member));
+                current = Some(*receiver);
+            }
+            _ => break,
         }
     }
+    parts.reverse();
 
-    if identifiers.len() >= 2 {
-        let terminal_name = identifiers
-            .pop()
-            .unwrap_or_else(|| fallback_name.to_string());
-        let receiver = identifiers.pop();
-        let namespace_path = identifiers;
-        let mut display_parts = namespace_path.clone();
-        if let Some(receiver_name) = receiver.as_ref() {
-            display_parts.push(receiver_name.clone());
-        }
-        display_parts.push(terminal_name.clone());
-        return UnresolvedTarget {
-            display_name: display_parts.join("."),
-            terminal_name,
-            receiver,
-            namespace_path,
-            import_context: None,
-        };
+    if parts.len() >= 2 {
+        return UnresolvedTarget::from_chain(parts);
     }
 
     UnresolvedTarget::simple(fallback_name.to_string())

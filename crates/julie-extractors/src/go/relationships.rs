@@ -167,33 +167,29 @@ impl super::GoExtractor {
                 "identifier" => UnresolvedTarget::simple(self.base.get_node_text(func_node)),
                 // Package call: fmt.Println() or package method calls
                 "selector_expression" => {
-                    let selector_children: Vec<_> = func_node
-                        .children(&mut func_node.walk())
-                        .filter(|c| c.kind() == "field_identifier" || c.kind() == "identifier")
-                        .collect();
-                    let Some(last) = selector_children.last() else {
-                        return;
-                    };
-                    let terminal_name = self.base.get_node_text(last);
-                    let receiver = selector_children.first().and_then(|first| {
-                        if first.id() == last.id() {
-                            None
-                        } else {
-                            Some(self.base.get_node_text(first))
+                    let mut parts = Vec::new();
+                    let mut current = Some(*func_node);
+                    while let Some(expression) = current {
+                        match expression.kind() {
+                            "identifier" => {
+                                parts.push(self.base.get_node_text(&expression));
+                                break;
+                            }
+                            "selector_expression" => {
+                                let Some(field) = expression.child_by_field_name("field") else {
+                                    break;
+                                };
+                                parts.push(self.base.get_node_text(&field));
+                                current = expression.child_by_field_name("operand");
+                            }
+                            _ => break,
                         }
-                    });
-
-                    if let Some(receiver) = receiver {
-                        UnresolvedTarget {
-                            display_name: format!("{receiver}.{terminal_name}"),
-                            terminal_name,
-                            receiver: Some(receiver),
-                            namespace_path: Vec::new(),
-                            import_context: None,
-                        }
-                    } else {
-                        UnresolvedTarget::simple(terminal_name)
                     }
+                    if parts.is_empty() {
+                        return;
+                    }
+                    parts.reverse();
+                    UnresolvedTarget::from_chain(parts)
                 }
                 _ => return,
             };

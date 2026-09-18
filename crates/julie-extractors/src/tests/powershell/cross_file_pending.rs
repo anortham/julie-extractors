@@ -53,3 +53,41 @@ fn test_powershell_negative_local_helper_not_emitted_as_pending() {
         "intra-script Local-Helper leaked into pending"
     );
 }
+
+#[test]
+fn test_powershell_qualified_chain_call_keeps_receiver_and_namespace() {
+    let source = r#"
+class Caller {
+    [void] Run() {
+        [Outer]::Inner.Chain()
+        [Two]::Part()
+        $outer.inner.Chain2()
+    }
+}
+"#;
+    let result = extract_canonical("caller.ps1", source, Path::new("/tmp/test"))
+        .expect("canonical PowerShell extraction must succeed");
+    let target = |terminal: &str| {
+        result
+            .structured_pending_relationships
+            .iter()
+            .find(|p| p.target.terminal_name == terminal)
+            .map(|p| &p.target)
+            .unwrap_or_else(|| panic!("got {:#?}", result.structured_pending_relationships))
+    };
+
+    let chain = target("Chain");
+    assert_eq!(chain.receiver.as_deref(), Some("Inner"));
+    assert_eq!(chain.namespace_path, vec!["Outer"]);
+    assert_eq!(chain.display_name, "Outer.Inner.Chain");
+
+    let two_part = target("Part");
+    assert_eq!(two_part.receiver.as_deref(), Some("Two"));
+    assert!(two_part.namespace_path.is_empty());
+    assert_eq!(two_part.display_name, "Two.Part");
+
+    let variable_chain = target("Chain2");
+    assert_eq!(variable_chain.receiver.as_deref(), Some("inner"));
+    assert_eq!(variable_chain.namespace_path, vec!["$outer"]);
+    assert_eq!(variable_chain.display_name, "$outer.inner.Chain2");
+}
