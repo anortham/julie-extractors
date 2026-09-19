@@ -178,10 +178,12 @@ Historical v0.1.0 dogfood evidence: `docs/release-evidence/v0.1.0-dogfood.md`.
 Historical v0.1.0 release-candidate audit evidence:
 `docs/release-evidence/2026-06-01-v0-1-0-release-candidate-audit.md`.
 
-Current published release: `v3.1.0`.
+Current published release: `v3.1.1`.
 
 Current release notes and published evidence:
 
+- `docs/release-notes/v3.1.1.md`
+- `docs/release-evidence/2026-09-19-v3-1-1-release.md`
 - `docs/release-notes/v3.1.0.md`
 - `docs/release-evidence/2026-09-18-v3-1-0-release.md`
 - `docs/release-notes/v3.0.0.md`
