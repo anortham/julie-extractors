@@ -37,6 +37,9 @@ jobs:
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             exe_suffix: ".exe"
+          - os: windows-11-arm
+            target: aarch64-pc-windows-msvc
+            exe_suffix: ".exe"
 
     steps:
       - name: Checkout
@@ -107,7 +110,7 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           PACKAGE_DIR="target/release-package/v${VERSION}-${{ matrix.target }}"
 
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
             ARCHIVE="julie-extract-v${VERSION}-${{ matrix.target }}.zip"
             (cd "$PACKAGE_DIR" && 7z a "$GITHUB_WORKSPACE/$ARCHIVE" .)
           else
@@ -246,7 +249,8 @@ jobs:
           echo "Bundled binary: julie-extract"
           echo ""
           echo "Platforms built:"
-          echo "  - Windows (x86_64-pc-windows-msvc)"
+          echo "  - Windows x86_64 (x86_64-pc-windows-msvc)"
+          echo "  - Windows ARM64 (aarch64-pc-windows-msvc)"
           echo "  - macOS Apple Silicon (aarch64-apple-darwin)"
           echo "  - macOS Intel (x86_64-apple-darwin)"
           echo "  - Linux (x86_64-unknown-linux-gnu)"

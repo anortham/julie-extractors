@@ -145,12 +145,13 @@ publishes GitHub Release assets for the supported host platforms. It runs from
 `workflow_dispatch` with an explicit version input, and from tag pushes matching `v*`;
 tag runs derive the package version by stripping the leading `v`.
 
-The workflow builds `julie-extract` in release mode for four targets:
+The workflow builds `julie-extract` in release mode for five targets:
 
 - Linux x86_64: `x86_64-unknown-linux-gnu`
 - macOS Apple Silicon: `aarch64-apple-darwin`
 - macOS Intel: `x86_64-apple-darwin`
 - Windows x86_64: `x86_64-pc-windows-msvc`
+- Windows ARM64: `aarch64-pc-windows-msvc` (built on the native `windows-11-arm` runner)
 
 Each matrix job installs the target toolchain, builds with
 `cargo build --release --target <target> -p julie-extract-cli --bin

@@ -117,6 +117,7 @@ const RELEASE_TARGETS: &[(&str, &str)] = &[
     ("aarch64-apple-darwin", ""),
     ("x86_64-apple-darwin", ""),
     ("x86_64-pc-windows-msvc", ".exe"),
+    ("aarch64-pc-windows-msvc", ".exe"),
 ];
 
 const RELEASE_CRATE_MANIFESTS: &[&str] = &[
