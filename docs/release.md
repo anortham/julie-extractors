@@ -145,9 +145,10 @@ publishes GitHub Release assets for the supported host platforms. It runs from
 `workflow_dispatch` with an explicit version input, and from tag pushes matching `v*`;
 tag runs derive the package version by stripping the leading `v`.
 
-The workflow builds `julie-extract` in release mode for five targets:
+The workflow builds `julie-extract` in release mode for six targets:
 
 - Linux x86_64: `x86_64-unknown-linux-gnu`
+- Linux ARM64: `aarch64-unknown-linux-gnu` (built on the native `ubuntu-24.04-arm` runner)
 - macOS Apple Silicon: `aarch64-apple-darwin`
 - macOS Intel: `x86_64-apple-darwin`
 - Windows x86_64: `x86_64-pc-windows-msvc`
@@ -179,10 +180,12 @@ Historical v0.1.0 dogfood evidence: `docs/release-evidence/v0.1.0-dogfood.md`.
 Historical v0.1.0 release-candidate audit evidence:
 `docs/release-evidence/2026-06-01-v0-1-0-release-candidate-audit.md`.
 
-Current published release: `v3.1.1`.
+Current published release: `v3.1.2`.
 
 Current release notes and published evidence:
 
+- `docs/release-notes/v3.1.2.md`
+- `docs/release-evidence/2026-09-20-v3-1-2-release.md`
 - `docs/release-notes/v3.1.1.md`
 - `docs/release-evidence/2026-09-19-v3-1-1-release.md`
 - `docs/release-notes/v3.1.0.md`
