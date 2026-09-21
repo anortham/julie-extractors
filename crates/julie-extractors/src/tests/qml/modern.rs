@@ -368,4 +368,83 @@ Item {
             "Should extract properties with template literals"
         );
     }
+
+    #[test]
+    fn singleton_pragma_marks_the_root_component() {
+        let qml_code = r#"
+pragma Singleton
+pragma ComponentBehavior: Bound
+
+import QtQuick 2.15
+
+QtObject {
+    property string value: "singleton"
+}
+"#;
+
+        let symbols = extract_symbols(qml_code);
+
+        let root = symbols
+            .iter()
+            .find(|s| s.kind == SymbolKind::Class)
+            .expect("root component symbol");
+        assert_eq!(
+            root.signature.as_deref(),
+            Some("singleton extends QtObject")
+        );
+        assert_eq!(
+            root.metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get("singleton")),
+            Some(&serde_json::json!(true))
+        );
+    }
+
+    #[test]
+    fn root_component_without_a_singleton_pragma_keeps_the_plain_signature() {
+        let qml_code = r#"
+pragma ComponentBehavior: Bound
+
+import QtQuick 2.15
+
+QtObject {
+    property string value: "plain"
+}
+"#;
+
+        let symbols = extract_symbols(qml_code);
+
+        let root = symbols
+            .iter()
+            .find(|s| s.kind == SymbolKind::Class)
+            .expect("root component symbol");
+        assert_eq!(root.signature.as_deref(), Some("extends QtObject"));
+        assert!(
+            root.metadata
+                .as_ref()
+                .is_none_or(|metadata| !metadata.contains_key("singleton"))
+        );
+    }
+
+    #[test]
+    fn bare_required_declaration_is_an_inherited_required_property() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Item {
+    required deviceItem
+}
+"#;
+
+        let symbols = extract_symbols(qml_code);
+
+        let property = symbols
+            .iter()
+            .find(|s| s.name == "deviceItem")
+            .expect("required property symbol");
+        assert_eq!(property.kind, SymbolKind::Property);
+        let metadata = property.metadata.as_ref().expect("required metadata");
+        assert_eq!(metadata.get("required"), Some(&serde_json::json!(true)));
+        assert_eq!(metadata.get("inherited"), Some(&serde_json::json!(true)));
+    }
 }

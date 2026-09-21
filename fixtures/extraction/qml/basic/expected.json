@@ -50,11 +50,18 @@
         "end_byte": 254
       },
       "body_hash": "8ec09691c91546243fbcd3d1e770d1b4",
-      "signature": null,
+      "signature": "signal activated(string value)",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/qml/basic/source.qml:source:3:0",
-      "metadata": {},
+      "metadata": {
+        "parameters": [
+          {
+            "name": "value",
+            "type": "string"
+          }
+        ]
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,

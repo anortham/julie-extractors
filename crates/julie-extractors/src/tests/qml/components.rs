@@ -351,4 +351,73 @@ PathView {
             "Should extract only the root PathView component"
         );
     }
+
+    #[test]
+    fn inline_component_is_a_class_that_parents_its_members() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Item {
+    component CustomButton: Rectangle {
+        property int radius: 5
+    }
+}
+"#;
+
+        let symbols = extract_symbols(qml_code);
+
+        let component = symbols
+            .iter()
+            .find(|s| s.name == "CustomButton")
+            .expect("inline component symbol");
+        assert_eq!(component.kind, SymbolKind::Class);
+        assert_eq!(
+            component.signature.as_deref(),
+            Some("component CustomButton: Rectangle")
+        );
+        assert_eq!(
+            component
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get("base_types")),
+            Some(&serde_json::json!(["Rectangle"]))
+        );
+
+        let radius = symbols
+            .iter()
+            .find(|s| s.name == "radius")
+            .expect("inline component member");
+        assert_eq!(radius.parent_id.as_deref(), Some(component.id.as_str()));
+    }
+
+    #[test]
+    fn qualified_inline_component_base_type_keeps_the_namespace() {
+        let qml_code = r#"
+import QtQuick 2.15
+import org.kde.kirigami as Kirigami
+
+Item {
+    component Detail: Kirigami.Page {
+    }
+}
+"#;
+
+        let symbols = extract_symbols(qml_code);
+
+        let component = symbols
+            .iter()
+            .find(|s| s.name == "Detail")
+            .expect("inline component symbol");
+        assert_eq!(
+            component.signature.as_deref(),
+            Some("component Detail: Kirigami.Page")
+        );
+        assert_eq!(
+            component
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get("base_types")),
+            Some(&serde_json::json!(["Kirigami.Page"]))
+        );
+    }
 }

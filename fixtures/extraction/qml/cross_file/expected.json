@@ -85,11 +85,18 @@
         "end_byte": 101
       },
       "body_hash": "8ec09691c91546243fbcd3d1e770d1b4",
-      "signature": null,
+      "signature": "signal selected(string value)",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/qml/cross_file/LocalCard.qml:LocalCard:3:0",
-      "metadata": {},
+      "metadata": {
+        "parameters": [
+          {
+            "name": "value",
+            "type": "string"
+          }
+        ]
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -578,11 +585,18 @@
         "end_byte": 291
       },
       "body_hash": "8ec09691c91546243fbcd3d1e770d1b4",
-      "signature": null,
+      "signature": "signal completed(string value)",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/qml/cross_file/source.qml:source:7:0",
-      "metadata": {},
+      "metadata": {
+        "parameters": [
+          {
+            "name": "value",
+            "type": "string"
+          }
+        ]
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
