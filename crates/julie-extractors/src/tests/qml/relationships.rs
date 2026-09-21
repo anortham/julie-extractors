@@ -864,4 +864,108 @@ QQC2.Button {
         assert_eq!(qualified.len(), 1, "one pending row for the qualified base");
         assert_eq!(qualified[0].target.receiver.as_deref(), Some("QQC2"));
     }
+
+    fn property_row<'a>(symbols: &'a [Symbol], name: &str, owner: &Symbol) -> &'a Symbol {
+        symbols
+            .iter()
+            .find(|symbol| {
+                symbol.kind == SymbolKind::Property
+                    && symbol.name == name
+                    && symbol.parent_id.as_deref() == Some(owner.id.as_str())
+            })
+            .unwrap_or_else(|| panic!("{name} property on {}", owner.name))
+    }
+
+    fn owner_row<'a>(symbols: &'a [Symbol], name: &str) -> &'a Symbol {
+        symbols
+            .iter()
+            .find(|symbol| {
+                symbol.name == name && matches!(symbol.kind, SymbolKind::Class | SymbolKind::Field)
+            })
+            .unwrap_or_else(|| panic!("{name} owner row"))
+    }
+
+    #[test]
+    fn an_explicit_id_receiver_resolves_the_property_in_that_object() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Item {
+    id: root
+    property int margin: 4
+
+    Rectangle {
+        id: box
+        property int margin: 8
+        width: root.margin
+    }
+}
+"#;
+
+        let (symbols, relationships) = extract_symbols_and_relationships(qml_code);
+        let root_margin = property_row(&symbols, "margin", owner_row(&symbols, "test"));
+        let box_margin = property_row(&symbols, "margin", owner_row(&symbols, "box"));
+
+        let uses = relationships
+            .iter()
+            .find(|relationship| {
+                relationship.kind == RelationshipKind::Uses && relationship.line_number == 11
+            })
+            .expect("root.margin is a property use");
+        assert_eq!(uses.to_symbol_id, root_margin.id);
+        assert_ne!(uses.to_symbol_id, box_margin.id);
+    }
+
+    #[test]
+    fn a_parent_receiver_resolves_outside_the_enclosing_object() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Item {
+    id: root
+    property int gap: 100
+
+    Rectangle {
+        property int gap: 50
+        height: parent.gap
+    }
+}
+"#;
+
+        let (symbols, relationships) = extract_symbols_and_relationships(qml_code);
+        let root_gap = property_row(&symbols, "gap", owner_row(&symbols, "test"));
+
+        let uses = relationships
+            .iter()
+            .find(|relationship| {
+                relationship.kind == RelationshipKind::Uses && relationship.line_number == 10
+            })
+            .expect("parent.gap is a property use");
+        assert_eq!(uses.to_symbol_id, root_gap.id);
+    }
+
+    #[test]
+    fn a_non_id_receiver_resolves_no_property() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Item {
+    property int margin: 4
+
+    Rectangle {
+        width: Style.margin
+    }
+}
+"#;
+
+        let (symbols, relationships) = extract_symbols_and_relationships(qml_code);
+        let margin = property_row(&symbols, "margin", owner_row(&symbols, "test"));
+
+        assert!(
+            !relationships
+                .iter()
+                .any(|relationship| relationship.to_symbol_id == margin.id),
+            "a singleton receiver names no property in this file"
+        );
+    }
 }

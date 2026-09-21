@@ -339,19 +339,13 @@ fn extract_property_binding_relationships(
     // Look for member expressions anywhere (they represent property access)
     if node.kind() == "member_expression"
         && let Some(property_node) = node.child_by_field_name("property")
+        && let Some(container_symbol) = find_containing_component(node, symbols)
+        && let Some(scope_symbol) =
+            property_binding_scope(extractor, node, symbols, container_symbol)
     {
         let property_name = extractor.base.get_node_text(&property_node);
 
-        // Find containing component
-        if let Some(container_symbol) = find_containing_component(node, symbols) {
-            let scope_symbol =
-                find_enclosing_symbol(node, symbols, &[SymbolKind::Class, SymbolKind::Field])
-                    .unwrap_or(container_symbol);
-            let Some(target_symbol) = find_property_target(&property_name, scope_symbol, symbols)
-            else {
-                return;
-            };
-
+        if let Some(target_symbol) = find_property_target(&property_name, scope_symbol, symbols) {
             // Create a Uses relationship for the property access
             let relationship = Relationship {
                 id: format!(
@@ -388,6 +382,46 @@ fn extract_property_binding_relationships(
             child_depth,
         );
     }
+}
+
+/// The object scope an explicit receiver names. An id declared in this file
+/// resolves in the object it names, `parent` in the scope around the enclosing
+/// object, and any other identifier receiver — a singleton, a JavaScript local —
+/// resolves nothing. Anything that is not a plain identifier keeps the
+/// enclosing-scope rule.
+fn property_binding_scope<'a>(
+    extractor: &QmlExtractor,
+    node: Node,
+    symbols: &'a [Symbol],
+    container_symbol: &'a Symbol,
+) -> Option<&'a Symbol> {
+    let Some(object) = node
+        .child_by_field_name("object")
+        .filter(|object| object.kind() == "identifier")
+    else {
+        return Some(
+            find_enclosing_symbol(node, symbols, &[SymbolKind::Class, SymbolKind::Field])
+                .unwrap_or(container_symbol),
+        );
+    };
+    let receiver = extractor.base.get_node_text(&object);
+    if let Some(scope) = id_scope_symbol(&receiver, symbols) {
+        return Some(scope);
+    }
+    if receiver == "parent" {
+        let enclosing = super::semantics::enclosing_object(node)?;
+        return find_enclosing_symbol(enclosing, symbols, &[SymbolKind::Class, SymbolKind::Field]);
+    }
+    None
+}
+
+/// The row that owns the members of the object an id names.
+fn id_scope_symbol<'a>(receiver: &str, symbols: &'a [Symbol]) -> Option<&'a Symbol> {
+    let scope_id = symbols
+        .iter()
+        .filter(|symbol| declares_id(symbol, receiver))
+        .find_map(id_member_scope)?;
+    symbols.iter().find(|symbol| symbol.id == scope_id)
 }
 
 fn find_property_target<'a>(
