@@ -279,7 +279,7 @@ define_structured_full_language_extractors![
     ),
     (extract_tsx, "tsx", crate::typescript::TypeScriptExtractor),
     (
-        extract_javascript,
+        extract_javascript_program,
         "javascript",
         crate::javascript::JavaScriptExtractor
     ),
@@ -293,6 +293,22 @@ define_structured_full_language_extractors![
     (extract_qml, "qml", crate::qml::QmlExtractor),
     (extract_fsharp, "fsharp", crate::fsharp::FSharpExtractor)
 ];
+
+/// Qt's QML `.pragma` directives live outside the JavaScript grammar, so the
+/// tree-driven pass cannot see them.
+fn extract_javascript(
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+    workspace_root: &Path,
+    level: ExtractionLevel,
+) -> Result<ExtractionResults, anyhow::Error> {
+    let mut results = extract_javascript_program(tree, file_path, content, workspace_root, level)?;
+    if level.includes_structural_facts() {
+        results.structural_facts = crate::javascript::qml_directives::facts(file_path, content);
+    }
+    Ok(results)
+}
 
 fn extract_lua(
     tree: &Tree,

@@ -16,6 +16,7 @@ mod helpers;
 pub(crate) mod identifiers;
 mod imports;
 pub(crate) mod parameters;
+pub(crate) mod qml_directives;
 mod relationships;
 mod signatures;
 // pub(crate): test_symbols carries the JS-family test classifier, shared with
@@ -76,7 +77,7 @@ impl JavaScriptExtractor {
     }
 
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
-        let mut symbols = Vec::new();
+        let mut symbols = qml_directives::import_symbols(&self.base);
         self.test_dsl_active = test_symbols::test_dsl_is_active(&self.base, tree.root_node());
         self.visit_node(tree.root_node(), &mut symbols, None, 0);
         symbols
