@@ -670,4 +670,91 @@ Item {
             "poll.restart() should resolve through the nested object row"
         );
     }
+
+    #[test]
+    fn root_component_emits_a_pending_extends_to_its_base_type() {
+        let qml_code = r#"
+import org.kde.kirigami as Kirigami
+
+Kirigami.Page {
+    id: root
+}
+"#;
+
+        let (symbols, _, pending) =
+            extract_symbols_and_relationships_with_path(qml_code, "SettingsPage.qml");
+        let component = symbols
+            .iter()
+            .find(|symbol| symbol.name == "SettingsPage" && symbol.kind == SymbolKind::Class)
+            .expect("root component");
+
+        let extends = pending
+            .iter()
+            .find(|entry| entry.pending.kind == RelationshipKind::Extends)
+            .expect("pending extends");
+        assert_eq!(extends.pending.from_symbol_id, component.id);
+        assert_eq!(extends.target.terminal_name, "Page");
+        assert_eq!(extends.target.receiver.as_deref(), Some("Kirigami"));
+        assert_eq!(
+            extends.target.import_context.as_deref(),
+            Some("org.kde.kirigami")
+        );
+    }
+
+    #[test]
+    fn root_component_extending_a_same_file_inline_component_resolves_concretely() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Shell {
+    component Shell: Item {}
+}
+"#;
+
+        let (symbols, relationships, pending) =
+            extract_symbols_and_relationships_with_path(qml_code, "Main.qml");
+        let component = symbols
+            .iter()
+            .find(|symbol| symbol.name == "Main" && symbol.kind == SymbolKind::Class)
+            .expect("root component");
+        let inline = symbols
+            .iter()
+            .find(|symbol| symbol.name == "Shell" && symbol.kind == SymbolKind::Class)
+            .expect("inline component");
+
+        assert!(
+            relationships.iter().any(|relationship| {
+                relationship.kind == RelationshipKind::Extends
+                    && relationship.from_symbol_id == component.id
+                    && relationship.to_symbol_id == inline.id
+            }),
+            "root extends the same-file inline component"
+        );
+        assert!(
+            pending
+                .iter()
+                .all(|entry| entry.pending.kind != RelationshipKind::Extends),
+            "a resolved base type emits no pending extends"
+        );
+    }
+
+    #[test]
+    fn root_component_emits_no_instantiates_for_its_own_base_type() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Rectangle {
+    id: root
+}
+"#;
+
+        let (_, _, pending) = extract_symbols_and_relationships_with_path(qml_code, "Card.qml");
+
+        assert!(
+            pending
+                .iter()
+                .all(|entry| entry.pending.kind != RelationshipKind::Instantiates),
+            "the root base type is an extends, not an instantiates"
+        );
+    }
 }

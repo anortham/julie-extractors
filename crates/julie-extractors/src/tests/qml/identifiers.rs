@@ -321,4 +321,342 @@ Item {
             type_names
         );
     }
+
+    fn role_of(identifier: &Identifier) -> Option<&str> {
+        identifier.metadata.as_ref()?.get("role")?.as_str()
+    }
+
+    fn receiver_of(identifier: &Identifier) -> Option<&str> {
+        identifier.metadata.as_ref()?.get("receiver")?.as_str()
+    }
+
+    #[test]
+    fn qualified_nested_type_name_records_the_terminal_segment_with_its_receiver() {
+        let qml_code = r#"
+import org.kde.kirigami as Kirigami
+
+Item {
+    Kirigami.Page {}
+}
+"#;
+
+        let identifiers = extract_identifiers(qml_code);
+
+        let page = identifiers
+            .iter()
+            .find(|id| id.kind == IdentifierKind::TypeUsage && id.name == "Page")
+            .expect("terminal segment type usage");
+        assert_eq!(receiver_of(page), Some("Kirigami"));
+        assert!(
+            !identifiers
+                .iter()
+                .any(|id| id.kind == IdentifierKind::TypeUsage && id.name.contains('.')),
+            "no dotted type usage names may remain"
+        );
+    }
+
+    #[test]
+    fn root_base_type_is_a_type_usage_identifier_with_the_base_type_role() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Rectangle {
+    id: root
+}
+"#;
+
+        let identifiers = extract_identifiers(qml_code);
+
+        let base = identifiers
+            .iter()
+            .find(|id| id.kind == IdentifierKind::TypeUsage && id.name == "Rectangle")
+            .expect("root base type usage");
+        assert_eq!(role_of(base), Some("base_type"));
+        assert_eq!(receiver_of(base), None);
+    }
+
+    #[test]
+    fn qualified_root_base_type_records_the_terminal_segment_with_its_receiver() {
+        let qml_code = r#"
+import org.kde.kirigami as Kirigami
+
+Kirigami.Page {
+    id: root
+}
+"#;
+
+        let identifiers = extract_identifiers(qml_code);
+
+        let base = identifiers
+            .iter()
+            .find(|id| id.kind == IdentifierKind::TypeUsage && id.name == "Page")
+            .expect("root base type usage");
+        assert_eq!(role_of(base), Some("base_type"));
+        assert_eq!(receiver_of(base), Some("Kirigami"));
+    }
+
+    #[test]
+    fn attached_binding_name_records_the_attached_type() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Item {
+    Rectangle {
+        Layout.fillWidth: true
+    }
+}
+"#;
+
+        let identifiers = extract_identifiers(qml_code);
+
+        let attached = identifiers
+            .iter()
+            .find(|id| id.kind == IdentifierKind::TypeUsage && id.name == "Layout")
+            .expect("attached type usage");
+        assert_eq!(role_of(attached), Some("attached_type"));
+        assert_eq!(receiver_of(attached), None);
+    }
+
+    #[test]
+    fn three_segment_attached_binding_name_records_the_inner_type_with_its_receiver() {
+        let qml_code = r#"
+import org.kde.kirigami as Kirigami
+
+Item {
+    Rectangle {
+        Kirigami.FormData.label: "Name"
+    }
+}
+"#;
+
+        let identifiers = extract_identifiers(qml_code);
+
+        let attached = identifiers
+            .iter()
+            .find(|id| id.kind == IdentifierKind::TypeUsage && id.name == "FormData")
+            .expect("attached type usage");
+        assert_eq!(role_of(attached), Some("attached_type"));
+        assert_eq!(receiver_of(attached), Some("Kirigami"));
+    }
+
+    #[test]
+    fn lowercase_grouped_binding_name_records_no_attached_type() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Item {
+    Rectangle {
+        anchors.fill: parent
+    }
+}
+"#;
+
+        let identifiers = extract_identifiers(qml_code);
+
+        assert!(
+            !identifiers
+                .iter()
+                .any(|id| role_of(id) == Some("attached_type")),
+            "a lowercase grouped property is not an attached type"
+        );
+    }
+
+    #[test]
+    fn signal_handler_binding_records_a_member_access_for_the_signal() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Item {
+    Button {
+        onClicked: doThing()
+    }
+}
+"#;
+
+        let identifiers = extract_identifiers(qml_code);
+
+        let handler = identifiers
+            .iter()
+            .find(|id| id.kind == IdentifierKind::MemberAccess && id.name == "clicked")
+            .expect("signal handler member access");
+        assert_eq!(role_of(handler), Some("signal_handler"));
+        assert_eq!(receiver_of(handler), Some("Button"));
+    }
+
+    #[test]
+    fn root_signal_handler_takes_the_root_base_type_as_its_receiver() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Item {
+    onFocusRequested: doThing()
+}
+"#;
+
+        let identifiers = extract_identifiers(qml_code);
+
+        let handler = identifiers
+            .iter()
+            .find(|id| id.kind == IdentifierKind::MemberAccess && id.name == "focusRequested")
+            .expect("signal handler member access");
+        assert_eq!(receiver_of(handler), Some("Item"));
+    }
+
+    #[test]
+    fn connections_handler_function_records_the_signal_with_the_target_id_receiver() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Item {
+    Connections {
+        target: backend
+        function onReloaded() {}
+    }
+}
+"#;
+
+        let identifiers = extract_identifiers(qml_code);
+
+        let handler = identifiers
+            .iter()
+            .find(|id| id.kind == IdentifierKind::MemberAccess && id.name == "reloaded")
+            .expect("connections handler member access");
+        assert_eq!(role_of(handler), Some("signal_handler"));
+        assert_eq!(receiver_of(handler), Some("backend"));
+    }
+
+    #[test]
+    fn connections_handler_binding_records_the_signal_with_the_target_id_receiver() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Item {
+    Connections {
+        target: backend
+        onReloaded: refresh()
+    }
+}
+"#;
+
+        let identifiers = extract_identifiers(qml_code);
+
+        let handler = identifiers
+            .iter()
+            .find(|id| id.kind == IdentifierKind::MemberAccess && id.name == "reloaded")
+            .expect("connections handler member access");
+        assert_eq!(receiver_of(handler), Some("backend"));
+    }
+
+    #[test]
+    fn connections_handler_without_an_id_target_records_no_receiver() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Item {
+    Connections {
+        target: backend.model
+        function onReloaded() {}
+    }
+}
+"#;
+
+        let identifiers = extract_identifiers(qml_code);
+
+        let handler = identifiers
+            .iter()
+            .find(|id| id.kind == IdentifierKind::MemberAccess && id.name == "reloaded")
+            .expect("connections handler member access");
+        assert_eq!(receiver_of(handler), None);
+    }
+
+    #[test]
+    fn property_change_handler_points_at_the_property() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Item {
+    Rectangle {
+        onColorChanged: repaint()
+    }
+}
+"#;
+
+        let identifiers = extract_identifiers(qml_code);
+
+        let handler = identifiers
+            .iter()
+            .find(|id| id.kind == IdentifierKind::MemberAccess && id.name == "color")
+            .expect("change handler member access");
+        assert_eq!(role_of(handler), Some("signal_handler"));
+        assert_eq!(
+            handler
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get("change_handler")),
+            Some(&serde_json::json!(true))
+        );
+        assert_eq!(receiver_of(handler), Some("Rectangle"));
+    }
+
+    #[test]
+    fn attached_signal_handler_records_both_the_attached_type_and_the_signal() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Item {
+    Rectangle {
+        Keys.onPressed: handle(event)
+    }
+}
+"#;
+
+        let identifiers = extract_identifiers(qml_code);
+
+        assert!(
+            identifiers
+                .iter()
+                .any(|id| id.name == "Keys" && role_of(id) == Some("attached_type")),
+            "attached type usage"
+        );
+        assert!(
+            identifiers
+                .iter()
+                .any(|id| id.name == "pressed" && role_of(id) == Some("signal_handler")),
+            "signal handler member access"
+        );
+    }
+
+    #[test]
+    fn the_root_base_type_identifier_is_contained_by_the_root_component() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Rectangle {
+    id: root
+}
+"#;
+
+        let tree = crate::tests::helpers::init_parser(qml_code, "qml");
+        let mut extractor = crate::qml::QmlExtractor::new(
+            "qml".to_string(),
+            "test.qml".to_string(),
+            qml_code.to_string(),
+            std::path::Path::new("/tmp/test"),
+        );
+        let symbols = extractor.extract_symbols(&tree);
+        let identifiers = extractor.extract_identifiers(&tree, &symbols);
+
+        let component = symbols
+            .iter()
+            .find(|symbol| symbol.name == "test")
+            .expect("root component");
+        let base = identifiers
+            .iter()
+            .find(|id| id.kind == IdentifierKind::TypeUsage && id.name == "Rectangle")
+            .expect("root base type usage");
+        assert_eq!(
+            base.containing_symbol_id.as_deref(),
+            Some(component.id.as_str())
+        );
+    }
 }

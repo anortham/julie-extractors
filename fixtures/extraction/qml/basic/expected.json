@@ -1168,6 +1168,14 @@
     },
     {
       "from_key": "fixtures/extraction/qml/basic/source.qml:source:3:0",
+      "callee_name": "Item",
+      "kind": "extends",
+      "file_path": "fixtures/extraction/qml/basic/source.qml",
+      "line_number": 3,
+      "confidence": "0.900"
+    },
+    {
+      "from_key": "fixtures/extraction/qml/basic/source.qml:source:3:0",
       "callee_name": "Text",
       "kind": "instantiates",
       "file_path": "fixtures/extraction/qml/basic/source.qml",
@@ -1258,6 +1266,32 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/qml/basic/source.qml:source:3:0",
+        "callee_name": "Item",
+        "kind": "extends",
+        "file_path": "fixtures/extraction/qml/basic/source.qml",
+        "line_number": 3,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "Item",
+        "terminal_name": "Item",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/qml/basic/source.qml:source:3:0",
+      "span": {
+        "start_line": 3,
+        "start_column": 0,
+        "end_line": 68,
+        "end_column": 1,
+        "start_byte": 21,
+        "end_byte": 1316
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/qml/basic/source.qml:source:3:0",
         "callee_name": "Text",
         "kind": "instantiates",
         "file_path": "fixtures/extraction/qml/basic/source.qml",
@@ -1328,6 +1362,22 @@
       "start_byte": 971,
       "end_byte": 985,
       "containing_key": "fixtures/extraction/qml/basic/source.qml:seed:45:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/qml/basic/source.qml:Item:type_usage:3:0",
+      "name": "Item",
+      "kind": "type_usage",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/basic/source.qml",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 4,
+      "start_byte": 21,
+      "end_byte": 25,
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:source:3:0",
       "target_key": null,
       "confidence": "1.000"
     },

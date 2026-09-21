@@ -368,6 +368,16 @@ impl QmlExtractor {
                         None,
                         &mut metadata,
                     );
+                    if semantics::enclosing_object_type(&self.base, node).as_deref()
+                        == Some("Connections")
+                        && semantics::is_signal_handler_binding_name(&name)
+                        && let Some(signal) = semantics::handled_signal_from_binding_name(&name)
+                    {
+                        metadata.insert(
+                            "handled_signal".to_string(),
+                            serde_json::Value::String(signal),
+                        );
+                    }
                     let options = SymbolOptions {
                         parent_id: parent_id.clone(),
                         signature: Some(semantics::function_signature(

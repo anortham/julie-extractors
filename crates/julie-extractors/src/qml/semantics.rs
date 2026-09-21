@@ -168,6 +168,93 @@ pub(super) fn object_has_class_row(object: Node<'_>) -> bool {
         || enclosing_object(object).is_none()
 }
 
+/// The dotted segments of a QML name in source order: `Kirigami.FormData.label`
+/// yields three identifier nodes.
+pub(super) fn dotted_segments(node: Node<'_>) -> Vec<Node<'_>> {
+    if node.kind() != "nested_identifier" {
+        return vec![node];
+    }
+    let mut cursor = node.walk();
+    node.named_children(&mut cursor)
+        .flat_map(dotted_segments)
+        .collect()
+}
+
+/// The attached type a binding name names, as (segment node, name, receiver):
+/// `Layout.fillWidth` gives `Layout`, `Kirigami.FormData.label` gives `FormData`
+/// with receiver `Kirigami`. A lowercase head (`anchors.fill`) gives nothing.
+pub(super) fn attached_type_segment<'a>(
+    base: &BaseExtractor,
+    name_node: Node<'a>,
+) -> Option<(Node<'a>, String, Option<String>)> {
+    let segments = dotted_segments(name_node);
+    let texts: Vec<String> = segments
+        .iter()
+        .map(|segment| base.get_node_text(segment))
+        .collect();
+    let (_, qualifiers) = texts.split_last()?;
+    if qualifiers.is_empty() || !starts_uppercase(&texts[0]) {
+        return None;
+    }
+    let index = qualifiers.iter().rposition(|text| starts_uppercase(text))?;
+    let receiver = (index > 0).then(|| texts[..index].join("."));
+    Some((segments[index], texts[index].clone(), receiver))
+}
+
+/// The member a handler name points at, with `true` when it is a property
+/// change handler: `onClicked` gives `clicked`, `onColorChanged` gives `color`.
+pub(super) fn handler_target_member(name: &str) -> Option<(String, bool)> {
+    if !is_signal_handler_binding_name(name) {
+        return None;
+    }
+    let signal = handled_signal_from_binding_name(name)?;
+    match signal.strip_suffix("Changed") {
+        Some(property) if !property.is_empty() => Some((property.to_string(), true)),
+        _ => Some((signal, false)),
+    }
+}
+
+/// The owner a signal handler points at: a `Connections` object's `target` id,
+/// otherwise the enclosing object's type name.
+pub(super) fn handler_receiver(base: &BaseExtractor, node: Node) -> Option<String> {
+    let object = enclosing_object(node)?;
+    let type_name = object
+        .child_by_field_name("type_name")
+        .map(|type_name| base.get_node_text(&type_name))?;
+    if type_name == "Connections" {
+        return connections_target_id(base, object);
+    }
+    Some(type_name)
+}
+
+pub(super) fn enclosing_object_type(base: &BaseExtractor, node: Node) -> Option<String> {
+    enclosing_object(node)?
+        .child_by_field_name("type_name")
+        .map(|type_name| base.get_node_text(&type_name))
+}
+
+fn connections_target_id(base: &BaseExtractor, object: Node) -> Option<String> {
+    let initializer = object.child_by_field_name("initializer")?;
+    let mut cursor = initializer.walk();
+    let target = initializer.named_children(&mut cursor).find(|child| {
+        child.kind() == "ui_binding"
+            && child
+                .child_by_field_name("name")
+                .is_some_and(|name| base.get_node_text(&name) == "target")
+    })?;
+    let value = target.child_by_field_name("value")?;
+    let named = if value.kind() == "expression_statement" {
+        value.named_child(0)?
+    } else {
+        value
+    };
+    (named.kind() == "identifier").then(|| base.get_node_text(&named))
+}
+
+fn starts_uppercase(text: &str) -> bool {
+    text.chars().next().is_some_and(char::is_uppercase)
+}
+
 pub(super) fn build_unresolved_target(
     base: &BaseExtractor,
     function_node: Node,

@@ -188,14 +188,27 @@ fn extract_instantiation_relationships(
             .get_node_text(&type_name_node)
             .trim()
             .to_string();
-        if let Some(parent_symbol) = find_containing_component(node, symbols) {
+        // The root object names the base type the file's component extends;
+        // every other object instantiates its type.
+        let (kind, from_symbol) = if is_root_object(node) {
+            (
+                RelationshipKind::Extends,
+                root_component_symbol(node, symbols),
+            )
+        } else {
+            (
+                RelationshipKind::Instantiates,
+                find_containing_component(node, symbols),
+            )
+        };
+        if let Some(parent_symbol) = from_symbol {
             if let Some(instantiated_symbol) =
                 find_local_component_target(&component_type, parent_symbol, symbols)
             {
                 relationships.push(extractor.base.create_relationship(
                     parent_symbol.id.clone(),
                     instantiated_symbol.id.clone(),
-                    RelationshipKind::Instantiates,
+                    kind,
                     &node,
                     Some(1.0),
                     None,
@@ -205,7 +218,7 @@ fn extract_instantiation_relationships(
                 let pending = extractor.base.create_pending_relationship(
                     parent_symbol.id.clone(),
                     target,
-                    RelationshipKind::Instantiates,
+                    kind,
                     &node,
                     Some(parent_symbol.id.clone()),
                     Some(0.9),
@@ -222,6 +235,13 @@ fn extract_instantiation_relationships(
     for child in node.children(&mut cursor) {
         extract_instantiation_relationships(extractor, child, symbols, relationships, child_depth);
     }
+}
+
+fn root_component_symbol<'a>(node: Node, symbols: &'a [Symbol]) -> Option<&'a Symbol> {
+    let start_line = (node.start_position().row + 1) as u32;
+    symbols
+        .iter()
+        .find(|symbol| symbol.kind == SymbolKind::Class && symbol.start_line == start_line)
 }
 
 fn find_local_component_target<'a>(

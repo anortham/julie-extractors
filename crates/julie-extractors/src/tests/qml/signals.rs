@@ -271,4 +271,56 @@ Item {
                 .is_none_or(|metadata| !metadata.contains_key("parameters"))
         );
     }
+
+    #[test]
+    fn connections_handler_function_records_the_handled_signal() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Item {
+    Connections {
+        target: backend
+        function onReloaded() {}
+    }
+}
+"#;
+
+        let symbols = extract_symbols(qml_code);
+
+        let handler = symbols
+            .iter()
+            .find(|symbol| symbol.name == "onReloaded")
+            .expect("handler function symbol");
+        assert_eq!(
+            handler
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get("handled_signal")),
+            Some(&serde_json::json!("reloaded"))
+        );
+    }
+
+    #[test]
+    fn an_ordinary_function_records_no_handled_signal() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Item {
+    function onlyHelper() {}
+}
+"#;
+
+        let symbols = extract_symbols(qml_code);
+
+        let helper = symbols
+            .iter()
+            .find(|symbol| symbol.name == "onlyHelper")
+            .expect("helper function symbol");
+        assert!(
+            helper
+                .metadata
+                .as_ref()
+                .is_none_or(|metadata| !metadata.contains_key("handled_signal"))
+        );
+    }
 }

@@ -96,9 +96,61 @@
     }
   ],
   "relationships": [],
-  "pending_relationships": [],
-  "structured_pending_relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/qml/return_types/source.qml:source:2:0",
+      "callee_name": "QtObject",
+      "kind": "extends",
+      "file_path": "fixtures/extraction/qml/return_types/source.qml",
+      "line_number": 2,
+      "confidence": "0.900"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/qml/return_types/source.qml:source:2:0",
+        "callee_name": "QtObject",
+        "kind": "extends",
+        "file_path": "fixtures/extraction/qml/return_types/source.qml",
+        "line_number": 2,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "QtObject",
+        "terminal_name": "QtObject",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/qml/return_types/source.qml:source:2:0",
+      "span": {
+        "start_line": 2,
+        "start_column": 0,
+        "end_line": 2,
+        "end_column": 53,
+        "start_byte": 15,
+        "end_byte": 68
+      }
+    }
+  ],
   "identifiers": [
+    {
+      "key": "fixtures/extraction/qml/return_types/source.qml:QtObject:type_usage:2:0",
+      "name": "QtObject",
+      "kind": "type_usage",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/return_types/source.qml",
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 8,
+      "start_byte": 15,
+      "end_byte": 23,
+      "containing_key": "fixtures/extraction/qml/return_types/source.qml:source:2:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
     {
       "key": "fixtures/extraction/qml/return_types/source.qml:QtQuick:variable_ref:1:7",
       "name": "QtQuick",

@@ -4,7 +4,7 @@
 use crate::base::{
     BaseExtractor, Identifier, IdentifierKind, Symbol, SymbolKind, extract_type_arguments,
 };
-use crate::qml::QmlExtractor;
+use crate::qml::{QmlExtractor, semantics};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
@@ -55,34 +55,29 @@ fn extract_identifier_from_node(
     containing_symbols: &QmlContainingSymbolIndex<'_>,
 ) {
     match node.kind() {
-        // Nested QML component instantiations: Rectangle {}, Button {}, etc.
-        // The root ui_object_definition is the class declaration (handled by symbol extraction).
-        // Nested ones are type references — analogous to constructor calls.
+        // The root object names the base type the component extends; a nested
+        // object names the type it instantiates.
         "ui_object_definition" => {
-            // Only nested objects (non-root) — check if there's a parent ui_object_definition
-            let is_nested = {
-                let mut current = node;
-                let mut found_parent = false;
-                while let Some(parent) = current.parent() {
-                    if parent.kind() == "ui_object_definition" {
-                        found_parent = true;
-                        break;
-                    }
-                    current = parent;
-                }
-                found_parent
-            };
-
-            if is_nested && let Some(type_name_node) = node.child_by_field_name("type_name") {
-                let name = extractor.base.get_node_text(&type_name_node);
-                let containing_symbol_id = containing_symbols.find(node);
-
-                extractor.base.create_identifier(
-                    &type_name_node,
-                    name,
-                    IdentifierKind::TypeUsage,
-                    containing_symbol_id,
+            if let Some(type_name_node) = node.child_by_field_name("type_name") {
+                let is_root = semantics::enclosing_object(node).is_none();
+                // The root component contains its own base-type reference; a
+                // nested object's type reference belongs to the object around it.
+                let containment_anchor = if is_root { type_name_node } else { node };
+                record_qualified_type_usage(
+                    extractor,
+                    type_name_node,
+                    is_root.then_some("base_type"),
+                    containing_symbols.find(containment_anchor),
                 );
+            }
+        }
+
+        // Attached properties (Layout.fillWidth) and signal handlers (onClicked)
+        "ui_binding" => {
+            if let Some(name_node) = node.child_by_field_name("name") {
+                record_attached_type(extractor, name_node, containing_symbols);
+                let binding_name = extractor.base.get_node_text(&name_node);
+                record_signal_handler(extractor, name_node, &binding_name, containing_symbols);
             }
         }
 
@@ -234,10 +229,121 @@ fn extract_identifier_from_node(
             record_outermost_generic_type_arguments_qml(extractor, node, &identifier);
         }
 
+        // `function onReloaded()` inside a Connections object handles a signal.
+        "function_declaration" => {
+            if let Some(name_node) = node.child_by_field_name("name")
+                && semantics::enclosing_object_type(&extractor.base, node).as_deref()
+                    == Some("Connections")
+            {
+                let function_name = extractor.base.get_node_text(&name_node);
+                record_signal_handler(extractor, name_node, &function_name, containing_symbols);
+            }
+        }
+
         _ => {
             // Skip other node types
         }
     }
+}
+
+/// Record a QML type reference under its terminal segment, keeping the dotted
+/// qualifier as the `receiver` metadata the artifact mapper reads.
+fn record_qualified_type_usage(
+    extractor: &mut QmlExtractor,
+    type_name_node: Node,
+    role: Option<&str>,
+    containing_symbol_id: Option<String>,
+) {
+    let segments = semantics::dotted_segments(type_name_node);
+    let Some(terminal) = segments.last().copied() else {
+        return;
+    };
+    let name = extractor.base.get_node_text(&terminal);
+    let receiver = (segments.len() > 1).then(|| {
+        segments[..segments.len() - 1]
+            .iter()
+            .map(|segment| extractor.base.get_node_text(segment))
+            .collect::<Vec<_>>()
+            .join(".")
+    });
+    let metadata = identifier_metadata(role, receiver, false);
+    if metadata.is_empty() {
+        extractor.base.create_identifier(
+            &terminal,
+            name,
+            IdentifierKind::TypeUsage,
+            containing_symbol_id,
+        );
+    } else {
+        extractor.base.create_identifier_with_metadata(
+            &terminal,
+            name,
+            IdentifierKind::TypeUsage,
+            containing_symbol_id,
+            metadata,
+        );
+    }
+}
+
+fn record_attached_type(
+    extractor: &mut QmlExtractor,
+    name_node: Node,
+    containing_symbols: &QmlContainingSymbolIndex<'_>,
+) {
+    let Some((segment, name, receiver)) =
+        semantics::attached_type_segment(&extractor.base, name_node)
+    else {
+        return;
+    };
+    let containing_symbol_id = containing_symbols.find(segment);
+    extractor.base.create_identifier_with_metadata(
+        &segment,
+        name,
+        IdentifierKind::TypeUsage,
+        containing_symbol_id,
+        identifier_metadata(Some("attached_type"), receiver, false),
+    );
+}
+
+fn record_signal_handler(
+    extractor: &mut QmlExtractor,
+    name_node: Node,
+    handler_name: &str,
+    containing_symbols: &QmlContainingSymbolIndex<'_>,
+) {
+    let Some((member, change_handler)) = semantics::handler_target_member(handler_name) else {
+        return;
+    };
+    let receiver = semantics::handler_receiver(&extractor.base, name_node);
+    let containing_symbol_id = containing_symbols.find(name_node);
+    extractor.base.create_identifier_with_metadata(
+        &name_node,
+        member,
+        IdentifierKind::MemberAccess,
+        containing_symbol_id,
+        identifier_metadata(Some("signal_handler"), receiver, change_handler),
+    );
+}
+
+fn identifier_metadata(
+    role: Option<&str>,
+    receiver: Option<String>,
+    change_handler: bool,
+) -> HashMap<String, serde_json::Value> {
+    let mut metadata = HashMap::new();
+    if let Some(role) = role {
+        metadata.insert(
+            "role".to_string(),
+            serde_json::Value::String(role.to_string()),
+        );
+    }
+    if let Some(receiver) = receiver {
+        metadata.insert("receiver".to_string(), serde_json::Value::String(receiver));
+    }
+    if change_handler {
+        metadata.insert("change_handler".to_string(), serde_json::Value::Bool(true));
+    }
+    metadata
 }
 
 /// JS parameters and locals never contain identifiers. `.qmltypes`

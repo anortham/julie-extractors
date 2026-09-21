@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick 2.15
 import QtQuick.Controls 2.15 as QQC2
+import org.kde.kirigami 2.20 as Kirigami
 
 QtObject {
     id: service
@@ -22,14 +23,30 @@ QtObject {
 
         signal activated(int index, string name)
 
+        onLabelChanged: console.log(label)
+
+        Kirigami.FormData.label: "Device"
+
         Behavior on color {
             NumberAnimation {
                 duration: 120
             }
         }
 
+        Connections {
+            target: service
+
+            function onCloseRequested(reason) {
+                console.log(reason)
+            }
+
+            onReady: badgeRow.gap = 8
+        }
+
         Row {
             id: badgeRow
+
+            Layout.fillWidth: true
 
             property int gap: 4
 
@@ -39,6 +56,8 @@ QtObject {
 
             QQC2.Button {
                 text: "reload"
+
+                onClicked: service.close("badge")
             }
         }
     }

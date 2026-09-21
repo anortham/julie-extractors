@@ -205,6 +205,14 @@
       "file_path": "fixtures/extraction/qml/test_roles/test_source.qml",
       "line_number": 11,
       "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/qml/test_roles/test_source.qml:test_source:4:0",
+      "callee_name": "TestCase",
+      "kind": "extends",
+      "file_path": "fixtures/extraction/qml/test_roles/test_source.qml",
+      "line_number": 4,
+      "confidence": "0.900"
     }
   ],
   "structured_pending_relationships": [
@@ -232,6 +240,32 @@
         "end_column": 25,
         "start_byte": 154,
         "end_byte": 171
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/qml/test_roles/test_source.qml:test_source:4:0",
+        "callee_name": "TestCase",
+        "kind": "extends",
+        "file_path": "fixtures/extraction/qml/test_roles/test_source.qml",
+        "line_number": 4,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "TestCase",
+        "terminal_name": "TestCase",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/qml/test_roles/test_source.qml:test_source:4:0",
+      "span": {
+        "start_line": 4,
+        "start_column": 0,
+        "end_line": 17,
+        "end_column": 1,
+        "start_byte": 38,
+        "end_byte": 246
       }
     }
   ],
@@ -265,6 +299,22 @@
       "start_byte": 26,
       "end_byte": 32,
       "containing_key": "fixtures/extraction/qml/test_roles/test_source.qml:QtTest:2:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/qml/test_roles/test_source.qml:TestCase:type_usage:4:0",
+      "name": "TestCase",
+      "kind": "type_usage",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/test_roles/test_source.qml",
+      "start_line": 4,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 8,
+      "start_byte": 38,
+      "end_byte": 46,
+      "containing_key": "fixtures/extraction/qml/test_roles/test_source.qml:test_source:4:0",
       "target_key": null,
       "confidence": "1.000"
     },
