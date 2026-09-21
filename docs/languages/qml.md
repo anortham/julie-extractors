@@ -58,10 +58,19 @@ The metadata key `role` says what the reference is:
 - `attached_type` — an attached property's type (`Layout.fillWidth`,
   `Kirigami.FormData`).
 - `signal_handler` — a handler binding (`onClicked`). The row is a
-  `member_access` identifier with the handler's target in `receiver`. An
-  `onXChanged` handler also carries `change_handler: true`.
+  `member_access` identifier with the handler's target in `receiver`. A dotted
+  handler name carries its qualifier instead, so `Keys.onPressed` gives `Keys`.
+  An `onXChanged` handler also carries `change_handler: true`.
 
 A reference with no `role` is an ordinary type usage or member access.
+
+### Known limits
+
+Relationship ownership matches an object to its row by start line. A
+`component X:` header whose body object starts on the next line, or several
+objects written on one line, can therefore attribute members to the outer class
+instead of the object that holds them. Write the body's opening brace on the
+header line to keep the attribution exact.
 
 ### `.qmltypes` files record no base type
 

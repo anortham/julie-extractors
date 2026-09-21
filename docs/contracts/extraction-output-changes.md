@@ -103,11 +103,43 @@ at those rows go with them: on the `plasma-framework` corpus in `docs/languages/
 relationships fall from 1,112 to 205 and pending rows from 2,360 to 1,776. Consumer action for
 code-kb: read bindings from the fact table, not from the symbol table.
 
+`symbols`, QML grouped property blocks: a block such as `anchors { fill: parent }`,
+`font { pixelSize: 12 }`, or `border { width: 1 }` parses as an object but binds a group of
+properties, so it emits no `field` row, no `instantiates` relationship, no pending row, and no
+`type_usage` identifier. A type name whose terminal segment starts with a lowercase letter is the
+rule. Its inner bindings stay `qml.binding.v1` facts. Consumer action for code-kb: read a grouped
+property block from the fact table, and expect no symbol row named `anchors`, `font`, or `border`.
+
 `symbols`, QML nested objects: a nested object is now a `field` row. Its name is the object's `id`
 when it has one, else its type name; its signature is `id: Type` or the bare type; its metadata
 carries `object_type`, `binding_kind: "object"`, and `value_source_property` for a `Behavior on`
 value source. Consumer action for code-kb: accept `field` as a QML symbol kind in skeletons and
 search.
+
+`symbols`, QML nested `id:` bindings: a nested object no longer emits a separate `property` row
+for its `id:` binding. The id names the object's own `field` row instead, so the evidence moves
+rather than disappears. The file root and an inline component's body still emit their `id:`
+property rows, because those objects carry a `class` row that the id cannot name. Consumer action
+for code-kb: resolve a nested id against `field` rows, not against `property` rows with an
+`id: ` signature.
+
+`symbols`, QML nested-object members: a property, function, signal, or nested object declared
+inside a nested object now has that object's `field` row as its `parent_symbol_id`. Before this
+release every such member parented to the enclosing `class` row. Consumer action for code-kb:
+walk the parent chain to reach the owning component instead of reading `parent_symbol_id` as the
+component directly.
+
+`symbols`, QML multi-line property signatures: a `property` row whose value spans more than one
+line keeps only the declaration head in `signature`, with the trailing colon removed, instead of
+the whole declaration text. A single-line declaration is unchanged. Consumer action for code-kb:
+render the stored signature as-is; it is already the one-line form a skeleton needs.
+
+`symbols`, JavaScript `.import` directive rows: an `.import` line at the head of a `.js` file now
+emits an `import` symbol. Its name is the imported source, its signature is the directive text, and
+its metadata carries `source`, `source_kind` (`uri` or `quoted`), `import_kind`, `alias`,
+`local_name`, `imported_name`, `is_namespace` (always true), and `version` for a module import.
+Consumer action for code-kb: read JavaScript QML imports from these rows the same way it reads QML
+`import` rows.
 
 `symbols`, qmldir type rows: a type row's kind changes from `class` to `export`. Consumer action
 for code-kb: query qmldir types by kind `export`.
@@ -121,6 +153,13 @@ signals carry the signature `signal name(type arg, ...)` and a `parameters` meta
 relationship to its base type, concrete when the base type is a symbol in the same file and a
 structured pending row otherwise. Consumer action for code-kb: include `extends` where it reads
 QML inheritance.
+
+`relationships` and `pending_relationships`, inline component bodies: the object directly under a
+`component Name: Base` header is that inline class's body, so it emits `extends` from the inline
+`class` row instead of `instantiates` from the outer class. A qualified base type such as
+`QQC2.Button` never resolves to a same-file class; it always takes the structured pending row that
+carries its terminal name and receiver. Consumer action for code-kb: read an inline component's
+base type from its `extends` row, not from an `instantiates` row on the enclosing component.
 
 `identifiers`, QML type usages: a qualified type name such as `QQC2.Button` is now recorded by its
 terminal segment (`Button`) with the qualifier in the new `receiver` metadata key. Before this
