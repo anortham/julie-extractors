@@ -132,30 +132,41 @@ git -C "$CORPUS" fetch --depth 1 origin \
 git -C "$CORPUS" checkout --detach \
   0806864a1e7c200ee8872074a4c16be7e1ce3358
 
-cargo build --locked --bin julie-extract
+cargo build --release --locked -p julie-extract-cli
 ARTIFACT="$(mktemp -d)"
-./target/debug/julie-extract scan \
+./target/release/julie-extract scan \
   --root "$CORPUS" \
   --db "$ARTIFACT/artifact.sqlite" \
   --json >"$ARTIFACT/scan-report.json" \
   2>"$ARTIFACT/scan-stderr.log"
 ```
 
+The numbers below were produced by the 3.2.0 branch build of
+`julie-extract`, which reports `binary_version` `3.2.0` in its scan report.
+
 The filesystem audit found 179 `.qml` files, one `.qmltypes` file, and five
 exact-basename `qmldir` files. The scan report was `status=ok` with
-`files_scanned=751`, `files_changed=384`, `files_unsupported=367`,
-`files_failed=0`, and empty `warnings` and `errors`. The report's per-file
-section was truncated by the CLI contract, so language-specific counts below
-come from the SQLite artifact.
+`files_scanned=751`, `files_changed=750`, `files_unsupported=367`,
+`files_failed=0`, and empty `errors`. It carried one recoverable warning,
+`slow_file_skipped`, for `src/desktoptheme/breeze/widgets/monitor.svg`, which
+exceeds the 1,048,576-byte extraction limit. The report's per-file section was
+truncated by the CLI contract, so language-specific counts below come from the
+SQLite artifact.
 
 | Artifact evidence | `qml` | `qmldir` |
 | --- | ---: | ---: |
 | Indexed files | 180 (179 `.qml` + 1 `.qmltypes`) | 5 |
-| Symbols | 7,195 | 53 |
-| Structural facts | 9,884 | 53 |
-| Resolved relationships | 1,112 | 0 |
-| Pending relationships | 2,360 | 0 |
+| Symbols | 3,878 | 53 |
+| Structural facts | 9,886 | 53 |
+| Resolved relationships | 205 | 0 |
+| Pending relationships | 1,776 | 0 |
 | Parse diagnostics | 121 | 10 |
+
+The QML symbol count is lower than the 3.1.3 count of 7,195 because a plain
+property binding is no longer a symbol. The same evidence stays in
+`structural_facts`, where 6,363 `qml.binding.v1` rows carry it. The object
+model supplies 1,645 `field` rows, qmldir supplies 52 `export` rows, and QML
+root objects supply 172 pending `extends` rows.
 
 The diagnostics are parser diagnostics recorded in the artifact; they did not
 fail the scan. The 121 QML diagnostics break down into 115 CMake-template
