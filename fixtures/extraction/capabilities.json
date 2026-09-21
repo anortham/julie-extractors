@@ -1505,7 +1505,8 @@
             "nuxt.server_route.v1",
             "react.route_definition.v1",
             "react.route_reference.v1",
-            "vue.route_definition.v1"
+            "vue.route_definition.v1",
+            "javascript.qml_directive.v1"
           ],
           "not_applicable": [],
           "open_gaps": [
@@ -4840,6 +4841,7 @@
             "enum",
             "enum_member",
             "event",
+            "field",
             "function",
             "import",
             "method",
@@ -4853,6 +4855,7 @@
         "relationships": {
           "supported": [
             "calls",
+            "extends",
             "instantiates",
             "uses"
           ],
@@ -4873,6 +4876,7 @@
           "supported": [
             "class",
             "event",
+            "field",
             "function",
             "property"
           ],
@@ -4888,7 +4892,8 @@
             "qml.signal_declaration.v1",
             "qml.binding.v1",
             "qml.object_instantiation.v1",
-            "qml.typeinfo_declaration.v1"
+            "qml.typeinfo_declaration.v1",
+            "qml.pragma.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -4906,6 +4911,7 @@
           "not_applicable": [
             "class",
             "event",
+            "field",
             "function",
             "import",
             "property"
@@ -4916,7 +4922,9 @@
           "supported": [
             "function"
           ],
-          "not_applicable": [],
+          "not_applicable": [
+            "field"
+          ],
           "open_gaps": []
         },
         "literals": {
@@ -5020,7 +5028,7 @@
       "kind_coverage": {
         "symbols": {
           "supported": [
-            "class",
+            "export",
             "module"
           ],
           "not_applicable": [],
@@ -5047,7 +5055,7 @@
         },
         "body_spans": {
           "supported": [
-            "class",
+            "export",
             "module"
           ],
           "not_applicable": [],
@@ -5083,7 +5091,7 @@
         "annotations": {
           "supported": [],
           "not_applicable": [
-            "class",
+            "export",
             "module"
           ],
           "open_gaps": []
@@ -5091,7 +5099,7 @@
         "doc_comments": {
           "supported": [],
           "not_applicable": [
-            "class",
+            "export",
             "module"
           ],
           "open_gaps": []

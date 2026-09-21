@@ -12,7 +12,7 @@ use crate::base::{BaseExtractor, NormalizedSpan, StructuralFact, Symbol, SymbolK
 
 pub(crate) const LANGUAGE: &str = "javascript";
 
-const PATTERN_ID: &str = "javascript.qml_directive.v1";
+pub(crate) const PATTERN_ID: &str = "javascript.qml_directive.v1";
 
 enum Directive {
     Pragma {
