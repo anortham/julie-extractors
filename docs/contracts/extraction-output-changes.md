@@ -88,6 +88,58 @@ In CI, the `Extractor Compatibility` job downloads the latest published release 
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
+## 3.2.0
+
+classification: compatible
+
+Qt support changes the QML, qmldir, and JavaScript rows. The schema does not change, and every
+column keeps its type, so a reader built for 3.1.3 still parses the output. The row content moves,
+so a consumer that matched on the old shapes must follow the notes below. Consumers that already
+hold an artifact must rebuild it, because an unchanged file keeps its stored rows.
+
+`symbols`, QML plain property bindings: a binding such as `width: 100` is no longer a symbol. The
+same evidence stays in `structural_facts` as `qml.binding.v1`. Consumer action for code-kb: read
+bindings from the fact table, not from the symbol table.
+
+`symbols`, QML nested objects: a nested object is now a `field` row. Its name is the object's `id`
+when it has one, else its type name; its signature is `id: Type` or the bare type; its metadata
+carries `object_type`, `binding_kind: "object"`, and `value_source_property` for a `Behavior on`
+value source. Consumer action for code-kb: accept `field` as a QML symbol kind in skeletons and
+search.
+
+`symbols`, qmldir type rows: a type row's kind changes from `class` to `export`. Consumer action
+for code-kb: query qmldir types by kind `export`.
+
+`symbols`, new QML rows: inline components are `class` rows with the signature `component Name: Base`;
+signals carry the signature `signal name(type arg, ...)` and a `parameters` metadata list; a bare
+`required property` row carries `required: true`; a `pragma Singleton` file marks its root
+`singleton: true`. Consumer action for code-kb: none required, the rows are additions.
+
+`pending_relationships` and `relationships`, new kind: a QML root object emits an `extends`
+relationship to its base type, concrete when the base type is a symbol in the same file and a
+structured pending row otherwise. Consumer action for code-kb: include `extends` where it reads
+QML inheritance.
+
+`identifiers`, QML type usages: a qualified type name such as `QQC2.Button` is now recorded by its
+terminal segment (`Button`) with the qualifier in the new `receiver` metadata key. Before this
+release the whole dotted text was the identifier name. Consumer action for code-kb: match the
+terminal name and read the qualifier from the metadata.
+
+`identifiers.metadata_json`, new keys: `role` (`base_type`, `attached_type`, `signal_handler`),
+`receiver`, and `change_handler` (true for an `onXChanged` handler). A `.qmltypes` root is a module
+descriptor, so it records no `base_type` identifier. Consumer action for code-kb: read `role` when
+it separates base types from ordinary type usages; the keys are optional and absent rows keep their
+old meaning.
+
+`structural_facts`, two new pattern ids: `qml.pragma.v1` (metadata `name`, `value`) and
+`javascript.qml_directive.v1` (metadata `directive`, `name`) for a `.pragma` line at the top of a
+JavaScript file. Consumer action for code-kb: none required, both are additions registered in
+`structural-fact-patterns.json`.
+
+Public extractor API: `Identifier` gains an optional `metadata` field. A crate that builds an
+`Identifier` literal must add the field; a crate that reads one is unaffected. Consumer action for
+code-kb: none, it reads identifiers from SQLite.
+
 ## 3.1.1
 
 classification: compatible

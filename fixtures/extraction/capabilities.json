@@ -1359,6 +1359,11 @@
           "expected": "fixtures/extraction/javascript/structural_facts/expected.json"
         },
         {
+          "name": "qml_directives",
+          "source": "fixtures/extraction/javascript/qml_directives/source.js",
+          "expected": "fixtures/extraction/javascript/qml_directives/expected.json"
+        },
+        {
           "name": "nextjs_file_route",
           "source": "fixtures/extraction/javascript/nextjs_file_route/app/blog/page.js",
           "expected": "fixtures/extraction/javascript/nextjs_file_route/expected.json"
@@ -4808,6 +4813,11 @@
           "name": "test_roles",
           "source": "fixtures/extraction/qml/test_roles/test_source.qml",
           "expected": "fixtures/extraction/qml/test_roles/expected.json"
+        },
+        {
+          "name": "qt_symbols",
+          "source": "fixtures/extraction/qml/qt_symbols/source.qml",
+          "expected": "fixtures/extraction/qml/qt_symbols/expected.json"
         },
         {
           "name": "return_types",
