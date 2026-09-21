@@ -6,6 +6,70 @@ Julie registers two QML-family languages:
 - `qmldir` handles files whose exact basename is `qmldir`. It intentionally
   has no extension mapping; `.qmldir` is not a supported spelling.
 
+## The object model in symbols
+
+A `.qml` file's root object is a `class` symbol: the file names the component.
+Its base type is not a symbol; it is an `extends` relationship (see *The
+reference contract* below).
+
+Inline components (`component Badge: Rectangle { ... }`) are `class` symbols
+too, with the signature `component Badge: Rectangle`.
+
+Every other nested object is a `field` symbol:
+
+- The name is the object's `id` when it declares one, else its type name.
+- The signature is `id: Type`, or the bare type when there is no `id`.
+- The metadata carries `object_type` (the declared type) and
+  `binding_kind: "object"`.
+- A value source (`Behavior on opacity { ... }`) also carries
+  `value_source_property` with the property the behavior is attached to.
+
+A plain property binding (`width: parent.width`) is no longer a symbol. The
+same evidence stays in the structural facts as `qml.binding.v1`, with the bound
+property in the `property_name` metadata key. Read bindings from the fact
+table, not from the symbol table.
+
+qmldir type rows use the symbol kind `export`, not `class`, because a qmldir
+line exports a type rather than declaring one.
+
+## Other symbol rows
+
+- A signal is an `event` symbol. Its signature is the declaration
+  (`signal activated(int index, string name)`) and its metadata carries a
+  `parameters` list of `{name, type}` objects.
+- A `required property` with no initializer is a `property` symbol with
+  `required: true` in its metadata.
+- A file that opens with `pragma Singleton` marks its root symbol
+  `singleton: true`. The pragma line itself is also a structural fact,
+  `qml.pragma.v1`, with the metadata keys `name` and `value`.
+
+## The reference contract
+
+Every QML type reference is recorded by the terminal segment of its name, so
+`QQC2.Button` is the identifier `Button`. The qualifier goes in the identifier
+metadata key `receiver` (`QQC2`). Match the terminal name and read the
+qualifier from the metadata.
+
+The metadata key `role` says what the reference is:
+
+- `base_type` — the root object's declared base type. The root also emits an
+  `extends` relationship to it: a concrete relationship when the base type is a
+  symbol in the same file, a structured pending relationship otherwise.
+- `attached_type` — an attached property's type (`Layout.fillWidth`,
+  `Kirigami.FormData`).
+- `signal_handler` — a handler binding (`onClicked`). The row is a
+  `member_access` identifier with the handler's target in `receiver`. An
+  `onXChanged` handler also carries `change_handler: true`.
+
+A reference with no `role` is an ordinary type usage or member access.
+
+### `.qmltypes` files record no base type
+
+A `.qmltypes` file's root is `Module { ... }`, a descriptor of a module rather
+than a component that extends something. Its root emits no `base_type`
+identifier and no `extends` relationship. Nested rows (`Component`,
+`AttachedType`, and the rest) keep their ordinary type usages.
+
 ## Continuous testing
 
 Run the language targets when changing QML extraction:

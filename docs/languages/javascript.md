@@ -22,6 +22,23 @@ stays unfiltered:
 cargo xtask test golden
 ```
 
+## Qt QML directives
+
+Qt lets a `.js` file open with QML directives. They are not JavaScript, so the
+extractor blanks each directive line to same-length spaces before it parses the
+file. Byte spans of the symbols below therefore still point at the original
+text, and `julie-extract check` accepts such a file instead of reporting a
+syntax error.
+
+- `.pragma library` becomes a structural fact, `javascript.qml_directive.v1`,
+  with the metadata keys `directive` (`pragma`) and `name` (`library`).
+- `.import "helpers.js" as Helpers` becomes an `import` symbol named after the
+  source, with `alias`, `local_name`, `imported_name`, and `is_namespace` in
+  its metadata.
+
+The producer lives in
+`crates/julie-extractors/src/javascript/qml_directives.rs`.
+
 ## Test-role contract
 
 code-kb drives continuous testing from these roles, so a wrong role becomes a
