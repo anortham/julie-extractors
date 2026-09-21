@@ -367,6 +367,12 @@ const QML_PATTERNS: &[CodeStructuralPattern] = &[
         query_family: "imports",
     },
     CodeStructuralPattern {
+        pattern_id: "qml.pragma.v1",
+        capture_name: "pragma",
+        node_kinds: &["ui_pragma"],
+        query_family: "pragmas",
+    },
+    CodeStructuralPattern {
         pattern_id: "qml.property_declaration.v1",
         capture_name: "property_declaration",
         node_kinds: &["ui_property"],
@@ -906,6 +912,14 @@ fn enrich_metadata(
             }
             if let Some(property_type) = qml_field_name(content, node, "type") {
                 insert_string(metadata, "property_type", &property_type);
+            }
+        }
+        "qml.pragma.v1" => {
+            if let Some(name) = qml_field_name(content, node, "name") {
+                insert_string(metadata, "name", &name);
+            }
+            if let Some(value) = qml_field_name(content, node, "value") {
+                insert_string(metadata, "value", &value);
             }
         }
         "qml.signal_declaration.v1" => {

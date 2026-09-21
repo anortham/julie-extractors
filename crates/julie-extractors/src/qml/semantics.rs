@@ -52,6 +52,64 @@ pub(super) fn handled_signal_from_binding_name(name: &str) -> Option<String> {
     name.strip_prefix("on").and_then(lowercase_first)
 }
 
+pub(super) fn property_signature(base: &BaseExtractor, node: Node) -> String {
+    let text = base.get_node_text(&node);
+    let Some(value) = node.child_by_field_name("value") else {
+        return text;
+    };
+    if value.start_position().row == value.end_position().row {
+        return text;
+    }
+    let head = value.start_byte().saturating_sub(node.start_byte());
+    text.get(..head)
+        .unwrap_or(text.as_str())
+        .trim_end()
+        .trim_end_matches(':')
+        .trim_end()
+        .to_string()
+}
+
+pub(super) fn signal_parameters(base: &BaseExtractor, node: Node) -> Vec<serde_json::Value> {
+    let Some(parameters) = node.child_by_field_name("parameters") else {
+        return Vec::new();
+    };
+    let mut cursor = parameters.walk();
+    parameters
+        .named_children(&mut cursor)
+        .filter(|parameter| parameter.kind() == "ui_signal_parameter")
+        .map(|parameter| {
+            let mut entry = serde_json::Map::new();
+            if let Some(name) = parameter.child_by_field_name("name") {
+                entry.insert(
+                    "name".to_string(),
+                    serde_json::Value::String(base.get_node_text(&name)),
+                );
+            }
+            if let Some(parameter_type) = parameter.child_by_field_name("type") {
+                entry.insert(
+                    "type".to_string(),
+                    serde_json::Value::String(base.get_node_text(&parameter_type)),
+                );
+            }
+            serde_json::Value::Object(entry)
+        })
+        .collect()
+}
+
+pub(super) fn file_declares_singleton(base: &BaseExtractor, root_object: Node) -> bool {
+    let mut program = root_object;
+    while let Some(parent) = program.parent() {
+        program = parent;
+    }
+    let mut cursor = program.walk();
+    program.named_children(&mut cursor).any(|child| {
+        child.kind() == "ui_pragma"
+            && child
+                .child_by_field_name("name")
+                .is_some_and(|name| base.get_node_text(&name) == "Singleton")
+    })
+}
+
 pub(super) fn function_signature(node_text: String) -> String {
     node_text
         .split('{')

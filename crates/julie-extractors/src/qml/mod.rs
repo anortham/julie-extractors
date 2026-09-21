@@ -92,7 +92,12 @@ impl QmlExtractor {
                         .map(|s| s.to_string())
                         .unwrap_or_else(|| base_type.clone());
 
-                    let signature = Some(format!("extends {}", base_type));
+                    let singleton = semantics::file_declares_singleton(&self.base, node);
+                    let signature = Some(if singleton {
+                        format!("singleton extends {}", base_type)
+                    } else {
+                        format!("extends {}", base_type)
+                    });
                     // Emit the root component's base type under the canonical
                     // `base_types` key. Artifact v1 preserves this metadata
                     // evidence without assigning old Julie test-container roles.
@@ -103,6 +108,9 @@ impl QmlExtractor {
                             base_type.clone(),
                         )]),
                     );
+                    if singleton {
+                        metadata.insert("singleton".to_string(), serde_json::Value::Bool(true));
+                    }
                     let options = SymbolOptions {
                         parent_id: parent_id.clone(),
                         signature,
@@ -124,8 +132,7 @@ impl QmlExtractor {
             "ui_property" => {
                 if let Some(name_node) = node.child_by_field_name("name") {
                     let name = self.base.get_node_text(&name_node);
-                    // Include full declaration text as signature for alias and typed properties
-                    let signature = Some(self.base.get_node_text(&node));
+                    let signature = Some(semantics::property_signature(&self.base, node));
                     let options = SymbolOptions {
                         parent_id: parent_id.clone(),
                         signature,
@@ -285,13 +292,78 @@ impl QmlExtractor {
             "ui_signal" => {
                 if let Some(name_node) = node.child_by_field_name("name") {
                     let name = self.base.get_node_text(&name_node);
+                    let parameters = semantics::signal_parameters(&self.base, node);
+                    let mut metadata = HashMap::new();
+                    if !parameters.is_empty() {
+                        metadata.insert(
+                            "parameters".to_string(),
+                            serde_json::Value::Array(parameters),
+                        );
+                    }
                     let options = SymbolOptions {
                         parent_id: parent_id.clone(),
+                        signature: Some(self.base.get_node_text(&node)),
+                        metadata: (!metadata.is_empty()).then_some(metadata),
                         ..Default::default()
                     };
                     let symbol = self
                         .base
                         .create_symbol(&node, name, SymbolKind::Event, options);
+                    self.symbols.push(symbol);
+                }
+            }
+
+            "ui_inline_component" => {
+                if let Some(name_node) = node.child_by_field_name("name") {
+                    let name = self.base.get_node_text(&name_node);
+                    let base_type = node
+                        .child_by_field_name("component")
+                        .and_then(|component| component.child_by_field_name("type_name"))
+                        .map(|type_name| self.base.get_node_text(&type_name));
+                    let signature = Some(match &base_type {
+                        Some(base_type) => format!("component {}: {}", name, base_type),
+                        None => format!("component {}", name),
+                    });
+                    let mut metadata = HashMap::new();
+                    if let Some(base_type) = base_type {
+                        metadata.insert(
+                            "base_types".to_string(),
+                            serde_json::Value::Array(vec![serde_json::Value::String(base_type)]),
+                        );
+                    }
+                    let options = SymbolOptions {
+                        parent_id: parent_id.clone(),
+                        signature,
+                        visibility: Some(crate::base::Visibility::Public),
+                        metadata: (!metadata.is_empty()).then_some(metadata),
+                        doc_comment: semantics::extract_qml_doc_comment(self, &node),
+                        ..Default::default()
+                    };
+                    let symbol = self
+                        .base
+                        .create_symbol(&node, name, SymbolKind::Class, options);
+                    self.symbols.push(symbol.clone());
+                    current_symbol = Some(symbol);
+                }
+            }
+
+            "ui_required" => {
+                if let Some(name_node) = node.child_by_field_name("name") {
+                    let name = self.base.get_node_text(&name_node);
+                    let mut metadata = HashMap::new();
+                    metadata.insert("required".to_string(), serde_json::Value::Bool(true));
+                    metadata.insert("inherited".to_string(), serde_json::Value::Bool(true));
+                    let options = SymbolOptions {
+                        parent_id: parent_id.clone(),
+                        signature: Some(self.base.get_node_text(&node)),
+                        visibility: Some(semantics::infer_visibility(&name, false)),
+                        metadata: Some(metadata),
+                        doc_comment: semantics::extract_qml_doc_comment(self, &node),
+                        ..Default::default()
+                    };
+                    let symbol =
+                        self.base
+                            .create_symbol(&node, name, SymbolKind::Property, options);
                     self.symbols.push(symbol);
                 }
             }

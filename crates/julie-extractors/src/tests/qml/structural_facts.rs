@@ -232,3 +232,25 @@ Item {
         "signal handler bindings must not emit qml.binding.v1"
     );
 }
+
+#[test]
+fn qml_pragma_facts_publish_name_and_value() {
+    let results = extract(
+        r#"
+pragma Singleton
+pragma ComponentBehavior: Bound
+
+import QtQuick 2.15
+
+QtObject {
+}
+"#,
+    );
+    let pragmas = crate::tests::helpers::facts_with_pattern(&results, "qml.pragma.v1");
+
+    assert_eq!(pragmas.len(), 2);
+    assert_eq!(metadata_str(pragmas[0], "name"), Some("Singleton"));
+    assert_eq!(metadata_str(pragmas[0], "value"), None);
+    assert_eq!(metadata_str(pragmas[1], "name"), Some("ComponentBehavior"));
+    assert_eq!(metadata_str(pragmas[1], "value"), Some("Bound"));
+}

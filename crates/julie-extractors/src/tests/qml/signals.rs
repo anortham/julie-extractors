@@ -217,4 +217,58 @@ Item {
 
         assert_eq!(signals.len(), 5, "Should extract all five signals");
     }
+
+    #[test]
+    fn signal_signature_is_the_declaration_with_typed_parameters() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Item {
+    signal closeRequested(string reason)
+}
+"#;
+
+        let symbols = extract_symbols(qml_code);
+
+        let signal = symbols
+            .iter()
+            .find(|s| s.name == "closeRequested")
+            .expect("signal symbol");
+        assert_eq!(
+            signal.signature.as_deref(),
+            Some("signal closeRequested(string reason)")
+        );
+        assert_eq!(
+            signal
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get("parameters")),
+            Some(&serde_json::json!([{"name": "reason", "type": "string"}]))
+        );
+    }
+
+    #[test]
+    fn signal_without_parameters_records_no_parameter_metadata() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Item {
+    signal clicked()
+}
+"#;
+
+        let symbols = extract_symbols(qml_code);
+
+        let signal = symbols
+            .iter()
+            .find(|s| s.name == "clicked")
+            .expect("signal symbol");
+        assert_eq!(signal.signature.as_deref(), Some("signal clicked()"));
+        assert!(
+            signal
+                .metadata
+                .as_ref()
+                .is_none_or(|metadata| !metadata.contains_key("parameters"))
+        );
+    }
 }

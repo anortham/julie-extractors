@@ -326,4 +326,36 @@ Rectangle {
             content_width.signature
         );
     }
+
+    #[test]
+    fn multi_line_property_value_keeps_only_the_declaration_head() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Item {
+    property var shellValues: {
+        "shell": "zsh",
+        "editor": "vim"
+    }
+    property int width: 100
+}
+"#;
+
+        let symbols = extract_symbols(qml_code);
+
+        let shell_values = symbols
+            .iter()
+            .find(|s| s.name == "shellValues")
+            .expect("multi-line property symbol");
+        assert_eq!(
+            shell_values.signature.as_deref(),
+            Some("property var shellValues")
+        );
+
+        let width = symbols
+            .iter()
+            .find(|s| s.name == "width")
+            .expect("single-line property symbol");
+        assert_eq!(width.signature.as_deref(), Some("property int width: 100"));
+    }
 }
