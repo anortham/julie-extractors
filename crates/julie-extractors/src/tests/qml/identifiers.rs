@@ -659,4 +659,31 @@ Rectangle {
             Some(component.id.as_str())
         );
     }
+
+    #[test]
+    fn grouped_property_blocks_emit_no_type_usage() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Rectangle {
+    Text {
+        anchors { fill: parent }
+    }
+}
+"#;
+
+        let identifiers = extract_identifiers(qml_code);
+
+        assert!(
+            !identifiers
+                .iter()
+                .any(|identifier| identifier.name == "anchors"
+                    && identifier.kind == IdentifierKind::TypeUsage),
+            "a grouped property block is not a type usage: {:?}",
+            identifiers
+                .iter()
+                .map(|identifier| (&identifier.name, &identifier.kind))
+                .collect::<Vec<_>>()
+        );
+    }
 }

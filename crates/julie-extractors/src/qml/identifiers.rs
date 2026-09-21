@@ -58,6 +58,9 @@ fn extract_identifier_from_node(
         // The root object names the base type the component extends; a nested
         // object names the type it instantiates.
         "ui_object_definition" => {
+            if semantics::is_grouped_property_block(&extractor.base, node) {
+                return;
+            }
             if let Some(type_name_node) = node.child_by_field_name("type_name") {
                 let is_root = semantics::enclosing_object(node).is_none();
                 // A `.qmltypes` root is a `Module` descriptor, not a component,

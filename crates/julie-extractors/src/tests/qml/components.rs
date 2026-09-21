@@ -660,4 +660,61 @@ Item {
             .expect("inline component property");
         assert_eq!(label.parent_id.as_deref(), Some(badge.id.as_str()));
     }
+
+    #[test]
+    fn grouped_property_blocks_are_not_object_rows() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Rectangle {
+    id: root
+
+    Text {
+        anchors { fill: parent }
+        font { pixelSize: 12 }
+    }
+}
+"#;
+
+        let symbols = extract_symbols(qml_code);
+
+        for grouped in ["anchors", "font"] {
+            assert!(
+                !symbols.iter().any(|symbol| symbol.name == grouped),
+                "{grouped} is a grouped property binding, not an object: {:?}",
+                symbols
+                    .iter()
+                    .map(|symbol| (&symbol.name, &symbol.kind))
+                    .collect::<Vec<_>>()
+            );
+        }
+    }
+
+    #[test]
+    fn grouped_property_block_bindings_stay_facts() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Rectangle {
+    Text {
+        anchors { fill: parent }
+    }
+}
+"#;
+
+        let results = crate::pipeline::extract_canonical(
+            "fixtures/extraction/qml/basic/source.qml",
+            qml_code,
+            std::path::Path::new("/repo"),
+        )
+        .expect("canonical QML extraction should succeed");
+
+        assert!(
+            results.structural_facts.iter().any(|fact| {
+                fact.pattern_id == "qml.binding.v1"
+                    && crate::tests::helpers::metadata_str(fact, "property_name") == Some("fill")
+            }),
+            "the fill binding inside a grouped block stays a qml.binding.v1 fact"
+        );
+    }
 }

@@ -181,6 +181,7 @@ fn extract_instantiation_relationships(
     }
 
     if node.kind() == "ui_object_definition"
+        && !super::semantics::is_grouped_property_block(&extractor.base, node)
         && let Some(type_name_node) = node.child_by_field_name("type_name")
     {
         let component_type = extractor

@@ -168,6 +168,18 @@ pub(super) fn object_has_class_row(object: Node<'_>) -> bool {
         || enclosing_object(object).is_none()
 }
 
+/// `anchors { fill: parent }` binds a group of properties; only its inner
+/// bindings are facts. A lowercase first letter on the terminal type segment
+/// tells it apart from an object instantiation.
+pub(super) fn is_grouped_property_block(base: &BaseExtractor, node: Node<'_>) -> bool {
+    let Some(type_name) = node.child_by_field_name("type_name") else {
+        return false;
+    };
+    let text = base.get_node_text(&type_name);
+    let terminal = text.rsplit('.').next().unwrap_or(text.as_str());
+    terminal.starts_with(|character: char| character.is_ascii_lowercase())
+}
+
 /// The dotted segments of a QML name in source order: `Kirigami.FormData.label`
 /// yields three identifier nodes.
 pub(super) fn dotted_segments(node: Node<'_>) -> Vec<Node<'_>> {

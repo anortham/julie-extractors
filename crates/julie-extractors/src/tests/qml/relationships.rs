@@ -757,4 +757,39 @@ Rectangle {
             "the root base type is an extends, not an instantiates"
         );
     }
+
+    #[test]
+    fn grouped_property_blocks_emit_no_instantiation() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Rectangle {
+    id: root
+
+    Text {
+        anchors { fill: parent }
+    }
+}
+"#;
+
+        let (_, relationships, pending) =
+            extract_symbols_and_relationships_with_path(qml_code, "Panel.qml");
+
+        assert!(
+            !relationships.iter().any(|relationship| relationship.kind
+                == RelationshipKind::Instantiates
+                && relationship.line_number == 8),
+            "a grouped property block instantiates nothing"
+        );
+        assert!(
+            !pending
+                .iter()
+                .any(|entry| entry.target.terminal_name == "anchors"),
+            "a grouped property block emits no pending row: {:?}",
+            pending
+                .iter()
+                .map(|entry| entry.target.terminal_name.clone())
+                .collect::<Vec<_>>()
+        );
+    }
 }

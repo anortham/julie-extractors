@@ -124,7 +124,9 @@ impl QmlExtractor {
                             .create_symbol(&node, component_name, SymbolKind::Class, options);
                     self.symbols.push(symbol.clone());
                     current_symbol = Some(symbol);
-                } else if !semantics::object_has_class_row(node) {
+                } else if !semantics::object_has_class_row(node)
+                    && !semantics::is_grouped_property_block(&self.base, node)
+                {
                     current_symbol = self.push_object_symbol(node, parent_id.clone(), None);
                 }
             }
