@@ -335,23 +335,51 @@ Rectangle {
 
         let symbols = extract_symbols(qml_code);
 
-        let id_symbols: Vec<&Symbol> = symbols
+        let id_symbols: Vec<(&str, &SymbolKind)> = symbols
             .iter()
-            .filter(|s| {
-                s.kind == SymbolKind::Property
-                    && ["root", "titleText", "content"].contains(&s.name.as_str())
-            })
+            .filter(|s| ["root", "titleText", "content"].contains(&s.name.as_str()))
+            .map(|s| (s.name.as_str(), &s.kind))
             .collect();
 
         assert_eq!(
-            id_symbols.len(),
-            3,
-            "Should extract all three id bindings. Got: {:?}",
-            symbols
-                .iter()
-                .map(|s| (&s.name, &s.kind))
-                .collect::<Vec<_>>()
+            id_symbols,
+            vec![
+                ("root", &SymbolKind::Property),
+                ("titleText", &SymbolKind::Field),
+                ("content", &SymbolKind::Field),
+            ],
+            "the root id stays a property row and nested ids name their object rows"
         );
+    }
+
+    #[test]
+    fn plain_property_bindings_are_not_symbols() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Rectangle {
+    id: root
+    width: 400
+    anchors.fill: parent
+
+    Text {
+        text: "hello"
+    }
+}
+"#;
+
+        let symbols = extract_symbols(qml_code);
+
+        for binding in ["width", "anchors.fill", "text"] {
+            assert!(
+                !symbols.iter().any(|s| s.name == binding),
+                "{binding} should stay a qml.binding.v1 fact, got: {:?}",
+                symbols
+                    .iter()
+                    .map(|s| (&s.name, &s.kind))
+                    .collect::<Vec<_>>()
+            );
+        }
     }
 
     #[test]

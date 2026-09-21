@@ -82,12 +82,7 @@ fn extract_call_relationships(
             && let Some(called_symbol) = symbol_map
                 .get(function_name.as_str())
                 .filter(|s| s.kind == SymbolKind::Function || s.kind == SymbolKind::Event)
-            && receiver_can_resolve_locally(
-                receiver.as_deref(),
-                caller_symbol,
-                called_symbol,
-                symbols,
-            )
+            && receiver_can_resolve_locally(receiver.as_deref(), called_symbol, symbols)
         {
             let relationship = Relationship {
                 id: format!(
@@ -127,9 +122,10 @@ fn extract_call_relationships(
     }
 }
 
+/// QML ids are file-scoped, so a receiver resolves when the file declares that
+/// id and the called symbol is a member of the object it names.
 fn receiver_can_resolve_locally(
     receiver: Option<&str>,
-    caller_symbol: &Symbol,
     called_symbol: &Symbol,
     symbols: &[Symbol],
 ) -> bool {
@@ -137,27 +133,36 @@ fn receiver_can_resolve_locally(
         return true;
     };
 
-    let Some(receiver_symbol) = symbols.iter().find(|symbol| {
-        symbol.name == receiver
-            && symbol.kind == SymbolKind::Property
-            && symbol
-                .signature
-                .as_deref()
-                .is_some_and(|signature| signature.starts_with("id:"))
-    }) else {
+    symbols
+        .iter()
+        .filter(|symbol| declares_id(symbol, receiver))
+        .any(|symbol| {
+            let scope = id_member_scope(symbol);
+            scope.is_some() && scope == called_symbol.parent_id.as_deref()
+        })
+}
+
+/// An id is either the class row's `id:` property or the object row that the id
+/// itself names.
+fn declares_id(symbol: &Symbol, receiver: &str) -> bool {
+    if symbol.name != receiver {
+        return false;
+    }
+    let Some(signature) = symbol.signature.as_deref() else {
         return false;
     };
+    match symbol.kind {
+        SymbolKind::Property => signature.starts_with("id:"),
+        SymbolKind::Field => signature.starts_with(&format!("{receiver}: ")),
+        _ => false,
+    }
+}
 
-    let receiver_parent_id = receiver_symbol.parent_id.as_deref();
-    let caller_scope_id = if caller_symbol.kind == SymbolKind::Class {
-        Some(caller_symbol.id.as_str())
-    } else {
-        caller_symbol.parent_id.as_deref()
-    };
-
-    receiver_parent_id.is_some()
-        && receiver_parent_id == caller_scope_id
-        && called_symbol.parent_id.as_deref() == receiver_parent_id
+fn id_member_scope(symbol: &Symbol) -> Option<&str> {
+    match symbol.kind {
+        SymbolKind::Field => Some(symbol.id.as_str()),
+        _ => symbol.parent_id.as_deref(),
+    }
 }
 
 /// Extract one relationship for each QML object use.
@@ -308,8 +313,10 @@ fn extract_property_binding_relationships(
 
         // Find containing component
         if let Some(container_symbol) = find_containing_component(node, symbols) {
-            let Some(target_symbol) =
-                find_property_target(&property_name, container_symbol, symbols)
+            let scope_symbol =
+                find_enclosing_symbol(node, symbols, &[SymbolKind::Class, SymbolKind::Field])
+                    .unwrap_or(container_symbol);
+            let Some(target_symbol) = find_property_target(&property_name, scope_symbol, symbols)
             else {
                 return;
             };
@@ -411,14 +418,25 @@ fn find_containing_function<'a>(node: Node, symbols: &'a [Symbol]) -> Option<&'a
 
 /// Find the containing QML component for a node
 fn find_containing_component<'a>(node: Node, symbols: &'a [Symbol]) -> Option<&'a Symbol> {
+    find_enclosing_symbol(node, symbols, &[SymbolKind::Class])
+}
+
+/// Walk out to the nearest enclosing QML object whose row has one of `kinds`.
+fn find_enclosing_symbol<'a>(
+    node: Node,
+    symbols: &'a [Symbol],
+    kinds: &[SymbolKind],
+) -> Option<&'a Symbol> {
     let mut current = node;
     while let Some(parent) = current.parent() {
-        if parent.kind() == "ui_object_definition" {
-            // Find the symbol that matches this component
-            let comp_line = parent.start_position().row + 1;
+        if matches!(
+            parent.kind(),
+            "ui_object_definition" | "ui_object_definition_binding"
+        ) {
+            let object_line = (parent.start_position().row + 1) as u32;
             if let Some(symbol) = symbols
                 .iter()
-                .find(|s| s.kind == SymbolKind::Class && s.start_line == comp_line as u32)
+                .find(|s| kinds.contains(&s.kind) && s.start_line == object_line)
             {
                 return Some(symbol);
             }
@@ -472,17 +490,10 @@ fn object_type_name(base: &BaseExtractor, object_node: Node) -> Option<String> {
 }
 
 fn is_root_object(object_node: Node) -> bool {
-    let mut current = object_node.parent();
-    while let Some(parent) = current {
-        if parent.kind() == "ui_object_definition" {
-            return false;
-        }
-        current = parent.parent();
-    }
-    true
+    super::semantics::enclosing_object(object_node).is_none()
 }
 
-fn object_id_binding(base: &BaseExtractor, object_node: Node) -> Option<String> {
+pub(super) fn object_id_binding(base: &BaseExtractor, object_node: Node) -> Option<String> {
     let initializer = object_node.child_by_field_name("initializer")?;
     let mut cursor = initializer.walk();
     for child in initializer.named_children(&mut cursor) {

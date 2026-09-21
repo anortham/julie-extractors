@@ -42,7 +42,6 @@ Rectangle {
         return count + 1
     }
 
-    /** Width tracks the count value */
     width: count * 10
 
     /** Signal handler for activation */
@@ -142,22 +141,9 @@ Rectangle {
             "_helper return type should be inferred from function signature"
         );
 
-        let width_binding = symbols
-            .iter()
-            .find(|s| s.kind == SymbolKind::Property && s.name == "width")
-            .expect("Should extract width binding symbol");
-        assert_eq!(width_binding.visibility, Some(Visibility::Private));
-        assert_eq!(
-            symbol_metadata_str(width_binding, "binding_kind"),
-            Some("property_binding".to_string()),
-            "width binding should be tagged as property_binding"
-        );
         assert!(
-            width_binding
-                .doc_comment
-                .as_deref()
-                .is_some_and(|doc| doc.contains("Width tracks the count value")),
-            "width binding doc comment should be extracted"
+            !symbols.iter().any(|s| s.name == "width"),
+            "a plain property binding is a qml.binding.v1 fact, not a symbol"
         );
 
         let on_activated = symbols

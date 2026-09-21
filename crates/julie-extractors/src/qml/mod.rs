@@ -124,8 +124,18 @@ impl QmlExtractor {
                             .create_symbol(&node, component_name, SymbolKind::Class, options);
                     self.symbols.push(symbol.clone());
                     current_symbol = Some(symbol);
+                } else if !semantics::object_has_class_row(node) {
+                    current_symbol = self.push_object_symbol(node, parent_id.clone(), None);
                 }
-                // Nested objects: skip Class symbol, still recurse into children
+            }
+
+            // Property value sources (Behavior on color { NumberAnimation {} })
+            "ui_object_definition_binding" => {
+                let value_source_property = node
+                    .child_by_field_name("name")
+                    .map(|name| self.base.get_node_text(&name));
+                current_symbol =
+                    self.push_object_symbol(node, parent_id.clone(), value_source_property);
             }
 
             // QML properties (property int age: 42, property alias foo: bar.baz)
@@ -152,7 +162,10 @@ impl QmlExtractor {
             "ui_binding" => {
                 if let Some(name_node) = node.child_by_field_name("name") {
                     let binding_name = self.base.get_node_text(&name_node);
-                    if binding_name == "id" {
+                    if binding_name == "id"
+                        && semantics::enclosing_object(node)
+                            .is_none_or(semantics::object_has_class_row)
+                    {
                         // Extract the id value from the expression_statement > identifier
                         if let Some(value_node) = node.child_by_field_name("value") {
                             // value is an expression_statement wrapping an identifier
@@ -217,33 +230,6 @@ impl QmlExtractor {
                             &node,
                             binding_name,
                             SymbolKind::Function,
-                            options,
-                        );
-                        self.symbols.push(symbol);
-                    } else if !semantics::is_inside_object_definition_binding(node) {
-                        // Skip property bindings that are configuration properties of a
-                        // property-value-source block (`PropertyAnimation on value { from: 0 }`).
-                        // Those are internal to the animation type, not symbols of the
-                        // enclosing component.
-                        let options = SymbolOptions {
-                            parent_id: parent_id.clone(),
-                            signature: Some(self.base.get_node_text(&node)),
-                            visibility: Some(crate::base::Visibility::Private),
-                            metadata: Some({
-                                let mut meta = HashMap::new();
-                                meta.insert(
-                                    "binding_kind".to_string(),
-                                    serde_json::Value::String("property_binding".to_string()),
-                                );
-                                meta
-                            }),
-                            doc_comment: semantics::extract_qml_doc_comment(self, &node),
-                            ..Default::default()
-                        };
-                        let symbol = self.base.create_symbol(
-                            &node,
-                            binding_name,
-                            SymbolKind::Property,
                             options,
                         );
                         self.symbols.push(symbol);
@@ -431,6 +417,57 @@ impl QmlExtractor {
         for child in node.children(&mut cursor) {
             self.traverse_node(child, next_parent_id.clone(), child_depth);
         }
+    }
+
+    /// Emit the `Field` row for a nested QML object, named after its `id` when
+    /// it declares one and after its type otherwise.
+    fn push_object_symbol(
+        &mut self,
+        node: tree_sitter::Node,
+        parent_id: Option<String>,
+        value_source_property: Option<String>,
+    ) -> Option<Symbol> {
+        use crate::base::{SymbolKind, SymbolOptions};
+
+        let object_type = self
+            .base
+            .get_node_text(&node.child_by_field_name("type_name")?);
+        let object_id = relationships::object_id_binding(&self.base, node);
+        let signature = match &object_id {
+            Some(object_id) => format!("{}: {}", object_id, object_type),
+            None => object_type.clone(),
+        };
+        let mut metadata = HashMap::new();
+        metadata.insert(
+            "object_type".to_string(),
+            serde_json::Value::String(object_type.clone()),
+        );
+        metadata.insert(
+            "binding_kind".to_string(),
+            serde_json::Value::String("object".to_string()),
+        );
+        if let Some(property) = value_source_property {
+            metadata.insert(
+                "value_source_property".to_string(),
+                serde_json::Value::String(property),
+            );
+        }
+        let options = SymbolOptions {
+            parent_id,
+            signature: Some(signature),
+            visibility: Some(crate::base::Visibility::Private),
+            metadata: Some(metadata),
+            doc_comment: semantics::extract_qml_doc_comment(self, &node),
+            ..Default::default()
+        };
+        let symbol = self.base.create_symbol(
+            &node,
+            object_id.unwrap_or(object_type),
+            SymbolKind::Field,
+            options,
+        );
+        self.symbols.push(symbol.clone());
+        Some(symbol)
     }
 
     pub fn extract_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {

@@ -466,34 +466,49 @@ Item {
     }
 
     #[test]
-    fn test_extract_property_binding_relationship() {
+    fn property_use_resolves_inside_the_enclosing_object() {
         let qml_code = r#"
 import QtQuick 2.15
 
-Rectangle {
-    id: container
-    width: 200
-    height: 200
+Item {
+    id: root
+
+    property int margin: 4
 
     Rectangle {
-        id: child
-        width: parent.width / 2
-        height: container.height / 2
+        id: box
+
+        property int margin: 8
+
+        function shrink() {
+            return box.margin - 1
+        }
     }
 }
 "#;
 
-        let (_symbols, relationships) = extract_symbols_and_relationships(qml_code);
-
-        // Property bindings create "Uses" relationships
-        let uses_relationships: Vec<&Relationship> = relationships
+        let (symbols, relationships) = extract_symbols_and_relationships(qml_code);
+        let box_row = symbols
             .iter()
-            .filter(|r| r.kind == RelationshipKind::Uses)
-            .collect();
+            .find(|symbol| symbol.name == "box" && symbol.kind == SymbolKind::Field)
+            .expect("nested object row");
+        let nested_margin = symbols
+            .iter()
+            .find(|symbol| {
+                symbol.name == "margin" && symbol.parent_id.as_deref() == Some(box_row.id.as_str())
+            })
+            .expect("nested margin property");
 
         assert!(
-            !uses_relationships.is_empty(),
-            "Should extract property binding relationships"
+            relationships.iter().any(|relationship| {
+                relationship.kind == RelationshipKind::Uses
+                    && relationship.to_symbol_id == nested_margin.id
+            }),
+            "box.margin should target the property declared in the same object, got: {:?}",
+            relationships
+                .iter()
+                .map(|relationship| (&relationship.kind, &relationship.to_symbol_id))
+                .collect::<Vec<_>>()
         );
     }
 
@@ -554,6 +569,105 @@ Item {
                     && p.target.terminal_name == "duplicate"
             }),
             "Ambiguous duplicate call should be recorded as a pending relationship"
+        );
+    }
+
+    #[test]
+    fn call_inside_a_nested_object_keeps_the_class_as_from_symbol() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Item {
+    id: root
+
+    function refresh() {
+        return 1
+    }
+
+    Timer {
+        id: poll
+        onTriggered: root.refresh()
+    }
+}
+"#;
+
+        let (symbols, relationships) = extract_symbols_and_relationships(qml_code);
+        let root_class = symbols
+            .iter()
+            .find(|symbol| symbol.kind == SymbolKind::Class)
+            .expect("root class");
+        let poll = symbols
+            .iter()
+            .find(|symbol| symbol.name == "poll" && symbol.kind == SymbolKind::Field)
+            .expect("nested object row");
+        let refresh = symbols
+            .iter()
+            .find(|symbol| symbol.name == "refresh" && symbol.kind == SymbolKind::Function)
+            .expect("refresh function");
+
+        assert!(
+            relationships.iter().any(|relationship| {
+                relationship.kind == RelationshipKind::Calls
+                    && relationship.from_symbol_id == root_class.id
+                    && relationship.to_symbol_id == refresh.id
+            }),
+            "the call should be anchored to the class, got: {:?}",
+            relationships
+                .iter()
+                .map(|relationship| (&relationship.kind, &relationship.from_symbol_id))
+                .collect::<Vec<_>>()
+        );
+        assert!(
+            relationships
+                .iter()
+                .all(|relationship| relationship.from_symbol_id != poll.id),
+            "no relationship may start at an object row"
+        );
+    }
+
+    #[test]
+    fn call_through_a_nested_object_id_resolves_to_its_member_function() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Item {
+    id: root
+
+    Timer {
+        id: poll
+
+        function restart() {
+            return 1
+        }
+    }
+
+    function run() {
+        poll.restart()
+    }
+}
+"#;
+
+        let (symbols, relationships) = extract_symbols_and_relationships(qml_code);
+        let run = symbols
+            .iter()
+            .find(|symbol| symbol.name == "run" && symbol.kind == SymbolKind::Function)
+            .expect("run function");
+        let restart = symbols
+            .iter()
+            .find(|symbol| symbol.name == "restart" && symbol.kind == SymbolKind::Function)
+            .expect("restart function");
+
+        assert_eq!(
+            relationships
+                .iter()
+                .filter(|relationship| {
+                    relationship.kind == RelationshipKind::Calls
+                        && relationship.from_symbol_id == run.id
+                        && relationship.to_symbol_id == restart.id
+                })
+                .count(),
+            1,
+            "poll.restart() should resolve through the nested object row"
         );
     }
 }

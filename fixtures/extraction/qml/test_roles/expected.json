@@ -94,32 +94,6 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/qml/test_roles/test_source.qml:name:5:4",
-      "name": "name",
-      "kind": "property",
-      "language": "qml",
-      "file_path": "fixtures/extraction/qml/test_roles/test_source.qml",
-      "start_line": 5,
-      "start_column": 4,
-      "end_line": 5,
-      "end_column": 27,
-      "start_byte": 53,
-      "end_byte": 76,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "name: \"CalculatorTests\"",
-      "doc_comment": null,
-      "visibility": "Private",
-      "parent_key": "fixtures/extraction/qml/test_roles/test_source.qml:test_source:4:0",
-      "metadata": {
-        "binding_kind": "property_binding"
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
       "key": "fixtures/extraction/qml/test_roles/test_source.qml:test_addition:10:4",
       "name": "test_addition",
       "kind": "function",
@@ -322,7 +296,7 @@
       "end_column": 8,
       "start_byte": 53,
       "end_byte": 57,
-      "containing_key": "fixtures/extraction/qml/test_roles/test_source.qml:name:5:4",
+      "containing_key": "fixtures/extraction/qml/test_roles/test_source.qml:test_source:4:0",
       "target_key": null,
       "confidence": "1.000"
     }
@@ -336,7 +310,7 @@
       "node_kind": "ui_binding",
       "language": "qml",
       "file_path": "fixtures/extraction/qml/test_roles/test_source.qml",
-      "containing_key": "fixtures/extraction/qml/test_roles/test_source.qml:name:5:4",
+      "containing_key": "fixtures/extraction/qml/test_roles/test_source.qml:test_source:4:0",
       "start_line": 5,
       "start_column": 4,
       "end_line": 5,
@@ -515,7 +489,7 @@
       "kind": "string_literal",
       "language": "qml",
       "file_path": "fixtures/extraction/qml/test_roles/test_source.qml",
-      "containing_key": "fixtures/extraction/qml/test_roles/test_source.qml:name:5:4",
+      "containing_key": "fixtures/extraction/qml/test_roles/test_source.qml:test_source:4:0",
       "start_line": 5,
       "start_column": 10,
       "end_line": 5,

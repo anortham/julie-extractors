@@ -143,17 +143,29 @@ pub(super) fn infer_types(symbols: &[Symbol]) -> HashMap<String, String> {
     types
 }
 
-/// Returns `true` if `node` is inside a `ui_object_definition_binding` ancestor
-/// (i.e. inside a property-value-source block like `PropertyAnimation on value { ... }`).
-pub(super) fn is_inside_object_definition_binding(node: Node<'_>) -> bool {
+/// The nearest QML object enclosing `node`: an object definition or a
+/// property-value-source binding (`Behavior on color { ... }`).
+pub(super) fn enclosing_object(node: Node<'_>) -> Option<Node<'_>> {
     let mut current = node;
     while let Some(parent) = current.parent() {
-        if parent.kind() == "ui_object_definition_binding" {
-            return true;
+        if matches!(
+            parent.kind(),
+            "ui_object_definition" | "ui_object_definition_binding"
+        ) {
+            return Some(parent);
         }
         current = parent;
     }
-    false
+    None
+}
+
+/// Returns `true` for an object that already owns a `Class` row: the file root
+/// and an inline component's body. Every other object gets a field row.
+pub(super) fn object_has_class_row(object: Node<'_>) -> bool {
+    object
+        .parent()
+        .is_some_and(|parent| parent.kind() == "ui_inline_component")
+        || enclosing_object(object).is_none()
 }
 
 pub(super) fn build_unresolved_target(

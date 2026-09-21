@@ -30,6 +30,40 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/qml/basic/source.qml:Text:65:4",
+      "name": "Text",
+      "kind": "field",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/basic/source.qml",
+      "start_line": 65,
+      "start_column": 4,
+      "end_line": 67,
+      "end_column": 5,
+      "start_byte": 1264,
+      "end_byte": 1314,
+      "body_span": {
+        "start_line": 65,
+        "start_column": 9,
+        "end_line": 67,
+        "end_column": 5,
+        "start_byte": 1269,
+        "end_byte": 1314
+      },
+      "body_hash": "b580f9c01b2c01de3fd6703d9157541a",
+      "signature": "Text",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/qml/basic/source.qml:source:3:0",
+      "metadata": {
+        "binding_kind": "object",
+        "object_type": "Text"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/qml/basic/source.qml:activated:11:4",
       "name": "activated",
       "kind": "event",
@@ -865,39 +899,6 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/qml/basic/source.qml:text:66:8",
-      "name": "text",
-      "kind": "property",
-      "language": "qml",
-      "file_path": "fixtures/extraction/qml/basic/source.qml",
-      "start_line": 66,
-      "start_column": 8,
-      "end_line": 66,
-      "end_column": 37,
-      "start_byte": 1279,
-      "end_byte": 1308,
-      "body_span": {
-        "start_line": 66,
-        "start_column": 25,
-        "end_line": 66,
-        "end_column": 37,
-        "start_byte": 1296,
-        "end_byte": 1308
-      },
-      "body_hash": "2b4d02c1aa6435db66376cc3242abc5c",
-      "signature": "text: root.format(root.title)",
-      "doc_comment": null,
-      "visibility": "Private",
-      "parent_key": "fixtures/extraction/qml/basic/source.qml:source:3:0",
-      "metadata": {
-        "binding_kind": "property_binding"
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
       "key": "fixtures/extraction/qml/basic/source.qml:title:42:24",
       "name": "title",
       "kind": "variable",
@@ -1630,7 +1631,7 @@
       "end_column": 25,
       "start_byte": 1290,
       "end_byte": 1296,
-      "containing_key": "fixtures/extraction/qml/basic/source.qml:text:66:8",
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:Text:65:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1919,7 +1920,7 @@
       "end_column": 12,
       "start_byte": 1279,
       "end_byte": 1283,
-      "containing_key": "fixtures/extraction/qml/basic/source.qml:text:66:8",
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:Text:65:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1935,7 +1936,7 @@
       "end_column": 36,
       "start_byte": 1302,
       "end_byte": 1307,
-      "containing_key": "fixtures/extraction/qml/basic/source.qml:text:66:8",
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:Text:65:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2200,7 +2201,7 @@
       "node_kind": "ui_binding",
       "language": "qml",
       "file_path": "fixtures/extraction/qml/basic/source.qml",
-      "containing_key": "fixtures/extraction/qml/basic/source.qml:text:66:8",
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:Text:65:4",
       "start_line": 66,
       "start_column": 8,
       "end_line": 66,
@@ -2244,6 +2245,26 @@
       "node_kind": "ui_object_definition",
       "language": "qml",
       "file_path": "fixtures/extraction/qml/basic/source.qml",
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:Text:65:4",
+      "start_line": 65,
+      "start_column": 4,
+      "end_line": 67,
+      "end_column": 5,
+      "start_byte": 1264,
+      "end_byte": 1314,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "objects",
+        "type_name": "Text"
+      }
+    },
+    {
+      "pattern_id": "qml.object_instantiation.v1",
+      "capture_name": "object_instantiation",
+      "node_kind": "ui_object_definition",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/basic/source.qml",
       "containing_key": "fixtures/extraction/qml/basic/source.qml:source:3:0",
       "start_line": 3,
       "start_column": 0,
@@ -2256,26 +2277,6 @@
         "pattern_version": 1,
         "query_family": "objects",
         "type_name": "Item"
-      }
-    },
-    {
-      "pattern_id": "qml.object_instantiation.v1",
-      "capture_name": "object_instantiation",
-      "node_kind": "ui_object_definition",
-      "language": "qml",
-      "file_path": "fixtures/extraction/qml/basic/source.qml",
-      "containing_key": "fixtures/extraction/qml/basic/source.qml:source:3:0",
-      "start_line": 65,
-      "start_column": 4,
-      "end_line": 67,
-      "end_column": 5,
-      "start_byte": 1264,
-      "end_byte": 1314,
-      "confidence": "1.000",
-      "metadata": {
-        "pattern_version": 1,
-        "query_family": "objects",
-        "type_name": "Text"
       }
     },
     {

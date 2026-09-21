@@ -420,4 +420,210 @@ Item {
             Some(&serde_json::json!(["Kirigami.Page"]))
         );
     }
+
+    fn object_row<'a>(symbols: &'a [Symbol], name: &str) -> &'a Symbol {
+        symbols
+            .iter()
+            .find(|symbol| symbol.name == name && symbol.kind == SymbolKind::Field)
+            .unwrap_or_else(|| {
+                panic!(
+                    "expected object row {name}, got {:?}",
+                    symbols
+                        .iter()
+                        .map(|symbol| (&symbol.name, &symbol.kind))
+                        .collect::<Vec<_>>()
+                )
+            })
+    }
+
+    fn object_metadata(symbol: &Symbol, key: &str) -> Option<serde_json::Value> {
+        symbol
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get(key))
+            .cloned()
+    }
+
+    #[test]
+    fn nested_object_with_an_id_is_a_field_row_named_by_the_id() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Item {
+    id: root
+
+    Timer {
+        id: localPluginReloadTimer
+        interval: 200
+    }
+}
+"#;
+
+        let symbols = extract_symbols(qml_code);
+        let timer = object_row(&symbols, "localPluginReloadTimer");
+
+        assert_eq!(
+            timer.signature.as_deref(),
+            Some("localPluginReloadTimer: Timer")
+        );
+        assert_eq!(
+            object_metadata(timer, "object_type"),
+            Some(serde_json::json!("Timer"))
+        );
+        assert_eq!(
+            object_metadata(timer, "binding_kind"),
+            Some(serde_json::json!("object"))
+        );
+
+        let root_class = symbols
+            .iter()
+            .find(|symbol| symbol.kind == SymbolKind::Class)
+            .expect("root class");
+        assert_eq!(timer.parent_id.as_deref(), Some(root_class.id.as_str()));
+        assert!(
+            !symbols
+                .iter()
+                .any(|symbol| symbol.name == "localPluginReloadTimer"
+                    && symbol.kind == SymbolKind::Property),
+            "a nested object must not also emit an id property row"
+        );
+    }
+
+    #[test]
+    fn anonymous_nested_object_is_a_field_row_named_by_its_type() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Item {
+    Rectangle {
+        color: "red"
+    }
+
+    QQC2.Button {
+        text: "ok"
+    }
+}
+"#;
+
+        let symbols = extract_symbols(qml_code);
+
+        assert_eq!(
+            object_row(&symbols, "Rectangle").signature.as_deref(),
+            Some("Rectangle")
+        );
+        assert_eq!(
+            object_row(&symbols, "QQC2.Button").signature.as_deref(),
+            Some("QQC2.Button")
+        );
+    }
+
+    #[test]
+    fn value_source_binding_records_its_target_property() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Rectangle {
+    Behavior on color {
+        NumberAnimation {
+            duration: 100
+        }
+    }
+}
+"#;
+
+        let symbols = extract_symbols(qml_code);
+        let behavior = object_row(&symbols, "Behavior");
+
+        assert_eq!(
+            object_metadata(behavior, "value_source_property"),
+            Some(serde_json::json!("color"))
+        );
+        assert_eq!(
+            object_metadata(behavior, "object_type"),
+            Some(serde_json::json!("Behavior"))
+        );
+        assert_eq!(
+            object_metadata(behavior, "binding_kind"),
+            Some(serde_json::json!("object"))
+        );
+
+        let animation = object_row(&symbols, "NumberAnimation");
+        assert_eq!(
+            animation.parent_id.as_deref(),
+            Some(behavior.id.as_str()),
+            "the value source's child object parents to the value source row"
+        );
+    }
+
+    #[test]
+    fn nested_object_members_parent_to_the_object_row() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Item {
+    Timer {
+        id: poll
+
+        property int ticks: 0
+
+        function restart() {
+            ticks = 0
+        }
+    }
+}
+"#;
+
+        let symbols = extract_symbols(qml_code);
+        let poll = object_row(&symbols, "poll");
+
+        for member in ["ticks", "restart"] {
+            let symbol = symbols
+                .iter()
+                .find(|symbol| symbol.name == member)
+                .unwrap_or_else(|| panic!("expected member {member}"));
+            assert_eq!(
+                symbol.parent_id.as_deref(),
+                Some(poll.id.as_str()),
+                "{member} should parent to the enclosing object row"
+            );
+        }
+    }
+
+    #[test]
+    fn inline_component_body_is_not_an_object_row() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Item {
+    component DeviceBadge: Rectangle {
+        id: badge
+
+        property string label: "device"
+    }
+}
+"#;
+
+        let symbols = extract_symbols(qml_code);
+
+        assert!(
+            !symbols
+                .iter()
+                .any(|symbol| symbol.kind == SymbolKind::Field),
+            "an inline component's body object must not emit a field row, got {:?}",
+            symbols
+                .iter()
+                .map(|symbol| (&symbol.name, &symbol.kind))
+                .collect::<Vec<_>>()
+        );
+
+        let badge = symbols
+            .iter()
+            .find(|symbol| symbol.name == "DeviceBadge")
+            .expect("inline component class");
+        let label = symbols
+            .iter()
+            .find(|symbol| symbol.name == "label")
+            .expect("inline component property");
+        assert_eq!(label.parent_id.as_deref(), Some(badge.id.as_str()));
+    }
 }
