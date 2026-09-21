@@ -322,7 +322,12 @@ fn record_signal_handler(
     let Some((member, change_handler)) = semantics::handler_target_member(handler_name) else {
         return;
     };
-    let receiver = semantics::handler_receiver(&extractor.base, name_node);
+    // A dotted handler name attaches to the type it qualifies, not to the
+    // object around it: `Keys.onPressed` belongs to `Keys`.
+    let receiver = handler_name
+        .rsplit_once(".on")
+        .map(|(qualifier, _)| qualifier.to_string())
+        .or_else(|| semantics::handler_receiver(&extractor.base, name_node));
     let containing_symbol_id = containing_symbols.find(name_node);
     extractor.base.create_identifier_with_metadata(
         &name_node,

@@ -606,6 +606,7 @@ import QtQuick 2.15
 Item {
     Rectangle {
         Keys.onPressed: handle(event)
+        Component.onCompleted: init()
     }
 }
 "#;
@@ -618,12 +619,16 @@ Item {
                 .any(|id| id.name == "Keys" && role_of(id) == Some("attached_type")),
             "attached type usage"
         );
-        assert!(
-            identifiers
-                .iter()
-                .any(|id| id.name == "pressed" && role_of(id) == Some("signal_handler")),
-            "signal handler member access"
-        );
+        let pressed = identifiers
+            .iter()
+            .find(|id| id.name == "pressed" && role_of(id) == Some("signal_handler"))
+            .expect("signal handler member access");
+        assert_eq!(receiver_of(pressed), Some("Keys"));
+        let completed = identifiers
+            .iter()
+            .find(|id| id.name == "completed" && role_of(id) == Some("signal_handler"))
+            .expect("Component.onCompleted handler");
+        assert_eq!(receiver_of(completed), Some("Component"));
     }
 
     #[test]
