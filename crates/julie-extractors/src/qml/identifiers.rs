@@ -240,8 +240,7 @@ fn extract_identifier_from_node(
         // `function onReloaded()` inside a Connections object handles a signal.
         "function_declaration" => {
             if let Some(name_node) = node.child_by_field_name("name")
-                && semantics::enclosing_object_type(&extractor.base, node).as_deref()
-                    == Some("Connections")
+                && semantics::encloses_connections_object(&extractor.base, node)
             {
                 let function_name = extractor.base.get_node_text(&name_node);
                 record_signal_handler(extractor, name_node, &function_name, containing_symbols);

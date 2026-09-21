@@ -323,4 +323,45 @@ Item {
                 .is_none_or(|metadata| !metadata.contains_key("handled_signal"))
         );
     }
+
+    #[test]
+    fn a_qualified_connections_object_keeps_its_handler_semantics() {
+        let qml_code = r#"
+import QtQml as Qml
+
+Item {
+    Qml.Connections {
+        target: backend
+        function onReloaded() {}
+    }
+}
+"#;
+
+        let symbols = extract_symbols(qml_code);
+        let identifiers = extract_identifiers(qml_code);
+
+        let handler = symbols
+            .iter()
+            .find(|symbol| symbol.name == "onReloaded")
+            .expect("handler function symbol");
+        assert_eq!(
+            handler
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get("handled_signal")),
+            Some(&serde_json::json!("reloaded"))
+        );
+
+        let signal_handler = identifiers
+            .iter()
+            .find(|identifier| identifier.name == "reloaded")
+            .expect("signal handler identifier");
+        assert_eq!(
+            signal_handler
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get("receiver")),
+            Some(&serde_json::json!("backend"))
+        );
+    }
 }

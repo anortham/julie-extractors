@@ -230,13 +230,19 @@ pub(super) fn handler_target_member(name: &str) -> Option<(String, bool)> {
 /// otherwise the enclosing object's type name.
 pub(super) fn handler_receiver(base: &BaseExtractor, node: Node) -> Option<String> {
     let object = enclosing_object(node)?;
-    let type_name = object
-        .child_by_field_name("type_name")
-        .map(|type_name| base.get_node_text(&type_name))?;
-    if type_name == "Connections" {
+    if encloses_connections_object(base, node) {
         return connections_target_id(base, object);
     }
-    Some(type_name)
+    object
+        .child_by_field_name("type_name")
+        .map(|type_name| base.get_node_text(&type_name))
+}
+
+/// `Connections` keeps its handler semantics under an import alias, so
+/// `Qml.Connections` counts by its last dotted segment.
+pub(super) fn encloses_connections_object(base: &BaseExtractor, node: Node) -> bool {
+    enclosing_object_type(base, node)
+        .is_some_and(|type_name| type_name.rsplit('.').next() == Some("Connections"))
 }
 
 pub(super) fn enclosing_object_type(base: &BaseExtractor, node: Node) -> Option<String> {

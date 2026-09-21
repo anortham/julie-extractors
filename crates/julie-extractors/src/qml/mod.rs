@@ -370,8 +370,7 @@ impl QmlExtractor {
                         None,
                         &mut metadata,
                     );
-                    if semantics::enclosing_object_type(&self.base, node).as_deref()
-                        == Some("Connections")
+                    if semantics::encloses_connections_object(&self.base, node)
                         && semantics::is_signal_handler_binding_name(&name)
                         && let Some(signal) = semantics::handled_signal_from_binding_name(&name)
                     {
