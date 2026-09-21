@@ -62,19 +62,19 @@ fn extract_identifier_from_node(
                 return;
             }
             if let Some(type_name_node) = node.child_by_field_name("type_name") {
-                let is_root = semantics::enclosing_object(node).is_none();
+                let declares_class = semantics::object_has_class_row(node);
                 // A `.qmltypes` root is a `Module` descriptor, not a component,
                 // so it extends nothing.
-                if is_root && super::is_typeinfo_path(&extractor.base.file_path) {
+                if declares_class && super::is_typeinfo_path(&extractor.base.file_path) {
                     return;
                 }
-                // The root component contains its own base-type reference; a
-                // nested object's type reference belongs to the object around it.
-                let containment_anchor = if is_root { type_name_node } else { node };
+                // A class body contains its own base-type reference; a nested
+                // object's type reference belongs to the object around it.
+                let containment_anchor = if declares_class { type_name_node } else { node };
                 record_qualified_type_usage(
                     extractor,
                     type_name_node,
-                    is_root.then_some("base_type"),
+                    declares_class.then_some("base_type"),
                     containing_symbols.find(containment_anchor),
                 );
             }

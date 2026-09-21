@@ -733,8 +733,17 @@ Shell {
         assert!(
             pending
                 .iter()
-                .all(|entry| entry.pending.kind != RelationshipKind::Extends),
+                .all(|entry| entry.pending.kind != RelationshipKind::Extends
+                    || entry.pending.from_symbol_id != component.id),
             "a resolved base type emits no pending extends"
+        );
+        assert!(
+            pending
+                .iter()
+                .any(|entry| entry.pending.kind == RelationshipKind::Extends
+                    && entry.pending.from_symbol_id == inline.id
+                    && entry.target.terminal_name == "Item"),
+            "the inline component body still extends its own base"
         );
     }
 
@@ -790,6 +799,38 @@ Rectangle {
                 .iter()
                 .map(|entry| entry.target.terminal_name.clone())
                 .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn an_inline_component_body_extends_its_base() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Item {
+    component DeviceBadge: Rectangle { }
+}
+"#;
+
+        let (symbols, relationships, pending) =
+            extract_symbols_and_relationships_with_path(qml_code, "Panel.qml");
+
+        let badge = symbols
+            .iter()
+            .find(|symbol| symbol.name == "DeviceBadge" && symbol.kind == SymbolKind::Class)
+            .expect("inline component class row");
+        let base = pending
+            .iter()
+            .find(|entry| entry.target.terminal_name == "Rectangle")
+            .expect("the inline component base type is a pending row");
+
+        assert_eq!(base.pending.kind, RelationshipKind::Extends);
+        assert_eq!(base.pending.from_symbol_id, badge.id);
+        assert!(
+            !relationships.iter().any(|relationship| relationship.kind
+                == RelationshipKind::Instantiates
+                && relationship.line_number == 5),
+            "the inline component body instantiates nothing"
         );
     }
 }

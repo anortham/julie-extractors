@@ -686,4 +686,40 @@ Rectangle {
                 .collect::<Vec<_>>()
         );
     }
+
+    #[test]
+    fn an_inline_component_base_type_is_contained_by_the_inline_class() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Item {
+    component DeviceBadge: Rectangle { }
+}
+"#;
+
+        let tree = crate::tests::helpers::init_parser(qml_code, "qml");
+        let mut extractor = crate::qml::QmlExtractor::new(
+            "qml".to_string(),
+            "test.qml".to_string(),
+            qml_code.to_string(),
+            std::path::Path::new("/tmp/test"),
+        );
+        let symbols = extractor.extract_symbols(&tree);
+        let identifiers = extractor.extract_identifiers(&tree, &symbols);
+
+        let badge = symbols
+            .iter()
+            .find(|symbol| symbol.name == "DeviceBadge")
+            .expect("inline component class row");
+        let base = identifiers
+            .iter()
+            .find(|id| id.kind == IdentifierKind::TypeUsage && id.name == "Rectangle")
+            .expect("inline component base type usage");
+
+        assert_eq!(role_of(base), Some("base_type"));
+        assert_eq!(
+            base.containing_symbol_id.as_deref(),
+            Some(badge.id.as_str())
+        );
+    }
 }

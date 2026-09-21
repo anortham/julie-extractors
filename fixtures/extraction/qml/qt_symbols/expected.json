@@ -941,6 +941,14 @@
     },
     {
       "from_key": "fixtures/extraction/qml/qt_symbols/source.qml:DeviceBadge:19:4",
+      "callee_name": "Rectangle",
+      "kind": "extends",
+      "file_path": "fixtures/extraction/qml/qt_symbols/source.qml",
+      "line_number": 19,
+      "confidence": "0.900"
+    },
+    {
+      "from_key": "fixtures/extraction/qml/qt_symbols/source.qml:DeviceBadge:19:4",
       "callee_name": "Row",
       "kind": "instantiates",
       "file_path": "fixtures/extraction/qml/qt_symbols/source.qml",
@@ -969,14 +977,6 @@
       "kind": "extends",
       "file_path": "fixtures/extraction/qml/qt_symbols/source.qml",
       "line_number": 8,
-      "confidence": "0.900"
-    },
-    {
-      "from_key": "fixtures/extraction/qml/qt_symbols/source.qml:source:8:0",
-      "callee_name": "Rectangle",
-      "kind": "instantiates",
-      "file_path": "fixtures/extraction/qml/qt_symbols/source.qml",
-      "line_number": 19,
       "confidence": "0.900"
     }
   ],
@@ -1057,6 +1057,32 @@
         "end_column": 13,
         "start_byte": 1073,
         "end_byte": 1182
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/qml/qt_symbols/source.qml:DeviceBadge:19:4",
+        "callee_name": "Rectangle",
+        "kind": "extends",
+        "file_path": "fixtures/extraction/qml/qt_symbols/source.qml",
+        "line_number": 19,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "Rectangle",
+        "terminal_name": "Rectangle",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/qml/qt_symbols/source.qml:DeviceBadge:19:4",
+      "span": {
+        "start_line": 19,
+        "start_column": 27,
+        "end_line": 63,
+        "end_column": 5,
+        "start_byte": 352,
+        "end_byte": 1198
       }
     },
     {
@@ -1161,32 +1187,6 @@
         "end_column": 1,
         "start_byte": 149,
         "end_byte": 1275
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/qml/qt_symbols/source.qml:source:8:0",
-        "callee_name": "Rectangle",
-        "kind": "instantiates",
-        "file_path": "fixtures/extraction/qml/qt_symbols/source.qml",
-        "line_number": 19,
-        "confidence": "0.900"
-      },
-      "target": {
-        "display_name": "Rectangle",
-        "terminal_name": "Rectangle",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/qml/qt_symbols/source.qml:source:8:0",
-      "span": {
-        "start_line": 19,
-        "start_column": 27,
-        "end_line": 63,
-        "end_column": 5,
-        "start_byte": 352,
-        "end_byte": 1198
       }
     }
   ],
@@ -1538,7 +1538,10 @@
       "end_byte": 361,
       "containing_key": "fixtures/extraction/qml/qt_symbols/source.qml:DeviceBadge:19:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "role": "base_type"
+      }
     },
     {
       "key": "fixtures/extraction/qml/qt_symbols/source.qml:Row:type_usage:46:8",

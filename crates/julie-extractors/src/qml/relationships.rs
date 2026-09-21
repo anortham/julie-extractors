@@ -191,10 +191,10 @@ fn extract_instantiation_relationships(
             .to_string();
         // The root object names the base type the file's component extends;
         // every other object instantiates its type.
-        let (kind, from_symbol) = if is_root_object(node) {
+        let (kind, from_symbol) = if super::semantics::object_has_class_row(node) {
             (
                 RelationshipKind::Extends,
-                root_component_symbol(node, symbols),
+                declaring_class_symbol(node, symbols),
             )
         } else {
             (
@@ -238,8 +238,14 @@ fn extract_instantiation_relationships(
     }
 }
 
-fn root_component_symbol<'a>(node: Node, symbols: &'a [Symbol]) -> Option<&'a Symbol> {
-    let start_line = (node.start_position().row + 1) as u32;
+/// The `Class` row an object declares: the file root's own row, or the row of
+/// the `ui_inline_component` header above an inline component's body.
+fn declaring_class_symbol<'a>(node: Node, symbols: &'a [Symbol]) -> Option<&'a Symbol> {
+    let anchor = node
+        .parent()
+        .filter(|parent| parent.kind() == "ui_inline_component")
+        .unwrap_or(node);
+    let start_line = (anchor.start_position().row + 1) as u32;
     symbols
         .iter()
         .find(|symbol| symbol.kind == SymbolKind::Class && symbol.start_line == start_line)
