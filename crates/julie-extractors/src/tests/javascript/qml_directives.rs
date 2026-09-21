@@ -202,3 +202,41 @@ fn a_directive_after_a_block_comment_that_ends_mid_line_is_blanked_in_place() {
         format!("/* two\n   lines */ {}\nvar x = 1\n", " ".repeat(15))
     );
 }
+
+#[test]
+fn directive_lines_tolerate_a_trailing_comment() {
+    let source = ".pragma library // shared\n.import \"Helpers.js\" as Helpers // helpers\nfunction clamp(value) { return value }\n";
+
+    let results = extract(source);
+
+    let facts = directive_facts(&results);
+    assert_eq!(facts.len(), 1);
+    assert_eq!(fact_meta(facts[0], "name"), "library");
+
+    let imports = imports(&results);
+    assert_eq!(imports.len(), 1);
+    assert_eq!(imports[0].name, "Helpers.js");
+    assert_eq!(meta(imports[0], "alias"), "Helpers");
+
+    let clamp = results
+        .symbols
+        .iter()
+        .find(|symbol| symbol.name == "clamp")
+        .expect("function after a commented directive should extract");
+    assert_eq!(
+        clamp.start_byte as usize,
+        source.find("function clamp").expect("declaration offset")
+    );
+    assert_eq!(results.parse_diagnostics, Vec::new());
+}
+
+#[test]
+fn a_double_slash_inside_a_quoted_import_source_is_not_a_comment() {
+    let source = ".import \"http://cdn/Helpers.js\" as Helpers\nvar x = 1\n";
+
+    let results = extract(source);
+
+    let imports = imports(&results);
+    assert_eq!(imports.len(), 1);
+    assert_eq!(imports[0].name, "http://cdn/Helpers.js");
+}

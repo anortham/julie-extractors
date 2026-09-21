@@ -182,7 +182,8 @@ fn scan(content: &str) -> Vec<Located> {
             break;
         }
 
-        let directive_text = text[cursor..].trim_end();
+        let line_rest = text[cursor..].trim_end();
+        let directive_text = directive_without_comment(line_rest);
         let Some(directive) = parse_directive(directive_text) else {
             break;
         };
@@ -190,11 +191,29 @@ fn scan(content: &str) -> Vec<Located> {
             directive,
             text: directive_text.to_string(),
             start_byte: line_start + cursor,
-            end_byte: line_start + cursor + directive_text.len(),
+            end_byte: line_start + cursor + line_rest.len(),
         });
     }
 
     located
+}
+
+/// A `//` comment ends a directive line. A `//` inside the quoted source of an
+/// `.import` is part of the source, not a comment.
+fn directive_without_comment(text: &str) -> &str {
+    let bytes = text.as_bytes();
+    let mut quote: Option<u8> = None;
+    for index in 0..bytes.len() {
+        match bytes[index] {
+            byte @ (b'"' | b'\'') if quote.is_none() => quote = Some(byte),
+            byte if quote == Some(byte) => quote = None,
+            b'/' if quote.is_none() && bytes.get(index + 1) == Some(&b'/') => {
+                return text[..index].trim_end();
+            }
+            _ => {}
+        }
+    }
+    text
 }
 
 fn parse_directive(text: &str) -> Option<Directive> {
