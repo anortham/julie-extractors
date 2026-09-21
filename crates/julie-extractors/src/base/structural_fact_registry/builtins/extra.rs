@@ -185,6 +185,23 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
         ],
     },
     StructuralFactPatternSpec {
+        pattern_id: "qml.pragma.v1",
+        languages: &["qml"],
+        query_family: "pragmas",
+        description: "A QML `pragma` directive.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key("name", STR, ALWAYS, "The pragma name."),
+            key(
+                "value",
+                STR,
+                OPT,
+                "The pragma value, when the pragma has one.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
         pattern_id: "qml.property_declaration.v1",
         languages: &["qml"],
         query_family: "properties",
@@ -254,6 +271,18 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 ALWAYS,
                 "The normalized qmltypes declaration role.",
             ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "javascript.qml_directive.v1",
+        languages: &["javascript"],
+        query_family: "directives",
+        description: "A Qt QML `.pragma` or `.import` directive at the top of a JavaScript file.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key("directive", STR, ALWAYS, "The directive form (`pragma`)."),
+            key("name", STR, ALWAYS, "The pragma name."),
         ],
     },
     StructuralFactPatternSpec {
