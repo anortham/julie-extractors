@@ -88,6 +88,21 @@ pub fn extract_identifiers(code: &str) -> Vec<Identifier> {
     extractor.extract_identifiers(&tree, &symbols)
 }
 
+/// Helper function to extract identifiers from QML code with a custom file path
+/// Used for tests where the file path changes extraction (`.qmltypes` descriptors)
+pub fn extract_identifiers_with_path(code: &str, file_path: &str) -> Vec<Identifier> {
+    let tree = init_parser(code, "qml");
+    let workspace_root = PathBuf::from("/tmp/test");
+    let mut extractor = QmlExtractor::new(
+        "qml".to_string(),
+        file_path.to_string(),
+        code.to_string(),
+        &workspace_root,
+    );
+    let symbols = extractor.extract_symbols(&tree);
+    extractor.extract_identifiers(&tree, &symbols)
+}
+
 // Test module organization
 // Each module focuses on a specific aspect of QML functionality
 pub mod animations; // States, transitions, animations

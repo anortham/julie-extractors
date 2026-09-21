@@ -507,22 +507,6 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/qml/typeinfo/source.qmltypes:Module:type_usage:3:0",
-      "name": "Module",
-      "kind": "type_usage",
-      "language": "qml",
-      "file_path": "fixtures/extraction/qml/typeinfo/source.qmltypes",
-      "start_line": 3,
-      "start_column": 0,
-      "end_line": 3,
-      "end_column": 6,
-      "start_byte": 25,
-      "end_byte": 31,
-      "containing_key": "fixtures/extraction/qml/typeinfo/source.qmltypes:Module:3:0",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
       "key": "fixtures/extraction/qml/typeinfo/source.qmltypes:Parameter:type_usage:24:12",
       "name": "Parameter",
       "kind": "type_usage",

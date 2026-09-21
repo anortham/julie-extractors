@@ -60,6 +60,11 @@ fn extract_identifier_from_node(
         "ui_object_definition" => {
             if let Some(type_name_node) = node.child_by_field_name("type_name") {
                 let is_root = semantics::enclosing_object(node).is_none();
+                // A `.qmltypes` root is a `Module` descriptor, not a component,
+                // so it extends nothing.
+                if is_root && super::is_typeinfo_path(&extractor.base.file_path) {
+                    return;
+                }
                 // The root component contains its own base-type reference; a
                 // nested object's type reference belongs to the object around it.
                 let containment_anchor = if is_root { type_name_node } else { node };

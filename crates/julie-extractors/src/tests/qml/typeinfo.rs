@@ -198,3 +198,33 @@ Module {
         Some(5)
     );
 }
+
+#[test]
+fn qmltypes_root_module_emits_no_base_type_identifier() {
+    let identifiers = crate::tests::qml::extract_identifiers_with_path(
+        r#"
+Module {
+    Component {
+        name: "X"
+    }
+}
+"#,
+        "QtQuick.qmltypes",
+    );
+
+    assert!(
+        !identifiers.iter().any(|identifier| identifier
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("role"))
+            .and_then(Value::as_str)
+            == Some("base_type")),
+        "a .qmltypes descriptor root must not emit a base_type identifier"
+    );
+    assert!(
+        identifiers
+            .iter()
+            .any(|identifier| identifier.name == "Component"),
+        "nested .qmltypes objects keep their type usage identifiers"
+    );
+}
