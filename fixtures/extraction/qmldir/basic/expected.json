@@ -3,7 +3,7 @@
     {
       "key": "fixtures/extraction/qmldir/basic/qmldir:Button:2:0",
       "name": "Button",
-      "kind": "class",
+      "kind": "export",
       "language": "qmldir",
       "file_path": "fixtures/extraction/qmldir/basic/qmldir",
       "start_line": 2,
@@ -59,7 +59,7 @@
     {
       "key": "fixtures/extraction/qmldir/basic/qmldir:Private:4:0",
       "name": "Private",
-      "kind": "class",
+      "kind": "export",
       "language": "qmldir",
       "file_path": "fixtures/extraction/qmldir/basic/qmldir",
       "start_line": 4,
@@ -88,7 +88,7 @@
     {
       "key": "fixtures/extraction/qmldir/basic/qmldir:Theme:3:0",
       "name": "Theme",
-      "kind": "class",
+      "kind": "export",
       "language": "qmldir",
       "file_path": "fixtures/extraction/qmldir/basic/qmldir",
       "start_line": 3,
