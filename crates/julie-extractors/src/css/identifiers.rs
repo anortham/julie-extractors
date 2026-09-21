@@ -216,6 +216,7 @@ fn extract_pseudo_calls_from_selector_node(
                     confidence: 1.0,
                     receiver_type: None,
                     code_context: None,
+                    metadata: None,
                 });
             }
             search_start = local_start + name.len();

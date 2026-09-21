@@ -402,6 +402,7 @@ fn create_identifier_with_offset(
         confidence: 1.0,
         receiver_type: None,
         code_context: None,
+        metadata: None,
     };
 
     base.identifiers.push(identifier.clone());

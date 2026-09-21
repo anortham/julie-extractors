@@ -102,9 +102,33 @@ impl BaseExtractor {
         containing_symbol_id: Option<String>,
         receiver_type: Option<String>,
     ) -> Identifier {
-        let span = NormalizedSpan::from_node(node);
+        self.push_identifier(node, name, kind, containing_symbol_id, receiver_type, None)
+    }
 
-        // Generate unique ID for this identifier
+    /// Create an identifier that carries extractor-supplied `metadata`. The
+    /// keys ride into the artifact identifier `metadata_json` and outrank the
+    /// mapper's own receiver detection.
+    pub fn create_identifier_with_metadata(
+        &mut self,
+        node: &Node,
+        name: String,
+        kind: IdentifierKind,
+        containing_symbol_id: Option<String>,
+        metadata: HashMap<String, serde_json::Value>,
+    ) -> Identifier {
+        self.push_identifier(node, name, kind, containing_symbol_id, None, Some(metadata))
+    }
+
+    fn push_identifier(
+        &mut self,
+        node: &Node,
+        name: String,
+        kind: IdentifierKind,
+        containing_symbol_id: Option<String>,
+        receiver_type: Option<String>,
+        metadata: Option<HashMap<String, serde_json::Value>>,
+    ) -> Identifier {
+        let span = NormalizedSpan::from_node(node);
         let id = self.generate_id_for_span(&name, &span);
 
         let identifier = Identifier {
@@ -124,6 +148,7 @@ impl BaseExtractor {
             confidence: 1.0,        // Default high confidence for tree-sitter extractions
             receiver_type,
             code_context: None,
+            metadata,
         };
 
         self.identifiers.push(identifier.clone());
@@ -618,5 +643,32 @@ mod tests {
             1,
             "input order changed the containment winner: {winners:?}"
         );
+    }
+
+    #[test]
+    fn create_identifier_with_metadata_records_the_metadata_on_the_pushed_identifier() {
+        let tree = parse_c(MULTI_DECLARATOR);
+        let call = first_node_of_kind(tree.root_node(), "call_expression").expect("call node");
+        let mut base = BaseExtractor::new(
+            "c".to_string(),
+            "/repo/a.c".to_string(),
+            MULTI_DECLARATOR.to_string(),
+            Path::new("/repo"),
+        );
+        let metadata = HashMap::from([(
+            "qml_binding".to_string(),
+            serde_json::Value::String("width".to_string()),
+        )]);
+
+        let identifier = base.create_identifier_with_metadata(
+            &call,
+            "ticks".to_string(),
+            IdentifierKind::Call,
+            None,
+            metadata.clone(),
+        );
+
+        assert_eq!(identifier.metadata, Some(metadata));
+        assert_eq!(base.identifiers[0], identifier);
     }
 }

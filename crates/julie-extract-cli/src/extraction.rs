@@ -717,6 +717,9 @@ fn map_identifiers(
                     serde_json::Value::String(receiver_type.clone()),
                 );
             }
+            for (key, value) in identifier.metadata.iter().flatten() {
+                metadata.insert(key.clone(), value.clone());
+            }
             Ok(ArtifactIdentifier {
                 identifier_id: identifier.id.clone(),
                 reference_site_id: exact_reference_site_id(
@@ -1391,6 +1394,7 @@ fn failure_parse_diagnostic(
 mod tests {
     use super::*;
     use julie_extractors::extract_canonical_at;
+    use julie_extractors::{Identifier, IdentifierKind};
 
     #[test]
     fn default_workers_leave_one_fifth_of_the_cores_free_with_a_floor_of_one() {
@@ -1673,6 +1677,67 @@ mod tests {
         assert_eq!(
             artifact.structural_facts[0].structural_fact_id,
             "structural-fact:duplicate"
+        );
+    }
+
+    fn call_identifier(name: &str, start_byte: u32) -> Identifier {
+        Identifier {
+            id: format!("identifier:{name}"),
+            name: name.to_string(),
+            kind: IdentifierKind::Call,
+            language: "rust".to_string(),
+            file_path: "x.rs".to_string(),
+            start_line: 1,
+            start_column: start_byte,
+            end_line: 1,
+            end_column: start_byte + name.len() as u32,
+            start_byte,
+            end_byte: start_byte + name.len() as u32,
+            containing_symbol_id: None,
+            target_symbol_id: None,
+            confidence: 1.0,
+            receiver_type: None,
+            code_context: None,
+            metadata: None,
+        }
+    }
+
+    fn mapped_metadata_json(identifier: Identifier, source: &str) -> Option<String> {
+        let mut results = ExtractionResults::empty();
+        results.identifiers.push(identifier);
+        let rows = map_identifiers(&results, &sample_target(), source, "file-1")
+            .expect("identifier mapping should succeed");
+        rows[0].metadata_json.clone()
+    }
+
+    #[test]
+    fn extractor_identifier_metadata_outranks_the_mapper_receiver_detection() {
+        let mut identifier = call_identifier("run", 8);
+        identifier.metadata = Some(HashMap::from([
+            (
+                "qml_binding".to_string(),
+                Value::String("width".to_string()),
+            ),
+            (
+                "receiver".to_string(),
+                Value::String("Rectangle".to_string()),
+            ),
+        ]));
+
+        let metadata_json = mapped_metadata_json(identifier, "service.run()")
+            .expect("extractor metadata must reach the artifact row");
+        let metadata: Value =
+            serde_json::from_str(&metadata_json).expect("metadata_json parses as JSON");
+
+        assert_eq!(metadata["qml_binding"], Value::String("width".to_string()));
+        assert_eq!(metadata["receiver"], Value::String("Rectangle".to_string()));
+    }
+
+    #[test]
+    fn identifier_without_metadata_maps_to_receiver_detection_alone() {
+        assert_eq!(
+            mapped_metadata_json(call_identifier("run", 8), "service.run()").as_deref(),
+            Some(r#"{"receiver":"service"}"#)
         );
     }
 
