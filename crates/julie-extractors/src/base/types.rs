@@ -355,6 +355,11 @@ pub struct Identifier {
     /// roughly half of all identifier bytes in the scan spool and the artifact —
     /// and no consumer ever read it, so extractors stopped populating it.
     pub code_context: Option<String>,
+    /// Extractor-supplied facts about this usage site. Merged into the artifact
+    /// identifier `metadata_json`, where these keys outrank the mapper's own
+    /// receiver detection.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<HashMap<String, serde_json::Value>>,
 }
 
 impl Identifier {

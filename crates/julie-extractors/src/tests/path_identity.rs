@@ -138,6 +138,7 @@ fn test_identifier(
         confidence: 1.0,
         receiver_type: None,
         code_context: None,
+        metadata: None,
     }
 }
 
