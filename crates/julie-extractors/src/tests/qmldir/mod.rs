@@ -22,13 +22,13 @@ fn extensionless_qmldir_extracts_module_and_components() {
         result
             .symbols
             .iter()
-            .any(|symbol| symbol.name == "Button" && symbol.kind == SymbolKind::Class)
+            .any(|symbol| symbol.name == "Button" && symbol.kind == SymbolKind::Export)
     );
     assert!(
         result
             .symbols
             .iter()
-            .any(|symbol| symbol.name == "Theme" && symbol.kind == SymbolKind::Class)
+            .any(|symbol| symbol.name == "Theme" && symbol.kind == SymbolKind::Export)
     );
 }
 
@@ -68,11 +68,20 @@ fn qmldir_component_symbols_preserve_manifest_metadata_and_spans() {
         Some(&serde_json::Value::String("Theme.qml".to_string()))
     );
 
-    assert!(
-        result
-            .symbols
-            .iter()
-            .any(|symbol| symbol.name == "Internal")
+    assert_eq!(theme.kind, SymbolKind::Export);
+
+    let internal = result
+        .symbols
+        .iter()
+        .find(|symbol| symbol.name == "Internal")
+        .expect("internal declaration should be a symbol");
+    assert_eq!(internal.kind, SymbolKind::Export);
+    assert_eq!(
+        internal
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("internal")),
+        Some(&serde_json::Value::Bool(true))
     );
 }
 

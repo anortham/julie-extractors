@@ -404,7 +404,7 @@ impl QmldirExtractor {
         self.symbols.push(self.base.create_symbol(
             &node,
             type_name.to_string(),
-            SymbolKind::Class,
+            SymbolKind::Export,
             SymbolOptions {
                 visibility: Some(visibility),
                 metadata: Some(attrs),
