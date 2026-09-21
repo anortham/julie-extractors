@@ -136,6 +136,15 @@ old meaning.
 JavaScript file. Consumer action for code-kb: none required, both are additions registered in
 `structural-fact-patterns.json`.
 
+`language_capabilities`, three rows: the `qml` row adds `field` to its symbol kinds, body spans,
+annotation exclusions, and doc-comment exclusions, adds `extends` to its relationship kinds, and adds
+`qml.pragma.v1` to its structural facts. The `qmldir` row replaces `class` with `export` in the same
+four lists. The `javascript` row adds `javascript.qml_directive.v1` to its structural facts. Consumer
+action for code-kb: none, the snapshot describes the row changes already listed above.
+
+`language_capability_fixtures`, two new rows: `qml`/`qt_symbols` and `javascript`/`qml_directives`.
+Consumer action for code-kb: none, the table lists this repository's own fixtures.
+
 Public extractor API: `Identifier` gains an optional `metadata` field. A crate that builds an
 `Identifier` literal must add the field; a crate that reads one is unaffected. Consumer action for
 code-kb: none, it reads identifiers from SQLite.
