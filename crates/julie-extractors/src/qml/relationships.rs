@@ -251,17 +251,21 @@ fn declaring_class_symbol<'a>(node: Node, symbols: &'a [Symbol]) -> Option<&'a S
         .find(|symbol| symbol.kind == SymbolKind::Class && symbol.start_line == start_line)
 }
 
+/// A qualified name (`QQC2.Button`) names an imported module's type, never a
+/// same-file class, so it goes straight to the pending path with its receiver.
 fn find_local_component_target<'a>(
     component_type: &str,
     parent_symbol: &Symbol,
     symbols: &'a [Symbol],
 ) -> Option<&'a Symbol> {
-    let target_name = component_type.rsplit('.').next().unwrap_or(component_type);
+    if component_type.contains('.') {
+        return None;
+    }
     let mut candidates = symbols.iter().filter(|symbol| {
         symbol.kind == SymbolKind::Class
             && symbol.id != parent_symbol.id
             && symbol.file_path == parent_symbol.file_path
-            && symbol.name == target_name
+            && symbol.name == component_type
     });
     let candidate = candidates.next()?;
     candidates.next().is_none().then_some(candidate)

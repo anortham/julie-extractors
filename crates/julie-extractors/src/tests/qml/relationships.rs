@@ -833,4 +833,35 @@ Item {
             "the inline component body instantiates nothing"
         );
     }
+
+    #[test]
+    fn a_qualified_type_never_resolves_to_a_same_file_class() {
+        let qml_code = r#"
+import QtQuick.Controls as QQC2
+
+QQC2.Button {
+    component Button: Item { }
+}
+"#;
+
+        let (symbols, relationships, pending) =
+            extract_symbols_and_relationships_with_path(qml_code, "Main.qml");
+        let inline = symbols
+            .iter()
+            .find(|symbol| symbol.name == "Button" && symbol.kind == SymbolKind::Class)
+            .expect("inline component class row");
+
+        assert!(
+            !relationships
+                .iter()
+                .any(|relationship| relationship.to_symbol_id == inline.id),
+            "a qualified type name resolves to no same-file class"
+        );
+        let qualified = pending
+            .iter()
+            .filter(|entry| entry.target.terminal_name == "Button")
+            .collect::<Vec<_>>();
+        assert_eq!(qualified.len(), 1, "one pending row for the qualified base");
+        assert_eq!(qualified[0].target.receiver.as_deref(), Some("QQC2"));
+    }
 }
