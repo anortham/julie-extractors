@@ -305,7 +305,9 @@ fn extract_javascript(
 ) -> Result<ExtractionResults, anyhow::Error> {
     let mut results = extract_javascript_program(tree, file_path, content, workspace_root, level)?;
     if level.includes_structural_facts() {
-        results.structural_facts = crate::javascript::qml_directives::facts(file_path, content);
+        results
+            .structural_facts
+            .extend(crate::javascript::qml_directives::facts(file_path, content));
     }
     Ok(results)
 }
