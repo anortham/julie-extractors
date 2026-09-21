@@ -396,17 +396,16 @@ Rectangle {
 
         let symbols = extract_symbols(&qml_code);
 
-        // Should extract ContainmentItem and many nested components
-        let components: Vec<&Symbol> = symbols
+        let components: Vec<&str> = symbols
             .iter()
             .filter(|s| s.kind == SymbolKind::Class)
+            .map(|s| s.name.as_str())
             .collect();
 
         assert_eq!(
-            components.len(),
-            1,
-            "Should extract only the root component from KDE Plasma code (found {})",
-            components.len()
+            components,
+            vec!["test", "ShortDropBehavior", "LongDropBehavior"],
+            "the root component and its two inline components are the only classes"
         );
 
         // KDE Plasma code has lots of properties
