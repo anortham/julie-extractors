@@ -149,7 +149,10 @@
       "end_byte": 23,
       "containing_key": "fixtures/extraction/qml/return_types/source.qml:source:2:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "role": "base_type"
+      }
     },
     {
       "key": "fixtures/extraction/qml/return_types/source.qml:QtQuick:variable_ref:1:7",

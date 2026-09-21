@@ -1237,7 +1237,10 @@
       "end_byte": 1084,
       "containing_key": "fixtures/extraction/qml/qt_symbols/source.qml:badgeRow:46:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "QQC2"
+      }
     },
     {
       "key": "fixtures/extraction/qml/qt_symbols/source.qml:Button:variable_ref:57:17",
@@ -1333,7 +1336,11 @@
       "end_byte": 553,
       "containing_key": "fixtures/extraction/qml/qt_symbols/source.qml:DeviceBadge:19:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Kirigami",
+        "role": "attached_type"
+      }
     },
     {
       "key": "fixtures/extraction/qml/qt_symbols/source.qml:FormData:variable_ref:28:17",
@@ -1397,7 +1404,10 @@
       "end_byte": 941,
       "containing_key": "fixtures/extraction/qml/qt_symbols/source.qml:badgeRow:46:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "role": "attached_type"
+      }
     },
     {
       "key": "fixtures/extraction/qml/qt_symbols/source.qml:Layout:variable_ref:49:12",
@@ -1477,7 +1487,10 @@
       "end_byte": 157,
       "containing_key": "fixtures/extraction/qml/qt_symbols/source.qml:source:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "role": "base_type"
+      }
     },
     {
       "key": "fixtures/extraction/qml/qt_symbols/source.qml:QtQuick:variable_ref:4:7",
@@ -1605,7 +1618,11 @@
       "end_byte": 1144,
       "containing_key": "fixtures/extraction/qml/qt_symbols/source.qml:onClicked:60:16",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "QQC2.Button",
+        "role": "signal_handler"
+      }
     },
     {
       "key": "fixtures/extraction/qml/qt_symbols/source.qml:close:call:60:35",
@@ -1654,7 +1671,11 @@
       "end_byte": 772,
       "containing_key": "fixtures/extraction/qml/qt_symbols/source.qml:onCloseRequested:39:12",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "service",
+        "role": "signal_handler"
+      }
     },
     {
       "key": "fixtures/extraction/qml/qt_symbols/source.qml:color:variable_ref:30:20",
@@ -1846,7 +1867,12 @@
       "end_byte": 506,
       "containing_key": "fixtures/extraction/qml/qt_symbols/source.qml:onLabelChanged:26:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "change_handler": true,
+        "receiver": "Rectangle",
+        "role": "signal_handler"
+      }
     },
     {
       "key": "fixtures/extraction/qml/qt_symbols/source.qml:label:variable_ref:26:36",
@@ -2006,7 +2032,11 @@
       "end_byte": 853,
       "containing_key": "fixtures/extraction/qml/qt_symbols/source.qml:onReady:43:12",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "service",
+        "role": "signal_handler"
+      }
     },
     {
       "key": "fixtures/extraction/qml/qt_symbols/source.qml:reason:variable_ref:16:33",

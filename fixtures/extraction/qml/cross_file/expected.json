@@ -1149,7 +1149,10 @@
       "end_byte": 30,
       "containing_key": "fixtures/extraction/qml/cross_file/LocalCard.qml:LocalCard:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "role": "base_type"
+      }
     },
     {
       "key": "fixtures/extraction/qml/cross_file/LocalCard.qml:value:variable_ref:5:27",
@@ -1629,7 +1632,10 @@
       "end_byte": 157,
       "containing_key": "fixtures/extraction/qml/cross_file/source.qml:source:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "role": "base_type"
+      }
     },
     {
       "key": "fixtures/extraction/qml/cross_file/source.qml:LocalCard:type_usage:23:4",
@@ -1693,7 +1699,10 @@
       "end_byte": 568,
       "containing_key": "fixtures/extraction/qml/cross_file/source.qml:source:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Components"
+      }
     },
     {
       "key": "fixtures/extraction/qml/cross_file/source.qml:RemoteCard:variable_ref:28:15",

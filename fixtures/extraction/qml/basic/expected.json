@@ -1379,7 +1379,10 @@
       "end_byte": 25,
       "containing_key": "fixtures/extraction/qml/basic/source.qml:source:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "role": "base_type"
+      }
     },
     {
       "key": "fixtures/extraction/qml/basic/source.qml:Item:type_usage:8:18",

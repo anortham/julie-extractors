@@ -228,6 +228,8 @@ struct NormalizedIdentifier {
     confidence: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     receiver_type: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    metadata: Option<Value>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -892,6 +894,7 @@ fn normalize_identifier(
             .map(|id| lookup_symbol_key(id, symbol_keys)),
         confidence: normalize_confidence(identifier.confidence),
         receiver_type: identifier.receiver_type.clone(),
+        metadata: identifier.metadata.as_ref().map(sorted_json_map),
     }
 }
 
@@ -1094,4 +1097,38 @@ fn normalize_confidence(confidence: f32) -> String {
 
 fn sort_json<T: Serialize>(items: &mut [T]) {
     items.sort_by_key(|item| serde_json::to_string(item).unwrap());
+}
+
+#[test]
+fn normalized_identifier_carries_extractor_metadata() {
+    use crate::base::IdentifierKind;
+
+    let mut metadata = HashMap::new();
+    metadata.insert("role".to_string(), Value::String("base_type".to_string()));
+    let identifier = Identifier {
+        id: "id".to_string(),
+        name: "Rectangle".to_string(),
+        kind: IdentifierKind::TypeUsage,
+        language: "qml".to_string(),
+        file_path: "source.qml".to_string(),
+        start_line: 1,
+        start_column: 0,
+        end_line: 1,
+        end_column: 9,
+        start_byte: 0,
+        end_byte: 9,
+        containing_symbol_id: None,
+        target_symbol_id: None,
+        confidence: 1.0,
+        receiver_type: None,
+        code_context: None,
+        metadata: Some(metadata),
+    };
+
+    let normalized = normalize_identifier(&identifier, &HashMap::new());
+
+    assert_eq!(
+        normalized.metadata,
+        Some(serde_json::json!({"role": "base_type"}))
+    );
 }

@@ -316,7 +316,10 @@
       "end_byte": 46,
       "containing_key": "fixtures/extraction/qml/test_roles/test_source.qml:test_source:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "role": "base_type"
+      }
     },
     {
       "key": "fixtures/extraction/qml/test_roles/test_source.qml:compare:call:11:8",
