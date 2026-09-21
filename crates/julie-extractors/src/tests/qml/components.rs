@@ -556,6 +556,40 @@ Rectangle {
     }
 
     #[test]
+    fn value_source_binding_signature_names_the_target_property() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Rectangle {
+    Behavior on color {
+        NumberAnimation {
+            duration: 100
+        }
+    }
+
+    Behavior on width {
+        id: widthBehavior
+
+        NumberAnimation {
+            duration: 50
+        }
+    }
+}
+"#;
+
+        let symbols = extract_symbols(qml_code);
+
+        assert_eq!(
+            object_row(&symbols, "Behavior").signature.as_deref(),
+            Some("Behavior on color")
+        );
+        assert_eq!(
+            object_row(&symbols, "widthBehavior").signature.as_deref(),
+            Some("widthBehavior: Behavior")
+        );
+    }
+
+    #[test]
     fn nested_object_members_parent_to_the_object_row() {
         let qml_code = r#"
 import QtQuick 2.15

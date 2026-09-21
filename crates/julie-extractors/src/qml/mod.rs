@@ -443,9 +443,10 @@ impl QmlExtractor {
             .base
             .get_node_text(&node.child_by_field_name("type_name")?);
         let object_id = relationships::object_id_binding(&self.base, node);
-        let signature = match &object_id {
-            Some(object_id) => format!("{}: {}", object_id, object_type),
-            None => object_type.clone(),
+        let signature = match (&object_id, &value_source_property) {
+            (Some(object_id), _) => format!("{}: {}", object_id, object_type),
+            (None, Some(property)) => format!("{} on {}", object_type, property),
+            (None, None) => object_type.clone(),
         };
         let mut metadata = HashMap::new();
         metadata.insert(

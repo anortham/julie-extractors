@@ -21,7 +21,7 @@
         "end_byte": 682
       },
       "body_hash": "62e75af31cfc396856f2d5ae32a474f3",
-      "signature": "Behavior",
+      "signature": "Behavior on color",
       "doc_comment": null,
       "visibility": "Private",
       "parent_key": "fixtures/extraction/qml/qt_symbols/source.qml:DeviceBadge:19:4",
