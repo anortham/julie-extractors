@@ -105,7 +105,8 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
-        "isTable": true
+        "isTable": true,
+        "schema": "app"
       },
       "annotations": [],
       "semantic_group": null,
@@ -124,15 +125,8 @@
       "end_column": 50,
       "start_byte": 231,
       "end_byte": 277,
-      "body_span": {
-        "start_line": 9,
-        "start_column": 30,
-        "end_line": 9,
-        "end_column": 40,
-        "start_byte": 257,
-        "end_byte": 267
-      },
-      "body_hash": "65020d37eb4562d3c1b76f7d87c2de58",
+      "body_span": null,
+      "body_hash": null,
       "signature": "",
       "doc_comment": null,
       "visibility": "Public",
@@ -169,7 +163,8 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
-        "isTable": true
+        "isTable": true,
+        "schema": "dbo"
       },
       "annotations": [],
       "semantic_group": null,
@@ -360,8 +355,37 @@
       }
     }
   ],
-  "pending_relationships": [],
-  "structured_pending_relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/sql/tsql_ddl/source.sql:Items:4:0",
+      "callee_name": "UPPER",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/sql/tsql_ddl/source.sql",
+      "line_number": 9,
+      "confidence": "1.000"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/sql/tsql_ddl/source.sql:Items:4:0",
+        "callee_name": "UPPER",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/sql/tsql_ddl/source.sql",
+        "line_number": 9,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "UPPER",
+        "terminal_name": "UPPER",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/sql/tsql_ddl/source.sql:Items:4:0",
+      "span": null
+    }
+  ],
   "identifiers": [
     {
       "key": "fixtures/extraction/sql/tsql_ddl/source.sql:SCHEMA_ID:call:1:3",

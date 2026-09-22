@@ -13,14 +13,6 @@ use std::collections::HashMap;
 use std::sync::LazyLock;
 use tree_sitter::Node;
 
-/// Matches ALTER TABLE ADD CONSTRAINT with constraint type
-static ALTER_CONSTRAINT_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(
-        r"ADD\s+CONSTRAINT\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+(CHECK|FOREIGN\s+KEY|UNIQUE|PRIMARY\s+KEY)",
-    )
-    .unwrap()
-});
-
 /// Matches CHECK constraint condition (handles nested parens)
 static CHECK_CONDITION_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"CHECK\s*\(([^)]+(?:\([^)]*\)[^)]*)*)").unwrap());
@@ -116,7 +108,7 @@ pub(super) fn extract_table_columns(
     base: &mut BaseExtractor,
     table_node: Node,
     symbols: &mut Vec<Symbol>,
-    parent_table_id: &str,
+    parent_table_id: Option<&str>,
 ) {
     // Use find_nodes_by_type to avoid borrowing conflicts
     let column_nodes = base.find_nodes_by_type(&table_node, "column_definition");
@@ -167,28 +159,15 @@ pub(super) fn extract_table_columns(
             let options = SymbolOptions {
                 signature: Some(signature),
                 visibility: Some(crate::base::Visibility::Public),
-                parent_id: Some(parent_table_id.to_string()),
+                parent_id: parent_table_id.map(str::to_string),
                 doc_comment: None,
                 metadata: None,
                 annotations: Vec::new(),
             };
 
-            // Columns are fields within the table (strategy)
-            let mut column_symbol =
-                base.create_symbol(&node, column_name, SymbolKind::Field, options);
-            if data_type_node.is_some_and(is_parameterized_type_node) {
-                column_symbol.body_span = None;
-                column_symbol.body_hash = None;
-            }
-            symbols.push(column_symbol);
+            symbols.push(base.create_symbol(&node, column_name, SymbolKind::Field, options));
         }
     }
-}
-
-fn is_parameterized_type_node(node: Node<'_>) -> bool {
-    ["size", "precision", "scale"]
-        .into_iter()
-        .any(|field| node.child_by_field_name(field).is_some())
 }
 
 /// Extract table constraints from CREATE TABLE statement
@@ -204,31 +183,10 @@ pub(super) fn extract_table_constraints(
     for node in constraint_nodes {
         let mut constraint_name = format!("constraint_{}", node.start_position().row);
 
-        // Determine constraint type based on child nodes (reference logic)
-        let has_check = base.find_child_by_type(&node, "keyword_check").is_some();
-        let has_primary = base.find_child_by_type(&node, "keyword_primary").is_some();
-        let has_foreign = base.find_child_by_type(&node, "keyword_foreign").is_some();
-        let has_unique = base.find_child_by_type(&node, "keyword_unique").is_some();
-        let has_index = base.find_child_by_type(&node, "keyword_index").is_some();
-        let named_constraint = base.find_child_by_type(&node, "identifier");
-
-        if let Some(name_node) = named_constraint {
+        if let Some(name_node) = base.find_child_by_type(&node, "identifier") {
             constraint_name = normalize_sql_identifier(&base.get_node_text(&name_node));
         }
-
-        // Determine constraint type (reference logic)
-        // Skip constraints whose type can't be determined
-        let constraint_type = if has_check {
-            "check"
-        } else if has_primary {
-            "primary_key"
-        } else if has_foreign {
-            "foreign_key"
-        } else if has_unique {
-            "unique"
-        } else if has_index {
-            "index"
-        } else {
+        let Some(constraint_type) = constraint_type(base, &node) else {
             continue;
         };
 
@@ -237,11 +195,24 @@ pub(super) fn extract_table_constraints(
             base,
             &node,
             constraint_type,
-            parent_table_id,
+            Some(parent_table_id),
             &constraint_name,
         );
         symbols.push(constraint_symbol);
     }
+}
+
+fn constraint_type(base: &BaseExtractor, node: &Node) -> Option<&'static str> {
+    [
+        ("keyword_check", "check"),
+        ("keyword_primary", "primary_key"),
+        ("keyword_foreign", "foreign_key"),
+        ("keyword_unique", "unique"),
+        ("keyword_index", "index"),
+    ]
+    .into_iter()
+    .find(|(keyword, _)| base.find_child_by_type(node, keyword).is_some())
+    .map(|(_, constraint_type)| constraint_type)
 }
 
 /// Create a constraint symbol
@@ -249,7 +220,7 @@ fn create_constraint_symbol(
     base: &mut BaseExtractor,
     node: &Node,
     constraint_type: &str,
-    parent_table_id: &str,
+    parent_table_id: Option<&str>,
     constraint_name: &str,
 ) -> Symbol {
     // Port createConstraintSymbol logic
@@ -262,13 +233,12 @@ fn create_constraint_symbol(
     let options = SymbolOptions {
         signature: Some(signature),
         visibility: Some(crate::base::Visibility::Public),
-        parent_id: Some(parent_table_id.to_string()),
+        parent_id: parent_table_id.map(str::to_string),
         doc_comment: None,
         metadata: None,
         annotations: Vec::new(),
     };
 
-    // Constraints as Interface symbols (strategy)
     base.create_symbol(
         node,
         constraint_name.to_string(),
@@ -282,83 +252,68 @@ pub(super) fn extract_constraints_from_alter_table(
     base: &mut BaseExtractor,
     node: Node,
     symbols: &mut Vec<Symbol>,
-    parent_id: Option<&str>,
 ) {
-    // Port extractConstraintsFromAlterTable logic
-    let node_text = base.get_node_text(&node);
+    let Some(table_reference) = base.find_child_by_type(&node, "object_reference") else {
+        return;
+    };
+    let table_parts = super::references::object_reference_parts(base, table_reference);
+    let table_id = super::references::find_declared_object(symbols, &table_parts, |symbol| {
+        symbol.kind == SymbolKind::Class
+    })
+    .map(|table| table.id.clone());
+    let first_new = symbols.len();
 
-    // Extract ADD CONSTRAINT statements
-    if let Some(captures) = ALTER_CONSTRAINT_RE.captures(&node_text)
-        && let Some(constraint_name) = captures.get(1)
-    {
-        let name = constraint_name.as_str().to_string();
-        let constraint_type = captures.get(2).map_or("", |m| m.as_str()).to_uppercase();
-
-        // Skip if constraint type is empty
-        if constraint_type.is_empty() {
-            return;
+    let mut cursor = node.walk();
+    for action in node.named_children(&mut cursor) {
+        match action.kind() {
+            "add_column" => {
+                extract_table_columns(base, action, symbols, table_id.as_deref());
+            }
+            "add_constraint" => {
+                let Some(constraint) = base.find_child_by_type(&action, "constraint") else {
+                    continue;
+                };
+                let Some(constraint_type) = constraint_type(base, &constraint) else {
+                    continue;
+                };
+                let name = base
+                    .find_child_by_type(&action, "identifier")
+                    .map(|name| normalize_sql_identifier(&base.get_node_text(&name)))
+                    .unwrap_or_else(|| format!("constraint_{}", action.start_position().row));
+                let mut symbol = create_constraint_symbol(
+                    base,
+                    &action,
+                    constraint_type,
+                    table_id.as_deref(),
+                    &name,
+                );
+                let definition = base
+                    .get_node_text(&constraint)
+                    .split_whitespace()
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                symbol.signature = Some(format!(
+                    "ALTER TABLE {} ADD CONSTRAINT {} {}",
+                    table_parts.join("."),
+                    name,
+                    definition
+                ));
+                symbols.push(symbol);
+            }
+            _ => {}
         }
+    }
 
-        let mut signature = format!("ALTER TABLE ADD CONSTRAINT {} {}", name, constraint_type);
-
-        // Add more details based on constraint type
-        if constraint_type == "CHECK" {
-            if let Some(check_captures) = CHECK_CONDITION_RE.captures(&node_text) {
-                let check_condition = check_captures.get(1).map_or("", |m| m.as_str()).trim();
-                if !check_condition.is_empty() {
-                    signature.push_str(&format!(" ({})", check_condition));
-                }
-            }
-        } else if constraint_type.contains("FOREIGN") {
-            if let Some(fk_captures) = FOREIGN_KEY_RE.captures(&node_text) {
-                let fk_columns = fk_captures.get(1).map_or("", |m| m.as_str());
-                let fk_ref_table = fk_captures.get(2).map_or("", |m| m.as_str());
-
-                if !fk_columns.is_empty() && !fk_ref_table.is_empty() {
-                    signature.push_str(&format!(" ({}) REFERENCES {}", fk_columns, fk_ref_table));
-                }
-            }
-
-            // Add ON DELETE/UPDATE actions
-            if let Some(on_delete_captures) = ON_DELETE_RE.captures(&node_text) {
-                let on_delete_action = on_delete_captures
-                    .get(1)
-                    .map_or("", |m| m.as_str())
-                    .to_uppercase();
-                if !on_delete_action.is_empty() {
-                    signature.push_str(&format!(" ON DELETE {}", on_delete_action));
-                }
-            }
-
-            if let Some(on_update_captures) = ON_UPDATE_RE.captures(&node_text) {
-                let on_update_action = on_update_captures
-                    .get(1)
-                    .map_or("", |m| m.as_str())
-                    .to_uppercase();
-                if !on_update_action.is_empty() {
-                    signature.push_str(&format!(" ON UPDATE {}", on_update_action));
+    if table_id.is_none() {
+        for symbol in &mut symbols[first_new..] {
+            let metadata = symbol.metadata.get_or_insert_with(HashMap::new);
+            if let Some((table, schema)) = table_parts.split_last() {
+                metadata.insert("table".to_string(), Value::String(table.clone()));
+                if let Some(schema) = schema.last() {
+                    metadata.insert("schema".to_string(), Value::String(schema.clone()));
                 }
             }
         }
-
-        let mut metadata = HashMap::new();
-        metadata.insert("isConstraint".to_string(), Value::Bool(true));
-        metadata.insert(
-            "constraintType".to_string(),
-            Value::String(constraint_type.clone()),
-        );
-
-        let options = SymbolOptions {
-            signature: Some(signature),
-            visibility: Some(crate::base::Visibility::Public),
-            parent_id: parent_id.map(|s| s.to_string()),
-            doc_comment: None,
-            metadata: Some(metadata),
-            annotations: Vec::new(),
-        };
-
-        let constraint_symbol = base.create_symbol(&node, name, SymbolKind::Property, options);
-        symbols.push(constraint_symbol);
     }
 }
 

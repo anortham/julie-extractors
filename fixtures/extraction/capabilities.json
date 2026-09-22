@@ -6003,6 +6003,16 @@
           "name": "return_types",
           "source": "fixtures/extraction/sql/return_types/source.sql",
           "expected": "fixtures/extraction/sql/return_types/expected.json"
+        },
+        {
+          "name": "tsql_routines",
+          "source": "fixtures/extraction/sql/tsql_routines/source.sql",
+          "expected": "fixtures/extraction/sql/tsql_routines/expected.json"
+        },
+        {
+          "name": "pg_dump",
+          "source": "fixtures/extraction/sql/pg_dump/source.sql",
+          "expected": "fixtures/extraction/sql/pg_dump/expected.json"
         }
       ],
       "target_capabilities": {
@@ -6026,6 +6036,7 @@
         },
         "relationships": {
           "supported": [
+            "calls",
             "references"
           ],
           "not_applicable": [],
@@ -6033,7 +6044,9 @@
         },
         "identifiers": {
           "supported": [
-            "member_access"
+            "call",
+            "member_access",
+            "type_usage"
           ],
           "not_applicable": [
             "variable_ref"
@@ -6043,11 +6056,12 @@
         "body_spans": {
           "supported": [
             "class",
-            "field",
             "interface",
             "method"
           ],
-          "not_applicable": [],
+          "not_applicable": [
+            "field"
+          ],
           "open_gaps": []
         },
         "structural_facts": {
@@ -6072,14 +6086,7 @@
             "sql.window_definition.v1"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "sql.vendor_specific_ddl_variants",
-              "reason": "Fixture-backed SQL structural facts now cover INSERT/DELETE, CREATE PROCEDURE/FUNCTION, and WINDOW/OVER definitions alongside the existing DDL/DML surface, but vendor-specific DDL dialects (for example ALTER TABLE ADD CONSTRAINT variants beyond the current T-SQL fixture set, or engine-private CREATE syntax) are still not claimed as first-class pattern coverage.",
-              "required_closure": "add parser-backed structural facts and golden fixtures for at least one additional vendor-specific DDL family before removing this gap",
-              "planned_closure_task": "docs/plans/2026-07-04-glm-review-findings-remediation.md Task 7 follow-up: SQL vendor DDL facts"
-            }
-          ]
+          "open_gaps": []
         },
         "complexity_metrics": {
           "supported": [
@@ -6102,7 +6109,8 @@
         "doc_comments": {
           "supported": [
             "class",
-            "field"
+            "field",
+            "function"
           ],
           "not_applicable": [],
           "open_gaps": []

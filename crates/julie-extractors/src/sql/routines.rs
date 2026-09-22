@@ -17,8 +17,12 @@ use tree_sitter::Node;
 static DECLARE_VARIABLE_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"DECLARE\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+(DECIMAL\([^)]+\)|JSONB|INT|BIGINT|VARCHAR\([^)]+\)|TEXT|BOOLEAN)").unwrap()
 });
-static ERROR_PROCEDURE_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"CREATE\s+PROCEDURE\s+([a-zA-Z_][a-zA-Z0-9_]*)").unwrap());
+static ERROR_PROCEDURE_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(
+        r"(?i)\bCREATE\s+(?:OR\s+ALTER\s+)?PROC(?:EDURE)?\s+(?:\[?[A-Za-z_][\w]*\]?\.)?\[?([A-Za-z_][\w]*)\]?",
+    )
+    .unwrap()
+});
 static ERROR_FUNCTION_SIGNATURE_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(
         r"CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\([^)]*\)\s*RETURNS?\s+([A-Z0-9(),\s]+)",
@@ -42,18 +46,7 @@ pub(super) fn extract_stored_procedure(
     parent_id: Option<&str>,
     pgtap_context: &PgTapContext,
 ) -> Option<Symbol> {
-    let object_ref_node = base.find_child_by_type(&node, "object_reference");
-    let name_node = if let Some(obj_ref) = object_ref_node {
-        obj_ref
-            .child_by_field_name("name")
-            .or_else(|| base.find_child_by_type(&obj_ref, "identifier"))
-    } else {
-        base.find_child_by_type(&node, "identifier")
-            .or_else(|| base.find_child_by_type(&node, "procedure_name"))
-            .or_else(|| base.find_child_by_type(&node, "function_name"))
-    }?;
-
-    let name = normalize_sql_identifier(&base.get_node_text(&name_node));
+    let name = routine_name(base, &node)?;
     let is_function = node.kind().contains("function");
 
     let signature = extract_procedure_signature(base, &node)?;
@@ -78,25 +71,141 @@ pub(super) fn extract_stored_procedure(
     };
 
     let mut symbol = base.create_symbol(&node, name, SymbolKind::Function, options);
-    body_spans::finalize_sql_callable_symbol(base, &mut symbol);
+    match base.find_child_by_type(&node, "function_body") {
+        Some(body) if body_spans::is_complete_body(body) => {
+            body_spans::set_syntax_body(base, &mut symbol, body)
+        }
+        _ => body_spans::finalize_sql_callable_symbol(base, &mut symbol),
+    }
     Some(symbol)
+}
+
+/// The routine's declared name. When a T-SQL parameter list without
+/// parentheses makes the grammar recover inside the name (`dbo.RenameUser
+/// @UserId INT, @Name NVARCHAR(100)`), the name is the first dotted token of
+/// the reference, never the recovered `name` field.
+pub(super) fn routine_name(base: &BaseExtractor, node: &Node) -> Option<String> {
+    let Some(reference) = base.find_child_by_type(node, "object_reference") else {
+        let name_node = base
+            .find_child_by_type(node, "identifier")
+            .or_else(|| base.find_child_by_type(node, "procedure_name"))
+            .or_else(|| base.find_child_by_type(node, "function_name"))?;
+        return Some(normalize_sql_identifier(&base.get_node_text(&name_node)));
+    };
+    if reference.has_error() {
+        let text = base.get_node_text(&reference);
+        let token = text.split_whitespace().next()?;
+        let name = token.rsplit('.').next()?;
+        return (!name.is_empty()).then(|| normalize_sql_identifier(name));
+    }
+    let name_node = reference
+        .child_by_field_name("name")
+        .or_else(|| base.find_child_by_type(&reference, "identifier"))?;
+    Some(normalize_sql_identifier(&base.get_node_text(&name_node)))
+}
+
+struct BareParameter {
+    start: usize,
+    text: String,
+    name: String,
+}
+
+/// Parameters of a T-SQL routine declared without parentheses: the text
+/// between the name and the body, split on top-level commas.
+fn bare_tsql_parameters(base: &BaseExtractor, routine_node: &Node) -> Vec<BareParameter> {
+    let Some(reference) = base.find_child_by_type(routine_node, "object_reference") else {
+        return Vec::new();
+    };
+    let Some(body) = base.find_child_by_type(routine_node, "function_body") else {
+        return Vec::new();
+    };
+    let reference_text = base.get_node_text(&reference);
+    let name_len = reference_text
+        .find(char::is_whitespace)
+        .unwrap_or(reference_text.len());
+    let header_start = reference.start_byte() + name_len;
+    let Some(header) = base.content.get(header_start..body.start_byte()) else {
+        return Vec::new();
+    };
+    if !header.trim_start().starts_with('@') {
+        return Vec::new();
+    }
+
+    let mut depth = 0i32;
+    let mut piece_start = 0;
+    let mut pieces = Vec::new();
+    for (index, ch) in header.char_indices() {
+        match ch {
+            '(' => depth += 1,
+            ')' => depth -= 1,
+            ',' if depth == 0 => {
+                pieces.push((piece_start, index));
+                piece_start = index + 1;
+            }
+            _ => {}
+        }
+    }
+    pieces.push((piece_start, header.len()));
+
+    pieces
+        .into_iter()
+        .filter_map(|(start, end)| {
+            let piece = &header[start..end];
+            let text = piece.trim();
+            let name = text.split_whitespace().next()?;
+            name.starts_with('@').then(|| BareParameter {
+                start: header_start + start + (piece.len() - piece.trim_start().len()),
+                text: text.to_string(),
+                name: name.to_string(),
+            })
+        })
+        .collect()
+}
+
+pub(super) fn extract_bare_tsql_parameters(
+    base: &mut BaseExtractor,
+    routine_node: Node,
+    symbols: &mut Vec<Symbol>,
+    parent_id: &str,
+) {
+    let Some(reference) = base.find_child_by_type(&routine_node, "object_reference") else {
+        return;
+    };
+    for parameter in bare_tsql_parameters(base, &routine_node) {
+        let Some(span) = crate::base::NormalizedSpan::from_content_range(
+            &base.content,
+            parameter.start,
+            parameter.start + parameter.text.len(),
+        ) else {
+            continue;
+        };
+        let mut metadata = HashMap::new();
+        metadata.insert("isParameter".to_string(), Value::Bool(true));
+        let options = SymbolOptions {
+            signature: Some(parameter.text),
+            visibility: Some(crate::base::Visibility::Public),
+            parent_id: Some(parent_id.to_string()),
+            doc_comment: None,
+            metadata: Some(metadata),
+            annotations: Vec::new(),
+        };
+        symbols.push(base.create_symbol_from_span(
+            &reference,
+            span,
+            parameter.name,
+            SymbolKind::Variable,
+            options,
+        ));
+    }
 }
 
 /// Extract procedure/function signature with parameters
 pub(super) fn extract_procedure_signature(base: &BaseExtractor, node: &Node) -> Option<String> {
-    let object_ref_node = base.find_child_by_type(node, "object_reference");
-    let name_node = if let Some(obj_ref) = object_ref_node {
-        obj_ref
-            .child_by_field_name("name")
-            .or_else(|| base.find_child_by_type(&obj_ref, "identifier"))
-    } else {
-        base.find_child_by_type(node, "identifier")
-            .or_else(|| base.find_child_by_type(node, "procedure_name"))
-            .or_else(|| base.find_child_by_type(node, "function_name"))
-    }?;
-    let name = normalize_sql_identifier(&base.get_node_text(&name_node));
+    let name = routine_name(base, node)?;
 
+    let bare = bare_tsql_parameters(base, node);
     let params = match direct_routine_arguments(base, node) {
+        _ if !bare.is_empty() => bare.into_iter().map(|parameter| parameter.text).collect(),
         Some(arguments) => arguments
             .into_iter()
             .map(|argument| base.get_node_text(&argument).trim().to_string())
@@ -106,6 +215,11 @@ pub(super) fn extract_procedure_signature(base: &BaseExtractor, node: &Node) -> 
 
     let is_function = node.kind().contains("function");
     let keyword = if is_function { "FUNCTION" } else { "PROCEDURE" };
+    let verb = if node.kind().starts_with("alter") {
+        "ALTER"
+    } else {
+        "CREATE"
+    };
 
     // For functions, try to extract the RETURNS clause and LANGUAGE
     let mut return_clause = String::new();
@@ -146,7 +260,8 @@ pub(super) fn extract_procedure_signature(base: &BaseExtractor, node: &Node) -> 
     }
 
     Some(format!(
-        "CREATE {} {}({}){}{}",
+        "{} {} {}({}){}{}",
+        verb,
         keyword,
         name,
         params.join(", "),

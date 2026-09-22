@@ -72,19 +72,19 @@
       "end_byte": 256,
       "body_span": {
         "start_line": 6,
-        "start_column": 26,
+        "start_column": 61,
         "end_line": 6,
-        "end_column": 87,
-        "start_byte": 191,
-        "end_byte": 252
+        "end_column": 91,
+        "start_byte": 226,
+        "end_byte": 256
       },
-      "body_hash": "30ba5024c1a8d0ce0ffa372daf2c7ac5",
+      "body_hash": "490d4cbf4ab9787c8adc810c8081eaa9",
       "signature": "CREATE FUNCTION setup_user() RETURNS TEXT LANGUAGE SQL",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
-        "bodySpanSource": "statement_text",
+        "bodySpanSource": "function_body",
         "isFunction": true,
         "isStoredProcedure": true,
         "is_test": true,
@@ -110,19 +110,19 @@
       "end_byte": 355,
       "body_span": {
         "start_line": 7,
-        "start_column": 29,
+        "start_column": 64,
         "end_line": 7,
-        "end_column": 93,
-        "start_byte": 287,
-        "end_byte": 351
+        "end_column": 97,
+        "start_byte": 322,
+        "end_byte": 355
       },
-      "body_hash": "7250e1935f70453f5be766058ca0e996",
+      "body_hash": "a1af19fb35021ccb669d617584b9dc5c",
       "signature": "CREATE FUNCTION teardown_user() RETURNS TEXT LANGUAGE SQL",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
-        "bodySpanSource": "statement_text",
+        "bodySpanSource": "function_body",
         "isFunction": true,
         "isStoredProcedure": true,
         "is_test": true,
@@ -175,19 +175,19 @@
       "end_byte": 163,
       "body_span": {
         "start_line": 5,
-        "start_column": 25,
+        "start_column": 60,
         "end_line": 5,
-        "end_column": 81,
-        "start_byte": 103,
-        "end_byte": 159
+        "end_column": 85,
+        "start_byte": 138,
+        "end_byte": 163
       },
-      "body_hash": "3af4c70d887f2cedafd304ce7854f362",
+      "body_hash": "c5b299e3906f39db9dff625e9f6743dd",
       "signature": "CREATE FUNCTION test_user() RETURNS TEXT LANGUAGE SQL",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
-        "bodySpanSource": "statement_text",
+        "bodySpanSource": "function_body",
         "isFunction": true,
         "isStoredProcedure": true,
         "is_test": true,
@@ -200,8 +200,91 @@
     }
   ],
   "relationships": [],
-  "pending_relationships": [],
-  "structured_pending_relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/sql/test_roles/source.sql:setup_user:6:0",
+      "callee_name": "pass",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/sql/test_roles/source.sql",
+      "line_number": 6,
+      "confidence": "1.000"
+    },
+    {
+      "from_key": "fixtures/extraction/sql/test_roles/source.sql:teardown_user:7:0",
+      "callee_name": "pass",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/sql/test_roles/source.sql",
+      "line_number": 7,
+      "confidence": "1.000"
+    },
+    {
+      "from_key": "fixtures/extraction/sql/test_roles/source.sql:test_user:5:0",
+      "callee_name": "ok",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/sql/test_roles/source.sql",
+      "line_number": 5,
+      "confidence": "1.000"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/sql/test_roles/source.sql:setup_user:6:0",
+        "callee_name": "pass",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/sql/test_roles/source.sql",
+        "line_number": 6,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "pass",
+        "terminal_name": "pass",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/sql/test_roles/source.sql:setup_user:6:0",
+      "span": null
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/sql/test_roles/source.sql:teardown_user:7:0",
+        "callee_name": "pass",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/sql/test_roles/source.sql",
+        "line_number": 7,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "pass",
+        "terminal_name": "pass",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/sql/test_roles/source.sql:teardown_user:7:0",
+      "span": null
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/sql/test_roles/source.sql:test_user:5:0",
+        "callee_name": "ok",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/sql/test_roles/source.sql",
+        "line_number": 5,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "ok",
+        "terminal_name": "ok",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/sql/test_roles/source.sql:test_user:5:0",
+      "span": null
+    }
+  ],
   "identifiers": [
     {
       "key": "fixtures/extraction/sql/test_roles/source.sql:do_tap:call:10:14",
@@ -570,17 +653,17 @@
       "language": "sql",
       "file_path": "fixtures/extraction/sql/test_roles/source.sql",
       "covered_lines": 1,
-      "covered_bytes": 61,
+      "covered_bytes": 92,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 1,
       "parameter_count": null,
       "start_line": 6,
-      "start_column": 26,
+      "start_column": 0,
       "end_line": 6,
-      "end_column": 87,
-      "start_byte": 191,
-      "end_byte": 252,
+      "end_column": 92,
+      "start_byte": 165,
+      "end_byte": 257,
       "metadata": {
         "decision_signal_kinds": "join,set_operation,case,where,having,error_where",
         "metric_version": 1
@@ -593,17 +676,17 @@
       "language": "sql",
       "file_path": "fixtures/extraction/sql/test_roles/source.sql",
       "covered_lines": 1,
-      "covered_bytes": 64,
+      "covered_bytes": 98,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 1,
       "parameter_count": null,
       "start_line": 7,
-      "start_column": 29,
+      "start_column": 0,
       "end_line": 7,
-      "end_column": 93,
-      "start_byte": 287,
-      "end_byte": 351,
+      "end_column": 98,
+      "start_byte": 258,
+      "end_byte": 356,
       "metadata": {
         "decision_signal_kinds": "join,set_operation,case,where,having,error_where",
         "metric_version": 1
@@ -616,17 +699,17 @@
       "language": "sql",
       "file_path": "fixtures/extraction/sql/test_roles/source.sql",
       "covered_lines": 1,
-      "covered_bytes": 56,
+      "covered_bytes": 86,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 1,
       "parameter_count": null,
       "start_line": 5,
-      "start_column": 25,
+      "start_column": 0,
       "end_line": 5,
-      "end_column": 81,
-      "start_byte": 103,
-      "end_byte": 159,
+      "end_column": 86,
+      "start_byte": 78,
+      "end_byte": 164,
       "metadata": {
         "decision_signal_kinds": "join,set_operation,case,where,having,error_where",
         "metric_version": 1

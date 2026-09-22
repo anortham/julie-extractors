@@ -178,12 +178,12 @@ fn collect_sql_node(
                 facts.push(fact);
             }
         }
-        "create_procedure" => {
+        "create_procedure" | "alter_procedure" => {
             if let Some(fact) = procedure_definition_fact(file_path, content, node) {
                 facts.push(fact);
             }
         }
-        "create_function" | "create_function_statement" => {
+        "create_function" | "create_function_statement" | "alter_function" => {
             if let Some(fact) = function_definition_fact(file_path, content, node) {
                 facts.push(fact);
             }
@@ -405,7 +405,7 @@ fn column_definition_fact(
         .or_else(|| find_child(node, "identifier"))
         .and_then(|name_node| node_text(content, name_node).map(normalize_sql_identifier))?;
     let type_name = column_type_name(content, node);
-    let table_name = ancestor_of_kind(node, "create_table")
+    let table_name = table_statement(node)
         .and_then(find_object_reference)
         .and_then(|reference| object_reference_parts(content, reference))
         .map(|(_, table)| table);
@@ -441,7 +441,7 @@ fn constraint_fact(file_path: &str, content: &str, node: Node<'_>) -> Option<Str
         .child_by_field_name("name")
         .or_else(|| find_child(node, "identifier"))
         .and_then(|name_node| node_text(content, name_node).map(normalize_sql_identifier));
-    let table_name = ancestor_of_kind(node, "create_table")
+    let table_name = table_statement(node)
         .and_then(find_object_reference)
         .and_then(|reference| object_reference_parts(content, reference))
         .map(|(_, table)| table);
@@ -471,7 +471,7 @@ fn constraint_fact(file_path: &str, content: &str, node: Node<'_>) -> Option<Str
 }
 
 fn foreign_key_fact(file_path: &str, content: &str, node: Node<'_>) -> Option<StructuralFact> {
-    let table_name = ancestor_of_kind(node, "create_table")
+    let table_name = table_statement(node)
         .and_then(find_object_reference)
         .and_then(|reference| object_reference_parts(content, reference))
         .map(|(_, table)| table);
@@ -797,7 +797,7 @@ fn procedure_definition_fact(
     content: &str,
     node: Node<'_>,
 ) -> Option<StructuralFact> {
-    let (_, routine_name) = object_reference_parts(content, find_object_reference(node)?)?;
+    let routine_name = routine_name(content, find_object_reference(node)?)?;
     let mut metadata = base_metadata("schema_structure");
     insert_string(&mut metadata, "routine_name", &routine_name);
     metadata.insert(
@@ -818,7 +818,7 @@ fn function_definition_fact(
     content: &str,
     node: Node<'_>,
 ) -> Option<StructuralFact> {
-    let (_, routine_name) = object_reference_parts(content, find_object_reference(node)?)?;
+    let routine_name = routine_name(content, find_object_reference(node)?)?;
     let mut metadata = base_metadata("schema_structure");
     insert_string(&mut metadata, "routine_name", &routine_name);
     metadata.insert(
@@ -1247,6 +1247,23 @@ fn join_left_table(content: &str, join_node: Node<'_>) -> Option<String> {
 
 fn same_node(left: Node<'_>, right: Node<'_>) -> bool {
     left.start_byte() == right.start_byte() && left.end_byte() == right.end_byte()
+}
+
+/// The CREATE TABLE or ALTER TABLE statement a column or constraint belongs to.
+fn table_statement(node: Node<'_>) -> Option<Node<'_>> {
+    ancestor_of_kind(node, "create_table").or_else(|| ancestor_of_kind(node, "alter_table"))
+}
+
+/// A routine's declared name. A T-SQL parameter list without parentheses makes
+/// the grammar recover inside the reference, so the name is then the first
+/// dotted token of its text.
+fn routine_name(content: &str, reference: Node<'_>) -> Option<String> {
+    if reference.has_error() {
+        let token = node_text(content, reference)?.split_whitespace().next()?;
+        let name = token.rsplit('.').next()?;
+        return (!name.is_empty()).then(|| normalize_sql_identifier(name));
+    }
+    object_reference_parts(content, reference).map(|(_, name)| name)
 }
 
 fn ancestor_of_kind<'a>(mut node: Node<'a>, kind: &str) -> Option<Node<'a>> {

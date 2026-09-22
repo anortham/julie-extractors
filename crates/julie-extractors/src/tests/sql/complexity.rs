@@ -88,11 +88,12 @@ END;
         })
         .expect("expected function symbol complexity metric");
 
-    assert!(
-        function_metric.end_byte > function.end_byte,
-        "metric span should expand through split routine siblings; function_end={} metric_end={}",
-        function.end_byte,
-        function_metric.end_byte
+    let body = function.body_span.expect("function body span");
+    assert!(source[body.start_byte as usize..body.end_byte as usize].ends_with("END"));
+    assert_eq!(
+        (function_metric.start_byte, function_metric.end_byte),
+        (body.start_byte, body.end_byte),
+        "metric span should cover the whole BEGIN ... END body"
     );
     assert!(
         function_metric.decision_count > 0,

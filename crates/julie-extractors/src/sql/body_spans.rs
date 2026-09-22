@@ -18,7 +18,7 @@ pub(super) fn finalize_sql_callable_symbol(base: &BaseExtractor, symbol: &mut Sy
     let statement = statement_text_from(base, symbol);
 
     match infer_body_span_from_statement(base, symbol, &statement) {
-        Some(body_span) if should_replace_body_span(symbol, &body_span, is_recovery) => {
+        Some(body_span) => {
             symbol.body_span = Some(body_span);
             symbol.body_hash = body_hash(&base.content, body_span, &base.language);
             set_metadata_str(
@@ -31,7 +31,6 @@ pub(super) fn finalize_sql_callable_symbol(base: &BaseExtractor, symbol: &mut Sy
                 },
             );
         }
-        Some(_) => set_metadata_str(symbol, "bodySpanSource", "statement_text"),
         None if is_recovery => {
             symbol.body_span = None;
             symbol.body_hash = None;
@@ -39,6 +38,28 @@ pub(super) fn finalize_sql_callable_symbol(base: &BaseExtractor, symbol: &mut Sy
         }
         _ => {}
     }
+}
+
+/// Whether a routine's `function_body` node holds the whole body: a
+/// `BEGIN` block must reach its `END`; any other body must parse cleanly.
+pub(super) fn is_complete_body(body: tree_sitter::Node) -> bool {
+    let mut cursor = body.walk();
+    let children: Vec<_> = body.named_children(&mut cursor).collect();
+    if children.iter().any(|child| child.kind() == "keyword_begin") {
+        return children
+            .last()
+            .is_some_and(|child| child.kind() == "keyword_end");
+    }
+    !body.has_error()
+}
+
+/// Use the routine's `function_body` node (`AS BEGIN ... END`, `AS $$ ... $$`)
+/// as its body.
+pub(super) fn set_syntax_body(base: &BaseExtractor, symbol: &mut Symbol, body: tree_sitter::Node) {
+    let span = NormalizedSpan::from_node(&body);
+    symbol.body_span = Some(span);
+    symbol.body_hash = body_hash(&base.content, span, &base.language);
+    set_metadata_str(symbol, "bodySpanSource", "function_body");
 }
 
 fn is_sql_callable(symbol: &Symbol) -> bool {
@@ -49,20 +70,6 @@ fn is_sql_callable(symbol: &Symbol) -> bool {
         || metadata_bool_key(metadata, "isTrigger")
         || metadata_bool_key(metadata, "isStoredProcedure")
         || metadata_bool_key(metadata, "isFunction")
-}
-
-fn should_replace_body_span(symbol: &Symbol, improved: &NormalizedSpan, is_recovery: bool) -> bool {
-    if is_recovery || symbol.body_span.is_none() {
-        return true;
-    }
-
-    let Some(current) = symbol.body_span else {
-        return true;
-    };
-
-    let current_len = current.end_byte.saturating_sub(current.start_byte);
-    let improved_len = improved.end_byte.saturating_sub(improved.start_byte);
-    improved_len > current_len.saturating_mul(2)
 }
 
 fn infer_body_span_from_statement(

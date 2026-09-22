@@ -20,6 +20,7 @@ mod constraints;
 mod error_handling;
 pub(crate) mod helpers;
 mod identifiers;
+mod references;
 mod relationships;
 mod routines;
 mod schema_relationships;
@@ -83,6 +84,13 @@ impl SqlExtractor {
         let mut symbols = Vec::new();
         let pgtap_context = test_detection::PgTapContext::from_tree(&self.base, tree);
         self.visit_node(tree.root_node(), &mut symbols, None, 0, &pgtap_context);
+        for column in symbols
+            .iter_mut()
+            .filter(|symbol| symbol.kind == crate::base::SymbolKind::Field)
+        {
+            column.body_span = None;
+            column.body_hash = None;
+        }
         test_detection::mark_pgtap_schema_containers(&pgtap_context, &mut symbols);
         let containing_symbols = self.base.containing_symbol_index(&symbols);
         self.walk_for_string_literals(tree.root_node(), &containing_symbols, 0);
@@ -204,6 +212,12 @@ impl SqlExtractor {
             &mut relationships,
             0,
         );
+        references::extract_object_reference_relationships(
+            &mut self.base,
+            tree.root_node(),
+            symbols,
+            &mut relationships,
+        );
         relationships
     }
 
@@ -281,7 +295,11 @@ impl SqlExtractor {
             "create_table" => {
                 symbol = schemas::extract_table_definition(&mut self.base, node, parent_id);
             }
-            "create_procedure" | "create_function" | "create_function_statement" => {
+            "create_procedure"
+            | "create_function"
+            | "create_function_statement"
+            | "alter_procedure"
+            | "alter_function" => {
                 symbol = routines::extract_stored_procedure(
                     &mut self.base,
                     node,
@@ -314,12 +332,7 @@ impl SqlExtractor {
                 symbol = schemas::extract_type(&mut self.base, node, parent_id);
             }
             "alter_table" => {
-                constraints::extract_constraints_from_alter_table(
-                    &mut self.base,
-                    node,
-                    symbols,
-                    parent_id,
-                );
+                constraints::extract_constraints_from_alter_table(&mut self.base, node, symbols);
             }
             "select" => {
                 self.extract_select_aliases(node, symbols, parent_id);
@@ -352,13 +365,21 @@ impl SqlExtractor {
             _ => {}
         }
 
-        if let Some(symbol) = symbol {
+        if let Some(mut symbol) = symbol {
+            if node.kind() != "ERROR" {
+                record_declared_schema(&self.base, node, &mut symbol);
+            }
             symbols.push(symbol.clone());
 
             // Extract additional child symbols for specific node types
             match node.kind() {
                 "create_table" => {
-                    constraints::extract_table_columns(&mut self.base, node, symbols, &symbol.id);
+                    constraints::extract_table_columns(
+                        &mut self.base,
+                        node,
+                        symbols,
+                        Some(&symbol.id),
+                    );
                     constraints::extract_table_constraints(
                         &mut self.base,
                         node,
@@ -398,8 +419,18 @@ impl SqlExtractor {
                         );
                     }
                 }
-                "create_procedure" | "create_function" | "create_function_statement" => {
+                "create_procedure"
+                | "create_function"
+                | "create_function_statement"
+                | "alter_procedure"
+                | "alter_function" => {
                     routines::extract_parameters_from_routine_node(
+                        &mut self.base,
+                        node,
+                        symbols,
+                        &symbol.id,
+                    );
+                    routines::extract_bare_tsql_parameters(
                         &mut self.base,
                         node,
                         symbols,
@@ -428,6 +459,23 @@ impl SqlExtractor {
             }
         }
     }
+}
+
+/// Record the schema a declaration names (`CREATE TABLE billing.accounts`) so
+/// references can tell same-named objects in different schemas apart.
+fn record_declared_schema(base: &BaseExtractor, node: tree_sitter::Node, symbol: &mut Symbol) {
+    let Some(reference) = base.find_child_by_type(&node, "object_reference") else {
+        return;
+    };
+    let Some(schema) = reference.child_by_field_name("schema") else {
+        return;
+    };
+    symbol.metadata.get_or_insert_with(HashMap::new).insert(
+        "schema".to_string(),
+        serde_json::Value::String(helpers::normalize_sql_identifier(
+            &base.get_node_text(&schema),
+        )),
+    );
 }
 
 fn descendant_contains(ancestor: tree_sitter::Node, target: tree_sitter::Node) -> bool {

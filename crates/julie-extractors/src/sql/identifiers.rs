@@ -41,6 +41,29 @@ impl SqlExtractor {
         containing_symbols: &ContainingSymbolIndex<'_>,
     ) {
         match node.kind() {
+            "object_reference" => {
+                let kind = match super::references::object_reference_role(node) {
+                    Some(
+                        super::references::ObjectReferenceRole::Table
+                        | super::references::ObjectReferenceRole::TriggerTarget,
+                    ) => IdentifierKind::TypeUsage,
+                    Some(super::references::ObjectReferenceRole::Call)
+                        if node
+                            .parent()
+                            .is_some_and(|parent| parent.kind() != "invocation") =>
+                    {
+                        IdentifierKind::Call
+                    }
+                    _ => return,
+                };
+                if let Some(name_node) = super::references::object_reference_name_node(node) {
+                    let name = normalize_sql_identifier(&self.base.get_node_text(&name_node));
+                    let containing_symbol_id =
+                        self.find_containing_symbol_id(node, containing_symbols);
+                    self.base
+                        .create_identifier(&name_node, name, kind, containing_symbol_id);
+                }
+            }
             "invocation" => {
                 let name_node = if let Some(obj_ref) =
                     self.base.find_child_by_type(&node, "object_reference")
