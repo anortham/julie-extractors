@@ -2367,7 +2367,8 @@
         "doc_comments": {
           "supported": [
             "class",
-            "export"
+            "function",
+            "interface"
           ],
           "not_applicable": [],
           "open_gaps": []

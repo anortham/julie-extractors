@@ -25,8 +25,10 @@ diagnostics. The host then publishes the rows under its own language.
   block. The host adds only what the block cannot see: HTML element symbols
   and handler attributes, and the Vue component symbol, Options API structure,
   template bindings, and component tag references.
-- Calls made inside a function keep that function as the caller. The host
-  element or component is the caller only for code outside any callable.
+- A call keeps the innermost declaration around it as the caller, the same
+  as in a standalone file: a function, or a variable whose initializer makes
+  the call. The host element or component is the caller only for code outside
+  every declaration.
 - File-scope complexity rows of all blocks fold into one host row.
 - Vue section boundaries come from the shared tag scanner, which matches
   nested `<template>` tags and accepts one-line and multi-line section tags.

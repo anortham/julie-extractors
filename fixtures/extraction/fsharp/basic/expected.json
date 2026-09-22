@@ -2000,7 +2000,7 @@
       "end_column": 29,
       "start_byte": 196,
       "end_byte": 201,
-      "containing_key": "fixtures/extraction/fsharp/basic/source.fs:radius:10:16",
+      "containing_key": "fixtures/extraction/fsharp/basic/source.fs:Shape:9:2",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2032,7 +2032,7 @@
       "end_column": 23,
       "start_byte": 142,
       "end_byte": 145,
-      "containing_key": "fixtures/extraction/fsharp/basic/source.fs:X:7:17",
+      "containing_key": "fixtures/extraction/fsharp/basic/source.fs:Point:6:2",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2048,7 +2048,7 @@
       "end_column": 31,
       "start_byte": 150,
       "end_byte": 153,
-      "containing_key": "fixtures/extraction/fsharp/basic/source.fs:Y:7:25",
+      "containing_key": "fixtures/extraction/fsharp/basic/source.fs:Point:6:2",
       "target_key": null,
       "confidence": "1.000"
     },

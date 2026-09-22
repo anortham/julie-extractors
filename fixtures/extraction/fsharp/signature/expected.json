@@ -230,7 +230,7 @@
       "end_column": 38,
       "start_byte": 53,
       "end_byte": 56,
-      "containing_key": "fixtures/extraction/fsharp/signature/source.fsi:Age:3:30",
+      "containing_key": "fixtures/extraction/fsharp/signature/source.fsi:Person:3:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -326,7 +326,7 @@
       "end_column": 28,
       "start_byte": 40,
       "end_byte": 46,
-      "containing_key": "fixtures/extraction/fsharp/signature/source.fsi:Name:3:16",
+      "containing_key": "fixtures/extraction/fsharp/signature/source.fsi:Person:3:0",
       "target_key": null,
       "confidence": "1.000"
     },

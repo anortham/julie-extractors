@@ -135,7 +135,7 @@
       "end_column": 22,
       "start_byte": 19,
       "end_byte": 22,
-      "containing_key": "fixtures/extraction/fsharp/return_types/source.fs:X:1:16",
+      "containing_key": "fixtures/extraction/fsharp/return_types/source.fs:Result:1:0",
       "target_key": null,
       "confidence": "1.000"
     }

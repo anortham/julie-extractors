@@ -3,7 +3,7 @@
 //! This module handles extraction of identifier usages within C code, such as function calls,
 //! member/field access operations, and type_identifier references (TypeUsage).
 
-use crate::base::{ContainingSymbolIndex, Identifier, IdentifierKind, Symbol};
+use crate::base::{ContainingSymbolIndex, Identifier, IdentifierKind, Symbol, SymbolKind};
 use crate::c::CExtractor;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
@@ -13,7 +13,12 @@ pub(super) fn extract_identifiers(
     tree: &tree_sitter::Tree,
     symbols: &[Symbol],
 ) -> Vec<Identifier> {
-    let containing_symbols = extractor.base.containing_symbol_index(symbols);
+    let file_path = extractor.base.file_path.clone();
+    let containing_symbols = ContainingSymbolIndex::from_iter(
+        symbols
+            .iter()
+            .filter(|symbol| symbol.file_path == file_path && symbol.kind != SymbolKind::Field),
+    );
     walk_tree_for_identifiers(extractor, tree.root_node(), &containing_symbols, 0);
     extractor.base.identifiers.clone()
 }

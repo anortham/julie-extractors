@@ -27,8 +27,9 @@ pub(super) struct ComponentRows {
 }
 
 /// `script_identifiers` are the identifiers of every script block. Code
-/// outside any function or class runs as the component's setup, so the
-/// component is its caller; identifiers with no container get the component.
+/// outside any function or class runs as the component's setup. Its caller is
+/// the innermost declaration around it, as in a standalone script, and the
+/// component only when no declaration encloses it.
 pub(super) fn collect_component_rows(
     base: &BaseExtractor,
     sfc: &ParsedVueSfc,
@@ -53,24 +54,31 @@ pub(super) fn collect_component_rows(
         .iter()
         .map(|symbol| (symbol.id.as_str(), symbol))
         .collect();
-    let mut top_level = Vec::new();
+    let mut top_level: Vec<(&Symbol, Identifier)> = Vec::new();
     for identifier in script_identifiers.iter_mut() {
         if identifier.containing_symbol_id.is_none() {
             identifier.containing_symbol_id = Some(component.id.clone());
-            top_level.push(identifier.clone());
+            top_level.push((component, identifier.clone()));
         } else if !inside_callable(&by_id, identifier.containing_symbol_id.as_deref()) {
-            top_level.push(identifier.clone());
+            let owner = identifier
+                .containing_symbol_id
+                .as_deref()
+                .and_then(|id| by_id.get(id).copied())
+                .unwrap_or(component);
+            top_level.push((owner, identifier.clone()));
         }
     }
-    link_expression_identifiers(
-        &base.content,
-        component,
-        &top_level,
-        &callables,
-        None,
-        &mut rows.relationships,
-        &mut rows.pending,
-    );
+    for (owner, identifier) in &top_level {
+        link_expression_identifiers(
+            &base.content,
+            owner,
+            std::slice::from_ref(identifier),
+            &callables,
+            None,
+            &mut rows.relationships,
+            &mut rows.pending,
+        );
+    }
 
     for section in sfc
         .sections

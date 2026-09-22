@@ -107,8 +107,9 @@ fn contains_node(outer: Node, inner: Node) -> bool {
 
 /// Caller and containment scope for F#: the smallest enclosing declaration,
 /// so code in a property, a module value, or a nested module belongs to that
-/// declaration and not to the outer namespace. Parameters and local values
-/// are never scopes.
+/// declaration and not to the outer namespace. Parameters, local values,
+/// record fields, and union cases are never scopes: their type references
+/// belong to the enclosing type, the same as the `uses` edge they produce.
 pub(super) struct Scope<'a> {
     candidates: Vec<&'a Symbol>,
 }
@@ -139,7 +140,9 @@ impl<'a> Scope<'a> {
                                     | SymbolKind::Variable
                             )
                         });
-                !is_parameter && !is_local
+                let is_type_member =
+                    matches!(symbol.kind, SymbolKind::Field | SymbolKind::EnumMember);
+                !is_parameter && !is_local && !is_type_member
             })
             .collect();
         Self { candidates }

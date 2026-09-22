@@ -1681,7 +1681,7 @@
       "end_column": 60,
       "start_byte": 69,
       "end_byte": 75,
-      "containing_key": "fixtures/extraction/c/declarators/source.c:probe:2:38",
+      "containing_key": "fixtures/extraction/c/declarators/source.c:driver:2:0",
       "target_key": null,
       "confidence": "1.000"
     },

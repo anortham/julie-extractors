@@ -1697,7 +1697,7 @@
       "end_column": 25,
       "start_byte": 148,
       "end_byte": 155,
-      "containing_key": "fixtures/extraction/fsharp/calls_and_declarations/source.fs:Transfer:8:6",
+      "containing_key": "fixtures/extraction/fsharp/calls_and_declarations/source.fs:Payment:6:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1985,7 +1985,7 @@
       "end_column": 30,
       "start_byte": 335,
       "end_byte": 342,
-      "containing_key": "fixtures/extraction/fsharp/calls_and_declarations/source.fs:Price:17:16",
+      "containing_key": "fixtures/extraction/fsharp/calls_and_declarations/source.fs:Line:16:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2017,7 +2017,7 @@
       "end_column": 21,
       "start_byte": 122,
       "end_byte": 129,
-      "containing_key": "fixtures/extraction/fsharp/calls_and_declarations/source.fs:Cash:7:6",
+      "containing_key": "fixtures/extraction/fsharp/calls_and_declarations/source.fs:Payment:6:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2161,7 +2161,7 @@
       "end_column": 35,
       "start_byte": 293,
       "end_byte": 296,
-      "containing_key": "fixtures/extraction/fsharp/calls_and_declarations/source.fs:Secret:14:24",
+      "containing_key": "fixtures/extraction/fsharp/calls_and_declarations/source.fs:Hidden:14:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2177,7 +2177,7 @@
       "end_column": 14,
       "start_byte": 323,
       "end_byte": 326,
-      "containing_key": "fixtures/extraction/fsharp/calls_and_declarations/source.fs:Qty:17:6",
+      "containing_key": "fixtures/extraction/fsharp/calls_and_declarations/source.fs:Line:16:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2209,7 +2209,7 @@
       "end_column": 29,
       "start_byte": 71,
       "end_byte": 74,
-      "containing_key": "fixtures/extraction/fsharp/calls_and_declarations/source.fs:id:4:22",
+      "containing_key": "fixtures/extraction/fsharp/calls_and_declarations/source.fs:Conflict:4:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2353,7 +2353,7 @@
       "end_column": 46,
       "start_byte": 85,
       "end_byte": 91,
-      "containing_key": "fixtures/extraction/fsharp/calls_and_declarations/source.fs:reason:4:32",
+      "containing_key": "fixtures/extraction/fsharp/calls_and_declarations/source.fs:Conflict:4:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2369,7 +2369,7 @@
       "end_column": 28,
       "start_byte": 178,
       "end_byte": 184,
-      "containing_key": "fixtures/extraction/fsharp/calls_and_declarations/source.fs:Iban:9:16",
+      "containing_key": "fixtures/extraction/fsharp/calls_and_declarations/source.fs:Account:9:0",
       "target_key": null,
       "confidence": "1.000"
     },

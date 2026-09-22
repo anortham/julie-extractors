@@ -317,7 +317,7 @@ const answer = local_helper();
         "{edges:?}"
     );
     assert!(
-        has(&edges, "Cross", RelationshipKind::Calls, "local_helper"),
+        has(&edges, "answer", RelationshipKind::Calls, "local_helper"),
         "{edges:?}"
     );
     assert!(
