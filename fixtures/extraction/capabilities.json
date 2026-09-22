@@ -455,9 +455,11 @@
           "supported": [
             "class",
             "constructor",
+            "event",
             "field",
             "function",
             "method",
+            "property",
             "variable"
           ],
           "not_applicable": [],
@@ -489,13 +491,16 @@
             "method"
           ],
           "not_applicable": [
-            "field"
+            "event",
+            "field",
+            "property"
           ],
           "open_gaps": []
         },
         "structural_facts": {
           "supported": [
-            "cpp.preprocessor_definition.v1"
+            "cpp.preprocessor_definition.v1",
+            "cpp.qt_property.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
