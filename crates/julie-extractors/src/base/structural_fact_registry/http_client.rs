@@ -14,6 +14,7 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
         pattern_id: "http.client_request.v1",
         languages: &[
             "vue",
+            "html",
             "javascript",
             "jsx",
             "tsx",

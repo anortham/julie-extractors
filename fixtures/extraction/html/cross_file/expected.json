@@ -247,12 +247,12 @@
       "start_byte": 536,
       "end_byte": 574,
       "body_span": {
-        "start_line": 2,
+        "start_line": 17,
         "start_column": 28,
-        "end_line": 2,
+        "end_line": 17,
         "end_column": 42,
-        "start_byte": 85,
-        "end_byte": 99
+        "start_byte": 560,
+        "end_byte": 574
       },
       "body_hash": "d2eca0a1521da9f57d8eeb7ec054d1bf",
       "signature": "function local_helper()",
@@ -548,7 +548,52 @@
       }
     }
   ],
-  "complexity_metrics": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/cross_file/source.html",
+      "covered_lines": 3,
+      "covered_bytes": 102,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 16,
+      "start_column": 4,
+      "end_line": 18,
+      "end_column": 2,
+      "start_byte": 475,
+      "end_byte": 577,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/html/cross_file/source.html:local_helper:17:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/cross_file/source.html",
+      "covered_lines": 1,
+      "covered_bytes": 14,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 17,
+      "start_column": 28,
+      "end_line": 17,
+      "end_column": 42,
+      "start_byte": 560,
+      "end_byte": 574,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
   "literals": [
     {
       "literal_text": "./other.css",
@@ -616,6 +661,19 @@
     }
   ],
   "source_regions": [
+    {
+      "kind": "comment",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/cross_file/source.html",
+      "containing_key": null,
+      "start_line": 16,
+      "start_column": 4,
+      "end_line": 16,
+      "end_column": 60,
+      "start_byte": 475,
+      "end_byte": 531,
+      "metadata": null
+    },
     {
       "kind": "doc_comment",
       "language": "html",

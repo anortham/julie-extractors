@@ -452,7 +452,7 @@ fn extract_html(
         .into_iter()
         .map(|pending| pending.into_pending_relationship())
         .collect();
-    Ok(ExtractionResults {
+    let mut results = ExtractionResults {
         symbols,
         relationships,
         pending_relationships,
@@ -465,7 +465,12 @@ fn extract_html(
         complexity_metrics: Vec::new(),
         types: types_with_base_info(types, "html", &ext.base),
         parse_diagnostics: Vec::new(),
-    })
+    };
+    for embedded in ext.take_embedded_results() {
+        crate::embedded::merge_into(&mut results, embedded);
+    }
+    crate::embedded::merge_file_complexity(&mut results.complexity_metrics, file_path, "html");
+    Ok(results)
 }
 
 /// Hand-written SQL extractor entry point. Phase 3.1 graduated SQL out of
@@ -873,6 +878,7 @@ pub fn extract_for_language_at(
     let mut results = (entry.extract)(tree, file_path, content, workspace_root, level)?;
     if level.includes_structural_facts() {
         let extractor_structural_facts = std::mem::take(&mut results.structural_facts);
+        let extractor_source_regions = std::mem::take(&mut results.source_regions);
         results.source_regions =
             collect_source_regions(language, tree, file_path, content, &results.symbols);
         results.structural_facts =
@@ -937,10 +943,16 @@ pub fn extract_for_language_at(
             ));
         results.structural_facts.extend(extractor_structural_facts);
         sort_structural_facts(&mut results.structural_facts);
+        if !extractor_source_regions.is_empty() {
+            results.source_regions.extend(extractor_source_regions);
+            results
+                .source_regions
+                .sort_by_key(|region| (region.start_byte, region.end_byte));
+        }
     }
     if level.includes_complexity_and_annotations() {
         results.complexity_metrics = match language {
-            "vue" => std::mem::take(&mut results.complexity_metrics),
+            "vue" | "html" => std::mem::take(&mut results.complexity_metrics),
             "sql" => crate::sql::complexity_metrics::collect_complexity_metrics(
                 tree,
                 content,

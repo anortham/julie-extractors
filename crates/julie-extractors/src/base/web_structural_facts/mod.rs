@@ -86,6 +86,7 @@ const HTML_WEB_PATTERN_IDS: &[&str] = &[
     HTML_LINK_PATTERN_ID,
     HTML_MEDIA_PATTERN_ID,
     HTML_SCRIPT_PATTERN_ID,
+    HTTP_CLIENT_REQUEST_PATTERN_ID,
 ];
 
 #[cfg(all(test, feature = "test-capability-matrix"))]

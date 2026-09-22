@@ -132,7 +132,7 @@ const DOMAIN_APPLICABILITY = {
     quality_debt: [],
   },
   complexity_metrics: {
-    not_applicable: ["css", "html", "json", "markdown", "toml", "yaml"],
+    not_applicable: ["css", "json", "markdown", "toml", "yaml"],
     convention_only: [],
     native_debt: [],
     quality_debt: [],

@@ -1836,6 +1836,7 @@
         },
         "relationships": {
           "supported": [
+            "calls",
             "imports",
             "references"
           ],
@@ -1845,11 +1846,10 @@
         "identifiers": {
           "supported": [
             "call",
-            "member_access"
-          ],
-          "not_applicable": [
+            "member_access",
             "variable_ref"
           ],
+          "not_applicable": [],
           "open_gaps": []
         },
         "body_spans": {
@@ -1886,17 +1886,18 @@
             "html.link.v1",
             "html.media.v1",
             "html.script.v1",
-            "htmx.attribute.v1"
+            "htmx.attribute.v1",
+            "http.client_request.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
         },
         "complexity_metrics": {
-          "supported": [],
-          "not_applicable": [
+          "supported": [
             "file",
             "symbol"
           ],
+          "not_applicable": [],
           "open_gaps": []
         },
         "annotations": {
@@ -1926,6 +1927,7 @@
         },
         "source_regions": {
           "supported": [
+            "comment",
             "doc_comment",
             "embedded",
             "string_literal"
