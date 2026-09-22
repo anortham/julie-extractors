@@ -41,7 +41,7 @@ use tree_sitter::Node;
 ///   lifecycle slice is empty.
 pub(crate) const SCALA_VOCAB: TestCallVocab = TestCallVocab {
     test: &["test", "it", "scenario", "Scenario", "ignore"],
-    container: &["describe", "context", "feature", "Feature"],
+    container: &["describe", "context", "feature", "Feature", "suite"],
     lifecycle: &[],
 };
 
@@ -69,14 +69,16 @@ pub(super) fn extract_scala_test_call(
     // `f("name")` call_expression. A call without a block body (the inner
     // `test("name")` itself, or `assert(x)`) is not a DSL test clause.
     let body = node.child_by_field_name("arguments")?;
-    if body.kind() != "block" {
-        return None;
-    }
     let inner = node.child_by_field_name("function")?;
     if inner.kind() != "call_expression" {
         return None;
     }
     let callee_node = inner.child_by_field_name("function")?;
+    // ZIO Test passes its cases as arguments: `suite("n")(test("a") { }, ...)`.
+    let takes_argument_list = base.get_node_text(&callee_node) == "suite";
+    if body.kind() != "block" && !(takes_argument_list && body.kind() == "arguments") {
+        return None;
+    }
     // An MUnit fixture runs its cases through `fixture.test("n") { }`.
     let callee = match callee_node.kind() {
         "field_expression" => callee_node
@@ -178,6 +180,36 @@ pub(super) fn extract_scala_flatspec_test(
         base,
         node,
         &verb,
+        name,
+        TestCallCategory::Test,
+        parent_id,
+    ))
+}
+
+/// Materialize a ScalaCheck property (`property("name") = forAll { ... }`)
+/// as a test case. Returns `None` for every other assignment.
+pub(super) fn extract_scalacheck_property(
+    base: &mut BaseExtractor,
+    node: &Node,
+    parent_id: Option<&str>,
+) -> Option<Symbol> {
+    let left = node.child_by_field_name("left")?;
+    if left.kind() != "call_expression" {
+        return None;
+    }
+    let callee = left.child_by_field_name("function")?;
+    if callee.kind() != "identifier" || base.get_node_text(&callee) != "property" {
+        return None;
+    }
+    let arguments = left.child_by_field_name("arguments")?;
+    let string_node = arguments
+        .named_child(0)
+        .filter(|argument| argument.kind() == "string")?;
+    let name = base.decode_string_literal(&string_node)?;
+    Some(build_test_call_symbol(
+        base,
+        node,
+        "property",
         name,
         TestCallCategory::Test,
         parent_id,

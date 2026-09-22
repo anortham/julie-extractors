@@ -181,6 +181,79 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:Math:39:13",
+      "name": "Math",
+      "kind": "function",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "start_line": 39,
+      "start_column": 13,
+      "end_line": 41,
+      "end_column": 3,
+      "start_byte": 785,
+      "end_byte": 847,
+      "body_span": {
+        "start_line": 40,
+        "start_column": 17,
+        "end_line": 40,
+        "end_column": 43,
+        "start_byte": 817,
+        "end_byte": 843
+      },
+      "body_hash": "6a5adceb18cdac52c40ce7a14f104d68",
+      "signature": "suite(\"Math\")",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:spec:39:2",
+      "metadata": {
+        "test_container": true,
+        "test_role": "test_container"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:MathSpec:38:0",
+      "name": "MathSpec",
+      "kind": "class",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "start_line": 38,
+      "start_column": 0,
+      "end_line": 42,
+      "end_column": 1,
+      "start_byte": 731,
+      "end_byte": 849,
+      "body_span": {
+        "start_line": 38,
+        "start_column": 39,
+        "end_line": 42,
+        "end_column": 1,
+        "start_byte": 770,
+        "end_byte": 849
+      },
+      "body_hash": "afdb71c7d93b6740bf41f36ecae6551c",
+      "signature": "object MathSpec extends ZIOSpecDefault",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "base_types": [
+          "ZIOSpecDefault"
+        ],
+        "modifiers": "",
+        "test_container": true,
+        "test_role": "test_container",
+        "type": "object"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:PlainHelper:34:0",
       "name": "PlainHelper",
       "kind": "class",
@@ -366,6 +439,118 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:StringProps:44:0",
+      "name": "StringProps",
+      "kind": "class",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "start_line": 44,
+      "start_column": 0,
+      "end_line": 46,
+      "end_column": 1,
+      "start_byte": 851,
+      "end_byte": 971,
+      "body_span": {
+        "start_line": 44,
+        "start_column": 48,
+        "end_line": 46,
+        "end_column": 1,
+        "start_byte": 899,
+        "end_byte": 971
+      },
+      "body_hash": "77f9a06f1a17f683bf8bb5e8357c9b57",
+      "signature": "object StringProps extends Properties(\"String\")",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "base_types": [
+          "Properties"
+        ],
+        "modifiers": "",
+        "test_container": true,
+        "test_role": "test_container",
+        "type": "object"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:The service should:49:2",
+      "name": "The service should",
+      "kind": "function",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "start_line": 49,
+      "start_column": 2,
+      "end_line": 52,
+      "end_column": 3,
+      "start_byte": 1023,
+      "end_byte": 1124,
+      "body_span": {
+        "start_line": 49,
+        "start_column": 23,
+        "end_line": 52,
+        "end_column": 3,
+        "start_byte": 1044,
+        "end_byte": 1124
+      },
+      "body_hash": "6efa7ae3b5ab13d8479058976a844830",
+      "signature": "should(\"The service should\")",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:UserServiceWordSpec:48:0",
+      "metadata": {
+        "test_container": true,
+        "test_role": "test_container"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:UserServiceWordSpec:48:0",
+      "name": "UserServiceWordSpec",
+      "kind": "class",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "start_line": 48,
+      "start_column": 0,
+      "end_line": 53,
+      "end_column": 1,
+      "start_byte": 973,
+      "end_byte": 1126,
+      "body_span": {
+        "start_line": 48,
+        "start_column": 46,
+        "end_line": 53,
+        "end_column": 1,
+        "start_byte": 1019,
+        "end_byte": 1126
+      },
+      "body_hash": "fedbc86889f59ba0c3a249e8c45298b1",
+      "signature": "class UserServiceWordSpec extends AnyWordSpec",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "base_types": [
+          "AnyWordSpec"
+        ],
+        "modifiers": "",
+        "test_container": true,
+        "test_role": "test_container",
+        "type": "class"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:adds items:11:4",
       "name": "adds items",
       "kind": "function",
@@ -390,6 +575,40 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:A Cart:10:2",
+      "metadata": {
+        "is_test": true,
+        "test_role": "test_case"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:adds:40:4",
+      "name": "adds",
+      "kind": "function",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "start_line": 40,
+      "start_column": 4,
+      "end_line": 40,
+      "end_column": 43,
+      "start_byte": 804,
+      "end_byte": 843,
+      "body_span": {
+        "start_line": 40,
+        "start_column": 17,
+        "end_line": 40,
+        "end_column": 43,
+        "start_byte": 817,
+        "end_byte": 843
+      },
+      "body_hash": "6a5adceb18cdac52c40ce7a14f104d68",
+      "signature": "test(\"adds\")",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:Math:39:13",
       "metadata": {
         "is_test": true,
         "test_role": "test_case"
@@ -465,6 +684,40 @@
       "metadata": {
         "test_container": true,
         "test_role": "test_container"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:find users:51:4",
+      "name": "find users",
+      "kind": "function",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "start_line": 51,
+      "start_column": 4,
+      "end_line": 51,
+      "end_column": 44,
+      "start_byte": 1080,
+      "end_byte": 1120,
+      "body_span": {
+        "start_line": 51,
+        "start_column": 20,
+        "end_line": 51,
+        "end_column": 44,
+        "start_byte": 1096,
+        "end_byte": 1120
+      },
+      "body_hash": "7e9d13c76afba0d9de8bfc30d22ba58f",
+      "signature": "in(\"find users\")",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:The service should:49:2",
+      "metadata": {
+        "is_test": true,
+        "test_role": "test_case"
       },
       "annotations": [],
       "semantic_group": null,
@@ -574,6 +827,34 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:repo:50:4",
+      "name": "repo",
+      "kind": "variable",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "start_line": 50,
+      "start_column": 4,
+      "end_line": 50,
+      "end_column": 29,
+      "start_byte": 1050,
+      "end_byte": 1075,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "val repo",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:The service should:49:2",
+      "metadata": {
+        "binding": "val",
+        "modifiers": "",
+        "type": "val"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:skipped:22:2",
       "name": "skipped",
       "kind": "function",
@@ -632,6 +913,74 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:CartMunit:21:0",
+      "metadata": {
+        "is_test": true,
+        "test_role": "test_case"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:spec:39:2",
+      "name": "spec",
+      "kind": "method",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "start_line": 39,
+      "start_column": 2,
+      "end_line": 41,
+      "end_column": 3,
+      "start_byte": 774,
+      "end_byte": 847,
+      "body_span": {
+        "start_line": 39,
+        "start_column": 13,
+        "end_line": 41,
+        "end_column": 3,
+        "start_byte": 785,
+        "end_byte": 847
+      },
+      "body_hash": "9069bfc98b68572a89817ebaedf26c13",
+      "signature": "def spec()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:MathSpec:38:0",
+      "metadata": {
+        "modifiers": "",
+        "type": "method"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:startsWith:45:2",
+      "name": "startsWith",
+      "kind": "function",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "start_line": 45,
+      "start_column": 2,
+      "end_line": 45,
+      "end_column": 68,
+      "start_byte": 903,
+      "end_byte": 969,
+      "body_span": {
+        "start_line": 45,
+        "start_column": 34,
+        "end_line": 45,
+        "end_column": 68,
+        "start_byte": 935,
+        "end_byte": 969
+      },
+      "body_hash": "047eaa189475b98b667699886f951ffb",
+      "signature": "property(\"startsWith\")",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:StringProps:44:0",
       "metadata": {
         "is_test": true,
         "test_role": "test_case"
@@ -730,6 +1079,14 @@
       "confidence": "0.900"
     },
     {
+      "from_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:MathSpec:38:0",
+      "callee_name": "ZIOSpecDefault",
+      "kind": "extends",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "line_number": 38,
+      "confidence": "0.900"
+    },
+    {
       "from_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:StackFeatureSpec:15:0",
       "callee_name": "AnyFeatureSpec",
       "kind": "extends",
@@ -754,11 +1111,43 @@
       "confidence": "0.900"
     },
     {
+      "from_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:StringProps:44:0",
+      "callee_name": "Properties",
+      "kind": "extends",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "line_number": 44,
+      "confidence": "0.900"
+    },
+    {
+      "from_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:UserServiceWordSpec:48:0",
+      "callee_name": "AnyWordSpec",
+      "kind": "extends",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "line_number": 48,
+      "confidence": "0.900"
+    },
+    {
       "from_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:adds items:11:4",
       "callee_name": "assert",
       "kind": "calls",
       "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
       "line_number": 11,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:adds:40:4",
+      "callee_name": "assertTrue",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "line_number": 40,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:find users:51:4",
+      "callee_name": "assert",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "line_number": 51,
       "confidence": "0.700"
     },
     {
@@ -807,6 +1196,30 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
       "line_number": 23,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:startsWith:45:2",
+      "callee_name": "a.startsWith",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "line_number": 45,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:startsWith:45:2",
+      "callee_name": "forAll",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "line_number": 45,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:startsWith:45:2",
+      "callee_name": "property",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "line_number": 45,
       "confidence": "0.700"
     },
     {
@@ -869,6 +1282,32 @@
         "end_column": 1,
         "start_byte": 359,
         "end_byte": 580
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:MathSpec:38:0",
+        "callee_name": "ZIOSpecDefault",
+        "kind": "extends",
+        "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+        "line_number": 38,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "ZIOSpecDefault",
+        "terminal_name": "ZIOSpecDefault",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:MathSpec:38:0",
+      "span": {
+        "start_line": 38,
+        "start_column": 0,
+        "end_line": 42,
+        "end_column": 1,
+        "start_byte": 731,
+        "end_byte": 849
       }
     },
     {
@@ -951,6 +1390,58 @@
     },
     {
       "pending": {
+        "from_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:StringProps:44:0",
+        "callee_name": "Properties",
+        "kind": "extends",
+        "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+        "line_number": 44,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "Properties",
+        "terminal_name": "Properties",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:StringProps:44:0",
+      "span": {
+        "start_line": 44,
+        "start_column": 0,
+        "end_line": 46,
+        "end_column": 1,
+        "start_byte": 851,
+        "end_byte": 971
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:UserServiceWordSpec:48:0",
+        "callee_name": "AnyWordSpec",
+        "kind": "extends",
+        "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+        "line_number": 48,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "AnyWordSpec",
+        "terminal_name": "AnyWordSpec",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:UserServiceWordSpec:48:0",
+      "span": {
+        "start_line": 48,
+        "start_column": 0,
+        "end_line": 53,
+        "end_column": 1,
+        "start_byte": 973,
+        "end_byte": 1126
+      }
+    },
+    {
+      "pending": {
         "from_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:adds items:11:4",
         "callee_name": "assert",
         "kind": "calls",
@@ -973,6 +1464,58 @@
         "end_column": 34,
         "start_byte": 214,
         "end_byte": 226
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:adds:40:4",
+        "callee_name": "assertTrue",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+        "line_number": 40,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "assertTrue",
+        "terminal_name": "assertTrue",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:adds:40:4",
+      "span": {
+        "start_line": 40,
+        "start_column": 19,
+        "end_line": 40,
+        "end_column": 41,
+        "start_byte": 819,
+        "end_byte": 841
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:find users:51:4",
+        "callee_name": "assert",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+        "line_number": 51,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "assert",
+        "terminal_name": "assert",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:find users:51:4",
+      "span": {
+        "start_line": 51,
+        "start_column": 22,
+        "end_line": 51,
+        "end_column": 42,
+        "start_byte": 1098,
+        "end_byte": 1118
       }
     },
     {
@@ -1133,6 +1676,84 @@
     },
     {
       "pending": {
+        "from_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:startsWith:45:2",
+        "callee_name": "a.startsWith",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+        "line_number": 45,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "a.startsWith",
+        "terminal_name": "startsWith",
+        "receiver": "a",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:startsWith:45:2",
+      "span": {
+        "start_line": 45,
+        "start_column": 51,
+        "end_line": 45,
+        "end_column": 66,
+        "start_byte": 952,
+        "end_byte": 967
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:startsWith:45:2",
+        "callee_name": "forAll",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+        "line_number": 45,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "forAll",
+        "terminal_name": "forAll",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:startsWith:45:2",
+      "span": {
+        "start_line": 45,
+        "start_column": 27,
+        "end_line": 45,
+        "end_column": 68,
+        "start_byte": 928,
+        "end_byte": 969
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:startsWith:45:2",
+        "callee_name": "property",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+        "line_number": 45,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "property",
+        "terminal_name": "property",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:startsWith:45:2",
+      "span": {
+        "start_line": 45,
+        "start_column": 2,
+        "end_line": 45,
+        "end_column": 24,
+        "start_byte": 903,
+        "end_byte": 925
+      }
+    },
+    {
+      "pending": {
         "from_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:with fixture:24:2",
         "callee_name": "assertEquals",
         "kind": "calls",
@@ -1224,6 +1845,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:AnyWordSpec:type_usage:48:34",
+      "name": "AnyWordSpec",
+      "kind": "type_usage",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "start_line": 48,
+      "start_column": 34,
+      "end_line": 48,
+      "end_column": 45,
+      "start_byte": 1007,
+      "end_byte": 1018,
+      "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:UserServiceWordSpec:48:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:Feature:call:16:2",
       "name": "Feature",
       "kind": "call",
@@ -1256,6 +1893,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:Properties:type_usage:44:27",
+      "name": "Properties",
+      "kind": "type_usage",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "start_line": 44,
+      "start_column": 27,
+      "end_line": 44,
+      "end_column": 37,
+      "start_byte": 878,
+      "end_byte": 888,
+      "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:StringProps:44:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:Scenario:call:17:4",
       "name": "Scenario",
       "kind": "call",
@@ -1284,6 +1937,70 @@
       "start_byte": 460,
       "end_byte": 464,
       "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:slow:23:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:UserRepo:type_usage:50:20",
+      "name": "UserRepo",
+      "kind": "type_usage",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "start_line": 50,
+      "start_column": 20,
+      "end_line": 50,
+      "end_column": 28,
+      "start_byte": 1066,
+      "end_byte": 1074,
+      "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:The service should:49:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:ZIOSpecDefault:type_usage:38:24",
+      "name": "ZIOSpecDefault",
+      "kind": "type_usage",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "start_line": 38,
+      "start_column": 24,
+      "end_line": 38,
+      "end_column": 38,
+      "start_byte": 755,
+      "end_byte": 769,
+      "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:MathSpec:38:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:a:variable_ref:45:51",
+      "name": "a",
+      "kind": "variable_ref",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "start_line": 45,
+      "start_column": 51,
+      "end_line": 45,
+      "end_column": 52,
+      "start_byte": 952,
+      "end_byte": 953,
+      "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:startsWith:45:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:a:variable_ref:45:64",
+      "name": "a",
+      "kind": "variable_ref",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "start_line": 45,
+      "start_column": 64,
+      "end_line": 45,
+      "end_column": 65,
+      "start_byte": 965,
+      "end_byte": 966,
+      "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:startsWith:45:2",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1368,6 +2085,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:assert:call:51:22",
+      "name": "assert",
+      "kind": "call",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "start_line": 51,
+      "start_column": 22,
+      "end_line": 51,
+      "end_column": 28,
+      "start_byte": 1098,
+      "end_byte": 1104,
+      "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:find users:51:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:assertEquals:call:24:34",
       "name": "assertEquals",
       "kind": "call",
@@ -1380,6 +2113,22 @@
       "start_byte": 518,
       "end_byte": 530,
       "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:with fixture:24:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:assertTrue:call:40:19",
+      "name": "assertTrue",
+      "kind": "call",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "start_line": 40,
+      "start_column": 19,
+      "end_line": 40,
+      "end_column": 29,
+      "start_byte": 819,
+      "end_byte": 829,
+      "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:adds:40:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1412,6 +2161,22 @@
       "start_byte": 666,
       "end_byte": 670,
       "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:not yet:30:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:forAll:call:45:27",
+      "name": "forAll",
+      "kind": "call",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "start_line": 45,
+      "start_column": 27,
+      "end_line": 45,
+      "end_column": 33,
+      "start_byte": 928,
+      "end_byte": 934,
+      "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:startsWith:45:2",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1464,6 +2229,38 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:property:call:45:2",
+      "name": "property",
+      "kind": "call",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "start_line": 45,
+      "start_column": 2,
+      "end_line": 45,
+      "end_column": 10,
+      "start_byte": 903,
+      "end_byte": 911,
+      "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:startsWith:45:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:repo:variable_ref:51:29",
+      "name": "repo",
+      "kind": "variable_ref",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "start_line": 51,
+      "start_column": 29,
+      "end_line": 51,
+      "end_column": 33,
+      "start_byte": 1105,
+      "end_byte": 1109,
+      "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:find users:51:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:s:variable_ref:24:47",
       "name": "s",
       "kind": "variable_ref",
@@ -1476,6 +2273,38 @@
       "start_byte": 531,
       "end_byte": 532,
       "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:with fixture:24:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:startsWith:call:45:53",
+      "name": "startsWith",
+      "kind": "call",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "start_line": 45,
+      "start_column": 53,
+      "end_line": 45,
+      "end_column": 63,
+      "start_byte": 954,
+      "end_byte": 964,
+      "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:startsWith:45:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:suite:call:39:13",
+      "name": "suite",
+      "kind": "call",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "start_line": 39,
+      "start_column": 13,
+      "end_line": 39,
+      "end_column": 18,
+      "start_byte": 785,
+      "end_byte": 790,
+      "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:Math:39:13",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1544,6 +2373,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:test:call:40:4",
+      "name": "test",
+      "kind": "call",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "start_line": 40,
+      "start_column": 4,
+      "end_line": 40,
+      "end_column": 8,
+      "start_byte": 804,
+      "end_byte": 808,
+      "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:adds:40:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:tmp:variable_ref:24:2",
       "name": "tmp",
       "kind": "variable_ref",
@@ -1589,18 +2434,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "scala",
       "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
-      "covered_lines": 37,
-      "covered_bytes": 730,
+      "covered_lines": 54,
+      "covered_bytes": 1127,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 37,
+      "end_line": 54,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 730,
+      "end_byte": 1127,
       "metadata": {
         "metric_version": 1
       }
@@ -1673,6 +2518,28 @@
     },
     {
       "scope": "symbol",
+      "symbol_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:Math:39:13",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "covered_lines": 3,
+      "covered_bytes": 62,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 39,
+      "start_column": 13,
+      "end_line": 41,
+      "end_column": 3,
+      "start_byte": 785,
+      "end_byte": 847,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
       "symbol_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:Stack:16:2",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "scala",
@@ -1695,6 +2562,28 @@
     },
     {
       "scope": "symbol",
+      "symbol_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:The service should:49:2",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "covered_lines": 4,
+      "covered_bytes": 80,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 49,
+      "start_column": 23,
+      "end_line": 52,
+      "end_column": 3,
+      "start_byte": 1044,
+      "end_byte": 1124,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
       "symbol_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:adds items:11:4",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "scala",
@@ -1711,6 +2600,28 @@
       "end_column": 36,
       "start_byte": 212,
       "end_byte": 228,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:adds:40:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "covered_lines": 1,
+      "covered_bytes": 26,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 40,
+      "start_column": 17,
+      "end_line": 40,
+      "end_column": 43,
+      "start_byte": 817,
+      "end_byte": 843,
       "metadata": {
         "metric_version": 1
       }
@@ -1755,6 +2666,28 @@
       "end_column": 5,
       "start_byte": 80,
       "end_byte": 127,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:find users:51:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "covered_lines": 1,
+      "covered_bytes": 24,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 51,
+      "start_column": 20,
+      "end_line": 51,
+      "end_column": 44,
+      "start_byte": 1096,
+      "end_byte": 1120,
       "metadata": {
         "metric_version": 1
       }
@@ -1871,6 +2804,50 @@
     },
     {
       "scope": "symbol",
+      "symbol_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:spec:39:2",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "covered_lines": 3,
+      "covered_bytes": 62,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 39,
+      "start_column": 13,
+      "end_line": 41,
+      "end_column": 3,
+      "start_byte": 785,
+      "end_byte": 847,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:startsWith:45:2",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "covered_lines": 1,
+      "covered_bytes": 34,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 45,
+      "start_column": 34,
+      "end_line": 45,
+      "end_column": 68,
+      "start_byte": 935,
+      "end_byte": 969,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
       "symbol_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:testData:35:2",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "scala",
@@ -1932,6 +2909,22 @@
       "confidence": "1.000"
     },
     {
+      "literal_text": "Math",
+      "kind": "other",
+      "carrier": "suite",
+      "arg_position": 0,
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "start_line": 39,
+      "start_column": 19,
+      "end_line": 39,
+      "end_column": 25,
+      "start_byte": 791,
+      "end_byte": 797,
+      "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:Math:39:13",
+      "confidence": "1.000"
+    },
+    {
       "literal_text": "Stack",
       "kind": "other",
       "carrier": "Feature",
@@ -1945,6 +2938,22 @@
       "start_byte": 294,
       "end_byte": 301,
       "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:Stack:16:2",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "adds",
+      "kind": "other",
+      "carrier": "test",
+      "arg_position": 0,
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "start_line": 40,
+      "start_column": 9,
+      "end_line": 40,
+      "end_column": 15,
+      "start_byte": 809,
+      "end_byte": 815,
+      "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:adds:40:4",
       "confidence": "1.000"
     },
     {
@@ -1977,6 +2986,22 @@
       "start_byte": 318,
       "end_byte": 333,
       "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:push then pop:17:4",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "startsWith",
+      "kind": "other",
+      "carrier": "property",
+      "arg_position": 0,
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "start_line": 45,
+      "start_column": 11,
+      "end_line": 45,
+      "end_column": 23,
+      "start_byte": 912,
+      "end_byte": 924,
+      "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:startsWith:45:2",
       "confidence": "1.000"
     },
     {
@@ -2056,6 +3081,19 @@
       "kind": "string_literal",
       "language": "scala",
       "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:Math:39:13",
+      "start_line": 39,
+      "start_column": 19,
+      "end_line": 39,
+      "end_column": 25,
+      "start_byte": 791,
+      "end_byte": 797,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
       "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:Stack:16:2",
       "start_line": 16,
       "start_column": 10,
@@ -2063,6 +3101,32 @@
       "end_column": 17,
       "start_byte": 294,
       "end_byte": 301,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:StringProps:44:0",
+      "start_line": 44,
+      "start_column": 38,
+      "end_line": 44,
+      "end_column": 46,
+      "start_byte": 889,
+      "end_byte": 897,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:The service should:49:2",
+      "start_line": 49,
+      "start_column": 2,
+      "end_line": 49,
+      "end_column": 15,
+      "start_byte": 1023,
+      "end_byte": 1036,
       "metadata": null
     },
     {
@@ -2082,6 +3146,19 @@
       "kind": "string_literal",
       "language": "scala",
       "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:adds:40:4",
+      "start_line": 40,
+      "start_column": 9,
+      "end_line": 40,
+      "end_column": 15,
+      "start_byte": 809,
+      "end_byte": 815,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
       "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:empty should:3:4",
       "start_line": 3,
       "start_column": 4,
@@ -2089,6 +3166,19 @@
       "end_column": 11,
       "start_byte": 65,
       "end_byte": 72,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:find users:51:4",
+      "start_line": 51,
+      "start_column": 4,
+      "end_line": 51,
+      "end_column": 16,
+      "start_byte": 1080,
+      "end_byte": 1092,
       "metadata": null
     },
     {
@@ -2154,6 +3244,19 @@
       "end_column": 13,
       "start_byte": 449,
       "end_byte": 455,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+      "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:startsWith:45:2",
+      "start_line": 45,
+      "start_column": 11,
+      "end_line": 45,
+      "end_column": 23,
+      "start_byte": 912,
+      "end_byte": 924,
       "metadata": null
     },
     {

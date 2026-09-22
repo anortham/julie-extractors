@@ -399,3 +399,40 @@ class CartFunSpec extends AnyFunSpec {
         );
     }
 }
+
+#[test]
+fn zio_suites_scalacheck_properties_and_dsl_locals() {
+    let result = extract(
+        "src/test/scala/MathSpec.scala",
+        r#"object MySpec extends ZIOSpecDefault {
+  def spec = suite("Math")(
+    test("adds") { assertTrue(1 + 1 == 2) }
+  )
+}
+object StringProps extends Properties("String") {
+  property("startsWith") = forAll { (a: String) => a.startsWith(a) }
+}
+class UserServiceWordSpec extends AnyWordSpec {
+  "The service" should {
+    val repo = mock[UserRepo]
+    "find users" in { assert(repo != null) }
+  }
+}
+"#,
+    );
+    assert_eq!(test_role(symbol(&result, "Math")), Some("test_container"));
+    assert_eq!(test_role(symbol(&result, "adds")), Some("test_case"));
+    assert_eq!(
+        symbol(&result, "adds").parent_id.as_deref(),
+        Some(symbol(&result, "Math").id.as_str())
+    );
+    assert_eq!(test_role(symbol(&result, "startsWith")), Some("test_case"));
+    assert_eq!(
+        test_role(symbol(&result, "StringProps")),
+        Some("test_container")
+    );
+    assert_eq!(
+        symbol(&result, "repo").kind,
+        crate::base::SymbolKind::Variable
+    );
+}

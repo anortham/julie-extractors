@@ -34,3 +34,20 @@ class CartFunSpec extends AnyFunSpec {
 class PlainHelper {
   def testData(): Int = 1
 }
+
+object MathSpec extends ZIOSpecDefault {
+  def spec = suite("Math")(
+    test("adds") { assertTrue(1 + 1 == 2) }
+  )
+}
+
+object StringProps extends Properties("String") {
+  property("startsWith") = forAll { (a: String) => a.startsWith(a) }
+}
+
+class UserServiceWordSpec extends AnyWordSpec {
+  "The service" should {
+    val repo = mock[UserRepo]
+    "find users" in { assert(repo != null) }
+  }
+}

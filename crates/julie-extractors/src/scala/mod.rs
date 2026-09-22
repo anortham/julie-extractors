@@ -151,6 +151,13 @@ impl ScalaExtractor {
                     parent_id.as_deref(),
                 );
             }
+            "assignment_expression" => {
+                symbol = test_calls::extract_scalacheck_property(
+                    &mut self.base,
+                    &node,
+                    parent_id.as_deref(),
+                );
+            }
             "infix_expression" => {
                 symbol = test_calls::extract_scala_flatspec_test(
                     &mut self.base,

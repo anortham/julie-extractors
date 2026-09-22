@@ -13,7 +13,12 @@ fn val_kind_for_scope(node: &Node) -> SymbolKind {
     let mut current = node.parent();
     while let Some(ancestor) = current {
         match ancestor.kind() {
-            "function_definition" | "function_declaration" => return SymbolKind::Variable,
+            "function_definition"
+            | "function_declaration"
+            | "block"
+            | "indented_block"
+            | "lambda_expression"
+            | "case_block" => return SymbolKind::Variable,
             "class_definition" | "object_definition" => return SymbolKind::Property,
             _ => {
                 current = ancestor.parent();
