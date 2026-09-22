@@ -10,6 +10,12 @@ mod relationships;
 #[cfg(test)]
 mod literals;
 
+#[cfg(test)]
+mod manifests;
+
+#[cfg(test)]
+mod values_and_spans;
+
 pub mod structural_facts;
 
 #[cfg(test)]

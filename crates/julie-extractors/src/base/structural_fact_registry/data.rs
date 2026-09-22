@@ -4,8 +4,7 @@
 //! registry access remains through [`super::structural_fact_pattern_specs`].
 
 use super::{
-    ALWAYS, ARR, BOOL, K_FRAMEWORK, K_PATTERN_VERSION, K_QUERY_FAMILY, NUM, OPT, STR,
-    StructuralFactPatternSpec, key,
+    ALWAYS, BOOL, K_PATTERN_VERSION, K_QUERY_FAMILY, NUM, OPT, STR, StructuralFactPatternSpec, key,
 };
 
 pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
@@ -244,61 +243,6 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 STR,
                 ALWAYS,
                 "Dotted/indexed JSON path to the property's parent.",
-            ),
-        ],
-    },
-    // OpenAPI / Swagger documents (JSON and YAML)
-    StructuralFactPatternSpec {
-        pattern_id: "openapi.route.v1",
-        languages: &["json"],
-        query_family: "framework",
-        description: "An OpenAPI or Swagger path operation (`paths.<template>.<verb>`).",
-        metadata_keys: &[
-            K_PATTERN_VERSION,
-            K_QUERY_FAMILY,
-            K_FRAMEWORK,
-            key(
-                "spec_format",
-                STR,
-                ALWAYS,
-                "Root version key that marks the document (\"openapi\" or \"swagger\").",
-            ),
-            key("spec_version", STR, OPT, "Value of the root version key."),
-            key(
-                "verb",
-                STR,
-                ALWAYS,
-                "Upper-case HTTP method of the operation.",
-            ),
-            key(
-                "route_template",
-                STR,
-                ALWAYS,
-                "Path template key as written under `paths`.",
-            ),
-            key(
-                "effective_route_template",
-                STR,
-                OPT,
-                "Swagger 2.0 `basePath` joined with the path template.",
-            ),
-            key(
-                "normalized_route_template",
-                STR,
-                ALWAYS,
-                "Cross-family normalized route template.",
-            ),
-            key(
-                "dynamic_segments",
-                ARR,
-                OPT,
-                "Route parameter names discovered in the normalized template.",
-            ),
-            key(
-                "operation_id",
-                STR,
-                OPT,
-                "The operation's `operationId` value.",
             ),
         ],
     },

@@ -1,13 +1,29 @@
 [package]
 name = "myapp"
 version = "0.1.0"
+edition.workspace = true
 
 [dependencies]
 serde = "1.0"
 tokio = { version = "1", features = ["full"] }
+anyhow = { workspace = true }
+json = { package = "serde_json", version = "1" }
 
 [dev-dependencies]
 mockito = "1.4"
 
 [build-dependencies]
 cc = "1.0"
+
+[dependencies.reqwest]
+version = "0.12"
+features = ["json"]
+
+[target.'cfg(windows)'.dev-dependencies]
+windows-sys = "0.59" # Win32 bindings
+
+[workspace.dependencies]
+anyhow = "1"
+
+[lints]
+workspace = true

@@ -85,6 +85,7 @@ const TOML_DATA_PATTERN_IDS: &[&str] = &[
     TOML_INLINE_TABLE_PATTERN_ID,
     TOML_KEY_VALUE_PATTERN_ID,
     TOML_TABLE_PATTERN_ID,
+    crate::toml::dependencies::MANIFEST_DEPENDENCY_PATTERN_ID,
 ];
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -138,6 +139,13 @@ pub fn collect_data_structural_facts(
         "regex" => collect_regex_structural_facts(tree, file_path, content),
         _ => Vec::new(),
     };
+    if language == "toml" {
+        facts.extend(crate::toml::dependencies::dependency_facts(
+            tree.root_node(),
+            file_path,
+            content,
+        ));
+    }
     if language == "json" {
         facts.extend(collect_openapi_route_facts(
             language, tree, file_path, content, symbols,
@@ -895,14 +903,22 @@ fn collect_toml_node(
                     &toml_key_path(table_path, &table_name),
                 );
                 metadata.insert("is_array_table".to_string(), Value::Bool(false));
-                facts.push(fact_for_node(
-                    file_path,
-                    "toml",
-                    TOML_TABLE_PATTERN_ID,
-                    "table",
-                    node,
-                    metadata,
-                ));
+                if let Some(span) = NormalizedSpan::from_content_range_with_line_starts(
+                    content,
+                    &[],
+                    node.start_byte(),
+                    crate::toml::table_end_byte(node),
+                ) {
+                    facts.push(fact_for_span(
+                        file_path,
+                        "toml",
+                        TOML_TABLE_PATTERN_ID,
+                        "table",
+                        node.kind(),
+                        span,
+                        metadata,
+                    ));
+                }
 
                 let mut child_path = table_path.to_vec();
                 child_path.push(table_name);
@@ -920,14 +936,22 @@ fn collect_toml_node(
                     &toml_key_path(table_path, &table_name),
                 );
                 metadata.insert("is_array_table".to_string(), Value::Bool(true));
-                facts.push(fact_for_node(
-                    file_path,
-                    "toml",
-                    TOML_ARRAY_TABLE_PATTERN_ID,
-                    "array_table",
-                    node,
-                    metadata,
-                ));
+                if let Some(span) = NormalizedSpan::from_content_range_with_line_starts(
+                    content,
+                    &[],
+                    node.start_byte(),
+                    crate::toml::table_end_byte(node),
+                ) {
+                    facts.push(fact_for_span(
+                        file_path,
+                        "toml",
+                        TOML_ARRAY_TABLE_PATTERN_ID,
+                        "array_table",
+                        node.kind(),
+                        span,
+                        metadata,
+                    ));
+                }
 
                 let mut child_path = table_path.to_vec();
                 child_path.push(table_name);
@@ -2578,8 +2602,7 @@ fn push_toml_key_part(source: &str, start: usize, end: usize, parts: &mut Vec<St
 }
 
 fn toml_pair_value(node: Node<'_>) -> Option<Node<'_>> {
-    let index = node.child_count().saturating_sub(1) as u32;
-    node.child(index)
+    crate::toml::pair_value(node)
 }
 
 fn toml_value_kind(kind: &str) -> &'static str {

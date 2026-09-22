@@ -76,6 +76,16 @@ impl BaseExtractor {
         }
     }
 
+    /// Normalized span for an absolute byte range of this file.
+    pub(crate) fn span_for_byte_range(&self, start: usize, end: usize) -> Option<NormalizedSpan> {
+        NormalizedSpan::from_content_range_with_line_starts(
+            &self.content,
+            self.line_starts(),
+            start,
+            end,
+        )
+    }
+
     /// Replace the inferred body span with a grammar-derived span, or clear it.
     pub(crate) fn set_body_span(&self, symbol: &mut Symbol, span: Option<NormalizedSpan>) {
         symbol.body_span = span;

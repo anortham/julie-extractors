@@ -6,14 +6,15 @@
 /// - Array tables: [[array_table]] -> SymbolKind::Module
 /// - Key-value pairs: key = value -> SymbolKind::Property
 use crate::base::{
-    BaseExtractor, Identifier, PendingRelationship, Relationship, StructuredPendingRelationship,
-    Symbol, SymbolKind,
+    BaseExtractor, Identifier, NormalizedSpan, PendingRelationship, Relationship,
+    StructuredPendingRelationship, Symbol, SymbolKind,
 };
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use std::path::Path;
 use tree_sitter::Tree;
 
+pub(crate) mod dependencies;
 mod relationships;
 mod test_detection;
 
@@ -133,12 +134,20 @@ impl TomlExtractor {
             ..Default::default()
         };
 
-        let symbol = self.base.create_symbol(
-            &node,
-            table_name,
-            SymbolKind::Module, // All tables are modules/containers
-            options,
-        );
+        let pairs = dependencies::pairs(node);
+        let span = self
+            .base
+            .span_for_byte_range(node.start_byte(), table_end_byte(node))?;
+        let mut symbol =
+            self.base
+                .create_symbol_from_span(&node, span, table_name, SymbolKind::Module, options);
+        let body_span = match (pairs.first(), pairs.last()) {
+            (Some(first), Some(last)) => self
+                .base
+                .span_for_byte_range(first.start_byte(), last.end_byte()),
+            _ => None,
+        };
+        self.base.set_body_span(&mut symbol, body_span);
 
         Some(symbol)
     }
@@ -181,8 +190,7 @@ impl TomlExtractor {
             return None;
         }
 
-        // Value is the last child (after key and =)
-        let value_node = *children.last().unwrap();
+        let value_node = pair_value(node)?;
         let value_text = self.base.get_node_text(&value_node);
 
         // Build signature as "key = value", truncating long values
@@ -223,9 +231,11 @@ impl TomlExtractor {
             ..Default::default()
         };
 
-        let symbol =
+        let mut symbol =
             self.base
                 .create_symbol(&node, key_name.clone(), SymbolKind::Property, options);
+        self.base
+            .set_body_span(&mut symbol, Some(NormalizedSpan::from_node(&value_node)));
 
         if value_node.kind() == "string" {
             let carrier = crate::base::config_literals::build_config_key_carrier(
@@ -301,7 +311,7 @@ impl TomlExtractor {
     pub fn extract_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {
         let mut relationships = Vec::new();
         relationships::extract_relationships_internal(
-            &self.base,
+            &mut self.base,
             tree.root_node(),
             symbols,
             &mut relationships,
@@ -325,4 +335,26 @@ impl TomlExtractor {
     pub fn get_structured_pending_relationships(&self) -> Vec<StructuredPendingRelationship> {
         self.base.get_structured_pending_relationships()
     }
+}
+
+/// The value node of a TOML `pair`: the first named child after the key.
+/// A trailing `# comment` is also a named child of the pair, so "last child" is wrong.
+pub(crate) fn pair_value(pair: tree_sitter::Node) -> Option<tree_sitter::Node> {
+    let mut cursor = pair.walk();
+    pair.named_children(&mut cursor)
+        .skip(1)
+        .find(|child| child.kind() != "comment")
+}
+
+/// A table's syntax node runs up to the next header, so it also holds the
+/// comments that lead into the next table. A table ends at its last pair, or at
+/// its header when it has none.
+pub(crate) fn table_end_byte(table: tree_sitter::Node) -> usize {
+    let mut cursor = table.walk();
+    table
+        .children(&mut cursor)
+        .filter(|child| child.kind() != "comment")
+        .map(|child| child.end_byte())
+        .max()
+        .unwrap_or(table.end_byte())
 }

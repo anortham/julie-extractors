@@ -6654,7 +6654,7 @@
       "capabilities": {
         "symbols": true,
         "relationships": true,
-        "pending_relationships": false,
+        "pending_relationships": true,
         "identifiers": false,
         "types": false
       },
@@ -6693,22 +6693,11 @@
       "target_capabilities": {
         "symbols": true,
         "relationships": true,
-        "pending_relationships": false,
+        "pending_relationships": true,
         "identifiers": false,
         "types": false
       },
       "capability_gaps": [
-        {
-          "capability": "pending_relationships",
-          "status": "exception",
-          "reason": "TOML has no cross-document construct that requires deferred resolution. All references in TOML are file-local (Cargo deps, pyproject tool tables). Domain limitation, not a gap.",
-          "required_closure": "N/A — domain limitation. TOML resolution is always intra-file.",
-          "evidence": {
-            "kind": "fixture",
-            "value": "fixtures/extraction/toml/basic/expected.json",
-            "command": "cargo xtask test golden"
-          }
-        },
         {
           "capability": "types",
           "status": "exception",
@@ -6769,6 +6758,7 @@
         },
         "structural_facts": {
           "supported": [
+            "manifest.dependency.v1",
             "toml.array_table.v1",
             "toml.inline_table.v1",
             "toml.key_value.v1",
