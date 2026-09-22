@@ -5481,7 +5481,8 @@
         },
         "relationships": {
           "supported": [
-            "calls"
+            "calls",
+            "extends"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -5490,6 +5491,7 @@
           "supported": [
             "call",
             "member_access",
+            "type_usage",
             "variable_ref"
           ],
           "not_applicable": [],
@@ -5536,6 +5538,7 @@
         },
         "doc_comments": {
           "supported": [
+            "class",
             "function",
             "import",
             "variable"

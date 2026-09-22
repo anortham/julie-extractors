@@ -6,7 +6,7 @@ use tree_sitter::Node;
 
 use super::documentation;
 use super::helpers::{
-    extract_enum_member_value, extract_inheritance, extract_property_type, find_class_name_node,
+    class_base_name_nodes, extract_enum_member_value, extract_property_type, find_class_name_node,
     find_enum_member_name_node, find_enum_name_node, find_method_name_node,
     find_property_name_node, has_modifier,
 };
@@ -184,11 +184,14 @@ pub(super) fn extract_enum_member(
 fn extract_class_signature(base: &BaseExtractor, node: Node) -> Option<String> {
     let name = find_class_name_node(node).map(|n| base.get_node_text(&n))?;
 
-    // Check for inheritance
-    if let Some(inheritance) = extract_inheritance(base, node) {
-        Some(format!("class {} : {}", name, inheritance))
+    let bases: Vec<String> = class_base_name_nodes(node)
+        .iter()
+        .map(|base_node| base.get_node_text(base_node))
+        .collect();
+    if bases.is_empty() {
+        Some(format!("class {name}"))
     } else {
-        Some(format!("class {}", name))
+        Some(format!("class {name} : {}", bases.join(", ")))
     }
 }
 

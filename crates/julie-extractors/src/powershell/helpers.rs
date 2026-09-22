@@ -14,11 +14,37 @@ static PARAMETER_ATTR_RE: LazyLock<Regex> =
 /// Matches a PowerShell `param(...)` block opener.
 static PARAM_BLOCK_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)\bparam\s*\(").unwrap());
 
-/// Matches inheritance declaration: `: ClassName`
-static INHERITANCE_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r":\s*(\w+)").unwrap());
-
 /// Matches type annotation brackets: `[TypeName]`
 static BRACKET_TYPE_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\[(\w+)\]").unwrap());
+
+/// The bare name of a variable reference: no `$`/`@` sigil, no braces, and no
+/// scope or drive qualifier (`$script:Hits`, `$env:PATH`, `${global:x}`).
+pub(super) fn variable_name(raw: &str) -> String {
+    let name = raw.trim_start_matches(['$', '@']);
+    let name = name
+        .strip_prefix('{')
+        .and_then(|inner| inner.strip_suffix('}'))
+        .unwrap_or(name);
+    match name.split_once(':') {
+        Some((qualifier, rest)) if is_variable_qualifier(qualifier) => rest.to_string(),
+        _ => name.to_string(),
+    }
+}
+
+/// Whether a variable reference carries the `env:` drive qualifier.
+pub(super) fn is_environment_reference(raw: &str) -> bool {
+    raw.trim_start_matches(['$', '{'])
+        .split_once(':')
+        .is_some_and(|(qualifier, _)| qualifier.eq_ignore_ascii_case("env"))
+}
+
+fn is_variable_qualifier(qualifier: &str) -> bool {
+    [
+        "global", "script", "local", "private", "using", "env", "variable", "workflow",
+    ]
+    .iter()
+    .any(|known| qualifier.eq_ignore_ascii_case(known))
+}
 
 /// Find the function name node from a function_statement
 pub(super) fn find_function_name_node<'a>(node: Node<'a>) -> Option<Node<'a>> {
@@ -131,17 +157,6 @@ pub(super) fn extract_enum_member_value(base: &BaseExtractor, node: Node) -> Opt
 pub(super) fn has_attribute(base: &BaseExtractor, node: Node, attribute_name: &str) -> bool {
     let node_text = base.get_node_text(&node);
     node_text.contains(&format!("[{}", attribute_name))
-}
-
-/// Check if a parameter node has an attribute (e.g., Mandatory=$true)
-pub(super) fn has_parameter_attribute(
-    base: &BaseExtractor,
-    node: Node,
-    attribute_name: &str,
-) -> bool {
-    let node_text = base.get_node_text(&node);
-    node_text.contains(&format!("{}=$true", attribute_name))
-        || node_text.contains(&format!("{}=true", attribute_name))
 }
 
 /// Check if a node has a modifier (e.g., static, hidden)
@@ -323,12 +338,14 @@ fn is_known_attribute_name(name: &str) -> bool {
     )
 }
 
-/// Extract inheritance relationship from a class definition
-pub(super) fn extract_inheritance(base: &BaseExtractor, node: Node) -> Option<String> {
-    let node_text = base.get_node_text(&node);
-    INHERITANCE_RE
-        .captures(&node_text)
-        .and_then(|captures| captures.get(1).map(|m| m.as_str().to_string()))
+/// The base type name nodes of a `class_statement`: every `simple_name` after
+/// the class name (`class Repo : BaseRepo, IDisposable`).
+pub(super) fn class_base_name_nodes<'a>(node: Node<'a>) -> Vec<Node<'a>> {
+    let mut cursor = node.walk();
+    node.children(&mut cursor)
+        .filter(|child| child.kind() == "simple_name")
+        .skip(1)
+        .collect()
 }
 
 /// Extract property type annotation from a property definition
@@ -374,10 +391,14 @@ pub(super) fn extract_function_name_from_param_block(
     node: Node,
     function_name_re: &regex::Regex,
 ) -> Option<String> {
-    // For param_block nodes inside advanced functions, we need to look up the tree
-    // to find the ERROR node that contains the function declaration
+    let mut ancestor = node.parent();
+    while let Some(n) = ancestor {
+        if n.kind() == "function_statement" {
+            return None;
+        }
+        ancestor = n.parent();
+    }
 
-    // First, try to find ERROR node at program level (parent's parent's parent typically)
     let mut current = Some(node);
     while let Some(n) = current {
         if n.kind() == "program" {
@@ -387,18 +408,20 @@ pub(super) fn extract_function_name_from_param_block(
     }
 
     if let Some(program_node) = current {
-        // Look for ERROR node in program children
         let mut cursor = program_node.walk();
-        for child in program_node.children(&mut cursor) {
-            if child.kind() == "ERROR" {
+        let preceding_error_name = program_node
+            .children(&mut cursor)
+            .filter(|child| child.kind() == "ERROR" && child.start_byte() < node.start_byte())
+            .filter_map(|child| {
                 let text = base.get_node_text(&child);
-                // Extract function name from text like "\nfunction Set-CustomProperty {"
-                if let Some(captures) = function_name_re.captures(&text)
-                    && let Some(func_name) = captures.get(1)
-                {
-                    return Some(func_name.as_str().to_string());
-                }
-            }
+                function_name_re
+                    .captures(&text)
+                    .and_then(|captures| captures.get(1))
+                    .map(|name| name.as_str().to_string())
+            })
+            .last();
+        if preceding_error_name.is_some() {
+            return preceding_error_name;
         }
     }
 

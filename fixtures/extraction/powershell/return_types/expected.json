@@ -21,7 +21,7 @@
         "end_byte": 77
       },
       "body_hash": "34e89e9e70dbc335aa7551df17e211f6",
-      "signature": "class Factory : new",
+      "signature": "class Factory",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
@@ -151,6 +151,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/powershell/return_types/source.ps1:Result:type_usage:3:27",
+      "name": "Result",
+      "kind": "type_usage",
+      "language": "powershell",
+      "file_path": "fixtures/extraction/powershell/return_types/source.ps1",
+      "start_line": 3,
+      "start_column": 27,
+      "end_line": 3,
+      "end_column": 33,
+      "start_byte": 59,
+      "end_byte": 65,
+      "containing_key": "fixtures/extraction/powershell/return_types/source.ps1:Make:3:1",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/powershell/return_types/source.ps1:new:call:3:36",
       "name": "new",
       "kind": "call",
@@ -164,7 +180,10 @@
       "end_byte": 71,
       "containing_key": "fixtures/extraction/powershell/return_types/source.ps1:Make:3:1",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Result"
+      }
     }
   ],
   "types": [],

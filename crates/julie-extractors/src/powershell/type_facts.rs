@@ -66,7 +66,7 @@ pub(super) fn enclosing_class_name(base: &BaseExtractor, node: Node) -> Option<S
 
 pub(super) fn this_receiver_type(base: &BaseExtractor, node: Node) -> Option<String> {
     let variable = direct_child(node, "variable")?;
-    let name = strip_variable_name(&base.get_node_text(&variable));
+    let name = super::helpers::variable_name(&base.get_node_text(&variable));
     if !name.eq_ignore_ascii_case("this") {
         return None;
     }
@@ -82,9 +82,26 @@ pub(super) fn invocation_member_name<'a>(
     Some((simple, base.get_node_text(&simple)))
 }
 
+/// The `variable` a plain assignment targets. Member, index, and static
+/// property targets (`$o.P =`, `$h[k] =`, `[T]::P =`) have none.
 pub(super) fn assignment_variable_node(node: Node) -> Option<Node> {
-    let left = direct_child(node, "left_assignment_expression").unwrap_or(node);
-    find_first_kind(left, "variable", 0)
+    if node.kind() != "assignment_expression" {
+        return None;
+    }
+    let mut current = direct_child(node, "left_assignment_expression")?;
+    loop {
+        current = match current.kind() {
+            "variable" => return Some(current),
+            "cast_expression" => {
+                let mut cursor = current.walk();
+                current.named_children(&mut cursor).last()?
+            }
+            kind if kind == "left_assignment_expression" || EXPR_WRAPPERS.contains(&kind) => {
+                first_named_child(current)?
+            }
+            _ => return None,
+        };
+    }
 }
 
 fn record_type_literal(
@@ -237,14 +254,6 @@ fn unwrap_expr(node: Node) -> Node {
         };
         current = child;
     }
-}
-
-fn strip_variable_name(raw: &str) -> String {
-    raw.replace('$', "")
-        .replace("Global:", "")
-        .replace("Script:", "")
-        .replace("Local:", "")
-        .replace("Using:", "")
 }
 
 fn direct_child<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {

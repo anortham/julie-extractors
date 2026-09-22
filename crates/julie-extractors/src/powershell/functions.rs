@@ -14,12 +14,12 @@ use super::documentation;
 use super::helpers::{
     extract_command_annotation_attributes, extract_function_name_from_param_block,
     extract_parameter_annotation_attributes, extract_parameter_attributes, find_function_name_node,
-    find_nodes_by_type, find_parameter_name_node, has_attribute, has_parameter_attribute,
+    find_nodes_by_type, find_parameter_name_node, has_attribute,
 };
 use super::type_facts;
 
 static FUNCTION_NAME_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"function\s+([A-Za-z][A-Za-z0-9-_]*)").unwrap());
+    LazyLock::new(|| Regex::new(r"(?im)^[ \t]*function\s+([A-Za-z][A-Za-z0-9-_]*)").unwrap());
 
 /// Extract function symbols (simple functions)
 pub(super) fn extract_function(
@@ -129,15 +129,8 @@ pub(super) fn extract_function_parameters(
         for param_def in param_defs {
             if let Some(name_node) = find_parameter_name_node(param_def) {
                 let param_name = base.get_node_text(&name_node).replace("$", "");
-                let is_mandatory = has_parameter_attribute(base, param_def, "Mandatory");
-
                 let Some(signature) = extract_parameter_signature(base, param_def) else {
                     continue;
-                };
-                let doc_comment = if is_mandatory {
-                    Some("Mandatory parameter".to_string())
-                } else {
-                    Some("Optional parameter".to_string())
                 };
                 let annotations = normalize_annotations(
                     &extract_parameter_annotation_attributes(base, param_def),
@@ -153,7 +146,7 @@ pub(super) fn extract_function_parameters(
                         visibility: Some(Visibility::Public),
                         parent_id: Some(parent_id.to_string()),
                         metadata: Some(parameter_role_metadata()),
-                        doc_comment,
+                        doc_comment: None,
                         annotations,
                     },
                 );
@@ -177,15 +170,8 @@ pub(super) fn extract_function_parameters(
                 .find(|child| child.kind() == "variable")
             {
                 let param_name = base.get_node_text(&variable_node).replace("$", "");
-                let is_mandatory = has_parameter_attribute(base, script_param, "Mandatory");
-
                 let Some(signature) = extract_script_parameter_signature(base, script_param) else {
                     continue;
-                };
-                let doc_comment = if is_mandatory {
-                    Some("Mandatory parameter".to_string())
-                } else {
-                    Some("Optional parameter".to_string())
                 };
                 let annotations = normalize_annotations(
                     &extract_parameter_annotation_attributes(base, script_param),
@@ -201,7 +187,7 @@ pub(super) fn extract_function_parameters(
                         visibility: Some(Visibility::Public),
                         parent_id: Some(parent_id.to_string()),
                         metadata: Some(parameter_role_metadata()),
-                        doc_comment,
+                        doc_comment: None,
                         annotations,
                     },
                 );

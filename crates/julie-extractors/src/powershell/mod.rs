@@ -3,7 +3,7 @@
 //!
 //! Provides symbol extraction for:
 //! - Functions (simple and advanced with `[CmdletBinding()]`)
-//! - Variables (scoped, environment, automatic variables)
+//! - Variables declared by plain assignments (any scope, including `$env:`)
 //! - Classes, methods, properties, and enums (PowerShell 5.0+)
 //! - Azure PowerShell cmdlets and Windows management commands
 //! - Module imports, exports, and using statements
@@ -71,7 +71,18 @@ impl PowerShellExtractor {
 
         let mut current_parent_id = parent_id;
 
-        if let Some(symbol) = self.extract_symbol_from_node(node, current_parent_id.as_deref()) {
+        let reassigns_declared_variable = node.kind() == "assignment_expression"
+            && variables::assignment_target_name(&self.base, node).is_some_and(|name| {
+                symbols.iter().any(|symbol| {
+                    symbol.kind == crate::base::SymbolKind::Variable
+                        && symbol.parent_id == current_parent_id
+                        && symbol.name.eq_ignore_ascii_case(&name)
+                })
+            });
+
+        if !reassigns_declared_variable
+            && let Some(symbol) = self.extract_symbol_from_node(node, current_parent_id.as_deref())
+        {
             if matches!(
                 symbol.kind,
                 crate::base::SymbolKind::Function
@@ -108,7 +119,6 @@ impl PowerShellExtractor {
             "configuration" => self.extract_configuration(node, parent_id),
             "ERROR" => self.extract_error_node(node, parent_id),
             "assignment_expression" => variables::extract_variable(&mut self.base, node, parent_id),
-            "variable" => variables::extract_variable_reference(&mut self.base, node, parent_id),
             "class_statement" => classes::extract_class(&mut self.base, node, parent_id),
             "class_method_definition" => classes::extract_method(&mut self.base, node, parent_id),
             "class_property_definition" => {
@@ -168,8 +178,6 @@ impl PowerShellExtractor {
         let name = self.base.get_node_text(&name_node);
 
         let signature = format!("Configuration {}", name);
-        let doc_comment = Some("PowerShell DSC Configuration".to_string());
-
         Some(self.base.create_symbol(
             &node,
             name,
@@ -179,7 +187,7 @@ impl PowerShellExtractor {
                 visibility: Some(crate::base::Visibility::Public),
                 parent_id: parent_id.map(|s| s.to_string()),
                 metadata: None,
-                doc_comment,
+                doc_comment: None,
                 annotations: Vec::new(),
             },
         ))
@@ -207,7 +215,7 @@ impl PowerShellExtractor {
                     visibility: Some(crate::base::Visibility::Public),
                     parent_id: parent_id.map(|s| s.to_string()),
                     metadata: None,
-                    doc_comment: Some("PowerShell DSC Configuration".to_string()),
+                    doc_comment: None,
                     annotations: Vec::new(),
                 },
             ));
