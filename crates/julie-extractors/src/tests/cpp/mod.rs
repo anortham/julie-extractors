@@ -37,6 +37,7 @@ pub mod concurrency;
 pub mod cross_file_pending;
 pub mod cross_file_relationships;
 pub mod declarations;
+pub mod declarations_and_scopes;
 pub mod doxygen_comments;
 pub mod exceptions;
 pub mod functions;

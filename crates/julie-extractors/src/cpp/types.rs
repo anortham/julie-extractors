@@ -12,31 +12,9 @@ pub(super) fn extract_class(
     node: Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    let mut cursor = node.walk();
-    let name_node = node
-        .children(&mut cursor)
-        .find(|c| c.kind() == "type_identifier" || c.kind() == "template_type")?;
-
-    let (name, is_specialization) = if name_node.kind() == "template_type" {
-        // For template specializations like Vector<bool>, extract just the base name
-        // The template_type node contains type_identifier + template_argument_list
-        let type_id = name_node
-            .children(&mut name_node.walk())
-            .find(|c| c.kind() == "type_identifier")
-            .map(|n| base.get_node_text(&n))
-            .unwrap_or_else(|| base.get_node_text(&name_node));
-        (type_id, true)
-    } else {
-        (base.get_node_text(&name_node), false)
-    };
-
-    let mut signature = if is_specialization {
-        // For template specializations, include the full template type in signature
-        let full_name = base.get_node_text(&name_node);
-        format!("class {}", full_name)
-    } else {
-        format!("class {}", name)
-    };
+    let head = ClassHead::read(base, node)?;
+    let name = head.name.clone();
+    let mut signature = format!("class {}", head.written);
 
     // Handle template parameters
     if let Some(template_params) = helpers::extract_template_parameters(base, node.parent()) {
@@ -60,7 +38,7 @@ pub(super) fn extract_class(
 
     let doc_comment = base.find_doc_comment(&node);
 
-    let metadata = base_types_metadata(base_type_names);
+    let metadata = head.metadata(base_types_metadata(base_type_names));
 
     Some(base.create_symbol(
         &node,
@@ -75,6 +53,44 @@ pub(super) fn extract_class(
             annotations: Vec::new(),
         },
     ))
+}
+
+/// The name a class or struct head declares, as written and as a symbol name.
+struct ClassHead {
+    name: String,
+    written: String,
+    scope: Option<String>,
+}
+
+impl ClassHead {
+    fn read(base: &BaseExtractor, node: Node) -> Option<Self> {
+        let written_node = node.child_by_field_name("name")?;
+        let name = base.get_node_text(&helpers::class_name_node(node)?);
+        let written = base.get_node_text(&written_node);
+        let scope = (written_node.kind() == "qualified_identifier")
+            .then(|| helpers::split_scope(&written).map(|(scope, _)| scope.to_string()))
+            .flatten();
+        Some(Self {
+            name,
+            written,
+            scope,
+        })
+    }
+
+    fn metadata(
+        &self,
+        metadata: Option<std::collections::HashMap<String, serde_json::Value>>,
+    ) -> Option<std::collections::HashMap<String, serde_json::Value>> {
+        let Some(scope) = &self.scope else {
+            return metadata;
+        };
+        let mut metadata = metadata.unwrap_or_default();
+        metadata.insert(
+            "scope".to_string(),
+            serde_json::Value::String(scope.clone()),
+        );
+        Some(metadata)
+    }
 }
 
 /// Build the `base_types` metadata map for a class/struct, or `None` when the
@@ -96,13 +112,9 @@ pub(super) fn extract_struct(
     node: Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    let mut cursor = node.walk();
-    let name_node = node
-        .children(&mut cursor)
-        .find(|c| c.kind() == "type_identifier")?;
-
-    let name = base.get_node_text(&name_node);
-    let mut signature = format!("struct {}", name);
+    let head = ClassHead::read(base, node)?;
+    let name = head.name.clone();
+    let mut signature = format!("struct {}", head.written);
 
     // Handle template parameters
     if let Some(template_params) = helpers::extract_template_parameters(base, node.parent()) {
@@ -134,7 +146,7 @@ pub(super) fn extract_struct(
 
     let doc_comment = base.find_doc_comment(&node);
 
-    let metadata = base_types_metadata(base_type_names);
+    let metadata = head.metadata(base_types_metadata(base_type_names));
 
     Some(base.create_symbol(
         &node,

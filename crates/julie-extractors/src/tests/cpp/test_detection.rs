@@ -469,8 +469,8 @@ void UnrelatedFixture::SetUp() {}
                 .iter()
                 .find(|symbol| {
                     symbol.name == qualified_name
-                        && symbol.kind == SymbolKind::Function
-                        && symbol.parent_id.is_none()
+                        && symbol.kind == SymbolKind::Method
+                        && symbol.parent_id.is_some()
                 })
                 .unwrap_or_else(|| panic!("expected {qualified_name}, got {syms:?}"));
             assert!(is_test(method), "{qualified_name} must be is_test");
@@ -486,8 +486,8 @@ void UnrelatedFixture::SetUp() {}
             .iter()
             .find(|symbol| {
                 symbol.name == qualified_name
-                    && symbol.kind == SymbolKind::Function
-                    && symbol.parent_id.is_none()
+                    && symbol.kind == SymbolKind::Method
+                    && symbol.parent_id.is_some()
             })
             .unwrap_or_else(|| panic!("expected {qualified_name}, got {syms:?}"));
         assert!(!is_test(method), "{qualified_name} must not be is_test");

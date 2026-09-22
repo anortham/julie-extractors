@@ -8,7 +8,9 @@ use std::sync::LazyLock;
 
 // Static regexes compiled once for performance
 static FUNCTION_RETURN_TYPE_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^(?:(?:virtual|static|inline|friend)\s+)*(.+?)\s+(\w+|operator\w*|~\w+)\s*\(")
+    Regex::new(
+        r"^(?:(?:virtual|static|inline|friend)\s+)*(.+?)\s+((?:[\w~]+::)*(?:operator\s*(?:\(\)|[^\s(]+)|~?\w+))\s*\(",
+    )
         .unwrap()
 });
 static AUTO_RETURN_TYPE_RE: LazyLock<Regex> =
@@ -23,7 +25,10 @@ pub(super) fn infer_types(symbols: &[Symbol]) -> HashMap<String, String> {
     let mut type_map = HashMap::new();
 
     for symbol in symbols {
-        if matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method) {
+        if matches!(
+            symbol.kind,
+            SymbolKind::Function | SymbolKind::Method | SymbolKind::Operator
+        ) {
             // Extract return type from function signature
             if let Some(return_type) = infer_function_return_type(symbol) {
                 type_map.insert(symbol.id.clone(), return_type);
@@ -65,6 +70,10 @@ fn infer_function_return_type(symbol: &Symbol) -> Option<String> {
         symbol.kind,
         SymbolKind::Constructor | SymbolKind::Destructor
     ) {
+        return None;
+    }
+    // A conversion operator (`operator bool`) names its type instead of returning one.
+    if symbol.kind == SymbolKind::Operator && symbol.name.contains("operator ") {
         return None;
     }
 

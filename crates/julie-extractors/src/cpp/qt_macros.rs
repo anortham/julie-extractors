@@ -318,7 +318,52 @@ fn identifier(
         return (end, site(MacroKind::Export, word, None, end));
     }
 
+    if is_class_key_prefix(prefix)
+        && is_visibility_macro_name(word)
+        && precedes_class_head(bytes, end)
+    {
+        return (end, site(MacroKind::Export, word, None, end));
+    }
+
     (end, None)
+}
+
+/// `class ENGINE_API Renderer : Base {` and `struct DLL_PUBLIC Point {`: a
+/// visibility macro sits between the class key and the class name.
+fn is_class_key_prefix(prefix: &str) -> bool {
+    prefix
+        .split_whitespace()
+        .last()
+        .is_some_and(|word| matches!(word, "class" | "struct" | "union"))
+}
+
+fn is_visibility_macro_name(word: &str) -> bool {
+    word.len() > 1
+        && word.as_bytes().first().is_some_and(u8::is_ascii_uppercase)
+        && word.bytes().all(is_macro_body_byte)
+}
+
+/// An identifier, then the `:` of a base clause or the `{` of the body.
+fn precedes_class_head(bytes: &[u8], from: usize) -> bool {
+    if !precedes_identifier(bytes, from) {
+        return false;
+    }
+    let name_start = skip_blanks(bytes, from);
+    let name_end = name_start
+        + bytes[name_start..]
+            .iter()
+            .take_while(|byte| byte.is_ascii_alphanumeric() || **byte == b'_')
+            .count();
+    let next = name_end
+        + bytes[name_end..]
+            .iter()
+            .take_while(|byte| byte.is_ascii_whitespace())
+            .count();
+    match bytes.get(next) {
+        Some(b'{') => true,
+        Some(b':') => bytes.get(next + 1) != Some(&b':'),
+        _ => false,
+    }
 }
 
 fn section_name(word: &str) -> Option<&'static str> {

@@ -206,12 +206,6 @@ pub(super) fn is_static_member_variable(node: Node, storage_class: &[String]) ->
     false
 }
 
-/// Find the identifier node in a declarator
-pub(super) fn extract_declarator_name(node: Node) -> Option<Node> {
-    node.children(&mut node.walk())
-        .find(|c| c.kind() == "identifier")
-}
-
 /// Collect modifier keywords recursively from a node
 pub(super) fn collect_modifiers_recursive(
     base: &BaseExtractor,
@@ -257,8 +251,13 @@ fn collect_modifiers_recursive_at_depth(
     }
 }
 
-/// Check if a `type_identifier` node is a declaration name rather than a type reference.
+/// Check if a `type_identifier` node is a declaration name rather than a type
+/// reference. An argument of a direct initialization that the grammar reads as
+/// a parameter type (`Writer writer(out);`) is not a type either.
 pub(super) fn is_type_declaration_name(node: &Node) -> bool {
+    if super::declarators::is_direct_initialization_argument(*node) {
+        return true;
+    }
     if let Some(parent) = node.parent() {
         if let Some(name_node) = parent.child_by_field_name("name")
             && name_node.id() == node.id()
@@ -271,6 +270,7 @@ pub(super) fn is_type_declaration_name(node: &Node) -> bool {
                     | "enum_specifier"
                     | "type_definition"
                     | "template_type_parameter"
+                    | "alias_declaration"
             );
         }
         if parent.kind() == "type_definition"
@@ -286,4 +286,71 @@ pub(super) fn is_type_declaration_name(node: &Node) -> bool {
 /// Returns true for C++ type names that are too common to be meaningful references.
 pub(super) fn is_noise_type(name: &str) -> bool {
     name.len() == 1 && name.chars().next().is_some_and(|c| c.is_ascii_uppercase())
+}
+
+/// Split an out-of-line name such as `Widget::draw` into its scope and member.
+pub(super) fn split_scope(qualified: &str) -> Option<(&str, &str)> {
+    let (scope, member) = qualified.rsplit_once("::")?;
+    (!scope.is_empty() && !member.is_empty()).then_some((scope, member))
+}
+
+/// `scope` metadata for a name written with its enclosing class or namespace.
+pub(super) fn scope_metadata(
+    base: &BaseExtractor,
+    name_node: Node,
+) -> Option<std::collections::HashMap<String, serde_json::Value>> {
+    if name_node.kind() != "qualified_identifier" {
+        return None;
+    }
+    let text = base.get_node_text(&name_node);
+    let (scope, _) = split_scope(&text)?;
+    Some(std::collections::HashMap::from([(
+        "scope".to_string(),
+        serde_json::Value::String(scope.to_string()),
+    )]))
+}
+
+/// The node that names a class, struct, or union head: the plain name, the
+/// template name of a specialization (`hash<Point>`), or the member name of a
+/// qualified head (`Outer::Inner`).
+pub(super) fn class_name_node(node: Node) -> Option<Node> {
+    let mut name = node.child_by_field_name("name")?;
+    for _ in 0..16 {
+        match name.kind() {
+            "type_identifier" => return Some(name),
+            "template_type" | "qualified_identifier" => name = name.child_by_field_name("name")?,
+            _ => return None,
+        }
+    }
+    None
+}
+
+/// A qualified name without its template arguments: `ns::Box<T>` reads `ns::Box`.
+pub(super) fn strip_template_arguments(text: &str) -> String {
+    let mut depth = 0usize;
+    text.chars()
+        .filter(|ch| match ch {
+            '<' => {
+                depth += 1;
+                false
+            }
+            '>' => {
+                depth = depth.saturating_sub(1);
+                false
+            }
+            _ => depth == 0,
+        })
+        .collect()
+}
+
+/// The type a scope names, without namespaces or template arguments:
+/// `ns::Box<T>` names `Box`.
+pub(super) fn scope_type_name(scope: &str) -> String {
+    let scope = strip_template_arguments(scope);
+    scope
+        .rsplit("::")
+        .next()
+        .unwrap_or_default()
+        .trim()
+        .to_string()
 }

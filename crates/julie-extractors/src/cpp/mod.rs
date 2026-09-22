@@ -9,6 +9,7 @@
 
 mod concepts;
 mod declarations;
+mod declarators;
 mod fields;
 mod function_declarators;
 mod function_signature_parts;
@@ -19,6 +20,7 @@ mod parameters;
 pub(crate) mod qt;
 pub(crate) mod qt_macros;
 mod relationships;
+mod scopes;
 mod signatures;
 pub(crate) mod test_calls;
 mod type_facts;
@@ -41,6 +43,9 @@ pub struct CppExtractor {
     pub(crate) base: BaseExtractor,
     processed_nodes: HashSet<String>,
     additional_symbols: Vec<Symbol>,
+    /// Catch2 test bodies the grammar parses as the statement after the test
+    /// macro, keyed by block node id, mapped to the test symbol that owns them.
+    detached_test_bodies: HashMap<usize, String>,
 }
 
 impl CppExtractor {
@@ -49,6 +54,7 @@ impl CppExtractor {
             base: BaseExtractor::new("cpp".to_string(), file_path, content, workspace_root),
             processed_nodes: HashSet::new(),
             additional_symbols: Vec::new(),
+            detached_test_bodies: HashMap::new(),
         }
     }
 
@@ -89,11 +95,13 @@ impl CppExtractor {
         let mut symbols = Vec::new();
         self.processed_nodes.clear();
         self.additional_symbols.clear();
+        self.detached_test_bodies.clear();
 
         self.walk_tree(tree.root_node(), &mut symbols, None, 0);
 
         // Add any additional symbols collected from ERROR nodes
         symbols.extend(self.additional_symbols.clone());
+        scopes::link_scoped_definitions(&mut symbols);
 
         qt::apply(&self.base, tree, &mut symbols);
 
@@ -136,6 +144,7 @@ impl CppExtractor {
         if !should_visit_tree_depth(depth) {
             return;
         }
+        let parent_id = self.detached_test_bodies.remove(&node.id()).or(parent_id);
 
         // Handle field_declaration specially (can produce multiple symbols)
         if node.kind() == "field_declaration" {
@@ -280,6 +289,7 @@ impl CppExtractor {
                 declarations::extract_friend_declaration(&mut self.base, node, parent_id)
             }
             "type_definition" => typedefs::extract_typedef(&mut self.base, node, parent_id),
+            "alias_declaration" => typedefs::extract_alias(&mut self.base, node, parent_id),
             "template_declaration" => {
                 let result =
                     declarations::extract_template(&mut self.base, node, parent_id, symbols);
@@ -297,10 +307,14 @@ impl CppExtractor {
                 result
             }
             "call_expression" => {
-                // Catch2 call-style tests: `TEST_CASE("...")
-                // { ... }`, `SECTION(...)`, `SCENARIO(...)` parse as call_expressions.
-                // Non-test calls return None and fall through to child recursion.
-                test_calls::extract_cpp_test_call(&mut self.base, &node, parent_id)
+                let test = test_calls::extract_cpp_test_call(&mut self.base, &node, parent_id);
+                if let (Some(test), Some(block)) =
+                    (&test, crate::test_calls::detached_macro_block(&node))
+                {
+                    self.detached_test_bodies
+                        .insert(block.id(), test.id.clone());
+                }
+                test
             }
             "ERROR" => self.extract_from_error_node(node, parent_id),
             _ => None,

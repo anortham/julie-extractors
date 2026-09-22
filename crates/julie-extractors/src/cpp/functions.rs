@@ -51,8 +51,16 @@ pub(super) fn extract_function(
         }
     }
 
+    if let Some(conversion) = out_of_line_conversion(base, node, func_node, parent_id) {
+        return Some(conversion);
+    }
+
     let name_node = extract_function_name(func_node)?;
     let name = base.get_node_text(&name_node);
+    let scope = (name_node.kind() == "qualified_identifier")
+        .then(|| helpers::split_scope(&name))
+        .flatten()
+        .map(|(scope, member)| (scope.to_string(), member.to_string()));
 
     let google_test_lifecycle =
         is_google_test_fixture_lifecycle(base, node, &name, parent_id, symbols);
@@ -83,10 +91,15 @@ pub(super) fn extract_function(
         None => name,
     };
 
-    // Check if this is a constructor or destructor
-    let is_constructor_flag = is_constructor(base, &name, node);
-    let is_destructor = name.starts_with('~');
-    let is_operator = name.starts_with("operator");
+    let member_name = scope
+        .as_ref()
+        .map_or(name.clone(), |(_, member)| member.clone());
+    let is_constructor_flag = is_constructor(base, &name, node)
+        || scope
+            .as_ref()
+            .is_some_and(|(scope, member)| helpers::scope_type_name(scope) == *member);
+    let is_destructor = member_name.starts_with('~');
+    let is_operator = member_name.starts_with("operator");
 
     let kind = if is_constructor_flag {
         SymbolKind::Constructor
@@ -94,6 +107,8 @@ pub(super) fn extract_function(
         SymbolKind::Destructor
     } else if is_operator {
         SymbolKind::Operator
+    } else if scope.is_some() {
+        SymbolKind::Method
     } else {
         SymbolKind::Function
     };
@@ -202,12 +217,18 @@ pub(super) fn extract_function(
     } else {
         apply_callable_test_metadata(
             "cpp",
-            &name,
+            &member_name,
             &base.file_path,
             &kind,
             &annotation_keys,
             doc_comment.as_deref(),
             &mut metadata,
+        );
+    }
+    if let Some((scope, _)) = &scope {
+        metadata.insert(
+            "scope".to_string(),
+            serde_json::Value::String(scope.clone()),
         );
     }
 
@@ -226,6 +247,46 @@ pub(super) fn extract_function(
             },
             doc_comment,
             annotations,
+        },
+    ))
+}
+
+/// `Counter::operator bool() const { ... }`: an out-of-line conversion operator,
+/// whose declarator is the qualified operator itself rather than a function declarator.
+fn out_of_line_conversion(
+    base: &mut BaseExtractor,
+    node: Node,
+    declarator: Node,
+    parent_id: Option<&str>,
+) -> Option<Symbol> {
+    if node.kind() != "function_definition" || declarator.kind() != "qualified_identifier" {
+        return None;
+    }
+    let operator = declarator
+        .child_by_field_name("name")
+        .filter(|name| name.kind() == "operator_cast")?;
+    let scope = base.get_node_text(&declarator.child_by_field_name("scope")?);
+    let target_type = base.get_node_text(&operator.child_by_field_name("type")?);
+    let name = format!("{scope}::operator {target_type}");
+    let head_end = node
+        .child_by_field_name("body")
+        .map_or(node.end_byte(), |body| body.start_byte());
+    let signature = base.content[node.start_byte()..head_end].trim().to_string();
+    let doc_comment = base.find_doc_comment(&node);
+    Some(base.create_symbol(
+        &node,
+        name,
+        SymbolKind::Operator,
+        SymbolOptions {
+            signature: Some(signature),
+            visibility: Some(declarations::extract_cpp_visibility(base, node)),
+            parent_id: parent_id.map(String::from),
+            metadata: Some(HashMap::from([(
+                "scope".to_string(),
+                serde_json::Value::String(scope),
+            )])),
+            doc_comment,
+            annotations: Vec::new(),
         },
     ))
 }

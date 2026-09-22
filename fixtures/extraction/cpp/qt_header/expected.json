@@ -795,7 +795,7 @@
     {
       "from_key": "fixtures/extraction/cpp/qt_header/source.h:ColumnViewAttached:11:0",
       "callee_name": "QObject",
-      "kind": "uses",
+      "kind": "extends",
       "file_path": "fixtures/extraction/cpp/qt_header/source.h",
       "line_number": 11,
       "confidence": "0.700"
@@ -827,7 +827,7 @@
     {
       "from_key": "fixtures/extraction/cpp/qt_header/source.h:ScrollIntentionEvent:55:0",
       "callee_name": "QObject",
-      "kind": "uses",
+      "kind": "extends",
       "file_path": "fixtures/extraction/cpp/qt_header/source.h",
       "line_number": 55,
       "confidence": "0.700"
@@ -880,7 +880,7 @@
       "pending": {
         "from_key": "fixtures/extraction/cpp/qt_header/source.h:ColumnViewAttached:11:0",
         "callee_name": "QObject",
-        "kind": "uses",
+        "kind": "extends",
         "file_path": "fixtures/extraction/cpp/qt_header/source.h",
         "line_number": 11,
         "confidence": "0.700"
@@ -984,7 +984,7 @@
       "pending": {
         "from_key": "fixtures/extraction/cpp/qt_header/source.h:ScrollIntentionEvent:55:0",
         "callee_name": "QObject",
-        "kind": "uses",
+        "kind": "extends",
         "file_path": "fixtures/extraction/cpp/qt_header/source.h",
         "line_number": 55,
         "confidence": "0.700"
