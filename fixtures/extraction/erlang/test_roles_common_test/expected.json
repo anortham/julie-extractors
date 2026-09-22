@@ -10,8 +10,8 @@
       "start_column": 15,
       "end_line": 32,
       "end_column": 21,
-      "start_byte": 1128,
-      "end_byte": 1134,
+      "start_byte": 1204,
+      "end_byte": 1210,
       "body_span": null,
       "body_hash": null,
       "signature": "Config",
@@ -36,8 +36,8 @@
       "start_column": 25,
       "end_line": 38,
       "end_column": 31,
-      "start_byte": 1212,
-      "end_byte": 1218,
+      "start_byte": 1288,
+      "end_byte": 1294,
       "body_span": null,
       "body_hash": null,
       "signature": "Config",
@@ -62,14 +62,40 @@
       "start_column": 23,
       "end_line": 44,
       "end_column": 29,
-      "start_byte": 1304,
-      "end_byte": 1310,
+      "start_byte": 1380,
+      "end_byte": 1386,
       "body_span": null,
       "body_hash": null,
       "signature": "Config",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/erlang/test_roles_common_test/source.erl:init_per_group:44:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/test_roles_common_test/source.erl:Config:62:14",
+      "name": "Config",
+      "kind": "variable",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles_common_test/source.erl",
+      "start_line": 62,
+      "start_column": 14,
+      "end_line": 62,
+      "end_column": 20,
+      "start_byte": 1600,
+      "end_byte": 1606,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "Config",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/erlang/test_roles_common_test/source.erl:setup_account:62:0",
       "metadata": {
         "role": "parameter"
       },
@@ -88,8 +114,8 @@
       "start_column": 18,
       "end_line": 38,
       "end_column": 23,
-      "start_byte": 1205,
-      "end_byte": 1210,
+      "start_byte": 1281,
+      "end_byte": 1286,
       "body_span": null,
       "body_hash": null,
       "signature": "_Case",
@@ -114,8 +140,8 @@
       "start_column": 17,
       "end_line": 41,
       "end_column": 22,
-      "start_byte": 1253,
-      "end_byte": 1258,
+      "start_byte": 1329,
+      "end_byte": 1334,
       "body_span": null,
       "body_hash": null,
       "signature": "_Case",
@@ -140,8 +166,8 @@
       "start_column": 14,
       "end_line": 56,
       "end_column": 19,
-      "start_byte": 1456,
-      "end_byte": 1461,
+      "start_byte": 1532,
+      "end_byte": 1537,
       "body_span": null,
       "body_hash": null,
       "signature": "_Case",
@@ -166,8 +192,8 @@
       "start_column": 14,
       "end_line": 35,
       "end_column": 21,
-      "start_byte": 1166,
-      "end_byte": 1173,
+      "start_byte": 1242,
+      "end_byte": 1249,
       "body_span": null,
       "body_hash": null,
       "signature": "_Config",
@@ -192,8 +218,8 @@
       "start_column": 24,
       "end_line": 41,
       "end_column": 31,
-      "start_byte": 1260,
-      "end_byte": 1267,
+      "start_byte": 1336,
+      "end_byte": 1343,
       "body_span": null,
       "body_hash": null,
       "signature": "_Config",
@@ -218,8 +244,8 @@
       "start_column": 22,
       "end_line": 47,
       "end_column": 29,
-      "start_byte": 1350,
-      "end_byte": 1357,
+      "start_byte": 1426,
+      "end_byte": 1433,
       "body_span": null,
       "body_hash": null,
       "signature": "_Config",
@@ -244,8 +270,8 @@
       "start_column": 14,
       "end_line": 50,
       "end_column": 21,
-      "start_byte": 1385,
-      "end_byte": 1392,
+      "start_byte": 1461,
+      "end_byte": 1468,
       "body_span": null,
       "body_hash": null,
       "signature": "_Config",
@@ -270,8 +296,8 @@
       "start_column": 15,
       "end_line": 53,
       "end_column": 22,
-      "start_byte": 1421,
-      "end_byte": 1428,
+      "start_byte": 1497,
+      "end_byte": 1504,
       "body_span": null,
       "body_hash": null,
       "signature": "_Config",
@@ -296,8 +322,8 @@
       "start_column": 21,
       "end_line": 56,
       "end_column": 28,
-      "start_byte": 1463,
-      "end_byte": 1470,
+      "start_byte": 1539,
+      "end_byte": 1546,
       "body_span": null,
       "body_hash": null,
       "signature": "_Config",
@@ -322,8 +348,8 @@
       "start_column": 15,
       "end_line": 44,
       "end_column": 21,
-      "start_byte": 1296,
-      "end_byte": 1302,
+      "start_byte": 1372,
+      "end_byte": 1378,
       "body_span": null,
       "body_hash": null,
       "signature": "_Group",
@@ -348,14 +374,40 @@
       "start_column": 14,
       "end_line": 47,
       "end_column": 20,
-      "start_byte": 1342,
-      "end_byte": 1348,
+      "start_byte": 1418,
+      "end_byte": 1424,
       "body_span": null,
       "body_hash": null,
       "signature": "_Group",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/erlang/test_roles_common_test/source.erl:end_per_group:47:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/test_roles_common_test/source.erl:_Group:59:6",
+      "name": "_Group",
+      "kind": "variable",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles_common_test/source.erl",
+      "start_line": 59,
+      "start_column": 6,
+      "end_line": 59,
+      "end_column": 12,
+      "start_byte": 1566,
+      "end_byte": 1572,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "_Group",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/erlang/test_roles_common_test/source.erl:group:59:0",
       "metadata": {
         "role": "parameter"
       },
@@ -374,15 +426,15 @@
       "start_column": 0,
       "end_line": 27,
       "end_column": 36,
-      "start_byte": 1045,
-      "end_byte": 1090,
+      "start_byte": 1121,
+      "end_byte": 1166,
       "body_span": {
         "start_line": 26,
         "start_column": 6,
         "end_line": 27,
         "end_column": 36,
-        "start_byte": 1051,
-        "end_byte": 1090
+        "start_byte": 1127,
+        "end_byte": 1166
       },
       "body_hash": "ba44ccd6e6b5a4a2ad8e7abc51de9060",
       "signature": "all/0()",
@@ -414,19 +466,19 @@
       "start_column": 0,
       "end_line": 14,
       "end_column": 20,
-      "start_byte": 716,
-      "end_byte": 736,
+      "start_byte": 766,
+      "end_byte": 786,
       "body_span": {
         "start_line": 14,
         "start_column": 7,
         "end_line": 14,
         "end_column": 19,
-        "start_byte": 723,
-        "end_byte": 735
+        "start_byte": 773,
+        "end_byte": 785
       },
       "body_hash": "1e6a4d51c7027e75675dfd5ada8a1805",
       "signature": "-module(bank_SUITE)",
-      "doc_comment": "%% Common Test roles. A `*_SUITE` module is a test container; inside it the\n%% golden carries all three roles at once:\n%%\n%%   container - bank_SUITE                         test_container\n%%   lifecycle - init_per_suite/1, end_per_suite/1  is_test + test_lifecycle\n%%               init_per_testcase/2, end_per_testcase/2\n%%               init_per_group/2, end_per_group/2\n%%   case      - opens_account/1, closes_account/1  is_test, run as Case(Config)\n%%\n%% Negative controls in the same file: all/0 and groups/0 configure the suite\n%% rather than exercise it, and format_report/2 is an exported helper whose\n%% arity is not the Case(Config) shape Common Test invokes. None of the three\n%% may carry a test role.",
+      "doc_comment": "%% Common Test roles. A `*_SUITE` module is a test container; inside it the\n%% golden carries all three roles at once:\n%%   container - bank_SUITE                         test_container\n%%   lifecycle - init_per_suite/1, end_per_suite/1  is_test + test_lifecycle\n%%               init_per_testcase/2, end_per_testcase/2\n%%               init_per_group/2, end_per_group/2\n%%   case      - opens_account/1, closes_account/1  is_test, run as Case(Config)\n%% Negative controls in the same file: all/0 and groups/0 configure the suite\n%% rather than exercise it, and format_report/2 is an exported helper whose\n%% arity is not the Case(Config) shape Common Test invokes. None of the three\n%% may carry a test role, nor may group/1 and setup_account/1 (not listed).",
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
@@ -448,15 +500,15 @@
       "start_column": 0,
       "end_line": 54,
       "end_column": 7,
-      "start_byte": 1406,
-      "end_byte": 1440,
+      "start_byte": 1482,
+      "end_byte": 1516,
       "body_span": {
         "start_line": 53,
         "start_column": 24,
         "end_line": 54,
         "end_column": 7,
-        "start_byte": 1430,
-        "end_byte": 1440
+        "start_byte": 1506,
+        "end_byte": 1516
       },
       "body_hash": "656a4c8eb916588b85c2a124afa89c5f",
       "signature": "closes_account/1(_Config)",
@@ -484,15 +536,15 @@
       "start_column": 0,
       "end_line": 48,
       "end_column": 7,
-      "start_byte": 1328,
-      "end_byte": 1369,
+      "start_byte": 1404,
+      "end_byte": 1445,
       "body_span": {
         "start_line": 47,
         "start_column": 31,
         "end_line": 48,
         "end_column": 7,
-        "start_byte": 1359,
-        "end_byte": 1369
+        "start_byte": 1435,
+        "end_byte": 1445
       },
       "body_hash": "656a4c8eb916588b85c2a124afa89c5f",
       "signature": "end_per_group/2(_Group, _Config)",
@@ -521,15 +573,15 @@
       "start_column": 0,
       "end_line": 36,
       "end_column": 7,
-      "start_byte": 1152,
-      "end_byte": 1185,
+      "start_byte": 1228,
+      "end_byte": 1261,
       "body_span": {
         "start_line": 35,
         "start_column": 23,
         "end_line": 36,
         "end_column": 7,
-        "start_byte": 1175,
-        "end_byte": 1185
+        "start_byte": 1251,
+        "end_byte": 1261
       },
       "body_hash": "656a4c8eb916588b85c2a124afa89c5f",
       "signature": "end_per_suite/1(_Config)",
@@ -558,15 +610,15 @@
       "start_column": 0,
       "end_line": 42,
       "end_column": 7,
-      "start_byte": 1236,
-      "end_byte": 1279,
+      "start_byte": 1312,
+      "end_byte": 1355,
       "body_span": {
         "start_line": 41,
         "start_column": 33,
         "end_line": 42,
         "end_column": 7,
-        "start_byte": 1269,
-        "end_byte": 1279
+        "start_byte": 1345,
+        "end_byte": 1355
       },
       "body_hash": "656a4c8eb916588b85c2a124afa89c5f",
       "signature": "end_per_testcase/2(_Case, _Config)",
@@ -595,15 +647,15 @@
       "start_column": 0,
       "end_line": 57,
       "end_column": 7,
-      "start_byte": 1442,
-      "end_byte": 1482,
+      "start_byte": 1518,
+      "end_byte": 1558,
       "body_span": {
         "start_line": 56,
         "start_column": 30,
         "end_line": 57,
         "end_column": 7,
-        "start_byte": 1472,
-        "end_byte": 1482
+        "start_byte": 1548,
+        "end_byte": 1558
       },
       "body_hash": "656a4c8eb916588b85c2a124afa89c5f",
       "signature": "format_report/2(_Case, _Config)",
@@ -612,6 +664,40 @@
       "parent_key": "fixtures/extraction/erlang/test_roles_common_test/source.erl:bank_SUITE:14:0",
       "metadata": {
         "arity": 2,
+        "clause_count": 1
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/test_roles_common_test/source.erl:group:59:0",
+      "name": "group",
+      "kind": "function",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles_common_test/source.erl",
+      "start_line": 59,
+      "start_column": 0,
+      "end_line": 60,
+      "end_column": 7,
+      "start_byte": 1560,
+      "end_byte": 1584,
+      "body_span": {
+        "start_line": 59,
+        "start_column": 14,
+        "end_line": 60,
+        "end_column": 7,
+        "start_byte": 1574,
+        "end_byte": 1584
+      },
+      "body_hash": "b3fd7fa5a875b62692ef5a2f3478a89c",
+      "signature": "group/1(_Group)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/erlang/test_roles_common_test/source.erl:bank_SUITE:14:0",
+      "metadata": {
+        "arity": 1,
         "clause_count": 1
       },
       "annotations": [],
@@ -629,15 +715,15 @@
       "start_column": 0,
       "end_line": 30,
       "end_column": 7,
-      "start_byte": 1092,
-      "end_byte": 1111,
+      "start_byte": 1168,
+      "end_byte": 1187,
       "body_span": {
         "start_line": 29,
         "start_column": 9,
         "end_line": 30,
         "end_column": 7,
-        "start_byte": 1101,
-        "end_byte": 1111
+        "start_byte": 1177,
+        "end_byte": 1187
       },
       "body_hash": "b3fd7fa5a875b62692ef5a2f3478a89c",
       "signature": "groups/0()",
@@ -663,15 +749,15 @@
       "start_column": 0,
       "end_line": 45,
       "end_column": 11,
-      "start_byte": 1281,
-      "end_byte": 1326,
+      "start_byte": 1357,
+      "end_byte": 1402,
       "body_span": {
         "start_line": 44,
         "start_column": 31,
         "end_line": 45,
         "end_column": 11,
-        "start_byte": 1312,
-        "end_byte": 1326
+        "start_byte": 1388,
+        "end_byte": 1402
       },
       "body_hash": "edb0c175512c3c106747f4ed214d7c57",
       "signature": "init_per_group/2(_Group, Config)",
@@ -700,15 +786,15 @@
       "start_column": 0,
       "end_line": 33,
       "end_column": 11,
-      "start_byte": 1113,
-      "end_byte": 1150,
+      "start_byte": 1189,
+      "end_byte": 1226,
       "body_span": {
         "start_line": 32,
         "start_column": 23,
         "end_line": 33,
         "end_column": 11,
-        "start_byte": 1136,
-        "end_byte": 1150
+        "start_byte": 1212,
+        "end_byte": 1226
       },
       "body_hash": "edb0c175512c3c106747f4ed214d7c57",
       "signature": "init_per_suite/1(Config)",
@@ -737,15 +823,15 @@
       "start_column": 0,
       "end_line": 39,
       "end_column": 11,
-      "start_byte": 1187,
-      "end_byte": 1234,
+      "start_byte": 1263,
+      "end_byte": 1310,
       "body_span": {
         "start_line": 38,
         "start_column": 33,
         "end_line": 39,
         "end_column": 11,
-        "start_byte": 1220,
-        "end_byte": 1234
+        "start_byte": 1296,
+        "end_byte": 1310
       },
       "body_hash": "edb0c175512c3c106747f4ed214d7c57",
       "signature": "init_per_testcase/2(_Case, Config)",
@@ -774,15 +860,15 @@
       "start_column": 0,
       "end_line": 51,
       "end_column": 7,
-      "start_byte": 1371,
-      "end_byte": 1404,
+      "start_byte": 1447,
+      "end_byte": 1480,
       "body_span": {
         "start_line": 50,
         "start_column": 23,
         "end_line": 51,
         "end_column": 7,
-        "start_byte": 1394,
-        "end_byte": 1404
+        "start_byte": 1470,
+        "end_byte": 1480
       },
       "body_hash": "656a4c8eb916588b85c2a124afa89c5f",
       "signature": "opens_account/1(_Config)",
@@ -794,6 +880,40 @@
         "clause_count": 1,
         "is_test": true,
         "test_role": "test_case"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/test_roles_common_test/source.erl:setup_account:62:0",
+      "name": "setup_account",
+      "kind": "function",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles_common_test/source.erl",
+      "start_line": 62,
+      "start_column": 0,
+      "end_line": 63,
+      "end_column": 11,
+      "start_byte": 1586,
+      "end_byte": 1622,
+      "body_span": {
+        "start_line": 62,
+        "start_column": 22,
+        "end_line": 63,
+        "end_column": 11,
+        "start_byte": 1608,
+        "end_byte": 1622
+      },
+      "body_hash": "edb0c175512c3c106747f4ed214d7c57",
+      "signature": "setup_account/1(Config)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/erlang/test_roles_common_test/source.erl:bank_SUITE:14:0",
+      "metadata": {
+        "arity": 1,
+        "clause_count": 1
       },
       "annotations": [],
       "semantic_group": null,
@@ -838,8 +958,8 @@
         "start_column": 13,
         "end_line": 16,
         "end_column": 41,
-        "start_byte": 751,
-        "end_byte": 779
+        "start_byte": 801,
+        "end_byte": 829
       }
     }
   ],
@@ -854,8 +974,8 @@
       "start_column": 16,
       "end_line": 25,
       "end_column": 20,
-      "start_byte": 1036,
-      "end_byte": 1040,
+      "start_byte": 1112,
+      "end_byte": 1116,
       "containing_key": null,
       "target_key": null,
       "confidence": "1.000"
@@ -874,13 +994,13 @@
       "start_line": 18,
       "start_column": 0,
       "end_line": 23,
-      "end_column": 27,
-      "start_byte": 783,
-      "end_byte": 1018,
+      "end_column": 53,
+      "start_byte": 833,
+      "end_byte": 1094,
       "confidence": "1.000",
       "metadata": {
         "export_kind": "function",
-        "exported_count": 11,
+        "exported_count": 13,
         "pattern_version": 1,
         "query_family": "module"
       }
@@ -896,8 +1016,8 @@
       "start_column": 0,
       "end_line": 16,
       "end_column": 43,
-      "start_byte": 738,
-      "end_byte": 781,
+      "start_byte": 788,
+      "end_byte": 831,
       "confidence": "1.000",
       "metadata": {
         "application": "common_test",
@@ -918,8 +1038,8 @@
       "start_column": 0,
       "end_line": 14,
       "end_column": 20,
-      "start_byte": 716,
-      "end_byte": 736,
+      "start_byte": 766,
+      "end_byte": 786,
       "confidence": "1.000",
       "metadata": {
         "module": "bank_SUITE",
@@ -935,18 +1055,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "erlang",
       "file_path": "fixtures/extraction/erlang/test_roles_common_test/source.erl",
-      "covered_lines": 58,
-      "covered_bytes": 1483,
+      "covered_lines": 64,
+      "covered_bytes": 1623,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 58,
+      "end_line": 64,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 1483,
+      "end_byte": 1623,
       "metadata": {
         "metric_version": 1
       }
@@ -967,8 +1087,8 @@
       "start_column": 0,
       "end_line": 27,
       "end_column": 36,
-      "start_byte": 1045,
-      "end_byte": 1090,
+      "start_byte": 1121,
+      "end_byte": 1166,
       "metadata": {
         "metric_version": 1
       }
@@ -989,8 +1109,8 @@
       "start_column": 0,
       "end_line": 54,
       "end_column": 7,
-      "start_byte": 1406,
-      "end_byte": 1440,
+      "start_byte": 1482,
+      "end_byte": 1516,
       "metadata": {
         "metric_version": 1
       }
@@ -1011,8 +1131,8 @@
       "start_column": 0,
       "end_line": 48,
       "end_column": 7,
-      "start_byte": 1328,
-      "end_byte": 1369,
+      "start_byte": 1404,
+      "end_byte": 1445,
       "metadata": {
         "metric_version": 1
       }
@@ -1033,8 +1153,8 @@
       "start_column": 0,
       "end_line": 36,
       "end_column": 7,
-      "start_byte": 1152,
-      "end_byte": 1185,
+      "start_byte": 1228,
+      "end_byte": 1261,
       "metadata": {
         "metric_version": 1
       }
@@ -1055,8 +1175,8 @@
       "start_column": 0,
       "end_line": 42,
       "end_column": 7,
-      "start_byte": 1236,
-      "end_byte": 1279,
+      "start_byte": 1312,
+      "end_byte": 1355,
       "metadata": {
         "metric_version": 1
       }
@@ -1077,8 +1197,30 @@
       "start_column": 0,
       "end_line": 57,
       "end_column": 7,
-      "start_byte": 1442,
-      "end_byte": 1482,
+      "start_byte": 1518,
+      "end_byte": 1558,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/erlang/test_roles_common_test/source.erl:group:59:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles_common_test/source.erl",
+      "covered_lines": 2,
+      "covered_bytes": 24,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 59,
+      "start_column": 0,
+      "end_line": 60,
+      "end_column": 7,
+      "start_byte": 1560,
+      "end_byte": 1584,
       "metadata": {
         "metric_version": 1
       }
@@ -1099,8 +1241,8 @@
       "start_column": 0,
       "end_line": 30,
       "end_column": 7,
-      "start_byte": 1092,
-      "end_byte": 1111,
+      "start_byte": 1168,
+      "end_byte": 1187,
       "metadata": {
         "metric_version": 1
       }
@@ -1121,8 +1263,8 @@
       "start_column": 0,
       "end_line": 45,
       "end_column": 11,
-      "start_byte": 1281,
-      "end_byte": 1326,
+      "start_byte": 1357,
+      "end_byte": 1402,
       "metadata": {
         "metric_version": 1
       }
@@ -1143,8 +1285,8 @@
       "start_column": 0,
       "end_line": 33,
       "end_column": 11,
-      "start_byte": 1113,
-      "end_byte": 1150,
+      "start_byte": 1189,
+      "end_byte": 1226,
       "metadata": {
         "metric_version": 1
       }
@@ -1165,8 +1307,8 @@
       "start_column": 0,
       "end_line": 39,
       "end_column": 11,
-      "start_byte": 1187,
-      "end_byte": 1234,
+      "start_byte": 1263,
+      "end_byte": 1310,
       "metadata": {
         "metric_version": 1
       }
@@ -1187,8 +1329,30 @@
       "start_column": 0,
       "end_line": 51,
       "end_column": 7,
-      "start_byte": 1371,
-      "end_byte": 1404,
+      "start_byte": 1447,
+      "end_byte": 1480,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/erlang/test_roles_common_test/source.erl:setup_account:62:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles_common_test/source.erl",
+      "covered_lines": 2,
+      "covered_bytes": 36,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 62,
+      "start_column": 0,
+      "end_line": 63,
+      "end_column": 11,
+      "start_byte": 1586,
+      "end_byte": 1622,
       "metadata": {
         "metric_version": 1
       }
@@ -1256,9 +1420,9 @@
       "start_line": 13,
       "start_column": 0,
       "end_line": 13,
-      "end_column": 25,
+      "end_column": 75,
       "start_byte": 690,
-      "end_byte": 715,
+      "end_byte": 765,
       "metadata": null
     },
     {
@@ -1374,8 +1538,8 @@
       "start_column": 13,
       "end_line": 16,
       "end_column": 41,
-      "start_byte": 751,
-      "end_byte": 779,
+      "start_byte": 801,
+      "end_byte": 829,
       "metadata": null
     }
   ],

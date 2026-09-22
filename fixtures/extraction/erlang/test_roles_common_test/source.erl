@@ -10,7 +10,7 @@
 %% Negative controls in the same file: all/0 and groups/0 configure the suite
 %% rather than exercise it, and format_report/2 is an exported helper whose
 %% arity is not the Case(Config) shape Common Test invokes. None of the three
-%% may carry a test role.
+%% may carry a test role, nor may group/1 and setup_account/1 (not listed).
 -module(bank_SUITE).
 
 -include_lib("common_test/include/ct.hrl").
@@ -20,7 +20,7 @@
          init_per_testcase/2, end_per_testcase/2,
          init_per_group/2, end_per_group/2,
          opens_account/1, closes_account/1,
-         format_report/2]).
+         format_report/2, group/1, setup_account/1]).
 
 -spec all() -> [atom()].
 all() ->
@@ -55,3 +55,9 @@ closes_account(_Config) ->
 
 format_report(_Case, _Config) ->
     ok.
+
+group(_Group) ->
+    [].
+
+setup_account(Config) ->
+    Config.

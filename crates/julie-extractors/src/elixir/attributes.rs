@@ -83,7 +83,7 @@ fn extract_type_attribute(
     let signature = format!("@{} {}", attr_name, extractor.base.get_node_text(call_node));
     let annotations = normalize_annotations(&[extractor.base.get_node_text(attr_node)], "elixir");
 
-    Some(extractor.base.create_symbol(
+    let mut symbol = extractor.base.create_symbol(
         attr_node,
         type_name,
         SymbolKind::Type,
@@ -92,10 +92,16 @@ fn extract_type_attribute(
             visibility: Some(visibility),
             parent_id: parent_id.map(String::from),
             metadata: None,
-            doc_comment: None,
+            doc_comment: extract_doc_comment_for_node(&extractor.base, attr_node, "typedoc"),
             annotations,
         },
-    ))
+    );
+    let definition = args
+        .named_child(0)
+        .filter(|child| child.kind() == "binary_operator")
+        .and_then(|child| child.child_by_field_name("right"));
+    super::helpers::set_body_span(&extractor.base, &mut symbol, definition);
+    Some(symbol)
 }
 
 fn extract_callback_attribute(
@@ -119,7 +125,7 @@ fn extract_callback_attribute(
     let mut metadata = HashMap::new();
     metadata.insert("callback".to_string(), Value::Bool(true));
 
-    Some(extractor.base.create_symbol(
+    let mut symbol = extractor.base.create_symbol(
         attr_node,
         callback_name,
         SymbolKind::Function,
@@ -128,10 +134,12 @@ fn extract_callback_attribute(
             visibility: Some(Visibility::Public),
             parent_id: parent_id.map(String::from),
             metadata: Some(metadata),
-            doc_comment: None,
+            doc_comment: extract_doc_comment_for_node(&extractor.base, attr_node, "doc"),
             annotations,
         },
-    ))
+    );
+    super::helpers::set_body_span(&extractor.base, &mut symbol, None);
+    Some(symbol)
 }
 
 fn extract_spec_attribute(extractor: &mut ElixirExtractor, call_node: &Node) {
@@ -189,37 +197,50 @@ fn extract_behaviour_attribute(
     None
 }
 
-/// Resolve symbol-attached documentation from preceding `#` comments or `@doc` /
-/// `@moduledoc` module attributes.
+/// Attributes that document a declaration of their own. Walking back from a
+/// definition stops at these, so a `@type` or `@moduledoc` never lends its
+/// neighbouring `@doc` to the wrong declaration.
+const DECLARING_ATTRIBUTES: &[&str] = &[
+    "moduledoc",
+    "type",
+    "typep",
+    "opaque",
+    "callback",
+    "macrocallback",
+];
+
+/// Documentation for a definition: the string of the nearest preceding
+/// `doc_attr` attribute (`@doc`, `@typedoc`), looking past `@spec`, `@impl`
+/// and other plain attributes. `@doc false` hides the definition and yields no
+/// doc. Without the attribute, a directly preceding `#` comment block is used.
 pub(super) fn extract_doc_comment_for_node(
     base: &BaseExtractor,
     node: &Node,
-    attr_names: &[&str],
+    doc_attr: &str,
 ) -> Option<String> {
-    base.find_doc_comment(node)
-        .or_else(|| doc_comment_from_preceding_attributes(base, node, attr_names))
+    match preceding_attributes(base, node)
+        .into_iter()
+        .find(|(name, _)| name == doc_attr)
+    {
+        Some((_, attribute)) => attribute_string(base, &attribute),
+        None => base.find_doc_comment(node),
+    }
 }
 
 pub(super) fn extract_moduledoc_for_module(base: &BaseExtractor, node: &Node) -> Option<String> {
-    base.find_doc_comment(node).or_else(|| {
-        collect_module_annotations(base, node)
-            .into_iter()
-            .find(|text| annotation_name_from_text(text).as_deref() == Some("moduledoc"))
-    })
-}
-
-fn doc_comment_from_preceding_attributes(
-    base: &BaseExtractor,
-    node: &Node,
-    attr_names: &[&str],
-) -> Option<String> {
-    collect_preceding_annotations(base, node, attr_names)
-        .into_iter()
-        .find(|text| {
-            annotation_name_from_text(text)
-                .map(|name| attr_names.contains(&name.as_str()))
-                .unwrap_or(false)
-        })
+    for (name, attribute) in module_attributes(base, node) {
+        if name != "moduledoc" {
+            continue;
+        }
+        let value = attribute_value(&attribute);
+        if value.is_some_and(|value| value.kind() == "boolean") {
+            return None;
+        }
+        if let Some(doc) = attribute_string(base, &attribute) {
+            return Some(doc);
+        }
+    }
+    base.find_doc_comment(node)
 }
 
 pub(super) fn collect_preceding_annotations(
@@ -227,48 +248,87 @@ pub(super) fn collect_preceding_annotations(
     node: &Node,
     allowed_names: &[&str],
 ) -> Vec<String> {
-    let mut annotations = Vec::new();
-    let mut current = node.prev_sibling();
-
-    while let Some(sibling) = current {
-        let text = base.get_node_text(&sibling);
-        let Some(name) = annotation_name_from_text(&text) else {
-            break;
-        };
-        if !allowed_names.contains(&name.as_str()) {
-            break;
-        }
-
-        annotations.push(text);
-        current = sibling.prev_sibling();
-    }
-
+    let mut annotations: Vec<String> = preceding_attributes(base, node)
+        .into_iter()
+        .filter(|(name, _)| allowed_names.contains(&name.as_str()))
+        .map(|(_, attribute)| base.get_node_text(&attribute))
+        .collect();
     annotations.reverse();
     annotations
 }
 
 pub(super) fn collect_module_annotations(base: &BaseExtractor, node: &Node) -> Vec<String> {
-    base.get_node_text(node)
-        .lines()
-        .map(str::trim)
-        .filter(|line| {
-            annotation_name_from_text(line)
-                .map(|name| {
-                    matches!(
-                        name.as_str(),
-                        "moduledoc"
-                            | "behaviour"
-                            | "behavior"
-                            | "derive"
-                            | "external_resource"
-                            | "before_compile"
-                            | "after_compile"
-                    )
-                })
-                .unwrap_or(false)
+    module_attributes(base, node)
+        .into_iter()
+        .filter(|(name, _)| {
+            matches!(
+                name.as_str(),
+                "moduledoc"
+                    | "behaviour"
+                    | "behavior"
+                    | "derive"
+                    | "external_resource"
+                    | "before_compile"
+                    | "after_compile"
+            )
         })
-        .map(ToString::to_string)
+        .map(|(_, attribute)| base.get_node_text(&attribute))
         .collect()
+}
+
+/// `@` attributes directly above `node`, nearest first. Comments are
+/// transparent. The run ends at any other node, after the first `@doc` or
+/// `@typedoc`, or before an attribute that declares something itself.
+fn preceding_attributes<'a>(base: &BaseExtractor, node: &Node<'a>) -> Vec<(String, Node<'a>)> {
+    let mut attributes = Vec::new();
+    let mut current = node.prev_named_sibling();
+    while let Some(sibling) = current {
+        current = sibling.prev_named_sibling();
+        if sibling.kind() == "comment" {
+            continue;
+        }
+        let Some(name) = attribute_name(base, &sibling) else {
+            break;
+        };
+        if DECLARING_ATTRIBUTES.contains(&name.as_str()) {
+            break;
+        }
+        let ends_run = matches!(name.as_str(), "doc" | "typedoc");
+        attributes.push((name, sibling));
+        if ends_run {
+            break;
+        }
+    }
+    attributes
+}
+
+/// `@` attributes that are direct children of a module's `do` block, so a
+/// nested module's attributes never reach its parent.
+fn module_attributes<'a>(base: &BaseExtractor, node: &Node<'a>) -> Vec<(String, Node<'a>)> {
+    let Some(do_block) = find_child_by_type(node, "do_block") else {
+        return Vec::new();
+    };
+    let mut cursor = do_block.walk();
+    do_block
+        .named_children(&mut cursor)
+        .filter_map(|child| attribute_name(base, &child).map(|name| (name, child)))
+        .collect()
+}
+
+fn attribute_name(base: &BaseExtractor, node: &Node) -> Option<String> {
+    if node.kind() != "unary_operator" {
+        return None;
+    }
+    annotation_name_from_text(&base.get_node_text(node))
+}
+
+fn attribute_value<'a>(attribute: &Node<'a>) -> Option<Node<'a>> {
+    let operand = attribute.child_by_field_name("operand")?;
+    find_child_by_type(&operand, "arguments")?.named_child(0)
+}
+
+fn attribute_string(base: &BaseExtractor, attribute: &Node) -> Option<String> {
+    super::helpers::string_literal_content(base, &attribute_value(attribute)?)
 }
 
 fn annotation_name_from_text(text: &str) -> Option<String> {

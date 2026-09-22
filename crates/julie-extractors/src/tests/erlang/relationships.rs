@@ -341,7 +341,7 @@ entry() ->
 }
 
 #[test]
-fn fun_references_emit_no_call_edges() {
+fn fun_references_emit_reference_edges_not_calls() {
     let code = r#"-module(bank).
 -export([entry/0]).
 
@@ -350,14 +350,19 @@ entry() ->
 
 helper(X) -> X.
 "#;
-    let (_, relationships, pending) = extract_with_relationships(code);
+    let (symbols, relationships, pending) = extract_with_relationships(code);
 
-    assert!(
-        relationships.is_empty(),
-        "a fun reference names a value, not a call: {}",
+    assert_eq!(
+        relationships.len(),
+        1,
+        "{}",
         relationship_inventory(&relationships)
     );
-    assert!(pending.is_empty(), "got {pending:#?}");
+    assert_eq!(relationships[0].kind, RelationshipKind::References);
+    assert_eq!(relationships[0].to_symbol_id, find(&symbols, "helper").id);
+    assert_eq!(pending.len(), 1, "got {pending:#?}");
+    assert_eq!(pending[0].pending.kind, RelationshipKind::References);
+    assert_eq!(pending[0].target.display_name, "lists:reverse");
 }
 
 #[test]

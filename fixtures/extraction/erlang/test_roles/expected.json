@@ -90,7 +90,7 @@
       },
       "body_hash": "8b74ae6a42c97c7b1666598ceeafb799",
       "signature": "-module(bank_tests)",
-      "doc_comment": "%% EUnit test roles. The module is a test container two ways over — it is\n%% named `*_tests` AND it includes `eunit.hrl` — and the golden separates the\n%% two case shapes EUnit recognises from the lookalikes it does not:\n%%\n%%   container - bank_tests                         test_container\n%%   case      - balance_test/0                     is_test, a plain test\n%%   case      - deposit_test_/0                    is_test, a test generator\n%%\n%% Negative controls in the same file: check_test/1 carries the suffix but\n%% takes an argument, so EUnit never runs it, and setup/0 is an ordinary\n%% helper. Neither may carry a test role.",
+      "doc_comment": "%% EUnit test roles. The module is a test container two ways over — it is\n%% named `*_tests` AND it includes `eunit.hrl` — and the golden separates the\n%% two case shapes EUnit recognises from the lookalikes it does not:\n%%   container - bank_tests                         test_container\n%%   case      - balance_test/0                     is_test, a plain test\n%%   case      - deposit_test_/0                    is_test, a test generator\n%% Negative controls in the same file: check_test/1 carries the suffix but\n%% takes an argument, so EUnit never runs it, and setup/0 is an ordinary\n%% helper. Neither may carry a test role.",
       "visibility": "Public",
       "parent_key": null,
       "metadata": {

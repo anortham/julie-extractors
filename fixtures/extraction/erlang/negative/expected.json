@@ -372,6 +372,24 @@
       "reference_site_is_exact": true,
       "confidence": "0.900",
       "metadata": null
+    },
+    {
+      "from_key": "fixtures/extraction/erlang/negative/source.erl:run:18:0",
+      "to_key": "fixtures/extraction/erlang/negative/source.erl:queue:26:0",
+      "kind": "references",
+      "file_path": "fixtures/extraction/erlang/negative/source.erl",
+      "line_number": 23,
+      "span": {
+        "start_line": 23,
+        "start_column": 16,
+        "end_line": 23,
+        "end_column": 21,
+        "start_byte": 806,
+        "end_byte": 811
+      },
+      "reference_site_is_exact": true,
+      "confidence": "0.900",
+      "metadata": null
     }
   ],
   "pending_relationships": [
@@ -604,7 +622,10 @@
       "end_byte": 661,
       "containing_key": "fixtures/extraction/erlang/negative/source.erl:run:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "request"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/negative/source.erl:length:call:21:8",
@@ -652,7 +673,10 @@
       "end_byte": 696,
       "containing_key": "fixtures/extraction/erlang/negative/source.erl:run:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "request"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/negative/source.erl:payload:member_access:26:15",
@@ -668,7 +692,10 @@
       "end_byte": 882,
       "containing_key": "fixtures/extraction/erlang/negative/source.erl:queue:26:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "request"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/negative/source.erl:queue:call:21:15",
@@ -764,7 +791,10 @@
       "end_byte": 833,
       "containing_key": "fixtures/extraction/erlang/negative/source.erl:run:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "lists"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/negative/source.erl:sleep:call:20:10",
@@ -780,7 +810,10 @@
       "end_byte": 724,
       "containing_key": "fixtures/extraction/erlang/negative/source.erl:run:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "timer"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/negative/source.erl:timer:type_usage:20:4",
@@ -812,7 +845,10 @@
       "end_byte": 685,
       "containing_key": "fixtures/extraction/erlang/negative/source.erl:run:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "erlang"
+      }
     }
   ],
   "types": [

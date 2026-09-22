@@ -1,6 +1,5 @@
 /// Helper utilities for Elixir symbol extraction
 use crate::base::BaseExtractor;
-use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
 
 pub(super) use crate::base::find_child_by_type;
@@ -143,46 +142,56 @@ pub(super) fn extract_impl_protocol_name(base: &BaseExtractor, node: &Node) -> O
     None
 }
 
-/// Extract struct field names from defstruct's argument list.
-/// Returns (field_name, start_byte, end_byte) tuples.
-pub(super) fn extract_struct_fields(base: &BaseExtractor, node: &Node) -> Vec<(String, u32, u32)> {
+/// Struct field names from a defstruct/defexception argument list, each with
+/// the node that declares it: `:name` atoms of the list form and the keys of
+/// the keyword form. Default values are never fields.
+pub(super) fn extract_struct_fields<'a>(
+    base: &BaseExtractor,
+    node: &Node<'a>,
+) -> Vec<(String, Node<'a>)> {
     let mut fields = Vec::new();
     let Some(args) = find_child_by_type(node, "arguments") else {
         return fields;
     };
-
-    collect_atom_fields(base, &args, &mut fields);
+    let mut cursor = args.walk();
+    for arg in args.named_children(&mut cursor) {
+        match arg.kind() {
+            "list" => {
+                let mut list_cursor = arg.walk();
+                for item in arg.named_children(&mut list_cursor) {
+                    collect_field(base, &item, &mut fields);
+                }
+            }
+            _ => collect_field(base, &arg, &mut fields),
+        }
+    }
     fields
 }
 
-fn collect_atom_fields(base: &BaseExtractor, node: &Node, fields: &mut Vec<(String, u32, u32)>) {
-    collect_atom_fields_at_depth(base, node, fields, 0);
-}
-
-fn collect_atom_fields_at_depth(
-    base: &BaseExtractor,
-    node: &Node,
-    fields: &mut Vec<(String, u32, u32)>,
-    depth: u32,
-) {
-    if !should_visit_tree_depth(depth) {
-        return;
-    }
-
-    let Some(child_depth) = child_tree_depth(depth) else {
-        return;
-    };
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        if child.kind() == "atom" {
-            let text = base.get_node_text(&child);
-            let name = text.trim_start_matches(':').to_string();
+fn collect_field<'a>(base: &BaseExtractor, node: &Node<'a>, fields: &mut Vec<(String, Node<'a>)>) {
+    match node.kind() {
+        "atom" => {
+            let name = base.get_node_text(node).trim_start_matches(':').to_string();
             if !name.is_empty() {
-                fields.push((name, child.start_byte() as u32, child.end_byte() as u32));
+                fields.push((name, *node));
             }
-        } else {
-            collect_atom_fields_at_depth(base, &child, fields, child_depth);
         }
+        "keywords" => {
+            let mut cursor = node.walk();
+            for pair in node.named_children(&mut cursor) {
+                if let Some(key) = pair.child_by_field_name("key") {
+                    let name = base
+                        .get_node_text(&key)
+                        .trim()
+                        .trim_end_matches(':')
+                        .to_string();
+                    if !name.is_empty() {
+                        fields.push((name, key));
+                    }
+                }
+            }
+        }
+        _ => {}
     }
 }
 
@@ -204,18 +213,31 @@ pub(super) fn extract_first_string_arg(base: &BaseExtractor, node: &Node) -> Opt
     None
 }
 
-/// Extract the first argument of import/use/alias/require as the module name
-pub(super) fn extract_import_target(base: &BaseExtractor, node: &Node) -> Option<String> {
-    let args = find_child_by_type(node, "arguments")?;
-    let mut cursor = args.walk();
-    for child in args.children(&mut cursor) {
-        match child.kind() {
-            "alias" => return Some(base.get_node_text(&child)),
-            "dot" => return Some(base.get_node_text(&child)),
-            _ => continue,
+/// Modules named by an import/use/alias/require directive. The multi-alias
+/// form `alias MyApp.{A, B}` names `MyApp.A` and `MyApp.B`.
+pub(super) fn directive_modules(base: &BaseExtractor, node: &Node) -> Vec<String> {
+    let Some(target) = find_child_by_type(node, "arguments").and_then(|args| {
+        let mut cursor = args.walk();
+        args.named_children(&mut cursor)
+            .find(|child| matches!(child.kind(), "alias" | "dot"))
+    }) else {
+        return Vec::new();
+    };
+    let tuple = target
+        .child_by_field_name("right")
+        .filter(|right| target.kind() == "dot" && right.kind() == "tuple");
+    match (tuple, target.child_by_field_name("left")) {
+        (Some(tuple), Some(prefix)) => {
+            let prefix = base.get_node_text(&prefix);
+            let mut cursor = tuple.walk();
+            tuple
+                .named_children(&mut cursor)
+                .filter(|member| member.kind() == "alias")
+                .map(|member| format!("{prefix}.{}", base.get_node_text(&member)))
+                .collect()
         }
+        _ => vec![base.get_node_text(&target)],
     }
-    None
 }
 
 /// True when a typespec `call` applies at least one type parameter, e.g.
@@ -240,4 +262,129 @@ fn elixir_args_has_type_param_call(args: &Node) -> bool {
     let mut cursor = args.walk();
     args.named_children(&mut cursor)
         .any(|child| child.kind() == "call")
+}
+
+/// Definition macros whose first argument is a function head.
+pub(super) const HEADED_DEFINITIONS: &[&str] = &[
+    "def",
+    "defp",
+    "defmacro",
+    "defmacrop",
+    "defguard",
+    "defguardp",
+    "defdelegate",
+];
+
+/// The first argument of a headed definition: the head call, a bare
+/// identifier, or a `when` operator whose left side is the head.
+pub(super) fn definition_head_argument<'a>(
+    base: &BaseExtractor,
+    node: &Node<'a>,
+) -> Option<Node<'a>> {
+    let target = extract_call_target_name(base, node)?;
+    if !HEADED_DEFINITIONS.contains(&target.as_str()) {
+        return None;
+    }
+    find_child_by_type(node, "arguments")?.named_child(0)
+}
+
+/// True when `node` is the function-head call of a definition (`run(id)` in
+/// `def run(id)`), which names the definition rather than calling it.
+pub(super) fn is_definition_head(base: &BaseExtractor, node: &Node) -> bool {
+    let Some(mut arg) = node.parent() else {
+        return false;
+    };
+    if arg.kind() == "binary_operator" {
+        if arg.child_by_field_name("left").map(|l| l.id()) != Some(node.id()) {
+            return false;
+        }
+    } else {
+        arg = *node;
+    }
+    let Some(definition) = arg.parent().and_then(|args| args.parent()) else {
+        return false;
+    };
+    definition_head_argument(base, &definition).is_some_and(|head| head.id() == arg.id())
+}
+
+/// The body of a def-style definition: its `do ... end` block, the value of a
+/// `do:` keyword, or for guards the `when` expression. Bodyless heads have none.
+pub(super) fn definition_body<'a>(base: &BaseExtractor, node: &Node<'a>) -> Option<Node<'a>> {
+    if let Some(do_block) = extract_do_block(node) {
+        return Some(do_block);
+    }
+    let args = find_child_by_type(node, "arguments")?;
+    let mut cursor = args.walk();
+    let do_value = args
+        .named_children(&mut cursor)
+        .filter(|child| child.kind() == "keywords")
+        .find_map(|keywords| keyword_pair_value(base, &keywords, "do"));
+    if do_value.is_some() {
+        return do_value;
+    }
+    let target = extract_call_target_name(base, node)?;
+    if matches!(target.as_str(), "defguard" | "defguardp") {
+        return definition_head_argument(base, node)
+            .filter(|head| head.kind() == "binary_operator")
+            .and_then(|head| head.child_by_field_name("right"));
+    }
+    None
+}
+
+fn keyword_pair_value<'a>(
+    base: &BaseExtractor,
+    keywords: &Node<'a>,
+    key: &str,
+) -> Option<Node<'a>> {
+    let mut cursor = keywords.walk();
+    keywords
+        .named_children(&mut cursor)
+        .filter(|pair| pair.kind() == "pair")
+        .find(|pair| {
+            pair.child_by_field_name("key")
+                .is_some_and(|k| base.get_node_text(&k).trim().trim_end_matches(':').trim() == key)
+        })
+        .and_then(|pair| pair.child_by_field_name("value"))
+}
+
+/// The text of a string or sigil literal with delimiters removed and heredoc
+/// indentation stripped. Returns `None` for any other node kind.
+pub(super) fn string_literal_content(base: &BaseExtractor, node: &Node) -> Option<String> {
+    if !matches!(node.kind(), "string" | "sigil") {
+        return None;
+    }
+    let text = base.get_node_text(node);
+    let mut body = text.trim();
+    if node.kind() == "sigil" {
+        body = body.strip_prefix('~')?.get(1..)?;
+    }
+    let inner = ["\"\"\"", "'''", "\"", "'"]
+        .iter()
+        .find_map(|quote| body.strip_prefix(quote)?.strip_suffix(quote))?;
+    let indent = inner
+        .lines()
+        .filter(|line| !line.trim().is_empty())
+        .map(|line| line.len() - line.trim_start().len())
+        .min()
+        .unwrap_or(0);
+    let content = inner
+        .lines()
+        .map(|line| line.get(indent..).unwrap_or(line.trim_start()).trim_end())
+        .collect::<Vec<_>>()
+        .join("\n");
+    let content = content.trim().to_string();
+    (!content.is_empty()).then_some(content)
+}
+
+/// Replace the inferred body span with `body`, or clear it for bodyless
+/// declarations, and keep the body hash in step.
+pub(super) fn set_body_span(
+    base: &BaseExtractor,
+    symbol: &mut crate::base::Symbol,
+    body: Option<Node>,
+) {
+    symbol.body_span = body.map(|node| crate::base::NormalizedSpan::from_node(&node));
+    symbol.body_hash = symbol
+        .body_span
+        .and_then(|span| crate::base::body::body_hash(&base.content, span, &base.language));
 }

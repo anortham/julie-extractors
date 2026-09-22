@@ -55,7 +55,7 @@ fn extract_identifier_from_node(
                 && target.kind() == "identifier"
             {
                 let name = base.get_node_text(&target);
-                if is_definition_keyword(&name) {
+                if is_definition_keyword(&name) || super::helpers::is_definition_head(base, &node) {
                     return;
                 }
                 let containing = find_containing_symbol_id(node, containing_symbols);
@@ -262,10 +262,13 @@ fn is_elixir_value_read_identifier(base: &BaseExtractor, node: Node) -> bool {
             {
                 return false;
             }
-            // Crossing into a body context: do-blocks, stab bodies, or the
-            // keyword list carrying `do:`/`else:` bodies. Anything past these
-            // is an ordinary value slot.
-            "do_block" | "body" | "keywords" | "source" => return true,
+            // Crossing into a body context: do-blocks, stab bodies, or a call's
+            // keyword arguments carrying `do:`/`else:` bodies. A keyword list
+            // inside a head map pattern is still part of the head.
+            "do_block" | "body" | "source" => return true,
+            "keywords" if current.parent().is_some_and(|p| p.kind() == "arguments") => {
+                return true;
+            }
             _ => {}
         }
         prev = current;

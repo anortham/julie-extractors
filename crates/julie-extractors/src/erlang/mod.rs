@@ -82,26 +82,34 @@ fn merge_declarations<'tree>(
     declarations
 }
 
-/// Declarations to walk for identifiers and relationships: those not already
-/// covered by an earlier declaration.
+/// A declaration paired with the byte offset where its own text ends.
 ///
 /// A damaged parse can leave a `fun_decl` that swallows the forms after it while
-/// recovery also rescues one of those forms precisely. Both are real symbols, but
-/// walking both would attribute the overlapping bytes twice. Top-level forms in a
-/// clean file never overlap, so this is the identity there.
-fn walkable<'tree>(declarations: &[Node<'tree>]) -> Vec<Node<'tree>> {
-    let mut walkable = Vec::with_capacity(declarations.len());
-    let mut covered_end = 0;
+/// recovery also rescues those forms precisely. The rescued forms own their
+/// bytes, so the damaged node ends where the next declaration starts. Top-level
+/// forms in a clean file never overlap, so there `end` is the node's own end.
+#[derive(Clone, Copy)]
+pub(super) struct Bounded<'tree> {
+    pub(super) node: Node<'tree>,
+    pub(super) end: usize,
+}
 
-    for declaration in declarations {
-        if declaration.end_byte() <= covered_end {
-            continue;
-        }
-        covered_end = declaration.end_byte();
-        walkable.push(*declaration);
-    }
+fn bounded<'tree>(declarations: &[Node<'tree>]) -> Vec<Bounded<'tree>> {
+    (0..declarations.len())
+        .map(|index| Bounded {
+            node: declarations[index],
+            end: bounded_end(declarations, index),
+        })
+        .collect()
+}
 
-    walkable
+fn bounded_end(declarations: &[Node], index: usize) -> usize {
+    let node = declarations[index];
+    declarations
+        .get(index + 1)
+        .map(|next| next.start_byte())
+        .filter(|&next_start| next_start < node.end_byte())
+        .unwrap_or(node.end_byte())
 }
 
 pub struct ErlangExtractor {
@@ -114,6 +122,9 @@ pub struct ErlangExtractor {
     pub(crate) exports_everything: bool,
     /// Which test frameworks, if any, own this module.
     pub(crate) test_module: ErlangTestModule,
+    /// Common Test case names listed by literal `all/0` and `groups/0` bodies;
+    /// `None` when the suite computes them, so the export rule applies.
+    pub(crate) common_test_cases: Option<HashSet<String>>,
     /// Declared `-spec`, `-callback`, `-type` and `-opaque` forms.
     declared_types: types::DeclaredTypes,
     /// Re-parses produced by [`recovery`] for a file with parse errors. Owned
@@ -135,6 +146,7 @@ impl ErlangExtractor {
             exported_types: HashSet::new(),
             exports_everything: false,
             test_module: ErlangTestModule::default(),
+            common_test_cases: None,
             declared_types: types::DeclaredTypes::default(),
             recovery: None,
         }
@@ -176,6 +188,7 @@ impl ErlangExtractor {
     fn extract_symbols_from(&mut self, declarations: &[Node]) -> Vec<Symbol> {
         self.collect_exports(declarations);
         self.test_module = self.classify_test_module(declarations);
+        self.common_test_cases = self.common_test_cases(declarations);
         self.declared_types = types::collect(&self.base, declarations);
         let same_file_records = type_facts::same_file_record_names(&self.base, declarations);
 
@@ -212,8 +225,9 @@ impl ErlangExtractor {
                     {
                         let clause_count =
                             clause_counts.get(&clause.identity).copied().unwrap_or(1);
-                        let clauses = self.clause_run(declarations, index, &clause.identity);
-                        if let Some(extent) = self.clause_run_extent(clauses) {
+                        let run = self.clause_run(declarations, index, &clause.identity);
+                        let clauses: Vec<Node> = run.iter().map(|&i| declarations[i]).collect();
+                        if let Some(extent) = self.clause_run_extent(declarations, &run) {
                             symbols.extend(definition_forms::extract_function(
                                 self,
                                 declaration,
@@ -221,7 +235,7 @@ impl ErlangExtractor {
                                 &clause,
                                 clause_count,
                                 parent_id,
-                                clauses,
+                                &clauses,
                                 &same_file_records,
                             ));
                         }
@@ -243,7 +257,7 @@ impl ErlangExtractor {
     /// calls, `-behaviour`, `-include`/`-include_lib`, and `-import`.
     pub fn extract_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {
         self.with_declarations(tree, |extractor, declarations| {
-            relationships::extract_relationships(extractor, &walkable(declarations), symbols)
+            relationships::extract_relationships(extractor, &bounded(declarations), symbols)
         })
     }
 
@@ -261,7 +275,7 @@ impl ErlangExtractor {
     /// references from function clauses and macro bodies.
     pub fn extract_identifiers(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Identifier> {
         self.with_declarations(tree, |extractor, declarations| {
-            identifiers::extract_identifiers(extractor, &walkable(declarations), symbols)
+            identifiers::extract_identifiers(extractor, &bounded(declarations), symbols)
         })
     }
 
@@ -346,6 +360,88 @@ impl ErlangExtractor {
         ErlangTestModule::classify(&module_name, includes_eunit)
     }
 
+    /// Test case names a Common Test suite lists in `all/0` and `groups/0`.
+    /// Each must return a literal list; `{group, G}` entries name groups, not
+    /// cases, and `{testcase, Name, ...}` names a case.
+    fn common_test_cases(&self, declarations: &[Node]) -> Option<HashSet<String>> {
+        if !self.test_module.is_common_test() {
+            return None;
+        }
+        let mut cases = HashSet::new();
+        let all = self.literal_list_body(declarations, "all")?;
+        self.collect_case_entries(&all, &mut cases);
+        if declarations
+            .iter()
+            .any(|declaration| self.is_zero_arity_function(declaration, "groups"))
+        {
+            let groups = self.literal_list_body(declarations, "groups")?;
+            for group in named_children(&groups) {
+                if group.kind() == "tuple"
+                    && let Some(members) = named_children(&group)
+                        .into_iter()
+                        .rfind(|child| child.kind() == "list")
+                {
+                    self.collect_case_entries(&members, &mut cases);
+                }
+            }
+        }
+        Some(cases)
+    }
+
+    fn collect_case_entries(&self, list: &Node, cases: &mut HashSet<String>) {
+        for entry in named_children(list) {
+            match entry.kind() {
+                "atom" => {
+                    cases.insert(helpers::unquote_atom(&self.base.get_node_text(&entry)));
+                }
+                "tuple" => {
+                    let parts = named_children(&entry);
+                    let tag = parts
+                        .first()
+                        .map(|tag| helpers::unquote_atom(&self.base.get_node_text(tag)));
+                    if tag.as_deref() == Some("testcase")
+                        && let Some(name) = parts.get(1).filter(|name| name.kind() == "atom")
+                    {
+                        cases.insert(helpers::unquote_atom(&self.base.get_node_text(name)));
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    fn is_zero_arity_function(&self, declaration: &Node, name: &str) -> bool {
+        declaration.kind() == "fun_decl"
+            && definition_forms::function_clause(self, declaration)
+                .is_some_and(|clause| clause.identity == (name.to_string(), 0))
+    }
+
+    /// The list a single-clause zero-arity function returns, when its whole
+    /// body is that literal list.
+    fn literal_list_body<'tree>(
+        &self,
+        declarations: &[Node<'tree>],
+        name: &str,
+    ) -> Option<Node<'tree>> {
+        let mut functions = declarations
+            .iter()
+            .filter(|declaration| self.is_zero_arity_function(declaration, name));
+        let function = functions.next()?;
+        if functions.next().is_some() {
+            return None;
+        }
+        let clauses = named_children(function);
+        let [clause] = clauses.as_slice() else {
+            return None;
+        };
+        let body = clause.child_by_field_name("body")?;
+        let exprs = named_children(&body);
+        match exprs.as_slice() {
+            [list] if list.kind() == "list" => Some(*list),
+            _ => None,
+        }
+    }
+
     fn declares_export_all(&self, declaration: &Node) -> bool {
         fn option_atoms(base: &BaseExtractor, node: &Node, atoms: &mut Vec<String>) {
             for child in named_children(node) {
@@ -362,41 +458,36 @@ impl ErlangExtractor {
         atoms.iter().any(|atom| atom == EXPORT_ALL_OPTION)
     }
 
-    /// Span of a whole function: from the `fun_decl` at `first` through the end
-    /// of the last clause in the contiguous sibling run that shares its
-    /// name/arity.
+    /// Indices of the `fun_decl` clauses starting at `first` that share one
+    /// name/arity identity.
     ///
     /// Erlang requires a function's clauses to be adjacent, so the run ends at
-    /// the first declaration that is not another clause of the same function.
-    /// Without this the symbol would cover clause one alone, and its body hash
-    /// would not move when a later clause changed.
-    /// The consecutive `fun_decl` siblings starting at `first` that share one
-    /// name/arity identity.
-    fn clause_run<'a, 'tree>(
-        &self,
-        declarations: &'a [Node<'tree>],
-        first: usize,
-        identity: &NameArity,
-    ) -> &'a [Node<'tree>] {
-        let run = declarations.get(first..).unwrap_or_default();
-        let same_identity = run
-            .iter()
-            .skip(1)
-            .take_while(|declaration| {
-                declaration.kind() == "fun_decl"
-                    && definition_forms::function_clause(self, declaration)
-                        .is_some_and(|clause| &clause.identity == identity)
-            })
-            .count();
-        &run[..(same_identity + 1).min(run.len())]
+    /// the first declaration that is neither a comment nor another clause of the
+    /// same function. Without this the symbol would cover clause one alone, and
+    /// its body hash would not move when a later clause changed.
+    fn clause_run(&self, declarations: &[Node], first: usize, identity: &NameArity) -> Vec<usize> {
+        let mut run = vec![first];
+        for (index, declaration) in declarations.iter().enumerate().skip(first + 1) {
+            match declaration.kind() {
+                "comment" => {}
+                "fun_decl"
+                    if definition_forms::function_clause(self, declaration)
+                        .is_some_and(|clause| &clause.identity == identity) =>
+                {
+                    run.push(index);
+                }
+                _ => break,
+            }
+        }
+        run
     }
 
-    fn clause_run_extent(&self, clauses: &[Node]) -> Option<NormalizedSpan> {
-        let start_byte = clauses.first()?.start_byte();
-        let end_byte = clauses
-            .iter()
-            .map(|declaration| declaration.end_byte())
-            .max()?;
+    /// Span from the first clause through the end of the last one, where a
+    /// damaged clause ends before the next declaration recovery rescued.
+    fn clause_run_extent(&self, declarations: &[Node], run: &[usize]) -> Option<NormalizedSpan> {
+        let start_byte = declarations.get(*run.first()?)?.start_byte();
+        let bound = bounded_end(declarations, *run.last()?);
+        let end_byte = start_byte + self.base.content.get(start_byte..bound)?.trim_end().len();
 
         NormalizedSpan::from_content_range_with_line_starts(
             &self.base.content,
@@ -423,10 +514,10 @@ impl ErlangExtractor {
         declarations
             .iter()
             .filter(|declaration| declaration.kind() == "wild_attribute")
-            .find(|declaration| {
+            .filter(|declaration| {
                 wild_attribute_name(&self.base, declaration).as_deref()
                     == Some(MODULE_DOC_ATTRIBUTE)
             })
-            .and_then(|declaration| doc::module_doc_text(self, declaration))
+            .find_map(|declaration| doc::module_doc_text(self, declaration))
     }
 }

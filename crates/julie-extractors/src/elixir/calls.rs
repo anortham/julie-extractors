@@ -77,10 +77,10 @@ pub(super) fn dispatch_call(
             definition_forms::extract_defexception(extractor, node, symbols, parent_id)
         }
         "defoverridable" => definition_forms::extract_defoverridable(extractor, node, parent_id),
-        "import" => extract_import_call(extractor, node, parent_id),
-        "use" => extract_use_call(extractor, node, parent_id),
-        "alias" => extract_alias_call(extractor, node, parent_id),
-        "require" => extract_require_call(extractor, node, parent_id),
+        "import" => extract_import_call(extractor, node, symbols, parent_id),
+        "use" => extract_use_call(extractor, node, symbols, parent_id),
+        "alias" => extract_alias_call(extractor, node, symbols, parent_id),
+        "require" => extract_require_call(extractor, node, symbols, parent_id),
         "test" => test_calls::extract_test(extractor, node, parent_id),
         "describe" => test_calls::extract_describe(extractor, node, symbols, parent_id, depth),
         "setup" | "setup_all" => {
@@ -101,7 +101,11 @@ fn extract_defmodule(
     parent_id: Option<&str>,
     depth: u32,
 ) -> Option<(Symbol, bool)> {
-    let module_name = helpers::extract_module_name(&extractor.base, node)?;
+    let declared_name = helpers::extract_module_name(&extractor.base, node)?;
+    let module_name = match extractor.module_stack.last() {
+        Some(parent) => format!("{parent}.{declared_name}"),
+        None => declared_name,
+    };
 
     let signature = format!("defmodule {}", module_name);
     let doc_comment = attributes::extract_moduledoc_for_module(&extractor.base, node);
@@ -159,7 +163,7 @@ fn extract_def(
         Some(p) => format!("def {}{}", fn_name, p),
         None => format!("def {}", fn_name),
     };
-    let doc_comment = attributes::extract_doc_comment_for_node(&extractor.base, node, &["doc"]);
+    let doc_comment = attributes::extract_doc_comment_for_node(&extractor.base, node, "doc");
     let annotations = normalize_annotations(
         &attributes::collect_preceding_annotations(&extractor.base, node, &["doc", "spec", "impl"]),
         "elixir",
@@ -181,7 +185,7 @@ fn extract_def(
     );
     let metadata = (!test_metadata.is_empty()).then_some(test_metadata);
 
-    let symbol = extractor.base.create_symbol(
+    let mut symbol = extractor.base.create_symbol(
         node,
         fn_name,
         SymbolKind::Function,
@@ -193,6 +197,11 @@ fn extract_def(
             doc_comment,
             annotations,
         },
+    );
+    helpers::set_body_span(
+        &extractor.base,
+        &mut symbol,
+        helpers::definition_body(&extractor.base, node),
     );
     extract_callable_bindings(extractor, node, &symbol.id, symbols, depth);
     Some((symbol, false))
@@ -221,7 +230,7 @@ fn extract_defmacro(
         Some(p) => format!("{} {}{}", keyword, macro_name, p),
         None => format!("{} {}", keyword, macro_name),
     };
-    let doc_comment = attributes::extract_doc_comment_for_node(&extractor.base, node, &["doc"]);
+    let doc_comment = attributes::extract_doc_comment_for_node(&extractor.base, node, "doc");
     let annotations = normalize_annotations(
         &attributes::collect_preceding_annotations(&extractor.base, node, &["doc", "spec", "impl"]),
         "elixir",
@@ -230,7 +239,7 @@ fn extract_defmacro(
     let mut metadata = HashMap::new();
     metadata.insert("macro".to_string(), Value::Bool(true));
 
-    let symbol = extractor.base.create_symbol(
+    let mut symbol = extractor.base.create_symbol(
         node,
         macro_name,
         SymbolKind::Function,
@@ -242,6 +251,11 @@ fn extract_defmacro(
             doc_comment,
             annotations,
         },
+    );
+    helpers::set_body_span(
+        &extractor.base,
+        &mut symbol,
+        helpers::definition_body(&extractor.base, node),
     );
     extract_callable_bindings(extractor, node, &symbol.id, symbols, depth);
     Some((symbol, false))
@@ -332,7 +346,7 @@ fn extract_defimpl(
     } else {
         format!("defimpl {}, for: {}", protocol_name, for_type)
     };
-    let doc_comment = attributes::extract_doc_comment_for_node(&extractor.base, node, &["doc"]);
+    let doc_comment = attributes::extract_doc_comment_for_node(&extractor.base, node, "doc");
 
     let mut metadata = HashMap::new();
     metadata.insert("protocol_impl".to_string(), Value::Bool(true));
@@ -388,7 +402,7 @@ fn extract_defstruct(
         .cloned()
         .unwrap_or_else(|| "Struct".to_string());
 
-    let field_names: Vec<&str> = fields.iter().map(|(n, _, _)| n.as_str()).collect();
+    let field_names: Vec<&str> = fields.iter().map(|(n, _)| n.as_str()).collect();
     let signature = format!("defstruct [{}]", field_names.join(", "));
 
     let symbol = extractor.base.create_symbol(
@@ -407,11 +421,9 @@ fn extract_defstruct(
 
     let sym_id = symbol.id.clone();
 
-    // Create field symbols as children — use the parent (defstruct) node for location
-    // since we don't carry Node references for individual atoms
-    for (field_name, _start_byte, _end_byte) in &fields {
+    for (field_name, field_node) in &fields {
         let field_sym = extractor.base.create_symbol(
-            node,
+            field_node,
             field_name.clone(),
             SymbolKind::Field,
             SymbolOptions {
@@ -436,57 +448,79 @@ fn extract_defstruct(
 fn extract_import_call(
     extractor: &mut ElixirExtractor,
     node: &Node,
+    symbols: &mut Vec<Symbol>,
     parent_id: Option<&str>,
 ) -> Option<(Symbol, bool)> {
-    extract_directive(extractor, node, parent_id, "import")
+    extract_directive(extractor, node, symbols, parent_id, "import")
 }
 
 fn extract_use_call(
     extractor: &mut ElixirExtractor,
     node: &Node,
+    symbols: &mut Vec<Symbol>,
     parent_id: Option<&str>,
 ) -> Option<(Symbol, bool)> {
-    extract_directive(extractor, node, parent_id, "use")
+    extract_directive(extractor, node, symbols, parent_id, "use")
 }
 
 fn extract_alias_call(
     extractor: &mut ElixirExtractor,
     node: &Node,
+    symbols: &mut Vec<Symbol>,
     parent_id: Option<&str>,
 ) -> Option<(Symbol, bool)> {
-    extract_directive(extractor, node, parent_id, "alias")
+    extract_directive(extractor, node, symbols, parent_id, "alias")
 }
 
 fn extract_require_call(
     extractor: &mut ElixirExtractor,
     node: &Node,
+    symbols: &mut Vec<Symbol>,
     parent_id: Option<&str>,
 ) -> Option<(Symbol, bool)> {
-    extract_directive(extractor, node, parent_id, "require")
+    extract_directive(extractor, node, symbols, parent_id, "require")
 }
 
 fn extract_directive(
     extractor: &mut ElixirExtractor,
     node: &Node,
+    symbols: &mut Vec<Symbol>,
     parent_id: Option<&str>,
     keyword: &str,
 ) -> Option<(Symbol, bool)> {
-    let target = helpers::extract_import_target(&extractor.base, node)?;
-    let signature = format!("{} {}", keyword, extractor.base.get_node_text(node).trim());
-
-    let symbol = extractor.base.create_symbol(
-        node,
-        target,
-        SymbolKind::Import,
-        SymbolOptions {
-            signature: Some(signature),
-            visibility: Some(Visibility::Public),
-            parent_id: parent_id.map(String::from),
-            metadata: None,
-            doc_comment: None,
-            annotations: Vec::new(),
-        },
-    );
-
-    Some((symbol, false))
+    let signature = extractor.base.get_node_text(node).trim().to_string();
+    let explicit_alias = helpers::extract_keyword_value(&extractor.base, node, "as");
+    let mut imports = helpers::directive_modules(&extractor.base, node)
+        .into_iter()
+        .map(|module| {
+            let local_name = match (&explicit_alias, keyword) {
+                (Some(alias), _) => Some(alias.clone()),
+                (None, "alias") => module.rsplit('.').next().map(str::to_string),
+                _ => None,
+            };
+            let metadata = local_name
+                .map(|alias| HashMap::from([("alias".to_string(), Value::String(alias))]));
+            let mut symbol = extractor.base.create_symbol(
+                node,
+                module,
+                SymbolKind::Import,
+                SymbolOptions {
+                    signature: Some(signature.clone()),
+                    visibility: Some(Visibility::Public),
+                    parent_id: parent_id.map(String::from),
+                    metadata,
+                    doc_comment: None,
+                    annotations: Vec::new(),
+                },
+            );
+            helpers::set_body_span(&extractor.base, &mut symbol, None);
+            symbol
+        })
+        .collect::<Vec<_>>();
+    if imports.is_empty() {
+        return None;
+    }
+    let first = imports.remove(0);
+    symbols.extend(imports);
+    Some((first, false))
 }

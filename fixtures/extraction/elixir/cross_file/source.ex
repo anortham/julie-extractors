@@ -1,8 +1,8 @@
 # Phase 4a fixture: cross-module call. `Router.match` lives in
 # Phoenix.Router; the elixir extractor must emit a
 # StructuredPendingRelationship with target.terminal_name="match" and
-# target.namespace_path=["Phoenix","Router"]. The intra-module call to
-# local_helper() resolves concretely.
+# target.namespace_path=["Phoenix.Router"] (the expanded alias, one segment).
+# The intra-module call to local_helper() resolves concretely.
 
 defmodule Fixture.Worker do
   alias Phoenix.Router

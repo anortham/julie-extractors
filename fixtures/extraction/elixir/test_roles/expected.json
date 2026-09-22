@@ -45,7 +45,7 @@
       "end_byte": 45,
       "body_span": null,
       "body_hash": null,
-      "signature": "use use ExUnit.Case",
+      "signature": "use ExUnit.Case",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/elixir/test_roles/source.ex:CalculatorTest:1:0",
@@ -216,26 +216,7 @@
       "content_type": null
     }
   ],
-  "relationships": [
-    {
-      "from_key": "fixtures/extraction/elixir/test_roles/source.ex:verify_addition:14:2",
-      "to_key": "fixtures/extraction/elixir/test_roles/source.ex:verify_addition:14:2",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/elixir/test_roles/source.ex",
-      "line_number": 14,
-      "span": {
-        "start_line": 14,
-        "start_column": 6,
-        "end_line": 14,
-        "end_column": 28,
-        "start_byte": 207,
-        "end_byte": 229
-      },
-      "reference_site_is_exact": false,
-      "confidence": "0.900",
-      "metadata": null
-    }
-  ],
+  "relationships": [],
   "pending_relationships": [
     {
       "from_key": "fixtures/extraction/elixir/test_roles/source.ex:CalculatorTest:1:0",
@@ -244,6 +225,14 @@
       "file_path": "fixtures/extraction/elixir/test_roles/source.ex",
       "line_number": 2,
       "confidence": "0.800"
+    },
+    {
+      "from_key": "fixtures/extraction/elixir/test_roles/source.ex:adds two numbers:9:4",
+      "callee_name": "assert",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/elixir/test_roles/source.ex",
+      "line_number": 10,
+      "confidence": "0.700"
     }
   ],
   "structured_pending_relationships": [
@@ -258,11 +247,9 @@
       },
       "target": {
         "display_name": "ExUnit.Case",
-        "terminal_name": "Case",
+        "terminal_name": "ExUnit.Case",
         "receiver": null,
-        "namespace_path": [
-          "ExUnit"
-        ],
+        "namespace_path": [],
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/elixir/test_roles/source.ex:CalculatorTest:1:0",
@@ -273,6 +260,32 @@
         "end_column": 17,
         "start_byte": 30,
         "end_byte": 45
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/elixir/test_roles/source.ex:adds two numbers:9:4",
+        "callee_name": "assert",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/elixir/test_roles/source.ex",
+        "line_number": 10,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "assert",
+        "terminal_name": "assert",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/elixir/test_roles/source.ex:adds two numbers:9:4",
+      "span": {
+        "start_line": 10,
+        "start_column": 6,
+        "end_line": 10,
+        "end_column": 27,
+        "start_byte": 164,
+        "end_byte": 185
       }
     }
   ],
@@ -386,22 +399,6 @@
       "start_byte": 148,
       "end_byte": 153,
       "containing_key": "fixtures/extraction/elixir/test_roles/source.ex:adds two numbers:9:4",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/elixir/test_roles/source.ex:verify_addition:call:14:6",
-      "name": "verify_addition",
-      "kind": "call",
-      "language": "elixir",
-      "file_path": "fixtures/extraction/elixir/test_roles/source.ex",
-      "start_line": 14,
-      "start_column": 6,
-      "end_line": 14,
-      "end_column": 21,
-      "start_byte": 207,
-      "end_byte": 222,
-      "containing_key": "fixtures/extraction/elixir/test_roles/source.ex:verify_addition:14:2",
       "target_key": null,
       "confidence": "1.000"
     }

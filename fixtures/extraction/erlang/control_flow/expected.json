@@ -354,7 +354,7 @@
       },
       "body_hash": "5b82c6e8c44a404d72037a9a0ef3049e",
       "signature": "-module(flow)",
-      "doc_comment": "%% Branch and literal fixture. Erlang spells every branch inside an expression,\n%% so the golden carries the whole set at once:\n%%\n%%   decisions - case/if/try/receive containers and their arms, the old-style\n%%               `catch Expr`, and each `;`-separated guard alternative, in a\n%%               clause head as well as in an arm\n%%   loops     - list and binary comprehensions; Erlang has no loop statement\n%%   literals  - string arguments of a call, carried by the verbatim callee:\n%%               `io:format` for a remote call, `audit` for a local one\n%%\n%% Negative controls in the same file: handle/1 branches nowhere, so its metric\n%% must be all zeros, and the `-moduledoc` and `-include_lib` strings are\n%% declaration text rather than call arguments, so neither may become a literal.",
+      "doc_comment": "Branch shapes measured by the complexity metric.",
       "visibility": "Public",
       "parent_key": null,
       "metadata": {},
@@ -664,7 +664,10 @@
       "end_byte": 1200,
       "containing_key": "fixtures/extraction/erlang/control_flow/source.erl:classify:21:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "io"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/control_flow/source.erl:format:call:36:35",
@@ -680,7 +683,10 @@
       "end_byte": 1437,
       "containing_key": "fixtures/extraction/erlang/control_flow/source.erl:serve:30:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "io"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/control_flow/source.erl:handle:call:33:16",

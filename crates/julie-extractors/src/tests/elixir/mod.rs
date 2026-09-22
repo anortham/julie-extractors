@@ -6,6 +6,7 @@ mod structural_facts;
 mod test_detection; // describe→test_container + setup/setup_all lifecycle
 mod type_arguments;
 mod type_facts;
+mod wave1_gaps;
 
 #[cfg(test)]
 mod elixir_tests {
@@ -635,14 +636,14 @@ end"#;
             (
                 "MyApp.Behaviours.Controller",
                 crate::base::RelationshipKind::Implements,
-                "Controller",
-                vec!["MyApp", "Behaviours"],
+                "MyApp.Behaviours.Controller",
+                Vec::<&str>::new(),
             ),
             (
                 "Phoenix.Router",
                 crate::base::RelationshipKind::Uses,
-                "Router",
-                vec!["Phoenix"],
+                "Phoenix.Router",
+                Vec::<&str>::new(),
             ),
         ] {
             let pending = structured

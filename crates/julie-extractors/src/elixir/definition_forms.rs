@@ -27,7 +27,7 @@ pub(super) fn extract_defguard(
     let mut metadata = HashMap::new();
     metadata.insert("guard".to_string(), Value::Bool(true));
 
-    let symbol = extractor.base.create_symbol(
+    let mut symbol = extractor.base.create_symbol(
         node,
         fn_name,
         SymbolKind::Function,
@@ -36,9 +36,14 @@ pub(super) fn extract_defguard(
             visibility: Some(visibility),
             parent_id: parent_id.map(String::from),
             metadata: Some(metadata),
-            doc_comment: attributes::extract_doc_comment_for_node(&extractor.base, node, &["doc"]),
+            doc_comment: attributes::extract_doc_comment_for_node(&extractor.base, node, "doc"),
             annotations,
         },
+    );
+    helpers::set_body_span(
+        &extractor.base,
+        &mut symbol,
+        helpers::definition_body(&extractor.base, node),
     );
     Some((symbol, false))
 }
@@ -60,7 +65,7 @@ pub(super) fn extract_defdelegate(
     let mut metadata = HashMap::new();
     metadata.insert("delegate".to_string(), Value::Bool(true));
 
-    let symbol = extractor.base.create_symbol(
+    let mut symbol = extractor.base.create_symbol(
         node,
         fn_name,
         SymbolKind::Delegate,
@@ -69,10 +74,11 @@ pub(super) fn extract_defdelegate(
             visibility: Some(Visibility::Public),
             parent_id: parent_id.map(String::from),
             metadata: Some(metadata),
-            doc_comment: attributes::extract_doc_comment_for_node(&extractor.base, node, &["doc"]),
+            doc_comment: attributes::extract_doc_comment_for_node(&extractor.base, node, "doc"),
             annotations,
         },
     );
+    helpers::set_body_span(&extractor.base, &mut symbol, None);
     Some((symbol, false))
 }
 
@@ -88,7 +94,7 @@ pub(super) fn extract_defexception(
         .last()
         .cloned()
         .unwrap_or_else(|| "Exception".to_string());
-    let field_names: Vec<&str> = fields.iter().map(|(n, _, _)| n.as_str()).collect();
+    let field_names: Vec<&str> = fields.iter().map(|(n, _)| n.as_str()).collect();
     let signature = format!("defexception [{}]", field_names.join(", "));
     let annotations = normalize_annotations(
         &attributes::collect_preceding_annotations(&extractor.base, node, &["doc"]),
@@ -106,15 +112,15 @@ pub(super) fn extract_defexception(
             visibility: Some(Visibility::Public),
             parent_id: parent_id.map(String::from),
             metadata: Some(metadata),
-            doc_comment: attributes::extract_doc_comment_for_node(&extractor.base, node, &["doc"]),
+            doc_comment: attributes::extract_doc_comment_for_node(&extractor.base, node, "doc"),
             annotations,
         },
     );
 
     let sym_id = symbol.id.clone();
-    for (field_name, _start_byte, _end_byte) in &fields {
+    for (field_name, field_node) in &fields {
         let field_sym = extractor.base.create_symbol(
-            node,
+            field_node,
             field_name.clone(),
             SymbolKind::Field,
             SymbolOptions {
@@ -150,7 +156,7 @@ pub(super) fn extract_defoverridable(
             visibility: Some(Visibility::Public),
             parent_id: parent_id.map(String::from),
             metadata: Some(metadata),
-            doc_comment: attributes::extract_doc_comment_for_node(&extractor.base, node, &["doc"]),
+            doc_comment: attributes::extract_doc_comment_for_node(&extractor.base, node, "doc"),
             annotations: Vec::new(),
         },
     );

@@ -1132,6 +1132,24 @@
   ],
   "relationships": [
     {
+      "from_key": "fixtures/extraction/erlang/basic/source.erl:audit:39:0",
+      "to_key": "fixtures/extraction/erlang/basic/source.erl:LOG:13:0",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "line_number": 40,
+      "span": {
+        "start_line": 40,
+        "start_column": 5,
+        "end_line": 40,
+        "end_column": 8,
+        "start_byte": 993,
+        "end_byte": 996
+      },
+      "reference_site_is_exact": true,
+      "confidence": "0.900",
+      "metadata": null
+    },
+    {
       "from_key": "fixtures/extraction/erlang/basic/source.erl:balance_test:51:0",
       "to_key": "fixtures/extraction/erlang/basic/source.erl:balance:30:0",
       "kind": "calls",
@@ -1144,6 +1162,24 @@
         "end_column": 15,
         "start_byte": 1271,
         "end_byte": 1278
+      },
+      "reference_site_is_exact": true,
+      "confidence": "0.900",
+      "metadata": null
+    },
+    {
+      "from_key": "fixtures/extraction/erlang/basic/source.erl:history:44:0",
+      "to_key": "fixtures/extraction/erlang/basic/source.erl:balance:30:0",
+      "kind": "references",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "line_number": 47,
+      "span": {
+        "start_line": 47,
+        "start_column": 17,
+        "end_line": 47,
+        "end_column": 24,
+        "start_byte": 1159,
+        "end_byte": 1166
       },
       "reference_site_is_exact": true,
       "confidence": "0.900",
@@ -1174,6 +1210,14 @@
       "file_path": "fixtures/extraction/erlang/basic/source.erl",
       "line_number": 10,
       "confidence": "0.900"
+    },
+    {
+      "from_key": "fixtures/extraction/erlang/basic/source.erl:history:44:0",
+      "callee_name": "erlang:length",
+      "kind": "references",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "line_number": 48,
+      "confidence": "0.700"
     },
     {
       "from_key": "fixtures/extraction/erlang/basic/source.erl:history:44:0",
@@ -1271,6 +1315,34 @@
         "end_column": 13,
         "start_byte": 274,
         "end_byte": 279
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/erlang/basic/source.erl:history:44:0",
+        "callee_name": "erlang:length",
+        "kind": "references",
+        "file_path": "fixtures/extraction/erlang/basic/source.erl",
+        "line_number": 48,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "erlang:length",
+        "terminal_name": "length",
+        "receiver": null,
+        "namespace_path": [
+          "erlang"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/erlang/basic/source.erl:history:44:0",
+      "span": {
+        "start_line": 48,
+        "start_column": 23,
+        "end_line": 48,
+        "end_column": 29,
+        "start_byte": 1193,
+        "end_byte": 1199
       }
     },
     {
@@ -1521,7 +1593,10 @@
       "end_byte": 784,
       "containing_key": "fixtures/extraction/erlang/basic/source.erl:balance:30:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "account"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/basic/source.erl:balance:member_access:34:17",
@@ -1537,7 +1612,10 @@
       "end_byte": 867,
       "containing_key": "fixtures/extraction/erlang/basic/source.erl:deposit:33:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "account"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/basic/source.erl:balance:member_access:34:40",
@@ -1553,7 +1631,10 @@
       "end_byte": 890,
       "containing_key": "fixtures/extraction/erlang/basic/source.erl:deposit:33:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "account"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/basic/source.erl:balance:variable_ref:47:17",
@@ -1617,7 +1698,10 @@
       "end_byte": 354,
       "containing_key": "fixtures/extraction/erlang/basic/source.erl:LOG:13:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "io"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/basic/source.erl:id:member_access:27:13",
@@ -1633,7 +1717,10 @@
       "end_byte": 704,
       "containing_key": "fixtures/extraction/erlang/basic/source.erl:open:26:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "account"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/basic/source.erl:id:member_access:45:32",
@@ -1649,7 +1736,10 @@
       "end_byte": 1112,
       "containing_key": "fixtures/extraction/erlang/basic/source.erl:history:44:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "account"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/basic/source.erl:id:member_access:52:25",
@@ -1665,7 +1755,10 @@
       "end_byte": 1290,
       "containing_key": "fixtures/extraction/erlang/basic/source.erl:balance_test:51:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "account"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/basic/source.erl:id:member_access:60:13",
@@ -1681,7 +1774,10 @@
       "end_byte": 1380,
       "containing_key": "fixtures/extraction/erlang/basic/source.erl:go:59:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "req"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/basic/source.erl:integer:type_usage:24:11",
@@ -1777,7 +1873,10 @@
       "end_byte": 1424,
       "containing_key": "fixtures/extraction/erlang/basic/source.erl:scratch:63:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "maps"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/basic/source.erl:req:type_usage:60:9",
