@@ -88,6 +88,103 @@ In CI, the `Extractor Compatibility` job downloads the latest published release 
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
+## 3.3.0
+
+classification: compatible
+
+Qt C++ support changes the `cpp` rows. A macro pre-pass blanks the Qt macros before the parser
+reads a `.h` or `.cpp` file, so a Qt class parses for the first time, and four pre-existing C++
+defects are fixed at the same time. The SQLite schema stays 7 and the report schema stays 3, and
+every column keeps its type, so a reader built for 3.2.0 still parses the output. The row content
+moves, so a consumer that matched on the old shapes must follow the notes below. Consumers that
+already hold an artifact must rebuild it, because an unchanged file keeps its stored rows.
+
+`symbols`, new cpp `property` rows: every `Q_PROPERTY(...)` line in a class or struct body is a
+`property` symbol at the macro's own range, named by the property, parented to the innermost class
+or struct, visibility public, with the whitespace-collapsed macro text as its signature. Its
+`metadata_json` carries `property_type` and, when the macro names them, `read`, `write`, `notify`,
+`member`, `reset` and `bindable` as strings, and `constant`, `final`, `required` as booleans.
+Consumer action for code-kb: read Qt properties as `property` rows and their accessors from the
+metadata; do not look for a symbol named `Q_PROPERTY`.
+
+`symbols`, new cpp `event` rows: a method declared in a `signals:` or `Q_SIGNALS:` section, or
+prefixed by `Q_SIGNAL`, is a `event` row instead of a `method` row. Visibility is public, as Qt
+defines a signals section. Consumer action for code-kb: accept `event` as a cpp symbol kind in
+skeletons and search, and expect a Qt signal not to appear in a `method` query.
+
+`symbols.metadata_json`, new cpp keys: a method in a `slots:` or `Q_SLOTS:` section or prefixed by
+`Q_SLOT` carries `qt_slot: true`; a method prefixed by `Q_INVOKABLE` carries `qt_invokable: true`.
+A class or struct carries `qt_object: true` for `Q_OBJECT`, `qt_gadget: true` for `Q_GADGET`,
+`qml_element` and `qml_singleton`, `qml_anonymous` and `qml_attached` for the matching `QML_*`
+macros, and `qml_uncreatable` for `QML_UNCREATABLE`. A `QML_ELEMENT` with no argument names the
+class itself. A macro outside a class body sets nothing. Consumer action for code-kb: none required,
+the keys are additions; read them to tell a QML-exposed class from a plain one.
+
+`symbols`, cpp rows that disappear: a row named `Q_PROPERTY`, and rows named after other Qt macros,
+are gone, because the macro no longer parses as a declaration — 294 such rows on the Kirigami
+corpus and 786 on plasma-workspace fall to 0. Empty-name rows for a section label are gone: 5 on
+Kirigami and 28 on plasma fall to 0. A forward declaration such as `class ColumnView;` emits no
+`class` row, because it names no new type: 57 one-line `class X` rows on Kirigami and 653 on plasma
+fall to 0. A declared constructor or destructor emits one row instead of two; the duplicate at the
+same path, name and line is gone: 43 on Kirigami and 493 on plasma fall to 0. A `Q_EMIT` or `emit`
+line emits no `variable` row. Consumer action for code-kb: a symbol count for a C++ file drops, and
+a stored id for one of these rows no longer resolves; rebuild the artifact.
+
+`symbols.signature`, cpp methods: a method declared inside a class keeps its declared return type.
+Before this release the declaration carried no type at all, and a modifier from a sibling member
+leaked onto it, so `void setIndex(int index);` beside `void paint() override;` rendered as
+`override setIndex(int index)`. The false leading `override` is gone from 412 signatures on
+Kirigami and 2,365 on plasma-workspace — 0 signatures start with `override ` on either corpus now.
+A leaked `explicit`, `static` or `virtual` from a sibling member is gone for the same reason. The
+return type is now the whole declared type: the `const` qualifier, one `*`, `&` or `&&` per pointer
+or reference wrapper, template arguments and namespace qualifiers are all kept, so a member reads
+`QQuickItem *contentItem() const`, `const QString &name() const`, `QList<int> *items()` and
+`static ColumnViewAttached *instance()`. `override` and `final` are trailing specifiers, written
+after the parameters and the `const` qualifier the way C++ writes them, never leading modifiers.
+`= 0`, `= default` and `= delete` on a method are not part of its signature; a constructor keeps
+`= default` and `= delete`. Consumer action for code-kb: re-index, and match a return type at the
+head of the signature rather than assuming a C++ member signature starts with its name.
+
+`symbols`, cpp constructor and destructor rows: both now carry the visibility of their access
+section. Before this release both were hardcoded `public`, so a `private:` constructor was reported
+public. A destructor signature no longer ends in `;`: `~ColumnViewAttached() override;` is now
+`~ColumnViewAttached() override`. Consumer action for code-kb: read the stored visibility as the
+declared one, and render a destructor signature as-is.
+
+`structural_facts`, one new pattern id: `cpp.qt_property.v1`, one fact per `Q_PROPERTY` site, with
+`capture_name` `qt_property`, `node_kind` `macro`, `containing_symbol_id` set to the enclosing class
+or struct symbol, and the same metadata keys as the property row (`property_type`, `read`, `write`,
+`notify`, `member`, `reset`, `bindable`, `constant`, `final`, `required`). Facts are emitted at
+`--level facts` and above; a `--level symbols` scan emits none. Consumer action for code-kb: none
+required, the pattern is an addition registered in `structural-fact-patterns.json`.
+
+`parse_diagnostics`, far fewer cpp rows: the Qt macros no longer produce diagnostics, because the
+pre-pass blanks them before the parse. On Kirigami, files with diagnostics fall from 70 to 12 and
+diagnostics from 981 to 31; on plasma-workspace, files fall from 649 to 77 and diagnostics from
+4,627 to 298. `src/layouts/columnview.h` in Kirigami falls from 92 diagnostics to 0. The remaining
+rows are tree-sitter-cpp grammar limits and project-local macros, not Qt vocabulary. Consumer action
+for code-kb: none required; a Qt header that was previously skipped or half-extracted now yields its
+whole symbol table, so its row count rises.
+
+`language_capabilities`, one row: the `cpp` row adds `event` and `property` to
+`kind_coverage.symbols.supported` and to `kind_coverage.body_spans.not_applicable`, and adds
+`cpp.qt_property.v1` to its structural facts. Consumer action for code-kb: none, the snapshot
+describes the row changes already listed above.
+
+`language_capability_fixtures`, one new row: `cpp`/`qt_header`. The
+`capability_snapshot_fingerprint` value in `artifact_metadata` changes with it. Consumer action for
+code-kb: none, the table lists this repository's own fixtures, and the fingerprint is per-scan
+identity a consumer does not join on.
+
+Golden fixtures: `cpp/basic` and `cpp/test_roles` changed accordingly, in `signature` and in the
+type-inference `resolved_type` that follows it. No symbol row was added or removed in either file.
+`cpp/qt_header` is new. Consumer action for code-kb: none, the fixtures are this repository's own.
+
+`EXTRACTION_CONTRACT_VERSION` gains the `.qt-cpp-v1` suffix. `EXTRACTION_IDENTITY_EPOCH` stays 10,
+as in 3.2.0: the contract version is what consumers observe, the epoch keys input identity, and no
+symbol id of an unchanged non-Qt file moves. Consumer action for code-kb: treat the new suffix as
+the drift signal that the stored artifact must be rebuilt.
+
 ## 3.2.0
 
 classification: compatible
