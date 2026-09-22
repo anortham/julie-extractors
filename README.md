@@ -116,9 +116,13 @@ publish the `fsharp` artifact language. Erlang is extracted at the full
 capability tier — symbols, relationships, pending relationships, identifiers,
 and types. XML is extracted at the data tier — symbols and identifiers — plus
 document, XSD, and WSDL structural facts. Qt C++ headers are extracted as
-`cpp`: Qt's macros are blanked before the parse, and `Q_PROPERTY`, signals,
-slots, and the `QML_*` macros become rows — see
-[Qt C++ support](docs/languages/cpp-qt.md).
+`cpp`: `Q_PROPERTY` becomes a property row and structural fact, signals become
+event rows, and slots, invokables, and `QML_*` macros publish metadata — see
+[Qt C++ support](docs/languages/cpp-qt.md). QML publishes root, inline, and
+nested object structure, binding facts, imports, and scoped relationships; QML
+JavaScript `.pragma` and `.import` directives are extracted from `.js` files —
+see [QML support](docs/languages/qml.md) and
+[JavaScript directives](docs/languages/javascript.md).
 
 Use `julie-extract languages --json` for the current parser and capability
 snapshot instead of hard-coding this list in consumers.

@@ -9,8 +9,8 @@ published.
 
 Current notes:
 
-- `v3.3.1.md` (release candidate)
-- `v3.3.0.md` (current published release)
+- `v3.3.1.md` (current published release)
+- `v3.3.0.md`
 - `v3.2.0.md`
 - `v3.1.3.md`
 - `v3.1.2.md`

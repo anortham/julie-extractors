@@ -91,6 +91,15 @@
           Spring, Ktor, Gin, Echo, Axum, Actix, ASP.NET, Nuxt, Vue, and React, plus htmx attributes, Alpine
           directives, and SQL DDL/DML shapes.
         </p>
+        <p>
+          Qt C++ is extracted through <code>cpp</code>: <code>Q_PROPERTY</code>
+          produces property rows and structural facts, signals produce event
+          rows, and slots, invokables, and <code>QML_*</code> macros publish
+          metadata. QML publishes root, inline, and nested object structure,
+          binding facts, imports, and scoped relationships. QML JavaScript
+          <code>.pragma</code> and <code>.import</code> directives are accepted
+          in <code>.js</code> files and become artifact rows.
+        </p>
       </div>
       <div class="language-cloud" aria-label="Supported languages">
         <span>bash</span><span>c</span><span>cpp</span><span>csharp</span><span>css</span><span>dart</span>
@@ -177,10 +186,10 @@
         <a href="https://github.com/anortham/julie-extractors/releases/latest" target="_blank" rel="noopener">latest release</a>.
       </p>
       <p class="metrics-note">
-        <strong>Current release: v2.43.0.</strong> It adds the <code>facts</code> extraction
-        level: the symbol core plus structural facts, literals, and type-usage and
-        member-access identifiers, for consumers that never read the text tables. Read the
-        <a href="https://github.com/anortham/julie-extractors/releases/tag/v2.43.0" target="_blank" rel="noopener">release notes</a> for details.
+        <strong>Current release: v3.3.1.</strong> It corrects QML inline-component
+        ownership, Qt macro preprocessing, Q_PROPERTY metadata, and QML JavaScript
+        directive spans. Read the
+        <a href="https://github.com/anortham/julie-extractors/releases/tag/v3.3.1" target="_blank" rel="noopener">release notes</a> for details.
       </p>
     </section>
 
