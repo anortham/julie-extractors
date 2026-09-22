@@ -26,13 +26,13 @@ use std::collections::HashMap;
 
 use tree_sitter::Node;
 
-use super::ErlangExtractor;
 use super::definition_forms;
 use super::helpers::{
     NameArity, arg_count, child_named_kinds, find_child_by_type, first_atom_text,
     function_arity_entries, named_children, unquote_atom,
 };
-use crate::base::{Identifier, IdentifierKind, Symbol};
+use super::{Bounded, ErlangExtractor};
+use crate::base::{Identifier, IdentifierKind, Symbol, SymbolKind};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 /// `(name, arity)` pairs made local by `-import(Module, [...])`, keyed to the
@@ -41,14 +41,29 @@ pub(super) type ImportedFunctions = HashMap<NameArity, String>;
 
 pub(super) fn extract_identifiers(
     extractor: &mut ErlangExtractor,
-    declarations: &[Node],
+    declarations: &[Bounded],
     symbols: &[Symbol],
 ) -> Vec<Identifier> {
-    let imports = imported_functions(extractor, declarations);
+    let nodes: Vec<Node> = declarations.iter().map(|d| d.node).collect();
+    let imports = imported_functions(extractor, &nodes);
     let containing_symbols = extractor.base.containing_symbol_index(symbols);
     let mut clause_scopes: HashMap<NameArity, Option<String>> = HashMap::new();
+    let module_name = symbols
+        .iter()
+        .find(|symbol| symbol.kind == SymbolKind::Module)
+        .map(|symbol| symbol.name.clone());
 
-    for declaration in declarations {
+    for &Bounded {
+        node: declaration,
+        end,
+    } in declarations
+    {
+        let declaration = &declaration;
+        let context = WalkContext {
+            imports: &imports,
+            module_name: module_name.as_deref(),
+            end,
+        };
         match declaration.kind() {
             "fun_decl" => {
                 let scope = function_scope(
@@ -57,11 +72,11 @@ pub(super) fn extract_identifiers(
                     &containing_symbols,
                     &mut clause_scopes,
                 );
-                walk(extractor, *declaration, scope.as_deref(), &imports, 0);
+                walk(extractor, *declaration, scope.as_deref(), &context, 0);
             }
             "spec" | "callback" | "type_alias" | "opaque" => {
                 let scope = containing_symbol_id(declaration, &containing_symbols);
-                walk_type_identifiers(extractor, *declaration, scope.as_deref(), 0);
+                walk_type_identifiers(extractor, *declaration, scope.as_deref(), end, 0);
             }
             "pp_define" => {
                 let scope = containing_symbol_id(declaration, &containing_symbols);
@@ -69,7 +84,7 @@ pub(super) fn extract_identifiers(
                     if child.kind() == "macro_lhs" {
                         continue;
                     }
-                    walk(extractor, child, scope.as_deref(), &imports, 0);
+                    walk(extractor, child, scope.as_deref(), &context, 0);
                 }
             }
             _ => {}
@@ -79,9 +94,17 @@ pub(super) fn extract_identifiers(
     extractor.base.identifiers.clone()
 }
 
+struct WalkContext<'a> {
+    imports: &'a ImportedFunctions,
+    /// The `-module` name, which `?MODULE` expands to.
+    module_name: Option<&'a str>,
+    /// Bytes from here on belong to a later, recovered declaration.
+    end: usize,
+}
+
 /// A multi-clause function is a run of sibling `fun_decl` nodes but a single
-/// symbol spanning only the first clause, so later clauses reuse the scope
-/// resolved for the first clause of the same name/arity.
+/// symbol, so later clauses reuse the scope resolved for the first clause of
+/// the same name/arity.
 fn function_scope(
     extractor: &ErlangExtractor,
     declaration: &Node,
@@ -110,20 +133,20 @@ fn walk(
     extractor: &mut ErlangExtractor,
     node: Node,
     scope: Option<&str>,
-    imports: &ImportedFunctions,
+    context: &WalkContext,
     depth: u32,
 ) {
-    if !should_visit_tree_depth(depth) {
+    if !should_visit_tree_depth(depth) || node.start_byte() >= context.end {
         return;
     }
 
-    emit_identifiers(extractor, node, scope, imports);
+    emit_identifiers(extractor, node, scope, context);
 
     let Some(child_depth) = child_tree_depth(depth) else {
         return;
     };
     for child in named_children(&node) {
-        walk(extractor, child, scope, imports, child_depth);
+        walk(extractor, child, scope, context, child_depth);
     }
 }
 
@@ -131,9 +154,10 @@ fn walk_type_identifiers(
     extractor: &mut ErlangExtractor,
     node: Node,
     scope: Option<&str>,
+    end: usize,
     depth: u32,
 ) {
-    if !should_visit_tree_depth(depth) {
+    if !should_visit_tree_depth(depth) || node.start_byte() >= end {
         return;
     }
     if node.kind() == "call"
@@ -156,7 +180,7 @@ fn walk_type_identifiers(
         return;
     };
     for child in named_children(&node) {
-        walk_type_identifiers(extractor, child, scope, next_depth);
+        walk_type_identifiers(extractor, child, scope, end, next_depth);
     }
 }
 
@@ -164,10 +188,10 @@ fn emit_identifiers(
     extractor: &mut ErlangExtractor,
     node: Node,
     scope: Option<&str>,
-    imports: &ImportedFunctions,
+    context: &WalkContext,
 ) {
     match node.kind() {
-        "call" => emit_call(extractor, node, scope, imports),
+        "call" => emit_call(extractor, node, scope, context),
         "remote" => {
             emit_module_qualifier(extractor, find_child_by_type(&node, "remote_module"), scope)
         }
@@ -192,21 +216,40 @@ fn emit_call(
     extractor: &mut ErlangExtractor,
     node: Node,
     scope: Option<&str>,
-    imports: &ImportedFunctions,
+    context: &WalkContext,
 ) {
     let Some(atom) = find_child_by_type(&node, "atom") else {
         return;
     };
     let name = unquote_atom(&extractor.base.get_node_text(&atom));
-    extractor.base.create_identifier(
-        &atom,
-        name.clone(),
-        IdentifierKind::Call,
-        scope.map(String::from),
-    );
-
     let is_remote = node.parent().map(|parent| parent.kind()) == Some("remote");
-    let carrier = call_carrier(extractor, node, &name, is_remote);
+    let module = is_remote
+        .then(|| remote_module_name(extractor, node, context.module_name))
+        .flatten();
+    match &module {
+        Some(module) => {
+            extractor.base.create_identifier_with_metadata(
+                &atom,
+                name.clone(),
+                IdentifierKind::Call,
+                scope.map(String::from),
+                receiver_metadata(module),
+            );
+        }
+        None => {
+            extractor.base.create_identifier(
+                &atom,
+                name.clone(),
+                IdentifierKind::Call,
+                scope.map(String::from),
+            );
+        }
+    }
+
+    let carrier = match &module {
+        Some(module) => format!("{module}:{name}"),
+        None => name.clone(),
+    };
     record_call_arg_literals(extractor, node, &carrier, scope);
 
     if is_remote {
@@ -215,7 +258,7 @@ fn emit_call(
     let arity = find_child_by_type(&node, "expr_args")
         .map(|args| arg_count(&args))
         .unwrap_or(0);
-    if let Some(module) = imports.get(&(name, arity)).cloned() {
+    if let Some(module) = context.imports.get(&(name, arity)).cloned() {
         extractor.base.create_identifier(
             &atom,
             module,
@@ -225,22 +268,30 @@ fn emit_call(
     }
 }
 
-/// The carrier a call's string-literal arguments are filed under: `io:format`
-/// for a remote call and the bare callee for a local, imported, or
-/// auto-imported one. A remote call whose module is a variable (`Mod:run(...)`)
-/// names no module in the source, so it falls back to the bare callee.
-fn call_carrier(extractor: &ErlangExtractor, node: Node, name: &str, is_remote: bool) -> String {
-    if !is_remote {
-        return name.to_string();
-    }
-    let module = node
+fn receiver_metadata(receiver: &str) -> HashMap<String, serde_json::Value> {
+    HashMap::from([(
+        "receiver".to_string(),
+        serde_json::Value::String(receiver.to_string()),
+    )])
+}
+
+/// The module a remote call names: its atom, or this file's module for
+/// `?MODULE`. A variable module (`Mod:run(...)`) names none.
+fn remote_module_name(
+    extractor: &ErlangExtractor,
+    call: Node,
+    module_name: Option<&str>,
+) -> Option<String> {
+    let module = call
         .parent()
-        .and_then(|remote| find_child_by_type(&remote, "remote_module"))
-        .and_then(|wrapper| find_child_by_type(&wrapper, "atom"))
-        .map(|atom| unquote_atom(&extractor.base.get_node_text(&atom)));
-    match module {
-        Some(module) => format!("{module}:{name}"),
-        None => name.to_string(),
+        .and_then(|remote| find_child_by_type(&remote, "remote_module"))?
+        .child_by_field_name("module")?;
+    match module.kind() {
+        "atom" => Some(unquote_atom(&extractor.base.get_node_text(&module))),
+        "macro_call_expr" if super::relationships::is_module_macro(extractor, &module) => {
+            module_name.map(str::to_string)
+        }
+        _ => None,
     }
 }
 
@@ -309,8 +360,10 @@ fn emit_fun_reference(extractor: &mut ErlangExtractor, node: Node, scope: Option
     );
 }
 
+/// `?NAME` reads a macro and `?NAME(...)` invokes one. The name is an atom
+/// for a lowercase macro (`?assertEqual`) and a variable for an uppercase one.
 fn emit_macro_usage(extractor: &mut ErlangExtractor, node: Node, scope: Option<&str>) {
-    let Some(var) = find_child_by_type(&node, "var") else {
+    let Some(name_node) = node.child_by_field_name("name") else {
         return;
     };
     let kind = if find_child_by_type(&node, "macro_call_args").is_some() {
@@ -318,27 +371,35 @@ fn emit_macro_usage(extractor: &mut ErlangExtractor, node: Node, scope: Option<&
     } else {
         IdentifierKind::VariableRef
     };
-    let name = extractor.base.get_node_text(&var);
+    let name = unquote_atom(&extractor.base.get_node_text(&name_node));
     extractor
         .base
-        .create_identifier(&var, name, kind, scope.map(String::from));
+        .create_identifier(&name_node, name, kind, scope.map(String::from));
 }
 
+/// Record names are type usages and fields are member accesses whose
+/// receiver is the record (`id` in `#user{id = X}` has receiver `user`).
 fn emit_record_reference(extractor: &mut ErlangExtractor, node: Node, scope: Option<&str>) {
-    emit_wrapped_atom(
-        extractor,
-        find_child_by_type(&node, "record_name"),
-        IdentifierKind::TypeUsage,
-        scope,
-    );
+    let record = find_child_by_type(&node, "record_name");
+    emit_wrapped_atom(extractor, record, IdentifierKind::TypeUsage, scope, None);
+    let record = record
+        .and_then(|wrapper| find_child_by_type(&wrapper, "atom"))
+        .map(|atom| unquote_atom(&extractor.base.get_node_text(&atom)));
     emit_wrapped_atom(
         extractor,
         find_child_by_type(&node, "record_field_name"),
         IdentifierKind::MemberAccess,
         scope,
+        record.as_deref(),
     );
     for field in child_named_kinds(&node, "record_field") {
-        emit_wrapped_atom(extractor, Some(field), IdentifierKind::MemberAccess, scope);
+        emit_wrapped_atom(
+            extractor,
+            Some(field),
+            IdentifierKind::MemberAccess,
+            scope,
+            record.as_deref(),
+        );
     }
 }
 
@@ -347,6 +408,7 @@ fn emit_wrapped_atom(
     wrapper: Option<Node>,
     kind: IdentifierKind,
     scope: Option<&str>,
+    receiver: Option<&str>,
 ) {
     let Some(wrapper) = wrapper else {
         return;
@@ -355,9 +417,21 @@ fn emit_wrapped_atom(
         return;
     };
     let name = unquote_atom(&extractor.base.get_node_text(&atom));
-    extractor
-        .base
-        .create_identifier(&atom, name, kind, scope.map(String::from));
+    let scope = scope.map(String::from);
+    match receiver {
+        Some(receiver) => {
+            extractor.base.create_identifier_with_metadata(
+                &atom,
+                name,
+                kind,
+                scope,
+                receiver_metadata(receiver),
+            );
+        }
+        None => {
+            extractor.base.create_identifier(&atom, name, kind, scope);
+        }
+    }
 }
 
 pub(super) fn imported_functions(

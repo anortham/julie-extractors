@@ -1480,7 +1480,7 @@ fn common_test_lifecycle_direction(name: &str) -> TestLifecycleDirection {
 }
 
 /// Common Test callbacks that describe a suite instead of exercising it.
-const COMMON_TEST_CONFIG_NAMES: [&str; 3] = ["all", "groups", "suite"];
+const COMMON_TEST_CONFIG_NAMES: [&str; 4] = ["all", "groups", "group", "suite"];
 
 /// Common Test runs every test case as `Case(Config)`.
 const COMMON_TEST_CASE_ARITY: u32 = 1;
@@ -1505,26 +1505,37 @@ impl ErlangTestModule {
     pub(crate) fn is_test_container(&self) -> bool {
         self.eunit || self.common_test
     }
+
+    pub(crate) fn is_common_test(&self) -> bool {
+        self.common_test
+    }
 }
 
 /// Classify an Erlang function against EUnit and Common Test.
 ///
 /// Common Test dispatches on exact callback names inside a `*_SUITE` module and
-/// runs every other exported `Case(Config)` as a test case. EUnit matches the
-/// name suffix on any zero-arity function, in any module, because EUnit test
-/// modules are not required to be named or located in a particular way.
+/// runs the `Case(Config)` functions its `all/0` and `groups/0` list. When the
+/// suite lists them literally, `listed_cases` holds those names and nothing else
+/// is a case; otherwise every other exported `Case(Config)` counts. EUnit
+/// matches the name suffix on any zero-arity function, in any module, because
+/// EUnit test modules are not required to be named or located in a particular
+/// way.
 pub(crate) fn erlang_test_role(
     module: ErlangTestModule,
     name: &str,
     arity: u32,
     exported: bool,
+    listed_cases: Option<&std::collections::HashSet<String>>,
 ) -> Option<TestRole> {
     if module.common_test {
         if let Some(role) = common_test_lifecycle_direction(name).fixture_role() {
             return Some(role);
         }
-        if exported && arity == COMMON_TEST_CASE_ARITY && !COMMON_TEST_CONFIG_NAMES.contains(&name)
-        {
+        let is_case = match listed_cases {
+            Some(cases) => cases.contains(name),
+            None => exported && !COMMON_TEST_CONFIG_NAMES.contains(&name),
+        };
+        if is_case && arity == COMMON_TEST_CASE_ARITY {
             return Some(TestRole::TestCase);
         }
     }

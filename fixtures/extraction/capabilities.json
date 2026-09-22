@@ -4534,6 +4534,11 @@
           "name": "return_types",
           "source": "fixtures/extraction/erlang/return_types/source.erl",
           "expected": "fixtures/extraction/erlang/return_types/expected.json"
+        },
+        {
+          "name": "docs_and_self_calls",
+          "source": "fixtures/extraction/erlang/docs_and_self_calls/source.erl",
+          "expected": "fixtures/extraction/erlang/docs_and_self_calls/expected.json"
         }
       ],
       "target_capabilities": {
@@ -4562,7 +4567,8 @@
           "supported": [
             "calls",
             "implements",
-            "imports"
+            "imports",
+            "references"
           ],
           "not_applicable": [],
           "open_gaps": []

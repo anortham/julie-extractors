@@ -8,7 +8,10 @@
 //!
 //! | Source form | Edge |
 //! | --- | --- |
-//! | `helper(X)` with `helper/1` defined here | resolved `Calls` |
+//! | `helper(X)` or `?MODULE:helper(X)` with `helper/1` defined here | resolved `Calls` |
+//! | `fun helper/1` / `fun ?MODULE:helper/1` with `helper/1` defined here | resolved `References` |
+//! | `fun lists:reverse/1` | pending `References`, namespace `["lists"]` |
+//! | `?DOUBLE(X)` with `-define(DOUBLE(X), ...)` here | resolved `Calls` to the macro |
 //! | `ledger:record(X)` | pending `Calls`, namespace `["ledger"]` |
 //! | `reverse(X)` under `-import(lists, [reverse/1])` | pending `Calls`, namespace `["lists"]`, import context `import` |
 //! | `-behaviour(gen_server)` | pending `Implements` from the module symbol |
@@ -27,12 +30,10 @@ use std::collections::HashMap;
 
 use tree_sitter::Node;
 
-use super::ErlangExtractor;
 use super::definition_forms;
-use super::helpers::{
-    NameArity, arg_count, find_child_by_type, first_atom_text, named_children, unquote_atom,
-};
+use super::helpers::{NameArity, arg_count, find_child_by_type, named_children, unquote_atom};
 use super::identifiers::{ImportedFunctions, imported_functions};
+use super::{Bounded, ErlangExtractor};
 use crate::base::{Relationship, RelationshipKind, Symbol, SymbolKind, UnresolvedTarget};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
@@ -46,19 +47,30 @@ type FunctionIndex<'a> = HashMap<NameArity, &'a Symbol>;
 
 pub(super) fn extract_relationships(
     extractor: &mut ErlangExtractor,
-    declarations: &[Node],
+    declarations: &[Bounded],
     symbols: &[Symbol],
 ) -> Vec<Relationship> {
-    let imports = imported_functions(extractor, declarations);
-    let functions = function_index(symbols);
+    let nodes: Vec<Node> = declarations.iter().map(|d| d.node).collect();
+    let imports = imported_functions(extractor, &nodes);
     let containing_symbols = extractor.base.containing_symbol_index(symbols);
-    let module_id = symbols
+    let module = symbols
         .iter()
-        .find(|symbol| symbol.kind == SymbolKind::Module)
-        .map(|symbol| symbol.id.clone());
+        .find(|symbol| symbol.kind == SymbolKind::Module);
+    let module_id = module.map(|symbol| symbol.id.clone());
+    let targets = CallTargets {
+        functions: function_index(symbols),
+        macros: macro_index(symbols),
+        imports,
+        module_name: module.map(|symbol| symbol.name.clone()),
+    };
 
     let mut relationships = Vec::new();
-    for declaration in declarations {
+    for &Bounded {
+        node: declaration,
+        end,
+    } in declarations
+    {
+        let declaration = &declaration;
         match declaration.kind() {
             "behaviour_attribute" => {
                 emit_behaviour(extractor, declaration, module_id.as_deref());
@@ -69,34 +81,30 @@ pub(super) fn extract_relationships(
             }
             "import_attribute" => emit_import(extractor, declaration, module_id.as_deref()),
             "fun_decl" => {
-                let scope = clause_scope(extractor, declaration, &functions);
-                walk_calls(
-                    extractor,
-                    *declaration,
-                    scope.as_deref(),
-                    &functions,
-                    &imports,
-                    &mut relationships,
-                    0,
-                );
+                let scope = clause_scope(extractor, declaration, &targets.functions);
+                let mut walk = CallWalk {
+                    scope: scope.as_deref(),
+                    end,
+                    targets: &targets,
+                    relationships: &mut relationships,
+                };
+                walk.visit(extractor, *declaration, 0);
             }
             "pp_define" => {
                 let scope = containing_symbols
                     .find(*declaration)
                     .map(|symbol| symbol.id.clone());
+                let mut walk = CallWalk {
+                    scope: scope.as_deref(),
+                    end,
+                    targets: &targets,
+                    relationships: &mut relationships,
+                };
                 for child in named_children(declaration) {
                     if child.kind() == "macro_lhs" {
                         continue;
                     }
-                    walk_calls(
-                        extractor,
-                        child,
-                        scope.as_deref(),
-                        &functions,
-                        &imports,
-                        &mut relationships,
-                        0,
-                    );
+                    walk.visit(extractor, child, 0);
                 }
             }
             _ => {}
@@ -106,19 +114,47 @@ pub(super) fn extract_relationships(
     relationships
 }
 
+/// Same-file targets a call can bind to, plus the context that names them.
+struct CallTargets<'a> {
+    functions: FunctionIndex<'a>,
+    macros: FunctionIndex<'a>,
+    imports: ImportedFunctions,
+    /// The `-module` name, which `?MODULE` expands to.
+    module_name: Option<String>,
+}
+
 fn function_index(symbols: &[Symbol]) -> FunctionIndex<'_> {
     symbols
         .iter()
         .filter(|symbol| symbol.kind == SymbolKind::Function)
-        .filter_map(|symbol| Some(((symbol.name.clone(), symbol_arity(symbol)?), symbol)))
+        .filter_map(|symbol| {
+            Some((
+                (symbol.name.clone(), symbol_arity(symbol, "arity")?),
+                symbol,
+            ))
+        })
         .collect()
 }
 
-fn symbol_arity(symbol: &Symbol) -> Option<u32> {
+/// `-define` macros that take arguments, keyed by name and macro arity.
+fn macro_index(symbols: &[Symbol]) -> FunctionIndex<'_> {
+    symbols
+        .iter()
+        .filter(|symbol| symbol.kind == SymbolKind::Constant)
+        .filter_map(|symbol| {
+            Some((
+                (symbol.name.clone(), symbol_arity(symbol, "macro_arity")?),
+                symbol,
+            ))
+        })
+        .collect()
+}
+
+fn symbol_arity(symbol: &Symbol, key: &str) -> Option<u32> {
     symbol
         .metadata
         .as_ref()?
-        .get("arity")?
+        .get(key)?
         .as_u64()
         .map(|arity| arity as u32)
 }
@@ -137,130 +173,268 @@ fn clause_scope(
         .map(|symbol| symbol.id.clone())
 }
 
-fn walk_calls(
-    extractor: &mut ErlangExtractor,
-    node: Node,
-    scope: Option<&str>,
-    functions: &FunctionIndex,
-    imports: &ImportedFunctions,
-    relationships: &mut Vec<Relationship>,
-    depth: u32,
-) {
-    if !should_visit_tree_depth(depth) {
-        return;
-    }
+struct CallWalk<'w, 'a> {
+    scope: Option<&'w str>,
+    /// Bytes from here on belong to a later, recovered declaration.
+    end: usize,
+    targets: &'w CallTargets<'a>,
+    relationships: &'w mut Vec<Relationship>,
+}
 
-    match node.kind() {
-        "remote" => emit_remote_call(extractor, node, scope),
-        "call" if node.parent().map(|parent| parent.kind()) != Some("remote") => {
-            emit_local_call(extractor, node, scope, functions, imports, relationships)
+impl CallWalk<'_, '_> {
+    fn visit(&mut self, extractor: &mut ErlangExtractor, node: Node, depth: u32) {
+        if !should_visit_tree_depth(depth) || node.start_byte() >= self.end {
+            return;
         }
-        _ => {}
+
+        match node.kind() {
+            "remote" => self.remote_call(extractor, node),
+            "call" if node.parent().map(|parent| parent.kind()) != Some("remote") => {
+                self.local_call(extractor, node)
+            }
+            "internal_fun" => self.local_fun_reference(extractor, node),
+            "external_fun" => self.remote_fun_reference(extractor, node),
+            "macro_call_expr" => self.macro_call(extractor, node),
+            _ => {}
+        }
+
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
+        for child in named_children(&node) {
+            self.visit(extractor, child, child_depth);
+        }
     }
 
-    let Some(child_depth) = child_tree_depth(depth) else {
-        return;
-    };
-    for child in named_children(&node) {
-        walk_calls(
+    fn resolved(
+        &mut self,
+        extractor: &ErlangExtractor,
+        kind: RelationshipKind,
+        target: &Symbol,
+        anchor: &Node,
+    ) {
+        let Some(scope) = self.scope else {
+            return;
+        };
+        self.relationships
+            .push(extractor.base.create_relationship_at_target(
+                scope.to_string(),
+                target.id.clone(),
+                kind,
+                anchor,
+                Some(LOCAL_CALL_CONFIDENCE),
+                None,
+            ));
+    }
+
+    fn pending(
+        &self,
+        extractor: &mut ErlangExtractor,
+        kind: RelationshipKind,
+        target: UnresolvedTarget,
+        anchor: &Node,
+    ) {
+        let Some(scope) = self.scope else {
+            return;
+        };
+        let pending = extractor.base.create_pending_relationship_at_target(
+            scope.to_string(),
+            target,
+            kind,
+            anchor,
+            Some(scope.to_string()),
+            Some(REMOTE_CALL_CONFIDENCE),
+        );
+        extractor.base.add_structured_pending_relationship(pending);
+    }
+
+    /// `m:f(...)`. A call qualified by `?MODULE` or by this file's own module
+    /// name is a local call and resolves like one; anything else is pending.
+    fn remote_call(&mut self, extractor: &mut ErlangExtractor, node: Node) {
+        let Some(module) = find_child_by_type(&node, "remote_module")
+            .and_then(|wrapper| module_name(extractor, self.targets, &wrapper))
+        else {
+            return;
+        };
+        let Some(call) = find_child_by_type(&node, "call") else {
+            return;
+        };
+        let Some(callee) = find_child_by_type(&call, "atom") else {
+            return;
+        };
+        let name = unquote_atom(&extractor.base.get_node_text(&callee));
+        let arity = call_arity(&call);
+        self.qualified_target(
             extractor,
-            child,
-            scope,
-            functions,
-            imports,
-            relationships,
-            child_depth,
+            RelationshipKind::Calls,
+            module,
+            name,
+            arity,
+            &callee,
         );
     }
-}
 
-/// `?MODULE:helper(X)` spells its module as a macro rather than an atom, so no
-/// module name is available and the call emits nothing.
-fn emit_remote_call(extractor: &mut ErlangExtractor, node: Node, scope: Option<&str>) {
-    let Some(scope) = scope else {
-        return;
-    };
-    let Some(module) = find_child_by_type(&node, "remote_module")
-        .and_then(|wrapper| first_atom_text(&extractor.base, &wrapper))
-    else {
-        return;
-    };
-    let Some(callee) =
-        find_child_by_type(&node, "call").and_then(|call| find_child_by_type(&call, "atom"))
-    else {
-        return;
-    };
-    let name = unquote_atom(&extractor.base.get_node_text(&callee));
-
-    let target = UnresolvedTarget {
-        display_name: format!("{module}:{name}"),
-        terminal_name: name,
-        receiver: None,
-        namespace_path: vec![module],
-        import_context: None,
-    };
-    let pending = extractor.base.create_pending_relationship_at_target(
-        scope.to_string(),
-        target,
-        RelationshipKind::Calls,
-        &callee,
-        Some(scope.to_string()),
-        Some(REMOTE_CALL_CONFIDENCE),
-    );
-    extractor.base.add_structured_pending_relationship(pending);
-}
-
-fn emit_local_call(
-    extractor: &mut ErlangExtractor,
-    node: Node,
-    scope: Option<&str>,
-    functions: &FunctionIndex,
-    imports: &ImportedFunctions,
-    relationships: &mut Vec<Relationship>,
-) {
-    let Some(scope) = scope else {
-        return;
-    };
-    let Some(callee) = find_child_by_type(&node, "atom") else {
-        return;
-    };
-    let name = unquote_atom(&extractor.base.get_node_text(&callee));
-    let arity = find_child_by_type(&node, "expr_args")
-        .map(|args| arg_count(&args))
-        .unwrap_or(0);
-    let identity = (name.clone(), arity);
-
-    if let Some(target) = functions.get(&identity) {
-        relationships.push(extractor.base.create_relationship_at_target(
-            scope.to_string(),
-            target.id.clone(),
-            RelationshipKind::Calls,
-            &callee,
-            Some(LOCAL_CALL_CONFIDENCE),
-            None,
-        ));
-        return;
+    fn qualified_target(
+        &mut self,
+        extractor: &mut ErlangExtractor,
+        kind: RelationshipKind,
+        module: String,
+        name: String,
+        arity: u32,
+        anchor: &Node,
+    ) {
+        if self.targets.module_name.as_deref() == Some(module.as_str()) {
+            if let Some(target) = self.targets.functions.get(&(name, arity)) {
+                self.resolved(extractor, kind, target, anchor);
+            }
+            return;
+        }
+        let target = UnresolvedTarget {
+            display_name: format!("{module}:{name}"),
+            terminal_name: name,
+            receiver: None,
+            namespace_path: vec![module],
+            import_context: None,
+        };
+        self.pending(extractor, kind, target, anchor);
     }
 
-    let Some(module) = imports.get(&identity).cloned() else {
-        return;
-    };
-    let target = UnresolvedTarget {
-        display_name: name.clone(),
-        terminal_name: name,
-        receiver: None,
-        namespace_path: vec![module],
-        import_context: Some("import".to_string()),
-    };
-    let pending = extractor.base.create_pending_relationship_at_target(
-        scope.to_string(),
-        target,
-        RelationshipKind::Calls,
-        &callee,
-        Some(scope.to_string()),
-        Some(REMOTE_CALL_CONFIDENCE),
-    );
-    extractor.base.add_structured_pending_relationship(pending);
+    fn local_call(&mut self, extractor: &mut ErlangExtractor, node: Node) {
+        let Some(callee) = find_child_by_type(&node, "atom") else {
+            return;
+        };
+        let name = unquote_atom(&extractor.base.get_node_text(&callee));
+        self.local_target(
+            extractor,
+            RelationshipKind::Calls,
+            name,
+            call_arity(&node),
+            &callee,
+        );
+    }
+
+    fn local_target(
+        &mut self,
+        extractor: &mut ErlangExtractor,
+        kind: RelationshipKind,
+        name: String,
+        arity: u32,
+        anchor: &Node,
+    ) {
+        let identity = (name.clone(), arity);
+        if let Some(target) = self.targets.functions.get(&identity) {
+            self.resolved(extractor, kind, target, anchor);
+            return;
+        }
+        let Some(module) = self.targets.imports.get(&identity).cloned() else {
+            return;
+        };
+        let target = UnresolvedTarget {
+            display_name: name.clone(),
+            terminal_name: name,
+            receiver: None,
+            namespace_path: vec![module],
+            import_context: Some("import".to_string()),
+        };
+        self.pending(extractor, kind, target, anchor);
+    }
+
+    /// `fun f/N` names a function as a value rather than calling it, so it
+    /// records a `References` edge to that function.
+    fn local_fun_reference(&mut self, extractor: &mut ErlangExtractor, node: Node) {
+        let Some((callee, arity)) = fun_reference_parts(extractor, &node) else {
+            return;
+        };
+        let name = unquote_atom(&extractor.base.get_node_text(&callee));
+        self.local_target(
+            extractor,
+            RelationshipKind::References,
+            name,
+            arity,
+            &callee,
+        );
+    }
+
+    fn remote_fun_reference(&mut self, extractor: &mut ErlangExtractor, node: Node) {
+        let Some(module) = find_child_by_type(&node, "module")
+            .and_then(|wrapper| module_name(extractor, self.targets, &wrapper))
+        else {
+            return;
+        };
+        let Some((callee, arity)) = fun_reference_parts(extractor, &node) else {
+            return;
+        };
+        let name = unquote_atom(&extractor.base.get_node_text(&callee));
+        self.qualified_target(
+            extractor,
+            RelationshipKind::References,
+            module,
+            name,
+            arity,
+            &callee,
+        );
+    }
+
+    /// `?NAME(Args)` expands a same-file `-define(NAME(...), ...)`; the edge
+    /// to that macro keeps function -> macro -> callee chains connected.
+    fn macro_call(&mut self, extractor: &mut ErlangExtractor, node: Node) {
+        let Some(args) = find_child_by_type(&node, "macro_call_args") else {
+            return;
+        };
+        let Some(name_node) = node.child_by_field_name("name") else {
+            return;
+        };
+        let name = unquote_atom(&extractor.base.get_node_text(&name_node));
+        let arity = named_children(&args).len() as u32;
+        if let Some(target) = self.targets.macros.get(&(name, arity)) {
+            self.resolved(extractor, RelationshipKind::Calls, target, &name_node);
+        }
+    }
+}
+
+fn call_arity(call: &Node) -> u32 {
+    find_child_by_type(call, "expr_args")
+        .map(|args| arg_count(&args))
+        .unwrap_or(0)
+}
+
+/// The module a `remote_module` / `module` wrapper names: an atom, or
+/// `?MODULE`, which always expands to this file's `-module` name. A variable
+/// module names nothing.
+fn module_name(
+    extractor: &ErlangExtractor,
+    targets: &CallTargets,
+    wrapper: &Node,
+) -> Option<String> {
+    let module = wrapper
+        .child_by_field_name("module")
+        .or_else(|| wrapper.child_by_field_name("name"))?;
+    match module.kind() {
+        "atom" => Some(unquote_atom(&extractor.base.get_node_text(&module))),
+        "macro_call_expr" if is_module_macro(extractor, &module) => targets.module_name.clone(),
+        _ => None,
+    }
+}
+
+pub(super) fn is_module_macro(extractor: &ErlangExtractor, node: &Node) -> bool {
+    find_child_by_type(node, "macro_call_args").is_none()
+        && node
+            .child_by_field_name("name")
+            .is_some_and(|name| extractor.base.get_node_text(&name) == "MODULE")
+}
+
+fn fun_reference_parts<'tree>(
+    extractor: &ErlangExtractor,
+    node: &Node<'tree>,
+) -> Option<(Node<'tree>, u32)> {
+    let callee = node
+        .child_by_field_name("fun")
+        .filter(|fun| fun.kind() == "atom")?;
+    let value = node
+        .child_by_field_name("arity")?
+        .child_by_field_name("value")?;
+    let arity = extractor.base.get_node_text(&value).trim().parse().ok()?;
+    Some((callee, arity))
 }
 
 /// A `.erl` file declares one module, so a `-behaviour` target is always in

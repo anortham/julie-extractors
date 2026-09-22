@@ -87,8 +87,13 @@ pub(super) fn wild_attribute_name(base: &BaseExtractor, node: &Node) -> Option<S
 }
 
 /// String payload of a `-doc` / `-moduledoc` attribute, with quotes removed.
+/// The string value of `-doc "..."` or `-doc("...")`. A map value such as
+/// `-doc(#{since => ...})` carries metadata, not text, and yields `None`.
 pub(super) fn wild_attribute_string(base: &BaseExtractor, node: &Node) -> Option<String> {
-    let string = find_child_by_type(node, "string")?;
+    let string = find_child_by_type(node, "string").or_else(|| {
+        find_child_by_type(node, "paren_expr")
+            .and_then(|paren| find_child_by_type(&paren, "string"))
+    })?;
     let text = base.get_node_text(&string);
     let trimmed = text.trim();
     let unquoted = trimmed

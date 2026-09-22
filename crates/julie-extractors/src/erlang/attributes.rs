@@ -21,7 +21,7 @@ pub(super) fn extract_module(
 ) -> Option<Symbol> {
     let name = first_atom_text(&extractor.base, node)?;
     let signature = attribute_signature(&extractor.base, node);
-    let doc_comment = extractor.base.find_doc_comment(node).or(module_doc);
+    let doc_comment = super::doc::module_doc_for(extractor, node, module_doc);
     let annotations = super::doc::annotations_for(extractor, node);
 
     let mut metadata = HashMap::new();
@@ -29,18 +29,21 @@ pub(super) fn extract_module(
         apply_test_role(&mut metadata, TestRole::TestContainer);
     }
 
-    Some(extractor.base.create_symbol(
-        node,
-        name,
-        SymbolKind::Module,
-        SymbolOptions {
-            signature: Some(signature),
-            visibility: Some(Visibility::Public),
-            parent_id: None,
-            metadata: Some(metadata),
-            doc_comment,
-            annotations,
-        },
+    Some(super::doc::keep_doc(
+        extractor.base.create_symbol(
+            node,
+            name,
+            SymbolKind::Module,
+            SymbolOptions {
+                signature: Some(signature),
+                visibility: Some(Visibility::Public),
+                parent_id: None,
+                metadata: Some(metadata),
+                doc_comment: doc_comment.clone(),
+                annotations,
+            },
+        ),
+        doc_comment,
     ))
 }
 
@@ -59,18 +62,21 @@ pub(super) fn extract_record(
     let doc_comment = super::doc::doc_for(extractor, node);
     let annotations = super::doc::annotations_for(extractor, node);
 
-    let record = extractor.base.create_symbol(
-        node,
-        name,
-        SymbolKind::Struct,
-        SymbolOptions {
-            signature: Some(signature),
-            visibility: Some(Visibility::Private),
-            parent_id: parent_id.map(String::from),
-            metadata: None,
-            doc_comment,
-            annotations,
-        },
+    let record = super::doc::keep_doc(
+        extractor.base.create_symbol(
+            node,
+            name,
+            SymbolKind::Struct,
+            SymbolOptions {
+                signature: Some(signature),
+                visibility: Some(Visibility::Private),
+                parent_id: parent_id.map(String::from),
+                metadata: None,
+                doc_comment: doc_comment.clone(),
+                annotations,
+            },
+        ),
+        doc_comment,
     );
 
     let record_id = record.id.clone();
@@ -130,18 +136,21 @@ pub(super) fn extract_macro(
         );
     }
 
-    Some(extractor.base.create_symbol(
-        node,
-        name,
-        SymbolKind::Constant,
-        SymbolOptions {
-            signature: Some(signature),
-            visibility: Some(Visibility::Private),
-            parent_id: parent_id.map(String::from),
-            metadata: Some(metadata),
-            doc_comment,
-            annotations,
-        },
+    Some(super::doc::keep_doc(
+        extractor.base.create_symbol(
+            node,
+            name,
+            SymbolKind::Constant,
+            SymbolOptions {
+                signature: Some(signature),
+                visibility: Some(Visibility::Private),
+                parent_id: parent_id.map(String::from),
+                metadata: Some(metadata),
+                doc_comment: doc_comment.clone(),
+                annotations,
+            },
+        ),
+        doc_comment,
     ))
 }
 
@@ -173,18 +182,21 @@ pub(super) fn extract_type(
     let doc_comment = super::doc::doc_for(extractor, node);
     let annotations = super::doc::annotations_for(extractor, node);
 
-    Some(extractor.base.create_symbol(
-        node,
-        name,
-        SymbolKind::Type,
-        SymbolOptions {
-            signature: Some(signature),
-            visibility: Some(visibility),
-            parent_id: parent_id.map(String::from),
-            metadata: Some(metadata),
-            doc_comment,
-            annotations,
-        },
+    Some(super::doc::keep_doc(
+        extractor.base.create_symbol(
+            node,
+            name,
+            SymbolKind::Type,
+            SymbolOptions {
+                signature: Some(signature),
+                visibility: Some(visibility),
+                parent_id: parent_id.map(String::from),
+                metadata: Some(metadata),
+                doc_comment: doc_comment.clone(),
+                annotations,
+            },
+        ),
+        doc_comment,
     ))
 }
 
@@ -207,17 +219,20 @@ pub(super) fn extract_callback(
     let doc_comment = super::doc::doc_for(extractor, node);
     let annotations = super::doc::annotations_for(extractor, node);
 
-    Some(extractor.base.create_symbol(
-        node,
-        name,
-        SymbolKind::Function,
-        SymbolOptions {
-            signature: Some(signature),
-            visibility: Some(Visibility::Public),
-            parent_id: parent_id.map(String::from),
-            metadata: Some(metadata),
-            doc_comment,
-            annotations,
-        },
+    Some(super::doc::keep_doc(
+        extractor.base.create_symbol(
+            node,
+            name,
+            SymbolKind::Function,
+            SymbolOptions {
+                signature: Some(signature),
+                visibility: Some(Visibility::Public),
+                parent_id: parent_id.map(String::from),
+                metadata: Some(metadata),
+                doc_comment: doc_comment.clone(),
+                annotations,
+            },
+        ),
+        doc_comment,
     ))
 }

@@ -202,7 +202,7 @@
       },
       "body_hash": "a1f3e4d72811089bc4c5a61f66bcea15",
       "signature": "-module(ledger_client)",
-      "doc_comment": "%% Cross-file fixture: module `ledger_client` is the A side of an A/B pair.\n%% Every target it names except `retry/2` lives in another file, so the golden\n%% carries both relationship shapes at once:\n%%\n%%   resolved  - settle/2 -> retry/2, a same-file call matched on name AND arity\n%%   pending   - -behaviour(gen_server)                  implements, target gen_server\n%%               ledger:record/2 and ledger:flush/0      calls, namespace [\"ledger\"]\n%%               -include(\"ledger_records.hrl\")          imports, import_context include\n%%               -include_lib(\"stdlib/include/assert.hrl\") imports, namespace [\"stdlib\",\"include\"]\n%%               -import(lists, [reverse/1])             imports, target lists\n%%               reverse/1 called unqualified            calls, namespace [\"lists\"]\n%%\n%% Negative controls in the same file: length/1 is an auto-imported BIF and\n%% `Fun(Ordered)` is a dynamic call through a variable, so neither may produce\n%% an edge, and the -spec return type must not be read as a call.",
+      "doc_comment": "%% Cross-file fixture: module `ledger_client` is the A side of an A/B pair.\n%% Every target it names except `retry/2` lives in another file, so the golden\n%% carries both relationship shapes at once:\n%%   resolved  - settle/2 -> retry/2, a same-file call matched on name AND arity\n%%   pending   - -behaviour(gen_server)                  implements, target gen_server\n%%               ledger:record/2 and ledger:flush/0      calls, namespace [\"ledger\"]\n%%               -include(\"ledger_records.hrl\")          imports, import_context include\n%%               -include_lib(\"stdlib/include/assert.hrl\") imports, namespace [\"stdlib\",\"include\"]\n%%               -import(lists, [reverse/1])             imports, target lists\n%%               reverse/1 called unqualified            calls, namespace [\"lists\"]\n%% Negative controls in the same file: length/1 is an auto-imported BIF and\n%% `Fun(Ordered)` is a dynamic call through a variable, so neither may produce\n%% an edge, and the -spec return type must not be read as a call.",
       "visibility": "Public",
       "parent_key": null,
       "metadata": {},
@@ -606,7 +606,10 @@
       "end_byte": 1518,
       "containing_key": "fixtures/extraction/erlang/cross_file/source.erl:replay:33:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "ledger"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/cross_file/source.erl:integer:type_usage:25:21",
@@ -718,7 +721,10 @@
       "end_byte": 1311,
       "containing_key": "fixtures/extraction/erlang/cross_file/source.erl:settle:26:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "ledger"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/cross_file/source.erl:retry:call:28:9",

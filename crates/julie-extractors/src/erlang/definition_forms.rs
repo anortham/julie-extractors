@@ -65,30 +65,40 @@ pub(super) fn extract_function(
         "clause_count".to_string(),
         Value::Number((clause_count as u64).into()),
     );
-    if let Some(role) = erlang_test_role(extractor.test_module, &name, arity, exported) {
+    if let Some(role) = erlang_test_role(
+        extractor.test_module,
+        &name,
+        arity,
+        exported,
+        extractor.common_test_cases.as_ref(),
+    ) {
         apply_test_role(&mut metadata, role);
     }
 
     let doc_comment = super::doc::doc_for(extractor, node);
     let annotations = super::doc::annotations_for(extractor, node);
 
-    let mut symbol = extractor.base.create_symbol_from_span(
-        node,
-        extent,
-        name,
-        SymbolKind::Function,
-        SymbolOptions {
-            signature: Some(signature),
-            visibility: Some(visibility),
-            parent_id: parent_id.map(String::from),
-            metadata: Some(metadata),
-            doc_comment,
-            annotations,
-        },
+    let mut symbol = super::doc::keep_doc(
+        extractor.base.create_symbol_from_span(
+            node,
+            extent,
+            name,
+            SymbolKind::Function,
+            SymbolOptions {
+                signature: Some(signature),
+                visibility: Some(visibility),
+                parent_id: parent_id.map(String::from),
+                metadata: Some(metadata),
+                doc_comment: doc_comment.clone(),
+                annotations,
+            },
+        ),
+        doc_comment,
     );
     apply_clause_body_span(extractor, &mut symbol, clause.body_start);
     let callable_id = symbol.id.clone();
     let mut seen = HashSet::new();
+
     let mut symbols = vec![symbol];
     symbols.extend(super::parameters::extract_parameter_symbols(
         extractor,
