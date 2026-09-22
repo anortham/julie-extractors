@@ -4144,6 +4144,11 @@
           "name": "return_types",
           "source": "fixtures/extraction/elixir/return_types/source.ex",
           "expected": "fixtures/extraction/elixir/return_types/expected.json"
+        },
+        {
+          "name": "module_calls",
+          "source": "fixtures/extraction/elixir/module_calls/source.ex",
+          "expected": "fixtures/extraction/elixir/module_calls/expected.json"
         }
       ],
       "target_capabilities": {
@@ -4157,9 +4162,12 @@
       "kind_coverage": {
         "symbols": {
           "supported": [
+            "field",
             "function",
             "import",
             "module",
+            "struct",
+            "type",
             "variable"
           ],
           "not_applicable": [],
@@ -4185,7 +4193,8 @@
         "body_spans": {
           "supported": [
             "function",
-            "module"
+            "module",
+            "type"
           ],
           "not_applicable": [
             "import"
@@ -4252,7 +4261,8 @@
         "doc_comments": {
           "supported": [
             "function",
-            "module"
+            "module",
+            "type"
           ],
           "not_applicable": [],
           "open_gaps": []

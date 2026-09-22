@@ -10,15 +10,15 @@
       "start_column": 0,
       "end_line": 27,
       "end_column": 3,
-      "start_byte": 294,
-      "end_byte": 601,
+      "start_byte": 326,
+      "end_byte": 633,
       "body_span": {
         "start_line": 7,
         "start_column": 25,
         "end_line": 27,
         "end_column": 3,
-        "start_byte": 319,
-        "end_byte": 601
+        "start_byte": 351,
+        "end_byte": 633
       },
       "body_hash": "6af55e80570a8224e1c3ebef46dd8eba",
       "signature": "defmodule Fixture.Worker",
@@ -41,15 +41,17 @@
       "start_column": 2,
       "end_line": 8,
       "end_column": 22,
-      "start_byte": 324,
-      "end_byte": 344,
+      "start_byte": 356,
+      "end_byte": 376,
       "body_span": null,
       "body_hash": null,
-      "signature": "alias alias Phoenix.Router",
+      "signature": "alias Phoenix.Router",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/elixir/cross_file/source.ex:Fixture.Worker:7:0",
-      "metadata": {},
+      "metadata": {
+        "alias": "Router"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -65,15 +67,15 @@
       "start_column": 2,
       "end_line": 22,
       "end_column": 5,
-      "start_byte": 348,
-      "end_byte": 560,
+      "start_byte": 380,
+      "end_byte": 592,
       "body_span": {
         "start_line": 10,
         "start_column": 12,
         "end_line": 22,
         "end_column": 5,
-        "start_byte": 358,
-        "end_byte": 560
+        "start_byte": 390,
+        "end_byte": 592
       },
       "body_hash": "37e8c1fd0e43c9a57d5a154acdb105ab",
       "signature": "def entry",
@@ -96,15 +98,15 @@
       "start_column": 2,
       "end_line": 26,
       "end_column": 5,
-      "start_byte": 564,
-      "end_byte": 597,
+      "start_byte": 596,
+      "end_byte": 629,
       "body_span": {
         "start_line": 24,
         "start_column": 20,
         "end_line": 26,
         "end_column": 5,
-        "start_byte": 582,
-        "end_byte": 597
+        "start_byte": 614,
+        "end_byte": 629
       },
       "body_hash": "5f7967ac542df86559e2223121ec1004",
       "signature": "def local_helper",
@@ -127,8 +129,8 @@
       "start_column": 4,
       "end_line": 11,
       "end_column": 9,
-      "start_byte": 365,
-      "end_byte": 370,
+      "start_byte": 397,
+      "end_byte": 402,
       "body_span": null,
       "body_hash": null,
       "signature": "total =\n      if local_helper() > 0 do\n        for i <- 1..2, reduce: 0 do\n          acc -> acc + i\n        end\n      else\n        0\n      end",
@@ -154,8 +156,8 @@
         "start_column": 9,
         "end_line": 12,
         "end_column": 23,
-        "start_byte": 382,
-        "end_byte": 396
+        "start_byte": 414,
+        "end_byte": 428
       },
       "reference_site_is_exact": false,
       "confidence": "0.900",
@@ -172,8 +174,8 @@
         "start_column": 12,
         "end_line": 21,
         "end_column": 26,
-        "start_byte": 540,
-        "end_byte": 554
+        "start_byte": 572,
+        "end_byte": 586
       },
       "reference_site_is_exact": false,
       "confidence": "0.900",
@@ -183,7 +185,7 @@
   "pending_relationships": [
     {
       "from_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
-      "callee_name": "Router.match",
+      "callee_name": "Phoenix.Router.match",
       "kind": "calls",
       "file_path": "fixtures/extraction/elixir/cross_file/source.ex",
       "line_number": 20,
@@ -210,18 +212,18 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
-        "callee_name": "Router.match",
+        "callee_name": "Phoenix.Router.match",
         "kind": "calls",
         "file_path": "fixtures/extraction/elixir/cross_file/source.ex",
         "line_number": 20,
         "confidence": "0.700"
       },
       "target": {
-        "display_name": "Router.match",
+        "display_name": "Phoenix.Router.match",
         "terminal_name": "match",
         "receiver": null,
         "namespace_path": [
-          "Router"
+          "Phoenix.Router"
         ],
         "import_context": null
       },
@@ -231,8 +233,8 @@
         "start_column": 4,
         "end_line": 20,
         "end_column": 18,
-        "start_byte": 513,
-        "end_byte": 527
+        "start_byte": 545,
+        "end_byte": 559
       }
     },
     {
@@ -257,8 +259,8 @@
         "start_column": 8,
         "end_line": 15,
         "end_column": 11,
-        "start_byte": 412,
-        "end_byte": 476
+        "start_byte": 444,
+        "end_byte": 508
       }
     },
     {
@@ -283,8 +285,8 @@
         "start_column": 6,
         "end_line": 18,
         "end_column": 9,
-        "start_byte": 379,
-        "end_byte": 507
+        "start_byte": 411,
+        "end_byte": 539
       }
     }
   ],
@@ -299,8 +301,8 @@
       "start_column": 4,
       "end_line": 20,
       "end_column": 10,
-      "start_byte": 513,
-      "end_byte": 519,
+      "start_byte": 545,
+      "end_byte": 551,
       "containing_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
       "target_key": null,
       "confidence": "1.000"
@@ -315,8 +317,8 @@
       "start_column": 4,
       "end_line": 20,
       "end_column": 10,
-      "start_byte": 513,
-      "end_byte": 519,
+      "start_byte": 545,
+      "end_byte": 551,
       "containing_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
       "target_key": null,
       "confidence": "1.000"
@@ -331,8 +333,8 @@
       "start_column": 17,
       "end_line": 14,
       "end_column": 20,
-      "start_byte": 457,
-      "end_byte": 460,
+      "start_byte": 489,
+      "end_byte": 492,
       "containing_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
       "target_key": null,
       "confidence": "1.000"
@@ -347,8 +349,8 @@
       "start_column": 8,
       "end_line": 13,
       "end_column": 11,
-      "start_byte": 412,
-      "end_byte": 415,
+      "start_byte": 444,
+      "end_byte": 447,
       "containing_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
       "target_key": null,
       "confidence": "1.000"
@@ -363,8 +365,8 @@
       "start_column": 23,
       "end_line": 14,
       "end_column": 24,
-      "start_byte": 463,
-      "end_byte": 464,
+      "start_byte": 495,
+      "end_byte": 496,
       "containing_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
       "target_key": null,
       "confidence": "1.000"
@@ -379,8 +381,8 @@
       "start_column": 6,
       "end_line": 12,
       "end_column": 8,
-      "start_byte": 379,
-      "end_byte": 381,
+      "start_byte": 411,
+      "end_byte": 413,
       "containing_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
       "target_key": null,
       "confidence": "1.000"
@@ -395,8 +397,8 @@
       "start_column": 9,
       "end_line": 12,
       "end_column": 21,
-      "start_byte": 382,
-      "end_byte": 394,
+      "start_byte": 414,
+      "end_byte": 426,
       "containing_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
       "target_key": null,
       "confidence": "1.000"
@@ -411,8 +413,8 @@
       "start_column": 12,
       "end_line": 21,
       "end_column": 24,
-      "start_byte": 540,
-      "end_byte": 552,
+      "start_byte": 572,
+      "end_byte": 584,
       "containing_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
       "target_key": null,
       "confidence": "1.000"
@@ -427,8 +429,8 @@
       "start_column": 11,
       "end_line": 20,
       "end_column": 16,
-      "start_byte": 520,
-      "end_byte": 525,
+      "start_byte": 552,
+      "end_byte": 557,
       "containing_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
       "target_key": null,
       "confidence": "1.000"
@@ -443,8 +445,8 @@
       "start_column": 4,
       "end_line": 21,
       "end_column": 9,
-      "start_byte": 532,
-      "end_byte": 537,
+      "start_byte": 564,
+      "end_byte": 569,
       "containing_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
       "target_key": null,
       "confidence": "1.000"
@@ -464,8 +466,8 @@
       "start_column": 0,
       "end_line": 27,
       "end_column": 3,
-      "start_byte": 294,
-      "end_byte": 601,
+      "start_byte": 326,
+      "end_byte": 633,
       "confidence": "1.000",
       "metadata": {
         "module_name": "Fixture.Worker",
@@ -484,8 +486,8 @@
       "start_column": 2,
       "end_line": 8,
       "end_column": 22,
-      "start_byte": 324,
-      "end_byte": 344,
+      "start_byte": 356,
+      "end_byte": 376,
       "confidence": "1.000",
       "metadata": {
         "directive_kind": "alias",
@@ -503,7 +505,7 @@
       "language": "elixir",
       "file_path": "fixtures/extraction/elixir/cross_file/source.ex",
       "covered_lines": 28,
-      "covered_bytes": 602,
+      "covered_bytes": 634,
       "decision_count": 2,
       "loop_count": 1,
       "max_nesting_depth": 3,
@@ -513,7 +515,7 @@
       "end_line": 28,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 602,
+      "end_byte": 634,
       "metadata": {
         "metric_version": 1
       }
@@ -534,8 +536,8 @@
       "start_column": 12,
       "end_line": 22,
       "end_column": 5,
-      "start_byte": 358,
-      "end_byte": 560,
+      "start_byte": 390,
+      "end_byte": 592,
       "metadata": {
         "metric_version": 1
       }
@@ -556,8 +558,8 @@
       "start_column": 20,
       "end_line": 26,
       "end_column": 5,
-      "start_byte": 582,
-      "end_byte": 597,
+      "start_byte": 614,
+      "end_byte": 629,
       "metadata": {
         "metric_version": 1
       }
@@ -612,9 +614,9 @@
       "start_line": 4,
       "start_column": 0,
       "end_line": 4,
-      "end_column": 70,
+      "end_column": 77,
       "start_byte": 184,
-      "end_byte": 254,
+      "end_byte": 261,
       "metadata": null
     },
     {
@@ -625,9 +627,9 @@
       "start_line": 5,
       "start_column": 0,
       "end_line": 5,
-      "end_column": 37,
-      "start_byte": 255,
-      "end_byte": 292,
+      "end_column": 62,
+      "start_byte": 262,
+      "end_byte": 324,
       "metadata": null
     }
   ],

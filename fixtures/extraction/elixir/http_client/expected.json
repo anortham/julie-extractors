@@ -22,7 +22,7 @@
       },
       "body_hash": "276eae1e43fd83d18fb158df87d4d477",
       "signature": "defmodule MyApp.ApiClient",
-      "doc_comment": "@moduledoc \"Thin Req HTTP client wrapper.\"",
+      "doc_comment": "Thin Req HTTP client wrapper.",
       "visibility": "Public",
       "parent_key": null,
       "metadata": {},
@@ -214,44 +214,7 @@
       "content_type": null
     }
   ],
-  "relationships": [
-    {
-      "from_key": "fixtures/extraction/elixir/http_client/source.ex:create_user:8:2",
-      "to_key": "fixtures/extraction/elixir/http_client/source.ex:create_user:8:2",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
-      "line_number": 8,
-      "span": {
-        "start_line": 8,
-        "start_column": 6,
-        "end_line": 8,
-        "end_column": 27,
-        "start_byte": 153,
-        "end_byte": 174
-      },
-      "reference_site_is_exact": false,
-      "confidence": "0.900",
-      "metadata": null
-    },
-    {
-      "from_key": "fixtures/extraction/elixir/http_client/source.ex:dynamic:17:2",
-      "to_key": "fixtures/extraction/elixir/http_client/source.ex:dynamic:17:2",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
-      "line_number": 17,
-      "span": {
-        "start_line": 17,
-        "start_column": 6,
-        "end_line": 17,
-        "end_column": 17,
-        "start_byte": 296,
-        "end_byte": 307
-      },
-      "reference_site_is_exact": false,
-      "confidence": "0.900",
-      "metadata": null
-    }
-  ],
+  "relationships": [],
   "pending_relationships": [
     {
       "from_key": "fixtures/extraction/elixir/http_client/source.ex:create_user:8:2",
@@ -526,38 +489,6 @@
       "start_byte": 182,
       "end_byte": 185,
       "containing_key": "fixtures/extraction/elixir/http_client/source.ex:create_user:8:2",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/elixir/http_client/source.ex:create_user:call:8:6",
-      "name": "create_user",
-      "kind": "call",
-      "language": "elixir",
-      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
-      "start_line": 8,
-      "start_column": 6,
-      "end_line": 8,
-      "end_column": 17,
-      "start_byte": 153,
-      "end_byte": 164,
-      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:create_user:8:2",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/elixir/http_client/source.ex:dynamic:call:17:6",
-      "name": "dynamic",
-      "kind": "call",
-      "language": "elixir",
-      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
-      "start_line": 17,
-      "start_column": 6,
-      "end_line": 17,
-      "end_column": 13,
-      "start_byte": 296,
-      "end_byte": 303,
-      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:dynamic:17:2",
       "target_key": null,
       "confidence": "1.000"
     },
