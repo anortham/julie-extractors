@@ -23,20 +23,18 @@ pub struct RegexExtractor {
 /// The grammar treats newlines as extras, so one parse joins every line into a
 /// single pattern. A pattern-list file has one pattern per non-blank line; a
 /// file that opens with an inline flag group containing `x` (verbose mode) is
-/// one pattern. Each tree keeps the file's byte and point coordinates.
+/// one pattern whose `#` comments are left out of the parse. Each tree keeps
+/// the file's byte and point coordinates.
 pub(crate) fn pattern_trees(content: &str) -> Vec<Tree> {
     let lines = pattern_line_ranges(content);
-    let ranges = match lines.first() {
-        Some(first) if is_verbose_flag_group(&content[first.start_byte..first.end_byte]) => {
-            let last = lines.last().expect("non-empty");
-            vec![Range {
-                start_byte: first.start_byte,
-                end_byte: last.end_byte,
-                start_point: first.start_point,
-                end_point: last.end_point,
-            }]
-        }
-        _ => lines,
+    let patterns: Vec<Vec<Range>> = if is_verbose_file(content, &lines) {
+        let code: Vec<Range> = lines
+            .iter()
+            .filter_map(|line| verbose_code_range(content, line))
+            .collect();
+        vec![code]
+    } else {
+        lines.into_iter().map(|line| vec![line]).collect()
     };
     let mut parser = Parser::new();
     if parser
@@ -45,13 +43,129 @@ pub(crate) fn pattern_trees(content: &str) -> Vec<Tree> {
     {
         return Vec::new();
     }
-    ranges
+    patterns
         .into_iter()
-        .filter_map(|range| {
-            parser.set_included_ranges(&[range]).ok()?;
+        .filter(|ranges| !ranges.is_empty())
+        .filter_map(|ranges| {
+            parser.set_included_ranges(&ranges).ok()?;
             parser.parse(content, None)
         })
         .collect()
+}
+
+/// Byte ranges of the `#` comments in a verbose-mode file, one per line.
+pub(crate) fn verbose_comment_ranges(content: &str) -> Vec<(usize, usize)> {
+    let lines = pattern_line_ranges(content);
+    if !is_verbose_file(content, &lines) {
+        return Vec::new();
+    }
+    lines
+        .iter()
+        .filter_map(|line| {
+            let text = &content[line.start_byte..line.end_byte];
+            let comment_start = verbose_comment_start(text)?;
+            Some((line.start_byte + comment_start, line.end_byte))
+        })
+        .collect()
+}
+
+/// Folds a pattern onto one line: a verbose pattern loses its comments and the
+/// whitespace around each line.
+pub(crate) fn folded_pattern_text(pattern_text: &str) -> String {
+    let verbose = pattern_text
+        .lines()
+        .find(|line| !line.trim().is_empty())
+        .is_some_and(is_verbose_flag_group);
+    pattern_text
+        .lines()
+        .map(|line| {
+            let code = if verbose {
+                &line[..verbose_comment_start(line).unwrap_or(line.len())]
+            } else {
+                line
+            };
+            code.trim()
+        })
+        .collect()
+}
+
+fn is_verbose_file(content: &str, lines: &[Range]) -> bool {
+    lines
+        .first()
+        .is_some_and(|first| is_verbose_flag_group(&content[first.start_byte..first.end_byte]))
+}
+
+fn verbose_code_range(content: &str, line: &Range) -> Option<Range> {
+    let text = &content[line.start_byte..line.end_byte];
+    let code = &text[..verbose_comment_start(text).unwrap_or(text.len())];
+    let leading = code.len() - code.trim_start().len();
+    let end = code.trim_end().len();
+    (leading < end).then(|| Range {
+        start_byte: line.start_byte + leading,
+        end_byte: line.start_byte + end,
+        start_point: Point::new(line.start_point.row, leading),
+        end_point: Point::new(line.start_point.row, end),
+    })
+}
+
+/// Offset of the `#` that opens a verbose-mode comment: unescaped and outside a
+/// character class.
+fn verbose_comment_start(line: &str) -> Option<usize> {
+    let mut escaped = false;
+    let mut in_class = false;
+    for (offset, ch) in line.char_indices() {
+        match ch {
+            _ if escaped => escaped = false,
+            '\\' => escaped = true,
+            '[' => in_class = true,
+            ']' => in_class = false,
+            '#' if !in_class => return Some(offset),
+            _ => {}
+        }
+    }
+    None
+}
+
+/// The capture groups one pattern declares: how many, and their names.
+pub(crate) struct CaptureInventory {
+    pub(crate) count: usize,
+    pub(crate) names: HashSet<String>,
+}
+
+impl CaptureInventory {
+    pub(crate) fn of(root: Node, content: &str) -> Self {
+        let mut inventory = Self {
+            count: 0,
+            names: HashSet::new(),
+        };
+        inventory.collect(root, content, 0);
+        inventory
+    }
+
+    fn collect(&mut self, node: Node, content: &str, depth: u32) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+        match node.kind() {
+            "anonymous_capturing_group" => self.count += 1,
+            "named_capturing_group" => {
+                self.count += 1;
+                if let Some(name) = groups::group_name_node(node)
+                    .and_then(|name| content.get(name.start_byte()..name.end_byte()))
+                {
+                    self.names.insert(name.to_string());
+                }
+            }
+            _ => {}
+        }
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
+        let mut cursor = node.walk();
+        for child in node.children(&mut cursor) {
+            self.collect(child, content, child_depth);
+        }
+    }
 }
 
 /// Binds each regex structural fact to the innermost symbol holding its bytes.
@@ -107,9 +221,9 @@ impl RegexExtractor {
         }
     }
 
-    /// Extracts symbols from the file's pattern trees; `tree` supplies only the
-    /// root node that anchors text-scanned lookaround and unicode symbols.
-    pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
+    /// Extracts symbols from the file's pattern trees; the whole-file `tree`
+    /// joins every line into one pattern, so it is not used.
+    pub fn extract_symbols(&mut self, _tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
         let pattern_trees = std::mem::take(&mut self.pattern_trees);
         for pattern_tree in &pattern_trees {
@@ -126,8 +240,6 @@ impl RegexExtractor {
             );
         }
         self.pattern_trees = pattern_trees;
-        self.extract_missing_lookarounds_from_source(tree.root_node(), &mut symbols);
-        self.extract_missing_unicode_properties_from_source(tree.root_node(), &mut symbols);
         symbols
     }
 
@@ -145,19 +257,12 @@ impl RegexExtractor {
         }
 
         let symbol = match node.kind() {
-            // Top-level patterns: only extract if no parent (root-level)
-            "pattern" | "regex" | "expression" => {
-                if parent_id.is_none() {
-                    patterns::extract_pattern(&mut self.base, node, parent_id.clone())
-                } else {
-                    None // Skip child patterns inside groups
-                }
+            "pattern" if parent_id.is_none() => {
+                patterns::extract_pattern(&mut self.base, node, parent_id.clone())
             }
-            // Character classes: meaningful, always keep
             "character_class" => {
                 patterns::extract_character_class(&mut self.base, node, parent_id.clone())
             }
-            // Groups: only keep named capturing groups
             "named_capturing_group" => {
                 *capture_index += 1;
                 patterns::extract_group(&mut self.base, node, parent_id.clone()).map(
@@ -168,8 +273,8 @@ impl RegexExtractor {
                     },
                 )
             }
-            // Keep anonymous capture groups only when numeric backrefs make them reference targets
-            "anonymous_capturing_group" | "capturing_group" => {
+            // Anonymous capture groups are symbols only when a numeric backreference targets them.
+            "anonymous_capturing_group" => {
                 *capture_index += 1;
                 if referenced_capture_numbers.contains(capture_index) {
                     patterns::extract_group(&mut self.base, node, parent_id.clone()).map(
@@ -183,58 +288,14 @@ impl RegexExtractor {
                     None
                 }
             }
-            // Skip unnamed/non-capturing groups (noise), except lookarounds.
-            // Some grammar versions surface lookarounds as generic group nodes.
-            "group" | "non_capturing_group" => {
-                let group_text = self.base.get_node_text(&node);
-                if is_lookaround_group_text(&group_text) {
-                    patterns::extract_lookaround(&mut self.base, node, parent_id.clone())
-                } else {
-                    None
-                }
-            }
-            // Skip quantifiers (noise)
-            "quantifier" | "quantified_expression" => None,
-            // Skip anchors (noise)
-            "anchor" | "start_assertion" | "end_assertion" | "word_boundary_assertion" => None,
-            // Lookarounds: semantically meaningful, keep
-            "lookahead_assertion"
-            | "lookbehind_assertion"
-            | "positive_lookahead"
-            | "negative_lookahead"
-            | "positive_lookbehind"
-            | "negative_lookbehind" => {
+            "lookaround_assertion" => {
                 patterns::extract_lookaround(&mut self.base, node, parent_id.clone())
             }
-            // Skip alternation nodes (noise)
-            "alternation" | "disjunction" => None,
-            // Skip predefined character classes (noise - \d, \w, \s)
-            "character_escape" | "predefined_character_class" => None,
-            // Unicode properties: semantically meaningful, keep
-            "unicode_property" | "unicode_category" => {
+            "character_class_escape" if is_unicode_property_escape(&self.base, node) => {
                 patterns::extract_unicode_property(&mut self.base, node, parent_id.clone())
             }
-            // Skip backreferences (noise - references, not definitions)
-            "backreference" => None,
-            // Conditionals: semantically meaningful, keep
-            "conditional" => patterns::extract_conditional(&mut self.base, node, parent_id.clone()),
-            // Word-like pattern literals (e.g. `(foo)`) are useful literal evidence;
-            // single metacharacters stay noise.
-            "literal" | "character" => {
-                let text = self.base.get_node_text(&node);
-                if text.len() >= 2
-                    && text
-                        .chars()
-                        .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
-                {
-                    self.base.record_literal(
-                        &node,
-                        text,
-                        Some("pattern".to_string()),
-                        0,
-                        parent_id.clone(),
-                    );
-                }
+            "term" => {
+                record_literal_runs(&mut self.base, node, parent_id.clone());
                 None
             }
             _ => None,
@@ -317,72 +378,6 @@ impl RegexExtractor {
     pub fn extract_identifiers(&mut self, _tree: &Tree, symbols: &[Symbol]) -> Vec<Identifier> {
         identifiers::extract_identifiers(&mut self.base, &self.pattern_trees, symbols)
     }
-
-    fn extract_missing_lookarounds_from_source(&mut self, root: Node, symbols: &mut Vec<Symbol>) {
-        let existing_lookarounds: HashSet<_> = symbols
-            .iter()
-            .filter(|symbol| {
-                symbol
-                    .metadata
-                    .as_ref()
-                    .and_then(|metadata| metadata.get("type"))
-                    .and_then(|value| value.as_str())
-                    == Some("lookaround")
-            })
-            .map(|symbol| symbol.name.clone())
-            .collect();
-
-        let lookaround_texts = find_lookaround_texts(&self.base.content);
-        for (lookaround_text, span) in lookaround_texts {
-            if existing_lookarounds.contains(&lookaround_text) {
-                continue;
-            }
-            if let Some(symbol) = patterns::extract_lookaround_text(
-                &mut self.base,
-                root,
-                lookaround_text,
-                None,
-                Some(span),
-            ) {
-                symbols.push(symbol);
-            }
-        }
-    }
-
-    fn extract_missing_unicode_properties_from_source(
-        &mut self,
-        root: Node,
-        symbols: &mut Vec<Symbol>,
-    ) {
-        let existing_unicode_properties: HashSet<_> = symbols
-            .iter()
-            .filter(|symbol| {
-                symbol
-                    .metadata
-                    .as_ref()
-                    .and_then(|metadata| metadata.get("type"))
-                    .and_then(|value| value.as_str())
-                    == Some("unicode-property")
-            })
-            .map(|symbol| symbol.name.clone())
-            .collect();
-
-        let unicode_properties = find_unicode_property_texts(&self.base.content);
-        for (property_text, span) in unicode_properties {
-            if existing_unicode_properties.contains(&property_text) {
-                continue;
-            }
-            if let Some(symbol) = patterns::extract_unicode_property_text(
-                &mut self.base,
-                root,
-                property_text,
-                None,
-                Some(span),
-            ) {
-                symbols.push(symbol);
-            }
-        }
-    }
 }
 
 fn add_capture_index(symbol: &mut Symbol, capture_index: usize) {
@@ -393,97 +388,54 @@ fn add_capture_index(symbol: &mut Symbol, capture_index: usize) {
     );
 }
 
-fn is_lookaround_group_text(group_text: &str) -> bool {
-    group_text.starts_with("(?=")
-        || group_text.starts_with("(?!")
-        || group_text.starts_with("(?<=")
-        || group_text.starts_with("(?<!")
+fn is_unicode_property_escape(base: &BaseExtractor, node: Node) -> bool {
+    let text = base.get_node_text(&node);
+    text.starts_with("\\p{") || text.starts_with("\\P{")
 }
 
-fn find_lookaround_texts(content: &str) -> Vec<(String, NormalizedSpan)> {
-    let mut lookarounds = Vec::new();
-    let mut index = 0;
-
-    while index < content.len() {
-        let rest = &content[index..];
-        let is_lookaround = rest.starts_with("(?=")
-            || rest.starts_with("(?!")
-            || rest.starts_with("(?<=")
-            || rest.starts_with("(?<!");
-
-        if is_lookaround && let Some(end) = find_group_end(content, index) {
-            let end_exclusive = end + 1;
-            if let Some(span) = NormalizedSpan::from_content_range(content, index, end_exclusive) {
-                lookarounds.push((content[index..end_exclusive].to_string(), span));
-            }
-            index = end_exclusive;
+/// Records each run of two or more word characters in a term as a pattern
+/// literal. A quantifier binds only to the character before it, so that
+/// character ends the run without joining it.
+fn record_literal_runs(base: &mut BaseExtractor, term: Node, parent_id: Option<String>) {
+    let mut cursor = term.walk();
+    let children: Vec<Node> = term.children(&mut cursor).collect();
+    let mut run: Vec<Node> = Vec::new();
+    for (index, child) in children.iter().enumerate() {
+        let quantified = children
+            .get(index + 1)
+            .is_some_and(|next| is_quantifier_kind(next.kind()));
+        if is_word_character(base, child) && !quantified {
+            run.push(*child);
             continue;
         }
+        flush_literal_run(base, &mut run, parent_id.clone());
+    }
+    flush_literal_run(base, &mut run, parent_id);
+}
 
-        index += rest
+fn flush_literal_run(base: &mut BaseExtractor, run: &mut Vec<Node>, parent_id: Option<String>) {
+    if let (Some(first), Some(last)) = (run.first(), run.last())
+        && run.len() >= 2
+        && let Some(span) =
+            NormalizedSpan::from_content_range(&base.content, first.start_byte(), last.end_byte())
+    {
+        let text = base.content[first.start_byte()..last.end_byte()].to_string();
+        base.record_literal_at_span(span, text, Some("pattern".to_string()), 0, parent_id);
+    }
+    run.clear();
+}
+
+fn is_word_character(base: &BaseExtractor, node: &Node) -> bool {
+    node.kind() == "pattern_character"
+        && base
+            .get_node_text(node)
             .chars()
-            .next()
-            .map(char::len_utf8)
-            .unwrap_or_default()
-            .max(1);
-    }
-
-    lookarounds
+            .all(|c| c.is_alphanumeric() || c == '_')
 }
 
-fn find_group_end(content: &str, start: usize) -> Option<usize> {
-    let mut depth = 0usize;
-    let mut escaped = false;
-    let mut in_character_class = false;
-
-    for (offset, ch) in content[start..].char_indices() {
-        if escaped {
-            escaped = false;
-            continue;
-        }
-
-        match ch {
-            '\\' => escaped = true,
-            '[' if !in_character_class => in_character_class = true,
-            ']' if in_character_class => in_character_class = false,
-            '(' if !in_character_class => depth += 1,
-            ')' if !in_character_class => {
-                depth = depth.saturating_sub(1);
-                if depth == 0 {
-                    return Some(start + offset);
-                }
-            }
-            _ => {}
-        }
-    }
-
-    None
-}
-
-fn find_unicode_property_texts(content: &str) -> Vec<(String, NormalizedSpan)> {
-    let mut properties = Vec::new();
-    let mut index = 0;
-
-    while index < content.len() {
-        let rest = &content[index..];
-        if (rest.starts_with(r"\p{") || rest.starts_with(r"\P{"))
-            && let Some(end_offset) = rest.find('}')
-        {
-            let end_exclusive = index + end_offset + 1;
-            if let Some(span) = NormalizedSpan::from_content_range(content, index, end_exclusive) {
-                properties.push((content[index..end_exclusive].to_string(), span));
-            }
-            index = end_exclusive;
-            continue;
-        }
-
-        index += rest
-            .chars()
-            .next()
-            .map(char::len_utf8)
-            .unwrap_or_default()
-            .max(1);
-    }
-
-    properties
+pub(crate) fn is_quantifier_kind(kind: &str) -> bool {
+    matches!(
+        kind,
+        "zero_or_more" | "one_or_more" | "optional" | "count_quantifier"
+    )
 }

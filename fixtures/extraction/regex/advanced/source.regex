@@ -1,0 +1,7 @@
+^(?=.*[A-Z])(?!.*(?<=\.)$)(?<user>\p{Lu}[\w.-]+)$
+(?P<quote>["'])(?P<body>.*?)(?P=quote)
+\bcolou?r\B\A\z
+(?i)^select\s+(?s:.*)(?-m)x
+a++b\Qa.b\E
+^/api/v1/(users|accounts)$
+<([a-z]+)>(.*?)</\1>\3

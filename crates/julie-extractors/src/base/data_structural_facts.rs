@@ -59,6 +59,9 @@ const REGEX_CHARACTER_CLASS_PATTERN_ID: &str = "regex.character_class.v1";
 const REGEX_QUANTIFIER_PATTERN_ID: &str = "regex.quantifier.v1";
 const REGEX_ALTERNATION_PATTERN_ID: &str = "regex.alternation.v1";
 const REGEX_ANCHOR_PATTERN_ID: &str = "regex.anchor.v1";
+const REGEX_INLINE_FLAGS_PATTERN_ID: &str = "regex.inline_flags.v1";
+const REGEX_BACKREFERENCE_PATTERN_ID: &str = "regex.backreference.v1";
+const REGEX_QUOTED_LITERAL_PATTERN_ID: &str = "regex.quoted_literal.v1";
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
 const MARKDOWN_DATA_PATTERN_IDS: &[&str] = &[
@@ -124,11 +127,14 @@ const XML_DATA_PATTERN_IDS: &[&str] = &[
 const REGEX_DATA_PATTERN_IDS: &[&str] = &[
     REGEX_ALTERNATION_PATTERN_ID,
     REGEX_ANCHOR_PATTERN_ID,
+    REGEX_BACKREFERENCE_PATTERN_ID,
     REGEX_CAPTURE_GROUP_PATTERN_ID,
     REGEX_CHARACTER_CLASS_PATTERN_ID,
+    REGEX_INLINE_FLAGS_PATTERN_ID,
     REGEX_LOOKAROUND_PATTERN_ID,
     REGEX_NAMED_CAPTURE_PATTERN_ID,
     REGEX_QUANTIFIER_PATTERN_ID,
+    REGEX_QUOTED_LITERAL_PATTERN_ID,
 ];
 
 pub fn collect_data_structural_facts(
@@ -1182,129 +1188,32 @@ fn collect_yaml_node(
 fn collect_regex_structural_facts(file_path: &str, content: &str) -> Vec<StructuralFact> {
     let mut facts = Vec::new();
     for pattern_tree in crate::regex::pattern_trees(content) {
+        let captures = crate::regex::CaptureInventory::of(pattern_tree.root_node(), content);
         let mut capture_index = 0usize;
         collect_regex_node(
             pattern_tree.root_node(),
-            file_path,
-            content,
+            &RegexFactContext {
+                file_path,
+                content,
+                captures: &captures,
+            },
             &mut facts,
             &mut capture_index,
             0,
         );
     }
-    append_missing_regex_lookaround_facts(file_path, content, &mut facts);
     facts
 }
 
-fn append_missing_regex_lookaround_facts(
-    file_path: &str,
-    content: &str,
-    facts: &mut Vec<StructuralFact>,
-) {
-    let covered_spans = facts
-        .iter()
-        .filter(|fact| fact.pattern_id == REGEX_LOOKAROUND_PATTERN_ID)
-        .map(|fact| (fact.start_byte, fact.end_byte))
-        .collect::<Vec<_>>();
-
-    for (lookaround_text, span) in find_regex_lookaround_spans(content) {
-        if covered_spans
-            .iter()
-            .any(|(start, end)| *start <= span.start_byte && *end >= span.end_byte)
-        {
-            continue;
-        }
-
-        let direction = if lookaround_text.contains("(?<=") || lookaround_text.contains("(?<!") {
-            "lookbehind"
-        } else {
-            "lookahead"
-        };
-        let polarity = if lookaround_text.contains("(?=") || lookaround_text.contains("(?<=") {
-            "positive"
-        } else {
-            "negative"
-        };
-        let mut metadata = base_metadata("pattern_structure");
-        insert_string(&mut metadata, "direction", direction);
-        insert_string(&mut metadata, "polarity", polarity);
-
-        facts.push(fact_for_span(
-            file_path,
-            "regex",
-            REGEX_LOOKAROUND_PATTERN_ID,
-            "lookaround",
-            "lookaround",
-            span,
-            metadata,
-        ));
-    }
-}
-
-fn find_regex_lookaround_spans(content: &str) -> Vec<(String, NormalizedSpan)> {
-    let mut lookarounds = Vec::new();
-    let mut index = 0usize;
-
-    while index < content.len() {
-        let rest = &content[index..];
-        let is_lookaround = rest.starts_with("(?=")
-            || rest.starts_with("(?!")
-            || rest.starts_with("(?<=")
-            || rest.starts_with("(?<!");
-
-        if is_lookaround && let Some(end) = find_regex_group_end(content, index) {
-            let end_exclusive = end + 1;
-            if let Some(span) = NormalizedSpan::from_content_range(content, index, end_exclusive) {
-                lookarounds.push((content[index..end_exclusive].to_string(), span));
-            }
-            index = end_exclusive;
-            continue;
-        }
-
-        index += rest
-            .chars()
-            .next()
-            .map(char::len_utf8)
-            .unwrap_or_default()
-            .max(1);
-    }
-
-    lookarounds
-}
-
-fn find_regex_group_end(content: &str, start: usize) -> Option<usize> {
-    let mut depth = 0usize;
-    let mut escaped = false;
-    let mut in_character_class = false;
-
-    for (offset, ch) in content[start..].char_indices() {
-        if escaped {
-            escaped = false;
-            continue;
-        }
-
-        match ch {
-            '\\' => escaped = true,
-            '[' if !in_character_class => in_character_class = true,
-            ']' if in_character_class => in_character_class = false,
-            '(' if !in_character_class => depth += 1,
-            ')' if !in_character_class => {
-                depth = depth.saturating_sub(1);
-                if depth == 0 {
-                    return Some(start + offset);
-                }
-            }
-            _ => {}
-        }
-    }
-
-    None
+struct RegexFactContext<'a> {
+    file_path: &'a str,
+    content: &'a str,
+    captures: &'a crate::regex::CaptureInventory,
 }
 
 fn collect_regex_node(
     node: Node<'_>,
-    file_path: &str,
-    content: &str,
+    context: &RegexFactContext<'_>,
     facts: &mut Vec<StructuralFact>,
     capture_index: &mut usize,
     depth: u32,
@@ -1313,75 +1222,46 @@ fn collect_regex_node(
         return;
     }
 
-    match node.kind() {
+    let file_path = context.file_path;
+    let content = context.content;
+    let fact = match node.kind() {
         "named_capturing_group" => {
             *capture_index += 1;
-            if let Some(fact) = regex_named_capture_fact(file_path, content, node, *capture_index) {
-                facts.push(fact);
-            }
+            regex_named_capture_fact(file_path, content, node, *capture_index)
         }
-        "anonymous_capturing_group" | "capturing_group" => {
+        "anonymous_capturing_group" => {
             *capture_index += 1;
-            if let Some(fact) = regex_capture_group_fact(file_path, content, node, *capture_index) {
-                facts.push(fact);
-            }
+            regex_capture_group_fact(file_path, content, node, *capture_index)
         }
-        "lookahead_assertion"
-        | "lookbehind_assertion"
-        | "positive_lookahead"
-        | "negative_lookahead"
-        | "positive_lookbehind"
-        | "negative_lookbehind" => {
-            if let Some(fact) = regex_lookaround_fact(file_path, content, node) {
-                facts.push(fact);
-            }
+        "lookaround_assertion" => regex_lookaround_fact(file_path, content, node),
+        "character_class" => regex_character_class_fact(file_path, content, node),
+        kind if crate::regex::is_quantifier_kind(kind) => {
+            regex_quantifier_fact(file_path, content, node)
         }
-        "group" | "non_capturing_group" => {
-            let text = node_text(content, node).unwrap_or_default();
-            if is_lookaround_group_text(text)
-                && let Some(fact) = regex_lookaround_fact(file_path, content, node)
-            {
-                facts.push(fact);
-            }
-        }
-        "character_class" => {
-            if let Some(fact) = regex_character_class_fact(file_path, content, node) {
-                facts.push(fact);
-            }
-        }
-        "count_quantifier"
-        | "zero_or_more"
-        | "one_or_more"
-        | "optional"
-        | "quantifier"
-        | "quantified_expression" => {
-            if let Some(fact) = regex_quantifier_fact(file_path, content, node) {
-                facts.push(fact);
-            }
-        }
-        "alternation" | "disjunction" => {
-            if let Some(fact) = regex_alternation_fact(file_path, content, node) {
-                facts.push(fact);
-            }
-        }
-        "anchor"
-        | "start_assertion"
+        "alternation" => regex_alternation_fact(file_path, node),
+        "start_assertion"
         | "end_assertion"
-        | "word_boundary_assertion"
-        | "non_word_boundary_assertion" => {
-            if let Some(fact) = regex_anchor_fact(file_path, content, node) {
-                facts.push(fact);
-            }
+        | "boundary_assertion"
+        | "non_boundary_assertion"
+        | "identity_escape" => regex_anchor_fact(file_path, content, node),
+        "inline_flags_group" => regex_inline_flags_fact(file_path, content, node),
+        "decimal_escape" | "backreference_escape" | "named_group_backreference" => {
+            regex_backreference_fact(context, node)
         }
-        _ => {}
-    }
+        "term" => {
+            facts.extend(regex_quoted_literal_facts(file_path, content, node));
+            None
+        }
+        _ => None,
+    };
+    facts.extend(fact);
 
     let Some(child_depth) = child_tree_depth(depth) else {
         return;
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_regex_node(child, file_path, content, facts, capture_index, child_depth);
+        collect_regex_node(child, context, facts, capture_index, child_depth);
     }
 }
 
@@ -1435,19 +1315,15 @@ fn regex_capture_group_fact(
 
 fn regex_lookaround_fact(file_path: &str, content: &str, node: Node<'_>) -> Option<StructuralFact> {
     let text = node_text(content, node)?;
-    let direction = if text.contains("(?<=") || text.contains("(?<!") {
-        "lookbehind"
-    } else {
-        "lookahead"
-    };
-    let polarity = if text.contains("(?=") || text.contains("(?<=") {
+    let direction = crate::regex::flags::get_lookaround_direction(text);
+    let polarity = if crate::regex::flags::is_positive_lookaround(text) {
         "positive"
     } else {
         "negative"
     };
 
     let mut metadata = base_metadata("pattern_structure");
-    insert_string(&mut metadata, "direction", direction);
+    insert_string(&mut metadata, "direction", &direction);
     insert_string(&mut metadata, "polarity", polarity);
 
     Some(fact_for_node(
@@ -1482,32 +1358,49 @@ fn regex_character_class_fact(
     ))
 }
 
+/// The pinned grammar has no possessive quantifier: `a++` parses as `+` then an
+/// ERROR node holding the second `+`, which marks the quantifier possessive.
 fn regex_quantifier_fact(file_path: &str, content: &str, node: Node<'_>) -> Option<StructuralFact> {
-    let text = node_text(content, node)?;
+    let text = node_text(content, node)?.trim();
+    let possessive_marker = node
+        .next_sibling()
+        .filter(|next| next.kind() == "ERROR" && node_text(content, *next) == Some("+"));
     let mut metadata = base_metadata("pattern_structure");
-    insert_string(&mut metadata, "quantifier", text.trim());
-
-    Some(fact_for_node(
+    let Some(marker) = possessive_marker else {
+        insert_string(&mut metadata, "quantifier", text);
+        return Some(fact_for_node(
+            file_path,
+            "regex",
+            REGEX_QUANTIFIER_PATTERN_ID,
+            "quantifier",
+            node,
+            metadata,
+        ));
+    };
+    insert_string(&mut metadata, "quantifier", &format!("{text}+"));
+    metadata.insert("possessive".to_string(), Value::Bool(true));
+    let span = NormalizedSpan::from_content_range(content, node.start_byte(), marker.end_byte())?;
+    Some(fact_for_span(
         file_path,
         "regex",
         REGEX_QUANTIFIER_PATTERN_ID,
         "quantifier",
-        node,
+        node.kind(),
+        span,
         metadata,
     ))
 }
 
-fn regex_alternation_fact(
-    file_path: &str,
-    content: &str,
-    node: Node<'_>,
-) -> Option<StructuralFact> {
-    let text = node_text(content, node)?;
-    let branch_count = text.matches('|').count().saturating_add(1);
+fn regex_alternation_fact(file_path: &str, node: Node<'_>) -> Option<StructuralFact> {
+    let mut cursor = node.walk();
+    let separators = node
+        .children(&mut cursor)
+        .filter(|child| child.kind() == "|")
+        .count();
     let mut metadata = base_metadata("pattern_structure");
     metadata.insert(
         "branch_count".to_string(),
-        Value::Number(Number::from(branch_count)),
+        Value::Number(Number::from(separators + 1)),
     );
 
     Some(fact_for_node(
@@ -1520,6 +1413,8 @@ fn regex_alternation_fact(
     ))
 }
 
+/// `\A`, `\z`, `\Z` and `\G` parse as identity escapes in the pinned grammar;
+/// any other identity escape is a literal character, not an anchor.
 fn regex_anchor_fact(file_path: &str, content: &str, node: Node<'_>) -> Option<StructuralFact> {
     let text = node_text(content, node)?;
     let anchor_kind = match text.trim() {
@@ -1530,6 +1425,8 @@ fn regex_anchor_fact(file_path: &str, content: &str, node: Node<'_>) -> Option<S
         r"\A" => "string_start",
         r"\Z" => "string_end",
         r"\z" => "absolute_end",
+        r"\G" => "previous_match_end",
+        _ if node.kind() == "identity_escape" => return None,
         _ => "other",
     };
 
@@ -1544,6 +1441,134 @@ fn regex_anchor_fact(file_path: &str, content: &str, node: Node<'_>) -> Option<S
         node,
         metadata,
     ))
+}
+
+fn regex_inline_flags_fact(
+    file_path: &str,
+    content: &str,
+    node: Node<'_>,
+) -> Option<StructuralFact> {
+    let mut cursor = node.walk();
+    let flags_text = node
+        .named_children(&mut cursor)
+        .find(|child| child.kind() == "flags")
+        .and_then(|flags| node_text(content, flags))
+        .unwrap_or_default();
+    let header = node_text(content, node)?
+        .strip_prefix("(?")?
+        .split([':', ')'])
+        .next()
+        .unwrap_or(flags_text);
+    let (enabled, disabled) = header.split_once('-').unwrap_or((header, ""));
+    let mut metadata = base_metadata("pattern_structure");
+    insert_string(&mut metadata, "enabled_flags", enabled);
+    insert_string(&mut metadata, "disabled_flags", disabled);
+    metadata.insert(
+        "scoped".to_string(),
+        Value::Bool(crate::regex::complexity_metrics::is_scoped_inline_flags_group(node)),
+    );
+
+    Some(fact_for_node(
+        file_path,
+        "regex",
+        REGEX_INLINE_FLAGS_PATTERN_ID,
+        "inline_flags",
+        node,
+        metadata,
+    ))
+}
+
+fn regex_backreference_fact(
+    context: &RegexFactContext<'_>,
+    node: Node<'_>,
+) -> Option<StructuralFact> {
+    let text = node_text(context.content, node)?;
+    let mut metadata = base_metadata("pattern_structure");
+    let resolved = match node.kind() {
+        "decimal_escape" => {
+            let index: usize = text.strip_prefix('\\')?.parse().ok()?;
+            insert_string(&mut metadata, "form", "numeric");
+            metadata.insert("capture_index".to_string(), Value::Number(index.into()));
+            (1..=context.captures.count).contains(&index)
+        }
+        kind => {
+            let name = crate::regex::groups::group_name_node(node)
+                .and_then(|name| node_text(context.content, name))
+                .or_else(|| {
+                    text.strip_prefix("\\k<")
+                        .and_then(|rest| rest.strip_suffix('>'))
+                })?;
+            let form = if kind == "named_group_backreference" {
+                "python_named"
+            } else {
+                "named"
+            };
+            insert_string(&mut metadata, "form", form);
+            insert_string(&mut metadata, "capture_name", name);
+            context.captures.names.contains(name)
+        }
+    };
+    metadata.insert("resolved".to_string(), Value::Bool(resolved));
+
+    Some(fact_for_node(
+        context.file_path,
+        "regex",
+        REGEX_BACKREFERENCE_PATTERN_ID,
+        "backreference",
+        node,
+        metadata,
+    ))
+}
+
+/// A `\Q...\E` quoted span parses as sibling escapes and characters in one term;
+/// an unclosed `\Q` quotes to the end of the term.
+fn regex_quoted_literal_facts(
+    file_path: &str,
+    content: &str,
+    term: Node<'_>,
+) -> Vec<StructuralFact> {
+    let mut facts = Vec::new();
+    let mut cursor = term.walk();
+    let children: Vec<Node<'_>> = term.children(&mut cursor).collect();
+    let mut index = 0;
+    while index < children.len() {
+        let start = children[index];
+        if !(start.kind() == "identity_escape" && node_text(content, start) == Some(r"\Q")) {
+            index += 1;
+            continue;
+        }
+        let close = children[index + 1..]
+            .iter()
+            .position(|child| {
+                child.kind() == "identity_escape" && node_text(content, *child) == Some(r"\E")
+            })
+            .map(|offset| index + 1 + offset);
+        let last = close.map_or(children.len() - 1, |close| close);
+        let text_end = close.map_or(children[last].end_byte(), |close| {
+            children[close].start_byte()
+        });
+        let literal = content.get(start.end_byte()..text_end).unwrap_or_default();
+        if let Some(span) = NormalizedSpan::from_content_range(
+            content,
+            start.start_byte(),
+            children[last].end_byte(),
+        ) {
+            let mut metadata = base_metadata("pattern_structure");
+            insert_string(&mut metadata, "literal_text", literal);
+            metadata.insert("closed".to_string(), Value::Bool(close.is_some()));
+            facts.push(fact_for_span(
+                file_path,
+                "regex",
+                REGEX_QUOTED_LITERAL_PATTERN_ID,
+                "quoted_literal",
+                "quoted_literal",
+                span,
+                metadata,
+            ));
+        }
+        index = last + 1;
+    }
+    facts
 }
 
 /// Which fact layers apply to a document, chosen by registered extension.
@@ -2474,11 +2499,4 @@ fn extract_named_capture_name(text: &str) -> Option<String> {
         return (!name.is_empty()).then(|| name.to_string());
     }
     None
-}
-
-fn is_lookaround_group_text(group_text: &str) -> bool {
-    group_text.starts_with("(?=")
-        || group_text.starts_with("(?!")
-        || group_text.starts_with("(?<=")
-        || group_text.starts_with("(?<!")
 }

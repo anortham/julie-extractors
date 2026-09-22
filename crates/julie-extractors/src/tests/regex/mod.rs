@@ -14,6 +14,7 @@ pub mod signatures;
 pub mod structural_facts;
 #[cfg(test)]
 mod task15;
+mod wave2_gaps;
 
 use crate::base::{SymbolKind, Visibility};
 use crate::regex::RegexExtractor;

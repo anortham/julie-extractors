@@ -275,7 +275,7 @@ pub(super) const LANGUAGE_SPECS: &[LanguageSpec] = &[
     ),
     spec(
         "regex",
-        &["regex"],
+        &["regex", "regexp"],
         "tree-sitter-regex",
         NO_PENDING_CAPABILITIES,
         parser_regex,

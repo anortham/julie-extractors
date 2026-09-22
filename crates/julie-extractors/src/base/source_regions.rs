@@ -51,6 +51,15 @@ pub fn collect_source_regions(
     content: &str,
     symbols: &[Symbol],
 ) -> Vec<SourceRegion> {
+    if language == "regex" {
+        let mut regions: Vec<SourceRegion> = crate::regex::verbose_comment_ranges(content)
+            .into_iter()
+            .filter_map(|(start, end)| NormalizedSpan::from_content_range(content, start, end))
+            .map(|span| region_for_span(file_path, language, span, SourceRegionKind::Comment, None))
+            .collect();
+        attach_containing_symbols(&mut regions, symbols);
+        return regions;
+    }
     let Some(config) = config_for_language(language) else {
         return Vec::new();
     };
@@ -168,7 +177,22 @@ fn region_for_node(
     kind: SourceRegionKind,
     metadata: Option<HashMap<String, serde_json::Value>>,
 ) -> SourceRegion {
-    let span = NormalizedSpan::from_node(&node);
+    region_for_span(
+        file_path,
+        language,
+        NormalizedSpan::from_node(&node),
+        kind,
+        metadata,
+    )
+}
+
+fn region_for_span(
+    file_path: &str,
+    language: &str,
+    span: NormalizedSpan,
+    kind: SourceRegionKind,
+    metadata: Option<HashMap<String, serde_json::Value>>,
+) -> SourceRegion {
     SourceRegion {
         id: stable_location_id(file_path, kind.as_str(), span),
         file_path: file_path.to_string(),

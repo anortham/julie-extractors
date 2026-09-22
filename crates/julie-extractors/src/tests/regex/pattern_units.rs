@@ -194,6 +194,6 @@ fn verbose_flag_pattern_over_many_lines_stays_one_pattern() {
     let (symbols, _, _) = extract(code);
     let roots = roots(&symbols);
     assert_eq!(roots.len(), 1, "{symbols:#?}");
-    assert_eq!(roots[0].name, "(?x)");
+    assert_eq!(roots[0].name, "(?x)^(?<year>\\d{4})-(?<month>\\d{2})$");
     assert_eq!(roots[0].end_line, 3);
 }

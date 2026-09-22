@@ -7,7 +7,6 @@
 // - Predefined character class categorization
 // - Unicode property extraction
 // - Backreference extraction
-// - Conditional pattern extraction
 
 #[cfg(test)]
 mod tests {
@@ -72,11 +71,5 @@ mod tests {
             extract_backref_group_name("(?P=email)"),
             Some("email".to_string())
         );
-    }
-
-    #[test]
-    fn test_extract_condition() {
-        assert_eq!(extract_condition("(?(1)yes|no)"), Some("1".to_string()));
-        assert_eq!(extract_condition("no-match"), None);
     }
 }

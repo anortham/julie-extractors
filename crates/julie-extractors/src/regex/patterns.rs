@@ -27,12 +27,7 @@ pub(super) fn extract_pattern(
 ) -> Option<Symbol> {
     let pattern_text = base.get_node_text(&node);
     let signature = signatures::build_pattern_signature(&pattern_text);
-    let name = pattern_text
-        .lines()
-        .map(str::trim)
-        .find(|line| !line.is_empty())
-        .unwrap_or_default()
-        .to_string();
+    let name = super::folded_pattern_text(&pattern_text);
 
     let metadata = create_metadata(&[
         ("type", "regex-pattern"),
@@ -132,43 +127,14 @@ pub(super) fn extract_group(
         SymbolOptions {
             signature: Some(signature),
             visibility: Some(Visibility::Public),
-            parent_id: parent_id.clone(),
+            parent_id,
             metadata: Some(metadata),
             doc_comment,
             annotations: Vec::new(),
         },
     );
 
-    record_group_literal_fragment(base, &node, &group_text, parent_id);
-
     Some(with_node_body(base, symbol, &node))
-}
-
-/// Record fixed literal fragments inside capturing groups, e.g. `(foo)`.
-fn record_group_literal_fragment(
-    base: &mut BaseExtractor,
-    node: &Node,
-    group_text: &str,
-    parent_id: Option<String>,
-) {
-    let inner = group_text
-        .trim()
-        .strip_prefix('(')
-        .and_then(|text| text.strip_suffix(')'))
-        .unwrap_or(group_text);
-    if inner.len() >= 2
-        && inner
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
-    {
-        base.record_literal(
-            node,
-            inner.to_string(),
-            Some("pattern".to_string()),
-            0,
-            parent_id,
-        );
-    }
 }
 
 /// Extract a lookaround symbol
@@ -178,120 +144,22 @@ pub(super) fn extract_lookaround(
     parent_id: Option<String>,
 ) -> Option<Symbol> {
     let lookaround_text = base.get_node_text(&node);
-    extract_lookaround_text(base, node, lookaround_text, parent_id, None)
-}
-
-pub(super) fn extract_lookaround_text(
-    base: &mut BaseExtractor,
-    node: Node,
-    lookaround_text: String,
-    parent_id: Option<String>,
-    span: Option<NormalizedSpan>,
-) -> Option<Symbol> {
     let direction = flags::get_lookaround_direction(&lookaround_text);
-    let polarity = if flags::is_positive_lookaround(&lookaround_text) {
-        "positive"
-    } else {
-        "negative"
-    };
+    let positive = flags::is_positive_lookaround(&lookaround_text);
+    let polarity = if positive { "positive" } else { "negative" };
     let signature = signatures::build_lookaround_signature(&lookaround_text, &direction, polarity);
 
     let metadata = create_metadata(&[
         ("type", "lookaround"),
         ("pattern", &lookaround_text),
         ("direction", &direction),
-        (
-            "positive",
-            &flags::is_positive_lookaround(&lookaround_text).to_string(),
-        ),
+        ("positive", &positive.to_string()),
     ]);
 
     let doc_comment = base.find_doc_comment(&node);
-    let options = SymbolOptions {
-        signature: Some(signature),
-        visibility: Some(Visibility::Public),
-        parent_id,
-        metadata: Some(metadata),
-        doc_comment,
-        annotations: Vec::new(),
-    };
-
-    let body = span.unwrap_or_else(|| NormalizedSpan::from_node(&node));
-    let symbol = match span {
-        Some(span) => {
-            base.create_symbol_from_span(&node, span, lookaround_text, SymbolKind::Method, options)
-        }
-        None => base.create_symbol(&node, lookaround_text, SymbolKind::Method, options),
-    };
-    Some(with_body(base, symbol, Some(body)))
-}
-
-/// Extract a unicode property symbol
-pub(super) fn extract_unicode_property(
-    base: &mut BaseExtractor,
-    node: Node,
-    parent_id: Option<String>,
-) -> Option<Symbol> {
-    let property_text = base.get_node_text(&node);
-    extract_unicode_property_text(base, node, property_text, parent_id, None)
-}
-
-pub(super) fn extract_unicode_property_text(
-    base: &mut BaseExtractor,
-    node: Node,
-    property_text: String,
-    parent_id: Option<String>,
-    span: Option<NormalizedSpan>,
-) -> Option<Symbol> {
-    let property = flags::extract_unicode_property_name(&property_text)?;
-    let signature = signatures::build_unicode_property_signature(&property_text, &property);
-
-    let metadata = create_metadata(&[
-        ("type", "unicode-property"),
-        ("pattern", &property_text),
-        ("property", &property),
-    ]);
-
-    let doc_comment = base.find_doc_comment(&node);
-    let options = SymbolOptions {
-        signature: Some(signature),
-        visibility: Some(Visibility::Public),
-        parent_id,
-        metadata: Some(metadata),
-        doc_comment,
-        annotations: Vec::new(),
-    };
-
-    let symbol = match span {
-        Some(span) => {
-            base.create_symbol_from_span(&node, span, property_text, SymbolKind::Constant, options)
-        }
-        None => base.create_symbol(&node, property_text, SymbolKind::Constant, options),
-    };
-    Some(without_body(symbol))
-}
-
-/// Extract a conditional symbol
-pub(super) fn extract_conditional(
-    base: &mut BaseExtractor,
-    node: Node,
-    parent_id: Option<String>,
-) -> Option<Symbol> {
-    let conditional_text = base.get_node_text(&node);
-    let condition = flags::extract_condition(&conditional_text)?;
-    let signature = signatures::build_conditional_signature(&conditional_text, &condition);
-
-    let metadata = create_metadata(&[
-        ("type", "conditional"),
-        ("pattern", &conditional_text),
-        ("condition", &condition),
-    ]);
-
-    let doc_comment = base.find_doc_comment(&node);
-
     let symbol = base.create_symbol(
         &node,
-        conditional_text,
+        lookaround_text,
         SymbolKind::Method,
         SymbolOptions {
             signature: Some(signature),
@@ -303,6 +171,39 @@ pub(super) fn extract_conditional(
         },
     );
     Some(with_node_body(base, symbol, &node))
+}
+
+/// Extract a unicode property symbol
+pub(super) fn extract_unicode_property(
+    base: &mut BaseExtractor,
+    node: Node,
+    parent_id: Option<String>,
+) -> Option<Symbol> {
+    let property_text = base.get_node_text(&node);
+    let property = flags::extract_unicode_property_name(&property_text)?;
+    let signature = signatures::build_unicode_property_signature(&property_text, &property);
+
+    let metadata = create_metadata(&[
+        ("type", "unicode-property"),
+        ("pattern", &property_text),
+        ("property", &property),
+    ]);
+
+    let doc_comment = base.find_doc_comment(&node);
+    let symbol = base.create_symbol(
+        &node,
+        property_text,
+        SymbolKind::Constant,
+        SymbolOptions {
+            signature: Some(signature),
+            visibility: Some(Visibility::Public),
+            parent_id,
+            metadata: Some(metadata),
+            doc_comment,
+            annotations: Vec::new(),
+        },
+    );
+    Some(without_body(symbol))
 }
 
 // REMOVED (2025-10-31): extract_atomic_group() - Unreachable dead code

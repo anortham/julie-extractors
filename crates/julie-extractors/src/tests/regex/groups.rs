@@ -18,7 +18,10 @@ use crate::regex::groups::{extract_group_name, is_capturing_group};
 fn test_is_capturing_group() {
     assert!(is_capturing_group("(abc)"));
     assert!(!is_capturing_group("(?:abc)"));
-    assert!(!is_capturing_group("(?<name>abc)"));
+    assert!(is_capturing_group("(?<name>abc)"));
+    assert!(is_capturing_group("(?P<name>abc)"));
+    assert!(!is_capturing_group("(?<=abc)"));
+    assert!(!is_capturing_group("(?!abc)"));
 }
 
 #[test]

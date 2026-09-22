@@ -6455,7 +6455,8 @@
       "language": "regex",
       "parser_crate": "tree-sitter-regex",
       "extensions": [
-        "regex"
+        "regex",
+        "regexp"
       ],
       "dependency_status": "current",
       "capabilities": {
@@ -6470,6 +6471,11 @@
           "name": "basic",
           "source": "fixtures/extraction/regex/basic/source.regex",
           "expected": "fixtures/extraction/regex/basic/expected.json"
+        },
+        {
+          "name": "advanced",
+          "source": "fixtures/extraction/regex/advanced/source.regex",
+          "expected": "fixtures/extraction/regex/advanced/expected.json"
         },
         {
           "name": "cross_file",
@@ -6543,19 +6549,22 @@
           "supported": [
             "regex.alternation.v1",
             "regex.anchor.v1",
+            "regex.backreference.v1",
             "regex.capture_group.v1",
             "regex.character_class.v1",
+            "regex.inline_flags.v1",
             "regex.lookaround.v1",
             "regex.named_capture.v1",
-            "regex.quantifier.v1"
+            "regex.quantifier.v1",
+            "regex.quoted_literal.v1"
           ],
           "not_applicable": [],
           "open_gaps": [
             {
-              "kind": "regex_advanced_constructs",
-              "reason": "Regex structural facts cover capture groups, named captures, lookaround, character classes, quantifiers, alternation, and anchors, but do not yet emit dedicated facts for numeric/named backreferences, possessive quantifiers, quoted literals such as `\\Q...\\E`, or conditional patterns.",
-              "required_closure": "add grammar- or scanner-backed facts and fixtures for backreferences, possessive quantifiers, quoted literal spans, and conditional patterns",
-              "planned_closure_task": "docs/plans/2026-07-04-glm-review-findings-remediation.md Task 7 follow-up: Regex advanced constructs"
+              "kind": "regex_conditional_patterns",
+              "reason": "The pinned tree-sitter-regex grammar (ECMAScript syntax) has no conditional node: `(?(1)a|b)` parses as an ERROR token followed by a regrouped alternation in which the condition `(1)` becomes a capture group, so neither the condition, the branches, nor the capture numbering after it can be read from the tree.",
+              "required_closure": "pin or patch a grammar that parses `(?(cond)yes|no)` groups, then emit a conditional fact with the condition and branch count, count conditionals as complexity decisions, and add fixture evidence",
+              "planned_closure_task": "docs/plans/2026-09-22-language-gap-closure.md later waves"
             }
           ]
         },
@@ -6593,9 +6602,10 @@
           "open_gaps": []
         },
         "source_regions": {
-          "supported": [],
+          "supported": [
+            "comment"
+          ],
           "not_applicable": [
-            "comment",
             "doc_comment",
             "embedded",
             "string_literal"

@@ -1,8 +1,8 @@
 {
   "symbols": [
     {
-      "key": "fixtures/extraction/regex/verbose/source.regex:(?x):1:0",
-      "name": "(?x)",
+      "key": "fixtures/extraction/regex/verbose/source.regex:(?x)^(?<year>\\d{4})-(?<month>\\d{2})$:1:0",
+      "name": "(?x)^(?<year>\\d{4})-(?<month>\\d{2})$",
       "kind": "variable",
       "language": "regex",
       "file_path": "fixtures/extraction/regex/verbose/source.regex",
@@ -11,23 +11,23 @@
       "end_line": 3,
       "end_column": 17,
       "start_byte": 0,
-      "end_byte": 38,
+      "end_byte": 73,
       "body_span": {
         "start_line": 1,
         "start_column": 0,
         "end_line": 3,
         "end_column": 17,
         "start_byte": 0,
-        "end_byte": 38
+        "end_byte": 73
       },
-      "body_hash": "b6b0391c8ec8787945e4f45546f5ee01",
-      "signature": "(?x)\n^(?<year>\\d{4})\n-(?<month>\\d{2})$",
+      "body_hash": "a05dd652c8fc0304a5534b038afd911c",
+      "signature": "(?x)  # ISO date\n^(?<year>\\d{4})  # year (\\1 is unused)\n-(?<month>\\d{2})$",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
-        "complexity": "19",
-        "pattern": "(?x)\n^(?<year>\\d{4})\n-(?<month>\\d{2})$",
+        "complexity": "21",
+        "pattern": "(?x)  # ISO date\n^(?<year>\\d{4})  # year (\\1 is unused)\n-(?<month>\\d{2})$",
         "type": "regex-pattern"
       },
       "annotations": [],
@@ -45,24 +45,24 @@
       "start_column": 1,
       "end_line": 3,
       "end_column": 16,
-      "start_byte": 22,
-      "end_byte": 37,
+      "start_byte": 57,
+      "end_byte": 72,
       "body_span": {
         "start_line": 3,
         "start_column": 1,
         "end_line": 3,
         "end_column": 16,
-        "start_byte": 22,
-        "end_byte": 37
+        "start_byte": 57,
+        "end_byte": 72
       },
       "body_hash": "b75f5257301b27806011a2769abfe8dd",
       "signature": "Named group 'month': (?<month>\\d{2})",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/regex/verbose/source.regex:(?x):1:0",
+      "parent_key": "fixtures/extraction/regex/verbose/source.regex:(?x)^(?<year>\\d{4})-(?<month>\\d{2})$:1:0",
       "metadata": {
         "captureIndex": 2,
-        "capturing": "false",
+        "capturing": "true",
         "named": "month",
         "pattern": "(?<month>\\d{2})",
         "type": "group"
@@ -82,24 +82,24 @@
       "start_column": 1,
       "end_line": 2,
       "end_column": 15,
-      "start_byte": 6,
-      "end_byte": 20,
+      "start_byte": 18,
+      "end_byte": 32,
       "body_span": {
         "start_line": 2,
         "start_column": 1,
         "end_line": 2,
         "end_column": 15,
-        "start_byte": 6,
-        "end_byte": 20
+        "start_byte": 18,
+        "end_byte": 32
       },
       "body_hash": "dd4961774e5ea90d22cd19e7048dc555",
       "signature": "Named group 'year': (?<year>\\d{4})",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/regex/verbose/source.regex:(?x):1:0",
+      "parent_key": "fixtures/extraction/regex/verbose/source.regex:(?x)^(?<year>\\d{4})-(?<month>\\d{2})$:1:0",
       "metadata": {
         "captureIndex": 1,
-        "capturing": "false",
+        "capturing": "true",
         "named": "year",
         "pattern": "(?<year>\\d{4})",
         "type": "group"
@@ -124,8 +124,8 @@
       "start_column": 4,
       "end_line": 3,
       "end_column": 9,
-      "start_byte": 25,
-      "end_byte": 30,
+      "start_byte": 60,
+      "end_byte": 65,
       "containing_key": "fixtures/extraction/regex/verbose/source.regex:month:3:1",
       "target_key": null,
       "confidence": "1.000"
@@ -140,8 +140,8 @@
       "start_column": 4,
       "end_line": 2,
       "end_column": 8,
-      "start_byte": 9,
-      "end_byte": 13,
+      "start_byte": 21,
+      "end_byte": 25,
       "containing_key": "fixtures/extraction/regex/verbose/source.regex:year:2:1",
       "target_key": null,
       "confidence": "1.000"
@@ -149,7 +149,7 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/regex/verbose/source.regex:(?x):1:0",
+      "symbol_key": "fixtures/extraction/regex/verbose/source.regex:(?x)^(?<year>\\d{4})-(?<month>\\d{2})$:1:0",
       "resolved_type": "regex:regex-pattern",
       "generic_params": null,
       "constraints": null,
@@ -184,13 +184,13 @@
       "node_kind": "end_assertion",
       "language": "regex",
       "file_path": "fixtures/extraction/regex/verbose/source.regex",
-      "containing_key": "fixtures/extraction/regex/verbose/source.regex:(?x):1:0",
+      "containing_key": "fixtures/extraction/regex/verbose/source.regex:(?x)^(?<year>\\d{4})-(?<month>\\d{2})$:1:0",
       "start_line": 3,
       "start_column": 16,
       "end_line": 3,
       "end_column": 17,
-      "start_byte": 37,
-      "end_byte": 38,
+      "start_byte": 72,
+      "end_byte": 73,
       "confidence": "1.000",
       "metadata": {
         "anchor_kind": "end",
@@ -204,18 +204,40 @@
       "node_kind": "start_assertion",
       "language": "regex",
       "file_path": "fixtures/extraction/regex/verbose/source.regex",
-      "containing_key": "fixtures/extraction/regex/verbose/source.regex:(?x):1:0",
+      "containing_key": "fixtures/extraction/regex/verbose/source.regex:(?x)^(?<year>\\d{4})-(?<month>\\d{2})$:1:0",
       "start_line": 2,
       "start_column": 0,
       "end_line": 2,
       "end_column": 1,
-      "start_byte": 5,
-      "end_byte": 6,
+      "start_byte": 17,
+      "end_byte": 18,
       "confidence": "1.000",
       "metadata": {
         "anchor_kind": "start",
         "pattern_version": 1,
         "query_family": "pattern_structure"
+      }
+    },
+    {
+      "pattern_id": "regex.inline_flags.v1",
+      "capture_name": "inline_flags",
+      "node_kind": "inline_flags_group",
+      "language": "regex",
+      "file_path": "fixtures/extraction/regex/verbose/source.regex",
+      "containing_key": "fixtures/extraction/regex/verbose/source.regex:(?x)^(?<year>\\d{4})-(?<month>\\d{2})$:1:0",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 4,
+      "start_byte": 0,
+      "end_byte": 4,
+      "confidence": "1.000",
+      "metadata": {
+        "disabled_flags": "",
+        "enabled_flags": "x",
+        "pattern_version": 1,
+        "query_family": "pattern_structure",
+        "scoped": false
       }
     },
     {
@@ -229,8 +251,8 @@
       "start_column": 1,
       "end_line": 3,
       "end_column": 16,
-      "start_byte": 22,
-      "end_byte": 37,
+      "start_byte": 57,
+      "end_byte": 72,
       "confidence": "1.000",
       "metadata": {
         "capture_index": 2,
@@ -250,8 +272,8 @@
       "start_column": 1,
       "end_line": 2,
       "end_column": 15,
-      "start_byte": 6,
-      "end_byte": 20,
+      "start_byte": 18,
+      "end_byte": 32,
       "confidence": "1.000",
       "metadata": {
         "capture_index": 1,
@@ -271,8 +293,8 @@
       "start_column": 12,
       "end_line": 3,
       "end_column": 15,
-      "start_byte": 33,
-      "end_byte": 36,
+      "start_byte": 68,
+      "end_byte": 71,
       "confidence": "1.000",
       "metadata": {
         "pattern_version": 1,
@@ -291,8 +313,8 @@
       "start_column": 11,
       "end_line": 2,
       "end_column": 14,
-      "start_byte": 16,
-      "end_byte": 19,
+      "start_byte": 28,
+      "end_byte": 31,
       "confidence": "1.000",
       "metadata": {
         "pattern_version": 1,
@@ -309,7 +331,7 @@
       "language": "regex",
       "file_path": "fixtures/extraction/regex/verbose/source.regex",
       "covered_lines": 4,
-      "covered_bytes": 39,
+      "covered_bytes": 74,
       "decision_count": 0,
       "loop_count": 2,
       "max_nesting_depth": 1,
@@ -319,9 +341,9 @@
       "end_line": 4,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 39,
+      "end_byte": 74,
       "metadata": {
-        "decision_signal_kinds": "alternation,conditional",
+        "decision_signal_kinds": "alternation",
         "loop_signal_kinds": "quantifier",
         "metric_version": 1,
         "nesting_signal_kinds": "group,lookaround"
@@ -329,12 +351,12 @@
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/regex/verbose/source.regex:(?x):1:0",
+      "symbol_key": "fixtures/extraction/regex/verbose/source.regex:(?x)^(?<year>\\d{4})-(?<month>\\d{2})$:1:0",
       "algorithm_id": "julie-regex-complexity-v1",
       "language": "regex",
       "file_path": "fixtures/extraction/regex/verbose/source.regex",
       "covered_lines": 3,
-      "covered_bytes": 38,
+      "covered_bytes": 73,
       "decision_count": 0,
       "loop_count": 2,
       "max_nesting_depth": 1,
@@ -344,9 +366,9 @@
       "end_line": 3,
       "end_column": 17,
       "start_byte": 0,
-      "end_byte": 38,
+      "end_byte": 73,
       "metadata": {
-        "decision_signal_kinds": "alternation,conditional",
+        "decision_signal_kinds": "alternation",
         "loop_signal_kinds": "quantifier",
         "metric_version": 1,
         "nesting_signal_kinds": "group,lookaround"
@@ -368,10 +390,10 @@
       "start_column": 1,
       "end_line": 3,
       "end_column": 16,
-      "start_byte": 22,
-      "end_byte": 37,
+      "start_byte": 57,
+      "end_byte": 72,
       "metadata": {
-        "decision_signal_kinds": "alternation,conditional",
+        "decision_signal_kinds": "alternation",
         "loop_signal_kinds": "quantifier",
         "metric_version": 1,
         "nesting_signal_kinds": "group,lookaround"
@@ -393,10 +415,10 @@
       "start_column": 1,
       "end_line": 2,
       "end_column": 15,
-      "start_byte": 6,
-      "end_byte": 20,
+      "start_byte": 18,
+      "end_byte": 32,
       "metadata": {
-        "decision_signal_kinds": "alternation,conditional",
+        "decision_signal_kinds": "alternation",
         "loop_signal_kinds": "quantifier",
         "metric_version": 1,
         "nesting_signal_kinds": "group,lookaround"
@@ -404,6 +426,33 @@
     }
   ],
   "literals": [],
-  "source_regions": [],
+  "source_regions": [
+    {
+      "kind": "comment",
+      "language": "regex",
+      "file_path": "fixtures/extraction/regex/verbose/source.regex",
+      "containing_key": "fixtures/extraction/regex/verbose/source.regex:(?x)^(?<year>\\d{4})-(?<month>\\d{2})$:1:0",
+      "start_line": 1,
+      "start_column": 6,
+      "end_line": 1,
+      "end_column": 16,
+      "start_byte": 6,
+      "end_byte": 16,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "regex",
+      "file_path": "fixtures/extraction/regex/verbose/source.regex",
+      "containing_key": "fixtures/extraction/regex/verbose/source.regex:(?x)^(?<year>\\d{4})-(?<month>\\d{2})$:1:0",
+      "start_line": 2,
+      "start_column": 17,
+      "end_line": 2,
+      "end_column": 38,
+      "start_byte": 34,
+      "end_byte": 55,
+      "metadata": null
+    }
+  ],
   "type_argument_usages": []
 }

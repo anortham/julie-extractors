@@ -7183,6 +7183,52 @@
     "query_family": "pattern_structure"
   },
   {
+    "description": "A regex backreference (`\\1`, `\\k<name>`, `(?P=name)`).",
+    "languages": [
+      "regex"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "\"numeric\", \"named\" (`\\k<name>`) or \"python_named\" (`(?P=name)`).",
+        "key": "form",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Target capture index of a numeric backreference.",
+        "key": "capture_index",
+        "presence": "optional",
+        "value_type": "number"
+      },
+      {
+        "description": "Target group name of a named backreference.",
+        "key": "capture_name",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Whether the same pattern declares the target group.",
+        "key": "resolved",
+        "presence": "always",
+        "value_type": "bool"
+      }
+    ],
+    "pattern_id": "regex.backreference.v1",
+    "query_family": "pattern_structure"
+  },
+  {
     "description": "A regex anonymous capturing group.",
     "languages": [
       "regex"
@@ -7242,6 +7288,46 @@
       }
     ],
     "pattern_id": "regex.character_class.v1",
+    "query_family": "pattern_structure"
+  },
+  {
+    "description": "A regex inline flag group (`(?i)` or `(?i-s:...)`).",
+    "languages": [
+      "regex"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Flag letters the group turns on, in source order (may be empty).",
+        "key": "enabled_flags",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Flag letters after `-` that the group turns off (may be empty).",
+        "key": "disabled_flags",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "True when the flags apply only to the group's own sub-pattern.",
+        "key": "scoped",
+        "presence": "always",
+        "value_type": "bool"
+      }
+    ],
+    "pattern_id": "regex.inline_flags.v1",
     "query_family": "pattern_structure"
   },
   {
@@ -7331,13 +7417,53 @@
         "value_type": "string"
       },
       {
-        "description": "Trimmed raw text of the quantifier (e.g. \"*\", \"+\", \"{2,4}\").",
+        "description": "Trimmed raw text of the quantifier (e.g. \"*\", \"+\", \"{2,4}\", \"++\").",
         "key": "quantifier",
         "presence": "always",
         "value_type": "string"
+      },
+      {
+        "description": "True for a possessive quantifier (`a++`); absent otherwise.",
+        "key": "possessive",
+        "presence": "optional",
+        "value_type": "bool"
       }
     ],
     "pattern_id": "regex.quantifier.v1",
+    "query_family": "pattern_structure"
+  },
+  {
+    "description": "A regex quoted literal span (`\\Q...\\E`).",
+    "languages": [
+      "regex"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Text between `\\Q` and `\\E`, matched literally.",
+        "key": "literal_text",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "False when no `\\E` closes the span before the end of its term.",
+        "key": "closed",
+        "presence": "always",
+        "value_type": "bool"
+      }
+    ],
+    "pattern_id": "regex.quoted_literal.v1",
     "query_family": "pattern_structure"
   },
   {

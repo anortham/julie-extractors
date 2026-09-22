@@ -20,7 +20,7 @@
 //! - `base/framework_structural_facts/`: aspnet, htmx, alpine, razor, HTTP frameworks.
 //! - `base/web_structural_facts/`: css, html, vue, react, nextjs, nuxt, http client.
 //!
-//! SPECS live in sibling family modules (`builtins`, `data`, `manifest`, `xml`, `sql`,
+//! SPECS live in sibling family modules (`builtins`, `data`, `regex`, `manifest`, `xml`, `sql`,
 //! `framework`, `web`, `http_client`); this file owns types, authoring helpers,
 //! and JSON serialization only.
 //!
@@ -144,6 +144,7 @@ mod framework;
 mod http_client;
 mod manifest;
 mod marker;
+mod regex;
 mod sql;
 mod web;
 mod xml;
@@ -155,6 +156,7 @@ fn all_specs() -> Vec<StructuralFactPatternSpec> {
     specs.extend(builtins::specs());
     specs.extend_from_slice(marker::SPECS);
     specs.extend_from_slice(data::SPECS);
+    specs.extend_from_slice(regex::SPECS);
     specs.extend_from_slice(manifest::SPECS);
     specs.extend_from_slice(xml::SPECS);
     specs.extend_from_slice(sql::SPECS);
