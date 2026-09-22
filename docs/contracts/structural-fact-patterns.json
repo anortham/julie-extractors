@@ -4225,8 +4225,14 @@
         "value_type": "string"
       },
       {
-        "description": "Controller action target (\"Ctrl@method\" or the literal action string) when statically resolvable.",
+        "description": "Controller action target when statically resolvable: \"Ctrl@method\" from [Ctrl::class, 'method'], \"Ctrl@__invoke\" for an invokable Ctrl::class, or the action string joined to a same-file Route::controller group.",
         "key": "controller_action",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Static ->name('x') on the route, prefixed by any same-file group ->name()/as prefix.",
+        "key": "route_name",
         "presence": "optional",
         "value_type": "string"
       }
@@ -4235,7 +4241,7 @@
     "query_family": "framework"
   },
   {
-    "description": "A static Laravel Route::prefix()/group(['prefix'=>...]) prefix at its definition site.",
+    "description": "A static Laravel Route::prefix()/group(['prefix'=>...]) prefix at its definition site, including a group that loads a route file.",
     "languages": [
       "php"
     ],
@@ -4268,6 +4274,12 @@
         "description": "Normalized prefix path including enclosing same-file group scope.",
         "key": "normalized_mount_path",
         "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route file a group loads (base_path('routes/api.php') or __DIR__ . '/...'); code-kb joins it across files.",
+        "key": "mount_target",
+        "presence": "optional",
         "value_type": "string"
       }
     ],
@@ -5607,6 +5619,46 @@
     "query_family": "metadata"
   },
   {
+    "description": "A PHP `include`, `include_once`, `require`, or `require_once` expression.",
+    "languages": [
+      "php"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "`include`, `include_once`, `require`, or `require_once`.",
+        "key": "include_kind",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The static path: a string literal, or the literal part after `path_base`.",
+        "key": "included_path",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "`__DIR__` or `dirname(__FILE__)` when the path is joined to the file directory.",
+        "key": "path_base",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "php.include_call.v1",
+    "query_family": "imports"
+  },
+  {
     "description": "A PHP 8 `match` expression.",
     "languages": [
       "php"
@@ -5657,7 +5709,7 @@
     "query_family": "module"
   },
   {
-    "description": "A PHP `use` import declaration.",
+    "description": "One clause of a PHP `use` import declaration.",
     "languages": [
       "php"
     ],
@@ -5685,13 +5737,19 @@
         "key": "import_alias",
         "presence": "optional",
         "value_type": "string"
+      },
+      {
+        "description": "`function` or `const` for `use function` / `use const`; absent for a class import.",
+        "key": "import_kind",
+        "presence": "optional",
+        "value_type": "string"
       }
     ],
     "pattern_id": "php.namespace_use_declaration.v1",
     "query_family": "imports"
   },
   {
-    "description": "A PHP `use` trait mixin inside a class.",
+    "description": "One trait named by a PHP `use` mixin inside a class.",
     "languages": [
       "php"
     ],
@@ -8908,6 +8966,12 @@
       {
         "description": "How the verb was attested.",
         "key": "verb_source",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Static name: of the method #[Route], prefixed by the class-level #[Route] name:.",
+        "key": "route_name",
         "presence": "optional",
         "value_type": "string"
       }

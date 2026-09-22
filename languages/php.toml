@@ -15,5 +15,29 @@ sql = [
     "prepare",
     "mysqli_query",
     "mysqli_prepare",
+    "executeQuery",
+    "executeStatement",
+    "fetchAllAssociative",
+    "fetchAssociative",
+    "fetchOne",
+    "createQuery",
+    "createNativeQuery",
+    "DB.select",
+    "DB.selectOne",
+    "DB.statement",
+    "DB.insert",
+    "DB.update",
+    "DB.delete",
+    "DB.unprepared",
+    "DB.raw",
+    "whereRaw",
+    "orWhereRaw",
+    "selectRaw",
+    "orderByRaw",
+    "havingRaw",
+    "groupByRaw",
 ]
+# `receiver.method` pairs that share a carrier's method name but carry no
+# SQL, matched on the last receiver segment: `$request->query('page')`.
+exclude = ["request.query", "request().query"]
 route = []

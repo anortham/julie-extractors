@@ -322,19 +322,6 @@
       "start_byte": 146,
       "end_byte": 156,
       "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "tsx",
-      "file_path": "fixtures/extraction/tsx/htmx_attributes/source.tsx",
-      "containing_key": "fixtures/extraction/tsx/htmx_attributes/source.tsx:endpoint:2:2",
-      "start_line": 2,
-      "start_column": 12,
-      "end_line": 2,
-      "end_column": 18,
-      "start_byte": 30,
-      "end_byte": 36,
-      "metadata": null
     }
   ],
   "type_argument_usages": []

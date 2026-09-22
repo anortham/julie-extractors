@@ -34,6 +34,8 @@ struct ImportGates {
 enum ClientRoot {
     Facade(String),
     Variable(String),
+    /// `$this->name`: a property of the enclosing class.
+    Property(String),
     CreateChain,
 }
 
@@ -178,6 +180,8 @@ fn client_request_fact(
     if gates.guzzle && matches!(method, "request" | "requestAsync") {
         match client_root(call, content)? {
             ClientRoot::Variable(name) if ident_is_guzzle_client(&name, call, content) => {}
+            ClientRoot::Property(name)
+                if property_is_client(&name, call, content, Client::Guzzle) => {}
             _ => return None,
         }
         let verb_arg = nth_positional_arg_value(arguments, 0)?;
@@ -209,6 +213,11 @@ fn client_request_fact(
         {
             "guzzle"
         }
+        ClientRoot::Property(name)
+            if gates.guzzle && property_is_client(&name, call, content, Client::Guzzle) =>
+        {
+            "guzzle"
+        }
         ClientRoot::CreateChain => return None,
         _ => return None,
     };
@@ -236,7 +245,123 @@ fn symfony_receiver_ok(call: Node, content: &str) -> bool {
             ident_is_symfony_typed_param(&name, call, content)
                 || variable_from_http_client_create(&name, call, content)
         }
+        Some(ClientRoot::Property(name)) => {
+            property_is_client(&name, call, content, Client::Symfony)
+        }
         _ => false,
+    }
+}
+
+#[derive(Clone, Copy)]
+enum Client {
+    Guzzle,
+    Symfony,
+}
+
+/// A `$this->name` receiver is a client when the enclosing class proves it in
+/// the same file: a typed property, a typed promoted constructor parameter, or
+/// a `$this->name = new Client()` / `HttpClient::create()` assignment. An
+/// untyped property stays silent (M2).
+fn property_is_client(name: &str, from: Node, content: &str, client: Client) -> bool {
+    let Some(class_body) = enclosing_class_body(from) else {
+        return false;
+    };
+    let type_matches = |ty: Node| match client {
+        Client::Guzzle => type_names_guzzle_client(ty, content),
+        Client::Symfony => type_names_symfony_client(ty, content),
+    };
+    let mut cursor = class_body.walk();
+    for member in class_body.named_children(&mut cursor) {
+        match member.kind() {
+            "property_declaration" => {
+                let declares = {
+                    let mut elements = member.walk();
+                    member.named_children(&mut elements).any(|element| {
+                        element.kind() == "property_element"
+                            && element
+                                .child_by_field_name("name")
+                                .and_then(|n| node_text(content, n))
+                                .is_some_and(|var| var.trim_start_matches('$') == name)
+                    })
+                };
+                if declares && member.child_by_field_name("type").is_some_and(type_matches) {
+                    return true;
+                }
+            }
+            "method_declaration" => {
+                if let Some(params) = member.child_by_field_name("parameters") {
+                    let mut params_cursor = params.walk();
+                    if params.named_children(&mut params_cursor).any(|param| {
+                        param.kind() == "property_promotion_parameter"
+                            && param
+                                .child_by_field_name("name")
+                                .and_then(|n| node_text(content, n))
+                                .is_some_and(|var| var.trim_start_matches('$') == name)
+                            && param.child_by_field_name("type").is_some_and(type_matches)
+                    }) {
+                        return true;
+                    }
+                }
+                let mut assigned = false;
+                walk_property_assignments(member, content, 0, &mut |property, value| {
+                    if property == name
+                        && match client {
+                            Client::Guzzle => is_guzzle_client_new(value, content),
+                            Client::Symfony => is_http_client_create(value, content),
+                        }
+                    {
+                        assigned = true;
+                    }
+                });
+                if assigned {
+                    return true;
+                }
+            }
+            _ => {}
+        }
+    }
+    false
+}
+
+fn enclosing_class_body(from: Node) -> Option<Node> {
+    let mut current = from.parent();
+    while let Some(node) = current {
+        match node.kind() {
+            "class_declaration" | "trait_declaration" => {
+                return node.child_by_field_name("body");
+            }
+            "anonymous_class" => return None,
+            _ => current = node.parent(),
+        }
+    }
+    None
+}
+
+/// Visit every `$this->name = value` assignment under `node`.
+fn walk_property_assignments(node: Node, content: &str, depth: u32, f: &mut dyn FnMut(&str, Node)) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+    if node.kind() == "assignment_expression"
+        && let Some(left) = node.child_by_field_name("left")
+        && left.kind() == "member_access_expression"
+        && left
+            .child_by_field_name("object")
+            .and_then(|object| node_text(content, object))
+            == Some("$this")
+        && let Some(property) = left
+            .child_by_field_name("name")
+            .and_then(|name| node_text(content, name))
+        && let Some(right) = node.child_by_field_name("right")
+    {
+        f(property, right);
+    }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        walk_property_assignments(child, content, child_depth, f);
     }
 }
 
@@ -474,6 +599,14 @@ fn client_root(call: Node, content: &str) -> Option<ClientRoot> {
             "variable_name" => {
                 return node_text(content, receiver)
                     .map(|name| ClientRoot::Variable(name.to_string()));
+            }
+            "member_access_expression" => {
+                let object = receiver.child_by_field_name("object")?;
+                let name = receiver.child_by_field_name("name")?;
+                if node_text(content, object) != Some("$this") || name.kind() != "name" {
+                    return None;
+                }
+                return node_text(content, name).map(|name| ClientRoot::Property(name.to_string()));
             }
             _ => return None,
         }

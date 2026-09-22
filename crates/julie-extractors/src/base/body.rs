@@ -36,6 +36,10 @@ pub(crate) fn infer_body_span(
         }
     }
 
+    if language == "php" {
+        return php_closure_body(node).map(|body| NormalizedSpan::from_node(&body));
+    }
+
     let mut cursor = node.walk();
     node.children(&mut cursor)
         .find(|child| BODY_NODE_KINDS.contains(&child.kind()))
@@ -46,6 +50,29 @@ pub(crate) fn infer_body_span(
             }
             infer_body_span_from_span_with_line_starts(content, line_starts, declaration_span)
         })
+}
+
+/// PHP marks every declared body with a `body` field, so a bodiless abstract
+/// method, import, property, or plain variable has none. A variable bound to a
+/// closure (`$f = function () {...}`) and a Pest call (`it('x', fn () => ...)`)
+/// take the closure body.
+fn php_closure_body<'tree>(node: &Node<'tree>) -> Option<Node<'tree>> {
+    let closure = match node.kind() {
+        "assignment_expression" => node.child_by_field_name("right")?,
+        "function_call_expression" | "member_call_expression" => {
+            let arguments = node.child_by_field_name("arguments")?;
+            let mut cursor = arguments.walk();
+            arguments
+                .named_children(&mut cursor)
+                .filter_map(|argument| argument.named_child(0))
+                .filter(|value| matches!(value.kind(), "anonymous_function" | "arrow_function"))
+                .last()?
+        }
+        _ => return None,
+    };
+    matches!(closure.kind(), "anonymous_function" | "arrow_function")
+        .then(|| closure.child_by_field_name("body"))
+        .flatten()
 }
 
 pub(crate) fn body_hash(content: &str, span: BodySpan, language: &str) -> Option<String> {

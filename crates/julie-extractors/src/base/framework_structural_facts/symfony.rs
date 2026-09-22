@@ -37,6 +37,7 @@ pub(super) fn collect_symfony_routes(
     let mut facts = Vec::new();
     for class_node in class_nodes {
         let class_prefixes = class_route_prefixes(class_node, content);
+        let class_name_prefix = class_route_name_prefix(class_node, content);
         for prefix in &class_prefixes {
             if let Some(fact) = route_fact(
                 language,
@@ -47,6 +48,7 @@ pub(super) fn collect_symfony_routes(
                 "class_route",
                 prefix,
                 prefix,
+                None,
                 None,
                 None,
                 None,
@@ -70,6 +72,7 @@ pub(super) fn collect_symfony_routes(
                 content,
                 child,
                 &class_prefixes,
+                class_name_prefix.as_deref(),
                 &mut facts,
             );
         }
@@ -167,6 +170,15 @@ fn class_route_prefixes(class_node: Node, content: &str) -> Vec<String> {
     prefixes
 }
 
+/// The `name:` of the class-level `#[Route]`, which Symfony prepends to
+/// every method route name.
+fn class_route_name_prefix(class_node: Node, content: &str) -> Option<String> {
+    route_attributes_on(class_node, content)
+        .into_iter()
+        .find_map(|attribute| parse_route_attribute(attribute, content).name)
+}
+
+#[allow(clippy::too_many_arguments)]
 fn emit_method_routes(
     language: &str,
     tree: &Tree,
@@ -174,6 +186,7 @@ fn emit_method_routes(
     content: &str,
     method: Node,
     class_prefixes: &[String],
+    class_name_prefix: Option<&str>,
     facts: &mut Vec<StructuralFact>,
 ) {
     for attribute in route_attributes_on(method, content) {
@@ -185,6 +198,10 @@ fn emit_method_routes(
             // Bare `#[Route]` / `#[Route(methods: ...)]` → empty sub-path.
             None => "",
         };
+        let route_name = parsed
+            .name
+            .as_deref()
+            .map(|name| format!("{}{name}", class_name_prefix.unwrap_or_default()));
         emit_for_template(
             language,
             tree,
@@ -194,6 +211,7 @@ fn emit_method_routes(
             template,
             class_prefixes,
             &parsed.verbs,
+            route_name.as_deref(),
             facts,
         );
     }
@@ -209,6 +227,7 @@ fn emit_for_template(
     template: &str,
     class_prefixes: &[String],
     verbs: &[String],
+    route_name: Option<&str>,
     facts: &mut Vec<StructuralFact>,
 ) {
     let attribute_kind = if verbs.is_empty() {
@@ -249,6 +268,7 @@ fn emit_for_template(
                 class_template,
                 effective.as_deref(),
                 *verb,
+                route_name,
             ) {
                 facts.push(fact);
             }
@@ -260,6 +280,7 @@ struct ParsedRoute {
     path: Option<String>,
     had_path_argument: bool,
     verbs: Vec<String>,
+    name: Option<String>,
 }
 
 fn parse_route_attribute(attribute: Node, content: &str) -> ParsedRoute {
@@ -267,6 +288,7 @@ fn parse_route_attribute(attribute: Node, content: &str) -> ParsedRoute {
         path: None,
         had_path_argument: false,
         verbs: Vec::new(),
+        name: None,
     };
     let Some(arguments) = child_of_kind(attribute, "arguments") else {
         return parsed;
@@ -292,9 +314,12 @@ fn parse_route_attribute(attribute: Node, content: &str) -> ParsedRoute {
                     collect_methods(value, content, &mut parsed.verbs);
                 }
             }
-            Some(_) => {
-                // name, requirements, defaults, … — ignored
+            Some("name") => {
+                parsed.name = value
+                    .and_then(|value| static_route_arg(value, content, StaticArgLang::Php))
+                    .map(str::to_string);
             }
+            Some(_) => {}
             None => {
                 // Positional: first is path.
                 if positional_index == 0 {
@@ -418,6 +443,7 @@ fn route_fact(
     class_route_template: Option<&str>,
     effective_route_template: Option<&str>,
     verb: Option<&str>,
+    route_name: Option<&str>,
 ) -> Option<StructuralFact> {
     let start = handler.start_byte();
     let end = handler.end_byte();
@@ -457,6 +483,9 @@ fn route_fact(
     if let Some(verb) = verb {
         insert_string(&mut metadata, "verb", verb);
         insert_string(&mut metadata, "verb_source", "attested");
+    }
+    if let Some(route_name) = route_name {
+        insert_string(&mut metadata, "route_name", route_name);
     }
 
     Some(fact_for_span(

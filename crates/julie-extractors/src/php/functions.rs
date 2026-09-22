@@ -38,10 +38,10 @@ pub(super) fn extract_function(
 
     // Determine symbol kind
     let symbol_kind = match name.as_str() {
+        _ if node.kind() == "function_definition" => SymbolKind::Function,
         "__construct" => SymbolKind::Constructor,
         "__destruct" => SymbolKind::Destructor,
-        _ if parent_id.is_some() => SymbolKind::Method,
-        _ => SymbolKind::Function,
+        _ => SymbolKind::Method,
     };
 
     let mut signature = String::new();
@@ -190,23 +190,7 @@ pub(super) fn extract_attribute_markers(
     normalize_annotations(&raw_attributes, "php")
 }
 
-/// Find return type node after colon
+/// The declared return type, including `never`, intersection, and DNF types.
 pub(super) fn find_return_type<'a>(_extractor: &PhpExtractor, node: &Node<'a>) -> Option<Node<'a>> {
-    let mut cursor = node.walk();
-    let mut found_colon = false;
-
-    for child in node.children(&mut cursor) {
-        if found_colon {
-            match child.kind() {
-                "primitive_type" | "named_type" | "union_type" | "optional_type" => {
-                    return Some(child);
-                }
-                _ => {}
-            }
-        }
-        if child.kind() == ":" {
-            found_colon = true;
-        }
-    }
-    None
+    node.child_by_field_name("return_type")
 }

@@ -994,15 +994,8 @@
       "end_column": 26,
       "start_byte": 296,
       "end_byte": 322,
-      "body_span": {
-        "start_line": 19,
-        "start_column": 24,
-        "end_line": 19,
-        "end_column": 26,
-        "start_byte": 320,
-        "end_byte": 322
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "$ordinary = new stdClass()",
       "doc_comment": null,
       "visibility": "Public",
@@ -1602,42 +1595,6 @@
   ],
   "relationships": [
     {
-      "from_key": "fixtures/extraction/php/test_roles/PestFeatureTest.php:afterEach:7:4",
-      "to_key": "fixtures/extraction/php/test_roles/PestFeatureTest.php:afterEach:7:4",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/php/test_roles/PestFeatureTest.php",
-      "line_number": 7,
-      "span": {
-        "start_line": 7,
-        "start_column": 4,
-        "end_line": 8,
-        "end_column": 6,
-        "start_byte": 90,
-        "end_byte": 120
-      },
-      "reference_site_is_exact": false,
-      "confidence": "0.900",
-      "metadata": null
-    },
-    {
-      "from_key": "fixtures/extraction/php/test_roles/PestFeatureTest.php:beforeEach:4:4",
-      "to_key": "fixtures/extraction/php/test_roles/PestFeatureTest.php:beforeEach:4:4",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/php/test_roles/PestFeatureTest.php",
-      "line_number": 4,
-      "span": {
-        "start_line": 4,
-        "start_column": 4,
-        "end_line": 5,
-        "end_column": 6,
-        "start_byte": 52,
-        "end_byte": 83
-      },
-      "reference_site_is_exact": false,
-      "confidence": "0.900",
-      "metadata": null
-    },
-    {
       "from_key": "fixtures/extraction/php/test_roles/legacy_suite.php:ConnectionProbe:30:0",
       "to_key": "fixtures/extraction/php/test_roles/legacy_suite.php:OrderProbe:7:0",
       "kind": "implements",
@@ -1656,24 +1613,6 @@
       "metadata": {
         "interface": "OrderProbe"
       }
-    },
-    {
-      "from_key": "fixtures/extraction/php/test_roles/production_roles.php:beforeEach:13:0",
-      "to_key": "fixtures/extraction/php/test_roles/production_roles.php:beforeEach:13:0",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/php/test_roles/production_roles.php",
-      "line_number": 13,
-      "span": {
-        "start_line": 13,
-        "start_column": 0,
-        "end_line": 14,
-        "end_column": 2,
-        "start_byte": 173,
-        "end_byte": 200
-      },
-      "reference_site_is_exact": false,
-      "confidence": "0.900",
-      "metadata": null
     }
   ],
   "pending_relationships": [
@@ -1695,18 +1634,10 @@
     },
     {
       "from_key": "fixtures/extraction/php/test_roles/PestFeatureTest.php:adds line items:10:4",
-      "callee_name": "expect(1 + 1).toBe",
+      "callee_name": "toBe",
       "kind": "calls",
       "file_path": "fixtures/extraction/php/test_roles/PestFeatureTest.php",
       "line_number": 11,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/php/test_roles/PestFeatureTest.php:adds line items:10:4",
-      "callee_name": "it",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/php/test_roles/PestFeatureTest.php",
-      "line_number": 10,
       "confidence": "0.700"
     },
     {
@@ -1719,26 +1650,10 @@
     },
     {
       "from_key": "fixtures/extraction/php/test_roles/PestFeatureTest.php:applies a discount:14:4",
-      "callee_name": "expect(true).toBeTrue",
+      "callee_name": "toBeTrue",
       "kind": "calls",
       "file_path": "fixtures/extraction/php/test_roles/PestFeatureTest.php",
       "line_number": 15,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/php/test_roles/PestFeatureTest.php:applies a discount:14:4",
-      "callee_name": "test",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/php/test_roles/PestFeatureTest.php",
-      "line_number": 14,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/php/test_roles/PestFeatureTest.php:billing totals:3:0",
-      "callee_name": "describe",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/php/test_roles/PestFeatureTest.php",
-      "line_number": 3,
       "confidence": "0.700"
     },
     {
@@ -1748,30 +1663,6 @@
       "file_path": "fixtures/extraction/php/test_roles/legacy_suite.php",
       "line_number": 11,
       "confidence": "0.900"
-    },
-    {
-      "from_key": "fixtures/extraction/php/test_roles/production_roles.php:renders a footer:10:0",
-      "callee_name": "test",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/php/test_roles/production_roles.php",
-      "line_number": 10,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/php/test_roles/production_roles.php:renders a header:6:4",
-      "callee_name": "it",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/php/test_roles/production_roles.php",
-      "line_number": 6,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/php/test_roles/production_roles.php:report sections:5:0",
-      "callee_name": "describe",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/php/test_roles/production_roles.php",
-      "line_number": 5,
-      "confidence": "0.700"
     }
   ],
   "structured_pending_relationships": [
@@ -1830,53 +1721,27 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/php/test_roles/PestFeatureTest.php:adds line items:10:4",
-        "callee_name": "expect(1 + 1).toBe",
+        "callee_name": "toBe",
         "kind": "calls",
         "file_path": "fixtures/extraction/php/test_roles/PestFeatureTest.php",
         "line_number": 11,
         "confidence": "0.700"
       },
       "target": {
-        "display_name": "expect(1 + 1).toBe",
+        "display_name": "toBe",
         "terminal_name": "toBe",
-        "receiver": "expect(1 + 1)",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/php/test_roles/PestFeatureTest.php:adds line items:10:4",
-      "span": {
-        "start_line": 11,
-        "start_column": 8,
-        "end_line": 11,
-        "end_column": 30,
-        "start_byte": 171,
-        "end_byte": 193
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/php/test_roles/PestFeatureTest.php:adds line items:10:4",
-        "callee_name": "it",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/php/test_roles/PestFeatureTest.php",
-        "line_number": 10,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "it",
-        "terminal_name": "it",
         "receiver": null,
         "namespace_path": [],
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/php/test_roles/PestFeatureTest.php:adds line items:10:4",
       "span": {
-        "start_line": 10,
-        "start_column": 4,
-        "end_line": 12,
-        "end_column": 6,
-        "start_byte": 127,
-        "end_byte": 201
+        "start_line": 11,
+        "start_column": 23,
+        "end_line": 11,
+        "end_column": 27,
+        "start_byte": 186,
+        "end_byte": 190
       }
     },
     {
@@ -1908,79 +1773,27 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/php/test_roles/PestFeatureTest.php:applies a discount:14:4",
-        "callee_name": "expect(true).toBeTrue",
+        "callee_name": "toBeTrue",
         "kind": "calls",
         "file_path": "fixtures/extraction/php/test_roles/PestFeatureTest.php",
         "line_number": 15,
         "confidence": "0.700"
       },
       "target": {
-        "display_name": "expect(true).toBeTrue",
+        "display_name": "toBeTrue",
         "terminal_name": "toBeTrue",
-        "receiver": "expect(true)",
+        "receiver": null,
         "namespace_path": [],
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/php/test_roles/PestFeatureTest.php:applies a discount:14:4",
       "span": {
         "start_line": 15,
-        "start_column": 8,
+        "start_column": 22,
         "end_line": 15,
-        "end_column": 32,
-        "start_byte": 257,
-        "end_byte": 281
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/php/test_roles/PestFeatureTest.php:applies a discount:14:4",
-        "callee_name": "test",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/php/test_roles/PestFeatureTest.php",
-        "line_number": 14,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "test",
-        "terminal_name": "test",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/php/test_roles/PestFeatureTest.php:applies a discount:14:4",
-      "span": {
-        "start_line": 14,
-        "start_column": 4,
-        "end_line": 16,
-        "end_column": 6,
-        "start_byte": 208,
-        "end_byte": 289
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/php/test_roles/PestFeatureTest.php:billing totals:3:0",
-        "callee_name": "describe",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/php/test_roles/PestFeatureTest.php",
-        "line_number": 3,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "describe",
-        "terminal_name": "describe",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/php/test_roles/PestFeatureTest.php:billing totals:3:0",
-      "span": {
-        "start_line": 3,
-        "start_column": 0,
-        "end_line": 17,
-        "end_column": 2,
-        "start_byte": 7,
-        "end_byte": 293
+        "end_column": 30,
+        "start_byte": 271,
+        "end_byte": 279
       }
     },
     {
@@ -2010,84 +1823,6 @@
         "end_column": 1,
         "start_byte": 97,
         "end_byte": 274
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/php/test_roles/production_roles.php:renders a footer:10:0",
-        "callee_name": "test",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/php/test_roles/production_roles.php",
-        "line_number": 10,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "test",
-        "terminal_name": "test",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/php/test_roles/production_roles.php:renders a footer:10:0",
-      "span": {
-        "start_line": 10,
-        "start_column": 0,
-        "end_line": 11,
-        "end_column": 2,
-        "start_byte": 129,
-        "end_byte": 170
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/php/test_roles/production_roles.php:renders a header:6:4",
-        "callee_name": "it",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/php/test_roles/production_roles.php",
-        "line_number": 6,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "it",
-        "terminal_name": "it",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/php/test_roles/production_roles.php:renders a header:6:4",
-      "span": {
-        "start_line": 6,
-        "start_column": 4,
-        "end_line": 7,
-        "end_column": 6,
-        "start_byte": 79,
-        "end_byte": 122
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/php/test_roles/production_roles.php:report sections:5:0",
-        "callee_name": "describe",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/php/test_roles/production_roles.php",
-        "line_number": 5,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "describe",
-        "terminal_name": "describe",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/php/test_roles/production_roles.php:report sections:5:0",
-      "span": {
-        "start_line": 5,
-        "start_column": 0,
-        "end_line": 8,
-        "end_column": 2,
-        "start_byte": 33,
-        "end_byte": 126
       }
     }
   ],
@@ -2201,6 +1936,22 @@
       "start_byte": 324,
       "end_byte": 333,
       "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/php/test_roles/PestFeatureTest.php:stdClass:type_usage:19:16",
+      "name": "stdClass",
+      "kind": "type_usage",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/test_roles/PestFeatureTest.php",
+      "start_line": 19,
+      "start_column": 16,
+      "end_line": 19,
+      "end_column": 24,
+      "start_byte": 312,
+      "end_byte": 320,
+      "containing_key": "fixtures/extraction/php/test_roles/PestFeatureTest.php:ordinary:19:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2897,16 +2648,16 @@
     {
       "pattern_id": "php.namespace_use_declaration.v1",
       "capture_name": "namespace_use_declaration",
-      "node_kind": "namespace_use_declaration",
+      "node_kind": "namespace_use_clause",
       "language": "php",
       "file_path": "fixtures/extraction/php/test_roles/ArithmeticTest.php",
       "containing_key": null,
       "start_line": 5,
-      "start_column": 0,
+      "start_column": 4,
       "end_line": 5,
-      "end_column": 39,
-      "start_byte": 37,
-      "end_byte": 76,
+      "end_column": 38,
+      "start_byte": 41,
+      "end_byte": 75,
       "confidence": "1.000",
       "metadata": {
         "import_target": "PHPUnit\\Framework\\Attributes\\After",
@@ -2917,16 +2668,16 @@
     {
       "pattern_id": "php.namespace_use_declaration.v1",
       "capture_name": "namespace_use_declaration",
-      "node_kind": "namespace_use_declaration",
+      "node_kind": "namespace_use_clause",
       "language": "php",
       "file_path": "fixtures/extraction/php/test_roles/ArithmeticTest.php",
       "containing_key": null,
       "start_line": 6,
-      "start_column": 0,
+      "start_column": 4,
       "end_line": 6,
-      "end_column": 40,
-      "start_byte": 77,
-      "end_byte": 117,
+      "end_column": 39,
+      "start_byte": 81,
+      "end_byte": 116,
       "confidence": "1.000",
       "metadata": {
         "import_target": "PHPUnit\\Framework\\Attributes\\Before",
@@ -2937,16 +2688,16 @@
     {
       "pattern_id": "php.namespace_use_declaration.v1",
       "capture_name": "namespace_use_declaration",
-      "node_kind": "namespace_use_declaration",
+      "node_kind": "namespace_use_clause",
       "language": "php",
       "file_path": "fixtures/extraction/php/test_roles/ArithmeticTest.php",
       "containing_key": null,
       "start_line": 7,
-      "start_column": 0,
+      "start_column": 4,
       "end_line": 7,
-      "end_column": 46,
-      "start_byte": 118,
-      "end_byte": 164,
+      "end_column": 45,
+      "start_byte": 122,
+      "end_byte": 163,
       "confidence": "1.000",
       "metadata": {
         "import_target": "PHPUnit\\Framework\\Attributes\\DataProvider",
@@ -2957,16 +2708,16 @@
     {
       "pattern_id": "php.namespace_use_declaration.v1",
       "capture_name": "namespace_use_declaration",
-      "node_kind": "namespace_use_declaration",
+      "node_kind": "namespace_use_clause",
       "language": "php",
       "file_path": "fixtures/extraction/php/test_roles/ArithmeticTest.php",
       "containing_key": null,
       "start_line": 8,
-      "start_column": 0,
+      "start_column": 4,
       "end_line": 8,
-      "end_column": 38,
-      "start_byte": 165,
-      "end_byte": 203,
+      "end_column": 37,
+      "start_byte": 169,
+      "end_byte": 202,
       "confidence": "1.000",
       "metadata": {
         "import_target": "PHPUnit\\Framework\\Attributes\\Test",
@@ -2977,16 +2728,16 @@
     {
       "pattern_id": "php.namespace_use_declaration.v1",
       "capture_name": "namespace_use_declaration",
-      "node_kind": "namespace_use_declaration",
+      "node_kind": "namespace_use_clause",
       "language": "php",
       "file_path": "fixtures/extraction/php/test_roles/ArithmeticTest.php",
       "containing_key": null,
       "start_line": 9,
-      "start_column": 0,
+      "start_column": 4,
       "end_line": 9,
-      "end_column": 31,
-      "start_byte": 204,
-      "end_byte": 235,
+      "end_column": 30,
+      "start_byte": 208,
+      "end_byte": 234,
       "confidence": "1.000",
       "metadata": {
         "import_target": "PHPUnit\\Framework\\TestCase",
@@ -2997,16 +2748,16 @@
     {
       "pattern_id": "php.namespace_use_declaration.v1",
       "capture_name": "namespace_use_declaration",
-      "node_kind": "namespace_use_declaration",
+      "node_kind": "namespace_use_clause",
       "language": "php",
       "file_path": "fixtures/extraction/php/test_roles/legacy_suite.php",
       "containing_key": null,
       "start_line": 5,
-      "start_column": 0,
+      "start_column": 4,
       "end_line": 5,
-      "end_column": 38,
-      "start_byte": 31,
-      "end_byte": 69,
+      "end_column": 37,
+      "start_byte": 35,
+      "end_byte": 68,
       "confidence": "1.000",
       "metadata": {
         "import_target": "PHPUnit\\Framework\\Attributes\\Test",

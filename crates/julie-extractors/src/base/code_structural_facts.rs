@@ -156,14 +156,25 @@ const PHP_PATTERNS: &[CodeStructuralPattern] = &[
     CodeStructuralPattern {
         pattern_id: "php.namespace_use_declaration.v1",
         capture_name: "namespace_use_declaration",
-        node_kinds: &["namespace_use_declaration"],
+        node_kinds: &["namespace_use_clause"],
         query_family: "imports",
     },
     CodeStructuralPattern {
         pattern_id: "php.trait_use_declaration.v1",
         capture_name: "use_declaration",
-        node_kinds: &["use_declaration"],
+        node_kinds: &["name", "qualified_name", "relative_name"],
         query_family: "traits",
+    },
+    CodeStructuralPattern {
+        pattern_id: "php.include_call.v1",
+        capture_name: "include_call",
+        node_kinds: &[
+            "include_expression",
+            "include_once_expression",
+            "require_expression",
+            "require_once_expression",
+        ],
+        query_family: "imports",
     },
     CodeStructuralPattern {
         pattern_id: "php.anonymous_function.v1",
@@ -778,13 +789,27 @@ fn enrich_metadata(
             if let Some(import_target) = php_namespace_use_target(content, node) {
                 insert_string(metadata, "import_target", &import_target);
             }
-            if let Some(alias) = php_namespace_use_alias(content, node) {
-                insert_string(metadata, "import_alias", &alias);
+            if let Some(alias) = node.child_by_field_name("alias") {
+                insert_string(metadata, "import_alias", &node_text(content, alias));
+            }
+            if let Some(kind) = php_namespace_use_kind(content, node) {
+                insert_string(metadata, "import_kind", &kind);
             }
         }
         "php.trait_use_declaration.v1" => {
-            if let Some(trait_name) = php_trait_use_target(content, node) {
-                insert_string(metadata, "trait_name", &trait_name);
+            insert_string(metadata, "trait_name", &node_text(content, node));
+        }
+        "php.include_call.v1" => {
+            insert_string(
+                metadata,
+                "include_kind",
+                node.kind().trim_end_matches("_expression"),
+            );
+            if let Some((path, path_base)) = php_include_path(content, node) {
+                insert_string(metadata, "included_path", &path);
+                if let Some(path_base) = path_base {
+                    insert_string(metadata, "path_base", &path_base);
+                }
             }
         }
         "ruby.require_call.v1" => {
@@ -1181,6 +1206,9 @@ fn matches_pattern(
         ("ruby", "ruby.require_call.v1") => ruby_require_kind(content, node).is_some(),
         ("ruby", "ruby.mixin_call.v1") => ruby_mixin_kind(content, node).is_some(),
         ("ruby", "ruby.rescue_clause.v1") => node.is_named(),
+        ("php", "php.trait_use_declaration.v1") => node
+            .parent()
+            .is_some_and(|parent| parent.kind() == "use_declaration"),
         ("elixir", "elixir.defmodule_call.v1") => {
             elixir_call_target(content, node).as_deref() == Some("defmodule")
         }
@@ -1270,26 +1298,72 @@ fn php_namespace_name(content: &str, node: Node<'_>) -> Option<String> {
         .map(|name| node_text(content, name))
 }
 
-fn php_namespace_use_target(content: &str, node: Node<'_>) -> Option<String> {
-    first_descendant_of_kind(node, "namespace_use_clause").and_then(|clause| {
-        first_named_identifier(
-            content,
-            clause,
-            &["qualified_name", "name", "namespace_name"],
-        )
+/// The fully qualified target of one `use` clause, with the group prefix of
+/// `use App\Models\{User, Post}` joined in.
+fn php_namespace_use_target(content: &str, clause: Node<'_>) -> Option<String> {
+    let mut cursor = clause.walk();
+    let target = clause
+        .named_children(&mut cursor)
+        .find(|child| matches!(child.kind(), "qualified_name" | "name"))
+        .map(|target| node_text(content, target))?;
+    let prefix = php_use_declaration(clause)
+        .and_then(|declaration| first_direct_child(declaration, "namespace_name"))
+        .map(|prefix| node_text(content, prefix));
+    Some(match prefix {
+        Some(prefix) => format!("{prefix}\\{target}"),
+        None => target,
     })
 }
 
-fn php_namespace_use_alias(content: &str, node: Node<'_>) -> Option<String> {
-    first_descendant_of_kind(node, "namespace_use_clause").and_then(|clause| {
-        clause
-            .child_by_field_name("alias")
-            .map(|alias| node_text(content, alias))
-    })
+fn php_namespace_use_kind(content: &str, clause: Node<'_>) -> Option<String> {
+    clause
+        .child_by_field_name("type")
+        .or_else(|| php_use_declaration(clause)?.child_by_field_name("type"))
+        .map(|kind| node_text(content, kind))
 }
 
-fn php_trait_use_target(content: &str, node: Node<'_>) -> Option<String> {
-    first_named_identifier(content, node, &["qualified_name", "name", "relative_name"])
+fn php_use_declaration(clause: Node<'_>) -> Option<Node<'_>> {
+    let parent = clause.parent()?;
+    if parent.kind() == "namespace_use_group" {
+        return parent.parent();
+    }
+    Some(parent)
+}
+
+/// The static path of an `include`/`require`: a string literal, or
+/// `__DIR__ . '/x.php'` as the relative part plus `path_base` `__DIR__`.
+fn php_include_path(content: &str, node: Node<'_>) -> Option<(String, Option<String>)> {
+    let argument = node.named_child(0)?;
+    match argument.kind() {
+        "string" | "encapsed_string" => {
+            php_static_string(content, argument).map(|path| (path, None))
+        }
+        "binary_expression" => {
+            let left = argument.child_by_field_name("left")?;
+            let right = argument.child_by_field_name("right")?;
+            let base = node_text(content, left);
+            if !matches!(base.as_str(), "__DIR__" | "dirname(__FILE__)") {
+                return None;
+            }
+            php_static_string(content, right).map(|path| (path, Some(base)))
+        }
+        _ => None,
+    }
+}
+
+fn php_static_string(content: &str, node: Node<'_>) -> Option<String> {
+    if !matches!(node.kind(), "string" | "encapsed_string") {
+        return None;
+    }
+    let mut cursor = node.walk();
+    let mut value = String::new();
+    for child in node.named_children(&mut cursor) {
+        match child.kind() {
+            "string_content" | "string_value" => value.push_str(&node_text(content, child)),
+            _ => return None,
+        }
+    }
+    Some(value)
 }
 
 fn ruby_call_method_name(content: &str, node: Node<'_>) -> Option<String> {

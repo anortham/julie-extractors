@@ -63,6 +63,9 @@ pub struct LiteralCarrierPolicy {
     pub url: HashSet<String>,
     pub sql: HashSet<String>,
     pub route: HashSet<String>,
+    /// `receiver.method` pairs never classified, matched on the carrier's
+    /// last receiver segment with `$` and `->` normalized.
+    pub exclude: HashSet<String>,
     pub retain_unclassified: bool,
 }
 
@@ -81,6 +84,8 @@ struct LiteralCarrierLists {
     sql: Vec<String>,
     #[serde(default)]
     route: Vec<String>,
+    #[serde(default)]
+    exclude: Vec<String>,
 }
 
 impl LiteralCarrierPolicy {
@@ -89,6 +94,7 @@ impl LiteralCarrierPolicy {
             url: lowercase_set(lists.url),
             sql: lowercase_set(lists.sql),
             route: lowercase_set(lists.route),
+            exclude: lowercase_set(lists.exclude),
             retain_unclassified: lists.retain_unclassified,
         }
     }
@@ -120,7 +126,9 @@ pub fn classify_literals_with_policies(
         };
         let carrier = carrier.to_lowercase();
 
-        if carrier_matches(&policy.url, &carrier) {
+        if is_excluded_carrier(&policy.exclude, &carrier) {
+            policy.retain_unclassified
+        } else if carrier_matches(&policy.url, &carrier) {
             literal.kind = LiteralKind::Url;
             true
         } else if carrier_matches(&policy.sql, &carrier) {
@@ -161,6 +169,18 @@ fn lowercase_set(values: Vec<String>) -> HashSet<String> {
         .into_iter()
         .map(|value| value.to_lowercase())
         .collect()
+}
+
+fn is_excluded_carrier(exclude: &HashSet<String>, carrier: &str) -> bool {
+    if exclude.is_empty() {
+        return false;
+    }
+    let normalized = carrier.replace("->", ".").replace('$', "");
+    let mut segments = normalized.rsplitn(3, '.');
+    let (Some(method), Some(receiver)) = (segments.next(), segments.next()) else {
+        return false;
+    };
+    exclude.contains(&format!("{receiver}.{method}"))
 }
 
 fn carrier_matches(set: &HashSet<String>, carrier: &str) -> bool {

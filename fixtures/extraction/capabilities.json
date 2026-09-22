@@ -3218,6 +3218,19 @@
           "name": "phpunit_attributes",
           "source": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
           "expected": "fixtures/extraction/php/phpunit_attributes/expected.json"
+        },
+        {
+          "name": "wave2_semantics",
+          "source": "fixtures/extraction/php/wave2_semantics/source.php",
+          "expected": "fixtures/extraction/php/wave2_semantics/expected.json",
+          "sources": [
+            "fixtures/extraction/php/wave2_semantics/source.php",
+            "fixtures/extraction/php/wave2_semantics/routes/web.php",
+            "fixtures/extraction/php/wave2_semantics/app/Providers/RouteServiceProvider.php",
+            "fixtures/extraction/php/wave2_semantics/src/Controller/ProductController.php",
+            "fixtures/extraction/php/wave2_semantics/tests/acceptance/LoginCest.php",
+            "fixtures/extraction/php/wave2_semantics/spec/MoneySpec.php"
+          ]
         }
       ],
       "target_capabilities": {
@@ -3234,11 +3247,15 @@
             "class",
             "constant",
             "constructor",
+            "enum",
+            "enum_member",
             "function",
             "import",
+            "interface",
             "method",
             "namespace",
             "property",
+            "trait",
             "variable"
           ],
           "not_applicable": [],
@@ -3269,8 +3286,11 @@
           "supported": [
             "class",
             "constructor",
+            "enum",
             "function",
+            "interface",
             "method",
+            "trait",
             "variable"
           ],
           "not_applicable": [
@@ -3288,6 +3308,7 @@
             "laravel.route_prefix.v1",
             "php.anonymous_function.v1",
             "php.attribute.v1",
+            "php.include_call.v1",
             "php.match_expression.v1",
             "php.namespace_definition.v1",
             "php.namespace_use_declaration.v1",
@@ -3298,33 +3319,15 @@
           "open_gaps": [
             {
               "kind": "laravel.route_service_provider_prefix",
-              "reason": "A RouteServiceProvider `/api` group prefix is applied cross-file (in the provider, not the routes file), so it cannot flow into a route's effective_route_template in-file; route_template is therefore not guaranteed to be the absolute public path when such a prefix applies.",
-              "required_closure": "resolve RouteServiceProvider group prefixes cross-file, which is code-kb's join responsibility per decision 0004; the extractor emits laravel.route_prefix.v1 only for same-file prefixes",
+              "reason": "A RouteServiceProvider group prefix is applied cross-file (in the provider, not the routes file), so it cannot flow into a route's effective_route_template in-file; the extractor emits the provider-side laravel.route_prefix.v1 site fact with mount_target naming the routes file, but route_template in that routes file is not the absolute public path.",
+              "required_closure": "join the provider's laravel.route_prefix.v1 mount_target to the routes file's laravel.route.v1 rows, which is code-kb's cross-file join responsibility per decision 0004",
               "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2c (cross-file RouteServiceProvider prefix)"
             },
             {
-              "kind": "php.http_client.instance_receiver",
-              "reason": "Guzzle and Symfony variable receivers are proven only via a typed parameter (`Client`/`ClientInterface`/`HttpClientInterface`/`HttpClient`) or a same-scope `new \\GuzzleHttp\\Client()` / `HttpClient::create()` assignment — a property (`$this->client->get(...)`) or cross-file/DI-provided receiver is syntactically identical to a non-HTTP call and stays silent by M2 (a false client edge is worse than a miss). Cross-function curl handles also stay silent.",
-              "required_closure": "extend receiver proofs to promoted-property/class-property receivers if in-file type resolution becomes available; typed-param and same-scope construction forms already emit",
-              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2b (deferred clients open_gaps)"
-            },
-            {
-              "kind": "codeception.cest_and_actor_roles",
-              "reason": "Codeception collects a `*Cest.php` class where every public method that takes an actor argument is a case, and spells its hooks `_before` and `_after`. The class extends nothing and carries no attribute, so the container pass never marks it, and the underscore hook names and the actor-argument case rule reach no role.",
-              "required_closure": "adopt the Codeception Cest contract as a named PHP test framework, classify a `*Cest.php` class as a test container, `_before`/`_after` as hooks, and an actor-argument public method as a case, and register a golden fixture with a non-actor helper method as the control",
-              "planned_closure_task": "docs/plans/2026-08-25-ct-test-detection-readiness.md Task 12 follow-up: Codeception Cest roles"
-            },
-            {
               "kind": "behat.step_definition_roles",
-              "reason": "Behat binds step definitions with `#[Given]`, `#[When]`, and `#[Then]` attributes on a context class, and the executable scenario lives in a `.feature` file, not in PHP. The extractor classifies neither the context class nor its step methods, so a Behat suite publishes no test role from its PHP side.",
-              "required_closure": "adopt the Behat context contract as a named PHP test framework, classify a context class as a test container and the step attributes as their own role, and register a golden fixture with a non-context class as the control",
-              "planned_closure_task": "docs/plans/2026-08-25-ct-test-detection-readiness.md Task 12 follow-up: Behat step definition roles"
-            },
-            {
-              "kind": "phpspec.example_roles",
-              "reason": "PHPSpec collects a `*Spec.php` class that extends `ObjectBehavior` and runs every method whose name starts with `it_` or `its_` as an example. `ObjectBehavior` is not `TestCase`, and the underscore name convention is not the `test` prefix, so neither the container rule nor the member rule fires.",
-              "required_closure": "adopt the PHPSpec contract, classify an `ObjectBehavior` subclass as a test container and its `it_`/`its_` methods as cases, and register a golden fixture with an ordinary helper method as the control",
-              "planned_closure_task": "docs/plans/2026-08-25-ct-test-detection-readiness.md Task 12 follow-up: PHPSpec example roles"
+              "reason": "Behat binds step definitions with `#[Given]`, `#[When]`, and `#[Then]` attributes on a context class, and the executable scenario lives in a `.feature` file, not in PHP. A step definition is neither a test case nor a fixture hook, and the frozen TestRole vocabulary (test_case, parameterized_test, fixture_setup, fixture_teardown, test_container) has no step role, so the PHP side publishes no test role.",
+              "required_closure": "decide and record a step-definition role in the TestRole product contract, then classify a Behat context class as a test container and its step-attributed methods with that role, with a golden fixture that has a non-context class as the control",
+              "planned_closure_task": "docs/plans/2026-09-22-language-gap-closure.md later waves"
             }
           ]
         },

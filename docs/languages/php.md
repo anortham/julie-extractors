@@ -19,8 +19,10 @@ cargo xtask test golden
 
 ## Test-role contract
 
-Two frameworks are adopted. PHPUnit declares a suite as a class and a case as a
-method. Pest declares a case as a top-level `test()` or `it()` call.
+Four frameworks are adopted. PHPUnit declares a suite as a class and a case as
+a method. Pest declares a case as a top-level `test()` or `it()` call.
+Codeception declares a suite as a `*Cest` class. PHPSpec declares a suite as an
+`ObjectBehavior` subclass.
 
 | Idiom | Role | Source of the rule |
 | --- | --- | --- |
@@ -37,6 +39,12 @@ method. Pest declares a case as a top-level `test()` or `it()` call.
 | `describe(...)` call | `test_container` | Pest group |
 | `beforeEach(...)`, `beforeAll(...)` call | `fixture_setup` | Pest hooks |
 | `afterEach(...)`, `afterAll(...)` call | `fixture_teardown` | Pest hooks |
+| `*Cest` class in a `*Cest.php` file | `test_container` | Codeception Cest |
+| `_before` / `_after` method of a Cest | `fixture_setup` / `fixture_teardown` | Codeception hooks |
+| public, not `_`-prefixed Cest method with a parameter type that ends in `Tester` | `test_case` | Codeception actor argument |
+| class extending `ObjectBehavior` | `test_container` | PHPSpec base class |
+| `let` / `letGo` method of a spec | `fixture_setup` / `fixture_teardown` | PHPSpec hooks |
+| `it_*` / `its_*` method of a spec | `test_case` | PHPSpec example prefix |
 
 ### Attributes and docblocks are one vocabulary
 
@@ -93,22 +101,17 @@ publishes no role at all.
 
 ## Recorded gaps
 
-Three PHP test frameworks are recorded as `open_gaps` on the php row in
+One PHP test framework stays recorded as an `open_gap` on the php row in
 `fixtures/extraction/capabilities.json`, under
-`kind_coverage.structural_facts.open_gaps`. The `test_detection` vocabulary is
-frozen to `test_case`, `test_container`, and `test_lifecycle`, and php
-classifies each exactly once, so a php-specific gap cannot live there.
+`kind_coverage.structural_facts.open_gaps`.
 
-- `codeception.cest_and_actor_roles`. A `*Cest.php` class extends nothing and
-  carries no attribute, its hooks are named `_before` and `_after`, and a case
-  is a public method that takes an actor argument. None of that reaches a rule
-  today.
 - `behat.step_definition_roles`. Behat binds steps with `#[Given]`, `#[When]`,
-  and `#[Then]` on a context class, and the executable scenario lives in a
-  `.feature` file, not in PHP.
-- `phpspec.example_roles`. PHPSpec collects a `*Spec.php` class extending
-  `ObjectBehavior` and runs its `it_`/`its_` methods as examples. Neither the
-  base class nor the name convention matches a rule today.
+  and `#[Then]` on a context class. A step definition is neither a case nor a
+  hook, and the frozen role vocabulary has no step role. The closure needs a
+  product decision on a new role first.
+
+Codeception (`LoginCest.php`) and PHPSpec (`MoneySpec.php`) closed in wave 2.
+Each fixture carries a helper method with no role as the control.
 
 ## Members, types, and references
 
@@ -131,6 +134,48 @@ classifies each exactly once, so a php-specific gap cannot live there.
   `self::ROLE`, and `static::$registry` give a `member_access` of the
   member; a `self`, `static`, or `parent` scope sets `receiver_type`.
 
+## Wave-2 semantics
+
+- `const A = 1, B = 2;` and `public $a, $b;` give one symbol for each element.
+  A single-element declaration anchors on the declaration; a multi-element one
+  anchors each symbol on its element. A typed constant keeps its type in the
+  signature, in `constantType`, and as a type fact.
+- `define('NAME', value)` gives a file-level `constant` symbol with `value`.
+- Each `use` clause gives one `import` symbol and one
+  `php.namespace_use_declaration.v1` fact. A group prefix joins the clause
+  (`App\Models\{User, Post as BlogPost}`), an alias sets `import_alias`, and
+  `use function` / `use const` set `importKind` / `import_kind`.
+- `require`, `require_once`, `include`, and `include_once` give
+  `php.include_call.v1` with `include_kind`, a static `included_path`, and a
+  `path_base` of `__DIR__` when the path starts from `__DIR__` or
+  `dirname(__FILE__)`.
+- A function inside a braced namespace or a closure is a `function`, not a
+  `method`. An abstract or interface method has no body span or body hash.
+- Enums and anonymous classes give `extends` and `implements` edges. A trait
+  `use` gives a `php.trait_use_declaration.v1` fact for each trait name.
+- `self`, `static`, and the class name resolve `Foo::m()`, `new self`, and
+  `new static` to same-file symbols. A `self` or `static` return type gives a
+  type fact of the enclosing class, with the spelling in `declared`.
+- A call through a chain keeps a clean receiver path: `$this->repo->find()`
+  gives the display name `$this.repo.find`. A receiver that is a call gives
+  only the terminal name. A variable callee (`$fn()`) gives no call row.
+- Call, `new`, `instanceof`, and type identifiers use the terminal name. The
+  namespace path goes to `namespace_qualifier` metadata.
+- Heredoc and nowdoc arguments give literals with the dedented text.
+  DBAL (`executeQuery`, `fetchOne`, ...), Doctrine (`createQuery`), and the
+  Laravel `DB::` and `*Raw` methods are SQL carriers. `$request->query()` is
+  excluded.
+- A Pest symbol does not record a call to its own `it`/`test`/`describe` call.
+- `$this->prop->get(...)` gives `http.client_request.v1` when the property is
+  typed as a Guzzle or Symfony client (also a promoted parameter) or is set
+  from `new Client()` or `HttpClient::create()` in the class.
+- Laravel routes add `route_name`, join a `Route::controller()` group
+  controller to a bare action, and map an invokable controller to
+  `Ctrl@__invoke`. A provider-side `Route::prefix('api')->group(base_path(...))`
+  gives `laravel.route_prefix.v1` with `mount_target`. Symfony routes add
+  `route_name` with the class name prefix.
+- The `string` type keyword no longer gives a string source region.
+
 ## Class base types
 
 `extract_class` now emits a `base_types` array beside the existing `extends`
@@ -150,9 +195,14 @@ The golden fixture `php:test_roles` registers four sources:
 | `legacy_suite.php` | the two out-of-tree proofs — a fully qualified `TestCase` subclass and a `#[Test]`-holding class — plus the `ConnectionProbe` production control |
 | `production_roles.php` | the production-path Pest control |
 
-The registered goldens observe 7 `test_case` rows, 1 `parameterized_test` row,
-4 `test_container` rows, 6 `fixture_setup` rows, and 5 `fixture_teardown` rows
-for php.
+`php:test_roles` observes 7 `test_case` rows, 1 `parameterized_test` row,
+4 `test_container` rows, 6 `fixture_setup` rows, and 5 `fixture_teardown` rows.
+
+The golden fixture `php:wave2_semantics` proves the wave-2 rows above. Its
+`tests/acceptance/LoginCest.php` and `spec/MoneySpec.php` sources add
+3 `test_case`, 2 `test_container`, 2 `fixture_setup`, and 1
+`fixture_teardown` rows. The `fillForm` and `helper` methods are the controls.
+Focused unit tests live in `crates/julie-extractors/src/tests/php/wave2_gaps.rs`.
 
 No real-world corpus scan was run for this contract. The evidence above is
 golden-fixture evidence only.

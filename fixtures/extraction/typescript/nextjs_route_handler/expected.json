@@ -605,19 +605,6 @@
       "start_byte": 29,
       "end_byte": 42,
       "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "typescript",
-      "file_path": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts",
-      "containing_key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:id:5:28",
-      "start_line": 5,
-      "start_column": 32,
-      "end_line": 5,
-      "end_column": 38,
-      "start_byte": 126,
-      "end_byte": 132,
-      "metadata": null
     }
   ],
   "type_argument_usages": [

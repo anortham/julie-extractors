@@ -222,15 +222,8 @@
       "end_column": 24,
       "start_byte": 564,
       "end_byte": 580,
-      "body_span": {
-        "start_line": 20,
-        "start_column": 22,
-        "end_line": 20,
-        "end_column": 24,
-        "start_byte": 578,
-        "end_byte": 580
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "$x = new Other()",
       "doc_comment": null,
       "visibility": "Public",
@@ -321,6 +314,22 @@
     }
   ],
   "identifiers": [
+    {
+      "key": "fixtures/extraction/php/cross_file/source.php:Other:type_usage:20:17",
+      "name": "Other",
+      "kind": "type_usage",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/cross_file/source.php",
+      "start_line": 20,
+      "start_column": 17,
+      "end_line": 20,
+      "end_column": 22,
+      "start_byte": 573,
+      "end_byte": 578,
+      "containing_key": "fixtures/extraction/php/cross_file/source.php:entry:13:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
     {
       "key": "fixtures/extraction/php/cross_file/source.php:i:variable_ref:16:25",
       "name": "i",
@@ -490,16 +499,16 @@
     {
       "pattern_id": "php.namespace_use_declaration.v1",
       "capture_name": "namespace_use_declaration",
-      "node_kind": "namespace_use_declaration",
+      "node_kind": "namespace_use_clause",
       "language": "php",
       "file_path": "fixtures/extraction/php/cross_file/source.php",
       "containing_key": null,
       "start_line": 10,
-      "start_column": 0,
+      "start_column": 4,
       "end_line": 10,
-      "end_column": 14,
-      "start_byte": 335,
-      "end_byte": 349,
+      "end_column": 13,
+      "start_byte": 339,
+      "end_byte": 348,
       "confidence": "1.000",
       "metadata": {
         "import_target": "App\\Other",

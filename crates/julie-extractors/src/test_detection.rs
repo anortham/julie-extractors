@@ -1411,21 +1411,127 @@ pub(crate) fn mark_php_test_containers(symbols: &mut [Symbol], file_path: &str) 
         .collect();
 
     let mut test_container_ids: HashSet<String> = HashSet::new();
+    let mut framework_containers: HashMap<String, PhpSuiteFramework> = HashMap::new();
     for symbol in symbols
         .iter_mut()
         .filter(|symbol| symbol.kind == SymbolKind::Class)
     {
-        if extends_php_test_case(symbol) || containers_with_test_members.contains(&symbol.id) {
+        let framework = php_suite_framework(symbol, file_path);
+        if framework.is_some()
+            || extends_php_test_case(symbol)
+            || containers_with_test_members.contains(&symbol.id)
+        {
             mark_class_test_container(symbol);
             test_container_ids.insert(symbol.id.clone());
         }
+        if let Some(framework) = framework {
+            framework_containers.insert(symbol.id.clone(), framework);
+        }
     }
 
+    apply_php_framework_member_roles(symbols, &framework_containers);
     apply_php_member_test_roles(symbols, &test_container_ids);
 
     if !is_test_path(file_path) {
         normalize_scoped_test_roles(symbols, &test_container_ids);
     }
+}
+
+/// A PHP suite collected by a runner other than PHPUnit.
+#[derive(Clone, Copy)]
+enum PhpSuiteFramework {
+    /// Codeception: a `*Cest` class in a `*Cest.php` file. Each public method
+    /// that takes an actor (`AcceptanceTester $I`) is a case; `_before` and
+    /// `_after` are the hooks.
+    Codeception,
+    /// PHPSpec: an `ObjectBehavior` subclass. `it_*` and `its_*` methods are
+    /// examples; `let` and `letGo` are the hooks.
+    PhpSpec,
+}
+
+fn php_suite_framework(class: &Symbol, file_path: &str) -> Option<PhpSuiteFramework> {
+    let file_name = file_path.rsplit(['/', '\\']).next().unwrap_or(file_path);
+    if class.name.ends_with("Cest") && file_name.ends_with("Cest.php") {
+        return Some(PhpSuiteFramework::Codeception);
+    }
+    php_base_types(class)
+        .any(|base_type| base_type == "ObjectBehavior")
+        .then_some(PhpSuiteFramework::PhpSpec)
+}
+
+fn php_base_types(symbol: &Symbol) -> impl Iterator<Item = &str> {
+    symbol
+        .metadata
+        .as_ref()
+        .and_then(|metadata| metadata.get("base_types"))
+        .and_then(|value| value.as_array())
+        .into_iter()
+        .flatten()
+        .filter_map(|value| value.as_str())
+        .map(|base_type| base_type.rsplit('\\').next().unwrap_or(base_type))
+}
+
+fn apply_php_framework_member_roles(
+    symbols: &mut [Symbol],
+    framework_containers: &HashMap<String, PhpSuiteFramework>,
+) {
+    for symbol in symbols
+        .iter_mut()
+        .filter(|symbol| is_callable(&symbol.kind))
+    {
+        let Some(framework) = symbol
+            .parent_id
+            .as_ref()
+            .and_then(|parent_id| framework_containers.get(parent_id))
+        else {
+            continue;
+        };
+        let role = match framework {
+            PhpSuiteFramework::Codeception => match symbol.name.as_str() {
+                "_before" => Some(TestRole::FixtureSetup),
+                "_after" => Some(TestRole::FixtureTeardown),
+                name if !name.starts_with('_')
+                    && symbol.visibility == Some(crate::base::Visibility::Public)
+                    && takes_codeception_actor(symbol) =>
+                {
+                    Some(TestRole::TestCase)
+                }
+                _ => None,
+            },
+            PhpSuiteFramework::PhpSpec => match symbol.name.as_str() {
+                "let" => Some(TestRole::FixtureSetup),
+                "letGo" => Some(TestRole::FixtureTeardown),
+                name if name.starts_with("it_") || name.starts_with("its_") => {
+                    Some(TestRole::TestCase)
+                }
+                _ => None,
+            },
+        };
+        if let Some(role) = role {
+            apply_test_role(symbol.metadata.get_or_insert_with(Default::default), role);
+        }
+    }
+}
+
+/// Codeception actors are generated `*Tester` classes (`AcceptanceTester`,
+/// `FunctionalTester`, `UnitTester`, `ApiTester`).
+fn takes_codeception_actor(method: &Symbol) -> bool {
+    method
+        .metadata
+        .as_ref()
+        .and_then(|metadata| metadata.get("parameters"))
+        .and_then(|value| value.as_str())
+        .is_some_and(|parameters| {
+            parameters
+                .trim_matches(['(', ')'])
+                .split(',')
+                .filter_map(|parameter| parameter.split('$').next())
+                .filter_map(|declared| declared.split_whitespace().last())
+                .any(|declared| {
+                    let type_name = declared.rsplit('\\').next().unwrap_or(declared);
+                    type_name.ends_with("Tester")
+                })
+        })
 }
 
 /// PHP separates namespace segments with `\`, and a `use` statement lets a

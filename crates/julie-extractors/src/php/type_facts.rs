@@ -31,7 +31,43 @@ fn record_type_node(base: &mut BaseExtractor, symbol_id: &str, type_node: Node, 
         return;
     }
     let declared = base.get_node_text(&type_node);
-    base.record_declared_type_fact(symbol_id, &declared, &PHP_TYPE_NAME_RULES, is_inferred);
+    let bare = declared.trim_start_matches('?');
+    let base_text = if bare.eq_ignore_ascii_case("self") || bare.eq_ignore_ascii_case("static") {
+        let Some(class_name) = enclosing_class_name(base, type_node) else {
+            return;
+        };
+        class_name
+    } else {
+        bare.to_string()
+    };
+    base.record_declared_type_fact_with_declared(
+        symbol_id,
+        &base_text,
+        &declared,
+        &PHP_TYPE_NAME_RULES,
+        is_inferred,
+    );
+}
+
+/// `self` and `static` name the class, enum, trait, or interface that
+/// declares the member. An anonymous class has no name to record.
+fn enclosing_class_name(base: &BaseExtractor, node: Node) -> Option<String> {
+    let mut current = node.parent();
+    while let Some(ancestor) = current {
+        match ancestor.kind() {
+            "class_declaration"
+            | "enum_declaration"
+            | "trait_declaration"
+            | "interface_declaration" => {
+                return ancestor
+                    .child_by_field_name("name")
+                    .map(|name| base.get_node_text(&name));
+            }
+            "anonymous_class" => return None,
+            _ => current = ancestor.parent(),
+        }
+    }
+    None
 }
 
 fn object_creation_type(node: Node<'_>) -> Option<Node<'_>> {

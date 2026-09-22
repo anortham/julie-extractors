@@ -3886,19 +3886,6 @@
       "language": "vue",
       "file_path": "fixtures/extraction/vue/language_gaps/source.vue",
       "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:formatRow:21:7",
-      "start_line": 21,
-      "start_column": 37,
-      "end_line": 21,
-      "end_column": 43,
-      "start_byte": 651,
-      "end_byte": 657,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "vue",
-      "file_path": "fixtures/extraction/vue/language_gaps/source.vue",
-      "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:formatRow:21:7",
       "start_line": 23,
       "start_column": 9,
       "end_line": 23,
@@ -3918,32 +3905,6 @@
       "end_column": 62,
       "start_byte": 989,
       "end_byte": 1017,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "vue",
-      "file_path": "fixtures/extraction/vue/language_gaps/source.vue",
-      "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:name:17:35",
-      "start_line": 17,
-      "start_column": 41,
-      "end_line": 17,
-      "end_column": 47,
-      "start_byte": 502,
-      "end_byte": 508,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "vue",
-      "file_path": "fixtures/extraction/vue/language_gaps/source.vue",
-      "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:title:46:37",
-      "start_line": 46,
-      "start_column": 44,
-      "end_line": 46,
-      "end_column": 50,
-      "start_byte": 1362,
-      "end_byte": 1368,
       "metadata": null
     },
     {

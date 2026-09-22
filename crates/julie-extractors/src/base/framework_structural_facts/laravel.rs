@@ -58,7 +58,7 @@ pub(super) fn collect_laravel_routes(
     let mut facts = Vec::new();
     walk(
         tree.root_node(),
-        &[],
+        &GroupScope::default(),
         language,
         tree,
         file_path,
@@ -77,7 +77,7 @@ pub(super) fn collect_laravel_routes(
 #[allow(clippy::too_many_arguments)]
 fn walk(
     node: Node,
-    prefix_stack: &[Option<String>],
+    scope: &GroupScope,
     language: &str,
     tree: &Tree,
     file_path: &str,
@@ -90,31 +90,10 @@ fn walk(
     }
 
     if try_group(
-        node,
-        prefix_stack,
-        language,
-        tree,
-        file_path,
-        content,
-        depth,
-        facts,
-    ) || try_route(
-        node,
-        prefix_stack,
-        language,
-        tree,
-        file_path,
-        content,
-        facts,
-    ) || try_resource(
-        node,
-        prefix_stack,
-        language,
-        tree,
-        file_path,
-        content,
-        facts,
-    ) {
+        node, scope, language, tree, file_path, content, depth, facts,
+    ) || try_route(node, scope, language, tree, file_path, content, facts)
+        || try_resource(node, scope, language, tree, file_path, content, facts)
+    {
         return;
     }
     let Some(child_depth) = child_tree_depth(depth) else {
@@ -125,7 +104,7 @@ fn walk(
     for child in node.children(&mut cursor) {
         walk(
             child,
-            prefix_stack,
+            scope,
             language,
             tree,
             file_path,
@@ -139,6 +118,17 @@ fn walk(
 // ---------------------------------------------------------------------------
 // Group prefixes (lexical containment)
 // ---------------------------------------------------------------------------
+
+/// What an enclosing `Route::...->group(...)` gives the routes inside it: the
+/// prefix stack (`None` marks a poisoned, non-literal prefix), the
+/// `Route::controller(Ctrl::class)` controller, and the `->name('admin.')`
+/// route-name prefix.
+#[derive(Clone, Default)]
+struct GroupScope {
+    prefixes: Vec<Option<String>>,
+    controller: Option<String>,
+    name_prefix: String,
+}
 
 /// A static or poisoned group prefix, with the AST node whose span the
 /// `laravel.route_prefix.v1` fact anchors on (the prefix's own call/entry site).
@@ -154,7 +144,7 @@ enum PrefixResult<'t> {
 #[allow(clippy::too_many_arguments)]
 fn try_group(
     node: Node,
-    prefix_stack: &[Option<String>],
+    scope: &GroupScope,
     language: &str,
     tree: &Tree,
     file_path: &str,
@@ -168,15 +158,31 @@ fn try_group(
     let Some(arguments) = call_arguments(node) else {
         return false;
     };
-    // A route group we trace must carry a closure body; a group whose target is
-    // a cross-file include (`Route::group([...], base_path('routes/x.php'))`) has
-    // no same-file body and falls through to a normal descend.
+    let prefix = array_config_prefix(arguments, content).or_else(|| chain_prefix(node, content));
+    // A group whose target is a route file (`->group(base_path('routes/api.php'))`,
+    // the RouteServiceProvider shape) has no same-file body. Its static prefix
+    // is still a mount at this site; the routes file it names is the target,
+    // and code-kb joins the two across files.
     let Some(closure_body) = group_closure_body(arguments) else {
+        if let (Some(PrefixResult::Static { value, site }), Some(target)) =
+            (prefix, group_route_file(arguments, content))
+        {
+            push_prefix_fact(
+                language,
+                tree,
+                file_path,
+                content,
+                site,
+                &scope.prefixes,
+                &value,
+                Some(&target),
+                facts,
+            );
+        }
         return false;
     };
 
-    let prefix = array_config_prefix(arguments, content).or_else(|| chain_prefix(node, content));
-    let mut new_stack = prefix_stack.to_vec();
+    let mut inner = scope.clone();
     match prefix {
         Some(PrefixResult::Static { value, site }) => {
             push_prefix_fact(
@@ -185,16 +191,28 @@ fn try_group(
                 file_path,
                 content,
                 site,
-                prefix_stack,
+                &scope.prefixes,
                 &value,
+                None,
                 facts,
             );
-            new_stack.push(Some(value));
+            inner.prefixes.push(Some(value));
         }
-        Some(PrefixResult::Poisoned) => new_stack.push(None),
+        Some(PrefixResult::Poisoned) => inner.prefixes.push(None),
         // A middleware-only group (no prefix) still bounds the routes lexically
         // but adds no path segment; leave the stack unchanged.
         None => {}
+    }
+    if let Some(controller) = chain_argument(node, "controller", content)
+        .and_then(|argument| controller_class_text(argument, content))
+    {
+        inner.controller = Some(controller);
+    }
+    if let Some(name) = chain_argument(node, "name", content)
+        .or_else(|| chain_argument(node, "as", content))
+        .and_then(|argument| static_route_arg(argument, content, StaticArgLang::Php))
+    {
+        inner.name_prefix.push_str(name);
     }
     let Some(child_depth) = child_tree_depth(depth) else {
         return true;
@@ -202,7 +220,7 @@ fn try_group(
 
     walk(
         closure_body,
-        &new_stack,
+        &inner,
         language,
         tree,
         file_path,
@@ -275,6 +293,61 @@ fn chain_prefix<'t>(group_call: Node<'t>, content: &str) -> Option<PrefixResult<
     }
 }
 
+/// The first argument of a `->method(arg)` link in a group's call chain, such
+/// as `Ctrl::class` in `Route::controller(Ctrl::class)->group(...)`.
+fn chain_argument<'t>(group_call: Node<'t>, method: &str, content: &str) -> Option<Node<'t>> {
+    let mut receiver = group_call.child_by_field_name("object")?;
+    loop {
+        if !matches!(
+            receiver.kind(),
+            "member_call_expression" | "scoped_call_expression"
+        ) {
+            return None;
+        }
+        if call_method_name(receiver, content) == Some(method) {
+            return positional_arg_values(call_arguments(receiver)?)
+                .into_iter()
+                .next();
+        }
+        if receiver.kind() != "member_call_expression" {
+            return None;
+        }
+        receiver = receiver.child_by_field_name("object")?;
+    }
+}
+
+/// The route file a group loads: `base_path('routes/api.php')` or
+/// `__DIR__ . '/../routes/api.php'`.
+fn group_route_file(arguments: Node, content: &str) -> Option<String> {
+    positional_arg_values(arguments)
+        .into_iter()
+        .find_map(|value| match value.kind() {
+            "function_call_expression" => {
+                let function = node_text(content, value.child_by_field_name("function")?)?;
+                if function.trim_start_matches('\\') != "base_path" {
+                    return None;
+                }
+                let path = positional_arg_values(call_arguments(value)?)
+                    .into_iter()
+                    .next()?;
+                static_route_arg(path, content, StaticArgLang::Php).map(str::to_string)
+            }
+            "binary_expression" => {
+                let left = node_text(content, value.child_by_field_name("left")?)?;
+                if left != "__DIR__" {
+                    return None;
+                }
+                static_route_arg(
+                    value.child_by_field_name("right")?,
+                    content,
+                    StaticArgLang::Php,
+                )
+                .map(str::to_string)
+            }
+            _ => None,
+        })
+}
+
 /// The `body` (`compound_statement`) of the group's closure argument, or `None`
 /// when no `function () { … }` closure argument is present.
 fn group_closure_body<'t>(arguments: Node<'t>) -> Option<Node<'t>> {
@@ -297,6 +370,7 @@ fn push_prefix_fact(
     site: Node,
     parent_stack: &[Option<String>],
     prefix: &str,
+    mount_target: Option<&str>,
     facts: &mut Vec<StructuralFact>,
 ) {
     let start = site.start_byte();
@@ -322,6 +396,9 @@ fn push_prefix_fact(
     let mut metadata = base_metadata("framework", "laravel");
     insert_string(&mut metadata, "mount_path", prefix);
     insert_string(&mut metadata, "normalized_mount_path", &normalized.template);
+    if let Some(mount_target) = mount_target {
+        insert_string(&mut metadata, "mount_target", mount_target);
+    }
     facts.push(fact_for_span(
         file_path,
         language,
@@ -386,7 +463,7 @@ fn route_kind(method: &str) -> Option<RouteKind> {
 #[allow(clippy::too_many_arguments)]
 fn try_route(
     node: Node,
-    prefix_stack: &[Option<String>],
+    scope: &GroupScope,
     language: &str,
     tree: &Tree,
     file_path: &str,
@@ -421,7 +498,7 @@ fn try_route(
             for verb in verbs {
                 emit_route(
                     node,
-                    prefix_stack,
+                    scope,
                     Some(&verb),
                     path,
                     controller_action.as_deref(),
@@ -449,7 +526,7 @@ fn try_route(
                 .and_then(|h| controller_action_text(*h, content));
             emit_route(
                 node,
-                prefix_stack,
+                scope,
                 verb,
                 path,
                 controller_action.as_deref(),
@@ -467,7 +544,7 @@ fn try_route(
 #[allow(clippy::too_many_arguments)]
 fn emit_route(
     node: Node,
-    prefix_stack: &[Option<String>],
+    scope: &GroupScope,
     verb: Option<&str>,
     route_template: &str,
     controller_action: Option<&str>,
@@ -477,7 +554,13 @@ fn emit_route(
     content: &str,
     facts: &mut Vec<StructuralFact>,
 ) {
-    let prefix = joined_prefix(prefix_stack);
+    let prefix = joined_prefix(&scope.prefixes);
+    let controller_action = controller_action.map(|action| match &scope.controller {
+        Some(controller) if !action.contains('@') => format!("{controller}@{action}"),
+        _ => action.to_string(),
+    });
+    let route_name =
+        route_name_in_chain(node, content).map(|name| format!("{}{name}", scope.name_prefix));
     let spec = RouteFactSpec {
         framework: "laravel",
         pattern_id: LARAVEL_ROUTE_PATTERN_ID,
@@ -499,8 +582,11 @@ fn emit_route(
         node.end_byte(),
         spec,
         |metadata| {
-            if let Some(controller_action) = controller_action {
+            if let Some(controller_action) = &controller_action {
                 insert_string(metadata, "controller_action", controller_action);
+            }
+            if let Some(route_name) = &route_name {
+                insert_string(metadata, "route_name", route_name);
             }
         },
     ) {
@@ -533,7 +619,7 @@ fn static_verb_array(node: Node, content: &str) -> Option<Vec<String>> {
 #[allow(clippy::too_many_arguments)]
 fn try_resource(
     node: Node,
-    prefix_stack: &[Option<String>],
+    scope: &GroupScope,
     language: &str,
     tree: &Tree,
     file_path: &str,
@@ -578,7 +664,7 @@ fn try_resource(
     if let Some(controller) = controller {
         insert_string(&mut metadata, "controller", &controller);
     }
-    if let Some(prefix) = joined_prefix(prefix_stack) {
+    if let Some(prefix) = joined_prefix(&scope.prefixes) {
         insert_string(&mut metadata, "route_group_prefix", &prefix);
     }
     facts.push(fact_for_span(
@@ -597,11 +683,37 @@ fn try_resource(
 // Handler / controller metadata
 // ---------------------------------------------------------------------------
 
+/// The `->name('x')` chained onto a route registration.
+fn route_name_in_chain(route_call: Node, content: &str) -> Option<String> {
+    let mut current = route_call;
+    while let Some(parent) = current.parent().filter(|parent| {
+        parent.kind() == "member_call_expression"
+            && parent
+                .child_by_field_name("object")
+                .map(|object| object.id())
+                == Some(current.id())
+    }) {
+        if call_method_name(parent, content) == Some("name") {
+            let name = positional_arg_values(call_arguments(parent)?)
+                .into_iter()
+                .next()?;
+            return static_route_arg(name, content, StaticArgLang::Php).map(str::to_string);
+        }
+        current = parent;
+    }
+    None
+}
+
 /// A readable controller action for a route's handler argument: `Ctrl@method`
-/// for `[Ctrl::class, 'method']`, the literal for a `'Ctrl@method'` string, or
-/// `None` for a closure / variable handler (no static action to record).
+/// for `[Ctrl::class, 'method']`, `Ctrl@__invoke` for an invokable
+/// `Ctrl::class`, the literal for a `'Ctrl@method'` string (or a bare method
+/// name inside a `Route::controller` group), or `None` for a closure or
+/// variable handler.
 fn controller_action_text(node: Node, content: &str) -> Option<String> {
     match node.kind() {
+        "class_constant_access_expression" => {
+            controller_class_text(node, content).map(|class| format!("{class}@__invoke"))
+        }
         "array_creation_expression" => {
             let inits = named_children_of_kind(node, "array_element_initializer");
             let class = controller_class_text(first_named_child(*inits.first()?)?, content)?;

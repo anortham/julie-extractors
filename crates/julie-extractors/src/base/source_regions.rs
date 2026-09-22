@@ -123,7 +123,7 @@ fn collect_node(
                 None,
             ));
         }
-    } else if config.string_literal_node_kinds.contains(&node_kind) {
+    } else if config.string_literal_node_kinds.contains(&node_kind) && node.is_named() {
         regions.push(region_for_node(
             file_path,
             language,

@@ -65,15 +65,8 @@
       "end_column": 32,
       "start_byte": 30,
       "end_byte": 62,
-      "body_span": {
-        "start_line": 5,
-        "start_column": 28,
-        "end_line": 5,
-        "end_column": 32,
-        "start_byte": 58,
-        "end_byte": 62
-      },
-      "body_hash": "aa3c877855027a11186dac31b12fc8aa",
+      "body_span": null,
+      "body_hash": null,
       "signature": "use Doctrine\\ORM\\Mapping as ORM",
       "doc_comment": null,
       "visibility": "Public",
@@ -299,15 +292,8 @@
       "end_column": 60,
       "start_byte": 1151,
       "end_byte": 1203,
-      "body_span": {
-        "start_line": 57,
-        "start_column": 27,
-        "end_line": 57,
-        "end_column": 60,
-        "start_byte": 1170,
-        "end_byte": 1203
-      },
-      "body_hash": "3de3378ebd3fdbb5dd8a899d41e1eaa2",
+      "body_span": null,
+      "body_hash": null,
       "signature": "$copy = new Product($this->products, $this->name, 1)",
       "doc_comment": null,
       "visibility": "Public",
@@ -368,15 +354,8 @@
       "end_column": 52,
       "start_byte": 1018,
       "end_byte": 1062,
-      "body_span": {
-        "start_line": 51,
-        "start_column": 35,
-        "end_line": 51,
-        "end_column": 52,
-        "start_byte": 1045,
-        "end_byte": 1062
-      },
-      "body_hash": "c797c079d9fd5b038c5474dd19947e11",
+      "body_span": null,
+      "body_hash": null,
       "signature": "$factory = $this->belongsTo(Category::class)",
       "doc_comment": null,
       "visibility": "Public",
@@ -903,11 +882,11 @@
       "caller_scope_key": "fixtures/extraction/php/modern_members/source.php:describe:46:4",
       "span": {
         "start_line": 49,
-        "start_column": 8,
+        "start_column": 26,
         "end_line": 49,
-        "end_column": 35,
-        "start_byte": 901,
-        "end_byte": 928
+        "end_column": 33,
+        "start_byte": 919,
+        "end_byte": 926
       }
     },
     {
@@ -929,11 +908,11 @@
       "caller_scope_key": "fixtures/extraction/php/modern_members/source.php:describe:46:4",
       "span": {
         "start_line": 48,
-        "start_column": 8,
+        "start_column": 17,
         "end_line": 48,
-        "end_column": 23,
-        "start_byte": 876,
-        "end_byte": 891
+        "end_column": 21,
+        "start_byte": 885,
+        "end_byte": 889
       }
     },
     {
@@ -955,11 +934,11 @@
       "caller_scope_key": "fixtures/extraction/php/modern_members/source.php:describe:46:4",
       "span": {
         "start_line": 51,
-        "start_column": 19,
+        "start_column": 26,
         "end_line": 51,
-        "end_column": 52,
-        "start_byte": 1029,
-        "end_byte": 1062
+        "end_column": 35,
+        "start_byte": 1036,
+        "end_byte": 1045
       },
       "receiver_type": "Product"
     }
@@ -1025,6 +1004,22 @@
       "end_column": 35,
       "start_byte": 1129,
       "end_byte": 1136,
+      "containing_key": "fixtures/extraction/php/modern_members/source.php:make:55:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/php/modern_members/source.php:Product:type_usage:57:20",
+      "name": "Product",
+      "kind": "type_usage",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/modern_members/source.php",
+      "start_line": 57,
+      "start_column": 20,
+      "end_line": 57,
+      "end_column": 27,
+      "start_byte": 1163,
+      "end_byte": 1170,
       "containing_key": "fixtures/extraction/php/modern_members/source.php:make:55:4",
       "target_key": null,
       "confidence": "1.000"
@@ -1568,16 +1563,16 @@
     {
       "pattern_id": "php.namespace_use_declaration.v1",
       "capture_name": "namespace_use_declaration",
-      "node_kind": "namespace_use_declaration",
+      "node_kind": "namespace_use_clause",
       "language": "php",
       "file_path": "fixtures/extraction/php/modern_members/source.php",
       "containing_key": null,
       "start_line": 5,
-      "start_column": 0,
+      "start_column": 4,
       "end_line": 5,
-      "end_column": 32,
-      "start_byte": 30,
-      "end_byte": 62,
+      "end_column": 31,
+      "start_byte": 34,
+      "end_byte": 61,
       "confidence": "1.000",
       "metadata": {
         "import_alias": "ORM",
@@ -1589,16 +1584,16 @@
     {
       "pattern_id": "php.trait_use_declaration.v1",
       "capture_name": "use_declaration",
-      "node_kind": "use_declaration",
+      "node_kind": "name",
       "language": "php",
       "file_path": "fixtures/extraction/php/modern_members/source.php",
       "containing_key": "fixtures/extraction/php/modern_members/source.php:Product:20:0",
       "start_line": 24,
-      "start_column": 4,
+      "start_column": 8,
       "end_line": 24,
-      "end_column": 18,
-      "start_byte": 273,
-      "end_byte": 287,
+      "end_column": 17,
+      "start_byte": 277,
+      "end_byte": 286,
       "confidence": "1.000",
       "metadata": {
         "pattern_version": 1,
@@ -1609,16 +1604,36 @@
     {
       "pattern_id": "php.trait_use_declaration.v1",
       "capture_name": "use_declaration",
-      "node_kind": "use_declaration",
+      "node_kind": "name",
       "language": "php",
       "file_path": "fixtures/extraction/php/modern_members/source.php",
       "containing_key": "fixtures/extraction/php/modern_members/source.php:Product:20:0",
       "start_line": 25,
-      "start_column": 4,
-      "end_line": 27,
-      "end_column": 5,
-      "start_byte": 292,
-      "end_byte": 418,
+      "start_column": 60,
+      "end_line": 25,
+      "end_column": 70,
+      "start_byte": 348,
+      "end_byte": 358,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "traits",
+        "trait_name": "Notifiable"
+      }
+    },
+    {
+      "pattern_id": "php.trait_use_declaration.v1",
+      "capture_name": "use_declaration",
+      "node_kind": "qualified_name",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/modern_members/source.php",
+      "containing_key": "fixtures/extraction/php/modern_members/source.php:Product:20:0",
+      "start_line": 25,
+      "start_column": 8,
+      "end_line": 25,
+      "end_column": 58,
+      "start_byte": 296,
+      "end_byte": 346,
       "confidence": "1.000",
       "metadata": {
         "pattern_version": 1,
@@ -1797,32 +1812,6 @@
       "kind": "string_literal",
       "language": "php",
       "file_path": "fixtures/extraction/php/modern_members/source.php",
-      "containing_key": "fixtures/extraction/php/modern_members/source.php:describe:46:4",
-      "start_line": 46,
-      "start_column": 48,
-      "end_line": 46,
-      "end_column": 54,
-      "start_byte": 855,
-      "end_byte": 861,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "php",
-      "file_path": "fixtures/extraction/php/modern_members/source.php",
-      "containing_key": "fixtures/extraction/php/modern_members/source.php:name:38:8",
-      "start_line": 38,
-      "start_column": 15,
-      "end_line": 38,
-      "end_column": 21,
-      "start_byte": 646,
-      "end_byte": 652,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "php",
-      "file_path": "fixtures/extraction/php/modern_members/source.php",
       "containing_key": "fixtures/extraction/php/modern_members/source.php:slug:9:4",
       "start_line": 11,
       "start_column": 15,
@@ -1830,19 +1819,6 @@
       "end_column": 21,
       "start_byte": 138,
       "end_byte": 144,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "php",
-      "file_path": "fixtures/extraction/php/modern_members/source.php",
-      "containing_key": "fixtures/extraction/php/modern_members/source.php:slug:9:4",
-      "start_line": 9,
-      "start_column": 28,
-      "end_line": 9,
-      "end_column": 34,
-      "start_byte": 110,
-      "end_byte": 116,
       "metadata": null
     }
   ],

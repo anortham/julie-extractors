@@ -29,7 +29,7 @@ use functions::extract_function;
 use helpers::{determine_visibility, extract_modifiers, find_child, find_child_text};
 use identifiers::extract_identifier_from_node;
 use locals::extract_assignment;
-use members::{extract_constant, extract_property};
+use members::{extract_constant, extract_define_constant, extract_property};
 use namespaces::{extract_namespace, extract_use};
 use parameters::extract_parameter_symbols;
 use relationships::{
@@ -40,6 +40,16 @@ use types::{
     extract_anonymous_class, extract_class, extract_enum, extract_enum_case, extract_interface,
     extract_trait,
 };
+
+/// One symbol becomes the parent of the node's children; several (one per
+/// declared element) are added directly and the children keep the outer parent.
+fn single_or_extend(symbols: &mut Vec<Symbol>, mut extracted: Vec<Symbol>) -> Option<Symbol> {
+    if extracted.len() == 1 {
+        return extracted.pop();
+    }
+    symbols.extend(extracted);
+    None
+}
 
 pub struct PhpExtractor {
     pub(crate) base: BaseExtractor,
@@ -119,9 +129,12 @@ impl PhpExtractor {
             "function_definition" | "method_declaration" => {
                 extract_function(self, node, parent_id.as_deref())
             }
-            "property_declaration" => extract_property(self, node, parent_id.as_deref()),
-            "property_promotion_parameter" => extract_property(self, node, parent_id.as_deref()),
-            "const_declaration" => extract_constant(self, node, parent_id.as_deref()),
+            "property_declaration" | "property_promotion_parameter" => {
+                single_or_extend(symbols, extract_property(self, node, parent_id.as_deref()))
+            }
+            "const_declaration" => {
+                single_or_extend(symbols, extract_constant(self, node, parent_id.as_deref()))
+            }
             "namespace_definition" => extract_namespace(self, node, parent_id.as_deref()),
             // A trait `use` inside a class body is a relationship, not an import.
             "use_declaration" => None,
@@ -132,18 +145,13 @@ impl PhpExtractor {
             }
             "enum_case" => extract_enum_case(self, node, parent_id.as_deref()),
             "anonymous_class" => extract_anonymous_class(self, node, parent_id.as_deref()),
-            "assignment_expression" => {
-                let mut assigned = extract_assignment(self, node, parent_id.as_deref());
-                if assigned.len() == 1 {
-                    assigned.pop()
-                } else {
-                    symbols.extend(assigned);
-                    None
-                }
-            }
-            // Pest call-style tests: test(...)/it(...)/describe(...)/lifecycle hooks.
+            "assignment_expression" => single_or_extend(
+                symbols,
+                extract_assignment(self, node, parent_id.as_deref()),
+            ),
             "function_call_expression" => {
                 extract_php_pest_test_call(&mut self.base, node, parent_id.as_deref())
+                    .or_else(|| extract_define_constant(self, node, parent_id.as_deref()))
             }
             _ => None,
         };
@@ -185,7 +193,7 @@ impl PhpExtractor {
         }
 
         match node.kind() {
-            "class_declaration" => {
+            "class_declaration" | "enum_declaration" | "anonymous_class" => {
                 extract_class_relationships(self, node, symbols, relationships);
             }
             "interface_declaration" => {

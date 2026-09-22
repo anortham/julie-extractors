@@ -717,19 +717,6 @@
       "start_byte": 70,
       "end_byte": 82,
       "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "typescript",
-      "file_path": "fixtures/extraction/typescript/http_client_fetch/source.ts",
-      "containing_key": "fixtures/extraction/typescript/http_client_fetch/source.ts:url:9:29",
-      "start_line": 9,
-      "start_column": 34,
-      "end_line": 9,
-      "end_column": 40,
-      "start_byte": 263,
-      "end_byte": 269,
-      "metadata": null
     }
   ],
   "type_argument_usages": [

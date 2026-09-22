@@ -530,11 +530,11 @@
       "caller_scope_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:computes:12:4",
       "span": {
         "start_line": 16,
-        "start_column": 8,
+        "start_column": 14,
         "end_line": 16,
-        "end_column": 30,
-        "start_byte": 314,
-        "end_byte": 336
+        "end_column": 24,
+        "start_byte": 320,
+        "end_byte": 330
       },
       "receiver_type": "PriceTest"
     },
@@ -557,11 +557,11 @@
       "caller_scope_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:computesRows:19:4",
       "span": {
         "start_line": 23,
-        "start_column": 8,
+        "start_column": 14,
         "end_line": 23,
-        "end_column": 32,
-        "start_byte": 454,
-        "end_byte": 478
+        "end_column": 24,
+        "start_byte": 460,
+        "end_byte": 470
       },
       "receiver_type": "PriceTest"
     },
@@ -584,11 +584,11 @@
       "caller_scope_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:testLegacyRows:29:4",
       "span": {
         "start_line": 31,
-        "start_column": 8,
+        "start_column": 14,
         "end_line": 31,
-        "end_column": 32,
-        "start_byte": 600,
-        "end_byte": 624
+        "end_column": 24,
+        "start_byte": 606,
+        "end_byte": 616
       },
       "receiver_type": "PriceTest"
     }
@@ -889,16 +889,16 @@
     {
       "pattern_id": "php.namespace_use_declaration.v1",
       "capture_name": "namespace_use_declaration",
-      "node_kind": "namespace_use_declaration",
+      "node_kind": "namespace_use_clause",
       "language": "php",
       "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
       "containing_key": null,
       "start_line": 5,
-      "start_column": 0,
+      "start_column": 4,
       "end_line": 5,
-      "end_column": 46,
-      "start_byte": 30,
-      "end_byte": 76,
+      "end_column": 45,
+      "start_byte": 34,
+      "end_byte": 75,
       "confidence": "1.000",
       "metadata": {
         "import_target": "PHPUnit\\Framework\\Attributes\\DataProvider",
@@ -909,16 +909,16 @@
     {
       "pattern_id": "php.namespace_use_declaration.v1",
       "capture_name": "namespace_use_declaration",
-      "node_kind": "namespace_use_declaration",
+      "node_kind": "namespace_use_clause",
       "language": "php",
       "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
       "containing_key": null,
       "start_line": 6,
-      "start_column": 0,
+      "start_column": 4,
       "end_line": 6,
-      "end_column": 39,
-      "start_byte": 77,
-      "end_byte": 116,
+      "end_column": 38,
+      "start_byte": 81,
+      "end_byte": 115,
       "confidence": "1.000",
       "metadata": {
         "import_target": "PHPUnit\\Framework\\Attributes\\Group",
@@ -929,16 +929,16 @@
     {
       "pattern_id": "php.namespace_use_declaration.v1",
       "capture_name": "namespace_use_declaration",
-      "node_kind": "namespace_use_declaration",
+      "node_kind": "namespace_use_clause",
       "language": "php",
       "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
       "containing_key": null,
       "start_line": 7,
-      "start_column": 0,
+      "start_column": 4,
       "end_line": 7,
-      "end_column": 38,
-      "start_byte": 117,
-      "end_byte": 155,
+      "end_column": 37,
+      "start_byte": 121,
+      "end_byte": 154,
       "confidence": "1.000",
       "metadata": {
         "import_target": "PHPUnit\\Framework\\Attributes\\Test",
@@ -949,16 +949,16 @@
     {
       "pattern_id": "php.namespace_use_declaration.v1",
       "capture_name": "namespace_use_declaration",
-      "node_kind": "namespace_use_declaration",
+      "node_kind": "namespace_use_clause",
       "language": "php",
       "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
       "containing_key": null,
       "start_line": 8,
-      "start_column": 0,
+      "start_column": 4,
       "end_line": 8,
-      "end_column": 31,
-      "start_byte": 156,
-      "end_byte": 187,
+      "end_column": 30,
+      "start_byte": 160,
+      "end_byte": 186,
       "confidence": "1.000",
       "metadata": {
         "import_target": "PHPUnit\\Framework\\TestCase",

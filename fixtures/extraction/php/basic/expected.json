@@ -185,15 +185,8 @@
       "end_column": 62,
       "start_byte": 27,
       "end_byte": 89,
-      "body_span": {
-        "start_line": 5,
-        "start_column": 49,
-        "end_line": 5,
-        "end_column": 62,
-        "start_byte": 76,
-        "end_byte": 89
-      },
-      "body_hash": "dd2d2edc63579a99657dc12fd6d8674a",
+      "body_span": null,
+      "body_hash": null,
       "signature": "use Symfony\\Component\\HttpFoundation\\Response as HttpResponse",
       "doc_comment": null,
       "visibility": "Public",
@@ -923,15 +916,8 @@
       "end_column": 9,
       "start_byte": 1724,
       "end_byte": 1813,
-      "body_span": {
-        "start_line": 101,
-        "start_column": 30,
-        "end_line": 104,
-        "end_column": 9,
-        "start_byte": 1746,
-        "end_byte": 1813
-      },
-      "body_hash": "01ab691d3df3d32001433f8fd6b6c2e8",
+      "body_span": null,
+      "body_hash": null,
       "signature": "$total = match (true) {\n            $count > 10 => 1,\n            default => 0,\n        }",
       "doc_comment": null,
       "visibility": "Public",
@@ -1185,14 +1171,6 @@
       "file_path": "fixtures/extraction/php/basic/source.php",
       "line_number": 48,
       "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/php/basic/source.php:withMapper:85:0",
-      "callee_name": "$mapper",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/php/basic/source.php",
-      "line_number": 90,
-      "confidence": "0.700"
     }
   ],
   "structured_pending_relationships": [
@@ -1215,58 +1193,16 @@
       "caller_scope_key": "fixtures/extraction/php/basic/source.php:run:44:4",
       "span": {
         "start_line": 48,
-        "start_column": 8,
+        "start_column": 15,
         "end_line": 48,
-        "end_column": 29,
-        "start_byte": 715,
-        "end_byte": 736
+        "end_column": 27,
+        "start_byte": 722,
+        "end_byte": 734
       },
       "receiver_type": "Worker"
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/php/basic/source.php:withMapper:85:0",
-        "callee_name": "$mapper",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/php/basic/source.php",
-        "line_number": 90,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "$mapper",
-        "terminal_name": "$mapper",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/php/basic/source.php:withMapper:85:0",
-      "span": {
-        "start_line": 90,
-        "start_column": 11,
-        "end_line": 90,
-        "end_column": 26,
-        "start_byte": 1502,
-        "end_byte": 1517
-      }
     }
   ],
   "identifiers": [
-    {
-      "key": "fixtures/extraction/php/basic/source.php:$mapper:call:90:11",
-      "name": "$mapper",
-      "kind": "call",
-      "language": "php",
-      "file_path": "fixtures/extraction/php/basic/source.php",
-      "start_line": 90,
-      "start_column": 11,
-      "end_line": 90,
-      "end_column": 18,
-      "start_byte": 1502,
-      "end_byte": 1509,
-      "containing_key": "fixtures/extraction/php/basic/source.php:withMapper:85:0",
-      "target_key": null,
-      "confidence": "1.000"
-    },
     {
       "key": "fixtures/extraction/php/basic/source.php:TARGET_CLASS:member_access:11:25",
       "name": "TARGET_CLASS",
@@ -2082,16 +2018,16 @@
     {
       "pattern_id": "php.namespace_use_declaration.v1",
       "capture_name": "namespace_use_declaration",
-      "node_kind": "namespace_use_declaration",
+      "node_kind": "namespace_use_clause",
       "language": "php",
       "file_path": "fixtures/extraction/php/basic/source.php",
       "containing_key": null,
       "start_line": 5,
-      "start_column": 0,
+      "start_column": 4,
       "end_line": 5,
-      "end_column": 62,
-      "start_byte": 27,
-      "end_byte": 89,
+      "end_column": 61,
+      "start_byte": 31,
+      "end_byte": 88,
       "confidence": "1.000",
       "metadata": {
         "import_alias": "HttpResponse",
@@ -2103,16 +2039,16 @@
     {
       "pattern_id": "php.trait_use_declaration.v1",
       "capture_name": "use_declaration",
-      "node_kind": "use_declaration",
+      "node_kind": "name",
       "language": "php",
       "file_path": "fixtures/extraction/php/basic/source.php",
       "containing_key": "fixtures/extraction/php/basic/source.php:Worker:29:0",
       "start_line": 32,
-      "start_column": 4,
+      "start_column": 8,
       "end_line": 32,
-      "end_column": 22,
-      "start_byte": 447,
-      "end_byte": 465,
+      "end_column": 21,
+      "start_byte": 451,
+      "end_byte": 464,
       "confidence": "1.000",
       "metadata": {
         "pattern_version": 1,
@@ -2469,19 +2405,6 @@
       "kind": "string_literal",
       "language": "php",
       "file_path": "fixtures/extraction/php/basic/source.php",
-      "containing_key": "fixtures/extraction/php/basic/source.php:event:71:20",
-      "start_line": 71,
-      "start_column": 20,
-      "end_line": 71,
-      "end_column": 26,
-      "start_byte": 1158,
-      "end_byte": 1164,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "php",
-      "file_path": "fixtures/extraction/php/basic/source.php",
       "containing_key": "fixtures/extraction/php/basic/source.php:fetchStatus:76:0",
       "start_line": 78,
       "start_column": 13,
@@ -2489,19 +2412,6 @@
       "end_column": 53,
       "start_byte": 1287,
       "end_byte": 1327,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "php",
-      "file_path": "fixtures/extraction/php/basic/source.php",
-      "containing_key": "fixtures/extraction/php/basic/source.php:path:19:32",
-      "start_line": 19,
-      "start_column": 39,
-      "end_line": 19,
-      "end_column": 45,
-      "start_byte": 326,
-      "end_byte": 332,
       "metadata": null
     },
     {
@@ -2528,19 +2438,6 @@
       "end_column": 18,
       "start_byte": 631,
       "end_byte": 637,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "php",
-      "file_path": "fixtures/extraction/php/basic/source.php",
-      "containing_key": "fixtures/extraction/php/basic/source.php:url:81:18",
-      "start_line": 81,
-      "start_column": 18,
-      "end_line": 81,
-      "end_column": 24,
-      "start_byte": 1351,
-      "end_byte": 1357,
       "metadata": null
     }
   ],

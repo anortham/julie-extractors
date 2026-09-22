@@ -13,16 +13,13 @@ pub(super) fn extract_identifier_from_node(
     match node.kind() {
         // Direct function calls: print_r(), array_map()
         "function_call_expression" => {
-            // The function field contains the function being called
             if let Some(function_node) = node.child_by_field_name("function") {
-                let name = extractor.get_base().get_node_text(&function_node);
-                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
-
-                extractor.get_base_mut().create_identifier(
-                    &function_node,
-                    name,
+                create_named_identifier(
+                    extractor,
+                    node,
+                    function_node,
                     IdentifierKind::Call,
-                    containing_symbol_id,
+                    containing_symbols,
                 );
             }
             // Phase 3b: capture string-literal call-arguments config-free.
@@ -31,8 +28,10 @@ pub(super) fn extract_identifier_from_node(
 
         // Method calls: $this->add(), $obj->method(), $obj?->method()
         "member_call_expression" | "nullsafe_member_call_expression" => {
-            // Extract the method name from the name field
-            if let Some(name_node) = node.child_by_field_name("name") {
+            if let Some(name_node) = node
+                .child_by_field_name("name")
+                .filter(|name| name.kind() == "name")
+            {
                 let name = extractor.get_base().get_node_text(&name_node);
                 let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 let receiver_type = php_call_receiver_type(extractor.get_base(), node);
@@ -113,21 +112,33 @@ pub(super) fn extract_identifier_from_node(
         //   - Union types:      string|Request  (named_type inside union_type)
         //   - Optional types:   ?Request        (named_type inside optional_type)
         "named_type" => {
-            let name = extractor.get_base().get_node_text(&node);
-
-            // Skip single-letter type params (rare in PHP, but possible)
-            if name.len() <= 1 {
-                return;
+            if let Some(type_name) = node.named_child(0) {
+                create_named_identifier(
+                    extractor,
+                    node,
+                    type_name,
+                    IdentifierKind::TypeUsage,
+                    containing_symbols,
+                );
             }
+        }
 
-            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
-
-            extractor.get_base_mut().create_identifier(
-                &node,
-                name,
-                IdentifierKind::TypeUsage,
-                containing_symbol_id,
-            );
+        // `new Order(...)` and `new \App\Mail\Receipt(...)` use the class.
+        "object_creation_expression" => {
+            if let Some(class_name) = node.named_child(0).filter(|class_name| {
+                !matches!(
+                    extractor.get_base().get_node_text(class_name).as_str(),
+                    "self" | "static" | "parent"
+                )
+            }) {
+                create_named_identifier(
+                    extractor,
+                    node,
+                    class_name,
+                    IdentifierKind::TypeUsage,
+                    containing_symbols,
+                );
+            }
         }
 
         // `Foo::class` names the type Foo. `Status::Active`, `self::ROLE`, and
@@ -141,15 +152,13 @@ pub(super) fn extract_identifier_from_node(
             let member_name = extractor.get_base().get_node_text(&member);
             let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
             if member_name == "class" {
-                if matches!(scope.kind(), "name" | "qualified_name") {
-                    let type_name = extractor.get_base().get_node_text(&scope);
-                    extractor.get_base_mut().create_identifier(
-                        &scope,
-                        type_name,
-                        IdentifierKind::TypeUsage,
-                        containing_symbol_id,
-                    );
-                }
+                create_named_identifier(
+                    extractor,
+                    node,
+                    scope,
+                    IdentifierKind::TypeUsage,
+                    containing_symbols,
+                );
                 return;
             }
             let receiver_type = static_scope_receiver_type(extractor.get_base(), scope, node);
@@ -195,20 +204,12 @@ pub(super) fn extract_identifier_from_node(
             let mut found_instanceof = false;
             for child in node.children(&mut cursor) {
                 if found_instanceof && child.is_named() {
-                    let name = extractor.get_base().get_node_text(&child);
-
-                    // Skip single-letter names
-                    if name.len() <= 1 {
-                        return;
-                    }
-
-                    let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
-
-                    extractor.get_base_mut().create_identifier(
-                        &child,
-                        name,
+                    create_named_identifier(
+                        extractor,
+                        node,
+                        child,
                         IdentifierKind::TypeUsage,
-                        containing_symbol_id,
+                        containing_symbols,
                     );
                     return;
                 }
@@ -260,6 +261,60 @@ pub(super) fn extract_identifier_from_node(
 
         _ => {
             // Skip other node types for now
+        }
+    }
+}
+
+/// An identifier for a written name: `audit` for `\App\Support\audit`, anchored
+/// on the terminal segment, with the namespace part in
+/// `metadata.namespace_qualifier`. Variables and expressions name nothing.
+fn create_named_identifier(
+    extractor: &mut PhpExtractor,
+    site: Node,
+    name_node: Node,
+    kind: IdentifierKind,
+    containing_symbols: &ContainingSymbolIndex<'_>,
+) {
+    let (terminal, qualifier) = match name_node.kind() {
+        "name" => (name_node, None),
+        "qualified_name" | "relative_name" => {
+            let mut cursor = name_node.walk();
+            let Some(terminal) = name_node
+                .named_children(&mut cursor)
+                .filter(|child| child.kind() == "name")
+                .last()
+            else {
+                return;
+            };
+            let text = extractor.get_base().get_node_text(&name_node);
+            let prefix_len = terminal.start_byte() - name_node.start_byte();
+            let qualifier = text[..prefix_len].trim_end_matches('\\').to_string();
+            (terminal, (!qualifier.is_empty()).then_some(qualifier))
+        }
+        _ => return,
+    };
+    let name = extractor.get_base().get_node_text(&terminal);
+    if kind == IdentifierKind::TypeUsage && name.len() <= 1 {
+        return;
+    }
+    let containing_symbol_id = find_containing_symbol_id(site, containing_symbols);
+    match qualifier {
+        Some(qualifier) => {
+            extractor.get_base_mut().create_identifier_with_metadata(
+                &terminal,
+                name,
+                kind,
+                containing_symbol_id,
+                std::collections::HashMap::from([(
+                    "namespace_qualifier".to_string(),
+                    serde_json::Value::String(qualifier),
+                )]),
+            );
+        }
+        None => {
+            extractor
+                .get_base_mut()
+                .create_identifier(&terminal, name, kind, containing_symbol_id);
         }
     }
 }
@@ -561,7 +616,11 @@ fn record_php_call_arg_literals(
         let Some(value) = php_argument_value(arg) else {
             continue;
         };
-        if let Some(text) = extractor.get_base().decode_string_literal(&value) {
+        let text = match value.kind() {
+            "heredoc" | "nowdoc" => decode_php_heredoc(extractor.get_base(), value),
+            _ => extractor.get_base().decode_string_literal(&value),
+        };
+        if let Some(text) = text {
             extractor.get_base_mut().record_literal(
                 &value,
                 text,
@@ -571,6 +630,43 @@ fn record_php_call_arg_literals(
             );
         }
     }
+}
+
+/// The body of a heredoc or nowdoc with the closing marker's indentation
+/// removed from every line, as PHP 7.3+ does. Interpolations read as `{}`.
+fn decode_php_heredoc(base: &BaseExtractor, node: Node) -> Option<String> {
+    let body = node.child_by_field_name("value")?;
+    let indent = node
+        .child_by_field_name("end_tag")
+        .map_or(0, |end| end.start_position().column);
+    let mut text = String::new();
+    let mut at = body.start_byte();
+    let mut cursor = body.walk();
+    for part in body.named_children(&mut cursor) {
+        text.push_str(base.content.get(at..part.start_byte()).unwrap_or_default());
+        match part.kind() {
+            "string_content" | "nowdoc_string" | "escape_sequence" => {
+                text.push_str(&base.get_node_text(&part));
+            }
+            _ => text.push_str("{}"),
+        }
+        at = part.end_byte();
+    }
+    text.push_str(base.content.get(at..body.end_byte()).unwrap_or_default());
+    let text = text.strip_prefix('\n').unwrap_or(&text);
+    Some(
+        text.lines()
+            .map(|line| {
+                let strip = line
+                    .bytes()
+                    .take(indent)
+                    .take_while(|byte| matches!(byte, b' ' | b'\t'))
+                    .count();
+                &line[strip..]
+            })
+            .collect::<Vec<_>>()
+            .join("\n"),
+    )
 }
 
 /// Resolve a PHP `argument` node to its value node.
@@ -615,7 +711,7 @@ fn php_carrier(base: &BaseExtractor, call_node: Node) -> Option<String> {
         "scoped_call_expression" => {
             let scope = call_node
                 .child_by_field_name("scope")
-                .map(|n| base.get_node_text(&n));
+                .map(|n| base.get_node_text(&n).trim_start_matches('\\').to_string());
             let name = call_node
                 .child_by_field_name("name")
                 .map(|n| base.get_node_text(&n));

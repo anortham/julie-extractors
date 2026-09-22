@@ -109,6 +109,22 @@
       "containing_key": "fixtures/extraction/php/return_types/source.php:make:3:0",
       "target_key": null,
       "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/php/return_types/source.php:Result:type_usage:3:37",
+      "name": "Result",
+      "kind": "type_usage",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/return_types/source.php",
+      "start_line": 3,
+      "start_column": 37,
+      "end_line": 3,
+      "end_column": 43,
+      "start_byte": 59,
+      "end_byte": 65,
+      "containing_key": "fixtures/extraction/php/return_types/source.php:make:3:0",
+      "target_key": null,
+      "confidence": "1.000"
     }
   ],
   "types": [

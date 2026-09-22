@@ -106,18 +106,21 @@ pub(crate) fn extract_trait_use_relationships(
     }
 }
 
-/// Extract class inheritance and implementation relationships
+/// Extract inheritance and implementation relationships of a class, an
+/// enum, or an anonymous class.
 pub(super) fn extract_class_relationships(
     extractor: &mut PhpExtractor,
     node: Node,
     symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
 ) {
-    let class_symbol = find_class_symbol(extractor, node, symbols);
-    if class_symbol.is_none() {
+    let node_start = node.start_byte() as u32;
+    let Some(class_symbol) = symbols.iter().find(|symbol| {
+        symbol.start_byte == node_start
+            && matches!(symbol.kind, SymbolKind::Class | SymbolKind::Enum)
+    }) else {
         return;
-    }
-    let class_symbol = class_symbol.unwrap();
+    };
 
     // Inheritance relationships
     if let Some(extends_node) = find_child(extractor, &node, "base_clause") {
@@ -309,22 +312,6 @@ pub(super) fn extract_interface_relationships(
             }
         }
     }
-}
-
-/// Find class symbol by node
-pub(super) fn find_class_symbol<'a>(
-    extractor: &PhpExtractor,
-    node: Node,
-    symbols: &'a [Symbol],
-) -> Option<&'a Symbol> {
-    let name_node = node.child_by_field_name("name")?;
-    let name = extractor.get_base().get_node_text(&name_node);
-
-    symbols.iter().find(|s| {
-        s.name == name
-            && s.kind == SymbolKind::Class
-            && s.file_path == extractor.get_base().file_path
-    })
 }
 
 /// Find interface symbol by node
