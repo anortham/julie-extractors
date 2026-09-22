@@ -5459,6 +5459,21 @@
           "name": "idioms",
           "source": "fixtures/extraction/r/idioms/source.R",
           "expected": "fixtures/extraction/r/idioms/expected.json"
+        },
+        {
+          "name": "frameworks",
+          "source": "fixtures/extraction/r/frameworks/source.R",
+          "expected": "fixtures/extraction/r/frameworks/expected.json"
+        },
+        {
+          "name": "runit",
+          "source": "fixtures/extraction/r/runit/runit.money.R",
+          "expected": "fixtures/extraction/r/runit/expected.json"
+        },
+        {
+          "name": "namespace",
+          "source": "fixtures/extraction/r/namespace/NAMESPACE",
+          "expected": "fixtures/extraction/r/namespace/expected.json"
         }
       ],
       "target_capabilities": {
@@ -5477,6 +5492,7 @@
             "function",
             "import",
             "method",
+            "property",
             "variable"
           ],
           "not_applicable": [],
@@ -5511,9 +5527,16 @@
         },
         "structural_facts": {
           "supported": [
+            "plumber.route.v1",
             "r.formula_expression.v1",
             "r.library_call.v1",
-            "r.pipe_expression.v1"
+            "r.namespace_directive.v1",
+            "r.pipe_expression.v1",
+            "shiny.app.v1",
+            "shiny.input.v1",
+            "shiny.module.v1",
+            "shiny.output.v1",
+            "shiny.reactive.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -5537,6 +5560,7 @@
         },
         "doc_comments": {
           "supported": [
+            "class",
             "function"
           ],
           "not_applicable": [],
@@ -5561,11 +5585,10 @@
         "test_detection": {
           "supported": [
             "test_case",
-            "test_container"
-          ],
-          "not_applicable": [
+            "test_container",
             "test_lifecycle"
           ],
+          "not_applicable": [],
           "open_gaps": []
         }
       }

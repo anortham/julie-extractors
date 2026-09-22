@@ -25,3 +25,15 @@ describe("calculate_total", {
     expect_equal(calculate_total(), add_one(1))
   })
 })
+
+setup({
+  options(demo = TRUE)
+})
+
+teardown({
+  options(demo = NULL)
+})
+
+testthat::test_that("qualified case", {
+  expect_true(TRUE)
+})

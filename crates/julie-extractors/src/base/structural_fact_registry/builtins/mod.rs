@@ -9,6 +9,7 @@ mod core;
 mod erlang;
 mod extra;
 mod jvm_native;
+mod r;
 mod scripting;
 
 pub(super) fn specs() -> Vec<StructuralFactPatternSpec> {
@@ -17,6 +18,7 @@ pub(super) fn specs() -> Vec<StructuralFactPatternSpec> {
         jvm_native::SPECS,
         scripting::SPECS,
         erlang::SPECS,
+        r::SPECS,
         extra::SPECS,
     ]
     .concat()

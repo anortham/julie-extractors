@@ -1,4 +1,4 @@
-//! Built-in language-local SPECS for R, Zig, QML, Bash, PowerShell, GDScript, and VB.NET.
+//! Built-in language-local SPECS for Zig, QML, Bash, PowerShell, GDScript, and VB.NET.
 //!
 //! Authored metadata for [`super::super::StructuralFactPatternSpec`] entries.
 //! Public registry access remains through
@@ -10,51 +10,6 @@ use super::super::{
 };
 
 pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
-    StructuralFactPatternSpec {
-        pattern_id: "r.library_call.v1",
-        languages: &["r"],
-        query_family: "imports",
-        description: "An R `library()`/`require()` package load.",
-        metadata_keys: &[
-            K_PATTERN_VERSION,
-            K_QUERY_FAMILY,
-            key(
-                "load_kind",
-                STR,
-                ALWAYS,
-                "Which load form was used (`library` or `require`).",
-            ),
-            key(
-                "package_name",
-                STR,
-                OPT,
-                "The package name argument (quotes stripped).",
-            ),
-        ],
-    },
-    StructuralFactPatternSpec {
-        pattern_id: "r.pipe_expression.v1",
-        languages: &["r"],
-        query_family: "pipeline",
-        description: "An R pipe expression (`|>` or `%>%`).",
-        metadata_keys: BASE_KEYS,
-    },
-    StructuralFactPatternSpec {
-        pattern_id: "r.formula_expression.v1",
-        languages: &["r"],
-        query_family: "modeling",
-        description: "An R model formula expression (`y ~ x`).",
-        metadata_keys: &[
-            K_PATTERN_VERSION,
-            K_QUERY_FAMILY,
-            key(
-                "formula_text",
-                STR,
-                ALWAYS,
-                "The full text of the R model formula.",
-            ),
-        ],
-    },
     StructuralFactPatternSpec {
         pattern_id: "zig.builtin_call.v1",
         languages: &["zig"],

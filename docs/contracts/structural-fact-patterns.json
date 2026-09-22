@@ -5869,6 +5869,70 @@
     "query_family": "traits"
   },
   {
+    "description": "A plumber route: a `#* @get /path` annotation above a top-level handler function, or a `pr_get(\"/path\", handler)` router call, with a static path.",
+    "languages": [
+      "r"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "\"annotation\" or \"router_call\".",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static route path.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family normalized route template; `<id:int>` parameters lose their type.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Uppercase HTTP method.",
+        "key": "verb",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested.",
+        "key": "verb_source",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "plumber.route.v1",
+    "query_family": "framework"
+  },
+  {
     "description": "A PowerShell `class` definition.",
     "languages": [
       "powershell"
@@ -6791,7 +6855,7 @@
     "query_family": "qmldir"
   },
   {
-    "description": "An R model formula expression (`y ~ x`).",
+    "description": "An R model formula: a two-sided `y ~ x` or one-sided `~ x` expression whose operator is `~`.",
     "languages": [
       "r"
     ],
@@ -6819,7 +6883,7 @@
     "query_family": "modeling"
   },
   {
-    "description": "An R `library()`/`require()` package load.",
+    "description": "An R package load: `library()`, `require()`, `requireNamespace()`, `pacman::p_load()`, `box::use()`, or `import::from()`.",
     "languages": [
       "r"
     ],
@@ -6837,7 +6901,7 @@
         "value_type": "string"
       },
       {
-        "description": "Which load form was used (`library` or `require`).",
+        "description": "Which load form was used (`library`, `require`, `requireNamespace`, `pacman::p_load`, `box::use`, or `import::from`).",
         "key": "load_kind",
         "presence": "always",
         "value_type": "string"
@@ -6853,7 +6917,7 @@
     "query_family": "imports"
   },
   {
-    "description": "An R pipe expression (`|>` or `%>%`).",
+    "description": "A directive in an R package `NAMESPACE` file: `export`, `exportPattern`, `exportClasses`, `exportClassPattern`, `exportMethods`, `S3method`, `import`, `importFrom`, `importClassesFrom`, `importMethodsFrom`, or `useDynLib`.",
     "languages": [
       "r"
     ],
@@ -6869,6 +6933,52 @@
         "key": "query_family",
         "presence": "always",
         "value_type": "string"
+      },
+      {
+        "description": "The directive name.",
+        "key": "directive",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The directive's arguments, unquoted, in source order.",
+        "key": "arguments",
+        "presence": "always",
+        "value_type": "string_array"
+      }
+    ],
+    "pattern_id": "r.namespace_directive.v1",
+    "query_family": "module"
+  },
+  {
+    "description": "An R pipe chain (`|>`, `%>%`, `%<>%`, `%T>%`, or `%$%`): one fact for the outermost pipe of each chain.",
+    "languages": [
+      "r"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The operator of the outermost pipe.",
+        "key": "pipe_operator",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The number of pipe operators in the chain.",
+        "key": "stage_count",
+        "presence": "always",
+        "value_type": "number"
       }
     ],
     "pattern_id": "r.pipe_expression.v1",
@@ -7925,6 +8035,224 @@
     ],
     "pattern_id": "scala.given_definition.v1",
     "query_family": "typeclass"
+  },
+  {
+    "description": "A `shinyApp()` call that builds the application.",
+    "languages": [
+      "r"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The UI object when it is a named variable.",
+        "key": "ui",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The server function when it is a named variable.",
+        "key": "server",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "shiny.app.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A Shiny input widget (`*Input()`, `actionButton()`, `actionLink()`, `radioButtons()`) with a static input id, in a file that mentions shiny.",
+    "languages": [
+      "r"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The input id (`input$<id>` on the server).",
+        "key": "input_id",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The widget function name.",
+        "key": "widget",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "shiny.input.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A Shiny module server call: `moduleServer(id, server)` or `callModule(server, id)`.",
+    "languages": [
+      "r"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "\"moduleServer\" or \"callModule\".",
+        "key": "module_call",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Static module id.",
+        "key": "module_id",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The module server function when it is named.",
+        "key": "server_function",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "shiny.module.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A Shiny output: a `*Output(\"id\")` placeholder in the UI, or an `output$id <- render*()` binding on the server.",
+    "languages": [
+      "r"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "\"placeholder\" or \"render\".",
+        "key": "role",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The output id.",
+        "key": "output_id",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The placeholder or render function name.",
+        "key": "function",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "shiny.output.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A Shiny reactive or observer: `reactive()`, `eventReactive()`, `reactiveVal()`, `reactiveValues()`, `reactivePoll()`, `reactiveFileReader()`, `observe()`, or `observeEvent()`.",
+    "languages": [
+      "r"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The reactive function name.",
+        "key": "reactive_kind",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The name the reactive is assigned to.",
+        "key": "name",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The event expression of `observeEvent()` / `eventReactive()`.",
+        "key": "trigger",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "shiny.reactive.v1",
+    "query_family": "framework"
   },
   {
     "description": "A Sinatra before or after filter block with a static path.",

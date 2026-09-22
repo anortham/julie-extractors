@@ -113,7 +113,7 @@ fn collect_class_names(
 
 fn declared_class_name(extractor: &RExtractor, call: Node) -> Option<String> {
     match call_name(extractor, call)?.as_str() {
-        "setClass" => {
+        "setClass" | "new_class" => {
             let args = call.child_by_field_name("arguments")?;
             positional_string_argument(extractor, args, 0)
         }

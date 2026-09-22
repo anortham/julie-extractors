@@ -319,9 +319,15 @@ const R_PATTERNS: &[CodeStructuralPattern] = &[
         query_family: "pipeline",
     },
     CodeStructuralPattern {
+        pattern_id: "r.namespace_directive.v1",
+        capture_name: "namespace_directive",
+        node_kinds: &["call"],
+        query_family: "module",
+    },
+    CodeStructuralPattern {
         pattern_id: "r.formula_expression.v1",
         capture_name: "formula_expression",
-        node_kinds: &["binary_operator"],
+        node_kinds: &["binary_operator", "unary_operator"],
         query_family: "modeling",
     },
 ];
@@ -854,6 +860,26 @@ fn enrich_metadata(
                 insert_string(metadata, "package_name", &package);
             }
         }
+        "r.namespace_directive.v1" => {
+            if let Some(directive) = r_namespace_directive(content, node) {
+                insert_string(metadata, "directive", directive);
+            }
+            metadata.insert(
+                "arguments".to_string(),
+                Value::Array(
+                    r_namespace_arguments(content, node)
+                        .into_iter()
+                        .map(Value::String)
+                        .collect(),
+                ),
+            );
+        }
+        "r.pipe_expression.v1" => {
+            if let Some(operator) = r_pipe_operator(content, node) {
+                insert_string(metadata, "pipe_operator", &operator);
+            }
+            insert_number(metadata, "stage_count", r_pipe_stage_count(content, node));
+        }
         "r.formula_expression.v1" => {
             if let Some(formula) = r_formula_text(content, node) {
                 insert_string(metadata, "formula_text", &formula);
@@ -1208,8 +1234,11 @@ fn matches_pattern(
             lua_table_field_count(node).is_some_and(|count| count > 0)
         }
         ("r", "r.library_call.v1") => r_library_kind(content, node).is_some(),
-        ("r", "r.pipe_expression.v1") => r_is_pipe_expression(node),
+        ("r", "r.pipe_expression.v1") => r_is_pipe_expression(content, node),
         ("r", "r.formula_expression.v1") => r_is_formula_expression(content, node),
+        ("r", "r.namespace_directive.v1") => {
+            r_is_namespace_file(file_path) && r_namespace_directive(content, node).is_some()
+        }
         ("zig", "zig.builtin_call.v1") => zig_is_builtin_call(content, node),
         ("zig", "zig.threadlocal_variable.v1") => zig_has_keyword(content, node, "threadlocal"),
         ("zig", "zig.inline_function.v1") => zig_has_keyword(content, node, "inline"),
@@ -1509,19 +1538,31 @@ fn lua_table_field_count(node: Node<'_>) -> Option<u64> {
 }
 
 fn r_library_kind(content: &str, node: Node<'_>) -> Option<&'static str> {
-    node.child_by_field_name("function")
-        .filter(|function| function.kind() == "identifier")
-        .map(|function| node_text(content, function))
-        .and_then(|name| match name.as_str() {
-            "library" => Some("library"),
-            "require" => Some("require"),
-            _ => None,
-        })
+    let function = node.child_by_field_name("function")?;
+    let name = match function.kind() {
+        "identifier" => node_text(content, function),
+        "namespace_operator" => node_text(content, function).replace(' ', ""),
+        _ => return None,
+    };
+    match name.as_str() {
+        "library" => Some("library"),
+        "require" => Some("require"),
+        "requireNamespace" => Some("requireNamespace"),
+        "pacman::p_load" => Some("pacman::p_load"),
+        "box::use" => Some("box::use"),
+        "import::from" => Some("import::from"),
+        _ => None,
+    }
 }
 
 fn r_library_package(content: &str, node: Node<'_>) -> Option<String> {
+    let kinds: &[&str] = if r_library_kind(content, node) == Some("requireNamespace") {
+        &["string"]
+    } else {
+        &["string", "identifier"]
+    };
     node.child_by_field_name("arguments").and_then(|args| {
-        first_named_identifier(content, args, &["string", "identifier"])
+        first_named_identifier(content, args, kinds)
             .map(|package| package.trim_matches('"').to_string())
     })
 }
@@ -1534,15 +1575,94 @@ fn r_formula_text(content: &str, node: Node<'_>) -> Option<String> {
 }
 
 fn r_is_formula_expression(content: &str, node: Node<'_>) -> bool {
-    let text = node_text(content, node);
-    text.contains('~') && !text.contains("<-") && !text.contains("<<-")
+    node.child_by_field_name("operator")
+        .is_some_and(|operator| node_text(content, operator) == "~")
 }
 
-fn r_is_pipe_expression(node: Node<'_>) -> bool {
-    node.kind() == "binary_operator"
-        && node
-            .child(1)
-            .is_some_and(|operator| operator.kind() == "|>")
+const R_NAMESPACE_DIRECTIVES: &[&str] = &[
+    "export",
+    "exportPattern",
+    "exportClasses",
+    "exportClassPattern",
+    "exportMethods",
+    "S3method",
+    "import",
+    "importFrom",
+    "importClassesFrom",
+    "importMethodsFrom",
+    "useDynLib",
+];
+
+fn r_is_namespace_file(file_path: &str) -> bool {
+    file_path.rsplit(['/', '\\']).next() == Some("NAMESPACE")
+}
+
+/// The directive name of a top-level `NAMESPACE` call.
+fn r_namespace_directive(content: &str, node: Node<'_>) -> Option<&'static str> {
+    if node
+        .parent()
+        .is_none_or(|parent| parent.kind() != "program")
+    {
+        return None;
+    }
+    let function = node
+        .child_by_field_name("function")
+        .filter(|function| function.kind() == "identifier")?;
+    let name = node_text(content, function);
+    R_NAMESPACE_DIRECTIVES
+        .iter()
+        .find(|directive| **directive == name)
+        .copied()
+}
+
+/// The directive's argument texts, with quotes and backticks removed.
+fn r_namespace_arguments(content: &str, node: Node<'_>) -> Vec<String> {
+    let Some(args) = node.child_by_field_name("arguments") else {
+        return Vec::new();
+    };
+    let mut cursor = args.walk();
+    args.children_by_field_name("argument", &mut cursor)
+        .map(|argument| {
+            node_text(content, argument)
+                .trim()
+                .trim_matches(|c| c == '"' || c == '\'' || c == '`')
+                .to_string()
+        })
+        .filter(|argument| !argument.is_empty())
+        .collect()
+}
+
+const R_PIPE_OPERATORS: &[&str] = &["|>", "%>%", "%<>%", "%T>%", "%$%"];
+
+fn r_pipe_operator(content: &str, node: Node<'_>) -> Option<String> {
+    if node.kind() != "binary_operator" {
+        return None;
+    }
+    let operator = node_text(content, node.child_by_field_name("operator")?);
+    R_PIPE_OPERATORS
+        .contains(&operator.as_str())
+        .then_some(operator)
+}
+
+/// One fact per pipe chain: the outermost pipe, which is not the left operand
+/// of another pipe.
+fn r_is_pipe_expression(content: &str, node: Node<'_>) -> bool {
+    r_pipe_operator(content, node).is_some()
+        && !node.parent().is_some_and(|parent| {
+            r_pipe_operator(content, parent).is_some()
+                && parent.child_by_field_name("lhs") == Some(node)
+        })
+}
+
+/// The number of pipe operators in the chain rooted at `node`.
+fn r_pipe_stage_count(content: &str, node: Node<'_>) -> u64 {
+    let mut count = 0;
+    let mut current = Some(node);
+    while let Some(pipe) = current.filter(|pipe| r_pipe_operator(content, *pipe).is_some()) {
+        count += 1;
+        current = pipe.child_by_field_name("lhs");
+    }
+    count
 }
 
 fn node_contains_token(node: Node<'_>, token: &str) -> bool {

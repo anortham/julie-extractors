@@ -12,6 +12,7 @@ mod kotlin_elixir;
 mod lua;
 mod php;
 mod python;
+mod r;
 mod rust;
 
 #[cfg(test)]
@@ -28,6 +29,7 @@ pub(super) fn specs() -> Vec<StructuralFactPatternSpec> {
         kotlin_elixir::SPECS,
         rust::SPECS,
         lua::SPECS,
+        r::SPECS,
         frontend::SPECS,
     ]
     .concat()

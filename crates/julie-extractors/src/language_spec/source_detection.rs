@@ -34,6 +34,14 @@ where
         return Ok(Some(("qmldir", None)));
     }
 
+    if file_path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| name == "NAMESPACE")
+    {
+        return Ok(Some(("r", None)));
+    }
+
     let extension = file_path
         .extension()
         .and_then(|ext| ext.to_str())

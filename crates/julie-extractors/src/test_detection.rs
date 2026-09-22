@@ -540,6 +540,7 @@ fn is_test_lifecycle(
         "ruby" => ruby_test_lifecycle_direction(name),
         "bash" => bash_test_lifecycle_direction(name),
         "lua" => lua_test_lifecycle_direction(name),
+        "r" => r_test_lifecycle_direction(name),
         "gdscript" => gdscript_test_lifecycle_direction(name),
         "qml" => qml_test_lifecycle_direction(name),
         "scala" => scala_test_lifecycle_direction(name),
@@ -1838,10 +1839,29 @@ fn lua_test_lifecycle_direction(name: &str) -> TestLifecycleDirection {
     }
 }
 
-/// R RUnit: test functions are named `test.foo` (dot convention) or `test_foo`.
-/// testthat (`test_that("...")`) is call-style and handled in `test_calls`, not here.
+/// R RUnit: in a `runit*.R` file (RUnit's default `testFileRegexp`), functions
+/// matching `^test.+` are tests and `.setUp` / `.tearDown` are fixtures.
+/// testthat (`test_that("...")`) is call-style and handled in `test_calls`, so a
+/// plain helper function in a testthat file is not a test.
 fn detect_r(name: &str, file_path: &str) -> bool {
-    is_test_path(file_path) && (name.starts_with("test.") || name.starts_with("test_"))
+    is_runit_file(file_path)
+        && ((name.len() > 4 && name.starts_with("test"))
+            || r_test_lifecycle_direction(name).is_lifecycle())
+}
+
+fn is_runit_file(file_path: &str) -> bool {
+    file_path
+        .rsplit(PATH_SEPARATORS)
+        .next()
+        .is_some_and(|file_name| file_name.starts_with("runit"))
+}
+
+fn r_test_lifecycle_direction(name: &str) -> TestLifecycleDirection {
+    match name {
+        ".setUp" => TestLifecycleDirection::Setup,
+        ".tearDown" => TestLifecycleDirection::Teardown,
+        _ => TestLifecycleDirection::None,
+    }
 }
 
 // ---------------------------------------------------------------------------

@@ -10,8 +10,8 @@
 //!
 //! The grammar shape is `call` with a `function` field (the callee identifier)
 //! and an `arguments` field whose first `argument` carries the description
-//! `string` (`string` -> `string_content`). testthat has no per-call lifecycle
-//! DSL (fixtures use `setup()` / withr), so the lifecycle vocabulary is empty.
+//! `string` (`string` -> `string_content`). The deprecated file-level
+//! `setup({...})` / `teardown({...})` blocks are lifecycle fixtures.
 //! Only the grammar walking is R-local; classification and symbol construction
 //! delegate to the shared `crate::test_calls` core so the captured `is_test` /
 //! `test_container` metadata is byte-identical to the other call-style paths.
@@ -23,11 +23,12 @@ use crate::test_calls::{
 use tree_sitter::Node;
 
 /// testthat vocabulary. `test_that` and BDD-style `it` are cases; `describe` is
-/// a container. No per-call lifecycle DSL, so the lifecycle slice is empty.
+/// a container; the file-level `setup()` / `teardown()` blocks are lifecycle
+/// fixtures.
 pub(crate) const R_VOCAB: TestCallVocab = TestCallVocab {
     test: &["test_that", "it"],
     container: &["describe"],
-    lifecycle: &[],
+    lifecycle: &["setup", "teardown"],
 };
 
 /// Materialize a testthat `call` as a test/container symbol. Returns `None` for
@@ -44,7 +45,16 @@ pub(super) fn extract_r_test_call(
     }
 
     let callee_node = node.child_by_field_name("function")?;
-    let full_callee = base.get_node_text(&callee_node);
+    let full_callee = match callee_node.kind() {
+        "namespace_operator"
+            if callee_node
+                .child_by_field_name("lhs")
+                .is_some_and(|lhs| base.get_node_text(&lhs) == "testthat") =>
+        {
+            base.get_node_text(&callee_node.child_by_field_name("rhs")?)
+        }
+        _ => base.get_node_text(&callee_node),
+    };
     // Exact match only (#66): in R '.' is a normal identifier char (S3 dispatch
     // names like `print.data.frame`), NOT a member operator — so `describe.default`
     // is a single dotted `identifier`. Exact match never equates it to the dotless
@@ -53,7 +63,6 @@ pub(super) fn extract_r_test_call(
     let category = classify_call_exact(&full_callee, &R_VOCAB)?;
 
     let name = match category {
-        // Defensive: no lifecycle vocab today, but keep the builder uniform.
         TestCallCategory::Lifecycle => full_callee
             .split('.')
             .next()

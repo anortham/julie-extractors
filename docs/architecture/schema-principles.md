@@ -46,8 +46,8 @@ A consumer that needs family behavior maps the value at read time and owns that
 mapping. `language_capabilities.extensions_json` publishes the complete
 language-to-extension map for the writing binary, so a consumer can build a
 grouping without hard-coding one. Where a consumer's own extension map
-disagrees with the artifact, the artifact value wins: `qmldir` is matched by
-filename, an extensionless shell script is matched by its shebang, and `.h`
+disagrees with the artifact, the artifact value wins: `qmldir` and R's
+`NAMESPACE` are matched by filename, an extensionless shell script is matched by its shebang, and `.h`
 resolves to `c` or `cpp` by content, so no extension map can reproduce every
 answer.
 
