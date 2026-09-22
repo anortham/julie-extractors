@@ -143,10 +143,26 @@ fn python_type_expr_to_type_arg(
         }
         _ => Some(TypeArgument {
             ordinal,
-            type_name: base.get_node_text(&node),
+            type_name: type_argument_text(base, node),
             children: Vec::new(),
         }),
     }
+}
+
+/// The text of a type argument; a forward-reference string yields its
+/// content without quotes. `Literal[...]` values and `Annotated[...]`
+/// metadata keep their quotes: they are values, not type names.
+fn type_argument_text(base: &BaseExtractor, node: Node<'_>) -> String {
+    if node.kind() == "string" && super::identifiers::is_annotation_type_string(base, node) {
+        let mut cursor = node.walk();
+        if let Some(content) = node
+            .named_children(&mut cursor)
+            .find(|child| child.kind() == "string_content")
+        {
+            return base.get_node_text(&content);
+        }
+    }
+    base.get_node_text(&node)
 }
 
 fn python_subscript_arg_to_type_arg(
@@ -170,7 +186,7 @@ fn python_subscript_arg_to_type_arg(
         }
         _ => Some(TypeArgument {
             ordinal,
-            type_name: base.get_node_text(&node),
+            type_name: type_argument_text(base, node),
             children: Vec::new(),
         }),
     }

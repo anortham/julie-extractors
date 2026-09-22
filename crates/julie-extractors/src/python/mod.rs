@@ -91,6 +91,11 @@ impl PythonExtractor {
                 let import_symbols = imports::extract_imports(self, node);
                 symbols.extend(import_symbols);
             }
+            "type_alias_statement" => {
+                if let Some(symbol) = types::extract_type_alias(self, node) {
+                    symbols.push(symbol);
+                }
+            }
             "lambda" if node.is_named() => {
                 let symbol = functions::extract_lambda(self, node);
                 symbols.push(symbol);

@@ -1413,11 +1413,11 @@
       "confidence": "0.800"
     },
     {
-      "from_key": "fixtures/extraction/python/test_roles/test_source.py:ArithmeticTest:59:0",
-      "callee_name": "unittest.skipIf",
+      "from_key": "fixtures/extraction/python/test_roles/test_source.py:cached_total:24:0",
+      "callee_name": "functools.lru_cache",
       "kind": "calls",
       "file_path": "fixtures/extraction/python/test_roles/test_source.py",
-      "line_number": 69,
+      "line_number": 23,
       "confidence": "0.700"
     },
     {
@@ -1437,11 +1437,27 @@
       "confidence": "0.700"
     },
     {
+      "from_key": "fixtures/extraction/python/test_roles/test_source.py:test_addition_is_commutative:19:0",
+      "callee_name": "pytest.mark.parametrize",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/python/test_roles/test_source.py",
+      "line_number": 18,
+      "confidence": "0.700"
+    },
+    {
       "from_key": "fixtures/extraction/python/test_roles/test_source.py:test_guarded_case:70:4",
       "callee_name": "self.assertEqual",
       "kind": "calls",
       "file_path": "fixtures/extraction/python/test_roles/test_source.py",
       "line_number": 71,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/python/test_roles/test_source.py:test_guarded_case:70:4",
+      "callee_name": "unittest.skipIf",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/python/test_roles/test_source.py",
+      "line_number": 69,
       "confidence": "0.700"
     }
   ],
@@ -1474,28 +1490,28 @@
     },
     {
       "pending": {
-        "from_key": "fixtures/extraction/python/test_roles/test_source.py:ArithmeticTest:59:0",
-        "callee_name": "unittest.skipIf",
+        "from_key": "fixtures/extraction/python/test_roles/test_source.py:cached_total:24:0",
+        "callee_name": "functools.lru_cache",
         "kind": "calls",
         "file_path": "fixtures/extraction/python/test_roles/test_source.py",
-        "line_number": 69,
+        "line_number": 23,
         "confidence": "0.700"
       },
       "target": {
-        "display_name": "unittest.skipIf",
-        "terminal_name": "skipIf",
-        "receiver": "unittest",
+        "display_name": "functools.lru_cache",
+        "terminal_name": "lru_cache",
+        "receiver": "functools",
         "namespace_path": [],
-        "import_context": "unittest"
+        "import_context": "functools"
       },
-      "caller_scope_key": "fixtures/extraction/python/test_roles/test_source.py:ArithmeticTest:59:0",
+      "caller_scope_key": "fixtures/extraction/python/test_roles/test_source.py:cached_total:24:0",
       "span": {
-        "start_line": 69,
-        "start_column": 14,
-        "end_line": 69,
+        "start_line": 23,
+        "start_column": 11,
+        "end_line": 23,
         "end_column": 20,
-        "start_byte": 1161,
-        "end_byte": 1167
+        "start_byte": 360,
+        "end_byte": 369
       }
     },
     {
@@ -1553,6 +1569,34 @@
     },
     {
       "pending": {
+        "from_key": "fixtures/extraction/python/test_roles/test_source.py:test_addition_is_commutative:19:0",
+        "callee_name": "pytest.mark.parametrize",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/python/test_roles/test_source.py",
+        "line_number": 18,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "pytest.mark.parametrize",
+        "terminal_name": "parametrize",
+        "receiver": "mark",
+        "namespace_path": [
+          "pytest"
+        ],
+        "import_context": "pytest"
+      },
+      "caller_scope_key": "fixtures/extraction/python/test_roles/test_source.py:test_addition_is_commutative:19:0",
+      "span": {
+        "start_line": 18,
+        "start_column": 13,
+        "end_line": 18,
+        "end_column": 24,
+        "start_byte": 216,
+        "end_byte": 227
+      }
+    },
+    {
+      "pending": {
         "from_key": "fixtures/extraction/python/test_roles/test_source.py:test_guarded_case:70:4",
         "callee_name": "self.assertEqual",
         "kind": "calls",
@@ -1577,6 +1621,32 @@
         "end_byte": 1252
       },
       "receiver_type": "ArithmeticTest"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/python/test_roles/test_source.py:test_guarded_case:70:4",
+        "callee_name": "unittest.skipIf",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/python/test_roles/test_source.py",
+        "line_number": 69,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "unittest.skipIf",
+        "terminal_name": "skipIf",
+        "receiver": "unittest",
+        "namespace_path": [],
+        "import_context": "unittest"
+      },
+      "caller_scope_key": "fixtures/extraction/python/test_roles/test_source.py:test_guarded_case:70:4",
+      "span": {
+        "start_line": 69,
+        "start_column": 14,
+        "end_line": 69,
+        "end_column": 20,
+        "start_byte": 1161,
+        "end_byte": 1167
+      }
     }
   ],
   "identifiers": [
@@ -1642,7 +1712,7 @@
       "end_column": 20,
       "start_byte": 432,
       "end_byte": 439,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/python/test_roles/test_source.py:test_async_total:29:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1690,7 +1760,7 @@
       "end_column": 11,
       "start_byte": 132,
       "end_byte": 142,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/python/test_roles/test_source.py:temporary_operands:14:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1706,7 +1776,7 @@
       "end_column": 26,
       "start_byte": 143,
       "end_byte": 157,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/python/test_roles/test_source.py:temporary_operands:14:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1722,7 +1792,7 @@
       "end_column": 15,
       "start_byte": 76,
       "end_byte": 83,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/python/test_roles/test_source.py:arithmetic_operands:9:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1738,7 +1808,7 @@
       "end_column": 10,
       "start_byte": 350,
       "end_byte": 359,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/python/test_roles/test_source.py:cached_total:24:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1802,7 +1872,7 @@
       "end_column": 20,
       "start_byte": 360,
       "end_byte": 369,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/python/test_roles/test_source.py:cached_total:24:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1818,7 +1888,7 @@
       "end_column": 12,
       "start_byte": 211,
       "end_byte": 215,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/python/test_roles/test_source.py:test_addition_is_commutative:19:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1834,7 +1904,7 @@
       "end_column": 12,
       "start_byte": 427,
       "end_byte": 431,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/python/test_roles/test_source.py:test_async_total:29:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1866,7 +1936,7 @@
       "end_column": 24,
       "start_byte": 216,
       "end_byte": 227,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/python/test_roles/test_source.py:test_addition_is_commutative:19:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1882,7 +1952,7 @@
       "end_column": 7,
       "start_byte": 204,
       "end_byte": 210,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/python/test_roles/test_source.py:test_addition_is_commutative:19:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1898,7 +1968,7 @@
       "end_column": 7,
       "start_byte": 420,
       "end_byte": 426,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/python/test_roles/test_source.py:test_async_total:29:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1914,7 +1984,7 @@
       "end_column": 7,
       "start_byte": 69,
       "end_byte": 75,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/python/test_roles/test_source.py:arithmetic_operands:9:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1962,7 +2032,7 @@
       "end_column": 20,
       "start_byte": 1161,
       "end_byte": 1167,
-      "containing_key": "fixtures/extraction/python/test_roles/test_source.py:ArithmeticTest:59:0",
+      "containing_key": "fixtures/extraction/python/test_roles/test_source.py:test_guarded_case:70:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2122,7 +2192,7 @@
       "end_column": 13,
       "start_byte": 1152,
       "end_byte": 1160,
-      "containing_key": "fixtures/extraction/python/test_roles/test_source.py:ArithmeticTest:59:0",
+      "containing_key": "fixtures/extraction/python/test_roles/test_source.py:test_guarded_case:70:4",
       "target_key": null,
       "confidence": "1.000"
     }
@@ -2679,7 +2749,7 @@
       "end_column": 46,
       "start_byte": 1174,
       "end_byte": 1193,
-      "containing_key": "fixtures/extraction/python/test_roles/test_source.py:ArithmeticTest:59:0",
+      "containing_key": "fixtures/extraction/python/test_roles/test_source.py:test_guarded_case:70:4",
       "confidence": "1.000"
     },
     {
@@ -2695,7 +2765,7 @@
       "end_column": 37,
       "start_byte": 228,
       "end_byte": 240,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/python/test_roles/test_source.py:test_addition_is_commutative:19:0",
       "confidence": "1.000"
     }
   ],

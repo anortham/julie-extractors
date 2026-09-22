@@ -274,12 +274,10 @@ def route(v, default):
         "items must read in the body only; got {var_refs:?}"
     );
 
-    // Documented capture-semantics boundary: dotted VALUE references in case
-    // patterns (`case Color.RED:`) are grammar-wrapped in dotted_name, which
-    // stays excluded (shared with import machinery) — they do not emit today.
-    // A liveness MISS is the safe direction; a binding leak is not.
-    assert!(
-        !names.contains(&"Color") && !names.contains(&"RED"),
-        "dotted case-pattern value refs stay non-emitting (documented boundary)"
+    assert_eq!(
+        names.iter().filter(|n| **n == "Color").count(),
+        1,
+        "a dotted value pattern reads its leading name; got {var_refs:?}"
     );
+    assert!(!names.contains(&"RED"), "{var_refs:?}");
 }

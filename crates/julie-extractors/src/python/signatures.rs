@@ -51,7 +51,11 @@ pub fn extract_parameters(extractor: &PythonExtractor, parameters_node: &Node) -
                 let mut type_str = String::new();
                 let mut param_cursor = child.walk();
                 for param_child in child.children(&mut param_cursor) {
-                    if param_child.kind() == "identifier" && name.is_empty() {
+                    if matches!(
+                        param_child.kind(),
+                        "identifier" | "list_splat_pattern" | "dictionary_splat_pattern"
+                    ) && name.is_empty()
+                    {
                         name = base.get_node_text(&param_child);
                     } else if param_child.kind() == "type" {
                         type_str = format!(": {}", base.get_node_text(&param_child));
@@ -59,11 +63,11 @@ pub fn extract_parameters(extractor: &PythonExtractor, parameters_node: &Node) -
                 }
                 params.push(format!("{}{}", name, type_str));
             }
-            "typed_default_parameter" => {
-                // parameter: type = default_value
-                let text = base.get_node_text(&child);
-                params.push(text);
-            }
+            "typed_default_parameter"
+            | "list_splat_pattern"
+            | "dictionary_splat_pattern"
+            | "positional_separator"
+            | "keyword_separator" => params.push(base.get_node_text(&child)),
             _ => {}
         }
     }

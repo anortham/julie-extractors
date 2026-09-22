@@ -784,6 +784,13 @@ fn receiver_token_before(source: &str, at: usize, language: &str) -> Option<(Str
     {
         cursor -= 1;
     }
+    if language != "ruby" {
+        // `@` is part of a name only for Ruby `@ivar`/`@@cvar`; elsewhere a
+        // leading `@` is a decorator or annotation marker (`@app.route`).
+        while cursor < end && bytes[cursor] == b'@' {
+            cursor += 1;
+        }
+    }
     (cursor < end).then(|| (source[cursor..end].to_string(), cursor))
 }
 
@@ -1434,7 +1441,6 @@ mod tests {
             ("service->run()", 9, "service"),
             ("service?.run()", 9, "service"),
             ("$service->run()", 10, "$service"),
-            ("@service.run()", 9, "@service"),
         ] {
             assert_eq!(
                 receiver_before_identifier(source, start, "php"),
@@ -1450,6 +1456,32 @@ mod tests {
         ] {
             assert_eq!(receiver_before_identifier(source, start, "php"), None);
         }
+    }
+
+    #[test]
+    fn a_leading_at_sign_is_part_of_the_receiver_only_in_ruby() {
+        assert_eq!(
+            receiver_before_identifier("@service.run()", 9, "ruby"),
+            Some("@service".to_string())
+        );
+        assert_eq!(
+            receiver_before_identifier("@@count.inc()", 8, "ruby"),
+            Some("@@count".to_string())
+        );
+        let decorator = "@pytest.mark.parametrize(\"a\", [1])";
+        let at = decorator.find("parametrize").unwrap() as u32;
+        assert_eq!(
+            receiver_before_identifier(decorator, at, "python"),
+            Some("mark".to_string())
+        );
+        assert_eq!(
+            receiver_qualifier_before_identifier(decorator, at, "python"),
+            Some("pytest".to_string())
+        );
+        assert_eq!(
+            receiver_before_identifier("@app.route(\"/x\")", 5, "python"),
+            Some("app".to_string())
+        );
     }
 
     #[test]

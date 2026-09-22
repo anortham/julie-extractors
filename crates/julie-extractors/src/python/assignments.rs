@@ -33,18 +33,15 @@ pub(super) fn extract_assignment(extractor: &mut PythonExtractor, node: Node) ->
     };
     let is_instance_attribute = left.kind() == "attribute";
 
-    // Check if this is a special class attribute
     if name == "__slots__" {
         symbol_kind = SymbolKind::Property;
-    }
-    // Check if it's a constant (uppercase name)
-    else if symbol_kind == SymbolKind::Variable && name == name.to_uppercase() && name.len() > 1 {
-        // Check if we're inside an enum class
-        if types::is_inside_enum_class(extractor, &node) {
-            symbol_kind = SymbolKind::EnumMember;
-        } else {
-            symbol_kind = SymbolKind::Constant;
-        }
+    } else if symbol_kind == SymbolKind::Variable
+        && !is_sunder_or_dunder(&name)
+        && directly_in_enum_body(extractor, node)
+    {
+        symbol_kind = SymbolKind::EnumMember;
+    } else if symbol_kind == SymbolKind::Variable && name == name.to_uppercase() && name.len() > 1 {
+        symbol_kind = SymbolKind::Constant;
     }
 
     let type_node = signatures::find_type_annotation(&node);
@@ -78,8 +75,7 @@ pub(super) fn extract_assignment(extractor: &mut PythonExtractor, node: Node) ->
         serde_json::json!(!type_annotation.is_empty()),
     );
 
-    // Extract doc comment (preceding comments)
-    let doc_comment = extractor.base().find_doc_comment(&node);
+    let doc_comment = attribute_doc_comment(extractor, node);
 
     let symbol = extractor.base_mut().create_symbol(
         &node,
@@ -105,6 +101,69 @@ pub(super) fn extract_assignment(extractor: &mut PythonExtractor, node: Node) ->
     }
 
     vec![helpers::without_body(symbol)]
+}
+
+fn is_sunder_or_dunder(name: &str) -> bool {
+    name.len() > 2 && name.starts_with('_') && name.ends_with('_')
+}
+
+/// The assignment is a statement of an enum class body (not of a method).
+fn directly_in_enum_body(extractor: &PythonExtractor, assignment: Node) -> bool {
+    let class_node = assignment
+        .parent()
+        .filter(|statement| statement.kind() == "expression_statement")
+        .and_then(|statement| statement.parent())
+        .filter(|block| block.kind() == "block")
+        .and_then(|block| block.parent())
+        .filter(|class_node| class_node.kind() == "class_definition");
+    class_node.is_some_and(|class_node| types::is_enum_class(extractor, &class_node))
+}
+
+/// The documentation of a module or class attribute: the Sphinx `#:` comment
+/// lines right above the statement, else the PEP 257 attribute docstring (a
+/// string statement right after it).
+fn attribute_doc_comment(extractor: &PythonExtractor, assignment: Node) -> Option<String> {
+    let statement = assignment
+        .parent()
+        .filter(|statement| statement.kind() == "expression_statement")?;
+    let scope = statement.parent()?;
+    let class_body = scope.kind() == "block"
+        && scope
+            .parent()
+            .is_some_and(|owner| owner.kind() == "class_definition");
+    if scope.kind() != "module" && !class_body {
+        return None;
+    }
+    let mut lines = Vec::new();
+    let mut expected_row = statement.start_position().row;
+    let mut previous = statement.prev_sibling().or_else(|| {
+        // A comment above the first statement of a class body is a child of
+        // the class definition, not of its body block.
+        class_body.then(|| scope.prev_sibling()).flatten()
+    });
+    while let Some(comment) = previous.filter(|node| node.kind() == "comment") {
+        let text = extractor.base().get_node_text(&comment);
+        let Some(line) = text.strip_prefix("#:") else {
+            break;
+        };
+        if comment.end_position().row + 1 != expected_row {
+            break;
+        }
+        lines.push(
+            line.strip_prefix(' ')
+                .unwrap_or(line)
+                .trim_end()
+                .to_string(),
+        );
+        expected_row = comment.start_position().row;
+        previous = comment.prev_sibling();
+    }
+    if !lines.is_empty() {
+        lines.reverse();
+        return Some(lines.join("\n"));
+    }
+    let next = statement.next_named_sibling()?;
+    types::string_statement_text(extractor, next)
 }
 
 /// The attribute name of a `self.x` assignment target.
@@ -207,7 +266,7 @@ fn extract_multiple_assignment_targets(
 
         let visibility = signatures::infer_visibility(&name);
 
-        let doc_comment = extractor.base().find_doc_comment(&child);
+        let doc_comment = attribute_doc_comment(extractor, left_node.parent().unwrap_or(left_node));
 
         let symbol = extractor.base_mut().create_symbol(
             &child,

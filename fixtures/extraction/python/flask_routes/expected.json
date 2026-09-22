@@ -284,6 +284,30 @@
       "file_path": "fixtures/extraction/python/flask_routes/source.py",
       "line_number": 4,
       "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/python/flask_routes/source.py:health:18:0",
+      "callee_name": "app.route",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/python/flask_routes/source.py",
+      "line_number": 17,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/python/flask_routes/source.py:index:8:0",
+      "callee_name": "bp.route",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/python/flask_routes/source.py",
+      "line_number": 7,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/python/flask_routes/source.py:user:13:0",
+      "callee_name": "bp.get",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/python/flask_routes/source.py",
+      "line_number": 12,
+      "confidence": "0.700"
     }
   ],
   "structured_pending_relationships": [
@@ -311,6 +335,84 @@
         "end_column": 17,
         "start_byte": 50,
         "end_byte": 55
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/python/flask_routes/source.py:health:18:0",
+        "callee_name": "app.route",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/python/flask_routes/source.py",
+        "line_number": 17,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "app.route",
+        "terminal_name": "route",
+        "receiver": "app",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/python/flask_routes/source.py:health:18:0",
+      "span": {
+        "start_line": 17,
+        "start_column": 5,
+        "end_line": 17,
+        "end_column": 10,
+        "start_byte": 222,
+        "end_byte": 227
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/python/flask_routes/source.py:index:8:0",
+        "callee_name": "bp.route",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/python/flask_routes/source.py",
+        "line_number": 7,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "bp.route",
+        "terminal_name": "route",
+        "receiver": "bp",
+        "namespace_path": [],
+        "import_context": "bp"
+      },
+      "caller_scope_key": "fixtures/extraction/python/flask_routes/source.py:index:8:0",
+      "span": {
+        "start_line": 7,
+        "start_column": 4,
+        "end_line": 7,
+        "end_column": 9,
+        "start_byte": 72,
+        "end_byte": 77
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/python/flask_routes/source.py:user:13:0",
+        "callee_name": "bp.get",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/python/flask_routes/source.py",
+        "line_number": 12,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "bp.get",
+        "terminal_name": "get",
+        "receiver": "bp",
+        "namespace_path": [],
+        "import_context": "bp"
+      },
+      "caller_scope_key": "fixtures/extraction/python/flask_routes/source.py:user:13:0",
+      "span": {
+        "start_line": 12,
+        "start_column": 4,
+        "end_line": 12,
+        "end_column": 7,
+        "start_byte": 151,
+        "end_byte": 154
       }
     }
   ],
@@ -359,7 +461,7 @@
       "end_column": 4,
       "start_byte": 218,
       "end_byte": 221,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/python/flask_routes/source.py:health:18:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -391,7 +493,7 @@
       "end_column": 3,
       "start_byte": 148,
       "end_byte": 150,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/python/flask_routes/source.py:user:13:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -407,7 +509,7 @@
       "end_column": 3,
       "start_byte": 69,
       "end_byte": 71,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/python/flask_routes/source.py:index:8:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -439,7 +541,7 @@
       "end_column": 7,
       "start_byte": 151,
       "end_byte": 154,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/python/flask_routes/source.py:user:13:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -471,7 +573,7 @@
       "end_column": 10,
       "start_byte": 222,
       "end_byte": 227,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/python/flask_routes/source.py:health:18:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -487,7 +589,7 @@
       "end_column": 9,
       "start_byte": 72,
       "end_byte": 77,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/python/flask_routes/source.py:index:8:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -824,7 +926,7 @@
       "end_column": 20,
       "start_byte": 228,
       "end_byte": 237,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/python/flask_routes/source.py:health:18:0",
       "confidence": "1.000"
     },
     {
@@ -840,7 +942,7 @@
       "end_column": 18,
       "start_byte": 78,
       "end_byte": 86,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/python/flask_routes/source.py:index:8:0",
       "confidence": "1.000"
     },
     {
@@ -872,7 +974,7 @@
       "end_column": 26,
       "start_byte": 155,
       "end_byte": 173,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/python/flask_routes/source.py:user:13:0",
       "confidence": "1.000"
     }
   ],

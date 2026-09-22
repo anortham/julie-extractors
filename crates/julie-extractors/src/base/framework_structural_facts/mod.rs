@@ -67,6 +67,9 @@ pub(super) const FLASK_ROUTE_PATTERN_ID: &str = "flask.route.v1";
 pub(super) const FLASK_BLUEPRINT_REGISTRATION_PATTERN_ID: &str = "flask.blueprint_registration.v1";
 pub(super) const DJANGO_URL_PATTERN_ID: &str = "django.url_pattern.v1";
 pub(super) const DJANGO_URL_INCLUDE_PATTERN_ID: &str = "django.url_include.v1";
+pub(super) const DRF_ROUTER_REGISTRATION_PATTERN_ID: &str = "drf.router_registration.v1";
+pub(super) const DRF_VIEWSET_ACTION_PATTERN_ID: &str = "drf.viewset_action.v1";
+pub(super) const DRF_API_VIEW_PATTERN_ID: &str = "drf.api_view.v1";
 pub(super) const SPRING_REQUEST_MAPPING_PATTERN_ID: &str = "spring.request_mapping.v1";
 pub(super) const AXUM_ROUTE_PATTERN_ID: &str = "axum.route.v1";
 pub(super) const AXUM_NEST_PATTERN_ID: &str = "axum.nest.v1";
@@ -138,6 +141,9 @@ const PYTHON_WEB_PATTERN_IDS: &[&str] = &[
     FLASK_BLUEPRINT_REGISTRATION_PATTERN_ID,
     DJANGO_URL_PATTERN_ID,
     DJANGO_URL_INCLUDE_PATTERN_ID,
+    DRF_ROUTER_REGISTRATION_PATTERN_ID,
+    DRF_VIEWSET_ACTION_PATTERN_ID,
+    DRF_API_VIEW_PATTERN_ID,
     HTTP_CLIENT_REQUEST_PATTERN_ID,
 ];
 #[cfg(all(test, feature = "test-capability-matrix"))]

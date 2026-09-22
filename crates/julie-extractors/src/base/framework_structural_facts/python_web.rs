@@ -12,8 +12,10 @@ use super::scan::{
     find_top_level_comma_or_end, parse_python_string_literal, route_fact,
 };
 use super::{
-    DJANGO_URL_INCLUDE_PATTERN_ID, DJANGO_URL_PATTERN_ID, FASTAPI_INCLUDE_ROUTER_PATTERN_ID,
-    FASTAPI_ROUTE_PATTERN_ID, FLASK_BLUEPRINT_REGISTRATION_PATTERN_ID, FLASK_ROUTE_PATTERN_ID,
+    DJANGO_URL_INCLUDE_PATTERN_ID, DJANGO_URL_PATTERN_ID, DRF_API_VIEW_PATTERN_ID,
+    DRF_ROUTER_REGISTRATION_PATTERN_ID, DRF_VIEWSET_ACTION_PATTERN_ID,
+    FASTAPI_INCLUDE_ROUTER_PATTERN_ID, FASTAPI_ROUTE_PATTERN_ID,
+    FLASK_BLUEPRINT_REGISTRATION_PATTERN_ID, FLASK_ROUTE_PATTERN_ID,
 };
 use crate::base::http_boundary::{ParamFlavor, normalize_route_template};
 use crate::base::span::NormalizedSpan;
@@ -76,6 +78,7 @@ pub(super) fn collect_python_web_facts(
     if imports.django_path.is_some() || imports.django_re_path.is_some() {
         facts.extend(collect_django_urls(&context, &imports));
     }
+    facts.extend(collect_drf_facts(&context, &imports));
     facts
 }
 
@@ -93,6 +96,10 @@ struct PythonImports {
     django_path: Option<String>,
     django_re_path: Option<String>,
     django_include: Option<String>,
+    /// Local names of the Django REST Framework router classes.
+    drf_router_classes: Vec<String>,
+    drf_action: Option<String>,
+    drf_api_view: Option<String>,
 }
 
 impl PythonImports {
@@ -105,6 +112,9 @@ impl PythonImports {
             && self.django_path.is_none()
             && self.django_re_path.is_none()
             && self.django_include.is_none()
+            && self.drf_router_classes.is_empty()
+            && self.drf_action.is_none()
+            && self.drf_api_view.is_none()
     }
 }
 
@@ -162,6 +172,28 @@ fn collect_imports(content: &str) -> PythonImports {
                     "re_path" => imports.django_re_path = Some(local),
                     "include" => imports.django_include = Some(local),
                     _ => {}
+                }
+            }
+        } else if let Some(rest) = trimmed.strip_prefix("from rest_framework.routers import ") {
+            for (imported, local) in parse_from_import_items(rest) {
+                if matches!(imported.as_str(), "DefaultRouter" | "SimpleRouter") {
+                    imports.drf_router_classes.push(local);
+                }
+            }
+        } else if let Some(rest) = trimmed.strip_prefix("from rest_framework.decorators import ") {
+            for (imported, local) in parse_from_import_items(rest) {
+                match imported.as_str() {
+                    "action" => imports.drf_action = Some(local),
+                    "api_view" => imports.drf_api_view = Some(local),
+                    _ => {}
+                }
+            }
+        } else if let Some(rest) = trimmed.strip_prefix("from rest_framework import ") {
+            for (imported, local) in parse_from_import_items(rest) {
+                if imported == "routers" {
+                    imports.drf_router_classes.extend(
+                        ["DefaultRouter", "SimpleRouter"].map(|class| format!("{local}.{class}")),
+                    );
                 }
             }
         } else if let Some(rest) = trimmed.strip_prefix("import ") {
@@ -359,8 +391,8 @@ fn collect_constructor_assignments(
             .unwrap_or(0);
         let before = content[statement_start..class_start].trim();
         let Some(name) = before
-            .split('=')
-            .next()
+            .strip_suffix('=')
+            .and_then(|target| target.split(':').next())
             .map(str::trim)
             .filter(|value| is_ascii_identifier(value))
         else {
@@ -372,6 +404,231 @@ fn collect_constructor_assignments(
         });
     }
     assignments
+}
+
+/// Django REST Framework facts: `router.register(prefix, ViewSet)` on a
+/// same-file DefaultRouter/SimpleRouter, `@action(...)` extra viewset routes,
+/// and `@api_view([...])` function views.
+fn collect_drf_facts(
+    context: &PythonFactContext<'_>,
+    imports: &PythonImports,
+) -> Vec<StructuralFact> {
+    let mut facts = Vec::new();
+    for class_name in &imports.drf_router_classes {
+        for router in collect_constructor_assignments(context, class_name) {
+            collect_drf_registrations(context, &router.name, &mut facts);
+        }
+    }
+    if let Some(action) = imports.drf_action.as_deref() {
+        for decorator in collect_bare_decorator_calls(context, action) {
+            let verbs = methods_keyword(&decorator.args);
+            let verbs = if verbs.is_empty() {
+                vec!["GET".to_string()]
+            } else {
+                verbs
+            };
+            let detail = keyword_value_start(&decorator.args, "detail")
+                .is_some_and(|start| decorator.args[start..].starts_with("True"));
+            let url_path = keyword_string_arg(&decorator.args, "url_path")
+                .unwrap_or_else(|| decorator.function_name.clone());
+            let Some(mut fact) = drf_fact(
+                context,
+                decorator.start,
+                decorator.end,
+                DRF_VIEWSET_ACTION_PATTERN_ID,
+                "viewset_action",
+                verbs,
+            ) else {
+                continue;
+            };
+            let metadata = fact.metadata.get_or_insert_with(HashMap::new);
+            metadata.insert("detail".to_string(), serde_json::Value::Bool(detail));
+            insert_string(metadata, "url_path", &url_path);
+            if let Some(url_name) = keyword_string_arg(&decorator.args, "url_name") {
+                insert_string(metadata, "url_name", &url_name);
+            }
+            facts.push(fact);
+        }
+    }
+    if let Some(api_view) = imports.drf_api_view.as_deref() {
+        for decorator in collect_bare_decorator_calls(context, api_view) {
+            let verbs = methods_list_arg(&decorator.args)
+                .filter(|verbs| !verbs.is_empty())
+                .unwrap_or_else(|| vec!["GET".to_string()]);
+            if let Some(fact) = drf_fact(
+                context,
+                decorator.start,
+                decorator.end,
+                DRF_API_VIEW_PATTERN_ID,
+                "api_view",
+                verbs,
+            ) {
+                facts.push(fact);
+            }
+        }
+    }
+    facts
+}
+
+fn collect_drf_registrations(
+    context: &PythonFactContext<'_>,
+    router: &str,
+    facts: &mut Vec<StructuralFact>,
+) {
+    let content = context.content;
+    let needle = format!("{router}.register");
+    let mut cursor = 0;
+    while let Some(relative) = content[cursor..].find(&needle) {
+        let call_start = cursor + relative;
+        cursor = call_start + needle.len();
+        if !is_identifier_boundary(content, call_start, router.len())
+            || context.mask.is_string_or_comment(call_start)
+        {
+            continue;
+        }
+        let open = skip_ascii_whitespace_until(content, cursor, content.len());
+        if content.as_bytes().get(open) != Some(&b'(') {
+            continue;
+        }
+        let Some(close) = find_matching_paren(content, context.mask, open) else {
+            continue;
+        };
+        let args = &content[open + 1..close];
+        let Some(prefix) = positional_string_arg(args, 0) else {
+            continue;
+        };
+        let args_mask = SourceMask::new(args, MaskLanguage::Python);
+        let first_end = find_top_level_comma_or_end(args, &args_mask, 0, args.len());
+        let viewset_start = skip_ascii_whitespace_until(args, first_end + 1, args.len());
+        let viewset_end = find_top_level_comma_or_end(args, &args_mask, viewset_start, args.len());
+        let viewset = args.get(viewset_start..viewset_end).unwrap_or("").trim();
+        if viewset.is_empty() || viewset.contains('=') {
+            continue;
+        }
+        let Some(node) =
+            smallest_node_covering_range(context.tree.root_node(), call_start, close + 1)
+        else {
+            continue;
+        };
+        if is_comment_or_string_node(node.kind()) {
+            continue;
+        }
+        let Some(span) = NormalizedSpan::from_content_range(content, call_start, close + 1) else {
+            continue;
+        };
+        let mut metadata = base_metadata("framework", "django_rest_framework");
+        insert_string(&mut metadata, "api_style", "resource_routing");
+        insert_string(&mut metadata, "resource_name", &prefix);
+        insert_string(&mut metadata, "viewset", viewset);
+        insert_string(&mut metadata, "router", router);
+        if let Some(basename) = keyword_string_arg(args, "basename") {
+            insert_string(&mut metadata, "basename", &basename);
+        }
+        facts.push(fact_for_span(
+            context.file_path,
+            context.language,
+            DRF_ROUTER_REGISTRATION_PATTERN_ID,
+            "router_registration",
+            node.kind(),
+            span,
+            metadata,
+        ));
+    }
+}
+
+fn drf_fact(
+    context: &PythonFactContext<'_>,
+    start: usize,
+    end: usize,
+    pattern_id: &str,
+    api_style: &str,
+    verbs: Vec<String>,
+) -> Option<StructuralFact> {
+    let node = smallest_node_covering_range(context.tree.root_node(), start, end)?;
+    if is_comment_or_string_node(node.kind()) {
+        return None;
+    }
+    let span = NormalizedSpan::from_content_range(context.content, start, end)?;
+    let mut metadata = base_metadata("framework", "django_rest_framework");
+    insert_string(&mut metadata, "api_style", api_style);
+    insert_string_array(&mut metadata, "verbs", verbs);
+    Some(fact_for_span(
+        context.file_path,
+        context.language,
+        pattern_id,
+        api_style,
+        node.kind(),
+        span,
+        metadata,
+    ))
+}
+
+/// The uppercase verbs of a leading `["GET", "POST"]` list argument.
+fn methods_list_arg(args: &str) -> Option<Vec<String>> {
+    let start = skip_ascii_whitespace_until(args, 0, args.len());
+    if args.as_bytes().get(start) != Some(&b'[') {
+        return keyword_value_start(args, "http_method_names")
+            .map(|_| methods_keyword_named(args, "http_method_names"));
+    }
+    Some(methods_keyword_named(
+        &format!("methods={}", &args[start..]),
+        "methods",
+    ))
+}
+
+struct BareDecoratorCall {
+    start: usize,
+    end: usize,
+    args: String,
+    function_name: String,
+}
+
+/// `@name(...)` decorators on their own line, with the decorated function's
+/// `def` line as the fact range.
+fn collect_bare_decorator_calls(
+    context: &PythonFactContext<'_>,
+    name: &str,
+) -> Vec<BareDecoratorCall> {
+    let content = context.content;
+    let mut calls = Vec::new();
+    let mut offset = 0;
+    for line in content.split_inclusive('\n') {
+        let trimmed = line.trim_start();
+        let start = offset + line.len() - trimmed.len();
+        offset += line.len();
+        let Some(after_at) = trimmed.strip_prefix('@') else {
+            continue;
+        };
+        let Some(rest) = after_at.strip_prefix(name) else {
+            continue;
+        };
+        if !rest.trim_start().starts_with('(') || context.mask.is_string_or_comment(start) {
+            continue;
+        }
+        let open = start + 1 + name.len() + (rest.len() - rest.trim_start().len());
+        let Some(close) = find_matching_paren(content, context.mask, open) else {
+            continue;
+        };
+        let Some((def_start, def_end)) = next_def_line_range(content, close + 1) else {
+            continue;
+        };
+        let function_name = content[def_start + "def ".len()..def_end]
+            .split(['(', '[', ':'])
+            .next()
+            .unwrap_or("")
+            .trim()
+            .to_string();
+        if !is_ascii_identifier(&function_name) {
+            continue;
+        }
+        calls.push(BareDecoratorCall {
+            start: def_start,
+            end: def_end,
+            args: content[open + 1..close].to_string(),
+            function_name,
+        });
+    }
+    calls
 }
 
 fn collect_fastapi_routes(
@@ -945,6 +1202,13 @@ fn django_route_fact(
     ))
 }
 
+/// A join key for a Django `re_path` regex, under a conservative policy:
+/// `^`/`$` anchors drop, a trailing `/?` is an optional trailing slash, a
+/// named group `(?P<id>...)` becomes `:id`, an unnamed group becomes the
+/// positional `:arg1`, `:arg2`, ... (Django passes those as positional view
+/// arguments), and an escaped punctuation character is literal. Anything else
+/// (alternation, optional or repeated fragments, lookaround, character
+/// classes outside a group, mixed named and unnamed groups) yields no key.
 fn normalize_django_regex_route(pattern: &str) -> Option<(String, Vec<String>)> {
     let mut source = pattern;
     if let Some(stripped) = source.strip_prefix('^') {
@@ -953,36 +1217,70 @@ fn normalize_django_regex_route(pattern: &str) -> Option<(String, Vec<String>)> 
     if let Some(stripped) = source.strip_suffix('$') {
         source = stripped;
     }
+    let optional_trailing_slash = source.ends_with("/?");
+    if optional_trailing_slash {
+        source = &source[..source.len() - 1];
+    }
 
     let bytes = source.as_bytes();
     let mut cursor = 0usize;
     let mut template = String::new();
     let mut dynamic_segments = Vec::new();
+    let mut named_groups = false;
+    let mut positional_groups = 0usize;
     while cursor < bytes.len() {
-        if source[cursor..].starts_with("(?P<") {
-            let name_start = cursor + "(?P<".len();
-            let name_end = source[name_start..].find('>')? + name_start;
-            let name = &source[name_start..name_end];
-            if !is_ascii_identifier(name) {
+        if bytes[cursor] == b'(' {
+            let group_end = regex_group_end(source, cursor)?;
+            let name = if let Some(rest) = source[cursor..].strip_prefix("(?P<") {
+                let name_end = rest.find('>')?;
+                let name = &rest[..name_end];
+                if !is_ascii_identifier(name) {
+                    return None;
+                }
+                named_groups = true;
+                name.to_string()
+            } else {
+                let group = &source[cursor + 1..group_end];
+                if group.starts_with('?') || group.contains(['|', '(']) {
+                    return None;
+                }
+                positional_groups += 1;
+                format!("arg{positional_groups}")
+            };
+            if matches!(bytes.get(group_end + 1), Some(b'?' | b'*' | b'+' | b'{')) {
                 return None;
             }
-            let group_end = regex_group_end(source, cursor)?;
             template.push(':');
-            template.push_str(name);
-            dynamic_segments.push(name.to_string());
+            template.push_str(&name);
+            dynamic_segments.push(name);
             cursor = group_end + 1;
             continue;
         }
 
         let byte = bytes[cursor];
+        if byte == b'\\' {
+            let escaped = *bytes.get(cursor + 1)?;
+            if escaped.is_ascii_alphanumeric() {
+                return None;
+            }
+            template.push(escaped as char);
+            cursor += 2;
+            continue;
+        }
         if matches!(
             byte,
-            b'(' | b')' | b'[' | b']' | b'{' | b'}' | b'+' | b'*' | b'?' | b'|' | b'\\'
+            b')' | b'[' | b']' | b'{' | b'}' | b'+' | b'*' | b'?' | b'|'
         ) {
             return None;
         }
         template.push(byte as char);
         cursor += 1;
+    }
+    if named_groups && positional_groups > 0 {
+        return None;
+    }
+    if optional_trailing_slash && !template.ends_with('/') {
+        template.push('/');
     }
 
     if !template.starts_with('/') {
@@ -1031,17 +1329,14 @@ fn django_include_fact(
     let mut metadata = base_metadata("framework", "django");
     insert_string(&mut metadata, "mount_path", mount_path);
     insert_string(&mut metadata, "normalized_mount_path", &normalized.template);
-    if let Some(open) = include_expr.find('(') {
-        let arg_start = skip_ascii_whitespace_until(include_expr, open + 1, include_expr.len());
-        if let Some((module, _)) = parse_python_string_literal(include_expr, arg_start) {
-            insert_string(&mut metadata, "included_module", &module);
-        } else {
-            insert_string(&mut metadata, "included_module", include_expr);
-        }
-    } else {
-        insert_string(&mut metadata, "included_module", include_expr);
-    }
-    if let Some(namespace) = keyword_string_arg(trailing_args, "namespace") {
+    insert_string(
+        &mut metadata,
+        "included_module",
+        &included_module(include_expr),
+    );
+    if let Some(namespace) = keyword_string_arg(trailing_args, "namespace")
+        .or_else(|| keyword_string_arg(include_expr, "namespace"))
+    {
         insert_string(&mut metadata, "namespace", &namespace);
     }
     Some(fact_for_span(
@@ -1055,8 +1350,32 @@ fn django_include_fact(
     ))
 }
 
+/// The module an `include(...)` mounts: the string literal argument, the
+/// first element of a `(module, app_name)` tuple, or else the source text of
+/// the argument (`router.urls`).
+fn included_module(include_expr: &str) -> String {
+    let Some(open) = include_expr.find('(') else {
+        return include_expr.to_string();
+    };
+    let close = include_expr.rfind(')').unwrap_or(include_expr.len());
+    let mask = SourceMask::new(include_expr, MaskLanguage::Python);
+    let mut arg_start = skip_ascii_whitespace_until(include_expr, open + 1, close);
+    let arg_end = find_top_level_comma_or_end(include_expr, &mask, arg_start, close);
+    if include_expr.as_bytes().get(arg_start) == Some(&b'(') {
+        arg_start = skip_ascii_whitespace_until(include_expr, arg_start + 1, arg_end);
+    }
+    if let Some((module, _)) = parse_python_string_literal(include_expr, arg_start) {
+        return module;
+    }
+    include_expr[arg_start..arg_end].trim().to_string()
+}
+
 fn methods_keyword(args: &str) -> Vec<String> {
-    let Some(value_start) = keyword_value_start(args, "methods") else {
+    methods_keyword_named(args, "methods")
+}
+
+fn methods_keyword_named(args: &str, key: &str) -> Vec<String> {
+    let Some(value_start) = keyword_value_start(args, key) else {
         return Vec::new();
     };
     if args.as_bytes().get(value_start) != Some(&b'[') {

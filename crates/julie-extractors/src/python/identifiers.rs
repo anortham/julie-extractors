@@ -159,7 +159,7 @@ fn extract_identifier_from_node(
 
         "identifier" if is_python_type_usage_identifier(node) => {
             let name = extractor.base_mut().get_node_text(&node);
-            if !is_python_builtin_type(&name) {
+            if !is_python_builtin_type(&name) || is_generic_head(node) {
                 let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
                 let identifier = extractor.base_mut().create_identifier(
@@ -202,8 +202,187 @@ fn extract_identifier_from_node(
             }
         }
 
+        "string" if is_python_type_usage_node(node) => {
+            record_forward_reference_usages(extractor, node, containing_symbols);
+        }
+
+        "dotted_name" => record_pattern_references(extractor, node, containing_symbols),
+
         _ => {}
     }
+}
+
+/// A builtin generic such as `list` in `list[User]`: the head of a generic
+/// type or subscript, so its type arguments have an identifier to join to.
+fn is_generic_head(node: Node) -> bool {
+    let Some(parent) = node.parent() else {
+        return false;
+    };
+    match parent.kind() {
+        "generic_type" => parent.named_child(0).map(|head| head.id()) == Some(node.id()),
+        "subscript" => parent.child_by_field_name("value").map(|head| head.id()) == Some(node.id()),
+        _ => false,
+    }
+}
+
+/// Type usages for the names inside a forward-reference annotation string
+/// (`"Repo"`, `"User | None"`), each at its exact span. Strings that are
+/// `Literal[...]` values or `Annotated[...]` metadata are not types.
+fn record_forward_reference_usages(
+    extractor: &mut PythonExtractor,
+    string_node: Node,
+    containing_symbols: &ContainingSymbolIndex<'_>,
+) {
+    if !is_annotation_type_string(extractor.base(), string_node) {
+        return;
+    }
+    let mut cursor = string_node.walk();
+    let Some(content) = string_node
+        .named_children(&mut cursor)
+        .find(|child| child.kind() == "string_content")
+    else {
+        return;
+    };
+    let text = extractor.base().get_node_text(&content);
+    let base_offset = content.start_byte();
+    let containing_symbol_id = find_containing_symbol_id(string_node, containing_symbols);
+    for (start, end) in forward_reference_terminal_names(&text) {
+        let name = text[start..end].to_string();
+        if is_python_builtin_type(&name) {
+            continue;
+        }
+        let Some(span) = crate::base::NormalizedSpan::from_content_range(
+            &extractor.base().content,
+            base_offset + start,
+            base_offset + end,
+        ) else {
+            continue;
+        };
+        extractor.base_mut().create_identifier_at_span(
+            span,
+            name,
+            IdentifierKind::TypeUsage,
+            containing_symbol_id.clone(),
+            None,
+        );
+    }
+}
+
+/// The byte ranges of the terminal segment of each dotted name in a
+/// forward-reference string: `User` and `None` in `"User | None"`, `Order`
+/// in `"app.models.Order"`.
+fn forward_reference_terminal_names(text: &str) -> Vec<(usize, usize)> {
+    let bytes = text.as_bytes();
+    let mut ranges = Vec::new();
+    let mut index = 0;
+    while index < bytes.len() {
+        let byte = bytes[index];
+        if !(byte.is_ascii_alphabetic() || byte == b'_') {
+            index += 1;
+            continue;
+        }
+        let mut segment_start = index;
+        while index < bytes.len()
+            && (bytes[index].is_ascii_alphanumeric() || matches!(bytes[index], b'_' | b'.'))
+        {
+            if bytes[index] == b'.' {
+                segment_start = index + 1;
+            }
+            index += 1;
+        }
+        if segment_start < index {
+            ranges.push((segment_start, index));
+        }
+    }
+    ranges
+}
+
+/// A plain (not f-, b-, or r-prefixed) string in a type position that is not
+/// a `Literal[...]` value or `Annotated[...]` metadata.
+pub(super) fn is_annotation_type_string(base: &BaseExtractor, string_node: Node) -> bool {
+    let text = base.get_node_text(&string_node);
+    if !text.starts_with(['"', '\'']) {
+        return false;
+    }
+    let mut current = string_node;
+    while let Some(parent) = current.parent() {
+        match parent.kind() {
+            "type" => current = parent,
+            "type_parameter" => {
+                let Some(generic) = parent.parent() else {
+                    return true;
+                };
+                let Some(head) = generic.named_child(0) else {
+                    return true;
+                };
+                let head_text = base.get_node_text(&head);
+                let head_name = head_text.rsplit('.').next().unwrap_or(&head_text);
+                if head_name == "Literal" {
+                    return false;
+                }
+                if head_name == "Annotated" {
+                    let mut cursor = parent.walk();
+                    let first_arg = parent.named_children(&mut cursor).next();
+                    return first_arg.map(|arg| arg.id()) == Some(current.id());
+                }
+                current = generic;
+            }
+            "generic_type" | "union_type" | "binary_operator" => current = parent,
+            _ => return true,
+        }
+    }
+    true
+}
+
+/// References in `match` patterns. A class pattern head (`Point(...)`) is a
+/// type usage. A dotted value pattern (`Color.RED`) reads its first name and
+/// accesses the rest. A bare name is a capture and stays silent.
+fn record_pattern_references(
+    extractor: &mut PythonExtractor,
+    node: Node,
+    containing_symbols: &ContainingSymbolIndex<'_>,
+) {
+    let is_class_head = node
+        .parent()
+        .is_some_and(|parent| parent.kind() == "class_pattern");
+    if !is_class_head && (node.named_child_count() < 2 || !is_in_case_pattern(node)) {
+        return;
+    }
+    let mut cursor = node.walk();
+    let names: Vec<Node> = node
+        .named_children(&mut cursor)
+        .filter(|child| child.kind() == "identifier")
+        .collect();
+    let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+    let last = names.len().saturating_sub(1);
+    for (index, name_node) in names.into_iter().enumerate() {
+        let kind = if is_class_head && index == last {
+            IdentifierKind::TypeUsage
+        } else if index == 0 {
+            IdentifierKind::VariableRef
+        } else {
+            IdentifierKind::MemberAccess
+        };
+        let name = extractor.base().get_node_text(&name_node);
+        extractor.base_mut().create_identifier(
+            &name_node,
+            name,
+            kind,
+            containing_symbol_id.clone(),
+        );
+    }
+}
+
+fn is_in_case_pattern(node: Node) -> bool {
+    let mut current = node;
+    while let Some(parent) = current.parent() {
+        match parent.kind() {
+            "case_pattern" => return true,
+            "case_clause" | "block" | "module" => return false,
+            _ => current = parent,
+        }
+    }
+    false
 }
 
 /// Rule 1/4 predicate for the `variable_ref` arm: is this bare `identifier` a
@@ -325,6 +504,9 @@ fn is_python_declaration_name(node: Node) -> bool {
     let Some(parent) = node.parent() else {
         return false;
     };
+    if is_type_parameter_declaration(node) {
+        return true;
+    }
 
     if let Some(name_node) = parent.child_by_field_name("name") {
         return name_node.id() == node.id()
@@ -334,6 +516,29 @@ fn is_python_declaration_name(node: Node) -> bool {
             );
     }
 
+    false
+}
+
+/// The name in the `left` of a `type X[T] = ...` statement, or a type
+/// parameter declared by a class, function, or type alias (`T` in `[T]`).
+fn is_type_parameter_declaration(node: Node) -> bool {
+    let mut current = node;
+    while let Some(parent) = current.parent() {
+        match parent.kind() {
+            "type_alias_statement" => {
+                return parent.child_by_field_name("left").map(|left| left.id())
+                    == Some(current.id());
+            }
+            "class_definition" | "function_definition" => {
+                return parent
+                    .child_by_field_name("type_parameters")
+                    .map(|params| params.id())
+                    == Some(current.id());
+            }
+            "type" | "generic_type" | "type_parameter" => current = parent,
+            _ => return false,
+        }
+    }
     false
 }
 
@@ -363,7 +568,8 @@ fn find_containing_symbol_id(
     node: Node,
     containing_symbols: &ContainingSymbolIndex<'_>,
 ) -> Option<String> {
-    containing_symbols.find(node).map(|s| s.id.clone())
+    let anchor = helpers::decorated_definition_name(&node).unwrap_or(node);
+    containing_symbols.find(anchor).map(|s| s.id.clone())
 }
 
 // ============================================================================

@@ -1009,7 +1009,7 @@
       "end_column": 16,
       "start_byte": 437,
       "end_byte": 448,
-      "containing_key": "fixtures/extraction/python/django_tests/tests.py:QuestionModelTests:21:0",
+      "containing_key": "fixtures/extraction/python/django_tests/tests.py:setUpTestData:23:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1025,7 +1025,7 @@
       "end_column": 23,
       "start_byte": 660,
       "end_byte": 667,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/python/django_tests/tests.py:client:34:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1041,7 +1041,7 @@
       "end_column": 15,
       "start_byte": 645,
       "end_byte": 659,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/python/django_tests/tests.py:client:34:0",
       "target_key": null,
       "confidence": "1.000"
     },

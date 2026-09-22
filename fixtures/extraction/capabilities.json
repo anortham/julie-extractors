@@ -2462,6 +2462,16 @@
           "name": "django_tests",
           "source": "fixtures/extraction/python/django_tests/tests.py",
           "expected": "fixtures/extraction/python/django_tests/expected.json"
+        },
+        {
+          "name": "wave2_semantics",
+          "source": "fixtures/extraction/python/wave2_semantics/source.py",
+          "expected": "fixtures/extraction/python/wave2_semantics/expected.json"
+        },
+        {
+          "name": "drf_and_clients",
+          "source": "fixtures/extraction/python/drf_and_clients/urls.py",
+          "expected": "fixtures/extraction/python/drf_and_clients/expected.json"
         }
       ],
       "target_capabilities": {
@@ -2476,11 +2486,16 @@
         "symbols": {
           "supported": [
             "class",
+            "constant",
             "constructor",
+            "enum",
+            "enum_member",
             "function",
             "import",
+            "interface",
             "method",
             "property",
+            "type",
             "variable"
           ],
           "not_applicable": [],
@@ -2521,6 +2536,9 @@
           "supported": [
             "django.url_include.v1",
             "django.url_pattern.v1",
+            "drf.api_view.v1",
+            "drf.router_registration.v1",
+            "drf.viewset_action.v1",
             "fastapi.include_router.v1",
             "fastapi.route.v1",
             "flask.blueprint_registration.v1",
@@ -2529,14 +2547,7 @@
             "python.decorated_definition.v1"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "django.re_path_non_template_regex_normalization",
-              "reason": "Django `re_path` now normalizes common named capture groups such as `(?P<id>...)`, but arbitrary regex constructs such as alternation, optional path fragments, lookaround, and unnamed captures cannot be losslessly converted into a route-template join key. Those facts may emit without `normalized_route_template` rather than guessing.",
-              "required_closure": "define and fixture a conservative regex-to-route-template normalization policy for additional Django regex constructs, or keep emitting only raw route patterns for non-template-shaped regexes",
-              "planned_closure_task": "docs/plans/2026-07-04-glm-review-findings-remediation.md Task 7 follow-up: Django regex route normalization policy"
-            }
-          ]
+          "open_gaps": []
         },
         "complexity_metrics": {
           "supported": [
@@ -2557,7 +2568,10 @@
         },
         "doc_comments": {
           "supported": [
-            "function"
+            "class",
+            "constant",
+            "function",
+            "variable"
           ],
           "not_applicable": [],
           "open_gaps": []

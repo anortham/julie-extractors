@@ -1203,7 +1203,7 @@
         "end_byte": 1069
       },
       "body_hash": "15aaa6fdfe797cfe2de22b49a2f55585",
-      "signature": "@functools.wraps def wrapper()",
+      "signature": "@functools.wraps def wrapper(*args, **kwargs)",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/python/declarations/source.py:decorate:38:4",
@@ -1282,14 +1282,6 @@
       "confidence": "0.800"
     },
     {
-      "from_key": "fixtures/extraction/python/declarations/source.py:decorate:38:4",
-      "callee_name": "functools.wraps",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/python/declarations/source.py",
-      "line_number": 39,
-      "confidence": "0.700"
-    },
-    {
       "from_key": "fixtures/extraction/python/declarations/source.py:lookup:51:0",
       "callee_name": "os.path.join",
       "kind": "calls",
@@ -1311,6 +1303,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/python/declarations/source.py",
       "line_number": 41,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/python/declarations/source.py:wrapper:40:8",
+      "callee_name": "functools.wraps",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/python/declarations/source.py",
+      "line_number": 39,
       "confidence": "0.700"
     }
   ],
@@ -1365,32 +1365,6 @@
         "end_column": 42,
         "start_byte": 683,
         "end_byte": 694
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/python/declarations/source.py:decorate:38:4",
-        "callee_name": "functools.wraps",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/python/declarations/source.py",
-        "line_number": 39,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "functools.wraps",
-        "terminal_name": "wraps",
-        "receiver": "functools",
-        "namespace_path": [],
-        "import_context": "functools"
-      },
-      "caller_scope_key": "fixtures/extraction/python/declarations/source.py:decorate:38:4",
-      "span": {
-        "start_line": 39,
-        "start_column": 19,
-        "end_line": 39,
-        "end_column": 24,
-        "start_byte": 983,
-        "end_byte": 988
       }
     },
     {
@@ -1472,6 +1446,32 @@
         "start_byte": 1050,
         "end_byte": 1052
       }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/python/declarations/source.py:wrapper:40:8",
+        "callee_name": "functools.wraps",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/python/declarations/source.py",
+        "line_number": 39,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "functools.wraps",
+        "terminal_name": "wraps",
+        "receiver": "functools",
+        "namespace_path": [],
+        "import_context": "functools"
+      },
+      "caller_scope_key": "fixtures/extraction/python/declarations/source.py:wrapper:40:8",
+      "span": {
+        "start_line": 39,
+        "start_column": 19,
+        "end_line": 39,
+        "end_column": 24,
+        "start_byte": 983,
+        "end_byte": 988
+      }
     }
   ],
   "identifiers": [
@@ -1540,6 +1540,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/python/declarations/source.py:Customer:type_usage:12:22",
+      "name": "Customer",
+      "kind": "type_usage",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/declarations/source.py",
+      "start_line": 12,
+      "start_column": 22,
+      "end_line": 12,
+      "end_column": 30,
+      "start_byte": 278,
+      "end_byte": 286,
+      "containing_key": "fixtures/extraction/python/declarations/source.py:Order:9:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/python/declarations/source.py:Mapped:type_usage:12:14",
       "name": "Mapped",
       "kind": "type_usage",
@@ -1568,6 +1584,22 @@
       "start_byte": 326,
       "end_byte": 334,
       "containing_key": "fixtures/extraction/python/declarations/source.py:__init__:14:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/python/declarations/source.py:Order:type_usage:19:24",
+      "name": "Order",
+      "kind": "type_usage",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/declarations/source.py",
+      "start_line": 19,
+      "start_column": 24,
+      "end_line": 19,
+      "end_column": 29,
+      "start_byte": 487,
+      "end_byte": 492,
+      "containing_key": "fixtures/extraction/python/declarations/source.py:reset:19:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1716,6 +1748,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/python/declarations/source.py:dict:type_usage:17:21",
+      "name": "dict",
+      "kind": "type_usage",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/declarations/source.py",
+      "start_line": 17,
+      "start_column": 21,
+      "end_line": 17,
+      "end_column": 25,
+      "start_byte": 442,
+      "end_byte": 446,
+      "containing_key": "fixtures/extraction/python/declarations/source.py:__init__:14:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/python/declarations/source.py:discount:member_access:16:25",
       "name": "discount",
       "kind": "member_access",
@@ -1759,7 +1807,7 @@
       "end_column": 27,
       "start_byte": 989,
       "end_byte": 991,
-      "containing_key": "fixtures/extraction/python/declarations/source.py:decorate:38:4",
+      "containing_key": "fixtures/extraction/python/declarations/source.py:wrapper:40:8",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1775,7 +1823,7 @@
       "end_column": 18,
       "start_byte": 973,
       "end_byte": 982,
-      "containing_key": "fixtures/extraction/python/declarations/source.py:decorate:38:4",
+      "containing_key": "fixtures/extraction/python/declarations/source.py:wrapper:40:8",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1840,6 +1888,54 @@
       "start_byte": 392,
       "end_byte": 397,
       "containing_key": "fixtures/extraction/python/declarations/source.py:__init__:14:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/python/declarations/source.py:list:type_usage:11:19",
+      "name": "list",
+      "kind": "type_usage",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/declarations/source.py",
+      "start_line": 11,
+      "start_column": 19,
+      "end_line": 11,
+      "end_column": 23,
+      "start_byte": 240,
+      "end_byte": 244,
+      "containing_key": "fixtures/extraction/python/declarations/source.py:Order:9:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/python/declarations/source.py:list:type_usage:30:29",
+      "name": "list",
+      "kind": "type_usage",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/declarations/source.py",
+      "start_line": 30,
+      "start_column": 29,
+      "end_line": 30,
+      "end_column": 33,
+      "start_byte": 733,
+      "end_byte": 737,
+      "containing_key": "fixtures/extraction/python/declarations/source.py:ranked:30:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/python/declarations/source.py:list:type_usage:30:75",
+      "name": "list",
+      "kind": "type_usage",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/declarations/source.py",
+      "start_line": 30,
+      "start_column": 75,
+      "end_line": 30,
+      "end_column": 79,
+      "start_byte": 779,
+      "end_byte": 783,
+      "containing_key": "fixtures/extraction/python/declarations/source.py:ranked:30:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2079,7 +2175,7 @@
       "end_column": 24,
       "start_byte": 983,
       "end_byte": 988,
-      "containing_key": "fixtures/extraction/python/declarations/source.py:decorate:38:4",
+      "containing_key": "fixtures/extraction/python/declarations/source.py:wrapper:40:8",
       "target_key": null,
       "confidence": "1.000"
     }
@@ -2581,7 +2677,7 @@
       "arguments": [
         {
           "ordinal": 0,
-          "type_name": "\"Customer\"",
+          "type_name": "Customer",
           "children": []
         }
       ]
@@ -2594,6 +2690,47 @@
         {
           "ordinal": 0,
           "type_name": "Repository",
+          "children": []
+        }
+      ]
+    },
+    {
+      "identifier_key": "fixtures/extraction/python/declarations/source.py:dict:type_usage:17:21",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/declarations/source.py",
+      "arguments": [
+        {
+          "ordinal": 0,
+          "type_name": "str",
+          "children": []
+        },
+        {
+          "ordinal": 1,
+          "type_name": "int",
+          "children": []
+        }
+      ]
+    },
+    {
+      "identifier_key": "fixtures/extraction/python/declarations/source.py:list:type_usage:30:29",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/declarations/source.py",
+      "arguments": [
+        {
+          "ordinal": 0,
+          "type_name": "Order",
+          "children": []
+        }
+      ]
+    },
+    {
+      "identifier_key": "fixtures/extraction/python/declarations/source.py:list:type_usage:30:75",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/declarations/source.py",
+      "arguments": [
+        {
+          "ordinal": 0,
+          "type_name": "Order",
           "children": []
         }
       ]

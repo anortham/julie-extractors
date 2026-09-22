@@ -50,11 +50,16 @@ pub fn extract_function(extractor: &mut PythonExtractor, node: Node) -> Option<S
 
     // Build signature
     let async_prefix = if is_async { "async " } else { "" };
+    let type_parameters = node
+        .child_by_field_name("type_parameters")
+        .map(|type_parameters| extractor.base().get_node_text(&type_parameters))
+        .unwrap_or_default();
     let signature = format!(
-        "{}{}def {}({}){}",
+        "{}{}def {}{}({}){}",
         decorator_info,
         async_prefix,
         name,
+        type_parameters,
         params.join(", "),
         return_type
     );

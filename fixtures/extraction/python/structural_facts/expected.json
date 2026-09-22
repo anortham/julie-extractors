@@ -137,7 +137,7 @@
       "end_column": 6,
       "start_byte": 32,
       "end_byte": 37,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/python/structural_facts/source.py:run:6:0",
       "target_key": null,
       "confidence": "1.000"
     }

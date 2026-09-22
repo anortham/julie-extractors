@@ -1120,7 +1120,7 @@
       "end_column": 17,
       "start_byte": 241,
       "end_byte": 253,
-      "containing_key": "fixtures/extraction/python/basic/source.py:Worker:6:0",
+      "containing_key": "fixtures/extraction/python/basic/source.py:default_id:15:4",
       "target_key": null,
       "confidence": "1.000"
     },

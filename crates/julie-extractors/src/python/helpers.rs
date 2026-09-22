@@ -78,6 +78,8 @@ pub fn enclosing_class_name(base: &crate::base::BaseExtractor, node: &Node) -> O
     None
 }
 
+/// The type a method call's receiver names: the enclosing class for `self.m()`
+/// and `cls.m()`, and the first declared base for `super().m()`.
 pub fn self_or_cls_receiver_type(
     base: &crate::base::BaseExtractor,
     function_node: &Node,
@@ -86,12 +88,70 @@ pub fn self_or_cls_receiver_type(
         return None;
     }
     let object = function_node.child_by_field_name("object")?;
+    if is_super_call(base, &object) {
+        return first_base_name(base, function_node);
+    }
     let receiver = base.get_node_text(&object);
     if receiver == "self" || receiver == "cls" {
         enclosing_class_name(base, function_node)
     } else {
         None
     }
+}
+
+/// `node` is a call of the `super` builtin: `super()` or `super(Cls, self)`.
+pub fn is_super_call(base: &crate::base::BaseExtractor, node: &Node) -> bool {
+    node.kind() == "call"
+        && node
+            .child_by_field_name("function")
+            .is_some_and(|function| {
+                function.kind() == "identifier" && base.get_node_text(&function) == "super"
+            })
+}
+
+/// The simple name of the first positional base of the class enclosing `node`.
+pub fn first_base_name(base: &crate::base::BaseExtractor, node: &Node) -> Option<String> {
+    let mut current = *node;
+    let class_node = loop {
+        let parent = current.parent()?;
+        if parent.kind() == "class_definition" {
+            break parent;
+        }
+        current = parent;
+    };
+    let superclasses = class_node.child_by_field_name("superclasses")?;
+    let mut cursor = superclasses.walk();
+    let first = superclasses
+        .named_children(&mut cursor)
+        .find(|arg| matches!(arg.kind(), "identifier" | "attribute" | "subscript"))?;
+    let head = if first.kind() == "subscript" {
+        first.child_by_field_name("value")?
+    } else {
+        first
+    };
+    let text = base.get_node_text(&head);
+    Some(text.rsplit('.').next().unwrap_or(&text).to_string())
+}
+
+/// The name node of the definition a decorator belongs to, when `node` sits
+/// inside that decorator (and not inside a lambda within it). Calls and names
+/// in a decorator are owned by the decorated function or class.
+pub fn decorated_definition_name<'a>(node: &Node<'a>) -> Option<Node<'a>> {
+    let mut current = *node;
+    while let Some(parent) = current.parent() {
+        match parent.kind() {
+            "decorator" => {
+                return parent
+                    .parent()
+                    .filter(|owner| owner.kind() == "decorated_definition")?
+                    .child_by_field_name("definition")?
+                    .child_by_field_name("name");
+            }
+            "lambda" | "block" | "module" | "decorated_definition" => return None,
+            _ => current = parent,
+        }
+    }
+    None
 }
 
 /// Extract argument list from a superclasses node

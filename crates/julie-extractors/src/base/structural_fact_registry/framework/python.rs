@@ -5,7 +5,7 @@
 //! [`super::super::structural_fact_pattern_specs`].
 
 use super::super::{
-    ALWAYS, ARR, K_FRAMEWORK, K_PATTERN_VERSION, K_QUERY_FAMILY, OPT, STR,
+    ALWAYS, ARR, BOOL, K_FRAMEWORK, K_PATTERN_VERSION, K_QUERY_FAMILY, OPT, STR,
     StructuralFactPatternSpec, key,
 };
 
@@ -229,6 +229,91 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "Included module literal or source text.",
             ),
             key("namespace", STR, OPT, "Literal namespace= value."),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "drf.router_registration.v1",
+        languages: &["python"],
+        query_family: "framework",
+        description: "A Django REST Framework router.register(prefix, ViewSet) on a same-file DefaultRouter or SimpleRouter.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_FRAMEWORK,
+            key(
+                "api_style",
+                STR,
+                ALWAYS,
+                "Routing style (\"resource_routing\").",
+            ),
+            key(
+                "resource_name",
+                STR,
+                ALWAYS,
+                "Literal URL prefix the viewset is registered under.",
+            ),
+            key(
+                "viewset",
+                STR,
+                ALWAYS,
+                "Source text of the viewset argument.",
+            ),
+            key("router", STR, ALWAYS, "Local name of the router receiver."),
+            key("basename", STR, OPT, "Literal basename= value."),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "drf.viewset_action.v1",
+        languages: &["python"],
+        query_family: "framework",
+        description: "A Django REST Framework @action extra route on a viewset method.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_FRAMEWORK,
+            key(
+                "api_style",
+                STR,
+                ALWAYS,
+                "Routing style (\"viewset_action\").",
+            ),
+            key(
+                "verbs",
+                ARR,
+                ALWAYS,
+                "Uppercase HTTP methods from methods= (GET when absent).",
+            ),
+            key(
+                "detail",
+                BOOL,
+                ALWAYS,
+                "True when the route is on one object (detail=True).",
+            ),
+            key(
+                "url_path",
+                STR,
+                ALWAYS,
+                "Literal url_path= value, else the method name.",
+            ),
+            key("url_name", STR, OPT, "Literal url_name= value."),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "drf.api_view.v1",
+        languages: &["python"],
+        query_family: "framework",
+        description: "A Django REST Framework @api_view function view with its allowed HTTP methods.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_FRAMEWORK,
+            key("api_style", STR, ALWAYS, "Routing style (\"api_view\")."),
+            key(
+                "verbs",
+                ARR,
+                ALWAYS,
+                "Uppercase HTTP methods from the decorator (GET when absent).",
+            ),
         ],
     },
 ];

@@ -422,10 +422,24 @@ pub(super) fn statement_end(
     content.len()
 }
 
+/// The character a simple Python escape sequence stands for. Unknown escapes
+/// such as `\d` keep their backslash, as Python does.
+fn python_escape(escaped: char) -> Option<char> {
+    match escaped {
+        '\\' | '\'' | '"' => Some(escaped),
+        'n' => Some('\n'),
+        't' => Some('\t'),
+        'r' => Some('\r'),
+        _ => None,
+    }
+}
+
 pub(super) fn parse_python_string_literal(content: &str, start: usize) -> Option<(String, usize)> {
     let bytes = content.as_bytes();
     let mut cursor = start;
-    while matches!(bytes.get(cursor).copied(), Some(b'r' | b'R' | b'u' | b'U')) {
+    let mut raw = false;
+    while let Some(prefix @ (b'r' | b'R' | b'u' | b'U')) = bytes.get(cursor).copied() {
+        raw |= matches!(prefix, b'r' | b'R');
         cursor += 1;
     }
     if matches!(bytes.get(cursor).copied(), Some(b'f' | b'F' | b'b' | b'B')) {
@@ -444,7 +458,13 @@ pub(super) fn parse_python_string_literal(content: &str, start: usize) -> Option
         if byte == b'\\' {
             let escaped_start = index + 1;
             let escaped = content.get(escaped_start..)?.chars().next()?;
-            value.push(escaped);
+            match python_escape(escaped).filter(|_| !raw) {
+                Some(decoded) => value.push(decoded),
+                None => {
+                    value.push('\\');
+                    value.push(escaped);
+                }
+            }
             index = escaped_start + escaped.len_utf8();
         } else if triple
             && byte == quote

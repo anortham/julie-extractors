@@ -179,81 +179,119 @@ fn extract_call_relationships(
     symbol_index: &ScopedSymbolIndex<'_>,
     relationships: &mut Vec<Relationship>,
 ) {
-    // For a call node, extract the function/method being called
-    if let Some(function_node) = node.child_by_field_name("function") {
-        let (mut target, receiver_type) =
-            extract_target_from_call(extractor.base(), &function_node);
-        target.import_context = import_binding_context(&target, symbol_index);
-        let called_method_name = target.terminal_name.clone();
-        let target_token_node = function_node
-            .child_by_field_name("attribute")
-            .unwrap_or(function_node);
-
-        if !called_method_name.is_empty() {
-            // Find the enclosing function/method that contains this call
-            if let Some(caller_symbol) = extractor.base().find_containing_symbol(&node, symbols) {
-                let resolution = if target.namespace_path.is_empty() {
-                    symbol_index.resolve_call_target(
-                        &called_method_name,
-                        Some(caller_symbol),
-                        target.receiver.as_deref(),
-                    )
-                } else {
-                    LocalTargetResolution::Missing
-                };
-                match resolution {
-                    LocalTargetResolution::Import(_) => {
-                        // Target is an Import symbol - need cross-file resolution
-                        // Don't create relationship pointing to Import (useless for trace_call_path)
-                        // Instead, create a PendingRelationship with the callee name
-                        let pending = extractor
-                            .base()
-                            .create_pending_relationship_at_target(
-                                caller_symbol.id.clone(),
-                                target.clone(),
-                                RelationshipKind::Calls,
-                                &target_token_node,
-                                Some(caller_symbol.id.clone()),
-                                Some(0.8),
-                            )
-                            .with_receiver_type(receiver_type.clone());
-                        extractor.add_structured_pending_relationship(pending);
-                    }
-                    LocalTargetResolution::Resolved(called_symbol) => {
-                        // Target is a local function/method - create resolved Relationship
-                        let relationship = extractor.base().create_relationship_at_target(
-                            caller_symbol.id.clone(),
-                            called_symbol.id.clone(),
-                            RelationshipKind::Calls,
-                            &target_token_node,
-                            Some(0.9),
-                            None,
-                        );
-
-                        relationships.push(relationship);
-                    }
-                    LocalTargetResolution::Ambiguous
-                    | LocalTargetResolution::ReceiverQualified
-                    | LocalTargetResolution::Missing => {
-                        // Target not found in local symbols - likely a method on imported type
-                        // Create PendingRelationship for cross-file resolution
-                        let pending = extractor
-                            .base()
-                            .create_pending_relationship_at_target(
-                                caller_symbol.id.clone(),
-                                target,
-                                RelationshipKind::Calls,
-                                &target_token_node,
-                                Some(caller_symbol.id.clone()),
-                                Some(0.7),
-                            )
-                            .with_receiver_type(receiver_type);
-                        extractor.add_structured_pending_relationship(pending);
-                    }
-                }
-            }
+    let Some(function_node) = node.child_by_field_name("function") else {
+        return;
+    };
+    if function_node.kind() == "identifier"
+        && extractor.base().get_node_text(&function_node) == "super"
+    {
+        return;
+    }
+    let (mut target, receiver_type) = extract_target_from_call(extractor.base(), &function_node);
+    target.import_context = import_binding_context(&target, symbol_index);
+    let called_method_name = target.terminal_name.clone();
+    let target_token_node = function_node
+        .child_by_field_name("attribute")
+        .unwrap_or(function_node);
+    if called_method_name.is_empty() {
+        return;
+    }
+    let anchor = helpers::decorated_definition_name(&node).unwrap_or(node);
+    let Some(caller_symbol) = extractor.base().find_containing_symbol(&anchor, symbols) else {
+        return;
+    };
+    let super_call = function_node
+        .child_by_field_name("object")
+        .is_some_and(|object| helpers::is_super_call(extractor.base(), &object));
+    let resolution = if super_call {
+        match receiver_type
+            .as_deref()
+            .and_then(|base_name| same_file_method(symbols, base_name, &called_method_name))
+        {
+            Some(method) => LocalTargetResolution::Resolved(method),
+            None => LocalTargetResolution::Missing,
+        }
+    } else if target.namespace_path.is_empty() {
+        symbol_index.resolve_call_target(
+            &called_method_name,
+            Some(caller_symbol),
+            target.receiver.as_deref(),
+        )
+    } else {
+        LocalTargetResolution::Missing
+    };
+    match resolution {
+        LocalTargetResolution::Import(_) => {
+            // An import target needs cross-file resolution; an edge to the
+            // import symbol itself is useless for call tracing.
+            let pending = extractor
+                .base()
+                .create_pending_relationship_at_target(
+                    caller_symbol.id.clone(),
+                    target.clone(),
+                    RelationshipKind::Calls,
+                    &target_token_node,
+                    Some(caller_symbol.id.clone()),
+                    Some(0.8),
+                )
+                .with_receiver_type(receiver_type.clone());
+            extractor.add_structured_pending_relationship(pending);
+        }
+        LocalTargetResolution::Resolved(called_symbol) => {
+            let relationship = extractor.base().create_relationship_at_target(
+                caller_symbol.id.clone(),
+                called_symbol.id.clone(),
+                RelationshipKind::Calls,
+                &target_token_node,
+                Some(0.9),
+                None,
+            );
+            relationships.push(relationship);
+        }
+        LocalTargetResolution::Ambiguous
+        | LocalTargetResolution::ReceiverQualified
+        | LocalTargetResolution::Missing => {
+            let pending = extractor
+                .base()
+                .create_pending_relationship_at_target(
+                    caller_symbol.id.clone(),
+                    target,
+                    RelationshipKind::Calls,
+                    &target_token_node,
+                    Some(caller_symbol.id.clone()),
+                    Some(0.7),
+                )
+                .with_receiver_type(receiver_type);
+            extractor.add_structured_pending_relationship(pending);
         }
     }
+}
+
+/// The method `method_name` declared directly in the same-file class
+/// `class_name`, when exactly one class has that name.
+fn same_file_method<'a>(
+    symbols: &'a [Symbol],
+    class_name: &str,
+    method_name: &str,
+) -> Option<&'a Symbol> {
+    let mut classes = symbols
+        .iter()
+        .filter(|symbol| symbol.name == class_name && symbol.kind != SymbolKind::Import)
+        .filter(|symbol| {
+            matches!(
+                symbol.kind,
+                SymbolKind::Class | SymbolKind::Interface | SymbolKind::Enum
+            )
+        });
+    let class_symbol = classes.next()?;
+    if classes.next().is_some() {
+        return None;
+    }
+    symbols.iter().find(|symbol| {
+        symbol.name == method_name
+            && symbol.kind == SymbolKind::Method
+            && symbol.parent_id.as_deref() == Some(class_symbol.id.as_str())
+    })
 }
 
 /// Extract method name from a call node
@@ -262,16 +300,28 @@ fn extract_target_from_call(
     function_node: &Node,
 ) -> (UnresolvedTarget, Option<String>) {
     match function_node.kind() {
-        "identifier" => (
-            UnresolvedTarget::simple(base.get_node_text(function_node)),
-            None,
-        ),
+        "identifier" => {
+            let name = base.get_node_text(function_node);
+            if name == "cls"
+                && let Some(class_name) = helpers::enclosing_class_name(base, function_node)
+            {
+                return (
+                    UnresolvedTarget::simple(class_name.clone()),
+                    Some(class_name),
+                );
+            }
+            (UnresolvedTarget::simple(name), None)
+        }
         "attribute" => {
             if let Some(attribute_node) = function_node.child_by_field_name("attribute") {
                 let terminal_name = base.get_node_text(&attribute_node);
-                let receiver = function_node
-                    .child_by_field_name("object")
-                    .map(|node| base.get_node_text(&node));
+                let receiver = function_node.child_by_field_name("object").map(|node| {
+                    if helpers::is_super_call(base, &node) {
+                        "super".to_string()
+                    } else {
+                        base.get_node_text(&node)
+                    }
+                });
                 if let Some(receiver) = receiver {
                     let receiver_type = helpers::self_or_cls_receiver_type(base, function_node);
                     let target = UnresolvedTarget::from_qualified_text(

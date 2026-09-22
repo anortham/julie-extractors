@@ -1,6 +1,6 @@
 /// Class and type extraction for Python
 /// Handles class definitions, enums, protocols, and type detection
-use super::super::base::{Symbol, SymbolKind, SymbolOptions, Visibility, normalize_annotations};
+use super::super::base::{Symbol, SymbolKind, SymbolOptions, normalize_annotations};
 use super::PythonExtractor;
 use super::{decorators, helpers};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
@@ -64,15 +64,8 @@ pub(super) fn extract_class(extractor: &mut PythonExtractor, node: Node) -> Opti
             .cloned()
             .collect();
 
-        // Check if this is an Enum class
-        is_enum = bases
-            .iter()
-            .any(|base| base == "Enum" || base.contains("Enum"));
-
-        // Check if this is a Protocol class (should be treated as Interface)
-        is_protocol = bases
-            .iter()
-            .any(|base| base == "Protocol" || base.contains("Protocol"));
+        is_enum = bases.iter().any(|base| is_enum_base(base));
+        is_protocol = bases.iter().any(|base| is_protocol_base(base));
 
         // Build extends information
         let mut extends_parts = Vec::new();
@@ -107,7 +100,14 @@ pub(super) fn extract_class(extractor: &mut PythonExtractor, node: Node) -> Opti
         format!("@{} ", decorators_list.join(" @"))
     };
 
-    let signature = format!("{}class {}{}", decorator_info, name, extends_info);
+    let type_parameters = node
+        .child_by_field_name("type_parameters")
+        .map(|type_parameters| extractor.base().get_node_text(&type_parameters))
+        .unwrap_or_default();
+    let signature = format!(
+        "{}class {}{}{}",
+        decorator_info, name, type_parameters, extends_info
+    );
 
     // Determine the symbol kind based on base classes
     let symbol_kind = if is_enum {
@@ -122,6 +122,7 @@ pub(super) fn extract_class(extractor: &mut PythonExtractor, node: Node) -> Opti
     let doc_comment = extract_docstring(extractor, &node);
 
     let parent_id = helpers::find_enclosing_callable_id(extractor, &node);
+    let visibility = super::signatures::infer_visibility(&name);
 
     let mut metadata = HashMap::new();
     metadata.insert("decorators".to_string(), serde_json::json!(decorators_list));
@@ -134,7 +135,7 @@ pub(super) fn extract_class(extractor: &mut PythonExtractor, node: Node) -> Opti
         symbol_kind,
         SymbolOptions {
             signature: Some(signature),
-            visibility: Some(Visibility::Public),
+            visibility: Some(visibility),
             parent_id,
             metadata: Some(metadata),
             doc_comment,
@@ -143,58 +144,107 @@ pub(super) fn extract_class(extractor: &mut PythonExtractor, node: Node) -> Opti
     ))
 }
 
-/// Extract docstring from a function or class
-pub(super) fn extract_docstring(extractor: &PythonExtractor, node: &Node) -> Option<String> {
-    let body_node = node.child_by_field_name("body")?;
-    let base = extractor.base();
-
-    // Look for first string in function/class body (Python docstrings are inside expression_statement nodes)
-    let mut cursor = body_node.walk();
-    for child in body_node.children(&mut cursor) {
-        // Check if this is an expression_statement containing a string (typical for docstrings)
-        if child.kind() == "expression_statement" {
-            let mut expr_cursor = child.walk();
-            for expr_child in child.children(&mut expr_cursor) {
-                if expr_child.kind() == "string" {
-                    let mut docstring = base.get_node_text(&expr_child);
-
-                    // Remove quotes (single, double, or triple quotes)
-                    docstring = helpers::strip_string_delimiters(&docstring);
-                    return Some(docstring.trim().to_string());
-                }
-            }
-        }
-        // Also handle direct string nodes (just in case)
-        else if child.kind() == "string" {
-            let mut docstring = base.get_node_text(&child);
-
-            // Remove quotes (single, double, or triple quotes)
-            docstring = helpers::strip_string_delimiters(&docstring);
-            return Some(docstring.trim().to_string());
-        }
-    }
-
-    None
+/// A PEP 695 `type Name[T] = ...` statement as a `type` symbol.
+pub(super) fn extract_type_alias(extractor: &mut PythonExtractor, node: Node) -> Option<Symbol> {
+    let name_node = type_alias_name_node(node)?;
+    let name = extractor.base().get_node_text(&name_node);
+    let signature = extractor.base().get_node_text(&node);
+    let parent_id = helpers::find_enclosing_callable_id(extractor, &node);
+    let visibility = super::signatures::infer_visibility(&name);
+    let symbol = extractor.base_mut().create_symbol(
+        &node,
+        name,
+        SymbolKind::Type,
+        SymbolOptions {
+            signature: Some(signature),
+            visibility: Some(visibility),
+            parent_id,
+            metadata: None,
+            doc_comment: None,
+            annotations: Vec::new(),
+        },
+    );
+    Some(helpers::without_body(symbol))
 }
 
-/// Check if a node is inside an enum class
-pub(super) fn is_inside_enum_class(extractor: &PythonExtractor, node: &Node) -> bool {
-    // Walk up the parent tree to find a class definition
-    let mut current = *node;
-    while let Some(parent) = current.parent() {
-        if parent.kind() == "class_definition" {
-            // Check if this class extends Enum
-            if let Some(superclasses_node) = parent.child_by_field_name("superclasses") {
-                let superclasses = helpers::extract_argument_list(extractor, &superclasses_node);
-                // Check if any base class is "Enum"
-                return superclasses
-                    .iter()
-                    .any(|base| base == "Enum" || base.contains("Enum"));
-            }
-            // If we found a class but it doesn't extend anything, it's not an enum
-            return false;
-        }
-        current = parent;
+/// The declared name of a `type_alias_statement`: the identifier of its
+/// `left` type, bare or with type parameters (`Pair[T]`).
+pub(super) fn type_alias_name_node(node: Node) -> Option<Node> {
+    let left = node.child_by_field_name("left")?;
+    let head = left.named_child(0)?;
+    match head.kind() {
+        "identifier" => Some(head),
+        "generic_type" => head
+            .named_child(0)
+            .filter(|name| name.kind() == "identifier"),
+        _ => None,
     }
-    false
+}
+
+/// The PEP 257 docstring of a function or class: the first statement of its
+/// body when that statement is a plain string literal. Byte strings and
+/// f-strings are not docstrings.
+pub(super) fn extract_docstring(extractor: &PythonExtractor, node: &Node) -> Option<String> {
+    let body_node = node.child_by_field_name("body")?;
+    let mut cursor = body_node.walk();
+    let first_statement = body_node
+        .named_children(&mut cursor)
+        .find(|child| child.kind() != "comment")?;
+    string_statement_text(extractor, first_statement)
+}
+
+/// The decoded text of an `expression_statement` that holds only a plain
+/// string literal.
+pub(super) fn string_statement_text(
+    extractor: &PythonExtractor,
+    statement: Node,
+) -> Option<String> {
+    if statement.kind() != "expression_statement" || statement.named_child_count() != 1 {
+        return None;
+    }
+    let string = statement.named_child(0)?;
+    if string.kind() != "string" {
+        return None;
+    }
+    let text = extractor.base().get_node_text(&string);
+    let prefix_len = text.find(['"', '\'']).unwrap_or(0);
+    let prefix = text[..prefix_len].to_ascii_lowercase();
+    if prefix.contains('f') || prefix.contains('b') {
+        return None;
+    }
+    let docstring = helpers::strip_string_delimiters(&text[prefix_len..]);
+    Some(docstring.trim().to_string())
+}
+
+/// The class named by `node` subclasses a standard enum base or a Django
+/// choices base, bare or module-qualified.
+pub(super) fn is_enum_class(extractor: &PythonExtractor, class_node: &Node) -> bool {
+    class_node
+        .child_by_field_name("superclasses")
+        .map(|superclasses| {
+            helpers::extract_argument_list(extractor, &superclasses)
+                .iter()
+                .any(|base| is_enum_base(base))
+        })
+        .unwrap_or(false)
+}
+
+fn is_enum_base(base: &str) -> bool {
+    match base.rsplit_once('.') {
+        Some(("enum", name)) => ENUM_BASES.contains(&name),
+        Some(("models", name)) => DJANGO_CHOICES_BASES.contains(&name),
+        Some(_) => false,
+        None => ENUM_BASES.contains(&base) || DJANGO_CHOICES_BASES[..2].contains(&base),
+    }
+}
+
+const ENUM_BASES: [&str; 6] = ["Enum", "IntEnum", "StrEnum", "Flag", "IntFlag", "ReprEnum"];
+const DJANGO_CHOICES_BASES: [&str; 3] = ["TextChoices", "IntegerChoices", "Choices"];
+
+fn is_protocol_base(base: &str) -> bool {
+    let name = base.split_once('[').map_or(base, |(name, _)| name);
+    matches!(
+        name,
+        "Protocol" | "typing.Protocol" | "typing_extensions.Protocol"
+    )
 }

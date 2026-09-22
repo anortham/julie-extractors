@@ -108,6 +108,65 @@ the same-file constructor fact `x = Foo()`.
 
 Imports, variables, constants, attributes, and parameters have no body span.
 
+## Declarations and documentation
+
+- A PEP 695 `type Name[T] = ...` statement is a `type` symbol. Its name and
+  the type parameters it declares are not type usages. Class and function
+  signatures keep their `[T]` type parameters.
+- A class is an `interface` only when a base is `Protocol`,
+  `typing.Protocol`, or `typing_extensions.Protocol` (bare or subscripted).
+  It is an `enum` only for `Enum`, `IntEnum`, `StrEnum`, `Flag`, `IntFlag`,
+  or `ReprEnum` (bare or `enum.`-qualified) and for the Django choices bases
+  `TextChoices`, `IntegerChoices`, and `models.Choices`. A base whose name
+  merely contains `Protocol` or `Enum` changes nothing.
+- Every plain assignment directly in an enum body is an `enum_member`,
+  whatever its case, except `_sunder_` and `__dunder__` names.
+- Class visibility follows the same underscore rule as functions.
+- A docstring is the first statement of the body when it is a plain string.
+  `r`/`u` prefixes and the quotes are stripped; f-strings and byte strings are
+  not docstrings.
+- A module or class attribute is documented by Sphinx `#:` comment lines
+  directly above it, else by a string statement directly after it (PEP 257
+  attribute docstring). A plain `#` comment documents nothing.
+
+## References
+
+- A call or name inside a decorator is owned by the decorated function or
+  class, so `@retry(3)` gives `fetch -calls-> retry`.
+- `super().m()` carries the first declared base as `receiver_type` and
+  resolves to a same-file `Base.m`; the `super` builtin call itself records no
+  pending row. `cls(...)` is a pending call to the enclosing class.
+- A forward-reference annotation string (`"Repo"`, `"User | None"`) gives one
+  `type_usage` per name at its exact span. `Literal[...]` values and
+  `Annotated[...]` metadata strings are not types.
+- A builtin generic with arguments (`list[User]`, `dict[str, User]`) records
+  a `type_usage` for its head so its type arguments have a row to join to.
+- In `match`, a class pattern head (`case Point(...)`) is a `type_usage`, and a
+  dotted value pattern (`case Color.RED`) reads `Color` and accesses `RED`.
+
+## Framework facts
+
+- Django `re_path` keeps raw-string backslashes verbatim. Its
+  `normalized_route_template` follows a conservative policy: anchors drop, a
+  trailing `/?` is an optional trailing slash, `(?P<id>...)` becomes `:id`, an
+  unnamed group becomes the positional `:arg1`, `:arg2`, ..., and an escaped
+  punctuation character is literal. Alternation, optional or repeated
+  fragments, lookaround, bare character classes, and mixed named and unnamed
+  groups emit no normalized template.
+- `include(("api.urls", "app"), namespace="v1")` records `included_module`
+  `api.urls`; a non-literal argument records its source text (`router.urls`).
+- Django REST Framework emits `drf.router_registration.v1` for
+  `router.register(prefix, ViewSet)` on a same-file `DefaultRouter` or
+  `SimpleRouter`, `drf.viewset_action.v1` for `@action(...)`, and
+  `drf.api_view.v1` for `@api_view([...])`. The URL prefix of the router is
+  joined across files by code-kb.
+- `http.client_request.v1` covers `requests`/`httpx` module calls,
+  from-imported verbs (`from requests import get`), a `url=` keyword literal,
+  and receivers constructed in the same function (`s = requests.Session()`,
+  `with httpx.AsyncClient() as client`). An unproven receiver stays silent.
+- A Flask or FastAPI receiver declared with an annotation
+  (`app: Flask = Flask(__name__)`) keeps its route facts.
+
 ## Grammar freshness
 
 The live maintenance report was run with:
