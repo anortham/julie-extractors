@@ -657,3 +657,93 @@ fn the_check_path_accepts_trailing_declaration_attribute_macros() {
 
     assert!(diagnostics.is_empty(), "{diagnostics:?}");
 }
+
+const RAW_STRING_PROBE: &str = r##"class Foo
+{
+    Q_OBJECT
+    const char *named = R"tag(a )tag2 not it)tag";
+    const char *empty = R"(
+    Q_PROPERTY(int ghost READ ghost)
+    )";
+    const char *wide = LR"x(y)x";
+    const char *utf = u8R"(z)";
+    Q_PROPERTY(int index READ index)
+};
+"##;
+
+#[test]
+fn raw_string_literals_are_skipped_whole() {
+    let sites = scan(RAW_STRING_PROBE);
+
+    let names = sites
+        .iter()
+        .map(|site| site.name.as_str())
+        .collect::<Vec<_>>();
+    assert_eq!(names, vec!["Q_OBJECT", "Q_PROPERTY"]);
+    assert_eq!(sites[1].arguments.as_deref(), Some("int index READ index"));
+}
+
+#[test]
+fn a_truncated_raw_string_ends_the_scan() {
+    let source = "class Foo\n{\n    Q_OBJECT\n    const char *broken = R\"";
+
+    let sites = scan(source);
+
+    assert_eq!(sites.len(), 1);
+    assert_eq!(sites[0].name, "Q_OBJECT");
+}
+
+#[test]
+fn a_raw_string_argument_does_not_close_a_macro_early() {
+    let source = "class Foo\n{\n    QML_UNCREATABLE(R\"msg(Use \")\" carefully)msg\")\n};\n";
+
+    let blanked = blank_macros(source).expect("the macro should be blanked");
+    let sites = scan(source);
+
+    assert_eq!(blanked, format!("class Foo\n{{\n{}\n}};\n", " ".repeat(49)));
+    assert_eq!(sites.len(), 1);
+    assert_eq!(sites[0].name, "QML_UNCREATABLE");
+    assert_eq!(
+        sites[0].arguments.as_deref(),
+        Some("R\"msg(Use \")\" carefully)msg\"")
+    );
+}
+
+#[test]
+fn an_argument_list_after_a_newline_or_a_comment_becomes_spaces() {
+    let after_newline = "class Foo\n{\n    Q_PROPERTY\n        (int value READ value)\n};\n";
+    let after_comment = "class Foo\n{\n    Q_PROPERTY /* here */ (int value READ value)\n};\n";
+
+    for source in [after_newline, after_comment] {
+        let blanked = blank_macros(source).expect("the macro should be blanked");
+        let sites = scan(source);
+
+        assert_eq!(blanked.len(), source.len(), "{source}");
+        assert!(!blanked.contains("READ"), "{blanked}");
+        assert_eq!(sites.len(), 1, "{source}");
+        assert_eq!(
+            sites[0].arguments.as_deref(),
+            Some("int value READ value"),
+            "{source}"
+        );
+    }
+}
+
+#[test]
+fn a_line_comment_continued_by_a_backslash_hides_the_next_line() {
+    let source =
+        "class Foo\n{\n    Q_OBJECT\n    // note \\\n    Q_PROPERTY(int ghost READ ghost)\n};\n";
+
+    let sites = scan(source);
+
+    assert_eq!(sites.len(), 1);
+    assert_eq!(sites[0].name, "Q_OBJECT");
+}
+
+#[test]
+#[cfg(feature = "syntax-api")]
+fn the_check_path_accepts_raw_string_literals_between_macros() {
+    let diagnostics = check_diagnostics("raw.h", RAW_STRING_PROBE);
+
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+}

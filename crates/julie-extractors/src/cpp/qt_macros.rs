@@ -44,6 +44,10 @@ const VENDOR_STATEMENT_MACROS: &[&str] = &[
     "QUICK_TEST_MAIN_WITH_SETUP",
 ];
 
+const RAW_STRING_PREFIXES: &[&[u8]] = &[b"R", b"LR", b"uR", b"UR", b"u8R"];
+const ENCODING_PREFIXES: &[&[u8]] = &[b"", b"L", b"u", b"U", b"u8"];
+const MAX_RAW_DELIMITER: usize = 16;
+
 const DEPRECATION_MARKER: &str = "_DEPRECATED";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -95,13 +99,17 @@ pub(crate) fn scan(content: &str) -> Vec<MacroSite> {
 
     while cursor < bytes.len() {
         match bytes[cursor] {
-            b'/' if bytes.get(cursor + 1) == Some(&b'/') => cursor = end_of_line(bytes, cursor),
+            b'/' if bytes.get(cursor + 1) == Some(&b'/') => {
+                cursor = end_of_logical_line(bytes, cursor);
+            }
             b'/' if bytes.get(cursor + 1) == Some(&b'*') => {
                 cursor = end_of_block_comment(bytes, cursor + 2);
             }
-            b'"' | b'\'' => cursor = end_of_literal(bytes, cursor),
+            b'"' | b'\'' => {
+                cursor = end_of_literal_token(bytes, cursor).unwrap_or(cursor + 1);
+            }
             b'#' if line_prefix(content, cursor).is_empty() => {
-                cursor = end_of_preprocessor(bytes, cursor);
+                cursor = end_of_logical_line(bytes, cursor);
             }
             byte if is_identifier_start(byte) => {
                 let (next, site) = identifier(content, bytes, &line_starts, cursor);
@@ -130,21 +138,12 @@ fn identifier(
     line_starts: &[usize],
     start: usize,
 ) -> (usize, Option<MacroSite>) {
-    let mut end = start;
-    while end < bytes.len() && is_identifier_byte(bytes[end]) {
-        end += 1;
+    if let Some(after_literal) = end_of_literal_token(bytes, start) {
+        return (after_literal, None);
     }
-    let word = &content[start..end];
 
-    if bytes.get(end) == Some(&b'"') {
-        if matches!(word, "R" | "LR" | "uR" | "UR" | "u8R") {
-            return (end_of_raw_string(bytes, end + 1), None);
-        }
-        return (end_of_literal(bytes, end), None);
-    }
-    if bytes.get(end) == Some(&b'\'') && matches!(word, "L" | "u" | "U" | "u8") {
-        return (end_of_literal(bytes, end), None);
-    }
+    let end = end_of_identifier(bytes, start);
+    let word = &content[start..end];
 
     let prefix = line_prefix(content, start);
     let site = |kind, name: &str, arguments, end_byte| {
@@ -302,8 +301,25 @@ fn macro_extent(content: &str, bytes: &[u8], end: usize) -> (usize, Option<Strin
 }
 
 fn argument_list_start(bytes: &[u8], from: usize) -> Option<usize> {
-    let open = skip_blanks(bytes, from);
+    let open = skip_trivia(bytes, from);
     (bytes.get(open) == Some(&b'(')).then_some(open)
+}
+
+/// Whitespace, newlines and comments between a macro name and its argument list.
+fn skip_trivia(bytes: &[u8], from: usize) -> usize {
+    let mut cursor = from;
+    loop {
+        match bytes.get(cursor) {
+            Some(b' ' | b'\t' | b'\n' | b'\r') => cursor += 1,
+            Some(b'/') if bytes.get(cursor + 1) == Some(&b'/') => {
+                cursor = end_of_logical_line(bytes, cursor);
+            }
+            Some(b'/') if bytes.get(cursor + 1) == Some(&b'*') => {
+                cursor = end_of_block_comment(bytes, cursor + 2);
+            }
+            _ => return cursor,
+        }
+    }
 }
 
 fn matching_paren(bytes: &[u8], open: usize) -> Option<usize> {
@@ -322,10 +338,15 @@ fn matching_paren(bytes: &[u8], open: usize) -> Option<usize> {
                 }
                 cursor += 1;
             }
-            b'"' | b'\'' => cursor = end_of_literal(bytes, cursor),
-            b'/' if bytes.get(cursor + 1) == Some(&b'/') => cursor = end_of_line(bytes, cursor),
+            b'/' if bytes.get(cursor + 1) == Some(&b'/') => {
+                cursor = end_of_logical_line(bytes, cursor);
+            }
             b'/' if bytes.get(cursor + 1) == Some(&b'*') => {
                 cursor = end_of_block_comment(bytes, cursor + 2);
+            }
+            byte if byte == b'"' || byte == b'\'' || is_identifier_start(byte) => {
+                cursor = end_of_literal_token(bytes, cursor)
+                    .unwrap_or_else(|| end_of_identifier(bytes, cursor).max(cursor + 1));
             }
             _ => cursor += 1,
         }
@@ -399,6 +420,32 @@ fn end_of_block_comment(bytes: &[u8], from: usize) -> usize {
     bytes.len()
 }
 
+/// The end of a string, character or raw-string literal that starts at `start`,
+/// its encoding prefix included, or `None` when no literal starts there. The
+/// outer scan and the macro argument balancing share it, so a raw string never
+/// closes a macro early.
+fn end_of_literal_token(bytes: &[u8], start: usize) -> Option<usize> {
+    let quote = end_of_identifier(bytes, start);
+    let prefix = &bytes[start..quote];
+    match bytes.get(quote) {
+        Some(b'"') if RAW_STRING_PREFIXES.contains(&prefix) => {
+            Some(end_of_raw_string(bytes, quote))
+        }
+        Some(b'"' | b'\'') if ENCODING_PREFIXES.contains(&prefix) => {
+            Some(end_of_literal(bytes, quote))
+        }
+        _ => None,
+    }
+}
+
+fn end_of_identifier(bytes: &[u8], from: usize) -> usize {
+    let mut cursor = from;
+    while cursor < bytes.len() && is_identifier_byte(bytes[cursor]) {
+        cursor += 1;
+    }
+    cursor
+}
+
 fn end_of_literal(bytes: &[u8], start: usize) -> usize {
     let quote = bytes[start];
     let mut cursor = start + 1;
@@ -413,9 +460,12 @@ fn end_of_literal(bytes: &[u8], start: usize) -> usize {
     bytes.len()
 }
 
+/// A raw string delimiter is at most 16 characters, so a `R"` with no `(` after
+/// it is a malformed literal and the scan treats it as an ordinary one.
 fn end_of_raw_string(bytes: &[u8], quote: usize) -> usize {
     let open = quote + 1;
-    let Some(paren) = bytes[open..]
+    let limit = bytes.len().min(open + MAX_RAW_DELIMITER + 1);
+    let Some(paren) = bytes[open.min(limit)..limit]
         .iter()
         .position(|byte| *byte == b'(')
         .map(|at| open + at)
@@ -436,7 +486,9 @@ fn end_of_raw_string(bytes: &[u8], quote: usize) -> usize {
     bytes.len()
 }
 
-fn end_of_preprocessor(bytes: &[u8], from: usize) -> usize {
+/// A preprocessor line and a `//` comment both continue onto the next physical
+/// line when the line ends in a backslash.
+fn end_of_logical_line(bytes: &[u8], from: usize) -> usize {
     let mut cursor = from;
     loop {
         let line_end = end_of_line(bytes, cursor);
