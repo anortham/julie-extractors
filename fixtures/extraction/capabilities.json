@@ -435,6 +435,11 @@
           "name": "return_types",
           "source": "fixtures/extraction/cpp/return_types/source.cpp",
           "expected": "fixtures/extraction/cpp/return_types/expected.json"
+        },
+        {
+          "name": "qt_header",
+          "source": "fixtures/extraction/cpp/qt_header/source.h",
+          "expected": "fixtures/extraction/cpp/qt_header/expected.json"
         }
       ],
       "target_capabilities": {

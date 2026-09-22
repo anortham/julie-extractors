@@ -3,7 +3,7 @@ use crate::base::{
     ComplexityMetric, ExtractionResults, Identifier, Literal, ParseDiagnostic, PendingRelationship,
     Relationship, SourceRegion, StructuralFact, Symbol, TypeArgument, TypeArgumentUsage, TypeInfo,
 };
-use crate::pipeline::{detect_language_for_path, extract_canonical};
+use crate::pipeline::extract_canonical;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -605,8 +605,8 @@ fn extract_fixture(root: &Path, language: &str, fixture: &FixtureRow) -> Extract
                     err
                 )
             }));
-        let detected = detect_language_for_path(source_path)
-            .unwrap_or_else(|err| panic!("failed to detect language for {source_path}: {err}"));
+        let detected = crate::language_spec::detect_language_for_source(source_path, &source)
+            .unwrap_or_else(|| panic!("failed to detect language for {source_path}"));
         assert_eq!(
             detected, language,
             "fixture {}:{} source {} must route through its registry language",
