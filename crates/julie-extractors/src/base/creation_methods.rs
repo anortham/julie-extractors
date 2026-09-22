@@ -85,6 +85,22 @@ impl BaseExtractor {
         }
     }
 
+    /// Normalized span for an absolute byte range of this file.
+    pub(crate) fn span_for_byte_range(&self, start: usize, end: usize) -> Option<NormalizedSpan> {
+        NormalizedSpan::from_content_range_with_line_starts(
+            &self.content,
+            self.line_starts(),
+            start,
+            end,
+        )
+    }
+
+    /// Replace the inferred body span with a grammar-derived span, or clear it.
+    pub(crate) fn set_body_span(&self, symbol: &mut Symbol, span: Option<NormalizedSpan>) {
+        symbol.body_span = span;
+        symbol.body_hash = span.and_then(|span| body_hash(&self.content, span, &self.language));
+    }
+
     /// Create an identifier (reference/usage) - NEW for LSP-quality reference tracking
     ///
     /// Unlike symbols (definitions), identifiers represent usage sites.
@@ -138,6 +154,38 @@ impl BaseExtractor {
         metadata: Option<HashMap<String, serde_json::Value>>,
     ) -> Identifier {
         let span = NormalizedSpan::from_node(node);
+        self.push_identifier_at_span(
+            span,
+            name,
+            kind,
+            containing_symbol_id,
+            receiver_type,
+            metadata,
+        )
+    }
+
+    /// Create an identifier for a byte range inside a node, such as one name
+    /// in a delimited attribute value.
+    pub(crate) fn create_identifier_at_span(
+        &mut self,
+        span: NormalizedSpan,
+        name: String,
+        kind: IdentifierKind,
+        containing_symbol_id: Option<String>,
+        metadata: Option<HashMap<String, serde_json::Value>>,
+    ) -> Identifier {
+        self.push_identifier_at_span(span, name, kind, containing_symbol_id, None, metadata)
+    }
+
+    fn push_identifier_at_span(
+        &mut self,
+        span: NormalizedSpan,
+        name: String,
+        kind: IdentifierKind,
+        containing_symbol_id: Option<String>,
+        receiver_type: Option<String>,
+        metadata: Option<HashMap<String, serde_json::Value>>,
+    ) -> Identifier {
         let id = self.generate_id_for_span(&name, &span);
 
         let identifier = Identifier {

@@ -1,0 +1,264 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/xml/maven/pom.xml:ci:27:4",
+      "name": "ci",
+      "kind": "module",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/maven/pom.xml",
+      "start_line": 27,
+      "start_column": 4,
+      "end_line": 29,
+      "end_column": 14,
+      "start_byte": 641,
+      "end_byte": 683,
+      "body_span": {
+        "start_line": 27,
+        "start_column": 13,
+        "end_line": 29,
+        "end_column": 4,
+        "start_byte": 650,
+        "end_byte": 673
+      },
+      "body_hash": "da7f0a18a2e660d8c6d2183a5baf471a",
+      "signature": "<profile>",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/xml/maven/pom.xml:shop-api:1:0",
+      "metadata": {
+        "name_attribute": "id",
+        "tag": "profile"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/xml/maven/pom.xml:shop-api:1:0",
+      "name": "shop-api",
+      "kind": "module",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/maven/pom.xml",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 31,
+      "end_column": 10,
+      "start_byte": 0,
+      "end_byte": 708,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 51,
+        "end_line": 31,
+        "end_column": 0,
+        "start_byte": 51,
+        "end_byte": 698
+      },
+      "body_hash": "ceb230c1a02e27bba0bcec20622062e5",
+      "signature": "<project xmlns=\"http://maven.apache.org/POM/4.0.0\">",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "groupId": "com.example",
+        "name_attribute": "artifactId",
+        "tag": "project",
+        "version": "1.0.0"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/xml/maven/pom.xml:shop-api:1:0",
+      "callee_name": "../pom.xml",
+      "kind": "imports",
+      "file_path": "fixtures/extraction/xml/maven/pom.xml",
+      "line_number": 2,
+      "confidence": "1.000"
+    },
+    {
+      "from_key": "fixtures/extraction/xml/maven/pom.xml:shop-api:1:0",
+      "callee_name": "shop-core/pom.xml",
+      "kind": "imports",
+      "file_path": "fixtures/extraction/xml/maven/pom.xml",
+      "line_number": 9,
+      "confidence": "1.000"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/xml/maven/pom.xml:shop-api:1:0",
+        "callee_name": "../pom.xml",
+        "kind": "imports",
+        "file_path": "fixtures/extraction/xml/maven/pom.xml",
+        "line_number": 2,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "../pom.xml",
+        "terminal_name": "pom.xml",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": "../pom.xml"
+      },
+      "caller_scope_key": "fixtures/extraction/xml/maven/pom.xml:shop-api:1:0",
+      "span": null
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/xml/maven/pom.xml:shop-api:1:0",
+        "callee_name": "shop-core/pom.xml",
+        "kind": "imports",
+        "file_path": "fixtures/extraction/xml/maven/pom.xml",
+        "line_number": 9,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "shop-core/pom.xml",
+        "terminal_name": "pom.xml",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": "shop-core/pom.xml"
+      },
+      "caller_scope_key": "fixtures/extraction/xml/maven/pom.xml:shop-api:1:0",
+      "span": null
+    }
+  ],
+  "identifiers": [],
+  "types": [],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "manifest.dependency.v1",
+      "capture_name": "dependency",
+      "node_kind": "element",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/maven/pom.xml",
+      "containing_key": "fixtures/extraction/xml/maven/pom.xml:shop-api:1:0",
+      "start_line": 12,
+      "start_column": 4,
+      "end_line": 17,
+      "end_column": 17,
+      "start_byte": 293,
+      "end_byte": 469,
+      "confidence": "1.000",
+      "metadata": {
+        "ecosystem": "maven",
+        "group": "test",
+        "name": "org.junit.jupiter:junit-jupiter",
+        "pattern_version": 1,
+        "query_family": "dependencies",
+        "version": "5.10.0"
+      }
+    },
+    {
+      "pattern_id": "manifest.dependency.v1",
+      "capture_name": "dependency",
+      "node_kind": "element",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/maven/pom.xml",
+      "containing_key": "fixtures/extraction/xml/maven/pom.xml:shop-api:1:0",
+      "start_line": 21,
+      "start_column": 6,
+      "end_line": 23,
+      "end_column": 15,
+      "start_byte": 518,
+      "end_byte": 597,
+      "confidence": "1.000",
+      "metadata": {
+        "ecosystem": "maven",
+        "group": "plugin",
+        "name": "org.apache.maven.plugins:maven-surefire-plugin",
+        "pattern_version": 1,
+        "query_family": "dependencies"
+      }
+    },
+    {
+      "pattern_id": "xml.document.v1",
+      "capture_name": "document",
+      "node_kind": "document",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/maven/pom.xml",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 32,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 709,
+      "confidence": "1.000",
+      "metadata": {
+        "dialect": "xml",
+        "element_count": 21,
+        "has_xml_declaration": false,
+        "max_depth": 5,
+        "namespace_count": 1,
+        "pattern_version": 1,
+        "query_family": "document_structure",
+        "root_element": "project"
+      }
+    },
+    {
+      "pattern_id": "xml.namespace_declaration.v1",
+      "capture_name": "namespace_declaration",
+      "node_kind": "Attribute",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/maven/pom.xml",
+      "containing_key": "fixtures/extraction/xml/maven/pom.xml:shop-api:1:0",
+      "start_line": 1,
+      "start_column": 9,
+      "end_line": 1,
+      "end_column": 50,
+      "start_byte": 9,
+      "end_byte": 50,
+      "confidence": "1.000",
+      "metadata": {
+        "is_default": true,
+        "namespace_uri": "http://maven.apache.org/POM/4.0.0",
+        "pattern_version": 1,
+        "query_family": "document_metadata"
+      }
+    }
+  ],
+  "complexity_metrics": [],
+  "literals": [
+    {
+      "literal_text": "http://maven.apache.org/POM/4.0.0",
+      "kind": "other",
+      "carrier": "project.xmlns",
+      "arg_position": 0,
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/maven/pom.xml",
+      "start_line": 1,
+      "start_column": 15,
+      "end_line": 1,
+      "end_column": 50,
+      "start_byte": 15,
+      "end_byte": 50,
+      "containing_key": "fixtures/extraction/xml/maven/pom.xml:shop-api:1:0",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "string_literal",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/maven/pom.xml",
+      "containing_key": "fixtures/extraction/xml/maven/pom.xml:shop-api:1:0",
+      "start_line": 1,
+      "start_column": 15,
+      "end_line": 1,
+      "end_column": 50,
+      "start_byte": 15,
+      "end_byte": 50,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
+}

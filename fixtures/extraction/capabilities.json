@@ -6831,6 +6831,11 @@
           "expected": "fixtures/extraction/json/jsonc/expected.json"
         },
         {
+          "name": "openapi",
+          "source": "fixtures/extraction/json/openapi/source.json",
+          "expected": "fixtures/extraction/json/openapi/expected.json"
+        },
+        {
           "name": "test_roles",
           "source": "fixtures/extraction/json/test_roles/source.json",
           "expected": "fixtures/extraction/json/test_roles/expected.json"
@@ -6908,7 +6913,8 @@
             "json.object.v1",
             "json.property.v1",
             "json.ref.v1",
-            "json.schema.v1"
+            "json.schema.v1",
+            "openapi.route.v1"
           ],
           "not_applicable": [],
           "open_gaps": [
@@ -6980,7 +6986,7 @@
       "capabilities": {
         "symbols": true,
         "relationships": true,
-        "pending_relationships": false,
+        "pending_relationships": true,
         "identifiers": false,
         "types": false
       },
@@ -7019,22 +7025,11 @@
       "target_capabilities": {
         "symbols": true,
         "relationships": true,
-        "pending_relationships": false,
+        "pending_relationships": true,
         "identifiers": false,
         "types": false
       },
       "capability_gaps": [
-        {
-          "capability": "pending_relationships",
-          "status": "exception",
-          "reason": "TOML has no cross-document construct that requires deferred resolution. All references in TOML are file-local (Cargo deps, pyproject tool tables). Domain limitation, not a gap.",
-          "required_closure": "N/A — domain limitation. TOML resolution is always intra-file.",
-          "evidence": {
-            "kind": "fixture",
-            "value": "fixtures/extraction/toml/basic/expected.json",
-            "command": "cargo xtask test golden"
-          }
-        },
         {
           "capability": "types",
           "status": "exception",
@@ -7095,6 +7090,7 @@
         },
         "structural_facts": {
           "supported": [
+            "manifest.dependency.v1",
             "toml.array_table.v1",
             "toml.inline_table.v1",
             "toml.key_value.v1",
@@ -7170,7 +7166,7 @@
       "capabilities": {
         "symbols": true,
         "relationships": true,
-        "pending_relationships": false,
+        "pending_relationships": true,
         "identifiers": true,
         "types": false
       },
@@ -7189,27 +7185,36 @@
           "name": "test_roles",
           "source": "fixtures/extraction/yaml/test_roles/source.yaml",
           "expected": "fixtures/extraction/yaml/test_roles/expected.json"
+        },
+        {
+          "name": "openapi",
+          "source": "fixtures/extraction/yaml/openapi/source.yaml",
+          "expected": "fixtures/extraction/yaml/openapi/expected.json"
+        },
+        {
+          "name": "cloudformation",
+          "source": "fixtures/extraction/yaml/cloudformation/template.yaml",
+          "expected": "fixtures/extraction/yaml/cloudformation/expected.json"
+        },
+        {
+          "name": "github_actions",
+          "source": "fixtures/extraction/yaml/ci/.github/workflows/ci.yml",
+          "expected": "fixtures/extraction/yaml/ci/expected.json"
+        },
+        {
+          "name": "gitlab_ci",
+          "source": "fixtures/extraction/yaml/gitlab/.gitlab-ci.yml",
+          "expected": "fixtures/extraction/yaml/gitlab/expected.json"
         }
       ],
       "target_capabilities": {
         "symbols": true,
         "relationships": true,
-        "pending_relationships": false,
+        "pending_relationships": true,
         "identifiers": true,
         "types": false
       },
       "capability_gaps": [
-        {
-          "capability": "pending_relationships",
-          "status": "exception",
-          "reason": "YAML anchors/aliases are within-document. YAML has no cross-document forward-reference construct.",
-          "required_closure": "N/A — domain limitation.",
-          "evidence": {
-            "kind": "test",
-            "value": "yaml_pending_relationships_intra_document_only",
-            "command": "cargo nextest run -p julie-extractors --lib tests::yaml::cross_file_pending::yaml_pending_relationships_intra_document_only"
-          }
-        },
         {
           "capability": "types",
           "status": "exception",
@@ -7246,20 +7251,26 @@
           "open_gaps": []
         },
         "body_spans": {
-          "supported": [],
+          "supported": [
+            "module"
+          ],
           "not_applicable": [
-            "module",
             "variable"
           ],
           "open_gaps": []
         },
         "structural_facts": {
           "supported": [
+            "openapi.route.v1",
             "yaml.alias.v1",
             "yaml.anchor.v1",
+            "yaml.ci_job.v1",
+            "yaml.ci_trigger.v1",
+            "yaml.ci_uses.v1",
             "yaml.document.v1",
             "yaml.key_value.v1",
             "yaml.mapping.v1",
+            "yaml.ref.v1",
             "yaml.sequence.v1"
           ],
           "not_applicable": [],
@@ -7290,6 +7301,7 @@
         },
         "doc_comments": {
           "supported": [
+            "module",
             "variable"
           ],
           "not_applicable": [],
@@ -7341,8 +7353,8 @@
       "dependency_status": "current",
       "capabilities": {
         "symbols": true,
-        "relationships": false,
-        "pending_relationships": false,
+        "relationships": true,
+        "pending_relationships": true,
         "identifiers": true,
         "types": false
       },
@@ -7371,40 +7383,31 @@
           "name": "test_roles",
           "source": "fixtures/extraction/xml/test_roles/source.xml",
           "expected": "fixtures/extraction/xml/test_roles/expected.json"
+        },
+        {
+          "name": "msbuild",
+          "source": "fixtures/extraction/xml/msbuild/App.csproj",
+          "expected": "fixtures/extraction/xml/msbuild/expected.json"
+        },
+        {
+          "name": "maven",
+          "source": "fixtures/extraction/xml/maven/pom.xml",
+          "expected": "fixtures/extraction/xml/maven/expected.json"
+        },
+        {
+          "name": "negative",
+          "source": "fixtures/extraction/xml/negative/Negative.targets",
+          "expected": "fixtures/extraction/xml/negative/expected.json"
         }
       ],
       "target_capabilities": {
         "symbols": true,
-        "relationships": false,
-        "pending_relationships": false,
+        "relationships": true,
+        "pending_relationships": true,
         "identifiers": true,
         "types": false
       },
       "capability_gaps": [
-        {
-          "capability": "relationships",
-          "status": "open",
-          "reason": "XSD and WSDL QName attribute references (type, ref, base, element) are emitted as identifiers rather than relationship edges: resolving a QName to the declaration it names requires namespace resolution over in-scope xmlns declarations, which the XML tier does not perform, so the registered xml goldens carry no relationship rows.",
-          "required_closure": "resolve QName prefixes through in-scope xmlns declarations, emit references edges from the reference site to the named declaration, register cross-file and negative golden evidence, then raise capabilities.relationships",
-          "evidence": {
-            "kind": "fixture",
-            "value": "fixtures/extraction/xml/xsd/expected.json",
-            "command": "cargo xtask test golden"
-          },
-          "planned_closure_task": "Task 14: XML Reference Edge Closure"
-        },
-        {
-          "capability": "pending_relationships",
-          "status": "open",
-          "reason": "XSD imports and WSDL bindings reference components declared in other documents, but no structured pending edges are produced while the XML tier emits no relationships at all.",
-          "required_closure": "emit structured pending relationships with terminal name, display name, and caller scope for cross-document QName references and register a cross_file golden",
-          "evidence": {
-            "kind": "fixture",
-            "value": "fixtures/extraction/xml/wsdl/expected.json",
-            "command": "cargo xtask test golden"
-          },
-          "planned_closure_task": "Task 14: XML Reference Edge Closure"
-        },
         {
           "capability": "types",
           "status": "exception",
@@ -7427,7 +7430,9 @@
           "open_gaps": []
         },
         "relationships": {
-          "supported": [],
+          "supported": [
+            "calls"
+          ],
           "not_applicable": [],
           "open_gaps": [
             {
@@ -7440,12 +7445,12 @@
         },
         "identifiers": {
           "supported": [
-            "type_usage"
+            "call",
+            "type_usage",
+            "variable_ref"
           ],
           "not_applicable": [
-            "call",
-            "member_access",
-            "variable_ref"
+            "member_access"
           ],
           "open_gaps": []
         },
@@ -7459,7 +7464,9 @@
         },
         "structural_facts": {
           "supported": [
+            "manifest.dependency.v1",
             "xml.document.v1",
+            "xml.msbuild_property.v1",
             "xml.namespace_declaration.v1",
             "xml.wsdl.binding.v1",
             "xml.wsdl.message.v1",

@@ -1,6 +1,19 @@
 [project]
 name = "myapp"
 version = "0.1.0"
+dependencies = [
+    "fastapi>=0.115", # web framework
+    "SQLAlchemy[asyncio]>=2.0; python_version >= '3.10'",
+]
+
+[project.optional-dependencies]
+redis = ["redis>=5"]
+
+[project.scripts]
+myapp = "myapp.cli:main"
+
+[project.entry-points."pytest11"]
+myapp = "myapp.pytest_plugin"
 
 [tool.ruff]
 line-length = 88
@@ -10,3 +23,6 @@ asyncio_mode = "auto"
 
 [tool.mypy]
 strict = true
+
+[tool.poetry.group.dev.dependencies]
+pytest = { version = "^8" }

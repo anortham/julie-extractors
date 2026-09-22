@@ -61,13 +61,11 @@ fn a_csproj_document_extracts_its_named_msbuild_structure() {
     let results = extract_canonical("App.csproj", CSPROJ, &PathBuf::from("/tmp/test"))
         .expect("csproj extraction failed");
 
-    assert!(
-        results
-            .symbols
-            .iter()
-            .all(|symbol| symbol.language == "xml"),
-        "csproj content should extract as xml"
-    );
+    assert_eq!(names(&results), vec!["App"]);
+    assert!(results.structural_facts.iter().any(|fact| {
+        fact.pattern_id == "manifest.dependency.v1"
+            && fact.metadata.as_ref().unwrap()["name"] == "xunit.v3"
+    }));
 }
 
 fn names(results: &crate::ExtractionResults) -> Vec<&str> {
@@ -79,7 +77,7 @@ fn names(results: &crate::ExtractionResults) -> Vec<&str> {
 }
 
 #[test]
-fn the_xml_tier_emits_no_relationships_or_types() {
+fn a_generic_xml_document_emits_no_relationships_or_types() {
     let results = extract("config.xml");
 
     assert!(results.relationships.is_empty());

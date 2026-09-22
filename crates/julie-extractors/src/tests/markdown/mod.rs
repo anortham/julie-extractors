@@ -5,6 +5,8 @@
 // Target: 400+ lines with edge cases, special syntax, and real-world validation
 
 pub mod cross_file_pending;
+pub mod headings;
+pub mod inline_grammar;
 pub mod relationships;
 pub mod semantics;
 pub mod structural_facts;

@@ -44,7 +44,7 @@
       "signature": "[^1]: An intra-document footnote.",
       "doc_comment": "An intra-document footnote.",
       "visibility": null,
-      "parent_key": "fixtures/extraction/markdown/cross_file/source.md:ext-ref:15:0",
+      "parent_key": "fixtures/extraction/markdown/cross_file/source.md:Local heading:11:0",
       "metadata": {
         "destination": "An intra-document footnote.",
         "markdown_kind": "footnote_definition",
@@ -70,7 +70,7 @@
       "body_span": null,
       "body_hash": null,
       "signature": null,
-      "doc_comment": "Phase 4d fixture: Markdown links and footnotes are intra-document references\nor opaque URL/path strings. There is no symbol-level forward-reference\nconstruct; structured pending is intentionally empty.\n\n\nSee [the other doc](./other.md) for context. See also [external][ext-ref].\n\n\n[Local heading](#local-heading)\n",
+      "doc_comment": "Phase 4d fixture: Markdown links and footnotes are intra-document references\nor opaque URL/path strings. There is no symbol-level forward-reference\nconstruct; structured pending is intentionally empty.\n\nSee [the other doc](./other.md) for context. See also [external][ext-ref].\n\n[Local heading](#local-heading)",
       "visibility": null,
       "parent_key": null,
       "metadata": {
@@ -97,7 +97,7 @@
       "body_span": null,
       "body_hash": null,
       "signature": null,
-      "doc_comment": "Footnote test[^1] resolves within this document.\n\n\n[^1]: An intra-document footnote.\n",
+      "doc_comment": "Footnote test[^1] resolves within this document.\n\n[^1]: An intra-document footnote.",
       "visibility": null,
       "parent_key": "fixtures/extraction/markdown/cross_file/source.md:Cross-file references in Markdown:1:0",
       "metadata": {
@@ -150,7 +150,7 @@
       "end_byte": 468,
       "body_span": null,
       "body_hash": null,
-      "signature": "[ext-ref]: https://example.com/external \"External\"\n",
+      "signature": "[ext-ref]: https://example.com/external \"External\"",
       "doc_comment": "External",
       "visibility": null,
       "parent_key": "fixtures/extraction/markdown/cross_file/source.md:Local heading:11:0",
@@ -159,6 +159,33 @@
         "markdown_kind": "link_reference_definition",
         "reference_label": "ext-ref",
         "title": "External"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": "documentation"
+    },
+    {
+      "key": "fixtures/extraction/markdown/cross_file/source.md:ext-ref:7:54",
+      "name": "ext-ref",
+      "kind": "import",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/cross_file/source.md",
+      "start_line": 7,
+      "start_column": 54,
+      "end_line": 7,
+      "end_column": 73,
+      "start_byte": 294,
+      "end_byte": 313,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "[external][ext-ref]",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/markdown/cross_file/source.md:Cross-file references in Markdown:1:0",
+      "metadata": {
+        "markdown_kind": "reference_link",
+        "reference_label": "ext-ref"
       },
       "annotations": [],
       "semantic_group": null,
@@ -202,13 +229,13 @@
       "line_number": 9,
       "span": {
         "start_line": 9,
-        "start_column": 17,
+        "start_column": 0,
         "end_line": 9,
-        "end_column": 30,
-        "start_byte": 333,
-        "end_byte": 346
+        "end_column": 31,
+        "start_byte": 316,
+        "end_byte": 347
       },
-      "reference_site_is_exact": false,
+      "reference_site_is_exact": true,
       "confidence": "1.000",
       "metadata": {
         "anchor": "local-heading"
@@ -359,6 +386,22 @@
       "start_byte": 260,
       "end_byte": 270,
       "containing_key": "fixtures/extraction/markdown/cross_file/source.md:Cross-file references in Markdown:1:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "https://example.com/external",
+      "kind": "other",
+      "carrier": "link_definition",
+      "arg_position": 0,
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/cross_file/source.md",
+      "start_line": 15,
+      "start_column": 11,
+      "end_line": 15,
+      "end_column": 39,
+      "start_byte": 428,
+      "end_byte": 456,
+      "containing_key": "fixtures/extraction/markdown/cross_file/source.md:Local heading:11:0",
       "confidence": "1.000"
     }
   ],

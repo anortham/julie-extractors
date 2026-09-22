@@ -121,7 +121,7 @@ fn pair_data(node: Node<'_>, source: &str) -> Option<(String, ValueKind)> {
         return None;
     }
     let key_name = key_text(children[0], source)?;
-    let value_kind = match children.last()?.kind() {
+    let value_kind = match super::pair_value(node)?.kind() {
         "string" => ValueKind::String,
         "integer" => ValueKind::Integer,
         _ => ValueKind::Other,

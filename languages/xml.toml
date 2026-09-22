@@ -1,0 +1,7 @@
+# Artifact-owned extraction policy only. Do not add search, embedding, watcher, or scoring config here.
+# Carriers are `tag.attribute`; the attribute name alone also matches.
+[literal_carriers]
+retain_unclassified = true
+url = ["url", "href", "src", "schemalocation"]
+sql = []
+route = []

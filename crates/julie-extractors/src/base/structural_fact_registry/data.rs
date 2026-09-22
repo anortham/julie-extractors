@@ -476,6 +476,23 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
             ),
         ],
     },
+    StructuralFactPatternSpec {
+        pattern_id: "yaml.ref.v1",
+        languages: &["yaml"],
+        query_family: "schema_structure",
+        description: "A JSON Schema / OpenAPI `$ref` key in a YAML document.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key("ref", STR, ALWAYS, "Target of the `$ref` key."),
+            key(
+                "key_path",
+                STR,
+                ALWAYS,
+                "Dotted YAML key path to the mapping that holds the `$ref`.",
+            ),
+        ],
+    },
     // Regex
     StructuralFactPatternSpec {
         pattern_id: "regex.capture_group.v1",

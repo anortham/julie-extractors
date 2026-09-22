@@ -1,6 +1,6 @@
 [worker]
 id = 1
-name = "fixture"
+name = "fixture" # display name
 active = true
 profile = { role = "admin", active = true }
 api_url = "https://api.example.com/workers/status"

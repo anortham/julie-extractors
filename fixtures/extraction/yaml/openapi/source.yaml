@@ -1,0 +1,28 @@
+openapi: 3.0.3
+info:
+  title: Pets
+  version: 1.0.0
+paths:
+  /pets/{petId}:
+    # Fetch one pet
+    get:
+      operationId: showPetById
+      parameters:
+        - name: petId
+          in: path
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+        default:
+          $ref: './common.yaml#/components/responses/Error'
+components:
+  schemas:
+    Pet:
+      allOf:
+        - $ref: '#/components/schemas/Owner'
+        - type: object
+    Owner:
+      type: object

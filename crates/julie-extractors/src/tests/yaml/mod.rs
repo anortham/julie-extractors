@@ -9,6 +9,13 @@ pub mod structural_facts;
 pub mod test_detection;
 
 #[cfg(test)]
+mod ci;
+#[cfg(test)]
+mod references;
+#[cfg(test)]
+mod structure;
+
+#[cfg(test)]
 mod literals;
 
 #[cfg(test)]
@@ -669,8 +676,7 @@ level1:
     }
 
     #[test]
-    fn test_array_value_is_not_container() {
-        // A key whose value is a sequence (not a mapping) should stay Variable
+    fn test_sequence_value_is_a_container() {
         let yaml = "fruits:\n  - apple\n  - banana\n";
         let symbols = extract_symbols(yaml);
 
@@ -678,11 +684,7 @@ level1:
             .iter()
             .find(|s| s.name == "fruits")
             .expect("Should find 'fruits'");
-        assert_eq!(
-            fruits.kind,
-            SymbolKind::Variable,
-            "Key with sequence value should be Variable, not Module"
-        );
+        assert_eq!(fruits.kind, SymbolKind::Module);
     }
 
     // ========================================================================

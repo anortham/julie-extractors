@@ -4265,6 +4265,83 @@
     "query_family": "data"
   },
   {
+    "description": "A package dependency declared in a Cargo.toml, pyproject.toml, MSBuild, NuGet, or Maven manifest.",
+    "languages": [
+      "toml",
+      "xml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Package ecosystem (\"cargo\", \"pypi\", \"nuget\", or \"maven\").",
+        "key": "ecosystem",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Dependency name: the Cargo key, the PEP 503-normalized distribution name, the NuGet package id, or the Maven `groupId:artifactId`.",
+        "key": "name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Dependency group: Cargo `dependencies`/`dev-dependencies`/`build-dependencies`/`workspace`; Python `runtime`, `optional:<extra>`, `group:<name>`, `build-system`, `poetry:<group>`; NuGet `PackageReference`/`PackageVersion`/`GlobalPackageReference`/`dependency`; Maven scope, `managed`, `plugin`, or `managed-plugin`.",
+        "key": "group",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Version requirement as written.",
+        "key": "version",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Real Cargo package name when the dependency key renames it.",
+        "key": "package",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Cargo `target.<cfg>` platform selector, or the NuGet dependency group's target framework.",
+        "key": "target",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "True when the Cargo dependency inherits from `[workspace.dependencies]`.",
+        "key": "workspace",
+        "presence": "optional",
+        "value_type": "bool"
+      },
+      {
+        "description": "PEP 508 extras.",
+        "key": "extras",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "PEP 508 environment marker.",
+        "key": "marker",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "manifest.dependency.v1",
+    "query_family": "dependencies"
+  },
+  {
     "description": "A Markdown fenced code block.",
     "languages": [
       "markdown"
@@ -5046,6 +5123,83 @@
       }
     ],
     "pattern_id": "nuxt.server_route.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "An OpenAPI or Swagger path operation (`paths.<template>.<verb>`).",
+    "languages": [
+      "json",
+      "yaml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Root version key that marks the document (\"openapi\" or \"swagger\").",
+        "key": "spec_format",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Value of the root version key.",
+        "key": "spec_version",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Upper-case HTTP method of the operation.",
+        "key": "verb",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Path template key as written under `paths`.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Swagger 2.0 `basePath` joined with the path template.",
+        "key": "effective_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family normalized route template.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "The operation's `operationId` value.",
+        "key": "operation_id",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "openapi.route.v1",
     "query_family": "framework"
   },
   {
@@ -9216,6 +9370,46 @@
     "query_family": "document_structure"
   },
   {
+    "description": "An MSBuild property: a child element of `<PropertyGroup>`.",
+    "languages": [
+      "xml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Property name (the element name).",
+        "key": "name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Trimmed property text.",
+        "key": "value",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The property's `Condition` attribute.",
+        "key": "condition",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "xml.msbuild_property.v1",
+    "query_family": "config_structure"
+  },
+  {
     "description": "An `xmlns` namespace declaration attribute.",
     "languages": [
       "xml"
@@ -9614,6 +9808,144 @@
     "query_family": "config_structure"
   },
   {
+    "description": "A GitHub Actions or GitLab CI job.",
+    "languages": [
+      "yaml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "CI platform (\"github_actions\" or \"gitlab_ci\").",
+        "key": "platform",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The job key.",
+        "key": "job_id",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "GitHub Actions `runs-on` scalar value.",
+        "key": "runs_on",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "GitLab CI `stage` value.",
+        "key": "stage",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Job ids named by `needs`.",
+        "key": "needs",
+        "presence": "optional",
+        "value_type": "string_array"
+      }
+    ],
+    "pattern_id": "yaml.ci_job.v1",
+    "query_family": "pipeline"
+  },
+  {
+    "description": "A GitHub Actions workflow trigger event under `on`.",
+    "languages": [
+      "yaml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "CI platform (\"github_actions\" or \"gitlab_ci\").",
+        "key": "platform",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Trigger event name.",
+        "key": "event",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "yaml.ci_trigger.v1",
+    "query_family": "pipeline"
+  },
+  {
+    "description": "A GitHub Actions `uses:` action, reusable workflow, or container.",
+    "languages": [
+      "yaml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "CI platform (\"github_actions\" or \"gitlab_ci\").",
+        "key": "platform",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The `uses` value as written.",
+        "key": "uses",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "\"action\", \"reusable_workflow\", \"docker\", or \"local\".",
+        "key": "kind",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "`owner/repo[/path]` for an action or reusable workflow.",
+        "key": "action",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The version after `@`.",
+        "key": "ref",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "yaml.ci_uses.v1",
+    "query_family": "pipeline"
+  },
+  {
     "description": "A YAML document node.",
     "languages": [
       "yaml"
@@ -9714,6 +10046,40 @@
     ],
     "pattern_id": "yaml.mapping.v1",
     "query_family": "config_structure"
+  },
+  {
+    "description": "A JSON Schema / OpenAPI `$ref` key in a YAML document.",
+    "languages": [
+      "yaml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Target of the `$ref` key.",
+        "key": "ref",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Dotted YAML key path to the mapping that holds the `$ref`.",
+        "key": "key_path",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "yaml.ref.v1",
+    "query_family": "schema_structure"
   },
   {
     "description": "A YAML block or flow sequence.",

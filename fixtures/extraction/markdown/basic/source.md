@@ -25,3 +25,19 @@ fn helper(value: i32) -> i32 {
 | ----- | ----- |
 | id | 1 |
 | name | fixture |
+
+Operations
+----------
+
+See [the [v2] runbook](https://ops.example.com/runbook), jump to [usage](#usage),
+or read the [worker reference][worker-ref] and the note[^ops].
+
+![Pipeline diagram](docs/pipeline.png) Contact <ops@example.com>.
+
+Regex classes such as `[^a-z]` and calls like `handlers[0](event)` are code.
+
+```js
+return handlers[name](req);
+```
+
+[^ops]: Operations run nightly.
