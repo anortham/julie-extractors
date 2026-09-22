@@ -1,6 +1,32 @@
 {
   "symbols": [
     {
+      "key": "fixtures/extraction/rust/axum_routes/source.rs:Router:3:0",
+      "name": "Router",
+      "kind": "import",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/axum_routes/source.rs",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 6,
+      "end_column": 2,
+      "start_byte": 154,
+      "end_byte": 205,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "use axum::{\n    routing::{any, get},\n    Router,\n};",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "importedName": "Router"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/rust/axum_routes/source.rs:USERS:27:4",
       "name": "USERS",
       "kind": "constant",
@@ -81,6 +107,32 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/axum_routes/source.rs:any:3:0",
+      "name": "any",
+      "kind": "import",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/axum_routes/source.rs",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 6,
+      "end_column": 2,
+      "start_byte": 154,
+      "end_byte": 205,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "use axum::{\n    routing::{any, get},\n    Router,\n};",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "importedName": "any"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -169,37 +221,6 @@
       "metadata": {
         "role": "parameter"
       },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
-      "key": "fixtures/extraction/rust/axum_routes/source.rs:axum:3:0",
-      "name": "axum",
-      "kind": "import",
-      "language": "rust",
-      "file_path": "fixtures/extraction/rust/axum_routes/source.rs",
-      "start_line": 3,
-      "start_column": 0,
-      "end_line": 6,
-      "end_column": 2,
-      "start_byte": 154,
-      "end_byte": 205,
-      "body_span": {
-        "start_line": 3,
-        "start_column": 10,
-        "end_line": 6,
-        "end_column": 1,
-        "start_byte": 164,
-        "end_byte": 204
-      },
-      "body_hash": "b493dd968294160cb3dfe16f9488bab0",
-      "signature": "use axum::{\n    routing::{any, get},\n    Router,\n};",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": null,
-      "metadata": {},
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -361,6 +382,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/rust/axum_routes/source.rs:get:3:0",
+      "name": "get",
+      "kind": "import",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/axum_routes/source.rs",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 6,
+      "end_column": 2,
+      "start_byte": 154,
+      "end_byte": 205,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "use axum::{\n    routing::{any, get},\n    Router,\n};",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "importedName": "get"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/rust/axum_routes/source.rs:health:37:0",
       "name": "health",
       "kind": "function",
@@ -502,12 +549,20 @@
   ],
   "pending_relationships": [
     {
+      "from_key": "fixtures/extraction/rust/axum_routes/source.rs:Router:3:0",
+      "callee_name": "axum::Router",
+      "kind": "imports",
+      "file_path": "fixtures/extraction/rust/axum_routes/source.rs",
+      "line_number": 3,
+      "confidence": "1.000"
+    },
+    {
       "from_key": "fixtures/extraction/rust/axum_routes/source.rs:add_admin:20:0",
       "callee_name": "get",
       "kind": "calls",
       "file_path": "fixtures/extraction/rust/axum_routes/source.rs",
       "line_number": 21,
-      "confidence": "0.700"
+      "confidence": "0.800"
     },
     {
       "from_key": "fixtures/extraction/rust/axum_routes/source.rs:add_admin:20:0",
@@ -518,12 +573,20 @@
       "confidence": "0.700"
     },
     {
+      "from_key": "fixtures/extraction/rust/axum_routes/source.rs:any:3:0",
+      "callee_name": "axum::routing::any",
+      "kind": "imports",
+      "file_path": "fixtures/extraction/rust/axum_routes/source.rs",
+      "line_number": 3,
+      "confidence": "1.000"
+    },
+    {
       "from_key": "fixtures/extraction/rust/axum_routes/source.rs:api_routes:43:0",
       "callee_name": "get",
       "kind": "calls",
       "file_path": "fixtures/extraction/rust/axum_routes/source.rs",
       "line_number": 44,
-      "confidence": "0.700"
+      "confidence": "0.800"
     },
     {
       "from_key": "fixtures/extraction/rust/axum_routes/source.rs:api_routes:43:0",
@@ -547,7 +610,7 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/rust/axum_routes/source.rs",
       "line_number": 14,
-      "confidence": "0.700"
+      "confidence": "0.800"
     },
     {
       "from_key": "fixtures/extraction/rust/axum_routes/source.rs:app:10:0",
@@ -555,7 +618,7 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/rust/axum_routes/source.rs",
       "line_number": 12,
-      "confidence": "0.700"
+      "confidence": "0.800"
     },
     {
       "from_key": "fixtures/extraction/rust/axum_routes/source.rs:app:10:0",
@@ -563,7 +626,7 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/rust/axum_routes/source.rs",
       "line_number": 13,
-      "confidence": "0.700"
+      "confidence": "0.800"
     },
     {
       "from_key": "fixtures/extraction/rust/axum_routes/source.rs:app:10:0",
@@ -614,14 +677,6 @@
       "confidence": "0.700"
     },
     {
-      "from_key": "fixtures/extraction/rust/axum_routes/source.rs:axum:3:0",
-      "callee_name": "axum",
-      "kind": "imports",
-      "file_path": "fixtures/extraction/rust/axum_routes/source.rs",
-      "line_number": 3,
-      "confidence": "1.000"
-    },
-    {
       "from_key": "fixtures/extraction/rust/axum_routes/source.rs:dynamic:26:0",
       "callee_name": "as_str",
       "kind": "calls",
@@ -635,7 +690,7 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/rust/axum_routes/source.rs",
       "line_number": 29,
-      "confidence": "0.700"
+      "confidence": "0.800"
     },
     {
       "from_key": "fixtures/extraction/rust/axum_routes/source.rs:dynamic:26:0",
@@ -643,7 +698,7 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/rust/axum_routes/source.rs",
       "line_number": 30,
-      "confidence": "0.700"
+      "confidence": "0.800"
     },
     {
       "from_key": "fixtures/extraction/rust/axum_routes/source.rs:dynamic:26:0",
@@ -651,7 +706,7 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/rust/axum_routes/source.rs",
       "line_number": 31,
-      "confidence": "0.700"
+      "confidence": "0.800"
     },
     {
       "from_key": "fixtures/extraction/rust/axum_routes/source.rs:dynamic:26:0",
@@ -692,9 +747,45 @@
       "file_path": "fixtures/extraction/rust/axum_routes/source.rs",
       "line_number": 30,
       "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/axum_routes/source.rs:get:3:0",
+      "callee_name": "axum::routing::get",
+      "kind": "imports",
+      "file_path": "fixtures/extraction/rust/axum_routes/source.rs",
+      "line_number": 3,
+      "confidence": "1.000"
     }
   ],
   "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/axum_routes/source.rs:Router:3:0",
+        "callee_name": "axum::Router",
+        "kind": "imports",
+        "file_path": "fixtures/extraction/rust/axum_routes/source.rs",
+        "line_number": 3,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "axum::Router",
+        "terminal_name": "Router",
+        "receiver": null,
+        "namespace_path": [
+          "axum"
+        ],
+        "import_context": "use axum::{\n    routing::{any, get},\n    Router,\n};"
+      },
+      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:Router:3:0",
+      "span": {
+        "start_line": 3,
+        "start_column": 0,
+        "end_line": 6,
+        "end_column": 2,
+        "start_byte": 154,
+        "end_byte": 205
+      }
+    },
     {
       "pending": {
         "from_key": "fixtures/extraction/rust/axum_routes/source.rs:add_admin:20:0",
@@ -702,7 +793,7 @@
         "kind": "calls",
         "file_path": "fixtures/extraction/rust/axum_routes/source.rs",
         "line_number": 21,
-        "confidence": "0.700"
+        "confidence": "0.800"
       },
       "target": {
         "display_name": "get",
@@ -749,12 +840,41 @@
     },
     {
       "pending": {
+        "from_key": "fixtures/extraction/rust/axum_routes/source.rs:any:3:0",
+        "callee_name": "axum::routing::any",
+        "kind": "imports",
+        "file_path": "fixtures/extraction/rust/axum_routes/source.rs",
+        "line_number": 3,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "axum::routing::any",
+        "terminal_name": "any",
+        "receiver": null,
+        "namespace_path": [
+          "axum",
+          "routing"
+        ],
+        "import_context": "use axum::{\n    routing::{any, get},\n    Router,\n};"
+      },
+      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:any:3:0",
+      "span": {
+        "start_line": 3,
+        "start_column": 0,
+        "end_line": 6,
+        "end_column": 2,
+        "start_byte": 154,
+        "end_byte": 205
+      }
+    },
+    {
+      "pending": {
         "from_key": "fixtures/extraction/rust/axum_routes/source.rs:api_routes:43:0",
         "callee_name": "get",
         "kind": "calls",
         "file_path": "fixtures/extraction/rust/axum_routes/source.rs",
         "line_number": 44,
-        "confidence": "0.700"
+        "confidence": "0.800"
       },
       "target": {
         "display_name": "get",
@@ -834,7 +954,7 @@
         "kind": "calls",
         "file_path": "fixtures/extraction/rust/axum_routes/source.rs",
         "line_number": 14,
-        "confidence": "0.700"
+        "confidence": "0.800"
       },
       "target": {
         "display_name": "any",
@@ -860,7 +980,7 @@
         "kind": "calls",
         "file_path": "fixtures/extraction/rust/axum_routes/source.rs",
         "line_number": 12,
-        "confidence": "0.700"
+        "confidence": "0.800"
       },
       "target": {
         "display_name": "get",
@@ -886,7 +1006,7 @@
         "kind": "calls",
         "file_path": "fixtures/extraction/rust/axum_routes/source.rs",
         "line_number": 13,
-        "confidence": "0.700"
+        "confidence": "0.800"
       },
       "target": {
         "display_name": "get",
@@ -1065,32 +1185,6 @@
     },
     {
       "pending": {
-        "from_key": "fixtures/extraction/rust/axum_routes/source.rs:axum:3:0",
-        "callee_name": "axum",
-        "kind": "imports",
-        "file_path": "fixtures/extraction/rust/axum_routes/source.rs",
-        "line_number": 3,
-        "confidence": "1.000"
-      },
-      "target": {
-        "display_name": "axum",
-        "terminal_name": "axum",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": "use axum::{\n    routing::{any, get},\n    Router,\n};"
-      },
-      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:axum:3:0",
-      "span": {
-        "start_line": 3,
-        "start_column": 0,
-        "end_line": 6,
-        "end_column": 2,
-        "start_byte": 154,
-        "end_byte": 205
-      }
-    },
-    {
-      "pending": {
         "from_key": "fixtures/extraction/rust/axum_routes/source.rs:dynamic:26:0",
         "callee_name": "as_str",
         "kind": "calls",
@@ -1122,7 +1216,7 @@
         "kind": "calls",
         "file_path": "fixtures/extraction/rust/axum_routes/source.rs",
         "line_number": 29,
-        "confidence": "0.700"
+        "confidence": "0.800"
       },
       "target": {
         "display_name": "get",
@@ -1148,7 +1242,7 @@
         "kind": "calls",
         "file_path": "fixtures/extraction/rust/axum_routes/source.rs",
         "line_number": 30,
-        "confidence": "0.700"
+        "confidence": "0.800"
       },
       "target": {
         "display_name": "get",
@@ -1174,7 +1268,7 @@
         "kind": "calls",
         "file_path": "fixtures/extraction/rust/axum_routes/source.rs",
         "line_number": 31,
-        "confidence": "0.700"
+        "confidence": "0.800"
       },
       "target": {
         "display_name": "get",
@@ -1323,6 +1417,35 @@
         "end_column": 33,
         "start_byte": 1029,
         "end_byte": 1045
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/axum_routes/source.rs:get:3:0",
+        "callee_name": "axum::routing::get",
+        "kind": "imports",
+        "file_path": "fixtures/extraction/rust/axum_routes/source.rs",
+        "line_number": 3,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "axum::routing::get",
+        "terminal_name": "get",
+        "receiver": null,
+        "namespace_path": [
+          "axum",
+          "routing"
+        ],
+        "import_context": "use axum::{\n    routing::{any, get},\n    Router,\n};"
+      },
+      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:get:3:0",
+      "span": {
+        "start_line": 3,
+        "start_column": 0,
+        "end_line": 6,
+        "end_column": 2,
+        "start_byte": 154,
+        "end_byte": 205
       }
     }
   ],

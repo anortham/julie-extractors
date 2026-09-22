@@ -86,3 +86,34 @@ fn demo() void {
     var buf: [8]u8 = undefined;
     _ = .{ s, a, b, c, buf };
 }
+
+pub const Pool = struct {
+    allocator: std.mem.Allocator,
+    open: bool,
+
+    pub fn isOpen(self: *Pool) bool {
+        return self.open;
+    }
+
+    pub fn drain(self: *Pool, limit: u32) u32 {
+        if (!self.isOpen()) return 0;
+        self.close(limit);
+        const low, const high = .{ limit / 2, limit };
+        var left = low;
+        left += high;
+        return left;
+    }
+
+    pub fn close(self: *Pool, limit: u32) void {
+        _ = self;
+        _ = limit;
+    }
+};
+
+pub fn square(x: i32) i32 {
+    return x * x;
+}
+
+test square {
+    try std.testing.expectEqual(@as(i32, 9), square(3));
+}

@@ -142,3 +142,40 @@ fn zig_annotation(annotation: &str, raw_text: &str) -> AnnotationMarker {
         carrier: None,
     }
 }
+
+/// tree-sitter-zig parses a prefix `!x` in expression position as an
+/// `error_union_type` with no `error` field, bound to the first operand only
+/// (`!self.isOpen()` is `(!self).isOpen()`). Outside a type slot that node is a
+/// logical not, never a type.
+pub(super) fn is_logical_not(node: Node) -> bool {
+    if node.kind() != "error_union_type" || node.child_by_field_name("error").is_some() {
+        return false;
+    }
+    let Some(parent) = node.parent() else {
+        return false;
+    };
+    let in_type_field = parent
+        .child_by_field_name("type")
+        .is_some_and(|type_node| type_node.id() == node.id());
+    !in_type_field
+        && !matches!(
+            parent.kind(),
+            "pointer_type"
+                | "nullable_type"
+                | "optional_type"
+                | "slice_type"
+                | "array_type"
+                | "error_union_type"
+        )
+}
+
+/// The operand of a logical not (see [`is_logical_not`]), or the node itself.
+pub(super) fn unwrap_logical_not(mut node: Node) -> Node {
+    while is_logical_not(node) {
+        match node.child_by_field_name("ok") {
+            Some(operand) => node = operand,
+            None => break,
+        }
+    }
+    node
+}

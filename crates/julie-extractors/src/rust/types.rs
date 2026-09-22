@@ -453,7 +453,7 @@ pub(super) fn extract_macro(
         serde_json::Value::String("macro_rules".to_string()),
     );
 
-    Some(base.create_symbol(
+    let mut symbol = base.create_symbol(
         &node,
         name,
         SymbolKind::Function,
@@ -465,7 +465,25 @@ pub(super) fn extract_macro(
             metadata: Some(metadata),
             annotations: Vec::new(),
         },
-    ))
+    );
+    symbol.body_span = macro_rules_body_span(&base.content, node);
+    symbol.body_hash = symbol
+        .body_span
+        .and_then(|span| crate::base::body::body_hash(&base.content, span, &base.language));
+    Some(symbol)
+}
+
+/// The delimited rule list of `macro_rules! name { .. }` or `macro_rules! name ( .. );`.
+fn macro_rules_body_span(content: &str, node: Node) -> Option<crate::base::BodySpan> {
+    let children: Vec<Node> = node.children(&mut node.walk()).collect();
+    let open = children
+        .iter()
+        .find(|child| matches!(child.kind(), "{" | "(" | "["))?;
+    let close = children
+        .iter()
+        .rev()
+        .find(|child| matches!(child.kind(), "}" | ")" | "]"))?;
+    crate::base::NormalizedSpan::from_content_range(content, open.start_byte(), close.end_byte())
 }
 
 /// Extract type alias definition

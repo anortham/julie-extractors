@@ -34,7 +34,13 @@ pub(super) fn collect_go_http_boundary_facts(
         ));
     }
     if let Some(gin_alias) = imports.gin.as_deref() {
-        let receivers = collect_grouped_receivers(content, &mask, gin_alias, &["Default", "New"]);
+        let receivers = collect_grouped_receivers(
+            content,
+            &mask,
+            gin_alias,
+            &["Default", "New"],
+            &["Engine", "RouterGroup", "IRoutes", "IRouter"],
+        );
         facts.extend(collect_group_framework_routes(
             language,
             tree,
@@ -48,7 +54,8 @@ pub(super) fn collect_go_http_boundary_facts(
         ));
     }
     if let Some(echo_alias) = imports.echo.as_deref() {
-        let receivers = collect_grouped_receivers(content, &mask, echo_alias, &["New"]);
+        let receivers =
+            collect_grouped_receivers(content, &mask, echo_alias, &["New"], &["Echo", "Group"]);
         facts.extend(collect_group_framework_routes(
             language,
             tree,
@@ -138,7 +145,43 @@ fn collect_muxes(content: &str, mask: &SourceMask, http_alias: &str) -> HashSet<
         &format!("{http_alias}.NewServeMux()"),
         &mut muxes,
     );
+    collect_typed_names(content, mask, http_alias, &["ServeMux"], &mut muxes);
     muxes
+}
+
+/// Names declared with a framework router type: parameters, struct fields, and
+/// `var` declarations such as `r *gin.Engine` or `mux *http.ServeMux`. A field
+/// name also matches its selector uses (`s.mux.HandleFunc`).
+fn collect_typed_names(
+    content: &str,
+    mask: &SourceMask,
+    import_alias: &str,
+    type_names: &[&str],
+    names: &mut HashSet<String>,
+) {
+    let pattern = format!(
+        r"\b([A-Za-z_][A-Za-z0-9_]*)[ \t]+\*?{}\.(?:{})\b",
+        regex::escape(import_alias),
+        type_names.join("|")
+    );
+    let Ok(declaration) = regex::Regex::new(&pattern) else {
+        return;
+    };
+    for captures in declaration.captures_iter(content) {
+        let Some(name) = captures.get(1) else {
+            continue;
+        };
+        if !mask.is_string_or_comment(name.start()) && !is_go_keyword(name.as_str()) {
+            names.insert(name.as_str().to_string());
+        }
+    }
+}
+
+fn is_go_keyword(word: &str) -> bool {
+    matches!(
+        word,
+        "var" | "return" | "func" | "type" | "struct" | "interface" | "chan" | "map" | "case"
+    )
 }
 
 /// Traces routers created from the framework constructors plus every `Group`
@@ -149,9 +192,11 @@ fn collect_grouped_receivers(
     mask: &SourceMask,
     import_alias: &str,
     constructors: &[&str],
+    router_types: &[&str],
 ) -> HashMap<String, GroupPrefix> {
     let mut receivers: HashMap<String, GroupPrefix> = HashMap::new();
     let mut roots = HashSet::new();
+    collect_typed_names(content, mask, import_alias, router_types, &mut roots);
     for constructor in constructors {
         collect_assignment_names(
             content,
@@ -255,6 +300,12 @@ fn collect_assignment_names(
 }
 
 fn go_assignment_name_before_call(before: &str) -> Option<&str> {
+    if let Some(head) = before.strip_suffix(':') {
+        let name = head
+            .rsplit(|c: char| !(c.is_ascii_alphanumeric() || c == '_'))
+            .next()?;
+        return is_ascii_identifier(name).then_some(name);
+    }
     if let Some((left, _)) = before.split_once(":=") {
         let name = left.trim().split(',').next()?.trim();
         return is_ascii_identifier(name).then_some(name);

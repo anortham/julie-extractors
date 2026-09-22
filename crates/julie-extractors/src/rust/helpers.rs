@@ -27,56 +27,216 @@ pub struct ImplTargetNames {
     pub type_name: Option<String>,
 }
 
-fn leaf_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
-    match node.kind() {
-        "type_identifier" => Some(base.get_node_text(&node)),
-        "scoped_type_identifier" => {
-            let mut last_type = None;
-            let mut cursor = node.walk();
-            for child in node.children(&mut cursor) {
-                if child.kind() == "type_identifier" {
-                    last_type = Some(base.get_node_text(&child));
-                }
-            }
-            last_type
-        }
-        _ => None,
+pub(super) fn extract_impl_target_names(base: &BaseExtractor, node: Node) -> ImplTargetNames {
+    let name_of = |field: &str| {
+        node.child_by_field_name(field)
+            .and_then(super::type_facts::base_type_name_node)
+            .map(|name| base.get_node_text(&name))
+    };
+    ImplTargetNames {
+        trait_name: name_of("trait"),
+        type_name: name_of("type"),
     }
 }
 
-pub(super) fn extract_impl_target_names(base: &BaseExtractor, node: Node) -> ImplTargetNames {
-    let mut before_for = Vec::new();
-    let mut after_for = Vec::new();
-    let mut found_for = false;
-
-    for child in node.children(&mut node.walk()) {
-        if child.kind() == "for" {
-            found_for = true;
-            continue;
+/// Collect the segments of a path expression, dropping turbofish type arguments.
+pub(super) fn push_path_segments(base: &BaseExtractor, node: Node, segments: &mut Vec<String>) {
+    match node.kind() {
+        "scoped_identifier" | "scoped_type_identifier" => {
+            if let Some(path) = node.child_by_field_name("path") {
+                push_path_segments(base, path, segments);
+            }
+            if let Some(name) = node.child_by_field_name("name") {
+                segments.push(base.get_node_text(&name));
+            }
         }
+        "generic_type_with_turbofish" | "generic_type" => {
+            if let Some(inner) = node.child_by_field_name("type") {
+                push_path_segments(base, inner, segments);
+            }
+        }
+        _ => segments.push(base.get_node_text(&node)),
+    }
+}
 
-        let Some(name) = leaf_type_name(base, child) else {
-            continue;
-        };
+/// One name bound by a `use` declaration or `extern crate`.
+pub(super) struct UseLeaf {
+    pub name: String,
+    pub path: Vec<String>,
+    pub alias: Option<String>,
+}
 
-        if found_for {
-            after_for.push(name);
-        } else {
-            before_for.push(name);
+/// Flatten a `use` tree (or `extern crate`) into the names it binds. A glob
+/// binds its prefix path, named `a::b` for `use a::b::*`.
+pub(super) fn use_leaves(base: &BaseExtractor, node: Node) -> Vec<UseLeaf> {
+    let mut leaves = Vec::new();
+    match node.kind() {
+        "use_declaration" => {
+            if let Some(argument) = node.child_by_field_name("argument") {
+                collect_use_leaves(base, argument, &[], &mut leaves);
+            }
+        }
+        "extern_crate_declaration" => {
+            if let Some(name) = node.child_by_field_name("name") {
+                let crate_name = base.get_node_text(&name);
+                let alias = node
+                    .child_by_field_name("alias")
+                    .map(|alias| base.get_node_text(&alias));
+                leaves.push(UseLeaf {
+                    name: alias.clone().unwrap_or_else(|| crate_name.clone()),
+                    path: vec![crate_name],
+                    alias,
+                });
+            }
+        }
+        _ => {}
+    }
+    leaves
+}
+
+fn collect_use_leaves(
+    base: &BaseExtractor,
+    node: Node,
+    prefix: &[String],
+    leaves: &mut Vec<UseLeaf>,
+) {
+    let joined = |tail: Option<Node>| {
+        let mut path = prefix.to_vec();
+        if let Some(tail) = tail {
+            push_path_segments(base, tail, &mut path);
+        }
+        path
+    };
+    match node.kind() {
+        "use_as_clause" => {
+            let path = joined(node.child_by_field_name("path"));
+            let alias = node
+                .child_by_field_name("alias")
+                .map(|alias| base.get_node_text(&alias));
+            if let Some(alias) = alias {
+                leaves.push(UseLeaf {
+                    name: alias.clone(),
+                    path,
+                    alias: Some(alias),
+                });
+            }
+        }
+        "scoped_use_list" => {
+            let path = joined(node.child_by_field_name("path"));
+            if let Some(list) = node.child_by_field_name("list") {
+                collect_use_leaves(base, list, &path, leaves);
+            }
+        }
+        "use_list" => {
+            for item in node.named_children(&mut node.walk()) {
+                collect_use_leaves(base, item, prefix, leaves);
+            }
+        }
+        "use_wildcard" => {
+            let path = joined(node.named_child(0));
+            if !path.is_empty() {
+                leaves.push(UseLeaf {
+                    name: path.join("::"),
+                    path,
+                    alias: None,
+                });
+            }
+        }
+        "self" if !prefix.is_empty() => leaves.push(UseLeaf {
+            name: prefix[prefix.len() - 1].clone(),
+            path: prefix.to_vec(),
+            alias: None,
+        }),
+        "line_comment" | "block_comment" => {}
+        _ => {
+            let path = joined(Some(node));
+            if let Some(name) = path.last().cloned() {
+                leaves.push(UseLeaf {
+                    name,
+                    path,
+                    alias: None,
+                });
+            }
         }
     }
+}
 
-    if found_for {
-        ImplTargetNames {
-            trait_name: before_for.into_iter().next(),
-            type_name: after_for.into_iter().next(),
+/// A call site written inside a macro invocation's token tree. Tree-sitter
+/// leaves macro arguments as flat tokens, so `name(` / `recv.name(` /
+/// `a::b::name(` are recognized from the token sequence.
+pub(super) struct MacroTokenCall {
+    pub name: String,
+    pub receiver: Option<String>,
+    pub namespace_path: Vec<String>,
+}
+
+pub(super) fn macro_token_call(base: &BaseExtractor, node: Node) -> Option<MacroTokenCall> {
+    if node.kind() != "identifier" || !token_tree_belongs_to_macro_invocation(node) {
+        return None;
+    }
+    let arguments = node.next_sibling()?;
+    if arguments.kind() != "token_tree" || arguments.child(0)?.kind() != "(" {
+        return None;
+    }
+    let mut call = MacroTokenCall {
+        name: base.get_node_text(&node),
+        receiver: None,
+        namespace_path: Vec::new(),
+    };
+    let Some(previous) = node.prev_sibling() else {
+        return Some(call);
+    };
+    match previous.kind() {
+        "." => {
+            let mut start = previous;
+            while let Some(token) = start.prev_sibling() {
+                if !matches!(
+                    token.kind(),
+                    "identifier" | "self" | "token_tree" | "." | "::" | "?" | "integer_literal"
+                ) {
+                    break;
+                }
+                start = token;
+            }
+            if start.id() != previous.id() {
+                call.receiver = base
+                    .content
+                    .get(start.start_byte()..previous.start_byte())
+                    .map(str::to_owned);
+            }
         }
-    } else {
-        ImplTargetNames {
-            trait_name: None,
-            type_name: before_for.into_iter().next(),
+        "::" => {
+            let mut separator = previous;
+            while let Some(segment) = separator.prev_sibling() {
+                if !matches!(segment.kind(), "identifier" | "crate" | "self" | "super") {
+                    break;
+                }
+                call.namespace_path.insert(0, base.get_node_text(&segment));
+                match segment.prev_sibling() {
+                    Some(next) if next.kind() == "::" => separator = next,
+                    _ => break,
+                }
+            }
+        }
+        "fn" | "macro_rules!" => return None,
+        _ => {}
+    }
+    Some(call)
+}
+
+/// True when a `token_tree` interior node belongs to a macro INVOCATION (its
+/// tokens are call-site expressions), as opposed to a `macro_rules!` body or an
+/// attribute argument list.
+pub(super) fn token_tree_belongs_to_macro_invocation(node: Node) -> bool {
+    let mut current = node;
+    while let Some(parent) = current.parent() {
+        match parent.kind() {
+            "token_tree" => current = parent,
+            "macro_invocation" => return true,
+            _ => return false,
         }
     }
+    false
 }
 
 /// Extract visibility modifier from a node (pub, pub(crate), etc.)

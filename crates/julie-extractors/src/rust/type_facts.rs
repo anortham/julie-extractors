@@ -77,7 +77,7 @@ fn record_type_node(base: &mut BaseExtractor, symbol_id: &str, type_node: Node, 
 /// type: the final path segment, with generics, turbofish, reference, pointer,
 /// `dyn`, and `impl` wrappers dropped. Shapes without one base name (tuples,
 /// arrays, function types) yield nothing.
-fn base_type_name_node(node: Node) -> Option<Node> {
+pub(super) fn base_type_name_node(node: Node) -> Option<Node> {
     let mut node = node;
     loop {
         match node.kind() {

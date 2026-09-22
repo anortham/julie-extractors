@@ -112,6 +112,11 @@ impl RustExtractor {
             return;
         }
 
+        if matches!(node.kind(), "use_declaration" | "extern_crate_declaration") {
+            self.extract_use_symbols(node, symbols, parent_id);
+            return;
+        }
+
         if let Some(symbol) = self.extract_symbol(node, parent_id.clone()) {
             let symbol_id = symbol.id.clone();
             symbols.push(symbol);
@@ -134,6 +139,18 @@ impl RustExtractor {
                 self.walk_tree(child, symbols, parent_id.clone(), child_depth);
             }
         }
+    }
+
+    // Kept out of line: `walk_tree` recurses to the traversal depth budget, so its
+    // stack frame must stay small.
+    #[inline(never)]
+    fn extract_use_symbols(
+        &mut self,
+        node: Node,
+        symbols: &mut Vec<Symbol>,
+        parent_id: Option<String>,
+    ) {
+        symbols.extend(signatures::extract_use_symbols(self, node, parent_id));
     }
 
     fn extract_symbol(&mut self, node: Node, parent_id: Option<String>) -> Option<Symbol> {
@@ -187,7 +204,6 @@ impl RustExtractor {
             "union_item" => types::extract_union(self, node, parent_id),
             "macro_invocation" => signatures::extract_macro_invocation(self, node, parent_id),
             "mod_item" => types::extract_module(self, node, parent_id),
-            "use_declaration" => signatures::extract_use(self, node, parent_id),
             "const_item" => types::extract_const(self, node, parent_id),
             "static_item" => types::extract_static(self, node, parent_id),
             "macro_definition" => types::extract_macro(self, node, parent_id),

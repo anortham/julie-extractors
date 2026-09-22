@@ -4,6 +4,7 @@ use crate::base::{
 };
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use crate::zig::ZigExtractor;
+use crate::zig::helpers::unwrap_logical_not;
 use tree_sitter::{Node, Tree};
 
 /// Extract relationships between symbols (calls, composition, inheritance)
@@ -14,7 +15,12 @@ pub(super) fn extract_relationships(
 ) -> Vec<Relationship> {
     let mut relationships = Vec::new();
     let containing_symbols = extractor.base.containing_symbol_index(symbols);
-    let scoped_index = ScopedSymbolIndex::new(symbols);
+    let call_targets: Vec<Symbol> = symbols
+        .iter()
+        .filter(|symbol| !is_test_declaration(symbol))
+        .cloned()
+        .collect();
+    let scoped_index = ScopedSymbolIndex::new(&call_targets);
     traverse_for_relationships(
         extractor,
         tree.root_node(),
@@ -186,6 +192,7 @@ fn traverse_struct_fields(
 }
 
 fn collect_field_chain(base: &BaseExtractor, node: Node, parts: &mut Vec<String>) -> bool {
+    let node = unwrap_logical_not(node);
     match node.kind() {
         "identifier" => {
             parts.push(base.get_node_text(&node));
@@ -204,6 +211,46 @@ fn collect_field_chain(base: &BaseExtractor, node: Node, parts: &mut Vec<String>
     }
 }
 
+/// The callee of a call: a bare name, a `a.b.f` chain, a member called on an
+/// expression result (receiver = the expression text), or a decl literal
+/// `.init(..)` whose receiver is the declared type of the variable it
+/// initializes. Arguments are never callees.
+fn call_target(base: &BaseExtractor, call: Node) -> Option<UnresolvedTarget> {
+    let function = unwrap_logical_not(call.child_by_field_name("function")?);
+    match function.kind() {
+        "identifier" => Some(UnresolvedTarget::simple(base.get_node_text(&function))),
+        "field_expression" => {
+            let member = base.get_node_text(&function.child_by_field_name("member")?);
+            let receiver = match function.child_by_field_name("object") {
+                Some(object) => {
+                    let mut parts = Vec::new();
+                    if collect_field_chain(base, object, &mut parts) {
+                        parts.push(member);
+                        return Some(UnresolvedTarget::from_chain(parts));
+                    }
+                    base.get_node_text(&unwrap_logical_not(object))
+                }
+                None => {
+                    let declaration = call
+                        .parent()
+                        .filter(|parent| parent.kind() == "variable_declaration")?;
+                    let declared = declaration.child_by_field_name("type")?;
+                    let name = super::type_facts::base_type_name_node(declared)?;
+                    base.get_node_text(&name)
+                }
+            };
+            Some(UnresolvedTarget {
+                display_name: format!("{receiver}.{member}"),
+                terminal_name: member,
+                receiver: Some(receiver),
+                namespace_path: Vec::new(),
+                import_context: None,
+            })
+        }
+        _ => None,
+    }
+}
+
 fn extract_function_call_relationships(
     extractor: &mut ZigExtractor,
     node: Node,
@@ -212,18 +259,7 @@ fn extract_function_call_relationships(
     relationships: &mut Vec<Relationship>,
 ) {
     let base = extractor.get_base_mut();
-    let mut unresolved_target: Option<UnresolvedTarget> = None;
-
-    // Check for direct function call (identifier + arguments)
-    if let Some(func_name_node) = base.find_child_by_type(&node, "identifier") {
-        let called_func_name = base.get_node_text(&func_name_node);
-        unresolved_target = Some(UnresolvedTarget::simple(called_func_name));
-    } else if let Some(field_expr_node) = base.find_child_by_type(&node, "field_expression") {
-        let mut parts = Vec::new();
-        if collect_field_chain(base, field_expr_node, &mut parts) {
-            unresolved_target = Some(UnresolvedTarget::from_chain(parts));
-        }
-    }
+    let unresolved_target = call_target(base, node);
 
     if let Some(unresolved_target) = unresolved_target {
         let caller_symbol = containing_symbols.find(node).filter(|symbol| {
@@ -287,4 +323,13 @@ fn extract_function_call_relationships(
             }
         }
     }
+}
+
+/// A `test` block is named after what it tests (`test square {}`), so it must
+/// never compete with the tested declaration as a call target.
+fn is_test_declaration(symbol: &Symbol) -> bool {
+    symbol
+        .signature
+        .as_deref()
+        .is_some_and(|signature| signature == "test" || signature.starts_with("test "))
 }

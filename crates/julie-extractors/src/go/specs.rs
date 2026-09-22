@@ -97,60 +97,46 @@ impl super::GoExtractor {
         node: Node,
         parent_id: Option<&str>,
     ) -> Option<Symbol> {
-        let mut cursor = node.walk();
-        let mut alias = None;
-        let mut path = None;
+        let import_path = self.get_node_text(node.child_by_field_name("path")?);
+        let name_node = node.child_by_field_name("name");
+        let binding = name_node.map(|name| (name.kind(), self.get_node_text(name)));
 
-        for child in node.children(&mut cursor) {
-            match child.kind() {
-                "package_identifier" => alias = Some(self.get_node_text(child)), // Uses package_identifier for alias
-                "interpreted_string_literal" => path = Some(self.get_node_text(child)),
-                _ => {}
-            }
+        let (package_name, is_dot_import) = match binding {
+            Some(("blank_identifier", _)) => return None,
+            Some(("dot", _)) => (assumed_package_name(import_path.trim_matches('"')), true),
+            Some((_, ref alias)) => (alias.clone(), false),
+            None => (assumed_package_name(import_path.trim_matches('"')), false),
+        };
+        if package_name.is_empty() {
+            return None;
         }
 
-        if let Some(import_path) = path {
-            // Skip blank imports (_)
-            if alias.as_deref() == Some("_") {
-                return None;
-            }
+        let signature = match binding {
+            Some((_, alias)) => format!("import {} {}", alias, import_path),
+            None => format!("import {}", import_path),
+        };
+        let metadata = is_dot_import.then(|| {
+            std::collections::HashMap::from([(
+                "dotImport".to_string(),
+                serde_json::Value::Bool(true),
+            )])
+        });
 
-            // Extract package name from path
-            let package_name = if let Some(ref a) = alias {
-                a.clone()
-            } else {
-                // Extract package name from import path
-                import_path
-                    .trim_matches('"')
-                    .split('/')
-                    .next_back()?
-                    .to_string()
-            };
+        let doc_comment = self.base.find_doc_comment(&node);
 
-            let signature = if let Some(ref a) = alias {
-                format!("import {} {}", a, import_path)
-            } else {
-                format!("import {}", import_path)
-            };
-
-            let doc_comment = self.base.find_doc_comment(&node);
-
-            Some(self.base.create_symbol(
-                &node,
-                package_name,
-                SymbolKind::Import,
-                SymbolOptions {
-                    signature: Some(signature),
-                    visibility: Some(Visibility::Public),
-                    parent_id: parent_id.map(|s| s.to_string()),
-                    metadata: None,
-                    doc_comment,
-                    annotations: Vec::new(),
-                },
-            ))
-        } else {
-            None
-        }
+        Some(self.base.create_symbol(
+            &node,
+            package_name,
+            SymbolKind::Import,
+            SymbolOptions {
+                signature: Some(signature),
+                visibility: Some(Visibility::Public),
+                parent_id: parent_id.map(|s| s.to_string()),
+                metadata,
+                doc_comment,
+                annotations: Vec::new(),
+            },
+        ))
     }
 
     pub(super) fn extract_var_spec_symbols(
@@ -379,4 +365,24 @@ impl super::GoExtractor {
         }
         values
     }
+}
+
+/// The package name an unaliased import binds, by the rule goimports uses: the
+/// last path element, skipping a `/vN` major-version element, without a `go-`
+/// prefix, cut at the first character that cannot appear in an identifier
+/// (`gopkg.in/yaml.v3` -> `yaml`, `github.com/mattn/go-sqlite3` -> `sqlite3`).
+fn assumed_package_name(import_path: &str) -> String {
+    let mut elements = import_path.rsplit('/');
+    let mut base = elements.next().unwrap_or(import_path);
+    let is_major_version = base
+        .strip_prefix('v')
+        .is_some_and(|digits| !digits.is_empty() && digits.bytes().all(|b| b.is_ascii_digit()));
+    if is_major_version && let Some(parent) = elements.next() {
+        base = parent;
+    }
+    let base = base.strip_prefix("go-").unwrap_or(base);
+    base.split(|c: char| !(c.is_alphanumeric() || c == '_'))
+        .next()
+        .unwrap_or_default()
+        .to_string()
 }

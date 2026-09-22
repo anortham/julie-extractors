@@ -1,4 +1,6 @@
-use crate::base::{Relationship, RelationshipKind, Symbol, SymbolKind, UnresolvedTarget};
+use crate::base::{
+    ContainingSymbolIndex, Relationship, RelationshipKind, Symbol, SymbolKind, UnresolvedTarget,
+};
 use std::collections::HashMap;
 use tree_sitter::Node;
 
@@ -66,12 +68,19 @@ fn is_stdlib_import_path(import_path: &str) -> bool {
     GO_STDLIB_ROOT_PACKAGES.contains(&root)
 }
 
+/// Symbols and lookups shared by the relationship walk of one file.
+pub(super) struct RelationshipScope<'a> {
+    pub symbols: &'a [Symbol],
+    pub symbol_map: HashMap<String, &'a Symbol>,
+    pub containers: ContainingSymbolIndex<'a>,
+}
+
 /// Relationship extraction for Go (method receivers, interface implementations, embedding, function calls)
 impl super::GoExtractor {
     pub(super) fn walk_tree_for_relationships(
         &mut self,
         node: Node,
-        symbol_map: &HashMap<String, &Symbol>,
+        scope: &RelationshipScope<'_>,
         relationships: &mut Vec<Relationship>,
         depth: u32,
     ) {
@@ -79,66 +88,59 @@ impl super::GoExtractor {
             return;
         }
 
-        // Handle interface implementations (implicit in Go)
         if node.kind() == "method_declaration" {
-            self.extract_method_relationships_from_node(node, symbol_map, relationships);
+            self.extract_method_relationships_from_node(node, scope, relationships);
         }
 
-        // Handle function calls (direct and cross-package)
         if node.kind() == "call_expression" {
-            self.extract_call_relationships(node, symbol_map, relationships);
+            self.extract_call_relationships(node, scope, relationships);
         }
 
-        // Recursively process children
         let Some(child_depth) = crate::tree_traversal::child_tree_depth(depth) else {
             return;
         };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_tree_for_relationships(child, symbol_map, relationships, child_depth);
+            self.walk_tree_for_relationships(child, scope, relationships, child_depth);
         }
     }
 
+    /// Emit a `uses` edge from a method to its same-file receiver type.
     pub(super) fn extract_method_relationships_from_node(
         &self,
         node: Node,
-        symbol_map: &HashMap<String, &Symbol>,
+        scope: &RelationshipScope<'_>,
         relationships: &mut Vec<Relationship>,
     ) {
-        // Extract method to receiver type relationship
-        let receiver_list = node
-            .children(&mut node.walk())
-            .find(|c| c.kind() == "parameter_list");
-        if let Some(receiver_list) = receiver_list {
-            let param_decl = receiver_list
-                .children(&mut receiver_list.walk())
-                .find(|c| c.kind() == "parameter_declaration");
-            if let Some(param_decl) = param_decl {
-                // Extract receiver type
-                let receiver_type = self.extract_receiver_type_from_param(param_decl);
-                let receiver_symbol = symbol_map.get(&receiver_type);
+        let Some(param_decl) = node.child_by_field_name("receiver").and_then(|receiver| {
+            receiver
+                .named_children(&mut receiver.walk())
+                .find(|child| child.kind() == "parameter_declaration")
+        }) else {
+            return;
+        };
+        let receiver_type = self.extract_receiver_type_from_param(param_decl);
+        let receiver_symbol = scope.symbols.iter().find(|symbol| {
+            symbol.name == receiver_type
+                && matches!(
+                    symbol.kind,
+                    SymbolKind::Struct | SymbolKind::Interface | SymbolKind::Type
+                )
+        });
+        let method_symbol = node
+            .child_by_field_name("name")
+            .and_then(|name| scope.containers.find(name))
+            .filter(|symbol| symbol.kind == SymbolKind::Method);
 
-                let name_node = node
-                    .children(&mut node.walk())
-                    .find(|c| c.kind() == "field_identifier");
-                if let Some(name_node) = name_node {
-                    let method_name = self.get_node_text(name_node);
-                    let method_symbol = symbol_map.get(&method_name);
-
-                    if let (Some(receiver_sym), Some(method_sym)) = (receiver_symbol, method_symbol)
-                    {
-                        // Create Uses relationship from method to receiver type
-                        relationships.push(self.base.create_relationship(
-                            method_sym.id.clone(),
-                            receiver_sym.id.clone(),
-                            RelationshipKind::Uses,
-                            &node,
-                            Some(0.9),
-                            None,
-                        ));
-                    }
-                }
-            }
+        if let (Some(receiver_sym), Some(method_sym)) = (receiver_symbol, method_symbol) {
+            relationships.push(self.base.create_relationship(
+                method_sym.id.clone(),
+                receiver_sym.id.clone(),
+                RelationshipKind::Uses,
+                &node,
+                Some(0.9),
+                None,
+            ));
         }
     }
 
@@ -151,146 +153,151 @@ impl super::GoExtractor {
     fn extract_call_relationships(
         &mut self,
         node: Node,
-        symbol_map: &HashMap<String, &Symbol>,
+        scope: &RelationshipScope<'_>,
         relationships: &mut Vec<Relationship>,
     ) {
-        // In Go, call_expression has the function being called as the first child
-        let mut cursor = node.walk();
-        let children: Vec<_> = node.children(&mut cursor).collect();
+        let symbol_map = &scope.symbol_map;
+        let Some(func_node) = node.child_by_field_name("function") else {
+            return;
+        };
+        let mut target = match func_node.kind() {
+            "identifier" => UnresolvedTarget::simple(self.base.get_node_text(&func_node)),
+            "selector_expression" => match self.selector_call_target(func_node) {
+                Some(target) => target,
+                None => return,
+            },
+            _ => return,
+        };
+        let callee_name = target.terminal_name.clone();
 
-        // Find the function name - it's usually the first significant child
-        // For package calls like fmt.Println, we need the Println part
-        // For direct calls like helper, we need helper
-        if let Some(func_node) = children.first() {
-            let target = match func_node.kind() {
-                // Direct call: helper()
-                "identifier" => UnresolvedTarget::simple(self.base.get_node_text(func_node)),
-                // Package call: fmt.Println() or package method calls
-                "selector_expression" => {
-                    let mut parts = Vec::new();
-                    let mut current = Some(*func_node);
-                    while let Some(expression) = current {
-                        match expression.kind() {
-                            "identifier" => {
-                                parts.push(self.base.get_node_text(&expression));
-                                break;
-                            }
-                            "selector_expression" => {
-                                let Some(field) = expression.child_by_field_name("field") else {
-                                    break;
-                                };
-                                parts.push(self.base.get_node_text(&field));
-                                current = expression.child_by_field_name("operand");
-                            }
-                            _ => break,
-                        }
-                    }
-                    if parts.is_empty() {
-                        return;
-                    }
-                    parts.reverse();
-                    UnresolvedTarget::from_chain(parts)
-                }
-                _ => return,
-            };
-            let callee_name = target.terminal_name.clone();
+        let Some(caller) = self.find_caller(scope, node) else {
+            return;
+        };
 
-            // Find the containing function to know who is calling
-            let caller_symbol = self.find_containing_function(symbol_map, node);
-            if caller_symbol.is_none() {
-                return; // Not inside a function, can't create relationship
-            }
-            let caller = caller_symbol.unwrap();
+        // Receiver-qualified calls (pkg.fn, obj.method) should not resolve to a local
+        // symbol by terminal name alone.
+        if let Some(receiver) = target.receiver.as_deref() {
+            let import_path = symbol_map
+                .get(receiver)
+                .filter(|symbol| symbol.kind == SymbolKind::Import)
+                .and_then(|symbol| symbol.signature.as_deref())
+                .and_then(import_path_from_signature)
+                .map(str::to_owned);
 
-            // Receiver-qualified calls (pkg.fn, obj.method) should not resolve to a local
-            // symbol by terminal name alone.
-            if let Some(receiver) = target.receiver.as_deref() {
-                let is_stdlib_package = symbol_map
-                    .get(receiver)
-                    .filter(|symbol| symbol.kind == SymbolKind::Import)
-                    .and_then(|symbol| symbol.signature.as_deref())
-                    .and_then(import_path_from_signature)
-                    .is_some_and(is_stdlib_import_path);
-
-                if is_stdlib_package {
-                    return;
-                }
-
-                let pending = self
-                    .base
-                    .create_pending_relationship(
-                        caller.id.clone(),
-                        target,
-                        RelationshipKind::Calls,
-                        &node,
-                        Some(caller.id.clone()),
-                        Some(0.7),
-                    )
-                    .with_receiver_type(self.method_self_receiver_type(*func_node));
-                self.add_structured_pending_relationship(pending);
+            if import_path.as_deref().is_some_and(is_stdlib_import_path) {
                 return;
             }
+            target.import_context = import_path;
 
-            // Check if we can resolve the direct callee locally
-            match symbol_map.get(&callee_name) {
-                Some(called_symbol) if called_symbol.kind == SymbolKind::Import => {
-                    // Target is an Import symbol - need cross-file resolution
-                    let pending = self.base.create_pending_relationship(
-                        caller.id.clone(),
-                        target,
-                        RelationshipKind::Calls,
-                        &node,
-                        Some(caller.id.clone()),
-                        Some(0.8),
-                    );
-                    self.add_structured_pending_relationship(pending);
-                }
-                Some(called_symbol) => {
-                    // Target is a local function/method - create resolved Relationship
-                    relationships.push(self.base.create_relationship(
-                        caller.id.clone(),
-                        called_symbol.id.clone(),
-                        RelationshipKind::Calls,
-                        &node,
-                        Some(0.9),
-                        None,
-                    ));
-                }
-                None => {
-                    let pending = self.base.create_pending_relationship(
-                        caller.id.clone(),
-                        target,
-                        RelationshipKind::Calls,
-                        &node,
-                        Some(caller.id.clone()),
-                        Some(0.7),
-                    );
-                    self.add_structured_pending_relationship(pending);
-                }
+            let pending = self
+                .base
+                .create_pending_relationship(
+                    caller.id.clone(),
+                    target,
+                    RelationshipKind::Calls,
+                    &node,
+                    Some(caller.id.clone()),
+                    Some(0.7),
+                )
+                .with_receiver_type(self.method_self_receiver_type(func_node));
+            self.add_structured_pending_relationship(pending);
+            return;
+        }
+
+        // A Ginkgo node call (`BeforeEach(...)`) is itself a symbol named after
+        // its callee; it must not resolve to the symbol it declares.
+        let callee = symbol_map
+            .get(&callee_name)
+            .filter(|symbol| symbol.start_byte != node.start_byte() as u32);
+        match callee {
+            Some(called_symbol) if called_symbol.kind == SymbolKind::Import => {
+                let pending = self.base.create_pending_relationship(
+                    caller.id.clone(),
+                    target,
+                    RelationshipKind::Calls,
+                    &node,
+                    Some(caller.id.clone()),
+                    Some(0.8),
+                );
+                self.add_structured_pending_relationship(pending);
+            }
+            Some(called_symbol) => {
+                relationships.push(self.base.create_relationship(
+                    caller.id.clone(),
+                    called_symbol.id.clone(),
+                    RelationshipKind::Calls,
+                    &node,
+                    Some(0.9),
+                    None,
+                ));
+            }
+            None => {
+                let pending = self.base.create_pending_relationship(
+                    caller.id.clone(),
+                    target,
+                    RelationshipKind::Calls,
+                    &node,
+                    Some(caller.id.clone()),
+                    Some(0.7),
+                );
+                self.add_structured_pending_relationship(pending);
             }
         }
     }
 
-    /// Find the containing function for a call node
-    fn find_containing_function<'a>(
-        &self,
-        symbol_map: &HashMap<String, &'a Symbol>,
-        node: Node,
-    ) -> Option<&'a Symbol> {
-        let mut current = node.parent();
-        while let Some(parent) = current {
-            if parent.kind() == "function_declaration" || parent.kind() == "method_declaration" {
-                let name = parent
-                    .child_by_field_name("name")
-                    .map(|name_node| self.base.get_node_text(&name_node))
-                    .unwrap_or_default();
-
-                if !name.is_empty() {
-                    return symbol_map.get(&name).copied();
+    /// `a.b.F()` becomes the chain target `a.b.F`. A call on an expression
+    /// result (`x.F().G()`, `xs[0].G()`) keeps the operand text as its receiver
+    /// so it never resolves to a same-named local symbol.
+    fn selector_call_target(&self, selector: Node) -> Option<UnresolvedTarget> {
+        let mut parts = Vec::new();
+        let mut current = selector;
+        loop {
+            match current.kind() {
+                "identifier" => {
+                    parts.push(self.base.get_node_text(&current));
+                    break;
+                }
+                "selector_expression" => {
+                    parts.push(
+                        self.base
+                            .get_node_text(&current.child_by_field_name("field")?),
+                    );
+                    current = current.child_by_field_name("operand")?;
+                }
+                _ => {
+                    let field = self
+                        .base
+                        .get_node_text(&selector.child_by_field_name("field")?);
+                    let receiver = self
+                        .base
+                        .get_node_text(&selector.child_by_field_name("operand")?);
+                    return Some(UnresolvedTarget {
+                        display_name: format!("{receiver}.{field}"),
+                        terminal_name: field,
+                        receiver: Some(receiver),
+                        namespace_path: Vec::new(),
+                        import_context: None,
+                    });
                 }
             }
-            current = parent.parent();
         }
-        None
+        parts.reverse();
+        Some(UnresolvedTarget::from_chain(parts))
+    }
+
+    /// The innermost symbol enclosing a call. A call that is itself a symbol
+    /// (a Ginkgo node or a `t.Run` subtest) belongs to its enclosing symbol.
+    fn find_caller<'a>(&self, scope: &RelationshipScope<'a>, call: Node) -> Option<&'a Symbol> {
+        let found = scope.containers.find(call)?;
+        if found.start_byte != call.start_byte() as u32 {
+            return Some(found);
+        }
+        crate::base::BaseExtractor::find_containing_symbol_from_iter(
+            &call,
+            scope
+                .symbols
+                .iter()
+                .filter(|symbol| symbol.id != found.id && symbol.file_path == found.file_path),
+        )
     }
 }

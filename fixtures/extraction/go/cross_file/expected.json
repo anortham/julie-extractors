@@ -156,7 +156,7 @@
         "terminal_name": "DoIt",
         "receiver": "other",
         "namespace_path": [],
-        "import_context": null
+        "import_context": "example/other"
       },
       "caller_scope_key": "fixtures/extraction/go/cross_file/source.go:entry:14:0",
       "span": {

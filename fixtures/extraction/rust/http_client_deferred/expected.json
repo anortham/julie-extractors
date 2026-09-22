@@ -1,6 +1,32 @@
 {
   "symbols": [
     {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:Method:3:0",
+      "name": "Method",
+      "kind": "import",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 29,
+      "start_byte": 122,
+      "end_byte": 151,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "use hyper::{Method, Request};",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "importedName": "Method"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/rust/http_client_deferred/source.rs:OtherBuilder:34:0",
       "name": "OtherBuilder",
       "kind": "struct",
@@ -43,6 +69,32 @@
       "visibility": "Private",
       "parent_key": null,
       "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:Request:3:0",
+      "name": "Request",
+      "kind": "import",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 29,
+      "start_byte": 122,
+      "end_byte": 151,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "use hyper::{Method, Request};",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "importedName": "Request"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -111,37 +163,6 @@
         "impl_parent_id_resolved": true,
         "impl_type_name": "OtherRequest"
       },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
-      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:hyper:3:0",
-      "name": "hyper",
-      "kind": "import",
-      "language": "rust",
-      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
-      "start_line": 3,
-      "start_column": 0,
-      "end_line": 3,
-      "end_column": 29,
-      "start_byte": 122,
-      "end_byte": 151,
-      "body_span": {
-        "start_line": 3,
-        "start_column": 11,
-        "end_line": 3,
-        "end_column": 28,
-        "start_byte": 133,
-        "end_byte": 150
-      },
-      "body_hash": "a9eeb55c3428d09e8a40cc749ee20ed5",
-      "signature": "use hyper::{Method, Request};",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": null,
-      "metadata": {},
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -305,7 +326,9 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "importedName": "ureq"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -375,8 +398,16 @@
   "relationships": [],
   "pending_relationships": [
     {
-      "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:hyper:3:0",
-      "callee_name": "hyper",
+      "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:Method:3:0",
+      "callee_name": "hyper::Method",
+      "kind": "imports",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "line_number": 3,
+      "confidence": "1.000"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:Request:3:0",
+      "callee_name": "hyper::Request",
       "kind": "imports",
       "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
       "line_number": 3,
@@ -554,21 +585,51 @@
   "structured_pending_relationships": [
     {
       "pending": {
-        "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:hyper:3:0",
-        "callee_name": "hyper",
+        "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:Method:3:0",
+        "callee_name": "hyper::Method",
         "kind": "imports",
         "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
         "line_number": 3,
         "confidence": "1.000"
       },
       "target": {
-        "display_name": "hyper",
-        "terminal_name": "hyper",
+        "display_name": "hyper::Method",
+        "terminal_name": "Method",
         "receiver": null,
-        "namespace_path": [],
+        "namespace_path": [
+          "hyper"
+        ],
         "import_context": "use hyper::{Method, Request};"
       },
-      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:hyper:3:0",
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:Method:3:0",
+      "span": {
+        "start_line": 3,
+        "start_column": 0,
+        "end_line": 3,
+        "end_column": 29,
+        "start_byte": 122,
+        "end_byte": 151
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:Request:3:0",
+        "callee_name": "hyper::Request",
+        "kind": "imports",
+        "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+        "line_number": 3,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "hyper::Request",
+        "terminal_name": "Request",
+        "receiver": null,
+        "namespace_path": [
+          "hyper"
+        ],
+        "import_context": "use hyper::{Method, Request};"
+      },
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:Request:3:0",
       "span": {
         "start_line": 3,
         "start_column": 0,

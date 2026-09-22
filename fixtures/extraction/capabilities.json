@@ -98,6 +98,7 @@
         "relationships": {
           "supported": [
             "calls",
+            "extends",
             "implements",
             "imports"
           ],
@@ -645,6 +646,7 @@
             "field",
             "function",
             "import",
+            "interface",
             "method",
             "module",
             "struct",
@@ -674,6 +676,7 @@
         "body_spans": {
           "supported": [
             "function",
+            "interface",
             "method",
             "struct"
           ],
@@ -729,7 +732,10 @@
         "doc_comments": {
           "supported": [
             "function",
-            "module"
+            "interface",
+            "method",
+            "module",
+            "struct"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -828,6 +834,7 @@
         "identifiers": {
           "supported": [
             "call",
+            "member_access",
             "type_usage",
             "variable_ref"
           ],

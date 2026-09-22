@@ -57,8 +57,10 @@ fn extract_identifier_from_node(
         // In Zig, generics are comptime functions and share `call_expression` with
         // regular calls. Type-arg capture is gated by `is_zig_call_in_type_position`.
         "call_expression" => {
-            // Try to get the function name from direct identifier child
-            if let Some(name_node) = base.find_child_by_type(&node, "identifier") {
+            let function = node
+                .child_by_field_name("function")
+                .map(super::helpers::unwrap_logical_not);
+            if let Some(name_node) = function.filter(|function| function.kind() == "identifier") {
                 let name = base.get_node_text(&name_node);
                 let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
@@ -77,29 +79,21 @@ fn extract_identifier_from_node(
                     let arguments = extract_type_arguments(base, node, decompose_zig_type_arg);
                     base.record_type_arguments(&identifier, arguments);
                 }
-            }
-            // Check for field_expression (method calls like obj.method())
-            else if let Some(field_expr) = base.find_child_by_type(&node, "field_expression") {
-                // Extract the rightmost identifier (the method name)
-                let mut cursor = field_expr.walk();
-                let identifiers: Vec<Node> = field_expr
-                    .children(&mut cursor)
-                    .filter(|c| c.kind() == "identifier")
-                    .collect();
+            } else if let Some(member) = function
+                .filter(|function| function.kind() == "field_expression")
+                .and_then(|function| function.child_by_field_name("member"))
+            {
+                let name = base.get_node_text(&member);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+                let receiver_type = super::type_facts::self_receiver_type(base, node);
 
-                if let Some(last_identifier) = identifiers.last() {
-                    let name = base.get_node_text(last_identifier);
-                    let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
-                    let receiver_type = super::type_facts::self_receiver_type(base, node);
-
-                    base.create_identifier_with_receiver_type(
-                        last_identifier,
-                        name,
-                        IdentifierKind::Call,
-                        containing_symbol_id,
-                        receiver_type,
-                    );
-                }
+                base.create_identifier_with_receiver_type(
+                    &member,
+                    name,
+                    IdentifierKind::Call,
+                    containing_symbol_id,
+                    receiver_type,
+                );
             }
             // Phase 3: capture string-literal call-arguments (config-free; the
             // carrier classification + gate happen in the artifact language-policy pass).
@@ -112,8 +106,9 @@ fn extract_identifier_from_node(
             // (we handle those in the call_expression case above)
             if let Some(parent) = node.parent()
                 && parent.kind() == "call_expression"
+                && parent.child_by_field_name("function").map(|f| f.id()) == Some(node.id())
             {
-                return; // Skip - handled by call_expression
+                return;
             }
 
             // Extract the rightmost identifier (the member name)
@@ -149,8 +144,18 @@ fn extract_identifier_from_node(
         //   optional_type: `?Type` → identifier child is a type
         "identifier" => {
             if let Some(parent) = node.parent() {
+                if super::helpers::is_logical_not(parent)
+                    && parent.parent().is_some_and(|call| {
+                        call.kind() == "call_expression"
+                            && call.child_by_field_name("function").map(|f| f.id())
+                                == Some(parent.id())
+                    })
+                {
+                    return;
+                }
                 let is_type_position = match parent.kind() {
-                    "pointer_type" | "optional_type" | "error_union_type" => true,
+                    "error_union_type" => !super::helpers::is_logical_not(parent),
+                    "pointer_type" | "optional_type" => true,
                     "function_declaration" => parent
                         .child_by_field_name("type")
                         .is_some_and(|ty| ty.id() == node.id()),
@@ -215,6 +220,12 @@ fn extract_identifier_from_node(
 fn is_zig_value_read_identifier(node: Node, parent: Node) -> bool {
     match parent.kind() {
         "variable_declaration" => {
+            if node
+                .prev_sibling()
+                .is_some_and(|keyword| matches!(keyword.kind(), "const" | "var"))
+            {
+                return false;
+            }
             if !is_first_named_child(parent, node) {
                 // Value/RHS position of a declaration or assignment statement.
                 return true;

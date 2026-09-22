@@ -84,7 +84,7 @@ impl GoExtractor {
 
         let mut symbols = Vec::new();
         self.walk_tree(tree.root_node(), &mut symbols, None, 0);
-        self.recover_function_symbols_from_source(&mut symbols);
+        self.recover_function_symbols_from_source(tree.root_node(), &mut symbols);
 
         // Prioritize functions over fields with the same name (reference logic)
         let mut symbols = self.prioritize_functions_over_fields(symbols);
@@ -157,10 +157,12 @@ impl GoExtractor {
 
     pub fn extract_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {
         let mut relationships = Vec::new();
-        let symbol_map = self.build_symbol_map(symbols);
-
-        // Extract relationships from the AST
-        self.walk_tree_for_relationships(tree.root_node(), &symbol_map, &mut relationships, 0);
+        let scope = relationships::RelationshipScope {
+            symbols,
+            symbol_map: self.build_symbol_map(symbols),
+            containers: self.base.containing_symbol_index(symbols),
+        };
+        self.walk_tree_for_relationships(tree.root_node(), &scope, &mut relationships, 0);
 
         relationships
     }
@@ -254,8 +256,8 @@ impl GoExtractor {
                 symbols.extend(import_symbols);
             }
             "var_declaration" => {
-                let var_symbols = self.extract_var_symbols(node, parent_id.as_deref());
-                symbols.extend(var_symbols);
+                self.walk_var_declaration(node, symbols, parent_id, depth);
+                return;
             }
             "short_var_declaration" => {
                 let local_symbols = self.extract_short_var_symbols(node, parent_id.as_deref());
@@ -264,6 +266,10 @@ impl GoExtractor {
             "const_declaration" => {
                 let const_symbols = self.extract_const_symbols(node, parent_id.as_deref());
                 symbols.extend(const_symbols);
+            }
+            "type_declaration" => {
+                self.walk_type_declaration(node, symbols, parent_id, depth);
+                return;
             }
             "field_declaration" => {
                 // Fields can have multiple names on same line (X, Y float64)
@@ -313,11 +319,92 @@ impl GoExtractor {
         }
     }
 
+    /// A variable declaration parents what its initializer declares (the
+    /// locals of a `func` literal assigned to it), like a function does.
+    #[inline(never)]
+    fn walk_var_declaration(
+        &mut self,
+        node: Node,
+        symbols: &mut Vec<Symbol>,
+        parent_id: Option<String>,
+        depth: u32,
+    ) {
+        let first_new = symbols.len();
+        symbols.extend(self.extract_var_symbols(node, parent_id.as_deref()));
+        let declared: Vec<(u32, u32, String)> = symbols[first_new..]
+            .iter()
+            .filter(|symbol| symbol.name != "_")
+            .map(|symbol| (symbol.start_byte, symbol.end_byte, symbol.id.clone()))
+            .collect();
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
+        let mut children = Vec::new();
+        let mut cursor = node.walk();
+        for child in node.children(&mut cursor) {
+            if child.kind() == "var_spec_list" {
+                children.extend(child.children(&mut child.walk()));
+            } else {
+                children.push(child);
+            }
+        }
+        for child in children {
+            let start = child.start_byte() as u32;
+            let end = child.end_byte() as u32;
+            let owner = declared
+                .iter()
+                .find(|(symbol_start, symbol_end, _)| *symbol_start <= start && end <= *symbol_end)
+                .map(|(_, _, id)| id.clone());
+            self.walk_tree(
+                child,
+                symbols,
+                owner.or_else(|| parent_id.clone()),
+                child_depth,
+            );
+        }
+    }
+
+    /// Every `type_spec` / `type_alias` in a (possibly grouped) type
+    /// declaration becomes its own symbol and parents its own members.
+    // Kept out of line: `walk_tree` recurses to the traversal depth budget, so its
+    // stack frame must stay small.
+    #[inline(never)]
+    fn walk_type_declaration(
+        &mut self,
+        node: Node,
+        symbols: &mut Vec<Symbol>,
+        parent_id: Option<String>,
+        depth: u32,
+    ) {
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
+        let mut cursor = node.walk();
+        for spec in node.children(&mut cursor) {
+            let symbol = match spec.kind() {
+                "type_spec" => self.extract_type_spec(spec, parent_id.as_deref()),
+                "type_alias" => self.extract_type_alias(spec, parent_id.as_deref()),
+                _ => None,
+            };
+            let spec_parent = symbol.as_ref().map(|symbol| symbol.id.clone());
+            symbols.extend(symbol);
+            let mut spec_cursor = spec.walk();
+            for child in spec.children(&mut spec_cursor) {
+                self.walk_tree(
+                    child,
+                    symbols,
+                    spec_parent.clone().or_else(|| parent_id.clone()),
+                    child_depth,
+                );
+            }
+        }
+    }
+
     /// Extract symbol from node (port from extractSymbol method)
     fn extract_symbol(&mut self, node: Node, parent_id: Option<&str>) -> Option<Symbol> {
         match node.kind() {
             "package_clause" => self.extract_package(node, parent_id),
-            "type_declaration" => self.extract_type_declaration(node, parent_id),
+            "method_elem" => self.extract_method_elem(node, parent_id),
             "function_declaration" => self.extract_function(node, parent_id),
             "method_declaration" => self.extract_method(node, parent_id),
             // "field_declaration" handled in walk_tree (can produce multiple symbols)

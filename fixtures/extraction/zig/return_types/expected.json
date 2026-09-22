@@ -52,7 +52,7 @@
         "end_byte": 88
       },
       "body_hash": "b547256824dde8452309dd3ea353a82e",
-      "signature": "fn makeResult() void",
+      "signature": "fn makeResult() Result",
       "doc_comment": null,
       "visibility": "Private",
       "parent_key": null,
@@ -131,6 +131,15 @@
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
+      "language": "zig",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/zig/return_types/source.zig:makeResult:2:0",
+      "resolved_type": "Result",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "zig",
       "metadata": null
     },

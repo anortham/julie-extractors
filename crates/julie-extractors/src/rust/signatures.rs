@@ -211,121 +211,42 @@ pub(super) fn extract_macro_invocation(
     ))
 }
 
-/// Extract use statement (imports)
-///
-/// Handles four patterns:
-/// 1. Grouped imports: `use foo::{Bar, Baz}` — name is path prefix, signature is full text
-/// 2. Glob imports: `use foo::*` — name is path prefix, signature is full text
-/// 3. Aliased imports: `use foo::Bar as B` — name is alias
-/// 4. Simple imports: `use foo::Bar` — name is last identifier
-pub(super) fn extract_use(
+/// Extract one import symbol per name bound by a `use` declaration or
+/// `extern crate`. Every symbol spans the whole declaration, like TypeScript
+/// import bindings. A glob import binds its prefix path (`use a::b::*` -> `a::b`).
+pub(super) fn extract_use_symbols(
     extractor: &mut RustExtractor,
     node: Node,
     parent_id: Option<String>,
-) -> Option<Symbol> {
+) -> Vec<Symbol> {
     let base = extractor.get_base_mut();
     let use_text = base.get_node_text(&node);
-
-    // Strip visibility + "use" keyword to get the path portion
-    let path_text = use_text
-        .trim_start_matches("pub(crate) use ")
-        .trim_start_matches("pub(super) use ")
-        .trim_start_matches("pub use ")
-        .trim_start_matches("use ")
-        .trim_end_matches(';')
-        .trim();
-
-    // Case 1: Grouped imports — use foo::{Bar, Baz}
-    // Check before aliased imports since groups may contain inner "as" clauses
-    if path_text.contains('{') {
-        let name = path_text
-            .split("::{")
-            .next()
-            .unwrap_or(path_text)
-            .trim()
-            .to_string();
-        let name = if name.is_empty() {
-            path_text.to_string()
-        } else {
-            name
-        };
-        return Some(base.create_symbol(
-            &node,
-            name,
-            SymbolKind::Import,
-            SymbolOptions {
-                signature: Some(use_text),
-                visibility: Some(Visibility::Public),
-                parent_id,
-                doc_comment: None,
-                metadata: Some(HashMap::new()),
-                annotations: Vec::new(),
-            },
-        ));
-    }
-
-    // Case 2: Glob imports — use foo::*
-    if path_text.ends_with("::*") || path_text == "*" {
-        let name = path_text.trim_end_matches("::*").trim().to_string();
-        let name = if name.is_empty() {
-            "*".to_string()
-        } else {
-            name
-        };
-        return Some(base.create_symbol(
-            &node,
-            name,
-            SymbolKind::Import,
-            SymbolOptions {
-                signature: Some(use_text),
-                visibility: Some(Visibility::Public),
-                parent_id,
-                doc_comment: None,
-                metadata: Some(HashMap::new()),
-                annotations: Vec::new(),
-            },
-        ));
-    }
-
-    // Case 3: Aliased imports — use foo::Bar as B
-    if use_text.contains(" as ") {
-        let parts: Vec<&str> = use_text.split(" as ").collect();
-        if parts.len() == 2 {
-            let alias = parts[1].replace(';', "").trim().to_string();
-            return Some(base.create_symbol(
+    super::helpers::use_leaves(base, node)
+        .into_iter()
+        .map(|leaf| {
+            let mut metadata = HashMap::new();
+            if let Some(imported) = leaf.path.last() {
+                metadata.insert(
+                    "importedName".to_string(),
+                    serde_json::Value::String(imported.clone()),
+                );
+            }
+            if let Some(alias) = leaf.alias {
+                metadata.insert("alias".to_string(), serde_json::Value::String(alias));
+            }
+            base.create_symbol(
                 &node,
-                alias,
+                leaf.name,
                 SymbolKind::Import,
                 SymbolOptions {
-                    signature: Some(use_text),
+                    signature: Some(use_text.clone()),
                     visibility: Some(Visibility::Public),
-                    parent_id,
+                    parent_id: parent_id.clone(),
                     doc_comment: None,
-                    metadata: Some(HashMap::new()),
+                    metadata: Some(metadata),
                     annotations: Vec::new(),
                 },
-            ));
-        }
-    }
-
-    // Case 4: Simple imports — use foo::Bar
-    // Extract the last path segment as the name
-    let name = path_text.rsplit("::").next().unwrap_or(path_text).trim();
-    if !name.is_empty() {
-        return Some(base.create_symbol(
-            &node,
-            name.to_string(),
-            SymbolKind::Import,
-            SymbolOptions {
-                signature: Some(use_text),
-                visibility: Some(Visibility::Public),
-                parent_id,
-                doc_comment: None,
-                metadata: Some(HashMap::new()),
-                annotations: Vec::new(),
-            },
-        ));
-    }
-
-    None
+            )
+        })
+        .collect()
 }

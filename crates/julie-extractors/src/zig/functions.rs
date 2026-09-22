@@ -50,7 +50,7 @@ pub(super) fn extract_function(
         &mut metadata,
     );
 
-    Some(base.create_symbol(
+    let symbol = base.create_symbol(
         &node,
         name,
         symbol_kind,
@@ -66,7 +66,24 @@ pub(super) fn extract_function(
             doc_comment,
             annotations,
         },
-    ))
+    );
+    if let Some(return_type) = node
+        .child_by_field_name("type")
+        .filter(|return_type| names_a_value_type(base, *return_type))
+    {
+        super::type_facts::record_declared_type(base, &symbol.id, return_type);
+    }
+    Some(symbol)
+}
+
+/// `void`, `noreturn`, `type`, and `anytype` returns name no value type.
+fn names_a_value_type(base: &BaseExtractor, return_type: Node) -> bool {
+    super::type_facts::base_type_name_node(return_type).is_some_and(|name| {
+        !matches!(
+            base.get_node_text(&name).as_str(),
+            "void" | "noreturn" | "type" | "anytype"
+        )
+    })
 }
 
 /// Extract test declarations (test "name" {...})
@@ -170,7 +187,7 @@ fn extract_function_signature(
     if let Some(param_list) = param_list {
         let mut cursor = param_list.walk();
         for child in param_list.children(&mut cursor) {
-            if child.kind() == "parameter" {
+            if child.kind() == "parameter" && base.get_node_text(&child) != "..." {
                 // Handle comptime parameters
                 let comptime_node = base.find_child_by_type(&child, "comptime");
                 let param_name_node = base.find_child_by_type(&child, "identifier");
@@ -218,28 +235,10 @@ fn extract_function_signature(
         }
     }
 
-    // Check if the raw function text contains "..." for variadic parameters
-    let full_function_text = base.get_node_text(&node);
-    if full_function_text.contains("...") && !params.iter().any(|p| p == "...") {
-        params.push("...".to_string());
-    }
-
-    // Extract return type
-    let return_type_node = base
-        .find_child_by_type(&node, "return_type")
-        .or_else(|| base.find_child_by_type(&node, "type_expression"))
-        .or_else(|| base.find_child_by_type(&node, "pointer_type"))
-        .or_else(|| base.find_child_by_type(&node, "error_union_type"))
-        .or_else(|| base.find_child_by_type(&node, "nullable_type"))
-        .or_else(|| base.find_child_by_type(&node, "optional_type"))
-        .or_else(|| base.find_child_by_type(&node, "slice_type"))
-        .or_else(|| base.find_child_by_type(&node, "builtin_type"));
-
-    let return_type = if let Some(return_type_node) = return_type_node {
-        base.get_node_text(&return_type_node)
-    } else {
-        "void".to_string()
-    };
+    let return_type = node
+        .child_by_field_name("type")
+        .map(|type_node| base.get_node_text(&type_node))
+        .unwrap_or_else(|| "void".to_string());
 
     Some(format!(
         "{}{}fn {}({}) {}",

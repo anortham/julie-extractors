@@ -1,6 +1,84 @@
 {
   "symbols": [
     {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:App:5:0",
+      "name": "App",
+      "kind": "import",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 5,
+      "end_column": 51,
+      "start_byte": 274,
+      "end_byte": 325,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "use actix_web::{web, App, HttpResponse, Responder};",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "importedName": "App"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:HttpResponse:5:0",
+      "name": "HttpResponse",
+      "kind": "import",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 5,
+      "end_column": 51,
+      "start_byte": 274,
+      "end_byte": 325,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "use actix_web::{web, App, HttpResponse, Responder};",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "importedName": "HttpResponse"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:Responder:5:0",
+      "name": "Responder",
+      "kind": "import",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 5,
+      "end_column": 51,
+      "start_byte": 274,
+      "end_byte": 325,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "use actix_web::{web, App, HttpResponse, Responder};",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "importedName": "Responder"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:_cfg:52:16",
       "name": "_cfg",
       "kind": "variable",
@@ -21,37 +99,6 @@
       "metadata": {
         "role": "parameter"
       },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
-      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:actix_web:5:0",
-      "name": "actix_web",
-      "kind": "import",
-      "language": "rust",
-      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
-      "start_line": 5,
-      "start_column": 0,
-      "end_line": 5,
-      "end_column": 51,
-      "start_byte": 274,
-      "end_byte": 325,
-      "body_span": {
-        "start_line": 5,
-        "start_column": 15,
-        "end_line": 5,
-        "end_column": 50,
-        "start_byte": 289,
-        "end_byte": 324
-      },
-      "body_hash": "432b45c934e0649e82b745ac7ddd2520",
-      "signature": "use actix_web::{web, App, HttpResponse, Responder};",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": null,
-      "metadata": {},
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -387,13 +434,55 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:web:5:0",
+      "name": "web",
+      "kind": "import",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 5,
+      "end_column": 51,
+      "start_byte": 274,
+      "end_byte": 325,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "use actix_web::{web, App, HttpResponse, Responder};",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "importedName": "web"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [],
   "pending_relationships": [
     {
-      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:actix_web:5:0",
-      "callee_name": "actix_web",
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:App:5:0",
+      "callee_name": "actix_web::App",
+      "kind": "imports",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 5,
+      "confidence": "1.000"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:HttpResponse:5:0",
+      "callee_name": "actix_web::HttpResponse",
+      "kind": "imports",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 5,
+      "confidence": "1.000"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:Responder:5:0",
+      "callee_name": "actix_web::Responder",
       "kind": "imports",
       "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
       "line_number": 5,
@@ -718,26 +807,92 @@
       "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
       "line_number": 40,
       "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:web:5:0",
+      "callee_name": "actix_web::web",
+      "kind": "imports",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 5,
+      "confidence": "1.000"
     }
   ],
   "structured_pending_relationships": [
     {
       "pending": {
-        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:actix_web:5:0",
-        "callee_name": "actix_web",
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:App:5:0",
+        "callee_name": "actix_web::App",
         "kind": "imports",
         "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
         "line_number": 5,
         "confidence": "1.000"
       },
       "target": {
-        "display_name": "actix_web",
-        "terminal_name": "actix_web",
+        "display_name": "actix_web::App",
+        "terminal_name": "App",
         "receiver": null,
-        "namespace_path": [],
+        "namespace_path": [
+          "actix_web"
+        ],
         "import_context": "use actix_web::{web, App, HttpResponse, Responder};"
       },
-      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:actix_web:5:0",
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:App:5:0",
+      "span": {
+        "start_line": 5,
+        "start_column": 0,
+        "end_line": 5,
+        "end_column": 51,
+        "start_byte": 274,
+        "end_byte": 325
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:HttpResponse:5:0",
+        "callee_name": "actix_web::HttpResponse",
+        "kind": "imports",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 5,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "actix_web::HttpResponse",
+        "terminal_name": "HttpResponse",
+        "receiver": null,
+        "namespace_path": [
+          "actix_web"
+        ],
+        "import_context": "use actix_web::{web, App, HttpResponse, Responder};"
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:HttpResponse:5:0",
+      "span": {
+        "start_line": 5,
+        "start_column": 0,
+        "end_line": 5,
+        "end_column": 51,
+        "start_byte": 274,
+        "end_byte": 325
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:Responder:5:0",
+        "callee_name": "actix_web::Responder",
+        "kind": "imports",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 5,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "actix_web::Responder",
+        "terminal_name": "Responder",
+        "receiver": null,
+        "namespace_path": [
+          "actix_web"
+        ],
+        "import_context": "use actix_web::{web, App, HttpResponse, Responder};"
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:Responder:5:0",
       "span": {
         "start_line": 5,
         "start_column": 0,
@@ -1821,6 +1976,34 @@
         "end_column": 31,
         "start_byte": 1711,
         "end_byte": 1738
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:web:5:0",
+        "callee_name": "actix_web::web",
+        "kind": "imports",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 5,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "actix_web::web",
+        "terminal_name": "web",
+        "receiver": null,
+        "namespace_path": [
+          "actix_web"
+        ],
+        "import_context": "use actix_web::{web, App, HttpResponse, Responder};"
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:web:5:0",
+      "span": {
+        "start_line": 5,
+        "start_column": 0,
+        "end_line": 5,
+        "end_column": 51,
+        "start_byte": 274,
+        "end_byte": 325
       }
     }
   ],

@@ -99,6 +99,12 @@ impl ZigExtractor {
                 ));
             }
             symbols.push(symbol);
+            symbols.extend(variables::extract_destructured_names(
+                &mut self.base,
+                node,
+                parent_id.as_ref(),
+                helpers::is_public_declaration,
+            ));
         }
 
         // Recursively visit children
