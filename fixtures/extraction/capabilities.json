@@ -280,6 +280,11 @@
           "name": "return_types",
           "source": "fixtures/extraction/c/return_types/source.c",
           "expected": "fixtures/extraction/c/return_types/expected.json"
+        },
+        {
+          "name": "declarators",
+          "source": "fixtures/extraction/c/declarators/source.c",
+          "expected": "fixtures/extraction/c/declarators/expected.json"
         }
       ],
       "target_capabilities": {
@@ -293,10 +298,14 @@
       "kind_coverage": {
         "symbols": {
           "supported": [
+            "constant",
+            "enum",
             "field",
             "function",
             "import",
             "struct",
+            "type",
+            "union",
             "variable"
           ],
           "not_applicable": [],
@@ -323,8 +332,10 @@
         },
         "body_spans": {
           "supported": [
+            "enum",
             "function",
-            "struct"
+            "struct",
+            "union"
           ],
           "not_applicable": [
             "field",

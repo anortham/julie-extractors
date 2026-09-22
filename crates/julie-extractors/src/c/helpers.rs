@@ -136,44 +136,117 @@ fn split_top_level_commas(text: &str) -> Vec<&str> {
     parts
 }
 
-/// Find a function declarator node within a declaration
-pub(super) fn find_function_declarator<'a>(
-    node: tree_sitter::Node<'a>,
-) -> Option<tree_sitter::Node<'a>> {
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        if child.kind() == "function_declarator" {
-            return Some(child);
-        }
-        if child.kind() == "init_declarator" {
-            let mut init_cursor = child.walk();
-            for init_child in child.children(&mut init_cursor) {
-                if init_child.kind() == "function_declarator" {
-                    return Some(init_child);
-                }
+/// The name a declarator declares, read the way C binds declarators: the
+/// derivation applied directly to the name decides what the name is, so
+/// `char **f(void)` is a function and `int (*f)(void)` is a pointer variable.
+pub(super) struct DeclaratorTarget<'a> {
+    pub name: tree_sitter::Node<'a>,
+    /// The `function_declarator` applied directly to the name, when the name is a function.
+    pub function: Option<tree_sitter::Node<'a>>,
+    pub pointer_depth: usize,
+    /// Whether any function declarator appears in the chain, as in a function-pointer variable.
+    pub derives_function: bool,
+}
+
+pub(super) fn declarator_target(declarator: tree_sitter::Node) -> Option<DeclaratorTarget> {
+    let mut current = declarator;
+    let mut innermost = None;
+    let mut pointer_depth = 0;
+    let mut derives_function = false;
+    for _ in 0..64 {
+        match current.kind() {
+            // tree-sitter-c reads names such as `uint64_t` as `primitive_type`,
+            // including where a typedef declares them.
+            "identifier" | "field_identifier" | "type_identifier" | "primitive_type" => {
+                return Some(DeclaratorTarget {
+                    name: current,
+                    function: innermost
+                        .filter(|node: &tree_sitter::Node| node.kind() == "function_declarator"),
+                    pointer_depth,
+                    derives_function,
+                });
             }
+            "init_declarator" => current = current.child_by_field_name("declarator")?,
+            "parenthesized_declarator" | "attributed_declarator" => {
+                current = first_declarator_child(current)?;
+            }
+            "pointer_declarator" | "array_declarator" | "function_declarator" => {
+                match current.kind() {
+                    "pointer_declarator" => pointer_depth += 1,
+                    "function_declarator" => derives_function = true,
+                    _ => {}
+                }
+                innermost = Some(current);
+                current = current.child_by_field_name("declarator")?;
+            }
+            _ => return None,
         }
     }
     None
 }
 
-/// Find all variable declarators (identifiers, array declarators, etc.)
-pub(super) fn find_variable_declarators<'a>(
-    node: tree_sitter::Node<'a>,
-) -> Vec<tree_sitter::Node<'a>> {
-    let mut declarators = Vec::new();
+fn first_declarator_child(node: tree_sitter::Node) -> Option<tree_sitter::Node> {
     let mut cursor = node.walk();
+    node.named_children(&mut cursor).find(|child| {
+        !matches!(
+            child.kind(),
+            "comment" | "attribute_declaration" | "attribute_specifier" | "type_qualifier"
+        )
+    })
+}
 
-    for child in node.children(&mut cursor) {
-        match child.kind() {
-            "init_declarator" | "declarator" | "identifier" | "array_declarator" => {
-                declarators.push(child);
-            }
-            _ => {}
-        }
-    }
-
+/// The first declarator of a function definition or declaration that declares a function.
+pub(super) fn function_declarator_target(node: tree_sitter::Node) -> Option<DeclaratorTarget> {
+    let mut cursor = node.walk();
+    let declarators: Vec<_> = node
+        .children_by_field_name("declarator", &mut cursor)
+        .collect();
     declarators
+        .into_iter()
+        .filter_map(declarator_target)
+        .find(|target| target.function.is_some())
+}
+
+/// Whether a `type_identifier` is the name a struct, union, or enum body or a
+/// typedef declarator introduces, rather than a use of a type.
+pub(super) fn is_type_declaration_name(node: tree_sitter::Node) -> bool {
+    let Some(parent) = node.parent() else {
+        return false;
+    };
+    if matches!(
+        parent.kind(),
+        "struct_specifier" | "union_specifier" | "enum_specifier"
+    ) {
+        return parent.child_by_field_name("body").is_some();
+    }
+    let mut current = node;
+    while let Some(parent) = current.parent() {
+        match parent.kind() {
+            "type_definition" => {
+                let mut cursor = parent.walk();
+                return parent
+                    .children_by_field_name("declarator", &mut cursor)
+                    .any(|declarator| declarator.id() == current.id());
+            }
+            "pointer_declarator" | "array_declarator" | "function_declarator" => {
+                if parent
+                    .child_by_field_name("declarator")
+                    .is_none_or(|declarator| declarator.id() != current.id())
+                {
+                    return false;
+                }
+            }
+            "parenthesized_declarator" | "attributed_declarator" => {}
+            _ => return false,
+        }
+        current = parent;
+    }
+    false
+}
+
+/// Find a function declarator node within a function definition or declaration
+pub(super) fn find_function_declarator(node: tree_sitter::Node) -> Option<tree_sitter::Node> {
+    function_declarator_target(node)?.function
 }
 
 /// Find the deepest identifier within a declarator node tree
@@ -275,37 +348,7 @@ pub(super) fn extract_function_name(
     base: &BaseExtractor,
     node: tree_sitter::Node,
 ) -> Option<String> {
-    // Look for function declarator
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        if child.kind() == "function_declarator"
-            && let Some(identifier) = child.child_by_field_name("declarator")
-        {
-            return Some(base.get_node_text(&identifier));
-        }
-        // For pointer return types, check pointer_declarator
-        if child.kind() == "pointer_declarator" {
-            let mut pointer_cursor = child.walk();
-            for pointer_child in child.children(&mut pointer_cursor) {
-                if pointer_child.kind() == "function_declarator"
-                    && let Some(identifier) = pointer_child.child_by_field_name("declarator")
-                {
-                    return Some(base.get_node_text(&identifier));
-                }
-            }
-        }
-    }
-    None
-}
-
-/// Extract function name from a function declaration
-pub(super) fn extract_function_name_from_declaration(
-    base: &BaseExtractor,
-    node: tree_sitter::Node,
-) -> Option<String> {
-    let function_declarator = find_function_declarator(node)?;
-    let identifier = function_declarator.child_by_field_name("declarator")?;
-    Some(base.get_node_text(&identifier))
+    function_declarator_target(node).map(|target| base.get_node_text(&target.name))
 }
 
 /// Extract variable name from a declarator node
@@ -313,12 +356,7 @@ pub(super) fn extract_variable_name(
     base: &BaseExtractor,
     declarator: tree_sitter::Node,
 ) -> Option<String> {
-    if declarator.kind() == "identifier" {
-        return Some(base.get_node_text(&declarator));
-    }
-
-    // Find deepest identifier in declarator tree
-    find_deepest_identifier(declarator).map(|node| base.get_node_text(&node))
+    declarator_target(declarator).map(|target| base.get_node_text(&target.name))
 }
 
 /// Extract struct name from a struct specifier
@@ -353,114 +391,6 @@ pub(super) fn looks_like_typedef_name(
             if child_text.contains("typedef") {
                 return true;
             }
-        }
-    }
-    false
-}
-
-/// Recursively collect all identifiers from a node tree
-pub(super) fn collect_all_identifiers(
-    base: &BaseExtractor,
-    node: tree_sitter::Node,
-    identifiers: &mut Vec<String>,
-) {
-    collect_all_identifiers_at_depth(base, node, identifiers, 0);
-}
-
-fn collect_all_identifiers_at_depth(
-    base: &BaseExtractor,
-    node: tree_sitter::Node,
-    identifiers: &mut Vec<String>,
-    depth: u32,
-) {
-    if !should_visit_tree_depth(depth) {
-        return;
-    }
-
-    match node.kind() {
-        "identifier" | "type_identifier" | "primitive_type" => {
-            let text = base.get_node_text(&node);
-            identifiers.push(text);
-        }
-        _ => {
-            let Some(child_depth) = child_tree_depth(depth) else {
-                return;
-            };
-            let mut cursor = node.walk();
-            for child in node.children(&mut cursor) {
-                collect_all_identifiers_at_depth(base, child, identifiers, child_depth);
-            }
-        }
-    }
-}
-
-/// Check if a tree contains a struct specifier
-pub(super) fn contains_struct(node: tree_sitter::Node) -> bool {
-    contains_struct_at_depth(node, 0)
-}
-
-fn contains_struct_at_depth(node: tree_sitter::Node, depth: u32) -> bool {
-    if !should_visit_tree_depth(depth) {
-        return false;
-    }
-    if node.kind() == "struct_specifier" {
-        return true;
-    }
-
-    let Some(child_depth) = child_tree_depth(depth) else {
-        return false;
-    };
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        if contains_struct_at_depth(child, child_depth) {
-            return true;
-        }
-    }
-
-    false
-}
-
-/// Check if a tree contains a union specifier
-pub(super) fn contains_union(node: tree_sitter::Node) -> bool {
-    contains_union_at_depth(node, 0)
-}
-
-fn contains_union_at_depth(node: tree_sitter::Node, depth: u32) -> bool {
-    if !should_visit_tree_depth(depth) {
-        return false;
-    }
-    if node.kind() == "union_specifier" {
-        return true;
-    }
-
-    let Some(child_depth) = child_tree_depth(depth) else {
-        return false;
-    };
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        if contains_union_at_depth(child, child_depth) {
-            return true;
-        }
-    }
-
-    false
-}
-
-/// Check if a typedef name is valid (not a C keyword)
-pub(super) fn is_valid_typedef_name(name: &str) -> bool {
-    let c_keywords = [
-        "typedef", "int", "char", "void", "const", "volatile", "static", "extern", "unsigned",
-        "signed", "long", "short", "float", "double",
-    ];
-    !c_keywords.contains(&name) && !name.is_empty()
-}
-
-/// Check if this is a typedef declaration
-pub(super) fn is_typedef_declaration(base: &BaseExtractor, node: tree_sitter::Node) -> bool {
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        if child.kind() == "storage_class_specifier" && base.get_node_text(&child) == "typedef" {
-            return true;
         }
     }
     false

@@ -24,7 +24,8 @@
 
 use crate::base::{BaseExtractor, Symbol, SymbolKind, TestRole};
 use crate::test_calls::{
-    TestCallCategory, TestCallVocab, build_test_call_symbol, classify_call_exact,
+    TestCallCategory, TestCallVocab, build_test_call_symbol, build_test_call_symbol_with_block,
+    classify_call_exact, detached_macro_block,
 };
 use crate::test_detection::apply_test_role;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
@@ -73,14 +74,29 @@ pub fn extract_c_test_call(
         TestCallCategory::Lifecycle => return None,
     };
 
-    Some(build_test_call_symbol(
-        base,
-        node,
-        &full_callee,
-        name,
-        category,
-        parent_id,
-    ))
+    Some(match detached_macro_block(node) {
+        Some(block) => build_test_call_symbol_with_block(
+            base,
+            node,
+            &block,
+            &full_callee,
+            name,
+            category,
+            parent_id,
+        ),
+        None => build_test_call_symbol(base, node, &full_callee, name, category, parent_id),
+    })
+}
+
+/// Whether a call is a Criterion test or suite macro, which declares a test
+/// rather than calling a function.
+pub(super) fn is_criterion_macro_call(base: &BaseExtractor, node: &Node) -> bool {
+    node.kind() == "call_expression"
+        && node
+            .child_by_field_name("function")
+            .is_some_and(|function| {
+                classify_call_exact(&base.get_node_text(&function), &CRITERION_VOCAB).is_some()
+            })
 }
 
 pub fn apply_criterion_lifecycle_metadata(

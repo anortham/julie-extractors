@@ -37,7 +37,9 @@ fn walk_relationships(
     }
 
     match node.kind() {
-        "call_expression" => {
+        "call_expression"
+            if !super::test_calls::is_criterion_macro_call(&extractor.base, &node) =>
+        {
             extract_function_call_relationships(
                 extractor,
                 node,
@@ -95,12 +97,19 @@ fn extract_function_call_relationships(
     let pending_confidence = if is_indirect { 0.45 } else { 0.7 };
     let relationship_confidence = if is_indirect { 0.5 } else { 1.0 };
 
-    match scoped_index.resolve_call_target(
+    let called_symbol = match scoped_index.resolve_call_target(
         &unresolved_target.terminal_name,
         Some(containing_symbol),
         unresolved_target.receiver.as_deref(),
     ) {
-        LocalTargetResolution::Resolved(called_symbol) => {
+        LocalTargetResolution::Resolved(called_symbol) => Some(called_symbol),
+        LocalTargetResolution::Missing if unresolved_target.receiver.is_none() => {
+            function_pointer_variable(symbols, &unresolved_target.terminal_name, containing_symbol)
+        }
+        _ => None,
+    };
+    match called_symbol {
+        Some(called_symbol) => {
             relationships.push(extractor.get_base_mut().create_relationship_at_target(
                 containing_symbol_id,
                 called_symbol.id.clone(),
@@ -110,10 +119,7 @@ fn extract_function_call_relationships(
                 None,
             ));
         }
-        LocalTargetResolution::Import(_)
-        | LocalTargetResolution::Ambiguous
-        | LocalTargetResolution::Missing
-        | LocalTargetResolution::ReceiverQualified => {
+        None => {
             let pending = extractor
                 .get_base_mut()
                 .create_pending_relationship_at_target(
@@ -127,6 +133,37 @@ fn extract_function_call_relationships(
             extractor.add_structured_pending_relationship(pending);
         }
     }
+}
+
+/// A call through a function-pointer variable calls that variable: the caller's
+/// own local first, then a file-scope variable.
+fn function_pointer_variable<'a>(
+    symbols: &'a [Symbol],
+    name: &str,
+    caller: &Symbol,
+) -> Option<&'a Symbol> {
+    let candidates: Vec<&Symbol> = symbols
+        .iter()
+        .filter(|symbol| {
+            symbol.kind == SymbolKind::Variable
+                && symbol.name == name
+                && symbol
+                    .metadata
+                    .as_ref()
+                    .and_then(|m| m.get("isFunctionPointer"))
+                    .and_then(|v| v.as_str())
+                    == Some("true")
+        })
+        .collect();
+    let in_scope = |parent: Option<&str>| {
+        let matching: Vec<&Symbol> = candidates
+            .iter()
+            .copied()
+            .filter(|symbol| symbol.parent_id.as_deref() == parent)
+            .collect();
+        (matching.len() == 1).then(|| matching[0])
+    };
+    in_scope(Some(caller.id.as_str())).or_else(|| in_scope(None))
 }
 
 fn call_target_from_function_node(
@@ -187,7 +224,7 @@ fn extract_type_use_relationship(
     scoped_index: &ScopedSymbolIndex<'_>,
     relationships: &mut Vec<Relationship>,
 ) {
-    if is_c_type_declaration_name(node) {
+    if helpers::is_type_declaration_name(node) {
         return;
     }
 
@@ -323,22 +360,6 @@ fn is_type_symbol(kind: &SymbolKind) -> bool {
             | SymbolKind::Interface
             | SymbolKind::Trait
     )
-}
-
-fn is_c_type_declaration_name(node: tree_sitter::Node) -> bool {
-    let Some(parent) = node.parent() else {
-        return false;
-    };
-
-    match parent.kind() {
-        "struct_specifier" | "union_specifier" | "enum_specifier" => {
-            parent.child_by_field_name("body").is_some()
-        }
-        "type_definition" => parent
-            .child_by_field_name("declarator")
-            .is_some_and(|declarator| declarator.id() == node.id()),
-        _ => false,
-    }
 }
 
 fn push_unique_relationship(relationships: &mut Vec<Relationship>, relationship: Relationship) {

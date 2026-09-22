@@ -17,7 +17,8 @@ use crate::base::{
     Symbol, SymbolKind,
 };
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use tree_sitter::Tree;
+use std::collections::HashMap;
+use tree_sitter::{Node, Tree};
 
 // Internal modules
 mod declarations;
@@ -35,6 +36,9 @@ mod types;
 /// Main C extractor struct combining all extraction functionality
 pub struct CExtractor {
     pub(crate) base: BaseExtractor,
+    /// Criterion test bodies the grammar parses as the statement after the test
+    /// macro, keyed by block node id, mapped to the test symbol that owns them.
+    detached_test_bodies: HashMap<usize, String>,
 }
 
 impl CExtractor {
@@ -47,6 +51,7 @@ impl CExtractor {
     ) -> Self {
         Self {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
+            detached_test_bodies: HashMap::new(),
         }
     }
 
@@ -87,8 +92,6 @@ impl CExtractor {
         let mut symbols = Vec::new();
         self.visit_node(tree.root_node(), &mut symbols, None, 0);
 
-        // Post-process: Fix function pointer typedef names and struct alignment attributes
-        typedefs::fix_function_pointer_typedef_names(&mut symbols);
         typedefs::fix_struct_alignment_attributes(&mut symbols);
         test_calls::apply_criterion_lifecycle_metadata(&self.base, tree.root_node(), &mut symbols);
 
@@ -180,8 +183,8 @@ impl CExtractor {
         }
 
         let mut symbol: Option<Symbol> = None;
+        let parent_id = self.detached_test_bodies.remove(&node.id()).or(parent_id);
 
-        // Port switch statement logic for C constructs
         match node.kind() {
             "preproc_include" => {
                 symbol = declarations::extract_include(self, node, parent_id.as_deref());
@@ -198,62 +201,24 @@ impl CExtractor {
                 symbol =
                     declarations::extract_function_definition(self, node, parent_id.as_deref());
             }
-            "struct_specifier" => {
-                symbol = structs::extract_struct(self, node, parent_id.as_deref());
-                // Extract struct fields as SymbolKind::Field children
-                // Skip if inside a type_definition — the type_definition handler already extracts fields
-                let inside_typedef = node.parent().is_some_and(|p| p.kind() == "type_definition");
-                if !inside_typedef {
-                    let parent_id_for_fields = symbol.as_ref().map(|s| s.id.as_str()).unwrap_or("");
-                    if !parent_id_for_fields.is_empty() {
-                        let field_symbols =
-                            structs::extract_struct_field_symbols(self, node, parent_id_for_fields);
-                        symbols.extend(field_symbols);
-                    }
-                }
-            }
-            "union_specifier" => {
-                symbol = structs::extract_union(self, node, parent_id.as_deref());
-                // Extract union fields as SymbolKind::Field children
-                // Skip if inside a type_definition — the type_definition handler already extracts fields
-                let inside_typedef = node.parent().is_some_and(|p| p.kind() == "type_definition");
-                if !inside_typedef {
-                    let parent_id_for_fields = symbol.as_ref().map(|s| s.id.as_str()).unwrap_or("");
-                    if !parent_id_for_fields.is_empty() {
-                        let field_symbols =
-                            structs::extract_struct_field_symbols(self, node, parent_id_for_fields);
-                        symbols.extend(field_symbols);
-                    }
+            "struct_specifier" | "union_specifier" => {
+                symbol = self.extract_specifier(node, parent_id.as_deref());
+                if let Some(owner) = symbol.as_ref().map(|s| s.id.clone()) {
+                    self.extract_members(node, &owner, symbols);
                 }
             }
             "enum_specifier" => {
                 symbol = structs::extract_enum(self, node, parent_id.as_deref());
-                // Extract enum values as separate constants (even for anonymous enums like `typedef enum { ... } Name;`)
-                let parent_id_for_values = symbol.as_ref().map(|s| s.id.as_str()).unwrap_or("");
-                let enum_values =
-                    structs::extract_enum_value_symbols(self, node, parent_id_for_values);
-                symbols.extend(enum_values);
+                let owner = symbol.as_ref().map(|s| s.id.clone()).or(parent_id.clone());
+                symbols.extend(structs::extract_enum_value_symbols(
+                    self,
+                    node,
+                    owner.as_deref(),
+                ));
             }
             "type_definition" => {
-                symbol = typedefs::extract_type_definition(self, node, parent_id.as_deref());
-                // For typedef struct/union, extract fields from the inner specifier
-                // e.g., `typedef struct { int x; int y; } Point;`
-                if let Some(ref sym) = symbol
-                    && (sym.kind == SymbolKind::Struct || sym.kind == SymbolKind::Union)
-                {
-                    // Find the struct_specifier or union_specifier child inside the type_definition
-                    let mut td_cursor = node.walk();
-                    for td_child in node.children(&mut td_cursor) {
-                        if td_child.kind() == "struct_specifier"
-                            || td_child.kind() == "union_specifier"
-                        {
-                            let field_symbols =
-                                structs::extract_struct_field_symbols(self, td_child, &sym.id);
-                            symbols.extend(field_symbols);
-                            break;
-                        }
-                    }
-                }
+                self.visit_type_definition(node, symbols, parent_id, depth);
+                return;
             }
             "linkage_specification" => {
                 symbol =
@@ -265,11 +230,14 @@ impl CExtractor {
                     typedefs::extract_from_expression_statement(self, node, parent_id.as_deref());
             }
             "call_expression" => {
-                // Criterion call-style tests: `Test(suite,
-                // name) { ... }` parses as a call_expression. Non-test calls return
-                // None and fall through to normal child recursion.
                 symbol =
                     test_calls::extract_c_test_call(&mut self.base, &node, parent_id.as_deref());
+                if let (Some(test), Some(block)) =
+                    (&symbol, crate::test_calls::detached_macro_block(&node))
+                {
+                    self.detached_test_bodies
+                        .insert(block.id(), test.id.clone());
+                }
             }
             _ => {}
         }
@@ -295,6 +263,86 @@ impl CExtractor {
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
             self.visit_node(child, symbols, current_parent_id.clone(), child_depth);
+        }
+    }
+}
+
+impl CExtractor {
+    fn extract_specifier(&mut self, node: Node, parent_id: Option<&str>) -> Option<Symbol> {
+        match node.kind() {
+            "struct_specifier" => structs::extract_struct(self, node, parent_id),
+            "union_specifier" => structs::extract_union(self, node, parent_id),
+            "enum_specifier" => structs::extract_enum(self, node, parent_id),
+            _ => None,
+        }
+    }
+
+    fn extract_members(&mut self, specifier: Node, owner: &str, symbols: &mut Vec<Symbol>) {
+        let members = if specifier.kind() == "enum_specifier" {
+            structs::extract_enum_value_symbols(self, specifier, Some(owner))
+        } else {
+            structs::extract_struct_field_symbols(self, specifier, owner)
+        };
+        symbols.extend(members);
+    }
+
+    /// A typedef whose type carries a body owns that body's members. A body with
+    /// its own tag name different from every typedef name also keeps a row for
+    /// the tag, so `struct tag` references resolve.
+    fn visit_type_definition(
+        &mut self,
+        node: Node,
+        symbols: &mut Vec<Symbol>,
+        parent_id: Option<String>,
+        depth: u32,
+    ) {
+        let typedef_symbols = typedefs::extract_type_definition(self, node, parent_id.as_deref());
+        let Some(specifier) = node.child_by_field_name("type").filter(|t| {
+            t.child_by_field_name("body").is_some()
+                && matches!(
+                    t.kind(),
+                    "struct_specifier" | "union_specifier" | "enum_specifier"
+                )
+        }) else {
+            symbols.extend(typedef_symbols);
+            return;
+        };
+
+        let mut owner = typedef_symbols
+            .iter()
+            .find(|s| {
+                matches!(
+                    s.kind,
+                    SymbolKind::Struct | SymbolKind::Union | SymbolKind::Enum
+                )
+            })
+            .or(typedef_symbols.first())
+            .map(|s| s.id.clone());
+        let tag_is_new = specifier
+            .child_by_field_name("name")
+            .map(|name| self.base.get_node_text(&name))
+            .is_some_and(|tag| typedef_symbols.iter().all(|s| s.name != tag));
+        symbols.extend(typedef_symbols);
+        if tag_is_new
+            && let Some(tag_symbol) = self.extract_specifier(specifier, parent_id.as_deref())
+        {
+            owner.get_or_insert_with(|| tag_symbol.id.clone());
+            symbols.push(tag_symbol);
+        }
+
+        let Some(owner) = owner else {
+            return;
+        };
+        self.extract_members(specifier, &owner, symbols);
+        let (Some(body), Some(child_depth)) = (
+            specifier.child_by_field_name("body"),
+            child_tree_depth(depth),
+        ) else {
+            return;
+        };
+        let mut cursor = body.walk();
+        for child in body.children(&mut cursor) {
+            self.visit_node(child, symbols, Some(owner.clone()), child_depth);
         }
     }
 }

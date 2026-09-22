@@ -24,14 +24,14 @@ pub(super) fn record_declared_from_declaration(
         return;
     };
     let mut base_name = base.get_node_text(&name_node);
-    let (stars, array_declared, array_count) = declarator_decorations(base, declarator);
+    let (pointers, array_declared, array_count) = declarator_decorations(base, declarator);
     for _ in 0..array_count {
         base_name.push_str("[]");
     }
     let mut declared = declared_prefix(base, decl);
-    if stars > 0 {
+    if !pointers.is_empty() {
         declared.push(' ');
-        declared.push_str(&"*".repeat(stars));
+        declared.push_str(&pointers);
     }
     declared.push_str(&array_declared);
     base.record_declared_type_fact_with_declared(
@@ -94,14 +94,25 @@ fn contains_function_declarator(node: Node) -> bool {
     false
 }
 
-fn declarator_decorations(base: &BaseExtractor, node: Node) -> (usize, String, usize) {
-    let mut stars = 0;
+/// The pointer text of a declarator chain, each `*` with its own qualifiers
+/// (`*const`), then its array suffix and array depth.
+fn declarator_decorations(base: &BaseExtractor, node: Node) -> (String, String, usize) {
+    let mut pointers = String::new();
     let mut array_suffix = String::new();
     let mut array_count = 0;
     let mut node = Some(node);
     while let Some(current) = node {
         match current.kind() {
-            "pointer_declarator" => stars += 1,
+            "pointer_declarator" => {
+                pointers.push('*');
+                let mut cursor = current.walk();
+                for qualifier in current
+                    .children(&mut cursor)
+                    .filter(|child| child.kind() == "type_qualifier")
+                {
+                    pointers.push_str(&base.get_node_text(&qualifier));
+                }
+            }
             "array_declarator" => {
                 array_count += 1;
                 array_suffix.push('[');
@@ -114,7 +125,7 @@ fn declarator_decorations(base: &BaseExtractor, node: Node) -> (usize, String, u
         }
         node = nested_declarator(current);
     }
-    (stars, array_suffix, array_count)
+    (pointers, array_suffix, array_count)
 }
 
 fn nested_declarator(node: Node) -> Option<Node> {

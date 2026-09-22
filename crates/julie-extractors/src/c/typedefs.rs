@@ -10,94 +10,112 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::LazyLock;
 
-// Static regexes compiled once for performance
-static FUNCTION_POINTER_TYPEDEF_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"typedef\s+[^(]*\(\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)").unwrap()
-});
 static STRUCT_ALIGN_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"typedef\s+struct\s+(ALIGN\([^)]+\))").unwrap());
 
 use super::helpers;
 use super::signatures;
-use super::types;
 
-/// Extract a type definition
+/// Extract one symbol per declarator of a `typedef`. A plain name typedef of a
+/// struct, union, or enum body takes that kind; every other typedef is a `Type`.
 pub(super) fn extract_type_definition(
     extractor: &mut CExtractor,
     node: tree_sitter::Node,
     parent_id: Option<&str>,
-) -> Option<Symbol> {
-    let typedef_name = extract_typedef_name_from_type_definition(&extractor.base, node)?;
-    let underlying_type =
-        types::extract_underlying_type_from_type_definition(&extractor.base, node);
-    let signature = signatures::build_typedef_signature(&extractor.base, &node, &typedef_name);
-
-    // Determine the correct kind based on the underlying type
-    let symbol_kind = if helpers::contains_union(node) {
-        SymbolKind::Union
-    } else if helpers::contains_struct(node) {
-        SymbolKind::Struct
-    } else {
-        SymbolKind::Type
-    };
-    let struct_type = match symbol_kind {
-        SymbolKind::Struct => "struct",
-        SymbolKind::Union => "union",
-        _ => "typedef",
-    };
-    let is_struct = symbol_kind == SymbolKind::Struct || symbol_kind == SymbolKind::Union;
-
+) -> Vec<Symbol> {
+    let type_node = node.child_by_field_name("type");
+    let underlying_type = type_node
+        .map(|t| extractor.base.get_node_text(&t))
+        .unwrap_or_default();
+    let body_kind = type_node
+        .filter(|t| t.child_by_field_name("body").is_some())
+        .and_then(|t| match t.kind() {
+            "struct_specifier" => Some(SymbolKind::Struct),
+            "union_specifier" => Some(SymbolKind::Union),
+            "enum_specifier" => Some(SymbolKind::Enum),
+            _ => None,
+        });
+    let prefix = typedef_prefix(&extractor.base, node);
     let doc_comment = extractor.base.find_doc_comment(&node);
 
-    Some(extractor.base.create_symbol(
-        &node,
-        typedef_name.clone(),
-        symbol_kind,
-        SymbolOptions {
-            signature: Some(signature),
-            visibility: Some(Visibility::Public),
-            parent_id: parent_id.map(|s| s.to_string()),
-            metadata: Some(HashMap::from([
-                ("type".to_string(), Value::String(struct_type.to_string())),
-                ("name".to_string(), Value::String(typedef_name)),
-                ("underlyingType".to_string(), Value::String(underlying_type)),
-                ("isStruct".to_string(), Value::String(is_struct.to_string())),
-            ])),
-            doc_comment,
-            annotations: Vec::new(),
-        },
-    ))
+    let mut cursor = node.walk();
+    let declarators: Vec<_> = node
+        .children_by_field_name("declarator", &mut cursor)
+        .collect();
+    declarators
+        .into_iter()
+        .filter_map(|declarator| {
+            let target = helpers::declarator_target(declarator)?;
+            let name = extractor.base.get_node_text(&target.name);
+            let kind = match &body_kind {
+                Some(kind) if declarator.kind() == "type_identifier" => kind.clone(),
+                _ => SymbolKind::Type,
+            };
+            let type_label = match kind {
+                SymbolKind::Struct => "struct",
+                SymbolKind::Union => "union",
+                SymbolKind::Enum => "enum",
+                _ => "typedef",
+            };
+            let is_struct = matches!(kind, SymbolKind::Struct | SymbolKind::Union);
+            let signature = collapse_whitespace(&format!(
+                "typedef {} {}",
+                prefix,
+                extractor.base.get_node_text(&declarator)
+            ));
+            Some(extractor.base.create_symbol(
+                &node,
+                name.clone(),
+                kind,
+                SymbolOptions {
+                    signature: Some(signature),
+                    visibility: Some(Visibility::Public),
+                    parent_id: parent_id.map(|s| s.to_string()),
+                    metadata: Some(HashMap::from([
+                        ("type".to_string(), Value::String(type_label.to_string())),
+                        ("name".to_string(), Value::String(name)),
+                        (
+                            "underlyingType".to_string(),
+                            Value::String(underlying_type.clone()),
+                        ),
+                        ("isStruct".to_string(), Value::String(is_struct.to_string())),
+                    ])),
+                    doc_comment: doc_comment.clone(),
+                    annotations: Vec::new(),
+                },
+            ))
+        })
+        .collect()
 }
 
-/// Extract typedef from a declaration node
-pub(super) fn extract_typedef_from_declaration(
-    extractor: &mut CExtractor,
-    node: tree_sitter::Node,
-    parent_id: Option<&str>,
-) -> Option<Symbol> {
-    let typedef_name = extract_typedef_name_from_declaration(&extractor.base, node)?;
-    let signature = extractor.base.get_node_text(&node);
-    let underlying_type = types::extract_underlying_type_from_declaration(&extractor.base, node);
+/// The typedef text between `typedef` and the first declarator, with any
+/// struct, union, or enum body shortened to `{ ... }`.
+fn typedef_prefix(base: &BaseExtractor, node: tree_sitter::Node) -> String {
+    let declarators_start = node
+        .child_by_field_name("declarator")
+        .map_or(node.end_byte(), |d| d.start_byte());
+    let mut parts = Vec::new();
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if child.start_byte() >= declarators_start {
+            break;
+        }
+        if !child.is_named() || child.kind() == "comment" {
+            continue;
+        }
+        match child.child_by_field_name("body") {
+            Some(body) => {
+                let head = base.content[child.start_byte()..body.start_byte()].trim();
+                parts.push(format!("{head} {{ ... }}"));
+            }
+            None => parts.push(base.get_node_text(&child)),
+        }
+    }
+    parts.join(" ")
+}
 
-    let doc_comment = extractor.base.find_doc_comment(&node);
-
-    Some(extractor.base.create_symbol(
-        &node,
-        typedef_name.clone(),
-        SymbolKind::Type,
-        SymbolOptions {
-            signature: Some(signature),
-            visibility: Some(Visibility::Public),
-            parent_id: parent_id.map(|s| s.to_string()),
-            metadata: Some(HashMap::from([
-                ("type".to_string(), Value::String("typedef".to_string())),
-                ("name".to_string(), Value::String(typedef_name)),
-                ("underlyingType".to_string(), Value::String(underlying_type)),
-            ])),
-            doc_comment,
-            annotations: Vec::new(),
-        },
-    ))
+fn collapse_whitespace(text: &str) -> String {
+    text.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 /// Extract from expression statement (special case for typedef names)
@@ -140,98 +158,6 @@ pub(super) fn extract_from_expression_statement(
         }
     }
     None
-}
-
-/// Extract typedef name from type definition
-fn extract_typedef_name_from_type_definition(
-    base: &BaseExtractor,
-    node: tree_sitter::Node,
-) -> Option<String> {
-    let mut all_identifiers = Vec::new();
-    helpers::collect_all_identifiers(base, node, &mut all_identifiers);
-
-    let c_keywords = [
-        "typedef", "unsigned", "long", "char", "int", "short", "float", "double", "void", "const",
-        "volatile", "static", "extern",
-    ];
-
-    for identifier in all_identifiers.iter().rev() {
-        if !c_keywords.contains(&identifier.as_str()) {
-            return Some(identifier.clone());
-        }
-    }
-
-    None
-}
-
-/// Extract typedef name from a declaration
-fn extract_typedef_name_from_declaration(
-    base: &BaseExtractor,
-    node: tree_sitter::Node,
-) -> Option<String> {
-    // Special handling for function pointer typedefs
-    if let Some(name) = extract_function_pointer_typedef_name(base, node) {
-        return Some(name);
-    }
-
-    let mut all_identifiers = Vec::new();
-    helpers::collect_all_identifiers(base, node, &mut all_identifiers);
-
-    let c_keywords = [
-        "typedef", "unsigned", "long", "char", "int", "short", "float", "double", "void", "const",
-        "volatile", "static", "extern",
-    ];
-
-    for identifier in all_identifiers.iter().rev() {
-        if !c_keywords.contains(&identifier.as_str()) {
-            return Some(identifier.clone());
-        }
-    }
-
-    None
-}
-
-/// Extract function pointer typedef name using regex
-fn extract_function_pointer_typedef_name(
-    base: &BaseExtractor,
-    node: tree_sitter::Node,
-) -> Option<String> {
-    let signature = base.get_node_text(&node);
-
-    if let Some(captures) = FUNCTION_POINTER_TYPEDEF_RE.captures(&signature)
-        && let Some(name_match) = captures.get(1)
-    {
-        let name = name_match.as_str().to_string();
-        if helpers::is_valid_typedef_name(&name) {
-            return Some(name);
-        }
-    }
-
-    None
-}
-
-/// Fix function pointer typedef names in post-processing
-pub(super) fn fix_function_pointer_typedef_names(symbols: &mut [Symbol]) {
-    for symbol in symbols.iter_mut() {
-        if symbol.kind == SymbolKind::Type
-            && let Some(signature) = &symbol.signature
-            && let Some(captures) = FUNCTION_POINTER_TYPEDEF_RE.captures(signature)
-            && let Some(name_match) = captures.get(1)
-        {
-            let correct_name = name_match.as_str();
-
-            let should_fix = (symbol.name.len() <= 2
-                && symbol.name.chars().all(|c| c.is_ascii_lowercase()))
-                || symbol.name != correct_name;
-
-            if should_fix {
-                symbol.name = correct_name.to_string();
-                if let Some(metadata) = &mut symbol.metadata {
-                    metadata.insert("name".to_string(), Value::String(correct_name.to_string()));
-                }
-            }
-        }
-    }
 }
 
 /// Fix struct alignment attributes in post-processing

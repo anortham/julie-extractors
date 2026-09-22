@@ -220,7 +220,7 @@ mod tests {
         let value_union_symbol = value_union.as_ref().unwrap();
         let value_union_signature = value_union_symbol.signature.as_ref().unwrap();
         assert!(value_union_signature.contains("typedef"));
-        assert!(value_union_signature.contains("typedef struct Value"));
+        assert!(value_union_signature.contains("typedef union { ... } Value"));
         let metadata = value_union_symbol
             .metadata
             .as_ref()
