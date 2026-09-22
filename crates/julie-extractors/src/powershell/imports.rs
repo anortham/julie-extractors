@@ -35,14 +35,6 @@ pub(super) fn extract_import(
         extract_import_module_name(&node_text)?
     };
 
-    let doc_comment = if is_using {
-        Some("Using statement".to_string())
-    } else if is_dot_sourcing {
-        Some("Dot sourcing".to_string())
-    } else {
-        Some("Module import".to_string())
-    };
-
     Some(base.create_symbol(
         &node,
         module_name,
@@ -52,7 +44,7 @@ pub(super) fn extract_import(
             visibility: Some(Visibility::Public),
             parent_id: parent_id.map(|s| s.to_string()),
             metadata: None,
-            doc_comment,
+            doc_comment: super::documentation::extract_powershell_doc_comment(base, &node),
             annotations: Vec::new(),
         },
     ))
@@ -105,7 +97,6 @@ pub(super) fn extract_import_command(
         return None;
     }
 
-    let is_using = command_name == "using";
     let is_export = command_name == "Export-ModuleMember";
 
     let symbol_kind = if is_export {
@@ -113,14 +104,6 @@ pub(super) fn extract_import_command(
     } else {
         SymbolKind::Import
     };
-    let doc_comment = if is_export {
-        Some("Module export".to_string())
-    } else if is_using {
-        Some("Using statement".to_string())
-    } else {
-        Some("Module import".to_string())
-    };
-
     Some(base.create_symbol(
         &node,
         module_name,
@@ -130,7 +113,7 @@ pub(super) fn extract_import_command(
             visibility: Some(Visibility::Public),
             parent_id: parent_id.map(|s| s.to_string()),
             metadata: None,
-            doc_comment,
+            doc_comment: super::documentation::extract_powershell_doc_comment(base, &node),
             annotations: Vec::new(),
         },
     ))
@@ -172,7 +155,7 @@ pub(super) fn extract_dot_sourcing(
             visibility: Some(Visibility::Public),
             parent_id: parent_id.map(|s| s.to_string()),
             metadata: None,
-            doc_comment: Some("Dot sourcing script".to_string()),
+            doc_comment: super::documentation::extract_powershell_doc_comment(base, &node),
             annotations: Vec::new(),
         },
     ))

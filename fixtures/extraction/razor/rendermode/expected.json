@@ -86,7 +86,7 @@
       "signature": "[CascadingParameter] public ThemeContext Theme = default!",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/razor/rendermode/InteractiveDashboard.razor:InteractiveDashboard:1:0",
       "metadata": {
         "attributes": "[CascadingParameter]",
         "modifiers": "public",
@@ -106,9 +106,61 @@
     }
   ],
   "relationships": [],
-  "pending_relationships": [],
-  "structured_pending_relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/razor/rendermode/InteractiveDashboard.razor:InteractiveDashboard:1:0",
+      "callee_name": "DashboardShell",
+      "kind": "uses",
+      "file_path": "fixtures/extraction/razor/rendermode/InteractiveDashboard.razor",
+      "line_number": 4,
+      "confidence": "0.900"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/razor/rendermode/InteractiveDashboard.razor:InteractiveDashboard:1:0",
+        "callee_name": "DashboardShell",
+        "kind": "uses",
+        "file_path": "fixtures/extraction/razor/rendermode/InteractiveDashboard.razor",
+        "line_number": 4,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "DashboardShell",
+        "terminal_name": "DashboardShell",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/razor/rendermode/InteractiveDashboard.razor:InteractiveDashboard:1:0",
+      "span": {
+        "start_line": 4,
+        "start_column": 1,
+        "end_line": 4,
+        "end_column": 15,
+        "start_byte": 51,
+        "end_byte": 65
+      }
+    }
+  ],
   "identifiers": [
+    {
+      "key": "fixtures/extraction/razor/rendermode/InteractiveDashboard.razor:DashboardShell:type_usage:4:1",
+      "name": "DashboardShell",
+      "kind": "type_usage",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/rendermode/InteractiveDashboard.razor",
+      "start_line": 4,
+      "start_column": 1,
+      "end_line": 4,
+      "end_column": 15,
+      "start_byte": 51,
+      "end_byte": 65,
+      "containing_key": "fixtures/extraction/razor/rendermode/InteractiveDashboard.razor:InteractiveDashboard:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
     {
       "key": "fixtures/extraction/razor/rendermode/InteractiveDashboard.razor:InteractiveServer:variable_ref:2:12",
       "name": "InteractiveServer",
@@ -143,24 +195,6 @@
     }
   ],
   "types": [
-    {
-      "symbol_key": "fixtures/extraction/razor/rendermode/InteractiveDashboard.razor:@page:1:0",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/rendermode/InteractiveDashboard.razor:InteractiveDashboard:1:0",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
     {
       "symbol_key": "fixtures/extraction/razor/rendermode/InteractiveDashboard.razor:Theme:7:4",
       "resolved_type": "ThemeContext",

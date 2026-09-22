@@ -13,18 +13,18 @@
 // - Modern C# features (nullable types, records, pattern matching)
 
 pub(crate) mod di_relationships;
-mod fields;
+pub(crate) mod fields;
 mod helpers;
 mod identifiers;
 mod local_callables;
 mod locals;
 pub(crate) mod member_type_relationships;
-mod members;
-mod operators;
+pub(crate) mod members;
+pub(crate) mod operators;
 mod partial_classes;
 mod relationships;
 mod type_inference;
-mod types;
+pub(crate) mod types;
 
 use crate::base::{
     BaseExtractor, Identifier, PendingRelationship, Relationship, StructuredPendingRelationship,

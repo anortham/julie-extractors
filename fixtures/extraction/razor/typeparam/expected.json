@@ -142,7 +142,7 @@
       "signature": "[Parameter] public IReadOnlyList<TItem> Items = Array.Empty<TItem>()",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/razor/typeparam/GenericList.razor:GenericList:1:0",
       "metadata": {
         "attributes": "[Parameter]",
         "modifiers": "public",
@@ -161,30 +161,79 @@
       "content_type": null
     }
   ],
-  "relationships": [
+  "relationships": [],
+  "pending_relationships": [
     {
       "from_key": "fixtures/extraction/razor/typeparam/GenericList.razor:GenericList:1:0",
-      "to_key": "unresolved:method:Array.Empty<TItem>",
+      "callee_name": "Array.Empty",
       "kind": "calls",
       "file_path": "fixtures/extraction/razor/typeparam/GenericList.razor",
       "line_number": 8,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/razor/typeparam/GenericList.razor:GenericList:1:0",
+      "callee_name": "DataGrid",
+      "kind": "uses",
+      "file_path": "fixtures/extraction/razor/typeparam/GenericList.razor",
+      "line_number": 4,
+      "confidence": "0.900"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/razor/typeparam/GenericList.razor:GenericList:1:0",
+        "callee_name": "Array.Empty",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/razor/typeparam/GenericList.razor",
+        "line_number": 8,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Array.Empty",
+        "terminal_name": "Empty",
+        "receiver": "Array",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/razor/typeparam/GenericList.razor:GenericList:1:0",
       "span": {
         "start_line": 8,
         "start_column": 54,
         "end_line": 8,
-        "end_column": 74,
+        "end_column": 72,
         "start_byte": 179,
-        "end_byte": 199
+        "end_byte": 197
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/razor/typeparam/GenericList.razor:GenericList:1:0",
+        "callee_name": "DataGrid",
+        "kind": "uses",
+        "file_path": "fixtures/extraction/razor/typeparam/GenericList.razor",
+        "line_number": 4,
+        "confidence": "0.900"
       },
-      "reference_site_is_exact": false,
-      "confidence": "0.900",
-      "metadata": {
-        "method": "Array.Empty<TItem>"
+      "target": {
+        "display_name": "DataGrid",
+        "terminal_name": "DataGrid",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/razor/typeparam/GenericList.razor:GenericList:1:0",
+      "span": {
+        "start_line": 4,
+        "start_column": 1,
+        "end_line": 4,
+        "end_column": 9,
+        "start_byte": 70,
+        "end_byte": 78
       }
     }
   ],
-  "pending_relationships": [],
-  "structured_pending_relationships": [],
   "identifiers": [
     {
       "key": "fixtures/extraction/razor/typeparam/GenericList.razor:Array:variable_ref:8:54",
@@ -214,6 +263,22 @@
       "end_column": 28,
       "start_byte": 18,
       "end_byte": 28,
+      "containing_key": "fixtures/extraction/razor/typeparam/GenericList.razor:GenericList:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/razor/typeparam/GenericList.razor:DataGrid:type_usage:4:1",
+      "name": "DataGrid",
+      "kind": "type_usage",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/typeparam/GenericList.razor",
+      "start_line": 4,
+      "start_column": 1,
+      "end_line": 4,
+      "end_column": 9,
+      "start_byte": 70,
+      "end_byte": 78,
       "containing_key": "fixtures/extraction/razor/typeparam/GenericList.razor:GenericList:1:0",
       "target_key": null,
       "confidence": "1.000"
@@ -364,42 +429,6 @@
     }
   ],
   "types": [
-    {
-      "symbol_key": "fixtures/extraction/razor/typeparam/GenericList.razor:@namespace:1:0",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/typeparam/GenericList.razor:@namespace:1:0",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/typeparam/GenericList.razor:@namespace:1:1",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/typeparam/GenericList.razor:GenericList:1:0",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
     {
       "symbol_key": "fixtures/extraction/razor/typeparam/GenericList.razor:Items:7:4",
       "resolved_type": "IReadOnlyList",

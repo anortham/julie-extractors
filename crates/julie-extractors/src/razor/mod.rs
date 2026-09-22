@@ -23,13 +23,21 @@ static NAMESPACE_RE: LazyLock<Regex> = LazyLock::new(|| {
 static RENDERMODE_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r#"@rendermode="([^"]+)""#).unwrap());
 
-pub(crate) fn component_tag_name(element: &str) -> Option<&str> {
-    let remainder = element.strip_prefix('<')?;
-    let end = remainder
+/// The component tag of an `element` node and the byte offset where it starts.
+/// An element inside a `@<...>` template has no leading `<`: the template
+/// transition consumed it.
+pub(crate) fn element_component_tag<'a>(node: Node, content: &'a str) -> Option<(usize, &'a str)> {
+    let text = content.get(node.byte_range())?;
+    let (offset, rest) = match text.strip_prefix('<') {
+        Some(rest) => (1, rest),
+        None if node.parent()?.kind() == "razor_template" => (0, text),
+        None => return None,
+    };
+    let end = rest
         .find(|character: char| character.is_whitespace() || matches!(character, '/' | '>'))
-        .unwrap_or(remainder.len());
-    let tag = &remainder[..end];
-    is_component_tag_name(tag).then_some(tag)
+        .unwrap_or(rest.len());
+    let tag = &rest[..end];
+    is_component_tag_name(tag).then_some((node.start_byte() + offset, tag))
 }
 
 pub(crate) fn is_razor_expression_node_kind(kind: &str) -> bool {
@@ -37,6 +45,26 @@ pub(crate) fn is_razor_expression_node_kind(kind: &str) -> bool {
         kind,
         "razor_explicit_expression" | "razor_implicit_expression"
     )
+}
+
+/// Whether a `razor_block` is an `@code` or `@functions` block, whose direct
+/// declarations are members of the component class.
+/// The file-derived component class, which owns `@code` members and `@inject`
+/// properties.
+pub(crate) fn component_symbol_id(symbols: &[Symbol]) -> Option<String> {
+    symbols
+        .iter()
+        .find(|symbol| {
+            relationship_helpers::is_component_symbol(symbol) && symbol.parent_id.is_none()
+        })
+        .map(|symbol| symbol.id.clone())
+}
+
+pub(crate) fn is_member_block(node: Node, content: &str) -> bool {
+    let mut cursor = node.walk();
+    node.children(&mut cursor)
+        .filter(|child| child.kind() == "at_block")
+        .any(|child| matches!(content.get(child.byte_range()), Some("code" | "functions")))
 }
 
 fn is_component_tag_name(tag: &str) -> bool {
@@ -49,6 +77,16 @@ fn is_pascal_case_component_segment(segment: &str) -> bool {
         .next()
         .is_some_and(|first| first.is_ascii_uppercase())
         && characters.all(|character| character.is_ascii_alphanumeric())
+}
+
+fn has_descendant_kind(node: Node, kind: &str, depth: u32) -> bool {
+    let Some(child_depth) = child_tree_depth(depth).filter(|_| should_visit_tree_depth(depth))
+    else {
+        return false;
+    };
+    let mut cursor = node.walk();
+    node.children(&mut cursor)
+        .any(|child| child.kind() == kind || has_descendant_kind(child, kind, child_depth))
 }
 
 // Module declarations
@@ -138,7 +176,7 @@ impl RazorExtractor {
         ))
     }
 
-    fn is_razor_component_file(&self) -> bool {
+    pub(crate) fn is_razor_component_file(&self) -> bool {
         let path = Path::new(&self.base.file_path);
         path.extension().and_then(|extension| extension.to_str()) == Some("razor")
             && !matches!(
@@ -174,13 +212,9 @@ impl RazorExtractor {
             return;
         }
 
-        // Handle ERROR nodes by falling back to text-based extraction
         if node.kind() == "ERROR" {
             self.extract_from_text_content(node, symbols, parent_id.as_deref());
-            return;
-        }
-
-        if !self.is_valid_node(&node) {
+        } else if !self.is_valid_node(&node) {
             return;
         }
 
@@ -198,7 +232,12 @@ impl RazorExtractor {
             | "razor_inherits_directive"
             | "razor_implements_directive"
             | "razor_addtaghelper_directive" => {
-                symbol = self.extract_directive(node, parent_id.as_deref());
+                let directive_parent = if node.kind() == "razor_inject_directive" {
+                    component_symbol_id(symbols).or(parent_id.clone())
+                } else {
+                    parent_id.clone()
+                };
+                symbol = self.extract_directive(node, directive_parent.as_deref());
             }
             "at_namespace" | "at_inherits" | "at_implements" => {
                 symbol = self.extract_token_directive(node, parent_id.as_deref());
@@ -207,16 +246,13 @@ impl RazorExtractor {
                 symbol = self.extract_section(node, parent_id.as_deref());
             }
             "razor_block" => {
-                // Extract C# symbols from within the block.
-                // Use the outer parent_id (not a code block symbol) so children
-                // appear as top-level file symbols — the @code block is just a
-                // container, not a meaningful symbol for search/navigation.
-                self.extract_csharp_symbols(node, symbols, parent_id.as_deref());
-                // Don't visit children since we already extracted them
+                let block_parent = if is_member_block(node, &self.base.content) {
+                    component_symbol_id(symbols).or(parent_id)
+                } else {
+                    parent_id
+                };
+                self.extract_csharp_symbols(node, symbols, block_parent.as_deref());
                 return;
-            }
-            kind if is_razor_expression_node_kind(kind) && !self.contains_invocation(node) => {
-                symbol = self.extract_expression(node, parent_id.as_deref());
             }
             // Template component references (<PageTitle>, <EditForm>, etc.) are USAGES
             // not definitions — skip them. Component definitions come from the
@@ -290,8 +326,8 @@ impl RazorExtractor {
 
         // Extract Razor directives from text
 
-        // Look for @inherits directive
-        if let Some(captures) = INHERITS_RE.captures(&content)
+        if !has_descendant_kind(node, "razor_inherits_directive", 0)
+            && let Some(captures) = INHERITS_RE.captures(&content)
             && let Some(base_class) = captures.get(1)
         {
             let symbol = self.base.create_symbol(

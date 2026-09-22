@@ -136,7 +136,7 @@
       "signature": "@inject HttpClient Http",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/razor/code-behind/Widget.razor:Widget:1:0",
       "metadata": {
         "directiveName": "inject",
         "directiveValue": "HttpClient Http",
@@ -171,7 +171,7 @@
       "signature": "private async Task LoadAsync()",
       "doc_comment": null,
       "visibility": "Private",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/razor/code-behind/Widget.razor:Widget:1:0",
       "metadata": {
         "attributes": "",
         "modifiers": "private, async",
@@ -201,7 +201,7 @@
       "signature": "@inject NavigationManager Navigation",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/razor/code-behind/Widget.razor:Widget:1:0",
       "metadata": {
         "directiveName": "inject",
         "directiveValue": "NavigationManager Navigation",
@@ -264,7 +264,7 @@
       "signature": "[CascadingParameter] public ThemeContext Theme = default!",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/razor/code-behind/Widget.razor:Widget:1:0",
       "metadata": {
         "attributes": "[CascadingParameter]",
         "modifiers": "public",
@@ -319,46 +319,6 @@
   ],
   "relationships": [
     {
-      "from_key": "fixtures/extraction/razor/code-behind/Widget.razor:LoadAsync:14:4",
-      "to_key": "unresolved:method:Http.GetFromJsonAsync<WidgetModel>",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/razor/code-behind/Widget.razor",
-      "line_number": 17,
-      "span": {
-        "start_line": 17,
-        "start_column": 14,
-        "end_line": 17,
-        "end_column": 72,
-        "start_byte": 408,
-        "end_byte": 466
-      },
-      "reference_site_is_exact": false,
-      "confidence": "0.900",
-      "metadata": {
-        "method": "Http.GetFromJsonAsync<WidgetModel>"
-      }
-    },
-    {
-      "from_key": "fixtures/extraction/razor/code-behind/Widget.razor:LoadAsync:14:4",
-      "to_key": "unresolved:method:Navigation.NavigateTo",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/razor/code-behind/Widget.razor",
-      "line_number": 16,
-      "span": {
-        "start_line": 16,
-        "start_column": 8,
-        "end_line": 16,
-        "end_column": 49,
-        "start_byte": 351,
-        "end_byte": 392
-      },
-      "reference_site_is_exact": false,
-      "confidence": "0.900",
-      "metadata": {
-        "method": "Navigation.NavigateTo"
-      }
-    },
-    {
       "from_key": "fixtures/extraction/razor/code-behind/Widget.razor:Widget:1:0",
       "to_key": "unresolved:namespace:Sample.Shared",
       "kind": "uses",
@@ -380,8 +340,112 @@
       }
     }
   ],
-  "pending_relationships": [],
-  "structured_pending_relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/razor/code-behind/Widget.razor:LoadAsync:14:4",
+      "callee_name": "Http.GetFromJsonAsync",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/razor/code-behind/Widget.razor",
+      "line_number": 17,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/razor/code-behind/Widget.razor:LoadAsync:14:4",
+      "callee_name": "Navigation.NavigateTo",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/razor/code-behind/Widget.razor",
+      "line_number": 16,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/razor/code-behind/Widget.razor:Widget:1:0",
+      "callee_name": "SharedWidget",
+      "kind": "uses",
+      "file_path": "fixtures/extraction/razor/code-behind/Widget.razor",
+      "line_number": 7,
+      "confidence": "0.900"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/razor/code-behind/Widget.razor:LoadAsync:14:4",
+        "callee_name": "Http.GetFromJsonAsync",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/razor/code-behind/Widget.razor",
+        "line_number": 17,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Http.GetFromJsonAsync",
+        "terminal_name": "GetFromJsonAsync",
+        "receiver": "Http",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/razor/code-behind/Widget.razor:LoadAsync:14:4",
+      "span": {
+        "start_line": 17,
+        "start_column": 14,
+        "end_line": 17,
+        "end_column": 48,
+        "start_byte": 408,
+        "end_byte": 442
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/razor/code-behind/Widget.razor:LoadAsync:14:4",
+        "callee_name": "Navigation.NavigateTo",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/razor/code-behind/Widget.razor",
+        "line_number": 16,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Navigation.NavigateTo",
+        "terminal_name": "NavigateTo",
+        "receiver": "Navigation",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/razor/code-behind/Widget.razor:LoadAsync:14:4",
+      "span": {
+        "start_line": 16,
+        "start_column": 8,
+        "end_line": 16,
+        "end_column": 29,
+        "start_byte": 351,
+        "end_byte": 372
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/razor/code-behind/Widget.razor:Widget:1:0",
+        "callee_name": "SharedWidget",
+        "kind": "uses",
+        "file_path": "fixtures/extraction/razor/code-behind/Widget.razor",
+        "line_number": 7,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "SharedWidget",
+        "terminal_name": "SharedWidget",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/razor/code-behind/Widget.razor:Widget:1:0",
+      "span": {
+        "start_line": 7,
+        "start_column": 1,
+        "end_line": 7,
+        "end_column": 13,
+        "start_byte": 136,
+        "end_byte": 148
+      }
+    }
+  ],
   "identifiers": [
     {
       "key": "fixtures/extraction/razor/code-behind/Widget.razor:Components:type_usage:2:18",
@@ -560,6 +624,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/razor/code-behind/Widget.razor:SharedWidget:type_usage:7:1",
+      "name": "SharedWidget",
+      "kind": "type_usage",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/code-behind/Widget.razor",
+      "start_line": 7,
+      "start_column": 1,
+      "end_line": 7,
+      "end_column": 13,
+      "start_byte": 136,
+      "end_byte": 148,
+      "containing_key": "fixtures/extraction/razor/code-behind/Widget.razor:Widget:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/razor/code-behind/Widget.razor:Task:type_usage:14:18",
       "name": "Task",
       "kind": "type_usage",
@@ -626,47 +706,11 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/razor/code-behind/Widget.razor:@namespace:2:0",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/code-behind/Widget.razor:@namespace:2:0",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/code-behind/Widget.razor:@namespace:2:1",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/code-behind/Widget.razor:@page:1:0",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/razor/code-behind/Widget.razor:Http:5:0",
-      "resolved_type": "unknown",
+      "resolved_type": "HttpClient",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "razor",
       "metadata": null
     },
@@ -681,19 +725,10 @@
     },
     {
       "symbol_key": "fixtures/extraction/razor/code-behind/Widget.razor:Navigation:4:0",
-      "resolved_type": "unknown",
+      "resolved_type": "NavigationManager",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/code-behind/Widget.razor:Sample.Shared:3:0",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "razor",
       "metadata": null
     },
@@ -703,15 +738,6 @@
       "generic_params": null,
       "constraints": null,
       "is_inferred": false,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/code-behind/Widget.razor:Widget:1:0",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
       "language": "razor",
       "metadata": null
     }

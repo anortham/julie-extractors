@@ -12,7 +12,7 @@ use super::helpers::find_command_name_node;
 static CONFIGURATION_NAME_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"Configuration\s+([A-Za-z][A-Za-z0-9-_]*)").unwrap());
 static FUNCTION_NAME_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"function\s+([A-Za-z][A-Za-z0-9-_]*)").unwrap());
+    LazyLock::new(|| Regex::new(r"(?im)^[ \t]*function\s+([A-Za-z][A-Za-z0-9-_]*)").unwrap());
 
 const BUILTIN_CMDLETS: &[&str] = &["Write-Output", "Get-ChildItem", "Invoke-Command"];
 
@@ -84,7 +84,6 @@ pub(super) fn extract_dsc_configuration(
             if token_text != "Configuration" && !token_text.trim().is_empty() {
                 let name = token_text.trim().to_string();
                 let signature = format!("Configuration {}", name);
-                let doc_comment = Some("PowerShell DSC Configuration".to_string());
 
                 return Some(base.create_symbol(
                     &node,
@@ -95,7 +94,7 @@ pub(super) fn extract_dsc_configuration(
                         visibility: Some(Visibility::Public),
                         parent_id: parent_id.map(|s| s.to_string()),
                         metadata: None,
-                        doc_comment,
+                        doc_comment: None,
                         annotations: Vec::new(),
                     },
                 ));

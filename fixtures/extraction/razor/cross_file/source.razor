@@ -1,19 +1,27 @@
-@* Phase 4b fixture: Razor cross-file refs are handled by the embedded
-   C# pipeline, not by Razor's pending path. This fixture locks the
-   no-pending classification — Razor must NOT emit structured pending
-   for @using directives or @code-block C# call sites. *@
+@* Cross-file fixture: calls to injected services, the @inherits and
+   @implements bases, and component tags resolve in other files, so Razor
+   emits structured pending rows for them. The call to LocalHelper resolves
+   in this file. *@
 
 @page "/example"
 @using OtherProject.Models
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject IItemService Items
 
 <h3>Example Page</h3>
 <p>@LocalHelper()</p>
+<ItemCard Item="@current" />
 
 @code {
+    private ItemFromOther? current;
+
     private int LocalHelper() { return 42; }
 
-    private void Entry() {
-        var item = new ItemFromOther();
+    private async Task Entry() {
+        current = await Items.LoadAsync(7);
         _ = LocalHelper();
     }
+
+    public void Dispose() { }
 }

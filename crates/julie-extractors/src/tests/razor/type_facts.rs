@@ -237,15 +237,12 @@ fn local_function_records_return_type_fact() {
 #[test]
 fn no_code_field_row_is_kind_variable() {
     let (symbols, _) = extract(code_block());
-    let field_rows: Vec<_> = symbols
-        .iter()
-        .filter(|s| {
-            s.metadata
-                .as_ref()
-                .and_then(|m| m.get("type"))
-                .is_some_and(|t| t == "field")
-        })
-        .collect();
-    assert!(!field_rows.is_empty());
-    assert!(field_rows.iter().all(|s| s.kind != SymbolKind::Variable));
+    let field = symbol(&symbols, "_w", SymbolKind::Field);
+    assert!(
+        symbols
+            .iter()
+            .filter(|s| s.kind == SymbolKind::Variable)
+            .all(|s| s.parent_id != field.parent_id),
+        "code block members are never variables"
+    );
 }

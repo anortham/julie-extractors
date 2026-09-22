@@ -1,137 +1,52 @@
-//! PowerShell variable extraction and management
-//! Handles variable assignment, scopes, and references
+//! PowerShell variable extraction.
+//! Only plain assignment targets (`$x = ...`, `[T]$x = ...`, `$script:x = ...`)
+//! declare variables; reads, member, index, and static-property assignments
+//! are identifiers, not symbols.
 
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
 use tree_sitter::Node;
 
-use super::documentation::{
-    get_variable_documentation, is_automatic_variable, is_environment_variable,
-};
-use super::helpers::find_variable_name_node;
+use super::helpers::variable_name;
 use super::type_facts;
 
-/// Extract variable symbols from variable assignment and references
+/// The declared name of a plain assignment target, if the node assigns one.
+pub(super) fn assignment_target_name(base: &BaseExtractor, node: Node) -> Option<String> {
+    let variable = type_facts::assignment_variable_node(node)?;
+    let name = variable_name(&base.get_node_text(&variable));
+    (!name.is_empty() && !name.eq_ignore_ascii_case("this")).then_some(name)
+}
+
+/// Extract a variable symbol from a plain assignment.
 pub(super) fn extract_variable(
     base: &mut BaseExtractor,
     node: Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    let name_node =
-        type_facts::assignment_variable_node(node).or_else(|| find_variable_name_node(node))?;
-    let mut name = base.get_node_text(&name_node);
+    let name = assignment_target_name(base, node)?;
+    let raw = base.get_node_text(&type_facts::assignment_variable_node(node)?);
+    let is_global = raw
+        .trim_start_matches(['$', '{'])
+        .to_ascii_lowercase()
+        .starts_with("global:");
 
-    // Remove $ prefix and scope qualifiers
-    name = name
-        .replace("$", "")
-        .replace("Global:", "")
-        .replace("Script:", "")
-        .replace("Local:", "")
-        .replace("Using:", "");
-
-    // Determine scope and visibility
-    let full_text = base.get_node_text(&name_node);
-    let is_global = full_text.contains("Global:");
-    let is_script = full_text.contains("Script:");
-    let is_environment = full_text.contains("env:") || is_environment_variable(&name);
-    let is_automatic = is_automatic_variable(&name);
-
-    let signature = extract_variable_signature(base, node)?;
-    let visibility = if is_global {
-        Visibility::Public
-    } else {
-        Visibility::Private
-    };
-    let doc_comment =
-        get_variable_documentation(is_environment, is_automatic, is_global, is_script);
-
+    let doc_comment = super::documentation::extract_powershell_doc_comment(base, &node);
     let symbol = base.create_symbol(
         &node,
         name,
         SymbolKind::Variable,
         SymbolOptions {
-            signature: Some(signature),
-            visibility: Some(visibility),
+            signature: Some(base.get_node_text(&node).trim().to_string()),
+            visibility: Some(if is_global {
+                Visibility::Public
+            } else {
+                Visibility::Private
+            }),
             parent_id: parent_id.map(|s| s.to_string()),
             metadata: None,
-            doc_comment: if doc_comment.is_empty() {
-                None
-            } else {
-                Some(doc_comment)
-            },
+            doc_comment,
             annotations: Vec::new(),
         },
     );
     type_facts::record_assignment_facts(base, &symbol.id, node);
     Some(symbol)
-}
-
-/// Extract variable reference symbols (automatic and environment variables only)
-pub(super) fn extract_variable_reference(
-    base: &mut BaseExtractor,
-    node: Node,
-    parent_id: Option<&str>,
-) -> Option<Symbol> {
-    let mut name = base.get_node_text(&node);
-
-    // Remove $ prefix and scope qualifiers
-    name = name
-        .replace("$", "")
-        .replace("Global:", "")
-        .replace("Script:", "")
-        .replace("Local:", "")
-        .replace("Using:", "")
-        .replace("env:", "");
-
-    // Only extract automatic variables, environment variables, and special variables
-    // to avoid creating symbols for every variable reference
-    let is_automatic = is_automatic_variable(&name);
-    let is_environment =
-        is_environment_variable(&name) || base.get_node_text(&node).contains("env:");
-
-    if !is_automatic && !is_environment {
-        return None; // Skip regular variable references
-    }
-
-    // Determine scope and visibility
-    let full_text = base.get_node_text(&node);
-    let is_global = is_automatic || full_text.contains("Global:");
-
-    let visibility = if is_global {
-        Visibility::Public
-    } else {
-        Visibility::Private
-    };
-    let doc_comment = get_variable_documentation(is_environment, is_automatic, is_global, false);
-
-    Some(base.create_symbol(
-        &node,
-        name,
-        SymbolKind::Variable,
-        SymbolOptions {
-            signature: Some(full_text), // Use the full variable reference as signature
-            visibility: Some(visibility),
-            parent_id: parent_id.map(|s| s.to_string()),
-            metadata: None,
-            doc_comment: if doc_comment.is_empty() {
-                None
-            } else {
-                Some(doc_comment)
-            },
-            annotations: Vec::new(),
-        },
-    ))
-}
-
-/// Extract variable assignment signature
-fn extract_variable_signature(base: &BaseExtractor, node: Node) -> Option<String> {
-    let full_text = base.get_node_text(&node);
-    let equal_index = full_text.find('=');
-
-    if let Some(pos) = equal_index
-        && pos < full_text.len() - 1
-    {
-        return Some(full_text.trim().to_string());
-    }
-
-    find_variable_name_node(node).map(|n| base.get_node_text(&n))
 }

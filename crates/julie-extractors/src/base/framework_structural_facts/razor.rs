@@ -153,8 +153,7 @@ fn blazor_component_reference_fact(
     node: Node<'_>,
     context: &RazorComponentContext,
 ) -> Option<StructuralFact> {
-    let element = node_text(content, node)?;
-    let tag = crate::razor::component_tag_name(element)?;
+    let (tag_start, tag) = crate::razor::element_component_tag(node, content)?;
 
     let mut metadata = base_metadata("component_reference", "blazor");
     insert_string(&mut metadata, "tag", tag);
@@ -179,7 +178,6 @@ fn blazor_component_reference_fact(
         Value::Array(component_generic_arguments(node, content)),
     );
 
-    let tag_start = node.start_byte() + 1;
     let span = NormalizedSpan::from_content_range(content, tag_start, tag_start + tag.len())?;
     Some(fact_for_span(
         file_path,
@@ -255,8 +253,10 @@ fn razor_page_directive_fact(
     content: &str,
     node: Node<'_>,
 ) -> Option<StructuralFact> {
-    let route = razor_child_text(node, content, "string_literal")?;
-    let route = route.trim_matches('"').trim_matches('\'').to_string();
+    let template = razor_child_text(node, content, "string_literal")
+        .map(|literal| literal.trim_matches('"').trim_matches('\'').to_string())
+        .unwrap_or_default();
+    let route = razor_pages_route(file_path, &template).unwrap_or_else(|| template.clone());
     if route.is_empty() {
         return None;
     }
@@ -269,7 +269,7 @@ fn razor_page_directive_fact(
     let mut metadata = base_metadata("component_routing", "razor");
     insert_string(&mut metadata, "directive", "page");
     insert_string(&mut metadata, "route", &route);
-    insert_string(&mut metadata, "route_template", &route);
+    insert_string(&mut metadata, "route_template", &template);
     let normalized = normalize_route_template(&route, ParamFlavor::Braces);
     insert_string(
         &mut metadata,
@@ -302,6 +302,33 @@ fn razor_page_directive_fact(
         node,
         metadata,
     ))
+}
+
+/// The route of a Razor Pages page (`.cshtml` under a `Pages` folder): the
+/// page path relative to `Pages`, with `Index` naming its folder, plus the
+/// `@page` template. A template that starts with `/` replaces the path. Pages
+/// under `Areas/<Area>/Pages` get the `/<Area>` prefix.
+fn razor_pages_route(file_path: &str, template: &str) -> Option<String> {
+    let without_extension = file_path.strip_suffix(".cshtml")?;
+    let segments: Vec<&str> = without_extension.split(['/', '\\']).collect();
+    let pages_index = segments.iter().rposition(|segment| *segment == "Pages")?;
+    if template.starts_with('/') {
+        return Some(template.to_string());
+    }
+    let area = pages_index
+        .checked_sub(2)
+        .filter(|&areas_index| segments[areas_index] == "Areas")
+        .map(|_| segments[pages_index - 1]);
+    let mut page_segments: Vec<&str> = segments[pages_index + 1..].to_vec();
+    if page_segments.last() == Some(&"Index") {
+        page_segments.pop();
+    }
+    let route_segments: Vec<&str> = area
+        .into_iter()
+        .chain(page_segments)
+        .chain((!template.is_empty()).then_some(template))
+        .collect();
+    Some(format!("/{}", route_segments.join("/")))
 }
 
 #[derive(Debug, Clone)]

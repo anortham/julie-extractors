@@ -6,6 +6,7 @@ Describe "powershell roles" {
     Context "addition" {
         It "extracts a Pester test case" {
             1 + 1 | Should -Be 2
+            Get-Total
         }
     }
 }

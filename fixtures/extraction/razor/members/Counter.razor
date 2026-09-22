@@ -1,0 +1,54 @@
+@page "/counter"
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject ITodoService TodoService
+@inject IOptions<AppSettings> Options
+
+<p>Current count: @currentCount</p>
+<TodoItem Title="first" />
+
+@code {
+    private int currentCount = 0;
+    private object current = new();
+    private readonly List<string> items = new();
+    private const int Max = 10;
+    private int a, b;
+    [Inject] NavigationManager Nav { get; set; } = default!;
+
+    public Counter() { }
+
+    public record Row(int Id, string Title);
+
+    /// <summary>Load state.</summary>
+    public enum Status { Active, Archived }
+
+    public interface IValidatable { bool Validate(); }
+
+    public struct Point { public int X; }
+
+    public delegate Task Handler(int id);
+
+    public event Action<string>? OnChanged;
+
+    public string this[int i] => items[i];
+
+    private RenderFragment Badge => @<StatusBadge Value="current" />;
+
+    public class FormModel : ModelBase, IValidatable
+    {
+        string Hidden { get; set; }
+        public bool Validate() => true;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var todos = await TodoService.GetAllAsync(Max);
+        Nav.NavigateTo("/done");
+        Refresh();
+        StateHasChanged();
+    }
+
+    private void Refresh() { }
+
+    public void Dispose() { }
+}

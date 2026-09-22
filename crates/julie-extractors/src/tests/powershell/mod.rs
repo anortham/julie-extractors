@@ -280,31 +280,22 @@ Write-Host "Last exit code: $LASTEXITCODE"
                     .contains("$Script:LogLevel")
             );
 
-            // Should extract environment variables
-            let env_vars = variables
+            let telemetry = variables
                 .iter()
-                .filter(|v| {
-                    v.name.contains("env:")
-                        || (v.signature.is_some()
-                            && v.signature.as_ref().unwrap().contains("$env:"))
-                })
-                .collect::<Vec<_>>();
-            assert!(
-                !env_vars.is_empty(),
-                "Should extract at least 1 environment variable"
-            );
+                .find(|v| v.name == "POWERSHELL_TELEMETRY_OPTOUT")
+                .expect("environment variable assignment declares a variable");
+            assert!(telemetry.signature.as_ref().unwrap().contains("$env:"));
 
-            // Should extract automatic variables
-            let auto_vars = variables
-                .iter()
-                .filter(|v| {
-                    ["PSVersionTable", "PWD", "LASTEXITCODE", "COMPUTERNAME"]
-                        .contains(&v.name.as_str())
-                })
-                .collect::<Vec<_>>();
             assert!(
-                auto_vars.len() >= 2,
-                "Should extract at least 2 automatic variables"
+                variables.iter().all(|v| ![
+                    "PSVersionTable",
+                    "PWD",
+                    "LASTEXITCODE",
+                    "COMPUTERNAME",
+                    "_"
+                ]
+                .contains(&v.name.as_str())),
+                "variable reads are identifiers, not symbols"
             );
         }
     }
@@ -1818,4 +1809,5 @@ mod structural_facts;
 mod test_detection; // Pester call-style test detection
 mod type_arguments;
 mod type_facts;
-mod types; // Phase 4: Type extraction verification tests // Cross-file relationship resolution tests
+mod types;
+mod wave1_gaps; // Phase 4: Type extraction verification tests // Cross-file relationship resolution tests

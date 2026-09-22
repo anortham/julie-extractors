@@ -1,0 +1,4 @@
+@page "{id:int}"
+@model ShopApp.Pages.Orders.EditModel
+@inject IOrderFormatter Formatter
+<p>@Formatter.FormatMoney(Model.Total)</p>

@@ -7,7 +7,7 @@ use crate::base::{
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
 
-use super::helpers::{extract_inheritance, find_class_name_node, find_command_name_node};
+use super::helpers::{class_base_name_nodes, find_class_name_node, find_command_name_node};
 
 /// Extract relationships from the AST
 pub(super) fn walk_tree_for_relationships(
@@ -29,7 +29,7 @@ pub(super) fn walk_tree_for_relationships(
             extract_invocation_relationships(extractor, node, symbols);
         }
         "class_definition" | "class_statement" => {
-            extract_inheritance_relationships(&extractor.base, node, symbols, relationships);
+            extract_inheritance_relationships(extractor, node, symbols, relationships);
         }
         _ => {}
     }
@@ -43,104 +43,120 @@ pub(super) fn walk_tree_for_relationships(
     }
 }
 
-/// Extract relationships from command calls
+/// Extract relationships from command calls. The caller is the innermost
+/// function, method, constructor, or Pester block that contains the command.
 fn extract_command_relationships(
     extractor: &mut super::PowerShellExtractor,
     node: Node,
     symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
 ) {
-    if let Some(command_name_node) = find_command_name_node(node) {
-        let command_name = extractor.base.get_node_text(&command_name_node);
+    let Some(command_name_node) = find_command_name_node(node) else {
+        return;
+    };
+    let command_name = extractor.base.get_node_text(&command_name_node);
+    let Some(caller) = extractor
+        .base
+        .find_containing_symbol(&node, symbols)
+        .filter(|symbol| is_call_scope(symbol) && symbol.start_byte != node.start_byte() as u32)
+    else {
+        return;
+    };
 
-        let symbol_map = crate::base::ScopedSymbolIndex::unique_symbol_map(symbols);
+    let symbol_map = crate::base::ScopedSymbolIndex::unique_symbol_map(symbols);
+    match symbol_map
+        .get(command_name.as_str())
+        .filter(|symbol| symbol.kind == SymbolKind::Function)
+    {
+        Some(command_symbol) => {
+            if caller.id != command_symbol.id {
+                relationships.push(extractor.base.create_relationship_at_target(
+                    caller.id.clone(),
+                    command_symbol.id.clone(),
+                    RelationshipKind::Calls,
+                    &command_name_node,
+                    None,
+                    None,
+                ));
+            }
+        }
+        None if !super::commands::is_builtin_cmdlet(&command_name) => {
+            let pending = extractor.base.create_pending_relationship_at_target(
+                caller.id.clone(),
+                UnresolvedTarget::simple(command_name),
+                RelationshipKind::Calls,
+                &command_name_node,
+                Some(caller.id.clone()),
+                Some(0.7),
+            );
+            extractor.add_structured_pending_relationship(pending);
+        }
+        None => {}
+    }
+}
 
-        // Find the parent function that calls this command
-        let mut current = node.parent();
-        while let Some(n) = current {
-            if n.kind() == "function_statement" {
-                if let Some(func_name_node) = super::helpers::find_function_name_node(n) {
-                    let func_name = extractor.base.get_node_text(&func_name_node);
-                    if let Some(func_symbol) = symbol_map
-                        .get(func_name.as_str())
-                        .filter(|symbol| symbol.kind == SymbolKind::Function)
-                    {
-                        // Check if the called command is in the local symbols
-                        match symbol_map
-                            .get(command_name.as_str())
-                            .filter(|symbol| symbol.kind == SymbolKind::Function)
-                        {
-                            Some(command_symbol) => {
-                                // Local function call - create resolved relationship
-                                if func_symbol.id != command_symbol.id {
-                                    relationships.push(
-                                        extractor.base.create_relationship_at_target(
-                                            func_symbol.id.clone(),
-                                            command_symbol.id.clone(),
-                                            RelationshipKind::Calls,
-                                            &command_name_node,
-                                            None,
-                                            None,
-                                        ),
-                                    );
-                                }
-                            }
-                            None => {
-                                if !super::commands::is_builtin_cmdlet(&command_name) {
-                                    // Command not in local symbols - create pending relationship
-                                    let pending =
-                                        extractor.base.create_pending_relationship_at_target(
-                                            func_symbol.id.clone(),
-                                            UnresolvedTarget::simple(command_name.clone()),
-                                            RelationshipKind::Calls,
-                                            &command_name_node,
-                                            Some(func_symbol.id.clone()),
-                                            Some(0.7),
-                                        );
-                                    extractor.add_structured_pending_relationship(pending);
-                                }
-                            }
-                        }
-                    }
-                    break;
-                }
-                current = n.parent();
-            } else {
-                current = n.parent();
+fn is_call_scope(symbol: &Symbol) -> bool {
+    matches!(
+        symbol.kind,
+        SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor
+    )
+}
+
+/// Extract base-type relationships of a class. .NET naming decides the kind
+/// of a cross-file base: `IName` is an interface, anything else a base class.
+fn extract_inheritance_relationships(
+    extractor: &mut super::PowerShellExtractor,
+    node: Node,
+    symbols: &[Symbol],
+    relationships: &mut Vec<Relationship>,
+) {
+    let Some(class_symbol) = find_class_name_node(node).and_then(|name_node| {
+        let name_span = name_node.start_byte() as u32;
+        symbols.iter().find(|symbol| {
+            symbol.kind == SymbolKind::Class
+                && symbol.start_byte <= name_span
+                && name_span < symbol.end_byte
+        })
+    }) else {
+        return;
+    };
+
+    for base_node in class_base_name_nodes(node) {
+        let base_name = extractor.base.get_node_text(&base_node);
+        match symbols.iter().find(|symbol| {
+            symbol.kind == SymbolKind::Class && symbol.name.eq_ignore_ascii_case(&base_name)
+        }) {
+            Some(base_class) => relationships.push(extractor.base.create_relationship_at_target(
+                class_symbol.id.clone(),
+                base_class.id.clone(),
+                RelationshipKind::Extends,
+                &base_node,
+                None,
+                None,
+            )),
+            None => {
+                let kind = if is_interface_name(&base_name) {
+                    RelationshipKind::Implements
+                } else {
+                    RelationshipKind::Extends
+                };
+                let pending = extractor.base.create_pending_relationship_at_target(
+                    class_symbol.id.clone(),
+                    UnresolvedTarget::simple(base_name),
+                    kind,
+                    &base_node,
+                    Some(class_symbol.id.clone()),
+                    Some(0.9),
+                );
+                extractor.add_structured_pending_relationship(pending);
             }
         }
     }
 }
 
-/// Extract inheritance relationships between classes
-fn extract_inheritance_relationships(
-    base: &BaseExtractor,
-    node: Node,
-    symbols: &[Symbol],
-    relationships: &mut Vec<Relationship>,
-) {
-    if let Some(inheritance) = extract_inheritance(base, node)
-        && let Some(class_name_node) = find_class_name_node(node)
-    {
-        let class_name = base.get_node_text(&class_name_node);
-        let child_class = symbols
-            .iter()
-            .find(|s| s.name == class_name && s.kind == SymbolKind::Class);
-        let parent_class = symbols
-            .iter()
-            .find(|s| s.name == inheritance && s.kind == SymbolKind::Class);
-
-        if let (Some(child), Some(parent)) = (child_class, parent_class) {
-            relationships.push(base.create_relationship(
-                child.id.clone(),
-                parent.id.clone(),
-                RelationshipKind::Extends,
-                &node,
-                None,
-                None,
-            ));
-        }
-    }
+fn is_interface_name(name: &str) -> bool {
+    let mut chars = name.chars();
+    matches!((chars.next(), chars.next()), (Some('I'), Some(c)) if c.is_ascii_uppercase())
 }
 
 fn extract_invocation_relationships(
@@ -156,12 +172,7 @@ fn extract_invocation_relationships(
     let Some(caller) = extractor
         .base
         .find_containing_symbol(&node, symbols)
-        .filter(|symbol| {
-            matches!(
-                symbol.kind,
-                SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor
-            )
-        })
+        .filter(|symbol| is_call_scope(symbol))
     else {
         return;
     };
@@ -203,8 +214,8 @@ fn qualified_call_target(
                 break;
             }
             "variable" => {
-                let variable = base.get_node_text(&receiver);
-                if !variable.eq_ignore_ascii_case("$this") {
+                let variable = super::helpers::variable_name(&base.get_node_text(&receiver));
+                if !variable.eq_ignore_ascii_case("this") {
                     parts.push(variable);
                 }
                 break;

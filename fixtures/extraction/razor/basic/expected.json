@@ -396,7 +396,7 @@
       "signature": "[Route(\"/worker\")] public class WorkerPage",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/razor/basic/source.razor:source:1:0",
       "metadata": {
         "attributes": "[Route(\"/worker\")]",
         "modifiers": "public",
@@ -616,10 +616,7 @@
       "visibility": "Private",
       "parent_key": "fixtures/extraction/razor/basic/source.razor:WorkerPage:9:4",
       "metadata": {
-        "attributes": "",
-        "fieldType": "Dictionary<string, List<int>>",
-        "modifiers": "private",
-        "type": "field"
+        "isStatic": false
       },
       "annotations": [],
       "semantic_group": null,
@@ -790,26 +787,6 @@
       }
     },
     {
-      "from_key": "fixtures/extraction/razor/basic/source.razor:Format:25:8",
-      "to_key": "unresolved:method:value.Trim",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/razor/basic/source.razor",
-      "line_number": 27,
-      "span": {
-        "start_line": 27,
-        "start_column": 19,
-        "end_line": 27,
-        "end_column": 31,
-        "start_byte": 539,
-        "end_byte": 551
-      },
-      "reference_site_is_exact": false,
-      "confidence": "0.900",
-      "metadata": {
-        "method": "value.Trim"
-      }
-    },
-    {
       "from_key": "fixtures/extraction/razor/basic/source.razor:RecordRun:52:8",
       "to_key": "fixtures/extraction/razor/basic/source.razor:ObserveRun:57:8",
       "kind": "calls",
@@ -870,26 +847,6 @@
       }
     },
     {
-      "from_key": "fixtures/extraction/razor/basic/source.razor:Run:17:8",
-      "to_key": "unresolved:method:this.Refresh",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/razor/basic/source.razor",
-      "line_number": 21,
-      "span": {
-        "start_line": 21,
-        "start_column": 12,
-        "end_line": 21,
-        "end_column": 26,
-        "start_byte": 408,
-        "end_byte": 422
-      },
-      "reference_site_is_exact": false,
-      "confidence": "0.900",
-      "metadata": {
-        "method": "this.Refresh"
-      }
-    },
-    {
       "from_key": "fixtures/extraction/razor/basic/source.razor:source:1:0",
       "to_key": "fixtures/extraction/razor/basic/source.razor:Format:25:8",
       "kind": "calls",
@@ -931,8 +888,113 @@
       }
     }
   ],
-  "pending_relationships": [],
-  "structured_pending_relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/razor/basic/source.razor:Format:25:8",
+      "callee_name": "value.Trim",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/razor/basic/source.razor",
+      "line_number": 27,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/razor/basic/source.razor:Run:17:8",
+      "callee_name": "Refresh",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/razor/basic/source.razor",
+      "line_number": 21,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/razor/basic/source.razor:source:1:0",
+      "callee_name": "WorkerCard",
+      "kind": "uses",
+      "file_path": "fixtures/extraction/razor/basic/source.razor",
+      "line_number": 5,
+      "confidence": "0.900"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/razor/basic/source.razor:Format:25:8",
+        "callee_name": "value.Trim",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/razor/basic/source.razor",
+        "line_number": 27,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "value.Trim",
+        "terminal_name": "Trim",
+        "receiver": "value",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/razor/basic/source.razor:Format:25:8",
+      "span": {
+        "start_line": 27,
+        "start_column": 19,
+        "end_line": 27,
+        "end_column": 29,
+        "start_byte": 539,
+        "end_byte": 549
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/razor/basic/source.razor:Run:17:8",
+        "callee_name": "Refresh",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/razor/basic/source.razor",
+        "line_number": 21,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Refresh",
+        "terminal_name": "Refresh",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/razor/basic/source.razor:Run:17:8",
+      "span": {
+        "start_line": 21,
+        "start_column": 12,
+        "end_line": 21,
+        "end_column": 24,
+        "start_byte": 408,
+        "end_byte": 420
+      },
+      "receiver_type": "WorkerPage"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/razor/basic/source.razor:source:1:0",
+        "callee_name": "WorkerCard",
+        "kind": "uses",
+        "file_path": "fixtures/extraction/razor/basic/source.razor",
+        "line_number": 5,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "WorkerCard",
+        "terminal_name": "WorkerCard",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/razor/basic/source.razor:source:1:0",
+      "span": {
+        "start_line": 5,
+        "start_column": 1,
+        "end_line": 5,
+        "end_column": 11,
+        "start_byte": 43,
+        "end_byte": 53
+      }
+    }
+  ],
   "identifiers": [
     {
       "key": "fixtures/extraction/razor/basic/source.razor:Dictionary:type_usage:15:16",
@@ -1124,6 +1186,22 @@
       "start_byte": 545,
       "end_byte": 549,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:Format:25:8",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/razor/basic/source.razor:WorkerCard:type_usage:5:1",
+      "name": "WorkerCard",
+      "kind": "type_usage",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/basic/source.razor",
+      "start_line": 5,
+      "start_column": 1,
+      "end_line": 5,
+      "end_column": 11,
+      "start_byte": 43,
+      "end_byte": 53,
+      "containing_key": "fixtures/extraction/razor/basic/source.razor:source:1:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1338,38 +1416,11 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/razor/basic/source.razor:@page:1:0",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/razor/basic/source.razor:Evaluate:30:8",
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
       "is_inferred": false,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/basic/source.razor:FetchStatus:61:8",
-      "resolved_type": "void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/basic/source.razor:FetchUrl:66:8",
-      "resolved_type": "void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
       "language": "razor",
       "metadata": null
     },
@@ -1392,24 +1443,6 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/razor/basic/source.razor:ObserveRun:57:8",
-      "resolved_type": "void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/basic/source.razor:RecordRun:52:8",
-      "resolved_type": "void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/razor/basic/source.razor:Run:17:8",
       "resolved_type": "int",
       "generic_params": null,
@@ -1424,15 +1457,6 @@
       "generic_params": null,
       "constraints": null,
       "is_inferred": false,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/basic/source.razor:WorkerPage:9:4",
-      "resolved_type": "class",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
       "language": "razor",
       "metadata": null
     },
@@ -1509,15 +1533,6 @@
       "metadata": {
         "declared": "Dictionary<string, List<int>>"
       }
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/basic/source.razor:source:1:0",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
     },
     {
       "symbol_key": "fixtures/extraction/razor/basic/source.razor:total:32:12",

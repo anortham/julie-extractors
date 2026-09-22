@@ -1,0 +1,9 @@
+@namespace App.Shared
+
+@* The grammar wraps the file in an ERROR node after this comment. *@
+<div class="panel">@Title</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    private void Close() => Hide();
+}

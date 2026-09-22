@@ -6,11 +6,6 @@
       "signature": "var value = 1"
     },
     {
-      "name": "DateTime",
-      "kind": "variable",
-      "signature": "@@(DateTime.Now)"
-    },
-    {
       "name": "Fragment",
       "kind": "method",
       "signature": "private RenderFragment Fragment()"

@@ -56,40 +56,6 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/razor/current-syntax/source.razor:DateTime:13:6",
-      "name": "DateTime",
-      "kind": "variable",
-      "language": "razor",
-      "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
-      "start_line": 13,
-      "start_column": 6,
-      "end_line": 13,
-      "end_column": 21,
-      "start_byte": 316,
-      "end_byte": 331,
-      "body_span": {
-        "start_line": 13,
-        "start_column": 7,
-        "end_line": 13,
-        "end_column": 21,
-        "start_byte": 317,
-        "end_byte": 331
-      },
-      "body_hash": "c65232fb56ee3c9039a4c508229a6a0d",
-      "signature": "@@(DateTime.Now)",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": null,
-      "metadata": {
-        "expression": "@(DateTime.Now)",
-        "type": "razor-expression"
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
       "key": "fixtures/extraction/razor/current-syntax/source.razor:Fragment:23:8",
       "name": "Fragment",
       "kind": "method",
@@ -113,47 +79,13 @@
       "signature": "private RenderFragment Fragment()",
       "doc_comment": null,
       "visibility": "Private",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
       "metadata": {
         "attributes": "",
         "modifiers": "private",
         "parameters": "()",
         "returnType": "RenderFragment",
         "type": "method"
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
-      "key": "fixtures/extraction/razor/current-syntax/source.razor:panelData:21:30",
-      "name": "panelData",
-      "kind": "variable",
-      "language": "razor",
-      "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
-      "start_line": 21,
-      "start_column": 30,
-      "end_line": 21,
-      "end_column": 48,
-      "start_byte": 487,
-      "end_byte": 505,
-      "body_span": {
-        "start_line": 21,
-        "start_column": 31,
-        "end_line": 21,
-        "end_column": 48,
-        "start_byte": 488,
-        "end_byte": 505
-      },
-      "body_hash": "fd386ac313ca03b4a530a0f371bd1810",
-      "signature": "@@(panelData.Title)",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": null,
-      "metadata": {
-        "expression": "@(panelData.Title)",
-        "type": "razor-expression"
       },
       "annotations": [],
       "semantic_group": null,
@@ -224,33 +156,6 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/razor/current-syntax/source.razor:value:12:30",
-      "name": "value",
-      "kind": "variable",
-      "language": "razor",
-      "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
-      "start_line": 12,
-      "start_column": 30,
-      "end_line": 12,
-      "end_column": 36,
-      "start_byte": 290,
-      "end_byte": 296,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "@@value",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": null,
-      "metadata": {
-        "expression": "@value",
-        "type": "razor-expression"
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
       "key": "fixtures/extraction/razor/current-syntax/source.razor:value:12:8",
       "name": "value",
       "kind": "variable",
@@ -278,30 +183,150 @@
       "content_type": null
     }
   ],
-  "relationships": [
+  "relationships": [],
+  "pending_relationships": [
     {
       "from_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
-      "to_key": "unresolved:method:Field",
+      "callee_name": "BlazorSample.AdminComponents.Pages.ProductDetail",
+      "kind": "uses",
+      "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
+      "line_number": 8,
+      "confidence": "0.900"
+    },
+    {
+      "from_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
+      "callee_name": "Field",
       "kind": "calls",
       "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
       "line_number": 19,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
+      "callee_name": "ParameterChild",
+      "kind": "uses",
+      "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
+      "line_number": 21,
+      "confidence": "0.900"
+    },
+    {
+      "from_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
+      "callee_name": "RecoveredComponent",
+      "kind": "uses",
+      "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
+      "line_number": 26,
+      "confidence": "0.900"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
+        "callee_name": "BlazorSample.AdminComponents.Pages.ProductDetail",
+        "kind": "uses",
+        "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
+        "line_number": 8,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "BlazorSample.AdminComponents.Pages.ProductDetail",
+        "terminal_name": "ProductDetail",
+        "receiver": "Pages",
+        "namespace_path": [
+          "BlazorSample",
+          "AdminComponents"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
+      "span": {
+        "start_line": 8,
+        "start_column": 1,
+        "end_line": 8,
+        "end_column": 49,
+        "start_byte": 129,
+        "end_byte": 177
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
+        "callee_name": "Field",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
+        "line_number": 19,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Field",
+        "terminal_name": "Field",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
       "span": {
         "start_line": 19,
         "start_column": 24,
         "end_line": 19,
-        "end_column": 41,
+        "end_column": 29,
         "start_byte": 430,
-        "end_byte": 447
+        "end_byte": 435
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
+        "callee_name": "ParameterChild",
+        "kind": "uses",
+        "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
+        "line_number": 21,
+        "confidence": "0.900"
       },
-      "reference_site_is_exact": false,
-      "confidence": "0.900",
-      "metadata": {
-        "method": "Field"
+      "target": {
+        "display_name": "ParameterChild",
+        "terminal_name": "ParameterChild",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
+      "span": {
+        "start_line": 21,
+        "start_column": 1,
+        "end_line": 21,
+        "end_column": 15,
+        "start_byte": 458,
+        "end_byte": 472
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
+        "callee_name": "RecoveredComponent",
+        "kind": "uses",
+        "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
+        "line_number": 26,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "RecoveredComponent",
+        "terminal_name": "RecoveredComponent",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
+      "span": {
+        "start_line": 26,
+        "start_column": 1,
+        "end_line": 26,
+        "end_column": 19,
+        "start_byte": 607,
+        "end_byte": 625
       }
     }
   ],
-  "pending_relationships": [],
-  "structured_pending_relationships": [],
   "identifiers": [
     {
       "key": "fixtures/extraction/razor/current-syntax/source.razor:Assembly:type_usage:2:47",
@@ -315,6 +340,22 @@
       "end_column": 55,
       "start_byte": 53,
       "end_byte": 61,
+      "containing_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/razor/current-syntax/source.razor:BlazorSample.AdminComponents.Pages.ProductDetail:type_usage:8:1",
+      "name": "BlazorSample.AdminComponents.Pages.ProductDetail",
+      "kind": "type_usage",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
+      "start_line": 8,
+      "start_column": 1,
+      "end_line": 8,
+      "end_column": 49,
+      "start_byte": 129,
+      "end_byte": 177,
       "containing_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
       "target_key": null,
       "confidence": "1.000"
@@ -443,6 +484,38 @@
       "end_column": 20,
       "start_byte": 327,
       "end_byte": 330,
+      "containing_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/razor/current-syntax/source.razor:ParameterChild:type_usage:21:1",
+      "name": "ParameterChild",
+      "kind": "type_usage",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
+      "start_line": 21,
+      "start_column": 1,
+      "end_line": 21,
+      "end_column": 15,
+      "start_byte": 458,
+      "end_byte": 472,
+      "containing_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/razor/current-syntax/source.razor:RecoveredComponent:type_usage:26:1",
+      "name": "RecoveredComponent",
+      "kind": "type_usage",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
+      "start_line": 26,
+      "start_column": 1,
+      "end_line": 26,
+      "end_column": 19,
+      "start_byte": 607,
+      "end_byte": 625,
       "containing_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
       "target_key": null,
       "confidence": "1.000"
@@ -594,56 +667,11 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/razor/current-syntax/source.razor:@addTagHelper:2:0",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/current-syntax/source.razor:@page:1:0",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/current-syntax/source.razor:DateTime:13:6",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/razor/current-syntax/source.razor:Fragment:23:8",
       "resolved_type": "RenderFragment",
       "generic_params": null,
       "constraints": null,
       "is_inferred": false,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/current-syntax/source.razor:panelData:21:30",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
       "language": "razor",
       "metadata": null
     },
@@ -657,24 +685,6 @@
       "metadata": {
         "declared": "Func<dynamic, object>"
       }
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/current-syntax/source.razor:value:12:30",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/current-syntax/source.razor:value:12:8",
-      "resolved_type": "var",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
     }
   ],
   "parse_diagnostics": [

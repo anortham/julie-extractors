@@ -76,8 +76,19 @@ fn extract_identifier_from_node(
                     &name_node,
                     name.clone(),
                     IdentifierKind::Call,
-                    containing_symbol_id,
+                    containing_symbol_id.clone(),
                 );
+                if name.eq_ignore_ascii_case("New-Object")
+                    && let Some(type_node) = new_object_type_argument(base, node)
+                {
+                    let type_name = base.get_node_text(&type_node);
+                    base.create_identifier(
+                        &type_node,
+                        type_name,
+                        IdentifierKind::TypeUsage,
+                        containing_symbol_id,
+                    );
+                }
                 record_command_arg_literals(base, node, &name, containing_symbols);
             }
         }
@@ -87,7 +98,9 @@ fn extract_identifier_from_node(
             if let Some((name_node, name)) = super::type_facts::invocation_member_name(base, node) {
                 let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 let receiver_type = super::type_facts::this_receiver_type(base, node);
-                base.create_identifier_with_receiver_type(
+                create_member_identifier(
+                    base,
+                    node,
                     &name_node,
                     name,
                     IdentifierKind::Call,
@@ -137,11 +150,14 @@ fn extract_identifier_from_node(
                             let containing_symbol_id =
                                 find_containing_symbol_id(node, containing_symbols);
 
-                            base.create_identifier(
+                            create_member_identifier(
+                                base,
+                                node,
                                 &name_child,
                                 member_name,
                                 IdentifierKind::MemberAccess,
                                 containing_symbol_id,
+                                None,
                             );
                             return;
                         }
@@ -150,8 +166,11 @@ fn extract_identifier_from_node(
             }
         }
 
-        "type_name" if is_method_return_type(node) => {
+        "type_name" if is_type_literal_name(node) => {
             let name = base.get_node_text(&node);
+            if is_builtin_type_name(&name) {
+                return;
+            }
             let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
             base.create_identifier(&node, name, IdentifierKind::TypeUsage, containing_symbol_id);
         }
@@ -203,37 +222,18 @@ fn extract_identifier_from_node(
         }
 
         // `variable_ref` complement arm (locked contract in csharp/identifiers.rs).
-        // PowerShell was GREENFIELD here: `variables.rs::extract_variable_reference`
-        // creates SYMBOLS for automatic/environment variables only and never emits
-        // identifiers, so a `$var` read previously produced no identifier row at
-        // all. `$var` reads are `variable` nodes in tree-sitter-powershell (airbus-
-        // cert rev d398441); command/function callees are `command_name` /
-        // `function_name` nodes, member names are `member_name > simple_name`, and
-        // type usages are `type_identifier` — none of which are `variable`, so this
-        // arm never overlaps the Call/MemberAccess/TypeUsage arms (rule 2 is
-        // structural).
-        //
-        // NAMING: the emitted name strips the `$` sigil and scope qualifiers with
-        // the exact replace chain `variables.rs::extract_variable` uses to name
-        // Variable SYMBOLS, because code-kb's dead-code name-match compares
-        // identifiers.name = symbols.name exactly (case-sensitive).
+        // Names use `helpers::variable_name`, the same normalization as Variable
+        // symbols, because code-kb matches identifiers.name = symbols.name exactly.
         "variable" => {
             if !is_powershell_variable_read(node) {
                 return;
             }
             let raw = base.get_node_text(&node);
-            // Rule 5: environment variables (`$env:PATH`) are engine-owned, and
-            // variables.rs already records each such read as a Symbol.
-            if raw.to_lowercase().contains("env:") {
+            // Rule 5: environment variables (`$env:PATH`) are engine-owned.
+            if super::helpers::is_environment_reference(&raw) {
                 return;
             }
-            // Same replace chain as variables.rs::extract_variable (symbol naming).
-            let name = raw
-                .replace("$", "")
-                .replace("Global:", "")
-                .replace("Script:", "")
-                .replace("Local:", "")
-                .replace("Using:", "");
+            let name = super::helpers::variable_name(&raw);
             // Rule 5: automatic variables and engine constants are not user symbols.
             if is_powershell_automatic_or_constant(&name) {
                 return;
@@ -247,10 +247,125 @@ fn extract_identifier_from_node(
             );
         }
 
-        _ => {
-            // Skip other node types for now
+        "simple_name"
+            if node.parent().is_some_and(|parent| {
+                parent.kind() == "class_statement"
+                    && super::helpers::class_base_name_nodes(parent).contains(&node)
+            }) =>
+        {
+            let name = base.get_node_text(&node);
+            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+            base.create_identifier(&node, name, IdentifierKind::TypeUsage, containing_symbol_id);
+        }
+
+        _ => {}
+    }
+}
+
+/// Create a call or member-access identifier with the receiver named the way
+/// symbols are named: `$w.Run()` has receiver `w`, `[Cart]::new()` has `Cart`.
+fn create_member_identifier(
+    base: &mut BaseExtractor,
+    node: Node,
+    name_node: &Node,
+    name: String,
+    kind: IdentifierKind,
+    containing_symbol_id: Option<String>,
+    receiver_type: Option<String>,
+) {
+    let receiver = node
+        .named_child(0)
+        .and_then(|receiver| match receiver.kind() {
+            "variable" => Some(super::helpers::variable_name(
+                &base.get_node_text(&receiver),
+            )),
+            "type_literal" => type_literal_name(base, receiver),
+            _ => None,
+        });
+    let Some(receiver) = receiver else {
+        base.create_identifier_with_receiver_type(
+            name_node,
+            name,
+            kind,
+            containing_symbol_id,
+            receiver_type,
+        );
+        return;
+    };
+    let metadata = std::collections::HashMap::from([(
+        "receiver".to_string(),
+        serde_json::Value::String(receiver),
+    )]);
+    base.create_identifier_with_metadata(name_node, name, kind, containing_symbol_id, metadata);
+    if let Some(identifier) = base.identifiers.last_mut() {
+        identifier.receiver_type = receiver_type;
+    }
+}
+
+/// The type a `type_literal` names: `[Cart]` is `Cart`, `[List[int]]` is `List`.
+fn type_literal_name(base: &BaseExtractor, type_literal: Node) -> Option<String> {
+    let type_spec = type_literal.named_child(0)?;
+    let name_node = match type_spec.named_child(0)? {
+        generic if generic.kind() == "generic_type_name" => generic.named_child(0)?,
+        other => other,
+    };
+    Some(base.get_node_text(&name_node))
+}
+
+/// The type argument of `New-Object`: the `-TypeName` value, or the first
+/// positional argument. `-ComObject` and other forms name no .NET type.
+fn new_object_type_argument<'a>(base: &BaseExtractor, command: Node<'a>) -> Option<Node<'a>> {
+    let elements = command.child_by_field_name("command_elements")?;
+    let mut expects_type = true;
+    let mut cursor = elements.walk();
+    for element in elements.named_children(&mut cursor) {
+        match element.kind() {
+            "command_argument_sep" => {}
+            "command_parameter" => {
+                expects_type = base
+                    .get_node_text(&element)
+                    .eq_ignore_ascii_case("-TypeName");
+            }
+            "generic_token" if expects_type => return Some(element),
+            _ => return None,
         }
     }
+    None
+}
+
+/// PowerShell type accelerators for primitives and engine types. They name no
+/// user type, so they are not type usages.
+fn is_builtin_type_name(name: &str) -> bool {
+    const BUILTIN: [&str; 27] = [
+        "array",
+        "bool",
+        "byte",
+        "char",
+        "datetime",
+        "decimal",
+        "double",
+        "float",
+        "guid",
+        "hashtable",
+        "int",
+        "int16",
+        "int32",
+        "int64",
+        "long",
+        "object",
+        "psobject",
+        "pscustomobject",
+        "regex",
+        "scriptblock",
+        "sbyte",
+        "short",
+        "single",
+        "string",
+        "switch",
+        "void",
+        "xml",
+    ];
+    BUILTIN.contains(&name.to_ascii_lowercase().as_str())
 }
 
 /// Rule 5 filter: PowerShell automatic variables and engine constants. Extends
@@ -590,21 +705,15 @@ fn find_containing_symbol_id(
     containing_symbols.find(node).map(|s| s.id.clone())
 }
 
-fn is_method_return_type(node: Node) -> bool {
-    if node
+fn is_type_literal_name(node: Node) -> bool {
+    let owner = node
         .parent()
-        .is_some_and(|parent| parent.kind() == "generic_type_name")
-    {
-        return false;
-    }
-    let mut current = node;
-    while let Some(parent) = current.parent() {
-        if parent.kind() == "type_literal" {
-            return parent
+        .filter(|parent| parent.kind() == "array_type_name")
+        .unwrap_or(node);
+    owner.parent().is_some_and(|type_spec| {
+        type_spec.kind() == "type_spec"
+            && type_spec
                 .parent()
-                .is_some_and(|owner| owner.kind() == "class_method_definition");
-        }
-        current = parent;
-    }
-    false
+                .is_some_and(|owner| owner.kind() == "type_literal")
+    })
 }

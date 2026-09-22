@@ -1,139 +1,73 @@
-//! Documentation and annotation generation for PowerShell symbols
-//! Handles variable classifications, command documentation, variable annotations, and doc comment extraction
+//! PowerShell doc comment extraction (comment-based help).
 
 use crate::base::BaseExtractor;
 use regex::Regex;
 use std::sync::LazyLock;
 use tree_sitter::Node;
 
-// Static regex compiled once for performance
-static UPPERCASE_ENV_VAR_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^[A-Z_][A-Z0-9_]*$").unwrap());
+static HELP_KEYWORD_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(
+        r"(?im)^\s*(?:<#)?\s*\.(?:synopsis|description|parameter|example|inputs|outputs|notes|link|component|role|functionality|forwardhelptargetname|forwardhelpcategory|remotehelprunspace|externalhelp)\b",
+    )
+    .unwrap()
+});
 
-/// Classify and document environment variables
-pub(super) fn is_environment_variable(name: &str) -> bool {
-    let env_vars = [
-        "PATH",
-        "COMPUTERNAME",
-        "USERNAME",
-        "TEMP",
-        "TMP",
-        "USERPROFILE",
-        "AZURE_CLIENT_ID",
-        "AZURE_CLIENT_SECRET",
-        "AZURE_TENANT_ID",
-        "POWERSHELL_TELEMETRY_OPTOUT",
-    ];
-    env_vars.contains(&name) || UPPERCASE_ENV_VAR_RE.is_match(name)
-}
-
-/// Classify and document automatic variables (PowerShell built-ins)
-pub(super) fn is_automatic_variable(name: &str) -> bool {
-    let auto_vars = [
-        "PSVersionTable",
-        "PWD",
-        "LASTEXITCODE",
-        "Error",
-        "Host",
-        "Profile",
-        "PSScriptRoot",
-        "PSCommandPath",
-        "MyInvocation",
-        "Args",
-        "Input",
-    ];
-    auto_vars.contains(&name)
-}
-
-/// Generate variable documentation based on classification
-pub(super) fn get_variable_documentation(
-    is_environment: bool,
-    is_automatic: bool,
-    is_global: bool,
-    is_script: bool,
-) -> String {
-    let mut annotations = Vec::new();
-
-    if is_environment {
-        annotations.push("Environment Variable");
-    }
-    if is_automatic {
-        annotations.push("Automatic Variable");
-    }
-    if is_global {
-        annotations.push("Global Scope");
-    }
-    if is_script {
-        annotations.push("Script Scope");
-    }
-
-    if !annotations.is_empty() {
-        format!("[{}]", annotations.join(", "))
-    } else {
-        String::new()
-    }
-}
-
-/// Extract PowerShell doc comments (comment-based help)
-/// Handles both block comments <# #> and single-line # comments
+/// The doc comment of a declaration: the comments directly above it, or, for a
+/// function, a comment-based help block at the start of its body.
+///
+/// A comment attaches only when no blank line separates it from the
+/// declaration. PowerShell allows one blank line after a comment-based help
+/// block, so a block with help keywords may sit one blank line above.
 pub(super) fn extract_powershell_doc_comment(base: &BaseExtractor, node: &Node) -> Option<String> {
-    let mut comments = Vec::new();
+    leading_comments(base, *node).or_else(|| in_body_help(base, *node))
+}
 
-    // First try to find comments as direct siblings of this node
-    let mut current = node.prev_named_sibling();
+fn leading_comments(base: &BaseExtractor, node: Node) -> Option<String> {
+    let mut anchor = node;
+    while anchor.prev_named_sibling().is_none() {
+        match anchor.parent() {
+            Some(parent) if parent.start_byte() == anchor.start_byte() => anchor = parent,
+            _ => break,
+        }
+    }
+
+    let mut comments = Vec::new();
+    let mut next_row = anchor.start_position().row;
+    let mut current = anchor.prev_named_sibling();
     while let Some(sibling) = current {
-        if sibling.kind() == "comment" {
-            let comment_text = base.get_node_text(&sibling);
-            // PowerShell comments start with # or <#
-            if comment_text.trim_start().starts_with("#")
-                || comment_text.trim_start().starts_with("<#")
-            {
-                comments.push(comment_text);
-                current = sibling.prev_named_sibling();
-            } else {
-                break;
-            }
-        } else {
+        if sibling.kind() != "comment" {
             break;
         }
-    }
-
-    // If no comments found as direct siblings, try looking at ancestor siblings
-    if comments.is_empty() {
-        let mut current_node = *node;
-        for _ in 0..3 {
-            if let Some(parent) = current_node.parent() {
-                current = parent.prev_named_sibling();
-                while let Some(sibling) = current {
-                    if sibling.kind() == "comment" {
-                        let comment_text = base.get_node_text(&sibling);
-                        if comment_text.trim_start().starts_with("#")
-                            || comment_text.trim_start().starts_with("<#")
-                        {
-                            comments.push(comment_text);
-                            current = sibling.prev_named_sibling();
-                        } else {
-                            break;
-                        }
-                    } else {
-                        break;
-                    }
-                }
-                if !comments.is_empty() {
-                    break;
-                }
-                current_node = parent;
-            } else {
-                break;
-            }
+        let text = base.get_node_text(&sibling);
+        let blank_lines = next_row.saturating_sub(sibling.end_position().row + 1);
+        let allowed = if comments.is_empty() && HELP_KEYWORD_RE.is_match(&text) {
+            1
+        } else {
+            0
+        };
+        if blank_lines > allowed {
+            break;
         }
+        next_row = sibling.start_position().row;
+        comments.push(text);
+        current = sibling.prev_named_sibling();
     }
 
     if comments.is_empty() {
-        None
-    } else {
-        // Reverse to get original order (top to bottom)
-        comments.reverse();
-        Some(comments.join("\n"))
+        return None;
     }
+    comments.reverse();
+    Some(comments.join("\n"))
+}
+
+fn in_body_help(base: &BaseExtractor, node: Node) -> Option<String> {
+    if node.kind() != "function_statement" {
+        return None;
+    }
+    let mut cursor = node.walk();
+    node.named_children(&mut cursor)
+        .take_while(|child| child.kind() != "script_block")
+        .filter(|child| child.kind() == "comment")
+        .map(|child| base.get_node_text(&child))
+        .find(|text| HELP_KEYWORD_RE.is_match(text))
 }

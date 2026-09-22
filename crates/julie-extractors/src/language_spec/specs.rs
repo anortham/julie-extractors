@@ -261,7 +261,7 @@ pub(super) const LANGUAGE_SPECS: &[LanguageSpec] = &[
         "razor",
         &["razor", "cshtml"],
         "tree-sitter-razor",
-        NO_PENDING_CAPABILITIES,
+        FULL_CAPABILITIES,
         parser_razor,
         RAZOR_DOCS,
     ),

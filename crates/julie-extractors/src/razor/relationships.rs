@@ -1,5 +1,8 @@
 /// Relationship extraction (component usage, bindings, method calls)
-use crate::base::{NormalizedSpan, Relationship, RelationshipKind, Symbol, SymbolKind};
+use crate::base::{
+    NormalizedSpan, Relationship, RelationshipKind, StructuredPendingRelationship, Symbol,
+    SymbolKind, UnresolvedTarget,
+};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use regex::Regex;
 use std::collections::HashMap;
@@ -17,17 +20,27 @@ impl super::RazorExtractor {
         symbols: &[Symbol],
     ) -> Vec<Relationship> {
         let mut relationships = Vec::new();
-        self.visit_relationships(tree.root_node(), symbols, &mut relationships, 0);
+        let mut pending = Vec::new();
+        self.visit_relationships(
+            tree.root_node(),
+            symbols,
+            &mut relationships,
+            &mut pending,
+            0,
+        );
         self.extract_using_line_relationships(tree.root_node(), symbols, &mut relationships);
+        for row in pending {
+            self.base.add_structured_pending_relationship(row);
+        }
         relationships
     }
 
-    /// Visit nodes and extract relationships
     fn visit_relationships(
         &self,
         node: Node,
         symbols: &[Symbol],
         relationships: &mut Vec<Relationship>,
+        pending: &mut Vec<StructuredPendingRelationship>,
         depth: u32,
     ) {
         if !should_visit_tree_depth(depth) {
@@ -38,13 +51,22 @@ impl super::RazorExtractor {
             "razor_component" => self.extract_component_relationships(node, symbols, relationships),
             "using_directive" => self.extract_using_relationships(node, symbols, relationships),
             "html_element" | "element" => {
-                self.extract_element_relationships(node, symbols, relationships)
+                self.extract_element_relationships(node, symbols, relationships, pending)
             }
             "identifier" => {
                 self.extract_identifier_component_relationships(node, symbols, relationships)
             }
             "invocation_expression" => {
-                self.extract_invocation_relationships(node, symbols, relationships)
+                self.extract_invocation_relationships(node, symbols, relationships, pending)
+            }
+            "razor_inherits_directive" | "razor_implements_directive" => {
+                self.extract_directive_base_relationship(node, symbols, pending)
+            }
+            "class_declaration"
+            | "record_declaration"
+            | "struct_declaration"
+            | "interface_declaration" => {
+                self.extract_base_list_relationships(node, symbols, relationships, pending)
             }
             _ => {}
         }
@@ -54,7 +76,95 @@ impl super::RazorExtractor {
         };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.visit_relationships(child, symbols, relationships, child_depth);
+            self.visit_relationships(child, symbols, relationships, pending, child_depth);
+        }
+    }
+
+    /// `@inherits Base` and `@implements IFace` declare the component's bases.
+    fn extract_directive_base_relationship(
+        &self,
+        node: Node,
+        symbols: &[Symbol],
+        pending: &mut Vec<StructuredPendingRelationship>,
+    ) {
+        let Some(component_id) = super::component_symbol_id(symbols) else {
+            return;
+        };
+        let Some(type_node) = super::directives::directive_type_operand(node) else {
+            return;
+        };
+        let kind = if node.kind() == "razor_implements_directive" {
+            RelationshipKind::Implements
+        } else {
+            RelationshipKind::Extends
+        };
+        pending.push(self.base.create_pending_relationship_at_target(
+            component_id.clone(),
+            UnresolvedTarget::simple(self.base.get_node_text(&type_node)),
+            kind,
+            &type_node,
+            Some(component_id),
+            Some(0.9),
+        ));
+    }
+
+    /// Base types of a type declared in a code block. A same-file base resolves
+    /// to a relationship; .NET naming (`IName`) decides a cross-file base's kind.
+    fn extract_base_list_relationships(
+        &self,
+        node: Node,
+        symbols: &[Symbol],
+        relationships: &mut Vec<Relationship>,
+        pending: &mut Vec<StructuredPendingRelationship>,
+    ) {
+        let Some(base_list) = self.find_child_by_type(node, "base_list") else {
+            return;
+        };
+        let Some(declared) = symbols
+            .iter()
+            .find(|symbol| symbol.start_byte == node.start_byte() as u32 && is_type_symbol(symbol))
+        else {
+            return;
+        };
+        let mut cursor = base_list.walk();
+        for base_node in base_list.named_children(&mut cursor) {
+            let base_name = self.base.get_node_text(&base_node);
+            let terminal = base_name
+                .split('<')
+                .next()
+                .and_then(|name| name.rsplit('.').next())
+                .unwrap_or(&base_name)
+                .trim()
+                .to_string();
+            match symbols
+                .iter()
+                .find(|symbol| is_type_symbol(symbol) && symbol.name == terminal)
+            {
+                Some(target) => relationships.push(self.base.create_relationship_at_target(
+                    declared.id.clone(),
+                    target.id.clone(),
+                    if target.kind == SymbolKind::Interface {
+                        RelationshipKind::Implements
+                    } else {
+                        RelationshipKind::Extends
+                    },
+                    &base_node,
+                    None,
+                    None,
+                )),
+                None => pending.push(self.base.create_pending_relationship_at_target(
+                    declared.id.clone(),
+                    UnresolvedTarget::simple(terminal.clone()),
+                    if is_interface_name(&terminal) {
+                        RelationshipKind::Implements
+                    } else {
+                        RelationshipKind::Extends
+                    },
+                    &base_node,
+                    Some(declared.id.clone()),
+                    Some(0.9),
+                )),
+            }
         }
     }
 
@@ -238,54 +348,62 @@ impl super::RazorExtractor {
         node: Node,
         symbols: &[Symbol],
         relationships: &mut Vec<Relationship>,
+        pending: &mut Vec<StructuredPendingRelationship>,
     ) {
         let element_text = self.base.get_node_text(&node);
 
-        if let Some(tag_name) = super::component_tag_name(&element_text)
-            && let Some(component_symbol) = symbols.iter().find(|s| s.name == tag_name)
+        if self.is_razor_component_file()
+            && let Some((tag_start, tag_name)) =
+                super::element_component_tag(node, &self.base.content)
+            && let Some(from_symbol) = self.resolve_calling_symbol(node, symbols)
         {
-            let from_symbol = symbols
+            let tag_name = tag_name.to_string();
+            match symbols
                 .iter()
-                .find(|s| {
-                    s.signature
-                        .as_ref()
-                        .is_some_and(|sig| sig.contains("@page"))
-                })
-                .or_else(|| {
-                    symbols
-                        .iter()
-                        .find(|s| s.kind == SymbolKind::Module && s.id != component_symbol.id)
-                })
-                .or_else(|| {
-                    symbols
-                        .iter()
-                        .find(|s| s.kind == SymbolKind::Class && s.id != component_symbol.id)
-                });
-
-            if let Some(from_symbol) = from_symbol {
-                relationships.push(self.base.create_relationship(
+                .find(|s| s.name == tag_name && s.id != from_symbol.id)
+            {
+                Some(component_symbol) => relationships.push(self.base.create_relationship(
                     from_symbol.id.clone(),
                     component_symbol.id.clone(),
                     RelationshipKind::Uses,
                     &node,
                     Some(1.0),
-                    Some({
-                        let mut metadata = HashMap::new();
-                        metadata.insert(
+                    Some(HashMap::from([
+                        (
                             "component".to_string(),
-                            serde_json::Value::String(tag_name.to_string()),
-                        );
-                        metadata.insert(
+                            serde_json::Value::String(tag_name.clone()),
+                        ),
+                        (
                             "type".to_string(),
                             serde_json::Value::String("component-usage".to_string()),
-                        );
-                        metadata
-                    }),
-                ));
+                        ),
+                    ])),
+                )),
+                None => {
+                    let row = StructuredPendingRelationship::new(
+                        from_symbol.id.clone(),
+                        UnresolvedTarget::from_qualified_text(&tag_name, &["."])
+                            .unwrap_or_else(|| UnresolvedTarget::simple(tag_name.clone())),
+                        Some(from_symbol.id.clone()),
+                        RelationshipKind::Uses,
+                        self.base.file_path.clone(),
+                        node.start_position().row as u32 + 1,
+                        0.9,
+                    );
+                    pending.push(
+                        match NormalizedSpan::from_content_range(
+                            &self.base.content,
+                            tag_start,
+                            tag_start + tag_name.len(),
+                        ) {
+                            Some(span) => row.with_target_span(span),
+                            None => row,
+                        },
+                    );
+                }
             }
         }
 
-        // Check for data binding attributes (e.g., @bind-Value)
         if element_text.contains("@bind")
             && let Some(from_symbol) = symbols.iter().find(|s| s.kind == SymbolKind::Class)
         {
@@ -368,4 +486,16 @@ fn is_identifier_segment(segment: &str) -> bool {
     };
     (first == '_' || first.is_ascii_alphabetic())
         && chars.all(|ch| ch == '_' || ch.is_ascii_alphanumeric())
+}
+
+fn is_type_symbol(symbol: &Symbol) -> bool {
+    matches!(
+        symbol.kind,
+        SymbolKind::Class | SymbolKind::Interface | SymbolKind::Struct
+    )
+}
+
+fn is_interface_name(name: &str) -> bool {
+    let mut chars = name.chars();
+    matches!((chars.next(), chars.next()), (Some('I'), Some(c)) if c.is_ascii_uppercase())
 }

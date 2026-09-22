@@ -110,7 +110,7 @@ enclosing-scope abstraction in `base/`.
 | elixir | — | — / — / — | `%Foo{...}` | receiver_type; declared types outside struct patterns |
 | erlang | — | — / — / — | `#foo{...}` | receiver_type; declared types outside record patterns |
 | bash | — | — / — / — | — | receiver_type; declared types; inferred types |
-| razor | `this.M()` inside `@code`/`@functions` → the component class name (file-derived); identifiers only (no pending rows by recorded exception) | same as csharp: `?` / `ref`, `out`, `in`, `scoped` / `<` | `new Foo(...)` | pending-row receiver_type |
+| razor | `this.M()` inside `@code`/`@functions` → the component class name (file-derived), on identifiers and pending rows | same as csharp: `?` / `ref`, `out`, `in`, `scoped` / `<` | `new Foo(...)` | — |
 
 ## Not applicable cells
 
@@ -175,12 +175,11 @@ stays; wave 2 adds no inferred facts.
 
 ### Razor: pending-row `receiver_type`
 
-Razor `pending_relationships` is a recorded exception. Cross-file
-references resolve through the embedded C# pipeline, not Razor's own
-pending path. Test `razor_pending_relationships_handled_by_csharp_embed`
-locks this (`fixtures/extraction/capabilities.json`, razor
-`pending_relationships` exception). Wave 2 records `receiver_type` on
-identifiers only.
+Razor emits pending rows since wave 1 of
+`docs/plans/2026-09-22-language-gap-closure.md`. The earlier exception said
+an embedded C# pipeline resolved Razor references; no such pipeline exists,
+so the exception was removed. A `this.M()` pending row carries the same
+`receiver_type` as its identifier.
 
 ## Helper contract
 

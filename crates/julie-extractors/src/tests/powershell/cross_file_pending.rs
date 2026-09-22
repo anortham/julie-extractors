@@ -88,6 +88,6 @@ class Caller {
 
     let variable_chain = target("Chain2");
     assert_eq!(variable_chain.receiver.as_deref(), Some("inner"));
-    assert_eq!(variable_chain.namespace_path, vec!["$outer"]);
-    assert_eq!(variable_chain.display_name, "$outer.inner.Chain2");
+    assert_eq!(variable_chain.namespace_path, vec!["outer"]);
+    assert_eq!(variable_chain.display_name, "outer.inner.Chain2");
 }
