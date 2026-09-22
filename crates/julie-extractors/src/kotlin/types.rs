@@ -83,6 +83,8 @@ pub(super) fn extract_class(
 
     let symbol_kind = if is_interface {
         SymbolKind::Interface
+    } else if is_enum {
+        SymbolKind::Enum
     } else {
         helpers::determine_class_kind(base, &final_modifiers, node)
     };

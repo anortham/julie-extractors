@@ -11,6 +11,7 @@
 //! - Property delegation
 //! - Constructor parameters
 
+mod annotation_repair;
 mod declarations;
 mod helpers;
 mod identifiers;
@@ -40,6 +41,7 @@ pub struct KotlinExtractor {
     /// the case that contains it.
     dsl_call_symbol_ids: HashSet<String>,
     same_file_type_names: HashSet<String>,
+    annotation_repair: Option<annotation_repair::AnnotationRepair>,
 }
 
 impl KotlinExtractor {
@@ -53,6 +55,7 @@ impl KotlinExtractor {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
             dsl_call_symbol_ids: HashSet::new(),
             same_file_type_names: HashSet::new(),
+            annotation_repair: None,
         }
     }
 
@@ -84,6 +87,8 @@ impl KotlinExtractor {
     }
 
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
+        self.annotation_repair = annotation_repair::repair(&self.base.content, tree);
+        let tree = self.working_tree(tree);
         self.same_file_type_names = type_facts::collect_type_names(&self.base, tree.root_node());
         let mut symbols = Vec::new();
         self.visit_node(tree.root_node(), &mut symbols, None, 0);
@@ -237,6 +242,13 @@ impl KotlinExtractor {
             _ => {}
         }
 
+        if let Some(sym) = symbol.as_mut() {
+            declarations::apply_declaration_body_span(&self.base, &node, sym);
+            if let Some(repair) = &self.annotation_repair {
+                repair.attach(&mut self.base, &node, sym);
+            }
+        }
+
         if let Some(sym) = &symbol {
             symbols.push(sym.clone());
             new_parent_id = Some(sym.id.clone());
@@ -267,6 +279,7 @@ impl KotlinExtractor {
     }
 
     pub fn extract_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {
+        let tree = self.working_tree(tree);
         let mut relationships = Vec::new();
         self.visit_node_for_relationships(tree.root_node(), symbols, &mut relationships, 0);
         dedupe_relationships(&mut relationships);
@@ -304,6 +317,19 @@ impl KotlinExtractor {
                     depth,
                 );
             }
+            "property_declaration"
+                if node
+                    .parent()
+                    .is_some_and(|parent| parent.kind() == "source_file") =>
+            {
+                relationships::extract_call_relationships(
+                    self,
+                    node,
+                    symbols,
+                    relationships,
+                    depth,
+                );
+            }
             "function_declaration" => {
                 // Extract function calls from within this function
                 relationships::extract_call_relationships(
@@ -327,7 +353,21 @@ impl KotlinExtractor {
     }
 
     pub fn extract_identifiers(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Identifier> {
-        identifiers::extract_identifiers(&mut self.base, tree, symbols)
+        let annotation_nodes = self
+            .annotation_repair
+            .as_ref()
+            .map(|repair| repair.original_annotation_nodes(tree))
+            .unwrap_or_default();
+        let working = self.working_tree(tree);
+        identifiers::extract_identifiers(&mut self.base, &working, &annotation_nodes, symbols)
+    }
+
+    /// The tree extraction walks: the annotation-repaired reparse when the
+    /// grammar detached top-level annotations, else the parsed tree.
+    fn working_tree(&self, tree: &Tree) -> Tree {
+        self.annotation_repair
+            .as_ref()
+            .map_or_else(|| tree.clone(), |repair| repair.tree.clone())
     }
 
     // ========================================================================

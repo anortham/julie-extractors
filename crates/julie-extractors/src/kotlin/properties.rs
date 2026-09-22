@@ -67,7 +67,11 @@ pub(super) fn extract_property(
     } else {
         "val"
     };
-    let mut signature = format!("{} {}", binding, raw_name);
+    let receiver_type = helpers::extract_receiver_type(base, node);
+    let mut signature = match &receiver_type {
+        Some(receiver_type) => format!("{} {}.{}", binding, receiver_type, raw_name),
+        None => format!("{} {}", binding, raw_name),
+    };
 
     if !modifiers.is_empty() {
         signature = format!("{} {}", modifiers.join(" "), signature);
@@ -119,6 +123,9 @@ pub(super) fn extract_property(
     // Store property type for type inference
     if let Some(property_type) = property_type {
         metadata.insert("propertyType".to_string(), Value::String(property_type));
+    }
+    if let Some(receiver_type) = receiver_type {
+        metadata.insert("extendedType".to_string(), Value::String(receiver_type));
     }
     super::types::record_raw_name(&name, &raw_name, &mut metadata);
 

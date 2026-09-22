@@ -639,13 +639,13 @@
       "end_byte": 370,
       "body_span": {
         "start_line": 7,
-        "start_column": 34,
+        "start_column": 26,
         "end_line": 15,
         "end_column": 1,
-        "start_byte": 239,
+        "start_byte": 231,
         "end_byte": 370
       },
-      "body_hash": "8ab656ca9da4335499c02fdf62bbb0cd",
+      "body_hash": "3007e7251fe9449d329031469235c254",
       "signature": "private val sharedCases = funSpec {\n    beforeEach {\n        seedFixtures()\n    }\n\n    test(\"shares a case with every including spec\") {\n        1 shouldBe 1\n    }\n}",
       "doc_comment": null,
       "visibility": "Private",
@@ -767,11 +767,75 @@
       "confidence": "0.700"
     },
     {
+      "from_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:beforeEach:8:4",
+      "callee_name": "seedFixtures",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/kotest_string_spec/source.kt",
+      "line_number": 9,
+      "confidence": "0.700"
+    },
+    {
       "from_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:beforeTest:18:4",
       "callee_name": "seedFixtures",
       "kind": "calls",
       "file_path": "fixtures/extraction/kotlin/kotest_string_spec/source.kt",
       "line_number": 19,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:length returns the size of the string:22:4",
+      "callee_name": "shouldBe",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/kotest_string_spec/source.kt",
+      "line_number": 23,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:return the length of the string:37:8",
+      "callee_name": "shouldBe",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/kotest_string_spec/source.kt",
+      "line_number": 38,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:return zero for an empty string:41:8",
+      "callee_name": "shouldBe",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/kotest_string_spec/source.kt",
+      "line_number": 42,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:returns the length of the string:49:8",
+      "callee_name": "shouldBe",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/kotest_string_spec/source.kt",
+      "line_number": 50,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:sharedCases:7:0",
+      "callee_name": "funSpec",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/kotest_string_spec/source.kt",
+      "line_number": 7,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:shares a case with every including spec:12:4",
+      "callee_name": "shouldBe",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/kotest_string_spec/source.kt",
+      "line_number": 13,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:startsWith matches a prefix:26:4",
+      "callee_name": "shouldBe",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/kotest_string_spec/source.kt",
+      "line_number": 27,
       "confidence": "0.700"
     },
     {
@@ -890,6 +954,32 @@
     },
     {
       "pending": {
+        "from_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:beforeEach:8:4",
+        "callee_name": "seedFixtures",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/kotest_string_spec/source.kt",
+        "line_number": 9,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "seedFixtures",
+        "terminal_name": "seedFixtures",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:beforeEach:8:4",
+      "span": {
+        "start_line": 9,
+        "start_column": 8,
+        "end_line": 9,
+        "end_column": 22,
+        "start_byte": 266,
+        "end_byte": 280
+      }
+    },
+    {
+      "pending": {
         "from_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:beforeTest:18:4",
         "callee_name": "seedFixtures",
         "kind": "calls",
@@ -912,6 +1002,188 @@
         "end_column": 22,
         "start_byte": 435,
         "end_byte": 449
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:length returns the size of the string:22:4",
+        "callee_name": "shouldBe",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/kotest_string_spec/source.kt",
+        "line_number": 23,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "shouldBe",
+        "terminal_name": "shouldBe",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:length returns the size of the string:22:4",
+      "span": {
+        "start_line": 23,
+        "start_column": 8,
+        "end_line": 23,
+        "end_column": 33,
+        "start_byte": 511,
+        "end_byte": 536
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:return the length of the string:37:8",
+        "callee_name": "shouldBe",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/kotest_string_spec/source.kt",
+        "line_number": 38,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "shouldBe",
+        "terminal_name": "shouldBe",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:return the length of the string:37:8",
+      "span": {
+        "start_line": 38,
+        "start_column": 12,
+        "end_line": 38,
+        "end_column": 35,
+        "start_byte": 804,
+        "end_byte": 827
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:return zero for an empty string:41:8",
+        "callee_name": "shouldBe",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/kotest_string_spec/source.kt",
+        "line_number": 42,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "shouldBe",
+        "terminal_name": "shouldBe",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:return zero for an empty string:41:8",
+      "span": {
+        "start_line": 42,
+        "start_column": 12,
+        "end_line": 42,
+        "end_column": 32,
+        "start_byte": 895,
+        "end_byte": 915
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:returns the length of the string:49:8",
+        "callee_name": "shouldBe",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/kotest_string_spec/source.kt",
+        "line_number": 50,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "shouldBe",
+        "terminal_name": "shouldBe",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:returns the length of the string:49:8",
+      "span": {
+        "start_line": 50,
+        "start_column": 12,
+        "end_line": 50,
+        "end_column": 35,
+        "start_byte": 1051,
+        "end_byte": 1074
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:sharedCases:7:0",
+        "callee_name": "funSpec",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/kotest_string_spec/source.kt",
+        "line_number": 7,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "funSpec",
+        "terminal_name": "funSpec",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:sharedCases:7:0",
+      "span": {
+        "start_line": 7,
+        "start_column": 26,
+        "end_line": 15,
+        "end_column": 1,
+        "start_byte": 231,
+        "end_byte": 370
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:shares a case with every including spec:12:4",
+        "callee_name": "shouldBe",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/kotest_string_spec/source.kt",
+        "line_number": 13,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "shouldBe",
+        "terminal_name": "shouldBe",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:shares a case with every including spec:12:4",
+      "span": {
+        "start_line": 13,
+        "start_column": 8,
+        "end_line": 13,
+        "end_column": 20,
+        "start_byte": 350,
+        "end_byte": 362
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:startsWith matches a prefix:26:4",
+        "callee_name": "shouldBe",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/kotest_string_spec/source.kt",
+        "line_number": 27,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "shouldBe",
+        "terminal_name": "shouldBe",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:startsWith matches a prefix:26:4",
+      "span": {
+        "start_line": 27,
+        "start_column": 8,
+        "end_line": 27,
+        "end_column": 47,
+        "start_byte": 588,
+        "end_byte": 627
       }
     },
     {
@@ -1163,6 +1435,118 @@
       "start_byte": 266,
       "end_byte": 278,
       "containing_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:beforeEach:8:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:should:call:36:20",
+      "name": "should",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotest_string_spec/source.kt",
+      "start_line": 36,
+      "start_column": 20,
+      "end_line": 36,
+      "end_column": 26,
+      "start_byte": 739,
+      "end_byte": 745,
+      "containing_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:String.length should:36:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:shouldBe:call:13:10",
+      "name": "shouldBe",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotest_string_spec/source.kt",
+      "start_line": 13,
+      "start_column": 10,
+      "end_line": 13,
+      "end_column": 18,
+      "start_byte": 352,
+      "end_byte": 360,
+      "containing_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:shares a case with every including spec:12:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:shouldBe:call:23:23",
+      "name": "shouldBe",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotest_string_spec/source.kt",
+      "start_line": 23,
+      "start_column": 23,
+      "end_line": 23,
+      "end_column": 31,
+      "start_byte": 526,
+      "end_byte": 534,
+      "containing_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:length returns the size of the string:22:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:shouldBe:call:27:34",
+      "name": "shouldBe",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotest_string_spec/source.kt",
+      "start_line": 27,
+      "start_column": 34,
+      "end_line": 27,
+      "end_column": 42,
+      "start_byte": 614,
+      "end_byte": 622,
+      "containing_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:startsWith matches a prefix:26:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:shouldBe:call:38:25",
+      "name": "shouldBe",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotest_string_spec/source.kt",
+      "start_line": 38,
+      "start_column": 25,
+      "end_line": 38,
+      "end_column": 33,
+      "start_byte": 817,
+      "end_byte": 825,
+      "containing_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:return the length of the string:37:8",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:shouldBe:call:42:22",
+      "name": "shouldBe",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotest_string_spec/source.kt",
+      "start_line": 42,
+      "start_column": 22,
+      "end_line": 42,
+      "end_column": 30,
+      "start_byte": 905,
+      "end_byte": 913,
+      "containing_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:return zero for an empty string:41:8",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:shouldBe:call:50:25",
+      "name": "shouldBe",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotest_string_spec/source.kt",
+      "start_line": 50,
+      "start_column": 25,
+      "end_line": 50,
+      "end_column": 33,
+      "start_byte": 1064,
+      "end_byte": 1072,
+      "containing_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:returns the length of the string:49:8",
       "target_key": null,
       "confidence": "1.000"
     },
