@@ -22,6 +22,7 @@
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: 64px;
 }
 
 body {
@@ -94,10 +95,8 @@ td code {
 
 .hero {
   position: relative;
-  min-height: 78vh;
   display: grid;
-  align-items: end;
-  padding: 116px 32px 86px;
+  padding: 112px 32px 80px;
   background:
     radial-gradient(1100px 480px at 85% -10%, rgba(230, 126, 60, 0.28), transparent 60%),
     radial-gradient(900px 520px at 8% 110%, rgba(179, 74, 18, 0.22), transparent 65%),
@@ -264,7 +263,7 @@ h3 {
   width: min(1120px, 100%);
   margin: 0 auto;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   border: 1px solid var(--rule);
   background: var(--panel);
 }
@@ -338,6 +337,42 @@ h3 {
   text-overflow: ellipsis;
   white-space: nowrap;
   color: rgba(255, 255, 255, 0.88);
+}
+
+.consume-notes {
+  width: min(1120px, 100%);
+  margin: 24px auto 0;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.consume-notes p {
+  margin: 0 0 10px;
+}
+
+.consume-notes p:last-child {
+  margin-bottom: 0;
+}
+
+.consume-notes a {
+  color: #eb9a5f;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.consume-notes a:hover {
+  color: #fff;
+}
+
+.consume-notes code {
+  padding: 1px 5px;
+  color: #eb9a5f;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 3px;
+  font-size: 0.9em;
 }
 
 .metrics-summary {
@@ -508,6 +543,15 @@ h3 {
   margin-top: 10px;
 }
 
+.limits a {
+  color: var(--accent-strong);
+  font-weight: 700;
+}
+
+.limits a:hover {
+  color: var(--accent);
+}
+
 .site-footer {
   display: flex;
   justify-content: center;
@@ -548,8 +592,7 @@ h3 {
   }
 
   .hero {
-    min-height: 70vh;
-    padding: 112px 20px 72px;
+    padding: 96px 20px 64px;
   }
 
   .section {
