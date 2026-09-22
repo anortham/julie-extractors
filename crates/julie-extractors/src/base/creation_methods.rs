@@ -145,6 +145,38 @@ impl BaseExtractor {
         metadata: Option<HashMap<String, serde_json::Value>>,
     ) -> Identifier {
         let span = NormalizedSpan::from_node(node);
+        self.push_identifier_at_span(
+            span,
+            name,
+            kind,
+            containing_symbol_id,
+            receiver_type,
+            metadata,
+        )
+    }
+
+    /// Create an identifier for a byte range inside a node, such as one name
+    /// in a delimited attribute value.
+    pub(crate) fn create_identifier_at_span(
+        &mut self,
+        span: NormalizedSpan,
+        name: String,
+        kind: IdentifierKind,
+        containing_symbol_id: Option<String>,
+        metadata: Option<HashMap<String, serde_json::Value>>,
+    ) -> Identifier {
+        self.push_identifier_at_span(span, name, kind, containing_symbol_id, None, metadata)
+    }
+
+    fn push_identifier_at_span(
+        &mut self,
+        span: NormalizedSpan,
+        name: String,
+        kind: IdentifierKind,
+        containing_symbol_id: Option<String>,
+        receiver_type: Option<String>,
+        metadata: Option<HashMap<String, serde_json::Value>>,
+    ) -> Identifier {
         let id = self.generate_id_for_span(&name, &span);
 
         let identifier = Identifier {

@@ -69,9 +69,9 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
     // Package manifests
     StructuralFactPatternSpec {
         pattern_id: "manifest.dependency.v1",
-        languages: &["toml"],
+        languages: &["toml", "xml"],
         query_family: "dependencies",
-        description: "A package dependency declared in a Cargo.toml or pyproject.toml manifest.",
+        description: "A package dependency declared in a Cargo.toml, pyproject.toml, MSBuild, NuGet, or Maven manifest.",
         metadata_keys: &[
             K_PATTERN_VERSION,
             K_QUERY_FAMILY,
@@ -79,19 +79,19 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "ecosystem",
                 STR,
                 ALWAYS,
-                "Package ecosystem (\"cargo\" or \"pypi\").",
+                "Package ecosystem (\"cargo\", \"pypi\", \"nuget\", or \"maven\").",
             ),
             key(
                 "name",
                 STR,
                 ALWAYS,
-                "Dependency name: the Cargo key, or the PEP 503-normalized distribution name.",
+                "Dependency name: the Cargo key, the PEP 503-normalized distribution name, the NuGet package id, or the Maven `groupId:artifactId`.",
             ),
             key(
                 "group",
                 STR,
                 ALWAYS,
-                "Dependency group: Cargo `dependencies`/`dev-dependencies`/`build-dependencies`/`workspace`, or Python `runtime`, `optional:<extra>`, `group:<name>`, `build-system`, `poetry:<group>`.",
+                "Dependency group: Cargo `dependencies`/`dev-dependencies`/`build-dependencies`/`workspace`; Python `runtime`, `optional:<extra>`, `group:<name>`, `build-system`, `poetry:<group>`; NuGet `PackageReference`/`PackageVersion`/`GlobalPackageReference`/`dependency`; Maven scope, `managed`, `plugin`, or `managed-plugin`.",
             ),
             key("version", STR, OPT, "Version requirement as written."),
             key(
@@ -104,7 +104,7 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "target",
                 STR,
                 OPT,
-                "Cargo `target.<cfg>` platform selector.",
+                "Cargo `target.<cfg>` platform selector, or the NuGet dependency group's target framework.",
             ),
             key(
                 "workspace",

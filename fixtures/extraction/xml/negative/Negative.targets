@@ -1,0 +1,10 @@
+<Project>
+  <!-- Targets named but not declared here, and property-built names, emit no Calls edges. -->
+  <Target Name="Pack" DependsOnTargets="$(PackDependsOn);Build" AfterTargets="Publish">
+    <CallTarget Targets="@(ExtraTargets)" />
+  </Target>
+  <Import Project="$(MSBuildThisFileDirectory)Shared.props" />
+  <ItemGroup>
+    <Compile Include="Generated\*.cs" />
+  </ItemGroup>
+</Project>

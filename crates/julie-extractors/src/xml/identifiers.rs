@@ -1,4 +1,6 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
+
+use serde_json::Value;
 
 use tree_sitter::Node;
 
@@ -167,11 +169,28 @@ pub(super) fn extract_element_facts(
             continue;
         }
 
-        base.create_identifier(
-            &value_node,
-            value,
+        let value_start = value_node.start_byte() + 1;
+        let local_offset = value.rfind(':').map_or(0, |colon| colon + 1);
+        let local = &value[local_offset..];
+        let Some(span) = base.span_for_byte_range(
+            value_start + local_offset,
+            value_start + local_offset + local.len(),
+        ) else {
+            continue;
+        };
+        let mut metadata = HashMap::from([("qname".to_string(), Value::String(value.clone()))]);
+        if local_offset > 0 {
+            metadata.insert(
+                "prefix".to_string(),
+                Value::String(value[..local_offset - 1].to_string()),
+            );
+        }
+        base.create_identifier_at_span(
+            span,
+            local.to_string(),
             IdentifierKind::TypeUsage,
             containing_symbol_id.map(str::to_string),
+            Some(metadata),
         );
     }
 }

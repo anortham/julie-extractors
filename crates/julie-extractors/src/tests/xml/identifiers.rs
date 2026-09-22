@@ -22,7 +22,7 @@ fn type_attribute_emits_a_qname_type_usage_identifier() {
     ));
 
     assert_eq!(identifiers.len(), 1);
-    assert_eq!(identifiers[0].name, "xs:string");
+    assert_eq!(identifiers[0].name, "string");
     assert_eq!(identifiers[0].kind, IdentifierKind::TypeUsage);
 }
 
@@ -30,7 +30,7 @@ fn type_attribute_emits_a_qname_type_usage_identifier() {
 fn ref_attribute_emits_a_qname_type_usage_identifier() {
     assert_eq!(
         reference_names(&format!("<xs:element {XSD} ref=\"tns:Other\"/>\n")),
-        vec!["tns:Other".to_string()]
+        vec!["Other".to_string()]
     );
 }
 
@@ -38,7 +38,7 @@ fn ref_attribute_emits_a_qname_type_usage_identifier() {
 fn base_attribute_emits_a_qname_type_usage_identifier() {
     assert_eq!(
         reference_names(&format!("<xs:extension {XSD} base=\"tns:AddPhone\"/>\n")),
-        vec!["tns:AddPhone".to_string()]
+        vec!["AddPhone".to_string()]
     );
 }
 
@@ -48,16 +48,32 @@ fn element_attribute_emits_a_qname_type_usage_identifier() {
         reference_names(&format!(
             "<part {WSDL} name=\"entry\" element=\"tns:AddPhone\"/>\n"
         )),
-        vec!["tns:AddPhone".to_string()]
+        vec!["AddPhone".to_string()]
     );
 }
 
 #[test]
-fn qname_values_are_recorded_exactly_as_written_without_namespace_resolution() {
+fn an_unprefixed_qname_keeps_its_name() {
     assert_eq!(
         reference_names(&format!("<xs:element {XSD} type=\"UnprefixedType\"/>\n")),
         vec!["UnprefixedType".to_string()]
     );
+}
+
+#[test]
+fn qname_identifiers_use_the_local_name_span_and_keep_the_qname_in_metadata() {
+    let code = format!("<xs:element {XSD} name=\"shipTo\" type=\"tns:Address\"/>\n");
+    let (_, identifiers) = extract_identifiers(&code);
+
+    let identifier = &identifiers[0];
+    assert_eq!(identifier.name, "Address");
+    assert_eq!(
+        &code[identifier.start_byte as usize..identifier.end_byte as usize],
+        "Address"
+    );
+    let metadata = identifier.metadata.as_ref().unwrap();
+    assert_eq!(metadata["qname"], "tns:Address");
+    assert_eq!(metadata["prefix"], "tns");
 }
 
 #[test]
@@ -74,7 +90,7 @@ fn references_bind_to_the_containing_named_element() {
     let number_id = find(&symbols, "number").id.clone();
     let reference = identifiers
         .iter()
-        .find(|identifier| identifier.name == "xs:string")
+        .find(|identifier| identifier.name == "string")
         .expect("xs:string reference");
 
     assert_eq!(
@@ -107,7 +123,7 @@ fn prefixed_reference_attributes_match_on_their_local_name() {
         reference_names(
             "<entry xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"tns:Concrete\"/>\n"
         ),
-        vec!["tns:Concrete".to_string()]
+        vec!["Concrete".to_string()]
     );
 }
 
@@ -148,6 +164,6 @@ fn a_schema_namespace_declared_on_an_ancestor_still_qualifies_its_elements() {
 </xs:schema>
 "#
         )),
-        vec!["xs:string".to_string()]
+        vec!["string".to_string()]
     );
 }

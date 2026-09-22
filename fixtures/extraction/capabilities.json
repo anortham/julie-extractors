@@ -7021,8 +7021,8 @@
       "dependency_status": "current",
       "capabilities": {
         "symbols": true,
-        "relationships": false,
-        "pending_relationships": false,
+        "relationships": true,
+        "pending_relationships": true,
         "identifiers": true,
         "types": false
       },
@@ -7051,40 +7051,31 @@
           "name": "test_roles",
           "source": "fixtures/extraction/xml/test_roles/source.xml",
           "expected": "fixtures/extraction/xml/test_roles/expected.json"
+        },
+        {
+          "name": "msbuild",
+          "source": "fixtures/extraction/xml/msbuild/App.csproj",
+          "expected": "fixtures/extraction/xml/msbuild/expected.json"
+        },
+        {
+          "name": "maven",
+          "source": "fixtures/extraction/xml/maven/pom.xml",
+          "expected": "fixtures/extraction/xml/maven/expected.json"
+        },
+        {
+          "name": "negative",
+          "source": "fixtures/extraction/xml/negative/Negative.targets",
+          "expected": "fixtures/extraction/xml/negative/expected.json"
         }
       ],
       "target_capabilities": {
         "symbols": true,
-        "relationships": false,
-        "pending_relationships": false,
+        "relationships": true,
+        "pending_relationships": true,
         "identifiers": true,
         "types": false
       },
       "capability_gaps": [
-        {
-          "capability": "relationships",
-          "status": "open",
-          "reason": "XSD and WSDL QName attribute references (type, ref, base, element) are emitted as identifiers rather than relationship edges: resolving a QName to the declaration it names requires namespace resolution over in-scope xmlns declarations, which the XML tier does not perform, so the registered xml goldens carry no relationship rows.",
-          "required_closure": "resolve QName prefixes through in-scope xmlns declarations, emit references edges from the reference site to the named declaration, register cross-file and negative golden evidence, then raise capabilities.relationships",
-          "evidence": {
-            "kind": "fixture",
-            "value": "fixtures/extraction/xml/xsd/expected.json",
-            "command": "cargo xtask test golden"
-          },
-          "planned_closure_task": "Task 14: XML Reference Edge Closure"
-        },
-        {
-          "capability": "pending_relationships",
-          "status": "open",
-          "reason": "XSD imports and WSDL bindings reference components declared in other documents, but no structured pending edges are produced while the XML tier emits no relationships at all.",
-          "required_closure": "emit structured pending relationships with terminal name, display name, and caller scope for cross-document QName references and register a cross_file golden",
-          "evidence": {
-            "kind": "fixture",
-            "value": "fixtures/extraction/xml/wsdl/expected.json",
-            "command": "cargo xtask test golden"
-          },
-          "planned_closure_task": "Task 14: XML Reference Edge Closure"
-        },
         {
           "capability": "types",
           "status": "exception",
@@ -7107,7 +7098,9 @@
           "open_gaps": []
         },
         "relationships": {
-          "supported": [],
+          "supported": [
+            "calls"
+          ],
           "not_applicable": [],
           "open_gaps": [
             {
@@ -7120,12 +7113,12 @@
         },
         "identifiers": {
           "supported": [
-            "type_usage"
+            "call",
+            "type_usage",
+            "variable_ref"
           ],
           "not_applicable": [
-            "call",
-            "member_access",
-            "variable_ref"
+            "member_access"
           ],
           "open_gaps": []
         },
@@ -7139,7 +7132,9 @@
         },
         "structural_facts": {
           "supported": [
+            "manifest.dependency.v1",
             "xml.document.v1",
+            "xml.msbuild_property.v1",
             "xml.namespace_declaration.v1",
             "xml.wsdl.binding.v1",
             "xml.wsdl.message.v1",

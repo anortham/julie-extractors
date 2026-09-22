@@ -1,3 +1,4 @@
+mod build_manifests;
 mod cardinality;
 mod identifiers;
 mod literals;

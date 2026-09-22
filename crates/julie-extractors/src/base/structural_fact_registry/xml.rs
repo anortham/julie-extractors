@@ -6,7 +6,8 @@
 //!
 //! Three layers share the `xml` language and the `xml.` id prefix: generic
 //! document facts fire for every registered extension, `xml.xsd.*` only for
-//! `.xsd`, and `xml.wsdl.*` only for `.wsdl`. QName-valued keys carry the raw
+//! `.xsd`, `xml.wsdl.*` only for `.wsdl`, and `xml.msbuild_*` only for MSBuild
+//! project files. QName-valued keys carry the raw
 //! prefixed text; the tier performs no namespace resolution.
 
 use super::{
@@ -265,6 +266,24 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 STR,
                 OPT,
                 "Raw QName of the operation's output message.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "xml.msbuild_property.v1",
+        languages: &["xml"],
+        query_family: "config_structure",
+        description: "An MSBuild property: a child element of `<PropertyGroup>`.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key("name", STR, ALWAYS, "Property name (the element name)."),
+            key("value", STR, OPT, "Trimmed property text."),
+            key(
+                "condition",
+                STR,
+                OPT,
+                "The property's `Condition` attribute.",
             ),
         ],
     },

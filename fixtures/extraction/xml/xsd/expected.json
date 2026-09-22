@@ -250,116 +250,144 @@
   "structured_pending_relationships": [],
   "identifiers": [
     {
-      "key": "fixtures/extraction/xml/xsd/source.xsd:tns:AddPhone:type_usage:23:25",
-      "name": "tns:AddPhone",
+      "key": "fixtures/extraction/xml/xsd/source.xsd:AddPhone:type_usage:23:30",
+      "name": "AddPhone",
       "kind": "type_usage",
       "language": "xml",
       "file_path": "fixtures/extraction/xml/xsd/source.xsd",
       "start_line": 23,
-      "start_column": 25,
+      "start_column": 30,
       "end_line": 23,
-      "end_column": 39,
-      "start_byte": 759,
-      "end_byte": 773,
+      "end_column": 38,
+      "start_byte": 764,
+      "end_byte": 772,
       "containing_key": "fixtures/extraction/xml/xsd/source.xsd:AddMobilePhone:21:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "prefix": "tns",
+        "qname": "tns:AddPhone"
+      }
     },
     {
-      "key": "fixtures/extraction/xml/xsd/source.xsd:tns:AddPhone:type_usage:31:42",
-      "name": "tns:AddPhone",
+      "key": "fixtures/extraction/xml/xsd/source.xsd:AddPhone:type_usage:31:47",
+      "name": "AddPhone",
       "kind": "type_usage",
       "language": "xml",
       "file_path": "fixtures/extraction/xml/xsd/source.xsd",
       "start_line": 31,
-      "start_column": 42,
+      "start_column": 47,
       "end_line": 31,
-      "end_column": 56,
-      "start_byte": 987,
-      "end_byte": 1001,
+      "end_column": 55,
+      "start_byte": 992,
+      "end_byte": 1000,
       "containing_key": "fixtures/extraction/xml/xsd/source.xsd:AddPhoneRequest:31:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "prefix": "tns",
+        "qname": "tns:AddPhone"
+      }
     },
     {
-      "key": "fixtures/extraction/xml/xsd/source.xsd:tns:AddPhoneRequest:type_usage:35:22",
-      "name": "tns:AddPhoneRequest",
+      "key": "fixtures/extraction/xml/xsd/source.xsd:AddPhoneRequest:type_usage:35:27",
+      "name": "AddPhoneRequest",
       "kind": "type_usage",
       "language": "xml",
       "file_path": "fixtures/extraction/xml/xsd/source.xsd",
       "start_line": 35,
-      "start_column": 22,
+      "start_column": 27,
       "end_line": 35,
-      "end_column": 43,
-      "start_byte": 1082,
-      "end_byte": 1103,
+      "end_column": 42,
+      "start_byte": 1087,
+      "end_byte": 1102,
       "containing_key": "fixtures/extraction/xml/xsd/source.xsd:PhoneBook:33:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "prefix": "tns",
+        "qname": "tns:AddPhoneRequest"
+      }
     },
     {
-      "key": "fixtures/extraction/xml/xsd/source.xsd:tns:PhoneNumber:type_usage:17:37",
-      "name": "tns:PhoneNumber",
+      "key": "fixtures/extraction/xml/xsd/source.xsd:PhoneNumber:type_usage:17:42",
+      "name": "PhoneNumber",
       "kind": "type_usage",
       "language": "xml",
       "file_path": "fixtures/extraction/xml/xsd/source.xsd",
       "start_line": 17,
-      "start_column": 37,
+      "start_column": 42,
       "end_line": 17,
-      "end_column": 54,
-      "start_byte": 608,
-      "end_byte": 625,
+      "end_column": 53,
+      "start_byte": 613,
+      "end_byte": 624,
       "containing_key": "fixtures/extraction/xml/xsd/source.xsd:number:17:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "prefix": "tns",
+        "qname": "tns:PhoneNumber"
+      }
     },
     {
-      "key": "fixtures/extraction/xml/xsd/source.xsd:xs:string:type_usage:11:25",
-      "name": "xs:string",
+      "key": "fixtures/extraction/xml/xsd/source.xsd:string:type_usage:11:29",
+      "name": "string",
       "kind": "type_usage",
       "language": "xml",
       "file_path": "fixtures/extraction/xml/xsd/source.xsd",
       "start_line": 11,
-      "start_column": 25,
+      "start_column": 29,
       "end_line": 11,
-      "end_column": 36,
-      "start_byte": 432,
-      "end_byte": 443,
+      "end_column": 35,
+      "start_byte": 436,
+      "end_byte": 442,
       "containing_key": "fixtures/extraction/xml/xsd/source.xsd:PhoneNumber:10:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "prefix": "xs",
+        "qname": "xs:string"
+      }
     },
     {
-      "key": "fixtures/extraction/xml/xsd/source.xsd:xs:string:type_usage:16:36",
-      "name": "xs:string",
+      "key": "fixtures/extraction/xml/xsd/source.xsd:string:type_usage:16:40",
+      "name": "string",
       "kind": "type_usage",
       "language": "xml",
       "file_path": "fixtures/extraction/xml/xsd/source.xsd",
       "start_line": 16,
-      "start_column": 36,
+      "start_column": 40,
       "end_line": 16,
-      "end_column": 47,
-      "start_byte": 556,
-      "end_byte": 567,
+      "end_column": 46,
+      "start_byte": 560,
+      "end_byte": 566,
       "containing_key": "fixtures/extraction/xml/xsd/source.xsd:owner:16:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "prefix": "xs",
+        "qname": "xs:string"
+      }
     },
     {
-      "key": "fixtures/extraction/xml/xsd/source.xsd:xs:string:type_usage:25:42",
-      "name": "xs:string",
+      "key": "fixtures/extraction/xml/xsd/source.xsd:string:type_usage:25:46",
+      "name": "string",
       "kind": "type_usage",
       "language": "xml",
       "file_path": "fixtures/extraction/xml/xsd/source.xsd",
       "start_line": 25,
-      "start_column": 42,
+      "start_column": 46,
       "end_line": 25,
-      "end_column": 53,
-      "start_byte": 839,
-      "end_byte": 850,
+      "end_column": 52,
+      "start_byte": 843,
+      "end_byte": 849,
       "containing_key": "fixtures/extraction/xml/xsd/source.xsd:carrier:25:10",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "prefix": "xs",
+        "qname": "xs:string"
+      }
     }
   ],
   "types": [],

@@ -116,6 +116,8 @@ const XML_DATA_PATTERN_IDS: &[&str] = &[
     XML_XSD_ELEMENT_PATTERN_ID,
     XML_XSD_IMPORT_PATTERN_ID,
     XML_XSD_TYPE_PATTERN_ID,
+    crate::xml::build::MSBUILD_PROPERTY_PATTERN_ID,
+    crate::toml::dependencies::MANIFEST_DEPENDENCY_PATTERN_ID,
 ];
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -145,6 +147,9 @@ pub fn collect_data_structural_facts(
         "regex" => collect_regex_structural_facts(tree, file_path, content),
         _ => Vec::new(),
     };
+    if language == "xml" {
+        facts.extend(crate::xml::build::build_facts(tree, file_path, content));
+    }
     if language == "yaml" {
         facts.extend(crate::yaml::ci::ci_facts(tree, file_path, content, symbols));
     }

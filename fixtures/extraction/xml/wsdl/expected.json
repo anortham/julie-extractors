@@ -359,52 +359,64 @@
   "structured_pending_relationships": [],
   "identifiers": [
     {
-      "key": "fixtures/extraction/xml/wsdl/source.wsdl:tns:AddPhone:type_usage:8:30",
-      "name": "tns:AddPhone",
+      "key": "fixtures/extraction/xml/wsdl/source.wsdl:AddPhone:type_usage:8:35",
+      "name": "AddPhone",
       "kind": "type_usage",
       "language": "xml",
       "file_path": "fixtures/extraction/xml/wsdl/source.wsdl",
       "start_line": 8,
-      "start_column": 30,
+      "start_column": 35,
       "end_line": 8,
-      "end_column": 44,
-      "start_byte": 309,
-      "end_byte": 323,
+      "end_column": 43,
+      "start_byte": 314,
+      "end_byte": 322,
       "containing_key": "fixtures/extraction/xml/wsdl/source.wsdl:body:8:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "prefix": "tns",
+        "qname": "tns:AddPhone"
+      }
     },
     {
-      "key": "fixtures/extraction/xml/wsdl/source.wsdl:tns:PhoneBookPort:type_usage:22:40",
-      "name": "tns:PhoneBookPort",
+      "key": "fixtures/extraction/xml/wsdl/source.wsdl:PhoneBookPort:type_usage:22:45",
+      "name": "PhoneBookPort",
       "kind": "type_usage",
       "language": "xml",
       "file_path": "fixtures/extraction/xml/wsdl/source.wsdl",
       "start_line": 22,
-      "start_column": 40,
+      "start_column": 45,
       "end_line": 22,
-      "end_column": 59,
-      "start_byte": 666,
-      "end_byte": 685,
+      "end_column": 58,
+      "start_byte": 671,
+      "end_byte": 684,
       "containing_key": "fixtures/extraction/xml/wsdl/source.wsdl:PhoneBookBinding:22:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "prefix": "tns",
+        "qname": "tns:PhoneBookPort"
+      }
     },
     {
-      "key": "fixtures/extraction/xml/wsdl/source.wsdl:xs:boolean:type_usage:12:27",
-      "name": "xs:boolean",
+      "key": "fixtures/extraction/xml/wsdl/source.wsdl:boolean:type_usage:12:31",
+      "name": "boolean",
       "kind": "type_usage",
       "language": "xml",
       "file_path": "fixtures/extraction/xml/wsdl/source.wsdl",
       "start_line": 12,
-      "start_column": 27,
+      "start_column": 31,
       "end_line": 12,
-      "end_column": 39,
-      "start_byte": 404,
-      "end_byte": 416,
+      "end_column": 38,
+      "start_byte": 408,
+      "end_byte": 415,
       "containing_key": "fixtures/extraction/xml/wsdl/source.wsdl:body:12:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "prefix": "xs",
+        "qname": "xs:boolean"
+      }
     }
   ],
   "types": [],

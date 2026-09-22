@@ -3,7 +3,9 @@ use std::collections::HashMap;
 use serde_json::Value;
 use tree_sitter::Node;
 
-use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, TestRole, Visibility};
+use crate::base::{
+    BaseExtractor, NormalizedSpan, Symbol, SymbolKind, SymbolOptions, TestRole, Visibility,
+};
 use crate::test_detection::apply_test_role;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
@@ -64,9 +66,7 @@ pub(super) fn attribute_value(base: &BaseExtractor, value: Node<'_>) -> String {
     unquoted.to_string()
 }
 
-/// `xsi:type` and `type` name the same attribute for matching purposes. The prefix is
-/// dropped only to recognise the attribute; recorded values keep their prefix, because
-/// v1 does no namespace resolution.
+/// `xsi:type` and `type` name the same attribute; `tns:Address` names `Address`.
 pub(super) fn local_name(name: &str) -> &str {
     name.rsplit(':').next().unwrap_or(name)
 }
@@ -77,7 +77,43 @@ pub(super) fn extract_element(
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
     let tag = tag_node(element)?;
-    extract_from_tag(base, element, tag, parent_id, has_child_element(element))
+    let attributes = attributes(base, tag);
+    let promoted = promoted_name(base, tag, &attributes)?;
+    extract_from_tag(
+        base,
+        element,
+        tag,
+        parent_id,
+        has_child_element(element),
+        promoted,
+    )
+}
+
+/// An element whose name comes from somewhere other than its own name
+/// attribute: a manifest's root (file name, package id, artifactId) or a
+/// child element's text.
+pub(super) fn extract_named_element(
+    base: &mut BaseExtractor,
+    element: Node<'_>,
+    parent_id: Option<&str>,
+    name_attribute: &str,
+    name: String,
+    extra_metadata: Vec<(&str, String)>,
+) -> Option<Symbol> {
+    let tag = tag_node(element)?;
+    let mut symbol = extract_from_tag(
+        base,
+        element,
+        tag,
+        parent_id,
+        has_child_element(element),
+        (name_attribute.to_string(), name),
+    )?;
+    let metadata = symbol.metadata.get_or_insert_with(HashMap::new);
+    for (key, value) in extra_metadata {
+        metadata.insert(key.to_string(), Value::String(value));
+    }
+    Some(symbol)
 }
 
 /// A start tag stranded in an ERROR region — an unclosed element — still names a
@@ -88,7 +124,9 @@ pub(super) fn extract_orphan_tag(
     tag: Node<'_>,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    extract_from_tag(base, tag, tag, parent_id, false)
+    let attributes = attributes(base, tag);
+    let promoted = promoted_name(base, tag, &attributes)?;
+    extract_from_tag(base, tag, tag, parent_id, false, promoted)
 }
 
 fn extract_from_tag(
@@ -97,10 +135,9 @@ fn extract_from_tag(
     tag: Node<'_>,
     parent_id: Option<&str>,
     has_child_elements: bool,
+    (name_attribute, name): (String, String),
 ) -> Option<Symbol> {
     let tag_name = tag_name(base, tag)?;
-    let attributes = attributes(base, tag);
-    let (name_attribute, name) = promoted_name(base, &attributes)?;
     let signature = collapse_whitespace(&base.get_node_text(&tag));
 
     let kind = if has_child_elements {
@@ -117,7 +154,7 @@ fn extract_from_tag(
         apply_test_role(&mut metadata, role);
     }
 
-    Some(base.create_symbol(
+    let mut symbol = base.create_symbol(
         &span_node,
         name,
         kind,
@@ -129,7 +166,21 @@ fn extract_from_tag(
             doc_comment: None,
             annotations: Vec::new(),
         },
-    ))
+    );
+    let body_span = element_content(span_node).map(|content| NormalizedSpan::from_node(&content));
+    base.set_body_span(&mut symbol, body_span);
+    Some(symbol)
+}
+
+/// The `content` node between an element's start and end tags.
+fn element_content(element: Node<'_>) -> Option<Node<'_>> {
+    if element.kind() != "element" {
+        return None;
+    }
+    let mut cursor = element.walk();
+    element
+        .children(&mut cursor)
+        .find(|child| child.kind() == "content")
 }
 
 fn test_role(
@@ -227,20 +278,29 @@ pub(super) fn is_orphan_tag(node: Node<'_>) -> bool {
         && node.parent().map(|parent| parent.kind()) != Some("element")
 }
 
+/// The first name attribute, matched by local name without case so MSBuild
+/// `Name`, XAML `x:Name`, and `ID` count. `<UsingTask TaskName="…">` names a task.
 fn promoted_name(
     base: &BaseExtractor,
+    tag: Node<'_>,
     attributes: &[(String, Node<'_>)],
 ) -> Option<(String, String)> {
-    for candidate in NAME_ATTRIBUTES {
+    let using_task = tag_name(base, tag).is_some_and(|name| local_name(&name) == "UsingTask");
+    let candidates: &[&str] = if using_task {
+        &["TaskName"]
+    } else {
+        &NAME_ATTRIBUTES
+    };
+    for candidate in candidates {
         for (name, value) in attributes {
-            if local_name(name) != candidate {
+            if !local_name(name).eq_ignore_ascii_case(candidate) {
                 continue;
             }
             let value = attribute_value(base, *value);
             if value.trim().is_empty() {
                 continue;
             }
-            return Some((candidate.to_string(), value));
+            return Some((local_name(name).to_string(), value));
         }
     }
 

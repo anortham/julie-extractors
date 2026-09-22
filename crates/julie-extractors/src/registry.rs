@@ -644,10 +644,9 @@ fn extract_json(
     })
 }
 
-/// XML extractor: hand-written because XML ships the data tier (symbols plus
-/// QName attribute-reference identifiers). Relationships and types stay empty —
-/// resolving a QName reference to its declaration needs namespace resolution,
-/// which v1 does not perform.
+/// XML extractor: hand-written because XML ships symbols, QName and MSBuild
+/// identifiers, MSBuild target `Calls` edges, and structured pending rows for
+/// build-manifest and schema file references. Types stay empty.
 fn extract_xml(
     tree: &Tree,
     file_path: &str,
@@ -662,6 +661,7 @@ fn extract_xml(
         workspace_root,
     );
     let symbols = ext.extract_symbols(tree);
+    let relationships = ext.extract_relationships(tree, &symbols);
     let identifiers = if level.includes_identifiers() {
         ext.extract_identifiers(tree, &symbols)
     } else {
@@ -669,9 +669,9 @@ fn extract_xml(
     };
     Ok(ExtractionResults {
         symbols,
-        relationships: Vec::new(),
-        pending_relationships: Vec::new(),
-        structured_pending_relationships: Vec::new(),
+        relationships,
+        pending_relationships: ext.base.take_pending_relationships(),
+        structured_pending_relationships: ext.base.take_structured_pending_relationships(),
         identifiers,
         type_argument_usages: ext.base.take_type_argument_usages(),
         literals: ext.base.take_literals(),

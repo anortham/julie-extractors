@@ -320,7 +320,7 @@ pub(super) const LANGUAGE_SPECS: &[LanguageSpec] = &[
             "nuspec", "resx",
         ],
         "tree-sitter-xml",
-        DATA_ONLY_CAPABILITIES,
+        PENDING_NO_TYPES_CAPABILITIES,
         parser_xml,
         EMPTY,
     ),

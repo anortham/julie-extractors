@@ -151,3 +151,33 @@ fn body_hash_ignores_comment_edits() {
     );
     assert!(find(&with_comment, "cfg").body_hash.is_some());
 }
+
+#[test]
+fn body_span_is_the_element_content_and_empty_elements_have_none() {
+    let code = "<root>\n  <data name=\"Pager_Summary\"><value>Page {0} of {1} ({2} items)</value></data>\n  <item name=\"empty\" url=\"${src.dir}\"/>\n</root>\n";
+    let symbols =
+        crate::pipeline::extract_canonical("strings.xml", code, std::path::Path::new("/tmp/test"))
+            .unwrap()
+            .symbols;
+
+    let data = symbols.iter().find(|s| s.name == "Pager_Summary").unwrap();
+    let body = data.body_span.unwrap();
+    assert_eq!(
+        &code[body.start_byte as usize..body.end_byte as usize],
+        "<value>Page {0} of {1} ({2} items)</value>"
+    );
+    let empty = symbols.iter().find(|s| s.name == "empty").unwrap();
+    assert!(empty.body_span.is_none() && empty.body_hash.is_none());
+}
+
+#[test]
+fn capitalized_name_and_id_attributes_promote_elements() {
+    let code = "<Root><Folder Name=\"/src/\"/><Item ID=\"x1\"/></Root>\n";
+    let symbols =
+        crate::pipeline::extract_canonical("layout.xml", code, std::path::Path::new("/tmp/test"))
+            .unwrap()
+            .symbols;
+
+    let names: Vec<_> = symbols.iter().map(|s| s.name.as_str()).collect();
+    assert_eq!(names, vec!["/src/", "x1"]);
+}

@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Version>1.2.0</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <ProjectReference Include="..\Core\Core.csproj" />
+  </ItemGroup>
+  <Import Project="..\build\Common.targets" />
+  <Target Name="GenerateVersion" DependsOnTargets="ComputeVersion" BeforeTargets="Build">
+    <Message Text="Version $(Version) {0}" />
+    <CallTarget Targets="WriteVersionFile" />
+  </Target>
+  <Target Name="ComputeVersion" />
+  <Target Name="WriteVersionFile" />
+</Project>
