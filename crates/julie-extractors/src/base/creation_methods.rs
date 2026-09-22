@@ -76,6 +76,12 @@ impl BaseExtractor {
         }
     }
 
+    /// Replace the inferred body span with a grammar-derived span, or clear it.
+    pub(crate) fn set_body_span(&self, symbol: &mut Symbol, span: Option<NormalizedSpan>) {
+        symbol.body_span = span;
+        symbol.body_hash = span.and_then(|span| body_hash(&self.content, span, &self.language));
+    }
+
     /// Create an identifier (reference/usage) - NEW for LSP-quality reference tracking
     ///
     /// Unlike symbols (definitions), identifiers represent usage sites.

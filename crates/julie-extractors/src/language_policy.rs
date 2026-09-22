@@ -23,6 +23,7 @@ const EMBEDDED_LITERAL_CARRIER_POLICIES: &[(&str, &str)] = &[
     ("gdscript", include_str!("../../../languages/gdscript.toml")),
     ("go", include_str!("../../../languages/go.toml")),
     ("java", include_str!("../../../languages/java.toml")),
+    ("json", include_str!("../../../languages/json.toml")),
     (
         "javascript",
         include_str!("../../../languages/javascript.toml"),
@@ -30,6 +31,7 @@ const EMBEDDED_LITERAL_CARRIER_POLICIES: &[(&str, &str)] = &[
     ("fsharp", include_str!("../../../languages/fsharp.toml")),
     ("kotlin", include_str!("../../../languages/kotlin.toml")),
     ("lua", include_str!("../../../languages/lua.toml")),
+    ("markdown", include_str!("../../../languages/markdown.toml")),
     ("php", include_str!("../../../languages/php.toml")),
     (
         "powershell",
@@ -44,12 +46,15 @@ const EMBEDDED_LITERAL_CARRIER_POLICIES: &[(&str, &str)] = &[
     ("rust", include_str!("../../../languages/rust.toml")),
     ("scala", include_str!("../../../languages/scala.toml")),
     ("swift", include_str!("../../../languages/swift.toml")),
+    ("toml", include_str!("../../../languages/toml.toml")),
     (
         "typescript",
         include_str!("../../../languages/typescript.toml"),
     ),
     ("vbnet", include_str!("../../../languages/vbnet.toml")),
     ("vue", include_str!("../../../languages/vue.toml")),
+    ("xml", include_str!("../../../languages/xml.toml")),
+    ("yaml", include_str!("../../../languages/yaml.toml")),
     ("zig", include_str!("../../../languages/zig.toml")),
 ];
 

@@ -152,3 +152,73 @@ fn json_schema_and_ref_values_are_decoded() {
     let refs = facts_with_pattern(&results, "json.ref.v1");
     assert_eq!(metadata_str(refs[0], "ref"), Some("#/definitions/café"));
 }
+
+#[test]
+fn openapi_path_operations_emit_route_facts() {
+    let source = r#"{
+  "openapi": "3.0.3",
+  "paths": {
+    "/pets": { "get": { "operationId": "listPets" }, "post": { "operationId": "createPet" } },
+    "/pets/{petId}": { "get": { "operationId": "showPetById" }, "parameters": [] }
+  }
+}"#;
+
+    let results = extract(source);
+
+    let routes = facts_with_pattern(&results, "openapi.route.v1");
+    let summary: BTreeSet<_> = routes
+        .iter()
+        .map(|fact| {
+            (
+                metadata_str(fact, "verb").unwrap().to_string(),
+                metadata_str(fact, "normalized_route_template")
+                    .unwrap()
+                    .to_string(),
+                metadata_str(fact, "operation_id").unwrap().to_string(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        summary,
+        BTreeSet::from([
+            ("GET".into(), "/pets".into(), "listPets".into()),
+            ("POST".into(), "/pets".into(), "createPet".into()),
+            ("GET".into(), "/pets/:petId".into(), "showPetById".into()),
+        ])
+    );
+    assert!(
+        routes
+            .iter()
+            .all(|fact| metadata_str(fact, "framework") == Some("openapi")
+                && metadata_str(fact, "spec_version") == Some("3.0.3"))
+    );
+}
+
+#[test]
+fn swagger_base_path_prefixes_the_effective_route() {
+    let source = r#"{
+  "swagger": "2.0",
+  "basePath": "/v1",
+  "paths": { "/users/{id}": { "delete": {} } }
+}"#;
+
+    let results = extract(source);
+    let routes = facts_with_pattern(&results, "openapi.route.v1");
+
+    assert_eq!(routes.len(), 1);
+    assert_eq!(
+        metadata_str(routes[0], "route_template"),
+        Some("/users/{id}")
+    );
+    assert_eq!(
+        metadata_str(routes[0], "normalized_route_template"),
+        Some("/v1/users/:id")
+    );
+}
+
+#[test]
+fn json_without_an_openapi_root_key_emits_no_route_facts() {
+    let source = r#"{ "paths": { "/pets": { "get": {} } } }"#;
+
+    assert!(facts_with_pattern(&extract(source), "openapi.route.v1").is_empty());
+}

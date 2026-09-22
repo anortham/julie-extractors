@@ -74,7 +74,16 @@ pub fn build_config_key_carrier(symbols: &[Symbol], parent_id: Option<&str>, key
     }
     segments.reverse();
     segments.push(key.to_string());
-    segments.join(".")
+    segments
+        .iter()
+        .enumerate()
+        .fold(String::new(), |mut carrier, (index, segment)| {
+            if index > 0 && !segment.starts_with('[') {
+                carrier.push('.');
+            }
+            carrier.push_str(segment);
+            carrier
+        })
 }
 
 /// Record a configuration scalar string as a literal with path-aware carrier.

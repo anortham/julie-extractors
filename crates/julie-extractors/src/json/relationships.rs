@@ -1,8 +1,9 @@
 //! JSON Schema `$ref` relationship extraction (Phase 3.2).
 //!
 //! - **Local `$ref`** (`#/$defs/Address`) → concrete `Relationship` from the
-//!   containing object's parent symbol to the resolved target symbol, kind
-//!   `References`. If the JSON pointer cannot be resolved, no edge is emitted
+//!   symbol that owns the containing object (its pair, or its array-element
+//!   container) to the resolved target symbol, kind `References`. A `$ref` in
+//!   the root object uses its own `$ref` symbol as the source. If the JSON pointer cannot be resolved, no edge is emitted
 //!   (the pointer is malformed, not "deferred to another file").
 //! - **External `$ref`** (`<file>#/$defs/Address`) →
 //!   `StructuredPendingRelationship` carrying
@@ -10,7 +11,7 @@
 //!   `target.terminal_name` = last fragment segment,
 //!   `target.namespace_path` = preceding fragment segments,
 //!   `target.display_name` = original `$ref` text,
-//!   `caller_scope_symbol_id` = containing object's parent symbol id.
+//!   `caller_scope_symbol_id` = the same source symbol id.
 //!
 //! AST shape under tree-sitter-json: a `pair` whose first child is a string
 //! key `"$ref"` and whose last child is a string value carrying the pointer.
@@ -75,22 +76,8 @@ fn handle_ref_pair(
     symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
 ) {
-    // Locate the symbol that represents the containing object's parent pair
-    // (e.g., `billing` for `"billing": { "$ref": ... }`). The $ref pair's
-    // immediate parent is an object node; that object's parent is the pair
-    // whose symbol we want to be the relationship source / caller scope.
-    let containing_pair = match pair
-        .parent()
-        .filter(|p| p.kind() == "object")
-        .and_then(|obj| obj.parent())
-        .filter(|p| p.kind() == "pair")
-    {
-        Some(p) => p,
-        None => return,
-    };
-    let from_symbol = match symbol_for_pair(symbols, containing_pair) {
-        Some(s) => s,
-        None => return,
+    let Some(from_symbol) = ref_source_symbol(symbols, pair) else {
+        return;
     };
     let line_number = value_node.start_position().row as u32 + 1;
 
@@ -225,7 +212,7 @@ fn resolve_local_pointer<'a>(symbols: &'a [Symbol], fragment: &str) -> Option<&'
                 Some(p) => p,
                 None => continue 'outer,
             };
-            if parent.name != *expected {
+            if parent.name != *expected && parent.name != format!("[{expected}]") {
                 continue 'outer;
             }
             current_parent = parent.parent_id.as_deref();
@@ -235,7 +222,26 @@ fn resolve_local_pointer<'a>(symbols: &'a [Symbol], fragment: &str) -> Option<&'
     None
 }
 
-fn symbol_for_pair<'a>(symbols: &'a [Symbol], pair: Node) -> Option<&'a Symbol> {
-    let start = pair.start_byte() as u32;
-    symbols.iter().find(|s| s.start_byte == start)
+/// The symbol that owns the object holding the `$ref`: the enclosing pair
+/// (`"billing": { "$ref": ... }`) or array-element object (`allOf: [ { "$ref": ... } ]`).
+/// A `$ref` in the root object has no owner, so its own pair symbol is the source.
+fn ref_source_symbol<'a>(symbols: &'a [Symbol], ref_pair: Node) -> Option<&'a Symbol> {
+    let mut current = ref_pair.parent();
+    while let Some(node) = current {
+        if matches!(node.kind(), "pair" | "object")
+            && let Some(symbol) = symbol_for_node(symbols, node)
+        {
+            return Some(symbol);
+        }
+        current = node.parent();
+    }
+    symbol_for_node(symbols, ref_pair)
+}
+
+fn symbol_for_node<'a>(symbols: &'a [Symbol], node: Node) -> Option<&'a Symbol> {
+    let start = node.start_byte() as u32;
+    let end = node.end_byte() as u32;
+    symbols
+        .iter()
+        .find(|s| s.start_byte == start && s.end_byte == end)
 }

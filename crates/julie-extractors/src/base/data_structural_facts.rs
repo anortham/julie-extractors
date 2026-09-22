@@ -2,6 +2,7 @@ use serde_json::{Number, Value};
 use tree_sitter::{Node, Tree};
 
 use super::attach_containing_symbols;
+use super::openapi_route_facts::collect_openapi_route_facts;
 use super::span::NormalizedSpan;
 use super::structural_fact_builders::{base_metadata, fact_for_node, fact_for_span, insert_string};
 use super::structural_facts::sort_structural_facts;
@@ -75,6 +76,7 @@ const JSON_DATA_PATTERN_IDS: &[&str] = &[
     JSON_PROPERTY_PATTERN_ID,
     JSON_REF_PATTERN_ID,
     JSON_SCHEMA_PATTERN_ID,
+    super::openapi_route_facts::OPENAPI_ROUTE_PATTERN_ID,
 ];
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -136,6 +138,11 @@ pub fn collect_data_structural_facts(
         "regex" => collect_regex_structural_facts(tree, file_path, content),
         _ => Vec::new(),
     };
+    if language == "json" {
+        facts.extend(collect_openapi_route_facts(
+            language, tree, file_path, content, symbols,
+        ));
+    }
 
     attach_containing_symbols(&mut facts, symbols);
     sort_structural_facts(&mut facts);

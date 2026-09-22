@@ -1,0 +1,26 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "Pets", "version": "1.0.0" },
+  "paths": {
+    "/pets": {
+      "get": {
+        "operationId": "listPets",
+        "parameters": [ { "$ref": "#/components/parameters/Limit" } ]
+      },
+      "post": { "operationId": "createPet" }
+    },
+    "/pets/{petId}": {
+      "get": { "operationId": "showPetById" }
+    }
+  },
+  "components": {
+    "parameters": {
+      "Limit": { "name": "limit", "in": "query" }
+    },
+    "schemas": {
+      "NewPet": { "type": "object" },
+      "Pet": { "allOf": [ { "$ref": "#/components/schemas/NewPet" }, { "type": "object" } ] },
+      "Animal": { "oneOf": [ { "$ref": "#/components/schemas/Pet" }, { "$ref": "wild.json#/components/schemas/Wolf" } ] }
+    }
+  }
+}

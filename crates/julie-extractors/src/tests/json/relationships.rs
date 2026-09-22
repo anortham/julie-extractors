@@ -165,3 +165,84 @@ fn test_json_no_relationship_for_malformed_ref() {
         result.structured_pending_relationships
     );
 }
+
+fn symbol_id(result: &crate::base::ExtractionResults, name: &str, line: u32) -> String {
+    result
+        .symbols
+        .iter()
+        .find(|s| s.name == name && s.start_line == line)
+        .unwrap_or_else(|| panic!("missing {name} on line {line}: {:#?}", result.symbols))
+        .id
+        .clone()
+}
+
+fn has_reference(result: &crate::base::ExtractionResults, from: &str, to: &str) -> bool {
+    result
+        .relationships
+        .iter()
+        .any(|r| r.from_symbol_id == from && r.to_symbol_id == to)
+}
+
+#[test]
+fn ref_inside_array_element_references_from_the_element_container() {
+    let source = r##"{
+  "$defs": {
+    "NewPet": { "type": "object" },
+    "Pet": { "allOf": [ { "$ref": "#/$defs/NewPet" } ] },
+    "Animal": { "oneOf": [ { "$ref": "wild.schema.json#/$defs/Wolf" } ] }
+  }
+}"##;
+    let result = extract_canonical("schema.json", source, Path::new("/tmp/test")).unwrap();
+
+    let element = symbol_id(&result, "[0]", 4);
+    let new_pet = symbol_id(&result, "NewPet", 3);
+    assert!(
+        has_reference(&result, &element, &new_pet),
+        "{:#?}",
+        result.relationships
+    );
+    let pending = result
+        .structured_pending_relationships
+        .iter()
+        .find(|p| p.target.terminal_name == "Wolf")
+        .expect("external ref in an array must emit a pending row");
+    assert_eq!(
+        pending.target.import_context.as_deref(),
+        Some("wild.schema.json")
+    );
+    assert_eq!(pending.pending.from_symbol_id, symbol_id(&result, "[0]", 5));
+}
+
+#[test]
+fn root_ref_references_from_its_own_ref_symbol() {
+    let source = r##"{
+  "$ref": "#/definitions/Config",
+  "definitions": { "Config": { "type": "object" } }
+}"##;
+    let result = extract_canonical("config.schema.json", source, Path::new("/tmp/test")).unwrap();
+
+    let ref_symbol = symbol_id(&result, "$ref", 2);
+    let config = symbol_id(&result, "Config", 3);
+    assert!(
+        has_reference(&result, &ref_symbol, &config),
+        "{:#?}",
+        result.relationships
+    );
+}
+
+#[test]
+fn local_pointer_through_array_index_resolves_to_element_key() {
+    let source = r##"{
+  "allOf": [ { "properties": { "id": { "type": "string" } } } ],
+  "links": { "self": { "$ref": "#/allOf/0/properties/id" } }
+}"##;
+    let result = extract_canonical("schema.json", source, Path::new("/tmp/test")).unwrap();
+
+    let from = symbol_id(&result, "self", 3);
+    let target = symbol_id(&result, "id", 2);
+    assert!(
+        has_reference(&result, &from, &target),
+        "{:#?}",
+        result.relationships
+    );
+}

@@ -27,6 +27,7 @@ pub mod http_boundary;
 pub mod kinds;
 pub mod marker_structural_facts;
 mod markup_scan;
+mod openapi_route_facts;
 pub mod relationship_resolution;
 mod results_normalization;
 mod rust_doc_test_facts;

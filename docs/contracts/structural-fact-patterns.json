@@ -5006,6 +5006,82 @@
     "query_family": "framework"
   },
   {
+    "description": "An OpenAPI or Swagger path operation (`paths.<template>.<verb>`).",
+    "languages": [
+      "json"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Root version key that marks the document (\"openapi\" or \"swagger\").",
+        "key": "spec_format",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Value of the root version key.",
+        "key": "spec_version",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Upper-case HTTP method of the operation.",
+        "key": "verb",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Path template key as written under `paths`.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Swagger 2.0 `basePath` joined with the path template.",
+        "key": "effective_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family normalized route template.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "The operation's `operationId` value.",
+        "key": "operation_id",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "openapi.route.v1",
+    "query_family": "framework"
+  },
+  {
     "description": "A static Phoenix router `forward \"/lit\", Plug` prefix registration at its definition site.",
     "languages": [
       "elixir"

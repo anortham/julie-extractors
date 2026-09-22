@@ -159,6 +159,47 @@ fn fsharp_policy_retains_unclassified_literals() {
     assert_eq!(literals[0].literal_text, "42");
 }
 
+#[test]
+fn data_language_literals_survive_artifact_classification() {
+    let cases = [
+        (
+            "config.json",
+            r#"{ "api": { "url": "https://api.example.com" } }"#,
+        ),
+        ("config.toml", "[api]\nurl = \"https://api.example.com\"\n"),
+        ("config.yaml", "api:\n  url: \"https://api.example.com\"\n"),
+        ("README.md", "See [the API](https://api.example.com).\n"),
+        (
+            "app.xml",
+            r#"<endpoint name="api" url="https://api.example.com"/>"#,
+        ),
+    ];
+    for (file, source) in cases {
+        let mut literals = crate::extract_canonical(file, source, Path::new("/tmp/test"))
+            .expect("extraction should succeed")
+            .literals;
+        assert!(!literals.is_empty(), "{file} should extract literals");
+
+        classify_literals_by_carrier(&mut literals);
+
+        assert!(
+            literals
+                .iter()
+                .any(|literal| literal.literal_text == "https://api.example.com"),
+            "{file} literals were dropped by the artifact policy: {literals:?}"
+        );
+    }
+}
+
+#[test]
+fn xml_policy_classifies_url_attributes() {
+    let mut literals = vec![make_literal("xml", Some("endpoint.url"), "https://x.test")];
+
+    classify_literals_by_carrier(&mut literals);
+
+    assert_eq!(literals[0].kind, LiteralKind::Url);
+}
+
 fn assert_policy_file_is_extraction_only<'a>(
     path: &'a PathBuf,
     supported: &BTreeSet<&str>,

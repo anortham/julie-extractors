@@ -5,8 +5,8 @@
 /// - Objects and arrays are treated as SymbolKind::Module (containers)
 /// - Primitive values are treated as SymbolKind::Variable
 use crate::base::{
-    BaseExtractor, Identifier, PendingRelationship, Relationship, StructuredPendingRelationship,
-    Symbol, SymbolKind,
+    BaseExtractor, Identifier, NormalizedSpan, PendingRelationship, Relationship,
+    StructuredPendingRelationship, Symbol, SymbolKind,
 };
 use crate::test_detection::apply_test_role;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
@@ -77,8 +77,30 @@ impl JsonExtractor {
     ) -> Option<Symbol> {
         match node.kind() {
             "pair" => self.extract_pair(node, parent_id, symbols),
+            "object" => self.extract_array_element_object(node, parent_id),
             _ => None,
         }
+    }
+
+    /// An object inside an array has no key, so it gets a container symbol named
+    /// by its element index (`[0]`), matching the `$.items[0]` fact paths.
+    fn extract_array_element_object(
+        &mut self,
+        node: tree_sitter::Node,
+        parent_id: Option<&str>,
+    ) -> Option<Symbol> {
+        let array = node.parent().filter(|parent| parent.kind() == "array")?;
+        let index = array_element_index(array, node)?;
+        let options = crate::base::SymbolOptions {
+            parent_id: parent_id.map(str::to_string),
+            ..Default::default()
+        };
+        let mut symbol =
+            self.base
+                .create_symbol(&node, format!("[{index}]"), SymbolKind::Module, options);
+        self.base
+            .set_body_span(&mut symbol, Some(NormalizedSpan::from_node(&node)));
+        Some(symbol)
     }
 
     /// Extract a key-value pair as a symbol
@@ -143,6 +165,9 @@ impl JsonExtractor {
         let mut symbol = self
             .base
             .create_symbol(&node, key_name.clone(), symbol_kind, options);
+        let body_span = matches!(value_node.kind(), "object" | "array")
+            .then(|| NormalizedSpan::from_node(&value_node));
+        self.base.set_body_span(&mut symbol, body_span);
 
         if let Some(role) = test_detection::role_for_description_pair(&self.base, node, &key_name) {
             apply_test_role(symbol.metadata.get_or_insert_with(HashMap::new), role);
@@ -207,4 +232,16 @@ impl JsonExtractor {
     pub fn get_structured_pending_relationships(&self) -> Vec<StructuredPendingRelationship> {
         self.base.get_structured_pending_relationships()
     }
+}
+
+/// Index of `element` among the value elements of `array`, skipping comments.
+pub(crate) fn array_element_index(
+    array: tree_sitter::Node,
+    element: tree_sitter::Node,
+) -> Option<usize> {
+    let mut cursor = array.walk();
+    array
+        .named_children(&mut cursor)
+        .filter(|child| child.kind() != "comment")
+        .position(|child| child.id() == element.id())
 }

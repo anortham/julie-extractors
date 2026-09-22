@@ -6499,6 +6499,11 @@
           "expected": "fixtures/extraction/json/jsonc/expected.json"
         },
         {
+          "name": "openapi",
+          "source": "fixtures/extraction/json/openapi/source.json",
+          "expected": "fixtures/extraction/json/openapi/expected.json"
+        },
+        {
           "name": "test_roles",
           "source": "fixtures/extraction/json/test_roles/source.json",
           "expected": "fixtures/extraction/json/test_roles/expected.json"
@@ -6576,7 +6581,8 @@
             "json.object.v1",
             "json.property.v1",
             "json.ref.v1",
-            "json.schema.v1"
+            "json.schema.v1",
+            "openapi.route.v1"
           ],
           "not_applicable": [],
           "open_gaps": [
