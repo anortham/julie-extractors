@@ -165,17 +165,18 @@ SQLite artifact.
 | Artifact evidence | `qml` | `qmldir` |
 | --- | ---: | ---: |
 | Indexed files | 180 (179 `.qml` + 1 `.qmltypes`) | 5 |
-| Symbols | 3,878 | 53 |
+| Symbols | 3,784 | 53 |
 | Structural facts | 9,886 | 53 |
-| Resolved relationships | 205 | 0 |
-| Pending relationships | 1,776 | 0 |
+| Resolved relationships | 235 | 0 |
+| Pending relationships | 1,682 | 0 |
 | Parse diagnostics | 121 | 10 |
 
 The QML symbol count is lower than the 3.1.3 count of 7,195 because a plain
 property binding is no longer a symbol. The same evidence stays in
 `structural_facts`, where 6,363 `qml.binding.v1` rows carry it. The object
-model supplies 1,645 `field` rows, qmldir supplies 52 `export` rows, and QML
-root objects supply 172 pending `extends` rows.
+model supplies 1,551 `field` rows, qmldir supplies 52 `export` rows, and QML
+root objects and inline component bodies supply 175 pending `extends` rows
+and 6 resolved ones.
 
 The diagnostics are parser diagnostics recorded in the artifact; they did not
 fail the scan. The 121 QML diagnostics break down into 115 CMake-template

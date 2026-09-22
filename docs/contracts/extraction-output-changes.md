@@ -100,7 +100,7 @@ hold an artifact must rebuild it, because an unchanged file keeps its stored row
 `symbols`, QML plain property bindings: a binding such as `width: 100` is no longer a symbol. The
 same evidence stays in `structural_facts` as `qml.binding.v1`. The `uses` relationships that pointed
 at those rows go with them: on the `plasma-framework` corpus in `docs/languages/qml.md`, resolved QML
-relationships fall from 1,112 to 205 and pending rows from 2,360 to 1,776. Consumer action for
+relationships fall from 1,112 to 235 and pending rows from 2,360 to 1,682. Consumer action for
 code-kb: read bindings from the fact table, not from the symbol table.
 
 `symbols`, QML grouped property blocks: a block such as `anchors { fill: parent }`,
