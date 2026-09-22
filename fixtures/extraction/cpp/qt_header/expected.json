@@ -39,19 +39,19 @@
       "file_path": "fixtures/extraction/cpp/qt_header/source.h",
       "start_line": 11,
       "start_column": 0,
-      "end_line": 47,
+      "end_line": 52,
       "end_column": 1,
       "start_byte": 172,
-      "end_byte": 989,
+      "end_byte": 1128,
       "body_span": {
         "start_line": 12,
         "start_column": 0,
-        "end_line": 47,
+        "end_line": 52,
         "end_column": 1,
         "start_byte": 231,
-        "end_byte": 989
+        "end_byte": 1128
       },
-      "body_hash": "338dc8edee7f05efbc086acc04daede7",
+      "body_hash": "07877251851b6a47d3f9b4a0e7b39f34",
       "signature": "class ColumnViewAttached : public QObject",
       "doc_comment": null,
       "visibility": "Public",
@@ -149,24 +149,24 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/cpp/qt_header/source.h:Geometry:58:0",
+      "key": "fixtures/extraction/cpp/qt_header/source.h:Geometry:63:0",
       "name": "Geometry",
       "kind": "struct",
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/qt_header/source.h",
-      "start_line": 58,
+      "start_line": 63,
       "start_column": 0,
-      "end_line": 60,
+      "end_line": 65,
       "end_column": 1,
-      "start_byte": 1158,
-      "end_byte": 1192,
+      "start_byte": 1297,
+      "end_byte": 1331,
       "body_span": {
-        "start_line": 58,
+        "start_line": 63,
         "start_column": 16,
-        "end_line": 60,
+        "end_line": 65,
         "end_column": 1,
-        "start_byte": 1174,
-        "end_byte": 1192
+        "start_byte": 1313,
+        "end_byte": 1331
       },
       "body_hash": "89961dfc530f43ba27a24a4f96b5c756",
       "signature": "struct Geometry",
@@ -180,24 +180,24 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/cpp/qt_header/source.h:ScrollIntentionEvent:49:0",
+      "key": "fixtures/extraction/cpp/qt_header/source.h:ScrollIntentionEvent:54:0",
       "name": "ScrollIntentionEvent",
       "kind": "class",
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/qt_header/source.h",
-      "start_line": 49,
+      "start_line": 54,
       "start_column": 0,
-      "end_line": 56,
+      "end_line": 61,
       "end_column": 1,
-      "start_byte": 992,
-      "end_byte": 1155,
+      "start_byte": 1131,
+      "end_byte": 1294,
       "body_span": {
-        "start_line": 50,
+        "start_line": 55,
         "start_column": 0,
-        "end_line": 56,
+        "end_line": 61,
         "end_column": 1,
-        "start_byte": 1053,
-        "end_byte": 1155
+        "start_byte": 1192,
+        "end_byte": 1294
       },
       "body_hash": "de2b669e722b7fe04aef681b76750a8d",
       "signature": "class ScrollIntentionEvent : public QObject",
@@ -216,23 +216,54 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/cpp/qt_header/source.h:delta:52:4",
+      "key": "fixtures/extraction/cpp/qt_header/source.h:contentItem:36:16",
+      "name": "contentItem",
+      "kind": "method",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/qt_header/source.h",
+      "start_line": 36,
+      "start_column": 16,
+      "end_line": 36,
+      "end_column": 35,
+      "start_byte": 829,
+      "end_byte": 848,
+      "body_span": {
+        "start_line": 36,
+        "start_column": 27,
+        "end_line": 36,
+        "end_column": 29,
+        "start_byte": 840,
+        "end_byte": 842
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "QQuickItem *contentItem() const",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/cpp/qt_header/source.h:ColumnViewAttached:11:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/cpp/qt_header/source.h:delta:57:4",
       "name": "delta",
       "kind": "property",
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/qt_header/source.h",
-      "start_line": 52,
+      "start_line": 57,
       "start_column": 4,
-      "end_line": 52,
+      "end_line": 57,
       "end_column": 57,
-      "start_byte": 1072,
-      "end_byte": 1125,
+      "start_byte": 1211,
+      "end_byte": 1264,
       "body_span": null,
       "body_hash": null,
       "signature": "Q_PROPERTY(QPointF delta MEMBER delta CONSTANT FINAL)",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/cpp/qt_header/source.h:ScrollIntentionEvent:49:0",
+      "parent_key": "fixtures/extraction/cpp/qt_header/source.h:ScrollIntentionEvent:54:0",
       "metadata": {
         "constant": true,
         "final": true,
@@ -245,23 +276,23 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/cpp/qt_header/source.h:delta:55:4",
+      "key": "fixtures/extraction/cpp/qt_header/source.h:delta:60:4",
       "name": "delta",
       "kind": "field",
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/qt_header/source.h",
-      "start_line": 55,
+      "start_line": 60,
       "start_column": 4,
-      "end_line": 55,
+      "end_line": 60,
       "end_column": 18,
-      "start_byte": 1139,
-      "end_byte": 1153,
+      "start_byte": 1278,
+      "end_byte": 1292,
       "body_span": null,
       "body_hash": null,
       "signature": "QPointF delta",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/cpp/qt_header/source.h:ScrollIntentionEvent:49:0",
+      "parent_key": "fixtures/extraction/cpp/qt_header/source.h:ScrollIntentionEvent:54:0",
       "metadata": {},
       "annotations": [],
       "semantic_group": null,
@@ -330,24 +361,24 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/cpp/qt_header/source.h:indexChanged:42:9",
+      "key": "fixtures/extraction/cpp/qt_header/source.h:indexChanged:47:9",
       "name": "indexChanged",
       "kind": "event",
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/qt_header/source.h",
-      "start_line": 42,
+      "start_line": 47,
       "start_column": 9,
-      "end_line": 42,
+      "end_line": 47,
       "end_column": 23,
-      "start_byte": 901,
-      "end_byte": 915,
+      "start_byte": 1040,
+      "end_byte": 1054,
       "body_span": {
-        "start_line": 42,
+        "start_line": 47,
         "start_column": 21,
-        "end_line": 42,
+        "end_line": 47,
         "end_column": 23,
-        "start_byte": 913,
-        "end_byte": 915
+        "start_byte": 1052,
+        "end_byte": 1054
       },
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
       "signature": "void indexChanged()",
@@ -361,22 +392,115 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/cpp/qt_header/source.h:m_index:46:4",
+      "key": "fixtures/extraction/cpp/qt_header/source.h:instance:39:31",
+      "name": "instance",
+      "kind": "method",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/qt_header/source.h",
+      "start_line": 39,
+      "start_column": 31,
+      "end_line": 39,
+      "end_column": 41,
+      "start_byte": 939,
+      "end_byte": 949,
+      "body_span": {
+        "start_line": 39,
+        "start_column": 39,
+        "end_line": 39,
+        "end_column": 41,
+        "start_byte": 947,
+        "end_byte": 949
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "static ColumnViewAttached *instance()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/cpp/qt_header/source.h:ColumnViewAttached:11:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/cpp/qt_header/source.h:items:38:16",
+      "name": "items",
+      "kind": "method",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/qt_header/source.h",
+      "start_line": 38,
+      "start_column": 16,
+      "end_line": 38,
+      "end_column": 23,
+      "start_byte": 899,
+      "end_byte": 906,
+      "body_span": {
+        "start_line": 38,
+        "start_column": 21,
+        "end_line": 38,
+        "end_column": 23,
+        "start_byte": 904,
+        "end_byte": 906
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "QList<int> *items()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/cpp/qt_header/source.h:ColumnViewAttached:11:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/cpp/qt_header/source.h:m_index:51:4",
       "name": "m_index",
       "kind": "field",
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/qt_header/source.h",
-      "start_line": 46,
+      "start_line": 51,
       "start_column": 4,
-      "end_line": 46,
+      "end_line": 51,
       "end_column": 20,
-      "start_byte": 971,
-      "end_byte": 987,
+      "start_byte": 1110,
+      "end_byte": 1126,
       "body_span": null,
       "body_hash": null,
       "signature": "int m_index",
       "doc_comment": null,
       "visibility": "Private",
+      "parent_key": "fixtures/extraction/cpp/qt_header/source.h:ColumnViewAttached:11:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/cpp/qt_header/source.h:name:37:19",
+      "name": "name",
+      "kind": "method",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/qt_header/source.h",
+      "start_line": 37,
+      "start_column": 19,
+      "end_line": 37,
+      "end_column": 31,
+      "start_byte": 869,
+      "end_byte": 881,
+      "body_span": {
+        "start_line": 37,
+        "start_column": 23,
+        "end_line": 37,
+        "end_column": 25,
+        "start_byte": 873,
+        "end_byte": 875
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "const QString &name() const",
+      "doc_comment": null,
+      "visibility": "Public",
       "parent_key": "fixtures/extraction/cpp/qt_header/source.h:ColumnViewAttached:11:0",
       "metadata": {},
       "annotations": [],
@@ -414,24 +538,24 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/cpp/qt_header/source.h:refresh:39:9",
+      "key": "fixtures/extraction/cpp/qt_header/source.h:refresh:44:9",
       "name": "refresh",
       "kind": "method",
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/qt_header/source.h",
-      "start_line": 39,
+      "start_line": 44,
       "start_column": 9,
-      "end_line": 39,
+      "end_line": 44,
       "end_column": 18,
-      "start_byte": 869,
-      "end_byte": 878,
+      "start_byte": 1008,
+      "end_byte": 1017,
       "body_span": {
-        "start_line": 39,
+        "start_line": 44,
         "start_column": 16,
-        "end_line": 39,
+        "end_line": 44,
         "end_column": 18,
-        "start_byte": 876,
-        "end_byte": 878
+        "start_byte": 1015,
+        "end_byte": 1017
       },
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
       "signature": "void refresh()",
@@ -447,24 +571,24 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/cpp/qt_header/source.h:reset:36:21",
+      "key": "fixtures/extraction/cpp/qt_header/source.h:reset:41:21",
       "name": "reset",
       "kind": "method",
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/qt_header/source.h",
-      "start_line": 36,
+      "start_line": 41,
       "start_column": 21,
-      "end_line": 36,
+      "end_line": 41,
       "end_column": 28,
-      "start_byte": 834,
-      "end_byte": 841,
+      "start_byte": 973,
+      "end_byte": 980,
       "body_span": {
-        "start_line": 36,
+        "start_line": 41,
         "start_column": 26,
-        "end_line": 36,
+        "end_line": 41,
         "end_column": 28,
-        "start_byte": 839,
-        "end_byte": 841
+        "start_byte": 978,
+        "end_byte": 980
       },
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
       "signature": "void reset()",
@@ -540,24 +664,24 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/cpp/qt_header/source.h:viewChanged:43:9",
+      "key": "fixtures/extraction/cpp/qt_header/source.h:viewChanged:48:9",
       "name": "viewChanged",
       "kind": "event",
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/qt_header/source.h",
-      "start_line": 43,
+      "start_line": 48,
       "start_column": 9,
-      "end_line": 43,
+      "end_line": 48,
       "end_column": 38,
-      "start_byte": 926,
-      "end_byte": 955,
+      "start_byte": 1065,
+      "end_byte": 1094,
       "body_span": {
-        "start_line": 43,
+        "start_line": 48,
         "start_column": 20,
-        "end_line": 43,
+        "end_line": 48,
         "end_column": 38,
-        "start_byte": 937,
-        "end_byte": 955
+        "start_byte": 1076,
+        "end_byte": 1094
       },
       "body_hash": "cdbca548cf1359df8f12d7ac84a3058a",
       "signature": "void viewChanged(ColumnView *view)",
@@ -571,23 +695,23 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/cpp/qt_header/source.h:width:59:4",
+      "key": "fixtures/extraction/cpp/qt_header/source.h:width:64:4",
       "name": "width",
       "kind": "field",
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/qt_header/source.h",
-      "start_line": 59,
+      "start_line": 64,
       "start_column": 4,
-      "end_line": 59,
+      "end_line": 64,
       "end_column": 14,
-      "start_byte": 1180,
-      "end_byte": 1190,
+      "start_byte": 1319,
+      "end_byte": 1329,
       "body_span": null,
       "body_hash": null,
       "signature": "int width",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/cpp/qt_header/source.h:Geometry:58:0",
+      "parent_key": "fixtures/extraction/cpp/qt_header/source.h:Geometry:63:0",
       "metadata": {},
       "annotations": [],
       "semantic_group": null,
@@ -630,10 +754,34 @@
   "pending_relationships": [
     {
       "from_key": "fixtures/extraction/cpp/qt_header/source.h:ColumnViewAttached:11:0",
+      "callee_name": "QList",
+      "kind": "uses",
+      "file_path": "fixtures/extraction/cpp/qt_header/source.h",
+      "line_number": 38,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/cpp/qt_header/source.h:ColumnViewAttached:11:0",
       "callee_name": "QObject",
       "kind": "uses",
       "file_path": "fixtures/extraction/cpp/qt_header/source.h",
       "line_number": 11,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/cpp/qt_header/source.h:ColumnViewAttached:11:0",
+      "callee_name": "QQuickItem",
+      "kind": "uses",
+      "file_path": "fixtures/extraction/cpp/qt_header/source.h",
+      "line_number": 36,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/cpp/qt_header/source.h:ColumnViewAttached:11:0",
+      "callee_name": "QString",
+      "kind": "uses",
+      "file_path": "fixtures/extraction/cpp/qt_header/source.h",
+      "line_number": 37,
       "confidence": "0.700"
     },
     {
@@ -645,31 +793,57 @@
       "confidence": "0.700"
     },
     {
-      "from_key": "fixtures/extraction/cpp/qt_header/source.h:ScrollIntentionEvent:49:0",
+      "from_key": "fixtures/extraction/cpp/qt_header/source.h:ScrollIntentionEvent:54:0",
       "callee_name": "QObject",
       "kind": "uses",
       "file_path": "fixtures/extraction/cpp/qt_header/source.h",
-      "line_number": 49,
+      "line_number": 54,
       "confidence": "0.700"
     },
     {
-      "from_key": "fixtures/extraction/cpp/qt_header/source.h:ScrollIntentionEvent:49:0",
+      "from_key": "fixtures/extraction/cpp/qt_header/source.h:ScrollIntentionEvent:54:0",
       "callee_name": "QPointF",
       "kind": "uses",
       "file_path": "fixtures/extraction/cpp/qt_header/source.h",
-      "line_number": 55,
+      "line_number": 60,
       "confidence": "0.700"
     },
     {
-      "from_key": "fixtures/extraction/cpp/qt_header/source.h:viewChanged:43:9",
+      "from_key": "fixtures/extraction/cpp/qt_header/source.h:viewChanged:48:9",
       "callee_name": "ColumnView",
       "kind": "uses",
       "file_path": "fixtures/extraction/cpp/qt_header/source.h",
-      "line_number": 43,
+      "line_number": 48,
       "confidence": "0.700"
     }
   ],
   "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/cpp/qt_header/source.h:ColumnViewAttached:11:0",
+        "callee_name": "QList",
+        "kind": "uses",
+        "file_path": "fixtures/extraction/cpp/qt_header/source.h",
+        "line_number": 38,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "QList",
+        "terminal_name": "QList",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/cpp/qt_header/source.h:ColumnViewAttached:11:0",
+      "span": {
+        "start_line": 38,
+        "start_column": 4,
+        "end_line": 38,
+        "end_column": 9,
+        "start_byte": 887,
+        "end_byte": 892
+      }
+    },
     {
       "pending": {
         "from_key": "fixtures/extraction/cpp/qt_header/source.h:ColumnViewAttached:11:0",
@@ -694,6 +868,58 @@
         "end_column": 58,
         "start_byte": 223,
         "end_byte": 230
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/cpp/qt_header/source.h:ColumnViewAttached:11:0",
+        "callee_name": "QQuickItem",
+        "kind": "uses",
+        "file_path": "fixtures/extraction/cpp/qt_header/source.h",
+        "line_number": 36,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "QQuickItem",
+        "terminal_name": "QQuickItem",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/cpp/qt_header/source.h:ColumnViewAttached:11:0",
+      "span": {
+        "start_line": 36,
+        "start_column": 4,
+        "end_line": 36,
+        "end_column": 14,
+        "start_byte": 817,
+        "end_byte": 827
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/cpp/qt_header/source.h:ColumnViewAttached:11:0",
+        "callee_name": "QString",
+        "kind": "uses",
+        "file_path": "fixtures/extraction/cpp/qt_header/source.h",
+        "line_number": 37,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "QString",
+        "terminal_name": "QString",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/cpp/qt_header/source.h:ColumnViewAttached:11:0",
+      "span": {
+        "start_line": 37,
+        "start_column": 10,
+        "end_line": 37,
+        "end_column": 17,
+        "start_byte": 860,
+        "end_byte": 867
       }
     },
     {
@@ -724,11 +950,11 @@
     },
     {
       "pending": {
-        "from_key": "fixtures/extraction/cpp/qt_header/source.h:ScrollIntentionEvent:49:0",
+        "from_key": "fixtures/extraction/cpp/qt_header/source.h:ScrollIntentionEvent:54:0",
         "callee_name": "QObject",
         "kind": "uses",
         "file_path": "fixtures/extraction/cpp/qt_header/source.h",
-        "line_number": 49,
+        "line_number": 54,
         "confidence": "0.700"
       },
       "target": {
@@ -738,23 +964,23 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/cpp/qt_header/source.h:ScrollIntentionEvent:49:0",
+      "caller_scope_key": "fixtures/extraction/cpp/qt_header/source.h:ScrollIntentionEvent:54:0",
       "span": {
-        "start_line": 49,
+        "start_line": 54,
         "start_column": 53,
-        "end_line": 49,
+        "end_line": 54,
         "end_column": 60,
-        "start_byte": 1045,
-        "end_byte": 1052
+        "start_byte": 1184,
+        "end_byte": 1191
       }
     },
     {
       "pending": {
-        "from_key": "fixtures/extraction/cpp/qt_header/source.h:ScrollIntentionEvent:49:0",
+        "from_key": "fixtures/extraction/cpp/qt_header/source.h:ScrollIntentionEvent:54:0",
         "callee_name": "QPointF",
         "kind": "uses",
         "file_path": "fixtures/extraction/cpp/qt_header/source.h",
-        "line_number": 55,
+        "line_number": 60,
         "confidence": "0.700"
       },
       "target": {
@@ -764,23 +990,23 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/cpp/qt_header/source.h:ScrollIntentionEvent:49:0",
+      "caller_scope_key": "fixtures/extraction/cpp/qt_header/source.h:ScrollIntentionEvent:54:0",
       "span": {
-        "start_line": 55,
+        "start_line": 60,
         "start_column": 4,
-        "end_line": 55,
+        "end_line": 60,
         "end_column": 11,
-        "start_byte": 1139,
-        "end_byte": 1146
+        "start_byte": 1278,
+        "end_byte": 1285
       }
     },
     {
       "pending": {
-        "from_key": "fixtures/extraction/cpp/qt_header/source.h:viewChanged:43:9",
+        "from_key": "fixtures/extraction/cpp/qt_header/source.h:viewChanged:48:9",
         "callee_name": "ColumnView",
         "kind": "uses",
         "file_path": "fixtures/extraction/cpp/qt_header/source.h",
-        "line_number": 43,
+        "line_number": 48,
         "confidence": "0.700"
       },
       "target": {
@@ -790,30 +1016,46 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/cpp/qt_header/source.h:viewChanged:43:9",
+      "caller_scope_key": "fixtures/extraction/cpp/qt_header/source.h:viewChanged:48:9",
       "span": {
-        "start_line": 43,
+        "start_line": 48,
         "start_column": 21,
-        "end_line": 43,
+        "end_line": 48,
         "end_column": 31,
-        "start_byte": 938,
-        "end_byte": 948
+        "start_byte": 1077,
+        "end_byte": 1087
       }
     }
   ],
   "identifiers": [
     {
-      "key": "fixtures/extraction/cpp/qt_header/source.h:ColumnView:type_usage:43:21",
+      "key": "fixtures/extraction/cpp/qt_header/source.h:ColumnView:type_usage:48:21",
       "name": "ColumnView",
       "kind": "type_usage",
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/qt_header/source.h",
-      "start_line": 43,
+      "start_line": 48,
       "start_column": 21,
-      "end_line": 43,
+      "end_line": 48,
       "end_column": 31,
-      "start_byte": 938,
-      "end_byte": 948,
+      "start_byte": 1077,
+      "end_byte": 1087,
+      "containing_key": "fixtures/extraction/cpp/qt_header/source.h:ColumnViewAttached:11:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/cpp/qt_header/source.h:ColumnViewAttached:type_usage:39:11",
+      "name": "ColumnViewAttached",
+      "kind": "type_usage",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/qt_header/source.h",
+      "start_line": 39,
+      "start_column": 11,
+      "end_line": 39,
+      "end_column": 29,
+      "start_byte": 919,
+      "end_byte": 937,
       "containing_key": "fixtures/extraction/cpp/qt_header/source.h:ColumnViewAttached:11:0",
       "target_key": null,
       "confidence": "1.000"
@@ -830,6 +1072,22 @@
       "end_column": 23,
       "start_byte": 727,
       "end_byte": 745,
+      "containing_key": "fixtures/extraction/cpp/qt_header/source.h:ColumnViewAttached:11:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/cpp/qt_header/source.h:QList:type_usage:38:4",
+      "name": "QList",
+      "kind": "type_usage",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/qt_header/source.h",
+      "start_line": 38,
+      "start_column": 4,
+      "end_line": 38,
+      "end_column": 9,
+      "start_byte": 887,
+      "end_byte": 892,
       "containing_key": "fixtures/extraction/cpp/qt_header/source.h:ColumnViewAttached:11:0",
       "target_key": null,
       "confidence": "1.000"
@@ -867,41 +1125,73 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/cpp/qt_header/source.h:QObject:type_usage:49:53",
+      "key": "fixtures/extraction/cpp/qt_header/source.h:QObject:type_usage:54:53",
       "name": "QObject",
       "kind": "type_usage",
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/qt_header/source.h",
-      "start_line": 49,
+      "start_line": 54,
       "start_column": 53,
-      "end_line": 49,
+      "end_line": 54,
       "end_column": 60,
-      "start_byte": 1045,
-      "end_byte": 1052,
-      "containing_key": "fixtures/extraction/cpp/qt_header/source.h:ScrollIntentionEvent:49:0",
+      "start_byte": 1184,
+      "end_byte": 1191,
+      "containing_key": "fixtures/extraction/cpp/qt_header/source.h:ScrollIntentionEvent:54:0",
       "target_key": null,
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/cpp/qt_header/source.h:QPointF:type_usage:55:4",
+      "key": "fixtures/extraction/cpp/qt_header/source.h:QPointF:type_usage:60:4",
       "name": "QPointF",
       "kind": "type_usage",
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/qt_header/source.h",
-      "start_line": 55,
+      "start_line": 60,
       "start_column": 4,
-      "end_line": 55,
+      "end_line": 60,
       "end_column": 11,
-      "start_byte": 1139,
-      "end_byte": 1146,
-      "containing_key": "fixtures/extraction/cpp/qt_header/source.h:ScrollIntentionEvent:49:0",
+      "start_byte": 1278,
+      "end_byte": 1285,
+      "containing_key": "fixtures/extraction/cpp/qt_header/source.h:ScrollIntentionEvent:54:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/cpp/qt_header/source.h:QQuickItem:type_usage:36:4",
+      "name": "QQuickItem",
+      "kind": "type_usage",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/qt_header/source.h",
+      "start_line": 36,
+      "start_column": 4,
+      "end_line": 36,
+      "end_column": 14,
+      "start_byte": 817,
+      "end_byte": 827,
+      "containing_key": "fixtures/extraction/cpp/qt_header/source.h:ColumnViewAttached:11:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/cpp/qt_header/source.h:QString:type_usage:37:10",
+      "name": "QString",
+      "kind": "type_usage",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/qt_header/source.h",
+      "start_line": 37,
+      "start_column": 10,
+      "end_line": 37,
+      "end_column": 17,
+      "start_byte": 860,
+      "end_byte": 867,
+      "containing_key": "fixtures/extraction/cpp/qt_header/source.h:ColumnViewAttached:11:0",
       "target_key": null,
       "confidence": "1.000"
     }
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/cpp/qt_header/source.h:delta:55:4",
+      "symbol_key": "fixtures/extraction/cpp/qt_header/source.h:delta:60:4",
       "resolved_type": "QPointF",
       "generic_params": null,
       "constraints": null,
@@ -919,7 +1209,7 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/cpp/qt_header/source.h:m_index:46:4",
+      "symbol_key": "fixtures/extraction/cpp/qt_header/source.h:m_index:51:4",
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
@@ -928,7 +1218,7 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/cpp/qt_header/source.h:refresh:39:9",
+      "symbol_key": "fixtures/extraction/cpp/qt_header/source.h:refresh:44:9",
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
@@ -937,7 +1227,7 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/cpp/qt_header/source.h:reset:36:21",
+      "symbol_key": "fixtures/extraction/cpp/qt_header/source.h:reset:41:21",
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
@@ -955,7 +1245,7 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/cpp/qt_header/source.h:width:59:4",
+      "symbol_key": "fixtures/extraction/cpp/qt_header/source.h:width:64:4",
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
@@ -1045,13 +1335,13 @@
       "node_kind": "macro",
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/qt_header/source.h",
-      "containing_key": "fixtures/extraction/cpp/qt_header/source.h:ScrollIntentionEvent:49:0",
-      "start_line": 52,
+      "containing_key": "fixtures/extraction/cpp/qt_header/source.h:ScrollIntentionEvent:54:0",
+      "start_line": 57,
       "start_column": 4,
-      "end_line": 52,
+      "end_line": 57,
       "end_column": 57,
-      "start_byte": 1072,
-      "end_byte": 1125,
+      "start_byte": 1211,
+      "end_byte": 1264,
       "confidence": "1.000",
       "metadata": {
         "constant": true,
@@ -1071,18 +1361,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/qt_header/source.h",
-      "covered_lines": 61,
-      "covered_bytes": 1194,
+      "covered_lines": 66,
+      "covered_bytes": 1333,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 61,
+      "end_line": 66,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 1194,
+      "end_byte": 1333,
       "metadata": {
         "metric_version": 1
       }
@@ -1111,6 +1401,28 @@
     },
     {
       "scope": "symbol",
+      "symbol_key": "fixtures/extraction/cpp/qt_header/source.h:contentItem:36:16",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/qt_header/source.h",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 36,
+      "start_column": 27,
+      "end_line": 36,
+      "end_column": 29,
+      "start_byte": 840,
+      "end_byte": 842,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
       "symbol_key": "fixtures/extraction/cpp/qt_header/source.h:index:33:8",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "cpp",
@@ -1133,7 +1445,7 @@
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/cpp/qt_header/source.h:refresh:39:9",
+      "symbol_key": "fixtures/extraction/cpp/qt_header/source.h:instance:39:31",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/qt_header/source.h",
@@ -1144,18 +1456,18 @@
       "max_nesting_depth": 0,
       "parameter_count": 0,
       "start_line": 39,
-      "start_column": 16,
+      "start_column": 39,
       "end_line": 39,
-      "end_column": 18,
-      "start_byte": 876,
-      "end_byte": 878,
+      "end_column": 41,
+      "start_byte": 947,
+      "end_byte": 949,
       "metadata": {
         "metric_version": 1
       }
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/cpp/qt_header/source.h:reset:36:21",
+      "symbol_key": "fixtures/extraction/cpp/qt_header/source.h:items:38:16",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/qt_header/source.h",
@@ -1165,12 +1477,78 @@
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 0,
-      "start_line": 36,
+      "start_line": 38,
+      "start_column": 21,
+      "end_line": 38,
+      "end_column": 23,
+      "start_byte": 904,
+      "end_byte": 906,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/cpp/qt_header/source.h:name:37:19",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/qt_header/source.h",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 37,
+      "start_column": 23,
+      "end_line": 37,
+      "end_column": 25,
+      "start_byte": 873,
+      "end_byte": 875,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/cpp/qt_header/source.h:refresh:44:9",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/qt_header/source.h",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 44,
+      "start_column": 16,
+      "end_line": 44,
+      "end_column": 18,
+      "start_byte": 1015,
+      "end_byte": 1017,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/cpp/qt_header/source.h:reset:41:21",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/qt_header/source.h",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 41,
       "start_column": 26,
-      "end_line": 36,
+      "end_line": 41,
       "end_column": 28,
-      "start_byte": 839,
-      "end_byte": 841,
+      "start_byte": 978,
+      "end_byte": 980,
       "metadata": {
         "metric_version": 1
       }
@@ -1249,5 +1627,18 @@
       "metadata": null
     }
   ],
-  "type_argument_usages": []
+  "type_argument_usages": [
+    {
+      "identifier_key": "fixtures/extraction/cpp/qt_header/source.h:QList:type_usage:38:4",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/qt_header/source.h",
+      "arguments": [
+        {
+          "ordinal": 0,
+          "type_name": "int",
+          "children": []
+        }
+      ]
+    }
+  ]
 }

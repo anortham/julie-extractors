@@ -33,6 +33,11 @@ public:
     int index() const;
     void setIndex(int index);
 
+    QQuickItem *contentItem() const;
+    const QString &name() const;
+    QList<int> *items();
+    static ColumnViewAttached *instance();
+
     Q_INVOKABLE void reset();
 
 public Q_SLOTS:
