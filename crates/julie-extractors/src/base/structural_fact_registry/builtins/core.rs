@@ -4,7 +4,10 @@
 //! Public registry access remains through
 //! [`super::super::structural_fact_pattern_specs`].
 
-use super::super::{ALWAYS, BASE_KEYS, MetadataKeySpec, STR, StructuralFactPatternSpec, key};
+use super::super::{
+    ALWAYS, BASE_KEYS, BOOL, K_PATTERN_VERSION, K_QUERY_FAMILY, MetadataKeySpec, OPT, STR,
+    StructuralFactPatternSpec, key,
+};
 
 const RUST_DOC_TEST_KEYS: &[MetadataKeySpec] = &[
     BASE_KEYS[0],
@@ -94,6 +97,27 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
         query_family: "preprocessor",
         description: "A C++ `#define` object-like or function-like macro.",
         metadata_keys: BASE_KEYS,
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "cpp.qt_property.v1",
+        languages: &["cpp"],
+        query_family: "properties",
+        description: "A Qt `Q_PROPERTY` declaration on a C++ class.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key("name", STR, ALWAYS, "The property name."),
+            key("property_type", STR, OPT, "The declared property type."),
+            key("read", STR, OPT, "The READ accessor name."),
+            key("write", STR, OPT, "The WRITE accessor name."),
+            key("notify", STR, OPT, "The NOTIFY signal name."),
+            key("member", STR, OPT, "The MEMBER variable name."),
+            key("reset", STR, OPT, "The RESET accessor name."),
+            key("bindable", STR, OPT, "The BINDABLE accessor name."),
+            key("constant", BOOL, OPT, "Whether CONSTANT was declared."),
+            key("final", BOOL, OPT, "Whether FINAL was declared."),
+            key("required", BOOL, OPT, "Whether REQUIRED was declared."),
+        ],
     },
     StructuralFactPatternSpec {
         pattern_id: "fsharp.attribute.v1",

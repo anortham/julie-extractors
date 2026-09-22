@@ -159,6 +159,9 @@ pub(crate) fn structural_fact_pattern_ids_for_language(language: &str) -> Vec<&'
     if language == crate::javascript::qml_directives::LANGUAGE {
         pattern_ids.push(crate::javascript::qml_directives::PATTERN_ID);
     }
+    if language == crate::cpp::qt::LANGUAGE {
+        pattern_ids.push(crate::cpp::qt::PATTERN_ID);
+    }
     pattern_ids.sort();
     pattern_ids.dedup();
     pattern_ids

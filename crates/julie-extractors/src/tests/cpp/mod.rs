@@ -45,6 +45,7 @@ pub mod literals;
 pub mod modern;
 pub mod namespaces;
 pub mod qt_macros;
+pub mod qt_symbols;
 pub mod robustness;
 pub mod templates;
 pub mod test_calls;

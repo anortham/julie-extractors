@@ -864,6 +864,94 @@
     "query_family": "preprocessor"
   },
   {
+    "description": "A Qt `Q_PROPERTY` declaration on a C++ class.",
+    "languages": [
+      "cpp"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The property name.",
+        "key": "name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The declared property type.",
+        "key": "property_type",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The READ accessor name.",
+        "key": "read",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The WRITE accessor name.",
+        "key": "write",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The NOTIFY signal name.",
+        "key": "notify",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The MEMBER variable name.",
+        "key": "member",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The RESET accessor name.",
+        "key": "reset",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The BINDABLE accessor name.",
+        "key": "bindable",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Whether CONSTANT was declared.",
+        "key": "constant",
+        "presence": "optional",
+        "value_type": "bool"
+      },
+      {
+        "description": "Whether FINAL was declared.",
+        "key": "final",
+        "presence": "optional",
+        "value_type": "bool"
+      },
+      {
+        "description": "Whether REQUIRED was declared.",
+        "key": "required",
+        "presence": "optional",
+        "value_type": "bool"
+      }
+    ],
+    "pattern_id": "cpp.qt_property.v1",
+    "query_family": "properties"
+  },
+  {
     "description": "A CSS `@charset` rule.",
     "languages": [
       "css",

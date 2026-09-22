@@ -16,6 +16,7 @@ mod functions;
 mod helpers;
 mod identifiers;
 mod parameters;
+pub(crate) mod qt;
 pub(crate) mod qt_macros;
 mod relationships;
 mod signatures;
@@ -93,6 +94,8 @@ impl CppExtractor {
 
         // Add any additional symbols collected from ERROR nodes
         symbols.extend(self.additional_symbols.clone());
+
+        qt::apply(&self.base, tree, &mut symbols);
 
         symbols
     }

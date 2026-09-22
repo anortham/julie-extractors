@@ -312,6 +312,23 @@ fn extract_javascript(
     Ok(results)
 }
 
+/// Qt's C++ macros live outside the grammar, so their property facts are
+/// appended after the tree-driven pass.
+fn extract_cpp(
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+    workspace_root: &Path,
+    level: ExtractionLevel,
+) -> Result<ExtractionResults, anyhow::Error> {
+    let mut results = extract_cpp_tree(tree, file_path, content, workspace_root, level)?;
+    if level.includes_structural_facts() {
+        let facts = crate::cpp::qt::property_facts(file_path, content, &results.symbols);
+        results.structural_facts.extend(facts);
+    }
+    Ok(results)
+}
+
 fn extract_lua(
     tree: &Tree,
     file_path: &str,
@@ -392,7 +409,7 @@ fn extract_r(
 
 define_structured_full_file_extractors![
     (extract_python, "python", crate::python::PythonExtractor),
-    (extract_cpp, "cpp", crate::cpp::CppExtractor),
+    (extract_cpp_tree, "cpp", crate::cpp::CppExtractor),
     (extract_ruby, "ruby", crate::ruby::RubyExtractor)
 ];
 

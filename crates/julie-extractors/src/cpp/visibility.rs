@@ -87,15 +87,25 @@ fn find_access_spec_before_node(
         // Check if this is an access_specifier node (private, protected, public keywords)
         // Note: tree-sitter uses "access_specifier" not "access_spec"
         if child.kind() == "access_specifier" {
-            let spec_text = base.get_node_text(&child);
-            current_visibility = match spec_text.trim() {
-                "private" => Visibility::Private,
-                "protected" => Visibility::Protected,
-                "public" => Visibility::Public,
-                _ => current_visibility, // Unknown, keep current
-            };
+            current_visibility = access_label_visibility(&base.get_node_text(&child));
         }
     }
 
     current_visibility
+}
+
+/// The Qt pre-pass rewrites a bare `Q_SIGNALS:` label into `public:`, and keeps
+/// the access word of `public Q_SLOTS:`, so the node text starts with the access
+/// word or with the macro. The grammar admits no other access label, and
+/// everything after a signals label is public in Qt.
+fn access_label_visibility(text: &str) -> Visibility {
+    let text = text.trim_start();
+    let end = text
+        .find(|character: char| !(character.is_alphanumeric() || character == '_'))
+        .unwrap_or(text.len());
+    match &text[..end] {
+        "private" => Visibility::Private,
+        "protected" => Visibility::Protected,
+        _ => Visibility::Public,
+    }
 }
