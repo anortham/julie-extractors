@@ -50,10 +50,32 @@ the grammar's `attribute` node span (the attribute name, excluding `[<` and
 attribute with no in-scope annotated target, such as `[<assembly: ...>]`, keeps
 its lexical container as `containing_symbol_id`.
 
-F# xUnit functions carrying `[<Fact>]`, `[<Theory>]`, or qualified
-`[<Xunit.Fact>]` publish `is_test = true` and `test_role` values `test_case` or
-`parameterized_test`. Similar names and unannotated functions remain ordinary
-symbols. Test containers and lifecycle roles are not claimed.
+F# tests use the .NET attribute contract shared with C#: xUnit `[<Fact>]`,
+NUnit `[<Test>]`, and MSTest `[<TestMethod>]` publish `test_case`;
+`[<Theory>]`, `[<TestCase>]`, `[<TestCaseSource>]`, and `[<DataTestMethod>]`
+publish `parameterized_test`; NUnit and MSTest setup and teardown attributes
+publish `fixture_setup` and `fixture_teardown`. Qualified attributes such as
+`[<Xunit.Fact>]` match by their last segment. A class with a container
+attribute (`[<TestFixture>]`, `[<TestClass>]`) or a test member is a
+`test_container`. An Expecto `[<Tests>]` value publishes `test_case`, so test
+impact reaches the test list. The `testCase` entries inside the list are
+expressions, not declarations, so they carry no role of their own. Similar names and unannotated functions remain
+ordinary symbols.
+
+Calls include pipelines and operators: `x |> f`, `f <| x`, and `a + f x` all
+emit a call to `f`, and a generic call (`f<T>()`) is a `call` whose type
+arguments ride on the call identifier. A call belongs to the smallest
+enclosing declaration: a method, property, module value, or nested module, not
+the surrounding namespace. A call to a class in the same file is an
+`instantiates` edge. `type ... and ...` and `let rec ... and ...` groups emit
+one symbol per declaration. `exception` declarations are classes; an unnamed
+union or exception field (`Cash of decimal`) is only a type, not a field
+symbol. `private` and `internal` on `let` bindings and types set visibility,
+and a `let` inside a class is private.
+
+Body spans come from the syntax tree: the expression after `=` for bindings
+and members, the member blocks of a type, and the declarations after a module
+or namespace header.
 
 ## Recorded gaps
 
@@ -63,9 +85,7 @@ closure, and planned follow-up for:
 
 - top-level `.fsx` imports without an enclosing symbol;
 - F# domain-native facts beyond attributes, including computation expressions,
-  active patterns, and quotations;
-- test containers and lifecycle roles; and
-- Expecto, NUnit, and FsUnit role coverage.
+  active patterns, and quotations.
 
 The pinned Expecto evidence scan also shows the current boundary: its F# files
 produce symbols, relationships, identifiers, types, type-argument usages,

@@ -1,3 +1,4 @@
+mod calls;
 mod declarations;
 mod identifiers;
 mod literals;
@@ -23,8 +24,10 @@ impl FSharpExtractor {
         content: String,
         workspace_root: &std::path::Path,
     ) -> Self {
+        let mut base = BaseExtractor::new(language, file_path, content, workspace_root);
+        base.body_span_rule = Some(declarations::body_span);
         Self {
-            base: BaseExtractor::new(language, file_path, content, workspace_root),
+            base,
             inferred_types: HashMap::new(),
         }
     }

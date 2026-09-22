@@ -4,6 +4,7 @@ use crate::pipeline::extract_canonical;
 use std::collections::HashMap;
 use std::path::Path;
 
+mod gap_closure;
 mod semantic_facts;
 mod test_detection;
 mod type_facts;

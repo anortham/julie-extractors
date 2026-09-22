@@ -81,6 +81,20 @@ let qualified_theory() = ()
 }
 
 #[test]
+fn nunit_attributes_publish_their_dotnet_roles() {
+    let symbols = symbols(
+        r#"[<Test>]
+let nunit_case() = ()
+
+[<TestFixture>]
+type NUnitContainer = class end
+"#,
+    );
+    assert_eq!(test_role(named(&symbols, "nunit_case")), Some("test_case"));
+    assert!(role(named(&symbols, "NUnitContainer"), "test_container"));
+}
+
+#[test]
 fn xunit_detection_keeps_similar_names_noncallables_and_unannotated_functions_silent() {
     let symbols = symbols(
         r#"[<FactLike>]
@@ -107,8 +121,6 @@ type NUnitContainer = class end
         "theory_case",
         "FactContainer",
         "test_looks_like_a_test",
-        "nunit_case",
-        "NUnitContainer",
     ] {
         let symbol = named(&symbols, name);
         assert_eq!(test_role(symbol), None, "{name} must have no test role");

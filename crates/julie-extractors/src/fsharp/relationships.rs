@@ -1,4 +1,5 @@
 use super::FSharpExtractor;
+use super::calls::{self, Scope};
 use crate::base::{
     LocalTargetResolution, Relationship, RelationshipKind, ScopedSymbolIndex, Symbol, SymbolKind,
     UnresolvedTarget,
@@ -21,12 +22,14 @@ pub(super) fn extract_relationships(
 ) -> Vec<Relationship> {
     extractor.base().clear_pending_relationships();
     let symbol_index = ScopedSymbolIndex::new(symbols);
+    let scope = Scope::new(symbols);
     let mut relationships = Vec::new();
     walk(
         extractor,
         tree.root_node(),
         symbols,
         &symbol_index,
+        &scope,
         &mut relationships,
         0,
     );
@@ -38,6 +41,7 @@ fn walk(
     node: Node,
     symbols: &[Symbol],
     symbol_index: &ScopedSymbolIndex<'_>,
+    scope: &Scope<'_>,
     relationships: &mut Vec<Relationship>,
     depth: u32,
 ) {
@@ -45,9 +49,11 @@ fn walk(
         return;
     }
     match node.kind() {
-        "import_decl" => extract_import(extractor, node, symbols),
-        "application_expression" if !is_nested_application(node) => {
-            extract_call(extractor, node, symbols, symbol_index, relationships);
+        "import_decl" => extract_import(extractor, node, scope),
+        "application_expression" | "infix_expression" => {
+            if let Some(callee) = calls::call_callee(node, &extractor.base.content) {
+                extract_call(extractor, node, callee, scope, symbol_index, relationships);
+            }
         }
         "class_inherits_decl" => extract_type_relationship(
             extractor,
@@ -80,17 +86,18 @@ fn walk(
             child,
             symbols,
             symbol_index,
+            scope,
             relationships,
             child_depth,
         );
     }
 }
 
-fn extract_import(extractor: &mut FSharpExtractor, node: Node, symbols: &[Symbol]) {
+fn extract_import(extractor: &mut FSharpExtractor, node: Node, scope: &Scope<'_>) {
     let Some(target_node) = first_named_child(node) else {
         return;
     };
-    let Some(caller) = extractor.base().find_containing_symbol(&node, symbols) else {
+    let Some(caller) = scope.find(node) else {
         return;
     };
     let display_name = extractor
@@ -119,7 +126,8 @@ fn extract_import(extractor: &mut FSharpExtractor, node: Node, symbols: &[Symbol
 fn extract_call(
     extractor: &mut FSharpExtractor,
     node: Node,
-    symbols: &[Symbol],
+    callee: Node,
+    scope: &Scope<'_>,
     symbol_index: &ScopedSymbolIndex<'_>,
     relationships: &mut Vec<Relationship>,
 ) {
@@ -129,15 +137,11 @@ fn extract_call(
         terminal_name,
         receiver,
         namespace_path,
-    }) = call_target(extractor.base(), node)
+    }) = call_target(extractor.base(), callee)
     else {
         return;
     };
-    let Some(caller) = extractor
-        .base()
-        .find_containing_symbol(&node, symbols)
-        .cloned()
-    else {
+    let Some(caller) = scope.find(node).cloned() else {
         return;
     };
     let target = UnresolvedTarget {
@@ -147,9 +151,23 @@ fn extract_call(
         namespace_path,
         import_context: None,
     };
-    let receiver_type = super::identifiers::instance_receiver_type(&extractor.base, node);
+    let receiver_type = super::identifiers::instance_receiver_type(&extractor.base, callee);
     if target.receiver.is_some() || !target.namespace_path.is_empty() {
         add_pending(extractor, &caller, target, target_node, receiver_type);
+        return;
+    }
+    if let Some(class) = symbol_index
+        .candidates_by_name(&terminal_name)
+        .find(|candidate| candidate.kind == SymbolKind::Class)
+    {
+        relationships.push(extractor.base().create_relationship_at_target(
+            caller.id.clone(),
+            class.id.clone(),
+            RelationshipKind::Instantiates,
+            &target_node,
+            Some(0.9),
+            None,
+        ));
         return;
     }
     match symbol_index.resolve_call_target(&terminal_name, Some(&caller), None) {
@@ -277,7 +295,7 @@ fn extract_field_type_relationship(
     };
     if let Some(target) = symbol_index
         .candidates_by_name(&display_name)
-        .find(|candidate| candidate.id != caller.id)
+        .find(|candidate| candidate.id != caller.id && is_type_symbol(candidate))
     {
         relationships.push(extractor.base().create_relationship_at_target(
             caller.id.clone(),
@@ -288,6 +306,19 @@ fn extract_field_type_relationship(
             None,
         ));
     }
+}
+
+fn is_type_symbol(symbol: &Symbol) -> bool {
+    matches!(
+        symbol.kind,
+        SymbolKind::Class
+            | SymbolKind::Struct
+            | SymbolKind::Union
+            | SymbolKind::Interface
+            | SymbolKind::Enum
+            | SymbolKind::Type
+            | SymbolKind::Delegate
+    )
 }
 
 fn containing_type_symbol<'a>(
@@ -364,10 +395,8 @@ fn is_type_kind(kind: &str) -> bool {
     )
 }
 
-fn call_target<'a>(base: &crate::base::BaseExtractor, node: Node<'a>) -> Option<CallTarget<'a>> {
-    let head = first_named_child(node)?;
+fn call_target<'a>(base: &crate::base::BaseExtractor, head: Node<'a>) -> Option<CallTarget<'a>> {
     match head.kind() {
-        "application_expression" => call_target(base, head),
         "dot_expression" => {
             let field = head.child_by_field_name("field")?;
             let target_node = terminal_identifier(field)?;
@@ -440,11 +469,6 @@ fn split_path(path: &str) -> (String, Vec<String>) {
     let terminal = segments.last().cloned().unwrap_or_default();
     let namespace = segments[..segments.len().saturating_sub(1)].to_vec();
     (terminal, namespace)
-}
-
-fn is_nested_application(node: Node) -> bool {
-    node.parent()
-        .is_some_and(|parent| parent.kind() == "application_expression")
 }
 
 fn first_named_child(node: Node) -> Option<Node> {

@@ -1,35 +1,51 @@
 use crate::base::{Symbol, SymbolKind, TestRole};
-use crate::test_detection::apply_test_role;
+use crate::test_detection::{
+    apply_callable_test_metadata, apply_test_role, mark_dotnet_test_containers,
+};
 use std::collections::HashMap;
 
+/// Applies the .NET test roles (xUnit, NUnit, MSTest) to F# callables, marks
+/// Expecto `[<Tests>]` values as tests, and classifies .NET test containers.
 pub(super) fn apply_test_roles(symbols: &mut [Symbol]) {
-    for symbol in symbols {
-        let Some(role) = test_role(symbol) else {
-            continue;
-        };
+    for symbol in symbols.iter_mut() {
+        let keys: Vec<String> = symbol
+            .annotations
+            .iter()
+            .map(|annotation| {
+                annotation
+                    .annotation_key
+                    .rsplit('.')
+                    .next()
+                    .unwrap_or_default()
+                    .to_string()
+            })
+            .collect();
         let metadata = symbol.metadata.get_or_insert_with(HashMap::new);
-        apply_test_role(metadata, role);
+        if symbol.kind == SymbolKind::Variable {
+            if keys.iter().any(|key| key == "tests") {
+                apply_test_role(metadata, TestRole::TestCase);
+            }
+            continue;
+        }
+        apply_callable_test_metadata(
+            "fsharp",
+            &symbol.name,
+            &symbol.file_path,
+            &symbol.kind,
+            &keys,
+            None,
+            metadata,
+        );
+        if keys.iter().any(|key| is_parameterized(key)) && metadata.contains_key("is_test") {
+            apply_test_role(metadata, TestRole::ParameterizedTest);
+        }
     }
+    mark_dotnet_test_containers(symbols);
 }
 
-fn test_role(symbol: &Symbol) -> Option<TestRole> {
-    if !is_callable(&symbol.kind) {
-        return None;
-    }
-
-    symbol
-        .annotations
-        .iter()
-        .find_map(|annotation| match annotation.annotation_key.as_str() {
-            "fact" | "xunit.fact" | "global.xunit.fact" => Some(TestRole::TestCase),
-            "theory" | "xunit.theory" | "global.xunit.theory" => Some(TestRole::ParameterizedTest),
-            _ => None,
-        })
-}
-
-fn is_callable(kind: &SymbolKind) -> bool {
+fn is_parameterized(key: &str) -> bool {
     matches!(
-        kind,
-        SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor
+        key,
+        "theory" | "datatestmethod" | "testcase" | "testcasesource"
     )
 }

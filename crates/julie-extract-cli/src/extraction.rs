@@ -698,13 +698,17 @@ fn map_identifiers(
             let mut metadata = serde_json::Map::new();
             let identifier_kind = identifier.kind.to_string();
             let source_receiver = matches!(identifier_kind.as_str(), "call" | "member_access")
-                .then(|| receiver_before_identifier(source, identifier.start_byte))
+                .then(|| {
+                    receiver_before_identifier(source, identifier.start_byte, &identifier.language)
+                })
                 .flatten();
             if let Some(receiver) = source_receiver {
                 metadata.insert("receiver".to_string(), serde_json::Value::String(receiver));
-                if let Some(qualifier) =
-                    receiver_qualifier_before_identifier(source, identifier.start_byte)
-                {
+                if let Some(qualifier) = receiver_qualifier_before_identifier(
+                    source,
+                    identifier.start_byte,
+                    &identifier.language,
+                ) {
                     metadata.insert(
                         "receiver_qualifier".to_string(),
                         serde_json::Value::String(qualifier),
@@ -749,21 +753,26 @@ fn map_identifiers(
 }
 
 /// The member-access token immediately before `at`, with the byte offset it starts
-/// at, so the caller can keep walking the same chain leftward.
-fn receiver_token_before(source: &str, at: usize) -> Option<(String, usize)> {
+/// at, so the caller can keep walking the same chain leftward. `->` is a member
+/// separator only in C, C++, and PHP; elsewhere (F# match arms, lambdas) it is
+/// not a receiver.
+fn receiver_token_before(source: &str, at: usize, language: &str) -> Option<(String, usize)> {
+    let arrow_is_member_access = matches!(language, "c" | "cpp" | "php");
     let bytes = source.as_bytes();
     let mut cursor = at.min(bytes.len());
     while cursor > 0 && bytes[cursor - 1].is_ascii_whitespace() {
         cursor -= 1;
     }
-    let separator_width =
-        if cursor >= 2 && matches!(&bytes[cursor - 2..cursor], b"::" | b"->" | b"?.") {
-            2
-        } else if cursor >= 1 && bytes[cursor - 1] == b'.' {
-            1
-        } else {
-            return None;
-        };
+    let separator_width = if cursor >= 2
+        && (matches!(&bytes[cursor - 2..cursor], b"::" | b"?.")
+            || (arrow_is_member_access && &bytes[cursor - 2..cursor] == b"->"))
+    {
+        2
+    } else if cursor >= 1 && bytes[cursor - 1] == b'.' {
+        1
+    } else {
+        return None;
+    };
     cursor -= separator_width;
     while cursor > 0 && bytes[cursor - 1].is_ascii_whitespace() {
         cursor -= 1;
@@ -778,20 +787,24 @@ fn receiver_token_before(source: &str, at: usize) -> Option<(String, usize)> {
     (cursor < end).then(|| (source[cursor..end].to_string(), cursor))
 }
 
-fn receiver_before_identifier(source: &str, start_byte: u32) -> Option<String> {
+fn receiver_before_identifier(source: &str, start_byte: u32, language: &str) -> Option<String> {
     let at = usize::try_from(start_byte).ok()?;
-    receiver_token_before(source, at).map(|(token, _)| token)
+    receiver_token_before(source, at, language).map(|(token, _)| token)
 }
 
 /// The dotted qualification standing in front of the receiver token:
 /// `Some.Namespace.Fixture.Create()` yields `Some.Namespace` for `Create`. A
 /// resolver needs it to tell a fully-qualified reference to a workspace type from
 /// a foreign one that merely shares the type's simple name.
-fn receiver_qualifier_before_identifier(source: &str, start_byte: u32) -> Option<String> {
+fn receiver_qualifier_before_identifier(
+    source: &str,
+    start_byte: u32,
+    language: &str,
+) -> Option<String> {
     let at = usize::try_from(start_byte).ok()?;
-    let (_, mut cursor) = receiver_token_before(source, at)?;
+    let (_, mut cursor) = receiver_token_before(source, at, language)?;
     let mut segments = Vec::new();
-    while let Some((token, start)) = receiver_token_before(source, cursor) {
+    while let Some((token, start)) = receiver_token_before(source, cursor, language) {
         segments.push(token);
         cursor = start;
     }
@@ -1424,19 +1437,40 @@ mod tests {
             ("@service.run()", 9, "@service"),
         ] {
             assert_eq!(
-                receiver_before_identifier(source, start),
+                receiver_before_identifier(source, start, "php"),
                 Some(expected.to_string())
             );
         }
-        assert_eq!(receiver_before_identifier("run()", 0), None);
+        assert_eq!(receiver_before_identifier("run()", 0, "php"), None);
         for (source, start) in [
             ("foo<Bar>::baz()", 10),
             ("value - member", 8),
             ("value > member", 8),
             ("value ? member", 8),
         ] {
-            assert_eq!(receiver_before_identifier(source, start), None);
+            assert_eq!(receiver_before_identifier(source, start, "php"), None);
         }
+    }
+
+    #[test]
+    fn arrow_is_a_receiver_separator_only_for_pointer_member_languages() {
+        let source = "| Some value -> log value";
+        let start = source.rfind("log").unwrap() as u32;
+        assert_eq!(receiver_before_identifier(source, start, "fsharp"), None);
+        assert_eq!(
+            receiver_before_identifier(source, start, "cpp"),
+            Some("value".to_string())
+        );
+        let qualified = "fun id -> Convert.ToString id";
+        let at = qualified.find("ToString").unwrap() as u32;
+        assert_eq!(
+            receiver_before_identifier(qualified, at, "fsharp"),
+            Some("Convert".to_string())
+        );
+        assert_eq!(
+            receiver_qualifier_before_identifier(qualified, at, "fsharp"),
+            None
+        );
     }
     use std::sync::Mutex;
 

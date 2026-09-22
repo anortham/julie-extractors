@@ -186,7 +186,7 @@ pub fn is_test_symbol(
         "scala" => detect_scala(name, annotation_keys),
         "elixir" => detect_elixir(name),
         "erlang" => detect_erlang(name),
-        "csharp" | "vbnet" | "razor" => detect_csharp(annotation_keys),
+        "csharp" | "vbnet" | "razor" | "fsharp" => detect_csharp(annotation_keys),
         "go" => detect_go(name, file_path),
         "javascript" | "typescript" => detect_js_ts(name, file_path),
         "php" => detect_php(name, file_path, annotation_keys, doc_comment),
@@ -522,7 +522,7 @@ fn is_test_lifecycle(
         "java" | "kotlin" => {
             first_annotation_direction(annotation_keys, java_test_lifecycle_direction)
         }
-        "csharp" | "vbnet" | "razor" => {
+        "csharp" | "vbnet" | "razor" | "fsharp" => {
             first_annotation_direction(annotation_keys, dotnet_test_lifecycle_direction)
         }
         "cpp" => cpp_test_lifecycle_direction(name),
