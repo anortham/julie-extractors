@@ -19,3 +19,9 @@ calculate_total <- function() {
 describe.default("ordinary dotted call", {
   TRUE
 })
+
+describe("calculate_total", {
+  it("sums", {
+    expect_equal(calculate_total(), add_one(1))
+  })
+})

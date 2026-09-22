@@ -22,6 +22,11 @@ pub struct RExtractor {
     pub(crate) base: BaseExtractor,
     symbols: Vec<Symbol>,
     same_file_class_names: std::collections::HashSet<String>,
+    same_file_generics: std::collections::HashSet<String>,
+    /// Function values of class-list members, keyed by node id, mapped to the member symbol.
+    value_owners: HashMap<usize, String>,
+    /// Class inheritance declarations waiting for relationship resolution.
+    pub(crate) extends_requests: Vec<idioms::ExtendsRequest>,
 }
 
 impl RExtractor {
@@ -35,6 +40,9 @@ impl RExtractor {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
             symbols: Vec::new(),
             same_file_class_names: std::collections::HashSet::new(),
+            same_file_generics: std::collections::HashSet::new(),
+            value_owners: HashMap::new(),
+            extends_requests: Vec::new(),
         }
     }
 
@@ -42,6 +50,9 @@ impl RExtractor {
         let root_node = tree.root_node();
         self.symbols.clear();
         self.same_file_class_names = type_facts::collect_same_file_class_names(self, root_node);
+        self.same_file_generics = idioms::collect_same_file_generics(self, root_node);
+        self.value_owners.clear();
+        self.extends_requests.clear();
 
         // Build exclusion set once for S3 checking
         let non_s3: std::collections::HashSet<&str> =
@@ -64,18 +75,21 @@ impl RExtractor {
             return;
         }
 
-        let current_symbol: Option<Symbol> = match node.kind() {
-            "binary_operator" => self.extract_from_binary_op(node, &parent_id, non_s3),
-            "call" => self.extract_from_call(node, &parent_id),
-            "function_definition" => {
-                parameters::extract_class_method_parameters(self, node);
-                None
-            }
+        let current_symbol_id: Option<String> = match node.kind() {
+            "binary_operator" => self
+                .extract_from_binary_op(node, &parent_id, non_s3)
+                .map(|symbol| symbol.id),
+            "call" => self
+                .extract_from_call(node, &parent_id)
+                .map(|symbol| symbol.id),
+            "function_definition" => self.value_owners.remove(&node.id()).inspect(|owner_id| {
+                let parameters = parameters::extract_parameter_symbols(self, node, owner_id);
+                self.symbols.extend(parameters);
+            }),
             _ => None,
         };
 
-        // Recursively traverse children
-        let next_parent_id = current_symbol.as_ref().map(|s| s.id.clone()).or(parent_id);
+        let next_parent_id = current_symbol_id.or(parent_id);
         let Some(child_depth) = child_tree_depth(depth) else {
             return;
         };
@@ -98,12 +112,19 @@ impl RExtractor {
         match op_text.as_str() {
             // Left-to-right assignment: x <- value, x = value, x <<- value
             "<-" | "=" | "<<-" => {
-                let left = node.child(0)?;
-                let name = idioms::assignment_name(self, left)?;
-                if name.contains('(') {
+                if op_text == "<<-" && idioms::inside_function(node) {
                     return None;
                 }
+                let left = node.child(0)?;
                 let right = node.child(2)?;
+                if right.kind() == "function_definition"
+                    && let Some((receiver, member)) = idioms::member_function_target(self, left)
+                {
+                    let symbol =
+                        self.extract_function_assignment(node, member, right, parent_id, non_s3);
+                    return Some(idioms::with_receiver(self, symbol, receiver));
+                }
+                let name = idioms::assignment_name(self, left)?;
 
                 if let Some(symbol) =
                     idioms::extract_assignment_class_factory(self, node, &name, right, parent_id)
@@ -181,19 +202,18 @@ impl RExtractor {
         let signature = self.build_function_signature(&name, func_def);
         let mut metadata: HashMap<String, serde_json::Value> = HashMap::new();
 
-        // Detect S3 method pattern: method.class (but not common dot-functions)
-        let (kind, s3_detected) = self.classify_s3(&name, non_s3);
-
-        if s3_detected && let Some(dot_pos) = name.find('.') {
-            let method_name = &name[..dot_pos];
-            let class_name = &name[dot_pos + 1..];
-            metadata.insert(
-                "s3_method".to_string(),
-                serde_json::Value::String(method_name.to_string()),
-            );
+        let doc_comment = self.base.find_doc_comment(&node);
+        let s3 = self.classify_s3(&name, doc_comment.as_deref(), non_s3);
+        let kind = if s3.is_some() {
+            SymbolKind::Method
+        } else {
+            SymbolKind::Function
+        };
+        if let Some((generic, class_name)) = s3 {
+            metadata.insert("s3_method".to_string(), serde_json::Value::String(generic));
             metadata.insert(
                 "s3_class".to_string(),
-                serde_json::Value::String(class_name.to_string()),
+                serde_json::Value::String(class_name),
             );
         }
 
@@ -223,27 +243,50 @@ impl RExtractor {
             } else {
                 Some(metadata)
             },
-            doc_comment: self.base.find_doc_comment(&node),
+            doc_comment,
             ..Default::default()
         };
-        let symbol = self.base.create_symbol(&node, name, kind, options);
+        let symbol = self.base.create_symbol_from_span(
+            &func_def,
+            crate::base::NormalizedSpan::from_node(&node),
+            name,
+            kind,
+            options,
+        );
         self.symbols.push(symbol.clone());
         let parameter_symbols = parameters::extract_parameter_symbols(self, func_def, &symbol.id);
         self.symbols.extend(parameter_symbols);
         symbol
     }
 
-    /// Classify whether a function name is an S3 method or a plain function
+    /// Split an S3 method name into `(generic, class)`.
+    ///
+    /// A name is an S3 method only when a roxygen `@method generic class` tag
+    /// says so, or when it starts with a known or same-file generic followed by
+    /// a dot and a class. Leading-dot names are internal helpers.
     fn classify_s3(
         &self,
         name: &str,
+        doc_comment: Option<&str>,
         non_s3: &std::collections::HashSet<&str>,
-    ) -> (SymbolKind, bool) {
-        if !name.contains('.') || non_s3.contains(name) {
-            return (SymbolKind::Function, false);
+    ) -> Option<(String, String)> {
+        if let Some(tagged) = doc_comment.and_then(roxygen_s3_method) {
+            return Some(tagged);
         }
-        // Has a dot and is not in the exclusion list -> S3 method
-        (SymbolKind::Method, true)
+        if name.starts_with('.') || non_s3.contains(name) {
+            return None;
+        }
+        non_s3::KNOWN_S3_GENERICS
+            .iter()
+            .copied()
+            .chain(self.same_file_generics.iter().map(String::as_str))
+            .filter(|generic| {
+                name.len() > generic.len() + 1
+                    && name.starts_with(generic)
+                    && name.as_bytes()[generic.len()] == b'.'
+            })
+            .max_by_key(|generic| generic.len())
+            .map(|generic| (generic.to_string(), name[generic.len() + 1..].to_string()))
     }
 
     /// Build a function signature like `name <- function(x, y = 0)`
@@ -405,4 +448,14 @@ impl RExtractor {
     ) -> Vec<crate::base::StructuredPendingRelationship> {
         self.base.get_structured_pending_relationships()
     }
+}
+
+fn roxygen_s3_method(doc_comment: &str) -> Option<(String, String)> {
+    doc_comment.lines().find_map(|line| {
+        let mut words = line
+            .split_whitespace()
+            .skip_while(|word| *word != "@method");
+        words.next()?;
+        Some((words.next()?.to_string(), words.next()?.to_string()))
+    })
 }

@@ -55,10 +55,24 @@ pub(super) fn self_receiver_type(extractor: &RExtractor, function_node: Node) ->
         return None;
     }
     let object = function_node.child_by_field_name("lhs")?;
-    if extractor.base.get_node_text(&object) != "self" {
-        return None;
+    match extractor.base.get_node_text(&object).as_str() {
+        "self" | "private" => enclosing_r6_class_name(extractor, function_node),
+        "super" => super_receiver_type(extractor, function_node),
+        _ => None,
     }
-    enclosing_r6_class_name(extractor, function_node)
+}
+
+/// The `inherit =` base of the R6 class enclosing `node`.
+pub(super) fn super_receiver_type(extractor: &RExtractor, node: Node) -> Option<String> {
+    let call = enclosing_r6_call(extractor, node)?;
+    let args = call.child_by_field_name("arguments")?;
+    let mut cursor = args.walk();
+    let inherit = args
+        .children_by_field_name("argument", &mut cursor)
+        .find(|argument| argument_name(extractor, *argument).as_deref() == Some("inherit"))?
+        .child_by_field_name("value")?;
+    let text = extractor.base.get_node_text(&inherit);
+    clean_r_name(text.rsplit("::").next().unwrap_or(&text))
 }
 
 fn same_file_class(extractor: &RExtractor, name: &str) -> Option<String> {
@@ -124,6 +138,10 @@ fn declared_class_name(extractor: &RExtractor, call: Node) -> Option<String> {
 }
 
 pub(super) fn enclosing_r6_class_name(extractor: &RExtractor, node: Node) -> Option<String> {
+    r6_class_name(extractor, enclosing_r6_call(extractor, node)?)
+}
+
+fn enclosing_r6_call<'a>(extractor: &RExtractor, node: Node<'a>) -> Option<Node<'a>> {
     let mut current = node;
     let mut in_public_or_private = false;
     while let Some(parent) = current.parent() {
@@ -136,7 +154,7 @@ pub(super) fn enclosing_r6_class_name(extractor: &RExtractor, node: Node) -> Opt
             && parent.kind() == "call"
             && call_name(extractor, parent).as_deref() == Some("R6Class")
         {
-            return r6_class_name(extractor, parent);
+            return Some(parent);
         }
         current = parent;
     }

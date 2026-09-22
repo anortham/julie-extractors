@@ -5180,6 +5180,11 @@
           "name": "test_roles",
           "source": "fixtures/extraction/r/test_roles/test_source.r",
           "expected": "fixtures/extraction/r/test_roles/expected.json"
+        },
+        {
+          "name": "idioms",
+          "source": "fixtures/extraction/r/idioms/source.R",
+          "expected": "fixtures/extraction/r/idioms/expected.json"
         }
       ],
       "target_capabilities": {
@@ -5194,8 +5199,10 @@
         "symbols": {
           "supported": [
             "class",
+            "field",
             "function",
             "import",
+            "method",
             "variable"
           ],
           "not_applicable": [],
@@ -5203,7 +5210,8 @@
         },
         "relationships": {
           "supported": [
-            "calls"
+            "calls",
+            "extends"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -5221,6 +5229,7 @@
           "supported": [
             "function",
             "import",
+            "method",
             "variable"
           ],
           "not_applicable": [],
