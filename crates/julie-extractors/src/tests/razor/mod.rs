@@ -20,7 +20,7 @@ fn extract_symbols(code: &str) -> Vec<Symbol> {
 }
 
 #[test]
-fn explicit_razor_expression_emits_existing_symbol() {
+fn explicit_razor_expression_is_a_template_fact_not_a_symbol() {
     let results = crate::pipeline::extract_canonical(
         "test.razor",
         "<p>@(1 + 2)</p>",
@@ -32,32 +32,19 @@ fn explicit_razor_expression_emits_existing_symbol() {
         "{:#?}",
         results.parse_diagnostics
     );
-    let expression = results
-        .symbols
-        .iter()
-        .find(|symbol| {
-            symbol.kind == SymbolKind::Variable
-                && symbol
-                    .metadata
-                    .as_ref()
-                    .and_then(|metadata| metadata.get("type"))
-                    .and_then(serde_json::Value::as_str)
-                    == Some("razor-expression")
-        })
-        .unwrap_or_else(|| {
-            panic!(
-                "expected existing Razor expression symbol, got {:#?}",
-                results.symbols
-            )
-        });
-
-    assert_eq!(
-        expression
-            .metadata
-            .as_ref()
-            .and_then(|metadata| metadata.get("expression"))
-            .and_then(serde_json::Value::as_str),
-        Some("@(1 + 2)")
+    assert!(
+        results
+            .symbols
+            .iter()
+            .all(|symbol| symbol.kind != SymbolKind::Variable),
+        "{:#?}",
+        results.symbols
+    );
+    assert!(
+        results
+            .structural_facts
+            .iter()
+            .any(|fact| fact.pattern_id == "razor.template_expression.v1")
     );
 }
 
@@ -112,6 +99,7 @@ mod cross_file_pending;
 mod current_syntax;
 #[cfg(test)]
 mod relationships;
+mod wave1_gaps;
 
 #[test]
 fn test_html_css_razor_symbol_names_use_specific_targets() {
@@ -360,8 +348,9 @@ mod razor_extractor_tests {
         );
 
         // Model directive
-        let model_directive = symbols.iter().find(|s| s.name == "@model");
+        let model_directive = symbols.iter().find(|s| s.name == "Model");
         assert!(model_directive.is_some());
+        assert_eq!(model_directive.unwrap().kind, SymbolKind::Property);
         assert!(
             model_directive
                 .unwrap()
@@ -1789,7 +1778,7 @@ mod razor_extractor_tests {
             .iter()
             .find(|s| s.name == "StartAutoRefresh" && s.kind == SymbolKind::Method);
         assert!(start_auto_refresh.is_some());
-        assert_eq!(types.get(&start_auto_refresh.unwrap().id).unwrap(), "void");
+        assert!(!types.contains_key(&start_auto_refresh.unwrap().id));
     }
 
     #[test]

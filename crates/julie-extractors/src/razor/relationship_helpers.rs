@@ -1,5 +1,8 @@
 /// Helper functions for relationship extraction (identifier/invocation resolution, symbol lookup)
-use crate::base::{Relationship, RelationshipKind, Symbol, SymbolKind};
+use crate::base::{
+    Relationship, RelationshipKind, StructuredPendingRelationship, Symbol, SymbolKind,
+    UnresolvedTarget,
+};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::Node;
@@ -23,6 +26,37 @@ fn is_invocation_symbol(symbol: &Symbol) -> bool {
     matches!(symbol_type(symbol), Some("method-invocation"))
 }
 
+/// The unresolved target of a call written as `Name`, `receiver.Name`, or
+/// `A.B.Name`, without type arguments. A `this.`/`base.` receiver names the
+/// component itself, and a receiver that is not a plain name chain keeps only
+/// the method name.
+fn call_target(callee_text: &str) -> UnresolvedTarget {
+    let mut depth = 0usize;
+    let without_type_arguments: String = callee_text
+        .chars()
+        .filter(|character| {
+            match character {
+                '<' => depth += 1,
+                '>' => depth = depth.saturating_sub(1),
+                _ => return depth == 0,
+            }
+            false
+        })
+        .collect();
+    let callee = without_type_arguments
+        .strip_prefix("this.")
+        .or_else(|| without_type_arguments.strip_prefix("base."))
+        .unwrap_or(&without_type_arguments);
+    let is_name_chain = callee
+        .chars()
+        .all(|character| character == '.' || character == '_' || character.is_alphanumeric());
+    let terminal = callee.rsplit('.').next().unwrap_or(callee);
+    is_name_chain
+        .then(|| UnresolvedTarget::from_qualified_text(callee, &["."]))
+        .flatten()
+        .unwrap_or_else(|| UnresolvedTarget::simple(terminal))
+}
+
 pub(super) fn trim_quotes(value: &str) -> &str {
     value.trim_matches(|c| c == '"' || c == '\'')
 }
@@ -36,7 +70,11 @@ impl super::RazorExtractor {
         relationships: &mut Vec<Relationship>,
     ) {
         let identifier = self.base.get_node_text(&node);
-        if identifier.is_empty() {
+        if identifier.is_empty()
+            || node
+                .parent()
+                .is_some_and(|parent| parent.kind().ends_with("_declaration"))
+        {
             return;
         }
 
@@ -102,6 +140,7 @@ impl super::RazorExtractor {
         node: Node,
         symbols: &[Symbol],
         relationships: &mut Vec<Relationship>,
+        pending: &mut Vec<StructuredPendingRelationship>,
     ) {
         let method_node = self.find_child_by_types(
             node,
@@ -122,6 +161,12 @@ impl super::RazorExtractor {
 
         let invocation_symbol = self.find_invocation_symbol(node, symbols, &method_name);
 
+        let target = call_target(&method_name);
+        let local_name = if target.receiver.is_none() {
+            target.terminal_name.as_str()
+        } else {
+            method_name.as_str()
+        };
         let callee_symbol = symbols.iter().find(|symbol| {
             !is_invocation_symbol(symbol)
                 && matches!(
@@ -131,7 +176,7 @@ impl super::RazorExtractor {
                         | SymbolKind::Class
                         | SymbolKind::Module
                 )
-                && symbol.name == method_name
+                && symbol.name == local_name
         });
 
         let component_target = if method_name.contains("Component.InvokeAsync") {
@@ -147,10 +192,21 @@ impl super::RazorExtractor {
         } else if let Some(invocation) = invocation_symbol {
             invocation.id.clone()
         } else {
-            format!("method:{}", method_name)
+            pending.push(
+                self.base
+                    .create_pending_relationship_at_target(
+                        caller_symbol.id.clone(),
+                        target,
+                        RelationshipKind::Calls,
+                        &method_node,
+                        Some(caller_symbol.id.clone()),
+                        Some(0.7),
+                    )
+                    .with_receiver_type(super::identifiers::self_receiver_type(&self.base, node)),
+            );
+            return;
         };
 
-        // Avoid duplicate call relationships
         if relationships.iter().any(|rel| {
             rel.kind == RelationshipKind::Calls
                 && rel.from_symbol_id == caller_symbol.id

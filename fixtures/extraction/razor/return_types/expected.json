@@ -24,7 +24,7 @@
       "signature": "public Result[] Array()",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/razor/return_types/source.razor:source:1:0",
       "metadata": {
         "attributes": "",
         "modifiers": "public",
@@ -61,7 +61,7 @@
       "signature": "public Result Bare()",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/razor/return_types/source.razor:source:1:0",
       "metadata": {
         "attributes": "",
         "modifiers": "public",
@@ -98,7 +98,7 @@
       "signature": "public Box<Result> Generic()",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/razor/return_types/source.razor:source:1:0",
       "metadata": {
         "attributes": "",
         "modifiers": "public",
@@ -135,7 +135,7 @@
       "signature": "public Result? Nullable()",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/razor/return_types/source.razor:source:1:0",
       "metadata": {
         "attributes": "",
         "modifiers": "public",
@@ -172,7 +172,7 @@
       "signature": "public Models.Result Qualified()",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/razor/return_types/source.razor:source:1:0",
       "metadata": {
         "attributes": "",
         "modifiers": "public",
@@ -400,15 +400,6 @@
       "generic_params": null,
       "constraints": null,
       "is_inferred": false,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/return_types/source.razor:source:1:0",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
       "language": "razor",
       "metadata": null
     }

@@ -24,7 +24,7 @@
       "signature": "private string StatusColor(string status)",
       "doc_comment": null,
       "visibility": "Private",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:source:1:0",
       "metadata": {
         "attributes": "",
         "modifiers": "private",
@@ -40,7 +40,7 @@
     {
       "key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:action:11:4",
       "name": "action",
-      "kind": "variable",
+      "kind": "field",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor",
       "start_line": 11,
@@ -61,39 +61,9 @@
       "signature": "private ActionModel action = new()",
       "doc_comment": null,
       "visibility": "Private",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:source:1:0",
       "metadata": {
-        "initializer": "new()",
-        "modifiers": "private",
-        "type": "local-variable",
-        "variableType": "ActionModel"
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
-      "key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:action:5:22",
-      "name": "action",
-      "kind": "variable",
-      "language": "razor",
-      "file_path": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor",
-      "start_line": 5,
-      "start_column": 22,
-      "end_line": 5,
-      "end_column": 35,
-      "start_byte": 192,
-      "end_byte": 205,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "@@action.Class",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": null,
-      "metadata": {
-        "expression": "@action.Class",
-        "type": "razor-expression"
+        "isStatic": false
       },
       "annotations": [],
       "semantic_group": null,
@@ -103,7 +73,7 @@
     {
       "key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:context:10:4",
       "name": "context",
-      "kind": "variable",
+      "kind": "field",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor",
       "start_line": 10,
@@ -124,39 +94,9 @@
       "signature": "private Context context = new()",
       "doc_comment": null,
       "visibility": "Private",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:source:1:0",
       "metadata": {
-        "initializer": "new()",
-        "modifiers": "private",
-        "type": "local-variable",
-        "variableType": "Context"
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
-      "key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:currentValue:1:18",
-      "name": "currentValue",
-      "kind": "variable",
-      "language": "razor",
-      "file_path": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor",
-      "start_line": 1,
-      "start_column": 18,
-      "end_line": 1,
-      "end_column": 31,
-      "start_byte": 18,
-      "end_byte": 31,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "@@currentValue",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": null,
-      "metadata": {
-        "expression": "@currentValue",
-        "type": "razor-expression"
+        "isStatic": false
       },
       "annotations": [],
       "semantic_group": null,
@@ -177,42 +117,12 @@
       "end_byte": 262,
       "body_span": null,
       "body_hash": null,
-      "signature": "private string currentValue",
+      "signature": "private string currentValue = \"\"",
       "doc_comment": null,
       "visibility": "Private",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:source:1:0",
       "metadata": {
-        "attributes": "",
-        "fieldType": "string",
-        "modifiers": "private",
-        "type": "field"
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
-      "key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:model:2:18",
-      "name": "model",
-      "kind": "variable",
-      "language": "razor",
-      "file_path": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor",
-      "start_line": 2,
-      "start_column": 18,
-      "end_line": 2,
-      "end_column": 29,
-      "start_byte": 54,
-      "end_byte": 65,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "@@model.Name",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": null,
-      "metadata": {
-        "expression": "@model.Name",
-        "type": "razor-expression"
+        "isStatic": false
       },
       "annotations": [],
       "semantic_group": null,
@@ -222,7 +132,7 @@
     {
       "key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:model:9:4",
       "name": "model",
-      "kind": "variable",
+      "kind": "field",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor",
       "start_line": 9,
@@ -243,12 +153,9 @@
       "signature": "private Model model = new()",
       "doc_comment": null,
       "visibility": "Private",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:source:1:0",
       "metadata": {
-        "initializer": "new()",
-        "modifiers": "private",
-        "type": "local-variable",
-        "variableType": "Model"
+        "isStatic": false
       },
       "annotations": [],
       "semantic_group": null,
@@ -314,40 +221,6 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
-    },
-    {
-      "key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:typeof:4:21",
-      "name": "typeof",
-      "kind": "variable",
-      "language": "razor",
-      "file_path": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor",
-      "start_line": 4,
-      "start_column": 21,
-      "end_line": 4,
-      "end_column": 42,
-      "start_byte": 144,
-      "end_byte": 165,
-      "body_span": {
-        "start_line": 4,
-        "start_column": 28,
-        "end_line": 4,
-        "end_column": 33,
-        "start_byte": 151,
-        "end_byte": 156
-      },
-      "body_hash": "d436ae44606e85589a9e77b4259938e9",
-      "signature": "@@typeof(App).Assembly",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": null,
-      "metadata": {
-        "expression": "@typeof(App).Assembly",
-        "type": "razor-expression"
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
     }
   ],
   "relationships": [
@@ -372,8 +245,146 @@
       }
     }
   ],
-  "pending_relationships": [],
-  "structured_pending_relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:source:1:0",
+      "callee_name": "FluentBadge",
+      "kind": "uses",
+      "file_path": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor",
+      "line_number": 3,
+      "confidence": "0.900"
+    },
+    {
+      "from_key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:source:1:0",
+      "callee_name": "InputText",
+      "kind": "uses",
+      "file_path": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor",
+      "line_number": 1,
+      "confidence": "0.900"
+    },
+    {
+      "from_key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:source:1:0",
+      "callee_name": "InputText",
+      "kind": "uses",
+      "file_path": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor",
+      "line_number": 2,
+      "confidence": "0.900"
+    },
+    {
+      "from_key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:source:1:0",
+      "callee_name": "Router",
+      "kind": "uses",
+      "file_path": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor",
+      "line_number": 4,
+      "confidence": "0.900"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:source:1:0",
+        "callee_name": "FluentBadge",
+        "kind": "uses",
+        "file_path": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor",
+        "line_number": 3,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "FluentBadge",
+        "terminal_name": "FluentBadge",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:source:1:0",
+      "span": {
+        "start_line": 3,
+        "start_column": 1,
+        "end_line": 3,
+        "end_column": 12,
+        "start_byte": 71,
+        "end_byte": 82
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:source:1:0",
+        "callee_name": "InputText",
+        "kind": "uses",
+        "file_path": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor",
+        "line_number": 1,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "InputText",
+        "terminal_name": "InputText",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:source:1:0",
+      "span": {
+        "start_line": 1,
+        "start_column": 1,
+        "end_line": 1,
+        "end_column": 10,
+        "start_byte": 1,
+        "end_byte": 10
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:source:1:0",
+        "callee_name": "InputText",
+        "kind": "uses",
+        "file_path": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor",
+        "line_number": 2,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "InputText",
+        "terminal_name": "InputText",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:source:1:0",
+      "span": {
+        "start_line": 2,
+        "start_column": 1,
+        "end_line": 2,
+        "end_column": 10,
+        "start_byte": 37,
+        "end_byte": 46
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:source:1:0",
+        "callee_name": "Router",
+        "kind": "uses",
+        "file_path": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor",
+        "line_number": 4,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "Router",
+        "terminal_name": "Router",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:source:1:0",
+      "span": {
+        "start_line": 4,
+        "start_column": 1,
+        "end_line": 4,
+        "end_column": 7,
+        "start_byte": 124,
+        "end_byte": 130
+      }
+    }
+  ],
   "identifiers": [
     {
       "key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:ActionModel:type_usage:11:12",
@@ -456,6 +467,54 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:FluentBadge:type_usage:3:1",
+      "name": "FluentBadge",
+      "kind": "type_usage",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor",
+      "start_line": 3,
+      "start_column": 1,
+      "end_line": 3,
+      "end_column": 12,
+      "start_byte": 71,
+      "end_byte": 82,
+      "containing_key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:source:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:InputText:type_usage:1:1",
+      "name": "InputText",
+      "kind": "type_usage",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor",
+      "start_line": 1,
+      "start_column": 1,
+      "end_line": 1,
+      "end_column": 10,
+      "start_byte": 1,
+      "end_byte": 10,
+      "containing_key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:source:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:InputText:type_usage:2:1",
+      "name": "InputText",
+      "kind": "type_usage",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor",
+      "start_line": 2,
+      "start_column": 1,
+      "end_line": 2,
+      "end_column": 10,
+      "start_byte": 37,
+      "end_byte": 46,
+      "containing_key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:source:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:Model:type_usage:9:12",
       "name": "Model",
       "kind": "type_usage",
@@ -483,6 +542,22 @@
       "end_column": 29,
       "start_byte": 61,
       "end_byte": 65,
+      "containing_key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:source:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:Router:type_usage:4:1",
+      "name": "Router",
+      "kind": "type_usage",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor",
+      "start_line": 4,
+      "start_column": 1,
+      "end_line": 4,
+      "end_column": 7,
+      "start_byte": 124,
+      "end_byte": 130,
       "containing_key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:source:1:0",
       "target_key": null,
       "confidence": "1.000"
@@ -620,29 +695,11 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:action:5:22",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:context:10:4",
       "resolved_type": "Context",
       "generic_params": null,
       "constraints": null,
       "is_inferred": false,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:currentValue:1:18",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
       "language": "razor",
       "metadata": null
     },
@@ -656,15 +713,6 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:model:2:18",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:model:9:4",
       "resolved_type": "Model",
       "generic_params": null,
@@ -674,29 +722,11 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:source:1:0",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:status:12:31",
       "resolved_type": "string",
       "generic_params": null,
       "constraints": null,
       "is_inferred": false,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:typeof:4:21",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
       "language": "razor",
       "metadata": null
     }

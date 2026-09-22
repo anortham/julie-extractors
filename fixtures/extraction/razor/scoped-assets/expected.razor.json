@@ -142,7 +142,7 @@
       "signature": "[Parameter] public string Title = \"Scoped\"",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/razor/scoped-assets/ScopedPanel.razor:ScopedPanel:1:0",
       "metadata": {
         "attributes": "[Parameter]",
         "modifiers": "public",
@@ -162,9 +162,61 @@
     }
   ],
   "relationships": [],
-  "pending_relationships": [],
-  "structured_pending_relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/razor/scoped-assets/ScopedPanel.razor:ScopedPanel:1:0",
+      "callee_name": "ChildPanel",
+      "kind": "uses",
+      "file_path": "fixtures/extraction/razor/scoped-assets/ScopedPanel.razor",
+      "line_number": 4,
+      "confidence": "0.900"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/razor/scoped-assets/ScopedPanel.razor:ScopedPanel:1:0",
+        "callee_name": "ChildPanel",
+        "kind": "uses",
+        "file_path": "fixtures/extraction/razor/scoped-assets/ScopedPanel.razor",
+        "line_number": 4,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "ChildPanel",
+        "terminal_name": "ChildPanel",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/razor/scoped-assets/ScopedPanel.razor:ScopedPanel:1:0",
+      "span": {
+        "start_line": 4,
+        "start_column": 5,
+        "end_line": 4,
+        "end_column": 15,
+        "start_byte": 66,
+        "end_byte": 76
+      }
+    }
+  ],
   "identifiers": [
+    {
+      "key": "fixtures/extraction/razor/scoped-assets/ScopedPanel.razor:ChildPanel:type_usage:4:5",
+      "name": "ChildPanel",
+      "kind": "type_usage",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/scoped-assets/ScopedPanel.razor",
+      "start_line": 4,
+      "start_column": 5,
+      "end_line": 4,
+      "end_column": 15,
+      "start_byte": 66,
+      "end_byte": 76,
+      "containing_key": "fixtures/extraction/razor/scoped-assets/ScopedPanel.razor:ScopedPanel:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
     {
       "key": "fixtures/extraction/razor/scoped-assets/ScopedPanel.razor:Components:type_usage:1:18",
       "name": "Components",
@@ -199,42 +251,6 @@
     }
   ],
   "types": [
-    {
-      "symbol_key": "fixtures/extraction/razor/scoped-assets/ScopedPanel.razor:@namespace:1:0",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/scoped-assets/ScopedPanel.razor:@namespace:1:0",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/scoped-assets/ScopedPanel.razor:@namespace:1:1",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/scoped-assets/ScopedPanel.razor:ScopedPanel:1:0",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
     {
       "symbol_key": "fixtures/extraction/razor/scoped-assets/ScopedPanel.razor:Title:8:4",
       "resolved_type": "string",

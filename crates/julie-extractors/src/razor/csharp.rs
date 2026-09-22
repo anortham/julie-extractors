@@ -1,5 +1,6 @@
 /// C# symbol extraction within Razor code blocks
 use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility, normalize_annotations};
+use crate::csharp;
 use crate::test_detection::apply_callable_test_metadata;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
@@ -42,8 +43,25 @@ impl super::RazorExtractor {
 
         let mut symbol = None;
         let current_parent_id = parent_id;
+        let owned_parent = || parent_id.map(str::to_string);
 
         match node.kind() {
+            "field_declaration" | "local_declaration_statement"
+                if is_member_declaration(node, &self.base.content) =>
+            {
+                symbols.extend(csharp::fields::extract_fields(
+                    &mut self.base,
+                    node,
+                    owned_parent(),
+                ));
+            }
+            "event_field_declaration" => {
+                symbols.extend(csharp::fields::extract_events(
+                    &mut self.base,
+                    node,
+                    owned_parent(),
+                ));
+            }
             "local_declaration_statement" => {
                 symbol = self.extract_local_variable(node, parent_id);
             }
@@ -59,24 +77,46 @@ impl super::RazorExtractor {
             "field_declaration" => {
                 symbol = self.extract_field(node, parent_id);
             }
+            "constructor_declaration" => {
+                symbol = csharp::members::extract_constructor(&mut self.base, node, owned_parent());
+            }
+            "destructor_declaration" => {
+                symbol = csharp::members::extract_destructor(&mut self.base, node, owned_parent());
+            }
+            "delegate_declaration" => {
+                symbol = csharp::members::extract_delegate(&mut self.base, node, owned_parent());
+            }
+            "indexer_declaration" => {
+                symbol = csharp::operators::extract_indexer(&mut self.base, node, owned_parent());
+            }
+            "record_declaration" => {
+                symbol = csharp::types::extract_record(&mut self.base, node, owned_parent());
+            }
+            "struct_declaration" => {
+                symbol = csharp::types::extract_struct(&mut self.base, node, owned_parent());
+            }
+            "interface_declaration" => {
+                symbol = csharp::types::extract_interface(&mut self.base, node, owned_parent());
+            }
+            "enum_declaration" => {
+                symbol = csharp::types::extract_enum(&mut self.base, node, owned_parent());
+            }
+            "enum_member_declaration" => {
+                symbol = csharp::types::extract_enum_member(&mut self.base, node, owned_parent());
+            }
             "variable_declaration" => {
                 let already_emitted = node.parent().is_some_and(|parent| {
-                    parent.kind() == "local_declaration_statement"
-                        || (parent.kind() == "field_declaration" && !is_var_declaration(parent))
+                    matches!(
+                        parent.kind(),
+                        "local_declaration_statement" | "event_field_declaration"
+                    ) || (parent.kind() == "field_declaration"
+                        && (is_member_declaration(parent, &self.base.content)
+                            || !is_var_declaration(parent)))
                 });
                 if !already_emitted {
                     symbol = self.extract_variable_declaration(node, parent_id);
                 }
             }
-            // Assignment expressions (ViewData["Title"] = "Home", Layout = "_Layout", etc.)
-            // are USAGES, not definitions. Tracked via identifier extraction for reference relationships.
-            "assignment_expression" => {}
-            // Invocation expressions are USAGES, not definitions.
-            // They are tracked via identifier extraction for call relationships.
-            "invocation_expression" => {}
-            // Element access expressions (ViewData["Title"], etc.) are USAGES, not definitions.
-            // Tracked via identifier extraction for reference relationships.
-            "element_access_expression" => {}
             "class_declaration" => {
                 symbol = self.extract_class(node, parent_id);
             }
@@ -91,7 +131,7 @@ impl super::RazorExtractor {
             symbols.push(sym);
             if matches!(
                 node.kind(),
-                "method_declaration" | "local_function_statement"
+                "method_declaration" | "local_function_statement" | "constructor_declaration"
             ) {
                 symbols.extend(super::parameters::extract_parameter_symbols(
                     &mut self.base,
@@ -364,38 +404,7 @@ impl super::RazorExtractor {
         node: Node,
         parent_id: Option<&str>,
     ) -> Option<Symbol> {
-        let mut name: Option<String> = None;
-
-        // Find property name - should be after type but before accessors
-        let mut cursor = node.walk();
-        let children: Vec<_> = node.children(&mut cursor).collect();
-
-        for (i, child) in children.iter().enumerate() {
-            if child.kind() == "identifier" {
-                // Check if this identifier comes after a type node
-                let has_preceding_type = children.iter().take(i).any(|c| {
-                    matches!(
-                        c.kind(),
-                        "predefined_type"
-                            | "nullable_type"
-                            | "array_type"
-                            | "generic_name"
-                            | "identifier"
-                    ) && children
-                        .iter()
-                        .take(i)
-                        .any(|prev| prev.kind() == "modifier")
-                });
-
-                if has_preceding_type {
-                    name = Some(self.base.get_node_text(child));
-                    break;
-                }
-            }
-        }
-
-        // If we couldn't resolve the property name, skip this symbol
-        let name = name?;
+        let name = self.base.get_node_text(&node.child_by_field_name("name")?);
 
         let modifiers = self.extract_modifiers(node);
         let property_type = self.extract_property_type(node);
@@ -492,6 +501,17 @@ impl super::RazorExtractor {
         }
         Some(symbol)
     }
+}
+
+/// Whether a declaration declares a type member: it sits directly in an
+/// `@code`/`@functions` block or in a type body. The GLR parse returns member
+/// fields as `local_declaration_statement` or `field_declaration`.
+pub(super) fn is_member_declaration(node: Node, content: &str) -> bool {
+    node.parent().is_some_and(|parent| match parent.kind() {
+        "declaration_list" => true,
+        "razor_block" => super::is_member_block(parent, content),
+        _ => false,
+    })
 }
 
 fn is_var_declaration(node: Node) -> bool {

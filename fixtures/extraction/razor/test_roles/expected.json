@@ -143,15 +143,12 @@
       "end_byte": 675,
       "body_span": null,
       "body_hash": null,
-      "signature": "public string Marker",
+      "signature": "public string Marker = \"[TestFixture] [Fact]\"",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/razor/test_roles/source.razor:Ordinary:24:4",
       "metadata": {
-        "attributes": "",
-        "fieldType": "string",
-        "modifiers": "public",
-        "type": "field"
+        "isStatic": false
       },
       "annotations": [],
       "semantic_group": null,
@@ -227,7 +224,7 @@
       "signature": "[TestClass] public sealed class MsTestFixture",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/razor/test_roles/source.razor:source:1:0",
       "metadata": {
         "attributes": "[TestClass]",
         "modifiers": "public, sealed",
@@ -315,7 +312,7 @@
       "signature": "[TestFixture] public sealed class NUnitFixture",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/razor/test_roles/source.razor:source:1:0",
       "metadata": {
         "attributes": "[TestFixture]",
         "modifiers": "public, sealed",
@@ -403,7 +400,7 @@
       "signature": "[TestFixtureFactory] public sealed class Ordinary",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/razor/test_roles/source.razor:source:1:0",
       "metadata": {
         "attributes": "[TestFixtureFactory]",
         "modifiers": "public, sealed",
@@ -489,7 +486,7 @@
       "signature": "public sealed class RazorTestRoles",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/razor/test_roles/source.razor:source:1:0",
       "metadata": {
         "modifiers": "public, sealed",
         "test_container": true,
@@ -650,137 +647,11 @@
   "identifiers": [],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/razor/test_roles/source.razor:After:6:8",
-      "resolved_type": "void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/test_roles/source.razor:Before:5:8",
-      "resolved_type": "void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/test_roles/source.razor:Fact:21:8",
-      "resolved_type": "void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/razor/test_roles/source.razor:Marker:27:8",
       "resolved_type": "string",
       "generic_params": null,
       "constraints": null,
       "is_inferred": false,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/test_roles/source.razor:MsTestCase:12:8",
-      "resolved_type": "void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/test_roles/source.razor:MsTestFixture:9:4",
-      "resolved_type": "sealed",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/test_roles/source.razor:NUnitCase:19:8",
-      "resolved_type": "void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/test_roles/source.razor:NUnitFixture:2:4",
-      "resolved_type": "sealed",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/test_roles/source.razor:NUnitParameterizedCase:20:8",
-      "resolved_type": "void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/test_roles/source.razor:Ordinary:24:4",
-      "resolved_type": "sealed",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/test_roles/source.razor:RazorCase:17:8",
-      "resolved_type": "void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/test_roles/source.razor:RazorTestRoles:15:4",
-      "resolved_type": "sealed",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/test_roles/source.razor:RazorTheory:18:8",
-      "resolved_type": "void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/test_roles/source.razor:Test:28:8",
-      "resolved_type": "void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/test_roles/source.razor:source:1:0",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
       "language": "razor",
       "metadata": null
     },

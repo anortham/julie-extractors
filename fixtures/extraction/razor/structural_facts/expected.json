@@ -74,26 +74,7 @@
   "pending_relationships": [],
   "structured_pending_relationships": [],
   "identifiers": [],
-  "types": [
-    {
-      "symbol_key": "fixtures/extraction/razor/structural_facts/source.razor:@page:1:0",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/structural_facts/source.razor:source:1:0",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    }
-  ],
+  "types": [],
   "parse_diagnostics": [],
   "structural_facts": [
     {

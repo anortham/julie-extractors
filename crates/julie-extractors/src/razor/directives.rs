@@ -10,7 +10,6 @@ static DIRECTIVE_NAME_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"@(\w+)
 static ADD_TAG_HELPER_VALUE_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"@addTagHelper\s+(.+)").unwrap());
 static DIRECTIVE_VALUE_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"@\w+\s+(.*)").unwrap());
-static EXPRESSION_VARIABLE_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(\w+)").unwrap());
 
 // Token-directive value patterns depend on the directive type (a small, fixed
 // set of tree-sitter node kinds), so cache each compiled variant once.
@@ -42,7 +41,11 @@ impl super::RazorExtractor {
             signature.push_str(&format!(" {}", value));
         }
 
-        let symbol_kind = self.get_directive_symbol_kind(&directive_name);
+        let symbol_kind = if directive_name == "model" {
+            SymbolKind::Property
+        } else {
+            self.get_directive_symbol_kind(&directive_name)
+        };
 
         // For certain directives, use the value as the symbol name
         let symbol_name = match directive_name.as_str() {
@@ -62,13 +65,14 @@ impl super::RazorExtractor {
                     format!("@{}", directive_name)
                 }
             }
+            "model" => "Model".to_string(),
             _ => format!("@{}", directive_name),
         };
 
         // Extract Razor doc comment
         let doc_comment = self.base.find_doc_comment(&node);
 
-        Some(self.base.create_symbol(
+        let symbol = self.base.create_symbol(
             &node,
             symbol_name,
             symbol_kind,
@@ -97,7 +101,22 @@ impl super::RazorExtractor {
                 doc_comment,
                 annotations: Vec::new(),
             },
-        ))
+        );
+        if let Some(type_node) = self.directive_declared_type_node(node) {
+            super::type_facts::record_declared_type(&mut self.base, &symbol.id, type_node);
+        }
+        Some(symbol)
+    }
+
+    /// The type an `@inject` property or the `@model` property is declared with.
+    fn directive_declared_type_node<'a>(&self, node: Node<'a>) -> Option<Node<'a>> {
+        match node.kind() {
+            "razor_inject_directive" => self
+                .find_child_by_type(node, "variable_declaration")?
+                .child_by_field_name("type"),
+            "razor_model_directive" => directive_type_operand(node),
+            _ => None,
+        }
     }
 
     /// Extract directive name from node kind or text
@@ -132,8 +151,7 @@ impl super::RazorExtractor {
                 .find_child_by_type(node, "string_literal")
                 .map(|n| self.base.get_node_text(&n)),
             "razor_model_directive" | "razor_inherits_directive" | "razor_implements_directive" => {
-                self.find_child_by_type(node, "identifier")
-                    .map(|n| self.base.get_node_text(&n))
+                directive_type_operand(node).map(|n| self.base.get_node_text(&n))
             }
             "razor_using_directive" | "razor_namespace_directive" => self
                 .find_child_by_types(node, &["qualified_name", "identifier"])
@@ -336,51 +354,12 @@ impl super::RazorExtractor {
             "block".to_string()
         }
     }
+}
 
-    /// Extract Razor expressions (@variable, @(expression))
-    pub(super) fn extract_expression(
-        &mut self,
-        node: Node,
-        parent_id: Option<&str>,
-    ) -> Option<Symbol> {
-        let expression = self.base.get_node_text(&node);
-        let variable_name = self
-            .extract_variable_from_expression(&expression)
-            .unwrap_or_else(|| "expression".to_string());
-
-        // Extract Razor doc comment
-        let doc_comment = self.base.find_doc_comment(&node);
-
-        Some(self.base.create_symbol(
-            &node,
-            variable_name,
-            SymbolKind::Variable,
-            SymbolOptions {
-                signature: Some(format!("@{}", expression)),
-                visibility: Some(Visibility::Public),
-                parent_id: parent_id.map(|s| s.to_string()),
-                metadata: Some({
-                    let mut metadata = HashMap::new();
-                    metadata.insert(
-                        "type".to_string(),
-                        serde_json::Value::String("razor-expression".to_string()),
-                    );
-                    metadata.insert(
-                        "expression".to_string(),
-                        serde_json::Value::String(expression.clone()),
-                    );
-                    metadata
-                }),
-                doc_comment,
-                annotations: Vec::new(),
-            },
-        ))
-    }
-
-    /// Extract variable name from expression
-    pub(super) fn extract_variable_from_expression(&self, expression: &str) -> Option<String> {
-        EXPRESSION_VARIABLE_RE
-            .captures(expression)
-            .map(|captures| captures[1].to_string())
-    }
+/// The type operand of `@model`, `@inherits`, or `@implements`: the first
+/// named child that is not part of the `@keyword` transition.
+pub(super) fn directive_type_operand(node: Node) -> Option<Node> {
+    let mut cursor = node.walk();
+    node.named_children(&mut cursor)
+        .find(|child| !child.kind().starts_with("at_"))
 }

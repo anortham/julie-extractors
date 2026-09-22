@@ -1,6 +1,6 @@
 /// LSP-quality identifier extraction for find_references support
 use crate::base::{
-    BaseExtractor, ContainingSymbolIndex, Identifier, IdentifierKind, Symbol,
+    BaseExtractor, ContainingSymbolIndex, Identifier, IdentifierKind, NormalizedSpan, Symbol,
     extract_type_arguments,
 };
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
@@ -47,6 +47,47 @@ impl super::RazorExtractor {
         }
     }
 
+    /// A component tag (`<Counter />`, `@<Counter />`) is a type usage of the
+    /// component class. The tag name is not a grammar node, so the identifier
+    /// spans the tag text.
+    fn extract_component_tag_identifier(
+        &mut self,
+        node: Node,
+        containing_symbols: &ContainingSymbolIndex<'_>,
+    ) {
+        let Some((tag_start, tag)) = super::element_component_tag(node, &self.base.content) else {
+            return;
+        };
+        let name = tag.to_string();
+        let Some(span) = NormalizedSpan::from_content_range(
+            &self.base.content,
+            tag_start,
+            tag_start + name.len(),
+        ) else {
+            return;
+        };
+        let identifier = Identifier {
+            id: self.base.generate_id_for_span(&name, &span),
+            name,
+            kind: IdentifierKind::TypeUsage,
+            language: self.base.language.clone(),
+            file_path: self.base.file_path.clone(),
+            start_line: span.start_line,
+            start_column: span.start_column,
+            end_line: span.end_line,
+            end_column: span.end_column,
+            start_byte: span.start_byte,
+            end_byte: span.end_byte,
+            containing_symbol_id: self.find_containing_symbol_id(node, containing_symbols),
+            target_symbol_id: None,
+            confidence: 1.0,
+            receiver_type: None,
+            code_context: None,
+            metadata: None,
+        };
+        self.base.identifiers.push(identifier);
+    }
+
     /// Extract identifier from a single node based on its kind
     /// Razor-specific: handles C# code within Razor directives and code blocks
     fn extract_identifier_from_node(
@@ -55,6 +96,9 @@ impl super::RazorExtractor {
         containing_symbols: &ContainingSymbolIndex<'_>,
     ) {
         match node.kind() {
+            "element" if self.is_razor_component_file() => {
+                self.extract_component_tag_identifier(node, containing_symbols);
+            }
             // Function/method calls: foo(), bar.Baz()
             // These appear in C# code blocks within Razor (@code {}, @{}, etc.)
             "invocation_expression" => {
@@ -558,7 +602,7 @@ fn is_csharp_builtin_type(name: &str) -> bool {
     )
 }
 
-fn self_receiver_type(base: &BaseExtractor, node: Node) -> Option<String> {
+pub(super) fn self_receiver_type(base: &BaseExtractor, node: Node) -> Option<String> {
     let member_access = match node.kind() {
         "member_access_expression" => node,
         "invocation_expression" => node

@@ -1,6 +1,5 @@
 /// Helper utilities for AST navigation and common extraction patterns
 use crate::base::Visibility;
-use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
 
 /// Common helper methods for finding and extracting node information
@@ -165,31 +164,5 @@ impl super::RazorExtractor {
     /// Check if a node is valid (not empty, not an error)
     pub(super) fn is_valid_node(&self, node: &Node) -> bool {
         !node.kind().is_empty() && !node.is_error()
-    }
-
-    /// Check if a node (or any descendant) contains an invocation_expression.
-    /// Used to skip extracting razor expressions that are actually method calls.
-    pub(super) fn contains_invocation(&self, node: Node) -> bool {
-        self.contains_invocation_at_depth(node, 0)
-    }
-
-    fn contains_invocation_at_depth(&self, node: Node, depth: u32) -> bool {
-        if !should_visit_tree_depth(depth) {
-            return false;
-        }
-
-        if node.kind() == "invocation_expression" {
-            return true;
-        }
-        let Some(child_depth) = child_tree_depth(depth) else {
-            return false;
-        };
-        let mut cursor = node.walk();
-        for child in node.children(&mut cursor) {
-            if self.contains_invocation_at_depth(child, child_depth) {
-                return true;
-            }
-        }
-        false
     }
 }

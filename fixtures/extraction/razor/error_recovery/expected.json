@@ -1,0 +1,466 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/razor/error_recovery/Panel.razor:@namespace:1:0",
+      "name": "@namespace",
+      "kind": "import",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/error_recovery/Panel.razor",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 1,
+      "start_byte": 0,
+      "end_byte": 1,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "@namespace App.Shared",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/razor/error_recovery/Panel.razor:@namespace:1:0",
+      "metadata": {
+        "directiveType": "namespace",
+        "directiveValue": "App.Shared",
+        "type": "razor-token-directive"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/razor/error_recovery/Panel.razor:@namespace:1:0",
+      "name": "@namespace",
+      "kind": "import",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/error_recovery/Panel.razor",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 21,
+      "start_byte": 0,
+      "end_byte": 21,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "@namespace App.Shared",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "directiveName": "namespace",
+        "directiveValue": "App.Shared",
+        "type": "razor-directive"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/razor/error_recovery/Panel.razor:@namespace:1:1",
+      "name": "@namespace",
+      "kind": "import",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/error_recovery/Panel.razor",
+      "start_line": 1,
+      "start_column": 1,
+      "end_line": 1,
+      "end_column": 10,
+      "start_byte": 1,
+      "end_byte": 10,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "@namespace App.Shared",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/razor/error_recovery/Panel.razor:@namespace:1:0",
+      "metadata": {
+        "directiveType": "namespace",
+        "directiveValue": "App.Shared",
+        "type": "razor-token-directive"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/razor/error_recovery/Panel.razor:Close:8:4",
+      "name": "Close",
+      "kind": "method",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/error_recovery/Panel.razor",
+      "start_line": 8,
+      "start_column": 4,
+      "end_line": 8,
+      "end_column": 35,
+      "start_byte": 194,
+      "end_byte": 225,
+      "body_span": {
+        "start_line": 8,
+        "start_column": 25,
+        "end_line": 8,
+        "end_column": 34,
+        "start_byte": 215,
+        "end_byte": 224
+      },
+      "body_hash": "2921a30d83cf18d62a95b79d260f462f",
+      "signature": "private void Close()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/razor/error_recovery/Panel.razor:Panel:1:0",
+      "metadata": {
+        "attributes": "",
+        "modifiers": "private",
+        "parameters": "()",
+        "returnType": "void",
+        "type": "method"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/razor/error_recovery/Panel.razor:Panel:1:0",
+      "name": "Panel",
+      "kind": "class",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/error_recovery/Panel.razor",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 10,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 228,
+      "body_span": {
+        "start_line": 6,
+        "start_column": 6,
+        "end_line": 9,
+        "end_column": 1,
+        "start_byte": 132,
+        "end_byte": 227
+      },
+      "body_hash": "d91031ec533286515c7f4006ec60829d",
+      "signature": "component App.Shared.Panel",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "qualifiedName": "App.Shared.Panel",
+        "type": "razor-component"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/razor/error_recovery/Panel.razor:Title:7:4",
+      "name": "Title",
+      "kind": "property",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/error_recovery/Panel.razor",
+      "start_line": 7,
+      "start_column": 4,
+      "end_line": 7,
+      "end_column": 55,
+      "start_byte": 138,
+      "end_byte": 189,
+      "body_span": {
+        "start_line": 7,
+        "start_column": 36,
+        "end_line": 7,
+        "end_column": 49,
+        "start_byte": 170,
+        "end_byte": 183
+      },
+      "body_hash": "128b54e8907b5ba0159a370391345ae3",
+      "signature": "[Parameter] public string Title = \"\"",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/razor/error_recovery/Panel.razor:Panel:1:0",
+      "metadata": {
+        "attributes": "[Parameter]",
+        "modifiers": "public",
+        "propertyType": "string",
+        "type": "property"
+      },
+      "annotations": [
+        {
+          "annotation": "Parameter",
+          "annotation_key": "parameter",
+          "raw_text": "Parameter"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/razor/error_recovery/Panel.razor:Close:8:4",
+      "callee_name": "Hide",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/razor/error_recovery/Panel.razor",
+      "line_number": 8,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/razor/error_recovery/Panel.razor:Close:8:4",
+        "callee_name": "Hide",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/razor/error_recovery/Panel.razor",
+        "line_number": 8,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Hide",
+        "terminal_name": "Hide",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/razor/error_recovery/Panel.razor:Close:8:4",
+      "span": {
+        "start_line": 8,
+        "start_column": 28,
+        "end_line": 8,
+        "end_column": 32,
+        "start_byte": 218,
+        "end_byte": 222
+      }
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/razor/error_recovery/Panel.razor:App:type_usage:1:11",
+      "name": "App",
+      "kind": "type_usage",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/error_recovery/Panel.razor",
+      "start_line": 1,
+      "start_column": 11,
+      "end_line": 1,
+      "end_column": 14,
+      "start_byte": 11,
+      "end_byte": 14,
+      "containing_key": "fixtures/extraction/razor/error_recovery/Panel.razor:Panel:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/razor/error_recovery/Panel.razor:Hide:call:8:28",
+      "name": "Hide",
+      "kind": "call",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/error_recovery/Panel.razor",
+      "start_line": 8,
+      "start_column": 28,
+      "end_line": 8,
+      "end_column": 32,
+      "start_byte": 218,
+      "end_byte": 222,
+      "containing_key": "fixtures/extraction/razor/error_recovery/Panel.razor:Close:8:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/razor/error_recovery/Panel.razor:Shared:type_usage:1:15",
+      "name": "Shared",
+      "kind": "type_usage",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/error_recovery/Panel.razor",
+      "start_line": 1,
+      "start_column": 15,
+      "end_line": 1,
+      "end_column": 21,
+      "start_byte": 15,
+      "end_byte": 21,
+      "containing_key": "fixtures/extraction/razor/error_recovery/Panel.razor:Panel:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/razor/error_recovery/Panel.razor:Title:variable_ref:4:20",
+      "name": "Title",
+      "kind": "variable_ref",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/error_recovery/Panel.razor",
+      "start_line": 4,
+      "start_column": 20,
+      "end_line": 4,
+      "end_column": 25,
+      "start_byte": 113,
+      "end_byte": 118,
+      "containing_key": "fixtures/extraction/razor/error_recovery/Panel.razor:Panel:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/razor/error_recovery/Panel.razor:Title:7:4",
+      "resolved_type": "string",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "razor",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [
+    {
+      "kind": "Error",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 10,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 228
+    }
+  ],
+  "structural_facts": [
+    {
+      "pattern_id": "razor.code_block.v1",
+      "capture_name": "code_block",
+      "node_kind": "razor_block",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/error_recovery/Panel.razor",
+      "containing_key": "fixtures/extraction/razor/error_recovery/Panel.razor:Panel:1:0",
+      "start_line": 6,
+      "start_column": 0,
+      "end_line": 9,
+      "end_column": 1,
+      "start_byte": 126,
+      "end_byte": 227,
+      "confidence": "1.000",
+      "metadata": {
+        "block_type": "code",
+        "framework": "razor",
+        "pattern_version": 1,
+        "query_family": "component_code"
+      }
+    },
+    {
+      "pattern_id": "razor.template_expression.v1",
+      "capture_name": "template_expression",
+      "node_kind": "razor_implicit_expression",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/error_recovery/Panel.razor",
+      "containing_key": "fixtures/extraction/razor/error_recovery/Panel.razor:Panel:1:0",
+      "start_line": 4,
+      "start_column": 19,
+      "end_line": 4,
+      "end_column": 25,
+      "start_byte": 112,
+      "end_byte": 118,
+      "confidence": "1.000",
+      "metadata": {
+        "expression": "Title",
+        "framework": "razor",
+        "implicit": true,
+        "pattern_version": 1,
+        "query_family": "component_template"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/error_recovery/Panel.razor",
+      "covered_lines": 10,
+      "covered_bytes": 228,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 10,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 228,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/razor/error_recovery/Panel.razor:Close:8:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/error_recovery/Panel.razor",
+      "covered_lines": 1,
+      "covered_bytes": 9,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 8,
+      "start_column": 25,
+      "end_line": 8,
+      "end_column": 34,
+      "start_byte": 215,
+      "end_byte": 224,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [
+    {
+      "kind": "doc_comment",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/error_recovery/Panel.razor",
+      "containing_key": null,
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 69,
+      "start_byte": 23,
+      "end_byte": 92,
+      "metadata": null
+    },
+    {
+      "kind": "embedded",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/error_recovery/Panel.razor",
+      "containing_key": null,
+      "start_line": 6,
+      "start_column": 0,
+      "end_line": 9,
+      "end_column": 1,
+      "start_byte": 126,
+      "end_byte": 227,
+      "metadata": {
+        "block_type": "code",
+        "embedded_language": "csharp",
+        "host_node_kind": "razor_block"
+      }
+    },
+    {
+      "kind": "string_literal",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/error_recovery/Panel.razor",
+      "containing_key": "fixtures/extraction/razor/error_recovery/Panel.razor:Title:7:4",
+      "start_line": 7,
+      "start_column": 52,
+      "end_line": 7,
+      "end_column": 54,
+      "start_byte": 186,
+      "end_byte": 188,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
+}

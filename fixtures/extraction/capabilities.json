@@ -5730,7 +5730,7 @@
       "capabilities": {
         "symbols": true,
         "relationships": true,
-        "pending_relationships": false,
+        "pending_relationships": true,
         "identifiers": true,
         "types": true
       },
@@ -5819,36 +5819,47 @@
           "name": "agent_usefulness",
           "source": "fixtures/extraction/razor/agent_usefulness/source.razor",
           "expected": "fixtures/extraction/razor/agent_usefulness/expected.json"
+        },
+        {
+          "name": "members",
+          "source": "fixtures/extraction/razor/members/Counter.razor",
+          "expected": "fixtures/extraction/razor/members/expected.json"
+        },
+        {
+          "name": "error_recovery",
+          "source": "fixtures/extraction/razor/error_recovery/Panel.razor",
+          "expected": "fixtures/extraction/razor/error_recovery/expected.json"
+        },
+        {
+          "name": "razor_pages",
+          "source": "fixtures/extraction/razor/razor_pages/Pages/Orders/Edit.cshtml",
+          "expected": "fixtures/extraction/razor/razor_pages/expected.json"
         }
       ],
       "target_capabilities": {
         "symbols": true,
         "relationships": true,
-        "pending_relationships": false,
+        "pending_relationships": true,
         "identifiers": true,
         "types": true
       },
-      "capability_gaps": [
-        {
-          "capability": "pending_relationships",
-          "status": "exception",
-          "reason": "Razor cross-file references resolve through the embedded C# pipeline, not Razor’s own pending path. Locked by razor_pending_relationships_handled_by_csharp_embed test (Phase 4b.razor).",
-          "required_closure": "N/A — domain classification. Locking test in crates/julie-extractors/src/tests/razor/cross_file_pending.rs enforces no-pending classification.",
-          "evidence": {
-            "kind": "test",
-            "value": "razor_pending_relationships_handled_by_csharp_embed",
-            "command": "cargo nextest run -p julie-extractors --lib tests::razor::cross_file_pending::razor_pending_relationships_handled_by_csharp_embed"
-          }
-        }
-      ],
+      "capability_gaps": [],
       "kind_coverage": {
         "symbols": {
           "supported": [
             "class",
+            "constant",
+            "constructor",
+            "delegate",
+            "enum",
+            "enum_member",
+            "event",
             "field",
             "import",
+            "interface",
             "method",
             "property",
+            "struct",
             "variable"
           ],
           "not_applicable": [],
@@ -5857,6 +5868,7 @@
         "relationships": {
           "supported": [
             "calls",
+            "implements",
             "uses"
           ],
           "not_applicable": [],
@@ -5865,6 +5877,7 @@
         "identifiers": {
           "supported": [
             "call",
+            "type_usage",
             "variable_ref"
           ],
           "not_applicable": [],
@@ -5915,6 +5928,7 @@
         },
         "doc_comments": {
           "supported": [
+            "enum",
             "import"
           ],
           "not_applicable": [],

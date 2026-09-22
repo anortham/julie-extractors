@@ -1,40 +1,6 @@
 {
   "symbols": [
     {
-      "key": "fixtures/extraction/razor/attribute-expressions/rendermode-explicit/source.razor:new:1:12",
-      "name": "new",
-      "kind": "variable",
-      "language": "razor",
-      "file_path": "fixtures/extraction/razor/attribute-expressions/rendermode-explicit/source.razor",
-      "start_line": 1,
-      "start_column": 12,
-      "end_line": 1,
-      "end_column": 64,
-      "start_byte": 12,
-      "end_byte": 64,
-      "body_span": {
-        "start_line": 1,
-        "start_column": 13,
-        "end_line": 1,
-        "end_column": 64,
-        "start_byte": 13,
-        "end_byte": 64
-      },
-      "body_hash": "2adc0b565eda8c306aa75baf2292d610",
-      "signature": "@@(new InteractiveServerRenderMode(prerender: false))",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": null,
-      "metadata": {
-        "expression": "@(new InteractiveServerRenderMode(prerender: false))",
-        "type": "razor-expression"
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
       "key": "fixtures/extraction/razor/attribute-expressions/rendermode-explicit/source.razor:source:1:0",
       "name": "source",
       "kind": "class",
@@ -90,26 +56,7 @@
       "confidence": "1.000"
     }
   ],
-  "types": [
-    {
-      "symbol_key": "fixtures/extraction/razor/attribute-expressions/rendermode-explicit/source.razor:new:1:12",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/attribute-expressions/rendermode-explicit/source.razor:source:1:0",
-      "resolved_type": "unknown",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "razor",
-      "metadata": null
-    }
-  ],
+  "types": [],
   "parse_diagnostics": [],
   "structural_facts": [
     {

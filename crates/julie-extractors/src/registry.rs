@@ -291,7 +291,8 @@ define_structured_full_language_extractors![
         crate::powershell::PowerShellExtractor
     ),
     (extract_qml, "qml", crate::qml::QmlExtractor),
-    (extract_fsharp, "fsharp", crate::fsharp::FSharpExtractor)
+    (extract_fsharp, "fsharp", crate::fsharp::FSharpExtractor),
+    (extract_razor, "razor", crate::razor::RazorExtractor)
 ];
 
 /// Qt's QML `.pragma` directives live outside the JavaScript grammar, so the
@@ -413,10 +414,7 @@ define_structured_full_file_extractors![
     (extract_ruby, "ruby", crate::ruby::RubyExtractor)
 ];
 
-define_no_pending_extractors![
-    (extract_razor, "razor", crate::razor::RazorExtractor),
-    (extract_regex, "regex", crate::regex::RegexExtractor)
-];
+define_no_pending_extractors![(extract_regex, "regex", crate::regex::RegexExtractor)];
 
 /// Hand-written HTML extractor entry point. Phase 4b.html graduated HTML out
 /// of `define_no_pending_extractors!` so its
