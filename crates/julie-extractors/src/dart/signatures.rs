@@ -200,8 +200,16 @@ pub(super) fn extract_constructor_signature(node: &Node) -> Option<String> {
     // Extract constructor name - use consistent logic with extract_constructor
     let constructor_name = match node.kind() {
         "constant_constructor_signature" => {
-            // For const constructors, just get the first identifier
-            find_child_by_type(node, "identifier").map(|n| get_node_text(&n))?
+            let names: Vec<String> = node
+                .children(&mut node.walk())
+                .filter(|child| child.kind() == "identifier")
+                .take(2)
+                .map(|child| get_node_text(&child))
+                .collect();
+            if names.is_empty() {
+                return None;
+            }
+            names.join(".")
         }
         "factory_constructor_signature" => {
             // For factory constructors, may need class.name pattern

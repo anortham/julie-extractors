@@ -305,8 +305,20 @@ impl BaseExtractor {
     }
 
     fn should_search_ancestor_doc_comments(&self, ancestor: &Node) -> bool {
-        if matches!(self.language.as_str(), "dart" | "sql") {
+        if self.language == "sql" {
             return true;
+        }
+        if self.language == "dart" {
+            return matches!(
+                ancestor.kind(),
+                "class_member"
+                    | "declaration"
+                    | "initialized_identifier_list"
+                    | "method_declaration"
+                    | "method_signature"
+                    | "static_final_declaration_list"
+                    | "top_level_variable_declaration"
+            );
         }
 
         matches!(

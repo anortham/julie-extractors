@@ -3981,6 +3981,11 @@
           "name": "return_types",
           "source": "fixtures/extraction/dart/return_types/source.dart",
           "expected": "fixtures/extraction/dart/return_types/expected.json"
+        },
+        {
+          "name": "structure",
+          "source": "fixtures/extraction/dart/structure/source.dart",
+          "expected": "fixtures/extraction/dart/structure/expected.json"
         }
       ],
       "target_capabilities": {
@@ -3995,11 +4000,13 @@
         "symbols": {
           "supported": [
             "class",
+            "constant",
             "constructor",
             "field",
             "function",
             "import",
             "method",
+            "property",
             "variable"
           ],
           "not_applicable": [],
@@ -4016,6 +4023,7 @@
         "identifiers": {
           "supported": [
             "call",
+            "member_access",
             "type_usage",
             "variable_ref"
           ],
@@ -4027,7 +4035,8 @@
             "class",
             "constructor",
             "function",
-            "method"
+            "method",
+            "property"
           ],
           "not_applicable": [
             "field",
@@ -4061,6 +4070,9 @@
         },
         "doc_comments": {
           "supported": [
+            "class",
+            "constant",
+            "field",
             "function",
             "variable"
           ],

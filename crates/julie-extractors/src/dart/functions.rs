@@ -130,6 +130,9 @@ fn extract_callable_with_kind(
         },
     );
 
+    record_return_type(base, &symbol.id, &target);
+    clear_bodyless_span(&mut symbol, node);
+
     // Add async annotation
     if is_async {
         symbol
@@ -204,6 +207,9 @@ pub(super) fn extract_method(
         },
     );
 
+    record_return_type(base, &symbol.id, &target_node);
+    clear_bodyless_span(&mut symbol, node);
+
     // Add metadata
     symbol
         .metadata
@@ -233,10 +239,12 @@ pub(super) fn extract_method(
     Some(symbol)
 }
 
-/// Extract constructor
+/// Extract a constructor from its signature node. The symbol spans `anchor`:
+/// the whole member when the signature has a body or initializer list.
 pub(super) fn extract_constructor(
     base: &mut BaseExtractor,
     node: &Node,
+    anchor: &Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
     // Extract constructor name more precisely
@@ -253,10 +261,6 @@ pub(super) fn extract_constructor(
                 return None;
             }
             identifiers.join(".")
-        }
-        "constant_constructor_signature" => {
-            // Const constructor: const ClassName(...) or const ClassName.namedConstructor(...)
-            find_child_by_type(node, "identifier").map(|n| get_node_text(&n))?
         }
         _ => {
             // Regular constructor or named constructor
@@ -290,7 +294,7 @@ pub(super) fn extract_constructor(
     let annotation_keys = annotation_keys(&annotations);
 
     let mut symbol = base.create_symbol(
-        node,
+        anchor,
         constructor_name,
         SymbolKind::Constructor,
         SymbolOptions {
@@ -299,9 +303,11 @@ pub(super) fn extract_constructor(
             parent_id: parent_id.map(|id| id.to_string()),
             metadata: Some(HashMap::new()),
             annotations,
-            doc_comment: base.find_doc_comment(node),
+            doc_comment: base.find_doc_comment(anchor),
         },
     );
+
+    clear_bodyless_span(&mut symbol, anchor);
 
     // Add metadata
     symbol
@@ -385,6 +391,12 @@ pub(super) fn extract_variable(
 
     None
 }
+fn record_return_type(base: &mut BaseExtractor, symbol_id: &str, signature: &Node) {
+    if let Some(return_type) = signature.child_by_field_name("return_type") {
+        super::type_facts::record_declared_type(base, symbol_id, return_type);
+    }
+}
+
 fn annotation_keys(annotations: &[AnnotationMarker]) -> Vec<String> {
     annotations
         .iter()
