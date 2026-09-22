@@ -573,3 +573,87 @@ fn the_check_path_accepts_vendor_and_deprecation_macros() {
     assert!(diagnostics.is_empty(), "{diagnostics:?}");
     assert!(raw_cpp_parse_has_errors(VENDOR_PROBE));
 }
+
+const INITIALIZER_PROBE: &str = r#"static const char *names[] = {
+    QT_TR_NOOP("One"),
+    QT_TRANSLATE_NOOP("Ctx", "Two"),
+    Q_NULLPTR
+};
+"#;
+
+const INVOKE_PROBE: &str = r#"void f(QObject *obj, int &out)
+{
+    QMetaObject::invokeMethod(obj, "m",
+        Q_ARG(int, 5),
+        Q_RETURN_ARG(int, out));
+}
+"#;
+
+const DECL_ATTRIBUTE_PROBE: &str = r#"class Foo
+{
+public:
+    Foo() Q_DECL_EQ_DELETE;
+    QString h() const Q_DECL_NOEXCEPT;
+    void f() Q_DECL_OVERRIDE;
+};
+"#;
+
+#[test]
+fn a_line_leading_macro_call_in_an_initializer_list_is_untouched() {
+    let blanked = blank_macros(INITIALIZER_PROBE).expect("Q_NULLPTR should be blanked");
+    let sites = scan(INITIALIZER_PROBE);
+
+    assert!(blanked.contains("QT_TR_NOOP(\"One\"),"), "{blanked}");
+    assert!(
+        blanked.contains("QT_TRANSLATE_NOOP(\"Ctx\", \"Two\"),"),
+        "{blanked}"
+    );
+    assert_eq!(sites.len(), 1);
+    assert_eq!(sites[0].name, "Q_NULLPTR");
+}
+
+#[test]
+fn line_leading_argument_macros_in_a_call_are_untouched() {
+    assert_eq!(blank_macros(INVOKE_PROBE), None);
+    assert!(scan(INVOKE_PROBE).is_empty());
+}
+
+#[test]
+fn a_trailing_declaration_attribute_macro_becomes_spaces() {
+    let blanked = blank_macros(DECL_ATTRIBUTE_PROBE).expect("Q_DECL_ macros should be blanked");
+    let sites = scan(DECL_ATTRIBUTE_PROBE);
+
+    assert_eq!(
+        blanked,
+        format!(
+            "class Foo\n{{\npublic:\n    Foo(){};\n    QString h() const{};\n    void f(){};\n}};\n",
+            " ".repeat(17),
+            " ".repeat(16),
+            " ".repeat(16)
+        )
+    );
+    let names = sites
+        .iter()
+        .map(|site| site.name.as_str())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        names,
+        vec!["Q_DECL_EQ_DELETE", "Q_DECL_NOEXCEPT", "Q_DECL_OVERRIDE"]
+    );
+}
+
+#[test]
+#[cfg(feature = "syntax-api")]
+fn the_check_path_accepts_a_line_leading_macro_call_in_an_initializer_list() {
+    let diagnostics = check_diagnostics("names.cpp", INITIALIZER_PROBE);
+
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+}
+
+#[test]
+#[cfg(feature = "syntax-api")]
+fn the_check_path_accepts_trailing_declaration_attribute_macros() {
+    let diagnostics = check_diagnostics("foo.h", DECL_ATTRIBUTE_PROBE);
+
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+}

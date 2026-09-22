@@ -174,8 +174,16 @@ fn identifier(
         return (end, None);
     }
 
+    if is_declaration_attribute_macro(word) {
+        let (end_byte, arguments, kind) = macro_extent(content, bytes, end);
+        return (end_byte, site(kind, word, arguments, end_byte));
+    }
+
     if is_specifier_prefix(prefix) && is_qt_macro_name(word) {
         let (end_byte, arguments, kind) = macro_extent(content, bytes, end);
+        if kind == MacroKind::Prefix && !declaration_follows(bytes, end_byte) {
+            return (end, None);
+        }
         return (end_byte, site(kind, word, arguments, end_byte));
     }
 
@@ -228,6 +236,16 @@ fn is_qt_macro_name(word: &str) -> bool {
         .or_else(|| word.strip_prefix("QT_"))
         .or_else(|| word.strip_prefix("Q_"))
         .is_some_and(|rest| !rest.is_empty() && rest.bytes().all(is_macro_body_byte))
+}
+
+/// `Q_DECL_*` expands to a keyword, an attribute, `= default`, `= delete` or
+/// nothing, so it is blanked wherever it stands; `Q_DECL_EXPORT` and
+/// `Q_DECL_IMPORT` keep the export handling instead.
+fn is_declaration_attribute_macro(word: &str) -> bool {
+    !matches!(word, "Q_DECL_EXPORT" | "Q_DECL_IMPORT")
+        && word
+            .strip_prefix("Q_DECL_")
+            .is_some_and(|rest| !rest.is_empty() && rest.bytes().all(is_macro_body_byte))
 }
 
 fn is_deprecation_macro_name(word: &str) -> bool {
