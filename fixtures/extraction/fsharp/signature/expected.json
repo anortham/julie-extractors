@@ -86,13 +86,13 @@
       "end_byte": 160,
       "body_span": {
         "start_line": 3,
-        "start_column": 14,
-        "end_line": 3,
-        "end_column": 40,
-        "start_byte": 32,
-        "end_byte": 58
+        "start_column": 0,
+        "end_line": 8,
+        "end_column": 35,
+        "start_byte": 18,
+        "end_byte": 160
       },
-      "body_hash": "bb89e025444331fe0e99a91ecbd9de6c",
+      "body_hash": "4fc1239fcc8c5b83db22604a350536e3",
       "signature": "namespace Domain",
       "doc_comment": null,
       "visibility": "Public",
@@ -194,8 +194,15 @@
       "end_column": 35,
       "start_byte": 60,
       "end_byte": 160,
-      "body_span": null,
-      "body_hash": null,
+      "body_span": {
+        "start_line": 6,
+        "start_column": 2,
+        "end_line": 8,
+        "end_column": 35,
+        "start_byte": 78,
+        "end_byte": 160
+      },
+      "body_hash": "b7dac23417354b3696bd1d6a8f72dac3",
       "signature": "module Values =",
       "doc_comment": null,
       "visibility": "Public",
@@ -212,6 +219,22 @@
   "structured_pending_relationships": [],
   "identifiers": [
     {
+      "key": "fixtures/extraction/fsharp/signature/source.fsi:int:type_usage:3:35",
+      "name": "int",
+      "kind": "type_usage",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/signature/source.fsi",
+      "start_line": 3,
+      "start_column": 35,
+      "end_line": 3,
+      "end_column": 38,
+      "start_byte": 53,
+      "end_byte": 56,
+      "containing_key": "fixtures/extraction/fsharp/signature/source.fsi:Age:3:30",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/fsharp/signature/source.fsi:int:type_usage:6:15",
       "name": "int",
       "kind": "type_usage",
@@ -223,7 +246,7 @@
       "end_column": 18,
       "start_byte": 91,
       "end_byte": 94,
-      "containing_key": "fixtures/extraction/fsharp/signature/source.fsi:Domain:1:0",
+      "containing_key": "fixtures/extraction/fsharp/signature/source.fsi:Answer:6:2",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -288,6 +311,22 @@
       "start_byte": 147,
       "end_byte": 150,
       "containing_key": "fixtures/extraction/fsharp/signature/source.fsi:Format:8:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/fsharp/signature/source.fsi:string:type_usage:3:22",
+      "name": "string",
+      "kind": "type_usage",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/signature/source.fsi",
+      "start_line": 3,
+      "start_column": 22,
+      "end_line": 3,
+      "end_column": 28,
+      "start_byte": 40,
+      "end_byte": 46,
+      "containing_key": "fixtures/extraction/fsharp/signature/source.fsi:Name:3:16",
       "target_key": null,
       "confidence": "1.000"
     },

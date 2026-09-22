@@ -105,7 +105,7 @@ pub fn extract_class(
 
     let name = base.get_node_text(&name_node);
     let modifiers = helpers::extract_modifiers(base, &node);
-    let visibility = helpers::determine_visibility(&modifiers, None);
+    let visibility = helpers::determine_visibility(&modifiers, &node);
 
     let mut signature = if modifiers.is_empty() {
         format!("class {}", name)
@@ -137,7 +137,7 @@ pub fn extract_class(
     }
 
     let mut metadata = HashMap::new();
-    let csharp_visibility = helpers::get_csharp_visibility_string(&modifiers);
+    let csharp_visibility = helpers::get_csharp_visibility_string(&modifiers, &visibility);
     metadata.insert(
         "csharp_visibility".to_string(),
         serde_json::Value::String(csharp_visibility),
@@ -172,7 +172,7 @@ pub fn extract_interface(
 
     let name = base.get_node_text(&name_node);
     let modifiers = helpers::extract_modifiers(base, &node);
-    let visibility = helpers::determine_visibility(&modifiers, None);
+    let visibility = helpers::determine_visibility(&modifiers, &node);
 
     let mut signature = if modifiers.is_empty() {
         format!("interface {}", name)
@@ -232,7 +232,7 @@ pub fn extract_struct(
 
     let name = base.get_node_text(&name_node);
     let modifiers = helpers::extract_modifiers(base, &node);
-    let visibility = helpers::determine_visibility(&modifiers, None);
+    let visibility = helpers::determine_visibility(&modifiers, &node);
 
     let mut signature = if modifiers.is_empty() {
         format!("struct {}", name)
@@ -281,7 +281,7 @@ pub fn extract_enum(
 
     let name = base.get_node_text(&name_node);
     let modifiers = helpers::extract_modifiers(base, &node);
-    let visibility = helpers::determine_visibility(&modifiers, None);
+    let visibility = helpers::determine_visibility(&modifiers, &node);
 
     let mut signature = if modifiers.is_empty() {
         format!("enum {}", name)
@@ -367,7 +367,7 @@ pub fn extract_record(
 
     let name = base.get_node_text(&name_node);
     let modifiers = helpers::extract_modifiers(base, &node);
-    let visibility = helpers::determine_visibility(&modifiers, None);
+    let visibility = helpers::determine_visibility(&modifiers, &node);
 
     let is_struct = modifiers.contains(&"struct".to_string())
         || node.children(&mut cursor).any(|c| c.kind() == "struct");

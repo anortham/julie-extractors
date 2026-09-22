@@ -98,7 +98,11 @@ fn csharp14_and_file_app_fixture_parses_cleanly_with_canonical_rows() {
     }));
 
     assert_identifier(&results, "List", IdentifierKind::TypeUsage);
-    assert_identifier(&results, "nameof", IdentifierKind::Call);
+    assert!(
+        !results.identifiers.iter().any(
+            |identifier| identifier.name == "nameof" && identifier.kind == IdentifierKind::Call
+        )
+    );
 
     assert_symbol(&results, "Message", SymbolKind::Property);
     assert_identifier(&results, "value", IdentifierKind::VariableRef);

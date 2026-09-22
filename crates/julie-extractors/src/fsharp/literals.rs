@@ -1,22 +1,18 @@
 use super::FSharpExtractor;
-use crate::base::{BaseExtractor, ContainingSymbolIndex, NormalizedSpan};
+use super::calls::Scope;
+use crate::base::{BaseExtractor, NormalizedSpan};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
 
 pub(super) fn collect_literals(
     extractor: &mut FSharpExtractor,
     root: Node,
-    containing_symbols: &ContainingSymbolIndex<'_>,
+    containing_symbols: &Scope<'_>,
 ) {
     walk(extractor, root, containing_symbols, 0);
 }
 
-fn walk(
-    extractor: &mut FSharpExtractor,
-    node: Node,
-    containing_symbols: &ContainingSymbolIndex<'_>,
-    depth: u32,
-) {
+fn walk(extractor: &mut FSharpExtractor, node: Node, containing_symbols: &Scope<'_>, depth: u32) {
     if !should_visit_tree_depth(depth) {
         return;
     }

@@ -23,10 +23,40 @@ cargo xtask test golden
 ## Visibility
 
 Explicit `internal` declarations publish `visibility = "internal"`; class
-metadata also records `csharp_visibility = "internal"`. Explicit `private` and
-member declarations without a visibility modifier remain `"private"`. The
-`fixtures/extraction/csharp/basic` fixture covers internal classes,
-constructors, methods, properties, and fields alongside private controls.
+metadata also records `csharp_visibility = "internal"`. A declaration with no
+visibility modifier takes the C# default for its position:
+
+| Position | Default |
+| --- | --- |
+| Type declared in a namespace or at file level | `internal` |
+| Interface member, enum member | `public` |
+| Any other member, including constructors and nested types | `private` |
+
+The `fixtures/extraction/csharp/basic` fixture covers internal classes,
+constructors, methods, properties, and fields alongside private controls, and
+an interface whose members publish `public`.
+
+## Body spans
+
+The body span is the declaration's own body node: the block, the `=>` arrow
+clause, the accessor list, or the member list. Abstract, extern, interface,
+and partial-definition methods, delegates, fields, locals, parameters, and
+records without a body publish no body span and no body hash. A `foreach`
+loop variable spans its `Type name` header, not the whole loop.
+
+## Base lists and calls
+
+- A base-list edge starts at the declaring type and targets a type symbol
+  only. The target name is the bare type name: `RepositoryBase<Order>`
+  targets `RepositoryBase`, and `System.Exception` targets `Exception` with
+  namespace path `["System"]`. Primary-constructor arguments are not bases.
+- A generic call (`Create<T>()`) is a `call` identifier named `Create`. Its
+  type arguments ride on that identifier, and the name is not a `type_usage`.
+- A null-conditional call (`x?.M()`) is a call with receiver `x`.
+- `base.M()` targets the base type's `M` when that type is in the file.
+  Otherwise it is a pending call with receiver `base` and `receiver_type` set
+  to the first base-list type.
+- `nameof(x)` is not a call.
 
 ## Test roles
 

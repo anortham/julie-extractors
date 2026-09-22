@@ -606,9 +606,12 @@ namespace MyProject
             .find(|s| s.signature.as_ref().unwrap().contains("static"));
         assert!(static_constructor.is_some());
 
-        let default_constructor = constructors
-            .iter()
-            .find(|s| s.signature.as_ref().unwrap().contains("Configuration()"));
+        let default_constructor = constructors.iter().find(|s| {
+            s.signature
+                .as_ref()
+                .unwrap()
+                .contains("public Configuration()")
+        });
         assert!(default_constructor.is_some());
         assert_eq!(
             default_constructor

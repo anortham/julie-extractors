@@ -3,6 +3,7 @@ use crate::base::{
     extract_type_arguments,
 };
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
+use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
 pub fn extract_identifiers(
@@ -10,7 +11,10 @@ pub fn extract_identifiers(
     tree: &Tree,
     symbols: &[Symbol],
 ) -> Vec<Identifier> {
-    let containing_symbols = base.containing_symbol_index(symbols);
+    let containing_symbols = Scope {
+        index: base.containing_symbol_index(symbols),
+        symbols,
+    };
     walk_tree_for_identifiers(base, tree.root_node(), &containing_symbols, 0);
     base.identifiers.clone()
 }
@@ -18,7 +22,7 @@ pub fn extract_identifiers(
 fn walk_tree_for_identifiers(
     base: &mut BaseExtractor,
     node: Node,
-    containing_symbols: &ContainingSymbolIndex<'_>,
+    containing_symbols: &Scope<'_>,
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
@@ -38,38 +42,42 @@ fn walk_tree_for_identifiers(
 fn extract_identifier_from_node(
     base: &mut BaseExtractor,
     node: Node,
-    containing_symbols: &ContainingSymbolIndex<'_>,
+    containing_symbols: &Scope<'_>,
 ) {
     match node.kind() {
-        "invocation_expression" | "invocation" => {
-            let mut cursor = node.walk();
-            for child in node.children(&mut cursor) {
-                if child.kind() == "identifier" {
-                    let name = base.get_node_text(&child);
-                    let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+        "invocation_expression" | "invocation" | "element_access" | "call_statement" => {
+            let Some(callee) = super::helpers::call_callee(node) else {
+                return;
+            };
+            if super::helpers::misparsed_new_root(callee).is_some() {
+                return;
+            }
+            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+            match callee.kind() {
+                "identifier" => {
+                    let name = base.get_node_text(&callee);
                     base.create_identifier(
-                        &child,
+                        &callee,
                         name,
                         IdentifierKind::Call,
                         containing_symbol_id,
                     );
-                    break;
-                } else if child.kind() == "member_access_expression"
-                    || child.kind() == "member_access"
-                {
-                    let name_node = child.child_by_field_name("member").or_else(|| {
-                        let mut mc = child.walk();
-                        let children: Vec<_> = child.children(&mut mc).collect();
-                        children
-                            .into_iter()
-                            .rev()
-                            .find(|c| c.kind() == "identifier")
-                    });
-                    if let Some(name_node) = name_node {
+                }
+                "implicit_member_access" => {
+                    if let Some(member) = callee.child_by_field_name("member") {
+                        create_with_member_identifier(
+                            base,
+                            callee,
+                            member,
+                            IdentifierKind::Call,
+                            containing_symbol_id,
+                        );
+                    }
+                }
+                _ => {
+                    if let Some(name_node) = callee.child_by_field_name("member") {
                         let name = base.get_node_text(&name_node);
-                        let containing_symbol_id =
-                            find_containing_symbol_id(node, containing_symbols);
-                        let receiver_type = self_receiver_type(base, child);
+                        let receiver_type = self_receiver_type(base, callee);
                         base.create_identifier_with_receiver_type(
                             &name_node,
                             name,
@@ -78,17 +86,32 @@ fn extract_identifier_from_node(
                             receiver_type,
                         );
                     }
-                    break;
                 }
             }
-            // Phase 3: capture string-literal call-arguments (config-free; the
-            // carrier classification + gate happen in the artifact language-policy pass).
-            record_vbnet_call_arg_literals(base, node, containing_symbols);
+            if matches!(node.kind(), "invocation" | "invocation_expression") {
+                // Phase 3: capture string-literal call-arguments (config-free; the
+                // carrier classification + gate happen in the artifact language-policy pass).
+                record_vbnet_call_arg_literals(base, node, containing_symbols);
+            }
         }
         "member_access_expression" | "member_access" => {
-            if let Some(parent) = node.parent()
-                && (parent.kind() == "invocation_expression" || parent.kind() == "invocation")
-            {
+            if super::helpers::misparsed_new_root(node).is_some() {
+                let is_outermost = node
+                    .parent()
+                    .is_none_or(|parent| parent.kind() != "member_access");
+                if is_outermost && let Some(member) = node.child_by_field_name("member") {
+                    let name = base.get_node_text(&member);
+                    let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+                    base.create_identifier(
+                        &member,
+                        name,
+                        IdentifierKind::TypeUsage,
+                        containing_symbol_id,
+                    );
+                }
+                return;
+            }
+            if super::helpers::is_call_callee(node) {
                 return;
             }
 
@@ -105,11 +128,43 @@ fn extract_identifier_from_node(
                 );
             }
         }
+        "null_conditional_member_access" | "implicit_member_access" => {
+            if super::helpers::is_call_callee(node) {
+                return;
+            }
+            if let Some(member) = node.child_by_field_name("member") {
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+                if node.kind() == "implicit_member_access" {
+                    create_with_member_identifier(
+                        base,
+                        node,
+                        member,
+                        IdentifierKind::MemberAccess,
+                        containing_symbol_id,
+                    );
+                } else {
+                    let name = base.get_node_text(&member);
+                    base.create_identifier(
+                        &member,
+                        name,
+                        IdentifierKind::MemberAccess,
+                        containing_symbol_id,
+                    );
+                }
+            }
+        }
 
-        "namespace_name" if is_return_type_namespace(node) => {
-            let name = base.get_node_text(&node);
-            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
-            base.create_identifier(&node, name, IdentifierKind::TypeUsage, containing_symbol_id);
+        "namespace_name" if is_type_position_namespace(node) => {
+            if let Some(name_node) = terminal_identifier(node) {
+                let name = base.get_node_text(&name_node);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+                base.create_identifier(
+                    &name_node,
+                    name,
+                    IdentifierKind::TypeUsage,
+                    containing_symbol_id,
+                );
+            }
         }
 
         // VB.NET generic type use site: `List(Of String)`, `Dictionary(Of String, Integer)`
@@ -130,10 +185,11 @@ fn extract_identifier_from_node(
             let Some(name_node) = children.iter().find(|c| c.kind() == "namespace_name") else {
                 return;
             };
-            let name = base.get_node_text(name_node);
+            let name_node = terminal_identifier(*name_node).unwrap_or(*name_node);
+            let name = base.get_node_text(&name_node);
             let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
             let identifier = base.create_identifier(
-                name_node,
+                &name_node,
                 name,
                 IdentifierKind::TypeUsage,
                 containing_symbol_id,
@@ -195,7 +251,11 @@ fn is_vbnet_value_read_identifier(node: Node) -> bool {
         }
         // `.Member` inside a With block: a member name, never a bare variable read
         // (mirrors the C# member_binding_expression exclusion).
-        "implicit_member_access" => false,
+        "implicit_member_access" | "null_conditional_member_access" => {
+            parent.child_by_field_name("object").map(|o| o.id()) == Some(node.id())
+        }
+        // A parenless call statement (, ) names a callee.
+        "call_statement" => false,
 
         // Rule 2/3: namespace/type name positions — imports, `As` clauses, `New T`,
         // generic bases and type arguments, qualified names, inheritance clauses.
@@ -317,11 +377,17 @@ fn decompose_vbnet_type_arg<'a>(
     }
 }
 
-fn find_containing_symbol_id(
-    node: Node,
-    containing_symbols: &ContainingSymbolIndex<'_>,
-) -> Option<String> {
-    containing_symbols.find(node).map(|s| s.id.clone())
+/// Symbols for containment: the enclosing member declaration wins over the
+/// span-priority index, which ranks a type above operators and properties.
+struct Scope<'a> {
+    index: ContainingSymbolIndex<'a>,
+    symbols: &'a [Symbol],
+}
+
+fn find_containing_symbol_id(node: Node, containing_symbols: &Scope<'_>) -> Option<String> {
+    super::helpers::enclosing_member_symbol(node, containing_symbols.symbols)
+        .or_else(|| containing_symbols.index.find(node))
+        .map(|s| s.id.clone())
 }
 
 // ============================================================================
@@ -338,7 +404,7 @@ fn find_containing_symbol_id(
 fn record_vbnet_call_arg_literals(
     base: &mut BaseExtractor,
     node: Node,
-    containing_symbols: &ContainingSymbolIndex<'_>,
+    containing_symbols: &Scope<'_>,
 ) {
     let Some(target) = node.child_by_field_name("target") else {
         return;
@@ -515,20 +581,77 @@ fn declared_base_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
     None
 }
 
-fn is_return_type_namespace(node: Node) -> bool {
-    if node
-        .parent()
-        .is_some_and(|parent| parent.kind() == "generic_type")
-    {
-        return false;
-    }
-    let mut current = node;
-    while let Some(parent) = current.parent() {
-        if let Some(return_type) = parent.child_by_field_name("return_type") {
-            return node.start_byte() >= return_type.start_byte()
-                && node.end_byte() <= return_type.end_byte();
+/// Emits a `.Member` identifier inside a `With` block, with the `With`
+/// target as its receiver.
+fn create_with_member_identifier(
+    base: &mut BaseExtractor,
+    access: Node,
+    member: Node,
+    kind: IdentifierKind,
+    containing_symbol_id: Option<String>,
+) {
+    let name = base.get_node_text(&member);
+    let receiver = super::helpers::with_target(access)
+        .filter(|target| {
+            matches!(
+                target.kind(),
+                "identifier" | "member_access" | "me_expression"
+            )
+        })
+        .map(|target| base.get_node_text(&target));
+    match receiver {
+        Some(receiver) => {
+            let metadata =
+                HashMap::from([("receiver".to_string(), serde_json::Value::String(receiver))]);
+            base.create_identifier_with_metadata(
+                &member,
+                name,
+                kind,
+                containing_symbol_id,
+                metadata,
+            );
         }
-        current = parent;
+        None => {
+            base.create_identifier(&member, name, kind, containing_symbol_id);
+        }
     }
-    false
+}
+
+fn terminal_identifier(namespace_name: Node) -> Option<Node> {
+    let mut cursor = namespace_name.walk();
+    namespace_name
+        .named_children(&mut cursor)
+        .filter(|child| child.kind() == "identifier")
+        .last()
+}
+
+/// True when a `namespace_name` names a type: an `As` clause, `New`, cast,
+/// `TypeOf`, `GetType`, `Catch`, a type-level `Inherits`/`Implements`, a
+/// return type, or a type argument. Imports, namespaces, attributes,
+/// `Handles`, member-level `Implements`, generic bases (owned by the
+/// `generic_type` arm), and the bare `New` of a misparsed `New A.B.C` are not.
+fn is_type_position_namespace(node: Node) -> bool {
+    let Some(parent) = node.parent() else {
+        return false;
+    };
+    match parent.kind() {
+        "generic_type" | "attribute" | "handles_clause" | "imports_statement"
+        | "namespace_block" => false,
+        "implements_clause" => parent.parent().is_some_and(|owner| {
+            matches!(
+                owner.kind(),
+                "class_block" | "structure_block" | "interface_block" | "module_block"
+            )
+        }),
+        "new_expression" => {
+            !(super::helpers::is_bare_new(parent)
+                && parent.parent().is_some_and(|owner| {
+                    owner.kind() == "member_access"
+                        && owner
+                            .child_by_field_name("object")
+                            .is_some_and(|object| object.id() == parent.id())
+                }))
+        }
+        _ => true,
+    }
 }

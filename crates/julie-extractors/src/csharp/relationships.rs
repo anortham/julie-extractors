@@ -83,42 +83,43 @@ fn extract_inheritance_relationships(
     symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
 ) {
-    // Phase 1: Collect all data using immutable borrow of extractor
-    let (current_symbol_id, base_types, file_path, line_number) = {
+    let declaration_start = node.start_byte() as u32;
+    let Some(current_symbol) = symbols
+        .iter()
+        .find(|s| s.start_byte == declaration_start && is_type_symbol(s))
+    else {
+        return;
+    };
+    let current_symbol_id = current_symbol.id.clone();
+    let (base_targets, file_path, line_number) = {
         let base = extractor.get_base();
         let mut cursor = node.walk();
-        let name_node = node
-            .children(&mut cursor)
-            .find(|c| c.kind() == "identifier");
-        let Some(name_node) = name_node else { return };
-
-        let current_symbol_name = base.get_node_text(&name_node);
-        let Some(current_symbol) = symbols.iter().find(|s| s.name == current_symbol_name) else {
+        let Some(base_list) = node.children(&mut cursor).find(|c| c.kind() == "base_list") else {
             return;
         };
-
-        let base_list = node.children(&mut cursor).find(|c| c.kind() == "base_list");
-        let Some(base_list) = base_list else { return };
-
         let mut base_cursor = base_list.walk();
-        let base_types: Vec<String> = base_list
-            .children(&mut base_cursor)
-            .filter(|c| c.kind() != ":" && c.kind() != ",")
-            .map(|c| base.get_node_text(&c))
+        let targets: Vec<UnresolvedTarget> = base_list
+            .named_children(&mut base_cursor)
+            .filter_map(|entry| base_type_target(base, entry))
             .collect();
-
         (
-            current_symbol.id.clone(),
-            base_types,
+            targets,
             base.file_path.clone(),
             (node.start_position().row + 1) as u32,
         )
     };
 
-    // Phase 2: Create relationships (may need &mut extractor for pending)
-    for base_type_name in base_types {
-        if let Some(base_symbol) = symbols.iter().find(|s| s.name == base_type_name) {
-            // Same-file: we know the target's kind, so we can resolve directly
+    for target in base_targets {
+        let local_base = target
+            .namespace_path
+            .is_empty()
+            .then(|| {
+                symbols
+                    .iter()
+                    .find(|s| s.name == target.terminal_name && is_type_symbol(s))
+            })
+            .flatten();
+        if let Some(base_symbol) = local_base {
             let relationship_kind = if base_symbol.kind == SymbolKind::Interface {
                 RelationshipKind::Implements
             } else {
@@ -144,11 +145,8 @@ fn extract_inheritance_relationships(
                 metadata: None,
             });
         } else {
-            // Cross-file: base type is defined in another file.
-            // Use terminal identifier with C# naming convention (IFoo = interface)
-            // so qualified names like Namespace.IFoo still infer Implements.
-            let inferred_name = terminal_identifier(&base_type_name);
-            let relationship_kind = if is_interface_name(inferred_name) {
+            // Cross-file: C# naming convention (IFoo = interface) picks the kind.
+            let relationship_kind = if is_interface_name(&target.terminal_name) {
                 RelationshipKind::Implements
             } else {
                 RelationshipKind::Extends
@@ -156,7 +154,7 @@ fn extract_inheritance_relationships(
 
             let pending = extractor.get_base().create_pending_relationship(
                 current_symbol_id.clone(),
-                UnresolvedTarget::simple(base_type_name),
+                target,
                 relationship_kind,
                 &node,
                 Some(current_symbol_id.clone()),
@@ -167,16 +165,80 @@ fn extract_inheritance_relationships(
     }
 }
 
+fn is_type_symbol(symbol: &Symbol) -> bool {
+    matches!(
+        symbol.kind,
+        SymbolKind::Class
+            | SymbolKind::Interface
+            | SymbolKind::Struct
+            | SymbolKind::Enum
+            | SymbolKind::Type
+            | SymbolKind::Delegate
+    )
+}
+
+/// The target of one base-list entry: the bare type name as terminal, with
+/// any qualifier as the namespace path. Primary-constructor arguments are not
+/// types and yield `None`.
+fn base_type_target(
+    base: &crate::base::BaseExtractor,
+    entry: tree_sitter::Node,
+) -> Option<UnresolvedTarget> {
+    let type_node = if entry.kind() == "primary_constructor_base_type" {
+        entry.child_by_field_name("type")?
+    } else {
+        entry
+    };
+    let mut parts = Vec::new();
+    collect_type_name_parts(base, type_node, &mut parts)?;
+    let terminal_name = parts.pop()?;
+    let display_name = parts
+        .iter()
+        .chain(std::iter::once(&terminal_name))
+        .cloned()
+        .collect::<Vec<_>>()
+        .join(".");
+    Some(UnresolvedTarget {
+        display_name,
+        terminal_name,
+        receiver: None,
+        namespace_path: parts,
+        import_context: None,
+    })
+}
+
+fn collect_type_name_parts(
+    base: &crate::base::BaseExtractor,
+    node: tree_sitter::Node,
+    parts: &mut Vec<String>,
+) -> Option<()> {
+    match node.kind() {
+        "identifier" => parts.push(base.get_node_text(&node)),
+        "generic_name" => {
+            let mut cursor = node.walk();
+            let name = node
+                .children(&mut cursor)
+                .find(|child| child.kind() == "identifier")?;
+            parts.push(base.get_node_text(&name));
+        }
+        "qualified_name" => {
+            collect_type_name_parts(base, node.child_by_field_name("qualifier")?, parts)?;
+            collect_type_name_parts(base, node.child_by_field_name("name")?, parts)?;
+        }
+        "alias_qualified_name" => {
+            collect_type_name_parts(base, node.child_by_field_name("name")?, parts)?;
+        }
+        _ => return None,
+    }
+    Some(())
+}
+
 /// Check if a type name follows C# interface naming convention (IFoo).
 /// Requires 'I' prefix followed by an uppercase letter to avoid false positives
 /// with regular names like "Item" or "Index".
 fn is_interface_name(name: &str) -> bool {
     let mut chars = name.chars();
     matches!((chars.next(), chars.next()), (Some('I'), Some(c)) if c.is_ascii_uppercase())
-}
-
-fn terminal_identifier(name: &str) -> &str {
-    name.rsplit('.').next().unwrap_or(name)
 }
 
 /// Extract constructor parameter type relationships (DI injection pattern)
@@ -240,8 +302,13 @@ fn extract_constructor_parameter_relationships(
     // Phase 2: Create relationships, deduplicating across constructor overloads.
     // A class only needs one Uses edge per type, regardless of how many constructors use it.
     let file_path = extractor.get_base().file_path.clone();
+    let type_symbols: Vec<Symbol> = symbols
+        .iter()
+        .filter(|s| is_type_symbol(s))
+        .cloned()
+        .collect();
     let symbol_map: std::collections::HashMap<String, &Symbol> =
-        crate::base::ScopedSymbolIndex::unique_symbol_map(symbols);
+        crate::base::ScopedSymbolIndex::unique_symbol_map(&type_symbols);
 
     // Collect already-existing Uses targets for this class (from earlier constructors)
     let mut seen: std::collections::HashSet<String> = relationships
@@ -419,57 +486,96 @@ fn extract_call_relationships(
     symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
 ) {
-    // In C#, method calls can be:
-    // 1. Direct identifier call: Method()
-    // 2. Member access call: Helper.Process()
-    // The node can be either an invocation_expression or a member_access_expression
-
+    let Some(function) = node.child_by_field_name("function") else {
+        return;
+    };
     let method_name = {
         let base = extractor.get_base();
-        match node.kind() {
-            "identifier" => base.get_node_text(&node),
-            "member_access_expression" => {
-                // For something like Helper.Process(), find the method name (last identifier)
-                let mut method_cursor = node.walk();
-                let children: Vec<_> = node.children(&mut method_cursor).collect();
-                children
-                    .iter()
-                    .rev()
-                    .find(|c| c.kind() == "identifier")
-                    .map(|n| base.get_node_text(n))
-                    .unwrap_or_default()
-            }
+        match function.kind() {
+            "identifier" => base.get_node_text(&function),
             _ => {
-                // For invocation_expression, get the first child which is the function/method
-                let mut cursor = node.walk();
-                let children: Vec<_> = node.children(&mut cursor).collect();
-                if let Some(first_child) = children.first() {
-                    match first_child.kind() {
-                        "identifier" => base.get_node_text(first_child),
-                        "member_access_expression" => {
-                            let mut method_cursor = first_child.walk();
-                            let children: Vec<_> =
-                                first_child.children(&mut method_cursor).collect();
-                            children
-                                .iter()
-                                .rev()
-                                .find(|c| c.kind() == "identifier")
-                                .map(|n| base.get_node_text(n))
-                                .unwrap_or_default()
-                        }
-                        _ => String::new(),
-                    }
-                } else {
-                    String::new()
-                }
+                let mut parts = Vec::new();
+                collect_chain_parts(extractor, node, 0, &mut parts);
+                parts.pop().unwrap_or_default()
             }
         }
     };
-
-    if !method_name.is_empty() {
-        let target = unresolved_call_target(extractor, node, &method_name);
-        handle_call_target(extractor, node, target, symbols, relationships);
+    if method_name.is_empty() || (function.kind() == "identifier" && method_name == "nameof") {
+        return;
     }
+
+    if is_base_receiver(function) {
+        handle_base_call(extractor, node, &method_name, symbols, relationships);
+        return;
+    }
+    let target = unresolved_call_target(extractor, node, &method_name);
+    handle_call_target(extractor, node, target, symbols, relationships);
+}
+
+fn is_base_receiver(function: tree_sitter::Node) -> bool {
+    function.kind() == "member_access_expression"
+        && function
+            .child(0)
+            .is_some_and(|receiver| receiver.kind() == "base")
+}
+
+/// `base.M()` targets the base type's `M`, never the calling override.
+fn handle_base_call(
+    extractor: &mut CSharpExtractor,
+    call_node: tree_sitter::Node,
+    method_name: &str,
+    symbols: &[Symbol],
+    relationships: &mut Vec<Relationship>,
+) {
+    let base = extractor.get_base();
+    let Some(caller) = base.find_containing_symbol(&call_node, symbols).cloned() else {
+        return;
+    };
+    let receiver_type = super::identifiers::self_receiver_type(base, call_node);
+    let base_member = receiver_type.as_deref().and_then(|type_name| {
+        symbols.iter().find(|candidate| {
+            candidate.name == method_name
+                && candidate.id != caller.id
+                && candidate.parent_id.as_deref().is_some_and(|parent_id| {
+                    symbols.iter().any(|owner| {
+                        owner.id == parent_id && owner.name == type_name && is_type_symbol(owner)
+                    })
+                })
+        })
+    });
+    if let Some(called_symbol) = base_member {
+        relationships.push(Relationship {
+            id: format!(
+                "{}_{}_{:?}_{}",
+                caller.id,
+                called_symbol.id,
+                RelationshipKind::Calls,
+                call_node.start_position().row
+            ),
+            from_symbol_id: caller.id.clone(),
+            to_symbol_id: called_symbol.id.clone(),
+            kind: RelationshipKind::Calls,
+            file_path: base.file_path.clone(),
+            line_number: call_node.start_position().row as u32 + 1,
+            span: Some(crate::base::NormalizedSpan::from_node(&call_node)),
+            reference_site_is_exact: false,
+            confidence: 0.9,
+            metadata: None,
+        });
+        return;
+    }
+    let target = UnresolvedTarget::from_chain(vec!["base".to_string(), method_name.to_string()]);
+    let pending = base
+        .create_pending_relationship(
+            caller.id.clone(),
+            target,
+            RelationshipKind::Calls,
+            &call_node,
+            Some(caller.id.clone()),
+            Some(0.7),
+        )
+        .with_receiver_type(receiver_type);
+    extractor.add_structured_pending_relationship(pending);
 }
 
 /// Handle a call target - create Relationship or PendingRelationship based on target type
@@ -612,7 +718,11 @@ fn collect_chain_parts(
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         match child.kind() {
-            "member_access_expression" => collect_chain_parts(extractor, child, child_depth, parts),
+            "member_access_expression"
+            | "conditional_access_expression"
+            | "member_binding_expression" => {
+                collect_chain_parts(extractor, child, child_depth, parts)
+            }
             "identifier" => parts.push(base.get_node_text(&child)),
             "generic_name" => {
                 let mut generic_cursor = child.walk();

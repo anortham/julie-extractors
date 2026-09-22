@@ -22,7 +22,7 @@ pub(super) fn extract_local_function(
 
     let name = base.get_node_text(&name_node);
     let modifiers = helpers::extract_modifiers(base, &node);
-    let visibility = helpers::determine_visibility(&modifiers, None);
+    let visibility = helpers::determine_visibility(&modifiers, &node);
 
     let return_type = node
         .child_by_field_name("type")

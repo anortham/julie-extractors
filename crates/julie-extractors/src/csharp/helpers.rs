@@ -2,7 +2,9 @@
 //
 // Collection of utility functions for parsing C# AST nodes and extracting metadata
 
-use crate::base::{AnnotationMarker, BaseExtractor, Visibility, normalize_annotations};
+use crate::base::{
+    AnnotationMarker, BaseExtractor, BodySpan, NormalizedSpan, Visibility, normalize_annotations,
+};
 use tree_sitter::Node;
 
 /// Extract modifiers from a node (attributes and modifiers)
@@ -41,18 +43,56 @@ pub fn extract_annotations(base: &BaseExtractor, node: &Node) -> Vec<AnnotationM
     normalize_annotations(&raw_attributes, "csharp")
 }
 
-/// Determine visibility from modifiers
-pub fn determine_visibility(modifiers: &[String], node_type: Option<&str>) -> Visibility {
-    let default = if node_type == Some("constructor_declaration") {
-        Visibility::Public
-    } else {
-        Visibility::Private
-    };
-    crate::base::visibility::visibility_from_modifiers_with_default(modifiers, default)
+/// Determine visibility from modifiers, falling back to the C# default for
+/// the declaration's position: interface and enum members are public,
+/// namespace-level types are internal, and every other member is private.
+pub fn determine_visibility(modifiers: &[String], node: &Node) -> Visibility {
+    crate::base::visibility::visibility_from_modifiers_with_default(
+        modifiers,
+        default_visibility(node),
+    )
+}
+
+fn default_visibility(node: &Node) -> Visibility {
+    let container = node
+        .parent()
+        .filter(|parent| {
+            matches!(
+                parent.kind(),
+                "declaration_list" | "enum_member_declaration_list"
+            )
+        })
+        .and_then(|list| list.parent())
+        .or_else(|| node.parent());
+    match container.map(|container| container.kind()) {
+        Some("interface_declaration" | "enum_declaration" | "enum_member_declaration_list") => {
+            Visibility::Public
+        }
+        Some(
+            "compilation_unit"
+            | "namespace_declaration"
+            | "file_scoped_namespace_declaration"
+            | "global_statement",
+        ) if is_type_declaration(node) => Visibility::Internal,
+        _ => Visibility::Private,
+    }
+}
+
+fn is_type_declaration(node: &Node) -> bool {
+    matches!(
+        node.kind(),
+        "class_declaration"
+            | "interface_declaration"
+            | "struct_declaration"
+            | "record_declaration"
+            | "record_struct_declaration"
+            | "enum_declaration"
+            | "delegate_declaration"
+    )
 }
 
 /// Get C# visibility string including internal
-pub fn get_csharp_visibility_string(modifiers: &[String]) -> String {
+pub fn get_csharp_visibility_string(modifiers: &[String], visibility: &Visibility) -> String {
     if modifiers.contains(&"public".to_string()) {
         "public".to_string()
     } else if modifiers.contains(&"private".to_string()) {
@@ -62,7 +102,7 @@ pub fn get_csharp_visibility_string(modifiers: &[String]) -> String {
     } else if modifiers.contains(&"internal".to_string()) {
         "internal".to_string()
     } else {
-        "private".to_string() // Default
+        visibility.as_storage_str().to_string()
     }
 }
 
@@ -75,7 +115,7 @@ pub fn extract_base_list(base: &BaseExtractor, node: &Node) -> Vec<String> {
         let mut base_cursor = base_list.walk();
         base_list
             .children(&mut base_cursor)
-            .filter(|c| c.kind() != ":" && c.kind() != ",")
+            .filter(|c| c.is_named() && c.kind() != "argument_list")
             .map(|c| base.get_node_text(&c))
             .collect()
     } else {
@@ -189,4 +229,38 @@ pub fn extract_field_type(base: &BaseExtractor, node: &Node) -> Option<String> {
     });
 
     type_node.map(|node| base.get_node_text(&node))
+}
+
+/// The body span of a C# declaration node: the block, arrow clause, accessor
+/// list, or member list. Abstract, extern, interface, and partial-definition
+/// members, delegates, fields, locals, and bodyless records have none.
+pub(super) fn body_span(node: &Node, _content: &str) -> Option<BodySpan> {
+    let body = match node.kind() {
+        "namespace_declaration"
+        | "class_declaration"
+        | "interface_declaration"
+        | "struct_declaration"
+        | "record_declaration"
+        | "record_struct_declaration"
+        | "enum_declaration"
+        | "method_declaration"
+        | "constructor_declaration"
+        | "destructor_declaration"
+        | "operator_declaration"
+        | "conversion_operator_declaration"
+        | "local_function_statement"
+        | "lambda_expression"
+        | "anonymous_method_expression"
+        | "accessor_declaration"
+        | "extension_declaration" => node.child_by_field_name("body").or_else(|| {
+            let mut cursor = node.walk();
+            node.children(&mut cursor)
+                .find(|child| child.kind() == "arrow_expression_clause")
+        }),
+        "property_declaration" | "indexer_declaration" | "event_declaration" => node
+            .child_by_field_name("accessors")
+            .or_else(|| node.child_by_field_name("value")),
+        _ => None,
+    }?;
+    Some(NormalizedSpan::from_node(&body))
 }

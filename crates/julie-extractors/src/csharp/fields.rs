@@ -20,7 +20,7 @@ pub fn extract_fields(
     parent_id: Option<String>,
 ) -> Vec<Symbol> {
     let modifiers = helpers::extract_modifiers(base, &node);
-    let visibility = helpers::determine_visibility(&modifiers, None);
+    let visibility = helpers::determine_visibility(&modifiers, &node);
     let field_type = helpers::extract_field_type(base, &node).unwrap_or_else(|| "var".to_string());
     let annotations = helpers::extract_annotations(base, &node);
 
@@ -125,7 +125,7 @@ pub fn extract_events(
         .collect();
 
     let modifiers = helpers::extract_modifiers(base, &node);
-    let visibility = helpers::determine_visibility(&modifiers, None);
+    let visibility = helpers::determine_visibility(&modifiers, &node);
     let annotations = helpers::extract_annotations(base, &node);
 
     let mut type_cursor = var_declaration.walk();

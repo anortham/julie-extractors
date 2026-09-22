@@ -1,6 +1,7 @@
 use super::FSharpExtractor;
+use super::calls::{self, Scope};
 use super::literals;
-use crate::base::{BaseExtractor, ContainingSymbolIndex, Identifier, IdentifierKind, Symbol};
+use crate::base::{BaseExtractor, Identifier, IdentifierKind, Symbol};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashSet;
 use tree_sitter::{Node, Tree};
@@ -12,7 +13,7 @@ pub(super) fn extract_identifiers(
 ) -> Vec<Identifier> {
     extractor.base().identifiers.clear();
     extractor.base().literals.clear();
-    let containing_symbols = extractor.base().containing_symbol_index(symbols);
+    let containing_symbols = Scope::new(symbols);
     let mut seen = HashSet::new();
     walk(
         extractor,
@@ -28,7 +29,7 @@ pub(super) fn extract_identifiers(
 fn walk(
     extractor: &mut FSharpExtractor,
     node: Node,
-    containing_symbols: &ContainingSymbolIndex<'_>,
+    containing_symbols: &Scope<'_>,
     seen: &mut HashSet<(IdentifierKind, u32, u32)>,
     depth: u32,
 ) {
@@ -37,9 +38,12 @@ fn walk(
     }
 
     match node.kind() {
-        "application_expression" if !is_nested_application(node) => {
-            if let Some((name_node, name)) = call_head(extractor.base(), node) {
-                emit(
+        "application_expression" | "infix_expression" => {
+            let callee = calls::call_callee(node, &extractor.base.content);
+            if let Some(callee) = callee
+                && let Some((name_node, name)) = call_head(extractor.base(), callee)
+            {
+                let identifier = emit(
                     extractor,
                     name_node,
                     name,
@@ -47,9 +51,21 @@ fn walk(
                     containing_symbols,
                     seen,
                 );
+                if let Some(identifier) = identifier
+                    && let Some(types_node) = calls::callee_type_arguments(callee)
+                {
+                    let arguments = crate::base::extract_type_arguments(
+                        extractor.base(),
+                        types_node,
+                        decompose_type_argument,
+                    );
+                    extractor
+                        .base()
+                        .record_type_arguments(&identifier, arguments);
+                }
             }
         }
-        "dot_expression" if !is_within_call_head(node) => {
+        "dot_expression" if !calls::is_within_callee(node, &extractor.base.content) => {
             if let Some(field_node) = node.child_by_field_name("field")
                 && let Some(name_node) = terminal_identifier(field_node)
             {
@@ -65,7 +81,9 @@ fn walk(
             }
         }
         "long_identifier_or_op"
-            if !is_within_call_head(node) && !is_type_node(node) && is_member_path(node) =>
+            if !calls::is_within_callee(node, &extractor.base.content)
+                && !is_type_node(node)
+                && is_member_path(node) =>
         {
             if let Some(name_node) = terminal_identifier(node) {
                 let name = extractor.base().get_node_text(&name_node);
@@ -74,6 +92,19 @@ fn walk(
                     name_node,
                     name,
                     IdentifierKind::MemberAccess,
+                    containing_symbols,
+                    seen,
+                );
+            }
+        }
+        "identifier_pattern" if is_union_case_pattern(node, &extractor.base.content) => {
+            if let Some(name_node) = first_named_child(node).and_then(terminal_identifier) {
+                let name = extractor.base().get_node_text(&name_node);
+                emit(
+                    extractor,
+                    name_node,
+                    name,
+                    IdentifierKind::VariableRef,
                     containing_symbols,
                     seen,
                 );
@@ -108,7 +139,7 @@ fn walk(
                 );
             }
         }
-        "identifier" if is_value_read(node) => {
+        "identifier" if is_value_read(node, &extractor.base.content) => {
             let name = extractor.base().get_node_text(&node);
             emit(
                 extractor,
@@ -134,7 +165,7 @@ fn walk(
 fn emit_generic_type(
     extractor: &mut FSharpExtractor,
     node: Node,
-    containing_symbols: &ContainingSymbolIndex<'_>,
+    containing_symbols: &Scope<'_>,
     seen: &mut HashSet<(IdentifierKind, u32, u32)>,
 ) {
     let Some(type_node) = first_named_child(node) else {
@@ -208,7 +239,7 @@ fn emit(
     node: Node,
     name: String,
     kind: IdentifierKind,
-    containing_symbols: &ContainingSymbolIndex<'_>,
+    containing_symbols: &Scope<'_>,
     seen: &mut HashSet<(IdentifierKind, u32, u32)>,
 ) -> Option<Identifier> {
     if name.trim().is_empty() {
@@ -246,9 +277,19 @@ fn emit(
     ))
 }
 
+/// The enclosing type name when a call's receiver is the member's own
+/// instance identifier (`this.Helper()` inside `member this.Run`).
 pub(super) fn instance_receiver_type(base: &BaseExtractor, node: Node) -> Option<String> {
-    let application = ancestor_kind(node, "application_expression")?;
-    let receiver = call_receiver_text(base, application)?;
+    let mut callee = node;
+    while let Some(parent) = callee.parent().filter(|parent| {
+        matches!(
+            parent.kind(),
+            "dot_expression" | "long_identifier_or_op" | "long_identifier"
+        )
+    }) {
+        callee = parent;
+    }
+    let receiver = callee_receiver_text(base, callee)?;
     let instance = enclosing_member_instance(base, node)?;
     if receiver != instance {
         return None;
@@ -256,10 +297,8 @@ pub(super) fn instance_receiver_type(base: &BaseExtractor, node: Node) -> Option
     enclosing_type_name(base, node)
 }
 
-fn call_receiver_text(base: &BaseExtractor, node: Node) -> Option<String> {
-    let head = first_named_child(node)?;
+fn callee_receiver_text(base: &BaseExtractor, head: Node) -> Option<String> {
     match head.kind() {
-        "application_expression" => call_receiver_text(base, head),
         "dot_expression" => {
             let receiver_node = head.child_by_field_name("base")?;
             let text = base.get_node_text(&receiver_node);
@@ -312,11 +351,11 @@ fn enclosing_member_instance(base: &BaseExtractor, node: Node) -> Option<String>
 }
 
 fn enclosing_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
-    let type_definition = ancestor_kind(node, "type_definition")?;
-    let mut cursor = type_definition.walk();
-    let body = type_definition.children(&mut cursor).find(|child| {
-        matches!(
-            child.kind(),
+    let mut current = node.parent();
+    let body = loop {
+        let candidate = current?;
+        if matches!(
+            candidate.kind(),
             "anon_type_defn"
                 | "delegate_type_defn"
                 | "enum_type_defn"
@@ -324,8 +363,11 @@ fn enclosing_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
                 | "record_type_defn"
                 | "type_abbrev_defn"
                 | "union_type_defn"
-        )
-    })?;
+        ) {
+            break candidate;
+        }
+        current = candidate.parent();
+    };
     let mut body_cursor = body.walk();
     let type_name = body
         .children(&mut body_cursor)
@@ -351,20 +393,13 @@ fn ancestor_kind<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
     None
 }
 
-fn call_head<'a>(base: &BaseExtractor, node: Node<'a>) -> Option<(Node<'a>, String)> {
-    let head = first_named_child(node)?;
+fn call_head<'a>(base: &BaseExtractor, head: Node<'a>) -> Option<(Node<'a>, String)> {
     match head.kind() {
-        "application_expression" => call_head(base, head),
         "dot_expression" => {
             let field = head.child_by_field_name("field")?;
             let name_node = terminal_identifier(field)?;
-            let receiver = head.child_by_field_name("base")?;
-            let name = format!(
-                "{}.{}",
-                base.get_node_text(&receiver).trim(),
-                base.get_node_text(&field).trim()
-            );
-            Some((name_node, name.rsplit('.').next()?.to_string()))
+            let name = base.get_node_text(&field);
+            Some((name_node, name.trim().rsplit('.').next()?.to_string()))
         }
         "long_identifier_or_op" | "long_identifier" => {
             let name_node = terminal_identifier(head)?;
@@ -374,22 +409,6 @@ fn call_head<'a>(base: &BaseExtractor, node: Node<'a>) -> Option<(Node<'a>, Stri
     }
 }
 
-fn is_nested_application(node: Node) -> bool {
-    node.parent()
-        .is_some_and(|parent| parent.kind() == "application_expression")
-}
-
-fn is_within_call_head(node: Node) -> bool {
-    let mut current = node;
-    while let Some(parent) = current.parent() {
-        if parent.kind() == "application_expression" {
-            return first_named_child(parent).is_some_and(|head| contains_node(head, node));
-        }
-        current = parent;
-    }
-    false
-}
-
 fn is_type_node(node: Node) -> bool {
     if in_declaration_name(node) || in_import(node) {
         return false;
@@ -397,6 +416,11 @@ fn is_type_node(node: Node) -> bool {
     let mut current = node;
     while let Some(parent) = current.parent() {
         if in_declaration_name(parent) || in_import(parent) {
+            return false;
+        }
+        if parent.kind() == "typed_expression"
+            && first_named_child(parent).is_some_and(|callee| callee.id() == current.id())
+        {
             return false;
         }
         if matches!(
@@ -428,11 +452,11 @@ fn is_type_node(node: Node) -> bool {
     false
 }
 
-fn is_value_read(node: Node) -> bool {
+fn is_value_read(node: Node, source: &str) -> bool {
     if in_declaration_name(node)
         || in_import(node)
         || is_type_node(node)
-        || is_within_call_head(node)
+        || calls::is_within_callee(node, source)
         || in_member_path(node)
         || is_dot_field(node)
         || in_pattern(node)
@@ -446,25 +470,49 @@ fn is_value_read(node: Node) -> bool {
 fn in_declaration_name(node: Node) -> bool {
     let mut current = node;
     while let Some(parent) = current.parent() {
-        if matches!(
-            parent.kind(),
-            "function_declaration_left"
-                | "value_declaration_left"
-                | "identifier_pattern"
-                | "type_name"
-                | "record_field"
-                | "union_type_case"
-                | "union_type_field"
-                | "property_or_ident"
-        ) {
-            return true;
+        if parent.kind() == "typed_pattern" && is_type_kind(current.kind()) {
+            return false;
         }
-        if matches!(parent.kind(), "named_module" | "namespace" | "module_defn") {
-            return first_named_child(parent).is_some_and(|name| contains_node(name, node));
+        match parent.kind() {
+            "record_field" | "union_type_field" => return current.kind() == "identifier",
+            "exception_definition" => {
+                return parent
+                    .child_by_field_name("exception_name")
+                    .is_some_and(|name| name.id() == current.id());
+            }
+            "function_declaration_left"
+            | "value_declaration_left"
+            | "identifier_pattern"
+            | "type_name"
+            | "union_type_case"
+            | "property_or_ident" => return true,
+            "named_module" | "namespace" | "module_defn" => {
+                return first_named_child(parent).is_some_and(|name| contains_node(name, node));
+            }
+            _ => {}
         }
         current = parent;
     }
     false
+}
+
+fn is_type_kind(kind: &str) -> bool {
+    matches!(
+        kind,
+        "simple_type"
+            | "generic_type"
+            | "atomic_type"
+            | "compound_type"
+            | "constrained_type"
+            | "flexible_type"
+            | "function_type"
+            | "list_type"
+            | "paren_type"
+            | "postfix_type"
+            | "static_type"
+            | "struct_type"
+            | "tuple_type"
+    )
 }
 
 fn in_import(node: Node) -> bool {
@@ -481,16 +529,56 @@ fn in_import(node: Node) -> bool {
 fn in_pattern(node: Node) -> bool {
     let mut current = node;
     while let Some(parent) = current.parent() {
-        if matches!(
-            parent.kind(),
+        match parent.kind() {
+            "rule" => {
+                return parent
+                    .child_by_field_name("pattern")
+                    .is_some_and(|pattern| pattern.id() == current.id());
+            }
+            "match_expression" => return false,
             "identifier_pattern"
-                | "typed_pattern"
-                | "record_pattern"
-                | "named_field_pattern"
-                | "type_check_pattern"
-                | "match_expression"
-        ) {
-            return parent.kind() != "typed_pattern" || current.kind() != "simple_type";
+            | "typed_pattern"
+            | "record_pattern"
+            | "named_field_pattern"
+            | "type_check_pattern" => {
+                return parent.kind() != "typed_pattern" || current.kind() != "simple_type";
+            }
+            _ => {}
+        }
+        current = parent;
+    }
+    false
+}
+
+/// The head of a match-rule pattern that names a union case: `Cash` in
+/// `| Cash amount ->`, or a bare capitalised case such as `| Empty ->`.
+fn is_union_case_pattern(node: Node, source: &str) -> bool {
+    let Some(head) = first_named_child(node).filter(|head| head.kind() == "long_identifier_or_op")
+    else {
+        return false;
+    };
+    if !in_rule_pattern(node) {
+        return false;
+    }
+    let has_arguments = node.named_child_count() > 1;
+    let is_capitalised = source
+        .get(head.start_byte()..head.end_byte())
+        .and_then(|text| text.rsplit('.').next())
+        .and_then(|name| name.chars().next())
+        .is_some_and(char::is_uppercase);
+    has_arguments || is_capitalised
+}
+
+fn in_rule_pattern(node: Node) -> bool {
+    let mut current = node;
+    while let Some(parent) = current.parent() {
+        if parent.kind() == "rule" {
+            return parent
+                .child_by_field_name("pattern")
+                .is_some_and(|pattern| pattern.id() == current.id());
+        }
+        if !parent.kind().ends_with("_pattern") {
+            return false;
         }
         current = parent;
     }

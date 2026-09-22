@@ -27,9 +27,9 @@ impl VbNetExtractor {
         content: String,
         workspace_root: &std::path::Path,
     ) -> Self {
-        Self {
-            base: BaseExtractor::new(language, file_path, content, workspace_root),
-        }
+        let mut base = BaseExtractor::new(language, file_path, content, workspace_root);
+        base.body_span_rule = Some(helpers::body_span);
+        Self { base }
     }
 
     pub fn get_pending_relationships(&self) -> Vec<PendingRelationship> {

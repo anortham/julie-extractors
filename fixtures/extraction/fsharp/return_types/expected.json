@@ -122,6 +122,22 @@
       "containing_key": "fixtures/extraction/fsharp/return_types/source.fs:make:2:0",
       "target_key": null,
       "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/fsharp/return_types/source.fs:int:type_usage:1:19",
+      "name": "int",
+      "kind": "type_usage",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/return_types/source.fs",
+      "start_line": 1,
+      "start_column": 19,
+      "end_line": 1,
+      "end_column": 22,
+      "start_byte": 19,
+      "end_byte": 22,
+      "containing_key": "fixtures/extraction/fsharp/return_types/source.fs:X:1:16",
+      "target_key": null,
+      "confidence": "1.000"
     }
   ],
   "types": [

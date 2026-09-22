@@ -82,14 +82,14 @@ fn pattern_roots(node: Node<'_>) -> Vec<Node<'_>> {
         }
         "function_or_value_defn" => {
             let mut cursor = node.walk();
-            let left = node
-                .children(&mut cursor)
-                .find(|child| child.kind() == "function_declaration_left");
-            let Some(left) = left else {
-                return Vec::new();
-            };
-            let mut left_cursor = left.walk();
-            left.children(&mut left_cursor)
+            node.children(&mut cursor)
+                .filter(|child| child.kind() == "function_declaration_left")
+                .flat_map(pattern_roots)
+                .collect()
+        }
+        "function_declaration_left" => {
+            let mut cursor = node.walk();
+            node.children(&mut cursor)
                 .filter(|child| child.kind() == "argument_patterns")
                 .collect()
         }

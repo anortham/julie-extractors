@@ -104,15 +104,8 @@
       "end_column": 37,
       "start_byte": 905,
       "end_byte": 938,
-      "body_span": {
-        "start_line": 38,
-        "start_column": 34,
-        "end_line": 38,
-        "end_column": 36,
-        "start_byte": 935,
-        "end_byte": 937
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "public partial FileAppCustomer()",
       "doc_comment": null,
       "visibility": "Public",
@@ -262,13 +255,13 @@
       "end_byte": 726,
       "body_span": {
         "start_line": 29,
-        "start_column": 42,
+        "start_column": 28,
         "end_line": 29,
         "end_column": 44,
-        "start_byte": 723,
+        "start_byte": 709,
         "end_byte": 725
       },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_hash": "5bc3ca7b3fe00e5faf12dc5f8c4eacfd",
       "signature": "public bool IsEmpty => !source.Any()",
       "doc_comment": null,
       "visibility": "Public",
@@ -473,18 +466,11 @@
       "end_column": 53,
       "start_byte": 525,
       "end_byte": 578,
-      "body_span": {
-        "start_line": 23,
-        "start_column": 25,
-        "end_line": 23,
-        "end_column": 52,
-        "start_byte": 550,
-        "end_byte": 577
-      },
-      "body_hash": "9cd7c74c43f72a46f6871cfc03c37dab",
+      "body_span": null,
+      "body_hash": null,
       "signature": "delegate bool TryParse<T>(string text, out T result)",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {},
       "annotations": [],
@@ -598,15 +584,8 @@
       "end_column": 34,
       "start_byte": 436,
       "end_byte": 466,
-      "body_span": {
-        "start_line": 18,
-        "start_column": 32,
-        "end_line": 18,
-        "end_column": 34,
-        "start_byte": 464,
-        "end_byte": 466
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "var counter = new MutableCounter()",
       "doc_comment": null,
       "visibility": "Private",
@@ -634,15 +613,8 @@
       "end_column": 36,
       "start_byte": 284,
       "end_byte": 316,
-      "body_span": {
-        "start_line": 14,
-        "start_column": 34,
-        "end_line": 14,
-        "end_column": 36,
-        "start_byte": 314,
-        "end_byte": 316
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "var customer = new FileAppCustomer()",
       "doc_comment": null,
       "visibility": "Private",
@@ -760,15 +732,8 @@
       "end_column": 74,
       "start_byte": 370,
       "end_byte": 430,
-      "body_span": {
-        "start_line": 17,
-        "start_column": 22,
-        "end_line": 17,
-        "end_column": 74,
-        "start_byte": 378,
-        "end_byte": 430
-      },
-      "body_hash": "2957a0929a7accda21a18a2f78e7521a",
+      "body_span": null,
+      "body_hash": null,
       "signature": "TryParse<int> parse = (text, out result) => int.TryParse(text, out result)",
       "doc_comment": null,
       "visibility": "Private",
@@ -1023,14 +988,6 @@
       "confidence": "0.900"
     },
     {
-      "from_key": "fixtures/extraction/csharp/csharp14/source.cs:FileAppCustomer:36:0",
-      "callee_name": "nameof",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/csharp/csharp14/source.cs",
-      "line_number": 45,
-      "confidence": "0.700"
-    },
-    {
       "from_key": "fixtures/extraction/csharp/csharp14/source.cs:Where:31:8",
       "callee_name": "Enumerable.Where",
       "kind": "calls",
@@ -1041,14 +998,6 @@
     {
       "from_key": "fixtures/extraction/csharp/csharp14/source.cs:fixtures/extraction/csharp/csharp14/source.cs:1:0",
       "callee_name": "Console.WriteLine",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/csharp/csharp14/source.cs",
-      "line_number": 12,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/csharp/csharp14/source.cs:fixtures/extraction/csharp/csharp14/source.cs:1:0",
-      "callee_name": "nameof",
       "kind": "calls",
       "file_path": "fixtures/extraction/csharp/csharp14/source.cs",
       "line_number": 12,
@@ -1118,32 +1067,6 @@
     },
     {
       "pending": {
-        "from_key": "fixtures/extraction/csharp/csharp14/source.cs:FileAppCustomer:36:0",
-        "callee_name": "nameof",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/csharp/csharp14/source.cs",
-        "line_number": 45,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "nameof",
-        "terminal_name": "nameof",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/csharp/csharp14/source.cs:FileAppCustomer:36:0",
-      "span": {
-        "start_line": 45,
-        "start_column": 64,
-        "end_line": 45,
-        "end_column": 77,
-        "start_byte": 1088,
-        "end_byte": 1101
-      }
-    },
-    {
-      "pending": {
         "from_key": "fixtures/extraction/csharp/csharp14/source.cs:Where:31:8",
         "callee_name": "Enumerable.Where",
         "kind": "calls",
@@ -1192,32 +1115,6 @@
         "end_column": 33,
         "start_byte": 244,
         "end_byte": 277
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/csharp/csharp14/source.cs:fixtures/extraction/csharp/csharp14/source.cs:1:0",
-        "callee_name": "nameof",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/csharp/csharp14/source.cs",
-        "line_number": 12,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "nameof",
-        "terminal_name": "nameof",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/csharp/csharp14/source.cs:fixtures/extraction/csharp/csharp14/source.cs:1:0",
-      "span": {
-        "start_line": 12,
-        "start_column": 18,
-        "end_line": 12,
-        "end_column": 32,
-        "start_byte": 262,
-        "end_byte": 276
       }
     },
     {
@@ -1825,38 +1722,6 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/csharp/csharp14/source.cs:nameof:call:12:18",
-      "name": "nameof",
-      "kind": "call",
-      "language": "csharp",
-      "file_path": "fixtures/extraction/csharp/csharp14/source.cs",
-      "start_line": 12,
-      "start_column": 18,
-      "end_line": 12,
-      "end_column": 24,
-      "start_byte": 262,
-      "end_byte": 268,
-      "containing_key": "fixtures/extraction/csharp/csharp14/source.cs:fixtures/extraction/csharp/csharp14/source.cs:1:0",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/csharp/csharp14/source.cs:nameof:call:45:64",
-      "name": "nameof",
-      "kind": "call",
-      "language": "csharp",
-      "file_path": "fixtures/extraction/csharp/csharp14/source.cs",
-      "start_line": 45,
-      "start_column": 64,
-      "end_line": 45,
-      "end_column": 70,
-      "start_byte": 1088,
-      "end_byte": 1094,
-      "containing_key": "fixtures/extraction/csharp/csharp14/source.cs:FileAppCustomer:36:0",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
       "key": "fixtures/extraction/csharp/csharp14/source.cs:predicate:variable_ref:32:37",
       "name": "predicate",
       "kind": "variable_ref",
@@ -2162,17 +2027,17 @@
       "language": "csharp",
       "file_path": "fixtures/extraction/csharp/csharp14/source.cs",
       "covered_lines": 1,
-      "covered_bytes": 2,
+      "covered_bytes": 33,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 0,
       "start_line": 38,
-      "start_column": 34,
+      "start_column": 4,
       "end_line": 38,
-      "end_column": 36,
-      "start_byte": 935,
-      "end_byte": 937,
+      "end_column": 37,
+      "start_byte": 905,
+      "end_byte": 938,
       "metadata": {
         "metric_version": 1
       }

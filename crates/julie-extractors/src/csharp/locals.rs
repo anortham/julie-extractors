@@ -1,7 +1,7 @@
 // Local variables and parameters for C# callables.
 
 use super::helpers;
-use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
+use crate::base::{BaseExtractor, NormalizedSpan, Symbol, SymbolKind, SymbolOptions, Visibility};
 use crate::tree_traversal::should_visit_bounded_depth;
 use std::collections::HashMap;
 use tree_sitter::Node;
@@ -344,8 +344,10 @@ fn extract_named_binding(
         "isInferred".to_string(),
         serde_json::json!(is_var || declared_type.is_none()),
     );
-    let symbol = base.create_symbol(
+    let span = loop_binding_span(node).unwrap_or_else(|| NormalizedSpan::from_node(&node));
+    let symbol = base.create_symbol_from_span(
         &node,
+        span,
         name.to_string(),
         SymbolKind::Variable,
         SymbolOptions {
@@ -548,4 +550,20 @@ fn is_loop_header_binding(node: Node<'_>) -> bool {
         }
     }
     false
+}
+
+/// The `Type name` header span of a foreach binding, so the loop variable
+/// does not span the whole loop.
+fn loop_binding_span(node: Node) -> Option<NormalizedSpan> {
+    if !matches!(node.kind(), "foreach_statement" | "for_each_statement") {
+        return None;
+    }
+    let left = node.child_by_field_name("left")?;
+    let start = node.child_by_field_name("type").unwrap_or(left);
+    let mut span = NormalizedSpan::from_node(&start);
+    let end = NormalizedSpan::from_node(&left);
+    span.end_line = end.end_line;
+    span.end_column = end.end_column;
+    span.end_byte = end.end_byte;
+    Some(span)
 }

@@ -12,8 +12,15 @@
       "end_column": 17,
       "start_byte": 0,
       "end_byte": 100,
-      "body_span": null,
-      "body_hash": null,
+      "body_span": {
+        "start_line": 2,
+        "start_column": 2,
+        "end_line": 7,
+        "end_column": 17,
+        "start_byte": 20,
+        "end_byte": 100
+      },
+      "body_hash": "4af9fb200af09ffff4a16eaac3f40d4f",
       "signature": "module Negative =",
       "doc_comment": null,
       "visibility": "Public",
@@ -291,7 +298,7 @@
       "end_column": 15,
       "start_byte": 32,
       "end_byte": 33,
-      "containing_key": "fixtures/extraction/fsharp/negative/source.fs:Negative:1:0",
+      "containing_key": "fixtures/extraction/fsharp/negative/source.fs:value:2:2",
       "confidence": "1.000"
     }
   ],
