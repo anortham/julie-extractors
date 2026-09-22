@@ -330,6 +330,53 @@ pub(crate) fn ecmascript_enclosing_class_name(
     None
 }
 
+/// The `receiver_type` of a `this`/`super` receiver: the enclosing class name
+/// for `this`, the declared base class name for `super`. Other receivers
+/// yield nothing.
+pub(crate) fn ecmascript_self_receiver_type(
+    base: &crate::base::BaseExtractor,
+    receiver: Node,
+) -> Option<String> {
+    match receiver.kind() {
+        "this" => ecmascript_enclosing_class_name(base, receiver),
+        "super" => {
+            let mut current = receiver.parent();
+            while let Some(candidate) = current {
+                if matches!(
+                    candidate.kind(),
+                    "class_declaration" | "abstract_class_declaration" | "class"
+                ) {
+                    return ecmascript_base_class_name(base, candidate);
+                }
+                current = candidate.parent();
+            }
+            None
+        }
+        _ => None,
+    }
+}
+
+fn ecmascript_base_class_name(base: &crate::base::BaseExtractor, class: Node) -> Option<String> {
+    let mut cursor = class.walk();
+    let heritage = class
+        .children(&mut cursor)
+        .find(|child| child.kind() == "class_heritage")?;
+    let mut heritage_cursor = heritage.walk();
+    let value = heritage
+        .named_children(&mut heritage_cursor)
+        .find_map(|child| match child.kind() {
+            "extends_clause" => child.child_by_field_name("value"),
+            "implements_clause" => None,
+            _ => Some(child),
+        })?;
+    let name = match value.kind() {
+        "member_expression" => value.child_by_field_name("property")?,
+        "identifier" => value,
+        _ => return None,
+    };
+    Some(base.get_node_text(&name))
+}
+
 /// Rule 1/4 predicate: is this bare `identifier` a value read or a member-access
 /// receiver — the complement of the Call/MemberAccess/TypeUsage arms? The default
 /// is inclusive (`_ => true`) with enumerated exclusions, exactly like the C#

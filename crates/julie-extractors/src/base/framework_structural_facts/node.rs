@@ -45,7 +45,7 @@ pub(super) fn collect_node_http_boundary_facts(
     let imports = collect_node_imports(content, &mask);
     let express_receivers = collect_express_receivers(content, &mask, &imports);
     let fastify_receivers = collect_fastify_receivers(content, &mask, &imports);
-    let express_mounts = collect_express_mounts(content, &mask, &express_receivers);
+    let express_mounts = collect_express_mounts(content, &mask, &express_receivers, &imports);
 
     let mut facts = Vec::new();
     facts.extend(collect_express_route_calls(
@@ -98,6 +98,7 @@ struct NodeImports {
     direct_express_apps: BTreeSet<String>,
     direct_express_routers: BTreeSet<String>,
     fastify: BTreeSet<String>,
+    project_relative: BTreeSet<String>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -155,6 +156,7 @@ fn collect_node_imports(content: &str, mask: &SourceMask) -> NodeImports {
     let mut imports = NodeImports::default();
     collect_es_imports(content, mask, &mut imports);
     collect_require_imports(content, mask, &mut imports);
+    collect_project_relative_requires(content, mask, &mut imports);
     imports
 }
 
@@ -176,6 +178,19 @@ fn collect_es_imports(content: &str, mask: &SourceMask, imports: &mut NodeImport
         let Some(source) = parse_import_source(statement) else {
             continue;
         };
+        if is_project_relative_source(&source) {
+            imports.project_relative.extend(
+                parse_default_import(statement)
+                    .into_iter()
+                    .chain(parse_namespace_import(statement))
+                    .chain(
+                        parse_named_imports(statement)
+                            .into_iter()
+                            .map(|(_, local)| local),
+                    ),
+            );
+            continue;
+        }
         if !matches!(source.as_str(), "express" | "fastify") {
             continue;
         }
@@ -229,16 +244,29 @@ fn collect_require_imports_for(
             .map(|index| index + 1)
             .unwrap_or(0);
         let before = content[statement_start..require_start].trim();
-        let Some(local) = before
-            .strip_prefix("const ")
-            .or_else(|| before.strip_prefix("let "))
-            .or_else(|| before.strip_prefix("var "))
-            .and_then(|prefix| prefix.split('=').next())
-            .map(str::trim)
-            .filter(|value| is_js_identifier(value))
-        else {
+        let Some(binding) = declared_binding(before) else {
             continue;
         };
+        if source == "express"
+            && let Some(pattern) = binding
+                .strip_prefix('{')
+                .and_then(|rest| rest.strip_suffix('}'))
+        {
+            for entry in pattern.split(',') {
+                let (imported, local) = entry
+                    .split_once(':')
+                    .map(|(imported, local)| (imported.trim(), local.trim()))
+                    .unwrap_or((entry.trim(), entry.trim()));
+                if imported == "Router" && is_js_identifier(local) {
+                    imports.express_router_factories.insert(local.to_string());
+                }
+            }
+            continue;
+        }
+        let local = binding.split(':').next().unwrap_or_default().trim();
+        if !is_js_identifier(local) {
+            continue;
+        }
         let after = content[cursor..].trim_start();
         if source == "express" {
             if after.starts_with(".Router()") {
@@ -264,14 +292,14 @@ fn collect_express_receivers(
         collect_call_assignment_receivers(
             content,
             mask,
-            &format!("{local}()"),
+            &format!("{local}("),
             ReceiverKind::ExpressApp,
             &mut receivers,
         );
         collect_call_assignment_receivers(
             content,
             mask,
-            &format!("{local}.Router()"),
+            &format!("{local}.Router("),
             ReceiverKind::ExpressRouter,
             &mut receivers,
         );
@@ -280,7 +308,7 @@ fn collect_express_receivers(
         collect_call_assignment_receivers(
             content,
             mask,
-            &format!("{local}()"),
+            &format!("{local}("),
             ReceiverKind::ExpressRouter,
             &mut receivers,
         );
@@ -301,12 +329,7 @@ fn collect_fastify_receivers(
 ) -> BTreeSet<String> {
     let mut receivers = BTreeSet::new();
     for local in &imports.fastify {
-        collect_call_assignment_receiver_names(
-            content,
-            mask,
-            &format!("{local}()"),
-            &mut receivers,
-        );
+        collect_call_assignment_receiver_names(content, mask, &format!("{local}("), &mut receivers);
     }
     // Plugin-parameter gate: a parameter literally named `fastify` attests the
     // framework by itself; the generic `app` name is a common Express idiom
@@ -350,17 +373,75 @@ fn collect_call_assignment_receiver_names(
             .map(|index| index + 1)
             .unwrap_or(0);
         let before = content[statement_start..call_start].trim();
-        let Some(name) = before
-            .strip_prefix("const ")
-            .or_else(|| before.strip_prefix("let "))
-            .or_else(|| before.strip_prefix("var "))
-            .and_then(|prefix| prefix.split('=').next())
+        let Some(name) = declared_binding(before)
+            .and_then(|binding| binding.split(':').next())
             .map(str::trim)
             .filter(|value| is_js_identifier(value))
         else {
             continue;
         };
         receivers.insert(name.to_string());
+    }
+}
+
+/// The binding text of a `[export] const|let|var BINDING =` prefix that ends
+/// right before an initializer: `app`, `api: Router`, or `{ Router }`.
+fn declared_binding(before: &str) -> Option<&str> {
+    let before = before
+        .strip_prefix("export ")
+        .map(str::trim_start)
+        .unwrap_or(before);
+    before
+        .strip_prefix("const ")
+        .or_else(|| before.strip_prefix("let "))
+        .or_else(|| before.strip_prefix("var "))?
+        .strip_suffix('=')
+        .map(str::trim)
+}
+
+fn is_project_relative_source(source: &str) -> bool {
+    source.starts_with('.') || source.starts_with('/')
+}
+
+fn is_project_relative_require(content: &str, mask: &SourceMask, text_start: usize) -> bool {
+    let Some(rest) = content.get(text_start..) else {
+        return false;
+    };
+    let Some(after_require) = rest.strip_prefix("require") else {
+        return false;
+    };
+    let open =
+        text_start + "require".len() + (after_require.len() - after_require.trim_start().len());
+    if content.as_bytes().get(open) != Some(&b'(') || mask.is_string_or_comment(text_start) {
+        return false;
+    }
+    let source_start = skip_ascii_whitespace_until(content, open + 1, content.len());
+    parse_js_string_literal(content, source_start)
+        .is_some_and(|(source, _)| is_project_relative_source(&source))
+}
+
+fn collect_project_relative_requires(content: &str, mask: &SourceMask, imports: &mut NodeImports) {
+    let mut cursor = 0;
+    while let Some(relative) = content[cursor..].find("require") {
+        let require_start = cursor + relative;
+        cursor = require_start + "require".len();
+        if !is_identifier_boundary(content, require_start, "require".len())
+            || !is_project_relative_require(content, mask, require_start)
+        {
+            continue;
+        }
+        let statement_start = content[..require_start]
+            .rfind(['\n', ';'])
+            .map(|index| index + 1)
+            .unwrap_or(0);
+        let Some(local) = declared_binding(content[statement_start..require_start].trim())
+            .and_then(|binding| binding.split(':').next())
+            .map(str::trim)
+            .filter(|value| is_js_identifier(value))
+        else {
+            continue;
+        };
+        imports.project_relative.insert(local.to_string());
     }
 }
 
@@ -398,6 +479,7 @@ fn collect_express_mounts(
     content: &str,
     mask: &SourceMask,
     receivers: &HashMap<String, ReceiverKind>,
+    imports: &NodeImports,
 ) -> ExpressMounts {
     let mut facts = Vec::new();
     let mut same_file_prefixes = HashMap::new();
@@ -427,22 +509,37 @@ fn collect_express_mounts(
             if skip_ascii_whitespace_until(content, path_end, first_end) != first_end {
                 continue;
             }
-            let second_start = skip_ascii_whitespace_until(content, first_end + 1, close);
-            if second_start >= close {
-                continue;
+            let mut arguments = Vec::new();
+            let mut argument_end = first_end;
+            while argument_end < close {
+                let start = skip_ascii_whitespace_until(content, argument_end + 1, close);
+                if start >= close {
+                    break;
+                }
+                argument_end = find_top_level_comma_or_end(content, mask, start, close);
+                arguments.push((start, content[start..argument_end].trim()));
             }
-            let second_end = find_top_level_comma_or_end(content, mask, second_start, close);
-            let mount_target = content[second_start..second_end].trim().to_string();
-            if mount_target.is_empty()
-                || mount_target.starts_with(['\'', '"'])
-                || mount_target.starts_with('{')
-            {
-                continue;
-            }
-            if receivers.get(&mount_target) != Some(&ReceiverKind::ExpressRouter) {
-                continue;
-            }
-            same_file_prefixes.insert(mount_target.clone(), mount_path.clone());
+            let same_file_router = arguments
+                .iter()
+                .rev()
+                .find(|(_, argument)| {
+                    receivers.get(*argument) == Some(&ReceiverKind::ExpressRouter)
+                })
+                .map(|(_, argument)| argument.to_string());
+            let mount_target = if let Some(router) = same_file_router {
+                same_file_prefixes.insert(router.clone(), mount_path.clone());
+                router
+            } else {
+                let Some((start, last)) = arguments.last() else {
+                    continue;
+                };
+                if !imports.project_relative.contains(*last)
+                    && !is_project_relative_require(content, mask, *start)
+                {
+                    continue;
+                }
+                last.to_string()
+            };
             facts.push(MountCandidate {
                 start: name_start,
                 end: close + 1,
@@ -499,16 +596,27 @@ fn collect_express_route_chains(
 ) -> Vec<StructuralFact> {
     let mut facts = Vec::new();
     for receiver in receivers.keys() {
-        let needle = format!("{receiver}.route");
         let mut cursor = 0;
-        while let Some(relative) = content[cursor..].find(&needle) {
+        while let Some(relative) = content[cursor..].find(receiver.as_str()) {
             let route_start = cursor + relative;
-            cursor = route_start + needle.len();
+            cursor = route_start + receiver.len();
             if !is_identifier_boundary(content, route_start, receiver.len())
                 || mask.is_string_or_comment(route_start)
             {
                 continue;
             }
+            let dot = skip_ascii_whitespace_until(content, cursor, content.len());
+            if content.as_bytes().get(dot) != Some(&b'.') {
+                continue;
+            }
+            let Some((member, member_end)) = parse_js_identifier(content, dot + 1, content.len())
+            else {
+                continue;
+            };
+            if member != "route" {
+                continue;
+            }
+            cursor = member_end;
             let open = skip_ascii_whitespace_until(content, cursor, content.len());
             if content.as_bytes().get(open) != Some(&b'(') {
                 continue;

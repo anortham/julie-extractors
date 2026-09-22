@@ -286,3 +286,58 @@ export function registerRoutes(router, path) {
     assert!(facts_with_pattern(&results, EXPRESS_ROUTE_PATTERN_ID).is_empty());
     assert!(facts_with_pattern(&results, EXPRESS_ROUTER_MOUNT_PATTERN_ID).is_empty());
 }
+
+#[test]
+fn express_mounts_cover_imported_required_and_middleware_prefixed_routers() {
+    let source = r#"const express = require('express');
+const { Router } = require('express');
+const usersRouter = require('./routes/users');
+import apiRouter from './routes/api';
+import cors from 'cors';
+const app = express();
+const admin = Router();
+app.use('/users', usersRouter);
+app.use('/api', apiRouter);
+app.use('/v2', require('./routes/v2'));
+app.use('/admin', requireAuth, admin);
+app.use('/cors', cors());
+admin.get('/stats', (req, res) => res.json({}));
+const router = express.Router();
+router
+  .route('/books/:id')
+  .get((req, res) => res.json({}));
+"#;
+    let results = extract("src/app.js", source);
+    let mut mounts: Vec<String> = facts_with_pattern(&results, EXPRESS_ROUTER_MOUNT_PATTERN_ID)
+        .iter()
+        .map(|fact| {
+            format!(
+                "{} -> {}",
+                metadata_str(fact, "mount_path").unwrap_or_default(),
+                metadata_str(fact, "mount_target").unwrap_or_default()
+            )
+        })
+        .collect();
+    mounts.sort();
+    assert_eq!(
+        mounts,
+        vec![
+            "/admin -> admin",
+            "/api -> apiRouter",
+            "/users -> usersRouter",
+            "/v2 -> require('./routes/v2')",
+        ]
+    );
+    let mut routes: Vec<String> = facts_with_pattern(&results, EXPRESS_ROUTE_PATTERN_ID)
+        .iter()
+        .map(|fact| {
+            format!(
+                "{} {}",
+                metadata_str(fact, "route_template").unwrap_or_default(),
+                metadata_str(fact, "effective_route_template").unwrap_or_default()
+            )
+        })
+        .collect();
+    routes.sort();
+    assert_eq!(routes, vec!["/books/:id ", "/stats /admin/stats"]);
+}

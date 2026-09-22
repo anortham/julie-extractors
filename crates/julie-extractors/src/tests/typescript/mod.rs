@@ -21,7 +21,8 @@ pub mod tsx_cross_file_pending;
 pub mod tsx_type_arguments;
 pub mod type_arguments;
 pub mod type_facts;
-pub mod types; // NEW: Phase 4 - Type extraction verification tests
+pub mod types;
+pub mod wave1_gaps; // NEW: Phase 4 - Type extraction verification tests
 
 use crate::base::SymbolKind;
 use crate::typescript::TypeScriptExtractor;

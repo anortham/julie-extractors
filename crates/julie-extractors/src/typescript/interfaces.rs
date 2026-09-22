@@ -155,34 +155,32 @@ pub(super) fn extract_enum(
     if let Some(body) = node.child_by_field_name("body") {
         let mut cursor = body.walk();
         for child in body.children(&mut cursor) {
-            if child.kind() == "enum_member" || child.kind() == "property_identifier" {
-                let member_name_node = child.child_by_field_name("name").or_else(|| {
-                    // Some grammars put the identifier directly
-                    if child.kind() == "property_identifier" {
-                        Some(child)
-                    } else {
-                        child
-                            .children(&mut child.walk())
-                            .find(|c| c.kind() == "property_identifier" || c.kind() == "identifier")
-                    }
-                });
-
-                if let Some(member_name_node) = member_name_node {
-                    let member_name = extractor.base().get_node_text(&member_name_node);
-                    if !member_name.is_empty() && member_name != "," {
-                        let member_symbol = extractor.base_mut().create_symbol(
-                            &child,
-                            member_name,
-                            SymbolKind::EnumMember,
-                            SymbolOptions {
-                                parent_id: Some(parent_id.clone()),
-                                ..Default::default()
-                            },
-                        );
-                        symbols.push(member_symbol);
-                    }
-                }
+            let member_name_node = match child.kind() {
+                "enum_assignment" => child.child_by_field_name("name"),
+                "property_identifier" | "string" => Some(child),
+                _ => None,
+            };
+            let Some(member_name_node) = member_name_node else {
+                continue;
+            };
+            let member_name = extractor
+                .base()
+                .get_node_text(&member_name_node)
+                .trim_matches(|c| c == '"' || c == '\'')
+                .to_string();
+            if member_name.is_empty() {
+                continue;
             }
+            let member_symbol = extractor.base_mut().create_symbol(
+                &child,
+                member_name,
+                SymbolKind::EnumMember,
+                SymbolOptions {
+                    parent_id: Some(parent_id.clone()),
+                    ..Default::default()
+                },
+            );
+            symbols.push(member_symbol);
         }
     }
 

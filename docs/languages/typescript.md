@@ -65,6 +65,32 @@ The named exclusions those controls lock in — `test.step`, the QUnit `hooks`
 object, and bare `QUnit.only` — are listed in
 [`docs/languages/javascript.md`](javascript.md).
 
+## Call edges and pending calls
+
+- A call to a same-file function or method is a `calls` relationship.
+- A JSX element with a capitalized name (`<Badge />`, `<UI.Panel>`) is a
+  call site. Intrinsic elements (`<div>`) emit nothing.
+- A member call emits a pending `calls` row only when its receiver has
+  evidence for the consumer to bind:
+  - the receiver is a project-relative import, or a local built by
+    `new ImportedType()`;
+  - the receiver is a variable, parameter, or property with a type fact.
+    Built-in types, arrays, and types imported from packages do not count;
+  - the receiver is `this` or `super` and the enclosing class does not
+    declare the member. The row carries `receiver_type`: the class name for
+    `this`, the declared base class for `super`.
+- `this.repo.save()` names the receiver `repo`, so the consumer joins the
+  `repo` type fact.
+- A member call is never dropped because an unrelated symbol in the file
+  has the same member name.
+- A doc comment before `export`, `const`, or `let` belongs to the declared
+  symbol. The `export` row does not repeat it.
+
+The `typescript/language_gaps` and `tsx/language_gaps` goldens hold the
+evidence: abstract classes and members, enum members with initializers,
+declaration docs, typed-receiver pending calls, JSX component edges, and
+Express/Fastify routes on exported and type-annotated receivers.
+
 ## Grammar gap: variance annotations on type parameters
 
 `tree-sitter-typescript` does not parse the `in` and `out` variance modifiers
